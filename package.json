@@ -1,0 +1,108 @@
+{
+  "name": "multimeter",
+  "displayName": "multimeter",
+  "description": "API test tools",
+  "version": "0.0.1",
+  "engines": {
+    "vscode": "^1.70.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "*"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "mmt",
+        "extensions": [".mmt"],
+        "aliases": ["MMT"]
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "mmt.preview",
+        "displayName": "MMT Preview",
+        "selector": [
+          {
+            "filenamePattern": "*.mmt"
+          }
+        ]
+      }
+    ],
+    "commands": [
+      {
+        "command": "extension.showMmtPreview",
+        "title": "Show MMT Preview",
+        "category": "Preview",
+        "icon": {
+          "light": "res/icon.svg",
+          "dark": "res/icon.svg"
+        }
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "extension.showMmtPreview",
+          "when": "resourceLangId == mmt",
+          "group": "navigation"
+        }
+      ]
+    },
+    "iconThemes": [
+      {
+        "id": "mmt-icons",
+        "label": "MMT Icons",
+        "path": "./fileicons/mmt-icon-theme.json"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "multimeterViewContainer",
+          "title": "Multimeter",
+          "icon": "res/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "multimeterViewContainer": [
+        {
+          "id": "multimeterView",
+          "name": "Multimeter Panel"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "buildview": "npm run build --prefix mmtview",
+    "vscode:prepublish": "npm run package",
+    "compile": "npm run check-types && npm run lint && node esbuild.js",
+    "watch": "npm-run-all -p watch:*",
+    "watch:esbuild": "node esbuild.js --watch",
+    "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
+    "package": "npm run check-types && npm run lint && node esbuild.js --production",
+    "compile-tests": "tsc -p . --outDir out",
+    "watch-tests": "tsc -p . -w --outDir out",
+    "pretest": "npm run compile-tests && npm run compile && npm run lint",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.100.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "20.x",
+    "@typescript-eslint/eslint-plugin": "^8.31.1",
+    "@typescript-eslint/parser": "^8.31.1",
+    "eslint": "^9.25.1",
+    "esbuild": "^0.25.3",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^5.8.3",
+    "@vscode/test-cli": "^0.0.10",
+    "@vscode/test-electron": "^2.5.2"
+  }
+}

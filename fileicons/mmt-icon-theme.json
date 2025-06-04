@@ -1,0 +1,10 @@
+{
+    "fileExtensions": {
+      "mmt": "mmt-icon"
+    },
+    "iconDefinitions": {
+      "mmt-icon": {
+        "iconPath": "../res/icon.svg"
+      }
+    }
+  }
