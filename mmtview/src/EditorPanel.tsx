@@ -11,7 +11,7 @@ declare global {
   }
 }
 
-const EditorPanel: React.FC<{ width: number }> = ({ width }) => {
+const EditorPanel: React.FC = () => {
   const [content, setContent] = useState("");
   const isInitLoad = useRef(true);
 
@@ -40,7 +40,7 @@ const EditorPanel: React.FC<{ width: number }> = ({ width }) => {
   }, []);
 
   return (
-    <div style={{ flex: `0 0 ${width}%`, height: "100%" }}>
+    <div style={{ height: "100%" }}>
       <MonacoEditor
         height="100%"
         width="100%"

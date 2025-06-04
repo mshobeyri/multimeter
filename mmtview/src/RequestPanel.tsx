@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const RequestPanel: React.FC<{ width: number }> = ({ width }) => {
+const RequestPanel: React.FC = () => {
   const [method, setMethod] = useState("GET");
   const [url, setUrl] = useState("");
   const [headers, setHeaders] = useState("{}");
@@ -43,7 +43,6 @@ const RequestPanel: React.FC<{ width: number }> = ({ width }) => {
     <div
       id="request-panel"
       style={{
-        flex: `0 0 ${width}%`,
         display: "flex",
         flexDirection: "column",
         padding: "1rem",
