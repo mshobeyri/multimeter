@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import MonacoEditor from "@monaco-editor/react";
 
 
 // TypeScript declaration for window.vscode
@@ -39,25 +40,22 @@ const EditorPanel: React.FC<{ width: number }> = ({ width }) => {
   }, []);
 
   return (
-    <textarea
-      id="editor"
-      value={content}      
-      onChange={e => setContent(e.target.value)}
-      style={{
-        flex: `0 0 ${width}%`,
-        padding: "1rem",
-        boxSizing: "border-box",
-        border: "none",
-        resize: "none",
-        borderRight: "1px solid var(--vscode-editorGroup-border)",
-        backgroundColor: "var(--vscode-editor-background)",
-        color: "var(--vscode-editor-foreground)",
-        minWidth: 100,
-        maxWidth: "80vw",
-        overflow: "auto",
-        height: "100%",
+    <div style={{ flex: `0 0 ${width}%`, height: "100%" }}>
+      <MonacoEditor
+        height="100%"
+        width="100%"
+        language="plaintext"
+        value={content}
+        theme="vs-dark"     
+        onChange={value => setContent(value ?? "")}
+        options={{
+          fontSize: 14,
+          minimap: { enabled: false },
+          wordWrap: "on",
+          // You can add more options to match VS Code settings
       }}
     />
+    </div>
   );
 };
 
