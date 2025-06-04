@@ -49,7 +49,7 @@ const EditorPanel: React.FC = () => {
         theme="vs-dark"     
         onChange={value => setContent(value ?? "")}
         options={{
-          fontSize: 14,
+          fontSize: 12,
           minimap: { enabled: false },
           wordWrap: "on",
           // You can add more options to match VS Code settings
