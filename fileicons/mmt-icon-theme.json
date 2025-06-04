@@ -4,7 +4,7 @@
     },
     "iconDefinitions": {
       "mmt-icon": {
-        "iconPath": "../res/icon.svg"
+        "iconPath": "../res/icon.png"
       }
     }
   }

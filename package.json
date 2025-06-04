@@ -38,8 +38,8 @@
         "title": "Show MMT Preview",
         "category": "Preview",
         "icon": {
-          "light": "res/icon.svg",
-          "dark": "res/icon.svg"
+          "light": "res/icon.png",
+          "dark": "res/icon.png"
         }
       }
     ],
@@ -64,7 +64,7 @@
         {
           "id": "multimeterViewContainer",
           "title": "Multimeter",
-          "icon": "res/icon.svg"
+          "icon": "res/icon.png"
         }
       ]
     },
