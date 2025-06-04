@@ -44,7 +44,7 @@ const EditorPanel: React.FC<{ width: number }> = ({ width }) => {
       <MonacoEditor
         height="100%"
         width="100%"
-        language="plaintext"
+        language="yaml"
         value={content}
         theme="vs-dark"     
         onChange={value => setContent(value ?? "")}
