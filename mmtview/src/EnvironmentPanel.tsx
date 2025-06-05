@@ -43,6 +43,7 @@ interface EnvironmentPanelProps {
 const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent }) => {
   const [variables, setVariables] = useState<ComboTablePair[]>([]);
   const [presets, setPresets] = useState<ComboTablePair[]>([]);
+  const [presetData, setPresetData] = useState<any>({}); // To keep the parsed preset structure
 
   // Parse YAML and update variables/presets when content changes
   useEffect(() => {
@@ -54,14 +55,12 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     if (yaml.variables) {
       Object.entries(yaml.variables).forEach(([name, value]) => {
         if (Array.isArray(value)) {
-          // Array: options are the array values
           variablePairs.push({
             name,
             options: value,
             value: value[0] ?? ""
           });
         } else if (typeof value === "object" && value !== null) {
-          // Object: options are the keys
           variablePairs.push({
             name,
             options: Object.keys(value),
@@ -72,39 +71,29 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     }
     setVariables(variablePairs);
 
-    // Presets (flatten all preset environments into one table)
+    // Presets: Each preset group (e.g. runner) is a row, options are environments (dev, ci, cd)
     const presetPairs: ComboTablePair[] = [];
+    const presetDataObj: any = {};
     if (yaml.presets) {
       Object.entries(yaml.presets).forEach(([presetName, presetObj]) => {
         if (typeof presetObj === "object" && presetObj !== null) {
-          Object.entries(presetObj).forEach(([envName, envVars]) => {
-            if (typeof envVars === "object" && envVars !== null) {
-              Object.entries(envVars).forEach(([varName, varValue]) => {
-                // Find options for this variable from variables section
-                let options: string[] = [];
-                const variable = yaml.variables?.[varName];
-                if (Array.isArray(variable)) {
-                  options = variable;
-                } else if (typeof variable === "object" && variable !== null) {
-                  options = Object.keys(variable);
-                }
-                presetPairs.push({
-                  name: `${presetName}.${envName}.${varName}`,
-                  options,
-                  value: String(varValue)
-                });
-              });
-            }
+          const envNames = Object.keys(presetObj);
+          presetPairs.push({
+            name: presetName,
+            options: envNames,
+            value: envNames[0] ?? ""
           });
+          presetDataObj[presetName] = presetObj;
         }
       });
     }
     setPresets(presetPairs);
+    setPresetData(presetDataObj);
 
     window.vscode?.postMessage({ command: "update", text: content });
   }, [content]);
 
-  // Handlers
+  // Handler for variables
   const handleVariablesChange = (name: string, value: string) => {
     setVariables(prev =>
       prev.map(pair =>
@@ -113,12 +102,24 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     );
   };
 
-  const handlePresetsChange = (name: string, value: string) => {
+  // Handler for presets: when a preset env is selected, update all variables accordingly
+  const handlePresetsChange = (presetName: string, envName: string) => {
     setPresets(prev =>
       prev.map(pair =>
-        pair.name === name ? { ...pair, value } : pair
+        pair.name === presetName ? { ...pair, value: envName } : pair
       )
     );
+    // Update variables based on the selected preset/env
+    const envVars = presetData[presetName]?.[envName];
+    if (envVars && typeof envVars === "object") {
+      setVariables(prev =>
+        prev.map(pair =>
+          envVars[pair.name]
+            ? { ...pair, value: String(envVars[pair.name]) }
+            : pair
+        )
+      );
+    }
   };
 
   return (
