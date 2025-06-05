@@ -52,6 +52,9 @@ const EditorPanel: React.FC = () => {
           fontSize: 12,
           minimap: { enabled: false },
           wordWrap: "on",
+          tabSize: 2,
+          automaticLayout: true,
+          lineNumbers: "on"
           // You can add more options to match VS Code settings
       }}
     />
