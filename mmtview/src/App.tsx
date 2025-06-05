@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import TextEditorPanel from "./TextEditorPanel";
 import RequestPanel from "./RequestPanel";
 import { SplitPane } from '@rexxars/react-split-pane';
-import parseYaml from "./yamlParser";
+import parseYaml from "./yamlparser";
 import './App.css';
 
 const App: React.FC = () => {
@@ -38,6 +38,7 @@ const App: React.FC = () => {
   useEffect(() => {
     window.vscode?.postMessage({ command: "ready" });
   }, []);
+
   return (
     <SplitPane
       split="vertical"
