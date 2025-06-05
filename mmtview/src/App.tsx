@@ -1,12 +1,19 @@
 import React, { useEffect, useRef, useState } from "react";
 import TextEditorPanel from "./TextEditorPanel";
-import RequestPanel from "./RequestPanel";
+import EnvironmentPanel from "./EnvironmentPanel";
 import { SplitPane } from '@rexxars/react-split-pane';
 import parseYaml from "./yamlparser";
 import './App.css';
 
-const App: React.FC = () => {
+declare global {
+  interface Window {
+    vscode?: {
+      postMessage: (msg: any) => void;
+    };
+  }
+}
 
+const App: React.FC = () => {
   const [paneSize, setPaneSize] = useState(window.innerWidth / 2);
   const [content, setContent] = useState("");
   const isInitLoad = useRef(true);
@@ -26,7 +33,6 @@ const App: React.FC = () => {
 
   useEffect(() => {
       let res = parseYaml(content);
-      console.log(res);
 
     if (isInitLoad.current) {
       isInitLoad.current = false;
@@ -54,7 +60,7 @@ const App: React.FC = () => {
       }}
     >
       <TextEditorPanel content={content} setContent={setContent} />
-      <RequestPanel />
+      <EnvironmentPanel content={content} setContent={setContent} />
     </SplitPane>
   );
 }

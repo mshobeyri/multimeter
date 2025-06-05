@@ -1,15 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import MonacoEditor from "@monaco-editor/react";
-// TypeScript declaration for window.vscode
-declare global {
-  interface Window {
-    vscode?: {
-      postMessage: (msg: any) => void;
-    };
-  }
-}
 
-// Add this interface:
 interface TextEditorPanelProps {
   content: string;
   setContent: React.Dispatch<React.SetStateAction<string>>;

@@ -60,3 +60,24 @@
     transform: rotate(360deg);
   }
 }
+
+select, select:focus {
+  background-color: var(--vscode-input-background, #1e1e1e);
+  color: var(--vscode-input-foreground, #d4d4d4);
+  border: 1px solid var(--vscode-input-border, #3c3c3c);
+  border-radius: 2px;
+  padding: 4px 8px;
+  font-size: 1rem;
+  font-family: var(--vscode-editor-font-family, inherit);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+select:focus {
+  border-color: var(--vscode-focusBorder, #007fd4);
+}
+
+option {
+  background-color: var(--vscode-input-background, #1e1e1e);
+  color: var(--vscode-input-foreground, #d4d4d4);
+}
