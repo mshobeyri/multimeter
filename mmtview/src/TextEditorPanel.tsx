@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import MonacoEditor from "@monaco-editor/react";
-
+import parseYaml from "./yamlParser";
 
 // TypeScript declaration for window.vscode
 declare global {
@@ -11,8 +11,13 @@ declare global {
   }
 }
 
-const EditorPanel: React.FC = () => {
-  const [content, setContent] = useState("");
+// Add this interface:
+interface TextEditorPanelProps {
+  content: string;
+  setContent: React.Dispatch<React.SetStateAction<string>>;
+}
+
+const TextEditorPanel: React.FC<TextEditorPanelProps> = ({ content, setContent }) => {
   const isInitLoad = useRef(true);
 
   useEffect(() => {
@@ -23,11 +28,15 @@ const EditorPanel: React.FC = () => {
         setContent(message.content);
       }
     };
+
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, []);
+  }, [setContent]);
 
   useEffect(() => {
+      let res = parseYaml(content);
+      console.log(res);
+
     if (isInitLoad.current) {
       isInitLoad.current = false;
       return;
@@ -46,7 +55,7 @@ const EditorPanel: React.FC = () => {
         width="100%"
         language="yaml"
         value={content}
-        theme="vs-dark"     
+        theme="vs-dark"
         onChange={value => setContent(value ?? "")}
         options={{
           fontSize: 12,
@@ -55,11 +64,10 @@ const EditorPanel: React.FC = () => {
           tabSize: 2,
           automaticLayout: true,
           lineNumbers: "on"
-          // You can add more options to match VS Code settings
-      }}
-    />
+        }}
+      />
     </div>
   );
 };
 
-export default EditorPanel;
+export default TextEditorPanel;

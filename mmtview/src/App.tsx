@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import EditorPanel from "./EditorPanel";
+import TextEditorPanel from "./TextEditorPanel";
 import RequestPanel from "./RequestPanel";
 import { SplitPane } from '@rexxars/react-split-pane';
 import './App.css';
@@ -7,6 +7,7 @@ import './App.css';
 const App: React.FC = () => {
 
   const [paneSize, setPaneSize] = useState(window.innerWidth / 2);
+  const [content, setContent] = useState("");
 
   return (
     <SplitPane
@@ -22,7 +23,7 @@ const App: React.FC = () => {
         fontSize: "var(--vscode-editor-font-size, 14px)",
       }}
     >
-      <EditorPanel />
+      <TextEditorPanel content={content} setContent={setContent} />
       <RequestPanel />
     </SplitPane>
   );
