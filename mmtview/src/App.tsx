@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import TextEditorPanel from "./TextEditorPanel";
 import EnvironmentPanel from "./EnvironmentPanel";
 import { SplitPane } from '@rexxars/react-split-pane';
-import parseYaml from "./yamlparser";
 import './App.css';
 
 declare global {
@@ -32,8 +31,6 @@ const App: React.FC = () => {
   }, [setContent]);
 
   useEffect(() => {
-      let res = parseYaml(content);
-
     if (isInitLoad.current) {
       isInitLoad.current = false;
       return;

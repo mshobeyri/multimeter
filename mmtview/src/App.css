@@ -67,7 +67,7 @@ select, select:focus {
   border: 1px solid var(--vscode-input-border, #3c3c3c);
   border-radius: 2px;
   padding: 4px 8px;
-  font-size: 1rem;
+  font-size: 0.7rem;
   font-family: var(--vscode-editor-font-family, inherit);
   outline: none;
   transition: border-color 0.2s;
