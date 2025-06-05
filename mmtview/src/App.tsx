@@ -1,14 +1,43 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import TextEditorPanel from "./TextEditorPanel";
 import RequestPanel from "./RequestPanel";
 import { SplitPane } from '@rexxars/react-split-pane';
+import parseYaml from "./yamlParser";
 import './App.css';
 
 const App: React.FC = () => {
 
   const [paneSize, setPaneSize] = useState(window.innerWidth / 2);
   const [content, setContent] = useState("");
+  const isInitLoad = useRef(true);
 
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      const message = event.data;
+      if (message.command === "loadDocument") {
+        isInitLoad.current = true;
+        setContent(message.content);
+      }
+    };
+
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [setContent]);
+
+  useEffect(() => {
+      let res = parseYaml(content);
+      console.log(res);
+
+    if (isInitLoad.current) {
+      isInitLoad.current = false;
+      return;
+    }
+    window.vscode?.postMessage({ command: "update", text: content });
+  }, [content]);
+
+  useEffect(() => {
+    window.vscode?.postMessage({ command: "ready" });
+  }, []);
   return (
     <SplitPane
       split="vertical"

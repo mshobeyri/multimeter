@@ -1,7 +1,5 @@
 import React, { useEffect, useRef } from "react";
 import MonacoEditor from "@monaco-editor/react";
-import parseYaml from "./yamlParser";
-
 // TypeScript declaration for window.vscode
 declare global {
   interface Window {
@@ -18,36 +16,6 @@ interface TextEditorPanelProps {
 }
 
 const TextEditorPanel: React.FC<TextEditorPanelProps> = ({ content, setContent }) => {
-  const isInitLoad = useRef(true);
-
-  useEffect(() => {
-    const handler = (event: MessageEvent) => {
-      const message = event.data;
-      if (message.command === "loadDocument") {
-        isInitLoad.current = true;
-        setContent(message.content);
-      }
-    };
-
-    window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
-  }, [setContent]);
-
-  useEffect(() => {
-      let res = parseYaml(content);
-      console.log(res);
-
-    if (isInitLoad.current) {
-      isInitLoad.current = false;
-      return;
-    }
-    window.vscode?.postMessage({ command: "update", text: content });
-  }, [content]);
-
-  useEffect(() => {
-    window.vscode?.postMessage({ command: "ready" });
-  }, []);
-
   return (
     <div style={{ height: "100%" }}>
       <MonacoEditor
