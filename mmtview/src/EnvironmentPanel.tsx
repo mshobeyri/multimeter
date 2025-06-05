@@ -41,20 +41,70 @@ interface EnvironmentPanelProps {
 }
 
 const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent }) => {
-  const [variables, setVariables] = useState<ComboTablePair[]>([
-    { name: "test_type", options: ["smoke", "regression", "load"], value: "smoke" },
-    { name: "endpoint", options: ["st", "et", "pr"], value: "st" },
-    { name: "certificate", options: ["cert1", "cert2"], value: "cert1" }
-  ]);
-  const [presets, setPresets] = useState<ComboTablePair[]>([
-    { name: "runner", options: ["dev", "ci", "cd"], value: "dev" }
-  ]);
+  const [variables, setVariables] = useState<ComboTablePair[]>([]);
+  const [presets, setPresets] = useState<ComboTablePair[]>([]);
 
+  // Parse YAML and update variables/presets when content changes
   useEffect(() => {
-    let res = parseYaml(content);
+    const yaml = parseYaml(content);
+    if (!yaml) return;
+
+    // Variables
+    const variablePairs: ComboTablePair[] = [];
+    if (yaml.variables) {
+      Object.entries(yaml.variables).forEach(([name, value]) => {
+        if (Array.isArray(value)) {
+          // Array: options are the array values
+          variablePairs.push({
+            name,
+            options: value,
+            value: value[0] ?? ""
+          });
+        } else if (typeof value === "object" && value !== null) {
+          // Object: options are the keys
+          variablePairs.push({
+            name,
+            options: Object.keys(value),
+            value: Object.keys(value)[0] ?? ""
+          });
+        }
+      });
+    }
+    setVariables(variablePairs);
+
+    // Presets (flatten all preset environments into one table)
+    const presetPairs: ComboTablePair[] = [];
+    if (yaml.presets) {
+      Object.entries(yaml.presets).forEach(([presetName, presetObj]) => {
+        if (typeof presetObj === "object" && presetObj !== null) {
+          Object.entries(presetObj).forEach(([envName, envVars]) => {
+            if (typeof envVars === "object" && envVars !== null) {
+              Object.entries(envVars).forEach(([varName, varValue]) => {
+                // Find options for this variable from variables section
+                let options: string[] = [];
+                const variable = yaml.variables?.[varName];
+                if (Array.isArray(variable)) {
+                  options = variable;
+                } else if (typeof variable === "object" && variable !== null) {
+                  options = Object.keys(variable);
+                }
+                presetPairs.push({
+                  name: `${presetName}.${envName}.${varName}`,
+                  options,
+                  value: String(varValue)
+                });
+              });
+            }
+          });
+        }
+      });
+    }
+    setPresets(presetPairs);
+
     window.vscode?.postMessage({ command: "update", text: content });
   }, [content]);
 
+  // Handlers
   const handleVariablesChange = (name: string, value: string) => {
     setVariables(prev =>
       prev.map(pair =>
