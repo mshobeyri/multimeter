@@ -63,11 +63,17 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
 
   // Handler for variables
   const handleVariablesChange = (name: string, value: string) => {
-    setVariables(prev =>
-      prev.map(pair =>
+    setVariables(prev => {
+      const updated = prev.map(pair =>
         pair.name === name ? { ...pair, value } : pair
-      )
-    );
+      );
+      window.vscode?.postMessage({
+        command: "updateWorkspaceState",
+        name: "multimeter.env.variables",
+        value: updated.map(({ name, value }) => ({ name, value })),
+      });
+      return updated;
+    });
   };
 
   // Handler for presets: when a preset env is selected, update all variables accordingly
@@ -79,6 +85,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     );
     // Update variables based on the selected preset/env
     const envVars = presetData[presetName]?.[envName];
+
     if (envVars && typeof envVars === "object") {
       setVariables(prev =>
         prev.map(pair =>
@@ -89,6 +96,28 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
       );
     }
   };
+
+  // Load selections from VSCode
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      const message = event.data;
+      console.log(`Loaded workspace state: ${event.data.name} = ${JSON.stringify(event.data.value)}`);
+          
+      if (message.command === "loadWorkspaceState" && message.name === "multimeter.env.variables") {
+        // When loading, merge loaded values into the current YAML structure
+        setVariables(vars =>
+          vars.map(pair => {
+            const found = message.value?.find((v: any) => v.name === pair.name);
+            return found ? { ...pair, value: found.value } : pair;
+          })
+        );
+      }
+    };
+    window.addEventListener("message", handler);
+    // Ask extension to send selections on mount
+    window.vscode?.postMessage({ command: "loadWorkspaceState", name: "multimeter.env.variables" });
+    return () => window.removeEventListener("message", handler);
+  }, []);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px", padding: "10px" }}>
