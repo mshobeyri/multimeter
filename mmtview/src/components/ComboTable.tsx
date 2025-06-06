@@ -9,19 +9,26 @@ interface ComboTablePair {
 interface ComboTableProps {
   pairs: ComboTablePair[];
   onChange: (name: string, value: string) => void;
+  showPlaceholder?: boolean;
 }
 
-const ComboTable: React.FC<ComboTableProps> = ({ pairs, onChange }) => (
-  <table style={{ width: "100%", borderCollapse: "collapse" }}>
+const ComboTable: React.FC<ComboTableProps> = ({ pairs, onChange, showPlaceholder }) => (
+  <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+    <colgroup>
+      <col style={{ width: "40%" }} />
+      <col style={{ width: "60%" }} />
+    </colgroup>
     <tbody>
       {pairs.map(pair => {
         const isValid = pair.options.includes(pair.value);
         return (
           <tr key={pair.name}>
-            <td style={{ padding: "8px" }}>{pair.name}</td>
+            <td style={{ padding: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {pair.name}
+            </td>
             <td style={{ padding: "8px" }}>
               <select
-                value={pair.value}
+                value={showPlaceholder ? "" : pair.value}
                 onChange={e => onChange(pair.name, e.target.value)}
                 style={{
                   width: "100%",
@@ -29,7 +36,12 @@ const ComboTable: React.FC<ComboTableProps> = ({ pairs, onChange }) => (
                   borderColor: isValid ? undefined : "red"
                 }}
               >
-                {!isValid && pair.value && (
+                {showPlaceholder && (
+                  <option value="" disabled>
+                    Select...
+                  </option>
+                )}
+                {!isValid && pair.value && !showPlaceholder && (
                   <option value={pair.value} disabled style={{ color: "red" }}>
                     {pair.value} (invalid)
                   </option>

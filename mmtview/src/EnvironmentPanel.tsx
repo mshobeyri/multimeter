@@ -143,7 +143,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         }}
       >
         <div style={{ fontWeight: "bold", fontSize: "1.1em", marginBottom: "12px" }}>Presets</div>
-        <ComboTable pairs={presets} onChange={handlePresetsChange} />
+        <ComboTable pairs={presets} onChange={handlePresetsChange} showPlaceholder />
       </div>
     </div>
   );
