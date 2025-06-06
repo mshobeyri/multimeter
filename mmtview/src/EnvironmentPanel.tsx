@@ -87,13 +87,20 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     const envVars = presetData[presetName]?.[envName];
 
     if (envVars && typeof envVars === "object") {
-      setVariables(prev =>
-        prev.map(pair =>
+      setVariables(prev => {
+        const updated = prev.map(pair =>
           envVars[pair.name]
             ? { ...pair, value: String(envVars[pair.name]) }
             : pair
-        )
-      );
+        );
+        // Save to workspace state after updating variables
+        window.vscode?.postMessage({
+          command: "updateWorkspaceState",
+          name: "multimeter.env.variables",
+          value: updated.map(({ name, value }) => ({ name, value })),
+        });
+        return updated;
+      });
     }
   };
 
