@@ -12,27 +12,29 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   const [variables, setVariables] = useState<ComboTablePair[]>([]);
   const [presets, setPresets] = useState<ComboTablePair[]>([]);
   const [presetData, setPresetData] = useState<any>({}); // To keep the parsed preset structure
+  const loadedVarsRef = React.useRef<{ name: string; value: string }[]>([]);
 
   // Parse YAML and update variables/presets when content changes
   useEffect(() => {
     const yaml = parseYaml(content);
     if (!yaml) return;
 
-    // Variables
     const variablePairs: ComboTablePair[] = [];
     if (yaml.variables) {
       Object.entries(yaml.variables).forEach(([name, value]) => {
+        const found = loadedVarsRef.current.find((v: any) => v.name === name);
         if (Array.isArray(value)) {
           variablePairs.push({
             name,
             options: value,
-            value: value[0] ?? ""
+            value: found ? found.value : value[0] ?? ""
           });
         } else if (typeof value === "object" && value !== null) {
+          const keys = Object.keys(value);
           variablePairs.push({
             name,
-            options: Object.keys(value),
-            value: Object.keys(value)[0] ?? ""
+            options: keys,
+            value: found ? found.value : keys[0] ?? ""
           });
         }
       });
@@ -101,20 +103,18 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       const message = event.data;
-      console.log(`Loaded workspace state: ${event.data.name} = ${JSON.stringify(event.data.value)}`);
-          
       if (message.command === "loadWorkspaceState" && message.name === "multimeter.env.variables") {
-        // When loading, merge loaded values into the current YAML structure
+        loadedVarsRef.current = message.value || [];
+        // Re-parse YAML to apply loaded values
         setVariables(vars =>
           vars.map(pair => {
-            const found = message.value?.find((v: any) => v.name === pair.name);
+            const found = loadedVarsRef.current.find((v: any) => v.name === pair.name);
             return found ? { ...pair, value: found.value } : pair;
           })
         );
       }
     };
     window.addEventListener("message", handler);
-    // Ask extension to send selections on mount
     window.vscode?.postMessage({ command: "loadWorkspaceState", name: "multimeter.env.variables" });
     return () => window.removeEventListener("message", handler);
   }, []);
