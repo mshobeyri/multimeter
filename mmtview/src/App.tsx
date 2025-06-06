@@ -3,6 +3,7 @@ import TextEditorPanel from "./TextEditorPanel";
 import EnvironmentPanel from "./EnvironmentPanel";
 import { SplitPane } from '@rexxars/react-split-pane';
 import './App.css';
+import CommonsPanel from "./CommonsPanel";
 
 declare global {
   interface Window {
@@ -15,6 +16,7 @@ declare global {
 const App: React.FC = () => {
   const [paneSize, setPaneSize] = useState(window.innerWidth / 2);
   const [content, setContent] = useState("");
+  const [fileName, setFileName] = useState<string | null>(null);
   const isInitLoad = useRef(true);
 
   useEffect(() => {
@@ -23,6 +25,14 @@ const App: React.FC = () => {
       if (message.command === "loadDocument") {
         isInitLoad.current = true;
         setContent(message.content);
+        // Extract file name from URI
+        try {
+          const uri = message.uri || "";
+          const name = uri.split("/").pop() || "";
+          setFileName(name);
+        } catch {
+          setFileName(null);
+        }
       }
     };
 
@@ -57,7 +67,12 @@ const App: React.FC = () => {
       }}
     >
       <TextEditorPanel content={content} setContent={setContent} />
-      <EnvironmentPanel content={content} setContent={setContent} />
+      {fileName === "environments.mmt" && (
+        <EnvironmentPanel content={content} setContent={setContent} />
+      )}
+      {fileName === "commons.mmt" && (
+        <CommonsPanel content={content} setContent={setContent} />
+      )}
     </SplitPane>
   );
 }
