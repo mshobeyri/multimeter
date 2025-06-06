@@ -59,8 +59,6 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     }
     setPresets(presetPairs);
     setPresetData(presetDataObj);
-
-    window.vscode?.postMessage({ command: "update", text: content });
   }, [content]);
 
   // Handler for variables
