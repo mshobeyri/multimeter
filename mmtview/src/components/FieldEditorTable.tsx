@@ -1,35 +1,66 @@
 import React, { useState } from "react";
 import FieldEditorRow from "./FieldEditorRow";
 
+
+
+const protobufTypes = [
+  "double",
+  "float",
+  "int32",
+  "int64",
+  "uint32",
+  "uint64",
+  "sint32",
+  "sint64",
+  "fixed32",
+  "fixed64",
+  "sfixed32",
+  "sfixed64",
+  "bool",
+  "string",
+  "bytes"
+];
+
 export interface VariableField {
   key: string;
   type: string;
-  name: string;
-  info: string;
+  name?: string;
+  info?: string;
   value?: string;
+  alter_name?: string;
+  Alter_Name?: string;
+  ALTER_NAME?: string;
+  AlterName?: string;
+  altername?: string;
+  alterName?: string;
+  protobuf?: string;
 }
+
+const jsonTypes = ["string", "number", "boolean"];
+const fieldOptions = [
+  "Name",
+  "Type",
+  "Info",
+  "Protobuf",
+  "alter_name",
+  "Alter_Name",
+  "ALTER_NAME",
+  "AlterName",
+  "altername",
+  "alterName",
+];
 
 interface FieldEditorTableProps {
   fields: VariableField[];
   setFields: (fields: VariableField[]) => void;
-  typeOptions?: string[];
-  typeComboOptions?: string[];
+  fieldOptions?: string[];
+  jsonTypes?: string[];
+  protobufTypes?: string[];
 }
-
-const defaultTypes = ["Name", "Info", "Type"];
-const defaultTypeComboOptions = ["string", "integer", "boolean"];
-
-const addFieldOptions = [
-  { label: "Name", value: "Name" },
-  { label: "Info", value: "Info" },
-  { label: "Type", value: "Type" }
-];
 
 const FieldEditorTable: React.FC<FieldEditorTableProps> = ({
   fields,
   setFields,
-  typeOptions = defaultTypes,
-  typeComboOptions = defaultTypeComboOptions,
 }) => {
   const [addType, setAddType] = useState<string>("");
 
@@ -63,8 +94,9 @@ const FieldEditorTable: React.FC<FieldEditorTableProps> = ({
           <tr key={field.key}>
             <FieldEditorRow
               field={field}
-              typeOptions={typeOptions}
-              typeComboOptions={typeComboOptions}
+              fieldOptions={fieldOptions}
+              jsonTypes={jsonTypes}
+              protobufTypes={protobufTypes}
               onChange={updated => handleRowChange(idx, updated)}
             />
           </tr>
@@ -79,8 +111,8 @@ const FieldEditorTable: React.FC<FieldEditorTableProps> = ({
               style={{ width: "40%", verticalAlign: "top" }}
             >
               <option value="">Select...</option>
-              {addFieldOptions.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              {fieldOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
           </td>

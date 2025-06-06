@@ -11,10 +11,7 @@ interface CommonsProps {
 }
 
 const Commons: React.FC<CommonsProps> = ({ content, setContent }) => {
-  const [fields, setFields] = useState<VariableField[]>([
-    { key: "trace_id", name: "traceId", type: "string", info: "Trace Id is used to track a request." },
-    { key: "session", name: "session", type: "integer", info: "Session informations." },
-  ]);
+  const [fields, setFields] = useState<VariableField[]>([]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px", padding: "10px" }}>

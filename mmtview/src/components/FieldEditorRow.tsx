@@ -3,15 +3,17 @@ import { VariableField } from "./FieldEditorTable";
 
 interface FieldEditorRowProps {
   field: VariableField;
-  typeOptions: string[];
-  typeComboOptions: string[];
+  fieldOptions: string[];
+  jsonTypes: string[];
+  protobufTypes: string[];
   onChange: (updated: VariableField | null) => void;
 }
 
 const FieldEditorRow: React.FC<FieldEditorRowProps> = ({
   field,
-  typeOptions,
-  typeComboOptions,
+  fieldOptions,
+  jsonTypes,
+  protobufTypes,
   onChange,
 }) => {
   return (
@@ -30,7 +32,7 @@ const FieldEditorRow: React.FC<FieldEditorRowProps> = ({
           }}
           style={{ width: "100%", verticalAlign: "top" }}
         >
-          {typeOptions.map(opt => (
+          {fieldOptions.map(opt => (
             <option key={opt} value={opt}>{opt}</option>
           ))}
           <option value="remove" style={{ color: "red" }}>Remove</option>
@@ -51,7 +53,7 @@ const FieldEditorRow: React.FC<FieldEditorRowProps> = ({
           <textarea
             value={field.info}
             placeholder="Info"
-            style={{ width: "100%", verticalAlign: "top", minHeight: 32, resize: "vertical"}}
+            style={{ width: "100%", verticalAlign: "top", minHeight: 32, resize: "vertical" }}
             onChange={e => onChange({ ...field, info: e.target.value })}
           />
         )}
@@ -62,7 +64,19 @@ const FieldEditorRow: React.FC<FieldEditorRowProps> = ({
             style={{ width: "100%" }}
           >
             <option value="" disabled>Select type...</option>
-            {typeComboOptions.map(opt => (
+            {jsonTypes.map(opt => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+        )}
+        {field.type === "Protobuf" && (
+          <select
+            value={field.value || ""}
+            onChange={e => onChange({ ...field, value: e.target.value })}
+            style={{ width: "100%" }}
+          >
+            <option value="" disabled>Select type...</option>
+            {protobufTypes.map(opt => (
               <option key={opt} value={opt}>{opt}</option>
             ))}
           </select>
