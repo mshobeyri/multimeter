@@ -24,6 +24,30 @@ const VariablesEditor: React.FC = () => {
             setVariables={setVariables}
             onRemove={() => removeVariable(idx)}
           />
+          <button
+            onClick={() => removeVariable(idx)}
+            title="Remove field"
+            style={{
+              position: "absolute",
+              top: 2,
+              right: 2,
+              width: 28,
+              height: 24,
+              background: "none",
+              color: "#c00",
+              border: "none",
+              cursor: "pointer",
+              fontWeight: "bold",
+              fontSize: "18px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: 0,
+              zIndex: 1
+            }}
+          >
+            🗑️
+          </button>
         </div>
       ))}
       <button

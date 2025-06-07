@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import FieldEditorRow from "./FieldEditorRow";
 
 const protobufTypes = [
   "double", "float", "int32", "int64", "uint32", "uint64", "sint32", "sint64",
@@ -97,7 +96,7 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
           style={{
             position: "absolute",
             top: 0,
-            left: "50%",
+            left: "100%",
             transform: "translateX(-50%) translateY(-50%)",
             width: 24,
             height: 24,
@@ -168,38 +167,42 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
                   {opt}
                 </td>
                 <td style={{ padding: "8px", position: "relative" }}>
-                  <input
-                    type="text"
-                    value={variable[opt as keyof VariableField] as string || ""}
-                    style={{ width: "100%", verticalAlign: "top" }}
-                    onChange={e => updateField({ [opt]: e.target.value })}
-                  />
-                  <button
-                    onClick={() => removeOptionalField(opt as keyof VariableField)}
-                    title="Remove field"
-                    style={{
-                      position: "absolute",
-                      top: 4,
-                      right: 4,
-                      width: 18,
-                      height: 18,
-                      borderRadius: "50%",
-                      background: "#c00",
-                      color: "#fff",
-                      border: "none",
-                      cursor: "pointer",
-                      fontWeight: "bold",
-                      fontSize: "12px",
-                      lineHeight: "18px",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      padding: 0,
-                      zIndex: 1
-                    }}
-                  >
-                    ×
-                  </button>
+                  <div style={{ position: "relative", width: "100%" }}>
+                    <input
+                      type="text"
+                      value={variable[opt as keyof VariableField] as string || ""}
+                      style={{
+                        width: "100%",
+                        verticalAlign: "top",
+                        paddingRight: 32 // leave space for the button
+                      }}
+                      onChange={e => updateField({ [opt]: e.target.value })}
+                    />
+                    <button
+                      onClick={() => removeOptionalField(opt as keyof VariableField)}
+                      title="Remove field"
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        right: 0,
+                        width: 28,
+                        height: 24,
+                        background: "transparent",
+                        color: "#fff",
+                        border: "none",
+                        cursor: "pointer",
+                        fontWeight: "bold",
+                        fontSize: "14px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        padding: 0,
+                        zIndex: 1
+                      }}
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 </td>
               </tr>
             ) : null
