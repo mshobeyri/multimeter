@@ -1,6 +1,7 @@
 import { on } from "events";
 import React, { useState } from "react";
 import FieldWithRemove from "./FieldWithRemove";
+import ObjectFieldsEditor from "./ObjectFieldsEditor";
 
 const protobufTypes = [
   "double", "float", "int32", "int64", "uint32", "uint64", "sint32", "sint64",
@@ -22,10 +23,11 @@ export interface VariableField {
   altername?: string;
   alterName?: string;
   protobuf?: string;
+  has?: Record<string, string>;
 }
 
 const jsonTypes = [
-  "string", "string[]", "number", "number[]", "boolean", "boolean[]"
+  "object", "object[]", "string", "string[]", "number", "number[]", "boolean", "boolean[]"
 ];
 
 const fieldOptions = [
@@ -114,7 +116,7 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
               <FieldWithRemove
                 value={variable.name || ""}
                 onChange={v => updateField({ name: v })}
-                onRemovePressed={onRemove ?? (() => {})}
+                onRemovePressed={onRemove ?? (() => { })}
                 placeholder="name"
               />
             </td>
@@ -161,7 +163,23 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
               </tr>
             ) : null
           )}
-          {/* Add optional field selector */}
+          {(variable.type === "object" || variable.type === "object[]") && (
+            <tr>
+              <td colSpan={2} style={{ padding: "8px" }}>
+                <ObjectFieldsEditor
+                  fields={variable.has || {}}
+                  setFields={fields => updateField({ has: fields })}
+                  typeOptions={[
+                    ...jsonTypes,
+                    ...variables
+                      .map(v => v.key)
+                      .filter(k => !!k)
+                      .flatMap(k => [k, `${k}[]`])
+                  ]}
+                />
+              </td>
+            </tr>
+          )}
           {availableOptionals.length > 0 && (
             <tr>
               <td colSpan={2} style={{ padding: "8px", paddingRight: "28px" }}>
