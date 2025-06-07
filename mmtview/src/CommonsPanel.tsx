@@ -16,6 +16,7 @@ function yamlToVariables(yamlContent: string): VariablesList {
     if (!doc || typeof doc !== "object" || !doc.variables) return [];
     return Object.entries(doc.variables).map(([key, value]: [string, any]) => ({
       key,
+      name: value.name ?? key, // Add name parameter, defaulting to key if not present
       ...value,
     }));
   } catch {
@@ -27,7 +28,11 @@ function variablesToYaml(variables: VariablesList): string {
   const variablesObj: Record<string, any> = {};
   variables.forEach(v => {
     const { key, ...rest } = v;
-    variablesObj[key || v.name || ""] = rest;
+    // Use the name parameter as the YAML key if present, otherwise fallback to key
+    const yamlKey = v.name || key;
+    // Remove the name property from the packed value
+    const { name, ...packedRest } = rest;
+    variablesObj[yamlKey] = packedRest;
   });
   return packYaml({ variables: variablesObj });
 }
