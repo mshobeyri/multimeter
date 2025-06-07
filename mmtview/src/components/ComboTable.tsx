@@ -1,4 +1,5 @@
 import React from "react";
+import ValidatableSelect from "./ValidatableSelect";
 
 interface ComboTablePair {
   name: string;
@@ -28,41 +29,21 @@ const ComboTable: React.FC<ComboTableProps> = ({ pairs, onChange, showPlaceholde
           <col style={{ width: "60%" }} />
         </colgroup>
         <tbody>
-          {pairs.map(pair => {
-            const isValid = pair.options.includes(pair.value);
-            return (
-              <tr key={pair.name}>
-                <td style={{ padding: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {pair.name}
-                </td>
-                <td style={{ padding: "8px" }}>
-                  <select
-                    value={showPlaceholder ? "" : pair.value}
-                    onChange={e => onChange(pair.name, e.target.value)}
-                    style={{
-                      width: "100%",
-                      color: isValid ? undefined : "red",
-                      borderColor: isValid ? undefined : "red"
-                    }}
-                  >
-                    {showPlaceholder && (
-                      <option value="" disabled>
-                        Select...
-                      </option>
-                    )}
-                    {!isValid && pair.value && !showPlaceholder && (
-                      <option value={pair.value} disabled style={{ color: "red" }}>
-                        {pair.value} (invalid)
-                      </option>
-                    )}
-                    {pair.options.map(opt => (
-                      <option key={opt} value={opt}>{opt}</option>
-                    ))}
-                  </select>
-                </td>
-              </tr>
-            );
-          })}
+          {pairs.map(pair => (
+            <tr key={pair.name}>
+              <td style={{ padding: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {pair.name}
+              </td>
+              <td style={{ padding: "8px" }}>
+                <ValidatableSelect
+                  value={pair.value}
+                  options={pair.options}
+                  onChange={val => onChange(pair.name, val)}
+                  showPlaceholder={showPlaceholder}
+                />
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>
