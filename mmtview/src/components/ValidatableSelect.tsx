@@ -19,7 +19,7 @@ const ValidatableSelect: React.FC<ValidatableSelectProps> = ({
 
   return (
     <select
-      value={showPlaceholder ? "" : value}
+      value={showPlaceholder && !value ? "" : value}
       onChange={e => onChange(e.target.value)}
       style={{
         width: "100%",
@@ -32,7 +32,7 @@ const ValidatableSelect: React.FC<ValidatableSelectProps> = ({
           {placeholder}
         </option>
       )}
-      {!isValid && value && !showPlaceholder && (
+      {!isValid && value && (
         <option value={value} disabled style={{ color: "red" }}>
           {value} (invalid)
         </option>

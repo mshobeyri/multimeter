@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import ValidatableSelect from "./ValidatableSelect";
 
 interface ObjectFieldsEditorProps {
     fields: Record<string, string>;
@@ -98,21 +99,13 @@ const ObjectFieldsEditor: React.FC<ObjectFieldsEditorProps> = ({ fields, setFiel
                         display: "flex",
                         alignItems: "center",
                     }}>
-                        <select
+                        <ValidatableSelect
                             value={type}
-                            onChange={e => handleTypeChange(name, e.target.value)}
-                            style={{
-                                flex: 1,
-                                minWidth: 100,
-                                boxSizing: "border-box",
-                            }}
-                        >
-                            {typeOptions
-                                .filter(opt => opt !== "object" && opt !== "object[]")
-                                .map(opt => (
-                                    <option key={opt} value={opt}>{opt}</option>
-                                ))}
-                        </select>
+                            options={typeOptions.filter(opt => opt !== "object" && opt !== "object[]")}
+                            onChange={val => handleTypeChange(name, val)}
+                            showPlaceholder={true}
+                            placeholder="Select type..."
+                        />
                         <button
                             onClick={() => handleRemove(name)}
                             style={{

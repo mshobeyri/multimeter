@@ -2,6 +2,7 @@ import { on } from "events";
 import React, { useState } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import ObjectFieldsEditor from "./ObjectFieldsEditor";
+import ValidatableSelect from "./ValidatableSelect";
 
 const protobufTypes = [
   "double", "float", "int32", "int64", "uint32", "uint64", "sint32", "sint64",
@@ -137,23 +138,16 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
               type
             </td>
             <td style={{ padding: "8px" }}>
-              <select
+              <ValidatableSelect
                 value={variable.type || ""}
-                onChange={e => updateField({ type: e.target.value })}
-                style={{ width: "100%" }}
-              >
-                <option value="" disabled>Select type...</option>
-                {jsonTypes.map(opt => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-                {previousVariableKeys.length > 0 && <option disabled>────────────</option>}
-                {previousVariableKeys.map(opt => (
-                  <React.Fragment key={opt}>
-                    <option value={opt}>{opt}</option>
-                    <option value={`${opt}[]`}>{opt}[]</option>
-                  </React.Fragment>
-                ))}
-              </select>
+                options={[
+                  ...jsonTypes,
+                  ...previousVariableKeys.flatMap(opt => [opt, `${opt}[]`])
+                ]}
+                onChange={val => updateField({ type: val })}
+                showPlaceholder={true}
+                placeholder="Select type..."
+              />
             </td>
           </tr>
           {/* Render optional fields */}
