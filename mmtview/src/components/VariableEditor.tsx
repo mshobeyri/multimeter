@@ -38,8 +38,6 @@ export interface VariableField {
 
 const jsonTypes = ["string", "number", "boolean"];
 const fieldOptions = [
-  "Name",
-  "Type",
   "Info",
   "Protobuf",
   "alter_name",
@@ -63,6 +61,10 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
   setFields,
 }) => {
   const [addType, setAddType] = useState<string>("");
+
+  // Compute which optional fields are not yet present
+  const usedTypes = new Set(fields.map(f => f.type));
+  const availableOptionals = fieldOptions.filter(opt => !usedTypes.has(opt));
 
   const handleRowChange = (idx: number, updated: VariableField | null) => {
     if (updated === null) {
@@ -153,7 +155,7 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
                 style={{ width: "40%", verticalAlign: "top" }}
               >
                 <option value="">Optionals...</option>
-                {fieldOptions.map(opt => (
+                {availableOptionals.map(opt => (
                   <option key={opt} value={opt}>{opt}</option>
                 ))}
               </select>
