@@ -62,8 +62,18 @@ const Commons: React.FC<CommonsProps> = ({ content, setContent }) => {
   }, [variables, setContent]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px", padding: "10px" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "24px",
+        padding: "10px",
+        height: "100%",
+        overflowY: "auto",
+      }}
+    >
       <VariablesEditor variables={variables} setVariables={setVariables} />
+      <div style={{ height: 50, flexShrink: 0 }} />
     </div>
   );
 };
