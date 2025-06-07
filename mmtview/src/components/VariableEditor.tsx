@@ -2,22 +2,11 @@ import React, { useState } from "react";
 import FieldEditorRow from "./FieldEditorRow";
 
 const protobufTypes = [
-  "double",
-  "float",
-  "int32",
-  "int64",
-  "uint32",
-  "uint64",
-  "sint32",
-  "sint64",
-  "fixed32",
-  "fixed64",
-  "sfixed32",
-  "sfixed64",
-  "bool",
-  "string",
-  "bytes"
+  "double", "float", "int32", "int64", "uint32", "uint64", "sint32", "sint64",
+  "fixed32", "fixed64", "sfixed32", "sfixed64", "bool", "string", "bytes"
 ];
+
+export type VariablesList = VariableField[];
 
 export interface VariableField {
   key: string;
@@ -35,65 +24,64 @@ export interface VariableField {
 }
 
 const jsonTypes = [
-  "string",
-  "string[]",
-  "number",
-  "number[]",
-  "boolean",
-  "boolean[]"
+  "string", "string[]", "number", "number[]", "boolean", "boolean[]"
 ];
 
 const fieldOptions = [
-  "Info",
-  "Protobuf",
-  "alter_name",
-  "Alter_Name",
-  "ALTER_NAME",
-  "AlterName",
-  "altername",
-  "alterName",
+  "Info", "Protobuf", "alter_name", "Alter_Name", "ALTER_NAME",
+  "AlterName", "altername", "alterName"
 ];
 
 interface VariableEditorProps {
-  fields: VariableField[];
-  setFields: (fields: VariableField[]) => void;
-  fieldOptions?: string[];
-  jsonTypes?: string[];
-  protobufTypes?: string[];
+  idx: number;
+  variables: VariablesList;
+  setVariables: (vars: VariablesList) => void;
   onRemove?: () => void;
 }
 
 const VariableEditor: React.FC<VariableEditorProps> = ({
-  fields,
-  setFields,
+  idx,
+  variables,
+  setVariables,
   onRemove,
 }) => {
+  const variable = variables[idx];
   const [addType, setAddType] = useState<string>("");
 
-  // Compute which optional fields are not yet present
-  const usedTypes = new Set(fields.map(f => f.type));
-  const availableOptionals = fieldOptions.filter(opt => !usedTypes.has(opt));
+  // List of optional fields not yet present in this variable
+  const usedFields = new Set(
+    fieldOptions.filter(opt => variable[opt as keyof VariableField] !== undefined)
+  );
+  const availableOptionals = fieldOptions.filter(opt => !usedFields.has(opt));
 
-  const handleRowChange = (idx: number, updated: VariableField | null) => {
-    if (updated === null) {
-      setFields(fields.filter((_, i) => i !== idx));
-    } else {
-      setFields(fields.map((f, i) => (i === idx ? updated : f)));
-    }
+  // Update a field in the variable
+  const updateField = (field: Partial<VariableField>) => {
+    setVariables(
+      variables.map((v, i) =>
+        i === idx ? { ...v, ...field } : v
+      )
+    );
   };
 
+  // Remove an optional field from the variable
+  const removeOptionalField = (fieldName: keyof VariableField) => {
+    setVariables(
+      variables.map((v, i) =>
+        i === idx ? { ...v, [fieldName]: undefined } : v
+      )
+    );
+  };
+
+  // Add an optional field
   const handleAdd = (type: string) => {
-    setFields([
-      ...fields,
-      { key: Date.now().toString(), name: "", type, info: "", value: "" },
-    ]);
+    updateField({ [type]: "" });
     setAddType("");
   };
 
   return (
     <div
       style={{
-        position: "relative", // <-- make the frame relative for absolute button
+        position: "relative",
         background: "var(--vscode-editorWidget-background, #232323)",
         border: "1px solid var(--vscode-editorWidget-border, #333)",
         borderRadius: "6px",
@@ -109,11 +97,10 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
           style={{
             position: "absolute",
             top: 0,
-            left: "100%",
-            bottom: "100%",
+            left: "50%",
             transform: "translateX(-50%) translateY(-50%)",
-            width: 20,
-            height: 20,
+            width: 24,
+            height: 24,
             borderRadius: "50%",
             background: "#c00",
             color: "#fff",
@@ -148,10 +135,10 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
             <td style={{ padding: "8px" }}>
               <input
                 type="text"
-                // value={fields.Name || ""}
+                value={variable.name || ""}
                 placeholder="Name"
                 style={{ width: "100%", verticalAlign: "top" }}
-              // onChange={e => setAddType()}
+                onChange={e => updateField({ name: e.target.value })}
               />
             </td>
           </tr>
@@ -159,47 +146,83 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
             <td style={{ padding: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               Type
             </td>
-
             <td style={{ padding: "8px" }}>
               <select
-                // value={field.Type || ""}
-                // onChange={e => setAddType({ ...field, value: e.target.value })}
+                value={variable.type || ""}
+                onChange={e => updateField({ type: e.target.value })}
                 style={{ width: "100%" }}
               >
                 <option value="" disabled>Select type...</option>
                 {jsonTypes.map(opt => (
                   <option key={opt} value={opt}>{opt}</option>
                 ))}
+                {/* Add previous variable names if needed */}
               </select>
             </td>
           </tr>
-          {fields.map((field, idx) => (
-            <tr key={field.key}>
-              <FieldEditorRow
-                field={field}
-                fieldOptions={fieldOptions}
-                jsonTypes={jsonTypes}
-                protobufTypes={protobufTypes}
-                onChange={updated => handleRowChange(idx, updated)}
-              />
+          {/* Render optional fields */}
+          {fieldOptions.map(opt =>
+            variable[opt as keyof VariableField] !== undefined ? (
+              <tr key={opt}>
+                <td style={{ padding: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {opt}
+                </td>
+                <td style={{ padding: "8px", position: "relative" }}>
+                  <input
+                    type="text"
+                    value={variable[opt as keyof VariableField] as string || ""}
+                    style={{ width: "100%", verticalAlign: "top" }}
+                    onChange={e => updateField({ [opt]: e.target.value })}
+                  />
+                  <button
+                    onClick={() => removeOptionalField(opt as keyof VariableField)}
+                    title="Remove field"
+                    style={{
+                      position: "absolute",
+                      top: 4,
+                      right: 4,
+                      width: 18,
+                      height: 18,
+                      borderRadius: "50%",
+                      background: "#c00",
+                      color: "#fff",
+                      border: "none",
+                      cursor: "pointer",
+                      fontWeight: "bold",
+                      fontSize: "12px",
+                      lineHeight: "18px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      padding: 0,
+                      zIndex: 1
+                    }}
+                  >
+                    ×
+                  </button>
+                </td>
+              </tr>
+            ) : null
+          )}
+          {/* Add optional field selector */}
+          {availableOptionals.length > 0 && (
+            <tr>
+              <td colSpan={2} style={{ padding: "8px", paddingRight: "28px" }}>
+                <select
+                  value={addType}
+                  onChange={e => {
+                    if (e.target.value) handleAdd(e.target.value);
+                  }}
+                  style={{ width: "40%", verticalAlign: "top" }}
+                >
+                  <option value="">Optionals...</option>
+                  {availableOptionals.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </td>
             </tr>
-          ))}
-          <tr>
-            <td colSpan={2} style={{ padding: "8px", paddingRight: "28px" }}>
-              <select
-                value={addType}
-                onChange={e => {
-                  if (e.target.value) handleAdd(e.target.value);
-                }}
-                style={{ width: "40%", verticalAlign: "top" }}
-              >
-                <option value="">Optionals...</option>
-                {availableOptionals.map(opt => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-            </td>
-          </tr>
+          )}
         </tbody>
       </table>
     </div>

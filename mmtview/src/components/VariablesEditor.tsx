@@ -1,28 +1,28 @@
 import React, { useState } from "react";
-import VariableEditor, {VariableField} from "./VariableEditor";
+import VariableEditor, { VariableField } from "./VariableEditor";
 
-export type VariablesList = VariableField[][];
+export type VariablesList = VariableField[];
 
-const VariablesVariable: React.FC = () => {
-  const [variables, setVariables] = useState<VariablesList>([
-    [] // Start with one empty variable variable
-  ]);
+const VariablesEditor: React.FC = () => {
+  const [variables, setVariables] = useState<VariablesList>([]);
 
-  const addVariable = () => setVariables([...variables, []]);
+  const addVariable = () =>
+    setVariables([
+      ...variables,
+      { name: "", value: "", key: "", type: "" }
+    ]);
   const removeVariable = (idx: number) =>
     setVariables(variables.filter((_, i) => i !== idx));
+
   return (
     <div>
       {variables.map((fields, idx) => (
         <div key={idx} style={{ marginBottom: 24 }}>
           <VariableEditor
-            fields={fields}
-            setFields={f =>
-              setVariables(prev =>
-                prev.map((v, i) => (i === idx ? f : v))
-              )
-            }
-            onRemove={() => removeVariable(idx)} // <-- add this line
+            idx={idx}
+            variables={variables}
+            setVariables={setVariables}
+            onRemove={() => removeVariable(idx)}
           />
         </div>
       ))}
@@ -45,4 +45,4 @@ const VariablesVariable: React.FC = () => {
   );
 };
 
-export default VariablesVariable;
+export default VariablesEditor;
