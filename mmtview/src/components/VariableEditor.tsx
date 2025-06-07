@@ -23,7 +23,7 @@ export interface VariableField {
   altername?: string;
   alterName?: string;
   protobuf?: string;
-  has?: Record<string, string>;
+  fields?: Record<string, string>;
 }
 
 const jsonTypes = [
@@ -77,7 +77,18 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
 
   // Add an optional field
   const handleAdd = (type: string) => {
-    updateField({ [type]: "" });
+    if (type === "field") {
+      // Add a new empty field to the fields object (ObjectFieldsEditor)
+      const currentFields = variable.fields || {};
+      // Find a unique field name
+      let newFieldName = "field";
+      let counter = 1;
+      while (currentFields[`${newFieldName}${counter}`]) counter++;
+      newFieldName = `${newFieldName}${counter}`;
+      updateField({ fields: { ...currentFields, [newFieldName]: "" } });
+    } else {
+      updateField({ [type]: "" });
+    }
     setAddType("");
   };
 
@@ -167,8 +178,8 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
             <tr>
               <td colSpan={2} style={{ padding: "8px" }}>
                 <ObjectFieldsEditor
-                  fields={variable.has || {}}
-                  setFields={fields => updateField({ has: fields })}
+                  fields={variable.fields || {}}
+                  setFields={fields => updateField({ fields: fields })}
                   typeOptions={[
                     ...jsonTypes,
                     ...variables
@@ -180,7 +191,7 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
               </td>
             </tr>
           )}
-          {availableOptionals.length > 0 && (
+          {(availableOptionals.length > 0 || (variable.type === "object" || variable.type === "object[]")) && (
             <tr>
               <td colSpan={2} style={{ padding: "8px", paddingRight: "28px" }}>
                 <select
@@ -191,6 +202,9 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
                   style={{ width: "40%", verticalAlign: "top" }}
                 >
                   <option value="">Optionals...</option>
+                  {(variable.type === "object" || variable.type === "object[]") && (
+                    <option value="field">field</option>
+                  )}
                   {availableOptionals.map(opt => (
                     <option key={opt} value={opt}>{opt}</option>
                   ))}
