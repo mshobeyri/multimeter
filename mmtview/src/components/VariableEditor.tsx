@@ -1,4 +1,6 @@
+import { on } from "events";
 import React, { useState } from "react";
+import FieldWithRemove from "./FieldWithRemove";
 
 const protobufTypes = [
   "double", "float", "int32", "int64", "uint32", "uint64", "sint32", "sint64",
@@ -89,35 +91,6 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
         marginBottom: "16px"
       }}
     >
-      {onRemove && (
-        <button
-          onClick={onRemove}
-          title="Remove Variable"
-          style={{
-            position: "absolute",
-            top: 0,
-            left: "100%",
-            transform: "translateX(-50%) translateY(-50%)",
-            width: 24,
-            height: 24,
-            borderRadius: "50%",
-            background: "#c00",
-            color: "#fff",
-            border: "none",
-            cursor: "pointer",
-            fontWeight: "bold",
-            fontSize: "16px",
-            lineHeight: "24px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: 0,
-            zIndex: 1
-          }}
-        >
-          ×
-        </button>
-      )}
       <table
         className="VariableEditor"
         style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}
@@ -131,13 +104,12 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
             <td style={{ padding: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               Name
             </td>
-            <td style={{ padding: "8px" }}>
-              <input
-                type="text"
+            <td style={{ padding: "8px", position: "relative" }}>
+              <FieldWithRemove
                 value={variable.name || ""}
+                onChange={v => updateField({ name: v })}
+                onRemovePressed={onRemove ?? (() => {})}
                 placeholder="Name"
-                style={{ width: "100%", verticalAlign: "top" }}
-                onChange={e => updateField({ name: e.target.value })}
               />
             </td>
           </tr>
@@ -167,42 +139,12 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
                   {opt}
                 </td>
                 <td style={{ padding: "8px", position: "relative" }}>
-                  <div style={{ position: "relative", width: "100%" }}>
-                    <input
-                      type="text"
-                      value={variable[opt as keyof VariableField] as string || ""}
-                      style={{
-                        width: "100%",
-                        verticalAlign: "top",
-                        paddingRight: 32 // leave space for the button
-                      }}
-                      onChange={e => updateField({ [opt]: e.target.value })}
-                    />
-                    <button
-                      onClick={() => removeOptionalField(opt as keyof VariableField)}
-                      title="Remove field"
-                      style={{
-                        position: "absolute",
-                        top: 0,
-                        right: 0,
-                        width: 28,
-                        height: 24,
-                        background: "transparent",
-                        color: "#fff",
-                        border: "none",
-                        cursor: "pointer",
-                        fontWeight: "bold",
-                        fontSize: "14px",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        padding: 0,
-                        zIndex: 1
-                      }}
-                    >
-                      🗑️
-                    </button>
-                  </div>
+                  <FieldWithRemove
+                    value={variable[opt as keyof VariableField] as string || ""}
+                    onChange={v => updateField({ [opt]: v })}
+                    onRemovePressed={() => removeOptionalField(opt as keyof VariableField)}
+                    placeholder={opt}
+                  />
                 </td>
               </tr>
             ) : null
