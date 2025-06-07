@@ -1,5 +1,5 @@
 import React from "react";
-import { VariableField } from "./FieldEditorTable";
+import { VariableField } from "./VariableEditor";
 
 interface FieldEditorRowProps {
   field: VariableField;
@@ -57,18 +57,7 @@ const FieldEditorRow: React.FC<FieldEditorRowProps> = ({
             onChange={e => onChange({ ...field, info: e.target.value })}
           />
         )}
-        {field.type === "Type" && (
-          <select
-            value={field.value || ""}
-            onChange={e => onChange({ ...field, value: e.target.value })}
-            style={{ width: "100%" }}
-          >
-            <option value="" disabled>Select type...</option>
-            {jsonTypes.map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
-        )}
+
         {field.type === "Protobuf" && (
           <select
             value={field.value || ""}
@@ -80,6 +69,54 @@ const FieldEditorRow: React.FC<FieldEditorRowProps> = ({
               <option key={opt} value={opt}>{opt}</option>
             ))}
           </select>
+        )}
+        {field.type === "alter_name" && (
+          <input
+            type="text"
+            value={field.alter_name}
+            style={{ width: "100%", verticalAlign: "top" }}
+            onChange={e => onChange({ ...field, alter_name: e.target.value })}
+          />
+        )}
+        {field.type === "Alter_Name" && (
+          <input
+            type="text"
+            value={field.Alter_Name}
+            style={{ width: "100%", verticalAlign: "top" }}
+            onChange={e => onChange({ ...field, Alter_Name: e.target.value })}
+          />
+        )}
+        {field.type === "ALTER_NAME" && (
+          <input
+            type="text"
+            value={field.ALTER_NAME}
+            style={{ width: "100%", verticalAlign: "top" }}
+            onChange={e => onChange({ ...field, ALTER_NAME: e.target.value })}
+          />
+        )}
+        {field.type === "AlterName" && (
+          <input
+            type="text"
+            value={field.AlterName}
+            style={{ width: "100%", verticalAlign: "top" }}
+            onChange={e => onChange({ ...field, AlterName: e.target.value })}
+          />
+        )}
+        {field.type === "altername" && (
+          <input
+            type="text"
+            value={field.altername}
+            style={{ width: "100%", verticalAlign: "top" }}
+            onChange={e => onChange({ ...field, altername: e.target.value })}
+          />
+        )}
+        {field.type === "alterName" && (
+          <input
+            type="text"
+            value={field.alterName}
+            style={{ width: "100%", verticalAlign: "top" }}
+            onChange={e => onChange({ ...field, alterName: e.target.value })}
+          />
         )}
       </td>
     </>

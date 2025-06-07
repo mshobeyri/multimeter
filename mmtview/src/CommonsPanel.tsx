@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import parseYaml from "./yamlparser";
 import ComboTable, { ComboTablePair } from "./components/ComboTable";
-import FieldEditorTable from "./components/FieldEditorTable";
-import { VariableField } from "./components/FieldEditorTable";
+import FieldEditorTable from "./components/VariableEditor";
+import { VariableField } from "./components/VariableEditor";
 
 
 interface CommonsProps {
