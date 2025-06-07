@@ -34,7 +34,15 @@ export interface VariableField {
   protobuf?: string;
 }
 
-const jsonTypes = ["string", "number", "boolean"];
+const jsonTypes = [
+  "string",
+  "string[]",
+  "number",
+  "number[]",
+  "boolean",
+  "boolean[]"
+];
+
 const fieldOptions = [
   "Info",
   "Protobuf",
