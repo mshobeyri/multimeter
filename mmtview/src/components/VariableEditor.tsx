@@ -180,13 +180,12 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
                 <ObjectFieldsEditor
                   fields={variable.fields || {}}
                   setFields={fields => updateField({ fields: fields })}
-                  typeOptions={[
-                    ...jsonTypes,
-                    ...variables
-                      .map(v => v.key)
-                      .filter(k => !!k)
-                      .flatMap(k => [k, `${k}[]`])
-                  ]}
+                  typeOptions={
+                    [
+                      ...jsonTypes,
+                      ...previousVariableKeys.flatMap(k => [k, `${k}[]`])
+                    ]
+                  }
                 />
               </td>
             </tr>
