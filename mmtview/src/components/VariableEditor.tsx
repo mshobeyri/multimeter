@@ -79,6 +79,12 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
     setAddType("");
   };
 
+  // Get keys of previous variables (exclude current and empty keys)
+  const previousVariableKeys = variables
+    .slice(0, idx)
+    .map(v => v.key)
+    .filter(k => !!k && k !== variable.key);
+
   return (
     <div
       style={{
@@ -127,7 +133,13 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
                 {jsonTypes.map(opt => (
                   <option key={opt} value={opt}>{opt}</option>
                 ))}
-                {/* Add previous variable names if needed */}
+                {previousVariableKeys.length > 0 && <option disabled>────────────</option>}
+                {previousVariableKeys.map(opt => (
+                  <React.Fragment key={opt}>
+                    <option value={opt}>{opt}</option>
+                    <option value={`${opt}[]`}>{opt}[]</option>
+                  </React.Fragment>
+                ))}
               </select>
             </td>
           </tr>
