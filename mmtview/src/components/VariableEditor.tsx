@@ -1,8 +1,6 @@
 import React, { useState } from "react";
 import FieldEditorRow from "./FieldEditorRow";
 
-
-
 const protobufTypes = [
   "double",
   "float",

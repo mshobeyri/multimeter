@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import parseYaml from "./yamlparser";
 import ComboTable, { ComboTablePair } from "./components/ComboTable";
-import FieldEditorTable from "./components/VariableEditor";
+import VariablesEditor from "./components/VariablesEditor";
 import { VariableField } from "./components/VariableEditor";
 
 
@@ -15,7 +15,7 @@ const Commons: React.FC<CommonsProps> = ({ content, setContent }) => {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "24px", padding: "10px" }}>
-      <FieldEditorTable fields={fields} setFields={setFields} />
+      <VariablesEditor />
     </div>
   );
 };
