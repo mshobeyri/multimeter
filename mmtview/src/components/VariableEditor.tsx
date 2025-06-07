@@ -100,32 +100,38 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
           <col style={{ width: "60%" }} />
         </colgroup>
         <tbody>
-          <td style={{ padding: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            Name
-          </td>
-          <input
-            type="text"
-            // value={fields.Name || ""}
-            placeholder="Name"
-            style={{ width: "100%", verticalAlign: "top" }}
-          // onChange={e => setAddType()}
-          />
-          <td style={{ padding: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            Type
-          </td>
+          <tr>
+            <td style={{ padding: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              Name
+            </td>
+            <td style={{ padding: "8px" }}>
+              <input
+                type="text"
+                // value={fields.Name || ""}
+                placeholder="Name"
+                style={{ width: "100%", verticalAlign: "top" }}
+              // onChange={e => setAddType()}
+              />
+            </td>
+          </tr>
+          <tr>
+            <td style={{ padding: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              Type
+            </td>
 
-
-          <select
-            // value={field.Type || ""}
-            // onChange={e => setAddType({ ...field, value: e.target.value })}
-            style={{ width: "100%" }}
-          >
-            <option value="" disabled>Select type...</option>
-            {jsonTypes.map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
-
+            <td style={{ padding: "8px" }}>
+              <select
+                // value={field.Type || ""}
+                // onChange={e => setAddType({ ...field, value: e.target.value })}
+                style={{ width: "100%" }}
+              >
+                <option value="" disabled>Select type...</option>
+                {jsonTypes.map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </td>
+          </tr>
           {fields.map((field, idx) => (
             <tr key={field.key}>
               <FieldEditorRow
@@ -146,7 +152,7 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
                 }}
                 style={{ width: "40%", verticalAlign: "top" }}
               >
-                <option value="">Select...</option>
+                <option value="">Optionals...</option>
                 {fieldOptions.map(opt => (
                   <option key={opt} value={opt}>{opt}</option>
                 ))}
