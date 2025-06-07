@@ -22,21 +22,8 @@ const VariablesVariable: React.FC = () => {
                 prev.map((v, i) => (i === idx ? f : v))
               )
             }
+            onRemove={() => removeVariable(idx)} // <-- add this line
           />
-          <button
-            onClick={() => removeVariable(idx)}
-            style={{
-              marginTop: 8,
-              background: "var(--vscode-button-background, #c00)",
-              color: "var(--vscode-button-foreground, #fff)",
-              border: "none",
-              borderRadius: 4,
-              padding: "4px 12px",
-              cursor: "pointer"
-            }}
-          >
-            Remove Variable
-          </button>
         </div>
       ))}
       <button

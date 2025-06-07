@@ -52,11 +52,13 @@ interface VariableEditorProps {
   fieldOptions?: string[];
   jsonTypes?: string[];
   protobufTypes?: string[];
+  onRemove?: () => void;
 }
 
 const VariableEditor: React.FC<VariableEditorProps> = ({
   fields,
   setFields,
+  onRemove,
 }) => {
   const [addType, setAddType] = useState<string>("");
 
@@ -83,6 +85,7 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
   return (
     <div
       style={{
+        position: "relative", // <-- make the frame relative for absolute button
         background: "var(--vscode-editorWidget-background, #232323)",
         border: "1px solid var(--vscode-editorWidget-border, #333)",
         borderRadius: "6px",
@@ -91,6 +94,36 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
         marginBottom: "16px"
       }}
     >
+      {onRemove && (
+        <button
+          onClick={onRemove}
+          title="Remove Variable"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: "100%",
+            bottom: "100%",
+            transform: "translateX(-50%) translateY(-50%)",
+            width: 20,
+            height: 20,
+            borderRadius: "50%",
+            background: "#c00",
+            color: "#fff",
+            border: "none",
+            cursor: "pointer",
+            fontWeight: "bold",
+            fontSize: "16px",
+            lineHeight: "24px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 0,
+            zIndex: 1
+          }}
+        >
+          ×
+        </button>
+      )}
       <table
         className="VariableEditor"
         style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}
