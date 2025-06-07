@@ -9,4 +9,14 @@ function parseYaml(yamlString: string): any {
   }
 }
 
+function packYaml(obj: any): string {
+  try {
+    return YAML.stringify(obj, { lineWidth: -1 });
+  } catch (e) {
+    console.error("Failed to stringify YAML:", e);
+    return "";
+  }
+}
+
+export { parseYaml, packYaml };
 export default parseYaml;

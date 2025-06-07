@@ -29,7 +29,7 @@ const jsonTypes = [
 ];
 
 const fieldOptions = [
-  "Info", "Protobuf", "alter_name", "Alter_Name", "ALTER_NAME",
+  "info", "protobuf", "alter_name", "Alter_Name", "ALTER_NAME",
   "AlterName", "altername", "alterName"
 ];
 
@@ -102,20 +102,20 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
         <tbody>
           <tr>
             <td style={{ padding: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              Name
+              name
             </td>
             <td style={{ padding: "8px", position: "relative" }}>
               <FieldWithRemove
                 value={variable.name || ""}
                 onChange={v => updateField({ name: v })}
                 onRemovePressed={onRemove ?? (() => {})}
-                placeholder="Name"
+                placeholder="name"
               />
             </td>
           </tr>
           <tr>
             <td style={{ padding: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              Type
+              type
             </td>
             <td style={{ padding: "8px" }}>
               <select

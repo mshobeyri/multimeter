@@ -1,11 +1,14 @@
-import React, { useState } from "react";
+import React from "react";
 import VariableEditor, { VariableField } from "./VariableEditor";
 
 export type VariablesList = VariableField[];
 
-const VariablesEditor: React.FC = () => {
-  const [variables, setVariables] = useState<VariablesList>([]);
+interface VariablesEditorProps {
+  variables: VariablesList;
+  setVariables: (vars: VariablesList) => void;
+}
 
+const VariablesEditor: React.FC<VariablesEditorProps> = ({ variables, setVariables }) => {
   const addVariable = () =>
     setVariables([
       ...variables,
