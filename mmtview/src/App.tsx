@@ -67,10 +67,10 @@ const App: React.FC = () => {
       }}
     >
       <TextEditorPanel content={content} setContent={setContent} />
-      {fileName === "environments.mmt" && (
+      {fileName === "_environments.mmt" && (
         <EnvironmentPanel content={content} setContent={setContent} />
       )}
-      {fileName === "commons.mmt" && (
+      {fileName === "_parameters.mmt" && (
         <CommonsPanel content={content} setContent={setContent} />
       )}
     </SplitPane>
