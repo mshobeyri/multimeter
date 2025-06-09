@@ -1,9 +1,4 @@
 type: api
-title: generate session
-tags: 
-  - security
-  - sessionless
-description: returns session information.
 inputs:
   - username: c:username
   - password: c:password
@@ -44,3 +39,29 @@ interfaces:
       session:
         regex: body, /<session>(.*)<\\/session>/
       errors: body.errors[0] #xml: formatis xml
+tags: 
+  - security
+  - sessionless
+
+documentation:
+  - title: Generate Session
+    description: This API generates a session based on the provided username and password.
+    inputs:
+      - name: username
+        type: string
+        description: The username for the session.
+      - name: password
+        type: string
+        description: The password for the session.
+      - name: traceId
+        type: string
+        description: A unique identifier for tracing the request.
+    outputs:
+      - name: session
+        type: string
+        description: The generated session ID.
+      - name: errors
+        type: array
+        items:
+          type: string
+        description: Any errors encountered during session generation.

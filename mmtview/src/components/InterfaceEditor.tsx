@@ -1,4 +1,5 @@
 import React from "react";
+import FieldWithRemove from "./FieldWithRemove";
 
 export type Protocol = "http" | "ws" | "grpc";
 export type Format = "json" | "xml" | "protobuf";
@@ -19,6 +20,7 @@ export interface InterfaceData {
 interface InterfaceEditorProps {
   data: InterfaceData;
   onChange: (data: InterfaceData) => void;
+  onRemove?: () => void;
 }
 
 const protocolOptions: Protocol[] = ["http", "ws", "grpc"];
@@ -30,128 +32,144 @@ function renderKVEditor(
   onChange: (v: Record<string, string>) => void
 ) {
   return (
-    <div style={{ marginBottom: 12 }}>
-      <label style={{ fontWeight: "bold" }}>{label}</label>
-      <table style={{ width: "100%", marginTop: 4 }}>
-        <tbody>
-          {Object.entries(value || {}).map(([k, v], i) => (
-            <tr key={i}>
-              <td>
-                <input
-                  value={k}
-                  onChange={e => {
-                    const newKey = e.target.value;
-                    const newObj = { ...(value || {}) };
-                    delete newObj[k];
-                    newObj[newKey] = v;
-                    onChange(newObj);
-                  }}
-                  placeholder="key"
-                  style={{ width: 100 }}
-                />
-              </td>
-              <td>
-                <input
-                  value={v}
-                  onChange={e => {
-                    onChange({ ...(value || {}), [k]: e.target.value });
-                  }}
-                  placeholder="value"
-                  style={{ width: 180 }}
-                />
-              </td>
-              <td>
-                <button
-                  onClick={() => {
-                    const newObj = { ...(value || {}) };
-                    delete newObj[k];
-                    onChange(newObj);
-                  }}
-                  style={{ marginLeft: 8 }}
-                >
-                  Remove
-                </button>
-              </td>
-            </tr>
-          ))}
-          <tr>
-            <td>
-              <input
-                placeholder="key"
-                style={{ width: 100 }}
-                value={""}
-                onChange={e => {
-                  const newKey = e.target.value;
-                  if (newKey) onChange({ ...(value || {}), [newKey]: "" });
-                }}
-              />
-            </td>
-            <td />
-            <td />
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <React.Fragment>
+      <tr>
+        <td style={{ padding: "8px", fontWeight: "bold", verticalAlign: "top" }}>{label}</td>
+        <td style={{ padding: "8px" }}>
+          <table style={{ width: "100%" }}>
+            <tbody>
+              {Object.entries(value || {}).map(([k, v], i) => (
+                <tr key={i}>
+                  <td style={{ width: "40%" }}>
+                    <FieldWithRemove
+                      value={k}
+                      onChange={newKey => {
+                        if (!newKey) return;
+                        const newObj = { ...(value || {}) };
+                        delete newObj[k];
+                        newObj[newKey] = v;
+                        onChange(newObj);
+                      }}
+                      onRemovePressed={() => {
+                        const newObj = { ...(value || {}) };
+                        delete newObj[k];
+                        onChange(newObj);
+                      }}
+                      placeholder="key"
+                    />
+                  </td>
+                  <td style={{ width: "60%" }}>
+                    <FieldWithRemove
+                      value={v}
+                      onChange={newVal => {
+                        onChange({ ...(value || {}), [k]: newVal });
+                      }}
+                      onRemovePressed={() => {
+                        const newObj = { ...(value || {}) };
+                        delete newObj[k];
+                        onChange(newObj);
+                      }}
+                      placeholder="value"
+                    />
+                  </td>
+                </tr>
+              ))}
+              <tr>
+                <td>
+                  <input
+                    placeholder="key"
+                    style={{ width: "90%" }}
+                    value={""}
+                    onChange={e => {
+                      const newKey = e.target.value;
+                      if (newKey) onChange({ ...(value || {}), [newKey]: "" });
+                    }}
+                  />
+                </td>
+                <td />
+              </tr>
+            </tbody>
+          </table>
+        </td>
+      </tr>
+    </React.Fragment>
   );
 }
 
-const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => {
+const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRemove }) => {
   return (
-    <div style={{ padding: 12 }}>
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ fontWeight: "bold" }}>Name</label>
-        <input
-          value={data.name}
-          onChange={e => onChange({ ...data, name: e.target.value })}
-          style={{ marginLeft: 8, width: 200 }}
-        />
-      </div>
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ fontWeight: "bold" }}>Protocol</label>
-        <select
-          value={data.protocol}
-          onChange={e => onChange({ ...data, protocol: e.target.value as Protocol })}
-          style={{ marginLeft: 8 }}
-        >
-          {protocolOptions.map(opt => (
-            <option key={opt} value={opt}>{opt}</option>
-          ))}
-        </select>
-      </div>
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ fontWeight: "bold" }}>Format</label>
-        <select
-          value={data.format}
-          onChange={e => onChange({ ...data, format: e.target.value as Format })}
-          style={{ marginLeft: 8 }}
-        >
-          {formatOptions.map(opt => (
-            <option key={opt} value={opt}>{opt}</option>
-          ))}
-        </select>
-      </div>
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ fontWeight: "bold" }}>Endpoint</label>
-        <input
-          value={data.endpoint}
-          onChange={e => onChange({ ...data, endpoint: e.target.value })}
-          style={{ marginLeft: 8, width: 300 }}
-        />
-      </div>
-      {renderKVEditor("Headers", data.headers, headers => onChange({ ...data, headers }))}
-      {renderKVEditor("Query", data.query, query => onChange({ ...data, query }))}
-      {renderKVEditor("Params", data.params, params => onChange({ ...data, params }))}
-      {renderKVEditor("Cookies", data.cookies, cookies => onChange({ ...data, cookies }))}
-      <div style={{ marginBottom: 12 }}>
-        <label style={{ fontWeight: "bold" }}>Body</label>
-        <textarea
-          value={data.body || ""}
-          onChange={e => onChange({ ...data, body: e.target.value })}
-          style={{ display: "block", width: "100%", minHeight: 60, marginTop: 4 }}
-        />
-      </div>
-      {/* Outputs editing can be added similarly if needed */}
-    </div>
+    <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+      <colgroup>
+        <col style={{ width: "30%" }} />
+        <col style={{ width: "70%" }} />
+      </colgroup>
+      <tbody>
+        <tr>
+          <td style={{ padding: "8px", fontWeight: "bold" }}>Name</td>
+          <td style={{ padding: "8px" }}>
+            <FieldWithRemove
+              value={data.name}
+              onChange={v => onChange({ ...data, name: v })}
+              onRemovePressed={onRemove ?? (() => {})}
+              placeholder="name"
+            />
+          </td>
+        </tr>
+        <tr>
+          <td style={{ padding: "8px", fontWeight: "bold" }}>Protocol</td>
+          <td style={{ padding: "8px" }}>
+            <select
+              value={data.protocol}
+              onChange={e => onChange({ ...data, protocol: e.target.value as Protocol })}
+              style={{ width: "100%" }}
+            >
+              {protocolOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td style={{ padding: "8px", fontWeight: "bold" }}>Format</td>
+          <td style={{ padding: "8px" }}>
+            <select
+              value={data.format}
+              onChange={e => onChange({ ...data, format: e.target.value as Format })}
+              style={{ width: "100%" }}
+            >
+              {formatOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </td>
+        </tr>
+        <tr>
+          <td style={{ padding: "8px", fontWeight: "bold" }}>Endpoint</td>
+          <td style={{ padding: "8px" }}>
+            <input
+              value={data.endpoint}
+              onChange={e => onChange({ ...data, endpoint: e.target.value })}
+              style={{ width: "100%" }}
+            />
+          </td>
+        </tr>
+        {renderKVEditor("Headers", data.headers, headers => onChange({ ...data, headers }))}
+        {renderKVEditor("Query", data.query, query => onChange({ ...data, query }))}
+        {renderKVEditor("Params", data.params, params => onChange({ ...data, params }))}
+        {renderKVEditor("Cookies", data.cookies, cookies => onChange({ ...data, cookies }))}
+        <tr>
+          <td style={{ padding: "8px", fontWeight: "bold", verticalAlign: "top" }}>Body</td>
+          <td style={{ padding: "8px" }}>
+            <textarea
+              value={data.body || ""}
+              onChange={e => onChange({ ...data, body: e.target.value })}
+              style={{ width: "100%", minHeight: 60 }}
+            />
+          </td>
+        </tr>
+        {/* Outputs editing can be added similarly if needed */}
+      </tbody>
+    </table>
   );
 };
 

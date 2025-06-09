@@ -182,13 +182,8 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
                   <InterfaceEditor
                     data={iface}
                     onChange={updated => updateInterface(idx, updated)}
+                    onRemove={() => removeInterface(idx)}
                   />
-                  <button
-                    onClick={() => removeInterface(idx)}
-                    style={{ marginTop: 8, color: "red" }}
-                  >
-                    Remove Interface
-                  </button>
                 </div>
               ))}
               <button
