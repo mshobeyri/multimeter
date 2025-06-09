@@ -3,22 +3,9 @@ import ValidatableSelect from "./ValidatableSelect";
 import EditableSelect from "./EditableSelect";
 import SearchableTagInput from "./SearchableTagInput";
 import ParameterEditor from "./ParameterEditor";
+import InterfaceEditor, { InterfaceData } from "./InterfaceEditor";
 
 export type Parameter = { [key: string]: string };
-
-export interface APIInterface {
-  name: string;
-  protocol: string;
-  format: string;
-  endpoint: string;
-  headers?: Record<string, string>;
-  body?: string;
-  outputs?: Record<
-    string,
-    | string
-    | { [format: string]: string }
-  >;
-}
 
 export interface APIField {
   type: string;
@@ -27,7 +14,7 @@ export interface APIField {
   description?: string;
   inputs?: Parameter[];
   outputs?: Parameter[];
-  interfaces?: Array<APIInterface>;
+  interfaces?: Array<InterfaceData>;
 }
 
 interface APIEditorProps {
@@ -35,19 +22,9 @@ interface APIEditorProps {
   setAPI: (api: APIField) => void;
 }
 
-const protocolOptions = ["http", "grpc"];
-const formatOptions = ["json", "xml", "protobuf"];
-
 const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
   // Helper to update top-level fields
   const update = (patch: Partial<APIField>) => setAPI({ ...api, ...patch });
-
-  // Helper to update interfaces
-  const updateInterface = (idx: number, patch: Partial<APIInterface>) => {
-    const interfaces = api.interfaces ? [...api.interfaces] : [];
-    interfaces[idx] = { ...interfaces[idx], ...patch };
-    update({ interfaces });
-  };
 
   // Helper to update inputs/outputs
   const updateArrayField = (
@@ -67,6 +44,31 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
       arr[idx] = { [oldKey]: value };
     }
     update({ [field]: arr });
+  };
+
+  // Helper to update a specific interface
+  const updateInterface = (idx: number, patch: Partial<InterfaceData>) => {
+    const interfaces = api.interfaces ? [...api.interfaces] : [];
+    interfaces[idx] = { ...interfaces[idx], ...patch };
+    setAPI({ ...api, interfaces });
+  };
+
+  // Helper to remove an interface
+  const removeInterface = (idx: number) => {
+    const interfaces = (api.interfaces || []).filter((_, i) => i !== idx);
+    setAPI({ ...api, interfaces });
+  };
+
+  // Helper to add a new interface
+  const addInterface = () => {
+    const interfaces = api.interfaces ? [...api.interfaces] : [];
+    interfaces.push({
+      name: "",
+      protocol: "http",
+      format: "json",
+      endpoint: "",
+    });
+    setAPI({ ...api, interfaces });
   };
 
   return (
@@ -168,6 +170,44 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
               valueOptions={[]} // or provide suggestions
             />
           ))}
+
+          {/* Interfaces Section */}
+          <tr>
+            <td colSpan={2} style={{ padding: "8px", fontWeight: "bold" }}>interfaces</td>
+          </tr>
+          <tr>
+            <td colSpan={2} style={{ padding: 0 }}>
+              {(api.interfaces || []).map((iface, idx) => (
+                <div key={idx} style={{ marginBottom: 16, border: "1px solid #444", borderRadius: 4, padding: 8 }}>
+                  <InterfaceEditor
+                    data={iface}
+                    onChange={updated => updateInterface(idx, updated)}
+                  />
+                  <button
+                    onClick={() => removeInterface(idx)}
+                    style={{ marginTop: 8, color: "red" }}
+                  >
+                    Remove Interface
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={addInterface}
+                style={{
+                  marginTop: 8,
+                  background: "var(--vscode-button-background, #0e639c)",
+                  color: "var(--vscode-button-foreground, #fff)",
+                  border: "none",
+                  borderRadius: 4,
+                  padding: "8px 16px",
+                  fontWeight: "bold",
+                  cursor: "pointer"
+                }}
+              >
+                Add Interface
+              </button>
+            </td>
+          </tr>
         </tbody>
       </table>
     </div>
