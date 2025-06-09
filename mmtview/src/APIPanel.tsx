@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import parseYaml, { packYaml } from "./yamlparser";
-import APIFieldEditor, {APIField} from "./components/APIFieldEditor";
+import APIFieldEditor, {APIField} from "./components/APIEditor";
 
 interface APIsProps {
   content: string;
@@ -84,7 +84,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
       }}
     >
       <div style={{ height: 50, flexShrink: 0 }} />
-      <APIFieldEditor api={api} onChange={setAPIs} />
+      <APIFieldEditor api={api} setAPI={setAPIs} />
     </div>
   );
 };
