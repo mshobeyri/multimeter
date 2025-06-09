@@ -4,6 +4,7 @@ import EnvironmentPanel from "./EnvironmentPanel";
 import { SplitPane } from '@rexxars/react-split-pane';
 import './App.css';
 import CommonsPanel from "./CommonsPanel";
+import APIPanel from "./APIPanel";
 
 declare global {
   interface Window {
@@ -72,6 +73,9 @@ const App: React.FC = () => {
       )}
       {fileName === "_parameters.mmt" && (
         <CommonsPanel content={content} setContent={setContent} />
+      )}
+      {fileName && fileName.startsWith("i") && (
+        <APIPanel content={content} setContent={setContent} />
       )}
     </SplitPane>
   );

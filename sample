@@ -1,0 +1,46 @@
+type: api
+title: generate session
+tags: 
+  - security
+  - sessionless
+description: returns session information.
+inputs:
+  - username: c:username
+  - password: c:password
+  - traceId: c:traceId
+outputs:
+  - session: c:session
+  - errors: c:errors
+interfaces:
+  - name: http-json    
+    protocol: http
+    format: json
+    endpoint: e:endpoint
+    headers:
+      traceId: a:traceId
+      content-type: application/json
+    body: |
+      {
+        {a:traceId && ("username": "a:username",)}
+        "username": "a:username",
+        "password": "a:password"
+      }
+    outputs:
+      session: 
+        json: body.session
+      errors: body.errors[0] #json:format is json
+  - name: http-xml
+    protocol: http
+    format: xml
+    endpoint: e:endpoint
+    headers:
+      traceId: a:traceId
+      content-type: application/xml
+    body: |
+      <body>
+        <session>a:session</session>
+      </body>
+    outputs:
+      session:
+        regex: body, /<session>(.*)<\\/session>/
+      errors: body.errors[0] #xml: formatis xml
