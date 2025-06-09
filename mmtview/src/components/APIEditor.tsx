@@ -83,8 +83,8 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
         style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}
       >
         <colgroup>
-          <col style={{ width: "40%" }} />
-          <col style={{ width: "60%" }} />
+          <col style={{ width: "30%" }} />
+          <col style={{ width: "70%" }} />
         </colgroup>
         <tbody>
           <tr>
@@ -131,115 +131,58 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
               />
             </td>
           </tr>
+
+          {/* Inputs Section */}
           <tr>
-            <td style={{ padding: "8px" }}>inputs</td>
-            <td style={{ padding: "8px" }}>
-              <table style={{ width: "100%" }}>
-                <tbody>
-                  {(api.inputs || []).map((input, i) => {
-                    const [k, v] = Object.entries(input)[0];
-                    return (
-                      <tr key={i}>
-                        <td>
-                          <input
-                            value={k}
-                            onChange={e => updateArrayField("inputs", i, e.target.value, v, true)}
-                            style={{ width: 100 }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            value={v}
-                            onChange={e => updateArrayField("inputs", i, k, e.target.value, false)}
-                            style={{ width: 160 }}
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </td>
+            <td colSpan={2} style={{ padding: "8px", fontWeight: "bold" }}>input</td>
           </tr>
+          {(api.inputs || []).map((input, i) => {
+            const [k, v] = Object.entries(input)[0];
+            return (
+              <tr key={i}>
+                <td style={{ padding: "8px", textAlign: "right", width: "40%" }}>
+                  <input
+                    value={k}
+                    onChange={e => updateArrayField("inputs", i, e.target.value, v, true)}
+                    style={{ width: "100%" }}
+                  />
+                </td>
+                <td style={{ padding: "8px", width: "60%" }}>
+                  <input
+                    value={v}
+                    onChange={e => updateArrayField("inputs", i, k, e.target.value, false)}
+                    style={{ width: "100%" }}
+                  />
+                </td>
+              </tr>
+            );
+          })}
+
+          {/* Outputs Section */}
           <tr>
-            <td style={{ padding: "8px" }}>outputs</td>
-            <td style={{ padding: "8px" }}>
-              <table style={{ width: "100%" }}>
-                <tbody>
-                  {(api.outputs || []).map((output, i) => {
-                    const [k, v] = Object.entries(output)[0];
-                    return (
-                      <tr key={i}>
-                        <td>
-                          <input
-                            value={k}
-                            onChange={e => updateArrayField("outputs", i, e.target.value, v, true)}
-                            style={{ width: 100 }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            value={v}
-                            onChange={e => updateArrayField("outputs", i, k, e.target.value, false)}
-                            style={{ width: 160 }}
-                          />
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </td>
+            <td colSpan={2} style={{ padding: "8px", fontWeight: "bold" }}>output</td>
           </tr>
-          <tr>
-            <td style={{ padding: "8px" }}>interfaces</td>
-            <td style={{ padding: "8px" }}>
-              <table style={{ width: "100%" }}>
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Protocol</th>
-                    <th>Format</th>
-                    <th>Endpoint</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(api.interfaces || []).map((iface, i) => (
-                    <tr key={i}>
-                      <td>
-                        <input
-                          value={iface.name}
-                          onChange={e => updateInterface(i, { name: e.target.value })}
-                          style={{ width: 100 }}
-                        />
-                      </td>
-                      <td>
-                        <EditableSelect
-                          value={iface.protocol}
-                          options={protocolOptions}
-                          onChange={val => updateInterface(i, { protocol: val })}
-                        />
-                      </td>
-                      <td>
-                        <EditableSelect
-                          value={iface.format}
-                          options={formatOptions}
-                          onChange={val => updateInterface(i, { format: val })}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          value={iface.endpoint}
-                          onChange={e => updateInterface(i, { endpoint: e.target.value })}
-                          style={{ width: 160 }}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </td>
-          </tr>
+          {(api.outputs || []).map((output, i) => {
+            const [k, v] = Object.entries(output)[0];
+            return (
+              <tr key={i}>
+                <td style={{ padding: "8px", textAlign: "right", width: "40%" }}>
+                  <input
+                    value={k}
+                    onChange={e => updateArrayField("outputs", i, e.target.value, v, true)}
+                    style={{ width: "100%" }}
+                  />
+                </td>
+                <td style={{ padding: "8px", width: "60%" }}>
+                  <input
+                    value={v}
+                    onChange={e => updateArrayField("outputs", i, k, e.target.value, false)}
+                    style={{ width: "100%" }}
+                  />
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
