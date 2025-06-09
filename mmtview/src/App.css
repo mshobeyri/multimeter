@@ -82,7 +82,7 @@ option {
   color: var(--vscode-input-foreground, #d4d4d4);
 }
 
-input[type="text"], textarea {
+input, textarea {
   box-sizing: border-box;
   background-color: var(--vscode-input-background, #1e1e1e);
   color: var(--vscode-input-foreground, #d4d4d4);
@@ -96,10 +96,43 @@ input[type="text"], textarea {
   resize: vertical;
 }
 
-input[type="text"]:focus, textarea:focus {
+input:focus, textarea:focus {
   border-color: var(--vscode-focusBorder, #007fd4);
 }
 
 .VariableEditor td {
   vertical-align: top !important;
+}
+
+button {
+  background-color: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+  border: 1px solid var(--vscode-button-border, #3c3c3c);
+  border-radius: 2px;
+  padding: 4px 12px;
+  font-size: 0.7rem;
+  font-family: var(--vscode-editor-font-family, inherit);
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  outline: none;
+}
+
+button:hover, button:focus {
+  background-color: var(--vscode-button-hoverBackground, #1177bb);
+  border-color: var(--vscode-focusBorder, #007fd4);
+}
+
+.tag,
+.SearchableTagInput-tag {
+  background: var(--vscode-editorWidget-background, #232323);
+  color: var(--vscode-editorWidget-foreground, #d4d4d4);
+  border: 1px solid var(--vscode-input-border, #3c3c3c);
+  border-radius: 2px;
+  padding: 2px 8px;
+  margin-right: 4px;
+  font-size: 0.7rem;
+  font-family: var(--vscode-editor-font-family, inherit);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }

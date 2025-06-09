@@ -37,18 +37,42 @@ const SearchableTagInput: React.FC<SearchableTagInputProps> = ({
   };
 
   return (
-    <div style={{ minHeight: 38, border: "1px solid #888", borderRadius: 4, padding: 4, display: "flex", flexWrap: "wrap", alignItems: "center", gap: 4 }}>
+    <div
+      style={{
+        minHeight: 38,
+        border: "1px solid var(--vscode-input-border, #888)",
+        borderRadius: 4,
+        padding: 4,
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: 4,
+        background: "var(--vscode-input-background, #1e1e1e)",
+      }}
+    >
       {tags.map((tag) => (
-        <span key={tag} style={{ background: "#eee", borderRadius: 3, padding: "2px 8px", marginRight: 4, display: "flex", alignItems: "center" }}>
+        <span
+          key={tag}
+          className="tag"
+          style={{
+            borderRadius: 3,
+            padding: "2px 8px",
+            marginRight: 4,
+            display: "flex",
+            alignItems: "center",
+            background: "var(--vscode-editorWidget-background, #232323)",
+            color: "var(--vscode-editorWidget-foreground, #d4d4d4)",
+            border: "1px solid var(--vscode-input-border, #3c3c3c)",
+          }}
+        >
           {tag}
           <button
-            type="button"
             onClick={() => removeTag(tag)}
             style={{
               marginLeft: 4,
-              background: "none",
+              background: "transparent",
               border: "none",
-              color: "#c00",
+              color: "var(--vscode-button-foreground, #c00)",
               cursor: "pointer",
               fontWeight: "bold",
               fontSize: 14,
@@ -77,19 +101,29 @@ const SearchableTagInput: React.FC<SearchableTagInputProps> = ({
         }}
         onBlur={() => setTimeout(() => setShowSuggestions(false), 100)}
         placeholder={placeholder}
-        style={{ border: "none", outline: "none", flex: 1, minWidth: 80, background: "transparent" }}
+        style={{
+          border: "none",
+          outline: "none",
+          flex: 1,
+          minWidth: 80,
+          background: "transparent",
+          color: "var(--vscode-input-foreground, #d4d4d4)",
+        }}
       />
       {showSuggestions && filteredSuggestions.length > 0 && (
-        <div style={{
-          position: "absolute",
-          background: "#fff",
-          border: "1px solid #ccc",
-          borderRadius: 4,
-          marginTop: 32,
-          zIndex: 10,
-          minWidth: 120,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.08)"
-        }}>
+        <div
+          style={{
+            position: "absolute",
+            background: "var(--vscode-editorWidget-background, #232323)",
+            color: "var(--vscode-editorWidget-foreground, #d4d4d4)",
+            border: "1px solid var(--vscode-input-border, #3c3c3c)",
+            borderRadius: 4,
+            marginTop: 32,
+            zIndex: 10,
+            minWidth: 120,
+            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+          }}
+        >
           {filteredSuggestions.map(s => (
             <div
               key={s}
@@ -97,7 +131,7 @@ const SearchableTagInput: React.FC<SearchableTagInputProps> = ({
               style={{
                 padding: "6px 12px",
                 cursor: "pointer",
-                background: "#fff"
+                background: "transparent",
               }}
             >
               {s}

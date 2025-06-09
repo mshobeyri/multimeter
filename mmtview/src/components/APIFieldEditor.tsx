@@ -30,7 +30,7 @@ interface APIFieldEditorProps {
   onChange: (api: APIField) => void;
 }
 
-const protocolOptions = ["http", "grpc"];
+const protocolOptions = ["http","ws", "grpc"];
 const formatOptions = ["json", "xml", "protobuf"];
 
 const APIFieldEditor: React.FC<APIFieldEditorProps> = ({ api, onChange }) => {
