@@ -1,7 +1,7 @@
 import React from "react";
-import VariableEditor, { VariableField } from "./VariableEditor";
+import VariableEditor, { VariableData } from "./VariableEditor";
 
-export type VariablesList = VariableField[];
+export type VariablesList = VariableData[];
 
 interface VariablesEditorProps {
   variables: VariablesList;
@@ -19,12 +19,16 @@ const VariablesEditor: React.FC<VariablesEditorProps> = ({ variables, setVariabl
 
   return (
     <div>
-      {variables.map((fields, idx) => (
+      {variables.map((variable, idx) => (
         <div key={idx} style={{ marginBottom: 24 }}>
           <VariableEditor
-            idx={idx}
+            variable={variable}
             variables={variables}
-            setVariables={setVariables}
+            onChange={updatedVar => {
+              const newVars = [...variables];
+              newVars[idx] = updatedVar;
+              setVariables(newVars);
+            }}
             onRemove={() => removeVariable(idx)}
           />
         </div>

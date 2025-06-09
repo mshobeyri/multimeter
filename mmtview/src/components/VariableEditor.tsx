@@ -1,4 +1,3 @@
-import { on } from "events";
 import React, { useState } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import ObjectFieldsEditor from "./ObjectFieldsEditor";
@@ -9,9 +8,9 @@ const protobufTypes = [
   "fixed32", "fixed64", "sfixed32", "sfixed64", "bool", "string", "bytes"
 ];
 
-export type VariablesList = VariableField[];
+export type VariablesData = VariableData[];
 
-export interface VariableField {
+export interface VariableData {
   key: string;
   type: string;
   name?: string;
@@ -37,43 +36,36 @@ const fieldOptions = [
 ];
 
 interface VariableEditorProps {
-  idx: number;
-  variables: VariablesList;
-  setVariables: (vars: VariablesList) => void;
+  variable: VariableData;
+  onChange: (v: VariableData) => void;
   onRemove?: () => void;
+  variables?: VariablesData; // Now optional
 }
 
 const VariableEditor: React.FC<VariableEditorProps> = ({
-  idx,
-  variables,
-  setVariables,
+  variable,
+  onChange,
   onRemove,
+  variables = [],
 }) => {
-  const variable = variables[idx];
   const [addType, setAddType] = useState<string>("");
 
   // List of optional fields not yet present in this variable
   const usedFields = new Set(
-    fieldOptions.filter(opt => variable[opt as keyof VariableField] !== undefined)
+    fieldOptions.filter(opt => variable[opt as keyof VariableData] !== undefined)
   );
   const availableOptionals = fieldOptions.filter(opt => !usedFields.has(opt));
 
   // Update a field in the variable
-  const updateField = (field: Partial<VariableField>) => {
-    setVariables(
-      variables.map((v, i) =>
-        i === idx ? { ...v, ...field } : v
-      )
-    );
+  const updateField = (field: Partial<VariableData>) => {
+    onChange({ ...variable, ...field });
   };
 
   // Remove an optional field from the variable
-  const removeOptionalField = (fieldName: keyof VariableField) => {
-    setVariables(
-      variables.map((v, i) =>
-        i === idx ? { ...v, [fieldName]: undefined } : v
-      )
-    );
+  const removeOptionalField = (fieldName: keyof VariableData) => {
+    const updated = { ...variable };
+    delete updated[fieldName];
+    onChange(updated);
   };
 
   // Add an optional field
@@ -95,9 +87,10 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
 
   // Get keys of previous variables (exclude current and empty keys)
   const previousVariableKeys = variables
-    .slice(0, idx)
-    .map(v => v.key)
-    .filter(k => !!k && k !== variable.key);
+    ? variables
+        .filter(v => v !== variable && v.key && v.key !== variable.key)
+        .map(v => v.key)
+    : [];
 
   return (
     <div
@@ -152,16 +145,16 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
           </tr>
           {/* Render optional fields */}
           {fieldOptions.map(opt =>
-            variable[opt as keyof VariableField] !== undefined ? (
+            variable[opt as keyof VariableData] !== undefined ? (
               <tr key={opt}>
                 <td style={{ padding: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {opt}
                 </td>
                 <td style={{ padding: "8px", position: "relative" }}>
                   <FieldWithRemove
-                    value={variable[opt as keyof VariableField] as string || ""}
+                    value={variable[opt as keyof VariableData] as string || ""}
                     onChange={v => updateField({ [opt]: v })}
-                    onRemovePressed={() => removeOptionalField(opt as keyof VariableField)}
+                    onRemovePressed={() => removeOptionalField(opt as keyof VariableData)}
                     placeholder={opt}
                   />
                 </td>
@@ -174,12 +167,10 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
                 <ObjectFieldsEditor
                   fields={variable.fields || {}}
                   setFields={fields => updateField({ fields: fields })}
-                  typeOptions={
-                    [
-                      ...jsonTypes,
-                      ...previousVariableKeys.flatMap(k => [k, `${k}[]`])
-                    ]
-                  }
+                  typeOptions={[
+                    ...jsonTypes,
+                    ...previousVariableKeys.flatMap(k => [k, `${k}[]`])
+                  ]}
                 />
               </td>
             </tr>

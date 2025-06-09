@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import parseYaml, { packYaml } from "./yamlparser";
 import VariablesEditor from "./components/VariablesEditor";
-import { VariableField } from "./components/VariableEditor";
+import { VariableData } from "./components/VariableEditor";
 
 interface CommonsProps {
   content: string;
   setContent: React.Dispatch<React.SetStateAction<string>>;
 }
 
-export type VariablesList = VariableField[];
+export type VariablesList = VariableData[];
 
 function yamlToVariables(yamlContent: string): VariablesList {
   try {
