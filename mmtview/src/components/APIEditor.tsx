@@ -2,6 +2,9 @@ import React from "react";
 import ValidatableSelect from "./ValidatableSelect";
 import EditableSelect from "./EditableSelect";
 import SearchableTagInput from "./SearchableTagInput";
+import ParameterEditor from "./ParameterEditor";
+
+export type Parameter = { [key: string]: string };
 
 export interface APIInterface {
   name: string;
@@ -22,8 +25,8 @@ export interface APIField {
   title?: string;
   tags?: string[];
   description?: string;
-  inputs?: Array<Record<string, string>>;
-  outputs?: Array<Record<string, string>>;
+  inputs?: Parameter[];
+  outputs?: Parameter[];
   interfaces?: Array<APIInterface>;
 }
 
@@ -136,53 +139,35 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
           <tr>
             <td colSpan={2} style={{ padding: "8px", fontWeight: "bold" }}>input</td>
           </tr>
-          {(api.inputs || []).map((input, i) => {
-            const [k, v] = Object.entries(input)[0];
-            return (
-              <tr key={i}>
-                <td style={{ padding: "8px", textAlign: "right", width: "40%" }}>
-                  <input
-                    value={k}
-                    onChange={e => updateArrayField("inputs", i, e.target.value, v, true)}
-                    style={{ width: "100%" }}
-                  />
-                </td>
-                <td style={{ padding: "8px", width: "60%" }}>
-                  <input
-                    value={v}
-                    onChange={e => updateArrayField("inputs", i, k, e.target.value, false)}
-                    style={{ width: "100%" }}
-                  />
-                </td>
-              </tr>
-            );
-          })}
+          {(api.inputs || []).map((input, i) => (
+            <ParameterEditor
+              key={i}
+              parameter={input}
+              onChange={newParam => {
+                const newInputs = [...(api.inputs || [])];
+                newInputs[i] = newParam;
+                update({ inputs: newInputs });
+              }}
+              valueOptions={[]} // or provide suggestions
+            />
+          ))}
 
           {/* Outputs Section */}
           <tr>
             <td colSpan={2} style={{ padding: "8px", fontWeight: "bold" }}>output</td>
           </tr>
-          {(api.outputs || []).map((output, i) => {
-            const [k, v] = Object.entries(output)[0];
-            return (
-              <tr key={i}>
-                <td style={{ padding: "8px", textAlign: "right", width: "40%" }}>
-                  <input
-                    value={k}
-                    onChange={e => updateArrayField("outputs", i, e.target.value, v, true)}
-                    style={{ width: "100%" }}
-                  />
-                </td>
-                <td style={{ padding: "8px", width: "60%" }}>
-                  <input
-                    value={v}
-                    onChange={e => updateArrayField("outputs", i, k, e.target.value, false)}
-                    style={{ width: "100%" }}
-                  />
-                </td>
-              </tr>
-            );
-          })}
+          {(api.outputs || []).map((output, i) => (
+            <ParameterEditor
+              key={i}
+              parameter={output}
+              onChange={newParam => {
+                const newOutputs = [...(api.outputs || [])];
+                newOutputs[i] = newParam;
+                update({ outputs: newOutputs });
+              }}
+              valueOptions={[]} // or provide suggestions
+            />
+          ))}
         </tbody>
       </table>
     </div>
