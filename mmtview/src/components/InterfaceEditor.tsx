@@ -14,27 +14,34 @@ const protocolOptions: Protocol[] = ["http", "ws", "grpc"];
 const formatOptions: Format[] = ["json", "xml", "protobuf"];
 
 const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRemove }) => {
-  // Split endpoint and query string
-  const endpoint = data.endpoint.split("?")[0];
+  // Split endpoint and query string safely
+  const endpoint = (data.endpoint || "").split("?")[0];
 
-  // When EndpointInput changes, update only the endpoint part in YAML/model
+  // Only call onChange if endpoint value actually changed
   const handleEndpointChange = useCallback(
     (newEndpoint: string) => {
-      onChange({
-        ...data,
-        endpoint: newEndpoint,
-      });
+      if (newEndpoint !== data.endpoint) {
+        onChange({
+          ...data,
+          endpoint: newEndpoint,
+        });
+      }
     },
     [data, onChange]
   );
 
-  // When QueryParams change, update only the query part in YAML/model
+  // Only call onChange if query value actually changed
   const handleQueryChange = useCallback(
     (query: Record<string, string>) => {
-      onChange({
-        ...data,
-        query,
-      });
+      // Compare stringified versions for shallow equality
+      const prev = JSON.stringify(data.query || {});
+      const next = JSON.stringify(query || {});
+      if (prev !== next) {
+        onChange({
+          ...data,
+          query,
+        });
+      }
     },
     [data, onChange]
   );

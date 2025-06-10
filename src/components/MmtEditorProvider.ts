@@ -45,7 +45,6 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           this.updateTextDocument(document, message.text);
           break;
         case 'updateWorkspaceState':
-          console.log(`Updating workspace state: ${message.name} = ${JSON.stringify(message.value)}`);
           this.context.workspaceState.update(message.name, message.value);
           break;
         case 'loadWorkspaceState':
