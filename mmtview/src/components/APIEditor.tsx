@@ -16,6 +16,7 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
 
   // Helper to update a specific interface
   const updateInterface = (idx: number, patch: Partial<InterfaceData>) => {
+    console.log("Updating interface at index", idx, "with patch", patch);
     const interfaces = api.interfaces ? [...api.interfaces] : [];
     interfaces[idx] = { ...interfaces[idx], ...patch };
     setAPI({ ...api, interfaces });
