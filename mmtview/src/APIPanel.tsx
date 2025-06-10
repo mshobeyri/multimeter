@@ -1,16 +1,17 @@
 import React, { useEffect, useRef, useState } from "react";
 import parseYaml, { packYaml } from "./yamlparser";
-import APIFieldEditor, {APIField} from "./components/APIEditor";
+import APIFieldEditor from "./components/APIEditor";
+import { APIData } from "./components/APIData";
 
 interface APIsProps {
   content: string;
   setContent: React.Dispatch<React.SetStateAction<string>>;
 }
 
-function yamlToAPI(yamlContent: string): APIField {
+function yamlToAPI(yamlContent: string): APIData {
   try {
     const doc = parseYaml(yamlContent) as any;
-    if (!doc || typeof doc !== "object") return {} as APIField;
+    if (!doc || typeof doc !== "object") return {} as APIData;
     // Directly map YAML fields to APIField
     return {
       type: doc.type || "",
@@ -22,11 +23,11 @@ function yamlToAPI(yamlContent: string): APIField {
       interfaces: doc.interfaces,
     };
   } catch {
-    return {} as APIField;
+    return {} as APIData;
   }
 }
 
-function apiToYaml(api: APIField): string {
+function apiToYaml(api: APIData): string {
   // Directly map APIField fields to YAML
   const yamlObj: Record<string, any> = {
     type: api.type,
@@ -41,7 +42,7 @@ function apiToYaml(api: APIField): string {
 }
 
 const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
-  const [api, setAPIs] = useState<APIField>({
+  const [api, setAPIs] = useState<APIData>({
     type: "",
     title: "",
     tags: [],

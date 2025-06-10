@@ -1,6 +1,6 @@
 import React from "react";
 import EditableSelect from "./EditableSelect";
-import { Parameter } from "./APIEditor"; // Or import from your new Parameter.ts
+import { Parameter } from "./APIData"; // Or import from your new Parameter.ts
 
 interface ParameterEditorProps {
   parameter: Parameter;
