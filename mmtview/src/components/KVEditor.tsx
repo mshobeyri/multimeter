@@ -23,25 +23,22 @@ const KVEditor: React.FC<KVEditorProps> = ({
         <tbody>
           {Object.entries(value || {}).map(([k, v], i) => (
             <tr key={i}>
-              <td style={{ width: "40%" }}>
-                <FieldWithRemove
+              <td style={{ width: "50%" }}>
+                <input
                   value={k}
-                  onChange={newKey => {
+                  onChange={e => {
+                    const newKey = e.target.value;
                     if (!newKey) return;
                     const newObj = { ...(value || {}) };
                     delete newObj[k];
                     newObj[newKey] = v;
                     onChange(newObj);
                   }}
-                  onRemovePressed={() => {
-                    const newObj = { ...(value || {}) };
-                    delete newObj[k];
-                    onChange(newObj);
-                  }}
                   placeholder={keyPlaceholder}
+                  style={{ width: "100%" }}
                 />
               </td>
-              <td style={{ width: "60%" }}>
+              <td style={{ width: "50%" }}>
                 <FieldWithRemove
                   value={v}
                   onChange={newVal => {
@@ -61,7 +58,7 @@ const KVEditor: React.FC<KVEditorProps> = ({
             <td>
               <input
                 placeholder={keyPlaceholder}
-                style={{ width: "90%" }}
+                style={{ width: "100%" }}
                 value={""}
                 onChange={e => {
                   const newKey = e.target.value;
