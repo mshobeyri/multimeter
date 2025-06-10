@@ -1,6 +1,8 @@
 import React from "react";
 import FieldWithRemove from "./FieldWithRemove";
+import KVEditor from "./KVEditor";
 import { Format, Protocol, InterfaceData } from "./APIData";
+
 interface InterfaceEditorProps {
   data: InterfaceData;
   onChange: (data: InterfaceData) => void;
@@ -10,82 +12,12 @@ interface InterfaceEditorProps {
 const protocolOptions: Protocol[] = ["http", "ws", "grpc"];
 const formatOptions: Format[] = ["json", "xml", "protobuf"];
 
-function renderKVEditor(
-  label: string,
-  value: Record<string, string> | undefined,
-  onChange: (v: Record<string, string>) => void
-) {
-  return (
-    <React.Fragment>
-      <tr>
-        <td style={{ padding: "8px", fontWeight: "bold", verticalAlign: "top" }}>{label}</td>
-        <td style={{ padding: "8px" }}>
-          <table style={{ width: "100%" }}>
-            <tbody>
-              {Object.entries(value || {}).map(([k, v], i) => (
-                <tr key={i}>
-                  <td style={{ width: "40%" }}>
-                    <FieldWithRemove
-                      value={k}
-                      onChange={newKey => {
-                        if (!newKey) return;
-                        const newObj = { ...(value || {}) };
-                        delete newObj[k];
-                        newObj[newKey] = v;
-                        onChange(newObj);
-                      }}
-                      onRemovePressed={() => {
-                        const newObj = { ...(value || {}) };
-                        delete newObj[k];
-                        onChange(newObj);
-                      }}
-                      placeholder="key"
-                    />
-                  </td>
-                  <td style={{ width: "60%" }}>
-                    <FieldWithRemove
-                      value={v}
-                      onChange={newVal => {
-                        onChange({ ...(value || {}), [k]: newVal });
-                      }}
-                      onRemovePressed={() => {
-                        const newObj = { ...(value || {}) };
-                        delete newObj[k];
-                        onChange(newObj);
-                      }}
-                      placeholder="value"
-                    />
-                  </td>
-                </tr>
-              ))}
-              <tr>
-                <td>
-                  <input
-                    placeholder="key"
-                    style={{ width: "90%" }}
-                    value={""}
-                    onChange={e => {
-                      const newKey = e.target.value;
-                      if (newKey) onChange({ ...(value || {}), [newKey]: "" });
-                    }}
-                  />
-                </td>
-                <td />
-              </tr>
-            </tbody>
-          </table>
-        </td>
-      </tr>
-    </React.Fragment>
-  );
-}
-
 const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRemove }) => {
   return (
     <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
       <colgroup>
-        <col style={{ width: "30%" }} />
-        <col style={{ width: "70%" }} />
+        <col style={{ width: "20%" }} />
+        <col style={{ width: "80%" }} />
       </colgroup>
       <tbody>
         <tr>
@@ -137,10 +69,9 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
             />
           </td>
         </tr>
-        {renderKVEditor("Headers", data.headers, headers => onChange({ ...data, headers }))}
-        {renderKVEditor("Query", data.query, query => onChange({ ...data, query }))}
-        {renderKVEditor("Params", data.params, params => onChange({ ...data, params }))}
-        {renderKVEditor("Cookies", data.cookies, cookies => onChange({ ...data, cookies }))}
+        <KVEditor label="Headers" value={data.headers} onChange={headers => onChange({ ...data, headers })} />
+        <KVEditor label="QueryParams" value={data.query} onChange={query => onChange({ ...data, query })} />
+        <KVEditor label="Cookies" value={data.cookies} onChange={cookies => onChange({ ...data, cookies })} />
         <tr>
           <td style={{ padding: "8px", fontWeight: "bold", verticalAlign: "top" }}>Body</td>
           <td style={{ padding: "8px" }}>
