@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 
 interface KVEditorProps {
@@ -9,69 +9,72 @@ interface KVEditorProps {
   valuePlaceholder?: string;
 }
 
+// Utility to ensure an empty key is always at the end
+function withTrailingEmptyKey(obj?: Record<string, string>): Record<string, string> {
+  if (!obj) return { "": "" };
+  const keys = Object.keys(obj);
+  if (keys.length === 0 || keys[keys.length - 1] !== "") {
+    return { ...obj, "": "" };
+  }
+  return obj;
+}
+
 const KVEditor: React.FC<KVEditorProps> = ({
   label,
   value,
   onChange,
   keyPlaceholder = "key",
   valuePlaceholder = "value"
-}) => (
-  <tr>
-    <td style={{ padding: "8px", fontWeight: "bold", verticalAlign: "top" }}>{label}</td>
-    <td style={{ padding: "8px" }}>
-      <table style={{ width: "100%" }}>
-        <tbody>
-          {Object.entries(value || {}).map(([k, v], i) => (
-            <tr key={i}>
-              <td style={{ width: "50%" }}>
-                <input
-                  value={k}
-                  onChange={e => {
-                    const newKey = e.target.value;
-                    if (!newKey) return;
-                    const newObj = { ...(value || {}) };
-                    delete newObj[k];
-                    newObj[newKey] = v;
-                    onChange(newObj);
-                  }}
-                  placeholder={keyPlaceholder}
-                  style={{ width: "100%" }}
-                />
-              </td>
-              <td style={{ width: "50%" }}>
-                <FieldWithRemove
-                  value={v}
-                  onChange={newVal => {
-                    onChange({ ...(value || {}), [k]: newVal });
-                  }}
-                  onRemovePressed={() => {
-                    const newObj = { ...(value || {}) };
-                    delete newObj[k];
-                    onChange(newObj);
-                  }}
-                  placeholder={valuePlaceholder}
-                />
-              </td>
-            </tr>
-          ))}
-          <tr>
-            <td>
-              <input
-                placeholder={keyPlaceholder}
-                style={{ width: "100%" }}
-                value={""}
-                onChange={e => {
-                  const newKey = e.target.value;
-                  if (newKey) onChange({ ...(value || {}), [newKey]: "" });
-                }}
-              />
-            </td>
-            <td />
-          </tr>
-        </tbody>
-      </table>
-    </td>
-  </tr>
-);
+}) => {
+  // Always use a model with a trailing empty key for rendering
+  const model = useMemo(() => withTrailingEmptyKey(value), [value]);
+  const entries = Object.entries(model);
+
+  return (
+    <tr>
+      <td style={{ padding: "8px", fontWeight: "bold", verticalAlign: "top" }}>{label}</td>
+      <td style={{ padding: "8px" }}>
+        <table style={{ width: "100%" }}>
+          <tbody>
+            {entries.map(([k, v], i) => (
+              <tr key={i}>
+                <td style={{ width: "50%" }}>
+                  <input
+                    value={k}
+                    onChange={e => {
+                      const newKey = e.target.value;
+                      const newObj = { ...(value || {}) };
+                      delete newObj[k];
+                      if (newKey) newObj[newKey] = v;
+                      onChange(newObj);
+                    }}
+                    placeholder={keyPlaceholder}
+                    style={{ width: "100%" }}
+                  />
+                </td>
+                <td style={{ width: "50%" }}>
+                  {k !== "" && (
+                    <FieldWithRemove
+                      value={v}
+                      onChange={newVal => {
+                        onChange({ ...(value || {}), [k]: newVal });
+                      }}
+                      onRemovePressed={() => {
+                        const newObj = { ...(value || {}) };
+                        delete newObj[k];
+                        onChange(newObj);
+                      }}
+                      placeholder={valuePlaceholder}
+                    />
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </td>
+    </tr>
+  );
+};
 
 export default KVEditor;
