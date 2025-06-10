@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useRef, useEffect } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import KVEditor from "./KVEditor";
 import EndpointInput from "./EndpointInput";
@@ -45,6 +45,17 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
     },
     [data, onChange]
   );
+
+  // Ref for the textarea
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea to fit content
+  useEffect(() => {
+    if (bodyRef.current) {
+      bodyRef.current.style.height = "auto";
+      bodyRef.current.style.height = bodyRef.current.scrollHeight + "px";
+    }
+  }, [data.body]);
 
   return (
     <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
@@ -114,9 +125,10 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
           <td style={{ padding: "8px", fontWeight: "bold", verticalAlign: "top" }}>Body</td>
           <td style={{ padding: "8px" }}>
             <textarea
+              ref={bodyRef}
               value={data.body || ""}
               onChange={e => onChange({ ...data, body: e.target.value })}
-              style={{ width: "100%", minHeight: 60 }}
+              style={{ width: "100%", minHeight: 60, resize: "none", overflow: "hidden" }}
             />
           </td>
         </tr>
