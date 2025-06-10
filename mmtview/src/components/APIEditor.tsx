@@ -9,7 +9,7 @@ interface APIEditorProps {
 }
 
 const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
-  const [tab, setTab] = useState<"overview" | "interfaces" | "test">("overview");
+  const [tab, setTab] = useState<"overview" | "interfaces" | "test">("test");
 
   // Helper to update top-level fields
   const update = (patch: Partial<APIData>) => setAPI({ ...api, ...patch });
@@ -93,7 +93,7 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
             cursor: "pointer"
           }}
         >
-          Test
+          <span role="img" aria-label="run">▶️</span> Test
         </button>
       </div>
 

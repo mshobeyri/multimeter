@@ -78,13 +78,15 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "24px",
-        padding: "10px",
+        padding: "1rem",
+        backgroundColor: "var(--vscode-editor-background)",
+        color: "var(--vscode-editor-foreground)",
+        minWidth: 100,
+        maxWidth: "80vw",
+        overflow: "auto",
         height: "100%",
-        overflowY: "auto",
       }}
     >
-      <div style={{ height: 50, flexShrink: 0 }} />
       <APIFieldEditor api={api} setAPI={setAPIs} />
     </div>
   );
