@@ -7,13 +7,12 @@ export interface InterfaceData {
   format: Format;
   endpoint: string;
   headers?: Record<string, string>;
-  body?: string;
+  body?: string | object;
   query?: Record<string, string>;
   params?: Record<string, string>;
   cookies?: Record<string, string>;
   outputs?: Record<string, string | { [format: string]: string }>;
 }
-
 
 export type Parameter = { [key: string]: string };
 

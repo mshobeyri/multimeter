@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { InterfaceData, APIData } from "./APIData";
-import KVEditor from "./KVEditor";
+import KVEditor from "./KVEditor"
+import { formatBody } from "../yamlparser";
 
 interface APITestProps {
   api: APIData;
@@ -27,12 +28,22 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         }
   );
 
+  // State for formatted body
+  const [formattedBody, setFormattedBody] = useState<string>(
+    formatBody(testData.format, testData.body || "")
+  );
+
   // Update local testData when selected interface changes
   useEffect(() => {
     if (interfaces[selectedIdx]) {
       setTestData({ ...interfaces[selectedIdx] });
     }
   }, [selectedIdx, interfaces]);
+
+  // Update formattedBody when body or format changes
+  useEffect(() => {
+    setFormattedBody(formatBody(testData.format, testData.body || ""));
+  }, [testData.body, testData.format]);
 
   // Auto-resize textarea for body
   const bodyRef = useRef<HTMLTextAreaElement>(null);
@@ -41,7 +52,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
       bodyRef.current.style.height = "auto";
       bodyRef.current.style.height = bodyRef.current.scrollHeight + "px";
     }
-  }, [testData.body]);
+  }, [formattedBody]);
 
   if (interfaces.length === 0) {
     return <div style={{ color: "#888" }}>No interfaces defined.</div>;
@@ -103,7 +114,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         />
         <tr>
           <td className="label" style={{ verticalAlign: "top" }}>
-            Body
+            body
           </td>
           <td style={{ padding: "8px" }}>
             <textarea
@@ -113,8 +124,9 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                 minHeight: 60,
                 resize: "none",
                 overflow: "hidden",
+                fontFamily: "var(--vscode-editor-font-family, monospace)"
               }}
-              value={testData.body || ""}
+              value={formattedBody}
               onChange={e => setTestData({ ...testData, body: e.target.value })}
             />
           </td>

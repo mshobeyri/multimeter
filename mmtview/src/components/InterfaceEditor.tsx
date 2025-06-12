@@ -1,8 +1,9 @@
-import React, { useCallback, useRef, useEffect } from "react";
+import React, { useCallback, useRef, useEffect, useState } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import KVEditor from "./KVEditor";
 import EndpointInput from "./EndpointInput";
 import { Format, Protocol, InterfaceData } from "./APIData";
+import { formatBody } from "../yamlparser";
 
 interface InterfaceEditorProps {
   data: InterfaceData;
@@ -16,6 +17,16 @@ const formatOptions: Format[] = ["json", "xml", "protobuf"];
 const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRemove }) => {
   // Split endpoint and query string safely
   const endpoint = (data.endpoint || "").split("?")[0];
+
+  // State for formatted body
+  const [formattedBody, setFormattedBody] = useState<string>(
+    formatBody(data.format, data.body || "")
+  );
+
+  // Update formattedBody when body or format changes
+  useEffect(() => {
+    setFormattedBody(formatBody(data.format, data.body || ""));
+  }, [data.body, data.format]);
 
   // Only call onChange if endpoint value actually changed
   const handleEndpointChange = useCallback(
@@ -70,7 +81,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
             <FieldWithRemove
               value={data.name}
               onChange={v => onChange({ ...data, name: v })}
-              onRemovePressed={onRemove ?? (() => {})}
+              onRemovePressed={onRemove ?? (() => { })}
               placeholder="name"
             />
           </td>
@@ -126,7 +137,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
           <td style={{ padding: "8px" }}>
             <textarea
               ref={bodyRef}
-              value={data.body || ""}
+              value={formattedBody}
               onChange={e => onChange({ ...data, body: e.target.value })}
               style={{ width: "100%", minHeight: 60, resize: "none", overflow: "hidden" }}
             />
