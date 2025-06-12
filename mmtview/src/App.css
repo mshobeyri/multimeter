@@ -136,3 +136,21 @@ button:hover, button:focus {
   align-items: center;
   gap: 4px;
 }
+
+/* Header style for table headers and section headers */
+.header {
+  font-weight: bold;
+  color: var(--vscode-editorWidget-foreground, #d4d4d4);
+  font-size: 0.8rem;
+  letter-spacing: 0.01em;
+  padding: 8px 0;
+  /* border-bottom: 1px solid var(--vscode-editorWidget-border, #333); */
+}
+
+/* Style for item names (field labels) */
+.label {
+  color: var(--vscode-editorWidget-foreground, #939393);
+  font-size: 0.75rem;
+  padding: 2px 0 0 0 ;
+  text-align: left;
+}

@@ -65,7 +65,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
       </colgroup>
       <tbody>
         <tr>
-          <td style={{ padding: "8px", fontWeight: "bold" }}>Name</td>
+          <td className="label">name</td>
           <td style={{ padding: "8px" }}>
             <FieldWithRemove
               value={data.name}
@@ -76,7 +76,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
           </td>
         </tr>
         <tr>
-          <td style={{ padding: "8px", fontWeight: "bold" }}>Protocol</td>
+          <td className="label">protocol</td>
           <td style={{ padding: "8px" }}>
             <select
               value={data.protocol}
@@ -90,7 +90,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
           </td>
         </tr>
         <tr>
-          <td style={{ padding: "8px", fontWeight: "bold" }}>Format</td>
+          <td className="label">format</td>
           <td style={{ padding: "8px" }}>
             <select
               value={data.format}
@@ -104,7 +104,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
           </td>
         </tr>
         <tr>
-          <td style={{ padding: "8px", fontWeight: "bold" }}>Endpoint</td>
+          <td className="label">endpoint</td>
           <td style={{ padding: "8px" }}>
             <EndpointInput
               endpoint={endpoint}
@@ -115,14 +115,14 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
           </td>
         </tr>
         <KVEditor
-          label="QueryParams"
+          label="url params"
           value={data.query}
           onChange={handleQueryChange}
         />
-        <KVEditor label="Headers" value={data.headers} onChange={headers => onChange({ ...data, headers })} />
-        <KVEditor label="Cookies" value={data.cookies} onChange={cookies => onChange({ ...data, cookies })} />
+        <KVEditor label="headers" value={data.headers} onChange={headers => onChange({ ...data, headers })} />
+        <KVEditor label="cookies" value={data.cookies} onChange={cookies => onChange({ ...data, cookies })} />
         <tr>
-          <td style={{ padding: "8px", fontWeight: "bold", verticalAlign: "top" }}>Body</td>
+          <td className="label">body</td>
           <td style={{ padding: "8px" }}>
             <textarea
               ref={bodyRef}

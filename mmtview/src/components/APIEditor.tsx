@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import APIOverview from "./APIOverview";
 import InterfaceEditor from "./InterfaceEditor";
+import APITest from "./APITest"; // <-- Make sure this import exists
 import { APIData, InterfaceData } from "./APIData";
 
 interface APIEditorProps {
@@ -144,9 +145,7 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
       )}
 
       {tab === "test" && (
-        <div style={{ padding: 24, textAlign: "center", color: "#888" }}>
-          {/* Test tab content goes here */}
-        </div>
+          <APITest api={api} />
       )}
     </div>
   );

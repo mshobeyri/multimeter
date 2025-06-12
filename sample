@@ -1,9 +1,7 @@
 type: api
-tags: 
-  - security
-  - sessionless
-title: Generate Session
-description: This API generates a session based on the provided username and password.
+title: generate session
+tags: []
+description: returns session information.
 inputs:
   - username: c:username
   - password: c:password
@@ -12,35 +10,32 @@ outputs:
   - session: c:session
   - errors: c:errors
 interfaces:
-  - name: http-json    
+  - name: http-json
     protocol: http
+    method: post
     format: json
     endpoint: e:endpoint
     headers:
-      traceId: a:traceId
+      traceId: i:traceId
       content-type: application/json
-    body: |
-      {
-        {a:traceId && ("username": "a:username",)}
-        "username": "a:username",
-        "password": "a:password"
-      }
+    body:
+      username: i:username
+      password: i:password
     outputs:
-      session: 
+      session:
         json: body.session
-      errors: body.errors[0] #json:format is json
+      errors: body.errors[0]
   - name: http-xml
     protocol: http
     format: xml
     endpoint: e:endpoint
     headers:
-      traceId: a:traceId
+      traceId: i:traceId
       content-type: application/xml
-    body: |
-      <body>
-        <session>a:session</session>
-      </body>
+    body:
+      username: i:username
+      password: i:password
     outputs:
       session:
         regex: body, /<session>(.*)<\\/session>/
-      errors: body.errors[0] #xml: formatis xml
+      errors: body.errors[0]

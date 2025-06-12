@@ -15,12 +15,12 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
     style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}
   >
     <colgroup>
-      <col style={{ width: "30%" }} />
-      <col style={{ width: "70%" }} />
+      <col style={{ width: "20%" }} />
+      <col style={{ width: "80%" }} />
     </colgroup>
     <tbody>
       <tr>
-        <td style={{ padding: "8px" }}>type</td>
+        <td className="label" >type</td>
         <td style={{ padding: "8px" }}>
           <ValidatableSelect
             value={api.type || ""}
@@ -32,7 +32,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
         </td>
       </tr>
       <tr>
-        <td style={{ padding: "8px" }}>title</td>
+        <td className="label">title</td>
         <td style={{ padding: "8px" }}>
           <input
             value={api.title || ""}
@@ -43,7 +43,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
         </td>
       </tr>
       <tr>
-        <td style={{ padding: "8px" }}>tags</td>
+        <td className="label">tags</td>
         <td style={{ padding: "8px" }}>
           <SearchableTagInput
             tags={api.tags || []}
@@ -53,7 +53,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
         </td>
       </tr>
       <tr>
-        <td style={{ padding: "8px" }}>description</td>
+        <td className="label">description</td>
         <td style={{ padding: "8px" }}>
           <input
             value={api.description || ""}
@@ -65,7 +65,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
       </tr>
       {/* Inputs Section */}
       <tr>
-        <td colSpan={2} style={{ padding: "8px", fontWeight: "bold" }}>input</td>
+        <td colSpan={2} className="label">input</td>
       </tr>
       {(api.inputs || []).map((input, i) => (
         <ParameterEditor
@@ -81,7 +81,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
       ))}
       {/* Outputs Section */}
       <tr>
-        <td colSpan={2} style={{ padding: "8px", fontWeight: "bold" }}>output</td>
+        <td colSpan={2} className="label">output</td>
       </tr>
       {(api.outputs || []).map((output, i) => (
         <ParameterEditor

@@ -64,8 +64,8 @@ const KVEditor: React.FC<KVEditorProps> = ({
 
   return (
     <tr>
-      <td style={{ padding: "8px", fontWeight: "bold", verticalAlign: "top" }}>{label}</td>
-      <td style={{ padding: "8px" }}>
+      <td className="label">{label}</td>
+      <td style={{ padding: "5px" }}>
         <table style={{ width: "100%" }}>
           <tbody>
             {entries.map(([k, v], i) => (
