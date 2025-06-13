@@ -9,28 +9,43 @@ export type BodyViewProps = {
 
 const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange }) => {
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const [localValue, setLocalValue] = useState(value);
   const [isInvalid, setIsInvalid] = useState(false);
+  const [wasInvalid, setWasInvalid] = useState(false);
+  const [canApply, setCanApply] = useState(false);
 
-  // Validate JSON or XML when value or format changes
+  // Keep localValue in sync with parent value (when parent changes)
   useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
+  // Validate JSON or XML when localValue or format changes
+  useEffect(() => {
+    let valid = true;
     if (format === "json") {
       try {
-        JSON.parse(value);
-        setIsInvalid(false);
+        JSON.parse(localValue);
       } catch {
-        setIsInvalid(true);
+        valid = false;
       }
     } else if (format === "xml") {
       try {
-        xml2js(value, { compact: true });
-        setIsInvalid(false);
+        xml2js(localValue, { compact: true });
       } catch {
-        setIsInvalid(true);
+        valid = false;
       }
-    } else {
-      setIsInvalid(false);
     }
-  }, [value, format]);
+    setIsInvalid(!valid);
+
+    // If it was invalid and now is valid, show apply button
+    if (wasInvalid && valid && localValue !== value) {
+      setCanApply(true);
+    } else if (!valid) {
+      setCanApply(false);
+    }
+    setWasInvalid(!valid);
+    // eslint-disable-next-line
+  }, [localValue, format]);
 
   // Auto-resize textarea to fit content
   useEffect(() => {
@@ -38,14 +53,14 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange }) => {
       bodyRef.current.style.height = "auto";
       bodyRef.current.style.height = bodyRef.current.scrollHeight + "px";
     }
-  }, [value]);
+  }, [localValue]);
 
   return (
     <div style={{ position: "relative" }}>
       <textarea
         ref={bodyRef}
-        value={value}
-        onChange={e => onChange(e.target.value)}
+        value={localValue}
+        onChange={e => setLocalValue(e.target.value)}
         onKeyDown={e => {
           if (e.key === "Tab") {
             e.preventDefault();
@@ -53,10 +68,8 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange }) => {
             const start = textarea.selectionStart;
             const end = textarea.selectionEnd;
             const spaces = "  ";
-            // Use setRangeText to insert spaces and preserve undo stack
             textarea.setRangeText(spaces, start, end, "end");
-            // Manually trigger onChange with the new value
-            onChange(textarea.value);
+            setLocalValue(textarea.value);
           }
         }}
         style={{
@@ -81,6 +94,29 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange }) => {
           }}
           title={format === "json" ? "Invalid JSON" : format === "xml" ? "Invalid XML" : "Invalid"}
         />
+      )}
+      {canApply && !isInvalid && (
+        <button
+          style={{
+            position: "absolute",
+            right: 8,
+            bottom: 8,
+            background: "#43a047", // green
+            color: "#fff",
+            border: "none",
+            borderRadius: 4,
+            padding: "2px 10px",
+            fontSize: 12,
+            cursor: "pointer",
+            boxShadow: "0 0 2px #090"
+          }}
+          onClick={() => {
+            onChange(localValue);
+            setCanApply(false);
+          }}
+        >
+          Apply
+        </button>
       )}
     </div>
   );
