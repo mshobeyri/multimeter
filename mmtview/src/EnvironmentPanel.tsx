@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import parseYaml from "./yamlparser";
+import parseYaml from "./markupConvertor";
 import ComboTable, { ComboTablePair } from "./components/ComboTable";
 
 

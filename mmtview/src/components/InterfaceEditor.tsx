@@ -3,7 +3,7 @@ import FieldWithRemove from "./FieldWithRemove";
 import KVEditor from "./KVEditor";
 import EndpointInput from "./EndpointInput";
 import { Format, Protocol, InterfaceData } from "./APIData";
-import { formatBody } from "../yamlparser";
+import { formatBody, formattedBodyToYamlObject } from "../markupConvertor";
 
 interface InterfaceEditorProps {
   data: InterfaceData;
@@ -138,7 +138,14 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
             <textarea
               ref={bodyRef}
               value={formattedBody}
-              onChange={e => onChange({ ...data, body: e.target.value })}
+              onChange={e => {
+                setFormattedBody(e.target.value);
+                // Convert the edited formatted body back to a YAML object
+                const yamlObj = formattedBodyToYamlObject(data.format, e.target.value);
+                if (yamlObj !== null) {
+                  onChange({ ...data, body: yamlObj });
+                }
+              }}
               style={{ width: "100%", minHeight: 60, resize: "none", overflow: "hidden" }}
             />
           </td>

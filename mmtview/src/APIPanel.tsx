@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import parseYaml, { packYaml } from "./yamlparser";
+import parseYaml, { packYaml } from "./markupConvertor";
 import APIFieldEditor from "./components/APIEditor";
 import { APIData } from "./components/APIData";
 

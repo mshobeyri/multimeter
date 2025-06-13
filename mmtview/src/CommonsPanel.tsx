@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import parseYaml, { packYaml } from "./yamlparser";
+import parseYaml, { packYaml } from "./markupConvertor";
 import VariablesEditor from "./components/VariablesEditor";
 import { VariableData } from "./components/VariableEditor";
 

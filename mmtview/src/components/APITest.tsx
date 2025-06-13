@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { InterfaceData, APIData } from "./APIData";
 import KVEditor from "./KVEditor"
-import { formatBody } from "../yamlparser";
+import { formatBody } from "../markupConvertor";
 
 interface APITestProps {
   api: APIData;
