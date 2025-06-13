@@ -145,6 +145,27 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
                 if (yamlObj !== null) {
                   onChange({ ...data, body: yamlObj });
                 }
+                // Auto-resize the textarea as the user types
+                if (bodyRef.current) {
+                  bodyRef.current.style.height = "auto";
+                  bodyRef.current.style.height = bodyRef.current.scrollHeight + "px";
+                }
+              }}
+              onKeyDown={e => {
+                if (e.key === "Tab") {
+                  e.preventDefault();
+                  const textarea = e.currentTarget;
+                  const start = textarea.selectionStart;
+                  const end = textarea.selectionEnd;
+                  // Insert two spaces at cursor position instead of tab character
+                  const spaces = "  ";
+                  const newValue = formattedBody.substring(0, start) + spaces + formattedBody.substring(end);
+                  setFormattedBody(newValue);
+                  // Move cursor after the two spaces
+                  setTimeout(() => {
+                    textarea.selectionStart = textarea.selectionEnd = start + spaces.length;
+                  }, 0);
+                }
               }}
               style={{ width: "100%", minHeight: 60, resize: "none", overflow: "hidden" }}
             />
