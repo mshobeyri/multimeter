@@ -4,6 +4,7 @@ import KVEditor from "./KVEditor";
 import EndpointInput from "./EndpointInput";
 import { Format, Protocol, InterfaceData } from "./APIData";
 import { formatBody, formattedBodyToYamlObject } from "../markupConvertor";
+import BodyView from "./BodyView";
 
 interface InterfaceEditorProps {
   data: InterfaceData;
@@ -67,6 +68,23 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
       bodyRef.current.style.height = bodyRef.current.scrollHeight + "px";
     }
   }, [data.body]);
+
+  // State to track JSON validity
+  const [isJsonInvalid, setIsJsonInvalid] = useState(false);
+
+  // Validate JSON when formattedBody or format changes
+  useEffect(() => {
+    if (data.format === "json") {
+      try {
+        JSON.parse(formattedBody);
+        setIsJsonInvalid(false);
+      } catch {
+        setIsJsonInvalid(true);
+      }
+    } else {
+      setIsJsonInvalid(false);
+    }
+  }, [formattedBody, data.format]);
 
   return (
     <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
@@ -134,40 +152,17 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
         <KVEditor label="cookies" value={data.cookies} onChange={cookies => onChange({ ...data, cookies })} />
         <tr>
           <td className="label">body</td>
-          <td style={{ padding: "8px" }}>
-            <textarea
-              ref={bodyRef}
+          <td style={{ padding: "8px", position: "relative" }}>
+            <BodyView
               value={formattedBody}
-              onChange={e => {
-                setFormattedBody(e.target.value);
-                // Convert the edited formatted body back to a YAML object
-                const yamlObj = formattedBodyToYamlObject(data.format, e.target.value);
+              isJsonInvalid={isJsonInvalid}
+              onChange={val => {
+                setFormattedBody(val);
+                const yamlObj = formattedBodyToYamlObject(data.format, val);
                 if (yamlObj !== null) {
                   onChange({ ...data, body: yamlObj });
                 }
-                // Auto-resize the textarea as the user types
-                if (bodyRef.current) {
-                  bodyRef.current.style.height = "auto";
-                  bodyRef.current.style.height = bodyRef.current.scrollHeight + "px";
-                }
               }}
-              onKeyDown={e => {
-                if (e.key === "Tab") {
-                  e.preventDefault();
-                  const textarea = e.currentTarget;
-                  const start = textarea.selectionStart;
-                  const end = textarea.selectionEnd;
-                  // Insert two spaces at cursor position instead of tab character
-                  const spaces = "  ";
-                  const newValue = formattedBody.substring(0, start) + spaces + formattedBody.substring(end);
-                  setFormattedBody(newValue);
-                  // Move cursor after the two spaces
-                  setTimeout(() => {
-                    textarea.selectionStart = textarea.selectionEnd = start + spaces.length;
-                  }, 0);
-                }
-              }}
-              style={{ width: "100%", minHeight: 60, resize: "none", overflow: "hidden" }}
             />
           </td>
         </tr>
