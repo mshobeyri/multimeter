@@ -69,23 +69,6 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
     }
   }, [data.body]);
 
-  // State to track JSON validity
-  const [isJsonInvalid, setIsJsonInvalid] = useState(false);
-
-  // Validate JSON when formattedBody or format changes
-  useEffect(() => {
-    if (data.format === "json") {
-      try {
-        JSON.parse(formattedBody);
-        setIsJsonInvalid(false);
-      } catch {
-        setIsJsonInvalid(true);
-      }
-    } else {
-      setIsJsonInvalid(false);
-    }
-  }, [formattedBody, data.format]);
-
   return (
     <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
       <colgroup>
@@ -155,7 +138,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
           <td style={{ padding: "8px", position: "relative" }}>
             <BodyView
               value={formattedBody}
-              isJsonInvalid={isJsonInvalid}
+              format={data.format}
               onChange={val => {
                 setFormattedBody(val);
                 const yamlObj = formattedBodyToYamlObject(data.format, val);

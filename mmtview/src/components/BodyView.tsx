@@ -1,14 +1,36 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
+import { xml2js } from "xml-js";
 
 export type BodyViewProps = {
   value: string;
-  isJsonInvalid?: boolean;
+  format: string;
   onChange: (value: string) => void;
-  onTab?: (value: string, textarea: HTMLTextAreaElement) => void;
 };
 
-const BodyView: React.FC<BodyViewProps> = ({ value, isJsonInvalid, onChange, onTab }) => {
+const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange }) => {
   const bodyRef = useRef<HTMLTextAreaElement>(null);
+  const [isInvalid, setIsInvalid] = useState(false);
+
+  // Validate JSON or XML when value or format changes
+  useEffect(() => {
+    if (format === "json") {
+      try {
+        JSON.parse(value);
+        setIsInvalid(false);
+      } catch {
+        setIsInvalid(true);
+      }
+    } else if (format === "xml") {
+      try {
+        xml2js(value, { compact: true });
+        setIsInvalid(false);
+      } catch {
+        setIsInvalid(true);
+      }
+    } else {
+      setIsInvalid(false);
+    }
+  }, [value, format]);
 
   // Auto-resize textarea to fit content
   useEffect(() => {
@@ -31,12 +53,10 @@ const BodyView: React.FC<BodyViewProps> = ({ value, isJsonInvalid, onChange, onT
             const start = textarea.selectionStart;
             const end = textarea.selectionEnd;
             const spaces = "  ";
-            const newValue = value.substring(0, start) + spaces + value.substring(end);
-            onChange(newValue);
-            setTimeout(() => {
-              textarea.selectionStart = textarea.selectionEnd = start + spaces.length;
-            }, 0);
-            if (onTab) onTab(newValue, textarea);
+            // Use setRangeText to insert spaces and preserve undo stack
+            textarea.setRangeText(spaces, start, end, "end");
+            // Manually trigger onChange with the new value
+            onChange(textarea.value);
           }
         }}
         style={{
@@ -46,7 +66,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, isJsonInvalid, onChange, onT
           overflow: "hidden"
         }}
       />
-      {isJsonInvalid && (
+      {isInvalid && (
         <span
           style={{
             position: "absolute",
@@ -59,7 +79,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, isJsonInvalid, onChange, onT
             display: "inline-block",
             boxShadow: "0 0 2px #900"
           }}
-          title="Invalid JSON"
+          title={format === "json" ? "Invalid JSON" : format === "xml" ? "Invalid XML" : "Invalid"}
         />
       )}
     </div>
