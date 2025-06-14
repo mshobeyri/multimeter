@@ -16,6 +16,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "in
     const [localValue, setLocalValue] = useState(value);
     const [isValid, setIsValid] = useState(true);
     const [canApply, setCanApply] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     // Keep localValue in sync with parent value (when parent changes)
     useEffect(() => {
@@ -25,27 +26,30 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "in
     // Validate JSON or XML when localValue or format changes
     useEffect(() => {
         let valid = true;
+        let err: string | null = null;
         if (format === "json") {
             try {
                 JSON.parse(localValue);
-            } catch {
+            } catch (e: any) {
                 valid = false;
+                err = e?.message || "Invalid JSON";
             }
         } else if (format === "xml") {
             try {
                 xml2js(localValue, { compact: true });
-            } catch {
+            } catch (e: any) {
                 valid = false;
+                err = e?.message || "Invalid XML";
             }
         }
         setIsValid(valid);
+        setErrorMsg(valid ? null : err);
 
         if (isValid && valid && beautify(format, localValue) !== value) {
             setCanApply(true);
         } else {
             setCanApply(false);
         }
-        console.log(localValue, value);
         // eslint-disable-next-line
     }, [localValue, format, value, isValid]);
 
@@ -87,15 +91,23 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "in
                         position: "absolute",
                         right: 8,
                         bottom: 8,
-                        width: 12,
-                        height: 12,
+                        width: 16,
+                        height: 16,
                         borderRadius: "50%",
                         background: "red",
-                        display: "inline-block",
-                        boxShadow: "0 0 2px #900"
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#fff",
+                        fontWeight: "bold",
+                        fontSize: 12,
+                        boxShadow: "0 0 2px #900",
+                        cursor: "pointer"
                     }}
-                    title={format === "json" ? "Invalid JSON" : format === "xml" ? "Invalid XML" : "Invalid"}
-                />
+                    title={errorMsg || (format === "json" ? "Invalid JSON" : format === "xml" ? "Invalid XML" : "Invalid")}
+                >
+                    i
+                </span>
             )}
             {mode == "interface" && canApply && isValid && (
                 <button
