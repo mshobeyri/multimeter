@@ -2,11 +2,7 @@ import React, { useState } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import ObjectFieldsEditor from "./ObjectFieldsEditor";
 import ValidatableSelect from "./ValidatableSelect";
-
-const protobufTypes = [
-  "double", "float", "int32", "int64", "uint32", "uint64", "sint32", "sint64",
-  "fixed32", "fixed64", "sfixed32", "sfixed64", "bool", "string", "bytes"
-];
+import { jsonTypes } from "./APIData";
 
 export type VariablesData = VariableData[];
 
@@ -25,10 +21,6 @@ export interface VariableData {
   protobuf?: string;
   fields?: Record<string, string>;
 }
-
-const jsonTypes = [
-  "object", "object[]", "string", "string[]", "number", "number[]", "boolean", "boolean[]"
-];
 
 const fieldOptions = [
   "info", "protobuf", "alter_name", "Alter_Name", "ALTER_NAME",

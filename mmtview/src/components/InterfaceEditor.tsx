@@ -2,7 +2,7 @@ import React, { useCallback, useRef, useEffect, useState } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import KVEditor from "./KVEditor";
 import EndpointInput from "./EndpointInput";
-import { Format, Protocol, InterfaceData } from "./APIData";
+import { Format, Protocol, InterfaceData, Method } from "./APIData";
 import { formatBody, formattedBodyToYamlObject } from "../markupConvertor";
 import BodyView from "./BodyView";
 
@@ -12,8 +12,9 @@ interface InterfaceEditorProps {
   onRemove?: () => void;
 }
 
-const protocolOptions: Protocol[] = ["http", "ws", "grpc"];
-const formatOptions: Format[] = ["json", "xml", "protobuf"];
+const protocolOptions: Protocol[] = ["http", "ws"];
+const formatOptions: Format[] = ["json", "xml"];
+const methodOptions: Method[] = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
 
 const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRemove }) => {
   // Split endpoint and query string safely
@@ -126,13 +127,37 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
             />
           </td>
         </tr>
+        <tr>
+          <td className="label">method</td>
+          <td style={{ padding: "8px" }}>
+            <select
+              value={data.method || ""}
+              onChange={e => onChange({ ...data, method: e.target.value as Method })}
+              style={{ width: "100%" }}
+              disabled={data.protocol === "ws"} // Disable if protocol is ws
+            >
+              <option value="" disabled>Select method...</option>
+              {methodOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </td>
+        </tr>
         <KVEditor
           label="url params"
           value={data.query}
           onChange={handleQueryChange}
+          // @ts-ignore
+          disabled={data.protocol === "ws"} // Pass disabled prop
         />
         <KVEditor label="headers" value={data.headers} onChange={headers => onChange({ ...data, headers })} />
-        <KVEditor label="cookies" value={data.cookies} onChange={cookies => onChange({ ...data, cookies })} />
+        <KVEditor
+          label="cookies"
+          value={data.cookies}
+          onChange={cookies => onChange({ ...data, cookies })}
+          // @ts-ignore
+          disabled={data.protocol === "ws"} // Pass disabled prop
+        />
         <tr>
           <td className="label">body</td>
           <td style={{ padding: "8px", position: "relative" }}>
@@ -146,7 +171,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
                 if (yamlObj !== null) {
                   onChange({ ...data, body: yamlObj });
                 }
-              }} 
+              }}
             />
           </td>
         </tr>

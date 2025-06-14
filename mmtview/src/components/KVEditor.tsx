@@ -9,6 +9,7 @@ interface KVEditorProps {
   keyPlaceholder?: string;
   valuePlaceholder?: string;
   options?: string[]; // <-- Add this line
+  disabled?: boolean;
 }
 
 // Utility to ensure an empty key is always at the end
@@ -26,7 +27,8 @@ const KVEditor: React.FC<KVEditorProps> = ({
   onChange,
   keyPlaceholder = "key",
   valuePlaceholder = "value",
-  options // <-- Add this line
+  options, // <-- Add this line
+  disabled
 }) => {
   // Use an array of entries to preserve order
   const entries = useMemo(() => withTrailingEmptyKey(value), [value]);
@@ -79,6 +81,7 @@ const KVEditor: React.FC<KVEditorProps> = ({
                     onChange={e => handleKeyChange(i, e.target.value)}
                     placeholder={keyPlaceholder}
                     style={{ width: "100%" }}
+                    disabled={disabled}
                   />
                 </td>
                 <td style={{ width: "50%" }}>

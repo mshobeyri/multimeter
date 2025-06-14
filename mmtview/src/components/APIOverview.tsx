@@ -2,7 +2,7 @@ import React from "react";
 import ValidatableSelect from "./ValidatableSelect";
 import SearchableTagInput from "./SearchableTagInput";
 import KVEditor from "./KVEditor";
-import { APIData } from "./APIData";
+import { APIData, jsonTypes } from "./APIData";
 
 interface APIOverviewProps {
   api: APIData;
@@ -75,7 +75,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
         }}
         keyPlaceholder="name"
         valuePlaceholder="value"
-        options={["asd", "ASdas"]}
+        options={jsonTypes}
       />
 
       <KVEditor
@@ -88,7 +88,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
         }}
         keyPlaceholder="name"
         valuePlaceholder="value"
-        options={["asd", "ASdas"]} // Replace with actual options if needed
+        options={jsonTypes}
       />
     </tbody>
   </table>

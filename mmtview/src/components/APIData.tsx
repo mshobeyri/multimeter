@@ -1,11 +1,18 @@
-export type Protocol = "http" | "ws" | "grpc";
-export type Format = "json" | "xml" | "protobuf";
+export type Protocol = "http" | "ws";
+export type Format = "json" | "xml";
+export type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS";
+
+export const jsonTypes = [
+  "object", "object[]", "string", "string[]", "number", "number[]", "boolean", "boolean[]"
+];
+
 
 export interface InterfaceData {
   name: string;
   protocol: Protocol;
   format: Format;
   endpoint: string;
+  method?: Method;
   headers?: Record<string, string>;
   body?: string | object;
   query?: Record<string, string>;
