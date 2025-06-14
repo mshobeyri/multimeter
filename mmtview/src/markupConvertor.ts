@@ -69,6 +69,24 @@ function formattedBodyToYamlObject(format: string, body: string): any {
   }
 }
 
+function beautify(format: string, value: string): string {
+  try {
+    if (format === "json") {
+      return JSON.stringify(JSON.parse(value), null, 2);
+    }
+    if (format === "xml") {
+      // Parse and re-stringify with xml-js for pretty output
+      const jsObj = xml2js(value, { compact: true });
+      return js2xml(jsObj, { compact: true, spaces: 2 });
+    }
+    // Add YAML or other formats as needed
+  } catch {
+    // If invalid, return as is
+    return value;
+  }
+  return value;
+}
 
-export { parseYaml, packYaml, formatBody, formattedBodyToYamlObject };
+
+export { parseYaml, packYaml, formatBody, formattedBodyToYamlObject, beautify };
 export default parseYaml;

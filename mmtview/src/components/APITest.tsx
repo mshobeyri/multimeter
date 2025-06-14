@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { InterfaceData, APIData } from "./APIData";
 import KVEditor from "./KVEditor"
+import BodyView from "./BodyView";
 import { formatBody } from "../markupConvertor";
 
 interface APITestProps {
@@ -117,17 +118,14 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
             body
           </td>
           <td style={{ padding: "8px" }}>
-            <textarea
-              ref={bodyRef}
-              style={{
-                width: "100%",
-                minHeight: 60,
-                resize: "none",
-                overflow: "hidden",
-                fontFamily: "var(--vscode-editor-font-family, monospace)"
-              }}
+            <BodyView
               value={formattedBody}
-              onChange={e => setTestData({ ...testData, body: e.target.value })}
+              format={testData.format}
+              mode="test"
+              onChange={val => {
+                setFormattedBody(val);
+                setTestData({ ...testData, body: val });
+              }}
             />
           </td>
         </tr>

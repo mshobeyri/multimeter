@@ -139,13 +139,14 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
             <BodyView
               value={formattedBody}
               format={data.format}
+              mode="interface"
               onChange={val => {
                 setFormattedBody(val);
                 const yamlObj = formattedBodyToYamlObject(data.format, val);
                 if (yamlObj !== null) {
                   onChange({ ...data, body: yamlObj });
                 }
-              }}
+              }} 
             />
           </td>
         </tr>
