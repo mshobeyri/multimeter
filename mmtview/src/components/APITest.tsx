@@ -130,6 +130,58 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           </td>
         </tr>
         <tr>
+          <td colSpan={2} style={{ position: "relative", padding: 0, height: 40 }}>
+            <div
+              style={{
+                borderTop: "1px solid #ccc",
+                opacity: 0.2,
+                position: "absolute",
+                top: "50%",
+                left: 0,
+                width: "100%",
+                height: 0,
+              }}
+            />
+            <button
+              style={{
+                position: "absolute",
+                right: "16px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                background: "#1976d2",
+                color: "#fff",
+                border: "none",
+                borderRadius: "50%",
+                width: 40,
+                height: 40,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                cursor: "pointer",
+                boxShadow: "0 2px 6px #0001",
+                padding: 0,
+              }}
+              title="Send"
+              onClick={() => {
+                // TODO: Implement send/test logic here
+                alert("Send clicked!");
+              }}
+            >
+              {/* Paper fly icon */}
+              <svg
+                fill="#fff"
+                viewBox="0 0 256 256"
+                width="22"
+                height="22"
+                xmlns="http://www.w3.org/2000/svg"
+                style={{ marginLeft: "4px" }} // Move icon 4px to the right
+              >
+                <path d="M225.39844,110.5498,56.4834,15.957A20,20,0,0,0,27.877,40.13477L59.25781,128,27.877,215.86621A19.97134,19.97134,0,0,0,56.48437,240.042L225.39844,145.4502a19.99958,19.99958,0,0,0,0-34.9004ZM54.06738,213.88867,80.45605,140H136a12,12,0,0,0,0-24H80.45654L54.06738,42.11133,207.44043,128Z"></path>
+              </svg>
+            </button>
+          </td>
+        </tr>
+        <tr>
           <td className="label" style={{ verticalAlign: "top" }}>
             response
           </td>
