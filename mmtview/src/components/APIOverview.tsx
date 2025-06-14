@@ -1,8 +1,8 @@
 import React from "react";
 import ValidatableSelect from "./ValidatableSelect";
 import SearchableTagInput from "./SearchableTagInput";
-import ParameterEditor from "./ParameterEditor";
-import  {APIData } from "./APIData";
+import KVEditor from "./KVEditor";
+import { APIData } from "./APIData";
 
 interface APIOverviewProps {
   api: APIData;
@@ -20,7 +20,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
     </colgroup>
     <tbody>
       <tr>
-        <td className="label" >type</td>
+        <td className="label">type</td>
         <td style={{ padding: "8px" }}>
           <ValidatableSelect
             value={api.type || ""}
@@ -67,34 +67,34 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
       <tr>
         <td colSpan={2} className="label">input</td>
       </tr>
-      {(api.inputs || []).map((input, i) => (
-        <ParameterEditor
-          key={i}
-          parameter={input}
-          onChange={newParam => {
-            const newInputs = [...(api.inputs || [])];
-            newInputs[i] = newParam;
-            update({ inputs: newInputs });
-          }}
-          valueOptions={[]} // or provide suggestions
-        />
-      ))}
+      <KVEditor
+        label=""
+        value={api.inputs?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
+        onChange={kv => {
+          // Convert kv object to Parameter[] (each entry: { [key]: value })
+          const newInputs = Object.entries(kv).map(([key, value]) => ({ [key]: value }));
+          update({ inputs: newInputs });
+        }}
+        keyPlaceholder="name"
+        valuePlaceholder="value"
+        options={["asd", "ASdas"]}
+      />
       {/* Outputs Section */}
       <tr>
         <td colSpan={2} className="label">output</td>
       </tr>
-      {(api.outputs || []).map((output, i) => (
-        <ParameterEditor
-          key={i}
-          parameter={output}
-          onChange={newParam => {
-            const newOutputs = [...(api.outputs || [])];
-            newOutputs[i] = newParam;
-            update({ outputs: newOutputs });
-          }}
-          valueOptions={[]} // or provide suggestions
-        />
-      ))}
+      <KVEditor
+        label=""
+        value={api.outputs?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
+        onChange={kv => {
+          // Convert kv object to Parameter[] (each entry: { [key]: value })
+          const newOutputs = Object.entries(kv).map(([key, value]) => ({ [key]: value }));
+          update({ outputs: newOutputs });
+        }}
+        keyPlaceholder="name"
+        valuePlaceholder="value"
+        options={["asd", "ASdas"]} // Replace with actual options if needed
+      />
     </tbody>
   </table>
 );

@@ -7,6 +7,7 @@ interface KVEditorProps {
   onChange: (v: Record<string, string>) => void;
   keyPlaceholder?: string;
   valuePlaceholder?: string;
+  options?: string[]; // <-- Add this line
 }
 
 // Utility to ensure an empty key is always at the end
@@ -23,7 +24,8 @@ const KVEditor: React.FC<KVEditorProps> = ({
   value,
   onChange,
   keyPlaceholder = "key",
-  valuePlaceholder = "value"
+  valuePlaceholder = "value",
+  options // <-- Add this line
 }) => {
   // Use an array of entries to preserve order
   const entries = useMemo(() => withTrailingEmptyKey(value), [value]);
@@ -80,12 +82,29 @@ const KVEditor: React.FC<KVEditorProps> = ({
                 </td>
                 <td style={{ width: "50%" }}>
                   {k !== "" && (
-                    <FieldWithRemove
-                      value={v}
-                      onChange={newVal => handleValueChange(i, newVal)}
-                      onRemovePressed={() => handleRemove(i)}
-                      placeholder={valuePlaceholder}
-                    />
+                    options && options.length > 0 ? (
+                      <select
+                        value={v}
+                        onChange={e => handleValueChange(i, e.target.value)}
+                        style={{ width: "100%" }}
+                      >
+                        <option value="" disabled>
+                          {valuePlaceholder}
+                        </option>
+                        {options.map(opt => (
+                          <option key={opt} value={opt}>
+                            {opt}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <FieldWithRemove
+                        value={v}
+                        onChange={newVal => handleValueChange(i, newVal)}
+                        onRemovePressed={() => handleRemove(i)}
+                        placeholder={valuePlaceholder}
+                      />
+                    )
                   )}
                 </td>
               </tr>
