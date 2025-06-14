@@ -127,41 +127,48 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
             />
           </td>
         </tr>
-        <tr>
-          <td className={data.protocol === "ws" ? "label label-disabled" : "label"}>method</td>
-          <td style={{ padding: "8px" }}>
-            <select
-              value={data.method || ""}
-              onChange={e => onChange({ ...data, method: e.target.value as Method })}
-              style={{ width: "100%" }}
-              disabled={data.protocol === "ws"} // Disable if protocol is ws
-            >
-              <option value="" disabled>Select method...</option>
-              {methodOptions.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
-            </select>
-          </td>
-        </tr>
-        <KVEditor
-          label="url params"
-          value={data.query}
-          onChange={handleQueryChange}
-          // @ts-ignore
-          disabled={data.protocol === "ws"} // Pass disabled prop
-        />
+        {data.protocol === "http" || data.method ? (
+          <tr>
+            <td className={data.protocol !== "http" ? "label label-disabled" : "label"}>method</td>
+            <td style={{ padding: "8px" }}>
+              <select
+                value={data.method || ""}
+                onChange={e => onChange({ ...data, method: e.target.value as Method })}
+                style={{ width: "100%" }}
+                disabled={data.protocol !== "http"}
+              >
+                <option value="" disabled>Select method...</option>
+                {methodOptions.map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </td>
+          </tr>
+        ) : null}
+        {data.protocol === "http" || (data.query && Object.keys(data.query).length > 0) ? (
+          <KVEditor
+            label="url params"
+            value={data.query}
+            onChange={handleQueryChange}
+            disabled={data.protocol !== "http"}
+          />
+        ) : null}
+        {data.protocol === "http" || (data.headers && Object.keys(data.headers).length > 0) ? (
         <KVEditor
           label="headers"
           value={data.headers}
           onChange={headers => onChange({ ...data, headers })}
-          disabled={data.protocol === "ws"} />
-        <KVEditor
-          label="cookies"
-          value={data.cookies}
-          onChange={cookies => onChange({ ...data, cookies })}
-          // @ts-ignore
-          disabled={data.protocol === "ws"} // Pass disabled prop
+          disabled={data.protocol !== "http"} 
         />
+        ) : null}
+        {data.protocol === "http" || (data.cookies && Object.keys(data.cookies).length > 0) ? (
+          <KVEditor
+            label="cookies"
+            value={data.cookies}
+            onChange={cookies => onChange({ ...data, cookies })}
+            disabled={data.protocol !== "http"}
+          />
+        ) : null}
         <tr>
           <td className="label">body</td>
           <td style={{ padding: "8px", position: "relative" }}>
