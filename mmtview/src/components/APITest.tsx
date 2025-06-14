@@ -115,7 +115,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           onChange={cookies => setTestData({ ...testData, cookies })}
         />
         <tr>
-          <td className="label" style={{ verticalAlign: "top" }}>
+          <td className="label" >
             body
           </td>
           <td style={{ padding: "8px" }}>
@@ -232,7 +232,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           </td>
         </tr>
         <tr>
-          <td className="label" style={{ verticalAlign: "top" }}>
+          <td className="label" >
             response
           </td>
           <td style={{ padding: "8px" }}>

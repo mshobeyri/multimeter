@@ -64,11 +64,9 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
         </td>
       </tr>
       {/* Inputs Section */}
-      <tr>
-        <td className="label">input</td>
-      </tr>
+
       <KVEditor
-        label=""
+        label="input"
         value={api.inputs?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
         onChange={kv => {
           // Convert kv object to Parameter[] (each entry: { [key]: value })
@@ -79,12 +77,9 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
         valuePlaceholder="value"
         options={["asd", "ASdas"]}
       />
-      {/* Outputs Section */}
-      <tr>
-        <td className="label">output</td>
-      </tr>
+
       <KVEditor
-        label=""
+        label="output"
         value={api.outputs?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
         onChange={kv => {
           // Convert kv object to Parameter[] (each entry: { [key]: value })
