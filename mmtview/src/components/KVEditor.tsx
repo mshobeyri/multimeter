@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import FieldWithRemove from "./FieldWithRemove";
+import SelectWithRemove from "./SelectWithRemove";
 
 interface KVEditorProps {
   label: string;
@@ -83,20 +84,13 @@ const KVEditor: React.FC<KVEditorProps> = ({
                 <td style={{ width: "50%" }}>
                   {k !== "" && (
                     options && options.length > 0 ? (
-                      <select
+                      <SelectWithRemove
                         value={v}
-                        onChange={e => handleValueChange(i, e.target.value)}
-                        style={{ width: "100%" }}
-                      >
-                        <option value="" disabled>
-                          {valuePlaceholder}
-                        </option>
-                        {options.map(opt => (
-                          <option key={opt} value={opt}>
-                            {opt}
-                          </option>
-                        ))}
-                      </select>
+                        onChange={newVal => handleValueChange(i, newVal)}
+                        onRemovePressed={() => handleRemove(i)}
+                        options={options}
+                        placeholder={valuePlaceholder}
+                      />
                     ) : (
                       <FieldWithRemove
                         value={v}

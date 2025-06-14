@@ -65,7 +65,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
       </tr>
       {/* Inputs Section */}
       <tr>
-        <td colSpan={2} className="label">input</td>
+        <td className="label">input</td>
       </tr>
       <KVEditor
         label=""
@@ -81,7 +81,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
       />
       {/* Outputs Section */}
       <tr>
-        <td colSpan={2} className="label">output</td>
+        <td className="label">output</td>
       </tr>
       <KVEditor
         label=""
