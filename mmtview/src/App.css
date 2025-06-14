@@ -100,6 +100,15 @@ input:focus, textarea:focus {
   border-color: var(--vscode-focusBorder, #007fd4);
 }
 
+input:disabled,
+textarea:disabled {
+  background-color: var(--vscode-input-background, #1e1e1e);
+  color: var(--vscode-disabledForeground, #666666);
+  opacity: 0.6;
+  cursor: not-allowed;
+  border-color: var(--vscode-input-border, #3c3c3c);
+}
+
 .VariableEditor td {
   vertical-align: top !important;
 }
@@ -153,4 +162,11 @@ button:hover, button:focus {
   font-size: 0.75rem;
   padding: 2px 0 0 0 ;
   text-align: left;
+}
+
+.label-disabled {
+  color: var(--vscode-disabledForeground, #666666);
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
 }

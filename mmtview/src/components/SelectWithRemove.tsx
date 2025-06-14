@@ -6,6 +6,7 @@ interface SelectWithRemoveProps {
   onRemovePressed: () => void;
   options: string[];
   placeholder?: string;
+  disabled?: boolean;
 }
 
 const SelectWithRemove: React.FC<SelectWithRemoveProps> = ({
@@ -14,16 +15,21 @@ const SelectWithRemove: React.FC<SelectWithRemoveProps> = ({
   onRemovePressed,
   options,
   placeholder,
+  disabled = false,
 }) => (
   <div style={{ display: "flex", width: "100%", alignItems: "center" }}>
     <select
       value={value}
       onChange={e => onChange(e.target.value)}
+      disabled={disabled}
       style={{
         width: "calc(100% - 32px)",
         verticalAlign: "top",
         marginRight: 4,
         height: 24,
+        background: disabled ? "#eee" : undefined,
+        color: disabled ? "#aaa" : undefined,
+        cursor: disabled ? "not-allowed" : undefined,
       }}
     >
       <option value="" disabled>
@@ -38,13 +44,14 @@ const SelectWithRemove: React.FC<SelectWithRemoveProps> = ({
     <button
       onClick={onRemovePressed}
       title="Remove field"
+      disabled={disabled}
       style={{
         width: 28,
         height: 24,
         background: "transparent",
         color: "#c00",
         border: "none",
-        cursor: "pointer",
+        cursor: disabled ? "not-allowed" : "pointer",
         fontWeight: "bold",
         fontSize: "14px",
         display: "flex",
@@ -52,6 +59,7 @@ const SelectWithRemove: React.FC<SelectWithRemoveProps> = ({
         justifyContent: "center",
         padding: 0,
         zIndex: 1,
+        opacity: disabled ? 0.5 : 1,
       }}
     >
       <span style={{ fontSize: "14.4px", lineHeight: 1 }}>🗑️</span>

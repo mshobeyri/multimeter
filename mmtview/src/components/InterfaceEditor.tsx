@@ -128,7 +128,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
           </td>
         </tr>
         <tr>
-          <td className="label">method</td>
+          <td className={data.protocol === "ws" ? "label label-disabled" : "label"}>method</td>
           <td style={{ padding: "8px" }}>
             <select
               value={data.method || ""}
@@ -150,7 +150,11 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
           // @ts-ignore
           disabled={data.protocol === "ws"} // Pass disabled prop
         />
-        <KVEditor label="headers" value={data.headers} onChange={headers => onChange({ ...data, headers })} />
+        <KVEditor
+          label="headers"
+          value={data.headers}
+          onChange={headers => onChange({ ...data, headers })}
+          disabled={data.protocol === "ws"} />
         <KVEditor
           label="cookies"
           value={data.cookies}

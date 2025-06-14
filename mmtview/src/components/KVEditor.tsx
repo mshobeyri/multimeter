@@ -69,7 +69,7 @@ const KVEditor: React.FC<KVEditorProps> = ({
 
   return (
     <tr>
-      <td className="label">{label}</td>
+      <td className={disabled ? "label label-disabled" : "label"}>{label}</td>
       <td style={{ padding: "5px" }}>
         <table style={{ width: "100%" }}>
           <tbody>
@@ -93,6 +93,7 @@ const KVEditor: React.FC<KVEditorProps> = ({
                         onRemovePressed={() => handleRemove(i)}
                         options={options}
                         placeholder={valuePlaceholder}
+                        disabled={disabled}
                       />
                     ) : (
                       <FieldWithRemove
@@ -100,6 +101,7 @@ const KVEditor: React.FC<KVEditorProps> = ({
                         onChange={newVal => handleValueChange(i, newVal)}
                         onRemovePressed={() => handleRemove(i)}
                         placeholder={valuePlaceholder}
+                        disabled={disabled}
                       />
                     )
                   )}
