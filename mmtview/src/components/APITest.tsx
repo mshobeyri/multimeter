@@ -17,16 +17,16 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     interfaces[selectedIdx]
       ? { ...interfaces[selectedIdx] }
       : {
-          name: "",
-          protocol: "http",
-          format: "json",
-          endpoint: "",
-          headers: {},
-          body: "",
-          query: {},
-          params: {},
-          cookies: {},
-        }
+        name: "",
+        protocol: "http",
+        format: "json",
+        endpoint: "",
+        headers: {},
+        body: "",
+        query: {},
+        params: {},
+        cookies: {},
+      }
   );
 
   // State for formatted body
@@ -116,6 +116,22 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         <tr>
           <td className="label" style={{ verticalAlign: "top" }}>
             body
+          </td>
+          <td style={{ padding: "8px" }}>
+            <BodyView
+              value={formattedBody}
+              format={testData.format}
+              mode="test"
+              onChange={val => {
+                setFormattedBody(val);
+                setTestData({ ...testData, body: val });
+              }}
+            />
+          </td>
+        </tr>
+        <tr>
+          <td className="label" style={{ verticalAlign: "top" }}>
+            response
           </td>
           <td style={{ padding: "8px" }}>
             <BodyView
