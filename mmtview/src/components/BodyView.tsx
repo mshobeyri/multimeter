@@ -113,6 +113,29 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "in
                     i
                 </span>
             )}
+            {((format === "json" || format === "xml") && isValid && beautify(format, localValue) !== localValue) && (
+                <button
+                    style={{
+                        position: "absolute",
+                        right: 8,
+                        bottom: mode === "interface" && canApply && isValid ? 36 : 8,
+                        background: "#1976d2",
+                        color: "#fff",
+                        border: "none",
+                        borderRadius: 4,
+                        padding: "2px 10px",
+                        fontSize: 12,
+                        cursor: "pointer",
+                        boxShadow: "0 0 2px #1976d2"
+                    }}
+                    onClick={() => {
+                        const beautified = beautify(format, localValue);
+                        setLocalValue(beautified);
+                    }}
+                >
+                    Beautify
+                </button>
+            )}
             {mode == "interface" && canApply && isValid && (
                 <button
                     style={{
