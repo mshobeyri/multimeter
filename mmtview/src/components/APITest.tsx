@@ -1,10 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
-import { InterfaceData, APIData } from "./APIData";
+import { InterfaceData, ResponseData, APIData } from "./APIData";
 import KVEditor from "./KVEditor"
 import BodyView from "./BodyView";
 import { formatBody } from "../markupConvertor";
 import SendButton from "./SendButton";
 import ConnectButton from "./ConnectButton";
+import axios from "axios";
 
 interface APITestProps {
   api: APIData;
@@ -31,6 +32,12 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         cookies: {},
       }
   );
+
+  const [response, setResponse] = useState<ResponseData>(
+    { body: "" }
+  );
+
+
 
   // State for formatted body
   const [formattedBody, setFormattedBody] = useState<string>(
@@ -151,17 +158,17 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                 onClick={() => setConnected(c => !c)}
               />
             )}
-            <SendButton onClick={() => alert("Send clicked!")} />
+            <SendButton onClick={handleSend} />
           </td>
         </tr>
         <KVEditor
           label="headers"
-          value={testData.headers}
+          value={response.headers}
           onChange={headers => setTestData({ ...testData, headers })}
         />
         <KVEditor
           label="cookies"
-          value={testData.cookies}
+          value={response.cookies}
           onChange={cookies => setTestData({ ...testData, cookies })}
         />
         <tr>
@@ -170,7 +177,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           </td>
           <td style={{ padding: "8px" }}>
             <BodyView
-              value={formattedBody}
+              value={typeof response.body === "string" ? response.body : JSON.stringify(response.body ?? "", null, 2)}
               format={testData.format}
               mode="test"
               onChange={val => {

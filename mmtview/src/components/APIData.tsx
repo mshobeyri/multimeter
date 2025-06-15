@@ -32,3 +32,12 @@ export interface APIData {
   outputs?: Parameter[];
   interfaces?: Array<InterfaceData>;
 }
+
+export interface ResponseData {
+  headers?: Record<string, string>;
+  body?: string | object;
+  params?: Record<string, string>;
+  cookies?: Record<string, string>;
+  statusString?: string;
+  status?: number;
+}
