@@ -27,6 +27,10 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "in
     useEffect(() => {
         let valid = true;
         let err: string | null = null;
+        if(localValue == "") {
+            setIsValid(true);
+            return;
+        }
         if (format === "json") {
             try {
                 JSON.parse(localValue);

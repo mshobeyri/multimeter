@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
-import { InterfaceData, ResponseData, APIData } from "./APIData";
-import KVEditor from "./KVEditor"
+import { InterfaceData, APIData } from "./APIData";
+import KVEditor from "./KVEditor";
 import BodyView from "./BodyView";
 import { formatBody } from "../markupConvertor";
 import SendButton from "./SendButton";
 import ConnectButton from "./ConnectButton";
-import axios from "axios";
+import { useNetwork } from "./Network";
 
 interface APITestProps {
   api: APIData;
@@ -14,49 +14,26 @@ interface APITestProps {
 const APITest: React.FC<APITestProps> = ({ api }) => {
   const interfaces = api.interfaces || [];
   const [selectedIdx, setSelectedIdx] = useState(0);
-  const [connected, setConnected] = useState(false);
 
-  // Local state for editing the selected interface (does not affect YAML)
-  const [testData, setTestData] = useState<InterfaceData>(
-    interfaces[selectedIdx]
-      ? { ...interfaces[selectedIdx] }
-      : {
-        name: "",
-        protocol: "http",
-        format: "json",
-        endpoint: "",
-        headers: {},
-        body: "",
-        query: {},
-        params: {},
-        cookies: {},
-      }
-  );
+  const network = useNetwork();
 
-  const [response, setResponse] = useState<ResponseData>(
-    { body: "" }
-  );
-
-
-
-  // State for formatted body
-  const [formattedBody, setFormattedBody] = useState<string>(
-    formatBody(testData.format, testData.body || "")
-  );
-
-  // Update local testData when selected interface changes
   useEffect(() => {
     if (interfaces[selectedIdx]) {
-      setTestData({ ...interfaces[selectedIdx] });
+      network.setRequestData({ ...interfaces[selectedIdx] });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedIdx, interfaces]);
 
-  // Update formattedBody when body or format changes
-  useEffect(() => {
-    setFormattedBody(formatBody(testData.format, testData.body || ""));
-  }, [testData.body, testData.format]);
+  const [formattedBody, setFormattedBody] = useState<string>(
+    formatBody(network.requestData?.format || "json", network.requestData?.body || "")
+  );
 
-  // Auto-resize textarea for body
+  useEffect(() => {
+    setFormattedBody(
+      formatBody(network.requestData?.format || "json", network.requestData?.body || "")
+    );
+  }, [network.requestData?.body, network.requestData?.format]);
+
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => {
     if (bodyRef.current) {
@@ -65,18 +42,33 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     }
   }, [formattedBody]);
 
+  const updateField = (field: keyof InterfaceData, value: any) => {
+    network.setRequestData({
+      ...network.requestData,
+      [field]: value,
+    });
+  };
+
+  const handleSend = async () => {
+    await network.send();
+  };
+
+  const handleConnect = () => {
+    if (network.connected) {
+      network.closeWs();
+    } else {
+      network.send({ protocol: "ws" });
+    }
+  };
+
   if (interfaces.length === 0) {
     return <div style={{ color: "#888" }}>No interfaces defined.</div>;
   }
 
+  const req = network.requestData || {};
+
   return (
-    <table
-      style={{
-        width: "100%",
-        borderCollapse: "collapse",
-        tableLayout: "fixed"
-      }}
-    >
+    <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
       <colgroup>
         <col style={{ width: "20%" }} />
         <col style={{ width: "80%" }} />
@@ -103,38 +95,36 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           <td style={{ padding: "8px" }}>
             <input
               style={{ width: "100%" }}
-              value={testData.endpoint}
-              onChange={e => setTestData({ ...testData, endpoint: e.target.value })}
+              value={req.endpoint || ""}
+              onChange={e => updateField("endpoint", e.target.value)}
             />
           </td>
         </tr>
         <KVEditor
           label="url params"
-          value={testData.query}
-          onChange={query => setTestData({ ...testData, query })}
+          value={req.query || {}}
+          onChange={query => updateField("query", query)}
         />
         <KVEditor
           label="headers"
-          value={testData.headers}
-          onChange={headers => setTestData({ ...testData, headers })}
+          value={req.headers || {}}
+          onChange={headers => updateField("headers", headers)}
         />
         <KVEditor
           label="cookies"
-          value={testData.cookies}
-          onChange={cookies => setTestData({ ...testData, cookies })}
+          value={req.cookies || {}}
+          onChange={cookies => updateField("cookies", cookies)}
         />
         <tr>
-          <td className="label" >
-            body
-          </td>
+          <td className="label">body</td>
           <td style={{ padding: "8px" }}>
             <BodyView
               value={formattedBody}
-              format={testData.format}
+              format={req.format}
               mode="test"
               onChange={val => {
                 setFormattedBody(val);
-                setTestData({ ...testData, body: val });
+                updateField("body", val);
               }}
             />
           </td>
@@ -152,37 +142,47 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                 height: 0,
               }}
             />
-            {testData.protocol === "ws" && (
+            {req.protocol === "ws" && (
               <ConnectButton
-                connected={connected}
-                onClick={() => setConnected(c => !c)}
+                connected={network.connected}
+                onClick={handleConnect}
               />
             )}
             <SendButton onClick={handleSend} />
           </td>
         </tr>
+        {req.protocol === "ws" && (
+          <tr>
+            <td className="label">ws response</td>
+            <td style={{ padding: "8px", color: "#43a047" }}>
+              <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>{network.wsResponse}</pre>
+            </td>
+          </tr>
+        )}
         <KVEditor
           label="headers"
-          value={response.headers}
-          onChange={headers => setTestData({ ...testData, headers })}
+          value={network.response?.headers || {}}
+          onChange={headers => updateField("headers", headers)}
         />
         <KVEditor
           label="cookies"
-          value={response.cookies}
-          onChange={cookies => setTestData({ ...testData, cookies })}
+          value={network.response?.cookies || {}}
+          onChange={cookies => updateField("cookies", cookies)}
         />
         <tr>
-          <td className="label" >
-            response
-          </td>
+          <td className="label">response</td>
           <td style={{ padding: "8px" }}>
             <BodyView
-              value={typeof response.body === "string" ? response.body : JSON.stringify(response.body ?? "", null, 2)}
-              format={testData.format}
+              value={
+                typeof network.response?.body === "string"
+                  ? network.response.body
+                  : JSON.stringify(network.response?.body ?? "", null, 2)
+              }
+              format={req.format}
               mode="test"
               onChange={val => {
                 setFormattedBody(val);
-                setTestData({ ...testData, body: val });
+                updateField("body", val);
               }}
             />
           </td>
