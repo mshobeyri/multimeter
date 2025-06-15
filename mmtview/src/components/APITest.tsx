@@ -151,22 +151,14 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
             <SendButton onClick={handleSend} />
           </td>
         </tr>
-        {req.protocol === "ws" && (
-          <tr>
-            <td className="label">ws response</td>
-            <td style={{ padding: "8px", color: "#43a047" }}>
-              <pre style={{ margin: 0, whiteSpace: "pre-wrap" }}>{network.wsResponse}</pre>
-            </td>
-          </tr>
-        )}
         <KVEditor
           label="headers"
-          value={network.response?.headers || {}}
+          value={network.responseHeaders || {}}
           onChange={headers => updateField("headers", headers)}
         />
         <KVEditor
           label="cookies"
-          value={network.response?.cookies || {}}
+          value={network.responseCookies || {}}
           onChange={cookies => updateField("cookies", cookies)}
         />
         <tr>
@@ -174,9 +166,9 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           <td style={{ padding: "8px" }}>
             <BodyView
               value={
-                typeof network.response?.body === "string"
-                  ? network.response.body
-                  : JSON.stringify(network.response?.body ?? "", null, 2)
+                typeof network.responseBody === "string"
+                  ? network.responseBody
+                  : JSON.stringify(network.responseBody ?? "", null, 2)
               }
               format={req.format}
               mode="test"

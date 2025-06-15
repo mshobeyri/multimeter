@@ -97,26 +97,39 @@ export interface NetworkApi {
   closeWs: () => void;
   ws: WebSocketWithSend | null;
   connected: boolean;
-  response?: any;
-  wsResponse?: string;
+  responseBody?: any;
+  responseHeaders?: Record<string, string>;
+  responseCookies?: Record<string, string>;
   requestData?: any;
   setRequestData: (data: any) => void;
-  setResponse: (data: any) => void;
-  setWsResponse: (msg: string) => void;
+  setResponseBody: (data: any) => void;
+  setResponseHeaders: (headers: Record<string, string>) => void;
+  setResponseCookies: (cookies: Record<string, string>) => void;
 }
 
 export function useNetwork(): NetworkApi {
   const [ws, setWs] = useState<WebSocketWithSend | null>(null);
   const wsRef = useRef<WebSocketWithSend | null>(null);
   const [connected, setConnected] = useState(false);
-  const [response, setResponse] = useState<any>(null);
-  const [wsResponse, setWsResponse] = useState<string | undefined>(undefined);
 
-  // Request data state for editing and sending
+  const [responseBody, setResponseBody] = useState<any>(null);
+  const [responseHeaders, setResponseHeaders] = useState<Record<string, string>>({});
+  const [responseCookies, setResponseCookies] = useState<Record<string, string>>({});
+
   const [requestData, setRequestData] = useState<any>({});
 
+  const parseSetCookie = (setCookie: string[] | undefined): Record<string, string> => {
+    if (!setCookie) return {};
+    const cookies: Record<string, string> = {};
+    setCookie.forEach(cookieStr => {
+      const [cookiePair] = cookieStr.split(";");
+      const [key, value] = cookiePair.split("=");
+      if (key && value) cookies[key.trim()] = value.trim();
+    });
+    return cookies;
+  };
+
   const send = async (options?: NetworkOptions) => {
-    // Use options if provided, otherwise use requestData
     const opts = options || requestData;
     const {
       url = requestData.endpoint || requestData.url,
@@ -136,10 +149,18 @@ export function useNetwork(): NetworkApi {
     if (protocol === "http") {
       try {
         const res = await sendHttpRequest({ url, method, headers, body, cookies, params });
-        setResponse(res.data);
+        setResponseBody(res.data);
+        setResponseHeaders(
+          Object.fromEntries(
+            Object.entries(res.headers || {}).map(([k, v]) => [k, String(v)])
+          )
+        );
+        setResponseCookies(parseSetCookie(res.headers?.["set-cookie"]));
         onResponse?.(res.data);
       } catch (err: any) {
-        setResponse({ error: err?.message || err });
+        setResponseBody({ error: err?.message || err });
+        setResponseHeaders({});
+        setResponseCookies({});
         onResponse?.({ error: err?.message || err });
       }
     } else if (protocol === "ws") {
@@ -158,7 +179,7 @@ export function useNetwork(): NetworkApi {
             }
           },
           onMessage: msg => {
-            setWsResponse(msg.data);
+            setResponseBody(msg.data); // <--- Use responseBody for ws as well
             onWsMessage?.(msg.data);
           },
           onClose: () => {
@@ -191,11 +212,13 @@ export function useNetwork(): NetworkApi {
     closeWs,
     ws,
     connected,
-    response,
-    wsResponse,
+    responseBody,
+    responseHeaders,
+    responseCookies,
     requestData,
     setRequestData,
-    setResponse,
-    setWsResponse,
+    setResponseBody,
+    setResponseHeaders,
+    setResponseCookies,
   };
 }
