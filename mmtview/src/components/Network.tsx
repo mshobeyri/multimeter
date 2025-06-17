@@ -93,6 +93,7 @@ export interface NetworkOptions {
 }
 
 export interface NetworkApi {
+  error: any;
   send: (options?: NetworkOptions) => Promise<void>;
   closeWs: () => void;
   ws: WebSocketWithSend | null;
@@ -115,6 +116,7 @@ export function useNetwork(): NetworkApi {
   const [responseBody, setResponseBody] = useState<any>(null);
   const [responseHeaders, setResponseHeaders] = useState<Record<string, string>>({});
   const [responseCookies, setResponseCookies] = useState<Record<string, string>>({});
+  const [error, setError] = useState<string | null>(null);
 
   const [requestData, setRequestData] = useState<any>({});
 
@@ -130,6 +132,7 @@ export function useNetwork(): NetworkApi {
   };
 
   const send = async (options?: NetworkOptions) => {
+    setError(null); // Reset error on new request
     const opts = options || requestData;
     const {
       url = requestData.endpoint || requestData.url,
@@ -161,36 +164,42 @@ export function useNetwork(): NetworkApi {
         setResponseBody({ error: err?.message || err });
         setResponseHeaders({});
         setResponseCookies({});
+        setError(err?.message || String(err)); // <-- Set error
         onResponse?.({ error: err?.message || err });
       }
     } else if (protocol === "ws") {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.sendMessage(typeof body === "string" ? body : JSON.stringify(body));
-      } else {
-        const newWs = openWebSocket({
-          url,
-          onOpen: socket => {
-            wsRef.current = socket;
-            setWs(socket);
-            setConnected(true);
-            onWsOpen?.();
-          },
-          onMessage: msg => {
-            setResponseBody(msg.data); // <--- Use responseBody for ws as well
-            onWsMessage?.(msg.data);
-          },
-          onClose: () => {
-            wsRef.current = null;
-            setWs(null);
-            setConnected(false);
-            onWsClose?.();
-          },
-          onError: err => {
-            onWsError?.(err);
-          },
-        });
-        wsRef.current = newWs;
-        setWs(newWs);
+      try {
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.sendMessage(typeof body === "string" ? body : JSON.stringify(body));
+        } else {
+          const newWs = openWebSocket({
+            url,
+            onOpen: socket => {
+              wsRef.current = socket;
+              setWs(socket);
+              setConnected(true);
+              onWsOpen?.();
+            },
+            onMessage: msg => {
+              setResponseBody(msg.data);
+              onWsMessage?.(msg.data);
+            },
+            onClose: () => {
+              wsRef.current = null;
+              setWs(null);
+              setConnected(false);
+              onWsClose?.();
+            },
+            onError: err => {
+              setError("WebSocket cannot connect");
+              onWsError?.(err);
+            },
+          });
+          wsRef.current = newWs;
+          setWs(newWs);
+        }
+      } catch (err: any) {
+        setError(err?.message || String(err));
       }
     }
   };
@@ -217,5 +226,6 @@ export function useNetwork(): NetworkApi {
     setResponseBody,
     setResponseHeaders,
     setResponseCookies,
+    error,
   };
 }

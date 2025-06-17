@@ -151,40 +151,66 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
             <SendButton onClick={handleSend} />
           </td>
         </tr>
-        <div>
-          {Object.keys(network.responseHeaders || {}).length > 0 && (
-            <KVEditor
-              label="headers"
-              value={network.responseHeaders}
-              onChange={headers => { }}
-            />
-          )}
-          {Object.keys(network.responseCookies || {}).length > 0 && (
-            <KVEditor
-              label="cookies"
-              value={network.responseCookies}
-              onChange={cookies => { }}
-            />
-          )}
+        {/* Error and Response Section */}
+        {network.error ? (
           <tr>
-            <td className="label">response</td>
-            <td style={{ padding: "8px" }}>
-              <BodyView
-                value={
-                  typeof network.responseBody === "string"
-                    ? network.responseBody
-                    : JSON.stringify(network.responseBody ?? "", null, 2)
-                }
-                format={req.format}
-                mode="test"
-                onChange={val => {
-                  setFormattedBody(val);
-                  updateField("body", val);
-                }}
-              />
+            <td colSpan={2} style={{ padding: "32px 0" }}>
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                {/* <img
+                  src={errorImage}
+                  alt="Error"
+                  style={{ width: 64, height: 64, marginBottom: 16, opacity: 0.7 }}
+                /> */}
+                <div style={{ color: "#d32f2f", fontWeight: "bold", fontSize: 18, textAlign: "center" }}>
+                  {network.error}
+                </div>
+              </div>
             </td>
           </tr>
-        </div >
+        ) : (
+          <>
+            {Object.keys(network.responseHeaders || {}).length > 0 && (
+              <tr>
+                <td colSpan={2}>
+                  <KVEditor
+                    label="headers"
+                    value={network.responseHeaders}
+                    onChange={headers => { }}
+                  />
+                </td>
+              </tr>
+            )}
+            {Object.keys(network.responseCookies || {}).length > 0 && (
+              <tr>
+                <td colSpan={2}>
+                  <KVEditor
+                    label="cookies"
+                    value={network.responseCookies}
+                    onChange={cookies => { }}
+                  />
+                </td>
+              </tr>
+            )}
+            <tr>
+              <td className="label">response</td>
+              <td style={{ padding: "8px" }}>
+                <BodyView
+                  value={
+                    typeof network.responseBody === "string"
+                      ? network.responseBody
+                      : JSON.stringify(network.responseBody ?? "", null, 2)
+                  }
+                  format={req.format}
+                  mode="test"
+                  onChange={val => {
+                    setFormattedBody(val);
+                    updateField("body", val);
+                  }}
+                />
+              </td>
+            </tr>
+          </>
+        )}
       </tbody>
     </table>
   );

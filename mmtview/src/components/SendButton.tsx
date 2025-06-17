@@ -1,13 +1,13 @@
 import React from "react";
 
-const SendButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
+const SendButton: React.FC<{ onClick: () => void; disabled?: boolean }> = ({ onClick, disabled }) => (
   <button
     style={{
       position: "absolute",
       right: "16px",
       top: "50%",
       transform: "translateY(-50%)",
-      background: "#43a047",
+      background: disabled ? "#bdbdbd" : "#43a047",
       color: "#fff",
       border: "none",
       borderRadius: "50%",
@@ -16,12 +16,13 @@ const SendButton: React.FC<{ onClick: () => void }> = ({ onClick }) => (
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
-      cursor: "pointer",
+      cursor: disabled ? "not-allowed" : "pointer",
       boxShadow: "0 2px 6px #0001",
-      padding: 0,
+      padding: 0
     }}
     title="Send"
-    onClick={onClick}
+    onClick={disabled ? undefined : onClick}
+    disabled={disabled}
   >
     <svg
       fill="#fff"
