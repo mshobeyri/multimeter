@@ -151,34 +151,40 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
             <SendButton onClick={handleSend} />
           </td>
         </tr>
-        <KVEditor
-          label="headers"
-          value={network.responseHeaders || {}}
-          onChange={headers => updateField("headers", headers)}
-        />
-        <KVEditor
-          label="cookies"
-          value={network.responseCookies || {}}
-          onChange={cookies => updateField("cookies", cookies)}
-        />
-        <tr>
-          <td className="label">response</td>
-          <td style={{ padding: "8px" }}>
-            <BodyView
-              value={
-                typeof network.responseBody === "string"
-                  ? network.responseBody
-                  : JSON.stringify(network.responseBody ?? "", null, 2)
-              }
-              format={req.format}
-              mode="test"
-              onChange={val => {
-                setFormattedBody(val);
-                updateField("body", val);
-              }}
+        <div>
+          {Object.keys(network.responseHeaders || {}).length > 0 && (
+            <KVEditor
+              label="headers"
+              value={network.responseHeaders}
+              onChange={headers => { }}
             />
-          </td>
-        </tr>
+          )}
+          {Object.keys(network.responseCookies || {}).length > 0 && (
+            <KVEditor
+              label="cookies"
+              value={network.responseCookies}
+              onChange={cookies => { }}
+            />
+          )}
+          <tr>
+            <td className="label">response</td>
+            <td style={{ padding: "8px" }}>
+              <BodyView
+                value={
+                  typeof network.responseBody === "string"
+                    ? network.responseBody
+                    : JSON.stringify(network.responseBody ?? "", null, 2)
+                }
+                format={req.format}
+                mode="test"
+                onChange={val => {
+                  setFormattedBody(val);
+                  updateField("body", val);
+                }}
+              />
+            </td>
+          </tr>
+        </div >
       </tbody>
     </table>
   );

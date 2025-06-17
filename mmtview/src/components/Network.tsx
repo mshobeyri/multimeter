@@ -174,9 +174,6 @@ export function useNetwork(): NetworkApi {
             setWs(socket);
             setConnected(true);
             onWsOpen?.();
-            if (body) {
-              socket.sendMessage(typeof body === "string" ? body : JSON.stringify(body));
-            }
           },
           onMessage: msg => {
             setResponseBody(msg.data); // <--- Use responseBody for ws as well
