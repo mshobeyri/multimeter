@@ -110,9 +110,6 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
         >
           <tbody>
             <tr>
-              <td colSpan={2} style={{ padding: "8px", fontWeight: "bold" }}>interfaces</td>
-            </tr>
-            <tr>
               <td colSpan={2} style={{ padding: 0 }}>
                 {(api.interfaces || []).map((iface, idx) => (
                   <div key={idx} style={{ marginBottom: 16, border: "1px solid #444", borderRadius: 4, padding: 8 }}>
