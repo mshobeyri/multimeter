@@ -172,7 +172,7 @@ const TextEditorPanel: React.FC<TextEditorPanelProps> = ({ content, setContent }
 
     // Regex to match YAML key-value pairs where value starts with i:
     // Captures: key: i:value
-    const regex = /^(\s*\S+\s*:\s*)(i:[^\s#]*)/gm;
+    const regex = /^(\s*-?\s*.*:\s*)([i|c|o|e]:[^\s#]*)$/gm;
     const matches: any[] = [];
     const value = model.getValue();
     let match;
