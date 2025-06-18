@@ -106,6 +106,7 @@ export interface NetworkApi {
   setResponseBody: (data: any) => void;
   setResponseHeaders: (headers: Record<string, string>) => void;
   setResponseCookies: (cookies: Record<string, string>) => void;
+  loading: boolean;
 }
 
 export function useNetwork(): NetworkApi {
@@ -119,6 +120,7 @@ export function useNetwork(): NetworkApi {
   const [error, setError] = useState<string | null>(null);
 
   const [requestData, setRequestData] = useState<any>({});
+  const [loading, setLoading] = useState(false); // <-- Add loading state
 
   const parseSetCookie = (setCookie: string[] | undefined): Record<string, string> => {
     if (!setCookie) return {};
@@ -133,6 +135,7 @@ export function useNetwork(): NetworkApi {
 
   const send = async (options?: NetworkOptions) => {
     setError(null); // Reset error on new request
+    setLoading(true); // <-- Set loading true when request starts
     const opts = options || requestData;
     const {
       url = requestData.endpoint || requestData.url,
@@ -164,13 +167,16 @@ export function useNetwork(): NetworkApi {
         setResponseBody({ error: err?.message || err });
         setResponseHeaders({});
         setResponseCookies({});
-        setError(err?.message || String(err)); // <-- Set error
+        setError(err?.message || String(err));
         onResponse?.({ error: err?.message || err });
+      } finally {
+        setLoading(false); // <-- Set loading false after response/error
       }
     } else if (protocol === "ws") {
       try {
         if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
           wsRef.current.sendMessage(typeof body === "string" ? body : JSON.stringify(body));
+          setLoading(false); // <-- For sending message on open ws, loading is not needed
         } else {
           const newWs = openWebSocket({
             url,
@@ -178,20 +184,24 @@ export function useNetwork(): NetworkApi {
               wsRef.current = socket;
               setWs(socket);
               setConnected(true);
+              setLoading(false); // <-- Set loading false when connected
               onWsOpen?.();
             },
             onMessage: msg => {
               setResponseBody(msg.data);
+              setLoading(false); // <-- Set loading false on first message
               onWsMessage?.(msg.data);
             },
             onClose: () => {
               wsRef.current = null;
               setWs(null);
               setConnected(false);
+              setLoading(false); // <-- Set loading false on close
               onWsClose?.();
             },
             onError: err => {
               setError("WebSocket cannot connect");
+              setLoading(false); // <-- Set loading false on error
               onWsError?.(err);
             },
           });
@@ -200,6 +210,7 @@ export function useNetwork(): NetworkApi {
         }
       } catch (err: any) {
         setError(err?.message || String(err));
+        setLoading(false); // <-- Set loading false on error
       }
     }
   };
@@ -210,6 +221,7 @@ export function useNetwork(): NetworkApi {
       wsRef.current = null;
       setWs(null);
       setConnected(false);
+      setLoading(false); // <-- Set loading false on close
     }
   };
 
@@ -227,5 +239,6 @@ export function useNetwork(): NetworkApi {
     setResponseHeaders,
     setResponseCookies,
     error,
+    loading, // <-- Return loading
   };
 }

@@ -151,6 +151,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
             <SendButton
               onClick={handleSend}
               disabled={req.protocol === "ws" && !network.connected}
+              loading={network.loading}
             />
           </td>
         </tr>
@@ -164,7 +165,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                   alt="Error"
                   style={{ width: 64, height: 64, marginBottom: 16, opacity: 0.7 }}
                 /> */}
-                <div style={{ color: "#d32f2f", fontWeight: "bold", fontSize: 18, textAlign: "center" }}>
+                <div style={{ color: "#d32f2f", fontWeight: "bold", fontSize: 12, textAlign: "center" }}>
                   {network.error}
                 </div>
               </div>
