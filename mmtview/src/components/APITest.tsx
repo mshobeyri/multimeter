@@ -148,7 +148,10 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                 onClick={handleConnect}
               />
             )}
-            <SendButton onClick={handleSend} />
+            <SendButton
+              onClick={handleSend}
+              disabled={req.protocol === "ws" && !network.connected}
+            />
           </td>
         </tr>
         {/* Error and Response Section */}
@@ -196,9 +199,11 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
               <td style={{ padding: "8px" }}>
                 <BodyView
                   value={
-                    typeof network.responseBody === "string"
-                      ? network.responseBody
-                      : JSON.stringify(network.responseBody ?? "", null, 2)
+                    network.responseBody == null
+                      ? ""
+                      : typeof network.responseBody === "string"
+                        ? network.responseBody
+                        : JSON.stringify(network.responseBody, null, 2)
                   }
                   format={req.format}
                   mode="test"
