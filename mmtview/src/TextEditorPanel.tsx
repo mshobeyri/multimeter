@@ -17,16 +17,16 @@ const defineTheme = (monaco: any) => {
     inherit: true,
     // Add your custom highlight rules here:
     rules: [
-      { token: "key", foreground: "FFB300" },        // YAML keys (try changing this color)
-      { token: "string", foreground: "80CBC4" },     // Strings
-      { token: "number", foreground: "F77669" },     // Numbers
-      { token: "comment", foreground: "B2CCD6" },    // Comments
-      { token: "type", foreground: "C792EA" },       // Types
-      { token: "keyword", foreground: "82AAFF" },    // Keywords (true, false, null)
-      { token: "variable", foreground: "FF5370" },   // Variables
-      { token: "constant", foreground: "FFCB6B" },   // Constants
-      { token: "delimiter", foreground: "89DDFF" },  // Delimiters (:, -, etc.)
-      { token: "tag", foreground: "F07178" },        // Tags
+      // { token: "key", foreground: "FFB300" },        // YAML keys (try changing this color)
+      // { token: "string", foreground: "80CBC4" },     // Strings
+      // { token: "number", foreground: "F77669" },     // Numbers
+      // { token: "comment", foreground: "B2CCD6" },    // Comments
+      // { token: "type", foreground: "C792EA" },       // Types
+      // { token: "keyword", foreground: "82AAFF" },    // Keywords (true, false, null)
+      // { token: "variable", foreground: "FF5370" },   // Variables
+      // { token: "constant", foreground: "FFCB6B" },   // Constants
+      // { token: "delimiter", foreground: "89DDFF" },  // Delimiters (:, -, etc.)
+      // { token: "tag", foreground: "F07178" },        // Tags
     ],
     colors: {
       // Editor background and foreground
@@ -110,8 +110,13 @@ const defineTheme = (monaco: any) => {
   });
 };
 
+const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
+
 const TextEditorPanel: React.FC<TextEditorPanelProps> = ({ content, setContent }) => {
   const monacoRef = useRef<any>(null);
+  const editorRef = useRef<any>(null);
+  const decorationsRef = useRef<string[]>([]);
+  const [editorReady, setEditorReady] = React.useState(false);
 
   // Define the theme BEFORE the editor mounts
   const handleBeforeMount = (monaco: any) => {
@@ -131,6 +136,75 @@ const TextEditorPanel: React.FC<TextEditorPanelProps> = ({ content, setContent }
     return () => window.removeEventListener("vscode:changeColorTheme", handler);
   }, []);
 
+  // Add decorations for strings starting with i:
+  useEffect(() => {
+    if (!monacoRef.current || !editorRef.current) return;
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) return;
+
+    // Regex for YAML strings starting with i: (at line start, possibly with spaces)
+    const regex = /^(\s*)i:[^\n]*/gm;
+    const matches: any[] = [];
+    const value = model.getValue();
+    let match;
+    while ((match = regex.exec(value)) !== null) {
+      const start = match.index + match[1].length + 1; // after spaces
+      const end = match.index + match[0].length;
+      const startPos = model.getPositionAt(start);
+      const endPos = model.getPositionAt(end);
+      matches.push({
+        range: new monaco.Range(startPos.lineNumber, startPos.column, endPos.lineNumber, endPos.column),
+        options: { inlineClassName: I_PREFIX_CLASS }
+      });
+    }
+    decorationsRef.current = editor.deltaDecorations(decorationsRef.current, matches);
+  }, [content, editorReady]);
+
+  // Highlight only the value part that starts with i:
+  useEffect(() => {
+    if (!monacoRef.current || !editorRef.current) return;
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) return;
+
+    // Regex to match YAML key-value pairs where value starts with i:
+    // Captures: key: i:value
+    const regex = /^(\s*\S+\s*:\s*)(i:[^\s#]*)/gm;
+    const matches: any[] = [];
+    const value = model.getValue();
+    let match;
+    while ((match = regex.exec(value)) !== null) {
+      const lineNumber = model.getPositionAt(match.index).lineNumber;
+      // match[1] is the key and colon, match[2] is the value starting with i:
+      const valueStartColumn = match[1].length + 1; // 1-based column
+      const valueEndColumn = valueStartColumn + match[2].length;
+      matches.push({
+        range: new monaco.Range(lineNumber, valueStartColumn, lineNumber, valueEndColumn),
+        options: { inlineClassName: I_PREFIX_CLASS }
+      });
+    }
+    decorationsRef.current = editor.deltaDecorations(decorationsRef.current, matches);
+  }, [content, editorReady]);
+
+  // Add CSS for the decoration
+  useEffect(() => {
+    if (document.getElementById("i-prefix-highlight-style")) return;
+    const style = document.createElement("style");
+    style.id = "i-prefix-highlight-style";
+    style.innerHTML = `
+      .${I_PREFIX_CLASS} {
+        background:rgba(150, 246, 255, 0.27);
+        color:rgb(203, 203, 203) !important;
+        border-radius: 2px;
+        padding: 0 2px;
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
   return (
     <div style={{ height: "100%" }}>
       <MonacoEditor
@@ -140,6 +214,10 @@ const TextEditorPanel: React.FC<TextEditorPanelProps> = ({ content, setContent }
         value={content}
         theme={FIXED_BG_THEME}
         beforeMount={handleBeforeMount}
+        onMount={editor => {
+          editorRef.current = editor;
+          setEditorReady(e => !e); // Toggle to trigger effect
+        }}
         onChange={value => setContent(value ?? "")}
         options={{
           fontSize: 12,
