@@ -9,14 +9,25 @@ interface TextEditorPanelProps {
 const FIXED_BG_THEME = "fixed-bg-theme";
 
 const defineTheme = (monaco: any) => {
-  // Helper to get a CSS variable or fallback
   const cssVar = (name: string, fallback: string) =>
     getComputedStyle(document.documentElement).getPropertyValue(name)?.trim() || fallback;
 
   monaco.editor.defineTheme(FIXED_BG_THEME, {
     base: "vs-dark",
     inherit: true,
-    rules: [],
+    // Add your custom highlight rules here:
+    rules: [
+      { token: "key", foreground: "FFB300" },        // YAML keys (try changing this color)
+      { token: "string", foreground: "80CBC4" },     // Strings
+      { token: "number", foreground: "F77669" },     // Numbers
+      { token: "comment", foreground: "B2CCD6" },    // Comments
+      { token: "type", foreground: "C792EA" },       // Types
+      { token: "keyword", foreground: "82AAFF" },    // Keywords (true, false, null)
+      { token: "variable", foreground: "FF5370" },   // Variables
+      { token: "constant", foreground: "FFCB6B" },   // Constants
+      { token: "delimiter", foreground: "89DDFF" },  // Delimiters (:, -, etc.)
+      { token: "tag", foreground: "F07178" },        // Tags
+    ],
     colors: {
       // Editor background and foreground
       "editor.background": cssVar('--vscode-editor-background', "#1e1e1e"),
@@ -31,11 +42,11 @@ const defineTheme = (monaco: any) => {
 
       // Selection & highlights
       "editor.selectionBackground": cssVar('--vscode-editor-selectionBackground', "#264f78"),
-      "editor.inactiveSelectionBackground": cssVar('--vscode-editor-inactiveSelectionBackground', "#3a3d41"),
-      "editor.selectionHighlightBackground": cssVar('--vscode-editor-selectionHighlightBackground', "#add6ff26"),
-      "editor.wordHighlightBackground": cssVar('--vscode-editor-wordHighlightBackground', "#575757b8"),
-      "editor.wordHighlightStrongBackground": cssVar('--vscode-editor-wordHighlightStrongBackground', "#004972b8"),
-      "editor.findMatchBackground": cssVar('--vscode-editor-findMatchBackground', "#515c6a"),
+      "editor.inactiveSelectionBackground": "#575757b8",
+      "editor.selectionHighlightBackground": "#575757b8",
+      "editor.wordHighlightBackground": "#575757b8",
+      "editor.wordHighlightStrongBackground": "#575757b8",
+      "editor.findMatchBackground": "#575757b8",
       "editor.findMatchHighlightBackground": cssVar('--vscode-editor-findMatchHighlightBackground', "#ea5c0055"),
       "editor.findRangeHighlightBackground": cssVar('--vscode-editor-findRangeHighlightBackground', "#3a3d4166"),
 
@@ -84,7 +95,7 @@ const defineTheme = (monaco: any) => {
       "diffEditor.removedTextBackground": cssVar('--vscode-diffEditor-removedTextBackground', "#a3151533"),
 
       // Overview ruler
-      "editorOverviewRuler.border": cssVar('--vscode-editorOverviewRuler-border', "#282828"),
+      // "editorOverviewRuler.border": cssVar('--vscode-editorOverviewRuler-border', "#282828"),
       "editorOverviewRuler.errorForeground": cssVar('--vscode-editorError-foreground', "#f48771"),
       "editorOverviewRuler.warningForeground": cssVar('--vscode-editorWarning-foreground', "#cca700"),
       "editorOverviewRuler.infoForeground": cssVar('--vscode-editorInfo-foreground', "#75beff"),
