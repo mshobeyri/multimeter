@@ -319,4 +319,3 @@ const TextEditorPanel: React.FC<TextEditorPanelProps> = ({
 };
 
 export default TextEditorPanel;
-

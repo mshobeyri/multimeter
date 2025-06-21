@@ -82,9 +82,9 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
               onChange={e => setSelectedIdx(Number(e.target.value))}
               style={{ width: "100%" }}
             >
-              {interfaces.map((iface, idx) => (
-                <option key={iface.name || idx} value={idx}>
-                  {iface.name || `Interface ${idx + 1}`}
+              {Array.isArray(interfaces) && interfaces.filter(Boolean).map((iface, idx) => (
+                <option key={iface?.name || idx} value={idx}>
+                  {iface?.name || `Interface ${idx + 1}`}
                 </option>
               ))}
             </select>
