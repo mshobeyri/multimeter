@@ -1,12 +1,10 @@
 import React, { useEffect, useRef } from "react";
 import MonacoEditor from "@monaco-editor/react";
-import { interfaces } from "mocha";
+import { parseYaml } from "./markupConvertor";
 
 interface TextEditorPanelProps {
   content: string;
   setContent: React.Dispatch<React.SetStateAction<string>>;
-  highlightPrefixes?: string[];
-  suggestions?: string[]; // <-- Add this
 }
 
 const FIXED_BG_THEME = "fixed-bg-theme";
@@ -118,8 +116,6 @@ const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
 const TextEditorPanel: React.FC<TextEditorPanelProps> = ({
   content,
   setContent,
-  highlightPrefixes = ["i", "o", "e"],
-  suggestions = ["i:username", "o:output", "e:error", "custom:value", "interfaces"], // default suggestions
 }) => {
   const monacoRef = useRef<any>(null);
   const editorRef = useRef<any>(null);
@@ -138,11 +134,7 @@ const TextEditorPanel: React.FC<TextEditorPanelProps> = ({
           kind: monaco.languages.CompletionItemKind.Property,
           insertText: "type:",
         },
-        {
-          label: "import",
-          kind: monaco.languages.CompletionItemKind.Property,
-          insertText: "import:",
-        },
+
         {
           label: "tags",
           kind: monaco.languages.CompletionItemKind.Property,
@@ -152,6 +144,11 @@ const TextEditorPanel: React.FC<TextEditorPanelProps> = ({
           label: "description",
           kind: monaco.languages.CompletionItemKind.Property,
           insertText: "description:",
+        },
+        {
+          label: "import",
+          kind: monaco.languages.CompletionItemKind.Property,
+          insertText: "import:",
         },
         {
           label: "inputs",
@@ -217,32 +214,6 @@ const TextEditorPanel: React.FC<TextEditorPanelProps> = ({
     return () => window.removeEventListener("vscode:changeColorTheme", handler);
   }, []);
 
-  // Add decorations for strings starting with i:
-  useEffect(() => {
-    if (!monacoRef.current || !editorRef.current) return;
-    const monaco = monacoRef.current;
-    const editor = editorRef.current;
-    const model = editor.getModel();
-    if (!model) return;
-
-    // Regex for YAML strings starting with i: (at line start, possibly with spaces)
-    const regex = /^(\s*)i:[^\n]*/gm;
-    const matches: any[] = [];
-    const value = model.getValue();
-    let match;
-    while ((match = regex.exec(value)) !== null) {
-      const start = match.index + match[1].length + 1; // after spaces
-      const end = match.index + match[0].length;
-      const startPos = model.getPositionAt(start);
-      const endPos = model.getPositionAt(end);
-      matches.push({
-        range: new monaco.Range(startPos.lineNumber, startPos.column, endPos.lineNumber, endPos.column),
-        options: { inlineClassName: I_PREFIX_CLASS }
-      });
-    }
-    decorationsRef.current = editor.deltaDecorations(decorationsRef.current, matches);
-  }, [content, editorReady]);
-
   // Highlight only the value part that starts with any prefix in highlightPrefixes:
   useEffect(() => {
     if (!monacoRef.current || !editorRef.current) return;
@@ -251,10 +222,34 @@ const TextEditorPanel: React.FC<TextEditorPanelProps> = ({
     const model = editor.getModel();
     if (!model) return;
 
+    let importPrefixes: string[] = [];
+    try {
+      const parsed = parseYaml(content);
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        parsed.import &&
+        Array.isArray(parsed.import)
+      ) {
+        // Get all keys from the import object
+        interface ImportItem {
+          [key: string]: any;
+        }
+        const keys: string[] = parsed.import
+          .filter((item: ImportItem) => item && typeof item === "object" && !Array.isArray(item))
+          .flatMap((item: ImportItem) => Object.keys(item));
+        importPrefixes = Array.from(new Set([...keys]));
+      } else {
+        importPrefixes = [];
+      }
+    } catch (e) {
+      importPrefixes = [];
+    }
+
     // Always include these built-in prefixes
     const builtInPrefixes = ["i", "o", "e"];
     // Merge and deduplicate
-    const allPrefixes = Array.from(new Set([...(highlightPrefixes || []), ...builtInPrefixes]));
+    const allPrefixes = Array.from(new Set([...(importPrefixes || []), ...builtInPrefixes]));
     const prefixGroup = allPrefixes.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join("|");
     const regex = new RegExp(
       `^(\\s*-?\\s*[^:#]+:\\s*)((${prefixGroup}):[^\\s#]*)`,
@@ -273,7 +268,7 @@ const TextEditorPanel: React.FC<TextEditorPanelProps> = ({
       });
     }
     decorationsRef.current = editor.deltaDecorations(decorationsRef.current, matches);
-  }, [content, editorReady, highlightPrefixes]);
+  }, [content, editorReady]);
 
   // Add CSS for the decoration
   useEffect(() => {

@@ -70,7 +70,6 @@ const App: React.FC = () => {
       <TextEditorPanel
         content={content}
         setContent={setContent}
-        highlightPrefixes={["i", "custom", "foo", "bar"]}
       />
       {fileName === "_environments.mmt" && (
         <EnvironmentPanel content={content} setContent={setContent} />
