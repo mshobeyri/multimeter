@@ -67,7 +67,11 @@ const App: React.FC = () => {
         fontSize: "var(--vscode-editor-font-size, 14px)",
       }}
     >
-      <TextEditorPanel content={content} setContent={setContent} />
+      <TextEditorPanel
+        content={content}
+        setContent={setContent}
+        highlightPrefixes={["i", "custom", "foo", "bar"]}
+      />
       {fileName === "_environments.mmt" && (
         <EnvironmentPanel content={content} setContent={setContent} />
       )}

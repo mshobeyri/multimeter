@@ -4,6 +4,7 @@ import MonacoEditor from "@monaco-editor/react";
 interface TextEditorPanelProps {
   content: string;
   setContent: React.Dispatch<React.SetStateAction<string>>;
+  highlightPrefixes?: string[]; // Add this prop
 }
 
 const FIXED_BG_THEME = "fixed-bg-theme";
@@ -112,7 +113,11 @@ const defineTheme = (monaco: any) => {
 
 const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
 
-const TextEditorPanel: React.FC<TextEditorPanelProps> = ({ content, setContent }) => {
+const TextEditorPanel: React.FC<TextEditorPanelProps> = ({
+  content,
+  setContent,
+  highlightPrefixes = ["i", "o", "e"],
+}) => {
   const monacoRef = useRef<any>(null);
   const editorRef = useRef<any>(null);
   const decorationsRef = useRef<string[]>([]);
@@ -162,7 +167,7 @@ const TextEditorPanel: React.FC<TextEditorPanelProps> = ({ content, setContent }
     decorationsRef.current = editor.deltaDecorations(decorationsRef.current, matches);
   }, [content, editorReady]);
 
-  // Highlight only the value part that starts with i:
+  // Highlight only the value part that starts with any prefix in highlightPrefixes:
   useEffect(() => {
     if (!monacoRef.current || !editorRef.current) return;
     const monaco = monacoRef.current;
@@ -170,15 +175,20 @@ const TextEditorPanel: React.FC<TextEditorPanelProps> = ({ content, setContent }
     const model = editor.getModel();
     if (!model) return;
 
-    // Regex to match YAML key-value pairs where value starts with i:
-    // Captures: key: i:value
-    const regex = /^(\s*-?\s*.*:\s*)([i|c|o|e]:[^\s#]*)$/gm;
+    // Always include these built-in prefixes
+    const builtInPrefixes = ["i", "o", "e"];
+    // Merge and deduplicate
+    const allPrefixes = Array.from(new Set([...(highlightPrefixes || []), ...builtInPrefixes]));
+    const prefixGroup = allPrefixes.map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join("|");
+    const regex = new RegExp(
+      `^(\\s*-?\\s*[^:#]+:\\s*)((${prefixGroup}):[^\\s#]*)`,
+      "gm"
+    );
     const matches: any[] = [];
     const value = model.getValue();
     let match;
     while ((match = regex.exec(value)) !== null) {
       const lineNumber = model.getPositionAt(match.index).lineNumber;
-      // match[1] is the key and colon, match[2] is the value starting with i:
       const valueStartColumn = match[1].length + 1; // 1-based column
       const valueEndColumn = valueStartColumn + match[2].length;
       matches.push({
@@ -187,7 +197,7 @@ const TextEditorPanel: React.FC<TextEditorPanelProps> = ({ content, setContent }
       });
     }
     decorationsRef.current = editor.deltaDecorations(decorationsRef.current, matches);
-  }, [content, editorReady]);
+  }, [content, editorReady, highlightPrefixes]);
 
   // Add CSS for the decoration
   useEffect(() => {
