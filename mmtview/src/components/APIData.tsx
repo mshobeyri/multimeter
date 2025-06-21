@@ -28,6 +28,7 @@ export interface APIData {
   title?: string;
   tags?: string[];
   description?: string;
+  import?: Parameter[];
   inputs?: Parameter[];
   outputs?: Parameter[];
   interfaces?: Array<InterfaceData>;

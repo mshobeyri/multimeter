@@ -63,8 +63,17 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
           />
         </td>
       </tr>
-      {/* Inputs Section */}
-
+      <KVEditor
+        label="import"
+        value={api.import?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
+        onChange={kv => {
+          // Convert kv object to Parameter[] (each entry: { [key]: value })
+          const newImports = Object.entries(kv).map(([key, value]) => ({ [key]: value }));
+          update({ import: newImports });
+        }}
+        keyPlaceholder="name"
+        valuePlaceholder="path"
+      />
       <KVEditor
         label="input"
         value={api.inputs?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
@@ -77,7 +86,6 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
         valuePlaceholder="value"
         options={jsonTypes}
       />
-
       <KVEditor
         label="output"
         value={api.outputs?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}

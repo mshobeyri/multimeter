@@ -18,6 +18,7 @@ function yamlToAPI(yamlContent: string): APIData {
       title: doc.title || "",
       tags: doc.tags || [],
       description: doc.description,
+      import: doc.import,
       inputs: doc.inputs,
       outputs: doc.outputs,
       interfaces: doc.interfaces,
@@ -35,6 +36,7 @@ function apiToYaml(api: APIData): string {
     tags: api.tags,
   };
   if (api.description) yamlObj.description = api.description;
+  if (api.import) yamlObj.import = api.import;
   if (api.inputs) yamlObj.inputs = api.inputs;
   if (api.outputs) yamlObj.outputs = api.outputs;
   if (api.interfaces) yamlObj.interfaces = api.interfaces;
@@ -47,6 +49,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     title: "",
     tags: [],
     description: "",
+    import: [],
     inputs: [],
     outputs: [],
     interfaces: [],

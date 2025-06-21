@@ -186,7 +186,6 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
             />
           </td>
         </tr>
-        {/* Outputs editing can be added similarly if needed */}
       </tbody>
     </table>
   );
