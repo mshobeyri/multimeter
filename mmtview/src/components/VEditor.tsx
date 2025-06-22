@@ -41,10 +41,19 @@ const VEditor: React.FC<VEditorProps> = ({
     }, {});
 
   const handleValueChange = (idx: number, newVal: string) => {
-    const newEntries = entries.map(([k, v], i) =>
-      i === idx ? [k, newVal] : [k, v]
-    );
-    onChange(toObject(newEntries as [string, string][]));
+    const key = keyOptions[idx];
+    // Build new object with all keyOptions, updating the changed one
+    const updated: Record<string, string> = {};
+    keyOptions.forEach((k, i) => {
+      if (i === idx) {
+        updated[k] = newVal;
+      } else {
+        // Use existing value if present, else empty string
+        const entryIdx = shownEntries.findIndex(([key]) => key === k);
+        updated[k] = entryIdx !== -1 ? shownEntries[entryIdx][1] : "";
+      }
+    });
+    onChange(updated);
   };
 
   const handleRemove = (idx: number) => {
