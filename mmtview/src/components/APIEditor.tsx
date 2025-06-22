@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import APIOverview from "./APIOverview";
-import InterfaceEditor from "./InterfaceEditor";
-import APITest from "./APITest"; // <-- Make sure this import exists
-import { APIData, InterfaceData } from "./APIData";
+import InterfaceEditor from "./APIInterface";
+import ExampleEditor from "./APIExample";
+import APITest from "./APITest";
+import { APIData, InterfaceData, ExampleData } from "./APIData";
 
 interface APIEditorProps {
   api: APIData;
@@ -10,7 +11,7 @@ interface APIEditorProps {
 }
 
 const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
-  const [tab, setTab] = useState<"overview" | "interfaces" | "test">("test");
+  const [tab, setTab] = useState<"overview" | "interfaces" | "examples" | "test">("test");
 
   // Helper to update top-level fields
   const update = (patch: Partial<APIData>) => setAPI({ ...api, ...patch });
@@ -38,6 +39,25 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
       endpoint: "",
     });
     setAPI({ ...api, interfaces });
+  };
+
+  const updateExample = (idx: number, patch: Partial<ExampleData>) => {
+    const examples = api.examples ? [...api.examples] : [];
+    examples[idx] = { ...examples[idx], ...patch };
+    setAPI({ ...api, examples });
+  };
+
+  const removeExample = (idx: number) => {
+    const examples = (api.examples || []).filter((_, i) => i !== idx);
+    setAPI({ ...api, examples });
+  };
+
+  const addExample = () => {
+    const examples = api.examples ? [...api.examples] : [];
+    examples.push({
+      name: "",
+    });
+    setAPI({ ...api, examples });
   };
 
   return (
@@ -81,6 +101,20 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
           }}
         >
           Interfaces
+        </button>
+        <button
+          onClick={() => setTab("examples")}
+          style={{
+            padding: "8px 24px",
+            border: "none",
+            borderBottom: tab === "examples" ? "2px solid #0e639c" : "2px solid transparent",
+            background: "none",
+            color: "inherit",
+            fontWeight: tab === "examples" ? "bold" : "normal",
+            cursor: "pointer"
+          }}
+        >
+          Examples
         </button>
         <button
           onClick={() => setTab("test")}
@@ -141,8 +175,60 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
         </table>
       )}
 
+      {tab === "examples" && (
+        <table
+          className="APIEditor"
+          style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed", marginTop: 0 }}
+        >
+          <tbody>
+            <tr>
+              <td colSpan={2} style={{ padding: 0 }}>
+                {(api.examples || []).map((example, idx) => (
+                  <div key={idx} style={{ marginBottom: 16, border: "1px solid #444", borderRadius: 4, padding: 8 }}>
+                    <ExampleEditor
+                      data={example}
+                      apiInputs={
+                        api.inputs
+                          ? Object.fromEntries(
+                              api.inputs.map(param =>
+                                param && typeof param === "object"
+                                  ? param.name
+                                    ? [param.name, param.type]
+                                    : [Object.keys(param)[0], Object.values(param)[0]]
+                                  : []
+                              )
+                            )
+                          : undefined
+                      }
+                      onChange={updated => updateExample(idx, updated)}
+                      onRemove={() => removeExample(idx)}
+                    />
+                  </div>
+                ))}
+                <button
+                  onClick={addExample}
+                  style={{
+                    marginTop: 8,
+                    background: "var(--vscode-button-background, #0e639c)",
+                    color: "var(--vscode-button-foreground, #fff)",
+                    border: "none",
+                    borderRadius: 4,
+                    padding: "8px 16px",
+                    fontWeight: "bold",
+                    cursor: "pointer"
+                  }}
+                >
+                  Add Example
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      )}
+
+
       {tab === "test" && (
-          <APITest api={api} />
+        <APITest api={api} />
       )}
     </div>
   );

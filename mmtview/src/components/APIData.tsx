@@ -23,6 +23,12 @@ export interface InterfaceData {
 
 export type Parameter = { [key: string]: string };
 
+export interface ExampleData {
+  name: string;
+  description?: string;
+  inputs?: Parameter[];
+}
+
 export interface APIData {
   type: string;
   title?: string;
@@ -32,6 +38,7 @@ export interface APIData {
   inputs?: Parameter[];
   outputs?: Parameter[];
   interfaces?: Array<InterfaceData>;
+  examples?:  Array<ExampleData>;
 }
 
 export interface ResponseData {

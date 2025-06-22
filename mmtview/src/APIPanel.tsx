@@ -22,6 +22,7 @@ function yamlToAPI(yamlContent: string): APIData {
       inputs: doc.inputs,
       outputs: doc.outputs,
       interfaces: doc.interfaces,
+      examples: doc.examples,
     };
   } catch {
     return {} as APIData;
@@ -40,6 +41,7 @@ function apiToYaml(api: APIData): string {
   if (api.inputs) yamlObj.inputs = api.inputs;
   if (api.outputs) yamlObj.outputs = api.outputs;
   if (api.interfaces) yamlObj.interfaces = api.interfaces;
+  if (api.examples) yamlObj.examples = api.examples;
   return packYaml(yamlObj);
 }
 
@@ -53,6 +55,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     inputs: [],
     outputs: [],
     interfaces: [],
+    examples: [],
   });
   const lastUpdate = useRef<"yaml" | "ui" | null>(null);
 
