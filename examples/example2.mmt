@@ -1,0 +1,69 @@
+type: api
+title: generate session
+tags: []
+description: returns session information.
+import:
+  - p: _parameters.mmt
+inputs:
+  - username: string
+  - password: string
+  - endpoint: string
+  - traceId: string
+outputs:
+  - session: string
+  - errorcode: number
+interfaces:
+  - name: ws-json
+    protocol: ws
+    format: json
+    endpoint: i:endpoint
+    body:
+      username: i:username
+      password: i:password
+    outputs:
+      session:
+        json: body.session
+      errors: body.errors[0]
+    query: {}
+  - name: http-xml
+    protocol: http
+    format: xml
+    method: POST
+    endpoint: https://httpbin.org/s
+    headers:
+      traceId: i:traceId
+      content-type: application/xml
+      endpoint: i:endpoint
+    body:
+      soapenv:Envlope:
+        soapenv:Headers: null
+        soapenv:Body:
+          sesstion:
+            username: i:username
+            password: i:password
+    outputs:
+      session:
+        regex: body, /<session>(.*)<\\/session>/
+      errors: body.errors[]
+    query:
+      endpoint: i:endpoint
+examples:
+  - name: example1
+    description: mehrdad
+    inputs:
+      - username: mehrdad
+      - password: 123
+      - endpoint: www.sss.con
+  - name: milad cred
+    inputs:
+      - username: milad
+      - password: 123
+      - endpoint: ""
+      - traceId: ""
+    description: milad credentials
+  - name: example3
+    inputs:
+      - username: davood
+      - password: 12312
+      - traceId: 123123
+    description: davood

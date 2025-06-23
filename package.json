@@ -2,15 +2,19 @@
   "name": "multimeter",
   "displayName": "multimeter",
   "description": "API test tools",
-  "version": "0.0.1",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mshobeyri/multimeter.git"
+  },
   "engines": {
-    "vscode": "^1.70.0"
+    "vscode": "^1.100.0"
   },
   "categories": [
     "Other"
   ],
   "activationEvents": [
-    "*"
+    "onLanguage:mmt"
   ],
   "main": "./dist/extension.js",
   "contributes": {
