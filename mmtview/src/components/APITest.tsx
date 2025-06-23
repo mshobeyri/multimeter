@@ -7,6 +7,25 @@ import SendButton from "./SendButton";
 import ConnectButton from "./ConnectButton";
 import { useNetwork } from "./Network";
 
+
+function replaceInputRefs(obj: any, inputs: Record<string, string>): any {
+  if (typeof obj === "string") {
+    // Replace all i:<param> with the value from inputs
+    return obj.replace(/i:([a-zA-Z0-9_]+)/g, (_, key) =>
+      inputs[key] !== undefined ? inputs[key] : `i:${key}`
+    );
+  } else if (Array.isArray(obj)) {
+    return obj.map(item => replaceInputRefs(item, inputs));
+  } else if (obj && typeof obj === "object") {
+    const result: any = {};
+    for (const k in obj) {
+      result[k] = replaceInputRefs(obj[k], inputs);
+    }
+    return result;
+  }
+  return obj;
+}
+
 interface APITestProps {
   api: APIData;
 }
@@ -63,7 +82,11 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     }
   }, [formattedBody]);
 
+  // Helper to reset example selection
+  const resetExample = () => setSelectedExampleIdx(null);
+
   const updateField = (field: keyof InterfaceData, value: any) => {
+    resetExample();
     network.setRequestData({
       ...network.requestData,
       [field]: value,
@@ -105,6 +128,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                 onChange={e => setSelectedExampleIdx(Number(e.target.value))}
                 style={{ width: "100%" }}
               >
+                <option value="">Select example...</option>
                 {examples.map((ex, idx) => (
                   <option key={ex.name || idx} value={idx}>
                     {ex.name || `Example ${idx + 1}`}
@@ -261,23 +285,5 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     </table>
   );
 };
-
-function replaceInputRefs(obj: any, inputs: Record<string, string>): any {
-  if (typeof obj === "string") {
-    // Replace all i:<param> with the value from inputs
-    return obj.replace(/i:([a-zA-Z0-9_]+)/g, (_, key) =>
-      inputs[key] !== undefined ? inputs[key] : `i:${key}`
-    );
-  } else if (Array.isArray(obj)) {
-    return obj.map(item => replaceInputRefs(item, inputs));
-  } else if (obj && typeof obj === "object") {
-    const result: any = {};
-    for (const k in obj) {
-      result[k] = replaceInputRefs(obj[k], inputs);
-    }
-    return result;
-  }
-  return obj;
-}
 
 export default APITest;
