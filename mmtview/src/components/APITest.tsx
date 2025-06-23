@@ -13,7 +13,9 @@ interface APITestProps {
 
 const APITest: React.FC<APITestProps> = ({ api }) => {
   const interfaces = api.interfaces || [];
+  const examples = api.examples || [];
   const [selectedIdx, setSelectedIdx] = useState(0);
+  const [selectedExampleIdx, setSelectedExampleIdx] = useState<number | null>(examples.length > 0 ? 0 : null);
 
   const network = useNetwork();
 
@@ -23,6 +25,26 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedIdx, interfaces]);
+
+  // When example changes, fill requestData with example fields if available
+  useEffect(() => {
+    const selectedExample = selectedExampleIdx !== null ? examples[selectedExampleIdx] : undefined;
+    if (
+      selectedExample &&
+      Array.isArray(selectedExample.inputs)
+    ) {
+      const exampleInputs = selectedExample.inputs.reduce(
+        (acc, cur) => ({ ...acc, ...cur }),
+        {}
+      );
+      // Merge example inputs into requestData
+      network.setRequestData((prev: any) => ({
+        ...prev,
+        ...exampleInputs,
+      }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedExampleIdx]);
 
   const [formattedBody, setFormattedBody] = useState<string>(
     formatBody(network.requestData?.format || "json", network.requestData?.body || "")
@@ -74,6 +96,25 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         <col style={{ width: "80%" }} />
       </colgroup>
       <tbody>
+        {/* Example select */}
+        {examples.length > 0 && (
+          <tr>
+            <td className="label">example</td>
+            <td style={{ padding: "8px" }}>
+              <select
+                value={selectedExampleIdx ?? ""}
+                onChange={e => setSelectedExampleIdx(Number(e.target.value))}
+                style={{ width: "100%" }}
+              >
+                {examples.map((ex, idx) => (
+                  <option key={ex.name || idx} value={idx}>
+                    {ex.name || `Example ${idx + 1}`}
+                  </option>
+                ))}
+              </select>
+            </td>
+          </tr>
+        )}
         <tr>
           <td className="label">interface</td>
           <td style={{ padding: "8px" }}>
