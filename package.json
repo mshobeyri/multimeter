@@ -1,12 +1,14 @@
 {
   "name": "multimeter",
-  "displayName": "multimeter",
+  "publisher": "mshobeyri",  
+  "displayName": "Multimeter",
   "description": "API test tools",
   "version": "0.1.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git"
   },
+  "icon": "res/icon.png",
   "engines": {
     "vscode": "^1.100.0"
   },
@@ -51,15 +53,6 @@
         }
       }
     ],
-    "menus": {
-      "editor/title": [
-        {
-          "command": "extension.showMmtPreview",
-          "when": "resourceLangId == mmt",
-          "group": "navigation"
-        }
-      ]
-    },
     "iconThemes": [
       {
         "id": "mmt-icons",
@@ -78,6 +71,8 @@
   },
   "scripts": {
     "buildview": "npm run build --prefix mmtview",
+    "deploy": "nvsce package",
+    "install": "code --install-extension multimeter-0.1.0.vsix",
     "vscode:prepublish": "npm run package",
     "compile": "npm run check-types && npm run lint && node esbuild.js",
     "watch": "npm-run-all -p watch:*",
