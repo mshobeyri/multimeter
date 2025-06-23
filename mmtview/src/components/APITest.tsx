@@ -37,14 +37,13 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         (acc, cur) => ({ ...acc, ...cur }),
         {}
       );
-      // Merge example inputs into requestData
-      network.setRequestData((prev: any) => ({
-        ...prev,
-        ...exampleInputs,
-      }));
+      // Replace all i:<param> in the interface data
+      const iface = interfaces[selectedIdx] || {};
+      const replaced = replaceInputRefs(iface, exampleInputs);
+      network.setRequestData(replaced);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedExampleIdx]);
+  }, [selectedExampleIdx, selectedIdx]);
 
   const [formattedBody, setFormattedBody] = useState<string>(
     formatBody(network.requestData?.format || "json", network.requestData?.body || "")
@@ -262,5 +261,23 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     </table>
   );
 };
+
+function replaceInputRefs(obj: any, inputs: Record<string, string>): any {
+  if (typeof obj === "string") {
+    // Replace all i:<param> with the value from inputs
+    return obj.replace(/i:([a-zA-Z0-9_]+)/g, (_, key) =>
+      inputs[key] !== undefined ? inputs[key] : `i:${key}`
+    );
+  } else if (Array.isArray(obj)) {
+    return obj.map(item => replaceInputRefs(item, inputs));
+  } else if (obj && typeof obj === "object") {
+    const result: any = {};
+    for (const k in obj) {
+      result[k] = replaceInputRefs(obj[k], inputs);
+    }
+    return result;
+  }
+  return obj;
+}
 
 export default APITest;
