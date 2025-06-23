@@ -1,0 +1,30 @@
+type: evnironment
+variables:
+  endpoint: 
+    st: st.abn.com
+    et: et.abn.com
+    pr: pr.abn.com
+  certificate: 
+    cert1: et.file1.txt
+    cert2: et.file2.txt
+    cert3:
+  test_type:
+    - smoke
+    - regression
+    - load
+    - stress
+    - load_stress
+    - all
+    - none
+
+presets:
+  runner:
+    dev:
+        test_type: smoke
+        endpoint: st
+    ci:
+        test_type: regression
+        endpoint: st
+    cd:
+        test_type: all
+        endpoint: et
