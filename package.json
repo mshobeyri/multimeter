@@ -63,15 +63,6 @@
         "path": "./fileicons/mmt-icon-theme.json"
       }
     ],
-    "viewsContainers": {
-      "activitybar": [
-        {
-          "id": "multimeterViewContainer",
-          "title": "Multimeter",
-          "icon": "res/icon.png"
-        }
-      ]
-    },
     "views": {
       "multimeterViewContainer": [
         {
