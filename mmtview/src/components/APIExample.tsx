@@ -46,12 +46,12 @@ const ExampleEditor: React.FC<ExampleEditorProps> = ({ data, apiInputs, onChange
         </tr>
         <tr>
           <td className="label">description</td>
-          <td>
+          <td style={{ padding: "8px" }}>
             <input
               type="text"
               value={data.description || ""}
               onChange={e => onChange({ ...data, description: e.target.value })}
-              placeholder="Description"
+              placeholder="description"
               style={{ width: "100%" }}
             />
           </td>
