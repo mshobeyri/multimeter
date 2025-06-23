@@ -86,7 +86,7 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
             cursor: "pointer"
           }}
         >
-          Overview
+          <span role="img" aria-label="run">🔎</span> Overview
         </button>
         <button
           onClick={() => setTab("interfaces")}
@@ -100,7 +100,7 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
             cursor: "pointer"
           }}
         >
-          Interfaces
+          <span role="img" aria-label="run">🎭</span> Interfaces
         </button>
         <button
           onClick={() => setTab("examples")}
@@ -114,7 +114,7 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
             cursor: "pointer"
           }}
         >
-          Examples
+          <span role="img" aria-label="run">💡</span> Examples
         </button>
         <button
           onClick={() => setTab("test")}
