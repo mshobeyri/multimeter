@@ -30,7 +30,7 @@ const NotypePanel: React.FC<NotypePanelProps> = ({ content, setContent }) => (
       }}
       style={{ fontSize: 16, padding: 8 }}
     >
-      <option value="">-- Select --</option>
+      <option value="">select</option>
       {typeOptions.map(opt => (
         <option key={opt.value} value={opt.value}>{opt.label}</option>
       ))}
