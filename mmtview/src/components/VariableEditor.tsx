@@ -14,7 +14,7 @@ interface VariableEditorProps {
   variable: Variable;
   onChange: (v: Variable) => void;
   onRemove?: () => void;
-  variables?: Variables; // Now optional
+  variables?: Variables; // Now expects an array
 }
 
 const VariableEditor: React.FC<VariableEditorProps> = ({
@@ -60,11 +60,11 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
     setAddType("");
   };
 
-  // Get keys of previous variables (exclude current and empty keys)
-  const previousVariableKeys = variables
+  // Get names of previous variables (exclude current and empty names)
+  const previousVariableNames = variables
     ? variables
-        .filter(v => v !== variable && v.key && v.key !== variable.key)
-        .map(v => v.key)
+        .filter(v => v !== variable && v.name && v.name !== variable.name)
+        .map(v => v.name)
     : [];
 
   return (
@@ -110,7 +110,7 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
                 value={variable.type || ""}
                 options={[
                   ...jsonTypes,
-                  ...previousVariableKeys.flatMap(opt => [opt, `${opt}[]`])
+                  ...previousVariableNames.flatMap(opt => [opt, `${opt}[]`])
                 ]}
                 onChange={val => updateField({ type: val })}
                 showPlaceholder={true}
@@ -144,7 +144,7 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
                   setFields={fields => updateField({ fields: fields })}
                   typeOptions={[
                     ...jsonTypes,
-                    ...previousVariableKeys.flatMap(k => [k, `${k}[]`])
+                    ...previousVariableNames.flatMap(k => [k, `${k}[]`])
                   ]}
                 />
               </td>

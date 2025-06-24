@@ -1,81 +1,81 @@
 import React, { useEffect, useRef, useState } from "react";
 import parseYaml, { packYaml } from "./markupConvertor";
 import VariablesEditor from "./components/VariablesEditor";
-import { Variable } from "./components/VariablesData";
+import { Variable, VariablesData } from "./components/VariablesData";
 
 interface VariablesProps {
   content: string;
   setContent: React.Dispatch<React.SetStateAction<string>>;
 }
 
-export type VariablesList = Variable[];
-
-function yamlToVariables(yamlContent: string): VariablesList {
+function yamlToVariables(yamlContent: string): VariablesData {
   try {
     const doc = parseYaml(yamlContent) as any;
-    if (!doc || typeof doc !== "object" || !doc.variables) return [];
-    return Object.entries(doc.variables).map(([key, value]: [string, any]) => ({
-      key,
-      name: value.name ?? key, // Add name parameter, defaulting to key if not present
-      ...value,
-    }));
+    if (!doc || typeof doc !== "object") return {} as VariablesData;
+    return {
+      type: doc.type || "",
+      variables: doc.variables || {},
+    };
   } catch {
-    return [];
+    return {} as VariablesData;
   }
 }
 
-function variablesToYaml(variables: VariablesList): string {
-  const variablesObj: Record<string, any> = {};
-  variables.forEach(v => {
-    const { key, ...rest } = v;
-    // Use the name parameter as the YAML key if present, otherwise fallback to key
-    const yamlKey = v.name || key;
-    // Remove the name property from the packed value
-    const { name, ...packedRest } = rest;
-    variablesObj[yamlKey] = packedRest;
-  });
-  return packYaml({ variables: variablesObj });
+function variablesToYaml(variablesData: VariablesData): string {
+  const yamlObj: Record<string, any> = {};
+  if (variablesData.type) yamlObj.type = variablesData.type;
+  yamlObj.variables = variablesData.variables;
+  return packYaml(yamlObj);
 }
 
-const Variables: React.FC<VariablesProps> = ({ content, setContent }) => {
-  const [variables, setVariables] = useState<VariablesList>([]);
+const VariablesPanel: React.FC<VariablesProps> = ({ content, setContent }) => {
+  const [variablesData, setVariablesData] = useState<VariablesData>({
+    type: "var",
+    variables: [],
+  });
   const lastUpdate = useRef<"yaml" | "ui" | null>(null);
 
-  // Parse YAML to variables when content changes (but not if we just updated content from UI)
+  // Parse YAML to variablesData when content changes (but not if we just updated content from UI)
   useEffect(() => {
     if (lastUpdate.current === "ui") {
       lastUpdate.current = null;
       return;
     }
-    setVariables(yamlToVariables(content));
+    setVariablesData(yamlToVariables(content));
     lastUpdate.current = "yaml";
   }, [content]);
 
-  // Update YAML when variables change (but not if we just updated variables from YAML)
+  // Update YAML when variablesData changes (but not if we just updated variablesData from YAML)
   useEffect(() => {
     if (lastUpdate.current === "yaml") {
       lastUpdate.current = null;
       return;
     }
-    setContent(variablesToYaml(variables));
+    setContent(variablesToYaml(variablesData));
     lastUpdate.current = "ui";
-  }, [variables, setContent]);
+  }, [variablesData, setContent]);
 
   return (
     <div
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: "24px",
-        padding: "10px",
+        padding: "1rem",
+        backgroundColor: "var(--vscode-editor-background)",
+        color: "var(--vscode-editor-foreground)",
+        minWidth: 100,
+        maxWidth: "80vw",
+        overflow: "auto",
         height: "100%",
-        overflowY: "auto",
       }}
     >
-      <VariablesEditor variables={variables} setVariables={setVariables} />
+      <VariablesEditor
+        variablesData={variablesData}
+        setVariablesData={setVariablesData}
+      />
       <div style={{ height: 50, flexShrink: 0 }} />
     </div>
   );
 };
 
-export default Variables;
+export default VariablesPanel;

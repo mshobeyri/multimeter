@@ -1,33 +1,55 @@
 import React from "react";
 import VariableEditor from "./VariableEditor";
-import { Variables } from "./VariablesData";
+import { VariablesData, Variable } from "./VariablesData";
 
 interface VariablesEditorProps {
-  variables: Variables;
-  setVariables: (vars: Variables) => void;
+  variablesData: VariablesData;
+  setVariablesData: (data: VariablesData) => void;
 }
 
-const VariablesEditor: React.FC<VariablesEditorProps> = ({ variables, setVariables }) => {
-  const addVariable = () =>
-    setVariables([
-      ...variables,
-      { name: "", value: "", key: "", type: "" }
-    ]);
-  const removeVariable = (idx: number) =>
-    setVariables(variables.filter((_, i) => i !== idx));
+const VariablesEditor: React.FC<VariablesEditorProps> = ({ variablesData, setVariablesData }) => {
+  // variablesData.variables is now an array of Variable
+  const variablesArray: Variable[] = Array.isArray(variablesData.variables)
+    ? variablesData.variables
+    : [];
+
+  const addVariable = () => {
+    const newName = `var${variablesArray.length + 1}`;
+    setVariablesData({
+      ...variablesData,
+      variables: [
+        ...variablesArray,
+        { name: newName, type: "" }
+      ]
+    });
+  };
+
+  const updateVariable = (idx: number, updatedVar: Variable) => {
+    const newVariables = [...variablesArray];
+    newVariables[idx] = updatedVar;
+    setVariablesData({
+      ...variablesData,
+      variables: newVariables
+    });
+  };
+
+  const removeVariable = (idx: number) => {
+    const newVariables = variablesArray.slice();
+    newVariables.splice(idx, 1);
+    setVariablesData({
+      ...variablesData,
+      variables: newVariables
+    });
+  };
 
   return (
     <div>
-      {variables.map((variable, idx) => (
+      {variablesArray.map((variable, idx) => (
         <div key={idx} style={{ marginBottom: 24 }}>
           <VariableEditor
             variable={variable}
-            variables={variables}
-            onChange={updatedVar => {
-              const newVars = [...variables];
-              newVars[idx] = updatedVar;
-              setVariables(newVars);
-            }}
+            variables={variablesArray}
+            onChange={updatedVar => updateVariable(idx, updatedVar)}
             onRemove={() => removeVariable(idx)}
           />
         </div>
