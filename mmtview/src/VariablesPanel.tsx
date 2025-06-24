@@ -1,14 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import parseYaml, { packYaml } from "./markupConvertor";
 import VariablesEditor from "./components/VariablesEditor";
-import { VariableData } from "./components/VariableEditor";
+import { Variable } from "./components/VariablesData";
 
-interface CommonsProps {
+interface VariablesProps {
   content: string;
   setContent: React.Dispatch<React.SetStateAction<string>>;
 }
 
-export type VariablesList = VariableData[];
+export type VariablesList = Variable[];
 
 function yamlToVariables(yamlContent: string): VariablesList {
   try {
@@ -37,7 +37,7 @@ function variablesToYaml(variables: VariablesList): string {
   return packYaml({ variables: variablesObj });
 }
 
-const Commons: React.FC<CommonsProps> = ({ content, setContent }) => {
+const Variables: React.FC<VariablesProps> = ({ content, setContent }) => {
   const [variables, setVariables] = useState<VariablesList>([]);
   const lastUpdate = useRef<"yaml" | "ui" | null>(null);
 
@@ -78,4 +78,4 @@ const Commons: React.FC<CommonsProps> = ({ content, setContent }) => {
   );
 };
 
-export default Commons;
+export default Variables;

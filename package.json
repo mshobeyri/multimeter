@@ -1,6 +1,6 @@
 {
   "name": "multimeter",
-  "publisher": "mshobeyri",  
+  "publisher": "mshobeyri",
   "displayName": "Multimeter",
   "description": "API test tools",
   "version": "0.1.0",
@@ -16,7 +16,7 @@
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:mmt"
+    "*"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -61,10 +61,11 @@
       }
     ],
     "views": {
-      "multimeterViewContainer": [
+      "explorer": [
         {
-          "id": "multimeterView",
-          "name": "Multimeter Panel"
+          "id": "multimeterView2",
+          "name": "Multimeter Panel",
+          "icon": "res/icon.png"
         }
       ]
     }

@@ -3,24 +3,7 @@ import FieldWithRemove from "./FieldWithRemove";
 import ObjectFieldsEditor from "./ObjectFieldsEditor";
 import ValidatableSelect from "./ValidatableSelect";
 import { jsonTypes } from "./APIData";
-
-export type VariablesData = VariableData[];
-
-export interface VariableData {
-  key: string;
-  type: string;
-  name?: string;
-  info?: string;
-  value?: string;
-  alter_name?: string;
-  Alter_Name?: string;
-  ALTER_NAME?: string;
-  AlterName?: string;
-  altername?: string;
-  alterName?: string;
-  protobuf?: string;
-  fields?: Record<string, string>;
-}
+import { Variable, Variables } from "./VariablesData";
 
 const fieldOptions = [
   "info", "protobuf", "alter_name", "Alter_Name", "ALTER_NAME",
@@ -28,10 +11,10 @@ const fieldOptions = [
 ];
 
 interface VariableEditorProps {
-  variable: VariableData;
-  onChange: (v: VariableData) => void;
+  variable: Variable;
+  onChange: (v: Variable) => void;
   onRemove?: () => void;
-  variables?: VariablesData; // Now optional
+  variables?: Variables; // Now optional
 }
 
 const VariableEditor: React.FC<VariableEditorProps> = ({
@@ -44,17 +27,17 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
 
   // List of optional fields not yet present in this variable
   const usedFields = new Set(
-    fieldOptions.filter(opt => variable[opt as keyof VariableData] !== undefined)
+    fieldOptions.filter(opt => variable[opt as keyof Variable] !== undefined)
   );
   const availableOptionals = fieldOptions.filter(opt => !usedFields.has(opt));
 
   // Update a field in the variable
-  const updateField = (field: Partial<VariableData>) => {
+  const updateField = (field: Partial<Variable>) => {
     onChange({ ...variable, ...field });
   };
 
   // Remove an optional field from the variable
-  const removeOptionalField = (fieldName: keyof VariableData) => {
+  const removeOptionalField = (fieldName: keyof Variable) => {
     const updated = { ...variable };
     delete updated[fieldName];
     onChange(updated);
@@ -137,16 +120,16 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
           </tr>
           {/* Render optional fields */}
           {fieldOptions.map(opt =>
-            variable[opt as keyof VariableData] !== undefined ? (
+            variable[opt as keyof Variable] !== undefined ? (
               <tr key={opt}>
                 <td style={{ padding: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {opt}
                 </td>
                 <td style={{ padding: "8px", position: "relative" }}>
                   <FieldWithRemove
-                    value={variable[opt as keyof VariableData] as string || ""}
+                    value={variable[opt as keyof Variable] as string || ""}
                     onChange={v => updateField({ [opt]: v })}
-                    onRemovePressed={() => removeOptionalField(opt as keyof VariableData)}
+                    onRemovePressed={() => removeOptionalField(opt as keyof Variable)}
                     placeholder={opt}
                   />
                 </td>

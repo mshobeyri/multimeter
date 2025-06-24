@@ -20,18 +20,6 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
     </colgroup>
     <tbody>
       <tr>
-        <td className="label">type</td>
-        <td style={{ padding: "8px" }}>
-          <ValidatableSelect
-            value={api.type || ""}
-            options={["api", "interface"]}
-            onChange={val => update({ type: val })}
-            showPlaceholder={true}
-            placeholder="Select type..."
-          />
-        </td>
-      </tr>
-      <tr>
         <td className="label">title</td>
         <td style={{ padding: "8px" }}>
           <input

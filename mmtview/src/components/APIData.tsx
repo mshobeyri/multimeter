@@ -1,3 +1,5 @@
+import {Type} from "./CommonData"
+
 export type Protocol = "http" | "ws";
 export type Format = "json" | "xml";
 export type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS";
@@ -30,7 +32,7 @@ export interface ExampleData {
 }
 
 export interface APIData {
-  type: string;
+  type: Type;
   title?: string;
   tags?: string[];
   description?: string;

@@ -47,7 +47,7 @@ function apiToYaml(api: APIData): string {
 
 const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
   const [api, setAPIs] = useState<APIData>({
-    type: "",
+    type: "api",
     title: "",
     tags: [],
     description: "",

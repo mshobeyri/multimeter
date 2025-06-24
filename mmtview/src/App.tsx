@@ -3,8 +3,10 @@ import TextEditorPanel from "./TextEditorPanel";
 import EnvironmentPanel from "./EnvironmentPanel";
 import { SplitPane } from '@rexxars/react-split-pane';
 import './App.css';
-import CommonsPanel from "./CommonsPanel";
+import VariablesPanel from "./VariablesPanel";
 import APIPanel from "./APIPanel";
+import NotypePanel from "./NotypePanel";
+import parseYaml from "./markupConvertor";
 
 declare global {
   interface Window {
@@ -14,10 +16,16 @@ declare global {
   }
 }
 
+const typeOptions = [
+  { value: "api", label: "API" },
+  { value: "env", label: "Environment" },
+  { value: "param", label: "Parameters" }
+];
+
 const App: React.FC = () => {
   const [paneSize, setPaneSize] = useState(window.innerWidth / 2);
   const [content, setContent] = useState("");
-  const [fileName, setFileName] = useState<string | null>(null);
+  const [docType, setDocType] = useState<string | null>(null);
   const isInitLoad = useRef(true);
 
   useEffect(() => {
@@ -26,20 +34,26 @@ const App: React.FC = () => {
       if (message.command === "loadDocument") {
         isInitLoad.current = true;
         setContent(message.content);
-        // Extract file name from URI
-        try {
-          const uri = message.uri || "";
-          const name = uri.split("/").pop() || "";
-          setFileName(name);
-        } catch {
-          setFileName(null);
-        }
       }
     };
 
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
   }, [setContent]);
+
+  // Parse YAML and extract "type" property
+  useEffect(() => {
+    try {
+      const parsed = parseYaml(content);
+      if (parsed && typeof parsed === "object" && "type" in parsed) {
+        setDocType((parsed as any).type);
+      } else {
+        setDocType(null);
+      }
+    } catch {
+      setDocType(null);
+    }
+  }, [content]);
 
   useEffect(() => {
     if (isInitLoad.current) {
@@ -71,14 +85,17 @@ const App: React.FC = () => {
         content={content}
         setContent={setContent}
       />
-      {fileName === "_environments.mmt" && (
+      {docType === "env" && (
         <EnvironmentPanel content={content} setContent={setContent} />
       )}
-      {fileName === "_parameters.mmt" && (
-        <CommonsPanel content={content} setContent={setContent} />
+      {docType === "var" && (
+        <VariablesPanel content={content} setContent={setContent} />
       )}
-      {fileName && fileName.startsWith("i") && (
+      {docType === "api" && (
         <APIPanel content={content} setContent={setContent} />
+      )}
+      {docType === null && (
+        <NotypePanel content={content} setContent={setContent} />
       )}
     </SplitPane>
   );

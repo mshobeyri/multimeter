@@ -1,11 +1,10 @@
 import React from "react";
-import VariableEditor, { VariableData } from "./VariableEditor";
-
-export type VariablesList = VariableData[];
+import VariableEditor from "./VariableEditor";
+import { Variables } from "./VariablesData";
 
 interface VariablesEditorProps {
-  variables: VariablesList;
-  setVariables: (vars: VariablesList) => void;
+  variables: Variables;
+  setVariables: (vars: Variables) => void;
 }
 
 const VariablesEditor: React.FC<VariablesEditorProps> = ({ variables, setVariables }) => {
