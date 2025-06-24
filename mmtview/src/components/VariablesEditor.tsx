@@ -48,7 +48,7 @@ const VariablesEditor: React.FC<VariablesEditorProps> = ({ variablesData, setVar
         <div key={idx} style={{ marginBottom: 24 }}>
           <VariableEditor
             variable={variable}
-            variables={variablesArray}
+            variables={variablesArray.slice(0, idx)}
             onChange={updatedVar => updateVariable(idx, updatedVar)}
             onRemove={() => removeVariable(idx)}
           />

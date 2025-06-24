@@ -1,20 +1,19 @@
 import React, { useState } from "react";
 import FieldWithRemove from "./FieldWithRemove";
-import ObjectFieldsEditor from "./ObjectFieldsEditor";
 import ValidatableSelect from "./ValidatableSelect";
 import { jsonTypes } from "./APIData";
 import { Variable, Variables } from "./VariablesData";
+import KVEditor from "./KVEditor";
 
 const fieldOptions = [
-  "info", "protobuf", "alter_name", "Alter_Name", "ALTER_NAME",
-  "AlterName", "altername", "alterName"
+  "description", "default"
 ];
 
 interface VariableEditorProps {
   variable: Variable;
   onChange: (v: Variable) => void;
   onRemove?: () => void;
-  variables?: Variables; // Now expects an array
+  variables?: Variables;
 }
 
 const VariableEditor: React.FC<VariableEditorProps> = ({
@@ -25,46 +24,39 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
 }) => {
   const [addType, setAddType] = useState<string>("");
 
-  // List of optional fields not yet present in this variable
   const usedFields = new Set(
     fieldOptions.filter(opt => variable[opt as keyof Variable] !== undefined)
   );
   const availableOptionals = fieldOptions.filter(opt => !usedFields.has(opt));
 
-  // Update a field in the variable
   const updateField = (field: Partial<Variable>) => {
-    onChange({ ...variable, ...field });
+    let updated = { ...variable, ...field };
+    // If type is changed and is not object/object[], remove fields
+    if (
+      field.type !== undefined &&
+      field.type !== "object" &&
+      field.type !== "object[]"
+    ) {
+      delete updated.fields;
+    }
+    onChange(updated);
   };
 
-  // Remove an optional field from the variable
   const removeOptionalField = (fieldName: keyof Variable) => {
     const updated = { ...variable };
     delete updated[fieldName];
     onChange(updated);
   };
 
-  // Add an optional field
   const handleAdd = (type: string) => {
-    if (type === "field") {
-      // Add a new empty field to the fields object (ObjectFieldsEditor)
-      const currentFields = variable.fields || {};
-      // Find a unique field name
-      let newFieldName = "field";
-      let counter = 1;
-      while (currentFields[`${newFieldName}${counter}`]) counter++;
-      newFieldName = `${newFieldName}${counter}`;
-      updateField({ fields: { ...currentFields, [newFieldName]: "" } });
-    } else {
-      updateField({ [type]: "" });
-    }
+    updateField({ [type]: "" });
     setAddType("");
   };
 
-  // Get names of previous variables (exclude current and empty names)
   const previousVariableNames = variables
     ? variables
-        .filter(v => v !== variable && v.name && v.name !== variable.name)
-        .map(v => v.name)
+      .filter(v => v !== variable && v.name && v.name !== variable.name)
+      .map(v => v.name)
     : [];
 
   return (
@@ -84,15 +76,13 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
         style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}
       >
         <colgroup>
-          <col style={{ width: "40%" }} />
-          <col style={{ width: "60%" }} />
+          <col style={{ width: "20%" }} />
+          <col style={{ width: "80%" }} />
         </colgroup>
         <tbody>
           <tr>
-            <td style={{ padding: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              name
-            </td>
-            <td style={{ padding: "8px", position: "relative" }}>
+            <td className="label">name</td>
+            <td style={{ padding: "8px" }}>
               <FieldWithRemove
                 value={variable.name || ""}
                 onChange={v => updateField({ name: v })}
@@ -102,9 +92,7 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
             </td>
           </tr>
           <tr>
-            <td style={{ padding: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              type
-            </td>
+            <td className="label">type</td>
             <td style={{ padding: "8px" }}>
               <ValidatableSelect
                 value={variable.type || ""}
@@ -118,13 +106,10 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
               />
             </td>
           </tr>
-          {/* Render optional fields */}
           {fieldOptions.map(opt =>
             variable[opt as keyof Variable] !== undefined ? (
               <tr key={opt}>
-                <td style={{ padding: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {opt}
-                </td>
+                <td className="label">{opt}</td>
                 <td style={{ padding: "8px", position: "relative" }}>
                   <FieldWithRemove
                     value={variable[opt as keyof Variable] as string || ""}
@@ -137,18 +122,17 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
             ) : null
           )}
           {(variable.type === "object" || variable.type === "object[]") && (
-            <tr>
-              <td colSpan={2} style={{ padding: "8px" }}>
-                <ObjectFieldsEditor
-                  fields={variable.fields || {}}
-                  setFields={fields => updateField({ fields: fields })}
-                  typeOptions={[
-                    ...jsonTypes,
-                    ...previousVariableNames.flatMap(k => [k, `${k}[]`])
-                  ]}
-                />
-              </td>
-            </tr>
+            <KVEditor
+              label="fields"
+              value={variable.fields || {}}
+              onChange={fields => updateField({ fields })}
+              keyPlaceholder="Field name"
+              valuePlaceholder="Type"
+              options={[
+                ...jsonTypes,
+                ...previousVariableNames.flatMap(opt => [opt, `${opt}[]`])
+              ]}
+            />
           )}
           {(availableOptionals.length > 0 || (variable.type === "object" || variable.type === "object[]")) && (
             <tr>
@@ -158,12 +142,9 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
                   onChange={e => {
                     if (e.target.value) handleAdd(e.target.value);
                   }}
-                  style={{ width: "40%", verticalAlign: "top" }}
+                  style={{ width: "40%"}}
                 >
-                  <option value="">Optionals...</option>
-                  {(variable.type === "object" || variable.type === "object[]") && (
-                    <option value="field">field</option>
-                  )}
+                  <option value="">optionals...</option>
                   {availableOptionals.map(opt => (
                     <option key={opt} value={opt}>{opt}</option>
                   ))}

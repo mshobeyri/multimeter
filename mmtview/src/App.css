@@ -110,7 +110,7 @@ textarea:disabled {
 }
 
 .VariableEditor td {
-  vertical-align: top !important;
+  vertical-align: middle !important;
 }
 
 button {
@@ -162,6 +162,7 @@ button:hover, button:focus {
   font-size: 0.75rem;
   padding: 2px 0 0 0 ;
   text-align: left;
+
 }
 
 .label-disabled {
