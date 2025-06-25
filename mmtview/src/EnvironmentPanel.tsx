@@ -22,7 +22,9 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     const variablePairs: ComboTablePair[] = [];
     if (yaml.variables) {
       Object.entries(yaml.variables).forEach(([name, value]) => {
-        const found = loadedVarsRef.current.find((v: any) => v.name === name);
+        const found = Array.isArray(loadedVarsRef.current)
+          ? loadedVarsRef.current.find((v: any) => v.name === name)
+          : undefined;
         if (Array.isArray(value)) {
           variablePairs.push({
             name,
