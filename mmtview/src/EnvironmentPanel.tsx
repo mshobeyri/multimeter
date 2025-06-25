@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import parseYaml from "./markupConvertor";
 import ComboTable, { ComboTablePair } from "./components/ComboTable";
+import APIOverview from "./components/APIOverview";
 
 
 interface EnvironmentPanelProps {
@@ -9,9 +10,10 @@ interface EnvironmentPanelProps {
 }
 
 const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent }) => {
+  const [tab, setTab] = useState<"environment" | "edit">("environment");
   const [variables, setVariables] = useState<ComboTablePair[]>([]);
   const [presets, setPresets] = useState<ComboTablePair[]>([]);
-  const [presetData, setPresetData] = useState<any>({}); // To keep the parsed preset structure
+  const [presetData, setPresetData] = useState<any>({}); 
   const loadedVarsRef = React.useRef<{ name: string; value: string }[]>([]);
 
   // Parse YAML and update variables/presets when content changes
@@ -22,9 +24,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     const variablePairs: ComboTablePair[] = [];
     if (yaml.variables) {
       Object.entries(yaml.variables).forEach(([name, value]) => {
-        const found = Array.isArray(loadedVarsRef.current)
-          ? loadedVarsRef.current.find((v: any) => v.name === name)
-          : undefined;
+        const found = loadedVarsRef.current.find((v: any) => v.name === name);
         if (Array.isArray(value)) {
           variablePairs.push({
             name,
@@ -127,31 +127,83 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   }, []);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px", padding: "10px" }}>
-      <div
-        style={{
-          background: "var(--vscode-editorWidget-background, #232323)",
-          border: "1px solid var(--vscode-editorWidget-border, #333)",
-          borderRadius: "6px",
-          padding: "16px",
-          minWidth: 200,
-        }}
-      >
-        <div style={{ fontWeight: "bold", fontSize: "1.1em", marginBottom: "12px" }}>Variables</div>
-        <ComboTable pairs={variables} onChange={handleVariablesChange} />
+    <div
+      style={{
+        position: "relative",
+        background: "var(--vscode-editorWidget-background, #232323)",
+        border: "1px solid var(--vscode-editorWidget-border, #333)",
+        borderRadius: "6px",
+        padding: "16px",
+        minWidth: 200,
+        marginBottom: "16px"
+      }}
+    >
+      {/* Tab Bar */}
+      <div style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 16 }}>
+        <button
+          onClick={() => setTab("environment")}
+          style={{
+            padding: "8px 24px",
+            border: "none",
+            borderBottom: tab === "environment" ? "2px solid #0e639c" : "2px solid transparent",
+            background: "none",
+            color: "inherit",
+            fontWeight: tab === "environment" ? "bold" : "normal",
+            cursor: "pointer"
+          }}
+        >
+          <span role="img" aria-label="run">🌎</span> Environment
+        </button>
+        <button
+          onClick={() => setTab("edit")}
+          style={{
+            padding: "8px 24px",
+            border: "none",
+            borderBottom: tab === "edit" ? "2px solid #0e639c" : "2px solid transparent",
+            background: "none",
+            color: "inherit",
+            fontWeight: tab === "edit" ? "bold" : "normal",
+            cursor: "pointer"
+          }}
+        >
+
+          <span role="img" aria-label="run">✏️</span> Edit
+          
+        </button>
       </div>
-      <div
-        style={{
-          background: "var(--vscode-editorWidget-background, #232323)",
-          border: "1px solid var(--vscode-editorWidget-border, #333)",
-          borderRadius: "6px",
-          padding: "16px",
-          minWidth: 200,
-        }}
-      >
-        <div style={{ fontWeight: "bold", fontSize: "1.1em", marginBottom: "12px" }}>Presets</div>
-        <ComboTable pairs={presets} onChange={handlePresetsChange} showPlaceholder />
-      </div>
+      {tab === "environment" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px", padding: "10px" }}>
+          <div
+            style={{
+              background: "var(--vscode-editorWidget-background, #232323)",
+              border: "1px solid var(--vscode-editorWidget-border, #333)",
+              borderRadius: "6px",
+              padding: "16px",
+              minWidth: 200,
+            }}
+          >
+            <div style={{ fontWeight: "bold", fontSize: "1.1em", marginBottom: "12px" }}>Variables</div>
+            <ComboTable pairs={variables} onChange={handleVariablesChange} />
+          </div>
+          <div
+            style={{
+              background: "var(--vscode-editorWidget-background, #232323)",
+              border: "1px solid var(--vscode-editorWidget-border, #333)",
+              borderRadius: "6px",
+              padding: "16px",
+              minWidth: 200,
+            }}
+          >
+            <div style={{ fontWeight: "bold", fontSize: "1.1em", marginBottom: "12px" }}>Presets</div>
+            <ComboTable pairs={presets} onChange={handlePresetsChange} showPlaceholder />
+          </div>
+        </div>
+      )}
+      {tab === "edit" && (
+        <div style={{ padding: "24px", color: "#888" }}>
+          {/* Empty Edit Tab */}
+        </div>
+      )}
     </div>
   );
 };
