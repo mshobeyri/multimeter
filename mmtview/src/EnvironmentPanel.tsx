@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import parseYaml from "./markupConvertor";
 import ComboTable, { ComboTablePair } from "./components/ComboTable";
 import APIOverview from "./components/APIOverview";
+import EnvironmentEnv from "./components/EnvironmentEnv";
+import EnvironmentEdit from "./components/EnvironmentEdit";
 
 
 interface EnvironmentPanelProps {
@@ -172,37 +174,15 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         </button>
       </div>
       {tab === "environment" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: "24px", padding: "10px" }}>
-          <div
-            style={{
-              background: "var(--vscode-editorWidget-background, #232323)",
-              border: "1px solid var(--vscode-editorWidget-border, #333)",
-              borderRadius: "6px",
-              padding: "16px",
-              minWidth: 200,
-            }}
-          >
-            <div style={{ fontWeight: "bold", fontSize: "1.1em", marginBottom: "12px" }}>Variables</div>
-            <ComboTable pairs={variables} onChange={handleVariablesChange} />
-          </div>
-          <div
-            style={{
-              background: "var(--vscode-editorWidget-background, #232323)",
-              border: "1px solid var(--vscode-editorWidget-border, #333)",
-              borderRadius: "6px",
-              padding: "16px",
-              minWidth: 200,
-            }}
-          >
-            <div style={{ fontWeight: "bold", fontSize: "1.1em", marginBottom: "12px" }}>Presets</div>
-            <ComboTable pairs={presets} onChange={handlePresetsChange} showPlaceholder />
-          </div>
-        </div>
+        <EnvironmentEnv
+          variables={variables}
+          presets={presets}
+          handleVariablesChange={handleVariablesChange}
+          handlePresetsChange={handlePresetsChange}
+        />
       )}
       {tab === "edit" && (
-        <div style={{ padding: "24px", color: "#888" }}>
-          {/* Empty Edit Tab */}
-        </div>
+        <EnvironmentEdit content={content} setContent={setContent} />
       )}
     </div>
   );
