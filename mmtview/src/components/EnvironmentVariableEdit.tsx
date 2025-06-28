@@ -68,8 +68,8 @@ const EnvironmentVariableEdit: React.FC<EnvironmentVariableEditProps> = ({ varia
         const updated = [...boards, newBoard];
         const newVars: EnvironmentData["variables"] = {};
         updated.forEach(b => {
-            if (!b.name) return;
-            newVars[b.name] = b.type === "list"
+            // Allow empty name for new variable so it appears in the UI
+            newVars[b.name || ""] = b.type === "list"
                 ? Array.isArray(b.value) ? b.value : []
                 : typeof b.value === "object" ? b.value : {};
         });
