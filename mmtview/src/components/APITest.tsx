@@ -6,25 +6,8 @@ import { formatBody } from "../markupConvertor";
 import SendButton from "./SendButton";
 import ConnectButton from "./ConnectButton";
 import { useNetwork } from "./Network";
+import { replaceAllRefs } from "../variableReplacer";
 
-
-function replaceInputRefs(obj: any, inputs: Record<string, string>): any {
-  if (typeof obj === "string") {
-    // Replace all i:<param> with the value from inputs
-    return obj.replace(/i:([a-zA-Z0-9_]+)/g, (_, key) =>
-      inputs[key] !== undefined ? inputs[key] : `i:${key}`
-    );
-  } else if (Array.isArray(obj)) {
-    return obj.map(item => replaceInputRefs(item, inputs));
-  } else if (obj && typeof obj === "object") {
-    const result: any = {};
-    for (const k in obj) {
-      result[k] = replaceInputRefs(obj[k], inputs);
-    }
-    return result;
-  }
-  return obj;
-}
 
 interface APITestProps {
   api: APIData;
@@ -56,10 +39,11 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         (acc, cur) => ({ ...acc, ...cur }),
         {}
       );
-      // Replace all i:<param> in the interface data
       const iface = interfaces[selectedIdx] || {};
-      const replaced = replaceInputRefs(iface, exampleInputs);
-      network.setRequestData(replaced);
+      // Use async replaceAllRefs to handle i: and e: replacements
+      replaceAllRefs(iface, exampleInputs, (replaced) => {
+        network.setRequestData(replaced);
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedExampleIdx, selectedIdx]);

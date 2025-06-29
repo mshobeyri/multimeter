@@ -4,6 +4,8 @@ import ComboTable, { ComboTablePair } from "./components/ComboTable";
 import APIOverview from "./components/APIOverview";
 import EnvironmentEnv from "./components/EnvironmentEnv";
 import EnvironmentEdit from "./components/EnvironmentEdit";
+import EnvironmentView from "./components/EnvironmentView";
+import { saveEnvVariablesFromObject, loadEnvVariables } from "./workspaceStorage";
 
 
 interface EnvironmentPanelProps {
@@ -12,10 +14,9 @@ interface EnvironmentPanelProps {
 }
 
 const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent }) => {
-  const [tab, setTab] = useState<"environment" | "edit">("environment");
-  const [variables, setVariables] = useState<ComboTablePair[]>([]);
-  const [presets, setPresets] = useState<ComboTablePair[]>([]);
+  const [tab, setTab] = useState<"environment" | "edit" | "view">("environment");
   const [presetData, setPresetData] = useState<any>({}); 
+  const [workspaceVars, setWorkspaceVars] = useState<{ name: string; label: string; value: string }[]>([]);
   const loadedVarsRef = React.useRef<{ name: string; value: string }[]>([]);
 
   // Parse YAML and update variables/presets when content changes
@@ -66,16 +67,17 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   }, [content]);
 
   // Handler for variables
-  const handleVariablesChange = (name: string, value: string) => {
+  const handleVariablesChange = (name: string, value: string, label?: string) => {
     setVariables(prev => {
       const updated = prev.map(pair =>
         pair.name === name ? { ...pair, value } : pair
       );
-      window.vscode?.postMessage({
-        command: "updateWorkspaceState",
-        name: "multimeter.env.variables",
-        value: updated.map(({ name, value }) => ({ name, value })),
-      });
+      // Save only the selected variable with name, label, value
+      // If label is not provided, use value as label (for lists)
+      const saveObj: Record<string, any> = {
+        [name]: label ? { [label]: value } : [value]
+      };
+      saveEnvVariablesFromObject(saveObj);
       return updated;
     });
   };
@@ -97,11 +99,14 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
             ? { ...pair, value: String(envVars[pair.name]) }
             : pair
         );
-        // Save to workspace state after updating variables
-        window.vscode?.postMessage({
-          command: "updateWorkspaceState",
-          name: "multimeter.env.variables",
-          value: updated.map(({ name, value }) => ({ name, value })),
+        // Save each updated variable with name, label, value
+        updated.forEach(pair => {
+          const saveObj: Record<string, any> = {
+            [pair.name]: pair.options && pair.options.length > 0
+              ? [pair.value] // list: label and value are the same
+              : { [pair.value]: pair.value } // object: label is value, value is value
+          };
+          saveEnvVariablesFromObject(saveObj);
         });
         return updated;
       });
@@ -110,23 +115,27 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
 
   // Load selections from VSCode
   useEffect(() => {
-    const handler = (event: MessageEvent) => {
-      const message = event.data;
-      if (message.command === "loadWorkspaceState" && message.name === "multimeter.env.variables") {
-        loadedVarsRef.current = message.value || [];
-        // Re-parse YAML to apply loaded values
-        setVariables(vars =>
-          vars.map(pair => {
-            const found = loadedVarsRef.current.find((v: any) => v.name === pair.name);
-            return found ? { ...pair, value: found.value } : pair;
-          })
-        );
-      }
-    };
-    window.addEventListener("message", handler);
-    window.vscode?.postMessage({ command: "loadWorkspaceState", name: "multimeter.env.variables" });
-    return () => window.removeEventListener("message", handler);
+    const cleanup = loadEnvVariables((loaded: { name: string; value: string; }[]) => {
+      loadedVarsRef.current = loaded;
+      setVariables(vars =>
+        vars.map(pair => {
+          const found = loadedVarsRef.current.find((v: any) => v.name === pair.name);
+          return found ? { ...pair, value: found.value } : pair;
+        })
+      );
+    });
+    return cleanup;
   }, []);
+
+  // Load workspace variables for the "view" tab
+  useEffect(() => {
+    if (tab === "view") {
+      const cleanup = loadEnvVariables((loaded: React.SetStateAction<{ name: string; label: string; value: string; }[]>) => {
+        setWorkspaceVars(loaded);
+      });
+      return cleanup;
+    }
+  }, [tab]);
 
   return (
     <div
@@ -168,21 +177,31 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
             cursor: "pointer"
           }}
         >
-
           <span role="img" aria-label="run">✏️</span> Edit
-          
+        </button>
+        <button
+          onClick={() => setTab("view")}
+          style={{
+            padding: "8px 24px",
+            border: "none",
+            borderBottom: tab === "view" ? "2px solid #0e639c" : "2px solid transparent",
+            background: "none",
+            color: "inherit",
+            fontWeight: tab === "view" ? "bold" : "normal",
+            cursor: "pointer"
+          }}
+        >
+          <span role="img" aria-label="run">👁️</span> View Cache
         </button>
       </div>
       {tab === "environment" && (
-        <EnvironmentEnv
-          variables={variables}
-          presets={presets}
-          handleVariablesChange={handleVariablesChange}
-          handlePresetsChange={handlePresetsChange}
-        />
+        <EnvironmentEnv />
       )}
       {tab === "edit" && (
         <EnvironmentEdit content={content} setContent={setContent} />
+      )}
+      {tab === "view" && (
+        <EnvironmentView vars={workspaceVars} />
       )}
     </div>
   );
