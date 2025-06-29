@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from "react";
 import parseYaml from "./markupConvertor";
-import ComboTable, { ComboTablePair } from "./components/ComboTable";
-import APIOverview from "./components/APIOverview";
 import EnvironmentEnv from "./components/EnvironmentEnv";
 import EnvironmentEdit from "./components/EnvironmentEdit";
 import EnvironmentView from "./components/EnvironmentView";
 import { saveEnvVariablesFromObject, loadEnvVariables } from "./workspaceStorage";
+import { ComboTablePair } from "./components/ComboTable";
 
 
 interface EnvironmentPanelProps {
@@ -17,7 +16,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   const [tab, setTab] = useState<"environment" | "edit" | "view">("environment");
   const [variables, setVariables] = useState<ComboTablePair[]>([]);
   const [presets, setPresets] = useState<ComboTablePair[]>([]);
-  const [presetData, setPresetData] = useState<any>({}); 
+  const [presetData, setPresetData] = useState<any>({});
   const [workspaceVars, setWorkspaceVars] = useState<{ name: string; label: string; value: string }[]>([]);
   const loadedVarsRef = React.useRef<{ name: string; value: string }[]>([]);
 
@@ -31,17 +30,33 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
       Object.entries(yaml.variables).forEach(([name, value]) => {
         const found = loadedVarsRef.current.find((v: any) => v.name === name);
         if (Array.isArray(value)) {
+          // List: label and value are the same (element)
+          const options = value.map((v: string) => ({ label: String(v), value: String(v) }));
+          const selected = found
+            ? options.find(opt => opt.value === found.value) || options[0]
+            : options[0];
           variablePairs.push({
             name,
-            options: value,
-            value: found ? found.value : value[0] ?? ""
+            options,
+            value: selected
           });
         } else if (typeof value === "object" && value !== null) {
-          const keys = Object.keys(value);
+          // Object: label is key, value is value
+          const options = Object.entries(value).map(([k, v]) => ({
+            label: k,
+            value: String(v)
+          }));
+          // Try to find by label or value
+          let selected = options[0];
+          if (found) {
+            selected =
+              options.find(opt => opt.label === found.value || opt.value === found.value) ||
+              options[0];
+          }
           variablePairs.push({
             name,
-            options: keys,
-            value: found ? found.value : keys[0] ?? ""
+            options,
+            value: selected
           });
         }
       });
@@ -57,8 +72,8 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
           const envNames = Object.keys(presetObj);
           presetPairs.push({
             name: presetName,
-            options: envNames,
-            value: envNames[0] ?? ""
+            options: envNames.map(env => ({ label: env, value: env })),
+            value: { label: envNames[0] ?? "", value: envNames[0] ?? "" }
           });
           presetDataObj[presetName] = presetObj;
         }
@@ -69,11 +84,18 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   }, [content]);
 
   // Handler for variables
-  const handleVariablesChange = (name: string, value: string, label?: string) => {
+  const handleVariablesChange = (name: string, label: string, value: string) => {
     setVariables(prev => {
-      const updated = prev.map(pair =>
-        pair.name === name ? { ...pair, value } : pair
-      );
+      const updated = prev.map(pair => {
+        if (pair.name === name) {
+          // Find the correct ComboTableOption from options
+          const selectedOption = pair.options.find(
+            opt => opt.value === value || opt.label === label
+          ) || pair.options[0];
+          return { ...pair, value: selectedOption };
+        }
+        return pair;
+      });
       // Save only the selected variable with name, label, value
       // If label is not provided, use value as label (for lists)
       const saveObj: Record<string, any> = {
@@ -88,7 +110,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   const handlePresetsChange = (presetName: string, envName: string) => {
     setPresets(prev =>
       prev.map(pair =>
-        pair.name === presetName ? { ...pair, value: envName } : pair
+        pair.name === presetName ? { ...pair, value: { label: envName, value: envName } } : pair
       )
     );
     // Update variables based on the selected preset/env
@@ -96,20 +118,26 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
 
     if (envVars && typeof envVars === "object") {
       setVariables(prev => {
-        const updated = prev.map(pair =>
-          envVars[pair.name]
-            ? { ...pair, value: String(envVars[pair.name]) }
-            : pair
-        );
-        // Save each updated variable with name, label, value
-        updated.forEach(pair => {
-          const saveObj: Record<string, any> = {
-            [pair.name]: pair.options && pair.options.length > 0
-              ? [pair.value] // list: label and value are the same
-              : { [pair.value]: pair.value } // object: label is value, value is value
-          };
-          saveEnvVariablesFromObject(saveObj);
+        const updated = prev.map(pair => {
+          // For object variables, envVars[pair.name] is the value, pair.options contains {label, value}
+          if (envVars[pair.name]) {
+            // Try to find the correct option by value or label
+            const selected =
+              pair.options.find(
+                opt => opt.value === String(envVars[pair.name]) || opt.label === String(envVars[pair.name])
+              ) || pair.options[0];
+            return { ...pair, value: selected };
+          }
+          return pair;
         });
+
+        // Save all variables at once, with correct label and value
+        const saveObj: Record<string, any> = {};
+        updated.forEach(pair => {
+          saveObj[pair.name] = { label: pair.value.label, value: pair.value.value };
+        });
+        saveEnvVariablesFromObject(saveObj);
+
         return updated;
       });
     }
@@ -122,7 +150,13 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
       setVariables(vars =>
         vars.map(pair => {
           const found = loadedVarsRef.current.find((v: any) => v.name === pair.name);
-          return found ? { ...pair, value: found.value } : pair;
+          if (found) {
+            const selectedOption =
+              pair.options.find(opt => opt.value === found.value || opt.label === found.value) ||
+              pair.options[0];
+            return { ...pair, value: selectedOption };
+          }
+          return pair;
         })
       );
     });

@@ -1,15 +1,20 @@
 import React from "react";
 import ValidatableSelect from "./ValidatableSelect";
 
+interface ComboTableOption {
+  label: string;
+  value: string;
+}
+
 interface ComboTablePair {
   name: string;
-  options: string[];
-  value: string;
+  options: ComboTableOption[];
+  value: ComboTableOption;
 }
 
 interface ComboTableProps {
   pairs: ComboTablePair[];
-  onChange: (name: string, value: string) => void;
+  onChange: (name: string, label: string, value: string) => void;
   showPlaceholder?: boolean;
 }
 
@@ -23,31 +28,36 @@ const ComboTable: React.FC<ComboTableProps> = ({ pairs, onChange, showPlaceholde
       marginBottom: "16px"
     }}
   >
-      <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
-        <colgroup>
-          <col style={{ width: "40%" }} />
-          <col style={{ width: "60%" }} />
-        </colgroup>
-        <tbody>
-          {pairs.map(pair => (
-            <tr key={pair.name}>
-              <td style={{ padding: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {pair.name}
-              </td>
-              <td style={{ padding: "8px" }}>
-                <ValidatableSelect
-                  value={pair.value}
-                  options={pair.options}
-                  onChange={val => onChange(pair.name, val)}
-                  showPlaceholder={showPlaceholder}
-                />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+      <colgroup>
+        <col style={{ width: "40%" }} />
+        <col style={{ width: "60%" }} />
+      </colgroup>
+      <tbody>
+        {pairs.map(pair => (
+          <tr key={pair.name}>
+            <td style={{ padding: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+              {pair.name}
+            </td>
+            <td style={{ padding: "8px" }}>
+              <ValidatableSelect
+                value={pair.value.label}
+                options={pair.options.map(opt => opt.label)}
+                onChange={label => {
+                  const found = pair.options.find(opt => opt.label === label);
+                  if (found) {
+                    onChange(pair.name, found.label,found.value);
+                  }
+                }}
+                showPlaceholder={showPlaceholder}
+              />
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  </div>
 );
 
 export default ComboTable;
-export type { ComboTablePair, ComboTableProps };
+export type { ComboTablePair, ComboTableOption, ComboTableProps };
