@@ -15,6 +15,8 @@ interface EnvironmentPanelProps {
 
 const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent }) => {
   const [tab, setTab] = useState<"environment" | "edit" | "view">("environment");
+  const [variables, setVariables] = useState<ComboTablePair[]>([]);
+  const [presets, setPresets] = useState<ComboTablePair[]>([]);
   const [presetData, setPresetData] = useState<any>({}); 
   const [workspaceVars, setWorkspaceVars] = useState<{ name: string; label: string; value: string }[]>([]);
   const loadedVarsRef = React.useRef<{ name: string; value: string }[]>([]);
@@ -195,7 +197,12 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         </button>
       </div>
       {tab === "environment" && (
-        <EnvironmentEnv />
+        <EnvironmentEnv
+          variables={variables}
+          presets={presets}
+          handleVariablesChange={handleVariablesChange}
+          handlePresetsChange={handlePresetsChange}
+        />
       )}
       {tab === "edit" && (
         <EnvironmentEdit content={content} setContent={setContent} />

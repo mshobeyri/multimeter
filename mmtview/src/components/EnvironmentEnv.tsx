@@ -1,22 +1,25 @@
-import React, { useState } from "react";
+import React from "react";
 import ComboTable, { ComboTablePair } from "./ComboTable";
 import { saveEnvVariablesFromObject } from "../workspaceStorage";
 
-const EnvironmentEnv: React.FC = () => {
-  const [variables, setVariables] = useState<ComboTablePair[]>([]);
-  const [presets, setPresets] = useState<ComboTablePair[]>([]);
+interface EnvironmentEnvProps {
+  variables: ComboTablePair[];
+  presets: ComboTablePair[];
+  handleVariablesChange: (name: string, value: string) => void;
+  handlePresetsChange: (presetName: string, envName: string) => void;
+}
 
-  // TODO: Load variables/presets from workspace or context here
-
+const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
+  variables,
+  presets,
+  handleVariablesChange,
+  handlePresetsChange,
+}) => {
+  // Wrap the handler to also save to workspace
   const handleVariableChangeAndSave = (name: string, value: string, label?: string) => {
+    // Save as { name, label, value }
     saveEnvVariablesFromObject({ [name]: { [label ?? value]: value } });
-    setVariables(prev =>
-      prev.map(pair => pair.name === name ? { ...pair, value } : pair)
-    );
-  };
-
-  const handlePresetsChange = (presetName: string, envName: string) => {
-    // Implement preset logic here and update state as needed
+    handleVariablesChange(name, value);
   };
 
   return (
