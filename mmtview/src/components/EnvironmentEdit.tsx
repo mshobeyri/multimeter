@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import parseYaml, { packYaml } from "../markupConvertor";
 import EnvironmentVariableEdit from "./EnvironmentVariableEdit";
+import EnvironmentPresetEdit from "./EnvironmentPresetEdit";
 import { EnvironmentData } from "./EnvironmentData";
 
 interface EnvironmentEditProps {
@@ -9,6 +10,8 @@ interface EnvironmentEditProps {
 }
 
 const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent }) => {
+  const [tab, setTab] = useState<"variables" | "presets">("variables");
+
   let envData: EnvironmentData | null = null;
   try {
     envData = parseYaml(content);
@@ -19,7 +22,13 @@ const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent }
   const handleVariablesChange = (variables: EnvironmentData["variables"]) => {
     if (!envData) return;
     const newEnvData = { ...envData, variables };
-    // Use dumpYaml from markupConvertor instead of js-yaml
+    const yamlString = packYaml ? packYaml(newEnvData) : content;
+    setContent(yamlString);
+  };
+
+  const handlePresetsChange = (presets: EnvironmentData["presets"]) => {
+    if (!envData) return;
+    const newEnvData = { ...envData, presets };
     const yamlString = packYaml ? packYaml(newEnvData) : content;
     setContent(yamlString);
   };
@@ -34,10 +43,48 @@ const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent }
 
   return (
     <div style={{ padding: 0 }}>
-      <EnvironmentVariableEdit
-        variables={envData.variables}
-        onChange={handleVariablesChange}
-      />
+      <div style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 12 }}>
+        <button
+          onClick={() => setTab("variables")}
+          style={{
+            padding: "6px 18px",
+            border: "none",
+            borderBottom: tab === "variables" ? "2px solid #0e639c" : "2px solid transparent",
+            background: "none",
+            color: "inherit",
+            fontWeight: tab === "variables" ? "bold" : "normal",
+            cursor: "pointer"
+          }}
+        >
+          Variables
+        </button>
+        <button
+          onClick={() => setTab("presets")}
+          style={{
+            padding: "6px 18px",
+            border: "none",
+            borderBottom: tab === "presets" ? "2px solid #0e639c" : "2px solid transparent",
+            background: "none",
+            color: "inherit",
+            fontWeight: tab === "presets" ? "bold" : "normal",
+            cursor: "pointer"
+          }}
+        >
+          Presets
+        </button>
+      </div>
+      {tab === "variables" && (
+        <EnvironmentVariableEdit
+          variables={envData.variables}
+          onChange={handleVariablesChange}
+        />
+      )}
+      {tab === "presets" && (
+        <EnvironmentPresetEdit
+          presets={envData.presets || {}}
+          onChange={handlePresetsChange}
+        />
+      )}
     </div>
   );
 };
