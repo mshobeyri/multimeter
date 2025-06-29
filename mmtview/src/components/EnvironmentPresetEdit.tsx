@@ -55,19 +55,14 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
     };
 
     const handleAddBoard = () => {
-        const updated = [
-            ...boards,
-            { name: "", values: [] }
-        ];
-        const newPresets: Record<string, Record<string, Record<string, string>>> = {};
-        updated.forEach(b => {
-            if (!b.name) return;
-            newPresets[b.name] = {};
-            b.values.forEach(v => {
-                if (!v.env) return;
-                newPresets[b.name][v.env] = v.kv;
-            });
-        });
+        // Always use the latest presets prop
+        const newPresets = { ...presets };
+        let newName = "preset";
+        let i = 1;
+        while (newPresets[newName]) {
+            newName = `preset${i++}`;
+        }
+        newPresets[newName] = {};
         onChange(newPresets);
     };
 
@@ -84,9 +79,19 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
     };
 
     const handleAddEnv = (boardIdx: number) => {
-        const board = boards[boardIdx];
-        const updatedValues = [...board.values, { env: "", kv: {} }];
-        handleBoardChange(boardIdx, { values: updatedValues });
+        // Find the board name from boards[boardIdx]
+        const boardName = boards[boardIdx]?.name;
+        if (!boardName) return;
+        const newPresets = { ...presets };
+        const envs = { ...(newPresets[boardName] || {}) };
+        let newEnv = "env";
+        let i = 1;
+        while (envs[newEnv]) {
+            newEnv = `env${i++}`;
+        }
+        envs[newEnv] = {};
+        newPresets[boardName] = envs;
+        onChange(newPresets);
     };
 
     return (
@@ -149,32 +154,32 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
                     <button
                         onClick={() => handleAddEnv(boardIdx)}
                         style={{
-                            marginTop: 8,
-                            padding: "4px 12px",
-                            background: "#222",
-                            color: "#fff",
-                            border: "1px solid #444",
+                            background: "var(--vscode-button-background, #0e639c)",
+                            color: "var(--vscode-button-foreground, #fff)",
+                            border: "none",
                             borderRadius: 4,
+                            padding: "8px 16px",
+                            fontWeight: "bold",
                             cursor: "pointer"
                         }}
                     >
-                        + Add Environment
+                        Add Label
                     </button>
                 </div>
             ))}
             <button
                 onClick={handleAddBoard}
                 style={{
-                    marginTop: 8,
-                    padding: "6px 18px",
-                    background: "#232323",
-                    color: "#fff",
-                    border: "1px solid #444",
+                    background: "var(--vscode-button-background, #0e639c)",
+                    color: "var(--vscode-button-foreground, #fff)",
+                    border: "none",
                     borderRadius: 4,
+                    padding: "8px 16px",
+                    fontWeight: "bold",
                     cursor: "pointer"
                 }}
             >
-                + Add Preset
+                Add Preset
             </button>
         </div>
     );
