@@ -4,6 +4,8 @@ import ComboTable, { ComboTablePair } from "./components/ComboTable";
 import APIOverview from "./components/APIOverview";
 import EnvironmentEnv from "./components/EnvironmentEnv";
 import EnvironmentEdit from "./components/EnvironmentEdit";
+import EnvironmentVariableEdit from "./components/EnvironmentVariableEdit";
+import { EnvironmentData } from "./components/EnvironmentData";
 
 
 interface EnvironmentPanelProps {
@@ -13,6 +15,7 @@ interface EnvironmentPanelProps {
 
 const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent }) => {
   const [tab, setTab] = useState<"environment" | "edit">("environment");
+  const [editTab, setEditTab] = useState<"variables" | "presets">("variables");
   const [variables, setVariables] = useState<ComboTablePair[]>([]);
   const [presets, setPresets] = useState<ComboTablePair[]>([]);
   const [presetData, setPresetData] = useState<any>({}); 
@@ -168,9 +171,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
             cursor: "pointer"
           }}
         >
-
           <span role="img" aria-label="run">✏️</span> Edit
-          
         </button>
       </div>
       {tab === "environment" && (
@@ -182,7 +183,47 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         />
       )}
       {tab === "edit" && (
-        <EnvironmentEdit content={content} setContent={setContent} />
+        <div>
+          {/* Edit TabView */}
+          <div style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 12 }}>
+            <button
+              onClick={() => setEditTab("variables")}
+              style={{
+                padding: "6px 18px",
+                border: "none",
+                borderBottom: editTab === "variables" ? "2px solid #0e639c" : "2px solid transparent",
+                background: "none",
+                color: "inherit",
+                fontWeight: editTab === "variables" ? "bold" : "normal",
+                cursor: "pointer"
+              }}
+            >
+              Variables
+            </button>
+            <button
+              onClick={() => setEditTab("presets")}
+              style={{
+                padding: "6px 18px",
+                border: "none",
+                borderBottom: editTab === "presets" ? "2px solid #0e639c" : "2px solid transparent",
+                background: "none",
+                color: "inherit",
+                fontWeight: editTab === "presets" ? "bold" : "normal",
+                cursor: "pointer"
+              }}
+            >
+              Presets
+            </button>
+          </div>
+          {editTab === "variables" && (
+            <EnvironmentEdit content={content} setContent={setContent} />
+          )}
+          {editTab === "presets" && (
+            <div style={{ color: "#888", padding: 16 }}>
+              Presets editing coming soon...
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
