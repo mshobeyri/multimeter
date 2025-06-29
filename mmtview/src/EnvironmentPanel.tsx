@@ -96,12 +96,19 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         }
         return pair;
       });
-      // Save only the selected variable with name, label, value
-      // If label is not provided, use value as label (for lists)
-      const saveObj: Record<string, any> = {
-        [name]: label ? { [label]: value } : [value]
-      };
-      saveEnvVariablesFromObject(saveObj);
+
+      // Save all variables at once, each as { name, label, value }
+      const flatVars: { name: string; label: string; value: string }[] = [];
+      updated.forEach(pair => {
+        flatVars.push({
+          name: pair.name,
+          label: pair.value.label,
+          value: pair.value.value
+        });
+      });
+
+      saveEnvVariablesFromObject(flatVars);
+      console.log("Updated environment variables:", flatVars);
       return updated;
     });
   };
@@ -132,11 +139,15 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         });
 
         // Save all variables at once, with correct label and value
-        const saveObj: Record<string, any> = {};
+        const flatVars: { name: string; label: string; value: string }[] = [];
         updated.forEach(pair => {
-          saveObj[pair.name] = { label: pair.value.label, value: pair.value.value };
+          flatVars.push({
+            name: pair.name,
+            label: pair.value.label,
+            value: pair.value.value
+          });
         });
-        saveEnvVariablesFromObject(saveObj);
+        saveEnvVariablesFromObject(flatVars);
 
         return updated;
       });
