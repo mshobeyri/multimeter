@@ -6,6 +6,7 @@ import './App.css';
 import VariablesPanel from "./VariablesPanel";
 import APIPanel from "./APIPanel";
 import NotypePanel from "./NotypePanel";
+import TestPanel from "./TestPanel"; // Add this import
 import parseYaml from "./markupConvertor";
 
 declare global {
@@ -93,6 +94,9 @@ const App: React.FC = () => {
       )}
       {docType === "api" && (
         <APIPanel content={content} setContent={setContent} />
+      )}
+      {docType === "test" && (
+        <TestPanel content={content} setContent={setContent} />
       )}
       {docType === null && (
         <NotypePanel content={content} setContent={setContent} />
