@@ -1,17 +1,18 @@
 import React from "react";
 import SearchableTagInput from "../components/SearchableTagInput";
 import KVEditor from "../components/KVEditor";
-import { APIData } from "./APIData";
-import { jsonTypes } from "../CommonData"
+import { TestData } from "./TestData";
+import { jsonTypes } from "../CommonData";
+import VEditor from "../components/VEditor";
 
-interface APIOverviewProps {
-  api: APIData;
-  update: (patch: Partial<APIData>) => void;
+interface TestOverviewProps {
+  test: TestData;
+  update: (patch: Partial<TestData>) => void;
 }
 
-const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
+const TestOverview: React.FC<TestOverviewProps> = ({ test, update }) => (
   <table
-    className="APIOverview"
+    className="TestOverview"
     style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}
   >
     <colgroup>
@@ -23,7 +24,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
         <td className="label">title</td>
         <td style={{ padding: "8px" }}>
           <input
-            value={api.title || ""}
+            value={test.title || ""}
             onChange={e => update({ title: e.target.value })}
             placeholder="title"
             style={{ width: "100%" }}
@@ -34,9 +35,9 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
         <td className="label">tags</td>
         <td style={{ padding: "8px" }}>
           <SearchableTagInput
-            tags={api.tags || []}
+            tags={test.tags || []}
             onChange={tags => update({ tags })}
-            suggestions={["security", "sessionless", "api", "user", "admin"]}
+            suggestions={["security", "sessionless", "test", "user", "admin"]}
           />
         </td>
       </tr>
@@ -44,7 +45,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
         <td className="label">description</td>
         <td style={{ padding: "8px" }}>
           <input
-            value={api.description || ""}
+            value={test.description || ""}
             onChange={e => update({ description: e.target.value })}
             placeholder="description"
             style={{ width: "100%" }}
@@ -53,9 +54,8 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
       </tr>
       <KVEditor
         label="import"
-        value={api.import?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
+        value={test.import?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
         onChange={kv => {
-          // Convert kv object to Parameter[] (each entry: { [key]: value })
           const newImports = Object.entries(kv).map(([key, value]) => ({ [key]: value }));
           update({ import: newImports });
         }}
@@ -64,9 +64,8 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
       />
       <KVEditor
         label="input"
-        value={api.inputs?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
+        value={test.inputs?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
         onChange={kv => {
-          // Convert kv object to Parameter[] (each entry: { [key]: value })
           const newInputs = Object.entries(kv).map(([key, value]) => ({ [key]: value }));
           update({ inputs: newInputs });
         }}
@@ -76,9 +75,8 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
       />
       <KVEditor
         label="output"
-        value={api.outputs?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
+        value={test.outputs?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
         onChange={kv => {
-          // Convert kv object to Parameter[] (each entry: { [key]: value })
           const newOutputs = Object.entries(kv).map(([key, value]) => ({ [key]: value }));
           update({ outputs: newOutputs });
         }}
@@ -86,8 +84,32 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
         valuePlaceholder="value"
         options={jsonTypes}
       />
+      <tr>
+        <td colSpan={2}>
+          <hr style={{ border: 0, borderTop: "1px solid #444", margin: "16px 0" }} />
+        </td>
+      </tr>
+      <VEditor
+        label="metrics"
+        value={
+          test.metrics
+            ? Object.fromEntries(
+              Object.entries(test.metrics).map(([k, v]) => [k, String(v)])
+            )
+            : {}
+        }
+        onChange={metrics =>
+          update({
+            metrics: Object.fromEntries(
+              Object.entries(metrics).map(([k, v]) => [k, v])
+            ) as any, // Cast to TestMetric if needed
+          })
+        }
+        keyOptions={["repeat", "threads", "duration", "rampup"]}
+      // valuePlaceholder="value"
+      />
     </tbody>
   </table>
 );
 
-export default APIOverview;
+export default TestOverview;

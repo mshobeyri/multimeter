@@ -1,11 +1,11 @@
 
-import {Type} from "../CommonData"
-import {Protocol, Format, Method} from "../api/APIData";
+
+import { Type, Protocol, Method, Format } from "../CommonData"
 
 export type Timestr = `${number}s` | `${number}m` | `${number}h` | "inf";
 export type Repeat = `${number}` | "inf";
-
 export type Parameter = { [key: string]: string };
+export type Comparison = string;
 
 export interface TestImportItem {
   [key: string]: string;
@@ -19,7 +19,7 @@ export interface TestMetric {
 }
 
 export interface TestFlowCallTest {
-  call?: string;
+  call: string;
   interface?: string;
   endpoint?: string;
   headers?: Record<string, string>;
@@ -29,7 +29,7 @@ export interface TestFlowCallTest {
 }
 
 export interface TestFlowCallAPI {
-  call?: string;
+  call: string;
   interface?: string;
   endpoint?: string;
   headers?: Record<string, string>;
@@ -52,10 +52,20 @@ export interface TestFlowCallDirect {
 }
 
 export interface TestFlowCheck {
-  check: string;
+  check: Comparison;
 }
 
-export type TestFlowStep = TestFlowCallTest | TestFlowCallDirect | TestFlowCallAPI | TestFlowCheck;
+export interface TestFlowCondition {
+  condition: Comparison;
+}
+
+export interface TestFlowLoop {
+  loop: Repeat | Timestr | string;
+}
+
+export type End = null;
+
+export type TestFlowStep = TestFlowCallTest | TestFlowCallDirect | TestFlowCallAPI | TestFlowCheck | TestFlowLoop | End;
 
 export interface TestData {
   type: Type;

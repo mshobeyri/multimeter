@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { InterfaceData, APIData } from "../api/APIData";
+import { InterfaceData, APIData } from "./APIData";
 import KVEditor from "../components/KVEditor";
 import BodyView from "../components/BodyView";
 import { formatBody } from "../markupConvertor";

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import FieldWithRemove from "../components/FieldWithRemove";
 import ValidatableSelect from "../components/ValidatableSelect";
-import { jsonTypes } from "../api/APIData";
+import { jsonTypes } from "../CommonData";
 import { Variable, Variables } from "./VariablesData";
 import KVEditor from "../components/KVEditor";
 

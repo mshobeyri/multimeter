@@ -1,13 +1,4 @@
-import {Type} from "../CommonData"
-
-export type Protocol = "http" | "ws";
-export type Format = "json" | "xml";
-export type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS";
-
-export const jsonTypes = [
-  "object", "object[]", "string", "string[]", "number", "number[]", "boolean", "boolean[]"
-];
-
+import {Type,Protocol, Method, Format, Parameter} from "../CommonData"
 
 export interface InterfaceData {
   name: string;
@@ -22,8 +13,6 @@ export interface InterfaceData {
   cookies?: Record<string, string>;
   outputs?: Record<string, string | { [format: string]: string }>;
 }
-
-export type Parameter = { [key: string]: string };
 
 export interface ExampleData {
   name: string;

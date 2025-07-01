@@ -3,7 +3,7 @@ import APIOverview from "./APIOverview";
 import InterfaceEditor from "./APIInterface";
 import ExampleEditor from "./APIExample";
 import APITest from "./APITest";
-import { APIData, InterfaceData, ExampleData } from "../api/APIData";
+import { APIData, InterfaceData, ExampleData } from "./APIData";
 
 interface APIEditorProps {
   api: APIData;

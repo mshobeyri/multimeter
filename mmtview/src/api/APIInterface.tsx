@@ -2,7 +2,8 @@ import React, { useCallback, useRef, useEffect, useState } from "react";
 import FieldWithRemove from "../components/FieldWithRemove";
 import KVEditor from "../components/KVEditor";
 import EndpointInput from "../components/EndpointInput";
-import { Format, Protocol, InterfaceData, Method } from "../api/APIData";
+import { InterfaceData } from "./APIData";
+import { Protocol, Method, Format } from "../CommonData"
 import { formatBody, formattedBodyToYamlObject } from "../markupConvertor";
 import BodyView from "../components/BodyView";
 
@@ -154,12 +155,12 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
           />
         ) : null}
         {data.protocol === "http" || (data.headers && Object.keys(data.headers).length > 0) ? (
-        <KVEditor
-          label="headers"
-          value={data.headers}
-          onChange={headers => onChange({ ...data, headers })}
-          disabled={data.protocol !== "http"} 
-        />
+          <KVEditor
+            label="headers"
+            value={data.headers}
+            onChange={headers => onChange({ ...data, headers })}
+            disabled={data.protocol !== "http"}
+          />
         ) : null}
         {data.protocol === "http" || (data.cookies && Object.keys(data.cookies).length > 0) ? (
           <KVEditor

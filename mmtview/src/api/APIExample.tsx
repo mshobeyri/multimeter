@@ -1,6 +1,6 @@
 import React from "react";
 import VEditor from "../components/VEditor";
-import { ExampleData } from "../api/APIData";
+import { ExampleData } from "./APIData";
 import FieldWithRemove from "../components/FieldWithRemove";
 
 interface ExampleEditorProps {
