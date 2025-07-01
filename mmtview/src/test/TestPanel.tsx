@@ -36,9 +36,9 @@ function testToYaml(test: TestData): string {
   };
   if (test.description) yamlObj.description = test.description;
   if (test.import) yamlObj.import = test.import;
-  if (test.metrics) yamlObj.metrics = test.metrics;
   if (test.inputs) yamlObj.inputs = test.inputs;
   if (test.outputs) yamlObj.outputs = test.outputs;
+  if (test.metrics) yamlObj.metrics = test.metrics;
   if (test.flow) yamlObj.flow = test.flow;
   return packYaml(yamlObj);
 }
