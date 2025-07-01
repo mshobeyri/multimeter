@@ -1,8 +1,7 @@
 import React from "react";
-import ValidatableSelect from "./ValidatableSelect";
-import SearchableTagInput from "./SearchableTagInput";
-import KVEditor from "./KVEditor";
-import { APIData, jsonTypes } from "./APIData";
+import SearchableTagInput from "../components/SearchableTagInput";
+import KVEditor from "../components/KVEditor";
+import { APIData, jsonTypes } from "../api/APIData";
 
 interface APIOverviewProps {
   api: APIData;

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import FieldWithRemove from "./FieldWithRemove";
-import KVEditor from "./KVEditor";
+import FieldWithRemove from "../components/FieldWithRemove";
+import KVEditor from "../components/KVEditor";
 
 interface PresetBoard {
     name: string; // e.g. "runner"

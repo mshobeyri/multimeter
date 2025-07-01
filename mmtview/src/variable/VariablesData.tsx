@@ -1,4 +1,4 @@
-import { Type } from "./CommonData";
+import { Type } from "../CommonData";
 
 export interface Variable {
   name: string;

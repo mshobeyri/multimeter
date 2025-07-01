@@ -1,4 +1,4 @@
-import {Type} from "./CommonData"
+import {Type} from "../CommonData"
 
 export type Protocol = "http" | "ws";
 export type Format = "json" | "xml";

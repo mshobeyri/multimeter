@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
-import parseYaml from "./markupConvertor";
-import EnvironmentEnv from "./components/EnvironmentEnv";
-import EnvironmentEdit from "./components/EnvironmentEdit";
-import EnvironmentView from "./components/EnvironmentView";
-import { saveEnvVariablesFromObject, loadEnvVariables } from "./workspaceStorage";
-import { ComboTablePair } from "./components/ComboTable";
+import parseYaml from "../markupConvertor";
+import EnvironmentEnv from "./EnvironmentEnv";
+import EnvironmentEdit from "./EnvironmentEdit";
+import EnvironmentView from "./EnvironmentView";
+import { saveEnvVariablesFromObject, loadEnvVariables } from "../workspaceStorage";
+import { ComboTablePair } from "../components/ComboTable";
 
 
 interface EnvironmentPanelProps {

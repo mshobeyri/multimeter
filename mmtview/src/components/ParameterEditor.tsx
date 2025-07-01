@@ -1,6 +1,6 @@
 import React from "react";
 import EditableSelect from "./EditableSelect";
-import { Parameter } from "./APIData";
+import { Parameter } from "../api/APIData";
 
 interface ParameterEditorProps {
   parameter: Parameter;

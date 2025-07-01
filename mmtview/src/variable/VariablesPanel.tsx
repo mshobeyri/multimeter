@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import parseYaml, { packYaml } from "./markupConvertor";
-import VariablesEditor from "./components/VariablesEditor";
-import { Variable, VariablesData } from "./components/VariablesData";
+import parseYaml, { packYaml } from "../markupConvertor";
+import VariablesEditor from "./VariablesEditor";
+import { Variable, VariablesData } from "./VariablesData";
 
 interface VariablesProps {
   content: string;

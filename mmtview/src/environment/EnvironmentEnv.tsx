@@ -1,5 +1,5 @@
 import React from "react";
-import ComboTable, { ComboTablePair } from "./ComboTable";
+import ComboTable, { ComboTablePair } from "../components/ComboTable";
 import { saveEnvVariablesFromObject } from "../workspaceStorage";
 
 interface EnvironmentEnvProps {

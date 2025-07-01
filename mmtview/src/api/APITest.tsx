@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from "react";
-import { InterfaceData, APIData } from "./APIData";
-import KVEditor from "./KVEditor";
-import BodyView from "./BodyView";
+import { InterfaceData, APIData } from "../api/APIData";
+import KVEditor from "../components/KVEditor";
+import BodyView from "../components/BodyView";
 import { formatBody } from "../markupConvertor";
-import SendButton from "./SendButton";
-import ConnectButton from "./ConnectButton";
-import { useNetwork } from "./Network";
+import SendButton from "../components/SendButton";
+import ConnectButton from "../components/ConnectButton";
+import { useNetwork } from "../components/Network";
 import { replaceAllRefs } from "../variableReplacer";
 
 

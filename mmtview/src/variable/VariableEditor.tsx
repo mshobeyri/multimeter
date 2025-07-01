@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import FieldWithRemove from "./FieldWithRemove";
-import ValidatableSelect from "./ValidatableSelect";
-import { jsonTypes } from "./APIData";
+import FieldWithRemove from "../components/FieldWithRemove";
+import ValidatableSelect from "../components/ValidatableSelect";
+import { jsonTypes } from "../api/APIData";
 import { Variable, Variables } from "./VariablesData";
-import KVEditor from "./KVEditor";
+import KVEditor from "../components/KVEditor";
 
 const fieldOptions = [
   "description", "default"

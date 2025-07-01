@@ -1,6 +1,6 @@
 
-import {Type} from "./CommonData"
-import {Protocol, Format, Method} from "./APIData";
+import {Type} from "../CommonData"
+import {Protocol, Format, Method} from "../api/APIData";
 
 export type Timestr = `${number}s` | `${number}m` | `${number}h` | "inf";
 export type Repeat = `${number}` | "inf";

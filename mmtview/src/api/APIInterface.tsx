@@ -1,10 +1,10 @@
 import React, { useCallback, useRef, useEffect, useState } from "react";
-import FieldWithRemove from "./FieldWithRemove";
-import KVEditor from "./KVEditor";
-import EndpointInput from "./EndpointInput";
-import { Format, Protocol, InterfaceData, Method } from "./APIData";
+import FieldWithRemove from "../components/FieldWithRemove";
+import KVEditor from "../components/KVEditor";
+import EndpointInput from "../components/EndpointInput";
+import { Format, Protocol, InterfaceData, Method } from "../api/APIData";
 import { formatBody, formattedBodyToYamlObject } from "../markupConvertor";
-import BodyView from "./BodyView";
+import BodyView from "../components/BodyView";
 
 interface InterfaceEditorProps {
   data: InterfaceData;

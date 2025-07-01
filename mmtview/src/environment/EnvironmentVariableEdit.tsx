@@ -1,8 +1,8 @@
 import React from "react";
-import FieldWithRemove from "./FieldWithRemove";
-import ValidatableSelect from "./ValidatableSelect";
-import KVEditor from "./KVEditor";
-import LEditor from "./LEditor"; // <-- Use LEditor instead of VEditor
+import FieldWithRemove from "../components/FieldWithRemove";
+import ValidatableSelect from "../components/ValidatableSelect";
+import KVEditor from "../components/KVEditor";
+import LEditor from "../components/LEditor"; // <-- Use LEditor instead of VEditor
 import { EnvironmentData } from "./EnvironmentData";
 
 // Only two types for this editor: "list" and "object"

@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import TextEditorPanel from "./TextEditorPanel";
-import EnvironmentPanel from "./EnvironmentPanel";
+import EnvironmentPanel from "./environment/EnvironmentPanel";
 import { SplitPane } from '@rexxars/react-split-pane';
 import './App.css';
-import VariablesPanel from "./VariablesPanel";
-import APIPanel from "./APIPanel";
+import VariablesPanel from "./variable/VariablesPanel";
+import APIPanel from "./api/APIPanel";
 import NotypePanel from "./NotypePanel";
-import TestPanel from "./TestPanel"; // Add this import
+import TestPanel from "./test/TestPanel"; // Add this import
 import parseYaml from "./markupConvertor";
 
 declare global {

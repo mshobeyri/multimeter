@@ -1,6 +1,6 @@
 import React from "react";
 import parseYaml from "./markupConvertor";
-import { typeOptions } from "./components/CommonData";
+import { typeOptions } from "./CommonData";
 
 interface NotypePanelProps {
   content: string;
