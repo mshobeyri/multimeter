@@ -65,7 +65,7 @@ export interface TestFlowLoop {
 
 export type End = null;
 
-export type TestFlowStep = TestFlowCallTest | TestFlowCallDirect | TestFlowCallAPI | TestFlowCheck | TestFlowLoop | End;
+export type TestFlowStep = TestFlowCallTest | TestFlowCallDirect | TestFlowCallAPI | TestFlowCheck | TestFlowCondition | TestFlowLoop | End;
 
 export type TestFlowSteps = TestFlowStep[];
 export interface TestData {
@@ -79,3 +79,9 @@ export interface TestData {
   metrics?: TestMetric;
   flow?: TestFlowStep[];
 }
+
+export type FlowType = "call" | "check" | "condition" | "loop" | "end";
+
+export const flowTypeOptions = [
+  "call", "check", "condition", "loop", "end"
+];

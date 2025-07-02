@@ -1,5 +1,6 @@
 import React from "react";
-import { TestFlowSteps } from "./TestData";
+import { TestFlowSteps, FlowType, flowTypeOptions } from "./TestData";
+import TestFlowBox from "./TestFlowBox";
 
 interface TestFlowProps {
     flow: TestFlowSteps;
@@ -20,94 +21,118 @@ const TestFlow: React.FC<TestFlowProps> = ({ flow, update }) => {
     const [draggedIdx, setDraggedIdx] = React.useState<number | null>(null);
     const [dragOverIdx, setDragOverIdx] = React.useState<number | null>(null);
 
+    // Helper to update a single step in the flow
+    const updateStep = (idx: number, patch: any) => {
+        if (!update) return;
+        const newFlow = flow.map((step, i) => (i === idx ? { ...step, ...patch } : step));
+        update(newFlow);
+    };
+
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 0, padding: 0 }}>
-            {flow.map((step, idx) => (
-                <React.Fragment key={idx}>
-                    {/* Drop area before each item */}
-                    {update && (
-                        <div
-                            onDragOver={e => {
-                                e.preventDefault();
-                                setDragOverIdx(idx);
-                            }}
-                            onDrop={() => {
-                                if (
-                                    update &&
-                                    draggedIdx !== null &&
-                                    draggedIdx !== idx
-                                ) {
-                                    update(moveBox(flow, draggedIdx, idx));
-                                }
-                                setDraggedIdx(null);
-                                setDragOverIdx(null);
-                            }}
-                            onDragLeave={() => setDragOverIdx(null)}
-                            style={{
-                                height: 16,
-                                margin: "0 0 0 0",
-                                background:
-                                    dragOverIdx === idx
-                                        ? "var(--vscode-editor-selectionBackground, #264f78cc)"
-                                        : "transparent",
-                                borderRadius: 4,
-                                transition: "background 0.2s",
-                                cursor: "pointer",
-                            }}
-                        />
-                    )}
-                    <div
-                        style={{
-                            position: "relative",
-                            padding: "16px",
-                            background: "var(--vscode-editorWidget-background, #232323)",
-                            border: "2px solid var(--vscode-editorWidget-border, #333)",
-                            borderRadius: 6,
-                            color: "var(--vscode-editor-foreground, #fff)",
-                            fontWeight: "bold",
-                            userSelect: "none",
-                            opacity: draggedIdx === idx ? 0.5 : 1,
-                            transition: "background 0.35s",
-                        }}
-                    >
-                        <span style={{ pointerEvents: "none" }}>
-                            {typeof step === "object" && step !== null
-                                ? (step as any).call ?? (step as any).check ?? (step as any).condition ?? (step as any).loop ?? "Step"
-                                : String(step)}
-                        </span>
+            {flow.map((step, idx) => {
+                const currentType: FlowType =
+                    step && "type" in step && typeof (step as any).type === "string"
+                        ? (step as any).type
+                        : (step ? (Object.keys(step)[0] as FlowType) : "call") || "call";
+                return (
+                    <React.Fragment key={idx}>
+                        {/* Drop area before each item */}
                         {update && (
-                            <span
-                                role="button"
-                                title="Move"
-                                tabIndex={0}
-                                draggable
-                                onDragStart={e => {
-                                    setDraggedIdx(idx);
-                                    e.stopPropagation();
+                            <div
+                                onDragOver={e => {
+                                    e.preventDefault();
+                                    setDragOverIdx(idx);
                                 }}
-                                onDragEnd={() => {
+                                onDrop={() => {
+                                    if (
+                                        update &&
+                                        draggedIdx !== null &&
+                                        draggedIdx !== idx
+                                    ) {
+                                        update(moveBox(flow, draggedIdx, idx));
+                                    }
                                     setDraggedIdx(null);
                                     setDragOverIdx(null);
                                 }}
+                                onDragLeave={() => setDragOverIdx(null)}
                                 style={{
-                                    position: "absolute",
-                                    top: 8,
-                                    right: 8,
-                                    cursor: "grab",
-                                    fontSize: 22,
-                                    userSelect: "none",
-                                    background: "none",
-                                    border: "none",
-                                    outline: "none",
-                                    zIndex: 2,
+                                    height: 16,
+                                    margin: "0 0 0 0",
+                                    background:
+                                        dragOverIdx === idx
+                                            ? "var(--vscode-editor-selectionBackground, #264f78cc)"
+                                            : "transparent",
+                                    borderRadius: 4,
+                                    transition: "background 0.2s",
+                                    cursor: "pointer",
                                 }}
-                            >
-                                🟰
-                            </span>
+                            />
                         )}
-                    </div>
-                </React.Fragment>
-            ))}
+                        <div
+                            style={{
+                                position: "relative",
+                                padding: "16px",
+                                background: "var(--vscode-editorWidget-background, #232323)",
+                                border: "2px solid var(--vscode-editorWidget-border, #333)",
+                                borderRadius: 6,
+                                color: "var(--vscode-editor-foreground, #fff)",
+                                fontWeight: "bold",
+                                userSelect: "none",
+                                opacity: draggedIdx === idx ? 0.5 : 1,
+                                transition: "background 0.35s",
+                            }}
+                        >
+                            {/* Combo for type */}
+                            <select
+                                value={currentType}
+                                onChange={e => updateStep(idx, { type: e.target.value })}
+                                style={{ marginBottom: 8, marginRight: 20 }}
+                            >
+                                {flowTypeOptions.map(type => (
+                                    <option key={type} value={type}>{type}</option>
+                                ))}
+                            </select>
+                            {/* UI for the selected type */}
+                            <TestFlowBox
+                                type={currentType}
+                                step={step}
+                                onChange={patch => updateStep(idx, patch)}
+                            />
+                            {update && (
+                                <span
+                                    role="button"
+                                    title="Move"
+                                    tabIndex={0}
+                                    draggable
+                                    onDragStart={e => {
+                                        setDraggedIdx(idx);
+                                        e.stopPropagation();
+                                    }}
+                                    onDragEnd={() => {
+                                        setDraggedIdx(null);
+                                        setDragOverIdx(null);
+                                    }}
+                                    style={{
+                                        position: "absolute",
+                                        top: 8,
+                                        right: 8,
+                                        cursor: "grab",
+                                        fontSize: 22,
+                                        userSelect: "none",
+                                        background: "none",
+                                        border: "none",
+                                        outline: "none",
+                                        zIndex: 2,
+                                    }}
+                                >
+                                    🟰
+                                </span>
+                            )}
+                        </div>
+                    </React.Fragment>
+                );
+            })}
             {/* Drop area after the last item */}
             {update && (
                 <div
