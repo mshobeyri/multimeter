@@ -30,9 +30,9 @@ const getDefaultStepForType = (type: FlowType): any => {
         case "check":
             return { check: "" };
         case "condition":
-            return { condition: { if: "", then: [], else: [] } };
+            return { condition: "" };
         case "loop":
-            return { loop: { for: "", do: [] } };
+            return { loop: "" };
         default:
             return { [type]: null };
     }

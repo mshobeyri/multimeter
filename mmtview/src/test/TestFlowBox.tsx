@@ -24,7 +24,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ type, step, onChange }) => {
       return (
         <div style={{ marginTop: 8 }}>
           <input
-            placeholder="check"
+            placeholder="a=b, a!=b, a>5, a<10"
             value={step || ""}
             onChange={e => onChange(e.target.value)}
             style={{ width: "100%" }}
@@ -35,7 +35,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ type, step, onChange }) => {
       return (
         <div style={{ marginTop: 8 }}>
           <input
-            placeholder="condition"
+            placeholder="a=b, a!=b, a>5, a<10"
             value={step || ""}
             onChange={e => onChange(e.target.value)}
             style={{ width: "100%" }}
@@ -46,7 +46,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ type, step, onChange }) => {
       return (
         <div style={{ marginTop: 8 }}>
           <input
-            placeholder="loop"
+            placeholder="100, 10s, 5-10, i:data"
             value={step || ""}
             onChange={e => onChange(e.target.value)}
             style={{ width: "100%" }}
