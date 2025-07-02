@@ -91,6 +91,13 @@ const TestFlow: React.FC<TestFlowProps> = ({ flow, update }) => {
         update(newFlow);
     };
 
+    // Add a new flow box (default to "call")
+    const addFlowBox = () => {
+        if (!update) return;
+        const newFlow = [...flow, getDefaultStepForType("call")];
+        update(newFlow);
+    };
+
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 0, padding: 0 }}>
             {flow.map((step, idx) => {
@@ -245,6 +252,22 @@ const TestFlow: React.FC<TestFlowProps> = ({ flow, update }) => {
                     }}
                 />
             )}
+            <button
+                type="button"
+                onClick={addFlowBox}
+                style={{
+                    marginTop: 16,
+                    background: "var(--vscode-button-background, #0e639c)",
+                    color: "var(--vscode-button-foreground, #fff)",
+                    border: "none",
+                    borderRadius: 4,
+                    padding: "8px 16px",
+                    fontWeight: "bold",
+                    cursor: "pointer"
+                }}
+            >
+                Add Step
+            </button>
         </div>
     );
 };
