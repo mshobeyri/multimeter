@@ -43,7 +43,19 @@ const VariablesEditor: React.FC<VariablesEditorProps> = ({ variablesData, setVar
   };
 
   return (
-    <div>
+    <div
+      style={{
+        background: "var(--vscode-editorWidget-background, #232323)",
+        border: "1px solid var(--vscode-editorWidget-border, #333)",
+        borderRadius: 8,
+        padding: 24,
+        margin: 8,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
+        minWidth: 320,
+        maxWidth: 600,
+      }}
+    >
+      <h2 style={{ marginTop: 0, marginBottom: 24 }}>Variables</h2>
       {variablesArray.map((variable, idx) => (
         <div key={idx} style={{ marginBottom: 24 }}>
           <VariableEditor
@@ -64,7 +76,8 @@ const VariablesEditor: React.FC<VariablesEditorProps> = ({ variablesData, setVar
           borderRadius: 4,
           padding: "8px 16px",
           fontWeight: "bold",
-          cursor: "pointer"
+          cursor: "pointer",
+          width: "100%",
         }}
       >
         Add Variable

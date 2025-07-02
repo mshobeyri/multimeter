@@ -56,15 +56,17 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
 }
 
-select, select:focus {
+select,
+select:focus {
   background-color: var(--vscode-input-background, #1e1e1e);
   color: var(--vscode-input-foreground, #d4d4d4);
-  border: 1px solid var(--vscode-input-border, #3c3c3c);
+  border: 2px solid var(--vscode-input-border, #3c3c3c);
   border-radius: 2px;
   padding: 4px 8px;
   font-size: 0.7rem;
@@ -82,11 +84,12 @@ option {
   color: var(--vscode-input-foreground, #d4d4d4);
 }
 
-input, textarea {
+input,
+textarea {
   box-sizing: border-box;
   background-color: var(--vscode-input-background, #1e1e1e);
   color: var(--vscode-input-foreground, #d4d4d4);
-  border: 1px solid var(--vscode-input-border, #3c3c3c);
+  border: 2px solid var(--vscode-input-border, #3c3c3c);
   border-radius: 2px;
   padding: 4px 8px;
   font-size: 0.7rem;
@@ -96,7 +99,8 @@ input, textarea {
   resize: vertical;
 }
 
-input:focus, textarea:focus {
+input:focus,
+textarea:focus {
   border-color: var(--vscode-focusBorder, #007fd4);
 }
 
@@ -116,7 +120,7 @@ textarea:disabled {
 button {
   background-color: var(--vscode-button-background, #0e639c);
   color: var(--vscode-button-foreground, #ffffff);
-  border: 1px solid var(--vscode-button-border, #3c3c3c);
+  border: 2px solid var(--vscode-button-border, #3c3c3c);
   border-radius: 2px;
   padding: 4px 12px;
   font-size: 0.7rem;
@@ -126,7 +130,8 @@ button {
   outline: none;
 }
 
-button:hover, button:focus {
+button:hover,
+button:focus {
   background-color: var(--vscode-button-hoverBackground, #1177bb);
   border-color: var(--vscode-focusBorder, #007fd4);
 }
@@ -135,7 +140,7 @@ button:hover, button:focus {
 .SearchableTagInput-tag {
   background: var(--vscode-editorWidget-background, #232323);
   color: var(--vscode-editorWidget-foreground, #d4d4d4);
-  border: 1px solid var(--vscode-input-border, #3c3c3c);
+  border: 2px solid var(--vscode-input-border, #3c3c3c);
   border-radius: 2px;
   padding: 2px 8px;
   margin-right: 4px;
@@ -153,14 +158,14 @@ button:hover, button:focus {
   font-size: 0.8rem;
   letter-spacing: 0.01em;
   padding: 8px 0;
-  /* border-bottom: 1px solid var(--vscode-editorWidget-border, #333); */
+  /* border-bottom: 2px solid var(--vscode-editorWidget-border, #333); */
 }
 
 /* Style for item names (field labels) */
 .label {
   color: var(--vscode-editorWidget-foreground, #939393);
   font-size: 0.75rem;
-  padding: 2px 0 0 0 ;
+  padding: 2px 0 0 0;
   text-align: left;
 
 }

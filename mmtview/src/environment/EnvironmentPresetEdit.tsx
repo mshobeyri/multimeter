@@ -160,7 +160,8 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
                             borderRadius: 4,
                             padding: "8px 16px",
                             fontWeight: "bold",
-                            cursor: "pointer"
+                            cursor: "pointer",
+                            width: "100%",
                         }}
                     >
                         Add Label
@@ -176,7 +177,8 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
                     borderRadius: 4,
                     padding: "8px 16px",
                     fontWeight: "bold",
-                    cursor: "pointer"
+                    cursor: "pointer",
+                    width: "100%",
                 }}
             >
                 Add Preset

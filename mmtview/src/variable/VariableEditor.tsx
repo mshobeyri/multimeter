@@ -63,12 +63,14 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
     <div
       style={{
         position: "relative",
-        background: "var(--vscode-editorWidget-background, #232323)",
-        border: "1px solid var(--vscode-editorWidget-border, #333)",
-        borderRadius: "6px",
         padding: "16px",
-        minWidth: 200,
-        marginBottom: "16px"
+        background: "var(--vscode-editorWidget-background, #232323)",
+        border: "2px solid var(--vscode-editorWidget-border, #333)",
+        borderRadius: 6,
+        color: "var(--vscode-editor-foreground, #fff)",
+        fontWeight: "bold",
+        userSelect: "none",
+        transition: "background 0.35s",
       }}
     >
       <table
@@ -142,7 +144,7 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
                   onChange={e => {
                     if (e.target.value) handleAdd(e.target.value);
                   }}
-                  style={{ width: "40%"}}
+                  style={{ width: "40%" }}
                 >
                   <option value="">optionals...</option>
                   {availableOptionals.map(opt => (

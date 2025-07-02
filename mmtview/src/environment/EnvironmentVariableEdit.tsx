@@ -84,7 +84,7 @@ const EnvironmentVariableEdit: React.FC<EnvironmentVariableEditProps> = ({ varia
                     style={{
                         position: "relative",
                         background: "var(--vscode-editorWidget-background, #232323)",
-                        border: "1px solid var(--vscode-editorWidget-border, #333)",
+                        border: "2px solid var(--vscode-editorWidget-border, #333)",
                         borderRadius: "6px",
                         padding: "16px",
                         minWidth: 200,
@@ -154,7 +154,8 @@ const EnvironmentVariableEdit: React.FC<EnvironmentVariableEditProps> = ({ varia
                     borderRadius: 4,
                     padding: "8px 16px",
                     fontWeight: "bold",
-                    cursor: "pointer"
+                    cursor: "pointer",
+                    width: "100%",
                 }}
             >
                 Add Variable
