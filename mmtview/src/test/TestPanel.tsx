@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import parseYaml, { packYaml } from "../markupConvertor";
 import { TestData } from "./TestData";
 import TestOverview from "./TestOverview";
+import TestFlow from "./TestFlow";
 
 interface TestPanelProps {
   content: string;
@@ -151,13 +152,18 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
         {/* Tab Content */}
         {tab === "overview" && (
           <div>
-            <TestOverview test={test} update={(patch) => setTest(prev => ({ ...prev, ...patch }))}/>
+            <TestOverview
+              test={test}
+              update={(patch) => setTest(prev => ({ ...prev, ...patch }))}
+            />
           </div>
         )}
         {tab === "flow" && (
           <div>
-            <h2>Flow</h2>
-            <pre>{JSON.stringify(test.flow, null, 2)}</pre>
+            <TestFlow
+              flow={test.flow || []}
+              update={newFlow => setTest(prev => ({ ...prev, flow: newFlow }))}
+            />
           </div>
         )}
         {tab === "examples" && (

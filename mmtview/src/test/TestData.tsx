@@ -67,6 +67,7 @@ export type End = null;
 
 export type TestFlowStep = TestFlowCallTest | TestFlowCallDirect | TestFlowCallAPI | TestFlowCheck | TestFlowLoop | End;
 
+export type TestFlowSteps = TestFlowStep[];
 export interface TestData {
   type: Type;
   title: string;
