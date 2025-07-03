@@ -6,6 +6,7 @@ import EnvironmentView from "./EnvironmentView";
 import { saveEnvVariablesFromObject, loadEnvVariables } from "../workspaceStorage";
 import { ComboTablePair } from "../components/ComboTable";
 
+const LAST_ENV_TAB_KEY = "mmtview:env:lastTab";
 
 interface EnvironmentPanelProps {
   content: string;
@@ -13,12 +14,20 @@ interface EnvironmentPanelProps {
 }
 
 const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent }) => {
-  const [tab, setTab] = useState<"environment" | "edit" | "view">("environment");
+  // Restore last selected tab from localStorage, default to "environment"
+  const [tab, setTab] = useState<"environment" | "edit" | "view">(
+    () => (localStorage.getItem(LAST_ENV_TAB_KEY) as "environment" | "edit" | "view") || "environment"
+  );
   const [variables, setVariables] = useState<ComboTablePair[]>([]);
   const [presets, setPresets] = useState<ComboTablePair[]>([]);
   const [presetData, setPresetData] = useState<any>({});
   const [workspaceVars, setWorkspaceVars] = useState<{ name: string; label: string; value: string }[]>([]);
   const loadedVarsRef = React.useRef<{ name: string; value: string }[]>([]);
+
+  // Save tab selection to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem(LAST_ENV_TAB_KEY, tab);
+  }, [tab]);
 
   // Parse YAML and update variables/presets when content changes
   useEffect(() => {

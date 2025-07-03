@@ -44,6 +44,8 @@ function testToYaml(test: TestData): string {
   return packYaml(yamlObj);
 }
 
+const LAST_TAB_KEY = "mmtview:lastTab";
+
 const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
   const [test, setTest] = useState<TestData>({
     type: "test",
@@ -57,7 +59,15 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
     flow: [],
   });
   const lastUpdate = useRef<"yaml" | "ui" | null>(null);
-  const [tab, setTab] = useState<"overview" | "flow" | "examples">("overview");
+  // Restore last selected tab from localStorage, default to "overview"
+  const [tab, setTab] = useState<"overview" | "flow" | "examples">(
+    () => (localStorage.getItem(LAST_TAB_KEY) as "overview" | "flow" | "examples") || "overview"
+  );
+
+  // Save tab selection to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem(LAST_TAB_KEY, tab);
+  }, [tab]);
 
   // Parse YAML to test when content changes (but not if we just updated content from UI)
   useEffect(() => {

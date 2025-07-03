@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import APIOverview from "./APIOverview";
 import InterfaceEditor from "./APIInterface";
 import ExampleEditor from "./APIExample";
 import APITest from "./APITest";
 import { APIData, InterfaceData, ExampleData } from "./APIData";
+
+const LAST_API_TAB_KEY = "mmtview:api:lastTab";
 
 interface APIEditorProps {
   api: APIData;
@@ -11,7 +13,14 @@ interface APIEditorProps {
 }
 
 const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
-  const [tab, setTab] = useState<"overview" | "interfaces" | "examples" | "test">("test");
+  // Restore last selected tab from localStorage, default to "test"
+  const [tab, setTab] = useState<"overview" | "interfaces" | "examples" | "test">(
+    () => (localStorage.getItem(LAST_API_TAB_KEY) as "overview" | "interfaces" | "examples" | "test") || "test"
+  );
+
+  useEffect(() => {
+    localStorage.setItem(LAST_API_TAB_KEY, tab);
+  }, [tab]);
 
   // Helper to update top-level fields
   const update = (patch: Partial<APIData>) => setAPI({ ...api, ...patch });
