@@ -11,7 +11,7 @@ const SearchableTagInput: React.FC<SearchableTagInputProps> = ({
   tags,
   onChange,
   suggestions = [],
-  placeholder = "Add tag...",
+  placeholder = "tags",
 }) => {
   const [input, setInput] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
