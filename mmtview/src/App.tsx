@@ -23,11 +23,22 @@ const typeOptions = [
   { value: "param", label: "Parameters" }
 ];
 
+const SPLIT_PANE_KEY = "mmtview:splitPaneSize";
+
 const App: React.FC = () => {
-  const [paneSize, setPaneSize] = useState(window.innerWidth / 2);
+  // Restore pane size from localStorage or default to half window width
+  const [paneSize, setPaneSize] = useState(() => {
+    const saved = localStorage.getItem(SPLIT_PANE_KEY);
+    return saved ? Number(saved) : window.innerWidth / 2;
+  });
   const [content, setContent] = useState("");
   const [docType, setDocType] = useState<string | null>(null);
   const isInitLoad = useRef(true);
+
+  // Save pane size to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem(SPLIT_PANE_KEY, String(paneSize));
+  }, [paneSize]);
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -68,11 +79,22 @@ const App: React.FC = () => {
     window.vscode?.postMessage({ command: "ready" });
   }, []);
 
+  useEffect(() => {
+    const handleResize = () => {
+      // Reset to 50/50 split on window resize
+      setPaneSize(window.innerWidth / 2);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   return (
     <SplitPane
       split="vertical"
       size={paneSize}
       onChange={(size) => setPaneSize(size)}
+      minSize={300}           // Minimum width of the left panel
+      maxSize={window.innerWidth - 300} // Right panel will be at least 300px wide
       style={{
         height: "100vh",
         width: "100vw",

@@ -4,7 +4,7 @@ export type EnvironmentViewVar = { name: string; label: string; value: string };
 
 const EnvironmentView: React.FC<{ vars: EnvironmentViewVar[] }> = ({ vars }) => (
   <div style={{ padding: 8 }}>
-    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
+    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
       <thead>
         <tr style={{ background: "#222", color: "#fff" }}>
           <th style={{ padding: 6, border: "1px solid #444" }}>Name</th>
