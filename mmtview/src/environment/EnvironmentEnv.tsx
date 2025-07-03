@@ -15,29 +15,34 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
     handlePresetsChange,
 }) => {
     return (
-        <div style={{ display: "flex", flexDirection: "column", gap: "24px", padding: "10px" }}>
+        <div>
             <div
                 style={{
-                    background: "var(--vscode-editorWidget-background, #232323)",
-                    border: "1px solid var(--vscode-editorWidget-border, #333)",
-                    borderRadius: "6px",
+                    position: "relative",
                     padding: "16px",
-                    minWidth: 200,
+                    background: "var(--vscode-editorWidget-background, #232323)",
+                    border: "2px solid var(--vscode-editorWidget-border, #333)",
+                    borderRadius: 6,
+                    color: "var(--vscode-editor-foreground, #fff)",
+                    userSelect: "none"
                 }}
             >
-                <div style={{ fontWeight: "bold", fontSize: "1.1em", marginBottom: "12px" }}>Variables</div>
+                <div style={{ fontSize: "1.1em", marginBottom: "12px" }}>Variables</div>
                 <ComboTable pairs={variables} onChange={handleVariablesChange} />
             </div>
             <div
                 style={{
-                    background: "var(--vscode-editorWidget-background, #232323)",
-                    border: "1px solid var(--vscode-editorWidget-border, #333)",
-                    borderRadius: "6px",
+                    position: "relative",
+                    marginTop: "16px",
                     padding: "16px",
-                    minWidth: 200,
+                    background: "var(--vscode-editorWidget-background, #232323)",
+                    border: "2px solid var(--vscode-editorWidget-border, #333)",
+                    borderRadius: 6,
+                    color: "var(--vscode-editor-foreground, #fff)",
+                    userSelect: "none"
                 }}
             >
-                <div style={{ fontWeight: "bold", fontSize: "1.1em", marginBottom: "12px" }}>Presets</div>
+                <div style={{ fontSize: "1.1em", marginBottom: "12px" }}>Presets</div>
                 <ComboTable pairs={presets} onChange={handlePresetsChange} showPlaceholder />
             </div>
         </div>

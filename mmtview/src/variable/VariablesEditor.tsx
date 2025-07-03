@@ -45,14 +45,13 @@ const VariablesEditor: React.FC<VariablesEditorProps> = ({ variablesData, setVar
   return (
     <div
       style={{
+        position: "relative",
         background: "var(--vscode-editorWidget-background, #232323)",
         border: "1px solid var(--vscode-editorWidget-border, #333)",
-        borderRadius: 8,
-        padding: 24,
-        margin: 8,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.07)",
-        minWidth: 320,
-        maxWidth: 600,
+        borderRadius: "6px",
+        padding: "16px",
+        minWidth: 200,
+        marginBottom: "16px"
       }}
     >
       <h2 style={{ marginTop: 0, marginBottom: 24 }}>Variables</h2>
@@ -69,13 +68,11 @@ const VariablesEditor: React.FC<VariablesEditorProps> = ({ variablesData, setVar
       <button
         onClick={addVariable}
         style={{
-          marginTop: 16,
           background: "var(--vscode-button-background, #0e639c)",
           color: "var(--vscode-button-foreground, #fff)",
           border: "none",
           borderRadius: 4,
           padding: "8px 16px",
-          fontWeight: "bold",
           cursor: "pointer",
           width: "100%",
         }}

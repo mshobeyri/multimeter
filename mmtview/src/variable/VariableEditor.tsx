@@ -68,7 +68,6 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
         border: "2px solid var(--vscode-editorWidget-border, #333)",
         borderRadius: 6,
         color: "var(--vscode-editor-foreground, #fff)",
-        fontWeight: "bold",
         userSelect: "none",
         transition: "background 0.35s",
       }}

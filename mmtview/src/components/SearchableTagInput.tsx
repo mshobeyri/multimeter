@@ -74,7 +74,6 @@ const SearchableTagInput: React.FC<SearchableTagInputProps> = ({
               border: "none",
               color: "var(--vscode-button-foreground, #c00)",
               cursor: "pointer",
-              fontWeight: "bold",
               fontSize: 14,
               lineHeight: 1,
             }}

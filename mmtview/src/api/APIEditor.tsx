@@ -146,7 +146,17 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
             <tr>
               <td colSpan={2} style={{ padding: 0 }}>
                 {(api.interfaces || []).map((iface, idx) => (
-                  <div key={idx} style={{ marginBottom: 16, border: "1px solid #444", borderRadius: 4, padding: 8 }}>
+                  <div key={idx} style={{
+                    marginBottom: "16px",
+                    position: "relative",
+                    padding: "16px",
+                    background: "var(--vscode-editorWidget-background, #232323)",
+                    border: "2px solid var(--vscode-editorWidget-border, #333)",
+                    borderRadius: 6,
+                    color: "var(--vscode-editor-foreground, #fff)",
+                    userSelect: "none",
+                    transition: "background 0.35s",
+                  }}>
                     <InterfaceEditor
                       data={iface}
                       onChange={updated => updateInterface(idx, updated)}
@@ -157,13 +167,12 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
                 <button
                   onClick={addInterface}
                   style={{
-                    marginTop: 8,
+                    width: "100%",
                     background: "var(--vscode-button-background, #0e639c)",
                     color: "var(--vscode-button-foreground, #fff)",
                     border: "none",
                     borderRadius: 4,
                     padding: "8px 16px",
-                    fontWeight: "bold",
                     cursor: "pointer"
                   }}
                 >
@@ -184,20 +193,30 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
             <tr>
               <td colSpan={2} style={{ padding: 0 }}>
                 {(api.examples || []).map((example, idx) => (
-                  <div key={idx} style={{ marginBottom: 16, border: "1px solid #444", borderRadius: 4, padding: 8 }}>
+                  <div key={idx} style={{
+                    marginBottom: "16px",
+                    position: "relative",
+                    padding: "16px",
+                    background: "var(--vscode-editorWidget-background, #232323)",
+                    border: "2px solid var(--vscode-editorWidget-border, #333)",
+                    borderRadius: 6,
+                    color: "var(--vscode-editor-foreground, #fff)",
+                    userSelect: "none",
+                    transition: "background 0.35s",
+                  }}>
                     <ExampleEditor
                       data={example}
                       apiInputs={
                         api.inputs
                           ? Object.fromEntries(
-                              api.inputs.map(param =>
-                                param && typeof param === "object"
-                                  ? param.name
-                                    ? [param.name, param.type]
-                                    : [Object.keys(param)[0], Object.values(param)[0]]
-                                  : []
-                              )
+                            api.inputs.map(param =>
+                              param && typeof param === "object"
+                                ? param.name
+                                  ? [param.name, param.type]
+                                  : [Object.keys(param)[0], Object.values(param)[0]]
+                                : []
                             )
+                          )
                           : undefined
                       }
                       onChange={updated => updateExample(idx, updated)}
@@ -208,13 +227,12 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
                 <button
                   onClick={addExample}
                   style={{
-                    marginTop: 8,
+                    width: "100%",
                     background: "var(--vscode-button-background, #0e639c)",
                     color: "var(--vscode-button-foreground, #fff)",
                     border: "none",
                     borderRadius: 4,
                     padding: "8px 16px",
-                    fontWeight: "bold",
                     cursor: "pointer"
                   }}
                 >

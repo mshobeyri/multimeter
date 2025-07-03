@@ -43,7 +43,6 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
         color: "#c00",
         border: "none",
         cursor: disabled ? "not-allowed" : "pointer",
-        fontWeight: "bold",
         fontSize: "14px",
         display: "flex",
         alignItems: "center",

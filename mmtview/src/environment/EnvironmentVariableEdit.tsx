@@ -153,7 +153,6 @@ const EnvironmentVariableEdit: React.FC<EnvironmentVariableEditProps> = ({ varia
                     border: "none",
                     borderRadius: 4,
                     padding: "8px 16px",
-                    fontWeight: "bold",
                     cursor: "pointer",
                     width: "100%",
                 }}

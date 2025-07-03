@@ -165,7 +165,6 @@ const TestFlow: React.FC<TestFlowProps> = ({ flow, update }) => {
                                 border: "2px solid var(--vscode-editorWidget-border, #333)",
                                 borderRadius: 6,
                                 color: "var(--vscode-editor-foreground, #fff)",
-                                fontWeight: "bold",
                                 userSelect: "none",
                                 opacity: draggedIdx === idx ? 0.5 : 1,
                                 transition: "background 0.35s",
@@ -257,13 +256,11 @@ const TestFlow: React.FC<TestFlowProps> = ({ flow, update }) => {
                 type="button"
                 onClick={addFlowBox}
                 style={{
-                    marginTop: 16,
                     background: "var(--vscode-button-background, #0e639c)",
                     color: "var(--vscode-button-foreground, #fff)",
                     border: "none",
                     borderRadius: 4,
                     padding: "8px 16px",
-                    fontWeight: "bold",
                     cursor: "pointer"
                 }}
             >

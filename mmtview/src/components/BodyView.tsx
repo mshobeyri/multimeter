@@ -103,7 +103,6 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "in
                         alignItems: "center",
                         justifyContent: "center",
                         color: "#fff",
-                        fontWeight: "bold",
                         fontSize: 12,
                         boxShadow: "0 0 2px #900",
                         cursor: "pointer"

@@ -187,74 +187,88 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   return (
     <div
       style={{
-        position: "relative",
-        background: "var(--vscode-editorWidget-background, #232323)",
-        border: "1px solid var(--vscode-editorWidget-border, #333)",
-        borderRadius: "6px",
-        padding: "16px",
-        minWidth: 200,
-        marginBottom: "16px"
+        display: "flex",
+        flexDirection: "column",
+        padding: "1rem",
+        backgroundColor: "var(--vscode-editor-background)",
+        color: "var(--vscode-editor-foreground)",
+        minWidth: 100,
+        maxWidth: "80vw",
+        overflow: "auto",
+        height: "100%",
       }}
     >
-      {/* Tab Bar */}
-      <div style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 16 }}>
-        <button
-          onClick={() => setTab("environment")}
-          style={{
-            padding: "8px 24px",
-            border: "none",
-            borderBottom: tab === "environment" ? "2px solid #0e639c" : "2px solid transparent",
-            background: "none",
-            color: "inherit",
-            fontWeight: tab === "environment" ? "bold" : "normal",
-            cursor: "pointer"
-          }}
-        >
-          <span role="img" aria-label="run">🌎</span> Environment
-        </button>
-        <button
-          onClick={() => setTab("edit")}
-          style={{
-            padding: "8px 24px",
-            border: "none",
-            borderBottom: tab === "edit" ? "2px solid #0e639c" : "2px solid transparent",
-            background: "none",
-            color: "inherit",
-            fontWeight: tab === "edit" ? "bold" : "normal",
-            cursor: "pointer"
-          }}
-        >
-          <span role="img" aria-label="run">✏️</span> Edit
-        </button>
-        <button
-          onClick={() => setTab("view")}
-          style={{
-            padding: "8px 24px",
-            border: "none",
-            borderBottom: tab === "view" ? "2px solid #0e639c" : "2px solid transparent",
-            background: "none",
-            color: "inherit",
-            fontWeight: tab === "view" ? "bold" : "normal",
-            cursor: "pointer"
-          }}
-        >
-          <span role="img" aria-label="run">👁️</span> View Cache
-        </button>
+      <div
+        style={{
+          position: "relative",
+          background: "var(--vscode-editorWidget-background, #232323)",
+          border: "1px solid var(--vscode-editorWidget-border, #333)",
+          borderRadius: "6px",
+          padding: "16px",
+          minWidth: 200,
+          marginBottom: "16px"
+        }}
+      >
+        {/* Tab Bar */}
+        <div style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 16 }}>
+          <button
+            onClick={() => setTab("environment")}
+            style={{
+              padding: "8px 24px",
+              border: "none",
+              borderBottom: tab === "environment" ? "2px solid #0e639c" : "2px solid transparent",
+              background: "none",
+              color: "inherit",
+              fontWeight: tab === "environment" ? "bold" : "normal",
+              cursor: "pointer"
+            }}
+          >
+            <span role="img" aria-label="run">🌎</span> Environment
+          </button>
+          <button
+            onClick={() => setTab("edit")}
+            style={{
+              padding: "8px 24px",
+              border: "none",
+              borderBottom: tab === "edit" ? "2px solid #0e639c" : "2px solid transparent",
+              background: "none",
+              color: "inherit",
+              fontWeight: tab === "edit" ? "bold" : "normal",
+              cursor: "pointer"
+            }}
+          >
+            <span role="img" aria-label="run">✏️</span> Edit
+          </button>
+          <button
+            onClick={() => setTab("view")}
+            style={{
+              padding: "8px 24px",
+              border: "none",
+              borderBottom: tab === "view" ? "2px solid #0e639c" : "2px solid transparent",
+              background: "none",
+              color: "inherit",
+              fontWeight: tab === "view" ? "bold" : "normal",
+              cursor: "pointer"
+            }}
+          >
+            <span role="img" aria-label="run">👁️</span> View Cache
+          </button>
+        </div>
+        {tab === "environment" && (
+          <EnvironmentEnv
+            variables={variables}
+            presets={presets}
+            handleVariablesChange={handleVariablesChange}
+            handlePresetsChange={handlePresetsChange}
+          />
+        )}
+        {tab === "edit" && (
+          <EnvironmentEdit content={content} setContent={setContent} />
+        )}
+        {tab === "view" && (
+          <EnvironmentView vars={workspaceVars} />
+        )}
       </div>
-      {tab === "environment" && (
-        <EnvironmentEnv
-          variables={variables}
-          presets={presets}
-          handleVariablesChange={handleVariablesChange}
-          handlePresetsChange={handlePresetsChange}
-        />
-      )}
-      {tab === "edit" && (
-        <EnvironmentEdit content={content} setContent={setContent} />
-      )}
-      {tab === "view" && (
-        <EnvironmentView vars={workspaceVars} />
-      )}
     </div>
   );
 };
