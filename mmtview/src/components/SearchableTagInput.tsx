@@ -39,8 +39,6 @@ const SearchableTagInput: React.FC<SearchableTagInputProps> = ({
   return (
     <div
       style={{
-        minHeight: 38,
-        border: "1px solid var(--vscode-input-border, #888)",
         borderRadius: 4,
         padding: 4,
         display: "flex",

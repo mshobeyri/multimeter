@@ -167,6 +167,7 @@ button:focus {
   font-size: 0.75rem;
   padding: 2px 0 0 0;
   text-align: left;
+  overflow: "hidden"
 
 }
 
