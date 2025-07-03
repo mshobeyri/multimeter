@@ -24,14 +24,14 @@ interface EnvironmentVariableEditProps {
 
 const EnvironmentVariableEdit: React.FC<EnvironmentVariableEditProps> = ({ variables, onChange }) => {
     // Convert variables to boards for editing
-    const boards: VariableBoard[] = Object.entries(variables).map(([name, value]) =>
+    const boards: VariableBoard[] = Object.entries(variables || {}).map(([name, value]) =>
         Array.isArray(value)
             ? { name, type: "list", value }
             : {
                 name,
                 type: "object",
                 value: Object.fromEntries(
-                    Object.entries(value as { [k: string]: string | undefined }).map(
+                    Object.entries((value && typeof value === "object") ? value : {}).map(
                         ([k, v]) => [k, v ?? ""]
                     )
                 ),

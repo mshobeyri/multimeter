@@ -35,59 +35,54 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     if (!yaml) return;
 
     const variablePairs: ComboTablePair[] = [];
-    if (yaml.variables) {
-      Object.entries(yaml.variables).forEach(([name, value]) => {
-        const found = loadedVarsRef.current.find((v: any) => v.name === name);
-        if (Array.isArray(value)) {
-          // List: label and value are the same (element)
-          const options = value.map((v: string) => ({ label: String(v), value: String(v) }));
-          const selected = found
-            ? options.find(opt => opt.value === found.value) || options[0]
-            : options[0];
-          variablePairs.push({
-            name,
-            options,
-            value: selected
-          });
-        } else if (typeof value === "object" && value !== null) {
-          // Object: label is key, value is value
-          const options = Object.entries(value).map(([k, v]) => ({
-            label: k,
-            value: String(v)
-          }));
-          // Try to find by label or value
-          let selected = options[0];
-          if (found) {
-            selected =
-              options.find(opt => opt.label === found.value || opt.value === found.value) ||
-              options[0];
-          }
-          variablePairs.push({
-            name,
-            options,
-            value: selected
-          });
+    const variablesObj = (yaml.variables && typeof yaml.variables === "object") ? yaml.variables : {};
+    Object.entries(variablesObj).forEach(([name, value]) => {
+      const found = loadedVarsRef.current.find((v: any) => v.name === name);
+      if (Array.isArray(value)) {
+        const options = value.map((v: string) => ({ label: String(v), value: String(v) }));
+        const selected = found
+          ? options.find(opt => opt.value === found.value) || options[0]
+          : options[0];
+        variablePairs.push({
+          name,
+          options,
+          value: selected
+        });
+      } else if (typeof value === "object" && value !== null) {
+        const options = Object.entries(value).map(([k, v]) => ({
+          label: k,
+          value: String(v)
+        }));
+        let selected = options[0];
+        if (found) {
+          selected =
+            options.find(opt => opt.label === found.value || opt.value === found.value) ||
+            options[0];
         }
-      });
-    }
+        variablePairs.push({
+          name,
+          options,
+          value: selected
+        });
+      }
+    });
     setVariables(variablePairs);
 
-    // Presets: Each preset group (e.g. runner) is a row, options are environments (dev, ci, cd)
+    // Presets
     const presetPairs: ComboTablePair[] = [];
     const presetDataObj: any = {};
-    if (yaml.presets) {
-      Object.entries(yaml.presets).forEach(([presetName, presetObj]) => {
-        if (typeof presetObj === "object" && presetObj !== null) {
-          const envNames = Object.keys(presetObj);
-          presetPairs.push({
-            name: presetName,
-            options: envNames.map(env => ({ label: env, value: env })),
-            value: { label: envNames[0] ?? "", value: envNames[0] ?? "" }
-          });
-          presetDataObj[presetName] = presetObj;
-        }
-      });
-    }
+    const presetsObj = (yaml.presets && typeof yaml.presets === "object") ? yaml.presets : {};
+    Object.entries(presetsObj).forEach(([presetName, presetObj]) => {
+      if (typeof presetObj === "object" && presetObj !== null) {
+        const envNames = Object.keys(presetObj);
+        presetPairs.push({
+          name: presetName,
+          options: envNames.map(env => ({ label: env, value: env })),
+          value: { label: envNames[0] ?? "", value: envNames[0] ?? "" }
+        });
+        presetDataObj[presetName] = presetObj;
+      }
+    });
     setPresets(presetPairs);
     setPresetData(presetDataObj);
   }, [content]);
