@@ -37,7 +37,10 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     const variablePairs: ComboTablePair[] = [];
     const variablesObj = (yaml.variables && typeof yaml.variables === "object") ? yaml.variables : {};
     Object.entries(variablesObj).forEach(([name, value]) => {
-      const found = loadedVarsRef.current.find((v: any) => v.name === name);
+      // Ensure loadedVarsRef.current is always an array before calling .find
+      const found = Array.isArray(loadedVarsRef.current)
+        ? loadedVarsRef.current.find((v: any) => v.name === name)
+        : undefined;
       if (Array.isArray(value)) {
         const options = value.map((v: string) => ({ label: String(v), value: String(v) }));
         const selected = found
@@ -160,11 +163,13 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
 
   // Load selections from VSCode
   useEffect(() => {
-    const cleanup = loadEnvVariables((loaded: { name: string; value: string; }[]) => {
-      loadedVarsRef.current = loaded;
+    const cleanup = loadEnvVariables((loaded: { name: string; value: string; }[] | undefined | null) => {
+      loadedVarsRef.current = Array.isArray(loaded) ? loaded : [];
       setVariables(vars =>
         vars.map(pair => {
-          const found = loadedVarsRef.current.find((v: any) => v.name === pair.name);
+          const found = Array.isArray(loadedVarsRef.current)
+            ? loadedVarsRef.current.find((v: any) => v.name === pair.name)
+            : undefined;
           if (found) {
             const selectedOption =
               pair.options.find(opt => opt.value === found.value || opt.label === found.value) ||
