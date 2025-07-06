@@ -56,11 +56,11 @@ export interface TestFlowCheck {
 }
 
 export interface TestFlowCondition {
-  condition: Comparison;
+  if: Comparison;
 }
 
 export interface TestFlowLoop {
-  loop: Repeat | Timestr | string;
+  for: Repeat | Timestr | string;
 }
 
 export type End = null;
@@ -80,10 +80,10 @@ export interface TestData {
   flow?: TestFlowStep[];
 }
 
-export type FlowType = "call" | "check" | "condition" | "loop" | "end";
+export type FlowType = "call" | "check" | "if" | "for" | "end";
 
 export const flowTypeOptions = [
-  "call", "check", "condition", "loop", "end"
+  "call", "check", "if", "for", "end"
 ];
 
 export type CheckOps = "<" | ">" | "<=" | ">=" | "=" | "!=" | "=@" | "!@" | "^" | "!^" | "$" | "!$" | "=~" | "!~";

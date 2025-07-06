@@ -29,10 +29,10 @@ const getDefaultStepForType = (type: FlowType): any => {
             return { call: "" };
         case "check":
             return { check: "" };
-        case "condition":
-            return { condition: "" };
-        case "loop":
-            return { loop: "" };
+        case "if":
+            return { if: "" };
+        case "for":
+            return { for: "" };
         default:
             return { [type]: null };
     }
@@ -51,7 +51,7 @@ const updateStepValue = (step: any, value: any) => {
     if (!step || typeof step !== "object") return step;
     const key = Object.keys(step)[0];
     // Only allow update if the key is a valid FlowType
-    if (!["call", "direct", "check", "condition", "loop"].includes(key)) return step;
+    if (!["call", "direct", "check", "if", "for"].includes(key)) return step;
     // Build a valid TestFlowStep for the key
     switch (key) {
         case "call":
@@ -60,10 +60,10 @@ const updateStepValue = (step: any, value: any) => {
             return { direct: value };
         case "check":
             return { check: value };
-        case "condition":
-            return { condition: value };
-        case "loop":
-            return { loop: value };
+        case "if":
+            return { if: value };
+        case "for":
+            return { for: value };
         default:
             return step;
     }
@@ -101,6 +101,17 @@ const TestFlow: React.FC<TestFlowProps> = ({ flow, update }) => {
     return (
         <div style={{ display: "flex", flexDirection: "column", gap: 0, padding: 0 }}>
             {flow.map((step, idx) => {
+                const intentadd = flow.slice(0, idx).filter(s => {
+                    const t = getStepType(s);
+                    return t === "if" || t === "for";
+                }).length;
+                const intentremove = flow.slice(0, idx+1).filter(s => {
+                    const t = getStepType(s);
+                    return t === "end";
+                }).length;
+
+                let intent =  Math.max(intentadd - intentremove, 0);
+
                 const currentType = getStepType(step);
                 let value: any = "";
                 if (step) {
@@ -111,11 +122,11 @@ const TestFlow: React.FC<TestFlowProps> = ({ flow, update }) => {
                         case "check":
                             value = (step as any).check ?? "";
                             break;
-                        case "condition":
-                            value = (step as any).condition ?? "";
+                        case "if":
+                            value = (step as any).if ?? "";
                             break;
-                        case "loop":
-                            value = (step as any).loop ?? "";
+                        case "for":
+                            value = (step as any).for ?? "";
                             break;
                         default:
                             value = "";
@@ -124,7 +135,6 @@ const TestFlow: React.FC<TestFlowProps> = ({ flow, update }) => {
 
                 return (
                     <React.Fragment key={idx}>
-                        {/* Drop area before each item */}
                         {update && (
                             <div
                                 onDragOver={e => {
@@ -156,9 +166,9 @@ const TestFlow: React.FC<TestFlowProps> = ({ flow, update }) => {
                                 }}
                             />
                         )}
-                        {/* box style */}
                         <div
                             style={{
+                                marginLeft: intent * 16,
                                 position: "relative",
                                 padding: "16px",
                                 background: "var(--vscode-editorWidget-background, #232323)",
@@ -180,7 +190,6 @@ const TestFlow: React.FC<TestFlowProps> = ({ flow, update }) => {
                                     <option key={type} value={type}>{type}</option>
                                 ))}
                             </select>
-                            {/* UI for the value of the current type */}
                             <TestFlowBox
                                 type={currentType}
                                 step={value}

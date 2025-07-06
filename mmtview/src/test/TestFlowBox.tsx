@@ -4,7 +4,7 @@ import TestCheck from "./TestCheck";
 
 interface TestFlowBoxProps {
   type: FlowType;
-  step: any; // This is the value, not an object!
+  step: any;
   onChange: (value: any) => void;
 }
 
@@ -47,7 +47,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ type, step, onChange }) => {
         </div>
       );
     }
-    case "condition":{
+    case "if":{
       // Parse step as "left op right"
       let left = "?", op: CheckOps = "==" as CheckOps, right = "?";
       if (typeof step === "string") {
@@ -73,7 +73,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ type, step, onChange }) => {
         </div>
       );
     }
-    case "loop":
+    case "for":
       return (
         <div style={{ marginTop: 8 }}>
           <input
