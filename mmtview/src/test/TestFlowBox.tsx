@@ -1,5 +1,6 @@
 import React from "react";
-import { FlowType } from "./TestData";
+import { FlowType, CheckOps } from "./TestData";
+import TestCheck from "./TestCheck";
 
 interface TestFlowBoxProps {
   type: FlowType;
@@ -20,28 +21,58 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ type, step, onChange }) => {
           />
         </div>
       );
-    case "check":
+    case "check": {
+      // Parse step as "left op right"
+      let left = "?", op: CheckOps = "==" as CheckOps, right = "?";
+      if (typeof step === "string") {
+        const match = step.match(/^(\S*)\s+([=!<>$@^~]+)\s+(\S*)$/);
+        if (match) {
+          left = match[1];
+          op = match[2] as CheckOps;
+          right = match[3];
+        } else {
+          left = "?";
+          op = "=" as CheckOps;
+          right = "?";
+        }
+      }
       return (
         <div style={{ marginTop: 8 }}>
-          <input
-            placeholder="a=b, a!=b, a>5, a<10"
-            value={step || ""}
-            onChange={e => onChange(e.target.value)}
-            style={{ width: "100%" }}
+          <TestCheck
+            left={left}
+            op={op}
+            right={right}
+            onChange={({ left, op, right }) => onChange(`${left} ${op} ${right}`)}
           />
         </div>
       );
-    case "condition":
+    }
+    case "condition":{
+      // Parse step as "left op right"
+      let left = "?", op: CheckOps = "==" as CheckOps, right = "?";
+      if (typeof step === "string") {
+        const match = step.match(/^(\S*)\s+([=!<>$@^~]+)\s+(\S*)$/);
+        if (match) {
+          left = match[1];
+          op = match[2] as CheckOps;
+          right = match[3];
+        } else {
+          left = "?";
+          op = "=" as CheckOps;
+          right = "?";
+        }
+      }
       return (
         <div style={{ marginTop: 8 }}>
-          <input
-            placeholder="a=b, a!=b, a>5, a<10"
-            value={step || ""}
-            onChange={e => onChange(e.target.value)}
-            style={{ width: "100%" }}
+          <TestCheck
+            left={left}
+            op={op}
+            right={right}
+            onChange={({ left, op, right }) => onChange(`${left} ${op} ${right}`)}
           />
         </div>
       );
+    }
     case "loop":
       return (
         <div style={{ marginTop: 8 }}>

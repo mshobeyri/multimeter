@@ -85,3 +85,13 @@ export type FlowType = "call" | "check" | "condition" | "loop" | "end";
 export const flowTypeOptions = [
   "call", "check", "condition", "loop", "end"
 ];
+
+export type CheckOps = "<" | ">" | "<=" | ">=" | "=" | "!=" | "=@" | "!@" | "^" | "!^" | "$" | "!$" | "=~" | "!~";
+
+export const opsList: CheckOps[] = [
+  "<", ">", "<=", ">=", "=", "!=", "=@", "!@", "^", "!^", "$", "!$", "=~", "!~"
+];
+
+export const opsNames = [
+  "less than", "greater than", "less or equal than", "greater or equal than", "is equal", "is not equal", "is at", "is not at", "starts with", "not starts with", "ends with", "not ends with", "regex match", "regex not match"
+];
