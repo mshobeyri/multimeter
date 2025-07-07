@@ -171,8 +171,8 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
         {tab === "flow" && (
           <div>
             <TestFlow
-              flow={test.flow || []}
-              update={newFlow => setTest(prev => ({ ...prev, flow: newFlow }))}
+              testData={test}
+              update={newTest => setTest(prev => ({ ...prev, flow: newTest.flow }))}
             />
           </div>
         )}

@@ -1,10 +1,10 @@
 import React from "react";
-import { TestFlowSteps, FlowType, flowTypeOptions } from "./TestData";
+import { TestFlowSteps, FlowType, flowTypeOptions, TestData } from "./TestData";
 import TestFlowBox from "./TestFlowBox";
 
 interface TestFlowProps {
-    flow: TestFlowSteps;
-    update?: (newFlow: TestFlowSteps) => void;
+    testData: TestData;
+    update?: (newTest: { flow: TestFlowSteps }) => void;
 }
 
 const moveBox = (arr: TestFlowSteps, from: number, to: number): TestFlowSteps => {
@@ -69,7 +69,8 @@ const updateStepValue = (step: any, value: any) => {
     }
 };
 
-const TestFlow: React.FC<TestFlowProps> = ({ flow, update }) => {
+const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
+    const flow = testData.flow ?? [];
     const [draggedIdx, setDraggedIdx] = React.useState<number | null>(null);
     const [dragOverIdx, setDragOverIdx] = React.useState<number | null>(null);
 
@@ -79,7 +80,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ flow, update }) => {
         const newFlow = flow.map((step, i) =>
             i === idx ? updateStepValue(step, patch) : step
         );
-        update(newFlow);
+        update({ ...test, flow: newFlow });
     };
 
     // Helper to change the type (key) of a step
@@ -88,14 +89,14 @@ const TestFlow: React.FC<TestFlowProps> = ({ flow, update }) => {
         const newFlow = flow.map((step, i) =>
             i === idx ? updateStepKey(step, newType) : step
         );
-        update(newFlow);
+        update({ ...test, flow: newFlow });
     };
 
     // Add a new flow box (default to "call")
     const addFlowBox = () => {
         if (!update) return;
         const newFlow = [...flow, getDefaultStepForType("call")];
-        update(newFlow);
+        update({ ...test, flow: newFlow });
     };
 
     return (
@@ -105,12 +106,12 @@ const TestFlow: React.FC<TestFlowProps> = ({ flow, update }) => {
                     const t = getStepType(s);
                     return t === "if" || t === "for";
                 }).length;
-                const intentremove = flow.slice(0, idx+1).filter(s => {
+                const intentremove = flow.slice(0, idx + 1).filter(s => {
                     const t = getStepType(s);
                     return t === "end";
                 }).length;
 
-                let intent =  Math.max(intentadd - intentremove, 0);
+                let intent = Math.max(intentadd - intentremove, 0);
 
                 const currentType = getStepType(step);
                 let value: any = "";
@@ -147,7 +148,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ flow, update }) => {
                                         draggedIdx !== null &&
                                         draggedIdx !== idx
                                     ) {
-                                        update(moveBox(flow, draggedIdx, idx));
+                                        update({ ...test, flow: moveBox(flow, draggedIdx, idx) });
                                     }
                                     setDraggedIdx(null);
                                     setDragOverIdx(null);
@@ -193,6 +194,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ flow, update }) => {
                             <TestFlowBox
                                 type={currentType}
                                 step={value}
+                                testData={testData}
                                 onChange={patch => updateStep(idx, patch)}
                             />
                             {update && (
@@ -242,7 +244,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ flow, update }) => {
                             draggedIdx !== null &&
                             draggedIdx !== flow.length
                         ) {
-                            update(moveBox(flow, draggedIdx, flow.length));
+                            update({ ...test, flow: moveBox(flow, draggedIdx, flow.length) });
                         }
                         setDraggedIdx(null);
                         setDragOverIdx(null);

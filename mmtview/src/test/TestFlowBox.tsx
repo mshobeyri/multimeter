@@ -1,25 +1,24 @@
 import React from "react";
-import { FlowType, CheckOps } from "./TestData";
+import { FlowType, CheckOps, TestData } from "./TestData";
 import TestCheck from "./TestCheck";
+import TestCall from "./TestCall";
 
 interface TestFlowBoxProps {
   type: FlowType;
   step: any;
+  testData: TestData,
   onChange: (value: any) => void;
 }
-
-const TestFlowBox: React.FC<TestFlowBoxProps> = ({ type, step, onChange }) => {
+const TestFlowBox: React.FC<TestFlowBoxProps> = ({ type, step, testData, onChange }) => {
   switch (type) {
     case "call":
       return (
-        <div style={{ marginTop: 8 }}>
-          <input
-            placeholder="endpoint"
-            value={step || ""}
-            onChange={e => onChange(e.target.value)}
-            style={{ width: "100%" }}
-          />
-        </div>
+        <TestCall
+          value={step || ""}
+          imports={testData.import || []}
+          onChange={onChange}
+          placeholder="select a call"
+        />
       );
     case "check": {
       // Parse step as "left op right"
@@ -47,7 +46,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ type, step, onChange }) => {
         </div>
       );
     }
-    case "if":{
+    case "if": {
       // Parse step as "left op right"
       let left = "?", op: CheckOps = "==" as CheckOps, right = "?";
       if (typeof step === "string") {
