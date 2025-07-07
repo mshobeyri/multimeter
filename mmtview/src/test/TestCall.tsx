@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { Parameter } from "./TestData";
 
 interface TestCallProps {
@@ -14,13 +14,25 @@ const TestCall: React.FC<TestCallProps> = ({
   onChange,
   placeholder = "Select an item...",
 }) => {
-  // Handler to print the selected value as a relative file path
+
+  const [filePath, setFilePath] = useState<string | undefined>(undefined);
+
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedValue = e.target.value;
-    // Print the value as a relative file path
-    console.log("Selected relative file path:", selectedValue);
-    onChange(selectedValue);
-  };
+    window.vscode?.postMessage({ command: "getFileContent", filename: selectedValue });
+  }
+
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      const message = event.data;
+      if (message.command === "fileContent") {
+        console.log("filecn", message.content);
+      }
+    };
+
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, [filePath]);
 
   return (
     <select

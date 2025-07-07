@@ -115,7 +115,6 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
       });
 
       saveEnvVariablesFromObject(flatVars);
-      console.log("Updated environment variables:", flatVars);
       return updated;
     });
   };

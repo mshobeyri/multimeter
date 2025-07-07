@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, createContext } from "react";
 import TextEditorPanel from "./TextEditorPanel";
 import EnvironmentPanel from "./environment/EnvironmentPanel";
 import { SplitPane } from '@rexxars/react-split-pane';
@@ -25,6 +25,9 @@ const typeOptions = [
 
 const SPLIT_PANE_KEY = "mmtview:splitPaneSize";
 
+// Create a context for file info
+export const FileContext = createContext<{ filePath?: string; fileName?: string }>({});
+
 const App: React.FC = () => {
   // Restore pane size from localStorage or default to half window width
   const [paneSize, setPaneSize] = useState(() => {
@@ -33,6 +36,7 @@ const App: React.FC = () => {
   });
   const [content, setContent] = useState("");
   const [docType, setDocType] = useState<string | null>(null);
+  const [filePath, setFilePath] = useState<string | undefined>(undefined);
   const isInitLoad = useRef(true);
 
   // Save pane size to localStorage whenever it changes
@@ -46,6 +50,7 @@ const App: React.FC = () => {
       if (message.command === "loadDocument") {
         isInitLoad.current = true;
         setContent(message.content);
+        if (message.uri) setFilePath(message.uri);
       }
     };
 
@@ -89,41 +94,43 @@ const App: React.FC = () => {
   }, []);
 
   return (
-    <SplitPane
-      split="vertical"
-      size={paneSize}
-      onChange={(size) => setPaneSize(size)}
-      minSize={300}           // Minimum width of the left panel
-      maxSize={window.innerWidth - 300} // Right panel will be at least 300px wide
-      style={{
-        height: "100vh",
-        width: "100vw",
-        backgroundColor: "var(--vscode-editor-background)",
-        color: "var(--vscode-editor-foreground)",
-        fontFamily: "var(--vscode-editor-font-family, sans-serif)",
-        fontSize: "var(--vscode-editor-font-size, 14px)",
-      }}
-    >
-      <TextEditorPanel
-        content={content}
-        setContent={setContent}
-      />
-      {docType === "env" && (
-        <EnvironmentPanel content={content} setContent={setContent} />
-      )}
-      {docType === "var" && (
-        <VariablesPanel content={content} setContent={setContent} />
-      )}
-      {docType === "api" && (
-        <APIPanel content={content} setContent={setContent} />
-      )}
-      {docType === "test" && (
-        <TestPanel content={content} setContent={setContent} />
-      )}
-      {docType === null && (
-        <NotypePanel content={content} setContent={setContent} />
-      )}
-    </SplitPane>
+    <FileContext.Provider value={{ filePath }}>
+      <SplitPane
+        split="vertical"
+        size={paneSize}
+        onChange={(size) => setPaneSize(size)}
+        minSize={300}           // Minimum width of the left panel
+        maxSize={window.innerWidth - 300} // Right panel will be at least 300px wide
+        style={{
+          height: "100vh",
+          width: "100vw",
+          backgroundColor: "var(--vscode-editor-background)",
+          color: "var(--vscode-editor-foreground)",
+          fontFamily: "var(--vscode-editor-font-family, sans-serif)",
+          fontSize: "var(--vscode-editor-font-size, 14px)",
+        }}
+      >
+        <TextEditorPanel
+          content={content}
+          setContent={setContent}
+        />
+        {docType === "env" && (
+          <EnvironmentPanel content={content} setContent={setContent} />
+        )}
+        {docType === "var" && (
+          <VariablesPanel content={content} setContent={setContent} />
+        )}
+        {docType === "api" && (
+          <APIPanel content={content} setContent={setContent} />
+        )}
+        {docType === "test" && (
+          <TestPanel content={content} setContent={setContent} />
+        )}
+        {docType === null && (
+          <NotypePanel content={content} setContent={setContent} />
+        )}
+      </SplitPane>
+    </FileContext.Provider>
   );
 }
 
