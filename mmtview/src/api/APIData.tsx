@@ -1,4 +1,4 @@
-import {Type,Protocol, Method, Format, Parameter} from "../CommonData"
+import {MMTFile, Protocol, Method, Format, Parameter} from "../CommonData"
 
 export interface InterfaceData {
   name: string;
@@ -20,8 +20,7 @@ export interface ExampleData {
   inputs?: Parameter[];
 }
 
-export interface APIData {
-  type: Type;
+export interface APIData extends MMTFile {
   title?: string;
   tags?: string[];
   description?: string;

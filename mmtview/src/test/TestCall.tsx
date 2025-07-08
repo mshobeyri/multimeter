@@ -1,5 +1,8 @@
-import React, { useContext, useEffect, useState } from "react";
-import { Parameter } from "./TestData";
+import React, { useEffect, useState } from "react";
+import { TestFlowCallTest, TestFlowCallAPI, TestFlowCallDirect } from "./TestData";
+import parseYaml, { packYaml } from "../markupConvertor";
+import { MMTFile, Parameter } from "../CommonData";
+import { showVSCodeMessage, readFile } from "../vsAPI";
 
 interface TestCallProps {
   value: string;
@@ -14,25 +17,51 @@ const TestCall: React.FC<TestCallProps> = ({
   onChange,
   placeholder = "Select an item...",
 }) => {
-
-  const [filePath, setFilePath] = useState<string | undefined>(undefined);
+  const [callInfo, setCallInfo] = useState<TestFlowCallTest | TestFlowCallAPI | TestFlowCallDirect | null>(null);
+  const [fileName, setFileName] = useState<string>("");
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedValue = e.target.value;
-    window.vscode?.postMessage({ command: "getFileContent", filename: selectedValue });
-  }
+    setFileName(selectedValue);
+  };
+  useEffect(() => {
+    readFile(fileName)
+      .then((content: string) => {
+        console.log("File content:", content);
+        const yaml = parseYaml(content);
+
+        if (!yaml || typeof yaml !== "object") {
+          showVSCodeMessage("error", "Cannot parse " + fileName + "!");
+          return;
+        }
+        if (!yaml.type) {
+          showVSCodeMessage("error", fileName + "has no type!");
+          return;
+        }
+        if (yaml.type !== "test" && yaml.type !== "api") {
+          showVSCodeMessage("error", fileName + "type should be test or api!");
+          return;
+        }
+        if (yaml.type === "test") {
+          setCallInfo({ test: fileName } as TestFlowCallTest);
+        } else if (yaml.type === "api") {
+          setCallInfo({ api: fileName } as TestFlowCallAPI);
+        } else {
+          setCallInfo(null);
+        }
+      })
+      .catch((err: unknown) => {
+        showVSCodeMessage("error", "Failed to read file: " + fileName);
+        setCallInfo(null);
+      });
+  }, [fileName]);
 
   useEffect(() => {
-    const handler = (event: MessageEvent) => {
-      const message = event.data;
-      if (message.command === "fileContent") {
-        console.log("filecn", message.content);
-      }
-    };
-
-    window.addEventListener("message", handler);
-    return () => window.removeEventListener("message", handler);
-  }, [filePath]);
+    if (callInfo) {
+      const yamlStr = packYaml(callInfo);
+      console.log("YAML String:", callInfo, yamlStr);
+    }
+  }, [callInfo]);
 
   return (
     <select

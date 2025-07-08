@@ -1,6 +1,6 @@
 
 
-import { Type, Protocol, Method, Format } from "../CommonData"
+import { MMTFile, Protocol, Method, Format } from "../CommonData"
 
 export type Timestr = `${number}s` | `${number}m` | `${number}h` | "inf";
 export type Repeat = `${number}` | "inf";
@@ -19,17 +19,13 @@ export interface TestMetric {
 }
 
 export interface TestFlowCallTest {
-  call: string;
-  interface?: string;
-  endpoint?: string;
-  headers?: Record<string, string>;
+  test: string;
   inputs?: Record<string, any>;
   outputs?: Record<string, any>;
-  body?: string;
 }
 
 export interface TestFlowCallAPI {
-  call: string;
+  api: string;
   interface?: string;
   endpoint?: string;
   headers?: Record<string, string>;
@@ -68,8 +64,8 @@ export type End = null;
 export type TestFlowStep = TestFlowCallTest | TestFlowCallDirect | TestFlowCallAPI | TestFlowCheck | TestFlowCondition | TestFlowLoop | End;
 
 export type TestFlowSteps = TestFlowStep[];
-export interface TestData {
-  type: Type;
+
+export interface TestData extends MMTFile {
   title: string;
   tags: string[];
   description: string;

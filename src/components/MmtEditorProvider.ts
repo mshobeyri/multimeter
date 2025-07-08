@@ -79,6 +79,12 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
             webviewPanel.webview.postMessage({command: 'fileContent', content});
           });
           break;
+        case "showErrorMessage":
+          vscode.window.showErrorMessage(message.message);
+          break;
+        case "showWarningMessage":
+          vscode.window.showWarningMessage(message.message);
+          break;
       }
     });
   }

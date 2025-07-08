@@ -1,4 +1,4 @@
-import { Type } from "../CommonData";
+import { MMTFile } from "../CommonData";
 
 export interface Variable {
   name: string;
@@ -9,7 +9,6 @@ export interface Variable {
 }
 
 export type Variables = Variable[];
-export interface VariablesData {
-  type: Type;
+export interface VariablesData extends MMTFile {
   variables: Variables
 }
