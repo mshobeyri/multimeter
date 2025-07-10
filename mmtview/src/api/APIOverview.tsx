@@ -3,6 +3,7 @@ import SearchableTagInput from "../components/SearchableTagInput";
 import KVEditor from "../components/KVEditor";
 import { APIData } from "./APIData";
 import { jsonTypes } from "../CommonData"
+import DescriptionEditor from "../components/DescriptionEditor";
 
 interface APIOverviewProps {
   api: APIData;
@@ -42,12 +43,10 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
       </tr>
       <tr>
         <td className="label">description</td>
-        <td style={{ padding: "8px" }}>
-          <input
+        <td style={{ padding: "8px", width: "100%" }}>
+          <DescriptionEditor
             value={api.description || ""}
-            onChange={e => update({ description: e.target.value })}
-            placeholder="description"
-            style={{ width: "100%" }}
+            onChange={value => update({ description: value })}
           />
         </td>
       </tr>

@@ -4,6 +4,7 @@ import KVEditor from "../components/KVEditor";
 import { TestData } from "./TestData";
 import { jsonTypes } from "../CommonData";
 import VEditor from "../components/VEditor";
+import DescriptionEditor from "../components/DescriptionEditor";
 
 interface TestOverviewProps {
   test: TestData;
@@ -43,12 +44,10 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update }) => (
       </tr>
       <tr>
         <td className="label">description</td>
-        <td style={{ padding: "8px" }}>
-          <input
+        <td style={{ padding: "8px", width: "100%" }}>
+          <DescriptionEditor
             value={test.description || ""}
-            onChange={e => update({ description: e.target.value })}
-            placeholder="description"
-            style={{ width: "100%" }}
+            onChange={value => update({ description: value })}
           />
         </td>
       </tr>

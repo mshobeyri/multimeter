@@ -39,7 +39,7 @@ const SearchableTagInput: React.FC<SearchableTagInputProps> = ({
   return (
     <div
       style={{
-        borderRadius: 4,
+        borderRadius: 2,
         padding: 4,
         display: "flex",
         flexWrap: "wrap",
@@ -53,7 +53,7 @@ const SearchableTagInput: React.FC<SearchableTagInputProps> = ({
           key={tag}
           className="tag"
           style={{
-            borderRadius: 3,
+            borderRadius: 2,
             padding: "2px 8px",
             marginRight: 4,
             display: "flex",
@@ -114,7 +114,7 @@ const SearchableTagInput: React.FC<SearchableTagInputProps> = ({
             background: "var(--vscode-editorWidget-background, #232323)",
             color: "var(--vscode-editorWidget-foreground, #d4d4d4)",
             border: "1px solid var(--vscode-input-border, #3c3c3c)",
-            borderRadius: 4,
+            borderRadius: 2,
             marginTop: 32,
             zIndex: 10,
             minWidth: 120,

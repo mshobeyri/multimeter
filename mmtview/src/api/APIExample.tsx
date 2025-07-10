@@ -2,6 +2,7 @@ import React from "react";
 import VEditor from "../components/VEditor";
 import { ExampleData } from "./APIData";
 import FieldWithRemove from "../components/FieldWithRemove";
+import DescriptionEditor from "../components/DescriptionEditor";
 
 interface ExampleEditorProps {
   data: ExampleData;
@@ -46,13 +47,10 @@ const ExampleEditor: React.FC<ExampleEditorProps> = ({ data, apiInputs, onChange
         </tr>
         <tr>
           <td className="label">description</td>
-          <td style={{ padding: "8px" }}>
-            <input
-              type="text"
+          <td style={{ padding: "8px", width: "100%" }}>
+            <DescriptionEditor
               value={data.description || ""}
-              onChange={e => onChange({ ...data, description: e.target.value })}
-              placeholder="description"
-              style={{ width: "100%" }}
+              onChange={value => onChange({ ...data, description: value })}
             />
           </td>
         </tr>
