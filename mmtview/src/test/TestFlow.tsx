@@ -80,7 +80,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
         const newFlow = flow.map((step, i) =>
             i === idx ? updateStepValue(step, patch) : step
         );
-        update({ ...test, flow: newFlow });
+        update({ ...testData, flow: newFlow });
     };
 
     // Helper to change the type (key) of a step
@@ -89,14 +89,14 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
         const newFlow = flow.map((step, i) =>
             i === idx ? updateStepKey(step, newType) : step
         );
-        update({ ...test, flow: newFlow });
+        update({ ...testData, flow: newFlow });
     };
 
     // Add a new flow box (default to "call")
     const addFlowBox = () => {
         if (!update) return;
         const newFlow = [...flow, getDefaultStepForType("call")];
-        update({ ...test, flow: newFlow });
+        update({ ...testData, flow: newFlow });
     };
 
     return (
@@ -148,7 +148,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                                         draggedIdx !== null &&
                                         draggedIdx !== idx
                                     ) {
-                                        update({ ...test, flow: moveBox(flow, draggedIdx, idx) });
+                                        update({ ...testData, flow: moveBox(flow, draggedIdx, idx) });
                                     }
                                     setDraggedIdx(null);
                                     setDragOverIdx(null);
@@ -244,7 +244,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                             draggedIdx !== null &&
                             draggedIdx !== flow.length
                         ) {
-                            update({ ...test, flow: moveBox(flow, draggedIdx, flow.length) });
+                            update({ ...testData, flow: moveBox(flow, draggedIdx, flow.length) });
                         }
                         setDraggedIdx(null);
                         setDragOverIdx(null);

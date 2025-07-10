@@ -19,13 +19,13 @@ export interface TestMetric {
 }
 
 export interface TestFlowCallTest {
-  test: string;
+  target: string;
   inputs?: Record<string, any>;
   outputs?: Record<string, any>;
 }
 
 export interface TestFlowCallAPI {
-  api: string;
+  target: string;
   interface?: string;
   endpoint?: string;
   headers?: Record<string, string>;
@@ -34,8 +34,8 @@ export interface TestFlowCallAPI {
   body?: string;
 }
 
-export interface TestFlowCallDirect {
-  call: null;
+export interface TestFlowCallHTTP {
+  target: "http";
   protocol: Protocol;
   format: Format;
   endpoint: string;
@@ -45,6 +45,13 @@ export interface TestFlowCallDirect {
   query?: Record<string, string>;
   params?: Record<string, string>;
   cookies?: Record<string, string>;
+}
+
+export interface TestFlowCallWS {
+  target: "ws";
+  format: Format;
+  endpoint: string
+  body?: string | object;
 }
 
 export interface TestFlowCheck {
@@ -61,7 +68,7 @@ export interface TestFlowLoop {
 
 export type End = null;
 
-export type TestFlowStep = TestFlowCallTest | TestFlowCallDirect | TestFlowCallAPI | TestFlowCheck | TestFlowCondition | TestFlowLoop | End;
+export type TestFlowStep = TestFlowCallTest | TestFlowCallWS  | TestFlowCallHTTP | TestFlowCallAPI | TestFlowCheck | TestFlowCondition | TestFlowLoop | End;
 
 export type TestFlowSteps = TestFlowStep[];
 

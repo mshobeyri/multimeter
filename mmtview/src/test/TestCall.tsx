@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { TestFlowCallTest, TestFlowCallAPI, TestFlowCallDirect } from "./TestData";
+import { TestFlowCallTest, TestFlowCallAPI, TestFlowCallWS, TestFlowCallHTTP } from "./TestData";
 import parseYaml, { packYaml } from "../markupConvertor";
 import { MMTFile, Parameter } from "../CommonData";
 import { showVSCodeMessage, readFile } from "../vsAPI";
@@ -7,8 +7,13 @@ import { showVSCodeMessage, readFile } from "../vsAPI";
 interface TestCallProps {
   value: string;
   imports?: Parameter[];
-  onChange: (value: string) => void;
+  onChange: (value: any) => void;
   placeholder?: string;
+}
+
+interface SelectedAlias {
+  alias: string;
+  fileName: string;
 }
 
 const TestCall: React.FC<TestCallProps> = ({
@@ -17,17 +22,34 @@ const TestCall: React.FC<TestCallProps> = ({
   onChange,
   placeholder = "Select an item...",
 }) => {
-  const [callInfo, setCallInfo] = useState<TestFlowCallTest | TestFlowCallAPI | TestFlowCallDirect | null>(null);
-  const [fileName, setFileName] = useState<string>("");
+  const [callInfo, setCallInfo] = useState<TestFlowCallTest | TestFlowCallAPI | TestFlowCallWS | TestFlowCallHTTP | null>(null);
+  const [selectedAlias, setSelectedAlias] = useState<SelectedAlias | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const selectedValue = e.target.value;
-    setFileName(selectedValue);
+    const selected = e.target.value;
+    // Find the fileName for the selected alias
+    const imp = imports?.find(imp => Object.keys(imp)[0] === selected);
+    const fileName = imp ? Object.values(imp)[0] as string : "";
+    setSelectedAlias({ alias: selected, fileName });
   };
+
   useEffect(() => {
+    if (!selectedAlias) return
+
+    if (selectedAlias.alias === "ws") {
+      setCallInfo({ target: "ws" } as TestFlowCallWS);
+      return;
+    }
+
+    if (selectedAlias.alias === "http") {
+      setCallInfo({ target: "http" } as TestFlowCallHTTP);
+      return;
+    }
+
+    const { alias, fileName } = selectedAlias;
+
     readFile(fileName)
       .then((content: string) => {
-        console.log("File content:", content);
         const yaml = parseYaml(content);
 
         if (!yaml || typeof yaml !== "object") {
@@ -35,51 +57,49 @@ const TestCall: React.FC<TestCallProps> = ({
           return;
         }
         if (!yaml.type) {
-          showVSCodeMessage("error", fileName + "has no type!");
+          showVSCodeMessage("error", fileName + " has no type!");
           return;
         }
         if (yaml.type !== "test" && yaml.type !== "api") {
-          showVSCodeMessage("error", fileName + "type should be test or api!");
+          showVSCodeMessage("error", fileName + " type should be test or api!");
           return;
         }
-        if (yaml.type === "test") {
-          setCallInfo({ test: fileName } as TestFlowCallTest);
-        } else if (yaml.type === "api") {
-          setCallInfo({ api: fileName } as TestFlowCallAPI);
-        } else {
-          setCallInfo(null);
-        }
+        setCallInfo({ target: alias, inputs: yaml.inputs } as TestFlowCallTest);
       })
-      .catch((err: unknown) => {
-        showVSCodeMessage("error", "Failed to read file: " + fileName);
+      .catch(() => {
+        showVSCodeMessage("error", "Failed to read file: \n" + fileName);
         setCallInfo(null);
       });
-  }, [fileName]);
+  }, [selectedAlias]);
 
   useEffect(() => {
     if (callInfo) {
-      const yamlStr = packYaml(callInfo);
-      console.log("YAML String:", callInfo, yamlStr);
+      onChange(callInfo);
     }
   }, [callInfo]);
 
+  // Use the current target as the select value
+  const currentTarget = (callInfo && (callInfo as any).target) || "";
+
   return (
     <select
-      value={value}
+      value={currentTarget}
       onChange={handleChange}
       style={{ width: "100%", padding: "6px" }}
     >
       <option value="">{placeholder}</option>
       {imports &&
-        imports.map((imp: Parameter, idx) => {
-          const key = Object.keys(imp)[0];
-          const val = Object.values(imp)[0];
+        imports.map((imp: Parameter) => {
+          const alias = Object.keys(imp)[0];
           return (
-            <option key={key} value={val}>
-              {key}
+            <option key={alias} value={alias}>
+              {alias}
             </option>
           );
         })}
+      <option disabled>──────────</option>
+      <option value="http">http</option>
+      <option value="ws">ws</option>
     </select>
   );
 };
