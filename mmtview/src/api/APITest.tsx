@@ -48,6 +48,20 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedExampleIdx, selectedIdx]);
 
+  // Call replaceAllRefs when the file is opened or api/selectedIdx changes
+  useEffect(() => {
+    const iface = interfaces[selectedIdx] || {};
+    const selectedExample = selectedExampleIdx !== null ? examples[selectedExampleIdx] : undefined;
+    const exampleInputs = selectedExample && Array.isArray(selectedExample.inputs)
+      ? selectedExample.inputs.reduce((acc, cur) => ({ ...acc, ...cur }), {})
+      : {};
+
+    replaceAllRefs(iface, exampleInputs, (replaced) => {
+      network.setRequestData(replaced);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [api, selectedIdx]);
+
   const [formattedBody, setFormattedBody] = useState<string>(
     formatBody(network.requestData?.format || "json", network.requestData?.body || "")
   );
