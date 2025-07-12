@@ -90,10 +90,10 @@ window.addEventListener("message", (event: MessageEvent) => {
     if (!msg || !msg.command) return;
 
     // HTTP response
-    if (msg.command === "httpResponse" && typeof msg.data !== "undefined") {
+    if (msg.command === "network" && msg.action === "http-response" && typeof msg.data !== "undefined") {
         if (typeof msg.onResponse === "function") msg.onResponse(msg.data);
     }
-    if (msg.command === "httpError" && typeof msg.error !== "undefined") {
+    if (msg.command === "network" && msg.action === "http-error" && typeof msg.error !== "undefined") {
         if (typeof msg.onError === "function") msg.onError(msg.error);
     }
 

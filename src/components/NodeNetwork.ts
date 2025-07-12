@@ -50,7 +50,7 @@ export function handleNetworkMessage(
           });
           webviewPanel.webview.postMessage({
             command: 'network',
-            action: 'httpResponse',
+            action: 'http-response',
             data: response.data,
             headers: response.headers,
             status: response.status,
@@ -58,7 +58,7 @@ export function handleNetworkMessage(
         } catch (err: any) {
           webviewPanel.webview.postMessage({
             command: 'network',
-            action: 'httpError',
+            action: 'http-error',
             error: err?.message || String(err),
           });
         }

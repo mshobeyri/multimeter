@@ -1,55 +1,6 @@
 import { useRef, useState } from "react";
-import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 import { NetworkApi, NetworkOptions, HTTPRequestOptions, WebSocketRequestOptions, WebSocketWithSend } from "./NetworkData";
-
-export async function sendHttpRequest(options: HTTPRequestOptions): Promise<AxiosResponse> {
-  const {
-    url,
-    method = "GET",
-    headers = {},
-    body,
-    cookies,
-    params,
-  } = options;
-
-  let reqHeaders = { ...headers };
-  if (cookies && Object.keys(cookies).length > 0) {
-    reqHeaders["Cookie"] = Object.entries(cookies)
-      .map(([k, v]) => `${k}=${v}`)
-      .join("; ");
-  }
-
-  const config: AxiosRequestConfig = {
-    url,
-    method,
-    headers: reqHeaders,
-    data: body,
-    params,
-    withCredentials: true,
-  };
-
-  return axios.request(config);
-}
-
-export function openWebSocket(options: WebSocketRequestOptions): WebSocketWithSend {
-  const { url, onOpen, onMessage, onClose, onError } = options;
-  const ws = new window.WebSocket(url) as WebSocketWithSend;
-
-  ws.sendMessage = (msg: string) => {
-    if (ws.readyState === WebSocket.OPEN) {
-      ws.send(msg);
-      return true;
-    }
-    return false;
-  };
-
-  if (onOpen) ws.onopen = () => onOpen(ws);
-  if (onMessage) ws.onmessage = onMessage;
-  if (onClose) ws.onclose = onClose;
-  if (onError) ws.onerror = onError;
-
-  return ws;
-}
+import { NetworkNodeApi } from "./NetworkNodeApi";
 
 export function useNetwork(): NetworkApi {
   const [ws, setWs] = useState<WebSocketWithSend | null>(null);
@@ -62,7 +13,7 @@ export function useNetwork(): NetworkApi {
   const [error, setError] = useState<string | null>(null);
 
   const [requestData, setRequestData] = useState<any>({});
-  const [loading, setLoading] = useState(false); // <-- Add loading state
+  const [loading, setLoading] = useState(false);
 
   const parseSetCookie = (setCookie: string[] | undefined): Record<string, string> => {
     if (!setCookie) return {};
@@ -76,8 +27,8 @@ export function useNetwork(): NetworkApi {
   };
 
   const send = async (options?: NetworkOptions) => {
-    setError(null); // Reset error on new request
-    setLoading(true); // <-- Set loading true when request starts
+    setError(null);
+    setLoading(true);
     const opts = options || requestData;
     const {
       url = requestData.endpoint || requestData.url,
@@ -95,75 +46,64 @@ export function useNetwork(): NetworkApi {
     } = opts;
 
     if (protocol === "http") {
-      try {
-        const res = await sendHttpRequest({ url, method, headers, body, cookies, params });
-        setResponseBody(res.data);
-        setResponseHeaders(
-          Object.fromEntries(
-            Object.entries(res.headers || {}).map(([k, v]) => [k, String(v)])
-          )
-        );
-        setResponseCookies(parseSetCookie(res.headers?.["set-cookie"]));
-        onResponse?.(res.data);
-      } catch (err: any) {
-        setResponseBody({ error: err?.message || err });
-        setResponseHeaders({});
-        setResponseCookies({});
-        setError(err?.message || String(err));
-        onResponse?.({ error: err?.message || err });
-      } finally {
-        setLoading(false); // <-- Set loading false after response/error
-      }
-    } else if (protocol === "ws") {
-      try {
-        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-          wsRef.current.sendMessage(typeof body === "string" ? body : JSON.stringify(body));
-          setLoading(false); // <-- For sending message on open ws, loading is not needed
-        } else {
-          const newWs = openWebSocket({
-            url,
-            onOpen: socket => {
-              wsRef.current = socket;
-              setWs(socket);
-              setConnected(true);
-              setLoading(false); // <-- Set loading false when connected
-              onWsOpen?.();
-            },
-            onMessage: msg => {
-              setResponseBody(msg.data);
-              setLoading(false); // <-- Set loading false on first message
-              onWsMessage?.(msg.data);
-            },
-            onClose: () => {
-              wsRef.current = null;
-              setWs(null);
-              setConnected(false);
-              setLoading(false); // <-- Set loading false on close
-              onWsClose?.();
-            },
-            onError: err => {
-              setError("WebSocket cannot connect");
-              setLoading(false); // <-- Set loading false on error
-              onWsError?.(err);
-            },
-          });
-          wsRef.current = newWs;
-          setWs(newWs);
+      NetworkNodeApi.sendHttp({
+        url,
+        method,
+        headers,
+        body,
+        cookies,
+        params,
+        onResponse: (res: any) => {
+          setResponseBody(res.data);
+          setResponseHeaders(res.headers || {});
+          setResponseCookies(parseSetCookie(res.headers?.["set-cookie"]));
+          onResponse?.(res.data);
+          setLoading(false);
+        },
+        onError: (err: any) => {
+          setResponseBody({ error: err?.message || err });
+          setResponseHeaders({});
+          setResponseCookies({});
+          setError(err?.message || String(err));
+          onResponse?.({ error: err?.message || err });
+          setLoading(false);
         }
-      } catch (err: any) {
-        setError(err?.message || String(err));
-        setLoading(false); // <-- Set loading false on error
-      }
+      });
+    } else if (protocol === "ws") {
+      NetworkNodeApi.connectWs({
+        url,
+        uuid: url, // You may want to use a better uuid
+        onOpen: () => {
+          setConnected(true);
+          setLoading(false);
+          onWsOpen?.();
+        },
+        onMessage: (data: string) => {
+          setResponseBody(data);
+          setLoading(false);
+          onWsMessage?.(data);
+        },
+        onClose: () => {
+          setConnected(false);
+          setLoading(false);
+          onWsClose?.();
+        },
+        onError: (err: any) => {
+          setError("WebSocket cannot connect");
+          setLoading(false);
+          onWsError?.(err);
+        }
+      });
     }
   };
 
   const closeWs = () => {
     if (wsRef.current) {
-      wsRef.current.close();
+      NetworkNodeApi.disconnectWs({ uuid: wsRef.current.url });
       wsRef.current = null;
       setWs(null);
       setConnected(false);
-      setLoading(false); // <-- Set loading false on close
+      setLoading(false);
     }
   };
 
@@ -181,6 +121,6 @@ export function useNetwork(): NetworkApi {
     setResponseHeaders,
     setResponseCookies,
     error,
-    loading, // <-- Return loading
+    loading,
   };
 }
