@@ -10,7 +10,7 @@ export interface WebSocketRequestOptions {
   onError?: (err: Event) => void;
 }
 
-export interface NetworkRequestOptions {
+export interface HTTPRequestOptions {
   url: string;
   method?: string;
   headers?: Record<string, string>;

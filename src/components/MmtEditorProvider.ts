@@ -1,6 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import axios from "axios";
+import WebSocket from "ws";
+import { handleNetworkMessage } from "./NodeNetwork";
 
 export async function readFileContent(filename: string): Promise<string> {
   try {
@@ -31,8 +34,10 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   constructor(private readonly context: vscode.ExtensionContext) {}
 
   public async resolveCustomTextEditor(
-      document: vscode.TextDocument, webviewPanel: vscode.WebviewPanel,
-      _token: vscode.CancellationToken): Promise<void> {
+    document: vscode.TextDocument,
+    webviewPanel: vscode.WebviewPanel,
+    _token: vscode.CancellationToken
+  ): Promise<void> {
     webviewPanel.webview.options = {
       enableScripts: true,
     };
@@ -51,7 +56,10 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
 
     webviewPanel.webview.html = html;
 
-    webviewPanel.webview.onDidReceiveMessage((message) => {
+    // Store active WebSocket connections by uuid
+    const wsConnections: Record<string, WebSocket> = {};
+
+    webviewPanel.webview.onDidReceiveMessage(async (message) => {
       switch (message.command) {
         case 'ready':
           webviewPanel.webview.postMessage({
@@ -60,30 +68,42 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
             content: document.getText(),
           });
           break;
+
         case 'update':
           this.updateTextDocument(document, message.text);
           break;
+
         case 'updateWorkspaceState':
           this.context.workspaceState.update(message.name, message.value);
           break;
+
         case 'loadWorkspaceState':
           const value = this.context.workspaceState.get(message.name, {});
-          webviewPanel.webview.postMessage(
-              {command: 'loadWorkspaceState', name: message.name, value});
-          break;
-        case 'getFileContent':
-          // Use fsPath for filesystem operations
-          let contentPromise =
-              readRelativeFileContent(document.uri.fsPath, message.filename);
-          contentPromise.then(content => {
-            webviewPanel.webview.postMessage({command: 'fileContent', content});
+          webviewPanel.webview.postMessage({
+            command: 'loadWorkspaceState',
+            name: message.name,
+            value,
           });
           break;
+
+        case 'getFileContent':
+          let contentPromise = readRelativeFileContent(document.uri.fsPath, message.filename);
+          contentPromise.then(content => {
+            webviewPanel.webview.postMessage({ command: 'fileContent', content });
+          });
+          break;
+
         case "showErrorMessage":
           vscode.window.showErrorMessage(message.message);
           break;
+
         case "showWarningMessage":
           vscode.window.showWarningMessage(message.message);
+          break;
+
+        // --- HTTP functionality ---
+        case "network":
+          handleNetworkMessage(message, webviewPanel, wsConnections);
           break;
       }
     });

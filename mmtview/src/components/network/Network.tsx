@@ -1,8 +1,8 @@
 import { useRef, useState } from "react";
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
-import { NetworkApi, NetworkOptions, NetworkRequestOptions, WebSocketRequestOptions, WebSocketWithSend } from "./NetworkData";
+import { NetworkApi, NetworkOptions, HTTPRequestOptions, WebSocketRequestOptions, WebSocketWithSend } from "./NetworkData";
 
-export async function sendHttpRequest(options: NetworkRequestOptions): Promise<AxiosResponse> {
+export async function sendHttpRequest(options: HTTPRequestOptions): Promise<AxiosResponse> {
   const {
     url,
     method = "GET",
