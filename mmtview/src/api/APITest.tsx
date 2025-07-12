@@ -5,7 +5,7 @@ import BodyView from "../components/BodyView";
 import { formatBody } from "../markupConvertor";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
-import { useNetwork } from "../components/Network";
+import { useNetwork } from "../components/network/Network";
 import { replaceAllRefs } from "../variableReplacer";
 
 

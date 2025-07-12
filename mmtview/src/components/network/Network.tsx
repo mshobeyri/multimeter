@@ -1,16 +1,6 @@
 import { useRef, useState } from "react";
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
-
-// --- HTTP REQUEST ---
-
-export interface NetworkRequestOptions {
-  url: string;
-  method?: string;
-  headers?: Record<string, string>;
-  body?: any;
-  cookies?: Record<string, string>;
-  params?: Record<string, string>;
-}
+import { NetworkApi, NetworkOptions, NetworkRequestOptions, WebSocketRequestOptions, WebSocketWithSend } from "./NetworkData";
 
 export async function sendHttpRequest(options: NetworkRequestOptions): Promise<AxiosResponse> {
   const {
@@ -41,20 +31,6 @@ export async function sendHttpRequest(options: NetworkRequestOptions): Promise<A
   return axios.request(config);
 }
 
-// --- WEBSOCKET REQUEST ---
-
-export interface WebSocketWithSend extends WebSocket {
-  sendMessage: (msg: string) => boolean;
-}
-
-export interface WebSocketRequestOptions {
-  url: string;
-  onOpen?: (ws: WebSocketWithSend) => void;
-  onMessage?: (msg: MessageEvent) => void;
-  onClose?: (ev: CloseEvent) => void;
-  onError?: (err: Event) => void;
-}
-
 export function openWebSocket(options: WebSocketRequestOptions): WebSocketWithSend {
   const { url, onOpen, onMessage, onClose, onError } = options;
   const ws = new window.WebSocket(url) as WebSocketWithSend;
@@ -73,40 +49,6 @@ export function openWebSocket(options: WebSocketRequestOptions): WebSocketWithSe
   if (onError) ws.onerror = onError;
 
   return ws;
-}
-
-// --- NETWORK HOOK ---
-
-export interface NetworkOptions {
-  url?: string;
-  method?: string;
-  headers?: Record<string, string>;
-  body?: any;
-  protocol?: "http" | "ws";
-  cookies?: Record<string, string>;
-  params?: Record<string, string>;
-  onResponse?: (response: any) => void;
-  onWsMessage?: (msg: string) => void;
-  onWsOpen?: () => void;
-  onWsClose?: () => void;
-  onWsError?: (err: any) => void;
-}
-
-export interface NetworkApi {
-  error: any;
-  send: (options?: NetworkOptions) => Promise<void>;
-  closeWs: () => void;
-  ws: WebSocketWithSend | null;
-  connected: boolean;
-  responseBody?: any;
-  responseHeaders?: Record<string, string>;
-  responseCookies?: Record<string, string>;
-  requestData?: any;
-  setRequestData: (data: any) => void;
-  setResponseBody: (data: any) => void;
-  setResponseHeaders: (headers: Record<string, string>) => void;
-  setResponseCookies: (cookies: Record<string, string>) => void;
-  loading: boolean;
 }
 
 export function useNetwork(): NetworkApi {
