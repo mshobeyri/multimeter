@@ -101,7 +101,6 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           vscode.window.showWarningMessage(message.message);
           break;
 
-        // --- HTTP functionality ---
         case "network":
           handleNetworkMessage(message, webviewPanel, wsConnections);
           break;

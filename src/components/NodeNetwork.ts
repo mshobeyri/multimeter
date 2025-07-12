@@ -3,7 +3,7 @@ import * as vscode from 'vscode';
 import WebSocket from 'ws';
 
 export type NetworkMessage =|{
-  command: 'network', action: 'sendHttp';
+  command: 'network', action: 'http-send';
   url: string;
   method?: string;
   headers?: Record<string, string>;
@@ -30,7 +30,7 @@ export function handleNetworkMessage(
     message: NetworkMessage, webviewPanel: vscode.WebviewPanel,
     wsConnections: Record<string, WebSocket>) {
   switch (message.action) {
-    case 'sendHttp':
+    case 'http-send':
       (async () => {
         try {
           const {url, method = 'GET', headers = {}, body, params, cookies} =
@@ -49,14 +49,16 @@ export function handleNetworkMessage(
             withCredentials: true,
           });
           webviewPanel.webview.postMessage({
-            command: 'httpResponse',
+            command: 'network',
+            action: 'httpResponse',
             data: response.data,
             headers: response.headers,
             status: response.status,
           });
         } catch (err: any) {
           webviewPanel.webview.postMessage({
-            command: 'httpError',
+            command: 'network',
+            action: 'httpError',
             error: err?.message || String(err),
           });
         }
@@ -74,26 +76,29 @@ export function handleNetworkMessage(
         wsConnections[uuid] = ws;
 
         ws.on('open', () => {
-          webviewPanel.webview.postMessage({command: 'ws-open', uuid});
+          webviewPanel.webview.postMessage(
+              {command: 'network', action: 'ws-open', uuid});
         });
         ws.on('close', () => {
-          webviewPanel.webview.postMessage({command: 'ws-close', uuid});
+          webviewPanel.webview.postMessage(
+              {command: 'network', action: 'ws-close', uuid});
           delete wsConnections[uuid];
         });
         ws.on('error', (error) => {
           webviewPanel.webview.postMessage({
-            command: 'ws-error',
+            command: 'network',
+            action: 'ws-error',
             uuid,
             error: error?.message || String(error)
           });
         });
         ws.on('message', (data) => {
           webviewPanel.webview.postMessage(
-              {command: 'ws-message', uuid, data: data.toString()});
+              {action: 'ws-message', uuid, data: data.toString()});
         });
       } catch (err: any) {
         webviewPanel.webview.postMessage({
-          command: 'ws-error',
+          action: 'ws-error',
           uuid: (message as any).uuid,
           error: err?.message || String(err)
         });
@@ -107,7 +112,7 @@ export function handleNetworkMessage(
         ws.send(data);
       } else {
         webviewPanel.webview.postMessage(
-            {command: 'ws-error', uuid, error: 'WebSocket not open'});
+            {action: 'ws-error', uuid, error: 'WebSocket not open'});
       }
     } break;
 
@@ -117,7 +122,7 @@ export function handleNetworkMessage(
       if (ws) {
         ws.close();
         delete wsConnections[uuid];
-        webviewPanel.webview.postMessage({command: 'ws-close', uuid});
+        webviewPanel.webview.postMessage({action: 'ws-close', uuid});
       }
     } break;
   }
