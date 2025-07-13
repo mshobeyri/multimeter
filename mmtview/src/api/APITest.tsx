@@ -236,26 +236,18 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         ) : (
           <>
             {Object.keys(network.responseHeaders || {}).length > 0 && (
-              <tr>
-                <td colSpan={2}>
-                  <KVEditor
-                    label="headers"
-                    value={network.responseHeaders}
-                    onChange={headers => { }}
-                  />
-                </td>
-              </tr>
+              <KVEditor
+                label="headers"
+                value={network.responseHeaders}
+                onChange={headers => { }}
+              />
             )}
             {Object.keys(network.responseCookies || {}).length > 0 && (
-              <tr>
-                <td colSpan={2}>
-                  <KVEditor
-                    label="cookies"
-                    value={network.responseCookies}
-                    onChange={cookies => { }}
-                  />
-                </td>
-              </tr>
+              <KVEditor
+                label="cookies"
+                value={network.responseCookies}
+                onChange={cookies => { }}
+              />
             )}
             <tr>
               <td className="label">response</td>
