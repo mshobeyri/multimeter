@@ -64,6 +64,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "in
                 setContent={setLocalValue}
                 language={format}
                 showNumbers={false}
+                fontSize={10}
             />
             {!isValid && (
                 <span

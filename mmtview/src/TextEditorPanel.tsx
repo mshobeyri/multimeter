@@ -6,7 +6,8 @@ interface TextEditorPanelProps {
   content: string;
   setContent: React.Dispatch<React.SetStateAction<string>>;
   language?: string;
-  showNumbers?: boolean; // <-- Add this prop
+  showNumbers?: boolean;
+  fontSize?: number; // <-- Add this prop
 }
 
 const FIXED_BG_THEME = "fixed-bg-theme";
@@ -119,7 +120,8 @@ const TextEditorPanel: React.FC<TextEditorPanelProps> = ({
   content,
   setContent,
   language = "yaml",
-  showNumbers = true, // <-- Default to true
+  showNumbers = true,
+  fontSize = 12, // <-- Default font size
 }) => {
   const monacoRef = useRef<any>(null);
   const editorRef = useRef<any>(null);
@@ -310,16 +312,16 @@ const TextEditorPanel: React.FC<TextEditorPanelProps> = ({
         beforeMount={handleBeforeMount}
         onMount={editor => {
           editorRef.current = editor;
-          setEditorReady(e => !e); // Toggle to trigger effect
+          setEditorReady(e => !e);
         }}
         onChange={value => setContent(value ?? "")}
         options={{
-          fontSize: 12,
+          fontSize, // <-- Use the prop here
           minimap: { enabled: false },
           wordWrap: "on",
           tabSize: 2,
           automaticLayout: true,
-          lineNumbers: showNumbers ? "on" : "off", // <-- Use the prop here
+          lineNumbers: showNumbers ? "on" : "off",
         }}
       />
     </div>
