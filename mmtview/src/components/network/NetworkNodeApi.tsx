@@ -31,8 +31,40 @@ type DisconnectWsOptions = {
     uuid: string;
 };
 
+// Helper to generate a unique request id
+function generateRequestId() {
+    return Math.random().toString(36).slice(2) + Date.now();
+}
+
+// Store pending HTTP requests by requestId
+const pendingHttp: Record<
+    string,
+    {
+        onResponse?: (response: any) => void;
+        onError?: (error: any) => void;
+    }
+> = {};
+
+// Internal listeners for websocket events
+const listeners = {
+    ws: {} as Record<
+        string,
+        {
+            onOpen?: () => void;
+            onMessage?: (data: string) => void;
+            onClose?: () => void;
+            onError?: (error: any) => void;
+        }
+    >,
+};
+
 export const NetworkNodeApi = {
     sendHttp: (options: HttpOptions) => {
+        const requestId = generateRequestId();
+        pendingHttp[requestId] = {
+            onResponse: options.onResponse,
+            onError: options.onError,
+        };
         window.vscode?.postMessage({
             command: "network",
             action: "http-send",
@@ -41,7 +73,8 @@ export const NetworkNodeApi = {
             headers: options.headers,
             body: options.body,
             params: options.params,
-            cookies: options.cookies
+            cookies: options.cookies,
+            requestId,
         });
     },
 
@@ -52,7 +85,6 @@ export const NetworkNodeApi = {
             url: options.url,
             uuid: options.uuid,
         });
-        // Connection events handled in receiveMessage below
         listeners.ws[options.uuid] = {
             onOpen: options.onOpen,
             onMessage: options.onMessage,
@@ -79,19 +111,6 @@ export const NetworkNodeApi = {
     },
 };
 
-// Internal listeners for websocket events
-const listeners = {
-    ws: {} as Record<
-        string,
-        {
-            onOpen?: () => void;
-            onMessage?: (data: string) => void;
-            onClose?: () => void;
-            onError?: (error: any) => void;
-        }
-    >,
-};
-
 // Listen for messages from node backend
 window.addEventListener("message", (event: MessageEvent) => {
     const msg = event.data;
@@ -99,11 +118,14 @@ window.addEventListener("message", (event: MessageEvent) => {
 
     // HTTP response
     if (msg.command === "network" && msg.action === "http-response" && typeof msg.data !== "undefined") {
-        console.log("Received message from node backend:", event.data);
-        if (typeof msg.onResponse === "function") msg.onResponse(msg.data);
+        const cb = pendingHttp[msg.requestId];
+        if (cb && typeof cb.onResponse === "function") cb.onResponse(msg.data);
+        delete pendingHttp[msg.requestId];
     }
     if (msg.command === "network" && msg.action === "http-error" && typeof msg.error !== "undefined") {
-        if (typeof msg.onError === "function") msg.onError(msg.error);
+        const cb = pendingHttp[msg.requestId];
+        if (cb && typeof cb.onError === "function") cb.onError(msg.error);
+        delete pendingHttp[msg.requestId];
     }
 
     // WebSocket events

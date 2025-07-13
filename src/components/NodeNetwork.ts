@@ -10,6 +10,7 @@ export type NetworkMessage =|{
   body?: any;
   params?: any;
   cookies?: Record<string, string>
+  requestId: string;
 }
 |{
   command: 'network', action: 'ws-connect';
@@ -33,15 +34,15 @@ export function handleNetworkMessage(
     case 'http-send':
       (async () => {
         try {
-          const {url, method = 'GET', headers = {}, body, params, cookies} =
+          const {url, method = 'GET', headers = {}, body, params, cookies, requestId} =
               message;
 
-            let reqHeaders = {...headers};
-            if (cookies && Object.keys(cookies).length > 0) {
-              reqHeaders['Cookie'] =
-                  Object.entries(cookies).map(([k, v]) =>
-                  `${k}=${v}`).join('; ');
-            }
+          let reqHeaders = {...headers};
+          if (cookies && Object.keys(cookies).length > 0) {
+            reqHeaders['Cookie'] =
+                Object.entries(cookies).map(([k, v]) =>
+                `${k}=${v}`).join('; ');
+          }
 
           let request = {
             url,
@@ -49,20 +50,26 @@ export function handleNetworkMessage(
             data: body,
             params,
             withCredentials: true,
+            headers: reqHeaders,
           };
           const response = await axios.request(request);
+          console.log("HTTP response received:", response);
           webviewPanel.webview.postMessage({
             command: 'network',
             action: 'http-response',
-            data: response.data,
-            headers: response.headers,
-            status: response.status,
+            data:{
+                body: response.data,
+                headers: response.headers,
+                status: response.status,
+            },
+            requestId,
           });
         } catch (err: any) {
           webviewPanel.webview.postMessage({
             command: 'network',
             action: 'http-error',
             error: err?.message || String(err),
+            requestId: message.requestId,
           });
         }
       })();
@@ -97,10 +104,11 @@ export function handleNetworkMessage(
         });
         ws.on('message', (data) => {
           webviewPanel.webview.postMessage(
-              {action: 'ws-message', uuid, data: data.toString()});
+              {command: 'network', action: 'ws-message', uuid, data: data.toString()});
         });
       } catch (err: any) {
         webviewPanel.webview.postMessage({
+          command: 'network',
           action: 'ws-error',
           uuid: (message as any).uuid,
           error: err?.message || String(err)
@@ -115,7 +123,7 @@ export function handleNetworkMessage(
         ws.send(data);
       } else {
         webviewPanel.webview.postMessage(
-            {action: 'ws-error', uuid, error: 'WebSocket not open'});
+            {command: 'network', action: 'ws-error', uuid, error: 'WebSocket not open'});
       }
     } break;
 
@@ -125,7 +133,7 @@ export function handleNetworkMessage(
       if (ws) {
         ws.close();
         delete wsConnections[uuid];
-        webviewPanel.webview.postMessage({action: 'ws-close', uuid});
+        webviewPanel.webview.postMessage({command: 'network', action: 'ws-close', uuid});
       }
     } break;
   }
