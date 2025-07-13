@@ -316,12 +316,17 @@ const TextEditorPanel: React.FC<TextEditorPanelProps> = ({
         }}
         onChange={value => setContent(value ?? "")}
         options={{
-          fontSize, // <-- Use the prop here
+          fontSize,
           minimap: { enabled: false },
           wordWrap: "on",
+          scrollBeyondLastLine: false,
           tabSize: 2,
           automaticLayout: true,
           lineNumbers: showNumbers ? "on" : "off",
+          scrollbar: {
+            horizontal: "auto",
+            vertical: "auto"
+          }
         }}
       />
     </div>
