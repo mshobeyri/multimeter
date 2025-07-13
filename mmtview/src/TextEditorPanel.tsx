@@ -19,23 +19,37 @@ const defineTheme = (monaco: any) => {
   monaco.editor.defineTheme(FIXED_BG_THEME, {
     base: "vs-dark",
     inherit: true,
-    // Add your custom highlight rules here:
     rules: [
-      // { token: "key", foreground: "FFB300" },        // YAML keys (try changing this color)
-      // { token: "string", foreground: "80CBC4" },     // Strings
-      // { token: "number", foreground: "F77669" },     // Numbers
-      // { token: "comment", foreground: "B2CCD6" },    // Comments
-      // { token: "type", foreground: "C792EA" },       // Types
-      // { token: "keyword", foreground: "82AAFF" },    // Keywords (true, false, null)
-      // { token: "variable", foreground: "FF5370" },   // Variables
-      // { token: "constant", foreground: "FFCB6B" },   // Constants
-      // { token: "delimiter", foreground: "89DDFF" },  // Delimiters (:, -, etc.)
-      // { token: "tag", foreground: "F07178" },        // Tags
+      // YAML tokens
+      { token: "key", foreground: "3ec9b1" },      // YAML keys
+      { token: "string", foreground: "cf9178" },   // YAML strings
+      { token: "number", foreground: "b6cea8" },   // YAML numbers
+      { token: "type", foreground: "3ec9b1" },     // YAML types
+      { token: "delimiter", foreground: "d4d4d4" },// YAML delimiters
+      { token: "delimiter.yaml", foreground: "d4d4d4" },// YAML delimiters
+      { token: "tag", foreground: "F07178" },      // YAML tags
+
+      // JSON tokens
+      { token: "string.key.json", foreground: "3ec9b1" },   // JSON keys
+      { token: "string.value.json", foreground: "cf9178" }, // JSON string values
+      { token: "number", foreground: "#F77669" },            // JSON numbers
+      { token: "keyword.json", foreground: "d4d4d4" },      // JSON keywords (true, false, null)
+      { token: "delimiter.json", foreground: "d4d4d4" },    // JSON delimiters
+
+      // XML tokens
+      { token: "tag.xml", foreground: "3ec9b1" },           // XML tags
+      { token: "attribute.name.xml", foreground: "b6cea8" },// XML attribute names
+      { token: "attribute.value.xml", foreground: "cf9178" },// XML attribute values
+      { token: "string.xml", foreground: "cf9178" },        // XML string values
+      { token: "comment.xml", foreground: "618b4f" },       // XML comments
+      { token: "delimiter.xml", foreground: "d4d4d4" },  // XML string content
+
     ],
     colors: {
       // Editor background and foreground
       "editor.background": cssVar('--vscode-editor-background', "#1e1e1e"),
-      "editor.foreground": cssVar('--vscode-editor-foreground', "#d4d4d4"),
+      // "editor.foreground":  "#cf9178",
+      
 
       // Line numbers
       "editorLineNumber.foreground": cssVar('--vscode-editorLineNumber-foreground', "#858585"),
@@ -291,7 +305,7 @@ const TextEditorPanel: React.FC<TextEditorPanelProps> = ({
     `;
     document.head.appendChild(style);
   }, []);
-  
+
   // Add this in your main React entry file (e.g. index.tsx or App.tsx)
   useEffect(() => {
     window.addEventListener("message", event => {
