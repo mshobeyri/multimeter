@@ -1,6 +1,7 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { xml2js } from "xml-js";
 import { beautify } from "../markupConvertor";
+import TextEditorPanel from "../TextEditorPanel";
 
 export type mode = "interface" | "test";
 
@@ -12,7 +13,6 @@ export type BodyViewProps = {
 };
 
 const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "interface" }) => {
-    const bodyRef = useRef<HTMLTextAreaElement>(null);
     const [localValue, setLocalValue] = useState(value);
     const [isValid, setIsValid] = useState(true);
     const [canApply, setCanApply] = useState(false);
@@ -57,37 +57,11 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "in
         // eslint-disable-next-line
     }, [localValue, format, value, isValid]);
 
-    // Auto-resize textarea to fit content
-    useEffect(() => {
-        if (bodyRef.current) {
-            bodyRef.current.style.height = "auto";
-            bodyRef.current.style.height = bodyRef.current.scrollHeight + "px";
-        }
-    }, [localValue]);
-
     return (
-        <div style={{ position: "relative" }}>
-            <textarea
-                ref={bodyRef}
-                value={localValue}
-                onChange={e => setLocalValue(e.target.value)}
-                onKeyDown={e => {
-                    if (e.key === "Tab") {
-                        e.preventDefault();
-                        const textarea = e.currentTarget;
-                        const start = textarea.selectionStart;
-                        const end = textarea.selectionEnd;
-                        const spaces = "  ";
-                        textarea.setRangeText(spaces, start, end, "end");
-                        setLocalValue(textarea.value);
-                    }
-                }}
-                style={{
-                    width: "100%",
-                    minHeight: 60,
-                    resize: "none",
-                    overflow: "hidden"
-                }}
+        <div style={{ position: "relative", height: "200px", width: "100%" }}>
+            <TextEditorPanel
+                content={localValue}
+                setContent={setLocalValue}
             />
             {!isValid && (
                 <span
