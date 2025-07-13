@@ -5,6 +5,7 @@ import { parseYaml } from "./markupConvertor";
 interface TextEditorPanelProps {
   content: string;
   setContent: React.Dispatch<React.SetStateAction<string>>;
+  language?: string;
 }
 
 const FIXED_BG_THEME = "fixed-bg-theme";
@@ -116,6 +117,7 @@ const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
 const TextEditorPanel: React.FC<TextEditorPanelProps> = ({
   content,
   setContent,
+  language = "yaml",
 }) => {
   const monacoRef = useRef<any>(null);
   const editorRef = useRef<any>(null);
@@ -300,7 +302,7 @@ const TextEditorPanel: React.FC<TextEditorPanelProps> = ({
       <MonacoEditor
         height="100%"
         width="100%"
-        language="yaml"
+        language={language}
         value={content}
         theme={FIXED_BG_THEME}
         beforeMount={handleBeforeMount}

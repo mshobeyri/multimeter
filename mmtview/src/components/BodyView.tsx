@@ -27,7 +27,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "in
     useEffect(() => {
         let valid = true;
         let err: string | null = null;
-        if(localValue == "") {
+        if (localValue == "") {
             setIsValid(true);
             return;
         }
@@ -62,6 +62,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "in
             <TextEditorPanel
                 content={localValue}
                 setContent={setLocalValue}
+                language={format}
             />
             {!isValid && (
                 <span
