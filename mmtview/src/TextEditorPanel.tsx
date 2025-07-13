@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import MonacoEditor from "@monaco-editor/react";
 import { parseYaml } from "./markupConvertor";
 
@@ -6,6 +6,7 @@ interface TextEditorPanelProps {
   content: string;
   setContent: React.Dispatch<React.SetStateAction<string>>;
   language?: string;
+  showNumbers?: boolean; // <-- Add this prop
 }
 
 const FIXED_BG_THEME = "fixed-bg-theme";
@@ -118,6 +119,7 @@ const TextEditorPanel: React.FC<TextEditorPanelProps> = ({
   content,
   setContent,
   language = "yaml",
+  showNumbers = true, // <-- Default to true
 }) => {
   const monacoRef = useRef<any>(null);
   const editorRef = useRef<any>(null);
@@ -317,7 +319,7 @@ const TextEditorPanel: React.FC<TextEditorPanelProps> = ({
           wordWrap: "on",
           tabSize: 2,
           automaticLayout: true,
-          lineNumbers: "on"
+          lineNumbers: showNumbers ? "on" : "off", // <-- Use the prop here
         }}
       />
     </div>
