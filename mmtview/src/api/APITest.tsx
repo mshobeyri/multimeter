@@ -99,7 +99,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     if (network.connected) {
       network.closeWs();
     } else {
-      network.send({ protocol: "ws" });
+      network.connectWs();
     }
   };
 
@@ -164,7 +164,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         </tr>
         <KVEditor
           label="url params"
-          value={req.query || {}}
+          value={req.params || {}}
           onChange={query => updateField("query", query)}
         />
         <KVEditor
@@ -182,7 +182,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           <td style={{ padding: "8px" }}>
             <BodyView
               value={formattedBody}
-              format={req.format}
+              format={req.format || "json"}
               mode="test"
               onChange={val => {
                 setFormattedBody(val);
@@ -260,7 +260,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                         ? network.responseBody
                         : JSON.stringify(network.responseBody, null, 2)
                   }
-                  format={req.format}
+                  format={req.format || "json"}
                   mode="test"
                   onChange={val => {
                     setFormattedBody(val);

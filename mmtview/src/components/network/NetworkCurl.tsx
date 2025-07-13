@@ -1,8 +1,8 @@
-import { HTTPRequestOptions } from "./NetworkData";
+import { Request } from "./NetworkData";
 
-export function buildCurlCommand(options: HTTPRequestOptions): string {
+export function buildCurlCommand(options: Request): string {
     const {
-        url,
+        endpoint = "",
         method = "GET",
         headers = {},
         body,
@@ -28,15 +28,15 @@ export function buildCurlCommand(options: HTTPRequestOptions): string {
         curlCmd.push(`--data '${bodyStr}'`);
     }
 
-    let finalUrl = url;
+    let finalEndpoint = endpoint;
     if (params && Object.keys(params).length > 0) {
         const paramStr = Object.entries(params)
             .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
             .join("&");
-        finalUrl += (finalUrl.includes("?") ? "&" : "?") + paramStr;
+        finalEndpoint += (finalEndpoint.includes("?") ? "&" : "?") + paramStr;
     }
 
-    curlCmd.push(`"${finalUrl}"`);
+    curlCmd.push(`"${finalEndpoint}"`);
     return curlCmd.join(" ");
 }
 

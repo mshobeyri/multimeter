@@ -4,7 +4,7 @@ import WebSocket from 'ws';
 
 export type NetworkMessage =|{
   command: 'network', action: 'http-send';
-  url: string;
+  endpoint: string;
   method?: string;
   headers?: Record<string, string>;
   body?: any;
@@ -14,17 +14,17 @@ export type NetworkMessage =|{
 }
 |{
   command: 'network', action: 'ws-connect';
-  url: string;
-  uuid: string
+  endpoint: string;
+  wsId: string
 }
 |{
   command: 'network', action: 'ws-send';
-  uuid: string;
+  wsId: string;
   data: string
 }
 |{
   command: 'network', action: 'ws-disconnect';
-  uuid: string
+  wsId: string
 };
 
 export function handleNetworkMessage(
@@ -33,8 +33,9 @@ export function handleNetworkMessage(
   switch (message.action) {
     case 'http-send':
       (async () => {
+
         try {
-          const {url, method = 'GET', headers = {}, body, params, cookies, requestId} =
+          const {endpoint, method = 'GET', headers = {}, body, params, cookies, requestId} =
               message;
 
           let reqHeaders = {...headers};
@@ -45,7 +46,7 @@ export function handleNetworkMessage(
           }
 
           let request = {
-            url,
+            url: endpoint,
             method,
             data: body,
             params,
@@ -77,63 +78,66 @@ export function handleNetworkMessage(
 
     case 'ws-connect':
       try {
-        const {url, uuid} = message;
-        if (wsConnections[uuid]) {
-          wsConnections[uuid].close();
-          delete wsConnections[uuid];
+        const {endpoint, wsId} = message;
+        if (wsConnections[wsId]) {
+          wsConnections[wsId].close();
+          delete wsConnections[wsId];
         }
-        const ws = new WebSocket(url);
-        wsConnections[uuid] = ws;
+        const ws = new WebSocket(endpoint);
+        wsConnections[wsId] = ws;
 
         ws.on('open', () => {
           webviewPanel.webview.postMessage(
-              {command: 'network', action: 'ws-open', uuid});
+              {command: 'network', action: 'ws-open', wsId});
         });
         ws.on('close', () => {
           webviewPanel.webview.postMessage(
-              {command: 'network', action: 'ws-close', uuid});
-          delete wsConnections[uuid];
+              {command: 'network', action: 'ws-close', wsId});
+          delete wsConnections[wsId];
         });
         ws.on('error', (error) => {
           webviewPanel.webview.postMessage({
             command: 'network',
             action: 'ws-error',
-            uuid,
+            wsId,
             error: error?.message || String(error)
           });
         });
+
         ws.on('message', (data) => {
+            console.log("WebSocket message received:", data);
           webviewPanel.webview.postMessage(
-              {command: 'network', action: 'ws-message', uuid, data: data.toString()});
+              {command: 'network', action: 'ws-message', wsId, data: data.toString()});
         });
+
       } catch (err: any) {
         webviewPanel.webview.postMessage({
           command: 'network',
           action: 'ws-error',
-          uuid: (message as any).uuid,
+          wsId: (message as any).wsId,
           error: err?.message || String(err)
         });
       }
       break;
 
     case 'ws-send': {
-      const {uuid, data} = message;
-      const ws = wsConnections[uuid];
+      const {wsId, data} = message;
+      const ws = wsConnections[wsId];
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(data);
       } else {
         webviewPanel.webview.postMessage(
-            {command: 'network', action: 'ws-error', uuid, error: 'WebSocket not open'});
+            {command: 'network', action: 'ws-error', wsId, error: 'WebSocket not open'});
       }
     } break;
 
     case 'ws-disconnect': {
-      const {uuid} = message;
-      const ws = wsConnections[uuid];
+      const {wsId} = message;
+      const ws = wsConnections[wsId];
       if (ws) {
         ws.close();
-        delete wsConnections[uuid];
-        webviewPanel.webview.postMessage({command: 'network', action: 'ws-close', uuid});
+        delete wsConnections[wsId];
+        webviewPanel.webview.postMessage({command: 'network', action: 'ws-close', wsId});
       }
     } break;
   }

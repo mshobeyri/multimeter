@@ -3,7 +3,7 @@ import { showVSCodeMessage } from "../../vsAPI";
 import { on } from "events";
 
 type HttpOptions = {
-    url: string;
+    endpoint: string;
     method?: string;
     headers?: Record<string, string>;
     body?: any;
@@ -14,8 +14,7 @@ type HttpOptions = {
 };
 
 type WsOptions = {
-    url: string;
-    uuid: string;
+    endpoint: string;
     onOpen?: () => void;
     onMessage?: (data: string) => void;
     onClose?: () => void;
@@ -23,12 +22,12 @@ type WsOptions = {
 };
 
 type SendWsOptions = {
-    uuid: string;
+    wsId: string;
     data: string;
 };
 
 type DisconnectWsOptions = {
-    uuid: string;
+    wsId: string;
 };
 
 // Helper to generate a unique request id
@@ -45,18 +44,15 @@ const pendingHttp: Record<
     }
 > = {};
 
-// Internal listeners for websocket events
-const listeners = {
-    ws: {} as Record<
-        string,
-        {
-            onOpen?: () => void;
-            onMessage?: (data: string) => void;
-            onClose?: () => void;
-            onError?: (error: any) => void;
-        }
-    >,
-};
+const openWebsockets: Record<
+    string,
+    {
+        onOpen?: () => void;
+        onMessage?: (data: string) => void;
+        onClose?: () => void;
+        onError?: (error: any) => void;
+    }
+> = {};
 
 export const NetworkNodeApi = {
     sendHttp: (options: HttpOptions) => {
@@ -68,7 +64,7 @@ export const NetworkNodeApi = {
         window.vscode?.postMessage({
             command: "network",
             action: "http-send",
-            url: options.url,
+            endpoint: options.endpoint,
             method: options.method,
             headers: options.headers,
             body: options.body,
@@ -79,25 +75,27 @@ export const NetworkNodeApi = {
     },
 
     connectWs: (options: WsOptions) => {
+        const wsId = generateRequestId();
         window.vscode?.postMessage({
             command: "network",
             action: "ws-connect",
-            url: options.url,
-            uuid: options.uuid,
+            endpoint: options.endpoint,
+            wsId: wsId,
         });
-        listeners.ws[options.uuid] = {
+        openWebsockets[wsId] = {
             onOpen: options.onOpen,
             onMessage: options.onMessage,
             onClose: options.onClose,
             onError: options.onError,
         };
+        return wsId;
     },
 
     sendWs: (options: SendWsOptions) => {
         window.vscode?.postMessage({
             command: "network",
             action: "ws-send",
-            uuid: options.uuid,
+            wsId: options.wsId,
             data: options.data,
         });
     },
@@ -106,7 +104,7 @@ export const NetworkNodeApi = {
         window.vscode?.postMessage({
             command: "network",
             action: "ws-disconnect",
-            uuid: options.uuid,
+            wsId: options.wsId,
         });
     },
 };
@@ -114,26 +112,27 @@ export const NetworkNodeApi = {
 // Listen for messages from node backend
 window.addEventListener("message", (event: MessageEvent) => {
     const msg = event.data;
-    if (!msg || !msg.command) return;
+    if (!msg || !msg.command || msg.command != "network") return;
 
     // HTTP response
-    if (msg.command === "network" && msg.action === "http-response" && typeof msg.data !== "undefined") {
+    if (msg.action === "http-response" && typeof msg.data !== "undefined") {
         const cb = pendingHttp[msg.requestId];
         if (cb && typeof cb.onResponse === "function") cb.onResponse(msg.data);
         delete pendingHttp[msg.requestId];
     }
-    if (msg.command === "network" && msg.action === "http-error" && typeof msg.error !== "undefined") {
+    if (msg.action === "http-error" && typeof msg.error !== "undefined") {
         const cb = pendingHttp[msg.requestId];
         if (cb && typeof cb.onError === "function") cb.onError(msg.error);
         delete pendingHttp[msg.requestId];
     }
 
     // WebSocket events
-    if (msg.uuid && listeners.ws[msg.uuid]) {
-        const wsListener = listeners.ws[msg.uuid];
-        if (msg.command === "ws-open" && wsListener.onOpen) wsListener.onOpen();
-        if (msg.command === "ws-message" && wsListener.onMessage) wsListener.onMessage(msg.data);
-        if (msg.command === "ws-close" && wsListener.onClose) wsListener.onClose();
-        if (msg.command === "ws-error" && wsListener.onError) wsListener.onError(msg.error);
+    console.log("WebSocket message received in api:", msg);
+    if (msg.wsId && openWebsockets[msg.wsId]) {
+        const wsListener = openWebsockets[msg.wsId];
+        if (msg.action === "ws-open" && wsListener.onOpen) wsListener.onOpen();
+        if (msg.action === "ws-message" && wsListener.onMessage) wsListener.onMessage(msg.data);
+        if (msg.action === "ws-close" && wsListener.onClose) wsListener.onClose();
+        if (msg.action === "ws-error" && wsListener.onError) wsListener.onError(msg.error);
     }
 });
