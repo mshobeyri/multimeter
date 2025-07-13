@@ -285,6 +285,15 @@ const TextEditorPanel: React.FC<TextEditorPanelProps> = ({
     `;
     document.head.appendChild(style);
   }, []);
+  
+  // Add this in your main React entry file (e.g. index.tsx or App.tsx)
+  useEffect(() => {
+    window.addEventListener("message", event => {
+      if (event.data && event.data.type === "vscode:changeColorTheme") {
+        window.dispatchEvent(new Event("vscode:changeColorTheme"));
+      }
+    });
+  }, []);
 
   return (
     <div style={{ height: "100%" }}>
