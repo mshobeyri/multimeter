@@ -1,3 +1,7 @@
+import { act } from "react";
+import { showVSCodeMessage } from "../../vsAPI";
+import { on } from "events";
+
 type HttpOptions = {
     url: string;
     method?: string;
@@ -32,9 +36,13 @@ export const NetworkNodeApi = {
         window.vscode?.postMessage({
             command: "network",
             action: "http-send",
-            ...options,
+            url: options.url,
+            method: options.method,
+            headers: options.headers,
+            body: options.body,
+            params: options.params,
+            cookies: options.cookies
         });
-        // Response will be handled in receiveMessage below
     },
 
     connectWs: (options: WsOptions) => {
@@ -91,6 +99,7 @@ window.addEventListener("message", (event: MessageEvent) => {
 
     // HTTP response
     if (msg.command === "network" && msg.action === "http-response" && typeof msg.data !== "undefined") {
+        console.log("Received message from node backend:", event.data);
         if (typeof msg.onResponse === "function") msg.onResponse(msg.data);
     }
     if (msg.command === "network" && msg.action === "http-error" && typeof msg.error !== "undefined") {

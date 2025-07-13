@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { NetworkApi, NetworkOptions, HTTPRequestOptions, WebSocketRequestOptions, WebSocketWithSend } from "./NetworkData";
 import { NetworkNodeApi } from "./NetworkNodeApi";
+import { showVSCodeMessage } from "../../vsAPI";
 
 export function useNetwork(): NetworkApi {
   const [ws, setWs] = useState<WebSocketWithSend | null>(null);
@@ -54,6 +55,7 @@ export function useNetwork(): NetworkApi {
         cookies,
         params,
         onResponse: (res: any) => {
+          console.log("HTTP response received2:", res);
           setResponseBody(res.data);
           setResponseHeaders(res.headers || {});
           setResponseCookies(parseSetCookie(res.headers?.["set-cookie"]));

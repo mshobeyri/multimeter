@@ -1,9 +1,10 @@
+import axios from 'axios';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import axios from "axios";
-import WebSocket from "ws";
-import { handleNetworkMessage } from "./NodeNetwork";
+import WebSocket from 'ws';
+
+import {handleNetworkMessage} from './NodeNetwork';
 
 export async function readFileContent(filename: string): Promise<string> {
   try {
@@ -34,10 +35,8 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   constructor(private readonly context: vscode.ExtensionContext) {}
 
   public async resolveCustomTextEditor(
-    document: vscode.TextDocument,
-    webviewPanel: vscode.WebviewPanel,
-    _token: vscode.CancellationToken
-  ): Promise<void> {
+      document: vscode.TextDocument, webviewPanel: vscode.WebviewPanel,
+      _token: vscode.CancellationToken): Promise<void> {
     webviewPanel.webview.options = {
       enableScripts: true,
     };
@@ -60,6 +59,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     const wsConnections: Record<string, WebSocket> = {};
 
     webviewPanel.webview.onDidReceiveMessage(async (message) => {
+      console.log('Received message:', message);
       switch (message.command) {
         case 'ready':
           webviewPanel.webview.postMessage({
@@ -87,21 +87,22 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           break;
 
         case 'getFileContent':
-          let contentPromise = readRelativeFileContent(document.uri.fsPath, message.filename);
+          let contentPromise =
+              readRelativeFileContent(document.uri.fsPath, message.filename);
           contentPromise.then(content => {
-            webviewPanel.webview.postMessage({ command: 'fileContent', content });
+            webviewPanel.webview.postMessage({command: 'fileContent', content});
           });
           break;
 
-        case "showErrorMessage":
+        case 'showErrorMessage':
           vscode.window.showErrorMessage(message.message);
           break;
 
-        case "showWarningMessage":
+        case 'showWarningMessage':
           vscode.window.showWarningMessage(message.message);
           break;
 
-        case "network":
+        case 'network':
           handleNetworkMessage(message, webviewPanel, wsConnections);
           break;
       }

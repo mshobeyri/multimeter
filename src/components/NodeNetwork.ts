@@ -35,19 +35,22 @@ export function handleNetworkMessage(
         try {
           const {url, method = 'GET', headers = {}, body, params, cookies} =
               message;
-          let reqHeaders = {...headers};
-          if (cookies && Object.keys(cookies).length > 0) {
-            reqHeaders['Cookie'] =
-                Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ');
-          }
-          const response = await axios.request({
+
+            let reqHeaders = {...headers};
+            if (cookies && Object.keys(cookies).length > 0) {
+              reqHeaders['Cookie'] =
+                  Object.entries(cookies).map(([k, v]) =>
+                  `${k}=${v}`).join('; ');
+            }
+
+          let request = {
             url,
             method,
-            headers: reqHeaders,
             data: body,
             params,
             withCredentials: true,
-          });
+          };
+          const response = await axios.request(request);
           webviewPanel.webview.postMessage({
             command: 'network',
             action: 'http-response',
