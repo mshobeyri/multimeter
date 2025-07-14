@@ -8,12 +8,11 @@ export const jsonTypes = [
   "object", "object[]", "string", "string[]", "number", "number[]", "boolean", "boolean[]"
 ];
 
-
 export const typeOptions = [
   { value: "api", label: "API" },
   { value: "env", label: "Environment" },
   { value: "var", label: "Variables" },
-  { value: "test", label: "Test" }
+  // { value: "test", label: "Test" }
 ];
 
 export interface MMTFile {
