@@ -3,16 +3,16 @@ import { xml2js } from "xml-js";
 import { beautify } from "../markupConvertor";
 import TextEditorPanel from "../TextEditorPanel";
 
-export type mode = "interface" | "test";
+export type mode = "appliable" | "live";
 
 export type BodyViewProps = {
     value: string;
     format: string;
-    onChange: (value: string) => void;
+    onChange?: (value: string) => void;
     mode?: mode;
 };
 
-const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "interface" }) => {
+const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "appliable" }) => {
     const [localValue, setLocalValue] = useState(value);
     const [isValid, setIsValid] = useState(true);
     const [canApply, setCanApply] = useState(false);
@@ -22,6 +22,12 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "in
     useEffect(() => {
         setLocalValue(value);
     }, [value]);
+
+    useEffect(() => {
+        if (mode === "live" && onChange) {
+            onChange(localValue);
+        }
+    }, [localValue]);
 
     // Validate JSON or XML when localValue or format changes
     useEffect(() => {
@@ -94,7 +100,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "in
                     style={{
                         position: "absolute",
                         right: 8,
-                        bottom: mode === "interface" && canApply && isValid ? 36 : 8,
+                        bottom: mode === "appliable" && canApply && isValid ? 36 : 8,
                         background: "#1976d2",
                         color: "#fff",
                         border: "none",
@@ -112,7 +118,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "in
                     Beautify
                 </button>
             )}
-            {mode == "interface" && canApply && isValid && (
+            {mode == "appliable" && canApply && isValid && (
                 <button
                     style={{
                         position: "absolute",
@@ -128,7 +134,9 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "in
                         boxShadow: "0 0 2px #090"
                     }}
                     onClick={() => {
-                        onChange(localValue);
+                        if (onChange) {
+                            onChange(localValue);
+                        }
                         setCanApply(false);
                     }}
                 >

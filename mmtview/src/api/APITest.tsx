@@ -16,19 +16,18 @@ interface APITestProps {
 const APITest: React.FC<APITestProps> = ({ api }) => {
   const interfaces = api.interfaces || [];
   const examples = api.examples || [];
-  const [selectedIdx, setSelectedIdx] = useState(0);
+  const [body, setBody] = useState<string>("");
+  const [selectedInterfaceIdx, setSelectedInterfaceIdx] = useState(0);
   const [selectedExampleIdx, setSelectedExampleIdx] = useState<number | null>(examples.length > 0 ? 0 : null);
 
   const network = useNetwork();
 
   useEffect(() => {
-    if (interfaces[selectedIdx]) {
-      network.setRequestData({ ...interfaces[selectedIdx] });
+    if (interfaces[selectedInterfaceIdx]) {
+      network.setRequestData({ ...interfaces[selectedInterfaceIdx] });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedIdx, interfaces]);
+  }, [selectedInterfaceIdx, interfaces]);
 
-  // When example changes, fill requestData with example fields if available
   useEffect(() => {
     const selectedExample = selectedExampleIdx !== null ? examples[selectedExampleIdx] : undefined;
     if (
@@ -39,18 +38,16 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         (acc, cur) => ({ ...acc, ...cur }),
         {}
       );
-      const iface = interfaces[selectedIdx] || {};
-      // Use async replaceAllRefs to handle i: and e: replacements
+      const iface = interfaces[selectedInterfaceIdx] || {};
       replaceAllRefs(iface, exampleInputs, (replaced) => {
+        setBody(formatBody(replaced.format || "json", replaced.body || ""));
         network.setRequestData(replaced);
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedExampleIdx, selectedIdx]);
+  }, [selectedExampleIdx, selectedInterfaceIdx]);
 
-  // Call replaceAllRefs when the file is opened or api/selectedIdx changes
   useEffect(() => {
-    const iface = interfaces[selectedIdx] || {};
+    const iface = interfaces[selectedInterfaceIdx] || {};
     const selectedExample = selectedExampleIdx !== null ? examples[selectedExampleIdx] : undefined;
     const exampleInputs = selectedExample && Array.isArray(selectedExample.inputs)
       ? selectedExample.inputs.reduce((acc, cur) => ({ ...acc, ...cur }), {})
@@ -59,28 +56,14 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     replaceAllRefs(iface, exampleInputs, (replaced) => {
       network.setRequestData(replaced);
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [api, selectedIdx]);
-
-  const [formattedBody, setFormattedBody] = useState<string>(
-    formatBody(network.requestData?.format || "json", network.requestData?.body || "")
-  );
+  }, [api, selectedInterfaceIdx]);
 
   useEffect(() => {
-    setFormattedBody(
+    setBody(
       formatBody(network.requestData?.format || "json", network.requestData?.body || "")
     );
-  }, [network.requestData?.body, network.requestData?.format]);
+  }, [network.requestData?.format, selectedExampleIdx]);
 
-  const bodyRef = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => {
-    if (bodyRef.current) {
-      bodyRef.current.style.height = "auto";
-      bodyRef.current.style.height = bodyRef.current.scrollHeight + "px";
-    }
-  }, [formattedBody]);
-
-  // Helper to reset example selection
   const resetExample = () => setSelectedExampleIdx(null);
 
   const updateField = (field: keyof InterfaceData, value: any) => {
@@ -90,6 +73,10 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
       [field]: value,
     });
   };
+
+  useEffect(() => {
+    updateField("body", body);
+  }, [body]);
 
   const handleSend = async () => {
     await network.send();
@@ -140,8 +127,8 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           <td className="label">interface</td>
           <td style={{ padding: "8px" }}>
             <select
-              value={selectedIdx}
-              onChange={e => setSelectedIdx(Number(e.target.value))}
+              value={selectedInterfaceIdx}
+              onChange={e => setSelectedInterfaceIdx(Number(e.target.value))}
               style={{ width: "100%" }}
             >
               {Array.isArray(interfaces) && interfaces.filter(Boolean).map((iface, idx) => (
@@ -181,11 +168,11 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           <td className="label">body</td>
           <td style={{ padding: "8px" }}>
             <BodyView
-              value={formattedBody}
+              value={body}
               format={req.format || "json"}
-              mode="test"
+              mode="live"
               onChange={val => {
-                setFormattedBody(val);
+                setBody(val);
                 updateField("body", val);
               }}
             />
@@ -261,11 +248,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                         : JSON.stringify(network.responseBody, null, 2)
                   }
                   format={req.format || "json"}
-                  mode="test"
-                  onChange={val => {
-                    setFormattedBody(val);
-                    updateField("body", val);
-                  }}
+                  mode="live"
                 />
               </td>
             </tr>
