@@ -17,8 +17,8 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   const interfaces = api.interfaces || [];
   const examples = api.examples || [];
   const [body, setBody] = useState<string>("");
-  const [selectedInterfaceIdx, setSelectedInterfaceIdx] = useState(0);
-  const [selectedExampleIdx, setSelectedExampleIdx] = useState<number | null>(examples.length > 0 ? 0 : null);
+  const [selectedInterfaceIdx, setSelectedInterfaceIdx] = useState<number>(0);
+  const [selectedExampleIdx, setSelectedExampleIdx] = useState<number | null>(null);
 
   const network = useNetwork();
 
@@ -110,7 +110,11 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
             <td style={{ padding: "8px" }}>
               <select
                 value={selectedExampleIdx ?? ""}
-                onChange={e => setSelectedExampleIdx(Number(e.target.value))}
+                onChange={e => {
+                  setSelectedExampleIdx(-1);
+                  setSelectedExampleIdx(Number(e.target.value));
+                }
+                }
                 style={{ width: "100%" }}
               >
                 <option value="">Select example...</option>
@@ -128,7 +132,11 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           <td style={{ padding: "8px" }}>
             <select
               value={selectedInterfaceIdx}
-              onChange={e => setSelectedInterfaceIdx(Number(e.target.value))}
+              onChange={e => {
+                setSelectedInterfaceIdx(-1);
+                setSelectedInterfaceIdx(Number(e.target.value));
+              }
+              }
               style={{ width: "100%" }}
             >
               {Array.isArray(interfaces) && interfaces.filter(Boolean).map((iface, idx) => (
