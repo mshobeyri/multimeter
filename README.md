@@ -4,18 +4,18 @@
 
 ## 🚀 Features
 
-- ⚙️ Interactive API test editor with input/output configuration  
-- 🧪 Supports all kinds of test logic, from simple checks to complex flows  
-- 💾 Store test cases as files in your application repo  
-- 🌳 JSON/XML schema-aware editing  
-- 🧾 Git-aware result tracking 
-- 📦 Supports inputs, headers, query parameters, cookies, and structured outputs  
+- 🧩 UI editor along with text editor.
+- 🧪 Supports all kinds of test logic, from simple checks to complex flows.
+- 💾 Store test cases as files in your application git repo.
+  - ⏳ Preserve tests' history in the git repo.
+  - 🤖 Ability to generate tests using AI.
+  - 📦 Having tests along with the changes in a same pull request.
+- 🧱 JSON/XML schema-aware editing.
+- 🌐 HTTP/WS protocols support.
 
 🛠️ Usage
-Create a .mmt file in your project (e.g., login.mmt).
-Define your inputs, outputs, and interfaces in YAML format.
-Write the test logic using YAML.
-Use the sidebar or inline panel to run tests and inspect results.
+- Create a .mmt file in your project (e.g., login.mmt).
+- Follow the UI instructions 👌.
 
 ✍️ Example
 
