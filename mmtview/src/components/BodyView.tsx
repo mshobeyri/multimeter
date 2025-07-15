@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { xml2js } from "xml-js";
 import { beautify } from "../markupConvertor";
-import TextEditor from "../TextEditor";
+import TextEditor from "../text/TextEditor";
 
 export type mode = "appliable" | "live";
 

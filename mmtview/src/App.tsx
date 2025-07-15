@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState, createContext } from "react";
-import TextEditor from "./TextEditor";
 import EnvironmentPanel from "./environment/EnvironmentPanel";
 import { SplitPane } from '@rexxars/react-split-pane';
 import './App.css';
 import VariablesPanel from "./variable/VariablesPanel";
 import APIPanel from "./api/APIPanel";
 import NotypePanel from "./NotypePanel";
-import TestPanel from "./test/TestPanel"; // Add this import
+import TestPanel from "./test/TestPanel";
 import parseYaml from "./markupConvertor";
+import  YamlEditorPanel from "./text/YamlEditorPanel";
 
 declare global {
   interface Window {
@@ -110,7 +110,7 @@ const App: React.FC = () => {
           fontSize: "var(--vscode-editor-font-size, 14px)",
         }}
       >
-        <TextEditor
+        <YamlEditorPanel
           content={content}
           setContent={setContent}
         />

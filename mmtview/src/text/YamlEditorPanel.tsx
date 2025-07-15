@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import MonacoEditor from "@monaco-editor/react";
-import { parseYaml } from "./markupConvertor";
-import TextEditor from "./TextEditor";
+import { parseYaml } from "../markupConvertor";
+import TextEditor from "../text/TextEditor";
 
 interface YamlEditorPanelProps {
   content: string;
