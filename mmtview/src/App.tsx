@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, createContext } from "react";
-import TextEditorPanel from "./TextEditorPanel";
+import TextEditor from "./TextEditor";
 import EnvironmentPanel from "./environment/EnvironmentPanel";
 import { SplitPane } from '@rexxars/react-split-pane';
 import './App.css';
@@ -110,7 +110,7 @@ const App: React.FC = () => {
           fontSize: "var(--vscode-editor-font-size, 14px)",
         }}
       >
-        <TextEditorPanel
+        <TextEditor
           content={content}
           setContent={setContent}
         />

@@ -38,7 +38,7 @@ const ExampleEditor: React.FC<ExampleEditorProps> = ({ data, apiInputs, onChange
           <td className="label">name</td>
           <td style={{ padding: "8px" }}>
             <FieldWithRemove
-              value={data.name}
+              value={data.name ?? ""}
               onChange={v => onChange({ ...data, name: v })}
               onRemovePressed={onRemove ?? (() => { })}
               placeholder="name"

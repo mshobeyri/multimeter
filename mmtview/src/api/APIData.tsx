@@ -15,7 +15,7 @@ export interface InterfaceData {
 }
 
 export interface ExampleData {
-  name: string;
+  name?: string;
   description?: string;
   inputs?: Parameter[];
 }

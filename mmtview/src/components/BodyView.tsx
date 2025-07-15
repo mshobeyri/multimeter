@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { xml2js } from "xml-js";
 import { beautify } from "../markupConvertor";
-import TextEditorPanel from "../TextEditorPanel";
+import TextEditor from "../TextEditor";
 
 export type mode = "appliable" | "live";
 
@@ -65,7 +65,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
 
     return (
         <div style={{ position: "relative", height: "200px", width: "100%" }}>
-            <TextEditorPanel
+            <TextEditor
                 content={localValue}
                 setContent={setLocalValue}
                 language={format}
