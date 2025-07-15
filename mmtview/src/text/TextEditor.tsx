@@ -8,7 +8,7 @@ interface TextEditorProps {
   language?: string;
   showNumbers?: boolean;
   fontSize?: number;
-  handleBeforeMount?: (monaco: any) => void;
+  beforeMount?: (monaco: any) => void;
 }
 
 const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
@@ -19,12 +19,18 @@ const TextEditor: React.FC<TextEditorProps> = ({
   language = "yaml",
   showNumbers = true,
   fontSize = 12, // <-- Default font size
-  handleBeforeMount, // <-- Add this line
+  beforeMount, // <-- Add this line
 }) => {
   const monacoRef = useRef<any>(null);
   const editorRef = useRef<any>(null);
   const decorationsRef = useRef<string[]>([]);
   const [editorReady, setEditorReady] = React.useState(false);
+
+  const handleBeforeMount = (monaco: any) => {
+    monacoRef.current = monaco;
+    defineTheme(monaco);
+    beforeMount?.(monaco);
+  }
 
   // Listen for VS Code theme changes and update Monaco theme
   useEffect(() => {

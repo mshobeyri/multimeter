@@ -197,6 +197,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         language={"yaml"}
         content={content}
         setContent={setContent}
+        beforeMount={handleBeforeMount}
       />
     </div>
   );
