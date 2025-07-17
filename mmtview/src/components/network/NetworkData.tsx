@@ -27,6 +27,6 @@ export interface NetworkAPI {
   connecting: boolean;
   connected: boolean;
   closeWs: () => void;
-
+  clearRespond: () => void;
 }
 

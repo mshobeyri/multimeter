@@ -124,6 +124,13 @@ export function useNetwork(): NetworkAPI {
     setLoading(true);
   };
 
+  // Add this function to clear response headers, cookies, and body
+  const clearRespond = () => {
+    setResponseBody(null);
+    setResponseHeaders({});
+    setResponseCookies({});
+  };
+
   return {
     send,
     requestData,
@@ -137,5 +144,6 @@ export function useNetwork(): NetworkAPI {
     connecting,
     connected,
     closeWs,
+    clearRespond, // <-- expose here
   };
 }
