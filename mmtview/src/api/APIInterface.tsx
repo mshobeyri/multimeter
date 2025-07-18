@@ -14,7 +14,7 @@ interface InterfaceEditorProps {
 }
 
 const protocolOptions: Protocol[] = ["http", "ws"];
-const formatOptions: Format[] = ["json", "xml"];
+const formatOptions: Format[] = ["json", "xml", "text"];
 const methodOptions: Method[] = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
 
 const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRemove }) => {

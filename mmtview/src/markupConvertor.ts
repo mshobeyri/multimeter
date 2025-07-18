@@ -32,7 +32,7 @@ function formatBody(format: string, body: string | object): string {
       return js2xml(obj, { compact: true, spaces: 2 });
     }
     if (format === "text") {
-      return String(body);
+      return typeof body === "string" ? body : String(body);
     }
     return typeof body === "string" ? body : YAML.stringify(body);
   } catch {
