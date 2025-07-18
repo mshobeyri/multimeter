@@ -1,12 +1,17 @@
 import {InterfaceData} from './api/APIData';
-import {Parameter} from './CommonData';
 import {loadEnvVariables} from './workspaceStorage';
 
 // 1. Replace all i:<param> with the value from inputs
+
+
+export type Parameter = {
+  [key: string]: string|number|boolean
+};
+
 export function replaceInputRefs(
-    obj: any, inputs: Parameter[]|Record<string, string>): any {
+    obj: any, inputs: Parameter[]|Record<string, string|number|boolean>): any {
   // Convert inputs to array if it's an object
-  let inputArr: Array<{name: string; value: string}> = [];
+  let inputArr: Array<{name: string; value: any}> = [];
   if (Array.isArray(inputs)) {
     inputArr = inputs as any;
   } else if (inputs && typeof inputs === 'object') {
@@ -14,10 +19,19 @@ export function replaceInputRefs(
   }
 
   if (typeof obj === 'string') {
-    return obj.replace(
-        /i:([a-zA-Z0-9_]+)/g,
-        (_, key) =>
-            inputArr.find(input => input.name === key)?.value || `i:${key}`);
+    return obj.replace(/"i:([a-zA-Z0-9_]+)"/g, (_, key) => {
+      const found = inputArr.find(input => input.name === key);
+      if (found === undefined) {
+        return `"i:${key}"`;
+      }
+      if (typeof found.value === 'string') {
+        return `"${found.value}"`;
+      }
+      if (typeof found.value === 'number' || typeof found.value === 'boolean') {
+        return found.value;
+      }
+      return found.value;
+    });
   } else if (Array.isArray(obj)) {
     return obj.map(item => replaceInputRefs(item, inputArr));
   } else if (obj && typeof obj === 'object') {
@@ -41,10 +55,21 @@ export function replaceEnvRefs(
     });
     const replaced = (function recur(o: any): any {
       if (typeof o === 'string') {
-        return o.replace(
-            /e:([a-zA-Z0-9_]+)/g,
-            (_, key) => envs[key] !== undefined ? envs[key] : `e:${key}`);
-      } else if (Array.isArray(o)) {
+        return o.replace(/"e:([a-zA-Z0-9_]+)"/g, (_, key) => {
+          const found = envs[key];
+          if (found === undefined) {
+            return `"i:${key}"`;
+          }
+          if (typeof found === 'string') {
+            return `"${found}"`;
+          }
+          if (typeof found === 'number' || typeof found === 'boolean') {
+            return found;
+          }
+          return found;
+        });
+      }
+      else if (Array.isArray(o)) {
         return o.map(item => recur(item));
       } else if (o && typeof o === 'object') {
         const result: any = {};
@@ -72,6 +97,8 @@ export function replaceAllRefs(
       {};
 
   const mergedInputs = {...flatDefaults, ...flatInputs};
+
+  console.log('Merged inputs:', mergedInputs, iface.body);
 
   const replacedInputs = replaceInputRefs(iface, mergedInputs);
   replaceEnvRefs(replacedInputs, callback);

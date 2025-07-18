@@ -59,7 +59,6 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     const wsConnections: Record<string, WebSocket> = {};
 
     webviewPanel.webview.onDidReceiveMessage(async (message) => {
-      console.log('Received message:', message);
       switch (message.command) {
         case 'ready':
           webviewPanel.webview.postMessage({
