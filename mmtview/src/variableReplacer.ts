@@ -1,17 +1,26 @@
 import { loadEnvVariables } from "./workspaceStorage";
+import { Parameter } from "./CommonData";
 
 // 1. Replace all i:<param> with the value from inputs
-export function replaceInputRefs(obj: any, inputs: Record<string, string>): any {
+export function replaceInputRefs(obj: any, inputs: Parameter[] | Record<string, string>): any {
+  // Convert inputs to array if it's an object
+  let inputArr: Array<{ name: string; value: string }> = [];
+  if (Array.isArray(inputs)) {
+    inputArr = inputs as any;
+  } else if (inputs && typeof inputs === "object") {
+    inputArr = Object.entries(inputs).map(([name, value]) => ({ name, value }));
+  }
+
   if (typeof obj === "string") {
     return obj.replace(/i:([a-zA-Z0-9_]+)/g, (_, key) =>
-      inputs[key] !== undefined ? inputs[key] : `i:${key}`
+      inputArr.find(input => input.name === key)?.value || `i:${key}`
     );
   } else if (Array.isArray(obj)) {
-    return obj.map(item => replaceInputRefs(item, inputs));
+    return obj.map(item => replaceInputRefs(item, inputArr));
   } else if (obj && typeof obj === "object") {
     const result: any = {};
     for (const k in obj) {
-      result[k] = replaceInputRefs(obj[k], inputs);
+      result[k] = replaceInputRefs(obj[k], inputArr);
     }
     return result;
   }
@@ -46,7 +55,8 @@ export function replaceEnvRefs(obj: any, callback: (result: any) => void) {
 }
 
 // 3. Replace i:<var> with input vars, then e:<var> with workspace saved vars (async)
-export function replaceAllRefs(obj: any, inputs: Record<string, string>, callback: (result: any) => void) {
+export function replaceAllRefs(obj: any, inputs: Parameter[], callback: (result: any) => void) {
+  console.log("Replacing input refs in:", obj, inputs);
   const replacedInputs = replaceInputRefs(obj, inputs);
   replaceEnvRefs(replacedInputs, callback);
 }

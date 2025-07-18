@@ -29,34 +29,13 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   }, [selectedInterfaceIdx, interfaces]);
 
   useEffect(() => {
-    const selectedExample = selectedExampleIdx !== null ? examples[selectedExampleIdx] : undefined;
-    if (
-      selectedExample &&
-      Array.isArray(selectedExample.inputs)
-    ) {
-      const exampleInputs = selectedExample.inputs.reduce(
-        (acc, cur) => ({ ...acc, ...cur }),
-        {}
-      );
-      const iface = interfaces[selectedInterfaceIdx] || {};
-      replaceAllRefs(iface, exampleInputs, (replaced) => {
-        setBody(formatBody(replaced.format || "json", replaced.body || ""));
-        network.setRequestData(replaced);
-      });
-    }
-  }, [selectedExampleIdx, selectedInterfaceIdx]);
-
-  useEffect(() => {
     const iface = interfaces[selectedInterfaceIdx] || {};
     const selectedExample = selectedExampleIdx !== null ? examples[selectedExampleIdx] : undefined;
-    const exampleInputs = selectedExample && Array.isArray(selectedExample.inputs)
-      ? selectedExample.inputs.reduce((acc, cur) => ({ ...acc, ...cur }), {})
-      : {};
-
-    replaceAllRefs(iface, exampleInputs, (replaced) => {
+    replaceAllRefs(iface, selectedExample?.inputs ?? [], (replaced) => {
+      setBody(formatBody(replaced.format || "json", replaced.body || ""));
       network.setRequestData(replaced);
     });
-  }, [api, selectedInterfaceIdx]);
+  }, [api, selectedInterfaceIdx, selectedExampleIdx]);
 
   useEffect(() => {
     setBody(
@@ -64,10 +43,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     );
   }, [network.requestData?.format, selectedExampleIdx]);
 
-  const resetExample = () => setSelectedExampleIdx(null);
-
   const updateField = (field: keyof InterfaceData, value: any) => {
-    resetExample();
     network.setRequestData({
       ...network.requestData,
       [field]: value,
