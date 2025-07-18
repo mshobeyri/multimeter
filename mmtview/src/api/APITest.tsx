@@ -18,7 +18,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   const examples = api.examples || [];
   const [body, setBody] = useState<string>("");
   const [selectedInterfaceIdx, setSelectedInterfaceIdx] = useState<number>(0);
-  const [selectedExampleIdx, setSelectedExampleIdx] = useState<number | null>(null);
+  const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(0);
 
   const network = useNetwork();
 
@@ -30,8 +30,8 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
 
   useEffect(() => {
     const iface = interfaces[selectedInterfaceIdx] || {};
-    const selectedExample = selectedExampleIdx !== null ? examples[selectedExampleIdx] : undefined;
-    replaceAllRefs(iface, selectedExample?.inputs ?? [], (replaced) => {
+    const selectedExample = examples[selectedExampleIdx] || {};
+    replaceAllRefs(iface, api?.inputs ?? [], selectedExample?.inputs ?? [], (replaced) => {
       setBody(formatBody(replaced.format || "json", replaced.body || ""));
       network.setRequestData(replaced);
     });
@@ -89,13 +89,13 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
               <select
                 value={selectedExampleIdx ?? ""}
                 onChange={e => {
-                  setSelectedExampleIdx(-1);
+                  setSelectedExampleIdx(0);
                   setSelectedExampleIdx(Number(e.target.value));
                 }
                 }
                 style={{ width: "100%" }}
               >
-                <option value="">Select example...</option>
+                <option value="default">defaults</option>
                 {examples.map((ex, idx) => (
                   <option key={ex.name || idx} value={idx}>
                     {ex.name || `Example ${idx + 1}`}
