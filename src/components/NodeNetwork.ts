@@ -124,7 +124,7 @@ export function handleNetworkMessage(
       const {wsId, data} = message;
       const ws = wsConnections[wsId];
       if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(data);
+        ws.send(JSON.stringify(data));
       } else {
         webviewPanel.webview.postMessage(
             {command: 'network', action: 'ws-error', wsId, error: 'WebSocket not open'});
