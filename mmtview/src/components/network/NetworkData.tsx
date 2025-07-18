@@ -1,7 +1,7 @@
 export interface Request {
   endpoint?: string;
   protocol?: "http" | "ws";
-  format?: "json" | "xml";
+  format?: "json" | "xml" | "text";
   method?: string;
   headers?: Record<string, string>;
   cookies?: Record<string, string>;

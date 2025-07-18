@@ -1,7 +1,7 @@
 export type Type = "var" | "env" | "api" | "test" | null;
 
 export type Protocol = "http" | "ws";
-export type Format = "json" | "xml";
+export type Format = "json" | "xml" | "text";
 export type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS";
 
 export const jsonTypes = [
