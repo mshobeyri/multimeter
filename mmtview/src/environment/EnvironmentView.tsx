@@ -1,6 +1,6 @@
 import React from "react";
 
-export type EnvironmentViewVar = { name: string; label: string; value: string };
+export type EnvironmentViewVar = { name: string; label: string; value: string| number | boolean };
 
 const EnvironmentView: React.FC<{ vars: EnvironmentViewVar[] }> = ({ vars }) => {
   const safeVars = Array.isArray(vars) ? vars : [];

@@ -49,10 +49,11 @@ export function replaceInputRefs(
 export function replaceEnvRefs(
     obj: InterfaceData, callback: (result: any) => void) {
   loadEnvVariables((vars) => {
-    const envs: Record<string, string> = {};
+    const envs: Record<string, string|number|boolean> = {};
     vars.forEach(({name, value}) => {
       envs[name] = value;
     });
+    console.log('Loaded environment variables:', envs);
     const replaced = (function recur(o: any): any {
       if (typeof o === 'string') {
         return o.replace(/"e:([a-zA-Z0-9_]+)"/g, (_, key) => {
@@ -64,9 +65,9 @@ export function replaceEnvRefs(
             return `"${found}"`;
           }
           if (typeof found === 'number' || typeof found === 'boolean') {
-            return found;
+            return String(found);
           }
-          return found;
+          return String(found);
         });
       }
       else if (Array.isArray(o)) {
