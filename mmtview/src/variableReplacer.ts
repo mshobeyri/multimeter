@@ -73,9 +73,6 @@ export function replaceAllRefs(
 
   const mergedInputs = {...flatDefaults, ...flatInputs};
 
-  console.log(
-      'Replacing input refs in:', iface, flatDefaults, flatInputs,
-      mergedInputs);
   const replacedInputs = replaceInputRefs(iface, mergedInputs);
   replaceEnvRefs(replacedInputs, callback);
 }

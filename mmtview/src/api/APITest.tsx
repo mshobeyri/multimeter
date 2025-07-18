@@ -37,11 +37,11 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     });
   }, [api, selectedInterfaceIdx, selectedExampleIdx]);
 
-  useEffect(() => {
-    setBody(
-      formatBody(network.requestData?.format || "json", network.requestData?.body || "")
-    );
-  }, [network.requestData?.format, selectedExampleIdx]);
+  // useEffect(() => {
+  //   setBody(
+  //     formatBody(network.requestData?.format || "json", network.requestData?.body || "")
+  //   );
+  // }, [network.requestData?.format, selectedExampleIdx]);
 
   const updateField = (field: keyof InterfaceData, value: any) => {
     network.setRequestData({
