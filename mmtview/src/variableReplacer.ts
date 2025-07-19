@@ -44,6 +44,7 @@ export function replaceInputRefsWithBrace(
   }
   return obj;
 }
+
 export function replaceInputRefsWithQuotes(
     obj: any, inputs: Parameter[]|Record<string, string|number|boolean>): any {
   // Convert inputs to array if it's an object
@@ -79,6 +80,44 @@ export function replaceInputRefsWithQuotes(
   }
   return obj;
 }
+
+
+export function replaceInputRefsWithNone(
+    obj: any, inputs: Parameter[]|Record<string, string|number|boolean>): any {
+  // Convert inputs to array if it's an object
+  let inputArr: Array<{name: string; value: any}> = [];
+  if (Array.isArray(inputs)) {
+    inputArr = inputs as any;
+  } else if (inputs && typeof inputs === 'object') {
+    inputArr = Object.entries(inputs).map(([name, value]) => ({name, value}));
+  }
+
+  if (typeof obj === 'string') {
+    return obj.replace(/i:([a-zA-Z0-9_]+)/g, (_, key) => {
+      const found = inputArr.find(input => input.name === key);
+      if (found === undefined) {
+        return `i:${key}`;
+      }
+      if (typeof found.value === 'string') {
+        return `${found.value}`;
+      }
+      if (typeof found.value === 'number' || typeof found.value === 'boolean') {
+        return found.value;
+      }
+      return found.value;
+    });
+  } else if (Array.isArray(obj)) {
+    return obj.map(item => replaceInputRefsWithNone(item, inputArr));
+  } else if (obj && typeof obj === 'object') {
+    const result: any = {};
+    for (const k in obj) {
+      result[k] = replaceInputRefsWithNone(obj[k], inputArr);
+    }
+    return result;
+  }
+  return obj;
+}
+
 
 // 2. Replace all e:<param> with the value from envs loaded from workspace
 // storage (async)
@@ -139,5 +178,6 @@ export function replaceAllRefs(
   let replacedIface = iface;
   replacedIface = replaceInputRefsWithBrace(replacedIface, mergedInputs);
   replacedIface = replaceInputRefsWithQuotes(replacedIface, mergedInputs);
+  replacedIface = replaceInputRefsWithNone(replacedIface, mergedInputs);
   replaceEnvRefs(replacedIface, callback);
 }
