@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import MonacoEditor from "@monaco-editor/react";
 import { FIXED_BG_THEME, defineTheme } from "./Theme";
 
@@ -9,6 +9,9 @@ interface TextEditorProps {
   showNumbers?: boolean;
   fontSize?: number;
   beforeMount?: (monaco: any) => void;
+  editorRef?: React.MutableRefObject<any>;
+  monacoRef?: React.MutableRefObject<any>;
+  setEditorReady?: (ready: boolean) => void;
 }
 
 const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
@@ -18,26 +21,24 @@ const TextEditor: React.FC<TextEditorProps> = ({
   setContent,
   language = "yaml",
   showNumbers = true,
-  fontSize = 12, // <-- Default font size
-  beforeMount, // <-- Add this line
+  fontSize = 12,
+  beforeMount,
+  editorRef,
+  monacoRef,
 }) => {
-  const monacoRef = useRef<any>(null);
-  const editorRef = useRef<any>(null);
-  const decorationsRef = useRef<string[]>([]);
-  const [editorReady, setEditorReady] = React.useState(false);
+  const localMonacoRef = useRef<any>(null);
+  const localEditorRef = useRef<any>(null);
 
-  const handleBeforeMount = (monaco: any) => {
-    monacoRef.current = monaco;
-    defineTheme(monaco);
-    beforeMount?.(monaco);
-  }
+  // Use passed refs if provided, else fallback to local refs
+  const monacoRefToUse = monacoRef || localMonacoRef;
+  const editorRefToUse = editorRef || localEditorRef;
 
   // Listen for VS Code theme changes and update Monaco theme
   useEffect(() => {
     const handler = () => {
-      if (monacoRef.current) {
-        defineTheme(monacoRef.current);
-        monacoRef.current.editor.setTheme(FIXED_BG_THEME);
+      if (monacoRefToUse.current) {
+        defineTheme(monacoRefToUse.current);
+        monacoRefToUse.current.editor.setTheme(FIXED_BG_THEME);
       }
     };
     window.addEventListener("vscode:changeColorTheme", handler);
@@ -77,10 +78,13 @@ const TextEditor: React.FC<TextEditorProps> = ({
         language={language}
         value={content}
         theme={FIXED_BG_THEME}
-        beforeMount={handleBeforeMount}
+        beforeMount={monaco => {
+          monacoRefToUse.current = monaco;
+          defineTheme(monaco);
+          beforeMount?.(monaco);
+        }}
         onMount={editor => {
-          editorRef.current = editor;
-          setEditorReady(e => !e);
+          editorRefToUse.current = editor;
         }}
         onChange={value => setContent(value ?? "")}
         options={{
