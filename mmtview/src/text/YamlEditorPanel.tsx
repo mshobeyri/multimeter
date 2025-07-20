@@ -31,19 +31,22 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     if (!model) return;
 
     try {
-      const errors = parseYamlDoc(content);
-      console.log('YAML errors:', errors);
-      if (errors && errors.length > 0) {
-        const error = errors[0];
-        // Use linePos array for start/end
-        const start = error.linePos?.[0];
-        const end = error.linePos?.[1];
-        setEditorErrorMarker(monaco, editor, {
-          message: error.message,
-          line: start ? start.line : 0,
-          column: start ? start.col : 0,
-          endColumn: end ? end.col + 1 : (start ? start.col + 2 : 2)
-        });
+      const yamlDoc = parseYamlDoc(content);
+      console.log('YAML errors:', yamlDoc);
+      if (yamlDoc.errors && yamlDoc.errors.length > 0) {
+        for (const error of yamlDoc.errors) {
+          const error = yamlDoc.errors[0];
+          // Use linePos array for start/end
+          const start = error.linePos?.[0];
+          const end = error.linePos?.[1];
+          setEditorErrorMarker(monaco, editor, {
+            message: error.message,
+            line: start ? start.line : 0,
+            column: start ? start.col : 0,
+            endColumn: end ? end.col + 1 : (start ? start.col + 2 : 2)
+
+          });
+        }
       } else {
         monaco.editor.setModelMarkers(model, "yaml", []);
       }
@@ -82,7 +85,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       matches
     );
   }, [content, editorReady]);
-
+  
   return (
     <div style={{ height: "100%" }}>
       <TextEditor

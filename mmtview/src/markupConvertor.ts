@@ -2,7 +2,7 @@ import {js2xml, xml2js} from 'xml-js';
 import YAML from 'yaml';
 
 function parseYamlDoc(yamlString: string): any {
-  return YAML.parseDocument(yamlString).errors;
+  return YAML.parseDocument(yamlString);
 }
 
 
