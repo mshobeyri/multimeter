@@ -1,6 +1,6 @@
 export const GeneralSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
-        type: { type: 'object', enum: ['api', 'env', 'var'] },
+    type: { type: 'object', enum: ['api', 'env', 'var'] },
 }
 
 export const APISchema = {
@@ -13,8 +13,34 @@ export const APISchema = {
         tags: { type: 'array', items: { type: 'string' } },
         description: { type: 'string' },
         import: { type: 'array', items: { type: 'object', additionalProperties: { type: 'string' } } },
-        inputs: { type: 'array', items: { type: 'object', additionalProperties: { type: 'string' } } },
-        outputs: { type: 'array', items: { type: 'object', additionalProperties: { type: 'string' } } },
+        inputs: {
+            type: 'array',
+            items: {
+                type: 'object',
+                additionalProperties: {
+                    anyOf: [
+                        { type: 'string' },
+                        { type: 'number' },
+                        { type: 'boolean' },
+                        { type: 'null' } // 'undefined' is not a valid JSON type, use 'null' for missing values
+                    ]
+                }
+            }
+        },
+        outputs: {
+            type: 'array',
+            items: {
+                type: 'object',
+                additionalProperties: {
+                    anyOf: [
+                        { type: 'string' },
+                        { type: 'number' },
+                        { type: 'boolean' },
+                        { type: 'null' }
+                    ]
+                }
+            }
+        },
         interfaces: {
             type: 'array',
             items: {
@@ -23,19 +49,17 @@ export const APISchema = {
                 properties: {
                     name: { type: 'string' },
                     protocol: { type: 'string', enum: ['http', 'ws'] },
-                    method: { type: 'string' },
-                    format: { type: 'string', enum: ['json', 'xml'] },
+                    method: {
+                        type: 'string',
+                        enum: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
+                    },
+                    format: { type: 'string', enum: ['json', 'xml', 'text'] },
                     endpoint: { type: 'string', format: 'uri' },
                     headers: { type: 'object', additionalProperties: { type: 'string' } },
                     body: { type: 'object', additionalProperties: true },
                     outputs: {
                         type: 'object',
-                        required: ['session', 'errors'],
-                        properties: {
-                            session: { type: 'object', properties: { json: { type: 'string' } }, additionalProperties: false },
-                            errors: { type: 'object', properties: { json: { type: 'string' } }, additionalProperties: false }
-                        },
-                        additionalProperties: false
+                        additionalProperties: true
                     }
                 },
                 additionalProperties: false
@@ -45,10 +69,22 @@ export const APISchema = {
             type: 'array',
             items: {
                 type: 'object',
-                required: ['name', 'inputs'],
+                required: ['name'],
                 properties: {
                     name: { type: 'string' },
-                    inputs: { type: 'array', items: { type: 'object', additionalProperties: { type: ['string', 'number'] } } }
+                    inputs: {
+                        type: 'array', items: {
+                            type: 'object',
+                            additionalProperties: {
+                                anyOf: [
+                                    { type: 'string' },
+                                    { type: 'number' },
+                                    { type: 'boolean' },
+                                    { type: 'null' }
+                                ]
+                            }
+                        }
+                    }
                 },
                 additionalProperties: false
             }
