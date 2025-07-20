@@ -2,8 +2,7 @@ import {js2xml, xml2js} from 'xml-js';
 import YAML from 'yaml';
 
 function parseYamlDoc(yamlString: string): any {
-  const doc = YAML.parseDocument(yamlString);
-  return doc.errors;
+  return YAML.parseDocument(yamlString).errors;
 }
 
 
@@ -18,7 +17,7 @@ function parseYaml(yamlString: string): any {
 
 function packYaml(obj: any): string {
   try {
-    return YAML.stringify(obj, {lineWidth: -1});
+    return YAML.stringify(obj);
   } catch (e) {
     console.error('Failed to stringify YAML:', e);
     return '';
