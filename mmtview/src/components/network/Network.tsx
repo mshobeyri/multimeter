@@ -100,7 +100,6 @@ export function useNetwork(): NetworkAPI {
         setConnecting(false);
       },
       onMessage: (data: string) => {
-        console.log("WebSocket message received:", data);
         setResponseBody(data);
         setLoading(false);
       },

@@ -19,7 +19,6 @@ export function replaceInputRefsWithBrace(
   }
 
   if (typeof obj === 'string') {
-    console.log('Replacing input refs in string:', obj);
     return obj.replace(/<i:([a-zA-Z0-9_]+)>/g, (_, key) => {
       const found = inputArr.find(input => input.name === key);
       if (found === undefined) {
@@ -128,7 +127,6 @@ export function replaceEnvRefs(
     vars.forEach(({name, value}) => {
       envs[name] = value;
     });
-    console.log('Loaded environment variables:', envs);
     const replaced = (function recur(o: any): any {
       if (typeof o === 'string') {
         return o.replace(/"e:([a-zA-Z0-9_]+)"/g, (_, key) => {
@@ -174,7 +172,6 @@ export function replaceAllRefs(
 
   const mergedInputs = {...flatDefaults, ...flatInputs};
 
-  console.log('Merged inputs:', mergedInputs, iface.body);
   let replacedIface = iface;
   replacedIface = replaceInputRefsWithBrace(replacedIface, mergedInputs);
   replacedIface = replaceInputRefsWithQuotes(replacedIface, mergedInputs);

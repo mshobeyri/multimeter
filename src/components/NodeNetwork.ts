@@ -54,7 +54,6 @@ export function handleNetworkMessage(
             headers: reqHeaders,
           };
           const response = await axios.request(request);
-          console.log("HTTP response received:", response);
           webviewPanel.webview.postMessage({
             command: 'network',
             action: 'http-response',
@@ -105,7 +104,6 @@ export function handleNetworkMessage(
         });
 
         ws.on('message', (data) => {
-            console.log("WebSocket message received:", data);
           webviewPanel.webview.postMessage(
               {command: 'network', action: 'ws-message', wsId, data: data.toString()});
         });

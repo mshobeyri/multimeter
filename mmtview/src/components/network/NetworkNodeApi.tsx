@@ -127,7 +127,6 @@ window.addEventListener("message", (event: MessageEvent) => {
     }
 
     // WebSocket events
-    console.log("WebSocket message received in api:", msg);
     if (msg.wsId && openWebsockets[msg.wsId]) {
         const wsListener = openWebsockets[msg.wsId];
         if (msg.action === "ws-open" && wsListener.onOpen) wsListener.onOpen();
