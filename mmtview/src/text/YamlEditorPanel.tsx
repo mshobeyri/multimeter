@@ -32,21 +32,20 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
 
     try {
       const yamlDoc = parseYamlDoc(content);
-      console.log('YAML errors:', yamlDoc);
+      let markers = [];
       if (yamlDoc.errors && yamlDoc.errors.length > 0) {
         for (const error of yamlDoc.errors) {
-          const error = yamlDoc.errors[0];
           // Use linePos array for start/end
           const start = error.linePos?.[0];
           const end = error.linePos?.[1];
-          setEditorErrorMarker(monaco, editor, {
+          markers.push({
             message: error.message,
             line: start ? start.line : 0,
             column: start ? start.col : 0,
             endColumn: end ? end.col + 1 : (start ? start.col + 2 : 2)
-
           });
         }
+        setEditorErrorMarker(monaco, editor, markers);
       } else {
         monaco.editor.setModelMarkers(model, "yaml", []);
       }
@@ -85,7 +84,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       matches
     );
   }, [content, editorReady]);
-  
+
   return (
     <div style={{ height: "100%" }}>
       <TextEditor
@@ -104,27 +103,31 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
 export default YamlEditorPanel;
 
 
-
-function setEditorErrorMarker(monaco: any, editor: any, error: { message: string, line?: number, column?: number, endColumn?: number }) {
+function setEditorErrorMarker(
+  monaco: any,
+  editor: any,
+  errors: { message: string, line?: number, column?: number, endColumn?: number }[]
+) {
   const model = editor.getModel();
   if (!model) return;
 
-  // If line/column is missing, mark the whole first line
-  const line = error.line && error.line > 0 ? error.line : 1;
-  const column = error.column && error.column > 0 ? error.column : 1;
-  const endColumn =
-    error.endColumn && error.endColumn > column
-      ? error.endColumn
-      : model.getLineMaxColumn(line);
+  const markers = errors.map(error => {
+    const line = error.line && error.line > 0 ? error.line : 1;
+    const column = error.column && error.column > 0 ? error.column : 1;
+    const endColumn =
+      error.endColumn && error.endColumn > column
+        ? error.endColumn
+        : model.getLineMaxColumn(line);
 
-  monaco.editor.setModelMarkers(model, "yaml", [
-    {
+    return {
       startLineNumber: line,
       startColumn: column,
       endLineNumber: line,
       endColumn: endColumn,
       message: error.message,
       severity: monaco.MarkerSeverity.Error,
-    }
-  ]);
+    };
+  });
+
+  monaco.editor.setModelMarkers(model, "yaml", markers);
 }
