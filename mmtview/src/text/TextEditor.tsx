@@ -25,6 +25,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
   beforeMount,
   editorRef,
   monacoRef,
+  setEditorReady,
 }) => {
   const localMonacoRef = useRef<any>(null);
   const localEditorRef = useRef<any>(null);
@@ -84,6 +85,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
           beforeMount?.(monaco);
         }}
         onMount={editor => {
+          setEditorReady && setEditorReady(true);
           editorRefToUse.current = editor;
         }}
         onChange={value => setContent(value ?? "")}
