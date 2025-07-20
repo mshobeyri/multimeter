@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { parseYaml } from "../markupConvertor";
+import { parseYamlDoc } from "../markupConvertor";
 import TextEditor from "../text/TextEditor";
 
 interface YamlEditorPanelProps {
@@ -98,42 +98,57 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     });
   };
 
-  function setEditorErrorMarker(monaco: any, editor: any, error: { message: string, line: number, column: number, endColumn?: number }) {
+  function setEditorErrorMarker(monaco: any, editor: any, error: { message: string, line?: number, column?: number, endColumn?: number }) {
     const model = editor.getModel();
     if (!model) return;
+
+    // If line/column is missing, mark the whole first line
+    const line = error.line && error.line > 0 ? error.line : 1;
+    const column = error.column && error.column > 0 ? error.column : 1;
+    const endColumn =
+      error.endColumn && error.endColumn > column
+        ? error.endColumn
+        : model.getLineMaxColumn(line);
+
     monaco.editor.setModelMarkers(model, "yaml", [
       {
-        startLineNumber: error.line,
-        startColumn: error.column,
-        endLineNumber: error.line,
-        endColumn: error.endColumn || error.column + 1,
+        startLineNumber: line,
+        startColumn: column,
+        endLineNumber: line,
+        endColumn: endColumn,
         message: error.message,
         severity: monaco.MarkerSeverity.Error,
       }
     ]);
   }
 
-  // // Validate YAML and set error marker if invalid
-  // useEffect(() => {
-  //   if (!monacoRef.current || !editorRef.current) return;
-  //   const monaco = monacoRef.current;
-  //   const editor = editorRef.current;
-  //   let error;
-  //   try {
-  //     parseYaml(content);
-  //     // Clear markers if no error
-  //     monaco.editor.setModelMarkers(editor.getModel(), "yaml", []);
-  //   } catch (e: any) {
-  //     // Example: e.message, e.mark.line, e.mark.column from js-yaml
-  //     error = {
-  //       message: e.message,
-  //       line: (e.mark?.line ?? 0) + 1, // Monaco is 1-based
-  //       column: (e.mark?.column ?? 0) + 1,
-  //       endColumn: (e.mark?.column ?? 0) + 2,
-  //     };
-  //     setEditorErrorMarker(monaco, editor, error);
-  //   }
-  // }, [content, editorReady]);
+  // Validate YAML and set error marker if invalid
+  useEffect(() => {
+    if (!monacoRef.current || !editorRef.current) return;
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) return;
+
+    try {
+      const errors = parseYamlDoc(content);
+      if (errors && errors.length > 0) {
+        const error = errors[0];
+        // Use linePos array for start/end
+        const start = error.linePos?.[0];
+        const end = error.linePos?.[1];
+        setEditorErrorMarker(monaco, editor, {
+          message: error.message,
+          line: start ? start.line : 0,
+          column: start ? start.col : 0,
+          endColumn: end ? end.col + 1 : (start ? start.col + 2 : 2)
+        });
+      } else {
+        monaco.editor.setModelMarkers(model, "yaml", []);
+      }
+    } catch (e: any) {
+    }
+  }, [content, editorReady]);
 
   // Effect to handle custom decorations
   useEffect(() => {
