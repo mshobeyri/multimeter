@@ -1,50 +1,26 @@
-export const handleBeforeMount = (monaco: any) => {
-    const keySuggestionsByParent: Record<string, any[]> = {
-        root: [
-            {
-                label: "type",
-                kind: monaco.languages.CompletionItemKind.Property,
-                insertText: "type:",
-            },
+import { APISchema } from "./Schema";
 
-            {
-                label: "tags",
-                kind: monaco.languages.CompletionItemKind.Property,
-                insertText: "tags:",
-            },
-            {
-                label: "description",
-                kind: monaco.languages.CompletionItemKind.Property,
-                insertText: "description:",
-            },
-            {
-                label: "import",
-                kind: monaco.languages.CompletionItemKind.Property,
-                insertText: "import:",
-            },
-            {
-                label: "inputs",
-                kind: monaco.languages.CompletionItemKind.Property,
-                insertText: "inputs:",
-            },
-            {
-                label: "outputs",
-                kind: monaco.languages.CompletionItemKind.Property,
-                insertText: "outputs:",
-            },
-            {
-                label: "interfaces",
-                kind: monaco.languages.CompletionItemKind.Property,
-                insertText: "interfaces:",
-            },
-        ],
-        interfaces: [
-            { label: "name", kind: monaco.languages.CompletionItemKind.Property, insertText: "- name: " },
-            { label: "protocol", kind: monaco.languages.CompletionItemKind.Property, insertText: "protocol: " },
-            { label: "format", kind: monaco.languages.CompletionItemKind.Property, insertText: "format: " },
-            { label: "endpoint", kind: monaco.languages.CompletionItemKind.Property, insertText: "endpoint: " },
-            { label: "body", kind: monaco.languages.CompletionItemKind.Property, insertText: "body: " },
-        ],
+export const handleBeforeMount = (monaco: any) => {
+    // Dynamically get root keys from APISchema
+    const rootKeys = Object.keys(APISchema.properties || {});
+    const rootSuggestions = rootKeys.map(key => ({
+        label: key,
+        kind: monaco.languages.CompletionItemKind.Property,
+        insertText: key + ":",
+    }));
+
+    // Optionally, get nested keys for interfaces, etc.
+    const interfacesProps = APISchema.properties?.interfaces?.items?.properties || {};
+    const interfacesKeys = Object.keys(interfacesProps);
+    const interfacesSuggestions = interfacesKeys.map(key => ({
+        label: key,
+        kind: monaco.languages.CompletionItemKind.Property,
+        insertText: key === "name" ? "- name: " : key + ": ",
+    }));
+
+    const keySuggestionsByParent: Record<string, any[]> = {
+        root: rootSuggestions,
+        interfaces: interfacesSuggestions,
     };
 
     monaco.languages.registerCompletionItemProvider("yaml", {
