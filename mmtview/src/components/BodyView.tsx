@@ -64,7 +64,17 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
     }, [localValue, format, value, isValid]);
 
     return (
-        <div style={{ position: "relative", height: "200px", width: "100%" }}>
+        <div
+            style={{
+                position: "relative",
+                width: "100%",
+                minHeight: 100,
+                height: 250,
+                resize: "vertical",
+                overflow: "auto",
+                borderRadius: 2,
+            }}
+        >
             <TextEditor
                 content={localValue}
                 setContent={setLocalValue}
