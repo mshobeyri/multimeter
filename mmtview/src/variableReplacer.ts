@@ -116,7 +116,6 @@ export function replaceEnvRefs(obj: InterfaceData, callback: (result: any) => vo
         return [name, isNaN(num) ? value : num];
       })
     );
-    console.log('Loaded environment variables:', envs);
 
     const replaced = [
       replaceEnvRefsWithBrace,
@@ -140,8 +139,6 @@ export function replaceAllRefs(
     ...(defaults || []),
     ...(inputs || [])
   );
-
-  console.log('Merged inputs:', mergedInputs);
 
   const replacedIface = [
     replaceInputRefsWithBrace,
