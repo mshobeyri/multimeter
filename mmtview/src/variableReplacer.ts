@@ -107,7 +107,13 @@ export function replaceEnvRefsWithNone(obj: any, inputs: Parameter[] | Parameter
 // Wrapper for async env replacement
 export function replaceEnvRefs(obj: InterfaceData, callback: (result: any) => void) {
   loadEnvVariables(vars => {
-    const envs: Parameter = Object.fromEntries(vars.map(({ name, value }) => [name, value]));
+    // Parse numbers if possible, otherwise keep as string
+    const envs: Parameter = Object.fromEntries(
+      vars.map(({ name, value }) => {
+        const num = Number(value);
+        return [name, isNaN(num) ? value : num];
+      })
+    );
     console.log('Loaded environment variables:', envs);
 
     const replaced = [
