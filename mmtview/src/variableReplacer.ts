@@ -110,8 +110,8 @@ export function replaceEnvRefs(obj: InterfaceData, callback: (result: any) => vo
     // Parse numbers and booleans if possible, otherwise keep as string
     const envs: Parameter = Object.fromEntries(
       vars.map(({ name, value }) => {
-        if (value === "true") return [name, true];
-        if (value === "false") return [name, false];
+        if (value === "true") { return [name, true]; }
+        if (value === "false") { return [name, false]; }
         const num = Number(value);
         return [name, isNaN(num) ? value : num];
       })
