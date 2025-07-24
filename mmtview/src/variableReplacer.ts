@@ -118,8 +118,115 @@ export function replaceInputRefsWithNone(
 }
 
 
-// 2. Replace all e:<param> with the value from envs loaded from workspace
-// storage (async)
+export function replaceEnvRefsWithBrace(
+    obj: any, inputs: Parameter[]|Record<string, string|number|boolean>): any {
+  // Convert inputs to array if it's an object
+  let inputArr: Array<{name: string; value: any}> = [];
+  if (Array.isArray(inputs)) {
+    inputArr = inputs as any;
+  } else if (inputs && typeof inputs === 'object') {
+    inputArr = Object.entries(inputs).map(([name, value]) => ({name, value}));
+  }
+
+  if (typeof obj === 'string') {
+    return obj.replace(/<e:([a-zA-Z0-9_]+)>/g, (_, key) => {
+      const found = inputArr.find(input => input.name === key);
+      if (found === undefined) {
+        return `e:${key}`;
+      }
+      if (typeof found.value === 'string') {
+        return found.value;
+      }
+      if (typeof found.value === 'number' || typeof found.value === 'boolean') {
+        return String(found.value);
+      }
+      return found.value;
+    });
+  } else if (Array.isArray(obj)) {
+    return obj.map(item => replaceEnvRefsWithBrace(item, inputArr));
+  } else if (obj && typeof obj === 'object') {
+    const result: any = {};
+    for (const k in obj) {
+      result[k] = replaceEnvRefsWithBrace(obj[k], inputArr);
+    }
+    return result;
+  }
+  return obj;
+}
+
+export function replaceEnvRefsWithQuotes(
+    obj: any, inputs: Parameter[]|Record<string, string|number|boolean>): any {
+  // Convert inputs to array if it's an object
+  let inputArr: Array<{name: string; value: any}> = [];
+  if (Array.isArray(inputs)) {
+    inputArr = inputs as any;
+  } else if (inputs && typeof inputs === 'object') {
+    inputArr = Object.entries(inputs).map(([name, value]) => ({name, value}));
+  }
+
+  if (typeof obj === 'string') {
+    return obj.replace(/"e:([a-zA-Z0-9_]+)"/g, (_, key) => {
+      const found = inputArr.find(input => input.name === key);
+      if (found === undefined) {
+        return `"e:${key}"`;
+      }
+      if (typeof found.value === 'string') {
+        return `"${found.value}"`;
+      }
+      if (typeof found.value === 'number' || typeof found.value === 'boolean') {
+        return found.value;
+      }
+      return found.value;
+    });
+  } else if (Array.isArray(obj)) {
+    return obj.map(item => replaceEnvRefsWithQuotes(item, inputArr));
+  } else if (obj && typeof obj === 'object') {
+    const result: any = {};
+    for (const k in obj) {
+      result[k] = replaceEnvRefsWithQuotes(obj[k], inputArr);
+    }
+    return result;
+  }
+  return obj;
+}
+
+
+export function replaceEnvRefsWithNone(
+    obj: any, inputs: Parameter[]|Record<string, string|number|boolean>): any {
+  // Convert inputs to array if it's an object
+  let inputArr: Array<{name: string; value: any}> = [];
+  if (Array.isArray(inputs)) {
+    inputArr = inputs as any;
+  } else if (inputs && typeof inputs === 'object') {
+    inputArr = Object.entries(inputs).map(([name, value]) => ({name, value}));
+  }
+
+  if (typeof obj === 'string') {
+    return obj.replace(/e:([a-zA-Z0-9_]+)/g, (_, key) => {
+      const found = inputArr.find(input => input.name === key);
+      if (found === undefined) {
+        return `e:${key}`;
+      }
+      if (typeof found.value === 'string') {
+        return `${found.value}`;
+      }
+      if (typeof found.value === 'number' || typeof found.value === 'boolean') {
+        return found.value;
+      }
+      return found.value;
+    });
+  } else if (Array.isArray(obj)) {
+    return obj.map(item => replaceEnvRefsWithNone(item, inputArr));
+  } else if (obj && typeof obj === 'object') {
+    const result: any = {};
+    for (const k in obj) {
+      result[k] = replaceEnvRefsWithNone(obj[k], inputArr);
+    }
+    return result;
+  }
+  return obj;
+}
+
 export function replaceEnvRefs(
     obj: InterfaceData, callback: (result: any) => void) {
   loadEnvVariables((vars) => {
@@ -127,33 +234,10 @@ export function replaceEnvRefs(
     vars.forEach(({name, value}) => {
       envs[name] = value;
     });
-    const replaced = (function recur(o: any): any {
-      if (typeof o === 'string') {
-        return o.replace(/"e:([a-zA-Z0-9_]+)"/g, (_, key) => {
-          const found = envs[key];
-          if (found === undefined) {
-            return `"i:${key}"`;
-          }
-          if (typeof found === 'string') {
-            return `"${found}"`;
-          }
-          if (typeof found === 'number' || typeof found === 'boolean') {
-            return String(found);
-          }
-          return String(found);
-        });
-      }
-      else if (Array.isArray(o)) {
-        return o.map(item => recur(item));
-      } else if (o && typeof o === 'object') {
-        const result: any = {};
-        for (const k in o) {
-          result[k] = recur(o[k]);
-        }
-        return result;
-      }
-      return o;
-    })(obj);
+    console.log('Loaded environment variables:', envs);
+    let replaced = replaceEnvRefsWithBrace(obj, envs);
+    replaced = replaceEnvRefsWithQuotes(replaced, envs);
+    replaced = replaceEnvRefsWithNone(replaced, envs);
     callback(replaced);
   });
 }
@@ -171,6 +255,9 @@ export function replaceAllRefs(
       {};
 
   const mergedInputs = {...flatDefaults, ...flatInputs};
+
+  console.log('Merged inputs:', mergedInputs);
+  
 
   let replacedIface = iface;
   replacedIface = replaceInputRefsWithBrace(replacedIface, mergedInputs);

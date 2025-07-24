@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { InterfaceData, APIData } from "./APIData";
 import KVEditor from "../components/KVEditor";
 import BodyView from "../components/BodyView";
@@ -7,6 +7,7 @@ import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
 import { useNetwork } from "../components/network/Network";
 import { replaceAllRefs } from "../variableReplacer";
+import EndpointInput from "../components/EndpointInput";
 
 
 interface APITestProps {
@@ -22,27 +23,44 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
 
   const network = useNetwork();
 
-  useEffect(() => {
-    if (interfaces[selectedInterfaceIdx]) {
-      network.setRequestData({ ...interfaces[selectedInterfaceIdx] });
-    }
-  }, [selectedInterfaceIdx, interfaces]);
+  const req = network.requestData || {};
 
+  // Only call onChange if endpoint value actually changed
+  const handleEndpointChange = useCallback(
+    (newEndpoint: string) => {
+      if (newEndpoint !== req.endpoint) {
+        req.endpoint = newEndpoint;
+      }
+    },
+    [req.endpoint, req.params]
+  );
+
+  // Only call onChange if query value actually changed
+  const handleQueryChange = useCallback(
+    (query: Record<string, string>) => {
+      // Compare stringified versions for shallow equality
+      const prev = JSON.stringify(req.params || {});
+      const next = JSON.stringify(query || {});
+      if (prev !== next) {
+        network.setRequestData({
+          ...network.requestData,
+          params: query,
+        });
+      }
+    },
+    [req.endpoint, req.params]
+  );
+  
   useEffect(() => {
     const iface = { ...interfaces[selectedInterfaceIdx] };
     const selectedExample = examples[selectedExampleIdx] || {};
     iface.body = formatBody(iface.format || "json", iface.body || "")
     replaceAllRefs(iface, api?.inputs ?? [], selectedExample?.inputs ?? [], (replaced) => {
       setBody(replaced.body);
+      console.log("Replaced body:", replaced);
       network.setRequestData(replaced);
     });
   }, [api, selectedInterfaceIdx, selectedExampleIdx]);
-
-  // useEffect(() => {
-  //   setBody(
-  //     formatBody(network.requestData?.format || "json", network.requestData?.body || "")
-  //   );
-  // }, [network.requestData?.format, selectedExampleIdx]);
 
   const updateField = (field: keyof InterfaceData, value: any) => {
     network.setRequestData({
@@ -72,8 +90,6 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   if (interfaces.length === 0) {
     return <div style={{ color: "#888" }}>No interfaces defined.</div>;
   }
-
-  const req = network.requestData || {};
 
   return (
     <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
@@ -129,10 +145,11 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         <tr>
           <td className="label">endpoint</td>
           <td style={{ padding: "8px" }}>
-            <input
-              style={{ width: "100%" }}
-              value={req.endpoint || ""}
-              onChange={e => updateField("endpoint", e.target.value)}
+            <EndpointInput
+              endpoint={req.endpoint ?? ""}
+              query={req.params || {}}
+              onEndpointChange={handleEndpointChange}
+              onQueryChange={handleQueryChange}
             />
           </td>
         </tr>
