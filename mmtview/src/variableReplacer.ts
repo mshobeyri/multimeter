@@ -1,267 +1,145 @@
-import {InterfaceData} from './api/APIData';
-import {loadEnvVariables} from './workspaceStorage';
+import { InterfaceData } from './api/APIData';
+import { loadEnvVariables } from './workspaceStorage';
 
-// 1. Replace all i:<param> with the value from inputs
+export type Parameter = Record<string, string | number | boolean>;
 
-
-export type Parameter = {
-  [key: string]: string|number|boolean
-};
-
-export function replaceInputRefsWithBrace(
-    obj: any, inputs: Parameter[]|Record<string, string|number|boolean>): any {
-  // Convert inputs to array if it's an object
-  let inputArr: Array<{name: string; value: any}> = [];
+// Utility to normalize inputs to a consistent array format
+function normalizeInputs(inputs: Parameter[] | Parameter): Array<{ name: string; value: any }> {
   if (Array.isArray(inputs)) {
-    inputArr = inputs as any;
-  } else if (inputs && typeof inputs === 'object') {
-    inputArr = Object.entries(inputs).map(([name, value]) => ({name, value}));
+    return inputs as any;
+  }
+  return Object.entries(inputs).map(([name, value]) => ({ name, value }));
+}
+
+// Generic replacement function
+function replaceRefs(
+  obj: any,
+  pattern: RegExp,
+  wrapper: (key: string, found?: { name: string; value: any }) => string | number,
+  inputs: Array<{ name: string; value: any }>
+): any {
+  if (typeof obj === 'string') {
+    return obj.replace(pattern, (_, key) => {
+      const found = inputs.find(input => input.name === key);
+      // Ensure the replacement is always a string
+      return String(wrapper(key, found));
+    });
   }
 
-  if (typeof obj === 'string') {
-    return obj.replace(/<i:([a-zA-Z0-9_]+)>/g, (_, key) => {
-      const found = inputArr.find(input => input.name === key);
-      if (found === undefined) {
-        return `i:${key}`;
-      }
-      if (typeof found.value === 'string') {
-        return found.value;
-      }
-      if (typeof found.value === 'number' || typeof found.value === 'boolean') {
-        return String(found.value);
-      }
-      return found.value;
-    });
-  } else if (Array.isArray(obj)) {
-    return obj.map(item => replaceInputRefsWithBrace(item, inputArr));
-  } else if (obj && typeof obj === 'object') {
-    const result: any = {};
-    for (const k in obj) {
-      result[k] = replaceInputRefsWithBrace(obj[k], inputArr);
-    }
-    return result;
+  if (Array.isArray(obj)) {
+    return obj.map(item => replaceRefs(item, pattern, wrapper, inputs));
   }
+
+  if (obj && typeof obj === 'object') {
+    return Object.fromEntries(
+      Object.entries(obj).map(([k, v]) => [k, replaceRefs(v, pattern, wrapper, inputs)])
+    );
+  }
+
   return obj;
 }
 
-export function replaceInputRefsWithQuotes(
-    obj: any, inputs: Parameter[]|Record<string, string|number|boolean>): any {
-  // Convert inputs to array if it's an object
-  let inputArr: Array<{name: string; value: any}> = [];
-  if (Array.isArray(inputs)) {
-    inputArr = inputs as any;
-  } else if (inputs && typeof inputs === 'object') {
-    inputArr = Object.entries(inputs).map(([name, value]) => ({name, value}));
-  }
+// Specific replacers
+export function replaceInputRefsWithBrace(obj: any, inputs: Parameter[] | Parameter): any {
+  return replaceRefs(
+    obj,
+    /<i:([a-zA-Z0-9_]+)>/g,
+    (key, found) => found ? String(found.value) : `i:${key}`,
+    normalizeInputs(inputs)
+  );
+}
 
-  if (typeof obj === 'string') {
-    return obj.replace(/"i:([a-zA-Z0-9_]+)"/g, (_, key) => {
-      const found = inputArr.find(input => input.name === key);
-      if (found === undefined) {
+export function replaceInputRefsWithQuotes(obj: any, inputs: Parameter[] | Parameter): any {
+  return replaceRefs(
+    obj,
+    /"i:([a-zA-Z0-9_]+)"/g,
+    (key, found) => {
+      if (!found) {
         return `"i:${key}"`;
       }
-      if (typeof found.value === 'string') {
-        return `"${found.value}"`;
-      }
-      if (typeof found.value === 'number' || typeof found.value === 'boolean') {
-        return found.value;
-      }
-      return found.value;
-    });
-  } else if (Array.isArray(obj)) {
-    return obj.map(item => replaceInputRefsWithQuotes(item, inputArr));
-  } else if (obj && typeof obj === 'object') {
-    const result: any = {};
-    for (const k in obj) {
-      result[k] = replaceInputRefsWithQuotes(obj[k], inputArr);
-    }
-    return result;
-  }
-  return obj;
+      return typeof found.value === 'string' ? `"${found.value}"` : found.value;
+    },
+    normalizeInputs(inputs)
+  );
 }
 
-
-export function replaceInputRefsWithNone(
-    obj: any, inputs: Parameter[]|Record<string, string|number|boolean>): any {
-  // Convert inputs to array if it's an object
-  let inputArr: Array<{name: string; value: any}> = [];
-  if (Array.isArray(inputs)) {
-    inputArr = inputs as any;
-  } else if (inputs && typeof inputs === 'object') {
-    inputArr = Object.entries(inputs).map(([name, value]) => ({name, value}));
-  }
-
-  if (typeof obj === 'string') {
-    return obj.replace(/i:([a-zA-Z0-9_]+)/g, (_, key) => {
-      const found = inputArr.find(input => input.name === key);
-      if (found === undefined) {
-        return `i:${key}`;
-      }
-      if (typeof found.value === 'string') {
-        return `${found.value}`;
-      }
-      if (typeof found.value === 'number' || typeof found.value === 'boolean') {
-        return found.value;
-      }
-      return found.value;
-    });
-  } else if (Array.isArray(obj)) {
-    return obj.map(item => replaceInputRefsWithNone(item, inputArr));
-  } else if (obj && typeof obj === 'object') {
-    const result: any = {};
-    for (const k in obj) {
-      result[k] = replaceInputRefsWithNone(obj[k], inputArr);
-    }
-    return result;
-  }
-  return obj;
+export function replaceInputRefsWithNone(obj: any, inputs: Parameter[] | Parameter): any {
+  return replaceRefs(
+    obj,
+    /i:([a-zA-Z0-9_]+)/g,
+    (key, found) => found ? found.value : `i:${key}`,
+    normalizeInputs(inputs)
+  );
 }
 
-
-export function replaceEnvRefsWithBrace(
-    obj: any, inputs: Parameter[]|Record<string, string|number|boolean>): any {
-  // Convert inputs to array if it's an object
-  let inputArr: Array<{name: string; value: any}> = [];
-  if (Array.isArray(inputs)) {
-    inputArr = inputs as any;
-  } else if (inputs && typeof inputs === 'object') {
-    inputArr = Object.entries(inputs).map(([name, value]) => ({name, value}));
-  }
-
-  if (typeof obj === 'string') {
-    return obj.replace(/<e:([a-zA-Z0-9_]+)>/g, (_, key) => {
-      const found = inputArr.find(input => input.name === key);
-      if (found === undefined) {
-        return `e:${key}`;
-      }
-      if (typeof found.value === 'string') {
-        return found.value;
-      }
-      if (typeof found.value === 'number' || typeof found.value === 'boolean') {
-        return String(found.value);
-      }
-      return found.value;
-    });
-  } else if (Array.isArray(obj)) {
-    return obj.map(item => replaceEnvRefsWithBrace(item, inputArr));
-  } else if (obj && typeof obj === 'object') {
-    const result: any = {};
-    for (const k in obj) {
-      result[k] = replaceEnvRefsWithBrace(obj[k], inputArr);
-    }
-    return result;
-  }
-  return obj;
+export function replaceEnvRefsWithBrace(obj: any, inputs: Parameter[] | Parameter): any {
+  return replaceRefs(
+    obj,
+    /<e:([a-zA-Z0-9_]+)>/g,
+    (key, found) => found ? String(found.value) : `e:${key}`,
+    normalizeInputs(inputs)
+  );
 }
 
-export function replaceEnvRefsWithQuotes(
-    obj: any, inputs: Parameter[]|Record<string, string|number|boolean>): any {
-  // Convert inputs to array if it's an object
-  let inputArr: Array<{name: string; value: any}> = [];
-  if (Array.isArray(inputs)) {
-    inputArr = inputs as any;
-  } else if (inputs && typeof inputs === 'object') {
-    inputArr = Object.entries(inputs).map(([name, value]) => ({name, value}));
-  }
-
-  if (typeof obj === 'string') {
-    return obj.replace(/"e:([a-zA-Z0-9_]+)"/g, (_, key) => {
-      const found = inputArr.find(input => input.name === key);
-      if (found === undefined) {
+export function replaceEnvRefsWithQuotes(obj: any, inputs: Parameter[] | Parameter): any {
+  return replaceRefs(
+    obj,
+    /"e:([a-zA-Z0-9_]+)"/g,
+    (key, found) => {
+      if (!found) {
         return `"e:${key}"`;
       }
-      if (typeof found.value === 'string') {
-        return `"${found.value}"`;
-      }
-      if (typeof found.value === 'number' || typeof found.value === 'boolean') {
-        return found.value;
-      }
-      return found.value;
-    });
-  } else if (Array.isArray(obj)) {
-    return obj.map(item => replaceEnvRefsWithQuotes(item, inputArr));
-  } else if (obj && typeof obj === 'object') {
-    const result: any = {};
-    for (const k in obj) {
-      result[k] = replaceEnvRefsWithQuotes(obj[k], inputArr);
-    }
-    return result;
-  }
-  return obj;
+      return typeof found.value === 'string' ? `"${found.value}"` : found.value;
+    },
+    normalizeInputs(inputs)
+  );
 }
 
-
-export function replaceEnvRefsWithNone(
-    obj: any, inputs: Parameter[]|Record<string, string|number|boolean>): any {
-  // Convert inputs to array if it's an object
-  let inputArr: Array<{name: string; value: any}> = [];
-  if (Array.isArray(inputs)) {
-    inputArr = inputs as any;
-  } else if (inputs && typeof inputs === 'object') {
-    inputArr = Object.entries(inputs).map(([name, value]) => ({name, value}));
-  }
-
-  if (typeof obj === 'string') {
-    return obj.replace(/e:([a-zA-Z0-9_]+)/g, (_, key) => {
-      const found = inputArr.find(input => input.name === key);
-      if (found === undefined) {
-        return `e:${key}`;
-      }
-      if (typeof found.value === 'string') {
-        return `${found.value}`;
-      }
-      if (typeof found.value === 'number' || typeof found.value === 'boolean') {
-        return found.value;
-      }
-      return found.value;
-    });
-  } else if (Array.isArray(obj)) {
-    return obj.map(item => replaceEnvRefsWithNone(item, inputArr));
-  } else if (obj && typeof obj === 'object') {
-    const result: any = {};
-    for (const k in obj) {
-      result[k] = replaceEnvRefsWithNone(obj[k], inputArr);
-    }
-    return result;
-  }
-  return obj;
+export function replaceEnvRefsWithNone(obj: any, inputs: Parameter[] | Parameter): any {
+  return replaceRefs(
+    obj,
+    /e:([a-zA-Z0-9_]+)/g,
+    (key, found) => found ? found.value : `e:${key}`,
+    normalizeInputs(inputs)
+  );
 }
 
-export function replaceEnvRefs(
-    obj: InterfaceData, callback: (result: any) => void) {
-  loadEnvVariables((vars) => {
-    const envs: Record<string, string|number|boolean> = {};
-    vars.forEach(({name, value}) => {
-      envs[name] = value;
-    });
+// Wrapper for async env replacement
+export function replaceEnvRefs(obj: InterfaceData, callback: (result: any) => void) {
+  loadEnvVariables(vars => {
+    const envs: Parameter = Object.fromEntries(vars.map(({ name, value }) => [name, value]));
     console.log('Loaded environment variables:', envs);
-    let replaced = replaceEnvRefsWithBrace(obj, envs);
-    replaced = replaceEnvRefsWithQuotes(replaced, envs);
-    replaced = replaceEnvRefsWithNone(replaced, envs);
+
+    const replaced = [
+      replaceEnvRefsWithBrace,
+      replaceEnvRefsWithQuotes,
+      replaceEnvRefsWithNone
+    ].reduce((acc, fn) => fn(acc, envs), obj);
+
     callback(replaced);
   });
 }
 
-// 3. Replace i:<var> with input vars, then e:<var> with workspace saved vars
-// (async)
+// Replaces all references (inputs first, then environment vars)
 export function replaceAllRefs(
-    iface: InterfaceData, defaults: Parameter[], inputs: Parameter[],
-    callback: (result: any) => void) {
-  const flatDefaults = defaults && defaults.length > 0 ?
-      defaults.reduce((acc, cur) => ({...acc, ...cur})) :
-      {};
-  const flatInputs = inputs && inputs.length > 0 ?
-      inputs.reduce((acc, cur) => ({...acc, ...cur})) :
-      {};
-
-  const mergedInputs = {...flatDefaults, ...flatInputs};
+  iface: InterfaceData,
+  defaults: Parameter[],
+  inputs: Parameter[],
+  callback: (result: any) => void
+) {
+  const mergedInputs = Object.assign(
+    {},
+    ...(defaults || []),
+    ...(inputs || [])
+  );
 
   console.log('Merged inputs:', mergedInputs);
-  
 
-  let replacedIface = iface;
-  replacedIface = replaceInputRefsWithBrace(replacedIface, mergedInputs);
-  replacedIface = replaceInputRefsWithQuotes(replacedIface, mergedInputs);
-  replacedIface = replaceInputRefsWithNone(replacedIface, mergedInputs);
+  const replacedIface = [
+    replaceInputRefsWithBrace,
+    replaceInputRefsWithQuotes,
+    replaceInputRefsWithNone
+  ].reduce((acc, fn) => fn(acc, mergedInputs), iface);
+
   replaceEnvRefs(replacedIface, callback);
 }
