@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useEffect, useState } from "react";
 import FieldWithRemove from "../components/FieldWithRemove";
 import KVEditor from "../components/KVEditor";
-import EndpointInput from "../components/EndpointInput";
+import UrlInput from "../components/UrlInput";
 import { InterfaceData } from "./APIData";
 import { Protocol, Method, Format } from "../CommonData"
 import { formatBody, formattedBodyToYamlObject } from "../markupConvertor";
@@ -18,8 +18,8 @@ const formatOptions: Format[] = ["json", "xml", "text"];
 const methodOptions: Method[] = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
 
 const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRemove }) => {
-  // Split endpoint and query string safely
-  const endpoint = (data.endpoint || "").split("?")[0];
+  // Split url and query string safely
+  const url = (data.url || "").split("?")[0];
 
   // State for formatted body
   const [formattedBody, setFormattedBody] = useState<string>(
@@ -31,13 +31,13 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
     setFormattedBody(formatBody(data.format, data.body || ""));
   }, [data.body, data.format]);
 
-  // Only call onChange if endpoint value actually changed
-  const handleEndpointChange = useCallback(
-    (newEndpoint: string) => {
-      if (newEndpoint !== data.endpoint) {
+  // Only call onChange if url value actually changed
+  const handleUrlChange = useCallback(
+    (newUrl: string) => {
+      if (newUrl !== data.url) {
         onChange({
           ...data,
-          endpoint: newEndpoint,
+          url: newUrl,
         });
       }
     },
@@ -118,12 +118,12 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
           </td>
         </tr>
         <tr>
-          <td className="label">endpoint</td>
+          <td className="label">url</td>
           <td style={{ padding: "8px" }}>
-            <EndpointInput
-              endpoint={endpoint}
+            <UrlInput
+              url={url}
               query={data.query || {}}
-              onEndpointChange={handleEndpointChange}
+              onUrlChange={handleUrlChange}
               onQueryChange={handleQueryChange}
             />
           </td>
@@ -148,7 +148,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
         ) : null}
         {data.protocol === "http" || (data.query && Object.keys(data.query).length > 0) ? (
           <KVEditor
-            label="url params"
+            label="query"
             value={data.query}
             onChange={handleQueryChange}
             disabled={data.protocol !== "http"}

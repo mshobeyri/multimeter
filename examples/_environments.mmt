@@ -1,6 +1,6 @@
 type: env
 variables:
-  endpoint: 
+  url: 
     st: st.abn.com
     et: et.abn.com
     pr: pr.abn.com
@@ -20,10 +20,10 @@ presets:
   runner:
     dev:
         test_type: smoke
-        endpoint: st
+        url: st
     ci:
         test_type: regression
-        endpoint: st
+        url: st
     cd:
         test_type: all
-        endpoint: et
+        url: et

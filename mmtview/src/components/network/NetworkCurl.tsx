@@ -2,7 +2,7 @@ import { Request } from "./NetworkData";
 
 export function buildCurlCommand(options: Request): string {
     const {
-        endpoint = "",
+        url = "",
         method = "GET",
         headers = {},
         body,
@@ -28,15 +28,15 @@ export function buildCurlCommand(options: Request): string {
         curlCmd.push(`--data '${bodyStr}'`);
     }
 
-    let finalEndpoint = endpoint;
+    let finalUrl = url;
     if (params && Object.keys(params).length > 0) {
         const paramStr = Object.entries(params)
             .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
             .join("&");
-        finalEndpoint += (finalEndpoint.includes("?") ? "&" : "?") + paramStr;
+        finalUrl += (finalUrl.includes("?") ? "&" : "?") + paramStr;
     }
 
-    curlCmd.push(`"${finalEndpoint}"`);
+    curlCmd.push(`"${finalUrl}"`);
     return curlCmd.join(" ");
 }
 

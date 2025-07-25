@@ -45,7 +45,7 @@ export const APISchema = {
             type: 'array',
             items: {
                 type: 'object',
-                required: ['name', 'protocol', 'method', 'format', 'endpoint', 'headers', 'body', 'outputs'],
+                required: ['name', 'protocol', 'method', 'format', 'url', 'headers', 'body', 'outputs'],
                 properties: {
                     name: { type: 'string' },
                     protocol: { type: 'string', enum: ['http', 'ws'] },
@@ -54,7 +54,7 @@ export const APISchema = {
                         enum: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
                     },
                     format: { type: 'string', enum: ['json', 'xml', 'text'] },
-                    endpoint: { type: 'string', format: 'uri' },
+                    url: { type: 'string', format: 'uri' },
                     headers: { type: 'object', additionalProperties: { type: 'string' } },
                     body: { type: 'object', additionalProperties: true },
                     outputs: {

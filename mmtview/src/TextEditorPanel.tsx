@@ -190,7 +190,7 @@ const TextEditorPanel: React.FC<TextEditorPanelProps> = ({
         { label: "name", kind: monaco.languages.CompletionItemKind.Property, insertText: "- name: " },
         { label: "protocol", kind: monaco.languages.CompletionItemKind.Property, insertText: "protocol: " },
         { label: "format", kind: monaco.languages.CompletionItemKind.Property, insertText: "format: " },
-        { label: "endpoint", kind: monaco.languages.CompletionItemKind.Property, insertText: "endpoint: " },
+        { label: "url", kind: monaco.languages.CompletionItemKind.Property, insertText: "url: " },
         { label: "body", kind: monaco.languages.CompletionItemKind.Property, insertText: "body: " },
       ],
     };

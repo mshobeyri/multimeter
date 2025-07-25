@@ -4,7 +4,7 @@ import WebSocket from 'ws';
 
 export type NetworkMessage =|{
   command: 'network', action: 'http-send';
-  endpoint: string;
+  url: string;
   method?: string;
   headers?: Record<string, string>;
   body?: any;
@@ -14,7 +14,7 @@ export type NetworkMessage =|{
 }
 |{
   command: 'network', action: 'ws-connect';
-  endpoint: string;
+  url: string;
   wsId: string
 }
 |{
@@ -35,7 +35,7 @@ export function handleNetworkMessage(
       (async () => {
 
         try {
-          const {endpoint, method = 'GET', headers = {}, body, params, cookies, requestId} =
+          const {url, method = 'GET', headers = {}, body, params, cookies, requestId} =
               message;
 
           let reqHeaders = {...headers};
@@ -46,7 +46,7 @@ export function handleNetworkMessage(
           }
 
           let request = {
-            url: endpoint,
+            url: url,
             method,
             data: body,
             params,
@@ -77,12 +77,12 @@ export function handleNetworkMessage(
 
     case 'ws-connect':
       try {
-        const {endpoint, wsId} = message;
+        const {url, wsId} = message;
         if (wsConnections[wsId]) {
           wsConnections[wsId].close();
           delete wsConnections[wsId];
         }
-        const ws = new WebSocket(endpoint);
+        const ws = new WebSocket(url);
         wsConnections[wsId] = ws;
 
         ws.on('open', () => {

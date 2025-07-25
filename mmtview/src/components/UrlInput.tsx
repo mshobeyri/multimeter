@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 
-interface EndpointInputProps {
-  endpoint: string;
+interface UrlInputProps {
+  url: string;
   query: Record<string, string>;
-  onEndpointChange: (endpoint: string) => void;
+  onUrlChange: (url: string) => void;
   onQueryChange: (query: Record<string, string>) => void;
 }
 
@@ -33,25 +33,25 @@ function buildQueryString(params: Record<string, string> = {}) {
   );
 }
 
-const EndpointInput: React.FC<EndpointInputProps> = ({
-  endpoint,
+const UrlInput: React.FC<UrlInputProps> = ({
+  url,
   query,
-  onEndpointChange,
+  onUrlChange,
   onQueryChange
 }) => {
-  const [inputValue, setInputValue] = useState(endpoint + buildQueryString(query));
+  const [inputValue, setInputValue] = useState(url + buildQueryString(query));
   const isUserInput = useRef(false);
 
   // Only update inputValue from parent if not editing
   useEffect(() => {
-    const composed = endpoint + buildQueryString(query);
+    const composed = url + buildQueryString(query);
     if (!isUserInput.current && composed !== inputValue) {
       setInputValue(composed);
     }
     // Reset user input flag after sync
     isUserInput.current = false;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [endpoint, query]);
+  }, [url, query]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -59,7 +59,7 @@ const EndpointInput: React.FC<EndpointInputProps> = ({
     isUserInput.current = true;
     const [base, ...queryParts] = value.split("?");
     const queryStr = queryParts.join("?");
-    onEndpointChange(base); // Always call, let parent decide to update or not
+    onUrlChange(base); // Always call, let parent decide to update or not
     onQueryChange(parseQueryString(queryStr));
   };
 
@@ -72,4 +72,4 @@ const EndpointInput: React.FC<EndpointInputProps> = ({
   );
 };
 
-export default EndpointInput;
+export default UrlInput;

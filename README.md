@@ -38,7 +38,7 @@ interfaces:
     protocol: http
     format: json
     method: POST
-    endpoint: https://httpbin.org/s
+    url: https://httpbin.org/s
     headers:
       traceId: i:traceId
       content-type: application/json

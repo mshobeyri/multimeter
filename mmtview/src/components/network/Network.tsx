@@ -35,7 +35,7 @@ export function useNetwork(): NetworkAPI {
     }
     const opts = requestData;
     const {
-      endpoint = requestData.endpoint,
+      url = requestData.url,
       method = requestData.method || "GET",
       headers = requestData.headers,
       body = requestData.body,
@@ -46,7 +46,7 @@ export function useNetwork(): NetworkAPI {
 
     if (protocol === "http") {
       NetworkNodeApi.sendHttp({
-        endpoint: endpoint ?? "",
+        url: url ?? "",
         method,
         headers,
         body,
@@ -84,7 +84,7 @@ export function useNetwork(): NetworkAPI {
     setConnecting(true);
     const opts = requestData ?? {};
     const {
-      endpoint = "",
+      url = "",
       protocol = "http",
     } = opts;
 
@@ -94,7 +94,7 @@ export function useNetwork(): NetworkAPI {
     }
 
     const websocketId = NetworkNodeApi.connectWs({
-      endpoint,
+      url,
       onOpen: () => {
         setConnected(true);
         setConnecting(false);

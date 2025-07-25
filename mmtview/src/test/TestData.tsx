@@ -27,7 +27,7 @@ export interface TestFlowCallTest {
 export interface TestFlowCallAPI {
   target: string;
   interface?: string;
-  endpoint?: string;
+  url?: string;
   headers?: Record<string, string>;
   inputs?: Record<string, any>;
   outputs?: Record<string, any>;
@@ -38,7 +38,7 @@ export interface TestFlowCallHTTP {
   target: "http";
   protocol: Protocol;
   format: Format;
-  endpoint: string;
+  url: string;
   method?: Method;
   headers?: Record<string, string>;
   body?: string | object;
@@ -50,7 +50,7 @@ export interface TestFlowCallHTTP {
 export interface TestFlowCallWS {
   target: "ws";
   format: Format;
-  endpoint: string
+  url: string
   body?: string | object;
 }
 

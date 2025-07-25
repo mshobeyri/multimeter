@@ -4,7 +4,7 @@ export interface InterfaceData {
   name: string;
   protocol: Protocol;
   format: Format;
-  endpoint: string;
+  url: string;
   method?: Method;
   headers?: Record<string, string>;
   body?: string | object;

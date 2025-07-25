@@ -1,5 +1,5 @@
 export interface Request {
-  endpoint?: string;
+  url?: string;
   protocol?: "http" | "ws";
   format?: "json" | "xml" | "text";
   method?: string;

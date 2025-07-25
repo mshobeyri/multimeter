@@ -7,7 +7,7 @@ import:
 inputs:
   - username: string
   - password: string
-  - endpoint: string
+  - url: string
   - traceId: string
 outputs:
   - session: string
@@ -16,7 +16,7 @@ interfaces:
   - name: ws-json
     protocol: ws
     format: json
-    endpoint: i:endpoint
+    url: i:url
     body:
       username: i:username
       password: i:password
@@ -29,11 +29,11 @@ interfaces:
     protocol: http
     format: xml
     method: POST
-    endpoint: https://httpbin.org/s
+    url: https://httpbin.org/s
     headers:
       traceId: i:traceId
       content-type: application/xml
-      endpoint: i:endpoint
+      url: i:url
     body:
       soapenv:Envlope:
         soapenv:Headers: null
@@ -46,19 +46,19 @@ interfaces:
         regex: body, /<session>(.*)<\\/session>/
       errors: body.errors[]
     query:
-      endpoint: i:endpoint
+      url: i:url
 examples:
   - name: example1
     description: mehrdad
     inputs:
       - username: mehrdad
       - password: 123
-      - endpoint: www.sss.con
+      - url: www.sss.con
   - name: milad cred
     inputs:
       - username: milad
       - password: 123
-      - endpoint: ""
+      - url: ""
       - traceId: ""
     description: milad credentials
   - name: example3

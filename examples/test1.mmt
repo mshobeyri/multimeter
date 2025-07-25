@@ -18,7 +18,7 @@ flow:
 - check: errors !== null
 - call:
   type: http
-  endpoint: e:endpoint
+  url: e:url
   headers:
     traceId: random
     content-type: application/json

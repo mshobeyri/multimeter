@@ -3,7 +3,7 @@ import { showVSCodeMessage } from "../../vsAPI";
 import { on } from "events";
 
 type HttpOptions = {
-    endpoint: string;
+    url: string;
     method?: string;
     headers?: Record<string, string>;
     body?: any;
@@ -14,7 +14,7 @@ type HttpOptions = {
 };
 
 type WsOptions = {
-    endpoint: string;
+    url: string;
     onOpen?: () => void;
     onMessage?: (data: string) => void;
     onClose?: () => void;
@@ -64,7 +64,7 @@ export const NetworkNodeApi = {
         window.vscode?.postMessage({
             command: "network",
             action: "http-send",
-            endpoint: options.endpoint,
+            url: options.url,
             method: options.method,
             headers: options.headers,
             body: options.body,
@@ -79,7 +79,7 @@ export const NetworkNodeApi = {
         window.vscode?.postMessage({
             command: "network",
             action: "ws-connect",
-            endpoint: options.endpoint,
+            url: options.url,
             wsId: wsId,
         });
         openWebsockets[wsId] = {

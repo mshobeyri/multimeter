@@ -7,7 +7,7 @@ import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
 import { useNetwork } from "../components/network/Network";
 import { replaceAllRefs } from "../variableReplacer";
-import EndpointInput from "../components/EndpointInput";
+import UrlInput from "../components/UrlInput";
 
 
 interface APITestProps {
@@ -25,14 +25,14 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
 
   const req = network.requestData || {};
 
-  // Only call onChange if endpoint value actually changed
-  const handleEndpointChange = useCallback(
-    (newEndpoint: string) => {
-      if (newEndpoint !== req.endpoint) {
-        req.endpoint = newEndpoint;
+  // Only call onChange if url value actually changed
+  const handleUrlChange = useCallback(
+    (newUrl: string) => {
+      if (newUrl !== req.url) {
+        req.url = newUrl;
       }
     },
-    [req.endpoint, req.params]
+    [req.url, req.params]
   );
 
   // Only call onChange if query value actually changed
@@ -48,7 +48,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         });
       }
     },
-    [req.endpoint, req.params]
+    [req.url, req.params]
   );
   
   useEffect(() => {
@@ -142,18 +142,18 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           </td>
         </tr>
         <tr>
-          <td className="label">endpoint</td>
+          <td className="label">url</td>
           <td style={{ padding: "8px" }}>
-            <EndpointInput
-              endpoint={req.endpoint ?? ""}
+            <UrlInput
+              url={req.url ?? ""}
               query={req.params || {}}
-              onEndpointChange={handleEndpointChange}
+              onUrlChange={handleUrlChange}
               onQueryChange={handleQueryChange}
             />
           </td>
         </tr>
         <KVEditor
-          label="url params"
+          label="query"
           value={req.params || {}}
           onChange={query => updateField("query", query)}
         />

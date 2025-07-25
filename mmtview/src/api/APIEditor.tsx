@@ -45,7 +45,7 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
       name: "",
       protocol: "http",
       format: "json",
-      endpoint: "",
+      url: "",
     });
     setAPI({ ...api, interfaces });
   };
