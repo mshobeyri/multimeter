@@ -7,7 +7,7 @@ export function buildCurlCommand(options: Request): string {
         headers = {},
         body,
         cookies,
-        params,
+        query,
     } = options;
 
     let curlCmd = [`curl -i -s -X ${method}`];
@@ -29,11 +29,11 @@ export function buildCurlCommand(options: Request): string {
     }
 
     let finalUrl = url;
-    if (params && Object.keys(params).length > 0) {
-        const paramStr = Object.entries(params)
+    if (query && Object.keys(query).length > 0) {
+        const queryStr = Object.entries(query)
             .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
             .join("&");
-        finalUrl += (finalUrl.includes("?") ? "&" : "?") + paramStr;
+        finalUrl += (finalUrl.includes("?") ? "&" : "?") + queryStr;
     }
 
     curlCmd.push(`"${finalUrl}"`);

@@ -32,23 +32,23 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         req.url = newUrl;
       }
     },
-    [req.url, req.params]
+    [req.url, req.query]
   );
 
   // Only call onChange if query value actually changed
   const handleQueryChange = useCallback(
     (query: Record<string, string>) => {
       // Compare stringified versions for shallow equality
-      const prev = JSON.stringify(req.params || {});
+      const prev = JSON.stringify(req.query || {});
       const next = JSON.stringify(query || {});
       if (prev !== next) {
         network.setRequestData({
           ...network.requestData,
-          params: query,
+          query: query,
         });
       }
     },
-    [req.url, req.params]
+    [req.url, req.query]
   );
   
   useEffect(() => {
@@ -146,7 +146,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           <td style={{ padding: "8px" }}>
             <UrlInput
               url={req.url ?? ""}
-              query={req.params || {}}
+              query={req.query || {}}
               onUrlChange={handleUrlChange}
               onQueryChange={handleQueryChange}
             />
@@ -154,7 +154,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         </tr>
         <KVEditor
           label="query"
-          value={req.params || {}}
+          value={req.query || {}}
           onChange={query => updateField("query", query)}
         />
         <KVEditor

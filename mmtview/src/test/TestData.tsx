@@ -43,7 +43,6 @@ export interface TestFlowCallHTTP {
   headers?: Record<string, string>;
   body?: string | object;
   query?: Record<string, string>;
-  params?: Record<string, string>;
   cookies?: Record<string, string>;
 }
 

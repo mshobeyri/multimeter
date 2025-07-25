@@ -8,7 +8,7 @@ export type NetworkMessage =|{
   method?: string;
   headers?: Record<string, string>;
   body?: any;
-  params?: any;
+  query?: any;
   cookies?: Record<string, string>
   requestId: string;
 }
@@ -35,7 +35,7 @@ export function handleNetworkMessage(
       (async () => {
 
         try {
-          const {url, method = 'GET', headers = {}, body, params, cookies, requestId} =
+          const {url, method = 'GET', headers = {}, body, query, cookies, requestId} =
               message;
 
           let reqHeaders = {...headers};
@@ -49,7 +49,7 @@ export function handleNetworkMessage(
             url: url,
             method,
             data: body,
-            params,
+            query,
             withCredentials: true,
             headers: reqHeaders,
           };

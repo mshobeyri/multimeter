@@ -5,7 +5,7 @@ export interface Request {
   method?: string;
   headers?: Record<string, string>;
   cookies?: Record<string, string>;
-  params?: Record<string, string>;
+  query?: Record<string, string>;
   body?: any;
 }
 

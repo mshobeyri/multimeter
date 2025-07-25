@@ -19,8 +19,8 @@ function parseQueryString(qs: string): Record<string, string> {
   return result;
 }
 
-function buildQueryString(params: Record<string, string> = {}) {
-  const entries = Object.entries(params).filter(([k]) => k);
+function buildQueryString(query: Record<string, string> = {}) {
+  const entries = Object.entries(query).filter(([k]) => k);
   if (entries.length === 0) return "";
   return (
     "?" +

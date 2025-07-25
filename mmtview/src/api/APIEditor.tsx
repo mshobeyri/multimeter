@@ -218,11 +218,11 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
                       apiInputs={
                         api.inputs
                           ? Object.fromEntries(
-                            api.inputs.map(param =>
-                              param && typeof param === "object"
-                                ? param.name
-                                  ? [param.name, param.type]
-                                  : [Object.keys(param)[0], Object.values(param)[0]]
+                            api.inputs.map(query =>
+                              query && typeof query === "object"
+                                ? query.name
+                                  ? [query.name, query.type]
+                                  : [Object.keys(query)[0], Object.values(query)[0]]
                                 : []
                             )
                           )

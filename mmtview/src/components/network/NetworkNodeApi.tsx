@@ -7,7 +7,7 @@ type HttpOptions = {
     method?: string;
     headers?: Record<string, string>;
     body?: any;
-    params?: Record<string, string>;
+    query?: Record<string, string>;
     cookies?: Record<string, string>;
     onResponse?: (response: any) => void;
     onError?: (error: any) => void;
@@ -68,7 +68,7 @@ export const NetworkNodeApi = {
             method: options.method,
             headers: options.headers,
             body: options.body,
-            params: options.params,
+            query: options.query,
             cookies: options.cookies,
             requestId,
         });

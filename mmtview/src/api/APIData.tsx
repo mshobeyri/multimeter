@@ -9,7 +9,6 @@ export interface InterfaceData {
   headers?: Record<string, string>;
   body?: string | object;
   query?: Record<string, string>;
-  params?: Record<string, string>;
   cookies?: Record<string, string>;
   outputs?: Record<string, string | { [format: string]: string }>;
 }
@@ -34,7 +33,7 @@ export interface APIData extends MMTFile {
 export interface ResponseData {
   headers?: Record<string, string>;
   body?: string | object;
-  params?: Record<string, string>;
+  query?: Record<string, string>;
   cookies?: Record<string, string>;
   statusString?: string;
   status?: number;

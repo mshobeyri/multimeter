@@ -41,7 +41,7 @@ export function useNetwork(): NetworkAPI {
       body = requestData.body,
       protocol = requestData.protocol || "http",
       cookies = requestData.cookies,
-      params = requestData.params,
+      query = requestData.query,
     } = opts;
 
     if (protocol === "http") {
@@ -51,7 +51,7 @@ export function useNetwork(): NetworkAPI {
         headers,
         body,
         cookies,
-        params,
+        query,
         onResponse: (res: any) => {
           setResponseBody(res.body);
           setResponseHeaders(res.headers || {});
