@@ -9,6 +9,7 @@ interface APIsProps {
 }
 
 function yamlToAPI(yamlContent: string): APIData {
+  console.log("yamlToAPI", yamlContent);
   try {
     const doc = parseYaml(yamlContent) as any;
     if (!doc || typeof doc !== "object") return {} as APIData;
@@ -30,6 +31,7 @@ function yamlToAPI(yamlContent: string): APIData {
 }
 
 function apiToYaml(api: APIData): string {
+  console.log("apiToYaml", api);
   // Directly map APIField fields to YAML
   const yamlObj: Record<string, any> = {
     type: api.type,
@@ -44,40 +46,37 @@ function apiToYaml(api: APIData): string {
   if (api.examples) yamlObj.examples = api.examples;
   return packYaml(yamlObj);
 }
+const defaultAPI: APIData = {
+  type: "api",
+  title: "",
+  tags: [],
+  description: "",
+  import: [],
+  inputs: [],
+  outputs: [],
+  interfaces: [],
+  examples: [],
+};
 
 const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
-  const [api, setAPIs] = useState<APIData>({
-    type: "api",
-    title: "",
-    tags: [],
-    description: "",
-    import: [],
-    inputs: [],
-    outputs: [],
-    interfaces: [],
-    examples: [],
-  });
-  const lastUpdate = useRef<"yaml" | "ui" | null>(null);
+  const [api, setAPIs] = useState<APIData>(defaultAPI);
 
   // Parse YAML to api when content changes (but not if we just updated content from UI)
   useEffect(() => {
-    if (lastUpdate.current === "ui") {
-      lastUpdate.current = null;
-      return;
-    }
-    setAPIs(yamlToAPI(content));
-    lastUpdate.current = "yaml";
+    const newApi = yamlToAPI(content);
+    if (newApi == defaultAPI || newApi === api || newApi === {} as APIData) return;
+    setAPIs(newApi);
   }, [content]);
 
   // Update YAML when api change (but not if we just updated api from YAML)
   useEffect(() => {
-    if (lastUpdate.current === "yaml") {
-      lastUpdate.current = null;
+    const newYaml = apiToYaml(api);
+    if (api === defaultAPI || newYaml === content || newYaml === "") {
       return;
     }
-    setContent(apiToYaml(api));
-    lastUpdate.current = "ui";
-  }, [api, setContent]);
+    setContent(newYaml);
+
+  }, [api]);
 
   return (
     <div
