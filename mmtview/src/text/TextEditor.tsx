@@ -12,6 +12,7 @@ interface TextEditorProps {
   editorRef?: React.MutableRefObject<any>;
   monacoRef?: React.MutableRefObject<any>;
   setEditorReady?: (ready: boolean) => void;
+  onFocusChange?: (focused: boolean) => void;
 }
 
 const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
@@ -26,6 +27,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
   editorRef,
   monacoRef,
   setEditorReady,
+  onFocusChange,
 }) => {
   const localMonacoRef = useRef<any>(null);
   const localEditorRef = useRef<any>(null);
@@ -87,6 +89,13 @@ const TextEditor: React.FC<TextEditorProps> = ({
         onMount={editor => {
           setEditorReady && setEditorReady(true);
           editorRefToUse.current = editor;
+          // Listen for focus/blur
+          editor.onDidFocusEditorWidget?.(() => {
+            if (typeof onFocusChange === "function") onFocusChange(true);
+          });
+          editor.onDidBlurEditorWidget?.(() => {
+            if (typeof onFocusChange === "function") onFocusChange(false);
+          });
         }}
         onChange={value => setContent(value ?? "")}
         options={{

@@ -9,13 +9,15 @@ interface YamlEditorPanelProps {
   language?: string;
   showNumbers?: boolean;
   fontSize?: number;
+  onFocusChange?: (focused: boolean) => void; // <-- add this
 }
 
 const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
 
 const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   content,
-  setContent
+  setContent,
+  onFocusChange // <-- receive it as a prop
 }) => {
   const monacoRef = useRef<any>(null);
   const editorRef = useRef<any>(null);
@@ -95,6 +97,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         editorRef={editorRef}
         monacoRef={monacoRef}
         setEditorReady={setEditorReady}
+        onFocusChange={onFocusChange} // <-- pass it down
       />
     </div>
   );

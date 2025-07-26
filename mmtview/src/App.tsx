@@ -7,7 +7,7 @@ import APIPanel from "./api/APIPanel";
 import NotypePanel from "./NotypePanel";
 import TestPanel from "./test/TestPanel";
 import parseYaml from "./markupConvertor";
-import  YamlEditorPanel from "./text/YamlEditorPanel";
+import YamlEditorPanel from "./text/YamlEditorPanel";
 
 declare global {
   interface Window {
@@ -28,16 +28,6 @@ const SPLIT_PANE_KEY = "mmtview:splitPaneSize";
 // Create a context for file info
 export const FileContext = createContext<{ filePath?: string; fileName?: string }>({});
 
-// Control UI setContent calls with this boolean
-const ALLOW_UI_SET_CONTENT = true;
-
-function uiSetContent(setContent: (c: string) => void) {
-  return (value: string) => {
-    if (ALLOW_UI_SET_CONTENT) {
-      setContent(value);
-    }
-  };
-}
 
 const App: React.FC = () => {
   // Restore pane size from localStorage or default to half window width
@@ -49,6 +39,15 @@ const App: React.FC = () => {
   const [docType, setDocType] = useState<string | null>(null);
   const [filePath, setFilePath] = useState<string | undefined>(undefined);
   const isInitLoad = useRef(true);
+  const [yamlEditorFocused, setYamlEditorFocused] = useState(false);
+
+  function uiSetContent(setContent: (c: string) => void) {
+    return (value: string) => {
+      if (!yamlEditorFocused) {
+        setContent(value);
+      }
+    };
+  }
 
   // Save pane size to localStorage whenever it changes
   useEffect(() => {
@@ -126,6 +125,7 @@ const App: React.FC = () => {
         <YamlEditorPanel
           content={content}
           setContent={setContent}
+          onFocusChange = {setYamlEditorFocused}
         />
         {docType === "env" && (
           <EnvironmentPanel content={content} setContent={uiSetContentHandler} />

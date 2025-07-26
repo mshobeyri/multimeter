@@ -9,7 +9,6 @@ interface APIsProps {
 }
 
 function yamlToAPI(yamlContent: string): APIData {
-  console.log("yamlToAPI", yamlContent);
   try {
     const doc = parseYaml(yamlContent) as any;
     if (!doc || typeof doc !== "object") return {} as APIData;
@@ -31,7 +30,6 @@ function yamlToAPI(yamlContent: string): APIData {
 }
 
 function apiToYaml(api: APIData): string {
-  console.log("apiToYaml", api);
   // Directly map APIField fields to YAML
   const yamlObj: Record<string, any> = {
     type: api.type,
