@@ -6,7 +6,7 @@ import TestFlow from "./TestFlow";
 
 interface TestPanelProps {
   content: string;
-  setContent: React.Dispatch<React.SetStateAction<string>>;
+  setContent: (value: string) => void;
 }
 
 function yamlToTest(yamlContent: string): TestData {

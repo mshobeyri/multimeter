@@ -5,7 +5,7 @@ import { APIData } from "./APIData";
 
 interface APIsProps {
   content: string;
-  setContent: React.Dispatch<React.SetStateAction<string>>;
+  setContent: (value: string) => void;
 }
 
 function yamlToAPI(yamlContent: string): APIData {

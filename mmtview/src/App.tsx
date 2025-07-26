@@ -28,6 +28,17 @@ const SPLIT_PANE_KEY = "mmtview:splitPaneSize";
 // Create a context for file info
 export const FileContext = createContext<{ filePath?: string; fileName?: string }>({});
 
+// Control UI setContent calls with this boolean
+const ALLOW_UI_SET_CONTENT = true;
+
+function uiSetContent(setContent: (c: string) => void) {
+  return (value: string) => {
+    if (ALLOW_UI_SET_CONTENT) {
+      setContent(value);
+    }
+  };
+}
+
 const App: React.FC = () => {
   // Restore pane size from localStorage or default to half window width
   const [paneSize, setPaneSize] = useState(() => {
@@ -93,14 +104,16 @@ const App: React.FC = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  const uiSetContentHandler = uiSetContent(setContent);
+
   return (
     <FileContext.Provider value={{ filePath }}>
       <SplitPane
         split="vertical"
         size={paneSize}
         onChange={(size) => setPaneSize(size)}
-        minSize={300}           // Minimum width of the left panel
-        maxSize={window.innerWidth - 300} // Right panel will be at least 300px wide
+        minSize={300}
+        maxSize={window.innerWidth - 300}
         style={{
           height: "100vh",
           width: "100vw",
@@ -115,19 +128,19 @@ const App: React.FC = () => {
           setContent={setContent}
         />
         {docType === "env" && (
-          <EnvironmentPanel content={content} setContent={setContent} />
+          <EnvironmentPanel content={content} setContent={uiSetContentHandler} />
         )}
         {docType === "var" && (
-          <VariablesPanel content={content} setContent={setContent} />
+          <VariablesPanel content={content} setContent={uiSetContentHandler} />
         )}
         {docType === "api" && (
-          <APIPanel content={content} setContent={setContent} />
+          <APIPanel content={content} setContent={uiSetContentHandler} />
         )}
         {docType === "test" && (
-          <TestPanel content={content} setContent={setContent} />
+          <TestPanel content={content} setContent={uiSetContentHandler} />
         )}
         {docType === null && (
-          <NotypePanel content={content} setContent={setContent} />
+          <NotypePanel content={content} setContent={uiSetContentHandler} />
         )}
       </SplitPane>
     </FileContext.Provider>

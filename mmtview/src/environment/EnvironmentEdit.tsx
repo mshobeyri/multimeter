@@ -6,7 +6,7 @@ import { EnvironmentData } from "./EnvironmentData";
 
 interface EnvironmentEditProps {
   content: string;
-  setContent: React.Dispatch<React.SetStateAction<string>>;
+  setContent: (value: string) => void;
 }
 
 const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent }) => {

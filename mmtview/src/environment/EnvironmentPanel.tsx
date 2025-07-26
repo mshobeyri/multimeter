@@ -10,7 +10,7 @@ const LAST_ENV_TAB_KEY = "mmtview:env:lastTab";
 
 interface EnvironmentPanelProps {
   content: string;
-  setContent: React.Dispatch<React.SetStateAction<string>>;
+  setContent: (value: string) => void;
 }
 
 const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent }) => {

@@ -5,7 +5,7 @@ import { Variable, VariablesData } from "./VariablesData";
 
 interface VariablesProps {
   content: string;
-  setContent: React.Dispatch<React.SetStateAction<string>>;
+  setContent: (value: string) => void;
 }
 
 function yamlToVariables(yamlContent: string): VariablesData {
