@@ -43,7 +43,11 @@
           {
             "filenamePattern": "*.mmt"
           }
-        ]
+        ],
+        "icon": {
+          "light": "res/icon.png",
+          "dark": "res/icon.png"
+        }
       }
     ],
     "commands": [
