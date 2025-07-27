@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-
 import { APIData, InterfaceData } from "../mmtview/src/api/APIData";
+import * as yaml from 'yaml';
 
 // Helper to extract key-value pairs from Postman format
 function extractKeyValue(arr: any[] = []) {
@@ -85,6 +85,35 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
       enableScripts: true,
     };
     webviewView.webview.html = this.getHtml();
+
+    webviewView.webview.onDidReceiveMessage(async (msg) => {
+      if (msg.type === 'file') {
+        try {
+          const fileName = msg.name || '(unknown)';
+          const fileContent = msg.text;
+          let yamlResult = '';
+          try {
+            const postmanJson = JSON.parse(fileContent);
+            const result = postmanToAPI(postmanJson);
+            yamlResult = yaml.stringify(result);
+          } catch (e) {
+            yamlResult = 'Error converting to YAML: ' + (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e));
+          }
+          webviewView.webview.postMessage({
+            type: 'result',
+            text:
+              `File: ${fileName}\n\n` +
+              `Content:\n${fileContent}\n\n` +
+              `Converted YAML:\n${yamlResult}`
+          });
+        } catch (e) {
+          webviewView.webview.postMessage({
+            type: 'result',
+            text: 'Error: ' + (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e))
+          });
+        }
+      }
+    });
   }
 
   getHtml() {
@@ -118,7 +147,7 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
             if (file) {
               const reader = new FileReader();
               reader.onload = function(evt) {
-                vscode.postMessage({ type: 'file', text: evt.target.result });
+                vscode.postMessage({ type: 'file', name: file.name, text: evt.target.result });
               };
               reader.readAsText(file);
             }
@@ -128,7 +157,7 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
             if (file) {
               const reader = new FileReader();
               reader.onload = function(evt) {
-                vscode.postMessage({ type: 'file', text: evt.target.result });
+                vscode.postMessage({ type: 'file', name: file.name, text: evt.target.result });
               };
               reader.readAsText(file);
             }
