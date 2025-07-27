@@ -27,8 +27,8 @@
       transition: border-color 0.2s, background 0.2s;
     }
     .drop-area.hover {
-      border-color: #3399ff;
-      background: rgba(51,153,255,0.08);
+      border-color: #3399ff !important;
+      background: rgba(51,153,255,0.18) !important;
     }
     .mmt-file-list { list-style: none; padding: 0; margin: 0; }
     .mmt-file-list li {
@@ -103,6 +103,11 @@
     const fileActions = document.getElementById('file-actions');
     const frame = document.getElementById('frame');
 
+    // Add these listeners for robust hover feedback
+    dropArea.addEventListener('dragenter', e => {
+      e.preventDefault();
+      dropArea.classList.add('hover');
+    });
     dropArea.addEventListener('dragover', e => {
       e.preventDefault();
       dropArea.classList.add('hover');
