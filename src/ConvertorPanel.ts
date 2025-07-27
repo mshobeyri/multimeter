@@ -70,7 +70,6 @@ export function postmanToAPI(postmanJson: any): APIData[] {
   });
 }
 
-
 class ConvertorPanel implements vscode.WebviewViewProvider {
   constructor(private readonly context: vscode.ExtensionContext) {}
 
@@ -87,30 +86,41 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage(async (msg) => {
       if (msg.type === 'file') {
         try {
-          const fileName = msg.name || '(unknown)';
           const fileContent = msg.text;
-          let yamlResult = '';
-          try {
-            const postmanJson = JSON.parse(fileContent);
-            const apis = postmanToAPI(postmanJson);
-            // Convert each APIData to YAML and join with ---
-            yamlResult = apis.map(api => yaml.stringify(api)).join('\n---\n');
-          } catch (e) {
-            yamlResult = 'Error converting to YAML: ' + (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e));
-          }
-          webviewView.webview.postMessage({
-            type: 'result',
-            text:
-              `File: ${fileName}\n\n` +
-              `Content:\n${fileContent}\n\n` +
-              `Converted YAML:\n${yamlResult}`
+          const postmanJson = JSON.parse(fileContent);
+          const apis = postmanToAPI(postmanJson);
+
+          // Prepare files: each as { name, content }
+          const files = apis.map(api => {
+            // Use api.title or fallback to "api"
+            const safeName = (api.title || "api").replace(/[\\/:*?"<>|]+/g, "_");
+            return {
+              name: safeName + ".mmt",
+              content: yaml.stringify(api)
+            };
           });
+
+          // Send file list to webview
+          webviewView.webview.postMessage({
+            type: 'fileList',
+            files
+          });
+
         } catch (e) {
           webviewView.webview.postMessage({
-            type: 'result',
-            text: 'Error: ' + (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e))
+            type: 'fileList',
+            files: [],
+            error: 'Error: ' + (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e))
           });
         }
+      } else if (msg.type === 'openFile') {
+        // Open a new untitled .mmt file with the correct name and content
+        const uri = vscode.Uri.parse(`untitled:${msg.name}`);
+        const doc = await vscode.workspace.openTextDocument(uri);
+        const editor = await vscode.window.showTextDocument(doc, { preview: false });
+        await editor.edit(editBuilder => {
+          editBuilder.insert(new vscode.Position(0, 0), msg.content);
+        });
       }
     });
   }
@@ -125,7 +135,7 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
           <p>Drag & drop a Postman collection file here,<br>or click to select a file.</p>
           <input type="file" id="fileInput" style="display:none" />
         </div>
-        <pre id="output" style="background:#222;color:#fff;padding:12px;min-height:120px;overflow:auto;"></pre>
+        <div id="file-list"></div>
         <script>
           const vscode = acquireVsCodeApi();
           const dropArea = document.getElementById('drop-area');
@@ -161,12 +171,25 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
               reader.readAsText(file);
             }
           });
+
           window.addEventListener('message', event => {
             const msg = event.data;
-            if (msg.type === 'result') {
-              document.getElementById('output').textContent = msg.text;
+            if (msg.type === 'fileList') {
+              const fileListDiv = document.getElementById('file-list');
+              fileListDiv.innerHTML = '<h3>Converted MMT Files:</h3><ul style="padding-left:20px;">' +
+                msg.files.map((f, i) =>
+                  '<li><a href="#" onclick="openFile(' + i + ');return false;">' + f.name + '</a></li>'
+                ).join('') +
+                '</ul>';
+              window.mmtFiles = msg.files;
             }
           });
+
+          // Expose openFile globally
+          window.openFile = function(idx) {
+            const file = window.mmtFiles[idx];
+            vscode.postMessage({ type: 'openFile', name: file.name, content: file.content });
+          };
         </script>
       </body>
       </html>
