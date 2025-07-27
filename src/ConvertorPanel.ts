@@ -18,19 +18,6 @@ export function postmanToAPI(postmanJson: any): APIData[] {
     return [];
   }
 
-  // Each collection becomes one APIData
-  const api: APIData = {
-    type: "api",
-    title: postmanJson.info?.name || "",
-    tags: [],
-    description: postmanJson.info?.description || "",
-    import: [],
-    inputs: [],
-    outputs: [],
-    interfaces: [],
-    examples: [],
-  };
-
   // Flatten all requests (recursively for folders)
   function flattenItems(items: any[]): any[] {
     return items.flatMap(item =>
@@ -39,7 +26,8 @@ export function postmanToAPI(postmanJson: any): APIData[] {
   }
   const requests = flattenItems(postmanJson.item);
 
-  api.interfaces = requests.map((req: any) => {
+  // Each request becomes its own APIData with one interface
+  return requests.map((req: any) => {
     const request = req.request || {};
     const url = typeof request.url === "string"
       ? request.url
@@ -58,18 +46,28 @@ export function postmanToAPI(postmanJson: any): APIData[] {
     }
 
     return {
-      name: req.name || request.url?.raw || "",
-      protocol: "http", // or infer from url
-      format: "json",   // or infer from headers/body
-      url,
-      method: request.method?.toLowerCase() || "get",
-      headers,
-      query,
-      body,
-    } as InterfaceData;
+      type: "api",
+      title: req.name || request.url?.raw || "",
+      tags: [],
+      description: req.description || "",
+      import: [],
+      inputs: [],
+      outputs: [],
+      interfaces: [
+        {
+          name: req.name || request.url?.raw || "",
+          protocol: "http",
+          format: "json",
+          url,
+          method: request.method?.toLowerCase() || "get",
+          headers,
+          query,
+          body,
+        } as InterfaceData
+      ],
+      examples: [],
+    } as APIData;
   });
-
-  return [api];
 }
 
 
@@ -94,8 +92,9 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
           let yamlResult = '';
           try {
             const postmanJson = JSON.parse(fileContent);
-            const result = postmanToAPI(postmanJson);
-            yamlResult = yaml.stringify(result);
+            const apis = postmanToAPI(postmanJson);
+            // Convert each APIData to YAML and join with ---
+            yamlResult = apis.map(api => yaml.stringify(api)).join('\n---\n');
           } catch (e) {
             yamlResult = 'Error converting to YAML: ' + (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e));
           }
