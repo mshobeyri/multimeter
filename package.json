@@ -56,8 +56,8 @@
         "title": "Show MMT Preview",
         "category": "Preview",
         "icon": {
-          "light": "res/icon.png",
-          "dark": "res/icon.png"
+          "light": "res/activity.png",
+          "dark": "res/activity.png"
         }
       }
     ],
@@ -73,8 +73,10 @@
     "views": {
       "multimeterViewContainer": [
         {
-          "id": "multimeterPanel",
-          "name": "Multimeter Panel"
+          "id": "multimeterConvertor",
+          "name": "Convertor",
+          "icon": "res/icon.png",
+          "type": "webview"
         }
       ]
     }
