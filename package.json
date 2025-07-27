@@ -45,8 +45,8 @@
           }
         ],
         "icon": {
-          "light": "res/icon.png",
-          "dark": "res/icon.png"
+          "light": "res/activity.png",
+          "dark": "res/activity.png"
         }
       }
     ],
