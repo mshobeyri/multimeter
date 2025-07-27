@@ -57,12 +57,20 @@
         }
       }
     ],
-    "views": {
-      "explorer": [
+    "viewsContainers": {
+      "activitybar": [
         {
-          "id": "multimeterView2",
-          "name": "Multimeter Panel",
-          "icon": "res/icon.png"
+          "id": "multimeterViewContainer",
+          "title": "Multimeter",
+          "icon": "res/activity.png"
+        }
+      ]
+    },
+    "views": {
+      "multimeterViewContainer": [
+        {
+          "id": "multimeterPanel",
+          "name": "Multimeter Panel"
         }
       ]
     }
