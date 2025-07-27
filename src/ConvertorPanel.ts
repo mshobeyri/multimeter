@@ -1,12 +1,13 @@
 import * as vscode from 'vscode';
-import { APIData, InterfaceData } from "../mmtview/src/api/APIData";
 import * as yaml from 'yaml';
+
+import {APIData, InterfaceData} from '../mmtview/src/api/APIData';
 
 // Helper to extract key-value pairs from Postman format
 function extractKeyValue(arr: any[] = []) {
   const obj: Record<string, string> = {};
   arr.forEach(item => {
-    if (item.key && typeof item.value !== "undefined") {
+    if (item.key && typeof item.value !== 'undefined') {
       obj[item.key] = item.value;
     }
   });
@@ -20,51 +21,46 @@ export function postmanToAPI(postmanJson: any): APIData[] {
 
   // Flatten all requests (recursively for folders)
   function flattenItems(items: any[]): any[] {
-    return items.flatMap(item =>
-      item.item ? flattenItems(item.item) : [item]
-    );
+    return items.flatMap(item => item.item ? flattenItems(item.item) : [item]);
   }
   const requests = flattenItems(postmanJson.item);
 
   // Each request becomes its own APIData with one interface
   return requests.map((req: any) => {
     const request = req.request || {};
-    const url = typeof request.url === "string"
-      ? request.url
-      : request.url?.raw || "";
+    const url =
+        typeof request.url === 'string' ? request.url : request.url?.raw || '';
 
     const headers = extractKeyValue(request.header);
     const query = extractKeyValue(request.url?.query);
 
-    let body: string | object | undefined = undefined;
-    if (request.body?.mode === "raw") {
+    let body: string|object|undefined = undefined;
+    if (request.body?.mode === 'raw') {
       body = request.body.raw;
-    } else if (request.body?.mode === "urlencoded") {
+    } else if (request.body?.mode === 'urlencoded') {
       body = extractKeyValue(request.body.urlencoded);
-    } else if (request.body?.mode === "formdata") {
+    } else if (request.body?.mode === 'formdata') {
       body = extractKeyValue(request.body.formdata);
     }
 
     return {
-      type: "api",
-      title: req.name || request.url?.raw || "",
+      type: 'api',
+      title: req.name || request.url?.raw || '',
       tags: [],
-      description: req.description || "",
+      description: req.description || '',
       import: [],
       inputs: [],
       outputs: [],
-      interfaces: [
-        {
-          name: req.name || request.url?.raw || "",
-          protocol: "http",
-          format: "json",
-          url,
-          method: request.method?.toLowerCase() || "get",
-          headers,
-          query,
-          body,
-        } as InterfaceData
-      ],
+      interfaces: [{
+        name: req.name || request.url?.raw || '',
+        protocol: 'http',
+        format: 'json',
+        url,
+        method: request.method?.toLowerCase() || 'get',
+        headers,
+        query,
+        body,
+      } as InterfaceData],
       examples: [],
     } as APIData;
   });
@@ -74,10 +70,9 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
   constructor(private readonly context: vscode.ExtensionContext) {}
 
   resolveWebviewView(
-    webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
-    _token: vscode.CancellationToken
-  ) {
+      webviewView: vscode.WebviewView,
+      context: vscode.WebviewViewResolveContext,
+      _token: vscode.CancellationToken) {
     webviewView.webview.options = {
       enableScripts: true,
     };
@@ -93,34 +88,33 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
           // Prepare files: each as { name, content }
           const files = apis.map(api => {
             // Use api.title or fallback to "api"
-            const safeName = (api.title || "api").replace(/[\\/:*?"<>|]+/g, "_");
-            return {
-              name: safeName + ".mmt",
-              content: yaml.stringify(api)
-            };
+            const safeName =
+                (api.title || 'api').replace(/[\\/:*?"<>|]+/g, '_');
+            return {name: safeName + '.mmt', content: yaml.stringify(api)};
           });
 
           // Send file list to webview
-          webviewView.webview.postMessage({
-            type: 'fileList',
-            files
-          });
+          webviewView.webview.postMessage({type: 'fileList', files});
 
         } catch (e) {
           webviewView.webview.postMessage({
             type: 'fileList',
             files: [],
-            error: 'Error: ' + (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e))
+            error: 'Error: ' +
+                (typeof e === 'object' && e && 'message' in e ?
+                     (e as any).message :
+                     String(e))
           });
         }
       } else if (msg.type === 'openFile') {
-        // Open a new untitled .mmt file with the correct name and content
         const uri = vscode.Uri.parse(`untitled:${msg.name}`);
-        const doc = await vscode.workspace.openTextDocument(uri);
-        const editor = await vscode.window.showTextDocument(doc, { preview: false });
-        await editor.edit(editBuilder => {
-          editBuilder.insert(new vscode.Position(0, 0), msg.content);
-        });
+        // Create the untitled document with content using a workspace edit
+        const edit = new vscode.WorkspaceEdit();
+        edit.insert(uri, new vscode.Position(0, 0), msg.content);
+        await vscode.workspace.applyEdit(edit);
+        // Open with your custom editor (mmt.preview)
+        await vscode.commands.executeCommand(
+            'vscode.openWith', uri, 'mmt.preview');
       }
     });
   }
