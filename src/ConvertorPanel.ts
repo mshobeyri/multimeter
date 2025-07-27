@@ -194,11 +194,13 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
             display: flex;
             align-items: center;
             font-size: 11px;
+            cursor: pointer;
           }
           .mmt-file-checkbox {
             margin-right: 6px;
             width: 11px;
             height: 11px;
+            cursor: pointer;
           }
           .mmt-action-btn {
             background: transparent;
@@ -293,9 +295,9 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
             fileListDiv.innerHTML = mmtFiles.length
               ? '<ul class="mmt-file-list">' +
               mmtFiles.map((f, i) =>
-                \`<li class="\${selected.includes(i) ? 'selected' : ''}" onclick="toggleSelect(\${i}, event)">
+                \`<li class="\${selected.includes(i) ? 'selected' : ''}">
                   <input type="checkbox" class="mmt-file-checkbox" \${selected.includes(i) ? 'checked' : ''} onclick="toggleSelect(\${i}, event)" />
-                  <span class="mmt-file-name">
+                  <span class="mmt-file-name" onclick="openFile(\${i}, event)">
                     <img src="\${iconUri}" class="mmt-file-icon" />
                     \${f.name}
                   </span>
