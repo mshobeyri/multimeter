@@ -75,7 +75,7 @@
         {
           "id": "multimeterConvertor",
           "name": "Convertor",
-          "icon": "res/icon.png",
+          "icon": "res/activity.png",
           "type": "webview"
         }
       ]

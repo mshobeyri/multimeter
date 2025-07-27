@@ -143,7 +143,7 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
         <link rel="stylesheet" href="https://microsoft.github.io/vscode-codicons/dist/codicon.css">
       </head>
       <body>
-        <div id="drop-area" style="border:2px dashed #888;padding:24px;text-align:center;margin:18px 0;font-size:12px;">
+        <div id="drop-area" class="drop-area" style="border:2px dashed #888;padding:24px;text-align:center;margin:18px 0;font-size:12px;">
           <p style="margin:0 0 8px 0;">Drag & drop a Postman collection file here,<br>or click to select a file.</p>
           <input type="file" id="fileInput" style="display:none" />
         </div>
@@ -162,6 +162,13 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
           <div id="file-list"></div>
         </div>
         <style>
+          .drop-area {
+            transition: border-color 0.2s, background 0.2s;
+          }
+          .drop-area.hover {
+            border-color: #3399ff;
+            background: rgba(51,153,255,0.08);
+          }
           .mmt-file-list { list-style: none; padding: 0; margin: 0; }
           .mmt-file-list li {
             display: flex;
@@ -238,15 +245,15 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
           dropArea.addEventListener('click', () => fileInput.click());
           dropArea.addEventListener('dragover', e => {
             e.preventDefault();
-            dropArea.style.background = '#eee';
+            dropArea.classList.add('hover');
           });
           dropArea.addEventListener('dragleave', e => {
             e.preventDefault();
-            dropArea.style.background = '';
+            dropArea.classList.remove('hover');
           });
           dropArea.addEventListener('drop', e => {
             e.preventDefault();
-            dropArea.style.background = '';
+            dropArea.classList.remove('hover');
             const file = e.dataTransfer.files[0];
             if (file) {
               const reader = new FileReader();
