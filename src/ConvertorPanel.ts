@@ -52,7 +52,7 @@ export function postmanToAPI(postmanJson: any): APIData[] {
         protocol: 'http',
         format: 'json',
         url,
-        method: request.method?.toLowerCase() || 'get',
+        method: request.method?.toUpperCase() || 'GET',
         headers,
         query,
         body,

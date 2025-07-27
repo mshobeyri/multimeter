@@ -3,3 +3,4 @@ dist
 mmtview/node_modules
 mmtview/build
 TODO
+*.vsix

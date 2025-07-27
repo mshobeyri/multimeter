@@ -167,20 +167,23 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           value={req.cookies || {}}
           onChange={cookies => updateField("cookies", cookies)}
         />
-        <tr>
-          <td className="label">body</td>
-          <td style={{ padding: "8px" }}>
-            <BodyView
-              value={body}
-              format={req.format || "json"}
-              mode="live"
-              onChange={val => {
-                setBody(val);
-                updateField("body", val);
-              }}
-            />
-          </td>
-        </tr>
+        {/* Only show body editor if method is not GET */}
+        {(!req.method || req.method.toUpperCase() !== "GET") && (
+          <tr>
+            <td className="label">body</td>
+            <td style={{ padding: "8px" }}>
+              <BodyView
+                value={body == null ? "" : body}
+                format={req.format || "json"}
+                mode="live"
+                onChange={val => {
+                  setBody(val);
+                  updateField("body", val);
+                }}
+              />
+            </td>
+          </tr>
+        )}
         <tr>
           <td colSpan={2} style={{ position: "relative", padding: 0, height: 40 }}>
             <div
