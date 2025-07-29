@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { MmtEditorProvider } from './components/MmtEditorProvider';
 import ConvertorPanel from './ConvertorPanel';
+import HistoryPanel from './HistoryPanel';
 
 export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(MmtEditorProvider.register(context));
@@ -18,6 +19,13 @@ export function activate(context: vscode.ExtensionContext) {
     vscode.window.registerWebviewViewProvider(
       'multimeterConvertor',
       new ConvertorPanel(context)
+    )
+  );
+
+  context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      'multimeterHistory',
+      new HistoryPanel(context)
     )
   );
 }

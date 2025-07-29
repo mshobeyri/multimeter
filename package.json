@@ -77,6 +77,12 @@
           "name": "Convertor",
           "icon": "res/activity.png",
           "type": "webview"
+        },
+        {
+          "id": "multimeterHistory",
+          "name": "History",
+          "icon": "res/activity.png",
+          "type": "webview"
         }
       ]
     }
