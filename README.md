@@ -12,6 +12,7 @@
   - 📦 Having tests along with the changes in a same pull request.
 - 🧱 JSON/XML schema-aware editing.
 - 🌐 HTTP/WS protocols support.
+- 🧑‍🚀 Suppory Postman collection.
 
 🛠️ Usage
 - Create a .mmt file in your project (e.g., login.mmt).
