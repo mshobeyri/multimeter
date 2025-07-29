@@ -64,20 +64,29 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "multimeterViewContainer",
+          "id": "multimeterContainer",
           "title": "Multimeter",
+          "icon": "res/activity.png"
+        }
+      ],
+      "panel": [
+        {
+          "id": "multimeterHistoryContainer",
+          "title": "Multimeter History",
           "icon": "res/activity.png"
         }
       ]
     },
     "views": {
-      "multimeterViewContainer": [
+      "multimeterContainer": [
         {
           "id": "multimeterConvertor",
           "name": "Convertor",
           "icon": "res/activity.png",
           "type": "webview"
-        },
+        }
+      ],
+      "multimeterHistoryContainer": [
         {
           "id": "multimeterHistory",
           "name": "History",
