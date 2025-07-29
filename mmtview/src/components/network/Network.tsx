@@ -54,6 +54,7 @@ export function useNetwork(): NetworkAPI {
       protocol,
       title: `${method} ${url}`,
       cookies: cookies || {},
+      headers: headers || {},
       query: query || {},
       content: method === "GET" ? "" : JSON.stringify(body)
     });
@@ -80,12 +81,15 @@ export function useNetwork(): NetworkAPI {
             method,
             protocol,
             title: `${method} ${url}`,
+            cookies: parseSetCookie(res.headers?.["set-cookie"]),
+            headers: res.headers || {},
             content: JSON.stringify(res, null, 2),
             duration
           });
           lastSendTime = null;
         },
         onError: (err: any) => {
+          const duration = lastSendTime ? Date.now() - lastSendTime : undefined;
           setResponseBody({ error: err?.message || err });
           setResponseHeaders({});
           setResponseCookies({});
@@ -98,7 +102,10 @@ export function useNetwork(): NetworkAPI {
             method,
             protocol,
             title: `${method} ${url} Error`,
-            content: JSON.stringify({ error: err?.message || err }, null, 2)
+            cookies: {}, // or parse from error if available
+            headers: {}, // or parse from error if available
+            content: JSON.stringify({ error: err?.message || err }, null, 2),
+            duration
           });
         }
       });
