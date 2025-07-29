@@ -63,7 +63,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     const model = editor.getModel();
     if (!model) return;
 
-    const regex = /[ieo]:[a-zA-Z0-9_\/-]+/g;
+    const regex = /\<?[ieo]:[a-zA-Z0-9_\/-]+\>?/g;
     const value = model.getValue();
     const matches: any[] = [];
     let match;
