@@ -45,6 +45,7 @@ export const pushHistory = (item: {
   content?: string,
   time?: string
   duration?: number
+  status?: number
 }) => {
   window.vscode?.postMessage({
     command: 'addHistory',

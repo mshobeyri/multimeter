@@ -10,7 +10,7 @@ type HttpOptions = {
     query?: Record<string, string>;
     cookies?: Record<string, string>;
     onResponse?: (response: any) => void;
-    onError?: (error: any) => void;
+    onError?: (error: any, status?: number) => void;
 };
 
 type WsOptions = {
@@ -18,7 +18,7 @@ type WsOptions = {
     onOpen?: () => void;
     onMessage?: (data: string) => void;
     onClose?: () => void;
-    onError?: (error: any) => void;
+    onError?: (error: any, status?: number) => void;
 };
 
 type SendWsOptions = {
@@ -40,7 +40,7 @@ const pendingHttp: Record<
     string,
     {
         onResponse?: (response: any) => void;
-        onError?: (error: any) => void;
+        onError?: (error: any, status?: number) => void;
     }
 > = {};
 
@@ -50,7 +50,7 @@ const openWebsockets: Record<
         onOpen?: () => void;
         onMessage?: (data: string) => void;
         onClose?: () => void;
-        onError?: (error: any) => void;
+        onError?: (error: any, status?: number) => void;
     }
 > = {};
 
@@ -122,7 +122,7 @@ window.addEventListener("message", (event: MessageEvent) => {
     }
     if (msg.action === "http-error" && typeof msg.error !== "undefined") {
         const cb = pendingHttp[msg.requestId];
-        if (cb && typeof cb.onError === "function") cb.onError(msg.error);
+        if (cb && typeof cb.onError === "function") cb.onError(msg.error, msg.status);
         delete pendingHttp[msg.requestId];
     }
 
@@ -132,6 +132,6 @@ window.addEventListener("message", (event: MessageEvent) => {
         if (msg.action === "ws-open" && wsListener.onOpen) wsListener.onOpen();
         if (msg.action === "ws-message" && wsListener.onMessage) wsListener.onMessage(msg.data);
         if (msg.action === "ws-close" && wsListener.onClose) wsListener.onClose();
-        if (msg.action === "ws-error" && wsListener.onError) wsListener.onError(msg.error);
+        if (msg.action === "ws-error" && wsListener.onError) wsListener.onError(msg.error, msg.status);
     }
 });

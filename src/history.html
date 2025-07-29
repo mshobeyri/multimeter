@@ -168,7 +168,7 @@
                 ? '<span class="codicon codicon-arrow-up" style="color:#3399ff"></span>'
                 : type === 'recv'
                     ? '<span class="codicon codicon-arrow-down" style="color:#66bb6a"></span>'
-                    : '<span class="codicon codicon-error" style="color:#ff5555"></span>';
+                    : '<span class="codicon codicon-chrome-close" style="color:#ff5555"></span>';
         }
         function getProtocolIcon(protocol) {
             if (protocol === 'ws') return '<img src="__WS_ICON__" class="history-icon" />';
@@ -190,14 +190,25 @@
             list.innerHTML =
                 '<ul class="history-list">' +
                 history.map(function (item, idx) {
+                    const isError = item.type === 'error';
                     return '<li>' +
                         '<div class="history-row" onclick="toggleDrawer(' + idx + ')">' +
                         '<span class="drawer-arrow' + (openIdx === idx ? ' open' : '') + '">&#9654;</span>' +
                         getTypeIcon(item.type) +
                         getProtocolIcon(item.protocol) +
-                        '<span class="history-title">' + item.title + '</span>' +
+                        '<span class="history-title"' + (isError ? ' style="color:#ff5555;"' : '') + '>' + item.title + '</span>' +
                         '<span class="history-time">' +
-                        (item.duration ? '<span style="color:#66bb6a;">(' + item.duration + 'ms)</span> ' : '') +
+                        (item.duration
+                            ? '<span style="color:' + (isError ? '#ff5555' : '#66bb6a') + ';">(' + item.duration + 'ms)</span> '
+                            : '') +
+                        (item.status !== undefined
+                            ? (
+                                item.status === 200
+                                ? '<span style="color:#66bb6a;font-weight: bold;">[' + item.status + ']</span> '
+                                : '<span style="color:#ff5555; font-weight: bold;">[' + item.status + ']</span> '
+                              )
+                            : ''
+                        ) +
                         item.time +
                         '</span>' +
                         '</div>' +
@@ -205,6 +216,14 @@
                             ? '<div class="drawer-content">' +
                             '<div class="drawer-section"><span class="drawer-label">Method:</span> <span class="drawer-value">' + item.method + '</span></div>' +
                             '<div class="drawer-section"><span class="drawer-label">Protocol:</span> <span class="drawer-value">' + item.protocol + '</span></div>' +
+                            (item.status !== undefined
+                                ? (
+                                    item.status === 200
+                                    ? '<div class="drawer-section"><span class="drawer-label">Status:</span> <span class="drawer-value" style="color:#66bb6a;">' + item.status + '</span></div>'
+                                    : '<div class="drawer-section"><span class="drawer-label">Status:</span> <span class="drawer-value" style="color:#ff5555;">' + item.status + '</span></div>'
+                                  )
+                                : ''
+                            ) +
                             (item.cookies && Object.keys(item.cookies).length
                                 ? '<div class="drawer-section"><span class="drawer-label">Cookies:</span>' + renderVerticalTable(item.cookies) + '</div>' : '') +
                             (item.headers && Object.keys(item.headers).length

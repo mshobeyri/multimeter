@@ -15,10 +15,11 @@ export function useNetwork(): NetworkAPI {
   const [connecting, setConnecting] = useState(false);
   const [wsId, setWsId] = useState<string | null>(null);
 
-  const parseSetCookie = (setCookie: string[] | undefined): Record<string, string> => {
+  const parseSetCookie = (setCookie: string[] | string | undefined): Record<string, string> => {
     if (!setCookie) return {};
+    const arr = Array.isArray(setCookie) ? setCookie : [setCookie];
     const cookies: Record<string, string> = {};
-    setCookie.forEach(cookieStr => {
+    arr.forEach(cookieStr => {
       const [cookiePair] = cookieStr.split(";");
       const [key, value] = cookiePair.split("=");
       if (key && value) cookies[key.trim()] = value.trim();
@@ -50,9 +51,9 @@ export function useNetwork(): NetworkAPI {
     // Save request to history
     pushHistory({
       type: "send",
-      method,
+      method: method.toUpperCase(),
       protocol,
-      title: `${method} ${url}`,
+      title: `${method.toUpperCase()} ${url}`,
       cookies: cookies || {},
       headers: headers || {},
       query: query || {},
@@ -63,7 +64,7 @@ export function useNetwork(): NetworkAPI {
     if (protocol === "http") {
       NetworkNodeApi.sendHttp({
         url: url ?? "",
-        method,
+        method: method.toUpperCase(),
         headers,
         body,
         cookies,
@@ -84,11 +85,12 @@ export function useNetwork(): NetworkAPI {
             cookies: parseSetCookie(res.headers?.["set-cookie"]),
             headers: res.headers || {},
             content: JSON.stringify(res, null, 2),
-            duration
+            duration,
+            status: res.status || 200,
           });
           lastSendTime = null;
         },
-        onError: (err: any) => {
+        onError: (err: any, status?: number) => {
           const duration = lastSendTime ? Date.now() - lastSendTime : undefined;
           setResponseBody({ error: err?.message || err });
           setResponseHeaders({});
@@ -105,7 +107,8 @@ export function useNetwork(): NetworkAPI {
             cookies: {}, // or parse from error if available
             headers: {}, // or parse from error if available
             content: JSON.stringify({ error: err?.message || err }, null, 2),
-            duration
+            duration,
+            status
           });
         }
       });
@@ -175,9 +178,9 @@ export function useNetwork(): NetworkAPI {
         // Save WS message to history
         pushHistory({
           type: "recv",
-          method: "MESSAGE",
+          method: "RECV",
           protocol,
-          title: `MSG ${url}`,
+          title: `RECV ${url}`,
           content: data
         });
       },
@@ -188,7 +191,7 @@ export function useNetwork(): NetworkAPI {
         // Save WS close to history
         pushHistory({
           type: "recv",
-          method: "CLOSE",
+          method: "CLOSED",
           protocol,
           title: `CLOSED ${url}`,
           content: url
@@ -204,7 +207,7 @@ export function useNetwork(): NetworkAPI {
           method: "ERROR",
           protocol,
           title: `ERROR ${url}`,
-          content: err?.message || String(err)
+          content: err?.message
         });
       }
     });
@@ -212,6 +215,12 @@ export function useNetwork(): NetworkAPI {
   };
 
   const closeWs = () => {
+    pushHistory({
+      type: "send",
+      method: "CLOSE",
+      protocol: requestData?.protocol || "ws",
+      title: `CLOSE ${requestData?.url ?? ""}`
+    });
     NetworkNodeApi.disconnectWs({
       wsId: wsId || "",
     });

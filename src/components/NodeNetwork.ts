@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { stat } from 'fs';
 import * as vscode from 'vscode';
 import WebSocket from 'ws';
 
@@ -69,6 +70,7 @@ export function handleNetworkMessage(
             command: 'network',
             action: 'http-error',
             error: err?.message || String(err),
+            status: err?.response?.status,
             requestId: message.requestId,
           });
         }
