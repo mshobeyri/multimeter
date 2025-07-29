@@ -1,37 +1,54 @@
 import * as vscode from 'vscode';
-import * as fs from 'fs';
-import * as path from 'path';
 
 class HistoryPanel implements vscode.WebviewViewProvider {
+  private _view?: vscode.WebviewView;
+  private httpIcon?: vscode.Uri;
+  private wsIcon?: vscode.Uri;
+  private grpcIcon?: vscode.Uri;
+
   constructor(private readonly context: vscode.ExtensionContext) {}
 
-  resolveWebviewView(
-    webviewView: vscode.WebviewView,
-    context: vscode.WebviewViewResolveContext,
-    _token: vscode.CancellationToken
-  ) {
-    webviewView.webview.options = { enableScripts: true };
-    // Provide webview URIs for icons
-    const httpIcon = webviewView.webview.asWebviewUri(
-      vscode.Uri.file(this.context.asAbsolutePath('res/http.svg'))
-    );
-    const wsIcon = webviewView.webview.asWebviewUri(
-      vscode.Uri.file(this.context.asAbsolutePath('res/websocket.svg'))
-    );
-    const grpcIcon = webviewView.webview.asWebviewUri(
-      vscode.Uri.file(this.context.asAbsolutePath('res/grpc.svg'))
-    );
-    webviewView.webview.html = this.getHtml(httpIcon.toString(), wsIcon.toString(), grpcIcon.toString());
-    webviewView.webview.onDidReceiveMessage(async (msg) => {
-      if (msg.type === 'openHistoryItem') {
-        vscode.window.showInformationMessage(
-          `Request/Response:\n${msg.title}\n\n${msg.content}`
-        );
-      }
-    });
+  private async updateHistoryView(view: vscode.WebviewView|undefined) {
+    if (!view) {
+      return;
+    }
+    if (!this.httpIcon || !this.wsIcon || !this.grpcIcon) {
+      this.httpIcon = view.webview.asWebviewUri(
+          vscode.Uri.file(this.context.asAbsolutePath('res/http.svg')));
+      this.wsIcon = view.webview.asWebviewUri(
+          vscode.Uri.file(this.context.asAbsolutePath('res/websocket.svg')));
+      this.grpcIcon = view.webview.asWebviewUri(
+          vscode.Uri.file(this.context.asAbsolutePath('res/grpc.svg')));
+    }
+    const historyFile =
+        vscode.Uri.joinPath(this.context.globalStorageUri, 'history.json');
+    try {
+      const data = await vscode.workspace.fs.readFile(historyFile);
+      const history = JSON.parse(Buffer.from(data).toString('utf8'));
+      view.webview.html = this.getHtml(
+          this.httpIcon.toString(), this.wsIcon.toString(),
+          this.grpcIcon.toString(), history);
+    } catch {
+      view.webview.html = this.getHtml(
+          this.httpIcon.toString(), this.wsIcon.toString(),
+          this.grpcIcon.toString(), []);
+    }
   }
 
-  getHtml(httpIcon: string, wsIcon: string, grpcIcon: string) {
+  refreshHistory() {
+    this.updateHistoryView(this._view);
+  }
+
+  resolveWebviewView(
+      webviewView: vscode.WebviewView,
+      context: vscode.WebviewViewResolveContext,
+      _token: vscode.CancellationToken) {
+    this._view = webviewView;
+    webviewView.webview.options = {enableScripts: true};
+    this.updateHistoryView(webviewView);
+  }
+
+  getHtml(httpIcon: string, wsIcon: string, grpcIcon: string, history: any[]) {
     return `
 <!DOCTYPE html>
 <html lang="en">
@@ -111,17 +128,7 @@ class HistoryPanel implements vscode.WebviewViewProvider {
   </style>
   <script>
     const vscode = acquireVsCodeApi();
-    const history = [
-      { type: 'send', method: 'POST', protocol: 'http', title: 'Create User', content: '{ "name": "Alice" }', time: '2025-07-29 10:01:23' },
-      { type: 'recv', method: 'POST', protocol: 'http', title: 'Create User Response', content: '{ "id": 1, "name": "Alice" }', time: '2025-07-29 10:01:24' },
-      { type: 'send', method: 'GET', protocol: 'http', title: 'Get User', content: 'GET /user/1', time: '2025-07-29 10:02:10' },
-      { type: 'recv', method: 'GET', protocol: 'http', title: 'Get User Response', content: '{ "id": 1, "name": "Alice" }', time: '2025-07-29 10:02:11' },
-      { type: 'send', method: 'CONNECT', protocol: 'ws', title: 'WebSocket Connect', content: 'ws://example.com', time: '2025-07-29 10:03:00' },
-      { type: 'recv', method: 'SEND', protocol: 'ws', title: 'WS Message', content: '{"event":"connected"}', time: '2025-07-29 10:03:01' },
-      { type: 'send', method: 'GRPC', protocol: 'grpc', title: 'gRPC Call', content: 'service.User/GetUser', time: '2025-07-29 10:04:00' },
-      { type: 'recv', method: 'GRPC', protocol: 'grpc', title: 'gRPC Response', content: '{ "id": 1, "name": "Alice" }', time: '2025-07-29 10:04:01' },
-    ];
-
+    const history = ${JSON.stringify(history)};
     let openIdx = null;
 
     function getTypeIcon(type) {
@@ -130,8 +137,10 @@ class HistoryPanel implements vscode.WebviewViewProvider {
         : '<span class="codicon codicon-arrow-down" style="color:#66bb6a"></span>';
     }
     function getProtocolIcon(protocol) {
-      if (protocol === 'ws') return '<img src="${wsIcon}" class="history-icon" />';
-      if (protocol === 'grpc') return '<img src="${grpcIcon}" class="history-icon" />';
+      if (protocol === 'ws') return '<img src="${
+        wsIcon}" class="history-icon" />';
+      if (protocol === 'grpc') return '<img src="${
+        grpcIcon}" class="history-icon" />';
       return '<img src="${httpIcon}" class="history-icon" />';
     }
 
@@ -145,7 +154,7 @@ class HistoryPanel implements vscode.WebviewViewProvider {
               '<span class="drawer-arrow' + (openIdx === idx ? ' open' : '') + '">&#9654;</span>' +
               getTypeIcon(item.type) +
               getProtocolIcon(item.protocol) +
-              '<span class="history-title">' + item.title + '</span>' +
+              '<span class="history-title">' + stripResponse(item.title) + '</span>' +
               '<span class="history-time">' + item.time + '</span>' +
             '</div>' +
             (openIdx === idx
@@ -159,10 +168,30 @@ class HistoryPanel implements vscode.WebviewViewProvider {
         '</ul>';
     }
 
+    function stripResponse(title) {
+      // Remove "Response" from the title if present
+      return title.replace(/\\s*Response\\s*$/i, '');
+    }
+
     window.toggleDrawer = function(idx) {
       openIdx = openIdx === idx ? null : idx;
       renderHistory();
     };
+
+    window.addEventListener('message', event => {
+      const msg = event.data;
+      if (msg.command === 'refreshHistory') {
+        vscode.postMessage({ type: 'refreshHistory' });
+      }
+    });
+
+    window.addEventListener('message', event => {
+      const msg = event.data;
+      if (msg.command === 'setHistory') {
+        window.history = msg.history;
+        renderHistory();
+      }
+    });
 
     renderHistory();
   </script>

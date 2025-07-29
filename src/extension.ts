@@ -22,11 +22,24 @@ export function activate(context: vscode.ExtensionContext) {
     )
   );
 
+  const historyPanel = new HistoryPanel(context);
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
       'multimeterHistory',
-      new HistoryPanel(context)
+      historyPanel
     )
+  );
+
+  vscode.commands.registerCommand('multimeter.clearHistory', async () => {
+    const historyFile = vscode.Uri.joinPath(context.globalStorageUri, 'history.json');
+    await vscode.workspace.fs.writeFile(historyFile, Buffer.from('[]', 'utf8'));
+    historyPanel.refreshHistory();
+  });
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('multimeter.refreshHistory', () => {
+      historyPanel.refreshHistory();
+    })
   );
 }
 

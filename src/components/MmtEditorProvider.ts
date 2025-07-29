@@ -104,6 +104,22 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         case 'network':
           handleNetworkMessage(message, webviewPanel, wsConnections);
           break;
+
+        case 'addHistory': {
+          const historyFile = vscode.Uri.joinPath(this.context.globalStorageUri, 'history.json');
+          let history: any[] = [];
+          try {
+            const data = await vscode.workspace.fs.readFile(historyFile);
+            history = JSON.parse(Buffer.from(data).toString('utf8'));
+          } catch (e) {
+            // file may not exist yet
+            history = [];
+          }
+          history.unshift(message.item);
+          await vscode.workspace.fs.writeFile(historyFile, Buffer.from(JSON.stringify(history, null, 2), 'utf8'));
+          await vscode.commands.executeCommand('multimeter.refreshHistory');
+          break;
+        }
       }
     });
 

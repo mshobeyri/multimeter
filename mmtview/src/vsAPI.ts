@@ -1,11 +1,12 @@
-let lastFileContentResolver: ((content: string) => void) | null = null;
-let lastFileContentRejecter: ((error: any) => void) | null = null;
+let lastFileContentResolver: ((content: string) => void)|null = null;
+let lastFileContentRejecter: ((error: any) => void)|null = null;
 
 // Add the event listener only once
-if (typeof window !== "undefined" && !(window as any).__fileContentListenerAdded) {
-  window.addEventListener("message", (event: MessageEvent) => {
+if (typeof window !== 'undefined' &&
+    !(window as any).__fileContentListenerAdded) {
+  window.addEventListener('message', (event: MessageEvent) => {
     const message = event.data;
-    if (message.command === "fileContent") {
+    if (message.command === 'fileContent') {
       if (message.error && lastFileContentRejecter) {
         lastFileContentRejecter(message.error);
       } else if (lastFileContentResolver) {
@@ -22,13 +23,31 @@ export function readFile(filename: string): Promise<string> {
   return new Promise((resolve, reject) => {
     lastFileContentResolver = resolve;
     lastFileContentRejecter = reject;
-    window.vscode?.postMessage({ command: "getFileContent", filename });
+    window.vscode?.postMessage({command: 'getFileContent', filename});
   });
 }
 
-export function showVSCodeMessage(type: "error" | "warning", message: string) {
+export function showVSCodeMessage(type: 'error'|'warning', message: string) {
   window.vscode?.postMessage({
-    command: type === "error" ? "showErrorMessage" : "showWarningMessage",
+    command: type === 'error' ? 'showErrorMessage' : 'showWarningMessage',
     message,
   });
 }
+
+export const pushHistory = (item: {
+  type: 'send'|'recv',
+  method: string,
+  protocol: string,
+  title: string,
+  content: string,
+  time?: string
+}) => {
+  window.vscode?.postMessage({
+    command: 'addHistory',
+    item: {
+      ...item,
+      time: item.time ||
+          new Date().toISOString().replace('T', ' ').substring(0, 19)
+    }
+  });
+};
