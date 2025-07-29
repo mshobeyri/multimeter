@@ -35,12 +35,16 @@ export function showVSCodeMessage(type: 'error'|'warning', message: string) {
 }
 
 export const pushHistory = (item: {
-  type: 'send'|'recv',
+  type: 'send'|'recv'|'error',
   method: string,
   protocol: string,
   title: string,
-  content: string,
+  cookies?: Record<string, string>,
+  headers?: Record<string, string>,
+  query?: Record<string, string>,
+  content?: string,
   time?: string
+  duration?: number
 }) => {
   window.vscode?.postMessage({
     command: 'addHistory',

@@ -26,6 +26,8 @@ export function useNetwork(): NetworkAPI {
     return cookies;
   };
 
+  let lastSendTime: number | null = null;
+
   const send = async () => {
     setError(null);
     setLoading(true);
@@ -51,9 +53,12 @@ export function useNetwork(): NetworkAPI {
       method,
       protocol,
       title: `${method} ${url}`,
-      content: JSON.stringify({ url, method, headers, body, cookies, query }, null, 2)
+      cookies: cookies || {},
+      query: query || {},
+      content: method === "GET" ? "" : JSON.stringify(body)
     });
 
+    lastSendTime = Date.now();
     if (protocol === "http") {
       NetworkNodeApi.sendHttp({
         url: url ?? "",
@@ -63,6 +68,7 @@ export function useNetwork(): NetworkAPI {
         cookies,
         query,
         onResponse: (res: any) => {
+          const duration = lastSendTime ? Date.now() - lastSendTime : undefined;
           setResponseBody(res.body);
           setResponseHeaders(res.headers || {});
           setResponseCookies(parseSetCookie(res.headers?.["set-cookie"]));
@@ -73,9 +79,11 @@ export function useNetwork(): NetworkAPI {
             type: "recv",
             method,
             protocol,
-            title: `${method} ${url} Response`,
-            content: JSON.stringify(res, null, 2)
+            title: `${method} ${url}`,
+            content: JSON.stringify(res, null, 2),
+            duration
           });
+          lastSendTime = null;
         },
         onError: (err: any) => {
           setResponseBody({ error: err?.message || err });
@@ -86,7 +94,7 @@ export function useNetwork(): NetworkAPI {
 
           // Save error to history
           pushHistory({
-            type: "recv",
+            type: "error",
             method,
             protocol,
             title: `${method} ${url} Error`,
@@ -106,7 +114,7 @@ export function useNetwork(): NetworkAPI {
         type: "send",
         method: "SEND",
         protocol,
-        title: `WS SEND ${url}`,
+        title: `SEND ${url}`,
         content: typeof body === "string" ? body : JSON.stringify(body)
       });
 
@@ -135,8 +143,7 @@ export function useNetwork(): NetworkAPI {
       type: "send",
       method: "CONNECT",
       protocol,
-      title: `WS CONNECT ${url}`,
-      content: url
+      title: `CONNECT ${url}`
     });
 
     const websocketId = NetworkNodeApi.connectWs({
@@ -150,7 +157,7 @@ export function useNetwork(): NetworkAPI {
           type: "recv",
           method: "CONNECTED",
           protocol,
-          title: `WS CONNECTED ${url}`,
+          title: `CONNECTED ${url}`,
           content: url
         });
       },
@@ -163,7 +170,7 @@ export function useNetwork(): NetworkAPI {
           type: "recv",
           method: "MESSAGE",
           protocol,
-          title: `WS MESSAGE ${url}`,
+          title: `MSG ${url}`,
           content: data
         });
       },
@@ -176,7 +183,7 @@ export function useNetwork(): NetworkAPI {
           type: "recv",
           method: "CLOSE",
           protocol,
-          title: `WS CLOSED ${url}`,
+          title: `CLOSED ${url}`,
           content: url
         });
       },
@@ -189,7 +196,7 @@ export function useNetwork(): NetworkAPI {
           type: "recv",
           method: "ERROR",
           protocol,
-          title: `WS ERROR ${url}`,
+          title: `ERROR ${url}`,
           content: err?.message || String(err)
         });
       }
