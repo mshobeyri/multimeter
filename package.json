@@ -59,6 +59,11 @@
           "light": "res/activity.png",
           "dark": "res/activity.png"
         }
+      },
+      {
+        "command": "multimeter.clearHistory",
+        "title": "clear History",
+        "icon":  "res/delete.svg"
       }
     ],
     "viewsContainers": {
@@ -92,6 +97,15 @@
           "name": "History",
           "icon": "res/activity.png",
           "type": "webview"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "multimeter.clearHistory",
+          "when": "view == multimeterHistory",
+          "group": "navigation"
         }
       ]
     }
