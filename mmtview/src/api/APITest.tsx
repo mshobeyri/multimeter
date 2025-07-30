@@ -38,10 +38,11 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
       const outputsDef =
         (api.outputs ?? []).reduce((acc, cur) => ({ ...acc, ...cur }), {});
       setOutputs(
-        extractOutputs(
-          network.responseBody,
-          network.responseHeaders || {},
-          network.responseCookies || {},
+        extractOutputs({
+          body: network.responseBody,
+          headers: network.responseHeaders || {},
+          cookies: network.responseCookies || {}
+        },
           outputsDef
         )
       );

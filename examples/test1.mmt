@@ -1,35 +1,32 @@
 type: test
-threads: 10
-repeat: inf
-duration: 100s
-rampup: 100s
-export: 
+title: ""
+tags: []
 flow:
-- call: i_generate_session
-  interface: httpjson
-  inputs:
-    username: mehrdad
-    password: 123
-    traceId: g:random
-  outputs:
-    csession: session
-    cerrors: error
-- check: session === random
-- check: errors !== null
-- call:
-  type: http
-  url: e:url
-  headers:
-    traceId: random
-    content-type: application/json
-  body: |
-    {
-      "username": "mehrdad",
-      "password": "123"
-    }
-  outputs:
-    session: 
-      json: body.session
-    errors: body.errors[0]
-- export:
-    absession:
+  - call: i_generate_session
+    interface: httpjson
+    inputs:
+      username: mehrdad
+      password: 123
+      traceId: g:random
+    outputs:
+      csession: session
+      cerrors: error
+  - check: session === random
+  - check: errors !== null
+  - call: null
+    type: http
+    url: e:url
+    headers:
+      traceId: random
+      content-type: application/json
+    body: |
+      {
+        "username": "mehrdad",
+        "password": "123"
+      }
+    outputs:
+      session:
+        json: body.session
+      errors: body.errors[0]
+  - export:
+      absession: null
