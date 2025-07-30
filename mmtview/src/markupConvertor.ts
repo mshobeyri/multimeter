@@ -105,6 +105,7 @@ export {
   parseYamlDoc,
   packYaml,
   formatBody,
+  flattenXmlObj,
   formattedBodyToYamlObject,
   beautify
 };

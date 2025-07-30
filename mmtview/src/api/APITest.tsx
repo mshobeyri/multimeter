@@ -39,6 +39,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         (api.outputs ?? []).reduce((acc, cur) => ({ ...acc, ...cur }), {});
       setOutputs(
         extractOutputs({
+          type: network.responseHeaders?.["Content-Type"]?.includes("xml") ? "xml" : "json",
           body: network.responseBody,
           headers: network.responseHeaders || {},
           cookies: network.responseCookies || {}
