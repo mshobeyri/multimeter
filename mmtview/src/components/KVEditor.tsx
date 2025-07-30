@@ -10,6 +10,7 @@ interface KVEditorProps {
   valuePlaceholder?: string;
   options?: string[]; // <-- Add this line
   disabled?: boolean;
+  deactivated?: boolean;
 }
 
 // Utility to ensure an empty key is always at the end
@@ -28,7 +29,8 @@ const KVEditor: React.FC<KVEditorProps> = ({
   keyPlaceholder = "key",
   valuePlaceholder = "value",
   options, // <-- Add this line
-  disabled
+  disabled,
+  deactivated = false
 }) => {
   // Use an array of entries to preserve order
   const entries = useMemo(() => withTrailingEmptyKey(value), [value]);
@@ -73,41 +75,44 @@ const KVEditor: React.FC<KVEditorProps> = ({
       <td style={{ padding: "5px" }}>
         <table style={{ width: "100%" }}>
           <tbody>
-            {entries.map(([k, v], i) => (
-              <tr key={i}>
-                <td style={{ width: "50%" }}>
-                  <input
-                    value={k}
-                    onChange={e => handleKeyChange(i, e.target.value)}
-                    placeholder={keyPlaceholder}
-                    style={{ width: "100%" }}
-                    disabled={disabled}
-                  />
-                </td>
-                <td style={{ width: "50%" }}>
-                  {k !== "" && (
-                    options && options.length > 0 ? (
-                      <SelectWithRemove
-                        value={v}
-                        onChange={newVal => handleValueChange(i, newVal)}
-                        onRemovePressed={() => handleRemove(i)}
-                        options={options}
-                        placeholder={valuePlaceholder}
-                        disabled={disabled}
-                      />
-                    ) : (
-                      <FieldWithRemove
-                        value={v}
-                        onChange={newVal => handleValueChange(i, newVal)}
-                        onRemovePressed={() => handleRemove(i)}
-                        placeholder={valuePlaceholder}
-                        disabled={disabled}
-                      />
-                    )
-                  )}
-                </td>
-              </tr>
-            ))}
+            {entries
+              .filter(([k], i) => !(deactivated && k === "" && i === entries.length - 1))
+              .map(([k, v], i) => (
+                <tr key={i}>
+                  <td style={{ width: "50%" }}>
+                    <input
+                      value={k}
+                      onChange={e => handleKeyChange(i, e.target.value)}
+                      placeholder={keyPlaceholder}
+                      style={{ width: "100%" }}
+                      disabled={disabled}
+                    />
+                  </td>
+                  <td style={{ width: "50%" }}>
+                    {k !== "" && (
+                      options && options.length > 0 ? (
+                        <SelectWithRemove
+                          value={v}
+                          onChange={newVal => handleValueChange(i, newVal)}
+                          onRemovePressed={() => handleRemove(i)}
+                          options={options}
+                          placeholder={valuePlaceholder}
+                          disabled={disabled}
+                        />
+                      ) : (
+                        <FieldWithRemove
+                          value={v}
+                          onChange={newVal => handleValueChange(i, newVal)}
+                          onRemovePressed={() => handleRemove(i)}
+                          placeholder={valuePlaceholder}
+                          disabled={disabled}
+                          removable={!deactivated}
+                        />
+                      )
+                    )}
+                  </td>
+                </tr>
+              ))}
           </tbody>
         </table>
       </td>

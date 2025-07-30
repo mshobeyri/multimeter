@@ -6,6 +6,7 @@ interface FieldWithRemoveProps {
   onRemovePressed: () => void;
   placeholder?: string;
   disabled?: boolean;
+  removable?: boolean;
 }
 
 const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
@@ -14,6 +15,7 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
   onRemovePressed,
   placeholder,
   disabled = false,
+  removable = true
 }) => (
   <div style={{ position: "relative", width: "100%" }}>
     <input
@@ -29,7 +31,7 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
       onChange={e => onChange(e.target.value)}
       disabled={disabled}
     />
-    <button
+    {removable && <button
       onClick={onRemovePressed}
       title="Remove field"
       disabled={disabled}
@@ -53,7 +55,7 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
       }}
     >
       <span style={{ fontSize: "14.4px", lineHeight: 1 }}>🗑️</span>
-    </button>
+    </button>}
   </div>
 );
 

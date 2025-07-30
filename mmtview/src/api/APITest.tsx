@@ -233,6 +233,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                 label="headers"
                 value={network.responseHeaders}
                 onChange={headers => { }}
+                deactivated={true}
               />
             )}
             {Object.keys(network.responseCookies || {}).length > 0 && (
@@ -240,6 +241,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                 label="cookies"
                 value={network.responseCookies}
                 onChange={cookies => { }}
+                deactivated={true}
               />
             )}
             <tr>
