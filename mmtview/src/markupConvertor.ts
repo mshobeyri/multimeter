@@ -49,7 +49,9 @@ function formatBody(format: string, body: string|object): string {
 
 function flattenXmlObj(obj: any): any {
   // This is a naive flatten for simple XML structures
-  if (typeof obj !== 'object' || obj === null) return obj;
+  if (typeof obj !== 'object' || obj === null) {
+    return obj;
+  }
   const result: any = {};
   for (const key in obj) {
     if (typeof obj[key] === 'object' && '_text' in obj[key]) {

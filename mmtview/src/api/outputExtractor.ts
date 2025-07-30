@@ -1,37 +1,40 @@
+import { xml2js } from "xml-js";
+import { flattenXmlObj } from "../markupConvertor";
+
 export interface ResponseData {
+  type: 'xml'|'json'|'text';
   body: any;
   headers: Record<string, string>;
   cookies: Record<string, string>;
 }
 
 function resolvePath(response: ResponseData, expr: string): any {
-  // Supports paths like body.items[0].name or headers['x-token']
-  const parts = expr.split(".");
+  const parts = expr.split('.');
   let val: any = response;
   for (let part of parts) {
-    // Handle array index: e.g. items[0]
     const arrayMatch = part.match(/^(\w+)\[(\d+)\]$/);
     if (arrayMatch) {
       val = val[arrayMatch[1]];
       if (Array.isArray(val)) {
         val = val[parseInt(arrayMatch[2], 10)];
       } else {
-        return "";
+        return '';
       }
     } else if (part.match(/^\w+\['(.+)'\]$/)) {
-      // Handle object key with brackets: headers['x-token']
       const keyMatch = part.match(/^\w+\['(.+)'\]$/);
       if (keyMatch) {
         val = val[keyMatch[1]];
       } else {
-        return "";
+        return '';
       }
     } else {
       val = val[part];
     }
-    if (val === undefined || val === null) return "";
+    if (val === undefined || val === null) {
+      return '';
+    }
   }
-  return val ?? "";
+  return val ?? '';
 }
 
 export function extractOutputs(
@@ -40,27 +43,43 @@ export function extractOutputs(
 ): Record<string, string | number | boolean> {
   const result: Record<string, string | number | boolean> = {};
 
+  // Convert XML body to JS object if needed
+  let body = response.body;
+  if (response.type === "xml" && typeof response.body === "string") {
+    try {
+      const jsObj = xml2js(response.body, { compact: true });
+      body = flattenXmlObj(jsObj);
+    } catch (e) {
+      body = {};
+    }
+  }
+
+  // Use the converted body for property path resolution
+  const resolvedResponse = { ...response, body };
+
   for (const [key, expr] of Object.entries(outputsDef)) {
-    if (typeof expr !== "string") {
-      result[key] = "";
+    if (typeof expr !== 'string') {
+      result[key] = '';
       continue;
     }
-    if (expr.startsWith("regex ")) {
+    if (expr.startsWith('regex ')) {
       const pattern = expr.slice(6);
-      let value = "";
+      let value = '';
       try {
         const regex = new RegExp(pattern);
-        const bodyStr = typeof response.body === "string" ? response.body : JSON.stringify(response.body);
+        const bodyStr = typeof resolvedResponse.body === 'string'
+          ? resolvedResponse.body
+          : JSON.stringify(resolvedResponse.body);
         const found = bodyStr.match(regex);
-        value = found && found[1] ? found[1] : "";
+        value = found && found[1] ? found[1] : '';
       } catch (e) {
-        value = "";
+        value = '';
       }
       result[key] = value;
     } else if (/^\w+\./.test(expr)) {
-      result[key] = resolvePath(response, expr);
+      result[key] = resolvePath(resolvedResponse, expr);
     } else {
-      result[key] = "";
+      result[key] = '';
     }
   }
 
