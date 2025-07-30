@@ -52,9 +52,8 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
       </tr>
       <KVEditor
         label="import"
-        value={api.import?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
+        value={(api.import ?? []).reduce((acc, cur) => ({ ...acc, ...cur }), {})}
         onChange={kv => {
-          // Convert kv object to Parameter[] (each entry: { [key]: value })
           const newImports = Object.entries(kv).map(([key, value]) => ({ [key]: value }));
           update({ import: newImports });
         }}
@@ -63,9 +62,8 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
       />
       <KVEditor
         label="input"
-        value={api.inputs?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
+        value={(api.inputs ?? []).reduce((acc, cur) => ({ ...acc, ...cur }), {})}
         onChange={kv => {
-          // Convert kv object to Parameter[] (each entry: { [key]: value })
           const newInputs = Object.entries(kv).map(([key, value]) => ({ [key]: value }));
           update({ inputs: newInputs });
         }}
@@ -75,9 +73,8 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => (
       />
       <KVEditor
         label="output"
-        value={api.outputs?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
+        value={(api.outputs ?? []).reduce((acc, cur) => ({ ...acc, ...cur }), {})}
         onChange={kv => {
-          // Convert kv object to Parameter[] (each entry: { [key]: value })
           const newOutputs = Object.entries(kv).map(([key, value]) => ({ [key]: value }));
           update({ outputs: newOutputs });
         }}

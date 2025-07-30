@@ -8,7 +8,7 @@ import ConnectButton from "../components/ConnectButton";
 import { useNetwork } from "../components/network/Network";
 import { replaceAllRefs } from "../variableReplacer";
 import UrlInput from "../components/UrlInput";
-
+import { extractOutputs } from "./outputExtractor";
 
 interface APITestProps {
   api: APIData;
@@ -22,8 +22,33 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(0);
 
   const network = useNetwork();
-
   const req = network.requestData || {};
+
+  // Outputs state
+  const [outputs, setOutputs] = useState<Record<string, string | number | boolean>>({});
+
+  // Update outputs when response changes
+  useEffect(() => {
+    if (
+      network.responseBody ||
+      network.responseHeaders ||
+      network.responseCookies
+    ) {
+      // Convert Parameter[] (array) to Record<string, string>
+      const outputsDef =
+        (api.outputs ?? []).reduce((acc, cur) => ({ ...acc, ...cur }), {});
+      setOutputs(
+        extractOutputs(
+          network.responseBody,
+          network.responseHeaders || {},
+          network.responseCookies || {},
+          outputsDef
+        )
+      );
+    } else {
+      setOutputs({});
+    }
+  }, [network.responseBody, network.responseHeaders, network.responseCookies, api.outputs]);
 
   // Only call onChange if url value actually changed
   const handleUrlChange = useCallback(
@@ -50,7 +75,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     },
     [req.url, req.query]
   );
-  
+
   useEffect(() => {
     const iface = { ...interfaces[selectedInterfaceIdx] };
     const selectedExample = examples[selectedExampleIdx] || {};
@@ -215,11 +240,6 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           <tr>
             <td colSpan={2} style={{ padding: "32px 0" }}>
               <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                {/* <img
-                  src={errorImage}
-                  alt="Error"
-                  style={{ width: 64, height: 64, marginBottom: 16, opacity: 0.7 }}
-                /> */}
                 <div style={{ color: "#d32f2f", fontSize: 12, textAlign: "center" }}>
                   {network.error}
                 </div>
@@ -260,6 +280,16 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                 />
               </td>
             </tr>
+            {Object.keys(outputs).length > 0 && (
+              <KVEditor
+                label="outputs"
+                value={Object.fromEntries(
+                  Object.entries(outputs).map(([k, v]) => [k, String(v)])
+                )}
+                onChange={() => { }}
+                deactivated={true}
+              />
+            )}
           </>
         )}
       </tbody>
