@@ -63,13 +63,13 @@
       {
         "command": "multimeter.clearHistory",
         "title": "clear History",
-        "icon":  "res/delete.svg"
+        "icon": "res/delete.svg"
       }
     ],
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "multimeterContainer",
+          "id": "multimeter",
           "title": "Multimeter",
           "icon": "res/activity.png"
         }
@@ -83,10 +83,16 @@
       ]
     },
     "views": {
-      "multimeterContainer": [
+      "multimeter": [
         {
-          "id": "multimeterConvertor",
+          "id": "multimeter.convertor",
           "name": "Convertor",
+          "icon": "res/activity.png",
+          "type": "webview"
+        },
+        {
+          "id": "multimeter.mockServer",
+          "name": "Mock Server",
           "icon": "res/activity.png",
           "type": "webview"
         }
