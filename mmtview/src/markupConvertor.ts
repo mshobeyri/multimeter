@@ -35,8 +35,10 @@ function formatBody(format: string, body: string|object): string {
       return JSON.stringify(obj, null, 2);
     }
     if (format === 'xml') {
-      const obj = typeof body === 'string' ? YAML.parse(body) : body;
-      return js2xml(obj, {compact: true, spaces: 2});
+      if (typeof body === 'string') {
+        return body;
+      }
+      return js2xml(body, {compact: true, spaces: 2});
     }
     if (format === 'text') {
       return typeof body === 'string' ? body : String(body);

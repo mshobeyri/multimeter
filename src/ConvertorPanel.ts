@@ -1,6 +1,6 @@
-import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
+import * as vscode from 'vscode';
 import * as yaml from 'yaml';
 
 import {APIData, InterfaceData} from '../mmtview/src/api/APIData';
@@ -42,11 +42,18 @@ export function postmanToAPI(postmanJson: any): APIData[] {
 
     let format = 'json';
     const contentType = headers['content-type'] || headers['Content-Type'];
-    if (typeof contentType === 'string' && contentType.toLowerCase().includes('xml')) {
+    if (typeof contentType === 'string' &&
+        contentType.toLowerCase().includes('xml')) {
       format = 'xml';
     }
-    if (typeof contentType === 'string' && contentType.toLowerCase().includes('text')) {
+    if (typeof contentType === 'string' &&
+        contentType.toLowerCase().includes('text')) {
       format = 'text';
+    }
+
+    let protocol = 'http';
+    if (url.toLowerCase().startsWith('ws')) {
+      protocol = 'ws';
     }
 
     return {
@@ -59,7 +66,7 @@ export function postmanToAPI(postmanJson: any): APIData[] {
       outputs: [],
       interfaces: [{
         name: req.name || request.url?.raw || '',
-        protocol: 'http',
+        protocol,
         format,
         url,
         method: request.method?.toUpperCase() || 'GET',
@@ -82,16 +89,16 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
     webviewView.webview.options = {enableScripts: true};
     const postmanIconPath =
         vscode.Uri.file(this.context.asAbsolutePath('res/postman.svg'));
-    const postmanIconWebviewUri = webviewView.webview.asWebviewUri(postmanIconPath);
+    const postmanIconWebviewUri =
+        webviewView.webview.asWebviewUri(postmanIconPath);
 
     const multimeterIconPath =
         vscode.Uri.file(this.context.asAbsolutePath('res/icon.png'));
-    const multimeterIconWebviewUri = webviewView.webview.asWebviewUri(multimeterIconPath);
+    const multimeterIconWebviewUri =
+        webviewView.webview.asWebviewUri(multimeterIconPath);
 
     webviewView.webview.html = this.getHtml(
-      postmanIconWebviewUri.toString(),
-      multimeterIconWebviewUri.toString()
-    );
+        postmanIconWebviewUri.toString(), multimeterIconWebviewUri.toString());
 
     webviewView.webview.onDidReceiveMessage(async (msg) => {
       if (msg.type === 'chooseSaveDir') {
@@ -156,7 +163,8 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
   }
 
   getHtml(postmanIconUri: string, multimeterIconUri: string) {
-    const htmlPath = path.join(this.context.extensionPath, 'src', 'convertor.html');
+    const htmlPath =
+        path.join(this.context.extensionPath, 'src', 'convertor.html');
     let html = fs.readFileSync(htmlPath, 'utf8');
     // Replace placeholders with icon URIs
     html = html.replace(/__POSTMAN_ICON__/g, postmanIconUri)
