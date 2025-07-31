@@ -40,6 +40,6 @@ interfaces:
 
 Here you can see the screen shot of using this sample. On the right side, beside a UI for modifying the test yaml file interactively, you can have some smoke tests.
 
-<img src="screenshots/simple_get.png" alt="Multimeter simple get" width="800" height="500"/> 
+<img src="screenshots/simple_get.png" alt="Multimeter simple get" width="800" height="600"/> 
 
 **Special thanks to: Od. Ashkan Palganeh 👨🏻‍🦱♥️.**
