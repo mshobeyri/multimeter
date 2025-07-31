@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     body {
-      background-color: var(--vscode-editor-background);
       color: var(--vscode-editor-foreground);
       font-family: var(--vscode-font-family);
       margin: 0;
@@ -42,7 +41,7 @@
     .mock-textarea {
       font-family: var(--vscode-editor-font-family);
       font-size: 12px;
-      min-height: 60px;
+      min-height: 120px;
       resize: vertical;
     }
     .mock-btn {
@@ -102,12 +101,12 @@
     };
     document.querySelector('#runBtn').onclick = () => {
       const runBtn = document.getElementById('runBtn');
-      if (runBtn.textContent.startsWith('Run')) {
+      if (runBtn.textContent.startsWith('🏃🏽‍♀️‍➡️')) {
         vscode.postMessage({ type: 'startServer' });
-        runBtn.textContent = 'Stop localhost:' + document.getElementById('port').value;
+        runBtn.textContent = '🧍🏽‍♀️ Stop localhost:' + document.getElementById('port').value;
       } else {
         vscode.postMessage({ type: 'stopServer' });
-        runBtn.textContent = 'Run';
+        runBtn.textContent = '🏃🏽‍♀️‍➡️ Run Mock Server';
       }
     };
   </script>

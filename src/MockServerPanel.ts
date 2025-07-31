@@ -10,7 +10,11 @@ export default class MockServerPanel implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private serverType: ServerType = 'http';
   private port = 8080;
-  private response = '{"message":"Hello"}';
+  private response = `
+{
+  "message" : "Hello",
+  "from" : "Mock Server"
+}`;
   private running = false;
   private httpServer?: http.Server;
   private wsServer?: WebSocket.Server;
@@ -129,7 +133,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider {
                .replace(/\${response}/g, this.response)
                .replace(
                    /\${buttonText}/g,
-                   this.running ? `Stop localhost:${this.port}` : 'Run')
+                   this.running ? `Stop localhost:${this.port}` : '🏃🏽‍♀️‍➡️ Run Mock Server')
                .replace(/\${disabled}/g, this.running ? 'disabled' : '');
     return html;
   }
