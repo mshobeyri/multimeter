@@ -15,11 +15,12 @@
 - 🧑‍🚀 Support Postman collection.
 - 🪞 Server mocking.
 
-🛠️ Usage
+## 🛠️ Usage
+- Add [multimeter](https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter) extention to your vscode.
 - Create a .mmt file in your project (e.g., login.mmt).
 - Follow the UI instructions 👌.
 
-✍️ Example
+## ✍️ Example
 
 ```yaml
 type: api
