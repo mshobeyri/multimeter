@@ -81,7 +81,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   useEffect(() => {
     const iface = { ...interfaces[selectedInterfaceIdx] };
     const selectedExample = examples[selectedExampleIdx] || {};
-    iface.body = formatBody(iface.format || "json", iface.body || "")
+    iface.body = iface.body ? formatBody(iface.format || "json", iface.body || "") : ""
     replaceAllRefs(iface, api?.inputs ?? [], selectedExample?.inputs ?? [], (replaced) => {
       setBody(replaced.body);
       network.setRequestData(replaced);
