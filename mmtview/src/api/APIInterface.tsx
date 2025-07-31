@@ -28,7 +28,11 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
 
   // Update formattedBody when body or format changes
   useEffect(() => {
-    setFormattedBody(formatBody(data.format, data.body || ""));
+    if (data.body) {
+      setFormattedBody(formatBody(data.format, data.body || ""));
+    } else {
+      setFormattedBody("");
+    }
   }, [data.body, data.format]);
 
   // Only call onChange if url value actually changed
