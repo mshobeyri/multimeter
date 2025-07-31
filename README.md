@@ -1,4 +1,4 @@
-# 🔌 Multimeter
+# <img src="res/icon.png" alt="Multimeter Logo" width="40" height="40"/> Multimeter
 
 **Multimeter** is a powerful Visual Studio Code extension designed to write, run, and manage structured tests using `.mmt` files. It supports a wide range of test types — including API, integration, functional, and custom tests — all stored directly in your application's repository as version-controlled files.
 
@@ -55,4 +55,4 @@ examples:
       - password: 123456
 
 ```
-Special thanks to: Ashkan palganeh.
+**Special thanks to: Od. Ashkan Palganeh 👨🏻‍🦱♥️.**
