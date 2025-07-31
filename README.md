@@ -11,49 +11,35 @@
   - 🤖 Ability to generate tests using AI.
   - 📦 Having tests along with the changes in a same pull request.
 - 🧱 JSON/XML schema-aware editing.
+- ⛏️ Extract data from results using xpath, jsonpath and regular expression.
 - 🌐 HTTP/WS protocols support.
 - 🧑‍🚀 Support Postman collection.
 - 🪞 Server mocking.
 
 ## 🛠️ Usage
-- Add [multimeter](https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter) extention to your vscode.
+- Add <img src="res/icon.png" alt="Multimeter Logo" width="16" height="16"/>[Multimeter](https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter) extention to your vscode.
 - Create a .mmt file in your project (e.g., login.mmt).
 - Follow the UI instructions 👌.
 
 ## ✍️ Example
 
+Here is the most simple test file you can have.
 ```yaml
 type: api
-title: generate session
+title: GET sample
 tags:
+  - regression
   - smoke
-  - authentication
-description: returns session information.
-inputs:
-  - username: string
-  - password: string
-  - traceId: string
-outputs:
-  - session: string
-  - errorcode: number
 interfaces:
-  - name: http-json
+  - name: GET Foo Bar
     protocol: http
     format: json
-    method: POST
-    url: https://httpbin.org/s
-    headers:
-      traceId: i:traceId
-      content-type: application/json
-    body:
-      username: i:username
-      password: i:password
-examples:
-  - name: simple login
-    description: simple login with a sample user
-    inputs:
-      - username: mehrdad
-      - password: 123456
-
+    url: http://localhost:8080
+    method: GET
 ```
+
+Here you can see the screen shot of using this sample. On the right side, beside a UI for modifying the test yaml file interactively, you can have some smoke tests.
+
+<img src="screenshots/simple_get.png" alt="Multimeter simple get" width="800" height="500"/> 
+
 **Special thanks to: Od. Ashkan Palganeh 👨🏻‍🦱♥️.**
