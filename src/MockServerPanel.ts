@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as http from 'http';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import * as WebSocket from 'ws';
+import WebSocket = require('ws');
 
 type ServerType = 'http'|'ws';
 
@@ -80,10 +80,21 @@ export default class MockServerPanel implements vscode.WebviewViewProvider {
       });
       this.httpServer.on('close', () => (this.running = false));
     } else {
-      this.wsServer = new WebSocket.Server({port: this.port});
-      this.wsServer.on('connection', ws => ws.send(this.response));
-      this.wsServer.on('listening', () => (this.running = true));
-      this.wsServer.on('close', () => (this.running = false));
+      try {
+        this.wsServer = new WebSocket.Server({ port: this.port });
+        this.wsServer.on('connection', ws => {
+          ws.on('message', () => {
+            ws.send(this.response); // Always send the latest response
+          });
+          // Optionally, send the response immediately on connect as well:
+          ws.send(this.response);
+        });
+        this.wsServer.on('listening', () => (this.running = true));
+        this.wsServer.on('close', () => (this.running = false));
+      } catch (err) {
+        const message = (err instanceof Error) ? err.message : String(err);
+        vscode.window.showErrorMessage('WebSocket server could not be started: ' + message);
+      }
     }
   }
 
