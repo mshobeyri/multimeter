@@ -39,6 +39,16 @@ export function postmanToAPI(postmanJson: any): APIData[] {
     } else if (request.body?.mode === 'formdata') {
       body = extractKeyValue(request.body.formdata);
     }
+
+    let format = 'json';
+    const contentType = headers['content-type'] || headers['Content-Type'];
+    if (typeof contentType === 'string' && contentType.toLowerCase().includes('xml')) {
+      format = 'xml';
+    }
+    if (typeof contentType === 'string' && contentType.toLowerCase().includes('text')) {
+      format = 'text';
+    }
+
     return {
       type: 'api',
       title: req.name || request.url?.raw || '',
@@ -50,7 +60,7 @@ export function postmanToAPI(postmanJson: any): APIData[] {
       interfaces: [{
         name: req.name || request.url?.raw || '',
         protocol: 'http',
-        format: 'json',
+        format,
         url,
         method: request.method?.toUpperCase() || 'GET',
         headers,
