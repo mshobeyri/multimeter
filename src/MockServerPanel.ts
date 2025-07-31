@@ -18,6 +18,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider {
   private running = false;
   private httpServer?: http.Server;
   private wsServer?: WebSocket.Server;
+  private statusCode = 200; // default
 
   constructor(private readonly context: vscode.ExtensionContext) {}
 
@@ -37,6 +38,8 @@ export default class MockServerPanel implements vscode.WebviewViewProvider {
       this.serverType = value;
     } else if (type === 'setPort' && !this.running) {
       this.port = Number(value);
+    } else if (type === 'setStatusCode') {
+      this.statusCode = Number(value);
     } else if (type === 'setResponse') {
       this.response = value;
     } else if (type === 'startServer') {
@@ -76,7 +79,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider {
   private _doStartServer() {
     if (this.serverType === 'http') {
       this.httpServer = http.createServer((_, res) => {
-        res.writeHead(200, {'Content-Type': 'application/json'});
+        res.writeHead(this.statusCode, {'Content-Type': 'application/json'});
         res.end(this.response);
       });
       this.httpServer.listen(this.port, '127.0.0.1', () => {
@@ -131,9 +134,8 @@ export default class MockServerPanel implements vscode.WebviewViewProvider {
     html = html.replace(/\${serverType}/g, this.serverType)
                .replace(/\${port}/g, String(this.port))
                .replace(/\${response}/g, this.response)
-               .replace(
-                   /\${buttonText}/g,
-                   this.running ? `Stop localhost:${this.port}` : '🏃🏽‍♀️‍➡️ Run Mock Server')
+               .replace(/\${statusCode}/g, String(this.statusCode))
+               .replace(/\${buttonText}/g, this.running ? `Stop localhost:${this.port}` : '🏃🏽‍♀️‍➡️ Run Mock Server')
                .replace(/\${disabled}/g, this.running ? 'disabled' : '');
     return html;
   }

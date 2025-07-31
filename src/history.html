@@ -203,9 +203,9 @@
                             : '') +
                         (item.status !== undefined
                             ? (
-                                item.status === 200
-                                ? '<span style="color:#66bb6a;font-weight: bold;">[' + item.status + ']</span> '
-                                : '<span style="color:#ff5555; font-weight: bold;">[' + item.status + ']</span> '
+                                isError
+                                ? '<span style="color:#ff5555;font-weight: bold;">[' + item.status + ']</span> '
+                                : '<span style="color:#66bb6a;font-weight: bold;">[' + item.status + ']</span> '
                               )
                             : ''
                         ) +
@@ -218,9 +218,9 @@
                             '<div class="drawer-section"><span class="drawer-label">Protocol:</span> <span class="drawer-value">' + item.protocol + '</span></div>' +
                             (item.status !== undefined
                                 ? (
-                                    item.status === 200
-                                    ? '<div class="drawer-section"><span class="drawer-label">Status:</span> <span class="drawer-value" style="color:#66bb6a;">' + item.status + '</span></div>'
-                                    : '<div class="drawer-section"><span class="drawer-label">Status:</span> <span class="drawer-value" style="color:#ff5555;">' + item.status + '</span></div>'
+                                    isError
+                                    ? '<div class="drawer-section"><span class="drawer-label">Status:</span> <span class="drawer-value" style="color:#ff5555;">' + item.status + '</span></div>'
+                                    : '<div class="drawer-section"><span class="drawer-label">Status:</span> <span class="drawer-value" style="color:#66bb6a;">' + item.status + '</span></div>'
                                   )
                                 : ''
                             ) +

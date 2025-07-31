@@ -81,7 +81,7 @@ export function useNetwork(): NetworkAPI {
             type: "recv",
             method,
             protocol,
-            title: `${method} ${url}`,
+            title: `${method.toUpperCase()} ${url}`,
             cookies: parseSetCookie(res.headers?.["set-cookie"]),
             headers: res.headers || {},
             content: JSON.stringify(res, null, 2),
@@ -103,7 +103,7 @@ export function useNetwork(): NetworkAPI {
             type: "error",
             method,
             protocol,
-            title: `${method} ${url} Error`,
+            title: `${method.toUpperCase()} ${url} Error`,
             cookies: {}, // or parse from error if available
             headers: {}, // or parse from error if available
             content: JSON.stringify({ error: err?.message || err }, null, 2),
