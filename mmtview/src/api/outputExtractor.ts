@@ -53,7 +53,7 @@ export function extractOutputs(
       body = {};
     }
   }
-
+  
   // Use the converted body for property path resolution
   const resolvedResponse = { ...response, body };
 
