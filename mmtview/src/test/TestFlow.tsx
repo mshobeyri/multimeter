@@ -216,15 +216,20 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                                         top: 8,
                                         right: 8,
                                         cursor: "grab",
-                                        fontSize: 22,
+                                        fontSize: "16px",
                                         userSelect: "none",
                                         background: "none",
                                         border: "none",
                                         outline: "none",
                                         zIndex: 2,
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        width: "24px",
+                                        height: "24px",
                                     }}
                                 >
-                                    🟰
+                                    <span className="codicon codicon-gripper" style={{ fontSize: "16px" }}></span>
                                 </span>
                             )}
                         </div>
