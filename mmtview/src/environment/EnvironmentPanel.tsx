@@ -194,6 +194,34 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     }
   }, [tab]);
 
+  // Add these handler functions in EnvironmentPanel component
+  const handleClearCache = () => {
+    // Clear all variables from cache
+    saveEnvVariablesFromObject([]);
+    // Reset loadedVarsRef
+    loadedVarsRef.current = [];
+    // Reset variables to their default selections
+    setVariables(prev => 
+      prev.map(pair => ({
+        ...pair,
+        value: pair.options[0] || { label: "", value: "" }
+      }))
+    );
+  };
+
+  const handleSaveToCache = () => {
+    // Save all current variable selections to cache
+    const flatVars: { name: string; label: string; value: string|number|boolean }[] = [];
+    variables.forEach(pair => {
+      flatVars.push({
+        name: pair.name,
+        label: pair.value.label,
+        value: pair.value.value
+      });
+    });
+    saveEnvVariablesFromObject(flatVars);
+  };
+
   return (
     <div
       style={{
@@ -270,6 +298,8 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
             presets={presets}
             handleVariablesChange={handleVariablesChange}
             handlePresetsChange={handlePresetsChange}
+            onClearCache={handleClearCache}
+            onSaveToCache={handleSaveToCache}
           />
         )}
         {tab === "edit" && (
