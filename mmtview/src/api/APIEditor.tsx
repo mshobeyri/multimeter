@@ -92,10 +92,14 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
             background: "none",
             color: "inherit",
             fontWeight: tab === "overview" ? "bold" : "normal",
-            cursor: "pointer"
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px"
           }}
         >
-          <span role="img" aria-label="run">🔎</span> Overview
+          <span className="codicon codicon-search" style={{ fontSize: "16px" }}></span>
+          Overview
         </button>
         <button
           onClick={() => setTab("interfaces")}
@@ -106,10 +110,14 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
             background: "none",
             color: "inherit",
             fontWeight: tab === "interfaces" ? "bold" : "normal",
-            cursor: "pointer"
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px"
           }}
         >
-          <span role="img" aria-label="run">🎭</span> Interfaces
+          <span className="codicon codicon-symbol-interface" style={{ fontSize: "16px" }}></span>
+          Interfaces
         </button>
         <button
           onClick={() => setTab("examples")}
@@ -120,10 +128,14 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
             background: "none",
             color: "inherit",
             fontWeight: tab === "examples" ? "bold" : "normal",
-            cursor: "pointer"
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px"
           }}
         >
-          <span role="img" aria-label="run">💡</span> Examples
+          <span className="codicon codicon-lightbulb" style={{ fontSize: "16px" }}></span>
+          Examples
         </button>
         <button
           onClick={() => setTab("test")}
@@ -134,10 +146,14 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
             background: "none",
             color: "inherit",
             fontWeight: tab === "test" ? "bold" : "normal",
-            cursor: "pointer"
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px"
           }}
         >
-          <span role="img" aria-label="run">▶️</span> Test
+          <span className="codicon codicon-play" style={{ fontSize: "16px" }}></span>
+          Test
         </button>
       </div>
 

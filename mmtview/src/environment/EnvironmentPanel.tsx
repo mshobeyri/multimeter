@@ -258,10 +258,14 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
               background: "none",
               color: "inherit",
               fontWeight: tab === "environment" ? "bold" : "normal",
-              cursor: "pointer"
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px"
             }}
           >
-            <span role="img" aria-label="run">🌎</span> Environment
+            <span className="codicon codicon-globe" style={{ fontSize: "16px" }}></span>
+            Environment
           </button>
           <button
             onClick={() => setTab("edit")}
@@ -272,10 +276,14 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
               background: "none",
               color: "inherit",
               fontWeight: tab === "edit" ? "bold" : "normal",
-              cursor: "pointer"
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px"
             }}
           >
-            <span role="img" aria-label="run">✏️</span> Edit
+            <span className="codicon codicon-edit" style={{ fontSize: "16px" }}></span>
+            Edit
           </button>
           <button
             onClick={() => setTab("view")}
@@ -286,10 +294,14 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
               background: "none",
               color: "inherit",
               fontWeight: tab === "view" ? "bold" : "normal",
-              cursor: "pointer"
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px"
             }}
           >
-            <span role="img" aria-label="run">👁️</span> View Cache
+            <span className="codicon codicon-eye" style={{ fontSize: "16px" }}></span>
+            View Current
           </button>
         </div>
         {tab === "environment" && (

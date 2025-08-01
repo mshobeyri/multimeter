@@ -113,7 +113,6 @@ const ObjectFieldsEditor: React.FC<ObjectFieldsEditorProps> = ({ fields, setFiel
                                 height: 28,
                                 marginLeft: 4,
                                 background: "none",
-                                color: "#c00",
                                 border: "none",
                                 cursor: "pointer",
                                 fontSize: "16px",
@@ -122,7 +121,7 @@ const ObjectFieldsEditor: React.FC<ObjectFieldsEditorProps> = ({ fields, setFiel
                                 justifyContent: "center",
                             }}
                             title="Remove field"
-                        >🗑️</button>
+                        ><span className="codicon codicon-trash" style={{ fontSize: "16px" }}></span></button>
                     </div>
                 </div>
             ))}

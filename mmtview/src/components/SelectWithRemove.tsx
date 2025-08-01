@@ -49,7 +49,6 @@ const SelectWithRemove: React.FC<SelectWithRemoveProps> = ({
         width: 28,
         height: 24,
         background: "transparent",
-        color: "#c00",
         border: "none",
         cursor: disabled ? "not-allowed" : "pointer",
         fontWeight: "bold",
@@ -62,7 +61,10 @@ const SelectWithRemove: React.FC<SelectWithRemoveProps> = ({
         opacity: disabled ? 0.5 : 1,
       }}
     >
-      <span style={{ fontSize: "14.4px", lineHeight: 1 }}>🗑️</span>
+      <span style={{ fontSize: "14.4px", lineHeight: 1 }}>
+        <span className="codicon codicon-trash" style={{ fontSize: "16px" }}>
+        </span>
+      </span>
     </button>
   </div>
 );

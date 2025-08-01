@@ -15,10 +15,10 @@ const SendButton: React.FC<{
         top: "50%",
         transform: "translateY(-50%)",
         background: disabled
-          ? "#bdbdbd"
+          ? "#7a7979"
           : hover
-          ? "#388e3c"
-          : "#43a047",
+            ? "#2e7d32"
+            : "#43a047",
         color: "#fff",
         border: "none",
         borderRadius: "50%",
@@ -67,7 +67,7 @@ const SendButton: React.FC<{
               cy="16"
               r="14"
               fill="none"
-              stroke="#fff" // changed from #1976d2 to white
+              stroke="#fff"
               strokeWidth="3"
               strokeDasharray="40"
               strokeDashoffset="10"
@@ -80,16 +80,15 @@ const SendButton: React.FC<{
           </svg>
         </span>
       )}
-      <svg
-        fill="#fff"
-        viewBox="0 0 256 256"
-        width="15.4"
-        height="15.4"
-        xmlns="http://www.w3.org/2000/svg"
-        style={{ marginLeft: "4px", zIndex: 2 }}
-      >
-        <path d="M225.39844,110.5498,56.4834,15.957A20,20,0,0,0,27.877,40.13477L59.25781,128,27.877,215.86621A19.97134,19.97134,0,0,0,56.48437,240.042L225.39844,145.4502a19.99958,19.99958,0,0,0,0-34.9004ZM54.06738,213.88867,80.45605,140H136a12,12,0,0,0,0-24H80.45654L54.06738,42.11133,207.44043,128Z"></path>
-      </svg>
+      <span
+        className="codicon codicon-send"
+        style={{
+          fontSize: "16px",
+          zIndex: 2,
+          color: "#fff",
+          marginLeft: "4px"
+        }}
+      ></span>
     </button>
   );
 };

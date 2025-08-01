@@ -125,10 +125,14 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
               background: "none",
               color: "inherit",
               fontWeight: tab === "overview" ? "bold" : "normal",
-              cursor: "pointer"
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px"
             }}
           >
-            <span role="img" aria-label="overview">🔎</span> Overview
+            <span className="codicon codicon-search" style={{ fontSize: "16px" }}></span>
+            Overview
           </button>
           <button
             onClick={() => setTab("flow")}
@@ -139,10 +143,14 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
               background: "none",
               color: "inherit",
               fontWeight: tab === "flow" ? "bold" : "normal",
-              cursor: "pointer"
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px"
             }}
           >
-            <span role="img" aria-label="flow">🛝</span> Flow
+            <span className="codicon codicon-list-tree" style={{ fontSize: "16px" }}></span>
+            Flow
           </button>
           <button
             onClick={() => setTab("examples")}
@@ -153,10 +161,14 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
               background: "none",
               color: "inherit",
               fontWeight: tab === "examples" ? "bold" : "normal",
-              cursor: "pointer"
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px"
             }}
           >
-            <span role="img" aria-label="examples">💡</span> Examples
+            <span className="codicon codicon-lightbulb" style={{ fontSize: "16px" }}></span>
+            Examples
           </button>
         </div>
         {/* Tab Content */}

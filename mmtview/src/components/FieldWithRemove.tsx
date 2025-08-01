@@ -42,7 +42,6 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
         width: 28,
         height: 24,
         background: "transparent",
-        color: "#c00",
         border: "none",
         cursor: disabled ? "not-allowed" : "pointer",
         fontSize: "14px",
@@ -54,7 +53,7 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
         opacity: disabled ? 0.5 : 1,
       }}
     >
-      <span style={{ fontSize: "14.4px", lineHeight: 1 }}>🗑️</span>
+      <span className="codicon codicon-trash" style={{ fontSize: "16px" }}></span>
     </button>}
   </div>
 );
