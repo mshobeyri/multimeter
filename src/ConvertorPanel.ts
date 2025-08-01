@@ -56,14 +56,10 @@ export function postmanToAPI(postmanJson: any): APIData[] {
       protocol = 'ws';
     }
 
-    return {
+    const apiData: any = {
       type: 'api',
       title: req.name || request.url?.raw || '',
       tags: [],
-      description: req.description || '',
-      import: [],
-      inputs: [],
-      outputs: [],
       interfaces: [{
         name: req.name || request.url?.raw || '',
         protocol,
@@ -73,9 +69,14 @@ export function postmanToAPI(postmanJson: any): APIData[] {
         headers,
         query,
         body,
-      } as InterfaceData],
-      examples: [],
-    } as APIData;
+      } as InterfaceData]
+    };
+
+    if (req.description) {
+      apiData.description = req.description;
+    }
+
+    return apiData as APIData;
   });
 }
 
