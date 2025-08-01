@@ -31,11 +31,11 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                     userSelect: "none"
                 }}
             >
-                <div style={{ 
-                    display: "flex", 
-                    justifyContent: "space-between", 
-                    alignItems: "center", 
-                    marginBottom: "12px" 
+                <div style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginBottom: "12px"
                 }}>
                     <div style={{ fontSize: "1.1em" }}>Variables</div>
                     <div style={{ display: "flex", gap: "8px" }}>
@@ -63,8 +63,8 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                                     e.currentTarget.style.background = "transparent";
                                 }}
                             >
-                                <span className="codicon codicon-save" style={{ fontSize: "16px" }}></span>
-                                Save to Cache
+                                <span className="codicon codicon-checklist" style={{ fontSize: "16px" }}></span>
+                                Reset environments
                             </button>
                         )}
                         {onClearCache && (
@@ -92,14 +92,14 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                                 }}
                             >
                                 <span className="codicon codicon-clear-all" style={{ fontSize: "16px" }}></span>
-                                Clear Cache
+                                Clear environments
                             </button>
                         )}
                     </div>
                 </div>
                 <ComboTable pairs={variables} onChange={handleVariablesChange} />
             </div>
-            
+
             <div
                 style={{
                     position: "relative",
