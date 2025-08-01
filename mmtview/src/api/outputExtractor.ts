@@ -43,41 +43,47 @@ export function extractOutputs(
 ): Record<string, string | number | boolean> {
   const result: Record<string, string | number | boolean> = {};
 
-  // Convert XML body to JS object if needed
-  let body = response.body;
+  // Keep original body as text for regex operations
+  const bodyText = typeof response.body === 'string' 
+    ? response.body 
+    : JSON.stringify(response.body);
+
+  // Convert XML body to JS object if needed for property path resolution
+  let bodyObject = response.body;
   if (response.type === "xml" && typeof response.body === "string") {
     try {
       const jsObj = xml2js(response.body, { compact: true });
-      body = flattenXmlObj(jsObj);
+      bodyObject = flattenXmlObj(jsObj);
     } catch (e) {
-      body = {};
+      bodyObject = {};
     }
   }
   
-  // Use the converted body for property path resolution
-  const resolvedResponse = { ...response, body };
+  // Create response objects for different operations
+  const textResponse = { ...response, body: bodyText };
+  const objectResponse = { ...response, body: bodyObject };
 
   for (const [key, expr] of Object.entries(outputsDef)) {
     if (typeof expr !== 'string') {
       result[key] = '';
       continue;
     }
+    
     if (expr.startsWith('regex ')) {
+      // Use text body for regex operations
       const pattern = expr.slice(6);
       let value = '';
       try {
         const regex = new RegExp(pattern);
-        const bodyStr = typeof resolvedResponse.body === 'string'
-          ? resolvedResponse.body
-          : JSON.stringify(resolvedResponse.body);
-        const found = bodyStr.match(regex);
+        const found = bodyText.match(regex);
         value = found && found[1] ? found[1] : '';
       } catch (e) {
         value = '';
       }
       result[key] = value;
     } else if (/^\w+\./.test(expr)) {
-      result[key] = resolvePath(resolvedResponse, expr);
+      // Use object body for property path resolution
+      result[key] = resolvePath(objectResponse, expr);
     } else {
       result[key] = '';
     }
