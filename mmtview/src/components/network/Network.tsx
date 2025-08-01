@@ -27,6 +27,14 @@ export function useNetwork(): NetworkAPI {
     return cookies;
   };
 
+  // Helper function to handle body content
+  const toContentString = (data: any): string => {
+    if (data === null || data === undefined) return "";
+    if (typeof data === 'string') return data;
+    if (typeof data === 'object') return JSON.stringify(data, null, 2);
+    return String(data);
+  };
+
   let lastSendTime: number | null = null;
 
   const send = async () => {
@@ -57,7 +65,7 @@ export function useNetwork(): NetworkAPI {
       cookies: cookies || {},
       headers: headers || {},
       query: query || {},
-      content: method === "GET" ? "" : JSON.stringify(body)
+      content: method === "GET" ? "" : toContentString(body),
     });
 
     lastSendTime = Date.now();
@@ -84,7 +92,7 @@ export function useNetwork(): NetworkAPI {
             title: `${method.toUpperCase()} ${url}`,
             cookies: parseSetCookie(res.headers?.["set-cookie"]),
             headers: res.headers || {},
-            content: JSON.stringify(res, null, 2),
+            content: toContentString(res.body),
             duration,
             status: res.status || 200,
           });
@@ -104,9 +112,9 @@ export function useNetwork(): NetworkAPI {
             method,
             protocol,
             title: `${method.toUpperCase()} ${url} Error`,
-            cookies: {}, // or parse from error if available
-            headers: {}, // or parse from error if available
-            content: JSON.stringify({ error: err?.message || err }, null, 2),
+            cookies: {},
+            headers: {},
+            content: toContentString(err),
             duration,
             status
           });
@@ -125,12 +133,12 @@ export function useNetwork(): NetworkAPI {
         method: "SEND",
         protocol,
         title: `SEND ${url}`,
-        content: typeof body === "string" ? body : JSON.stringify(body)
+        content: toContentString(body)
       });
 
       NetworkNodeApi.sendWs({
         wsId: wsId || "",
-        data: body,
+        data: toContentString(body),
       });
     }
   };
