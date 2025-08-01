@@ -65,6 +65,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
             command: 'loadDocument',
             uri: document.uri.toString(),
             content: document.getText(),
+            mode: vscode.window.tabGroups.activeTabGroup.activeTab?.input ? "normal" : "compare",
           });
           break;
 

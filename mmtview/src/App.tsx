@@ -38,6 +38,7 @@ const App: React.FC = () => {
   const [content, setContent] = useState("");
   const [docType, setDocType] = useState<string | null>(null);
   const [filePath, setFilePath] = useState<string | undefined>(undefined);
+  const [mode, setMode] = useState<"normal" | "compare">("normal");
   const isInitLoad = useRef(true);
   const [yamlEditorFocused, setYamlEditorFocused] = useState(false);
 
@@ -61,6 +62,7 @@ const App: React.FC = () => {
         isInitLoad.current = true;
         setContent(message.content);
         if (message.uri) setFilePath(message.uri);
+        if (message.mode) setMode(message.mode);
       }
     };
 
@@ -107,42 +109,60 @@ const App: React.FC = () => {
 
   return (
     <FileContext.Provider value={{ filePath }}>
-      <SplitPane
-        split="vertical"
-        size={paneSize}
-        onChange={(size) => setPaneSize(size)}
-        minSize={300}
-        maxSize={window.innerWidth - 300}
-        style={{
+      {mode === "normal" ? (
+        <SplitPane
+          split="vertical"
+          size={paneSize}
+          onChange={(size) => setPaneSize(size)}
+          minSize={300}
+          maxSize={window.innerWidth - 300}
+          style={{
+            height: "100vh",
+            width: "100vw",
+            backgroundColor: "var(--vscode-editor-background)",
+            color: "var(--vscode-editor-foreground)",
+            fontFamily: "var(--vscode-editor-font-family, sans-serif)",
+            fontSize: "var(--vscode-editor-font-size, 14px)",
+          }}
+        >
+          <YamlEditorPanel
+            content={content}
+            setContent={setContent}
+            onFocusChange={setYamlEditorFocused}
+          />
+          {docType === "env" && (
+            <EnvironmentPanel content={content} setContent={uiSetContentHandler} />
+          )}
+          {docType === "var" && (
+            <VariablesPanel content={content} setContent={uiSetContentHandler} />
+          )}
+          {docType === "api" && (
+            <APIPanel content={content} setContent={uiSetContentHandler} />
+          )}
+          {docType === "test" && (
+            <TestPanel content={content} setContent={uiSetContentHandler} />
+          )}
+          {docType === null && (
+            <NotypePanel content={content} setContent={uiSetContentHandler} />
+          )}
+        </SplitPane>
+      ) : (
+        // Show only text editor in compare mode
+        <div style={{
           height: "100vh",
           width: "100vw",
           backgroundColor: "var(--vscode-editor-background)",
           color: "var(--vscode-editor-foreground)",
           fontFamily: "var(--vscode-editor-font-family, sans-serif)",
           fontSize: "var(--vscode-editor-font-size, 14px)",
-        }}
-      >
-        <YamlEditorPanel
-          content={content}
-          setContent={setContent}
-          onFocusChange = {setYamlEditorFocused}
-        />
-        {docType === "env" && (
-          <EnvironmentPanel content={content} setContent={uiSetContentHandler} />
-        )}
-        {docType === "var" && (
-          <VariablesPanel content={content} setContent={uiSetContentHandler} />
-        )}
-        {docType === "api" && (
-          <APIPanel content={content} setContent={uiSetContentHandler} />
-        )}
-        {docType === "test" && (
-          <TestPanel content={content} setContent={uiSetContentHandler} />
-        )}
-        {docType === null && (
-          <NotypePanel content={content} setContent={uiSetContentHandler} />
-        )}
-      </SplitPane>
+        }}>
+          <YamlEditorPanel
+            content={content}
+            setContent={setContent}
+            onFocusChange={setYamlEditorFocused}
+          />
+        </div>
+      )}
     </FileContext.Provider>
   );
 }
