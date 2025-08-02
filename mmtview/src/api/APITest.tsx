@@ -46,25 +46,39 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
       network.responseHeaders ||
       network.responseCookies
     ) {
-      // Convert Parameter[] (array) to Record<string, string>
-      const outputsDef =
-        (api.outputs ?? []).reduce((acc, cur) => ({ ...acc, ...cur }), {});
-      setOutputs(
-        extractOutputs({
-          type: network.responseHeaders?.["Content-Type"] ||
-            network.responseHeaders?.["content-type"]?.includes("xml") ||
-            (network.responseBody && network.responseBody.startsWith && network.responseBody.startsWith("<")) ? "xml" : "json",
-          body: network.responseBody,
-          headers: network.responseHeaders || {},
-          cookies: network.responseCookies || {}
-        },
-          outputsDef
-        )
-      );
+      const iface = { ...interfaces[selectedInterfaceIdx] };
+      const ifaceOutputsDef = (iface.outputs ?? []).reduce((acc, cur) => ({ ...acc, ...cur }), {});
+      
+      // Get all API output keys
+      const apiOutputsDef = (api.outputs ?? []).reduce((acc, cur) => ({ ...acc, ...cur }), {});
+      const apiOutputKeys = Object.keys(apiOutputsDef);
+      
+      // Extract outputs for interface-defined keys only
+      const ifaceOutputsExtracted = extractOutputs({
+        type: network.responseHeaders?.["Content-Type"] ||
+          network.responseHeaders?.["content-type"]?.includes("xml") ||
+          (network.responseBody && network.responseBody.startsWith && network.responseBody.startsWith("<")) ? "xml" : "json",
+        body: network.responseBody,
+        headers: network.responseHeaders || {},
+        cookies: network.responseCookies || {}
+      }, ifaceOutputsDef);
+      
+      // Create final outputs with all API keys, filled with interface values where available
+      const finalOutputs: Record<string, string | number | boolean> = {};
+      
+      apiOutputKeys.forEach(key => {
+        if (key in ifaceOutputsExtracted) {
+          finalOutputs[key] = ifaceOutputsExtracted[key];
+        } else {
+          finalOutputs[key] = ""; // Empty value for keys not defined in interface
+        }
+      });
+      
+      setOutputs(finalOutputs);
     } else {
       setOutputs({});
     }
-  }, [network.responseBody, network.responseHeaders, network.responseCookies, api.outputs]);
+  }, [network.responseBody, network.responseHeaders, network.responseCookies, api.outputs, interfaces, selectedInterfaceIdx]);
 
   // Only call onChange if url value actually changed
   const handleUrlChange = useCallback(
