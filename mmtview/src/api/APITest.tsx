@@ -9,6 +9,7 @@ import { useNetwork } from "../components/network/Network";
 import { replaceAllRefs } from "../variableReplacer";
 import UrlInput from "../components/UrlInput";
 import { extractOutputs } from "./outputExtractor";
+import ViewSelector, { ViewMode } from "../components/ViewSelector";
 
 interface APITestProps {
   api: APIData;
@@ -22,8 +23,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(0);
 
   // View state
-  const [viewMode, setViewMode] = useState<"all" | "body" | "in/out">("all");
-  const [viewMenuOpen, setViewMenuOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("all");
 
   const network = useNetwork();
   const req = network.requestData || {};
@@ -194,9 +194,21 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
             />
           </td>
         </tr>
-        <tr>
+        <tr style={{zIndex: 100 }}>
           <td colSpan={2} style={{ position: "relative", padding: 0, height: 40 }}>
             <div className="horizontal-line" />
+            <div style={{ 
+              position: "absolute", 
+              right: 8, 
+              top: "100%", 
+              transform: "translateY(-50%)",
+              zIndex: 100
+            }}>
+              <ViewSelector
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+              />
+            </div>
           </td>
         </tr>
         <div style={{
@@ -204,59 +216,6 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           justifyContent: "flex-end",
           marginBottom: "4px",
         }}>
-          <div style={{ position: "relative" }}>
-            <button
-              onClick={() => setViewMenuOpen(!viewMenuOpen)}
-              className="action-button"
-            >
-              <span className="codicon codicon-eye" style={{ fontSize: "12px" }}></span>
-              <span style={{ fontSize: "12px" }}>{viewMode}</span>
-              <span className="codicon codicon-chevron-down" style={{ fontSize: "12px" }}></span>
-            </button>
-
-            {viewMenuOpen && (
-              <div style={{
-                position: "absolute",
-                top: "100%",
-                right: 0,
-                zIndex: 1000,
-                background: "var(--vscode-menu-background, #252526)",
-                border: "1px solid var(--vscode-menu-border, #454545)",
-                borderRadius: "4px",
-                padding: "4px 0",
-                minWidth: "120px",
-                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)"
-              }}>
-                {["all", "body", "in/out"].map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => {
-                      setViewMode(mode as "all" | "body" | "in/out");
-                      setViewMenuOpen(false);
-                    }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "8px",
-                      padding: "6px 12px",
-                      width: "100%",
-                      background: viewMode === mode ? "var(--vscode-menu-selectionBackground, #094771)" : "none",
-                      border: "none",
-                      color: "inherit",
-                      fontSize: "10px",
-                      cursor: "pointer",
-                      textAlign: "left"
-                    }}
-                  >
-                    {mode === "all" && <span className="codicon codicon-list-unordered" style={{ fontSize: "10px" }}></span>}
-                    {mode === "body" && <span className="codicon codicon-file-text" style={{ fontSize: "10px" }}></span>}
-                    {mode === "in/out" && <span className="codicon codicon-arrow-swap" style={{ fontSize: "10px" }}></span>}
-                    {mode}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
         {shouldShowQuery() && <KVEditor
           label="query"
