@@ -1,27 +1,61 @@
+/* VS Code style resizer */
 .Resizer {
-  background: #000;
-  opacity: 0.2;
+  background: var(--vscode-widget-border, #454545);
+  opacity: 1;
   z-index: 1;
   box-sizing: border-box;
-  background-clip: padding-box;
+  transition: background-color 0.1s ease, width 0.1s ease;
+  flex-shrink: 0;
 }
 
 .Resizer:hover {
-  transition: all 0.2s ease;
+  background: var(--vscode-sash-hoverBorder, #007acc);
+}
+
+.Resizer:active {
+  background: var(--vscode-sash-hoverBorder, #007acc);
 }
 
 .Resizer.vertical {
-  width: 5px;
-  margin: 0 -2px;
+  width: 1px;
+  min-width: 1px;
+  max-width: 1px;
   cursor: col-resize;
 }
 
+.Resizer.vertical:hover,
+.Resizer.vertical:active {
+  width: 4px;
+  min-width: 4px;
+  max-width: 4px;
+}
+
 .Resizer.horizontal {
-  height: 5px;
-  margin: -2px 0;
+  height: 1px;
+  min-height: 1px;
+  max-height: 1px;
   cursor: row-resize;
 }
 
+.Resizer.horizontal:hover,
+.Resizer.horizontal:active {
+  height: 4px;
+  min-height: 4px;
+  max-height: 4px;
+}
+
+.Resizer.disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
+.Resizer.disabled:hover {
+  background: var(--vscode-widget-border, #454545);
+  width: 1px; /* Keep normal width when disabled */
+  height: 1px;
+}
+
+/* App styles */
 .App {
   text-align: center;
 }
@@ -62,6 +96,7 @@
   }
 }
 
+/* Form elements */
 select,
 select:focus {
   background-color: var(--vscode-input-background, #1e1e1e);
@@ -113,10 +148,12 @@ textarea:disabled {
   border-color: var(--vscode-input-border, #3c3c3c);
 }
 
+/* Variable editor styles */
 .VariableEditor td {
   vertical-align: middle !important;
 }
 
+/* Button styles */
 button {
   background-color: var(--vscode-button-background, #0e639c);
   color: var(--vscode-button-foreground, #ffffff);
@@ -163,7 +200,7 @@ button:focus {
   background-color: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1));
 }
 
-.tab-button-icon{
+.tab-button-icon {
   font-size: 16px;
   color: var(--vscode-icon-foreground, #d4d4d4);
 }
