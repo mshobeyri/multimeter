@@ -136,8 +136,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                 onChange={e => {
                   setSelectedExampleIdx(0);
                   setSelectedExampleIdx(Number(e.target.value));
-                }
-                }
+                }}
                 style={{ width: "100%" }}
               >
                 <option value="default">defaults</option>
@@ -150,6 +149,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
             </td>
           </tr>
         )}
+        
         <tr>
           <td className="label">interface</td>
           <td style={{ padding: "8px" }}>
@@ -180,6 +180,11 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
             />
           </td>
         </tr>
+        <tr>
+          <td colSpan={2} style={{ position: "relative", padding: 0, height: 40 }}>
+            <div className="horizontal-line"/>
+          </td>
+        </tr>
         <KVEditor
           label="query"
           value={req.query || {}}
@@ -195,6 +200,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           value={req.cookies || {}}
           onChange={cookies => updateField("cookies", cookies)}
         />
+        
         {/* Only show body editor if method is not GET */}
         {(!req.method || req.method.toUpperCase() !== "GET") && (
           <tr>
@@ -212,6 +218,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
             </td>
           </tr>
         )}
+        
         <tr>
           <td colSpan={2} style={{ position: "relative", padding: 0, height: 40 }}>
             <div className="horizontal-line" />
@@ -228,6 +235,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
             />
           </td>
         </tr>
+        
         {/* Error and Response Section */}
         {network.error ? (
           <tr>

@@ -40,57 +40,13 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                     <div style={{ fontSize: "1.1em" }}>Variables</div>
                     <div style={{ display: "flex", gap: "8px" }}>
                         {onSaveToCache && (
-                            <button
-                                onClick={onSaveToCache}
-                                style={{
-                                    background: "transparent",
-                                    border: "none",
-                                    cursor: "pointer",
-                                    padding: "4px 10px",
-                                    borderRadius: "4px",
-                                    transition: "background 0.15s",
-                                    color: "var(--vscode-button-foreground, #d4d4d4)",
-                                    fontSize: "14px",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "4px",
-                                    fontFamily: "var(--vscode-font-family)"
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = "var(--vscode-button-hoverBackground)";
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = "transparent";
-                                }}
-                            >
+                            <button onClick={onSaveToCache} className="action-button">
                                 <span className="codicon codicon-checklist" style={{ fontSize: "16px" }}></span>
                                 Reset environments
                             </button>
                         )}
                         {onClearCache && (
-                            <button
-                                onClick={onClearCache}
-                                style={{
-                                    background: "transparent",
-                                    border: "none",
-                                    cursor: "pointer",
-                                    padding: "4px 10px",
-                                    borderRadius: "4px",
-                                    transition: "background 0.15s",
-                                    color: "var(--vscode-button-foreground, #d4d4d4)",
-                                    fontSize: "14px",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "4px",
-                                    fontFamily: "var(--vscode-font-family)"
-                                }}
-                                onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = "var(--vscode-button-hoverBackground)";
-                                }}
-                                onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = "transparent";
-                                }}
-                            >
+                            <button onClick={onClearCache} className="action-button">
                                 <span className="codicon codicon-clear-all" style={{ fontSize: "16px" }}></span>
                                 Clear environments
                             </button>

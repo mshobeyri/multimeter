@@ -52,7 +52,6 @@
 .Resizer.disabled:hover {
   background: var(--vscode-widget-border, #454545);
   width: 1px;
-  /* Keep normal width when disabled */
   height: 1px;
 }
 
@@ -174,6 +173,41 @@ button:focus {
   border-color: var(--vscode-focusBorder, #007fd4);
 }
 
+/* Action button styles */
+.action-button {
+  background: transparent !important;
+  border: none;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 4px;
+  transition: background 0.15s;
+  color: var(--vscode-button-foreground, #d4d4d4);
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--vscode-font-family, inherit);
+  outline: none;
+}
+
+.action-button:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1)) !important;
+}
+
+.action-button:active {
+  background: transparent !important;
+}
+
+.action-button:disabled {
+  color: var(--vscode-disabledForeground, #666666);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.action-button:disabled:hover {
+  background: transparent;
+}
+
 /* Tab view element styles */
 .tab-button {
   padding: 8px 24px;
@@ -283,3 +317,4 @@ button:focus {
   width: 100%;
   height: 0;
 }
+
