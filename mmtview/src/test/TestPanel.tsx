@@ -120,21 +120,21 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
             onClick={() => setTab("overview")}
             className={`tab-button ${tab === "overview" ? "active" : ""}`}
           >
-            <span className="codicon codicon-search" style={{ fontSize: "16px" }}></span>
+            <span className="codicon codicon-search tab-button-icon"></span>
             Overview
           </button>
           <button
             onClick={() => setTab("flow")}
             className={`tab-button ${tab === "flow" ? "active" : ""}`}
           >
-            <span className="codicon codicon-workflow" style={{ fontSize: "16px" }}></span>
+            <span className="codicon codicon-list-tree tab-button-icon"></span>
             Flow
           </button>
           <button
             onClick={() => setTab("examples")}
             className={`tab-button ${tab === "examples" ? "active" : ""}`}
           >
-            <span className="codicon codicon-lightbulb" style={{ fontSize: "16px" }}></span>
+            <span className="codicon codicon-lightbulb tab-button-icon"></span>
             Examples
           </button>
         </div>

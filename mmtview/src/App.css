@@ -163,6 +163,11 @@ button:focus {
   background-color: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1));
 }
 
+.tab-button-icon{
+  font-size: 16px;
+  color: var(--vscode-icon-foreground, #d4d4d4);
+}
+
 /* Tab view element styles */
 .tab-button-small {
   padding: 6px 16px;

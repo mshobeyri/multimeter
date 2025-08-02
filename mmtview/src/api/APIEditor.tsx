@@ -87,28 +87,28 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
           onClick={() => setTab("overview")}
           className={`tab-button ${tab === "overview" ? "active" : ""}`}
         >
-          <span className="codicon codicon-search" style={{ fontSize: "16px" }}></span>
+          <span className="codicon codicon-search tab-button-icon"></span>
           Overview
         </button>
         <button
           onClick={() => setTab("interfaces")}
           className={`tab-button ${tab === "interfaces" ? "active" : ""}`}
         >
-          <span className="codicon codicon-symbol-interface" style={{ fontSize: "16px" }}></span>
+          <span className="codicon codicon-symbol-interface tab-button-icon"></span>
           Interfaces
         </button>
         <button
           onClick={() => setTab("examples")}
           className={`tab-button ${tab === "examples" ? "active" : ""}`}
         >
-          <span className="codicon codicon-lightbulb" style={{ fontSize: "16px" }}></span>
+          <span className="codicon codicon-lightbulb tab-button-icon"></span>
           Examples
         </button>
         <button
           onClick={() => setTab("test")}
           className={`tab-button ${tab === "test" ? "active" : ""}`}
         >
-          <span className="codicon codicon-play" style={{ fontSize: "16px" }}></span>
+          <span className="codicon codicon-play tab-button-icon"></span>
           Test
         </button>
       </div>

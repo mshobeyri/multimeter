@@ -253,21 +253,21 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
             onClick={() => setTab("environment")}
             className={`tab-button ${tab === "environment" ? "active" : ""}`}
           >
-            <span className="codicon codicon-globe" style={{ fontSize: "16px" }}></span>
+            <span className="codicon codicon-globe tab-button-icon"></span>
             Environment
           </button>
           <button
             onClick={() => setTab("edit")}
             className={`tab-button ${tab === "edit" ? "active" : ""}`}
           >
-            <span className="codicon codicon-edit" style={{ fontSize: "16px" }}></span>
+            <span className="codicon codicon-edit tab-button-icon"></span>
             Edit
           </button>
           <button
             onClick={() => setTab("view")}
             className={`tab-button ${tab === "view" ? "active" : ""}`}
           >
-            <span className="codicon codicon-eye" style={{ fontSize: "16px" }}></span>
+            <span className="codicon codicon-eye tab-button-icon"></span>
             View Cache
           </button>
         </div>
