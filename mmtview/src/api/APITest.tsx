@@ -274,13 +274,13 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
             />
           </td>
         </tr>
-        <tr style={{ zIndex: 100 }}>
-          <td colSpan={2} style={{ position: "relative", padding: 0, height: 40 }}>
+        <tr style={{ zIndex: 100, position: "relative" ,  padding: 0 }}>
+          <td colSpan={2} style={{ position: "relative", paddingTop: 0, paddingBottom: 8, height: 40 }}>
             <div className="horizontal-line" />
             <div style={{
               position: "absolute",
               right: 8,
-              top: "100%",
+              top: "80%",
               transform: "translateY(-50%)",
               zIndex: 100
             }}>
