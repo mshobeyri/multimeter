@@ -18,7 +18,7 @@ interface APITestProps {
 
 // Function to handle setting environment variables from API setenv configuration
 const handleSetEnvVariables = (
-  api: APIData, 
+  api: APIData,
   finalOutputs: Record<string, string | number | boolean>
 ) => {
   if (!api.setenv || !Array.isArray(api.setenv)) {
@@ -33,11 +33,10 @@ const handleSetEnvVariables = (
     (api.setenv ?? []).forEach((envVar: { [key: string]: string }) => {
       const envKey = Object.keys(envVar)[0];
       const outputKey = envVar[envKey];
-      console.log(`Processing setenv: ${envKey} -> ${outputKey}`);
       if (envKey && outputKey) {
         // Remove existing variable with same name first
         updated = updated.filter(v => v.name !== envKey);
-        
+
         // Check if the value refers to an output
         if (outputKey in finalOutputs) {
           const outputValue = finalOutputs[outputKey];
@@ -45,36 +44,27 @@ const handleSetEnvVariables = (
             // Add new/updated variable with output value
             updated.push({
               name: envKey,
-              label: envKey,
+              label: api.title ? `api(${api.title})` : envKey,
               value: String(outputValue)
             });
-            
-            console.log(`Set environment variable from output: ${envKey} = ${outputValue}`);
-          } else {
-            console.log(`Skipping environment variable ${envKey} - output value is empty`);
           }
         } else {
           // Direct value assignment (not from outputs)
           updated.push({
             name: envKey,
-            label: envKey,
+            label: api.title ? `api(${api.title})` : envKey,
             value: outputKey
           });
-          
-          console.log(`Set environment variable directly: ${envKey} = ${outputKey}`);
         }
       }
     });
 
     // Only save if there were changes
-    if (updated.length !== existing.length || 
-        JSON.stringify(updated) !== JSON.stringify(existing)) {
-      console.log("Saving updated environment variables:", updated);
+    if (updated.length !== existing.length ||
+      JSON.stringify(updated) !== JSON.stringify(existing)) {
       saveEnvVariablesFromObject(updated);
-    } else {
-      console.log("No changes to environment variables");
     }
-    
+
     cleanup(); // Clean up the subscription
   });
 };
@@ -112,11 +102,11 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     ) {
       const iface = { ...interfaces[selectedInterfaceIdx] };
       const ifaceOutputsDef = (iface.outputs ?? []).reduce((acc, cur) => ({ ...acc, ...cur }), {});
-      
+
       // Get all API output keys
       const apiOutputsDef = (api.outputs ?? []).reduce((acc, cur) => ({ ...acc, ...cur }), {});
       const apiOutputKeys = Object.keys(apiOutputsDef);
-      
+
       // Extract outputs for interface-defined keys only
       const ifaceOutputsExtracted = extractOutputs({
         type: network.responseHeaders?.["Content-Type"] ||
@@ -126,10 +116,10 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         headers: network.responseHeaders || {},
         cookies: network.responseCookies || {}
       }, ifaceOutputsDef);
-      
+
       // Create final outputs with all API keys, filled with interface values where available
       const finalOutputs: Record<string, string | number | boolean> = {};
-      
+
       apiOutputKeys.forEach(key => {
         if (key in ifaceOutputsExtracted) {
           finalOutputs[key] = ifaceOutputsExtracted[key];

@@ -106,7 +106,6 @@ export default class MockServerPanel implements vscode.WebviewViewProvider {
   }
 
   private stopServer() {
-    console.log('Stopping server...');
     const finalize = () => {
       this.running = false;
       this.updateViewHtml();

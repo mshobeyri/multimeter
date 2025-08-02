@@ -6,7 +6,7 @@ import {loadEnvVariables, saveEnvVariablesFromObject} from '../workspaceStorage'
  * @returns Cleanup function to unsubscribe from updates
  */
 export const readEnvironmentVariables =
-    (callback: (vars: {name: string; value: string | number | boolean}[]|
+    (callback: (vars: {name: string;label: string; value: string | number | boolean}[]|
                 undefined|null) => void): (() => void) => {
       return loadEnvVariables(callback);
     };

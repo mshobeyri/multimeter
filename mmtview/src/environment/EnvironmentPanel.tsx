@@ -103,7 +103,6 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         }
         return pair;
       });
-
       // Save all variables at once, each as { name, label, value }
       const flatVars: { name: string; label: string; value: string | number | boolean }[] = [];
       updated.forEach(pair => {
@@ -145,7 +144,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         });
 
         // Save all variables at once, with correct label and value
-        const flatVars: { name: string; label: string; value: string }[] = [];
+        const flatVars: { name: string; label: string; value: string | number | boolean }[] = [];
         updated.forEach(pair => {
           flatVars.push({
             name: pair.name,
@@ -164,7 +163,11 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   useEffect(() => {
     const cleanup = readEnvironmentVariables((loaded) => {
       loadedVarsRef.current = Array.isArray(loaded)
-        ? loaded.map(v => ({ name: v.name, value: String(v.value) }))
+        ? loaded.map(v => ({ 
+            name: v.name, 
+            label: v.label || v.name,
+            value: String(v.value) 
+          }))
         : [];
       setVariables(vars =>
         vars.map(pair => {
@@ -173,7 +176,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
             : undefined;
           if (found) {
             const selectedOption =
-              pair.options.find(opt => opt.value === found.value || opt.label === found.value) ||
+              pair.options.find(opt => opt.value === found.value ) ||
               pair.options[0];
             return { ...pair, value: selectedOption };
           }
@@ -193,7 +196,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
           setWorkspaceVars(
             loaded.map(v => ({
               name: v.name,
-              label: String(v.value),
+              label: v.label || v.name, // Use label if available, fallback to name
               value: v.value
             }))
           );
