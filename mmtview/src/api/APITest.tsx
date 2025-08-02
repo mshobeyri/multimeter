@@ -158,8 +158,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
               onChange={e => {
                 setSelectedInterfaceIdx(-1);
                 setSelectedInterfaceIdx(Number(e.target.value));
-              }
-              }
+              }}
               style={{ width: "100%" }}
             >
               {Array.isArray(interfaces) && interfaces.filter(Boolean).map((iface, idx) => (
@@ -215,17 +214,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         )}
         <tr>
           <td colSpan={2} style={{ position: "relative", padding: 0, height: 40 }}>
-            <div
-              style={{
-                borderTop: "1px solid #ccc",
-                opacity: 0.2,
-                position: "absolute",
-                top: "50%",
-                left: 0,
-                width: "100%",
-                height: 0,
-              }}
-            />
+            <div className="horizontal-line" />
             {req.protocol === "ws" && (
               <ConnectButton
                 connected={network.connected}
