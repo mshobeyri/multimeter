@@ -235,8 +235,8 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
               >
                 <option value="default">defaults</option>
                 {examples.map((ex, idx) => (
-                  <option key={ex.name || idx} value={idx}>
-                    {ex.name || `Example ${idx + 1}`}
+                  <option key={ex?.name || idx} value={idx}>
+                    {ex?.name || `Example ${idx + 1}`}
                   </option>
                 ))}
               </select>
