@@ -163,11 +163,11 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   useEffect(() => {
     const cleanup = readEnvironmentVariables((loaded) => {
       loadedVarsRef.current = Array.isArray(loaded)
-        ? loaded.map(v => ({ 
-            name: v.name, 
-            label: v.label || v.name,
-            value: String(v.value) 
-          }))
+        ? loaded.map(v => ({
+          name: v.name,
+          label: v.label || v.name,
+          value: String(v.value)
+        }))
         : [];
       setVariables(vars =>
         vars.map(pair => {
@@ -176,7 +176,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
             : undefined;
           if (found) {
             const selectedOption =
-              pair.options.find(opt => opt.value === found.value ) ||
+              pair.options.find(opt => opt.value === found.value) ||
               pair.options[0];
             return { ...pair, value: selectedOption };
           }
@@ -278,7 +278,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
             className={`tab-button ${tab === "view" ? "active" : ""}`}
           >
             <span className="codicon codicon-eye tab-button-icon"></span>
-            View Cache
+            View Current Vars
           </button>
         </div>
         {tab === "environment" && (
@@ -295,7 +295,10 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
           <EnvironmentEdit content={content} setContent={setContent} />
         )}
         {tab === "view" && (
-          <EnvironmentView vars={workspaceVars} />
+          <EnvironmentView
+            vars={workspaceVars}
+            onClearCache={handleClearCache}
+          />
         )}
       </div>
     </div>
