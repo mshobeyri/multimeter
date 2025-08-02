@@ -46,29 +46,13 @@ const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent }
       <div style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 12 }}>
         <button
           onClick={() => setTab("variables")}
-          style={{
-            padding: "6px 18px",
-            border: "none",
-            borderBottom: tab === "variables" ? "2px solid #0e639c" : "2px solid transparent",
-            background: "none",
-            color: "inherit",
-            fontWeight: tab === "variables" ? "bold" : "normal",
-            cursor: "pointer"
-          }}
+          className={`tab-button-small ${tab === "variables" ? "active" : ""}`}
         >
           Variables
         </button>
         <button
           onClick={() => setTab("presets")}
-          style={{
-            padding: "6px 18px",
-            border: "none",
-            borderBottom: tab === "presets" ? "2px solid #0e639c" : "2px solid transparent",
-            background: "none",
-            color: "inherit",
-            fontWeight: tab === "presets" ? "bold" : "normal",
-            cursor: "pointer"
-          }}
+          className={`tab-button-small ${tab === "presets" ? "active" : ""}`}
         >
           Presets
         </button>

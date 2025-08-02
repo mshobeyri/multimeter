@@ -136,6 +136,60 @@ button:focus {
   border-color: var(--vscode-focusBorder, #007fd4);
 }
 
+/* Tab view element styles */
+.tab-button {
+  padding: 8px 24px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: inherit;
+  font-weight: normal;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--vscode-editor-font-family, inherit);
+  font-size: 0.8rem;
+  transition: border-color 0.2s, font-weight 0.2s;
+}
+
+.tab-button.active {
+  border-bottom: 2px solid #0e639c;
+  font-weight: bold;
+  background: none;
+}
+
+.tab-button:hover {
+  background-color: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1));
+}
+
+/* Tab view element styles */
+.tab-button-small {
+  padding: 6px 16px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  background: none;
+  color: inherit;
+  font-weight: normal;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--vscode-editor-font-family, inherit);
+  font-size: 0.6rem;
+  transition: border-color 0.2s, font-weight 0.2s;
+}
+
+.tab-button-small.active {
+  border-bottom: 2px solid #0e639c;
+  font-weight: bold;
+  background: none;
+}
+
+.tab-button-small:hover {
+  background-color: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1));
+}
+
 .tag,
 .SearchableTagInput-tag {
   background: var(--vscode-editorWidget-background, #232323);
@@ -167,8 +221,7 @@ button:focus {
   font-size: 0.75rem;
   padding: 2px 0 0 0;
   text-align: left;
-  overflow: "hidden"
-
+  overflow: hidden;
 }
 
 .label-disabled {

@@ -251,57 +251,24 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         <div style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 16 }}>
           <button
             onClick={() => setTab("environment")}
-            style={{
-              padding: "8px 24px",
-              border: "none",
-              borderBottom: tab === "environment" ? "2px solid #0e639c" : "2px solid transparent",
-              background: "none",
-              color: "inherit",
-              fontWeight: tab === "environment" ? "bold" : "normal",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px"
-            }}
+            className={`tab-button ${tab === "environment" ? "active" : ""}`}
           >
             <span className="codicon codicon-globe" style={{ fontSize: "16px" }}></span>
             Environment
           </button>
           <button
             onClick={() => setTab("edit")}
-            style={{
-              padding: "8px 24px",
-              border: "none",
-              borderBottom: tab === "edit" ? "2px solid #0e639c" : "2px solid transparent",
-              background: "none",
-              color: "inherit",
-              fontWeight: tab === "edit" ? "bold" : "normal",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px"
-            }}
+            className={`tab-button ${tab === "edit" ? "active" : ""}`}
           >
             <span className="codicon codicon-edit" style={{ fontSize: "16px" }}></span>
             Edit
           </button>
           <button
             onClick={() => setTab("view")}
-            style={{
-              padding: "8px 24px",
-              border: "none",
-              borderBottom: tab === "view" ? "2px solid #0e639c" : "2px solid transparent",
-              background: "none",
-              color: "inherit",
-              fontWeight: tab === "view" ? "bold" : "normal",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px"
-            }}
+            className={`tab-button ${tab === "view" ? "active" : ""}`}
           >
             <span className="codicon codicon-eye" style={{ fontSize: "16px" }}></span>
-            View Current
+            View Cache
           </button>
         </div>
         {tab === "environment" && (

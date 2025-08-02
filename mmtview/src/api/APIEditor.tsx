@@ -85,72 +85,28 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
       <div style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 16 }}>
         <button
           onClick={() => setTab("overview")}
-          style={{
-            padding: "8px 24px",
-            border: "none",
-            borderBottom: tab === "overview" ? "2px solid #0e639c" : "2px solid transparent",
-            background: "none",
-            color: "inherit",
-            fontWeight: tab === "overview" ? "bold" : "normal",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px"
-          }}
+          className={`tab-button ${tab === "overview" ? "active" : ""}`}
         >
           <span className="codicon codicon-search" style={{ fontSize: "16px" }}></span>
           Overview
         </button>
         <button
           onClick={() => setTab("interfaces")}
-          style={{
-            padding: "8px 24px",
-            border: "none",
-            borderBottom: tab === "interfaces" ? "2px solid #0e639c" : "2px solid transparent",
-            background: "none",
-            color: "inherit",
-            fontWeight: tab === "interfaces" ? "bold" : "normal",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px"
-          }}
+          className={`tab-button ${tab === "interfaces" ? "active" : ""}`}
         >
           <span className="codicon codicon-symbol-interface" style={{ fontSize: "16px" }}></span>
           Interfaces
         </button>
         <button
           onClick={() => setTab("examples")}
-          style={{
-            padding: "8px 24px",
-            border: "none",
-            borderBottom: tab === "examples" ? "2px solid #0e639c" : "2px solid transparent",
-            background: "none",
-            color: "inherit",
-            fontWeight: tab === "examples" ? "bold" : "normal",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px"
-          }}
+          className={`tab-button ${tab === "examples" ? "active" : ""}`}
         >
           <span className="codicon codicon-lightbulb" style={{ fontSize: "16px" }}></span>
           Examples
         </button>
         <button
           onClick={() => setTab("test")}
-          style={{
-            padding: "8px 24px",
-            border: "none",
-            borderBottom: tab === "test" ? "2px solid #0e639c" : "2px solid transparent",
-            background: "none",
-            color: "inherit",
-            fontWeight: tab === "test" ? "bold" : "normal",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: "6px"
-          }}
+          className={`tab-button ${tab === "test" ? "active" : ""}`}
         >
           <span className="codicon codicon-play" style={{ fontSize: "16px" }}></span>
           Test
@@ -268,7 +224,6 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
           </tbody>
         </table>
       )}
-
 
       {tab === "test" && (
         <APITest api={api} />

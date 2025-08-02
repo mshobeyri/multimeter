@@ -118,54 +118,21 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
         <div style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 16 }}>
           <button
             onClick={() => setTab("overview")}
-            style={{
-              padding: "8px 24px",
-              border: "none",
-              borderBottom: tab === "overview" ? "2px solid #0e639c" : "2px solid transparent",
-              background: "none",
-              color: "inherit",
-              fontWeight: tab === "overview" ? "bold" : "normal",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px"
-            }}
+            className={`tab-button ${tab === "overview" ? "active" : ""}`}
           >
             <span className="codicon codicon-search" style={{ fontSize: "16px" }}></span>
             Overview
           </button>
           <button
             onClick={() => setTab("flow")}
-            style={{
-              padding: "8px 24px",
-              border: "none",
-              borderBottom: tab === "flow" ? "2px solid #0e639c" : "2px solid transparent",
-              background: "none",
-              color: "inherit",
-              fontWeight: tab === "flow" ? "bold" : "normal",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px"
-            }}
+            className={`tab-button ${tab === "flow" ? "active" : ""}`}
           >
-            <span className="codicon codicon-list-tree" style={{ fontSize: "16px" }}></span>
+            <span className="codicon codicon-workflow" style={{ fontSize: "16px" }}></span>
             Flow
           </button>
           <button
             onClick={() => setTab("examples")}
-            style={{
-              padding: "8px 24px",
-              border: "none",
-              borderBottom: tab === "examples" ? "2px solid #0e639c" : "2px solid transparent",
-              background: "none",
-              color: "inherit",
-              fontWeight: tab === "examples" ? "bold" : "normal",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "6px"
-            }}
+            className={`tab-button ${tab === "examples" ? "active" : ""}`}
           >
             <span className="codicon codicon-lightbulb" style={{ fontSize: "16px" }}></span>
             Examples
