@@ -21,6 +21,10 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   const [selectedInterfaceIdx, setSelectedInterfaceIdx] = useState<number>(0);
   const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(0);
 
+  // View state
+  const [viewMode, setViewMode] = useState<"all" | "body" | "in/out">("all");
+  const [viewMenuOpen, setViewMenuOpen] = useState(false);
+
   const network = useNetwork();
   const req = network.requestData || {};
 
@@ -115,6 +119,16 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     }
   };
 
+  // Helper functions to check what should be visible based on view mode
+  const shouldShowQuery = () => viewMode === "all";
+  const shouldShowHeaders = () => viewMode === "all";
+  const shouldShowCookies = () => viewMode === "all";
+  const shouldShowBody = () => viewMode === "all" || viewMode === "body";
+  const shouldShowResponse = () => viewMode === "all" || viewMode === "body";
+  const shouldShowResponseHeaders = () => viewMode === "all" || viewMode === "in/out";
+  const shouldShowResponseCookies = () => viewMode === "all" || viewMode === "in/out";
+  const shouldShowOutputs = () => viewMode === "all" || viewMode === "in/out";
+
   if (interfaces.length === 0) {
     return <div style={{ color: "#888" }}>No interfaces defined.</div>;
   }
@@ -149,7 +163,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
             </td>
           </tr>
         )}
-        
+
         <tr>
           <td className="label">interface</td>
           <td style={{ padding: "8px" }}>
@@ -182,27 +196,86 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         </tr>
         <tr>
           <td colSpan={2} style={{ position: "relative", padding: 0, height: 40 }}>
-            <div className="horizontal-line"/>
+            <div className="horizontal-line" />
           </td>
         </tr>
-        <KVEditor
+        <div style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: "4px",
+        }}>
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => setViewMenuOpen(!viewMenuOpen)}
+              className="action-button"
+            >
+              <span className="codicon codicon-eye" style={{ fontSize: "12px" }}></span>
+              <span style={{ fontSize: "12px" }}>{viewMode}</span>
+              <span className="codicon codicon-chevron-down" style={{ fontSize: "12px" }}></span>
+            </button>
+
+            {viewMenuOpen && (
+              <div style={{
+                position: "absolute",
+                top: "100%",
+                right: 0,
+                zIndex: 1000,
+                background: "var(--vscode-menu-background, #252526)",
+                border: "1px solid var(--vscode-menu-border, #454545)",
+                borderRadius: "4px",
+                padding: "4px 0",
+                minWidth: "120px",
+                boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)"
+              }}>
+                {["all", "body", "in/out"].map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => {
+                      setViewMode(mode as "all" | "body" | "in/out");
+                      setViewMenuOpen(false);
+                    }}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      padding: "6px 12px",
+                      width: "100%",
+                      background: viewMode === mode ? "var(--vscode-menu-selectionBackground, #094771)" : "none",
+                      border: "none",
+                      color: "inherit",
+                      fontSize: "10px",
+                      cursor: "pointer",
+                      textAlign: "left"
+                    }}
+                  >
+                    {mode === "all" && <span className="codicon codicon-list-unordered" style={{ fontSize: "10px" }}></span>}
+                    {mode === "body" && <span className="codicon codicon-file-text" style={{ fontSize: "10px" }}></span>}
+                    {mode === "in/out" && <span className="codicon codicon-arrow-swap" style={{ fontSize: "10px" }}></span>}
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+        {shouldShowQuery() && <KVEditor
           label="query"
           value={req.query || {}}
           onChange={query => updateField("query", query)}
-        />
-        <KVEditor
+        />}
+        {shouldShowHeaders() && (< KVEditor
           label="headers"
           value={req.headers || {}}
           onChange={headers => updateField("headers", headers)}
-        />
-        <KVEditor
+        />)}
+        {shouldShowCookies() && <KVEditor
           label="cookies"
           value={req.cookies || {}}
           onChange={cookies => updateField("cookies", cookies)}
-        />
-        
+        />}
+
         {/* Only show body editor if method is not GET */}
-        {(!req.method || req.method.toUpperCase() !== "GET") && (
+        {(shouldShowBody() && (!req.method || req.method.toUpperCase() !== "GET")) && (
           <tr>
             <td className="label">body</td>
             <td style={{ padding: "8px" }}>
@@ -218,7 +291,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
             </td>
           </tr>
         )}
-        
+
         <tr>
           <td colSpan={2} style={{ position: "relative", padding: 0, height: 40 }}>
             <div className="horizontal-line" />
@@ -235,7 +308,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
             />
           </td>
         </tr>
-        
+
         {/* Error and Response Section */}
         {network.error ? (
           <tr>
@@ -249,39 +322,44 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           </tr>
         ) : (
           <>
-            {Object.keys(network.responseHeaders || {}).length > 0 && (
+            {shouldShowResponseHeaders() && Object.keys(network.responseHeaders || {}).length > 0 && (
               <KVEditor
-                label="headers"
+                label="response headers"
                 value={network.responseHeaders}
                 onChange={headers => { }}
                 deactivated={true}
               />
             )}
-            {Object.keys(network.responseCookies || {}).length > 0 && (
+
+            {shouldShowResponseCookies() && Object.keys(network.responseCookies || {}).length > 0 && (
               <KVEditor
-                label="cookies"
+                label="response cookies"
                 value={network.responseCookies}
                 onChange={cookies => { }}
                 deactivated={true}
               />
             )}
-            <tr>
-              <td className="label">response</td>
-              <td style={{ padding: "8px" }}>
-                <BodyView
-                  value={
-                    network.responseBody == null
-                      ? ""
-                      : typeof network.responseBody === "string"
-                        ? network.responseBody
-                        : JSON.stringify(network.responseBody, null, 2)
-                  }
-                  format={req.format || "json"}
-                  mode="live"
-                />
-              </td>
-            </tr>
-            {Object.keys(outputs).length > 0 && (
+
+            {shouldShowResponse() && (
+              <tr>
+                <td className="label">response</td>
+                <td style={{ padding: "8px" }}>
+                  <BodyView
+                    value={
+                      network.responseBody == null
+                        ? ""
+                        : typeof network.responseBody === "string"
+                          ? network.responseBody
+                          : JSON.stringify(network.responseBody, null, 2)
+                    }
+                    format={req.format || "json"}
+                    mode="live"
+                  />
+                </td>
+              </tr>
+            )}
+
+            {shouldShowOutputs() && Object.keys(outputs).length > 0 && (
               <KVEditor
                 label="outputs"
                 value={Object.fromEntries(
