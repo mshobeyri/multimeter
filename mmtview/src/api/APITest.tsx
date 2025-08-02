@@ -10,10 +10,74 @@ import { replaceAllRefs } from "../variableReplacer";
 import UrlInput from "../components/UrlInput";
 import { extractOutputs } from "./outputExtractor";
 import ViewSelector, { ViewMode } from "../components/ViewSelector";
+import { saveEnvVariablesFromObject, loadEnvVariables } from "../workspaceStorage";
 
 interface APITestProps {
   api: APIData;
 }
+
+// Function to handle setting environment variables from API setenv configuration
+const handleSetEnvVariables = (
+  api: APIData, 
+  finalOutputs: Record<string, string | number | boolean>
+) => {
+  if (!api.setenv || !Array.isArray(api.setenv)) {
+    return;
+  }
+
+  // Load existing environment variables
+  const cleanup = loadEnvVariables((existingVars) => {
+    const existing = Array.isArray(existingVars) ? existingVars : [];
+    let updated = [...existing];
+
+    (api.setenv ?? []).forEach((envVar: { [key: string]: string }) => {
+      const envKey = Object.keys(envVar)[0];
+      const outputKey = envVar[envKey];
+      console.log(`Processing setenv: ${envKey} -> ${outputKey}`);
+      if (envKey && outputKey) {
+        // Remove existing variable with same name first
+        updated = updated.filter(v => v.name !== envKey);
+        
+        // Check if the value refers to an output
+        if (outputKey in finalOutputs) {
+          const outputValue = finalOutputs[outputKey];
+          if (outputValue !== "" && outputValue != null) {
+            // Add new/updated variable with output value
+            updated.push({
+              name: envKey,
+              label: envKey,
+              value: String(outputValue)
+            });
+            
+            console.log(`Set environment variable from output: ${envKey} = ${outputValue}`);
+          } else {
+            console.log(`Skipping environment variable ${envKey} - output value is empty`);
+          }
+        } else {
+          // Direct value assignment (not from outputs)
+          updated.push({
+            name: envKey,
+            label: envKey,
+            value: outputKey
+          });
+          
+          console.log(`Set environment variable directly: ${envKey} = ${outputKey}`);
+        }
+      }
+    });
+
+    // Only save if there were changes
+    if (updated.length !== existing.length || 
+        JSON.stringify(updated) !== JSON.stringify(existing)) {
+      console.log("Saving updated environment variables:", updated);
+      saveEnvVariablesFromObject(updated);
+    } else {
+      console.log("No changes to environment variables");
+    }
+    
+    cleanup(); // Clean up the subscription
+  });
+};
 
 const APITest: React.FC<APITestProps> = ({ api }) => {
   const interfaces = api.interfaces || [];
@@ -73,12 +137,16 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           finalOutputs[key] = ""; // Empty value for keys not defined in interface
         }
       });
-      
+
       setOutputs(finalOutputs);
+
+      // Handle setenv - set environment variables based on API configuration
+      handleSetEnvVariables(api, finalOutputs);
+
     } else {
       setOutputs({});
     }
-  }, [network.responseBody, network.responseHeaders, network.responseCookies, api.outputs, interfaces, selectedInterfaceIdx]);
+  }, [network.responseBody, network.responseHeaders, network.responseCookies, api.outputs, interfaces, selectedInterfaceIdx, api.setenv]);
 
   // Only call onChange if url value actually changed
   const handleUrlChange = useCallback(
