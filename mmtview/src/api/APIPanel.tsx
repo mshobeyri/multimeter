@@ -21,6 +21,7 @@ function yamlToAPI(yamlContent: string): APIData {
       import: doc.import,
       inputs: doc.inputs,
       outputs: doc.outputs,
+      setenv: doc.setenv,
       interfaces: doc.interfaces,
       examples: doc.examples,
     };
@@ -40,6 +41,7 @@ function apiToYaml(api: APIData): string {
   if (api.import) yamlObj.import = api.import;
   if (api.inputs) yamlObj.inputs = api.inputs;
   if (api.outputs) yamlObj.outputs = api.outputs;
+  if (api.setenv) yamlObj.setenv = api.setenv;
   if (api.interfaces) yamlObj.interfaces = api.interfaces;
   if (api.examples) yamlObj.examples = api.examples;
   return packYaml(yamlObj);
@@ -52,6 +54,7 @@ const defaultAPI: APIData = {
   import: [],
   inputs: [],
   outputs: [],
+  setenv: [],
   interfaces: [],
   examples: [],
 };

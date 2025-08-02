@@ -3,7 +3,7 @@ import parseYaml from "../markupConvertor";
 import EnvironmentEnv from "./EnvironmentEnv";
 import EnvironmentEdit from "./EnvironmentEdit";
 import EnvironmentView from "./EnvironmentView";
-import { saveEnvVariablesFromObject, loadEnvVariables } from "../workspaceStorage";
+import { readEnvironmentVariables, writeEnvironmentVariables, clearEnvironmentVariables } from "./environmentUtils";
 import { ComboTablePair } from "../components/ComboTable";
 
 const LAST_ENV_TAB_KEY = "mmtview:env:lastTab";
@@ -91,7 +91,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   }, [content]);
 
   // Handler for variables
-  const handleVariablesChange = (name: string, label: string, value: string|number|boolean) => {
+  const handleVariablesChange = (name: string, label: string, value: string | number | boolean) => {
     setVariables(prev => {
       const updated = prev.map(pair => {
         if (pair.name === name) {
@@ -105,7 +105,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
       });
 
       // Save all variables at once, each as { name, label, value }
-      const flatVars: { name: string; label: string; value: string|number|boolean }[] = [];
+      const flatVars: { name: string; label: string; value: string | number | boolean }[] = [];
       updated.forEach(pair => {
         flatVars.push({
           name: pair.name,
@@ -114,7 +114,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         });
       });
 
-      saveEnvVariablesFromObject(flatVars);
+      writeEnvironmentVariables(flatVars);
       return updated;
     });
   };
@@ -153,7 +153,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
             value: pair.value.value
           });
         });
-        saveEnvVariablesFromObject(flatVars);
+        writeEnvironmentVariables(flatVars);
 
         return updated;
       });
@@ -162,7 +162,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
 
   // Load selections from VSCode
   useEffect(() => {
-    const cleanup = loadEnvVariables((loaded: { name: string; value: string|number|boolean; }[] | undefined | null) => {
+    const cleanup = readEnvironmentVariables((loaded) => {
       loadedVarsRef.current = Array.isArray(loaded)
         ? loaded.map(v => ({ name: v.name, value: String(v.value) }))
         : [];
@@ -187,8 +187,19 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   // Load workspace variables for the "view" tab
   useEffect(() => {
     if (tab === "view") {
-      const cleanup = loadEnvVariables((loaded: React.SetStateAction<{ name: string; label: string; value: string|number|boolean; }[]>) => {
-        setWorkspaceVars(loaded);
+      const cleanup = readEnvironmentVariables((loaded) => {
+        // loaded: { name: string; value: string | number | boolean }[] | null | undefined
+        if (Array.isArray(loaded)) {
+          setWorkspaceVars(
+            loaded.map(v => ({
+              name: v.name,
+              label: String(v.value),
+              value: v.value
+            }))
+          );
+        } else {
+          setWorkspaceVars([]);
+        }
       });
       return cleanup;
     }
@@ -196,12 +207,9 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
 
   // Add these handler functions in EnvironmentPanel component
   const handleClearCache = () => {
-    // Clear all variables from cache
-    saveEnvVariablesFromObject([]);
-    // Reset loadedVarsRef
+    clearEnvironmentVariables();
     loadedVarsRef.current = [];
-    // Reset variables to their default selections
-    setVariables(prev => 
+    setVariables(prev =>
       prev.map(pair => ({
         ...pair,
         value: pair.options[0] || { label: "", value: "" }
@@ -210,8 +218,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   };
 
   const handleSaveToCache = () => {
-    // Save all current variable selections to cache
-    const flatVars: { name: string; label: string; value: string|number|boolean }[] = [];
+    const flatVars: { name: string; label: string; value: string | number | boolean }[] = [];
     variables.forEach(pair => {
       flatVars.push({
         name: pair.name,
@@ -219,7 +226,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         value: pair.value.value
       });
     });
-    saveEnvVariablesFromObject(flatVars);
+    writeEnvironmentVariables(flatVars);
   };
 
   return (

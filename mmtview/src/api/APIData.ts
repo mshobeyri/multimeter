@@ -26,6 +26,7 @@ export interface APIData extends MMTFile {
   import?: Parameter[];
   inputs?: Parameter[];
   outputs?: Parameter[];
+  setenv?: Parameter[];
   interfaces?: Array<InterfaceData>;
   examples?:  Array<ExampleData>;
 }
