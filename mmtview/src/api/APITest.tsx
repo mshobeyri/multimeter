@@ -22,8 +22,16 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   const [selectedInterfaceIdx, setSelectedInterfaceIdx] = useState<number>(0);
   const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(0);
 
-  // View state
-  const [viewMode, setViewMode] = useState<ViewMode>("all");
+  // View state with localStorage persistence
+  const [viewMode, setViewModeState] = useState<ViewMode>(() => {
+    const saved = localStorage.getItem("apitest-view-mode");
+    return (saved as ViewMode) || "all";
+  });
+
+  const setViewMode = (mode: ViewMode) => {
+    setViewModeState(mode);
+    localStorage.setItem("apitest-view-mode", mode);
+  };
 
   const network = useNetwork();
   const req = network.requestData || {};
@@ -123,11 +131,11 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   const shouldShowQuery = () => viewMode === "all";
   const shouldShowHeaders = () => viewMode === "all";
   const shouldShowCookies = () => viewMode === "all";
-  const shouldShowBody = () => viewMode === "all" || viewMode === "body";
+  const shouldShowBody = () => !req.method || req.method.toUpperCase() !== "GET";
   const shouldShowResponse = () => viewMode === "all" || viewMode === "body";
-  const shouldShowResponseHeaders = () => viewMode === "all" || viewMode === "in/out";
-  const shouldShowResponseCookies = () => viewMode === "all" || viewMode === "in/out";
-  const shouldShowOutputs = () => viewMode === "all" || viewMode === "in/out";
+  const shouldShowResponseHeaders = () => (viewMode === "all") && Object.keys(network.responseHeaders || {}).length > 0;
+  const shouldShowResponseCookies = () => (viewMode === "all") && Object.keys(network.responseCookies || {}).length > 0;
+  const shouldShowOutputs = () => (viewMode === "all" || viewMode === "in/out") && Object.keys(outputs).length > 0;
 
   if (interfaces.length === 0) {
     return <div style={{ color: "#888" }}>No interfaces defined.</div>;
@@ -194,13 +202,13 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
             />
           </td>
         </tr>
-        <tr style={{zIndex: 100 }}>
+        <tr style={{ zIndex: 100 }}>
           <td colSpan={2} style={{ position: "relative", padding: 0, height: 40 }}>
             <div className="horizontal-line" />
-            <div style={{ 
-              position: "absolute", 
-              right: 8, 
-              top: "100%", 
+            <div style={{
+              position: "absolute",
+              right: 8,
+              top: "100%",
               transform: "translateY(-50%)",
               zIndex: 100
             }}>
@@ -234,7 +242,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         />}
 
         {/* Only show body editor if method is not GET */}
-        {(shouldShowBody() && (!req.method || req.method.toUpperCase() !== "GET")) && (
+        {shouldShowBody() && (
           <tr>
             <td className="label">body</td>
             <td style={{ padding: "8px" }}>
@@ -281,7 +289,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           </tr>
         ) : (
           <>
-            {shouldShowResponseHeaders() && Object.keys(network.responseHeaders || {}).length > 0 && (
+            {shouldShowResponseHeaders() && (
               <KVEditor
                 label="response headers"
                 value={network.responseHeaders}
@@ -290,7 +298,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
               />
             )}
 
-            {shouldShowResponseCookies() && Object.keys(network.responseCookies || {}).length > 0 && (
+            {shouldShowResponseCookies() && (
               <KVEditor
                 label="response cookies"
                 value={network.responseCookies}
@@ -318,7 +326,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
               </tr>
             )}
 
-            {shouldShowOutputs() && Object.keys(outputs).length > 0 && (
+            {shouldShowOutputs() && (
               <KVEditor
                 label="outputs"
                 value={Object.fromEntries(
