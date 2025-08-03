@@ -381,7 +381,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
 
             {shouldShowResponse() && (
               <tr>
-                <td className="label">response</td>
+                <td className="label">response body</td>
                 <td style={{ padding: "8px" }}>
                   <BodyView
                     value={
