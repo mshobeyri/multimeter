@@ -5,149 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Certificates</title>
-    <style>
-        body {
-            font-family: var(--vscode-font-family);
-            font-size: var(--vscode-font-size);
-            color: var(--vscode-foreground);
-            background-color: var(--vscode-editor-background);
-            margin: 0;
-            padding: 16px;
-        }
-
-        .section {
-            margin-bottom: 20px;
-            padding: 12px;
-            border: 1px solid var(--vscode-panel-border);
-            border-radius: 4px;
-            background-color: var(--vscode-input-background);
-        }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-
-        .section-title {
-            font-weight: bold;
-            font-size: 14px;
-            margin: 0;
-        }
-
-        .button {
-            padding: 6px 12px;
-            font-size: 12px;
-            background-color: var(--vscode-button-background);
-            color: var(--vscode-button-foreground);
-            border: none;
-            border-radius: 2px;
-            cursor: pointer;
-        }
-
-        .button:hover {
-            background-color: var(--vscode-button-hoverBackground);
-        }
-
-        .button-secondary {
-            background-color: var(--vscode-button-secondaryBackground);
-            color: var(--vscode-button-secondaryForeground);
-        }
-
-        .button-secondary:hover {
-            background-color: var(--vscode-button-secondaryHoverBackground);
-        }
-
-        .button-small {
-            padding: 2px 6px;
-            font-size: 10px;
-        }
-
-        .cert-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px;
-            margin-bottom: 6px;
-            background-color: var(--vscode-editor-background);
-            border: 1px solid var(--vscode-input-border);
-            border-radius: 3px;
-        }
-
-        .cert-info {
-            flex: 1;
-        }
-
-        .cert-name {
-            font-weight: bold;
-            font-size: 12px;
-            margin-bottom: 2px;
-        }
-
-        .cert-details {
-            font-size: 10px;
-            color: var(--vscode-descriptionForeground);
-        }
-
-        .cert-actions {
-            display: flex;
-            gap: 4px;
-            align-items: center;
-        }
-
-        .checkbox-label {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 11px;
-        }
-
-        .ca-cert-display {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-
-        .ca-cert-input {
-            flex: 1;
-            padding: 4px 8px;
-            font-size: 12px;
-            background-color: var(--vscode-editor-background);
-            color: var(--vscode-editor-foreground);
-            border: 1px solid var(--vscode-input-border);
-            border-radius: 2px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 20px;
-            color: var(--vscode-descriptionForeground);
-            font-size: 12px;
-            font-style: italic;
-        }
-
-        .status-indicator {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            margin-right: 6px;
-        }
-
-        .status-enabled {
-            background-color: #28a745;
-        }
-
-        .status-disabled {
-            background-color: #6c757d;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 4px;
-        }
-    </style>
 </head>
 
 <body>
@@ -164,30 +21,30 @@
             </label>
         </div>
 
-        <div class="ca-cert-display">
-            <input type="text" id="ca-cert-path" class="ca-cert-input" readonly
+        <div class="flex gap-8 items-center">
+            <input type="text" id="ca-cert-path" class="input input-readonly flex-1" readonly
                 placeholder="No CA certificate selected">
             <button class="button" onclick="selectCaCertificate()">Browse...</button>
         </div>
-    </div>
 
-    <!-- Client Certificates Section -->
-    <div class="section">
+        <div class="horizontal-line-padded"></div>
+        <!-- Client Certificates Section -->
+
         <div class="section-header">
             <h3 class="section-title">Client Certificates</h3>
             <button class="button" onclick="addClientCertificate()">➕ Add Certificate</button>
         </div>
 
-        <div id="client-certs-container">
+        <div id="client-certs-container" class="item-list">
             <div id="empty-state" class="empty-state">
                 No client certificates configured.<br>
                 Click "Add Certificate" to configure your first certificate.
             </div>
         </div>
-    </div>
 
-    <!-- SSL Validation Section -->
-    <div class="section">
+        <div class="horizontal-line-padded"></div>
+        <!-- SSL Validation Section -->
+
         <label class="checkbox-label">
             <input type="checkbox" id="ssl-validation" onchange="toggleSslValidation()">
             Verify SSL certificates
@@ -257,28 +114,28 @@
             if (certificates.clients.length === 0) {
                 emptyState.style.display = 'block';
                 // Remove all cert items
-                const certItems = container.querySelectorAll('.cert-item');
+                const certItems = container.querySelectorAll('.item');
                 certItems.forEach(item => item.remove());
             } else {
                 emptyState.style.display = 'none';
 
                 // Clear existing items
-                const certItems = container.querySelectorAll('.cert-item');
+                const certItems = container.querySelectorAll('.item');
                 certItems.forEach(item => item.remove());
 
                 // Add client certificates
                 certificates.clients.forEach(cert => {
                     const certDiv = document.createElement('div');
-                    certDiv.className = 'cert-item';
+                    certDiv.className = 'item fade-in';
                     certDiv.innerHTML = `
-                        <div class="cert-info">
-                            <div class="cert-name">
+                        <div class="item-info">
+                            <div class="item-title">
                                 <span class="status-indicator ${cert.enabled ? 'status-enabled' : 'status-disabled'}"></span>
                                 ${cert.name}
                             </div>
-                            <div class="cert-details">${cert.host} • ${cert.certPath.split('/').pop()}</div>
+                            <div class="item-details">${cert.host} • ${cert.certPath.split('/').pop()}</div>
                         </div>
-                        <div class="cert-actions">
+                        <div class="item-actions">
                             <label class="checkbox-label">
                                 <input type="checkbox" ${cert.enabled ? 'checked' : ''} 
                                        onchange="toggleClientCert('${cert.id}')">

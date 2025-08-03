@@ -1,0 +1,413 @@
+:root {
+  /* VSCode Variables */
+  --font-family: var(--vscode-font-family);
+  --font-size: var(--vscode-font-size);
+  --foreground: var(--vscode-foreground);
+  --background: var(--vscode-editor-background);
+  --input-background: var(--vscode-input-background);
+  --input-foreground: var(--vscode-input-foreground);
+  --input-border: var(--vscode-input-border);
+  --panel-border: var(--vscode-panel-border);
+  --description-foreground: var(--vscode-descriptionForeground);
+
+  /* Button Variables */
+  --button-background: var(--vscode-button-background);
+  --button-foreground: var(--vscode-button-foreground);
+  --button-hover-background: var(--vscode-button-hoverBackground);
+  --button-secondary-background: var(--vscode-button-secondaryBackground);
+  --button-secondary-foreground: var(--vscode-button-secondaryForeground);
+  --button-secondary-hover-background: var(--vscode-button-secondaryHoverBackground);
+
+  /* Status Colors */
+  --status-enabled: #28a745;
+  --status-disabled: #6c757d;
+  --status-warning: #ffc107;
+  --status-error: #dc3545;
+}
+
+/* Base Styles */
+body {
+  color: var(--vscode-editor-foreground);
+  font-family: var(--vscode-font-family);
+  margin: 0;
+  padding: 0;
+}
+
+/* Layout Components */
+.section {
+  margin-bottom: 20px;
+  padding: 16px;
+  border-radius: 4px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.section-title {
+  font-weight: bold;
+  font-size: 14px;
+  margin: 0;
+}
+
+.horizontal-line {
+  position: relative;
+  height: 1px;
+  background-color: var(--panel-border);
+  margin: var(--spacing-xl) 0; /* 16px top and bottom */
+  width: 100%;
+}
+
+/* Alternative with more padding */
+.horizontal-line-padded {
+  position: relative;
+  padding: 16px;
+  margin: 0px;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.horizontal-line-padded::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: var(--panel-border);
+  transform: translateY(-50%);
+}
+
+/* Form Elements */
+.input {
+  padding: 4px 8px;
+  font-size: 12px;
+  background-color: var(--input-background);
+  color: var(--input-foreground);
+  border: 1px solid var(--input-border);
+  border-radius: 2px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--vscode-focusBorder);
+}
+
+.input-readonly {
+  background-color: var(--vscode-editor-background);
+  color: var(--vscode-editor-foreground);
+}
+
+.textarea {
+  font-family: var(--vscode-editor-fontFamily, monospace);
+  font-size: var(--vscode-editor-fontSize, 14px);
+  line-height: var(--vscode-editor-lineHeight, 1.3);
+  resize: vertical;
+  min-height: 100px;
+}
+
+/* Button Styles */
+.button {
+  padding: 6px 12px;
+  font-size: 12px;
+  background-color: var(--button-background);
+  color: var(--button-foreground);
+  border: none;
+  border-radius: 2px;
+  cursor: pointer;
+  outline: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.button:hover {
+  background-color: var(--button-hover-background);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.button-secondary {
+  background-color: var(--button-secondary-background);
+  color: var(--button-secondary-foreground);
+}
+
+.button-secondary:hover {
+  background-color: var(--button-secondary-hover-background);
+}
+
+.button-small {
+  padding: 2px 6px;
+  font-size: 10px;
+}
+
+.button-large {
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+.button-group {
+  display: flex;
+  gap: 4px;
+}
+
+/* Status Indicators */
+.status-indicator {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.status-enabled {
+  background-color: var(--status-enabled);
+}
+
+.status-disabled {
+  background-color: var(--status-disabled);
+}
+
+.status-warning {
+  background-color: var(--status-warning);
+}
+
+.status-error {
+  background-color: var(--status-error);
+}
+
+/* Labels and Text */
+.label {
+  font-size: 12px;
+  font-weight: bold;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.description {
+  font-size: 11px;
+  color: var(--description-foreground);
+  margin-top: 2px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+/* Item Lists */
+.item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  background-color: var(--vscode-editor-background);
+  border: 1px solid var(--input-border);
+  border-radius: 3px;
+}
+
+.item-info {
+  flex: 1;
+}
+
+.item-title {
+  font-weight: bold;
+  font-size: 12px;
+  margin-bottom: 2px;
+}
+
+.item-details {
+  font-size: 10px;
+  color: var(--description-foreground);
+}
+
+.item-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+/* Empty States */
+.empty-state {
+  text-align: center;
+  padding: 20px;
+  color: var(--description-foreground);
+  font-size: 12px;
+  font-style: italic;
+}
+
+/* Table Styles (for mmtview) */
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--panel-border);
+  vertical-align: top;
+}
+
+.table .label-cell {
+  width: 120px;
+  font-size: 12px;
+  font-weight: bold;
+  color: var(--description-foreground);
+}
+
+/* Responsive Utilities */
+.flex {
+  display: flex;
+}
+
+.flex-column {
+  flex-direction: column;
+}
+
+.flex-row {
+  flex-direction: row;
+}
+
+.gap-4 {
+  gap: 4px;
+}
+
+.gap-8 {
+  gap: 8px;
+}
+
+.gap-12 {
+  gap: 12px;
+}
+
+.gap-16 {
+  gap: 16px;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.flex-1 {
+  flex: 1;
+}
+
+/* Spacing Utilities */
+.p-4 {
+  padding: 4px;
+}
+
+.p-8 {
+  padding: 8px;
+}
+
+.p-12 {
+  padding: 12px;
+}
+
+.p-16 {
+  padding: 16px;
+}
+
+.m-4 {
+  margin: 4px;
+}
+
+.m-8 {
+  margin: 8px;
+}
+
+.m-12 {
+  margin: 12px;
+}
+
+.m-16 {
+  margin: 16px;
+}
+
+.mb-8 {
+  margin-bottom: 8px;
+}
+
+.mb-12 {
+  margin-bottom: 12px;
+}
+
+.mb-16 {
+  margin-bottom: 16px;
+}
+
+/* Text Utilities */
+.text-bold {
+  font-weight: bold;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-small {
+  font-size: 10px;
+}
+
+.text-normal {
+  font-size: 12px;
+}
+
+.text-large {
+  font-size: 14px;
+}
+
+/* Animation Utilities */
+.fade-in {
+  animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--vscode-scrollbarSlider-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--vscode-scrollbarSlider-background);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--vscode-scrollbarSlider-hoverBackground);
+}
