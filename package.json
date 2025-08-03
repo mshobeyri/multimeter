@@ -63,7 +63,7 @@
       {
         "command": "multimeter.clearHistory",
         "title": "clear History",
-        "icon": "res/delete.svg"
+        "icon": "$(clear-all)"
       }
     ],
     "viewsContainers": {
