@@ -20,6 +20,72 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "configuration": {
+      "title": "Multimeter",
+      "properties": {
+        "multimeter.enableCertificateValidation": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable SSL certificate validation for HTTPS requests"
+        },
+        "multimeter.certificates.ca": {
+          "type": "object",
+          "default": {
+            "enabled": false,
+            "certPath": ""
+          },
+          "description": "CA Certificate configuration",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "description": "Enable CA certificate"
+            },
+            "certPath": {
+              "type": "string",
+              "description": "Path to CA certificate file"
+            }
+          }
+        },
+        "multimeter.certificates.clients": {
+          "type": "array",
+          "default": [],
+          "description": "Client certificates configuration",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Unique identifier"
+              },
+              "name": {
+                "type": "string",
+                "description": "Certificate name/label"
+              },
+              "host": {
+                "type": "string",
+                "description": "Host pattern (e.g., *.example.com)"
+              },
+              "certPath": {
+                "type": "string",
+                "description": "Path to certificate file"
+              },
+              "keyPath": {
+                "type": "string",
+                "description": "Path to private key file"
+              },
+              "passphrase": {
+                "type": "string",
+                "description": "Private key passphrase"
+              },
+              "enabled": {
+                "type": "boolean",
+                "description": "Enable this certificate"
+              }
+            }
+          }
+        }
+      }
+    },
     "languages": [
       {
         "id": "mmt",
@@ -64,6 +130,26 @@
         "command": "multimeter.clearHistory",
         "title": "clear History",
         "icon": "$(clear-all)"
+      },
+      {
+        "command": "multimeter.addClientCertificate",
+        "title": "Add Client Certificate",
+        "category": "Multimeter"
+      },
+      {
+        "command": "multimeter.selectCaCertificate",
+        "title": "Select CA Certificate",
+        "category": "Multimeter"
+      },
+      {
+        "command": "multimeter.manageCertificates",
+        "title": "Manage Certificates",
+        "category": "Multimeter"
+      },
+      {
+        "command": "multimeter.openSettings",
+        "title": "Open Multimeter Settings",
+        "category": "Multimeter"
       }
     ],
     "viewsContainers": {
@@ -93,6 +179,12 @@
         {
           "id": "multimeter.mockServer",
           "name": "Mock Server",
+          "icon": "res/activity.png",
+          "type": "webview"
+        },
+        {
+          "id": "multimeter.certificates",
+          "name": "Certificates",
           "icon": "res/activity.png",
           "type": "webview"
         }
