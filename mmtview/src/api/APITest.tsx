@@ -363,7 +363,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           <>
             {shouldShowResponseHeaders() && (
               <KVEditor
-                label="response headers"
+                label="headers"
                 value={network.responseHeaders}
                 onChange={headers => { }}
                 deactivated={true}
@@ -372,7 +372,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
 
             {shouldShowResponseCookies() && (
               <KVEditor
-                label="response cookies"
+                label="cookies"
                 value={network.responseCookies}
                 onChange={cookies => { }}
                 deactivated={true}
@@ -381,7 +381,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
 
             {shouldShowResponse() && (
               <tr>
-                <td className="label">response body</td>
+                <td className="label">body</td>
                 <td style={{ padding: "8px" }}>
                   <BodyView
                     value={
