@@ -132,21 +132,6 @@
         "icon": "$(clear-all)"
       },
       {
-        "command": "multimeter.addClientCertificate",
-        "title": "Add Client Certificate",
-        "category": "Multimeter"
-      },
-      {
-        "command": "multimeter.selectCaCertificate",
-        "title": "Select CA Certificate",
-        "category": "Multimeter"
-      },
-      {
-        "command": "multimeter.manageCertificates",
-        "title": "Manage Certificates",
-        "category": "Multimeter"
-      },
-      {
         "command": "multimeter.openSettings",
         "title": "Open Multimeter Settings",
         "category": "Multimeter"
