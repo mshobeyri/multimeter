@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, createContext } from "react";
 import EnvironmentPanel from "./environment/EnvironmentPanel";
 import { SplitPane } from '@rexxars/react-split-pane';
+import './App.css';
 import VariablesPanel from "./variable/VariablesPanel";
 import APIPanel from "./api/APIPanel";
 import NotypePanel from "./NotypePanel";

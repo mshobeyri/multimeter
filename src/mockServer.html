@@ -1,120 +1,77 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <style>
-    body {
-      color: var(--vscode-editor-foreground);
-      font-family: var(--vscode-font-family);
-      margin: 0;
-      padding: 0;
-    }
-    .mock-container {
-      padding: 18px 24px;
-      max-width: 480px;
-      margin: auto;
-    }
-    .mock-label {
-      font-size: 13px;
-      color: var(--vscode-descriptionForeground);
-      margin-bottom: 4px;
-      display: block;
-    }
-    .mock-select, .mock-input, .mock-textarea {
-      background: var(--vscode-input-background);
-      color: var(--vscode-input-foreground);
-      border: 1px solid var(--vscode-input-border);
-      border-radius: 4px;
-      font-size: 14px;
-      padding: 6px 8px;
-      margin-bottom: 16px;
-      width: 100%;
-      box-sizing: border-box;
-    }
-    .mock-select {
-      width: 120px;
-    }
-    .mock-input {
-      width: 100px;
-    }
-    .mock-textarea {
-      font-family: var(--vscode-editor-font-family);
-      font-size: 12px;
-      min-height: 120px;
-      resize: vertical;
-    }
-    .mock-btn {
-      background: var(--vscode-button-background, #222);
-      border: 1px solid #444;
-      border-radius: 6px;
-      padding: 14px 0;
-      cursor: pointer;
-      font-size: 16px bold;
-      color: var(--vscode-button-foreground, #d4d4d4);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 100%; /* Fill parent width */
-      transition: background 0.15s, border-color 0.15s;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    }
-    .mock-btn:hover {     
-      background: var(--vscode-list-hoverBackground, #2a2d2e);
-      border-color: #3399ff;
-    }
-    .mock-divider {
-      border-top: 1px solid var(--vscode-panel-border);
-      margin: 18px 0;
-      opacity: 0.3;
-    }
-  </style>
 </head>
+
 <body>
-  <div class="mock-container">
-    <label class="mock-label" for="serverType">Server Type</label>
-    <select id="serverType" class="mock-select" ${disabled}>
-      <option value="http" ${serverType === 'http' ? 'selected' : ''}>HTTP</option>
-      <option value="ws" ${serverType === 'ws' ? 'selected' : ''}>WebSocket</option>
-    </select>
+  <div class="section">
+    <div class="mb-12">
+      <label class="label" for="serverType">Server Type</label>
+      <select id="serverType" class="input" ${disabled}>
+        <option value="http" ${serverType==='http' ? 'selected' : '' }>HTTP</option>
+        <option value="ws" ${serverType==='ws' ? 'selected' : '' }>WebSocket</option>
+      </select>
+    </div>
 
-    <label class="mock-label" for="port">Port</label>
-    <input id="port" class="mock-input" type="number" min="1" max="65535" value="${port}" ${disabled}/>
+    <div class="flex gap-8 mb-12">
+      <div class="flex-1">
+        <label class="label" for="port">Port</label>
+        <input id="port" class="input" type="number" min="1" max="65535" value="${port}" ${disabled} />
+      </div>
+      <div class="flex-1">
+        <label class="label" for="statusCode">HTTP Status Code</label>
+        <input id="statusCode" class="input" type="number" min="100" max="599" value="${statusCode}" />
+      </div>
+    </div>
 
-    <label class="mock-label" for="statusCode">HTTP Status Code</label>
-    <input id="statusCode" class="mock-input" type="number" min="100" max="599" value="${statusCode}" />
+    <div class="mb-12">
+      <label class="label" for="response">Response</label>
+      <textarea id="response" class="textarea">${response}</textarea>
+    </div>
 
-    <label class="mock-label" for="response">Response</label>
-    <textarea id="response" class="mock-textarea">${response}</textarea>
-
-    <div class="mock-divider"></div>
-    <button id="runBtn" class="mock-btn">${buttonText}</button>
+    <button id="runBtn" class="button">
+      <span class="codicon codicon-play"></span>
+      ${buttonText}
+    </button>
   </div>
 
   <script>
     const vscode = acquireVsCodeApi();
+
     document.querySelector('#serverType').onchange = e => {
       vscode.postMessage({ type: 'setType', value: e.target.value });
     };
+
     document.querySelector('#port').onchange = e => {
       vscode.postMessage({ type: 'setPort', value: e.target.value });
     };
+
     document.getElementById('statusCode').onchange = e => {
       vscode.postMessage({ type: 'setStatusCode', value: e.target.value });
     };
+
     document.querySelector('#response').oninput = e => {
       vscode.postMessage({ type: 'setResponse', value: e.target.value });
     };
+
     document.querySelector('#runBtn').onclick = () => {
       const runBtn = document.getElementById('runBtn');
-      if (runBtn.textContent.startsWith('🏃🏽‍♀️‍➡️')) {
+      const iconSpan = runBtn.querySelector('.codicon');
+
+      if (runBtn.textContent.includes('Run') || runBtn.textContent.includes('Start')) {
         vscode.postMessage({ type: 'startServer' });
-        runBtn.textContent = '🧍🏽‍♀️ Stop localhost:' + document.getElementById('port').value;
+        iconSpan.className = 'codicon codicon-debug-stop';
+        runBtn.innerHTML = `<span class="codicon codicon-debug-stop"></span> Stop localhost:${document.getElementById('port').value}`;
       } else {
         vscode.postMessage({ type: 'stopServer' });
-        runBtn.textContent = '🏃🏽‍♀️‍➡️ Run Mock Server';
+        iconSpan.className = 'codicon codicon-play';
+        runBtn.innerHTML = `<span class="codicon codicon-play"></span> Run Mock Server`;
       }
     };
   </script>
 </body>
+
 </html>

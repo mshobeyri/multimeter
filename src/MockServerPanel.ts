@@ -125,17 +125,31 @@ export default class MockServerPanel implements vscode.WebviewViewProvider {
     }
   }
 
-  private getHtmlContent(): string {
-    const htmlPath =
-        path.join(this.context.extensionPath, 'src', 'mockServer.html');
+  private getHtmlForWebview(serverType: string, port: number, statusCode: number, response: string, isRunning: boolean): string {
+    const htmlPath = path.join(this.context.extensionPath, 'src', 'mockserver.html');
+    const cssPath = path.join(this.context.extensionPath, 'src', 'common.css');
+    
     let html = fs.readFileSync(htmlPath, 'utf8');
-    // Replace placeholders with actual values
-    html = html.replace(/\${serverType}/g, this.serverType)
-               .replace(/\${port}/g, String(this.port))
-               .replace(/\${response}/g, this.response)
-               .replace(/\${statusCode}/g, String(this.statusCode))
-               .replace(/\${buttonText}/g, this.running ? `Stop localhost:${this.port}` : '🏃🏽‍♀️‍➡️ Run Mock Server')
-               .replace(/\${disabled}/g, this.running ? 'disabled' : '');
-    return html;
+    const css = fs.readFileSync(cssPath, 'utf8');
+    
+    // Inject CSS into HTML head
+    html = html.replace('</head>', `<style>${css}</style></head>`);
+    
+    const disabled = isRunning ? 'disabled' : '';
+    const buttonText = isRunning ? 
+      `Stop localhost:${port}` : 
+      'Run Mock Server';
+    
+    return html
+      .replace(/\${serverType}/g, serverType)
+      .replace(/\${port}/g, port.toString())
+      .replace(/\${statusCode}/g, statusCode.toString())
+      .replace(/\${response}/g, response)
+      .replace(/\${disabled}/g, disabled)
+      .replace(/\${buttonText}/g, buttonText);
+  }
+
+  private getHtmlContent(): string {
+    return this.getHtmlForWebview(this.serverType, this.port, this.statusCode, this.response, this.running);
   }
 }
