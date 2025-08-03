@@ -35,7 +35,7 @@ interfaces:
     protocol: http
     format: json
     url: http://localhost:8080
-    method: GET
+    method: get
 ```
 
 Here you can see the screen shot of using this sample. On the right side, beside a UI for modifying the test yaml file interactively, you can have some smoke tests.

@@ -51,7 +51,7 @@ export const APISchema = {
                     protocol: { type: 'string', enum: ['http', 'ws'] },
                     method: {
                         type: 'string',
-                        enum: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']
+                        enum: ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
                     },
                     format: { type: 'string', enum: ['json', 'xml', 'text'] },
                     url: { type: 'string', format: 'uri' },

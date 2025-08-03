@@ -3,7 +3,7 @@ import { Request } from "./NetworkData";
 export function buildCurlCommand(options: Request): string {
     const {
         url = "",
-        method = "GET",
+        method = "get",
         headers = {},
         body,
         cookies,

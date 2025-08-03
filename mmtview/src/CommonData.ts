@@ -2,7 +2,7 @@ export type Type = "var" | "env" | "api" | "test" | null;
 
 export type Protocol = "http" | "ws";
 export type Format = "json" | "xml" | "text";
-export type Method = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS";
+export type Method = "get" | "post" | "put" | "delete" | "patch" | "head" | "options" | "trace";
 
 export const jsonTypes = [
   "object", "object[]", "string", "string[]", "number", "number[]", "boolean", "boolean[]"

@@ -36,7 +36,7 @@ export function handleNetworkMessage(
       (async () => {
 
         try {
-          const {url, method = 'GET', headers = {}, body, query, cookies, requestId} =
+          const {url, method = 'get', headers = {}, body, query, cookies, requestId} =
               message;
 
           let reqHeaders = {...headers};

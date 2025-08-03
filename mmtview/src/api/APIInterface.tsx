@@ -15,7 +15,7 @@ interface InterfaceEditorProps {
 
 const protocolOptions: Protocol[] = ["http", "ws"];
 const formatOptions: Format[] = ["json", "xml", "text"];
-const methodOptions: Method[] = ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"];
+const methodOptions: Method[] = ["get", "post", "put", "delete", "patch", "head", "options", "trace"];
 
 const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRemove }) => {
   // Split url and query string safely
@@ -174,8 +174,8 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
             disabled={data.protocol !== "http"}
           />
         ) : null}
-        {/* Only show body editor if method is not GET */}
-        {(!data.method || data.method.toUpperCase() !== "GET") && (
+        {/* Only show body editor if method is not get */}
+        {(!data.method || data.method.toLowerCase() !== "get") && (
           <tr>
             <td className="label">body</td>
             <td style={{ padding: "8px", position: "relative" }}>

@@ -203,7 +203,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   const shouldShowQuery = () => viewMode === "all";
   const shouldShowHeaders = () => viewMode === "all";
   const shouldShowCookies = () => viewMode === "all";
-  const shouldShowBody = () => !req.method || req.method.toUpperCase() !== "GET";
+  const shouldShowBody = () => !req.method || req.method.toLowerCase() !== "get";
   const shouldShowResponse = () => viewMode === "all" || viewMode === "body";
   const shouldShowResponseHeaders = () => (viewMode === "all") && Object.keys(network.responseHeaders || {}).length > 0;
   const shouldShowResponseCookies = () => (viewMode === "all") && Object.keys(network.responseCookies || {}).length > 0;
@@ -313,7 +313,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           onChange={cookies => updateField("cookies", cookies)}
         />}
 
-        {/* Only show body editor if method is not GET */}
+        {/* Only show body editor if method is not get */}
         {shouldShowBody() && (
           <tr>
             <td className="label">body</td>

@@ -65,7 +65,7 @@ export function postmanToAPI(postmanJson: any): APIData[] {
         protocol,
         format,
         url,
-        method: request.method?.toUpperCase() || 'GET',
+        method: request.method?.toLowerCase() || 'get',
         headers,
         query,
         body,

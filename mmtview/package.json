@@ -2,6 +2,9 @@
   "name": "mmtview",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "vscode": "^1.70.0"
+  },
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "@rexxars/react-split-pane": "^1.0.0",
