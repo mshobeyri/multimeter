@@ -25,18 +25,40 @@ export async function readRelativeFileContent(
 }
 
 export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
-  public static register(context: vscode.ExtensionContext): vscode.Disposable {
-    const provider = new MmtEditorProvider(context);
-    const providerRegistration =
-        vscode.window.registerCustomEditorProvider('mmt.preview', provider);
-    return providerRegistration;
+  private static instance: MmtEditorProvider|null = null;
+  private activeWebviewPanels: Set<vscode.WebviewPanel> = new Set();
+  
+  // Static method to get the provider instance
+  public static getInstance(): MmtEditorProvider|null {
+    return MmtEditorProvider.instance;
   }
 
   constructor(private readonly context: vscode.ExtensionContext) {}
 
+  // Method to send message to all active webview panels
+  public sendMessageToAllPanels(message: any) {
+    this.activeWebviewPanels.forEach(panel => {
+      panel.webview.postMessage(message);
+    });
+  }
+
+  // Method to refresh environment variables in all panels
+  public refreshEnvironmentVars() {
+    const message = {command: 'multimeter.env.variables.refresh'};
+    this.sendMessageToAllPanels(message);
+  }
+
   public async resolveCustomTextEditor(
       document: vscode.TextDocument, webviewPanel: vscode.WebviewPanel,
       _token: vscode.CancellationToken): Promise<void> {
+    // Add this panel to the active panels set
+    this.activeWebviewPanels.add(webviewPanel);
+
+    // Remove panel when it's disposed
+    webviewPanel.onDidDispose(() => {
+      this.activeWebviewPanels.delete(webviewPanel);
+    });
+
     webviewPanel.webview.options = {
       enableScripts: true,
     };
@@ -65,7 +87,9 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
             command: 'loadDocument',
             uri: document.uri.toString(),
             content: document.getText(),
-            mode: vscode.window.tabGroups.activeTabGroup.activeTab?.input ? "normal" : "compare",
+            mode: vscode.window.tabGroups.activeTabGroup.activeTab?.input ?
+                'normal' :
+                'compare',
           });
           break;
 
@@ -75,6 +99,8 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
 
         case 'updateWorkspaceState':
           this.context.workspaceState.update(message.name, message.value);
+          await vscode.commands.executeCommand(
+              'multimeter.refreshEnvironmentVariables');
           break;
 
         case 'loadWorkspaceState':
@@ -107,7 +133,8 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           break;
 
         case 'addHistory': {
-          const historyFile = vscode.Uri.joinPath(this.context.globalStorageUri, 'history.json');
+          const historyFile = vscode.Uri.joinPath(
+              this.context.globalStorageUri, 'history.json');
           let history: any[] = [];
           try {
             const data = await vscode.workspace.fs.readFile(historyFile);
@@ -117,7 +144,9 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
             history = [];
           }
           history.unshift(message.item);
-          await vscode.workspace.fs.writeFile(historyFile, Buffer.from(JSON.stringify(history, null, 2), 'utf8'));
+          await vscode.workspace.fs.writeFile(
+              historyFile,
+              Buffer.from(JSON.stringify(history, null, 2), 'utf8'));
           await vscode.commands.executeCommand('multimeter.refreshHistory');
           break;
         }
@@ -125,7 +154,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     });
 
     vscode.window.onDidChangeActiveColorTheme(() => {
-      webviewPanel.webview.postMessage({ type: "vscode:changeColorTheme" });
+      webviewPanel.webview.postMessage({type: 'vscode:changeColorTheme'});
     });
   }
 

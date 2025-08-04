@@ -29,6 +29,73 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     localStorage.setItem(LAST_ENV_TAB_KEY, tab);
   }, [tab]);
 
+  // Add event listener for environment variable refresh messages
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const message = event.data;
+
+      if (message.command === 'multimeter.env.variables.refresh') {
+
+        // Convert the workspace state data to workspace vars format
+        const envData = message.value || {};
+        const environmentVars: { name: string; label: string; value: string | number | boolean }[] = Object.entries(envData).map(([name, value]) => {
+          let displayValue: string | number | boolean;
+          let label = name;
+
+          if (typeof value === 'object' && value !== null) {
+            // If value is an object, try to extract meaningful data
+            if ((value as any).hasOwnProperty('value')) {
+              displayValue = (value as any).value;
+            } else if ((value as any).hasOwnProperty('label')) {
+              label = (value as any).label;
+              displayValue = (value as any).value || JSON.stringify(value);
+            } else {
+              // For complex objects, stringify them
+              displayValue = JSON.stringify(value);
+            }
+          } else {
+            // For primitive values
+            displayValue = value as string | number | boolean;
+          }
+
+          return {
+            name,
+            label,
+            value: displayValue
+          };
+        });
+
+        // Sort by name for consistent display
+        environmentVars.sort((a, b) => a.name.localeCompare(b.name));
+
+        // Update workspace vars
+        setWorkspaceVars(environmentVars);
+
+        // Also update loadedVarsRef for consistency
+        loadedVarsRef.current = environmentVars.map(v => ({
+          name: v.name,
+          value: v.value
+        }));
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
+
+  // Function to refresh workspace variables
+  const refreshWorkspaceVars = () => {
+    if (window.vscode) {
+      window.vscode.postMessage({
+        command: 'loadWorkspaceState',
+        name: 'multimeter.env.variables'
+      });
+    }
+  };
+
   // Parse YAML and update variables/presets when content changes
   useEffect(() => {
     const yaml = parseYaml(content);
@@ -187,9 +254,12 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     return cleanup;
   }, []);
 
-  // Load workspace variables for the "view" tab
+  // Load workspace variables for the "view" tab - also request initial data
   useEffect(() => {
     if (tab === "view") {
+      // Request initial workspace vars
+      refreshWorkspaceVars();
+
       const cleanup = readEnvironmentVariables((loaded) => {
         // loaded: { name: string; value: string | number | boolean }[] | null | undefined
         if (Array.isArray(loaded)) {
@@ -218,6 +288,8 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         value: pair.options[0] || { label: "", value: "" }
       }))
     );
+    // Clear workspace vars as well
+    setWorkspaceVars([]);
   };
 
   const handleSaveToCache = () => {
@@ -230,6 +302,8 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
       });
     });
     writeEnvironmentVariables(flatVars);
+    // Refresh workspace vars after saving
+    refreshWorkspaceVars();
   };
 
   return (

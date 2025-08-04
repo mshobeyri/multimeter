@@ -135,6 +135,21 @@
         "command": "multimeter.openSettings",
         "title": "Open Multimeter Settings",
         "category": "Multimeter"
+      },
+      {
+        "command": "multimeter.environment.focus",
+        "title": "Focus Environment Variables",
+        "category": "Multimeter"
+      },
+      {
+        "command": "multimeter.clearEnvironmentVariables",
+        "title": "Clear Environment Variables",
+        "icon": "$(clear-all)"
+      },
+      {
+        "command": "multimeter.refreshEnvironmentVariables",
+        "title": "Refresh Environment Variables",
+        "icon": "$(refresh)"
       }
     ],
     "viewsContainers": {
@@ -172,6 +187,12 @@
           "name": "Certificates",
           "icon": "res/activity.png",
           "type": "webview"
+        },
+        {
+          "id": "multimeter.environment",
+          "name": "Environment Variables",
+          "icon": "res/activity.png",
+          "type": "webview"
         }
       ],
       "multimeterHistoryContainer": [
@@ -188,6 +209,16 @@
         {
           "command": "multimeter.clearHistory",
           "when": "view == multimeterHistory",
+          "group": "navigation"
+        },
+        {
+          "command": "multimeter.refreshEnvironmentVariables",
+          "when": "view == multimeter.environment",
+          "group": "navigation"
+        },
+        {
+          "command": "multimeter.clearEnvironmentVariables",
+          "when": "view == multimeter.environment",
           "group": "navigation"
         }
       ]

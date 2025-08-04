@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Environment Variables</title>
+</head>
+
+<body>
+    <div class="section">
+        <div id="env-table-container">
+            <table class="env-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Label</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
+                <tbody id="env-table-body">
+                    <!-- Environment variables will be populated here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div id="empty-state" class="empty-state" style="display: none;">
+            No environment variables saved in workspace.
+        </div>
+    </div>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+        let environmentVars = [];
+
+        window.addEventListener('message', event => {
+            const message = event.data;
+            if (message.type === 'updateEnvironmentVars') {
+                environmentVars = message.data || [];
+                updateUI();
+            }
+        });
+
+        function clearEnvironments() {
+            vscode.postMessage({ type: 'clearEnvironments' });
+        }
+
+        function updateUI() {
+            const tableContainer = document.getElementById('env-table-container');
+            const emptyState = document.getElementById('empty-state');
+            const tableBody = document.getElementById('env-table-body');
+
+            if (environmentVars.length === 0) {
+                tableContainer.style.display = 'none';
+                emptyState.style.display = 'block';
+            } else {
+                tableContainer.style.display = 'block';
+                emptyState.style.display = 'none';
+
+                // Clear existing rows
+                tableBody.innerHTML = '';
+
+                // Add environment variable rows
+                environmentVars.forEach((envVar, index) => {
+                    const row = document.createElement('tr');
+                    row.className = 'env-row fade-in';
+                    row.innerHTML = `
+                        <td class="env-name">${escapeHtml(envVar.name)}</td>
+                        <td class="env-label">${escapeHtml(envVar.label)}</td>
+                        <td class="env-value">${escapeHtml(String(envVar.value))}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Request initial data
+        vscode.postMessage({ type: 'refresh' });
+    </script>
+</body>
+
+</html>

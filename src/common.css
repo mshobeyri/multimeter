@@ -515,3 +515,85 @@ textarea:focus {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--vscode-scrollbarSlider-hoverBackground);
 }
+
+/* Add these styles to your existing CSS */
+
+/* Environment Variables Table */
+.env-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  background-color: var(--input-background);
+  border: 1px solid var(--input-border);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+
+.env-table thead {
+  background-color: var(--vscode-editor-background);
+}
+
+.env-table th {
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: bold;
+  font-size: 11px;
+  color: var(--foreground);
+  border-bottom: 1px solid var(--input-border);
+  border-right: 1px solid var(--input-border);
+}
+
+.env-table th:last-child {
+  border-right: none;
+}
+
+.env-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--panel-border);
+  border-right: 1px solid var(--panel-border);
+  vertical-align: top;
+  word-break: break-word;
+}
+
+.env-table td:last-child {
+  border-right: none;
+}
+
+.env-row:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.env-name {
+  font-family: var(--vscode-editor-fontFamily, monospace);
+  font-weight: 500;
+  color: var(--vscode-symbolIcon-variableForeground, var(--foreground));
+}
+
+.env-label {
+  color: var(--description-foreground);
+  font-style: italic;
+}
+
+.env-value {
+  font-family: var(--vscode-editor-fontFamily, monospace);
+  color: var(--vscode-symbolIcon-stringForeground, var(--foreground));
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Responsive table */
+@media (max-width: 600px) {
+  .env-table {
+    font-size: 10px;
+  }
+  
+  .env-table th,
+  .env-table td {
+    padding: 6px 8px;
+  }
+  
+  .env-value {
+    max-width: 120px;
+  }
+}
