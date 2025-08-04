@@ -2,6 +2,8 @@ import axios from 'axios';
 import { stat } from 'fs';
 import * as vscode from 'vscode';
 import WebSocket from 'ws';
+import * as https from 'https';
+import * as fs from 'fs';
 
 export type NetworkMessage =|{
   command: 'network', action: 'http-send';
@@ -28,49 +30,177 @@ export type NetworkMessage =|{
   wsId: string
 };
 
+// Certificate interfaces
+interface CaCertificate {
+  enabled: boolean;
+  certPath: string;
+}
+
+interface ClientCertificate {
+  id: string;
+  name: string;
+  host: string;
+  certPath: string;
+  keyPath: string;
+  enabled: boolean;
+}
+
+function getCertificateConfiguration() {
+  const config = vscode.workspace.getConfiguration('multimeter');
+  
+  return {
+    ca: config.get<CaCertificate>('certificates.ca', {enabled: false, certPath: ''}),
+    clients: config.get<ClientCertificate[]>('certificates.clients', []),
+    sslValidation: config.get<boolean>('enableCertificateValidation', true)
+  };
+}
+
+function createHttpsAgentWithCertificates(hostname: string) {
+  const certConfig = getCertificateConfiguration();
+  
+  const agentOptions: https.AgentOptions = {
+    rejectUnauthorized: certConfig.sslValidation
+  };
+
+  // Add CA certificate if configured
+  if (certConfig.ca.enabled && certConfig.ca.certPath) {
+    try {
+      const caCertData = fs.readFileSync(certConfig.ca.certPath);
+      agentOptions.ca = [caCertData];
+    } catch (error) {
+      console.error('Failed to load CA certificate:', error);
+      vscode.window.showErrorMessage(`Failed to load CA certificate: ${error}`);
+    }
+  }
+
+  // Find matching client certificate for this host
+  const matchingClientCert = certConfig.clients.find(cert => 
+    cert.enabled && 
+    (cert.host === hostname || hostname.includes(cert.host) || cert.host === '*')
+  );
+
+  if (matchingClientCert && matchingClientCert.certPath && matchingClientCert.keyPath) {
+    try {
+      agentOptions.cert = fs.readFileSync(matchingClientCert.certPath);
+      agentOptions.key = fs.readFileSync(matchingClientCert.keyPath);
+    } catch (error) {
+      console.error('Failed to load client certificate:', error);
+      vscode.window.showErrorMessage(`Failed to load client certificate for ${hostname}: ${error}`);
+    }
+  }
+
+  return new https.Agent(agentOptions);
+}
+
+function createWebSocketOptionsWithCertificates(hostname: string) {
+  const certConfig = getCertificateConfiguration();
+  
+  const wsOptions: any = {
+    rejectUnauthorized: certConfig.sslValidation
+  };
+
+  // Add CA certificate if configured
+  if (certConfig.ca.enabled && certConfig.ca.certPath) {
+    try {
+      const caCertData = fs.readFileSync(certConfig.ca.certPath);
+      wsOptions.ca = [caCertData];
+    } catch (error) {
+      console.error('Failed to load CA certificate for WebSocket:', error);
+    }
+  }
+
+  // Find matching client certificate for this host
+  const matchingClientCert = certConfig.clients.find(cert => 
+    cert.enabled && 
+    (cert.host === hostname || hostname.includes(cert.host) || cert.host === '*')
+  );
+
+  if (matchingClientCert && matchingClientCert.certPath && matchingClientCert.keyPath) {
+    try {
+      wsOptions.cert = fs.readFileSync(matchingClientCert.certPath);
+      wsOptions.key = fs.readFileSync(matchingClientCert.keyPath);
+    } catch (error) {
+      console.error('Failed to load client certificate for WebSocket:', error);
+    }
+  }
+
+  return wsOptions;
+}
+
 export function handleNetworkMessage(
     message: NetworkMessage, webviewPanel: vscode.WebviewPanel,
     wsConnections: Record<string, WebSocket>) {
   switch (message.action) {
     case 'http-send':
       (async () => {
-
         try {
-          const {url, method = 'get', headers = {}, body, query, cookies, requestId} =
-              message;
+          const {url, method = 'get', headers = {}, body, query, cookies, requestId} = message;
+          
+          // Parse URL to get hostname for certificate matching
+          const parsedUrl = new URL(url);
+          const hostname = parsedUrl.hostname;
 
           let reqHeaders = {...headers};
           if (cookies && Object.keys(cookies).length > 0) {
-            reqHeaders['Cookie'] =
-                Object.entries(cookies).map(([k, v]) =>
-                `${k}=${v}`).join('; ');
+            reqHeaders['Cookie'] = Object.entries(cookies)
+              .map(([k, v]) => `${k}=${v}`)
+              .join('; ');
           }
+
+          // Create HTTPS agent with certificates for HTTPS requests
+          const httpsAgent = parsedUrl.protocol === 'https:' ? 
+            createHttpsAgentWithCertificates(hostname) : undefined;
 
           let request = {
             url: url,
             method,
             data: body,
-            query,
+            params: query, // axios uses 'params' for query parameters
             withCredentials: true,
             headers: reqHeaders,
+            httpsAgent, // Add certificate-aware HTTPS agent
+            timeout: 30000, // 30 second timeout
           };
+
           const response = await axios.request(request);
+          
           webviewPanel.webview.postMessage({
             command: 'network',
             action: 'http-response',
-            data:{
-                body: response.data,
-                headers: response.headers,
-                status: response.status,
+            data: {
+              body: response.data,
+              headers: response.headers,
+              status: response.status,
+              statusText: response.statusText,
             },
             requestId,
           });
+
         } catch (err: any) {
+          let errorMessage = err?.message || String(err);
+          let status = err?.response?.status;
+
+          // Provide better error messages for certificate issues
+          if (err.code === 'CERT_UNTRUSTED') {
+            errorMessage = 'Certificate validation failed. The server certificate is not trusted. Check your CA certificate configuration or disable SSL validation.';
+          } else if (err.code === 'UNABLE_TO_VERIFY_LEAF_SIGNATURE') {
+            errorMessage = 'Unable to verify certificate. The certificate chain is incomplete or invalid.';
+          } else if (err.code === 'SELF_SIGNED_CERT_IN_CHAIN') {
+            errorMessage = 'Self-signed certificate in chain. Add the CA certificate or disable SSL validation.';
+          } else if (err.code === 'CERT_HAS_EXPIRED') {
+            errorMessage = 'Certificate has expired. Please update the certificate.';
+          } else if (err.code === 'ECONNREFUSED') {
+            errorMessage = 'Connection refused. The server is not responding.';
+          } else if (err.code === 'ENOTFOUND') {
+            errorMessage = 'Host not found. Check the URL.';
+          }
+
           webviewPanel.webview.postMessage({
             command: 'network',
             action: 'http-error',
-            error: err?.message || String(err),
-            status: err?.response?.status,
+            error: errorMessage,
+            status: status,
+            code: err.code,
             requestId: message.requestId,
           });
         }
@@ -80,34 +210,68 @@ export function handleNetworkMessage(
     case 'ws-connect':
       try {
         const {url, wsId} = message;
+        
+        // Close existing connection if any
         if (wsConnections[wsId]) {
           wsConnections[wsId].close();
           delete wsConnections[wsId];
         }
-        const ws = new WebSocket(url);
+
+        // Parse URL to get hostname for certificate matching
+        const parsedUrl = new URL(url);
+        const hostname = parsedUrl.hostname;
+
+        // Create WebSocket with certificate options for WSS connections
+        let wsOptions = {};
+        if (parsedUrl.protocol === 'wss:') {
+          wsOptions = createWebSocketOptionsWithCertificates(hostname);
+        }
+
+        const ws = new WebSocket(url, wsOptions);
         wsConnections[wsId] = ws;
 
         ws.on('open', () => {
-          webviewPanel.webview.postMessage(
-              {command: 'network', action: 'ws-open', wsId});
+          webviewPanel.webview.postMessage({
+            command: 'network', 
+            action: 'ws-open', 
+            wsId
+          });
         });
-        ws.on('close', () => {
-          webviewPanel.webview.postMessage(
-              {command: 'network', action: 'ws-close', wsId});
+
+        ws.on('close', (code, reason) => {
+          webviewPanel.webview.postMessage({
+            command: 'network', 
+            action: 'ws-close', 
+            wsId,
+            code,
+            reason: reason?.toString()
+          });
           delete wsConnections[wsId];
         });
+
         ws.on('error', (error) => {
+          let errorMessage = error?.message || String(error);
+          
+          // Provide better error messages for WebSocket certificate issues
+          if (error.message?.includes('certificate')) {
+            errorMessage = 'WebSocket certificate error. Check your certificate configuration.';
+          }
+
           webviewPanel.webview.postMessage({
             command: 'network',
             action: 'ws-error',
             wsId,
-            error: error?.message || String(error)
+            error: errorMessage
           });
         });
 
         ws.on('message', (data) => {
-          webviewPanel.webview.postMessage(
-              {command: 'network', action: 'ws-message', wsId, data: data.toString()});
+          webviewPanel.webview.postMessage({
+            command: 'network', 
+            action: 'ws-message', 
+            wsId, 
+            data: data.toString()
+          });
         });
 
       } catch (err: any) {
@@ -124,10 +288,14 @@ export function handleNetworkMessage(
       const {wsId, data} = message;
       const ws = wsConnections[wsId];
       if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(data));
+        ws.send(typeof data === 'string' ? data : JSON.stringify(data));
       } else {
-        webviewPanel.webview.postMessage(
-            {command: 'network', action: 'ws-error', wsId, error: 'WebSocket not open'});
+        webviewPanel.webview.postMessage({
+          command: 'network', 
+          action: 'ws-error', 
+          wsId, 
+          error: 'WebSocket not open'
+        });
       }
     } break;
 
@@ -137,8 +305,37 @@ export function handleNetworkMessage(
       if (ws) {
         ws.close();
         delete wsConnections[wsId];
-        webviewPanel.webview.postMessage({command: 'network', action: 'ws-close', wsId});
+        webviewPanel.webview.postMessage({
+          command: 'network', 
+          action: 'ws-close', 
+          wsId
+        });
       }
     } break;
+  }
+}
+
+// Helper function to get certificate status for a URL (useful for UI feedback)
+export function getCertificateStatusForUrl(url: string) {
+  try {
+    const parsedUrl = new URL(url);
+    const hostname = parsedUrl.hostname;
+    const certConfig = getCertificateConfiguration();
+    
+    const hasMatchingClientCert = certConfig.clients.some(cert => 
+      cert.enabled && 
+      (cert.host === hostname || hostname.includes(cert.host) || cert.host === '*')
+    );
+    
+    return {
+      protocol: parsedUrl.protocol,
+      hostname,
+      sslValidation: certConfig.sslValidation,
+      hasCA: certConfig.ca.enabled && certConfig.ca.certPath,
+      hasClientCert: hasMatchingClientCert,
+      isSecure: parsedUrl.protocol === 'https:' || parsedUrl.protocol === 'wss:'
+    };
+  } catch {
+    return null;
   }
 }
