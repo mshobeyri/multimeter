@@ -70,8 +70,10 @@ const handleSetEnvVariables = (
 };
 
 const APITest: React.FC<APITestProps> = ({ api }) => {
-  const interfaces = api.interfaces || [];
-  const examples = api.examples || [];
+  // Add safety checks for arrays
+  const interfaces = Array.isArray(api.interfaces) ? api.interfaces : [];
+  const examples = Array.isArray(api.examples) ? api.examples : [];
+  
   const [body, setBody] = useState<string>("");
   const [selectedInterfaceIdx, setSelectedInterfaceIdx] = useState<number>(0);
   const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(0);
@@ -220,7 +222,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         <col style={{ width: "80%" }} />
       </colgroup>
       <tbody>
-        {/* Example select */}
+        {/* Example select - with additional safety checks */}
         {examples.length > 0 && (
           <tr>
             <td className="label">example</td>
@@ -234,11 +236,13 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                 style={{ width: "100%" }}
               >
                 <option value="default">defaults</option>
-                {examples.map((ex, idx) => (
-                  <option key={ex?.name || idx} value={idx}>
-                    {ex?.name || `Example ${idx + 1}`}
-                  </option>
-                ))}
+                {examples
+                  .filter(ex => ex && typeof ex === 'object') // Filter out invalid entries
+                  .map((ex, idx) => (
+                    <option key={ex?.name || idx} value={idx}>
+                      {ex?.name || `Example ${idx + 1}`}
+                    </option>
+                  ))}
               </select>
             </td>
           </tr>
@@ -255,11 +259,14 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
               }}
               style={{ width: "100%" }}
             >
-              {Array.isArray(interfaces) && interfaces.filter(Boolean).map((iface, idx) => (
-                <option key={iface?.name || idx} value={idx}>
-                  {iface?.name || `Interface ${idx + 1}`}
-                </option>
-              ))}
+              {interfaces
+                .filter(Boolean) // Remove null/undefined entries
+                .filter(iface => iface && typeof iface === 'object') // Ensure it's an object
+                .map((iface, idx) => (
+                  <option key={iface?.name || idx} value={idx}>
+                    {iface?.name || `Interface ${idx + 1}`}
+                  </option>
+                ))}
             </select>
           </td>
         </tr>

@@ -8,7 +8,7 @@ interface KVEditorProps {
   onChange: (v: Record<string, string>) => void;
   keyPlaceholder?: string;
   valuePlaceholder?: string;
-  options?: string[]; // <-- Add this line
+  options?: string[];
   disabled?: boolean;
   deactivated?: boolean;
 }
@@ -28,12 +28,15 @@ const KVEditor: React.FC<KVEditorProps> = ({
   onChange,
   keyPlaceholder = "key",
   valuePlaceholder = "value",
-  options, // <-- Add this line
+  options,
   disabled,
   deactivated = false
 }) => {
   // Use an array of entries to preserve order
   const entries = useMemo(() => withTrailingEmptyKey(value), [value]);
+
+  // Ensure options is always an array - safety check
+  const safeOptions = Array.isArray(options) ? options : [];
 
   // Helper to convert entries array back to object
   const toObject = (arr: Array<[string, string]>) =>
@@ -90,12 +93,12 @@ const KVEditor: React.FC<KVEditorProps> = ({
                   </td>
                   <td style={{ width: "50%" }}>
                     {k !== "" && (
-                      options && options.length > 0 ? (
+                      safeOptions.length > 0 ? (
                         <SelectWithRemove
                           value={v}
                           onChange={newVal => handleValueChange(i, newVal)}
                           onRemovePressed={() => handleRemove(i)}
-                          options={options}
+                          options={safeOptions}
                           placeholder={valuePlaceholder}
                           disabled={disabled}
                         />
