@@ -29,6 +29,16 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
 
     webviewView.webview.html = this.getHtmlForWebview();
 
+    // Add visibility change listener to refresh data when panel becomes visible
+    webviewView.onDidChangeVisibility(() => {
+      if (webviewView.visible) {
+        // Small delay to ensure webview is fully rendered
+        setTimeout(() => {
+          this.refreshEnvironmentVars();
+        }, 100);
+      }
+    });
+
     // Initial load
     this.refreshEnvironmentVars();
   }
