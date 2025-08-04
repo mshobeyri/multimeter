@@ -33,49 +33,8 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const message = event.data;
-
-      if (message.command === 'multimeter.env.variables.refresh') {
-
-        // Convert the workspace state data to workspace vars format
-        const envData = message.value || {};
-        const environmentVars: { name: string; label: string; value: string | number | boolean }[] = Object.entries(envData).map(([name, value]) => {
-          let displayValue: string | number | boolean;
-          let label = name;
-
-          if (typeof value === 'object' && value !== null) {
-            // If value is an object, try to extract meaningful data
-            if ((value as any).hasOwnProperty('value')) {
-              displayValue = (value as any).value;
-            } else if ((value as any).hasOwnProperty('label')) {
-              label = (value as any).label;
-              displayValue = (value as any).value || JSON.stringify(value);
-            } else {
-              // For complex objects, stringify them
-              displayValue = JSON.stringify(value);
-            }
-          } else {
-            // For primitive values
-            displayValue = value as string | number | boolean;
-          }
-
-          return {
-            name,
-            label,
-            value: displayValue
-          };
-        });
-
-        // Sort by name for consistent display
-        environmentVars.sort((a, b) => a.name.localeCompare(b.name));
-
-        // Update workspace vars
-        setWorkspaceVars(environmentVars);
-
-        // Also update loadedVarsRef for consistency
-        loadedVarsRef.current = environmentVars.map(v => ({
-          name: v.name,
-          value: v.value
-        }));
+      if (message.command === 'multimeter.environment.refresh') {
+        refreshWorkspaceVars();
       }
     };
 
@@ -91,7 +50,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     if (window.vscode) {
       window.vscode.postMessage({
         command: 'loadWorkspaceState',
-        name: 'multimeter.env.variables'
+        name: 'multimeter.environment.storage'
       });
     }
   };

@@ -27,7 +27,7 @@ export async function readRelativeFileContent(
 export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   private static instance: MmtEditorProvider|null = null;
   private activeWebviewPanels: Set<vscode.WebviewPanel> = new Set();
-  
+
   // Static method to get the provider instance
   public static getInstance(): MmtEditorProvider|null {
     return MmtEditorProvider.instance;
@@ -44,7 +44,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
 
   // Method to refresh environment variables in all panels
   public refreshEnvironmentVars() {
-    const message = {command: 'multimeter.env.variables.refresh'};
+    const message = {command: 'multimeter.environment.refresh'};
     this.sendMessageToAllPanels(message);
   }
 
@@ -100,7 +100,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         case 'updateWorkspaceState':
           this.context.workspaceState.update(message.name, message.value);
           await vscode.commands.executeCommand(
-              'multimeter.refreshEnvironmentVariables');
+              'multimeter.environment.refresh');
           break;
 
         case 'loadWorkspaceState':
@@ -147,7 +147,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           await vscode.workspace.fs.writeFile(
               historyFile,
               Buffer.from(JSON.stringify(history, null, 2), 'utf8'));
-          await vscode.commands.executeCommand('multimeter.refreshHistory');
+          await vscode.commands.executeCommand('multimeter.history.refresh');
           break;
         }
       }

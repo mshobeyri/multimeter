@@ -57,7 +57,7 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
     try {
       // Get environment variables from workspace storage
       const storedVars = this.context.workspaceState.get<Record<string, any>>(
-          'multimeter.env.variables', {});
+          'multimeter.environment.storage', {});
 
       // Convert stored variables to EnvironmentVar array
       const environmentVars: EnvironmentVar[] =
@@ -83,7 +83,7 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
       if (result === 'Clear All') {
         // Clear from workspace storage
         await this.context.workspaceState.update(
-            'multimeter.env.variables', {});
+            'multimeter.environment.storage', {});
 
         vscode.window.showInformationMessage('Environment variables cleared');
         this.refreshEnvironmentVars();
@@ -114,13 +114,13 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
 
   private getStoredEnvironmentVars(): Record<string, any> {
     return this.context.workspaceState.get<Record<string, any>>(
-        'multimeter.env.variables', {});
+        'multimeter.environment.storage', {});
   }
 
   private async saveEnvironmentVars(vars: Record<string, any>) {
     try {
       await this.context.workspaceState.update(
-          'multimeter.env.variables', vars);
+          'multimeter.environment.storage', vars);
       this.refreshEnvironmentVars();
     } catch (error) {
       vscode.window.showErrorMessage(

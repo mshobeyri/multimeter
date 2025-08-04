@@ -30,17 +30,17 @@ export function activate(context: vscode.ExtensionContext) {
       'multimeter.convertor', new ConvertorPanel(context)));
 
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(
-      'multimeter.mockServer', new MockServerPanel(context)));
+      'multimeter.mock.server', new MockServerPanel(context)));
 
   const historyPanel = new HistoryPanel(context);
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(
-      'multimeterHistory', historyPanel));
+      'multimeter.history', historyPanel));
 
   const environmentPanel = new EnvironmentPanel(context);
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(
       'multimeter.environment', environmentPanel));
 
-  vscode.commands.registerCommand('multimeter.clearHistory', async () => {
+  vscode.commands.registerCommand('multimeter.history.clear', async () => {
     const historyFile =
         vscode.Uri.joinPath(context.globalStorageUri, 'history.json');
     await vscode.workspace.fs.writeFile(historyFile, Buffer.from('[]', 'utf8'));
@@ -48,7 +48,7 @@ export function activate(context: vscode.ExtensionContext) {
   });
 
   context.subscriptions.push(
-      vscode.commands.registerCommand('multimeter.refreshHistory', () => {
+      vscode.commands.registerCommand('multimeter.history.refresh', () => {
         historyPanel.refreshHistory();
       }));
 
@@ -59,7 +59,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   // Add command to open settings
   const openSettingsCommand =
-      vscode.commands.registerCommand('multimeter.openSettings', () => {
+      vscode.commands.registerCommand('multimeter.setting.open', () => {
         vscode.commands.executeCommand(
             'workbench.action.openSettings', 'multimeter');
       });
@@ -67,13 +67,13 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(openSettingsCommand);
 
   context.subscriptions.push(vscode.commands.registerCommand(
-      'multimeter.clearEnvironmentVariables', async () => {
+      'multimeter.environment.clear', async () => {
         await environmentPanel.clearEnvironments();
         mmtviewPanel.refreshEnvironmentVars();
       }));
 
   context.subscriptions.push(vscode.commands.registerCommand(
-      'multimeter.refreshEnvironmentVariables', () => {
+      'multimeter.environment.refresh', () => {
         environmentPanel.refreshEnvironmentVars();
         mmtviewPanel.refreshEnvironmentVars();
       }));

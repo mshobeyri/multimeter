@@ -127,12 +127,12 @@
         }
       },
       {
-        "command": "multimeter.clearHistory",
+        "command": "multimeter.history.clear",
         "title": "clear History",
         "icon": "$(clear-all)"
       },
       {
-        "command": "multimeter.openSettings",
+        "command": "multimeter.setting.open",
         "title": "Open Multimeter Settings",
         "category": "Multimeter"
       },
@@ -142,12 +142,12 @@
         "category": "Multimeter"
       },
       {
-        "command": "multimeter.clearEnvironmentVariables",
+        "command": "multimeter.environment.clear",
         "title": "Clear Environment Variables",
         "icon": "$(clear-all)"
       },
       {
-        "command": "multimeter.refreshEnvironmentVariables",
+        "command": "multimeter.environment.refresh",
         "title": "Refresh Environment Variables",
         "icon": "$(refresh)"
       }
@@ -162,7 +162,7 @@
       ],
       "panel": [
         {
-          "id": "multimeterHistoryContainer",
+          "id": "history-container",
           "title": "Multimeter History",
           "icon": "res/activity.png"
         }
@@ -177,7 +177,7 @@
           "type": "webview"
         },
         {
-          "id": "multimeter.mockServer",
+          "id": "multimeter.mock.server",
           "name": "Mock Server",
           "icon": "res/activity.png",
           "type": "webview"
@@ -195,9 +195,9 @@
           "type": "webview"
         }
       ],
-      "multimeterHistoryContainer": [
+      "history-container": [
         {
-          "id": "multimeterHistory",
+          "id": "multimeter.history",
           "name": "History",
           "icon": "res/activity.png",
           "type": "webview"
@@ -207,17 +207,17 @@
     "menus": {
       "view/title": [
         {
-          "command": "multimeter.clearHistory",
-          "when": "view == multimeterHistory",
+          "command": "multimeter.history.clear",
+          "when": "view == multimeter.history",
           "group": "navigation"
         },
         {
-          "command": "multimeter.refreshEnvironmentVariables",
+          "command": "multimeter.environment.refresh",
           "when": "view == multimeter.environment",
           "group": "navigation"
         },
         {
-          "command": "multimeter.clearEnvironmentVariables",
+          "command": "multimeter.environment.clear",
           "when": "view == multimeter.environment",
           "group": "navigation"
         }
