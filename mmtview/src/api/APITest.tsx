@@ -11,6 +11,7 @@ import UrlInput from "../components/UrlInput";
 import { extractOutputs } from "./outputExtractor";
 import ViewSelector, { ViewMode } from "../components/ViewSelector";
 import { saveEnvVariablesFromObject, loadEnvVariables } from "../workspaceStorage";
+import { isList, safeList } from "../safer";
 
 interface APITestProps {
   api: APIData;
@@ -21,16 +22,15 @@ const handleSetEnvVariables = (
   api: APIData,
   finalOutputs: Record<string, string | number | boolean>
 ) => {
-  if (!api.setenv || !Array.isArray(api.setenv)) {
+  if (!isList(api.setenv)) {
     return;
   }
-
   // Load existing environment variables
   const cleanup = loadEnvVariables((existingVars) => {
     const existing = Array.isArray(existingVars) ? existingVars : [];
     let updated = [...existing];
 
-    (api.setenv ?? []).forEach((envVar: { [key: string]: string }) => {
+    safeList(api.setenv).forEach((envVar: { [key: string]: string }) => {
       const envKey = Object.keys(envVar)[0];
       const outputKey = envVar[envKey];
       if (envKey && outputKey) {
@@ -71,9 +71,9 @@ const handleSetEnvVariables = (
 
 const APITest: React.FC<APITestProps> = ({ api }) => {
   // Add safety checks for arrays
-  const interfaces = Array.isArray(api.interfaces) ? api.interfaces : [];
-  const examples = Array.isArray(api.examples) ? api.examples : [];
-  
+  const interfaces = safeList(api.interfaces);
+  const examples = safeList(api.examples);
+
   const [body, setBody] = useState<string>("");
   const [selectedInterfaceIdx, setSelectedInterfaceIdx] = useState<number>(0);
   const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(0);
@@ -103,10 +103,10 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
       network.responseCookies
     ) {
       const iface = { ...interfaces[selectedInterfaceIdx] };
-      const ifaceOutputsDef = (iface.outputs ?? []).reduce((acc, cur) => ({ ...acc, ...cur }), {});
+      const ifaceOutputsDef = safeList(iface.outputs).reduce((acc, cur) => ({ ...acc, ...cur }), {});
 
       // Get all API output keys
-      const apiOutputsDef = (api.outputs ?? []).reduce((acc, cur) => ({ ...acc, ...cur }), {});
+      const apiOutputsDef = safeList(api.outputs).reduce((acc, cur) => ({ ...acc, ...cur }), {});
       const apiOutputKeys = Object.keys(apiOutputsDef);
 
       // Extract outputs for interface-defined keys only
@@ -281,7 +281,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
             />
           </td>
         </tr>
-        <tr style={{ zIndex: 100, position: "relative" ,  padding: 0 }}>
+        <tr style={{ zIndex: 100, position: "relative", padding: 0 }}>
           <td colSpan={2} style={{ position: "relative", paddingTop: 0, paddingBottom: 8, height: 40 }}>
             <div className="horizontal-line" />
             <div style={{

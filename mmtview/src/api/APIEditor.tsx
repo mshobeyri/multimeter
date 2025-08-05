@@ -4,6 +4,7 @@ import InterfaceEditor from "./APIInterface";
 import ExampleEditor from "./APIExample";
 import APITest from "./APITest";
 import { APIData, InterfaceData, ExampleData } from "./APIData";
+import { isList, safeList, safeListCopy } from "../safer";
 
 const LAST_API_TAB_KEY = "mmtview:api:lastTab";
 
@@ -27,20 +28,20 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
 
   // Helper to update a specific interface
   const updateInterface = (idx: number, patch: Partial<InterfaceData>) => {
-    const interfaces = api.interfaces ? [...api.interfaces] : [];
+    const interfaces = safeListCopy(api.interfaces);
     interfaces[idx] = { ...interfaces[idx], ...patch };
     setAPI({ ...api, interfaces });
   };
 
   // Helper to remove an interface
   const removeInterface = (idx: number) => {
-    const interfaces = (api.interfaces || []).filter((_, i) => i !== idx);
+    const interfaces = safeList(api.interfaces).filter((_, i) => i !== idx);
     setAPI({ ...api, interfaces });
   };
 
   // Helper to add a new interface
   const addInterface = () => {
-    const interfaces = api.interfaces ? [...api.interfaces] : [];
+    const interfaces = safeListCopy(api.interfaces);
     interfaces.push({
       name: "",
       protocol: "http",
@@ -51,18 +52,18 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
   };
 
   const updateExample = (idx: number, patch: Partial<ExampleData>) => {
-    const examples = api.examples ? [...api.examples] : [];
+    const examples = safeListCopy(api.examples);
     examples[idx] = { ...examples[idx], ...patch };
     setAPI({ ...api, examples });
   };
 
   const removeExample = (idx: number) => {
-    const examples = (api.examples || []).filter((_, i) => i !== idx);
+    const examples = safeList(api.examples).filter((_, i) => i !== idx);
     setAPI({ ...api, examples });
   };
 
   const addExample = () => {
-    const examples = api.examples ? [...api.examples] : [];
+    const examples = safeListCopy(api.examples);
     examples.push({
       name: "",
     });
@@ -126,7 +127,7 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
           <tbody>
             <tr>
               <td colSpan={2} style={{ padding: 0 }}>
-                {(api.interfaces || []).map((iface, idx) => (
+                {safeList(api.interfaces).map((iface, idx) => (
                   <div key={idx} style={{
                     marginBottom: "16px",
                     position: "relative",
@@ -173,7 +174,7 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
           <tbody>
             <tr>
               <td colSpan={2} style={{ padding: 0 }}>
-                {(api.examples || []).map((example, idx) => (
+                {safeList(api.examples).map((example, idx) => (
                   <div key={idx} style={{
                     marginBottom: "16px",
                     position: "relative",
@@ -188,7 +189,7 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
                     <ExampleEditor
                       data={example}
                       apiInputs={
-                        api.inputs
+                        isList(api.inputs)
                           ? Object.fromEntries(
                             api.inputs.map(query =>
                               query && typeof query === "object"

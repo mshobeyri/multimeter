@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import parseYaml, { packYaml } from "../markupConvertor";
 import APIFieldEditor from "./APIEditor";
 import { APIData } from "./APIData";
+import { safeList } from "../safer";
 
 interface APIsProps {
   content: string;
@@ -16,14 +17,14 @@ function yamlToAPI(yamlContent: string): APIData {
     return {
       type: doc.type || "",
       title: doc.title || "",
-      tags: doc.tags || [],
-      description: doc.description,
-      import: doc.import,
-      inputs: doc.inputs,
-      outputs: doc.outputs,
-      setenv: doc.setenv,
-      interfaces: doc.interfaces,
-      examples: doc.examples,
+      tags: safeList(doc.tags),
+      description: doc.description || "",
+      import: safeList(doc.import),
+      inputs: safeList(doc.inputs),
+      outputs: safeList(doc.outputs),
+      setenv: safeList(doc.setenv),
+      interfaces: safeList(doc.interfaces),
+      examples: safeList(doc.examples),
     };
   } catch {
     return {} as APIData;
