@@ -318,3 +318,34 @@ button:focus {
   height: 0;
 }
 
+.panel {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem;
+  background-color: var(--vscode-editor-background);
+  color: var(--vscode-editor-foreground);
+  min-width: 100px;
+  max-width: 80vw;
+  overflow: auto;
+  height: 100%;
+}
+
+.panel-box {
+  position: relative;
+  background: var(--vscode-editorWidget-background, #232323);
+  border: 1px solid var(--vscode-editorWidget-border, #333);
+  border-radius: 6px;
+  padding: 16px;
+  min-width: 200px;
+  margin-bottom: 16px;
+}
+
+.add-button {
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #fff);
+  border: none;
+  border-radius: 4px;
+  padding: 8px 16px;
+  cursor: pointer;
+  width: 100%;
+}

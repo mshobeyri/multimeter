@@ -90,30 +90,8 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
   }, [test, setContent]);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        padding: "1rem",
-        backgroundColor: "var(--vscode-editor-background)",
-        color: "var(--vscode-editor-foreground)",
-        minWidth: 100,
-        maxWidth: "80vw",
-        overflow: "auto",
-        height: "100%",
-      }}
-    >
-      <div
-        style={{
-          position: "relative",
-          background: "var(--vscode-editorWidget-background, #232323)",
-          border: "1px solid var(--vscode-editorWidget-border, #333)",
-          borderRadius: "6px",
-          padding: "16px",
-          minWidth: 200,
-          marginBottom: "16px"
-        }}
-      >
+    <div className="panel">
+      <div className="panel-box">
         {/* Tab Bar */}
         <div style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 16 }}>
           <button

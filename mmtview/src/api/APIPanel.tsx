@@ -81,19 +81,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
   }, [api]);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        padding: "1rem",
-        backgroundColor: "var(--vscode-editor-background)",
-        color: "var(--vscode-editor-foreground)",
-        minWidth: 100,
-        maxWidth: "80vw",
-        overflow: "auto",
-        height: "100%",
-      }}
-    >
+    <div className="panel">
       <APIFieldEditor api={api} setAPI={setAPIs} />
     </div>
   );

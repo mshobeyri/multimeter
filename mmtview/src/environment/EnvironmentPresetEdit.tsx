@@ -151,34 +151,12 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
                             ))}
                         </tbody>
                     </table>
-                    <button
-                        onClick={() => handleAddEnv(boardIdx)}
-                        style={{
-                            background: "var(--vscode-button-background, #0e639c)",
-                            color: "var(--vscode-button-foreground, #fff)",
-                            border: "none",
-                            borderRadius: 4,
-                            padding: "8px 16px",
-                            cursor: "pointer",
-                            width: "100%",
-                        }}
-                    >
+                    <button onClick={() => handleAddEnv(boardIdx)} className="add-button" >
                         Add Label
                     </button>
                 </div>
             ))}
-            <button
-                onClick={handleAddBoard}
-                style={{
-                    background: "var(--vscode-button-background, #0e639c)",
-                    color: "var(--vscode-button-foreground, #fff)",
-                    border: "none",
-                    borderRadius: 4,
-                    padding: "8px 16px",
-                    cursor: "pointer",
-                    width: "100%",
-                }}
-            >
+            <button onClick={handleAddBoard} className="add-button" >
                 Add Preset
             </button>
         </div>

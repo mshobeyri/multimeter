@@ -71,17 +71,7 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
   };
 
   return (
-    <div
-      style={{
-        position: "relative",
-        background: "var(--vscode-editorWidget-background, #232323)",
-        border: "1px solid var(--vscode-editorWidget-border, #333)",
-        borderRadius: "6px",
-        padding: "16px",
-        minWidth: 200,
-        marginBottom: "16px"
-      }}
-    >
+    <div className="panel-box">
       {/* Tab Bar */}
       <div style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 16 }}>
         <button
@@ -146,18 +136,7 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
                     />
                   </div>
                 ))}
-                <button
-                  onClick={addInterface}
-                  style={{
-                    width: "100%",
-                    background: "var(--vscode-button-background, #0e639c)",
-                    color: "var(--vscode-button-foreground, #fff)",
-                    border: "none",
-                    borderRadius: 4,
-                    padding: "8px 16px",
-                    cursor: "pointer"
-                  }}
-                >
+                <button className="add-button" onClick={addInterface}>
                   Add Interface
                 </button>
               </td>
@@ -206,18 +185,7 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
                     />
                   </div>
                 ))}
-                <button
-                  onClick={addExample}
-                  style={{
-                    width: "100%",
-                    background: "var(--vscode-button-background, #0e639c)",
-                    color: "var(--vscode-button-foreground, #fff)",
-                    border: "none",
-                    borderRadius: 4,
-                    padding: "8px 16px",
-                    cursor: "pointer"
-                  }}
-                >
+                <button onClick={addExample} className="add-button">
                   Add Example
                 </button>
               </td>

@@ -147,18 +147,7 @@ const EnvironmentVariableEdit: React.FC<EnvironmentVariableEditProps> = ({ varia
                     </table>
                 </div>
             ))}
-            <button
-                onClick={handleAdd}
-                style={{
-                    background: "var(--vscode-button-background, #0e639c)",
-                    color: "var(--vscode-button-foreground, #fff)",
-                    border: "none",
-                    borderRadius: 4,
-                    padding: "8px 16px",
-                    cursor: "pointer",
-                    width: "100%",
-                }}
-            >
+            <button onClick={handleAdd} className="add-button" >
                 Add Variable
             </button>
         </div>

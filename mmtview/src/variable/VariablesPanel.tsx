@@ -56,19 +56,7 @@ const VariablesPanel: React.FC<VariablesProps> = ({ content, setContent }) => {
   }, [variablesData, setContent]);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        padding: "1rem",
-        backgroundColor: "var(--vscode-editor-background)",
-        color: "var(--vscode-editor-foreground)",
-        minWidth: 100,
-        maxWidth: "80vw",
-        overflow: "auto",
-        height: "100%",
-      }}
-    >
+    <div className="panel">
       <VariablesEditor
         variablesData={variablesData}
         setVariablesData={setVariablesData}

@@ -268,18 +268,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                     }}
                 />
             )}
-            <button
-                type="button"
-                onClick={addFlowBox}
-                style={{
-                    background: "var(--vscode-button-background, #0e639c)",
-                    color: "var(--vscode-button-foreground, #fff)",
-                    border: "none",
-                    borderRadius: 4,
-                    padding: "8px 16px",
-                    cursor: "pointer"
-                }}
-            >
+            <button type="button" onClick={addFlowBox} className="add-button" >
                 Add Step
             </button>
         </div>
