@@ -60,18 +60,7 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
     : [];
 
   return (
-    <div
-      style={{
-        position: "relative",
-        padding: "16px",
-        background: "var(--vscode-editorWidget-background, #232323)",
-        border: "2px solid var(--vscode-editorWidget-border, #333)",
-        borderRadius: 6,
-        color: "var(--vscode-editor-foreground, #fff)",
-        userSelect: "none",
-        transition: "background 0.35s",
-      }}
-    >
+    <div className="inner-box" >
       <table
         className="VariableEditor"
         style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}

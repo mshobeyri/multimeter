@@ -118,17 +118,7 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
             <tr>
               <td colSpan={2} style={{ padding: 0 }}>
                 {safeList(api.interfaces).map((iface, idx) => (
-                  <div key={idx} style={{
-                    marginBottom: "16px",
-                    position: "relative",
-                    padding: "16px",
-                    background: "var(--vscode-editorWidget-background, #232323)",
-                    border: "2px solid var(--vscode-editorWidget-border, #333)",
-                    borderRadius: 6,
-                    color: "var(--vscode-editor-foreground, #fff)",
-                    userSelect: "none",
-                    transition: "background 0.35s",
-                  }}>
+                  <div key={idx} className="inner-box">
                     <InterfaceEditor
                       data={iface}
                       onChange={updated => updateInterface(idx, updated)}
@@ -154,17 +144,7 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
             <tr>
               <td colSpan={2} style={{ padding: 0 }}>
                 {safeList(api.examples).map((example, idx) => (
-                  <div key={idx} style={{
-                    marginBottom: "16px",
-                    position: "relative",
-                    padding: "16px",
-                    background: "var(--vscode-editorWidget-background, #232323)",
-                    border: "2px solid var(--vscode-editorWidget-border, #333)",
-                    borderRadius: 6,
-                    color: "var(--vscode-editor-foreground, #fff)",
-                    userSelect: "none",
-                    transition: "background 0.35s",
-                  }}>
+                  <div key={idx} className="inner-box">
                     <ExampleEditor
                       data={example}
                       apiInputs={

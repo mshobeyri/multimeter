@@ -167,20 +167,8 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                                 }}
                             />
                         )}
-                        <div
-                            style={{
-                                marginLeft: intent * 16,
-                                position: "relative",
-                                padding: "16px",
-                                background: "var(--vscode-editorWidget-background, #232323)",
-                                border: "2px solid var(--vscode-editorWidget-border, #333)",
-                                borderRadius: 6,
-                                color: "var(--vscode-editor-foreground, #fff)",
-                                userSelect: "none",
-                                opacity: draggedIdx === idx ? 0.5 : 1,
-                                transition: "background 0.35s",
-                            }}
-                        >
+
+                        <div className="inner-box" style={{ marginBottom: 0 }}>
                             {/* Combo for type (changes YAML key, not adds a field) */}
                             <select
                                 value={currentType}

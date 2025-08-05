@@ -46,7 +46,7 @@ const VariablesEditor: React.FC<VariablesEditorProps> = ({ variablesData, setVar
     <div className="panel-box">
       <h2 style={{ marginTop: 0, marginBottom: 24 }}>Variables</h2>
       {variablesArray.map((variable, idx) => (
-        <div key={idx} style={{ marginBottom: 24 }}>
+        <div key={idx}>
           <VariableEditor
             variable={variable}
             variables={variablesArray.slice(0, idx)}

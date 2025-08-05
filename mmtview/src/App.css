@@ -340,6 +340,18 @@ button:focus {
   margin-bottom: 16px;
 }
 
+.inner-box {
+  position: relative;
+  padding: 16px;
+  background: var(--vscode-editorWidget-background, #232323);
+  border: 2px solid var(--vscode-editorWidget-border, #333);
+  border-radius: 6px;
+  color: var(--vscode-editor-foreground, #fff);
+  user-select: none;
+  transition: background 0.35s;
+  margin-bottom: 16px;
+}
+
 .add-button {
   background: var(--vscode-button-background, #0e639c);
   color: var(--vscode-button-foreground, #fff);

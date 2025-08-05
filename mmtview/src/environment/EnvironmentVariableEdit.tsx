@@ -81,18 +81,7 @@ const EnvironmentVariableEdit: React.FC<EnvironmentVariableEditProps> = ({ varia
     return (
         <div>
             {boards.map((board, idx) => (
-                <div
-                    key={idx}
-                    style={{
-                        position: "relative",
-                        background: "var(--vscode-editorWidget-background, #232323)",
-                        border: "2px solid var(--vscode-editorWidget-border, #333)",
-                        borderRadius: "6px",
-                        padding: "16px",
-                        minWidth: 200,
-                        marginBottom: "16px"
-                    }}
-                >
+                <div className="inner-box">
                     <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
                         <colgroup>
                             <col style={{ width: "20%" }} />

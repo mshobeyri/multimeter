@@ -20,17 +20,7 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
 }) => {
     return (
         <div>
-            <div
-                style={{
-                    position: "relative",
-                    padding: "16px",
-                    background: "var(--vscode-editorWidget-background, #232323)",
-                    border: "2px solid var(--vscode-editorWidget-border, #333)",
-                    borderRadius: 6,
-                    color: "var(--vscode-editor-foreground, #fff)",
-                    userSelect: "none"
-                }}
-            >
+            <div className="inner-box">
                 <div style={{
                     display: "flex",
                     justifyContent: "space-between",
@@ -56,18 +46,7 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                 <ComboTable pairs={variables} onChange={handleVariablesChange} />
             </div>
 
-            <div
-                style={{
-                    position: "relative",
-                    marginTop: "16px",
-                    padding: "16px",
-                    background: "var(--vscode-editorWidget-background, #232323)",
-                    border: "2px solid var(--vscode-editorWidget-border, #333)",
-                    borderRadius: 6,
-                    color: "var(--vscode-editor-foreground, #fff)",
-                    userSelect: "none"
-                }}
-            >
+            <div className="inner-box">
                 <div style={{ fontSize: "1.1em", marginBottom: "12px" }}>Presets</div>
                 <ComboTable pairs={presets} onChange={handlePresetsChange} showPlaceholder />
             </div>
