@@ -63,7 +63,7 @@ const App: React.FC = () => {
         if (message.uri) setFilePath(message.uri);
         if (message.mode) {
           if (message.mode === "compare") {
-            setPaneSize(window.innerWidth - 1);
+            setPaneSize(window.innerWidth);
           } else {
             setPaneSize(window.innerWidth / 2);
           }
@@ -74,9 +74,9 @@ const App: React.FC = () => {
         if (message.panelId === "full") {
           setPaneSize(window.innerWidth / 2);
         } else if (message.panelId === "yaml") {
-          setPaneSize(window.innerWidth - 1);
+          setPaneSize(window.innerWidth);
         } else if (message.panelId === "ui") {
-          setPaneSize(1);
+          setPaneSize(0);
         }
       }
     };
@@ -131,7 +131,7 @@ const App: React.FC = () => {
           savePaneSize(size)
         }}
         minSize={300}
-        maxSize={window.innerWidth - 300 }
+        maxSize={window.innerWidth - 300}
         style={{
           height: "100vh",
           width: "100vw",

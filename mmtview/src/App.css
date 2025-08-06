@@ -325,7 +325,7 @@ button:focus {
   background-color: var(--vscode-editor-background);
   color: var(--vscode-editor-foreground);
   min-width: 100px;
-  max-width: 80vw;
+  max-width: 100vw;
   overflow: auto;
   height: 100%;
 }
