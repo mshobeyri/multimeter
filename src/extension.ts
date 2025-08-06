@@ -15,15 +15,6 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(
       vscode.window.registerCustomEditorProvider('mmt.preview', mmtviewPanel));
 
-  const showPreviewCommand =
-      vscode.commands.registerCommand('multimeter.mmt.show', () => {
-        const editor = vscode.window.activeTextEditor;
-        if (editor && editor.document.languageId === 'mmt') {
-          vscode.commands.executeCommand(
-              'vscode.openWith', editor.document.uri, 'mmt.preview');
-        }
-      });
-
   context.subscriptions.push(
       vscode.commands.registerCommand('multimeter.mmt.show.full', () => {
         mmtviewPanel.showPanel('full');
@@ -36,8 +27,6 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.commands.registerCommand('multimeter.mmt.show.ui', () => {
         mmtviewPanel.showPanel('ui');
       }));
-
-  context.subscriptions.push(showPreviewCommand);
 
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(
       'multimeter.convertor', new ConvertorPanel(context)));
