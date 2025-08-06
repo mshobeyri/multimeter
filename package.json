@@ -118,7 +118,7 @@
     ],
     "commands": [
       {
-        "command": "extension.showMmtPreview",
+        "command": "multimeter.mmt.show",
         "title": "Show MMT Preview",
         "category": "Preview",
         "icon": {
@@ -127,8 +127,23 @@
         }
       },
       {
+        "command": "multimeter.mmt.show.yaml",
+        "title": "Hide UI Preview",
+        "icon": "$(layout-sidebar-right-dock)"
+      },
+      {
+        "command": "multimeter.mmt.show.ui",
+        "title": "Hide YAML Preview",
+        "icon": "$(layout-sidebar-left-dock)"
+      },
+      {
+        "command": "multimeter.mmt.show.full",
+        "title": "Show Full Preview",
+        "icon": "$(layout-centered)"
+      },
+      {
         "command": "multimeter.history.clear",
-        "title": "clear History",
+        "title": "Clear History",
         "icon": "$(clear-all)"
       },
       {
@@ -219,6 +234,23 @@
         {
           "command": "multimeter.environment.clear",
           "when": "view == multimeter.environment",
+          "group": "navigation"
+        }
+      ],
+      "editor/title": [
+        {
+          "command": "multimeter.mmt.show.ui",
+          "when": "activeCustomEditorId == mmt.preview",
+          "group": "navigation"
+        },
+        {
+          "command": "multimeter.mmt.show.yaml",
+          "when": "activeCustomEditorId == mmt.preview",
+          "group": "navigation"
+        },
+        {
+          "command": "multimeter.mmt.show.full",
+          "when": "activeCustomEditorId == mmt.preview",
           "group": "navigation"
         }
       ]

@@ -8,6 +8,7 @@ import NotypePanel from "./NotypePanel";
 import TestPanel from "./test/TestPanel";
 import parseYaml from "./markupConvertor";
 import YamlEditorPanel from "./text/YamlEditorPanel";
+import { set } from "yaml/dist/schema/yaml-1.1/set";
 
 declare global {
   interface Window {
@@ -35,10 +36,13 @@ const App: React.FC = () => {
     const saved = localStorage.getItem(SPLIT_PANE_KEY);
     return saved ? Number(saved) : window.innerWidth / 2;
   });
+  const savePaneSize = (size: number) => {
+    localStorage.setItem(SPLIT_PANE_KEY, String(size));
+  };
   const [content, setContent] = useState("");
   const [docType, setDocType] = useState<string | null>(null);
   const [filePath, setFilePath] = useState<string | undefined>(undefined);
-  const [mode, setMode] = useState<"normal" | "compare">("normal");
+
   const isInitLoad = useRef(true);
   const [yamlEditorFocused, setYamlEditorFocused] = useState(false);
 
@@ -50,11 +54,6 @@ const App: React.FC = () => {
     };
   }
 
-  // Save pane size to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem(SPLIT_PANE_KEY, String(paneSize));
-  }, [paneSize]);
-
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       const message = event.data;
@@ -62,7 +61,23 @@ const App: React.FC = () => {
         isInitLoad.current = true;
         setContent(message.content);
         if (message.uri) setFilePath(message.uri);
-        if (message.mode) setMode(message.mode);
+        if (message.mode) {
+          if (message.mode === "compare") {
+            setPaneSize(window.innerWidth - 1);
+          } else {
+            setPaneSize(window.innerWidth / 2);
+          }
+        }
+      }
+
+      if (message.command === "multimeter.mmt.show.panel") {
+        if (message.panelId === "full") {
+          setPaneSize(window.innerWidth / 2);
+        } else if (message.panelId === "yaml") {
+          setPaneSize(window.innerWidth - 1);
+        } else if (message.panelId === "ui") {
+          setPaneSize(1);
+        }
       }
     };
 
@@ -98,7 +113,6 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      // Reset to 50/50 split on window resize
       setPaneSize(window.innerWidth / 2);
     };
     window.addEventListener("resize", handleResize);
@@ -109,60 +123,45 @@ const App: React.FC = () => {
 
   return (
     <FileContext.Provider value={{ filePath }}>
-      {mode === "normal" ? (
-        <SplitPane
-          split="vertical"
-          size={paneSize}
-          onChange={(size) => setPaneSize(size)}
-          minSize={300}
-          maxSize={window.innerWidth - 300}
-          style={{
-            height: "100vh",
-            width: "100vw",
-            backgroundColor: "var(--vscode-editor-background)",
-            color: "var(--vscode-editor-foreground)",
-            fontFamily: "var(--vscode-editor-font-family, sans-serif)",
-            fontSize: "var(--vscode-editor-font-size, 14px)",
-          }}
-        >
-          <YamlEditorPanel
-            content={content}
-            setContent={setContent}
-            onFocusChange={setYamlEditorFocused}
-          />
-          {docType === "env" && (
-            <EnvironmentPanel content={content} setContent={uiSetContentHandler} />
-          )}
-          {docType === "var" && (
-            <VariablesPanel content={content} setContent={uiSetContentHandler} />
-          )}
-          {docType === "api" && (
-            <APIPanel content={content} setContent={uiSetContentHandler} />
-          )}
-          {docType === "test" && (
-            <TestPanel content={content} setContent={uiSetContentHandler} />
-          )}
-          {docType === null && (
-            <NotypePanel content={content} setContent={uiSetContentHandler} />
-          )}
-        </SplitPane>
-      ) : (
-        // Show only text editor in compare mode
-        <div style={{
+      <SplitPane
+        split="vertical"
+        size={paneSize}
+        onChange={(size) => {
+          setPaneSize(size);
+          savePaneSize(size)
+        }}
+        minSize={300}
+        maxSize={window.innerWidth - 300 }
+        style={{
           height: "100vh",
           width: "100vw",
           backgroundColor: "var(--vscode-editor-background)",
           color: "var(--vscode-editor-foreground)",
           fontFamily: "var(--vscode-editor-font-family, sans-serif)",
           fontSize: "var(--vscode-editor-font-size, 14px)",
-        }}>
-          <YamlEditorPanel
-            content={content}
-            setContent={setContent}
-            onFocusChange={setYamlEditorFocused}
-          />
-        </div>
-      )}
+        }}
+      >
+        <YamlEditorPanel
+          content={content}
+          setContent={setContent}
+          onFocusChange={setYamlEditorFocused}
+        />
+        {docType === "env" && (
+          <EnvironmentPanel content={content} setContent={uiSetContentHandler} />
+        )}
+        {docType === "var" && (
+          <VariablesPanel content={content} setContent={uiSetContentHandler} />
+        )}
+        {docType === "api" && (
+          <APIPanel content={content} setContent={uiSetContentHandler} />
+        )}
+        {docType === "test" && (
+          <TestPanel content={content} setContent={uiSetContentHandler} />
+        )}
+        {docType === null && (
+          <NotypePanel content={content} setContent={uiSetContentHandler} />
+        )}
+      </SplitPane>
     </FileContext.Provider>
   );
 }

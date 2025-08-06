@@ -16,13 +16,26 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.window.registerCustomEditorProvider('mmt.preview', mmtviewPanel));
 
   const showPreviewCommand =
-      vscode.commands.registerCommand('extension.showMmtPreview', () => {
+      vscode.commands.registerCommand('multimeter.mmt.show', () => {
         const editor = vscode.window.activeTextEditor;
         if (editor && editor.document.languageId === 'mmt') {
           vscode.commands.executeCommand(
               'vscode.openWith', editor.document.uri, 'mmt.preview');
         }
       });
+
+  context.subscriptions.push(
+      vscode.commands.registerCommand('multimeter.mmt.show.full', () => {
+        mmtviewPanel.showPanel('full');
+      }));
+  context.subscriptions.push(
+      vscode.commands.registerCommand('multimeter.mmt.show.yaml', () => {
+        mmtviewPanel.showPanel('yaml');
+      }));
+  context.subscriptions.push(
+      vscode.commands.registerCommand('multimeter.mmt.show.ui', () => {
+        mmtviewPanel.showPanel('ui');
+      }));
 
   context.subscriptions.push(showPreviewCommand);
 
@@ -72,8 +85,8 @@ export function activate(context: vscode.ExtensionContext) {
         mmtviewPanel.refreshEnvironmentVars();
       }));
 
-  context.subscriptions.push(vscode.commands.registerCommand(
-      'multimeter.environment.refresh', () => {
+  context.subscriptions.push(
+      vscode.commands.registerCommand('multimeter.environment.refresh', () => {
         environmentPanel.refreshEnvironmentVars();
         mmtviewPanel.refreshEnvironmentVars();
       }));

@@ -42,9 +42,13 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     });
   }
 
-  // Method to refresh environment variables in all panels
   public refreshEnvironmentVars() {
     const message = {command: 'multimeter.environment.refresh'};
+    this.sendMessageToAllPanels(message);
+  }
+
+  public showPanel(panelId: 'full' | 'ui' | 'yaml') {
+    const message = {command: 'multimeter.mmt.show.panel', panelId};
     this.sendMessageToAllPanels(message);
   }
 
