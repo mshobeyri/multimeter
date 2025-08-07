@@ -27,7 +27,8 @@
           ".mmt"
         ],
         "aliases": [
-          "MMT", "Multimeter Test"
+          "MMT",
+          "Multimeter Test"
         ],
         "configuration": "./language-configuration.json",
         "icon": {
@@ -150,6 +151,12 @@
         "icon": "$(layout-centered)"
       },
       {
+        "command": "multimeter.mmt.show.as.text",
+        "title": "Open as MMT Text Editor",
+        "category": "MMT",
+        "icon": "$(code-oss)"
+      },
+      {
         "command": "multimeter.history.clear",
         "title": "Clear History",
         "icon": "$(clear-all)"
@@ -260,6 +267,28 @@
           "command": "multimeter.mmt.show.full",
           "when": "activeCustomEditorId == mmt.editor",
           "group": "navigation"
+        },
+        {
+          "command": "multimeter.mmt.show.as.text",
+          "when": "activeCustomEditorId == mmt.editor",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "multimeter.mmt.show.as.text",
+          "when": "resourceExtname == .mmt",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "multimeter.mmt.show.split",
+          "when": "activeCustomEditorId == mmt.editor"
+        },
+        {
+          "command": "multimeter.mmt.show.as.text",
+          "when": "resourceExtname == .mmt"
         }
       ]
     }
