@@ -110,8 +110,8 @@
     ],
     "customEditors": [
       {
-        "viewType": "mmt.preview",
-        "displayName": "MMT Preview",
+        "viewType": "mmt.editor",
+        "displayName": "MMT Editor",
         "selector": [
           {
             "filenamePattern": "file:/**/*.mmt"
@@ -247,17 +247,17 @@
       "editor/title": [
         {
           "command": "multimeter.mmt.show.ui",
-          "when": "activeCustomEditorId == mmt.preview",
+          "when": "activeCustomEditorId == mmt.editor",
           "group": "navigation"
         },
         {
           "command": "multimeter.mmt.show.yaml",
-          "when": "activeCustomEditorId == mmt.preview",
+          "when": "activeCustomEditorId == mmt.editor",
           "group": "navigation"
         },
         {
           "command": "multimeter.mmt.show.full",
-          "when": "activeCustomEditorId == mmt.preview",
+          "when": "activeCustomEditorId == mmt.editor",
           "group": "navigation"
         }
       ]

@@ -13,7 +13,7 @@ import MockServerPanel from './MockServerPanel';
 export function activate(context: vscode.ExtensionContext) {
   const mmtviewPanel = new MmtEditorProvider(context);
   context.subscriptions.push(
-      vscode.window.registerCustomEditorProvider('mmt.preview', mmtviewPanel));
+      vscode.window.registerCustomEditorProvider('mmt.editor', mmtviewPanel));
 
   context.subscriptions.push(
       vscode.commands.registerCommand('multimeter.mmt.show.full', () => {

@@ -148,7 +148,7 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
         edit.insert(uri, new vscode.Position(0, 0), msg.content);
         await vscode.workspace.applyEdit(edit);
         await vscode.commands.executeCommand(
-            'vscode.openWith', uri, 'mmt.preview');
+            'vscode.openWith', uri, 'mmt.editor');
       } else if (msg.type === 'saveSelected') {
         // msg.files: [{name, content}], msg.targetDir: string
         for (const file of msg.files) {
