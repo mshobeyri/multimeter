@@ -20,6 +20,13 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "grammars": [
+      {
+        "language": "mmt",
+        "scopeName": "source.yaml",
+        "path": "syntaxes/mmt.tmLanguage.json"
+      }
+    ],
     "configuration": {
       "title": "Multimeter",
       "properties": {
@@ -93,7 +100,7 @@
           ".mmt"
         ],
         "aliases": [
-          "MMT"
+          "MMT", "Multimeter", "Multimeter Test"
         ],
         "icon": {
           "light": "res/icon.png",
@@ -107,7 +114,7 @@
         "displayName": "MMT Preview",
         "selector": [
           {
-            "filenamePattern": "*.mmt"
+            "filenamePattern": "file:/**/*.mmt"
           }
         ],
         "icon": {
