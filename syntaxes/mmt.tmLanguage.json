@@ -1,0 +1,318 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "MMT",
+  "scopeName": "source.mmt",
+  "fileTypes": ["mmt"],
+  "patterns": [
+    {
+      "include": "#mmt-document"
+    }
+  ],
+  "repository": {
+    "mmt-document": {
+      "patterns": [
+        {
+          "include": "#mmt-metadata"
+        },
+        {
+          "include": "#mmt-request"
+        },
+        {
+          "include": "#mmt-test"
+        },
+        {
+          "include": "#mmt-response"
+        },
+        {
+          "include": "#yaml-content"
+        }
+      ]
+    },
+    "mmt-metadata": {
+      "patterns": [
+        {
+          "match": "^(type|title|description|tags)\\s*:",
+          "captures": {
+            "1": {
+              "name": "keyword.control.mmt.metadata"
+            }
+          }
+        },
+        {
+          "match": "^(type)\\s*:\\s*(request|test|suite)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.control.mmt.type"
+            },
+            "2": {
+              "name": "constant.language.mmt.type"
+            }
+          }
+        }
+      ]
+    },
+    "mmt-request": {
+      "patterns": [
+        {
+          "match": "^(method)\\s*:\\s*(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\\b",
+          "captures": {
+            "1": {
+              "name": "keyword.control.mmt.request"
+            },
+            "2": {
+              "name": "constant.language.http.method"
+            }
+          }
+        },
+        {
+          "match": "^(url|endpoint|baseUrl)\\s*:",
+          "captures": {
+            "1": {
+              "name": "keyword.control.mmt.request"
+            }
+          }
+        },
+        {
+          "begin": "^(headers)\\s*:",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.control.mmt.headers"
+            }
+          },
+          "end": "^(?=\\S)",
+          "patterns": [
+            {
+              "match": "^\\s+(Content-Type|Authorization|Accept|User-Agent|X-[A-Za-z-]+)\\s*:",
+              "captures": {
+                "1": {
+                  "name": "entity.name.tag.http.header"
+                }
+              }
+            },
+            {
+              "include": "#yaml-content"
+            }
+          ]
+        },
+        {
+          "begin": "^(body|data|payload)\\s*:",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.control.mmt.body"
+            }
+          },
+          "end": "^(?=\\S)",
+          "patterns": [
+            {
+              "include": "#json-content"
+            },
+            {
+              "include": "#yaml-content"
+            }
+          ]
+        }
+      ]
+    },
+    "mmt-test": {
+      "patterns": [
+        {
+          "begin": "^(tests?|assertions?|validations?)\\s*:",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.control.mmt.test"
+            }
+          },
+          "end": "^(?=\\S)",
+          "patterns": [
+            {
+              "match": "\\b(status|statusCode|responseTime|size)\\s*:",
+              "captures": {
+                "1": {
+                  "name": "entity.name.function.mmt.assertion"
+                }
+              }
+            },
+            {
+              "match": "\\b(contains|equals|matches|greaterThan|lessThan|exists)\\b",
+              "name": "support.function.mmt.matcher"
+            },
+            {
+              "include": "#yaml-content"
+            }
+          ]
+        },
+        {
+          "match": "^(expect|assert|should)\\s*:",
+          "captures": {
+            "1": {
+              "name": "keyword.control.mmt.assertion"
+            }
+          }
+        }
+      ]
+    },
+    "mmt-response": {
+      "patterns": [
+        {
+          "begin": "^(response|expected)\\s*:",
+          "beginCaptures": {
+            "1": {
+              "name": "keyword.control.mmt.response"
+            }
+          },
+          "end": "^(?=\\S)",
+          "patterns": [
+            {
+              "match": "\\b(status|headers|body)\\s*:",
+              "captures": {
+                "1": {
+                  "name": "entity.name.tag.mmt.response"
+                }
+              }
+            },
+            {
+              "include": "#json-content"
+            },
+            {
+              "include": "#yaml-content"
+            }
+          ]
+        }
+      ]
+    },
+    "json-content": {
+      "patterns": [
+        {
+          "begin": "\\{",
+          "end": "\\}",
+          "name": "meta.structure.dictionary.json",
+          "patterns": [
+            {
+              "include": "#json-string"
+            },
+            {
+              "include": "#json-number"
+            },
+            {
+              "include": "#json-boolean"
+            },
+            {
+              "include": "#json-null"
+            }
+          ]
+        },
+        {
+          "begin": "\\[",
+          "end": "\\]",
+          "name": "meta.structure.array.json",
+          "patterns": [
+            {
+              "include": "#json-content"
+            }
+          ]
+        }
+      ]
+    },
+    "json-string": {
+      "begin": "\"",
+      "end": "\"",
+      "name": "string.quoted.double.json",
+      "patterns": [
+        {
+          "match": "\\\\.",
+          "name": "constant.character.escape.json"
+        }
+      ]
+    },
+    "json-number": {
+      "match": "-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?",
+      "name": "constant.numeric.json"
+    },
+    "json-boolean": {
+      "match": "\\b(true|false)\\b",
+      "name": "constant.language.boolean.json"
+    },
+    "json-null": {
+      "match": "\\bnull\\b",
+      "name": "constant.language.null.json"
+    },
+    "yaml-content": {
+      "patterns": [
+        {
+          "match": "^\\s*#.*$",
+          "name": "comment.line.number-sign.yaml"
+        },
+        {
+          "match": "^\\s*(-{3}|\\.\\.\\.)\\s*$",
+          "name": "entity.other.document.begin.yaml"
+        },
+        {
+          "match": "^\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\s*:",
+          "captures": {
+            "1": {
+              "name": "entity.name.tag.yaml"
+            }
+          }
+        },
+        {
+          "match": ":\\s*(['\"])([^'\"]*?)\\1",
+          "captures": {
+            "2": {
+              "name": "string.quoted.yaml"
+            }
+          }
+        },
+        {
+          "match": ":\\s*([^\\s#]+)",
+          "captures": {
+            "1": {
+              "name": "string.unquoted.yaml"
+            }
+          }
+        },
+        {
+          "match": "\\b(true|false|null|~)\\b",
+          "name": "constant.language.yaml"
+        },
+        {
+          "match": "\\b-?[0-9]+(?:\\.[0-9]+)?(?:[eE][+-]?[0-9]+)?\\b",
+          "name": "constant.numeric.yaml"
+        },
+        {
+          "match": "^\\s*-\\s",
+          "name": "punctuation.definition.list.begin.yaml"
+        }
+      ]
+    },
+    "variables": {
+      "patterns": [
+        {
+          "match": "\\{\\{\\s*([a-zA-Z_][a-zA-Z0-9_\\.]*)\\s*\\}\\}",
+          "captures": {
+            "0": {
+              "name": "variable.other.mmt"
+            },
+            "1": {
+              "name": "entity.name.variable.mmt"
+            }
+          }
+        },
+        {
+          "match": "\\$\\{([a-zA-Z_][a-zA-Z0-9_\\.]*)\\}",
+          "captures": {
+            "0": {
+              "name": "variable.other.mmt"
+            },
+            "1": {
+              "name": "entity.name.variable.mmt"
+            }
+          }
+        }
+      ]
+    },
+    "environment-variables": {
+      "match": "\\$[A-Z_][A-Z0-9_]*",
+      "name": "variable.other.environment.mmt"
+    }
+  }
+}

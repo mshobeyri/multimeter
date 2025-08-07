@@ -20,11 +20,27 @@
   ],
   "main": "./dist/extension.js",
   "contributes": {
+    "languages": [
+      {
+        "id": "mmt",
+        "extensions": [
+          ".mmt"
+        ],
+        "aliases": [
+          "MMT", "Multimeter Test"
+        ],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "res/icon.png",
+          "dark": "res/icon.png"
+        }
+      }
+    ],
     "grammars": [
       {
         "language": "mmt",
-        "scopeName": "source.yaml",
-        "path": "syntaxes/mmt.tmLanguage.json"
+        "scopeName": "source.mmt",
+        "path": "./syntaxes/mmt.tmLanguage.json"
       }
     ],
     "configuration": {
@@ -93,21 +109,6 @@
         }
       }
     },
-    "languages": [
-      {
-        "id": "mmt",
-        "extensions": [
-          ".mmt"
-        ],
-        "aliases": [
-          "MMT", "Multimeter", "Multimeter Test"
-        ],
-        "icon": {
-          "light": "res/icon.png",
-          "dark": "res/icon.png"
-        }
-      }
-    ],
     "customEditors": [
       {
         "viewType": "mmt.editor",
