@@ -1,6 +1,7 @@
 import React from "react";
 import { TestFlowSteps, FlowType, flowTypeOptions, TestData } from "./TestData";
 import TestFlowBox from "./TestFlowBox";
+import { safeList } from "../safer";
 
 interface TestFlowProps {
     testData: TestData;
@@ -70,7 +71,7 @@ const updateStepValue = (step: any, value: any) => {
 };
 
 const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
-    const flow = testData.flow ?? [];
+    const flow = safeList(testData.flow);
     const [draggedIdx, setDraggedIdx] = React.useState<number | null>(null);
     const [dragOverIdx, setDragOverIdx] = React.useState<number | null>(null);
 

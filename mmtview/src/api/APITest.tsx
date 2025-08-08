@@ -236,7 +236,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                 style={{ width: "100%" }}
               >
                 <option value="default">defaults</option>
-                {examples
+                {safeList(examples)
                   .filter(ex => ex && typeof ex === 'object') // Filter out invalid entries
                   .map((ex, idx) => (
                     <option key={ex?.name || idx} value={idx}>
@@ -259,7 +259,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
               }}
               style={{ width: "100%" }}
             >
-              {interfaces
+              {safeList(interfaces)
                 .filter(Boolean) // Remove null/undefined entries
                 .filter(iface => iface && typeof iface === 'object') // Ensure it's an object
                 .map((iface, idx) => (
@@ -409,7 +409,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
               <KVEditor
                 label="outputs"
                 value={Object.fromEntries(
-                  Object.entries(outputs).map(([k, v]) => [k, String(v)])
+                  safeList(Object.entries(outputs)).map(([k, v]) => [k, String(v)])
                 )}
                 onChange={() => { }}
                 deactivated={true}

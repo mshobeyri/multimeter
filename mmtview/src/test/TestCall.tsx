@@ -3,6 +3,7 @@ import { TestFlowCallTest, TestFlowCallAPI, TestFlowCallWS, TestFlowCallHTTP } f
 import parseYaml, { packYaml } from "../markupConvertor";
 import { MMTFile, Parameter } from "../CommonData";
 import { showVSCodeMessage, readFile } from "../vsAPI";
+import { safeList } from "../safer";
 
 interface TestCallProps {
   value: string;
@@ -89,7 +90,7 @@ const TestCall: React.FC<TestCallProps> = ({
     >
       <option value="">{placeholder}</option>
       {imports &&
-        imports.map((imp: Parameter) => {
+        safeList(imports).map((imp: Parameter) => {
           const alias = Object.keys(imp)[0];
           return (
             <option key={alias} value={alias}>

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { parseYamlDoc } from "../markupConvertor";
 import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./AutoComplete";
+import { safeList } from "../safer";
 
 interface YamlEditorPanelProps {
   content: string;
@@ -114,7 +115,7 @@ function setEditorErrorMarker(
   const model = editor.getModel();
   if (!model) return;
 
-  const markers = errors.map(error => {
+  const markers = safeList(errors).map(error => {
     const line = error.line && error.line > 0 ? error.line : 1;
     const column = error.column && error.column > 0 ? error.column : 1;
     const endColumn =

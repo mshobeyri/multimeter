@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { safeList } from "../safer";
 
 interface SearchableTagInputProps {
   tags: string[];
@@ -48,7 +49,7 @@ const SearchableTagInput: React.FC<SearchableTagInputProps> = ({
         background: "var(--vscode-input-background, #1e1e1e)",
       }}
     >
-      {tags.map((tag) => (
+      {safeList(tags).map((tag) => (
         <span
           key={tag}
           className="tag"
@@ -121,7 +122,7 @@ const SearchableTagInput: React.FC<SearchableTagInputProps> = ({
             boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
           }}
         >
-          {filteredSuggestions.map(s => (
+          {safeList(filteredSuggestions).map(s => (
             <div
               key={s}
               onMouseDown={() => addTag(s)}

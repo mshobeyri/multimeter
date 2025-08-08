@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import FieldWithRemove from "../components/FieldWithRemove";
 import KVEditor from "../components/KVEditor";
+import { safeList } from "../safer";
 
 interface PresetBoard {
     name: string; // e.g. "runner"
@@ -26,13 +27,13 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
     }));
 
     const handleBoardChange = (idx: number, patch: Partial<PresetBoard>) => {
-        const updated = boards.map((b, i) => (i === idx ? { ...b, ...patch } : b));
+        const updated = safeList(boards).map((b, i) => (i === idx ? { ...b, ...patch } : b));
         // Convert boards back to presets object
         const newPresets: Record<string, Record<string, Record<string, string>>> = {};
         updated.forEach(b => {
             if (!b.name) return;
             newPresets[b.name] = {};
-            b.values.forEach(v => {
+            b.values.forEach((v: { env: string; kv: Record<string, string> }) => {
                 if (!v.env) return;
                 newPresets[b.name][v.env] = v.kv;
             });
@@ -68,7 +69,7 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
 
     const handleEnvChange = (boardIdx: number, envIdx: number, patch: Partial<{ env: string; kv: Record<string, string> }>) => {
         const board = boards[boardIdx];
-        const updatedValues = board.values.map((v, i) => (i === envIdx ? { ...v, ...patch } : v));
+        const updatedValues = safeList(board.values).map((v, i) => (i === envIdx ? { ...v, ...patch } : v));
         handleBoardChange(boardIdx, { values: updatedValues });
     };
 
@@ -96,7 +97,7 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
 
     return (
         <div>
-            {boards.map((board, boardIdx) => (
+            {safeList(boards).map((board, boardIdx) => (
                 <div
                     key={boardIdx}
                     style={{
@@ -121,7 +122,7 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
                     <hr style={{ border: 0, borderTop: "1px solid #444", margin: "12px 0" }} />
                     <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
                         <tbody>
-                            {board.values.map((v, envIdx) => (
+                            {safeList(board.values).map((v, envIdx) => (
                                 <React.Fragment key={envIdx}>
                                     <tr>
                                         <td className="label" style={{ width: "20%" }}>label</td>

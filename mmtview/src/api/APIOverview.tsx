@@ -61,7 +61,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
           label="import"
           value={safeList(api.import).reduce((acc, cur) => ({ ...acc, ...cur }), {})}
           onChange={kv => {
-            const newImports = Object.entries(kv).map(([key, value]) => ({ [key]: value }));
+            const newImports = safeList(Object.entries(kv)).map(([key, value]) => ({ [key]: value }));
             update({ import: newImports });
           }}
           keyPlaceholder="name"
@@ -71,7 +71,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
           label="inputs"
           value={safeList(api.inputs).reduce((acc, cur) => ({ ...acc, ...cur }), {})}
           onChange={kv => {
-            const newInputs = Object.entries(kv).map(([key, value]) => ({ [key]: value }));
+            const newInputs = safeList(Object.entries(kv)).map(([key, value]) => ({ [key]: value }));
             update({ inputs: newInputs });
           }}
           keyPlaceholder="name"
@@ -82,7 +82,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
           label="outputs"
           value={safeList(api.outputs).reduce((acc, cur) => ({ ...acc, ...cur }), {})}
           onChange={kv => {
-            const newOutputs = Object.entries(kv).map(([key, value]) => ({ [key]: value }));
+            const newOutputs = safeList(Object.entries(kv)).map(([key, value]) => ({ [key]: value }));
             update({ outputs: newOutputs });
           }}
           keyPlaceholder="name"
@@ -93,7 +93,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
           label="setenv"
           value={safeList(api.setenv).reduce((acc, cur) => ({ ...acc, ...cur }), {})}
           onChange={kv => {
-            const newSetenv = Object.entries(kv).map(([key, value]) => ({ [key]: value }));
+            const newSetenv = safeList(Object.entries(kv)).map(([key, value]) => ({ [key]: value }));
             update({ setenv: newSetenv });
           }}
           keyPlaceholder="name"

@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useEffect, useState } from "react";
 import FieldWithRemove from "./FieldWithRemove";
+import { safeList } from "../safer";
 
 interface LEditorProps {
     label: string,
@@ -32,12 +33,12 @@ const LEditor: React.FC<LEditorProps> = ({
     }, [value.length]);
 
     const handleChange = (idx: number, newVal: string) => {
-        const updated = value.map((v, i) => (i === idx ? newVal : v));
+        const updated = safeList(value).map((v, i) => (i === idx ? newVal : v));
         onChange(updated.filter(v => v !== ""));
     };
 
     const handleRemove = (idx: number) => {
-        const updated = value.filter((_, i) => i !== idx);
+        const updated = safeList(value).filter((_, i) => i !== idx);
         onChange(updated);
     };
 
@@ -55,7 +56,7 @@ const LEditor: React.FC<LEditorProps> = ({
             <td style={{ padding: "5px" }}>
             <table style={{ width: "100%" }}>
                 <tbody>
-                    {value.map((val, idx) => (
+                    {safeList(value).map((val, idx) => (
                         <tr key={idx}>
                             <td style={{ width: "90%" }}>
                                 <FieldWithRemove

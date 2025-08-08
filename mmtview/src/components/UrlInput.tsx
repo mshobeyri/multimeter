@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { safeList } from "../safer";
 
 interface UrlInputProps {
   url: string;
@@ -24,7 +25,7 @@ function buildQueryString(query: Record<string, string> = {}) {
   if (entries.length === 0) return "";
   return (
     "?" +
-    entries
+    safeList(entries)
       .map(
         ([k, v]) =>
           `${encodeURIComponent(k)}=${encodeURIComponent(v ?? "")}`

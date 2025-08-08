@@ -1,5 +1,6 @@
 import React from "react";
 import ValidatableSelect from "./ValidatableSelect";
+import { safeList } from "../safer";
 
 interface ComboTableOption {
   label: string;
@@ -34,7 +35,7 @@ const ComboTable: React.FC<ComboTableProps> = ({ pairs, onChange, showPlaceholde
         <col style={{ width: "60%" }} />
       </colgroup>
       <tbody>
-        {pairs.map(pair => (
+        {safeList(pairs).map(pair => (
           <tr key={pair.name}>
             <td style={{ padding: "8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {pair.name}
@@ -42,9 +43,9 @@ const ComboTable: React.FC<ComboTableProps> = ({ pairs, onChange, showPlaceholde
             <td style={{ padding: "8px" }}>
               <ValidatableSelect
                 value={pair.value.label}
-                options={pair.options.map(opt => opt.label)}
+                options={safeList(pair.options).map(opt => opt.label)}
                 onChange={label => {
-                  const found = pair.options.find(opt => opt.label === label);
+                  const found = safeList(pair.options).find(opt => opt.label === label);
                   if (found) {
                     onChange(pair.name, found.label,found.value);
                   }

@@ -3,6 +3,7 @@ import VEditor from "../components/VEditor";
 import { ExampleData } from "./APIData";
 import FieldWithRemove from "../components/FieldWithRemove";
 import DescriptionEditor from "../components/DescriptionEditor";
+import { safeList } from "../safer";
 
 interface ExampleEditorProps {
   data: ExampleData;
@@ -14,7 +15,7 @@ interface ExampleEditorProps {
 const ExampleEditor: React.FC<ExampleEditorProps> = ({ data, apiInputs, onChange, onRemove }) => {
   // Helper to update fields
   const handleFieldsChange = (kv: Record<string, string>) => {
-    const newFields = Object.entries(kv).map(([key, value]) => ({ [key]: value }));
+    const newFields = safeList(Object.entries(kv)).map(([key, value]) => ({ [key]: value }));
     onChange({ ...data, inputs: newFields });
   };
 

@@ -5,6 +5,7 @@ import EnvironmentEdit from "./EnvironmentEdit";
 import EnvironmentView from "./EnvironmentView";
 import { readEnvironmentVariables, writeEnvironmentVariables, clearEnvironmentVariables } from "./environmentUtils";
 import { ComboTablePair } from "../components/ComboTable";
+import { isList, safeList } from "../safer";
 
 const LAST_ENV_TAB_KEY = "mmtview:env:lastTab";
 
@@ -67,7 +68,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
       const found = Array.isArray(loadedVarsRef.current)
         ? loadedVarsRef.current.find((v: any) => v.name === name)
         : undefined;
-      if (Array.isArray(value)) {
+      if (isList(value)) {
         const options = value.map((v: string) => ({ label: String(v), value: String(v) }));
         const selected = found
           ? options.find(opt => opt.value === found.value) || options[0]
@@ -106,7 +107,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         const envNames = Object.keys(presetObj);
         presetPairs.push({
           name: presetName,
-          options: envNames.map(env => ({ label: env, value: env })),
+          options: safeList(envNames).map(env => ({ label: env, value: env })),
           value: { label: envNames[0] ?? "", value: envNames[0] ?? "" }
         });
         presetDataObj[presetName] = presetObj;
@@ -119,11 +120,11 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   // Handler for variables
   const handleVariablesChange = (name: string, label: string, value: string | number | boolean) => {
     setVariables(prev => {
-      const updated = prev.map(pair => {
+      const updated = safeList(prev).map(pair => {
         if (pair.name === name) {
           // Find the correct ComboTableOption from options
           const selectedOption = pair.options.find(
-            opt => opt.value === value || opt.label === label
+            (opt: { label: string; value: string }) => opt.value === value || opt.label === label
           ) || pair.options[0];
           return { ...pair, value: selectedOption };
         }
@@ -147,7 +148,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   // Handler for presets: when a preset env is selected, update all variables accordingly
   const handlePresetsChange = (presetName: string, envName: string) => {
     setPresets(prev =>
-      prev.map(pair =>
+      safeList(prev).map(pair =>
         pair.name === presetName ? { ...pair, value: { label: envName, value: envName } } : pair
       )
     );
@@ -156,12 +157,12 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
 
     if (envVars && typeof envVars === "object") {
       setVariables(prev => {
-        const updated = prev.map(pair => {
+        const updated = safeList(prev).map(pair => {
           // For object variables, envVars[pair.name] is the value, pair.options contains {label, value}
           if (envVars[pair.name]) {
             // Try to find the correct option by value or label
             const selected =
-              pair.options.find(
+              safeList(pair.options).find(
                 opt => opt.value === String(envVars[pair.name]) || opt.label === String(envVars[pair.name])
               ) || pair.options[0];
             return { ...pair, value: selected };
@@ -188,7 +189,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   // Load selections from VSCode
   useEffect(() => {
     const cleanup = readEnvironmentVariables((loaded) => {
-      loadedVarsRef.current = Array.isArray(loaded)
+      loadedVarsRef.current = isList(loaded)
         ? loaded.map(v => ({
           name: v.name,
           label: v.label || v.name,
@@ -196,13 +197,13 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         }))
         : [];
       setVariables(vars =>
-        vars.map(pair => {
-          const found = Array.isArray(loadedVarsRef.current)
+        safeList(vars).map(pair => {
+          const found = isList(loadedVarsRef.current)
             ? loadedVarsRef.current.find((v: any) => v.name === pair.name)
             : undefined;
           if (found) {
             const selectedOption =
-              pair.options.find(opt => opt.value === found.value) ||
+              safeList(pair.options).find(opt => opt.value === found.value) ||
               pair.options[0];
             return { ...pair, value: selectedOption };
           }
@@ -221,7 +222,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
 
       const cleanup = readEnvironmentVariables((loaded) => {
         // loaded: { name: string; value: string | number | boolean }[] | null | undefined
-        if (Array.isArray(loaded)) {
+        if (isList(loaded)) {
           setWorkspaceVars(
             loaded.map(v => ({
               name: v.name,
@@ -242,7 +243,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     clearEnvironmentVariables();
     loadedVarsRef.current = [];
     setVariables(prev =>
-      prev.map(pair => ({
+      safeList(prev).map(pair => ({
         ...pair,
         value: pair.options[0] || { label: "", value: "" }
       }))

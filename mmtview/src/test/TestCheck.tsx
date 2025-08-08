@@ -1,6 +1,7 @@
 import React from "react";
 import AutoSizeTextField from "../components/AutoSizeTextField";
 import { CheckOps, opsList, opsNames } from "./TestData";
+import { safeList } from "../safer";
 
 interface TestCheckProps {
   left: string;
@@ -31,9 +32,9 @@ const TestCheck: React.FC<TestCheckProps> = ({
       onChange={e => onChange({ left, op: e.target.value as CheckOps, right })}
       style={{ padding: "2px 8px" }}
     >
-      {opsList.map((relation, idx) => (
-        <option key={relation} value={opsList[idx]} title={opsNames[idx]}>
-          {opsList[idx]}
+      {safeList(opsList).map((relation, idx) => (
+        <option key={relation} value={safeList(opsList)[idx]} title={safeList(opsNames)[idx]}>
+          {safeList(opsList)[idx]}
         </option>
       ))}
     </select>

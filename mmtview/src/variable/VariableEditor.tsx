@@ -4,6 +4,7 @@ import ValidatableSelect from "../components/ValidatableSelect";
 import { jsonTypes } from "../CommonData";
 import { Variable, Variables } from "./VariablesData";
 import KVEditor from "../components/KVEditor";
+import { safeList } from "../safer";
 
 const fieldOptions = [
   "description", "default"
@@ -53,11 +54,9 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
     setAddType("");
   };
 
-  const previousVariableNames = variables
-    ? variables
+  const previousVariableNames = safeList(variables)
       .filter(v => v !== variable && v.name && v.name !== variable.name)
-      .map(v => v.name)
-    : [];
+      .map(v => v.name);
 
   return (
     <div className="inner-box" >
@@ -96,7 +95,7 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
               />
             </td>
           </tr>
-          {fieldOptions.map(opt =>
+          {safeList(fieldOptions).map(opt =>
             variable[opt as keyof Variable] !== undefined ? (
               <tr key={opt}>
                 <td className="label">{opt}</td>
@@ -135,7 +134,7 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
                   style={{ width: "40%" }}
                 >
                   <option value="">optionals...</option>
-                  {availableOptionals.map(opt => (
+                  {safeList(availableOptionals).map(opt => (
                     <option key={opt} value={opt}>{opt}</option>
                   ))}
                 </select>

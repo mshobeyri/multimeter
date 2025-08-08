@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import ValidatableSelect from "./ValidatableSelect";
+import { safeList } from "../safer";
 
 interface ObjectFieldsEditorProps {
     fields: Record<string, string>;
@@ -56,7 +57,7 @@ const ObjectFieldsEditor: React.FC<ObjectFieldsEditorProps> = ({ fields, setFiel
     return (
         <div>
             <div style={{ marginBottom: 8, fontWeight: 500 }}>fields</div>
-            {orderedFields.map(([name, type]) => (
+            {safeList(orderedFields).map(([name, type]) => (
                 <div
                     key={name}
                     style={{

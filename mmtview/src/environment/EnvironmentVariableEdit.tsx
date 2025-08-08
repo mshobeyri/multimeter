@@ -4,6 +4,7 @@ import ValidatableSelect from "../components/ValidatableSelect";
 import KVEditor from "../components/KVEditor";
 import LEditor from "../components/LEditor"; // <-- Use LEditor instead of VEditor
 import { EnvironmentData } from "./EnvironmentData";
+import { safeList } from "../safer";
 
 // Only two types for this editor: "list" and "object"
 const typeOptions = [
@@ -41,7 +42,7 @@ const EnvironmentVariableEdit: React.FC<EnvironmentVariableEditProps> = ({ varia
     );
 
     const handleBoardChange = (idx: number, patch: Partial<VariableBoard>) => {
-        const updated = boards.map((b, i) => (i === idx ? { ...b, ...patch } : b));
+        const updated = safeList(boards).map((b, i) => (i === idx ? { ...b, ...patch } : b));
         // Convert boards back to variables object
         const newVars: EnvironmentData["variables"] = {};
         updated.forEach(b => {
@@ -80,7 +81,7 @@ const EnvironmentVariableEdit: React.FC<EnvironmentVariableEditProps> = ({ varia
 
     return (
         <div>
-            {boards.map((board, idx) => (
+            {safeList(boards).map((board, idx) => (
                 <div className="inner-box">
                     <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
                         <colgroup>
@@ -104,7 +105,7 @@ const EnvironmentVariableEdit: React.FC<EnvironmentVariableEditProps> = ({ varia
                                 <td style={{ padding: "8px" }}>
                                     <ValidatableSelect
                                         value={board.type}
-                                        options={typeOptions.map(opt => opt.value)}
+                                        options={safeList(typeOptions).map(opt => opt.value)}
                                         onChange={val =>
                                             handleBoardChange(idx, {
                                                 type: val as "list" | "object",

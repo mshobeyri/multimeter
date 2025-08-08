@@ -1,6 +1,7 @@
 import React from "react";
 import VariableEditor from "./VariableEditor";
 import { VariablesData, Variable } from "./VariablesData";
+import { safeList } from "../safer";
 
 interface VariablesEditorProps {
   variablesData: VariablesData;
@@ -45,7 +46,7 @@ const VariablesEditor: React.FC<VariablesEditorProps> = ({ variablesData, setVar
   return (
     <div className="panel-box">
       <h2 style={{ marginTop: 0, marginBottom: 24 }}>Variables</h2>
-      {variablesArray.map((variable, idx) => (
+      {safeList(variablesArray).map((variable, idx) => (
         <div key={idx}>
           <VariableEditor
             variable={variable}

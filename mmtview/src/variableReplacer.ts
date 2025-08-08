@@ -1,4 +1,5 @@
 import { InterfaceData } from './api/APIData';
+import { safeList } from './safer';
 import { loadEnvVariables } from './workspaceStorage';
 
 export type Parameter = Record<string, string | number | boolean>;
@@ -8,7 +9,7 @@ function normalizeInputs(inputs: Parameter[] | Parameter): Array<{ name: string;
   if (Array.isArray(inputs)) {
     return inputs as any;
   }
-  return Object.entries(inputs).map(([name, value]) => ({ name, value }));
+  return safeList(Object.entries(inputs)).map(([name, value]) => ({ name, value }));
 }
 
 // Generic replacement function
@@ -27,12 +28,12 @@ function replaceRefs(
   }
 
   if (Array.isArray(obj)) {
-    return obj.map(item => replaceRefs(item, pattern, wrapper, inputs));
+    return safeList(obj).map(item => replaceRefs(item, pattern, wrapper, inputs));
   }
 
   if (obj && typeof obj === 'object') {
     return Object.fromEntries(
-      Object.entries(obj).map(([k, v]) => [k, replaceRefs(v, pattern, wrapper, inputs)])
+      safeList(Object.entries(obj)).map(([k, v]) => [k, replaceRefs(v, pattern, wrapper, inputs)])
     );
   }
 
@@ -112,7 +113,7 @@ export function replaceEnvRefs(obj: InterfaceData, callback: (result: any) => vo
     }
     // Parse numbers and booleans if possible, otherwise keep as string
     const envs: Parameter = Object.fromEntries(
-      vars.map(({ name, value }) => {
+      safeList(vars).map(({ name, value }) => {
         if (value === "true") { return [name, true]; }
         if (value === "false") { return [name, false]; }
         const num = Number(value);

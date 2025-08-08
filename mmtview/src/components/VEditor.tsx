@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import SelectWithRemove from "./SelectWithRemove";
+import { safeList } from "../safer";
 
 interface VEditorProps {
   label: string;
@@ -14,7 +15,7 @@ interface VEditorProps {
 function withTrailingEmptyKey(obj?: Record<string, string>, keyOptions?: string[]): Array<[string, string]> {
   const entries = obj ? Object.entries(obj) : [];
   // Only add trailing empty if not all keys are used
-  const usedKeys = new Set(entries.map(([k]) => k));
+  const usedKeys = new Set(safeList(entries).map(([k]) => k));
   const availableKeys = keyOptions ? keyOptions.filter(k => !usedKeys.has(k)) : [];
   if ((entries.length === 0 || entries[entries.length - 1][0] !== "") && availableKeys.length > 0) {
     return [...entries, ["", ""]];
@@ -35,7 +36,7 @@ const VEditor: React.FC<VEditorProps> = ({
 
   // Helper to convert entries array back to object
   const toObject = (arr: Array<[string, string]>) =>
-    arr.reduce<Record<string, string>>((acc, [k, v]) => {
+    safeList(arr).reduce<Record<string, string>>((acc, [k, v]) => {
       if (k) acc[k] = v;
       return acc;
     }, {});
@@ -70,7 +71,7 @@ const VEditor: React.FC<VEditorProps> = ({
       <td style={{ padding: "5px" }}>
         <table style={{ width: "100%" }}>
           <tbody>
-            {keyOptions.map((k, i) => {
+            {safeList(keyOptions).map((k, i) => {
               const entryIdx = shownEntries.findIndex(([key]) => key === k);
               const v = entryIdx !== -1 ? shownEntries[entryIdx][1] : "";
               return (

@@ -1,4 +1,5 @@
 import React from "react";
+import { safeList } from "../safer";
 
 interface SelectWithRemoveProps {
   value: string;
@@ -35,7 +36,7 @@ const SelectWithRemove: React.FC<SelectWithRemoveProps> = ({
       <option value="" disabled>
         {placeholder || "Select..."}
       </option>
-      {options.map(opt => (
+      {safeList(options).map(opt => (
         <option key={opt} value={opt}>
           {opt}
         </option>

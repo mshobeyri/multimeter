@@ -6,6 +6,7 @@ import { InterfaceData } from "./APIData";
 import { Protocol, Method, Format } from "../CommonData"
 import { formatBody, formattedBodyToYamlObject } from "../markupConvertor";
 import BodyView from "../components/BodyView";
+import { safeList } from "../safer";
 
 interface InterfaceEditorProps {
   data: InterfaceData;
@@ -101,7 +102,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
               onChange={e => onChange({ ...data, protocol: e.target.value as Protocol })}
               style={{ width: "100%" }}
             >
-              {protocolOptions.map(opt => (
+              {safeList(protocolOptions).map(opt => (
                 <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
@@ -115,7 +116,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
               onChange={e => onChange({ ...data, format: e.target.value as Format })}
               style={{ width: "100%" }}
             >
-              {formatOptions.map(opt => (
+              {safeList(formatOptions).map(opt => (
                 <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
@@ -143,7 +144,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
                 disabled={data.protocol !== "http"}
               >
                 <option value="" disabled>Select method...</option>
-                {methodOptions.map(opt => (
+                {safeList(methodOptions).map(opt => (
                   <option key={opt} value={opt}>{opt}</option>
                 ))}
               </select>

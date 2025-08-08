@@ -1,4 +1,5 @@
 import React from "react";
+import { safeList } from "../safer";
 
 interface ValidatableSelectProps {
   value: string;
@@ -37,7 +38,7 @@ const ValidatableSelect: React.FC<ValidatableSelectProps> = ({
           {value} (invalid)
         </option>
       )}
-      {options.map(opt => (
+      {safeList(options).map(opt => (
         <option key={opt} value={opt}>{opt}</option>
       ))}
     </select>

@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import SelectWithRemove from "./SelectWithRemove";
+import { safeList } from "../safer";
 
 interface KVEditorProps {
   label: string;
@@ -40,13 +41,13 @@ const KVEditor: React.FC<KVEditorProps> = ({
 
   // Helper to convert entries array back to object
   const toObject = (arr: Array<[string, string]>) =>
-    arr.reduce<Record<string, string>>((acc, [k, v]) => {
+    safeList(arr).reduce<Record<string, string>>((acc, [k, v]) => {
       if (k) acc[k] = v;
       return acc;
     }, {});
 
   const handleKeyChange = (idx: number, newKey: string) => {
-    const newEntries = entries.map(([k, v], i): [string, string] =>
+    const newEntries = safeList(entries).map(([k, v], i): [string, string] =>
       i === idx ? [newKey, v] : [k, v]
     );
     // Remove duplicate keys except for the current one
@@ -61,14 +62,14 @@ const KVEditor: React.FC<KVEditorProps> = ({
   };
 
   const handleValueChange = (idx: number, newVal: string) => {
-    const newEntries = entries.map(([k, v], i) =>
+    const newEntries = safeList(entries).map(([k, v], i) =>
       i === idx ? [k, newVal] : [k, v]
     );
     onChange(toObject(newEntries as [string, string][]));
   };
 
   const handleRemove = (idx: number) => {
-    const newEntries = entries.filter((_, i) => i !== idx);
+    const newEntries = safeList(entries).filter((_, i) => i !== idx);
     onChange(toObject(newEntries));
   };
 
@@ -78,7 +79,7 @@ const KVEditor: React.FC<KVEditorProps> = ({
       <td style={{ padding: "5px" }}>
         <table style={{ width: "100%" }}>
           <tbody>
-            {entries
+            {safeList(entries)
               .filter(([k], i) => !(deactivated && k === "" && i === entries.length - 1))
               .map(([k, v], i) => (
                 <tr key={i}>

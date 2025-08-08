@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { safeList } from "../safer";
 
 interface EditableSelectProps {
   value: string;
@@ -57,7 +58,7 @@ const EditableSelect: React.FC<EditableSelectProps> = ({
           {placeholder}
         </option>
       )}
-      {options.map(opt => (
+      {safeList(options).map(opt => (
         <option key={opt} value={opt}>
           {opt}
         </option>

@@ -5,6 +5,7 @@ import { TestData } from "./TestData";
 import { jsonTypes } from "../CommonData";
 import VEditor from "../components/VEditor";
 import DescriptionEditor from "../components/DescriptionEditor";
+import {safeList} from "../safer";
 
 interface TestOverviewProps {
   test: TestData;
@@ -53,7 +54,7 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update }) => (
       </tr>
       <KVEditor
         label="import"
-        value={test.import?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
+        value={safeList(test.import).reduce((acc, cur) => ({ ...acc, ...cur }), {})}
         onChange={kv => {
           const newImports = Object.entries(kv).map(([key, value]) => ({ [key]: value }));
           update({ import: newImports });
@@ -63,7 +64,7 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update }) => (
       />
       <KVEditor
         label="input"
-        value={test.inputs?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
+        value={safeList(test.inputs)?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
         onChange={kv => {
           const newInputs = Object.entries(kv).map(([key, value]) => ({ [key]: value }));
           update({ inputs: newInputs });
@@ -74,7 +75,7 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update }) => (
       />
       <KVEditor
         label="output"
-        value={test.outputs?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
+        value={safeList(test.outputs)?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
         onChange={kv => {
           const newOutputs = Object.entries(kv).map(([key, value]) => ({ [key]: value }));
           update({ outputs: newOutputs });
