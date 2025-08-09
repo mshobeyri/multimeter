@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import parseYaml, { packYaml } from "../markupConvertor";
 import APIFieldEditor from "./APIEditor";
 import { APIData } from "./APIData";
-import { safeList } from "../safer";
+import { safeList, isNonEmptyList } from "../safer";
 
 interface APIsProps {
   content: string;
@@ -17,8 +17,8 @@ function yamlToAPI(yamlContent: string): APIData {
     return {
       type: doc.type || "",
       title: doc.title || "",
-      tags: safeList(doc.tags),
       description: doc.description || "",
+      tags: safeList(doc.tags),
       import: safeList(doc.import),
       inputs: safeList(doc.inputs),
       outputs: safeList(doc.outputs),
@@ -36,22 +36,22 @@ function apiToYaml(api: APIData): string {
   const yamlObj: Record<string, any> = {
     type: api.type,
     title: api.title,
-    tags: api.tags,
   };
   if (api.description) yamlObj.description = api.description;
-  if (api.import) yamlObj.import = api.import;
-  if (api.inputs) yamlObj.inputs = api.inputs;
-  if (api.outputs) yamlObj.outputs = api.outputs;
-  if (api.setenv) yamlObj.setenv = api.setenv;
-  if (api.interfaces) yamlObj.interfaces = api.interfaces;
-  if (api.examples) yamlObj.examples = api.examples;
+  if (isNonEmptyList(api.tags)) yamlObj.tags = api.tags;
+  if (isNonEmptyList(api.import)) yamlObj.import = api.import;
+  if (isNonEmptyList(api.inputs)) yamlObj.inputs = api.inputs;
+  if (isNonEmptyList(api.outputs)) yamlObj.outputs = api.outputs;
+  if (isNonEmptyList(api.setenv)) yamlObj.setenv = api.setenv;
+  if (isNonEmptyList(api.interfaces)) yamlObj.interfaces = api.interfaces;
+  if (isNonEmptyList(api.examples)) yamlObj.examples = api.examples;
   return packYaml(yamlObj);
 }
 const defaultAPI: APIData = {
   type: "api",
   title: "",
-  tags: [],
   description: "",
+  tags: [],
   import: [],
   inputs: [],
   outputs: [],
