@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import APIOverview from "./APIOverview";
 import InterfaceEditor from "./APIInterface";
-import ExampleEditor from "./APIExample";
+import APIExample from "./APIExample";
 import APITest from "./APITest";
 import { APIData, InterfaceData, ExampleData } from "./APIData";
 import { isList, safeList, safeListCopy } from "../safer";
@@ -145,21 +145,9 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
               <td colSpan={2} style={{ padding: 0 }}>
                 {safeList(api.examples).map((example, idx) => (
                   <div key={idx} className="inner-box">
-                    <ExampleEditor
+                    <APIExample
                       data={example}
-                      apiInputs={
-                        isList(api.inputs)
-                          ? Object.fromEntries(
-                            api.inputs.map(query =>
-                              query && typeof query === "object"
-                                ? query.name
-                                  ? [query.name, query.type]
-                                  : [Object.keys(query)[0], Object.values(query)[0]]
-                                : []
-                            )
-                          )
-                          : undefined
-                      }
+                      apiInputs={api.inputs}
                       onChange={updated => updateExample(idx, updated)}
                       onRemove={() => removeExample(idx)}
                     />

@@ -3,30 +3,24 @@ import VEditor from "../components/VEditor";
 import { ExampleData } from "./APIData";
 import FieldWithRemove from "../components/FieldWithRemove";
 import DescriptionEditor from "../components/DescriptionEditor";
-import { safeList } from "../safer";
+import { safeList, extractParameterKeys, isNonEmptyList, toKVObject } from "../safer";
+import { Parameter } from "../CommonData";
 
-interface ExampleEditorProps {
+interface APIExampleProps {
   data: ExampleData;
-  apiInputs?: Record<string, string>;
+  apiInputs?: Parameter[];
   onChange: (data: ExampleData) => void;
   onRemove?: () => void;
 }
 
-const ExampleEditor: React.FC<ExampleEditorProps> = ({ data, apiInputs, onChange, onRemove }) => {
+const APIExample: React.FC<APIExampleProps> = ({ data, apiInputs, onChange, onRemove }) => {
   // Helper to update fields
   const handleFieldsChange = (kv: Record<string, string>) => {
     const newFields = safeList(Object.entries(kv)).map(([key, value]) => ({ [key]: value }));
     onChange({ ...data, inputs: newFields });
+    apiInputs = newFields;
+    console.log("Updated fields:", newFields, data, kv);
   };
-
-  // Convert fields array to object for VEditor
-  const fieldsObj =
-    Array.isArray(data.inputs)
-      ? data.inputs.reduce((acc, cur) => ({ ...acc, ...cur }), {})
-      : {};
-
-  // Use apiInputs keys as keyOptions for VEditor
-  const keyOptions = apiInputs ? Object.keys(apiInputs) : [];
 
   return (
     <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
@@ -55,15 +49,34 @@ const ExampleEditor: React.FC<ExampleEditorProps> = ({ data, apiInputs, onChange
             />
           </td>
         </tr>
-        <VEditor
-          label="fields"
-          value={fieldsObj}
-          onChange={handleFieldsChange}
-          keyOptions={keyOptions}
-        />
+        {isNonEmptyList(apiInputs) ? (
+          <VEditor
+            label="fields"
+            value={toKVObject(data.inputs)}
+            onChange={handleFieldsChange}
+            keyOptions={extractParameterKeys(apiInputs)}
+          />
+        ) : (
+          <tr>
+            <td className="label">fields</td>
+            <td style={{ padding: "8px" }}>
+              <div style={{
+                color: "#999",
+                fontStyle: "italic",
+                padding: "12px",
+                textAlign: "center",
+                border: "1px dashed #444",
+                borderRadius: "4px",
+                backgroundColor: "#2a2a2a"
+              }}>
+                You need to define inputs first
+              </div>
+            </td>
+          </tr>
+        )}
       </tbody>
     </table>
   );
 };
 
-export default ExampleEditor;
+export default APIExample;

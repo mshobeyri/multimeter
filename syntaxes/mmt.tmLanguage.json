@@ -54,7 +54,7 @@
     "mmt-request": {
       "patterns": [
         {
-          "match": "^(method)\\s*:\\s*(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\\b",
+          "match": "^(method)\\s*:\\s*(get|post|put|delete|patch|head|options)\\b",
           "captures": {
             "1": {
               "name": "keyword.control.mmt.request"
