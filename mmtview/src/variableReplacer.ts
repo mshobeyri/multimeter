@@ -2,10 +2,10 @@ import { InterfaceData } from './api/APIData';
 import { safeList } from './safer';
 import { loadEnvVariables } from './workspaceStorage';
 
-export type Parameter = Record<string, string | number | boolean>;
+export type JSONRecord = Record<string, string | number | boolean>;
 
 // Utility to normalize inputs to a consistent array format
-function normalizeInputs(inputs: Parameter[] | Parameter): Array<{ name: string; value: any }> {
+function normalizeInputs(inputs: JSONRecord[] | JSONRecord): Array<{ name: string; value: any }> {
   if (Array.isArray(inputs)) {
     return inputs as any;
   }
@@ -41,7 +41,7 @@ function replaceRefs(
 }
 
 // Specific replacers
-export function replaceInputRefsWithBrace(obj: any, inputs: Parameter[] | Parameter): any {
+export function replaceInputRefsWithBrace(obj: any, inputs: JSONRecord[] | JSONRecord): any {
   return replaceRefs(
     obj,
     /<i:([a-zA-Z0-9_]+)>/g,
@@ -50,7 +50,7 @@ export function replaceInputRefsWithBrace(obj: any, inputs: Parameter[] | Parame
   );
 }
 
-export function replaceInputRefsWithQuotes(obj: any, inputs: Parameter[] | Parameter): any {
+export function replaceInputRefsWithQuotes(obj: any, inputs: JSONRecord[] | JSONRecord): any {
   return replaceRefs(
     obj,
     /"i:([a-zA-Z0-9_]+)"/g,
@@ -64,7 +64,7 @@ export function replaceInputRefsWithQuotes(obj: any, inputs: Parameter[] | Param
   );
 }
 
-export function replaceInputRefsWithNone(obj: any, inputs: Parameter[] | Parameter): any {
+export function replaceInputRefsWithNone(obj: any, inputs: JSONRecord[] | JSONRecord): any {
   return replaceRefs(
     obj,
     /i:([a-zA-Z0-9_]+)/g,
@@ -73,7 +73,7 @@ export function replaceInputRefsWithNone(obj: any, inputs: Parameter[] | Paramet
   );
 }
 
-export function replaceEnvRefsWithBrace(obj: any, inputs: Parameter[] | Parameter): any {
+export function replaceEnvRefsWithBrace(obj: any, inputs: JSONRecord[] | JSONRecord): any {
   return replaceRefs(
     obj,
     /<e:([a-zA-Z0-9_]+)>/g,
@@ -82,7 +82,7 @@ export function replaceEnvRefsWithBrace(obj: any, inputs: Parameter[] | Paramete
   );
 }
 
-export function replaceEnvRefsWithQuotes(obj: any, inputs: Parameter[] | Parameter): any {
+export function replaceEnvRefsWithQuotes(obj: any, inputs: JSONRecord[] | JSONRecord): any {
   return replaceRefs(
     obj,
     /"e:([a-zA-Z0-9_]+)"/g,
@@ -96,7 +96,7 @@ export function replaceEnvRefsWithQuotes(obj: any, inputs: Parameter[] | Paramet
   );
 }
 
-export function replaceEnvRefsWithNone(obj: any, inputs: Parameter[] | Parameter): any {
+export function replaceEnvRefsWithNone(obj: any, inputs: JSONRecord[] | JSONRecord): any {
   return replaceRefs(
     obj,
     /e:([a-zA-Z0-9_]+)/g,
@@ -112,7 +112,7 @@ export function replaceEnvRefs(obj: InterfaceData, callback: (result: any) => vo
       return callback(obj);
     }
     // Parse numbers and booleans if possible, otherwise keep as string
-    const envs: Parameter = Object.fromEntries(
+    const envs: JSONRecord = Object.fromEntries(
       safeList(vars).map(({ name, value }) => {
         if (value === "true") { return [name, true]; }
         if (value === "false") { return [name, false]; }
@@ -134,8 +134,8 @@ export function replaceEnvRefs(obj: InterfaceData, callback: (result: any) => vo
 // Replaces all references (inputs first, then environment vars)
 export function replaceAllRefs(
   iface: InterfaceData,
-  defaults: Parameter[],
-  inputs: Parameter[],
+  defaults: JSONRecord[],
+  inputs: JSONRecord[],
   callback: (result: any) => void
 ) {
   const mergedInputs = Object.assign(

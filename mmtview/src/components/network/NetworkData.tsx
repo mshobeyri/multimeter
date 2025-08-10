@@ -1,5 +1,4 @@
-import { Parameter } from "../../variableReplacer";
-
+import { Parameter } from "../../CommonData";
 export interface Request {
   url?: string;
   protocol?: "http" | "ws";
