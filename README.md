@@ -42,4 +42,4 @@ Here you can see the screen shot of using this sample. On the right side, beside
 
 <img src="screenshots/simple_get.png" alt="Multimeter simple get" width="800" height="600"/> 
 
-**Special thanks to: Od. Ashkan Palganeh 👨🏻‍🦱♥️.**
+**Special thanks to: Dear Ashkan Palganeh 👨🏻‍🦱.**
