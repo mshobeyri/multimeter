@@ -2,6 +2,14 @@ import { act } from "react";
 import { showVSCodeMessage } from "../../vsAPI";
 import { on } from "events";
 
+export type Error = {
+    body: string | null;
+    headers: Record<string, string> | null;
+    status: number | null;
+    message: string | null;
+    code: string | null;
+}
+
 type HttpOptions = {
     url: string;
     method?: string;
@@ -10,7 +18,7 @@ type HttpOptions = {
     query?: Record<string, string>;
     cookies?: Record<string, string>;
     onResponse?: (response: any) => void;
-    onError?: (error: any, status?: number) => void;
+    onError?: (error: Error) => void;
 };
 
 type WsOptions = {
@@ -18,7 +26,7 @@ type WsOptions = {
     onOpen?: () => void;
     onMessage?: (data: string) => void;
     onClose?: () => void;
-    onError?: (error: any, status?: number) => void;
+    onError?: (error: Error) => void;
 };
 
 type SendWsOptions = {
@@ -40,7 +48,7 @@ const pendingHttp: Record<
     string,
     {
         onResponse?: (response: any) => void;
-        onError?: (error: any, status?: number) => void;
+        onError?: (error: Error) => void;
     }
 > = {};
 
@@ -50,7 +58,7 @@ const openWebsockets: Record<
         onOpen?: () => void;
         onMessage?: (data: string) => void;
         onClose?: () => void;
-        onError?: (error: any, status?: number) => void;
+        onError?: (error: Error) => void;
     }
 > = {};
 
@@ -115,14 +123,16 @@ window.addEventListener("message", (event: MessageEvent) => {
     if (!msg || !msg.command || msg.command != "network") return;
 
     // HTTP response
+    const cb = pendingHttp[msg.requestId];
     if (msg.action === "http-response" && typeof msg.data !== "undefined") {
         const cb = pendingHttp[msg.requestId];
         if (cb && typeof cb.onResponse === "function") cb.onResponse(msg.data);
         delete pendingHttp[msg.requestId];
     }
-    if (msg.action === "http-error" && typeof msg.error !== "undefined") {
+    else if (msg.action === "http-error" && typeof msg.data !== "undefined") {
+        console.error("HTTP error:", msg.data, pendingHttp[msg.requestId]);
         const cb = pendingHttp[msg.requestId];
-        if (cb && typeof cb.onError === "function") cb.onError(msg.error, msg.status);
+        if (cb && typeof cb.onError === "function") cb.onError(msg.data);
         delete pendingHttp[msg.requestId];
     }
 
@@ -132,6 +142,6 @@ window.addEventListener("message", (event: MessageEvent) => {
         if (msg.action === "ws-open" && wsListener.onOpen) wsListener.onOpen();
         if (msg.action === "ws-message" && wsListener.onMessage) wsListener.onMessage(msg.data);
         if (msg.action === "ws-close" && wsListener.onClose) wsListener.onClose();
-        if (msg.action === "ws-error" && wsListener.onError) wsListener.onError(msg.error, msg.status);
+        if (msg.action === "ws-error" && wsListener.onError) wsListener.onError(msg.error);
     }
 });

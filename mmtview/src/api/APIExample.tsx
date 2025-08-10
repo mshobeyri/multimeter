@@ -19,7 +19,6 @@ const APIExample: React.FC<APIExampleProps> = ({ data, apiInputs, onChange, onRe
     const newFields = safeList(Object.entries(kv)).map(([key, value]) => ({ [key]: value }));
     onChange({ ...data, inputs: newFields });
     apiInputs = newFields;
-    console.log("Updated fields:", newFields, data, kv);
   };
 
   return (

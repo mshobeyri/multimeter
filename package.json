@@ -283,10 +283,6 @@
       ],
       "commandPalette": [
         {
-          "command": "multimeter.mmt.show.split",
-          "when": "activeCustomEditorId == mmt.editor"
-        },
-        {
           "command": "multimeter.mmt.show.as.text",
           "when": "resourceExtname == .mmt"
         }

@@ -18,7 +18,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider {
   private running = false;
   private httpServer?: http.Server;
   private wsServer?: WebSocket.Server;
-  private statusCode = 200; // default
+  private statusCode = 200;
 
   constructor(private readonly context: vscode.ExtensionContext) {}
 

@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { NetworkAPI, Request } from "./NetworkData";
-import { NetworkNodeApi } from "./NetworkNodeApi";
+import { NetworkNodeApi, Error } from "./NetworkNodeApi";
 import { pushHistory } from "../../vsAPI";
 import { toKVObject } from "../../safer";
 
@@ -9,7 +9,8 @@ export function useNetwork(): NetworkAPI {
   const [responseBody, setResponseBody] = useState<any>(null);
   const [responseHeaders, setResponseHeaders] = useState<Record<string, string>>({});
   const [responseCookies, setResponseCookies] = useState<Record<string, string>>({});
-  const [error, setError] = useState<string | null>(null);
+  const [statusCode, setStatusCode] = useState<number | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   const [requestData, setRequestData] = useState<Request>();
   const [loading, setLoading] = useState(false);
@@ -42,7 +43,7 @@ export function useNetwork(): NetworkAPI {
     setError(null);
     setLoading(true);
     if (!requestData) {
-      setError("Request data is undefined");
+      setError({ message: "Request data is undefined", body: null, headers: {}, status: 400, code: "REQUEST_DATA_UNDEFINED" });
       setLoading(false);
       return;
     }
@@ -84,6 +85,7 @@ export function useNetwork(): NetworkAPI {
           setResponseHeaders(res.headers || {});
           setResponseCookies(parseSetCookie(res.headers?.["set-cookie"]));
           setLoading(false);
+          setStatusCode(res.status || 200);
 
           // Save response to history
           pushHistory({
@@ -99,12 +101,13 @@ export function useNetwork(): NetworkAPI {
           });
           lastSendTime = null;
         },
-        onError: (err: any, status?: number) => {
+        onError: (error: Error) => {
+          console.error("HTTP request error:", error);
           const duration = lastSendTime ? Date.now() - lastSendTime : undefined;
-          setResponseBody({ error: err?.message || err });
-          setResponseHeaders({});
+          setResponseBody(error.body || null);
+          setResponseHeaders(error.headers || {});
           setResponseCookies({});
-          setError(err?.message || String(err));
+          setError(error);
           setLoading(false);
 
           // Save error to history
@@ -115,15 +118,15 @@ export function useNetwork(): NetworkAPI {
             title: `${method.toLowerCase()} ${url} Error`,
             cookies: {},
             headers: {},
-            content: toContentString(err),
+            content: toContentString(error),
             duration,
-            status
+            status: error?.status ? error?.status : 500
           });
         }
       });
     } else if (protocol === "ws") {
       if (!connected) {
-        setError("WebSocket not connected");
+        setError({ message: "WebSocket not connected", body: null, headers: {}, status: 400, code: "WS_NOT_CONNECTED" });
         setLoading(false);
         return;
       }
@@ -153,7 +156,7 @@ export function useNetwork(): NetworkAPI {
     } = opts;
 
     if (protocol === "http") {
-      setError("WebSocket protocol required for WebSocket connection");
+      setError({ message: "WebSocket protocol required for WebSocket connection", body: null, headers: {}, status: 400, code: "WS_PROTOCOL_REQUIRED" });
       return;
     }
 
@@ -207,7 +210,7 @@ export function useNetwork(): NetworkAPI {
         });
       },
       onError: (err: any) => {
-        setError("WebSocket cannot connect");
+        setError({ message: "WebSocket cannot connect", body: null, headers: {}, status: 400, code: "WS_NOT_CONNECTED" });
         setLoading(false);
 
         // Save WS error to history
@@ -240,6 +243,7 @@ export function useNetwork(): NetworkAPI {
   // Add this function to clear response headers, cookies, and body
   const clearRespond = () => {
     setResponseBody(null);
+    setStatusCode(null);
     setResponseHeaders({});
     setResponseCookies({});
   };
@@ -253,6 +257,7 @@ export function useNetwork(): NetworkAPI {
     error,
     responseHeaders,
     responseCookies,
+    statusCode,
     connectWs,
     connecting,
     connected,

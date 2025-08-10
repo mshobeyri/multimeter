@@ -1,4 +1,5 @@
 import { Parameter } from "../../CommonData";
+import { Error } from "./NetworkNodeApi"
 export interface Request {
   url?: string;
   protocol?: "http" | "ws";
@@ -17,11 +18,12 @@ export interface NetworkAPI {
   setRequestData: (data: Request) => void;
   responseBody?: any;
   loading: boolean;
-  error: any;
+  error: Error | null;
 
   // HTTP
   responseHeaders?: Record<string, string>;
   responseCookies?: Record<string, string>;
+  statusCode?: number | null;
 
   // WebSocket 
   connectWs: () => void;

@@ -171,18 +171,18 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     const iface = { ...interfaces[selectedInterfaceIdx] };
     const selectedExample = examples[selectedExampleIdx] || {};
     iface.body = iface.body ? formatBody(iface.format || "json", iface.body || "") : ""
-    
+
     // Load environment variables and then replace all refs
     loadEnvVariables(envVars => {
       // Convert env variables to Parameter[] format
       const envParameters: Parameter[] = safeList(envVars).map(envVar => ({
         [envVar.name]: envVar.value
       }));
-      
+
       let replaced = replaceAllRefs(
-        iface, 
-        api?.inputs ?? [], 
-        selectedExample?.inputs ?? [], 
+        iface,
+        api?.inputs ?? [],
+        selectedExample?.inputs ?? [],
         envParameters
       );
       setBody(replaced.body);
@@ -370,68 +370,111 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           </td>
         </tr>
 
-        {/* Error and Response Section */}
-        {network.error ? (
+        {shouldShowResponseHeaders() && (
+          <KVEditor
+            label="headers"
+            value={network.responseHeaders}
+            onChange={headers => { }}
+            deactivated={true}
+          />
+        )}
+
+        {shouldShowResponseCookies() && (
+          <KVEditor
+            label="cookies"
+            value={network.responseCookies}
+            onChange={cookies => { }}
+            deactivated={true}
+          />
+        )}
+
+        {shouldShowResponse() && (
           <tr>
-            <td colSpan={2} style={{ padding: "32px 0" }}>
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                <div style={{ color: "#d32f2f", fontSize: 12, textAlign: "center" }}>
-                  {network.error}
-                </div>
+            <td className="label">body</td>
+            <td style={{ padding: "8px" }}>
+              <BodyView
+                value={
+                  network.responseBody == null
+                    ? ""
+                    : typeof network.responseBody === "string"
+                      ? network.responseBody
+                      : JSON.stringify(network.responseBody, null, 2)
+                }
+                format={req.format || "json"}
+                mode="live"
+              />
+            </td>
+          </tr>
+        )}
+
+        {shouldShowOutputs() && (
+          <KVEditor
+            label="outputs"
+            value={Object.fromEntries(
+              safeList(Object.entries(outputs)).map(([k, v]) => [k, String(v)])
+            )}
+            onChange={() => { }}
+            deactivated={true}
+          />
+        )}
+        {(network.statusCode || network.error) && (<>
+          <tr>
+            <td colSpan={2} style={{ position: "relative", padding: 0, height: 1 }}>
+              <div className="horizontal-line" />
+            </td>
+          </tr>
+          <tr style={{ position: 'relative', height: 20 }}>
+            <td colSpan={2} style={{ padding: 0, height: 20, position: 'relative' }}>
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 4,
+                  right: 4,
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: '4px',
+                }}
+              >
+                {network.error && (
+                  <div
+                    style={{
+                      backgroundColor: '#d32f2f',
+                      color: 'white',
+                      padding: '2px 4px',
+                      borderRadius: '4px',
+                      fontSize: '10px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      minWidth: '40px',
+                      textAlign: 'center',
+                    }}
+                    title={`${network.error.message || 'Unknown error'}${network.error.status ? ` (Status: ${network.error.status})` : ''
+                      }${network.error.code ? ` (Code: ${network.error.code})` : ''}`}
+                  >
+                    {network.error.status || network.error.code || 'ERROR'}
+                  </div>
+                )}
+                {network.statusCode && (
+                  <div
+                    style={{
+                      backgroundColor: '#4caf50',
+                      color: 'white',
+                      padding: '2px 4px',
+                      borderRadius: '4px',
+                      fontSize: '10px',
+                      fontWeight: 'bold',
+                      minWidth: '40px',
+                      textAlign: 'center',
+                    }}
+                    title="Request successful"
+                  >
+                    {network.statusCode}
+                  </div>
+                )}
               </div>
             </td>
           </tr>
-        ) : (
-          <>
-            {shouldShowResponseHeaders() && (
-              <KVEditor
-                label="headers"
-                value={network.responseHeaders}
-                onChange={headers => { }}
-                deactivated={true}
-              />
-            )}
-
-            {shouldShowResponseCookies() && (
-              <KVEditor
-                label="cookies"
-                value={network.responseCookies}
-                onChange={cookies => { }}
-                deactivated={true}
-              />
-            )}
-
-            {shouldShowResponse() && (
-              <tr>
-                <td className="label">body</td>
-                <td style={{ padding: "8px" }}>
-                  <BodyView
-                    value={
-                      network.responseBody == null
-                        ? ""
-                        : typeof network.responseBody === "string"
-                          ? network.responseBody
-                          : JSON.stringify(network.responseBody, null, 2)
-                    }
-                    format={req.format || "json"}
-                    mode="live"
-                  />
-                </td>
-              </tr>
-            )}
-
-            {shouldShowOutputs() && (
-              <KVEditor
-                label="outputs"
-                value={Object.fromEntries(
-                  safeList(Object.entries(outputs)).map(([k, v]) => [k, String(v)])
-                )}
-                onChange={() => { }}
-                deactivated={true}
-              />
-            )}
-          </>
-        )}
+        </>)}
       </tbody>
     </table>
   );
