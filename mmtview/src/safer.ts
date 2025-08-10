@@ -1,4 +1,3 @@
-
 import {Parameter} from './CommonData';
 
 export function safeList(value: any): any[] {
@@ -30,4 +29,7 @@ export function toKVObject(value: any): Record<string, string> {
   return isNonEmptyList(value) ?
       value.reduce((acc, cur) => ({...acc, ...cur}), {}) :
       {};
+}
+export function toKVList(obj: Record<string, string>): any[] {
+  return Object.entries(obj).map(([key, value]) => ({ [key]: value }));
 }

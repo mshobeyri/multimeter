@@ -6,7 +6,7 @@ import { InterfaceData } from "./APIData";
 import { Protocol, Method, Format } from "../CommonData"
 import { formatBody, formattedBodyToYamlObject } from "../markupConvertor";
 import BodyView from "../components/BodyView";
-import { safeList } from "../safer";
+import { safeList, toKVObject, toKVList } from "../safer";
 
 interface InterfaceEditorProps {
   data: InterfaceData;
@@ -162,8 +162,8 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
         {data.protocol === "http" || (data.headers && Object.keys(data.headers).length > 0) ? (
           <KVEditor
             label="headers"
-            value={data.headers}
-            onChange={headers => onChange({ ...data, headers })}
+            value={toKVObject(data.headers)}
+            onChange={headers => { console.log(headers); onChange({ ...data, headers: toKVList(headers) }) }}
             disabled={data.protocol !== "http"}
           />
         ) : null}

@@ -6,7 +6,7 @@ export interface InterfaceData {
   format: Format;
   url: string;
   method?: Method;
-  headers?: Record<string, string>;
+  headers?: Parameter[];
   body?: string | object;
   query?: Record<string, string>;
   cookies?: Record<string, string>;

@@ -11,7 +11,7 @@ import UrlInput from "../components/UrlInput";
 import { extractOutputs } from "./outputExtractor";
 import ViewSelector, { ViewMode } from "../components/ViewSelector";
 import { saveEnvVariablesFromObject, loadEnvVariables } from "../workspaceStorage";
-import { isList, safeList } from "../safer";
+import { isList, safeList, toKVList, toKVObject } from "../safer";
 
 interface APITestProps {
   api: APIData;
@@ -311,8 +311,8 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         />}
         {shouldShowHeaders() && (< KVEditor
           label="headers"
-          value={req.headers || {}}
-          onChange={headers => updateField("headers", headers)}
+          value={toKVObject(req.headers || {})}
+          onChange={headers => updateField("headers", toKVList(headers))}
         />)}
         {shouldShowCookies() && <KVEditor
           label="cookies"
