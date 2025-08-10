@@ -102,7 +102,6 @@ export function useNetwork(): NetworkAPI {
           lastSendTime = null;
         },
         onError: (error: Error) => {
-          console.error("HTTP request error:", error);
           const duration = lastSendTime ? Date.now() - lastSendTime : undefined;
           setResponseBody(error.body || null);
           setResponseHeaders(error.headers || {});
