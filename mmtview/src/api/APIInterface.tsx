@@ -170,8 +170,8 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
         {data.protocol === "http" || (data.cookies && Object.keys(data.cookies).length > 0) ? (
           <KVEditor
             label="cookies"
-            value={data.cookies}
-            onChange={cookies => onChange({ ...data, cookies })}
+            value={ toKVObject( data.cookies)}
+            onChange={cookies => onChange({ ...data, cookies: toKVList(cookies) })}
             disabled={data.protocol !== "http"}
           />
         ) : null}
