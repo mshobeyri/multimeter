@@ -1,11 +1,13 @@
+import { Parameter } from "../../variableReplacer";
+
 export interface Request {
   url?: string;
   protocol?: "http" | "ws";
   format?: "json" | "xml" | "text";
   method?: string;
-  headers?: Record<string, string>;
-  cookies?: Record<string, string>;
-  query?: Record<string, string>;
+  headers?: Parameter[];
+  cookies?: Parameter[];
+  query?: Parameter[];
   body?: any;
 }
 

@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { NetworkAPI, Request } from "./NetworkData";
 import { NetworkNodeApi } from "./NetworkNodeApi";
 import { pushHistory } from "../../vsAPI";
+import { toKVObject } from "../../safer";
 
 export function useNetwork(): NetworkAPI {
   const [connected, setConnected] = useState(false);
@@ -62,9 +63,9 @@ export function useNetwork(): NetworkAPI {
       method: method.toLowerCase(),
       protocol,
       title: `${method.toLowerCase()} ${url}`,
-      cookies: cookies || {},
-      headers: headers || {},
-      query: query || {},
+      cookies: toKVObject(cookies),
+      headers: toKVObject(headers),
+      query: toKVObject(query),
       content: method === "get" ? "" : toContentString(body),
     });
 
@@ -73,10 +74,10 @@ export function useNetwork(): NetworkAPI {
       NetworkNodeApi.sendHttp({
         url: url ?? "",
         method: method.toLowerCase(),
-        headers,
+        headers: toKVObject(headers),
         body,
-        cookies,
-        query,
+        cookies: toKVObject(cookies),
+        query: toKVObject(query),
         onResponse: (res: any) => {
           const duration = lastSendTime ? Date.now() - lastSendTime : undefined;
           setResponseBody(res.body);

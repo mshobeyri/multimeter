@@ -1,3 +1,4 @@
+import { safeList } from "../../safer";
 import { Request } from "./NetworkData";
 
 export function buildCurlCommand(options: Request): string {
@@ -30,8 +31,11 @@ export function buildCurlCommand(options: Request): string {
 
     let finalUrl = url;
     if (query && Object.keys(query).length > 0) {
-        const queryStr = Object.entries(query)
-            .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+        const queryStr = safeList(query)
+            .map(
+                ([k, v]) =>
+                    `${encodeURIComponent(k)}=${encodeURIComponent(v ?? "")}`
+            )
             .join("&");
         finalUrl += (finalUrl.includes("?") ? "&" : "?") + queryStr;
     }

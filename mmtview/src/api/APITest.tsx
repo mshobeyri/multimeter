@@ -159,7 +159,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
       if (prev !== next) {
         network.setRequestData({
           ...network.requestData,
-          query: query,
+          query: toKVList(query)
         });
       }
     },
@@ -307,7 +307,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         {shouldShowQuery() && <KVEditor
           label="query"
           value={toKVObject(req.query || {})}
-          onChange={query => updateField("query", query)}
+          onChange={query => updateField("query", toKVList(query))}
         />}
         {shouldShowHeaders() && (< KVEditor
           label="headers"
@@ -317,7 +317,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         {shouldShowCookies() && <KVEditor
           label="cookies"
           value={toKVObject(req.cookies || {})}
-          onChange={cookies => updateField("cookies", cookies)}
+          onChange={cookies => updateField("cookies", toKVList(cookies))}
         />}
 
         {/* Only show body editor if method is not get */}
