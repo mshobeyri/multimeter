@@ -30,7 +30,7 @@ export function postmanToAPI(postmanJson: any): APIData[] {
     const url =
         typeof request.url === 'string' ? request.url : request.url?.raw || '';
     const headers = request.header;
-    const query = extractKeyValue(request.url?.query);
+    const query = request.url?.query;
     let body: string|object|undefined = undefined;
     if (request.body?.mode === 'raw') {
       body = request.body.raw;

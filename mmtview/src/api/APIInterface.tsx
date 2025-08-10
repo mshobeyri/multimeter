@@ -58,7 +58,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
       if (prev !== next) {
         onChange({
           ...data,
-          query,
+          query: toKVList(query),
         });
       }
     },
@@ -127,7 +127,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
           <td style={{ padding: "8px" }}>
             <UrlInput
               url={url}
-              query={data.query || {}}
+              query={toKVObject(data.query) || {}}
               onUrlChange={handleUrlChange}
               onQueryChange={handleQueryChange}
             />
@@ -154,7 +154,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
         {data.protocol === "http" || (data.query && Object.keys(data.query).length > 0) ? (
           <KVEditor
             label="query"
-            value={data.query}
+            value={toKVObject(data.query)}
             onChange={handleQueryChange}
             disabled={data.protocol !== "http"}
           />

@@ -8,7 +8,7 @@ export interface InterfaceData {
   method?: Method;
   headers?: Parameter[];
   body?: string | object;
-  query?: Record<string, string>;
+  query?: Parameter[];
   cookies?: Parameter[];
   outputs?: Parameter[];
 }
