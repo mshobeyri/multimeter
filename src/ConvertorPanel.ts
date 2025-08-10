@@ -59,7 +59,6 @@ export function postmanToAPI(postmanJson: any): APIData[] {
     const apiData: any = {
       type: 'api',
       title: req.name || request.url?.raw || '',
-      tags: [],
       interfaces: [{
         name: req.name || request.url?.raw || '',
         protocol,
