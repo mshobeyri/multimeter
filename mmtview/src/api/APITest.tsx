@@ -12,6 +12,7 @@ import { extractOutputs } from "./outputExtractor";
 import ViewSelector, { ViewMode } from "../components/ViewSelector";
 import { saveEnvVariablesFromObject, loadEnvVariables } from "../workspaceStorage";
 import { isList, safeList, toKVList, toKVObject } from "../safer";
+import { Parameter } from "../CommonData";
 
 interface APITestProps {
   api: APIData;
@@ -170,10 +171,24 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     const iface = { ...interfaces[selectedInterfaceIdx] };
     const selectedExample = examples[selectedExampleIdx] || {};
     iface.body = iface.body ? formatBody(iface.format || "json", iface.body || "") : ""
-    replaceAllRefs(iface, api?.inputs ?? [], selectedExample?.inputs ?? [], (replaced) => {
+    
+    // Load environment variables and then replace all refs
+    loadEnvVariables(envVars => {
+      // Convert env variables to Parameter[] format
+      const envParameters: Parameter[] = safeList(envVars).map(envVar => ({
+        [envVar.name]: envVar.value
+      }));
+      
+      let replaced = replaceAllRefs(
+        iface, 
+        api?.inputs ?? [], 
+        selectedExample?.inputs ?? [], 
+        envParameters
+      );
       setBody(replaced.body);
       network.setRequestData(replaced);
     });
+
   }, [api, selectedInterfaceIdx, selectedExampleIdx]);
 
   const updateField = (field: keyof InterfaceData, value: any) => {

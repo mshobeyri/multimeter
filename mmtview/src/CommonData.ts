@@ -19,4 +19,4 @@ export interface MMTFile {
   type: Type;
 };
 
-export type Parameter = { [key: string]: string };
+export type Parameter = { [key: string]: string | number | boolean };
