@@ -58,7 +58,6 @@ const TextEditor: React.FC<TextEditorProps> = ({
         background:rgba(150, 246, 255, 0.27);
         color:rgb(203, 203, 203) !important;
         border-radius: 2px;
-        padding: 0 2px;
       }
     `;
     document.head.appendChild(style);
