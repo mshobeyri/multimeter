@@ -275,7 +275,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           <td style={{ padding: "8px" }}>
             <UrlInput
               url={req.url ?? ""}
-              query={req.query || {}}
+              query={toKVObject(req.query || {})}
               onUrlChange={handleUrlChange}
               onQueryChange={handleQueryChange}
             />
@@ -306,7 +306,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         </div>
         {shouldShowQuery() && <KVEditor
           label="query"
-          value={req.query || {}}
+          value={toKVObject(req.query || {})}
           onChange={query => updateField("query", query)}
         />}
         {shouldShowHeaders() && (< KVEditor
@@ -316,7 +316,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         />)}
         {shouldShowCookies() && <KVEditor
           label="cookies"
-          value={req.cookies || {}}
+          value={toKVObject(req.cookies || {})}
           onChange={cookies => updateField("cookies", cookies)}
         />}
 
