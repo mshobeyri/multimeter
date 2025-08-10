@@ -19,6 +19,7 @@ export interface NetworkAPI {
   responseBody?: any;
   loading: boolean;
   error: Error | null;
+  cancel: () => Promise<void>;
 
   // HTTP
   responseHeaders?: Record<string, string>;

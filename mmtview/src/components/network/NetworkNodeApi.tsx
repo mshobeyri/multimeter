@@ -80,8 +80,16 @@ export const NetworkNodeApi = {
             cookies: options.cookies,
             requestId,
         });
+        return requestId;
     },
-
+    cancel: (requestId: string) => {
+        window.vscode?.postMessage({
+            command: "network",
+            action: "cancel",
+            requestId,
+        });
+        delete pendingHttp[requestId];
+    },
     connectWs: (options: WsOptions) => {
         const wsId = generateRequestId();
         window.vscode?.postMessage({
@@ -106,6 +114,7 @@ export const NetworkNodeApi = {
             wsId: options.wsId,
             data: options.data,
         });
+        return options.wsId;
     },
 
     disconnectWs: (options: DisconnectWsOptions) => {

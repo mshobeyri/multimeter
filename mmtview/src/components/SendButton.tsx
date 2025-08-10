@@ -1,11 +1,37 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 
 const SendButton: React.FC<{
   onClick: () => void;
+  onCancel?: () => void;
   disabled?: boolean;
   loading?: boolean;
-}> = ({ onClick, disabled, loading }) => {
+}> = ({ onClick, onCancel, disabled, loading }) => {
   const [hover, setHover] = useState(false);
+  const [showCancel, setShowCancel] = useState(false);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+
+    if (loading) {
+      timer = setTimeout(() => {
+        setShowCancel(true);
+      }, 1500);
+    } else {
+      setShowCancel(false);
+    }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [loading]);
+
+  const handleClick = () => {
+    if (showCancel && onCancel) {
+      onCancel();
+    } else if (!disabled) {
+      onClick();
+    }
+  };
 
   return (
     <button
@@ -16,9 +42,9 @@ const SendButton: React.FC<{
         transform: "translateY(-50%)",
         background: disabled
           ? "#7a7979"
-          : hover
-            ? "#2e7d32"
-            : "#43a047",
+          : showCancel
+            ? (hover ? "#c62828" : "#d32f2f")
+            : (hover ? "#2e7d32" : "#43a047"),
         color: "#fff",
         border: "none",
         borderRadius: "50%",
@@ -30,10 +56,11 @@ const SendButton: React.FC<{
         cursor: disabled ? "not-allowed" : "pointer",
         boxShadow: "0 2px 6px #0001",
         padding: 0,
-        outline: "none"
+        outline: "none",
+        transition: "background-color 0.5s ease"
       }}
-      title="Send"
-      onClick={disabled ? undefined : onClick}
+      title={showCancel ? "Cancel" : "Send"}
+      onClick={handleClick}
       disabled={disabled}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
@@ -81,12 +108,12 @@ const SendButton: React.FC<{
         </span>
       )}
       <span
-        className="codicon codicon-send"
+        className={`codicon ${showCancel ? "codicon-close" : "codicon-send"}`}
         style={{
           fontSize: "16px",
           zIndex: 2,
           color: "#fff",
-          marginLeft: "4px"
+          marginLeft: showCancel ? "0" : "4px"
         }}
       ></span>
     </button>

@@ -207,6 +207,11 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     await network.send();
   };
 
+  const handleCancel = async () => {
+    network.clearRespond();
+    await network.cancel();
+  };
+
   const handleConnect = () => {
     network.clearRespond();
     if (network.connected) {
@@ -364,6 +369,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
             )}
             <SendButton
               onClick={handleSend}
+              onCancel={handleCancel}
               disabled={req.protocol === "ws" && !network.connected}
               loading={network.loading}
             />
@@ -419,7 +425,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         )}
         {(network.statusCode || network.error) && (<>
           <tr>
-            <td colSpan={2} style={{ position: "relative", padding: 0, height: 1 }}>
+            <td colSpan={2} style={{ position: "relative", padding: 4, height: 1 }}>
               <div className="horizontal-line" />
             </td>
           </tr>

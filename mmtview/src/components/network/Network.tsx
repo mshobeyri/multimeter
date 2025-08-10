@@ -13,9 +13,12 @@ export function useNetwork(): NetworkAPI {
   const [error, setError] = useState<Error | null>(null);
 
   const [requestData, setRequestData] = useState<Request>();
+
   const [loading, setLoading] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [wsId, setWsId] = useState<string | null>(null);
+
+  let lastRequestID = "";
 
   const parseSetCookie = (setCookie: string[] | string | undefined): Record<string, string> => {
     if (!setCookie) return {};
@@ -72,7 +75,7 @@ export function useNetwork(): NetworkAPI {
 
     lastSendTime = Date.now();
     if (protocol === "http") {
-      NetworkNodeApi.sendHttp({
+      lastRequestID = NetworkNodeApi.sendHttp({
         url: url ?? "",
         method: method.toLowerCase(),
         headers: toKVObject(headers),
@@ -139,11 +142,19 @@ export function useNetwork(): NetworkAPI {
         content: toContentString(body)
       });
 
-      NetworkNodeApi.sendWs({
+      lastRequestID = NetworkNodeApi.sendWs({
         wsId: wsId || "",
         data: toContentString(body),
       });
     }
+  };
+  const cancel = async () => {
+    await NetworkNodeApi.cancel(lastRequestID);
+    setLoading(false);
+    setResponseBody(null);
+    setResponseHeaders({});
+    setResponseCookies({});
+    setStatusCode(null);
   };
 
   const connectWs = () => {
@@ -254,6 +265,7 @@ export function useNetwork(): NetworkAPI {
     responseBody,
     loading,
     error,
+    cancel,
     responseHeaders,
     responseCookies,
     statusCode,
