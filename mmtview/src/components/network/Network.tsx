@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { use, useRef, useState } from "react";
 import { NetworkAPI, Request } from "./NetworkData";
 import { NetworkNodeApi, Error } from "./NetworkNodeApi";
 import { pushHistory } from "../../vsAPI";
@@ -20,7 +20,7 @@ export function useNetwork(): NetworkAPI {
 
   const [lastDuration, setLastDuration] = useState<number>(-1);
 
-  let lastRequestID = "";
+  let lastRequestID = useRef<string | null>(null);
 
   const parseSetCookie = (setCookie: string[] | string | undefined): Record<string, string> => {
     if (!setCookie) return {};
@@ -46,6 +46,9 @@ export function useNetwork(): NetworkAPI {
 
   const send = async () => {
     setError(null);
+    if (loading) {
+      return;
+    }
     setLoading(true);
     if (!requestData) {
       setError({ message: "Request data is undefined", body: null, headers: {}, status: 400, code: "REQUEST_DATA_UNDEFINED" });
@@ -77,7 +80,7 @@ export function useNetwork(): NetworkAPI {
 
     lastSendTime = Date.now();
     if (protocol === "http") {
-      lastRequestID = NetworkNodeApi.sendHttp({
+      lastRequestID.current = NetworkNodeApi.sendHttp({
         url: url ?? "",
         method: method.toLowerCase(),
         headers: toKVObject(headers),
@@ -147,14 +150,14 @@ export function useNetwork(): NetworkAPI {
         content: toContentString(body)
       });
 
-      lastRequestID = NetworkNodeApi.sendWs({
+      lastRequestID.current = NetworkNodeApi.sendWs({
         wsId: wsId || "",
         data: toContentString(body),
       });
     }
   };
   const cancel = async () => {
-    await NetworkNodeApi.cancel(lastRequestID);
+    await NetworkNodeApi.cancel(lastRequestID.current ?? "");
     setLoading(false);
     setResponseBody(null);
     setResponseHeaders({});
@@ -280,6 +283,6 @@ export function useNetwork(): NetworkAPI {
     connecting,
     connected,
     closeWs,
-    clearRespond, // <-- expose here
+    clearRespond,
   };
 }

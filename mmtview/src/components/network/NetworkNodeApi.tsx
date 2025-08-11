@@ -83,11 +83,6 @@ export const NetworkNodeApi = {
         return requestId;
     },
     cancel: (requestId: string) => {
-        window.vscode?.postMessage({
-            command: "network",
-            action: "cancel",
-            requestId,
-        });
         delete pendingHttp[requestId];
     },
     connectWs: (options: WsOptions) => {
@@ -134,12 +129,16 @@ window.addEventListener("message", (event: MessageEvent) => {
     // HTTP response
     if (msg.action === "http-response" && typeof msg.data !== "undefined") {
         const cb = pendingHttp[msg.requestId];
-        if (cb && typeof cb.onResponse === "function") cb.onResponse(msg.data);
-        delete pendingHttp[msg.requestId];
+        if (cb && typeof cb.onResponse === "function") {
+            cb.onResponse(msg.data);
+            delete pendingHttp[msg.requestId];
+        }
     } else if (msg.action === "http-error" && typeof msg.data !== "undefined") {
         const cb = pendingHttp[msg.requestId];
-        if (cb && typeof cb.onError === "function") cb.onError(msg.data);
-        delete pendingHttp[msg.requestId];
+        if (cb && typeof cb.onError === "function") {
+            cb.onError(msg.data);
+            delete pendingHttp[msg.requestId];
+        }
     }
 
     // WebSocket events

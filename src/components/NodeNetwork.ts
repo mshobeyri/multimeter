@@ -16,6 +16,10 @@ export type NetworkMessage =|{
   requestId: string;
 }
 |{
+  command: 'network', action: 'cancel';
+  requestId: string;
+}
+|{
   command: 'network', action: 'ws-connect';
   url: string;
   wsId: string
@@ -168,7 +172,7 @@ export function handleNetworkMessage(
             withCredentials: true,
             headers: reqHeaders,
             httpsAgent,      // Add certificate-aware HTTPS agent
-            timeout: 30000,  // 30 second timeout
+            timeout: 5000,  // 30 second timeout
           };
 
           const response = await axios.request(request);
@@ -232,7 +236,7 @@ export function handleNetworkMessage(
         }
       })();
       break;
-
+      
     case 'ws-connect':
       try {
         const {url, wsId} = message;
