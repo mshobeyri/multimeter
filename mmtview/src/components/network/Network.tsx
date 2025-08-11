@@ -18,6 +18,8 @@ export function useNetwork(): NetworkAPI {
   const [connecting, setConnecting] = useState(false);
   const [wsId, setWsId] = useState<string | null>(null);
 
+  const [lastDuration, setLastDuration] = useState<number>(-1);
+
   let lastRequestID = "";
 
   const parseSetCookie = (setCookie: string[] | string | undefined): Record<string, string> => {
@@ -83,7 +85,8 @@ export function useNetwork(): NetworkAPI {
         cookies: toKVObject(cookies),
         query: toKVObject(query),
         onResponse: (res: any) => {
-          const duration = lastSendTime ? Date.now() - lastSendTime : undefined;
+          const duration = lastSendTime ? Date.now() - lastSendTime : -1;
+          setLastDuration(duration);
           setResponseBody(res.body);
           setResponseHeaders(res.headers || {});
           setResponseCookies(parseSetCookie(res.headers?.["set-cookie"]));
@@ -91,6 +94,7 @@ export function useNetwork(): NetworkAPI {
           setStatusCode(res.status || 200);
 
           // Save response to history
+          console.log("Response received:", duration); // Use the calculated duration, not state
           pushHistory({
             type: "recv",
             method,
@@ -99,13 +103,14 @@ export function useNetwork(): NetworkAPI {
             cookies: parseSetCookie(res.headers?.["set-cookie"]),
             headers: res.headers || {},
             content: toContentString(res.body),
-            duration,
+            duration: duration, // Use calculated duration
             status: res.status || 200,
           });
           lastSendTime = null;
         },
         onError: (error: Error) => {
-          const duration = lastSendTime ? Date.now() - lastSendTime : undefined;
+          const duration = lastSendTime ? Date.now() - lastSendTime : -1;
+          setLastDuration(duration);
           setResponseBody(error.body || null);
           setResponseHeaders(error.headers || {});
           setResponseCookies({});
@@ -121,7 +126,7 @@ export function useNetwork(): NetworkAPI {
             cookies: {},
             headers: {},
             content: toContentString(error),
-            duration,
+            duration: duration, // Use calculated duration
             status: error?.status ? error?.status : 500
           });
         }
@@ -252,6 +257,7 @@ export function useNetwork(): NetworkAPI {
 
   // Add this function to clear response headers, cookies, and body
   const clearRespond = () => {
+    setLastDuration(-1);
     setResponseBody(null);
     setStatusCode(null);
     setResponseHeaders({});
@@ -265,6 +271,7 @@ export function useNetwork(): NetworkAPI {
     responseBody,
     loading,
     error,
+    duration: lastDuration,
     cancel,
     responseHeaders,
     responseCookies,

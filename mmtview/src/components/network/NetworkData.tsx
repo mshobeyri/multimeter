@@ -19,6 +19,7 @@ export interface NetworkAPI {
   responseBody?: any;
   loading: boolean;
   error: Error | null;
+  duration: number;
   cancel: () => Promise<void>;
 
   // HTTP

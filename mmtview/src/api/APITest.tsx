@@ -441,6 +441,23 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                   gap: '4px',
                 }}
               >
+
+                {network.duration >= 0 && (
+                  <div
+                    style={{
+                      backgroundColor: '#e0e0e0',
+                      color: '#333',
+                      padding: '2px 4px',
+                      borderRadius: '4px',
+                      fontSize: '10px',
+                      fontWeight: 'bold',
+                      minWidth: '40px',
+                    }}
+                  >
+                    {network.duration}ms
+                  </div>
+                )}
+
                 {network.error && (
                   <div
                     style={{

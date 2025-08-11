@@ -132,14 +132,11 @@ window.addEventListener("message", (event: MessageEvent) => {
     if (!msg || !msg.command || msg.command != "network") return;
 
     // HTTP response
-    const cb = pendingHttp[msg.requestId];
     if (msg.action === "http-response" && typeof msg.data !== "undefined") {
         const cb = pendingHttp[msg.requestId];
         if (cb && typeof cb.onResponse === "function") cb.onResponse(msg.data);
         delete pendingHttp[msg.requestId];
-    }
-    else if (msg.action === "http-error" && typeof msg.data !== "undefined") {
-        console.error("HTTP error:", msg.data, pendingHttp[msg.requestId]);
+    } else if (msg.action === "http-error" && typeof msg.data !== "undefined") {
         const cb = pendingHttp[msg.requestId];
         if (cb && typeof cb.onError === "function") cb.onError(msg.data);
         delete pendingHttp[msg.requestId];
