@@ -200,7 +200,6 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   }, [body]);
 
   const handleSend = async () => {
-    network.clearRespond();
     await network.send();
   };
 
@@ -371,7 +370,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
             />
           </td>
         </tr>
-
+        
         {shouldShowResponseHeaders() && (
           <KVEditor
             label="headers"
