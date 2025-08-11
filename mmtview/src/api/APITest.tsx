@@ -370,7 +370,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
             />
           </td>
         </tr>
-        
+
         {shouldShowResponseHeaders() && (
           <KVEditor
             label="headers"
@@ -470,7 +470,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                     {network.error.status || network.error.code || 'ERROR'}
                   </div>
                 )}
-                {network.statusCode && (
+                {network.statusCode && network.statusCode > 0 && (
                   <div
                     style={{
                       backgroundColor: '#4caf50',

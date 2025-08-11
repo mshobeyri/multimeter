@@ -94,7 +94,7 @@ export function useNetwork(): NetworkAPI {
           setResponseHeaders(res.headers || {});
           setResponseCookies(parseSetCookie(res.headers?.["set-cookie"]));
           setLoading(false);
-          setStatusCode(res.status || 200);
+          setStatusCode(res.status || -1);
 
           // Save response to history
           console.log("Response received:", duration); // Use the calculated duration, not state
@@ -107,7 +107,7 @@ export function useNetwork(): NetworkAPI {
             headers: res.headers || {},
             content: toContentString(res.body),
             duration: duration, // Use calculated duration
-            status: res.status || 200,
+            status: res.status || -1,
           });
           lastSendTime = null;
         },
