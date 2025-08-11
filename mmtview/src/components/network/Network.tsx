@@ -95,9 +95,6 @@ export function useNetwork(): NetworkAPI {
           setResponseCookies(parseSetCookie(res.headers?.["set-cookie"]));
           setLoading(false);
           setStatusCode(res.status || -1);
-
-          // Save response to history
-          console.log("Response received:", duration); // Use the calculated duration, not state
           pushHistory({
             type: "recv",
             method,
