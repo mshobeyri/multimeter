@@ -445,13 +445,11 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                 {network.duration >= 0 && (
                   <div
                     style={{
-                      backgroundColor: '#e0e0e0',
-                      color: '#333',
                       padding: '2px 4px',
                       borderRadius: '4px',
                       fontSize: '10px',
                       fontWeight: 'bold',
-                      minWidth: '40px',
+                      minWidth: '20px',
                     }}
                   >
                     {network.duration}ms
@@ -468,7 +466,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                       fontSize: '10px',
                       fontWeight: 'bold',
                       cursor: 'pointer',
-                      minWidth: '40px',
+                      minWidth: '20px',
                       textAlign: 'center',
                     }}
                     title={`${network.error.message || 'Unknown error'}${network.error.status ? ` (Status: ${network.error.status})` : ''
