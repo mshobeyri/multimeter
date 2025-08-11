@@ -11,7 +11,7 @@ import UrlInput from "../components/UrlInput";
 import { extractOutputs } from "./outputExtractor";
 import ViewSelector, { ViewMode } from "../components/ViewSelector";
 import { saveEnvVariablesFromObject, loadEnvVariables } from "../workspaceStorage";
-import { isList, safeList, toKVList, toKVObject } from "../safer";
+import { isList, isNonEmptyList, safeList, toKVList, toKVObject } from "../safer";
 import { Parameter } from "../CommonData";
 
 interface APITestProps {
@@ -99,46 +99,45 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   // Update outputs when response changes
   useEffect(() => {
     if (
-      network.responseBody ||
-      network.responseHeaders ||
-      network.responseCookies
+      (!isNonEmptyList(api.outputs)) || (
+        (!network.responseBody || network.responseBody == "") &&
+        (!network.responseHeaders || Object.keys(network.responseHeaders).length === 0) &&
+        (!network.responseCookies || Object.keys(network.responseCookies).length === 0))
     ) {
-      const iface = { ...interfaces[selectedInterfaceIdx] };
-      const ifaceOutputsDef = safeList(iface.outputs).reduce((acc, cur) => ({ ...acc, ...cur }), {});
-
-      // Get all API output keys
-      const apiOutputsDef = safeList(api.outputs).reduce((acc, cur) => ({ ...acc, ...cur }), {});
-      const apiOutputKeys = Object.keys(apiOutputsDef);
-
-      // Extract outputs for interface-defined keys only
-      const ifaceOutputsExtracted = extractOutputs({
-        type: network.responseHeaders?.["Content-Type"] ||
-          network.responseHeaders?.["content-type"]?.includes("xml") ||
-          (network.responseBody && network.responseBody.startsWith && network.responseBody.startsWith("<")) ? "xml" : "json",
-        body: network.responseBody,
-        headers: network.responseHeaders || {},
-        cookies: network.responseCookies || {}
-      }, ifaceOutputsDef);
-
-      // Create final outputs with all API keys, filled with interface values where available
-      const finalOutputs: Record<string, string | number | boolean> = {};
-
-      apiOutputKeys.forEach(key => {
-        if (key in ifaceOutputsExtracted) {
-          finalOutputs[key] = ifaceOutputsExtracted[key];
-        } else {
-          finalOutputs[key] = ""; // Empty value for keys not defined in interface
-        }
-      });
-
-      setOutputs(finalOutputs);
-
-      // Handle setenv - set environment variables based on API configuration
-      handleSetEnvVariables(api, finalOutputs);
-
-    } else {
-      setOutputs({});
+      return;
     }
+    const iface = { ...interfaces[selectedInterfaceIdx] };
+    const ifaceOutputsDef = safeList(iface.outputs).reduce((acc, cur) => ({ ...acc, ...cur }), {});
+
+    // Get all API output keys
+    const apiOutputsDef = safeList(api.outputs).reduce((acc, cur) => ({ ...acc, ...cur }), {});
+    const apiOutputKeys = Object.keys(apiOutputsDef);
+
+    // Extract outputs for interface-defined keys only
+    const ifaceOutputsExtracted = extractOutputs({
+      type: network.responseHeaders?.["Content-Type"] ||
+        network.responseHeaders?.["content-type"]?.includes("xml") ||
+        (network.responseBody && network.responseBody.startsWith && network.responseBody.startsWith("<")) ? "xml" : "json",
+      body: network.responseBody,
+      headers: network.responseHeaders || {},
+      cookies: network.responseCookies || {}
+    }, ifaceOutputsDef);
+
+    // Create final outputs with all API keys, filled with interface values where available
+    const finalOutputs: Record<string, string | number | boolean> = {};
+
+    apiOutputKeys.forEach(key => {
+      if (key in ifaceOutputsExtracted) {
+        finalOutputs[key] = ifaceOutputsExtracted[key];
+      } else {
+        finalOutputs[key] = ""; // Empty value for keys not defined in interface
+      }
+    });
+
+    setOutputs(finalOutputs);
+
+    // Handle setenv - set environment variables based on API configuration
+    handleSetEnvVariables(api, finalOutputs);
   }, [network.responseBody, network.responseHeaders, network.responseCookies, api.outputs, interfaces, selectedInterfaceIdx, api.setenv]);
 
   // Only call onChange if url value actually changed
