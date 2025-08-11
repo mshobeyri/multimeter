@@ -107,6 +107,13 @@
               }
             }
           }
+        },
+        "multimeter.network.timeout": {
+          "type": "number",
+          "default": 30000,
+          "description": "HTTP request timeout in milliseconds",
+          "minimum": 1000,
+          "maximum": 300000
         }
       }
     },

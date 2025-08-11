@@ -49,19 +49,20 @@ interface ClientCertificate {
   enabled: boolean;
 }
 
-function getCertificateConfiguration() {
+function getConfiguration() {
   const config = vscode.workspace.getConfiguration('multimeter');
 
   return {
     ca: config.get<CaCertificate>(
         'certificates.ca', {enabled: false, certPath: ''}),
     clients: config.get<ClientCertificate[]>('certificates.clients', []),
-    sslValidation: config.get<boolean>('enableCertificateValidation', true)
+    sslValidation: config.get<boolean>('enableCertificateValidation', true),
+    timeout: config.get<number>('network.timeout', 30000)
   };
 }
 
 function createHttpsAgentWithCertificates(hostname: string) {
-  const certConfig = getCertificateConfiguration();
+  const certConfig = getConfiguration();
 
   const agentOptions:
       https.AgentOptions = {rejectUnauthorized: certConfig.sslValidation};
@@ -99,7 +100,7 @@ function createHttpsAgentWithCertificates(hostname: string) {
 }
 
 function createWebSocketOptionsWithCertificates(hostname: string) {
-  const certConfig = getCertificateConfiguration();
+  const certConfig = getConfiguration();
 
   const wsOptions: any = {rejectUnauthorized: certConfig.sslValidation};
 
@@ -159,6 +160,9 @@ export function handleNetworkMessage(
                 Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ');
           }
 
+          // Get configuration including timeout
+          const config = getConfiguration();
+
           // Create HTTPS agent with certificates for HTTPS requests
           const httpsAgent = parsedUrl.protocol === 'https:' ?
               createHttpsAgentWithCertificates(hostname) :
@@ -168,11 +172,11 @@ export function handleNetworkMessage(
             url: url,
             method,
             data: body,
-            params: query,  // axios uses 'params' for query parameters
+            params: query,
             withCredentials: true,
             headers: reqHeaders,
-            httpsAgent,      // Add certificate-aware HTTPS agent
-            timeout: 5000,  // 30 second timeout
+            httpsAgent,
+            timeout: config.timeout,  // Use timeout from config
           };
 
           const response = await axios.request(request);
@@ -345,7 +349,7 @@ export function getCertificateStatusForUrl(url: string) {
   try {
     const parsedUrl = new URL(url);
     const hostname = parsedUrl.hostname;
-    const certConfig = getCertificateConfiguration();
+    const certConfig = getConfiguration();
 
     const hasMatchingClientCert = certConfig.clients.some(
         cert => cert.enabled &&
