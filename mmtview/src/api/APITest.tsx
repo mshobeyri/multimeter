@@ -171,9 +171,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     const selectedExample = examples[selectedExampleIdx] || {};
     iface.body = iface.body ? formatBody(iface.format || "json", iface.body || "") : ""
 
-    // Load environment variables and then replace all refs
     loadEnvVariables(envVars => {
-      // Convert env variables to Parameter[] format
       const envParameters: Parameter[] = safeList(envVars).map(envVar => ({
         [envVar.name]: envVar.value
       }));
@@ -256,7 +254,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
               >
                 <option value="default">defaults</option>
                 {safeList(examples)
-                  .filter(ex => ex && typeof ex === 'object') // Filter out invalid entries
+                  .filter(ex => ex && typeof ex === 'object')
                   .map((ex, idx) => (
                     <option key={ex?.name || idx} value={idx}>
                       {ex?.name || `Example ${idx + 1}`}
@@ -339,7 +337,6 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           onChange={cookies => updateField("cookies", toKVList(cookies))}
         />}
 
-        {/* Only show body editor if method is not get */}
         {shouldShowBody() && (
           <tr>
             <td className="label">body</td>
