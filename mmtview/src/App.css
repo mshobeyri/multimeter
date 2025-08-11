@@ -214,34 +214,37 @@ button:focus {
 
 /* Tab view element styles */
 .tab-button {
-  padding: 8px 24px;
+  padding: 8px 12px;
   border: none;
-  border-bottom: 2px solid transparent;
-  background: none;
-  color: inherit;
-  font-weight: normal;
+  background: transparent;
+  color: var(--vscode-foreground);
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: var(--vscode-editor-font-family, inherit);
-  font-size: 0.8rem;
-  transition: border-color 0.2s, font-weight 0.2s;
-}
-
-.tab-button.active {
-  border-bottom: 2px solid #0e639c;
-  font-weight: bold;
-  background: none;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  min-width: fit-content;
 }
 
 .tab-button:hover {
-  background-color: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1));
+  background: var(--vscode-button-hoverBackground);
+}
+
+.tab-button.active {
+  border-bottom-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
 }
 
 .tab-button-icon {
   font-size: 16px;
-  color: var(--vscode-icon-foreground, #d4d4d4);
+  flex-shrink: 0;
+}
+
+/* When showing icons only, reduce padding */
+.tab-button:has(.tab-button-icon):not(:has(+ *)) {
+  padding: 8px;
 }
 
 /* Tab view element styles */

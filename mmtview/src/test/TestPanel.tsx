@@ -63,11 +63,37 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
   const [tab, setTab] = useState<"overview" | "flow" | "examples">(
     () => (localStorage.getItem(LAST_TAB_KEY) as "overview" | "flow" | "examples") || "overview"
   );
+  const [showIconsOnly, setShowIconsOnly] = useState(false);
+  const tabContainerRef = useRef<HTMLDivElement>(null);
 
   // Save tab selection to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem(LAST_TAB_KEY, tab);
   }, [tab]);
+
+  useEffect(() => {
+    const checkTabWidth = () => {
+      if (!tabContainerRef.current) return;
+      
+      const container = tabContainerRef.current;
+      const containerWidth = container.clientWidth;
+      
+      // Calculate approximate width needed for full text tabs
+      // Rough estimate: 120px per tab for text + icon
+      const fullTextWidth = 3 * 120;
+      
+      setShowIconsOnly(containerWidth < fullTextWidth);
+    };
+
+    checkTabWidth();
+    
+    const resizeObserver = new ResizeObserver(checkTabWidth);
+    if (tabContainerRef.current) {
+      resizeObserver.observe(tabContainerRef.current);
+    }
+
+    return () => resizeObserver.disconnect();
+  }, []);
 
   // Parse YAML to test when content changes (but not if we just updated content from UI)
   useEffect(() => {
@@ -93,27 +119,33 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
     <div className="panel">
       <div className="panel-box">
         {/* Tab Bar */}
-        <div style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 16 }}>
+        <div 
+          ref={tabContainerRef}
+          style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 16 }}
+        >
           <button
             onClick={() => setTab("overview")}
             className={`tab-button ${tab === "overview" ? "active" : ""}`}
+            title={showIconsOnly ? "Overview" : undefined}
           >
             <span className="codicon codicon-search tab-button-icon"></span>
-            Overview
+            {!showIconsOnly && "Overview"}
           </button>
           <button
             onClick={() => setTab("flow")}
             className={`tab-button ${tab === "flow" ? "active" : ""}`}
+            title={showIconsOnly ? "Flow" : undefined}
           >
             <span className="codicon codicon-list-tree tab-button-icon"></span>
-            Flow
+            {!showIconsOnly && "Flow"}
           </button>
           <button
             onClick={() => setTab("examples")}
             className={`tab-button ${tab === "examples" ? "active" : ""}`}
+            title={showIconsOnly ? "Examples" : undefined}
           >
             <span className="codicon codicon-lightbulb tab-button-icon"></span>
-            Examples
+            {!showIconsOnly && "Examples"}
           </button>
         </div>
         {/* Tab Content */}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import parseYaml from "../markupConvertor";
 import EnvironmentEnv from "./EnvironmentEnv";
 import EnvironmentEdit from "./EnvironmentEdit";
@@ -19,6 +19,8 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   const [tab, setTab] = useState<"environment" | "edit" | "view">(
     () => (localStorage.getItem(LAST_ENV_TAB_KEY) as "environment" | "edit" | "view") || "environment"
   );
+  const [showIconsOnly, setShowIconsOnly] = useState(false);
+  const tabContainerRef = useRef<HTMLDivElement>(null);
   const [variables, setVariables] = useState<ComboTablePair[]>([]);
   const [presets, setPresets] = useState<ComboTablePair[]>([]);
   const [presetData, setPresetData] = useState<any>({});
@@ -29,6 +31,30 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   useEffect(() => {
     localStorage.setItem(LAST_ENV_TAB_KEY, tab);
   }, [tab]);
+
+  useEffect(() => {
+    const checkTabWidth = () => {
+      if (!tabContainerRef.current) return;
+      
+      const container = tabContainerRef.current;
+      const containerWidth = container.clientWidth;
+      
+      // Calculate approximate width needed for full text tabs
+      // Rough estimate: 140px per tab for text + icon
+      const fullTextWidth = 3 * 140;
+      
+      setShowIconsOnly(containerWidth < fullTextWidth);
+    };
+
+    checkTabWidth();
+    
+    const resizeObserver = new ResizeObserver(checkTabWidth);
+    if (tabContainerRef.current) {
+      resizeObserver.observe(tabContainerRef.current);
+    }
+
+    return () => resizeObserver.disconnect();
+  }, []);
 
   // Add event listener for environment variable refresh messages
   useEffect(() => {
@@ -270,27 +296,33 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     <div className="panel">
       <div className="panel-box">
         {/* Tab Bar */}
-        <div style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 16 }}>
+        <div 
+          ref={tabContainerRef}
+          style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 16 }}
+        >
           <button
             onClick={() => setTab("environment")}
             className={`tab-button ${tab === "environment" ? "active" : ""}`}
+            title={showIconsOnly ? "Environment" : undefined}
           >
             <span className="codicon codicon-globe tab-button-icon"></span>
-            Environment
+            {!showIconsOnly && "Environment"}
           </button>
           <button
             onClick={() => setTab("edit")}
             className={`tab-button ${tab === "edit" ? "active" : ""}`}
+            title={showIconsOnly ? "Edit" : undefined}
           >
             <span className="codicon codicon-edit tab-button-icon"></span>
-            Edit
+            {!showIconsOnly && "Edit"}
           </button>
           <button
             onClick={() => setTab("view")}
             className={`tab-button ${tab === "view" ? "active" : ""}`}
+            title={showIconsOnly ? "View Current Vars" : undefined}
           >
             <span className="codicon codicon-eye tab-button-icon"></span>
-            View Current Vars
+            {!showIconsOnly && "View Current Vars"}
           </button>
         </div>
         {tab === "environment" && (

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import APIOverview from "./APIOverview";
 import InterfaceEditor from "./APIInterface";
 import APIExample from "./APIExample";
@@ -14,14 +14,37 @@ interface APIEditorProps {
 }
 
 const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
-  // Restore last selected tab from localStorage, default to "test"
   const [tab, setTab] = useState<"overview" | "interfaces" | "examples" | "test">(
     () => (localStorage.getItem(LAST_API_TAB_KEY) as "overview" | "interfaces" | "examples" | "test") || "test"
   );
+  const [showIconsOnly, setShowIconsOnly] = useState(false);
+  const tabContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     localStorage.setItem(LAST_API_TAB_KEY, tab);
   }, [tab]);
+
+  useEffect(() => {
+    const checkTabWidth = () => {
+      if (!tabContainerRef.current) return;
+      
+      const container = tabContainerRef.current;
+      const containerWidth = container.clientWidth;
+
+      const fullTextWidth = 4 * 100;
+      
+      setShowIconsOnly(containerWidth < fullTextWidth);
+    };
+
+    checkTabWidth();
+    
+    const resizeObserver = new ResizeObserver(checkTabWidth);
+    if (tabContainerRef.current) {
+      resizeObserver.observe(tabContainerRef.current);
+    }
+
+    return () => resizeObserver.disconnect();
+  }, []);
 
   // Helper to update top-level fields
   const update = (patch: Partial<APIData>) => setAPI({ ...api, ...patch });
@@ -73,34 +96,41 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
   return (
     <div className="panel-box">
       {/* Tab Bar */}
-      <div style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 16 }}>
+      <div 
+        ref={tabContainerRef}
+        style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 16 }}
+      >
         <button
           onClick={() => setTab("overview")}
           className={`tab-button ${tab === "overview" ? "active" : ""}`}
+          title={showIconsOnly ? "Overview" : undefined}
         >
           <span className="codicon codicon-search tab-button-icon"></span>
-          Overview
+          {!showIconsOnly && "Overview"}
         </button>
         <button
           onClick={() => setTab("interfaces")}
           className={`tab-button ${tab === "interfaces" ? "active" : ""}`}
+          title={showIconsOnly ? "Interfaces" : undefined}
         >
           <span className="codicon codicon-symbol-interface tab-button-icon"></span>
-          Interfaces
+          {!showIconsOnly && "Interfaces"}
         </button>
         <button
           onClick={() => setTab("examples")}
           className={`tab-button ${tab === "examples" ? "active" : ""}`}
+          title={showIconsOnly ? "Examples" : undefined}
         >
           <span className="codicon codicon-lightbulb tab-button-icon"></span>
-          Examples
+          {!showIconsOnly && "Examples"}
         </button>
         <button
           onClick={() => setTab("test")}
           className={`tab-button ${tab === "test" ? "active" : ""}`}
+          title={showIconsOnly ? "Test" : undefined}
         >
           <span className="codicon codicon-play tab-button-icon"></span>
-          Test
+          {!showIconsOnly && "Test"}
         </button>
       </div>
 
