@@ -1,6 +1,6 @@
 export const GeneralSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
-    type: { type: 'object', enum: ['api', 'env', 'var'] },
+    type: { type: 'object', enum: ['api', 'env', 'var'], description: 'Type of mmt file, must be one of: api, env, var' },
 }
 
 export const APISchema = {
@@ -8,9 +8,9 @@ export const APISchema = {
     type: 'object',
     required: ['type'],
     properties: {
-        type: { type: 'string', enum: ['api'] },
-        title: { type: 'string' },
-        tags: { type: 'array', items: { type: 'string' } },
+        type: { type: 'string', enum: ['api'], description: 'To define an API schema' },
+        title: { type: 'string', description: 'The title of the API' },
+        tags: { type: 'array', items: { type: 'string' }, description: 'Tags for the API, helps with organization and searchability' },
         description: { type: 'string' },
         import: { type: 'array', items: { type: 'object', additionalProperties: { type: 'string' } } },
         inputs: {
@@ -22,7 +22,7 @@ export const APISchema = {
                         { type: 'string' },
                         { type: 'number' },
                         { type: 'boolean' },
-                        { type: 'null' } // 'undefined' is not a valid JSON type, use 'null' for missing values
+                        { type: 'null' }
                     ]
                 }
             }
@@ -37,6 +37,17 @@ export const APISchema = {
                         { type: 'number' },
                         { type: 'boolean' },
                         { type: 'null' }
+                    ]
+                }
+            }
+        },
+        setenv: {
+            type: 'array',
+            items: {
+                type: 'object',
+                additionalProperties: {
+                    anyOf: [
+                        { type: 'string' }
                     ]
                 }
             }
