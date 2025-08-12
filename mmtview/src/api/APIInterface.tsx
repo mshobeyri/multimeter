@@ -135,13 +135,13 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
         </tr>
         {data.protocol === "http" || data.method ? (
           <tr>
-            <td className={data.protocol !== "http" ? "label label-disabled" : "label"}>method</td>
+            <td className={data.protocol && data.protocol !== "http" ? "label label-disabled" : "label"}>method</td>
             <td style={{ padding: "8px" }}>
               <select
                 value={data.method || ""}
                 onChange={e => onChange({ ...data, method: e.target.value as Method })}
                 style={{ width: "100%" }}
-                disabled={data.protocol !== "http"}
+                disabled={data.protocol && data.protocol !== "http"}
               >
                 <option value="" disabled>Select method...</option>
                 {safeList(methodOptions).map(opt => (
@@ -176,7 +176,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
           />
         ) : null}
         {/* Only show body editor if method is not get */}
-        {(!data.method || data.method.toLowerCase() !== "get") && (
+        {(data.protocol == "ws" || !data.method || data.method.toLowerCase() !== "get") && (
           <tr>
             <td className="label">body</td>
             <td style={{ padding: "8px", position: "relative" }}>
