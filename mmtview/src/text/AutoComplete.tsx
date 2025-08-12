@@ -10,7 +10,6 @@ export const handleBeforeMount = (monaco: any) => {
             insertText: "type: ",
             detail: 'Type of mmt file [api, env, var]',
             documentation: 'Type of mmt file, must be one of: api, env, var\n  - api: Define an API\n  - env: Define environment variables\n  - var: Define variables\nExample: type: api',
-            preselect: true
         },
         {
             label: "title",
