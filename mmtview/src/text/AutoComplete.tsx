@@ -147,14 +147,40 @@ export const handleBeforeMount = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "outputs:\n  -",
             detail: 'Response data extraction [array of key: value]',
-            documentation: 'Define how to extract specific values from the API response. Uses JSONPath expressions to extract data that can be used in other requests or stored as variables.\nExample:\noutputs:\n  userId: "$.data.user.id"\n  token: "$.data.access_token"\n  userName: "$.data.user.name"\n  status: "$.status"',
+            documentation: 'Define how to extract specific values from the API response. Uses JSONPath expressions to extract data that can be used in other requests or stored as variables.\nExample:\noutputs:\n  userId: "body.data.user.id"\n  token: "header.access_token"\n  userName: "regex <`data>(.*)</data>"',
         }
     ];
 
-    // Add interface suggestions to your keySuggestionsByParent
+    // Example suggestions for when user is inside an example block
+    const exampleSuggestions = [
+        {
+            label: "name",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "name: ",
+            detail: 'Example name [string]',
+            documentation: 'A unique identifier for this example. Used to distinguish between different test scenarios or use cases.\nExample: name: "Create Admin User"',
+        },
+        {
+            label: "description",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "description: ",
+            detail: 'Example description [string]',
+            documentation: 'A detailed description of what this example demonstrates, its purpose, and expected behavior.\nExample: description: "This example shows how to create a new admin user with full permissions"',
+        },
+        {
+            label: "inputs",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "inputs:\n  - ",
+            detail: 'Input parameters [array of objects]',
+            documentation: 'Define specific input values for this example. These override the default inputs defined at the API level and provide concrete test data.\nExample:\ninputs:\n  - username: "admin123"\n  - email: "admin@example.com"\n  - role: "administrator"\n  - password: "SecurePass123!"',
+        }
+    ];
+
+    // Update your keySuggestionsByParent to include examples
     const keySuggestionsByParent: Record<string, any[]> = {
         root: rootSuggestions,
         interfaces: interfaceSuggestions,
+        examples: exampleSuggestions,
     };
 
     monaco.languages.registerCompletionItemProvider("yaml", {
