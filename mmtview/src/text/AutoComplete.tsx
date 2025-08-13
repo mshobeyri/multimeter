@@ -1,5 +1,6 @@
 import { authentication } from "vscode";
 import { APISchema } from "./Schema";
+import { format } from "path";
 
 export const handleBeforeMount = (monaco: any) => {
     // Dynamically get root keys from APISchema
@@ -9,7 +10,7 @@ export const handleBeforeMount = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "type: ",
             detail: 'Type of mmt file [api, env, var]',
-            documentation: 'Type of mmt file, must be one of: api, env, var\n  - api: Define an API\n  - env: Define environment variables\n  - var: Define variables\nExample: type: api',
+            documentation: 'Type of mmt file, must be one of: api, env, var\n\t- api: Define an API\n\t- env: Define environment variables\n\t- var: Define variables\nExample: type: api',
         },
         {
             label: "title",
@@ -21,9 +22,9 @@ export const handleBeforeMount = (monaco: any) => {
         {
             label: "tags",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "tags:\n  - ",
+            insertText: "tags:\n\t- ",
             detail: 'API tags [array of strings]',
-            documentation: 'Tags for categorizing and organizing APIs. Helps with searchability and filtering.\nExample:\ntags:\n  - user\n  - authentication\n  - v1',
+            documentation: 'Tags for categorizing and organizing APIs. Helps with searchability and filtering.\nExample:\ntags:\n\t- user\n\t- authentication\n\t- v1',
         },
         {
             label: "description",
@@ -35,44 +36,44 @@ export const handleBeforeMount = (monaco: any) => {
         {
             label: "import",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "import:\n  - ",
+            insertText: "import:\n\t- ",
             detail: 'Import external parameters [array of key: value]',
-            documentation: 'Import parameters from external sources or other API definitions. Allows reusing common parameters across multiple APIs.\nExample:\nimport:\n  - baseUrl: "{{env.API_BASE_URL}}"\n  - authToken: "{{env.AUTH_TOKEN}}"',
+            documentation: 'Import parameters from external sources or other API definitions. Allows reusing common parameters across multiple APIs.\nExample:\nimport:\n\t- baseUrl: "{{env.API_BASE_URL}}"\n\t- authToken: "{{env.AUTH_TOKEN}}"',
         },
         {
             label: "inputs",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "inputs:\n  - ",
+            insertText: "inputs:\n\t- ",
             detail: 'Input parameters [array of key: value]',
-            documentation: 'Define input parameters that can be used throughout the API definition. These are variables that can be referenced in URLs, headers, and body.\nExample:\ninputs:\n  - userId: "123"\n  - apiKey: "{{env.API_KEY}}"',
+            documentation: 'Define input parameters that can be used throughout the API definition. These are variables that can be referenced in URLs, headers, and body.\nExample:\ninputs:\n\t- userId: "123"\n\t- apiKey: "{{env.API_KEY}}"',
         },
         {
             label: "outputs",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "outputs:\n  - ",
+            insertText: "outputs:\n\t- ",
             detail: 'Output parameters [array of key: value]',
-            documentation: 'Define how to extract values from API responses. These extracted values can be used in subsequent requests or stored as environment variables.\nExample:\noutputs:\n  - userId: "$.data.user.id"\n  - token: "$.data.access_token"',
+            documentation: 'Define how to extract values from API responses. These extracted values can be used in subsequent requests or stored as environment variables.\nExample:\noutputs:\n\t- userId: "$.data.user.id"\n\t- token: "$.data.access_token"',
         },
         {
             label: "setenv",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "setenv:\n  - ",
+            insertText: "setenv:\n\t- ",
             detail: 'Set environment variables [array of key: value]',
-            documentation: 'Map output values to environment variables that can be used in other APIs. Links extracted outputs to environment variable names.\nExample:\nsetenv:\n  - USER_ID: "userId"\n  - ACCESS_TOKEN: "token"',
+            documentation: 'Map output values to environment variables that can be used in other APIs. Links extracted outputs to environment variable names.\nExample:\nsetenv:\n\t- USER_ID: "userId"\n\t- ACCESS_TOKEN: "token"',
         },
         {
             label: "interfaces",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "interfaces:\n  - name: interface1\n    protocol: http\n    method: post\n    format: json\n    url: localhost:8080\n    headers:\n        - agent: multimeter\n    body: \n        sample: json\n",
+            insertText: "interfaces:\n\t- name: interface1\n\t\tprotocol: http\n\t\tmethod: post\n\t\tformat: json\n\t\turl: localhost:8080\n\t\theaders:\n\t\t\t- agent: multimeter\n\t\tbody:\n\t\t\tsample: json\n",
             detail: 'API interfaces [array of key: value]',
-            documentation: 'Define the actual API endpoints and their configurations. Each interface represents a specific API call with its method, URL, headers, body, and expected outputs.\nExample:\ninterfaces:\n  - name: "get_user"\n    protocol: http\n    method: get\n    format: json\n    url: "{{baseUrl}}/users/{{userId}}"\n    headers:\n      Authorization: "Bearer {{token}}"\n    body: {}\n    outputs:\n      username: "$.data.username"',
+            documentation: 'Define the actual API endpoints and their configurations. Each interface represents a specific API call with its method, URL, headers, body, and expected outputs.\nExample:\ninterfaces:\n\t- name: "get_user"\n    protocol: http\n    method: get\n    format: json\n    url: "{{baseUrl}}/users/{{userId}}"\n    headers:\n      Authorization: "Bearer {{token}}"\n    body: {}\n    outputs:\n      username: "$.data.username"',
         },
         {
             label: "examples",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "examples:\n  - name: example1\n    inputs: \n      - key1: value1\n      - key2: value2\n",
+            insertText: "examples:\n\t- name: example1\n\t\tinputs: \n\t\t\t- key1: value1\n\t\t\t- key2: value2\n",
             detail: 'Usage examples [array of key: value]',
-            documentation: 'Provide concrete examples of how to use the API with specific input values. These examples can be used for testing and documentation.\nExample:\nexamples:\n  - name: "Get Admin User"\n    inputs:\n      - userId: "admin123"\n      - apiKey: "test-key-456"',
+            documentation: 'Provide concrete examples of how to use the API with specific input values. These examples can be used for testing and documentation.\nExample:\nexamples:\n\t- name: "Get Admin User"\n    inputs:\n      - userId: "admin123"\n      - apiKey: "test-key-456"',
         }
     ];
     const typeSuggestions = [
@@ -98,102 +99,224 @@ export const handleBeforeMount = (monaco: any) => {
             documentation: 'Variables that can be used within API definitions. These are typically used for dynamic values that change based on context or environment',
         }
     ]
+
+    const protocolSuggestion = [
+        {
+            label: "http",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " http",
+            detail: 'Define a HTTP API',
+            documentation: 'HTTP method for retrieving data from the server. Used for read-only operations',
+        },
+        {
+            label: "ws",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " ws",
+            detail: 'Define a WS API',
+            documentation: 'WS method for creating new resources on the server. Used for submitting data',
+        },
+    ]
+    const formatSuggestion = [
+        {
+            label: "json",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " json",
+            detail: 'Define a JSON API',
+            documentation: 'JSON format for data exchange.',
+        },
+        {
+            label: "xml",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " xml",
+            detail: 'Define a XML API',
+            documentation: 'XML format for data exchange.',
+        },
+        {
+            label: "text",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " text",
+            detail: 'Define a text API',
+            documentation: 'Text format for data exchange.',
+        },
+    ]
+
+    const methodSuggestions = [
+        {
+            label: "get",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " get",
+            detail: 'Define a GET API',
+            documentation: 'GET method for retrieving data from the server. Used for read-only operations',
+        },
+        {
+            label: "post",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " post",
+            detail: 'Define a POST API',
+            documentation: 'POST method for creating new resources on the server. Used for submitting data',
+        },
+        {
+            label: "put",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " put",
+            detail: 'Define a PUT API',
+            documentation: 'PUT method for updating existing resources on the server. Replaces the entire resource',
+        },
+        {
+            label: "patch",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " patch",
+            detail: 'Define a PATCH API',
+            documentation: 'PATCH method for partially updating existing resources on the server. Only updates specified fields',
+        },
+        {
+            label: "delete",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " delete",
+            detail: 'Define a DELETE API',
+            documentation: 'DELETE method for removing resources from the server',
+        },
+        {
+            label: "head",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " head",
+            detail: 'Define a HEAD API',
+            documentation: 'HEAD method for retrieving headers without the response body. Used to check resource existence or metadata',
+        },
+        {
+            label: "options",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " options",
+            detail: 'Define an OPTIONS API',
+            documentation: 'OPTIONS method for retrieving allowed methods and other options for a resource. Used for CORS preflight requests',
+        },
+        {
+            label: "trace",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " trace",
+            detail: 'Define a TRACE API',
+            documentation: 'TRACE method for diagnostic purposes. Returns the request as received by the server',
+        }
+    ]
+
     // Interface suggestions for when user is inside an interface block
     const interfaceSuggestions = [
         {
             label: "name",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "    name: ",
+            insertText: "name: ",
             detail: 'Interface name [string]',
             documentation: 'A unique identifier for this interface/endpoint. Used to reference this specific API call within the API definition.\nExample: name: "get_user_profile"',
         },
         {
             label: "protocol",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "    protocol: http",
+            insertText: "protocol: ",
             detail: 'Communication protocol [http, ws]',
-            documentation: 'The protocol used for communication. Supports HTTP for REST APIs and WebSocket for real-time communication.\nOptions:\n  - http: Standard HTTP/HTTPS requests\n  - ws: WebSocket connections\nExample: protocol: http',
+            documentation: 'The protocol used for communication. Supports HTTP for REST APIs and WebSocket for real-time communication.\nOptions:\n\t- http: Standard HTTP/HTTPS requests\n\t- ws: WebSocket connections\nExample: protocol: http',
         },
         {
             label: "method",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "    method: get",
+            insertText: "method: ",
             detail: 'HTTP method [get, post, put, patch, delete, head, options, trace]',
-            documentation: 'The HTTP method for the request. Defines the type of operation to perform.\nOptions:\n  - get: Retrieve data\n  - post: Create new resource\n  - put: Update entire resource\n  - patch: Partial update\n  - delete: Remove resource\n  - head: Get headers only\n  - options: Get allowed methods\n  - trace: Debug request path\nExample: method: post',
+            documentation: 'The HTTP method for the request. Defines the type of operation to perform.\nOptions:\n\t- get: Retrieve data\n\t- post: Create new resource\n\t- put: Update entire resource\n\t- patch: Partial update\n\t- delete: Remove resource\n\t- head: Get headers only\n\t- options: Get allowed methods\n\t- trace: Debug request path\nExample: method: post',
         },
         {
             label: "format",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "    format: json",
+            insertText: "format: json",
             detail: 'Data format [json, xml, text]',
-            documentation: 'The format of the request and response data. Determines how the body content is parsed and serialized.\nOptions:\n  - json: JavaScript Object Notation\n  - xml: Extensible Markup Language\n  - text: Plain text format\nExample: format: json',
+            documentation: 'The format of the request and response data. Determines how the body content is parsed and serialized.\nOptions:\n\t- json: JavaScript Object Notation\n\t- xml: Extensible Markup Language\n\t- text: Plain text format\nExample: format: json',
         },
         {
             label: "url",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "    url: ",
+            insertText: "url: ",
             detail: 'Endpoint URL [string]',
             documentation: 'The complete URL or URL template for the API endpoint. Can include variables using {{variable}} syntax.\nExample: url: "{{baseUrl}}/api/v1/users/{{userId}}"',
         },
         {
             label: "headers",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "    headers:\n      - ",
+            insertText: "headers:\n\t- ",
             detail: 'HTTP headers [array of key: value]',
             documentation: 'Key-value pairs for HTTP headers to include in the request. Common headers include Authorization, Content-Type, Accept, etc.\nExample:\nheaders:\n  Authorization: "Bearer {{token}}"\n  Content-Type: "application/json"\n  Accept: "application/json"',
         },
         {
             label: "body",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "    body: ",
+            insertText: "body: ",
             detail: 'Request body [string or object]',
             documentation: 'The request payload/body content. Can be a string, object, or template with variables. Used primarily with POST, PUT, PATCH methods.\nExample:\nbody:\n  username: "{{username}}"\n  email: "{{email}}"\n  password: "{{password}}"',
         },
         {
             label: "query",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "    query:\n      - ",
+            insertText: "query:\n\t- ",
             detail: 'Query parameters [array of key: value]',
             documentation: 'URL query parameters as key-value pairs. These are appended to the URL after the ? symbol.\nExample:\nquery:\n  page: "{{page}}"\n  limit: "10"\n  sort: "name"\n  filter: "active"',
         },
         {
             label: "cookies",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "    cookies:\n      - ",
+            insertText: "cookies:\n\t- ",
             detail: 'HTTP cookies [array of key: value]',
             documentation: 'Cookies to include in the request as key-value pairs. These are sent in the Cookie header.\nExample:\ncookies:\n  sessionId: "{{sessionId}}"\n  userId: "{{userId}}"\n  preferences: "dark-mode"',
         },
         {
             label: "outputs",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "    outputs:\n      - ",
+            insertText: "outputs:\n\t- ",
             detail: 'Response data extraction [array of key: value]',
             documentation: 'Define how to extract specific values from the API response. Uses JSONPath expressions to extract data that can be used in other requests or stored as variables.\nExample:\noutputs:\n  userId: "body.data.user.id"\n  token: "header.access_token"\n  userName: "regex <`data>(.*)</data>"',
         }
     ];
-
+    const outputsSuggestions = [
+        {
+            label: "regex ",
+            kind: monaco.languages.CompletionItemKind.Function,
+            insertText: " regex ",
+            detail: 'regex expression to extract data from response body [regex]',
+            documentation: 'Extracts data from the response body using a regular expression. The regex should match the desired content and can include capture groups to extract specific values.\nExample: regex <data>(.*)</data>',
+        },
+        {
+            label: "body.",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " body.",
+            detail: 'Extract data from response body [JSONPath]',
+            documentation: 'Extracts data from the response body using JSONPath expressions. This allows you to navigate the JSON structure and extract specific fields.\nExample: body.data[0].user.id. This also works for XML contents.',
+        },
+        {
+            label: "headers.",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " headers.",
+            detail: 'Extract data from response headers [JSONPath]',
+            documentation: 'Extracts data from the response headers using header name.',
+        }
+    ];
     // Example suggestions for when user is inside an example block
     const exampleSuggestions = [
         {
             label: "name",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "    name: ",
+            insertText: "name: ",
             detail: 'Example name [string]',
             documentation: 'A unique identifier for this example. Used to distinguish between different test scenarios or use cases.\nExample: name: "Create Admin User"',
         },
         {
             label: "description",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "    description: ",
+            insertText: "description: ",
             detail: 'Example description [string]',
             documentation: 'A detailed description of what this example demonstrates, its purpose, and expected behavior.\nExample: description: "This example shows how to create a new admin user with full permissions"',
         },
         {
             label: "inputs",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "    inputs:\n      - ",
+            insertText: "inputs:\n\t- ",
             detail: 'Input parameters [array of objects]',
-            documentation: 'Define specific input values for this example. These override the default inputs defined at the API level and provide concrete test data.\nExample:\ninputs:\n  - username: "admin123"\n  - email: "admin@example.com"\n  - role: "administrator"\n  - password: "SecurePass123!"',
+            documentation: 'Define specific input values for this example. These override the default inputs defined at the API level and provide concrete test data.\nExample:\ninputs:\n\t- username: "admin123"\n\t- email: "admin@example.com"\n\t- role: "administrator"\n\t- password: "SecurePass123!"',
         }
     ];
 
@@ -203,7 +326,12 @@ export const handleBeforeMount = (monaco: any) => {
         type: typeSuggestions,
         interfaces: interfaceSuggestions,
         examples: exampleSuggestions,
+        protocol: protocolSuggestion,
+        method: methodSuggestions,
+        format: formatSuggestion,
+        outputs: outputsSuggestions,
     };
+    
     monaco.languages.registerCompletionItemProvider("yaml", {
         provideCompletionItems: (model: any, position: any) => {
             const lineNumber = position.lineNumber;
@@ -211,27 +339,94 @@ export const handleBeforeMount = (monaco: any) => {
             const lines = model.getLinesContent().slice(0, lineNumber - 1);
 
             // Check if current line is like: key: <cursor> (maybe with spaces)
-            const keyValueMatch = lineContent.match(/^(\w+):\s*(.*)$/);
+            const keyValueMatch = lineContent.match(/^(\s*)(\w+):\s*(.*)$/);
             if (keyValueMatch) {
-                const key = keyValueMatch[1];
-                const valueStartColumn = lineContent.indexOf(':') + 2; // position after colon + space
+                const indentation = keyValueMatch[1];
+                const key = keyValueMatch[2];
+                const value = keyValueMatch[3];
+                const colonPosition = lineContent.indexOf(':');
+                const valueStartColumn = colonPosition + 2;
 
                 if (position.column >= valueStartColumn) {
-                    // Cursor is inside the value of a key, suggest enum values if available
+                    // Cursor is after the colon, so the parent should be the key itself
+                    console.log(`Cursor after colon for key: ${key}`);
+
+                    // Use the key as parent context
                     if (key in keySuggestionsByParent) {
                         return {
                             suggestions: keySuggestionsByParent[key].map(item => ({
                                 ...item,
-                                documentation: `This is the ${item.label} field of ${key}`,
+                                documentation: `${item.documentation}`,
                                 range: {
                                     startLineNumber: position.lineNumber,
                                     startColumn: valueStartColumn,
                                     endLineNumber: position.lineNumber,
-                                    endColumn: position.column
+                                    endColumn: lineContent.length + 1
                                 }
                             }))
                         };
                     }
+
+                    // If no specific suggestions for this key, return empty
+                    return { suggestions: [] };
+                }
+            }
+
+            // Check if we're in a list item context (after "- key: ")
+            const listItemMatch = lineContent.match(/^(\s*)-\s+(\w+):\s*(.*)$/);
+            if (listItemMatch) {
+                const indentation = listItemMatch[1];
+                const key = listItemMatch[2];
+                const value = listItemMatch[3];
+                const colonPosition = lineContent.lastIndexOf(':');
+                const valueStartColumn = colonPosition + 2;
+
+                if (position.column >= valueStartColumn) {
+                    console.log(`Cursor after colon in list item for key: ${key}`);
+                    
+                    // For list items, use the key as context
+                    if (key in keySuggestionsByParent) {
+                        return {
+                            suggestions: keySuggestionsByParent[key].map(item => ({
+                                ...item,
+                                documentation: `${item.documentation}`,
+                                range: {
+                                    startLineNumber: position.lineNumber,
+                                    startColumn: valueStartColumn,
+                                    endLineNumber: position.lineNumber,
+                                    endColumn: lineContent.length + 1
+                                }
+                            }))
+                        };
+                    }
+
+                    // Special handling for outputs list items - ANY key under outputs should show output suggestions
+                    // Check if we're under an outputs parent
+                    for (let i = lines.length - 1; i >= 0; i--) {
+                        const line = lines[i];
+                        if (!line.trim()) continue;
+                        
+                        const indent = line.search(/\S|$/);
+                        if (indent < indentation.length) {
+                            const match = line.trim().match(/^(\w+):/);
+                            if (match && match[1] === "outputs") {
+                                return {
+                                    suggestions: outputsSuggestions.map(item => ({
+                                        ...item,
+                                        range: {
+                                            startLineNumber: position.lineNumber,
+                                            startColumn: valueStartColumn,
+                                            endLineNumber: position.lineNumber,
+                                            endColumn: lineContent.length + 1
+                                        }
+                                    }))
+                                };
+                            }
+                            break;
+                        }
+                    }
+
+                    return { suggestions: [] };
                 }
             }
 
@@ -239,41 +434,49 @@ export const handleBeforeMount = (monaco: any) => {
             let parent = "root";
             const currentIndent = lineContent.search(/\S|$/);
 
-            for (let i = lines.length - 1; i >= 0; i--) {
-                const line = lines[i];
-                if (!line.trim()) continue;
+            // If we're at root level (indent 0), show root suggestions
+            if (currentIndent === 0) {
+                parent = "root";
+            } else {
+                // Look for parent context by indentation
+                for (let i = lines.length - 1; i >= 0; i--) {
+                    const line = lines[i];
+                    if (!line.trim()) continue;
 
-                const indent = line.search(/\S|$/);
-                if (indent < currentIndent) {
-                    const match = line.trim().match(/^(\w+):/);
-                    if (match) {
-                        parent = match[1];
-                        break;
-                    }
-
-                    if (line.trim().startsWith("- ")) {
-                        for (let j = i - 1; j >= 0; j--) {
-                            const upperLine = lines[j];
-                            if (!upperLine.trim()) continue;
-                            const upperMatch = upperLine.trim().match(/^(\w+):/);
-                            if (upperMatch) {
-                                parent = upperMatch[1];
-                                break;
-                            }
+                    const indent = line.search(/\S|$/);
+                    if (indent < currentIndent) {
+                        const match = line.trim().match(/^\s*(\w+):/);
+                        if (match) {
+                            parent = match[1];
+                            break;
                         }
-                        break;
+
+                        if (line.trim().startsWith("- ")) {
+                            for (let j = i - 1; j >= 0; j--) {
+                                const upperLine = lines[j];
+                                if (!upperLine.trim()) continue;
+                                const upperMatch = upperLine.trim().match(/^\s*(\w+):/);
+                                if (upperMatch) {
+                                    parent = upperMatch[1];
+                                    break;
+                                }
+                            }
+                            break;
+                        }
                     }
                 }
             }
+
+            console.log(`Parent key found: ${parent}, position.column: ${position.column}, line: ${lineNumber}`);
 
             const baseSuggestions = keySuggestionsByParent[parent] || [];
 
             const suggestions = baseSuggestions.map(item => ({
                 ...item,
-                documentation: `This is the ${item.label} field of ${parent}`,
+                documentation: item.documentation,
                 range: {
                     startLineNumber: position.lineNumber,
-                    startColumn: model.getLineFirstNonWhitespaceColumn(position.lineNumber) || 1,
+                    startColumn: model.getLineFirstNonWhitespaceColumn(position.lineNumber) || position.lineNumber,
                     endLineNumber: position.lineNumber,
                     endColumn: position.column
                 }
@@ -281,6 +484,6 @@ export const handleBeforeMount = (monaco: any) => {
 
             return { suggestions };
         },
-        triggerCharacters: ["\n", " ", ":"],
+        triggerCharacters: ["\n", " ", ":", "-"],
     });
 };
