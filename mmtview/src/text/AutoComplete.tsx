@@ -23,7 +23,6 @@ const validateYamlContent = (content: string): any[] => {
 
         if (!isValid && validate.errors) {
             validate.errors.forEach(error => {
-                console.log('Validation error:', error);
                 if (
                     error.keyword === "additionalProperties" &&
                     typeof (error.params as any).additionalProperty === "string"
