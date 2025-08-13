@@ -452,6 +452,12 @@ export const handleBeforeMount = (monaco: any) => {
 
     monaco.languages.registerCompletionItemProvider("yaml", {
         provideCompletionItems: (model: any, position: any) => {
+            // Only provide completions for YAML language
+            const language = model.getLanguageId();
+            if (language !== "yaml") {
+                return { suggestions: [] };
+            }
+
             const lineNumber = position.lineNumber;
             const lineContent = model.getLineContent(lineNumber);
             const lines = model.getLinesContent().slice(0, lineNumber - 1);
@@ -594,10 +600,16 @@ export const handleBeforeMount = (monaco: any) => {
         triggerCharacters: ["\n", " ", ":", "-"],
     });
 
-    // Add validation provider
+    // Add validation provider with language filtering
     let validationTimeout: NodeJS.Timeout;
 
     const validateModel = (model: any) => {
+        // Only validate YAML models
+        const language = model.getLanguageId();
+        if (language !== "yaml") {
+            return;
+        }
+
         clearTimeout(validationTimeout);
 
         // Debounce validation by 500ms
@@ -612,23 +624,27 @@ export const handleBeforeMount = (monaco: any) => {
 
     // Register model change listener for validation
     monaco.editor.onDidCreateModel((model: any) => {
-        // Validate when model is created
-        validateModel(model);
-
-        // Validate when content changes
-        model.onDidChangeContent(() => {
+        // Only validate YAML models
+        if (model.getLanguageId() === "yaml") {
             validateModel(model);
-        });
+
+            // Validate when content changes
+            model.onDidChangeContent(() => {
+                validateModel(model);
+            });
+        }
     });
 
-    // Also validate existing models
+    // Also validate existing models (only YAML ones)
     const models = monaco.editor.getModels();
     models.forEach((model: any) => {
-        validateModel(model);
-
-        // Add listener if not already added
-        model.onDidChangeContent(() => {
+        if (model.getLanguageId() === "yaml") {
             validateModel(model);
-        });
+
+            // Add listener if not already added
+            model.onDidChangeContent(() => {
+                validateModel(model);
+            });
+        }
     });
 };
