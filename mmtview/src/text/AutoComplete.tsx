@@ -1,9 +1,4 @@
-import { authentication } from "vscode";
-import { APISchema } from "./Schema";
-import { format } from "path";
-
 export const handleBeforeMount = (monaco: any) => {
-    // Dynamically get root keys from APISchema
     const rootSuggestions = [
         {
             label: "type",
@@ -11,7 +6,32 @@ export const handleBeforeMount = (monaco: any) => {
             insertText: "type: ",
             detail: 'Type of mmt file [api, env, var]',
             documentation: 'Type of mmt file, must be one of: api, env, var\n\t- api: Define an API\n\t- env: Define environment variables\n\t- var: Define variables\nExample: type: api',
+        }];
+
+    const typeSuggestions = [
+        {
+            label: "API",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " api",
+            detail: 'Define an API',
+            documentation: 'WS, HTTP, or other API definitions. This is the main type for defining APIs in MMT',
         },
+        {
+            label: "Environment variables",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " env",
+            detail: 'Define environment variables',
+            documentation: 'Environment variables used across multiple APIs. This allows you to define reusable variables that can be referenced in API definitions',
+        },
+        {
+            label: "Variable",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " var",
+            detail: 'Define variables',
+            documentation: 'Variables that can be used within API definitions. These are typically used for dynamic values that change based on context or environment',
+        }
+    ]
+    const apiSuggestions = [
         {
             label: "title",
             kind: monaco.languages.CompletionItemKind.Property,
@@ -76,30 +96,6 @@ export const handleBeforeMount = (monaco: any) => {
             documentation: 'Provide concrete examples of how to use the API with specific input values. These examples can be used for testing and documentation.\nExample:\nexamples:\n\t- name: "Get Admin User"\n    inputs:\n      - userId: "admin123"\n      - apiKey: "test-key-456"',
         }
     ];
-    const typeSuggestions = [
-        {
-            label: "API",
-            kind: monaco.languages.CompletionItemKind.EnumMember,
-            insertText: " api",
-            detail: 'Define an API',
-            documentation: 'WS, HTTP, or other API definitions. This is the main type for defining APIs in MMT',
-        },
-        {
-            label: "Environment variables",
-            kind: monaco.languages.CompletionItemKind.EnumMember,
-            insertText: " env",
-            detail: 'Define environment variables',
-            documentation: 'Environment variables used across multiple APIs. This allows you to define reusable variables that can be referenced in API definitions',
-        },
-        {
-            label: "Variable",
-            kind: monaco.languages.CompletionItemKind.EnumMember,
-            insertText: " var",
-            detail: 'Define variables',
-            documentation: 'Variables that can be used within API definitions. These are typically used for dynamic values that change based on context or environment',
-        }
-    ]
-
     const protocolSuggestion = [
         {
             label: "http",
@@ -139,7 +135,6 @@ export const handleBeforeMount = (monaco: any) => {
             documentation: 'Text format for data exchange.',
         },
     ]
-
     const methodSuggestions = [
         {
             label: "get",
@@ -198,8 +193,6 @@ export const handleBeforeMount = (monaco: any) => {
             documentation: 'TRACE method for diagnostic purposes. Returns the request as received by the server',
         }
     ]
-
-    // Interface suggestions for when user is inside an interface block
     const interfaceSuggestions = [
         {
             label: "name",
@@ -295,7 +288,6 @@ export const handleBeforeMount = (monaco: any) => {
             documentation: 'Extracts data from the response headers using header name.',
         }
     ];
-    // Example suggestions for when user is inside an example block
     const exampleSuggestions = [
         {
             label: "name",
@@ -320,9 +312,9 @@ export const handleBeforeMount = (monaco: any) => {
         }
     ];
 
-    // Update your keySuggestionsByParent to include examples
     const keySuggestionsByParent: Record<string, any[]> = {
-        root: rootSuggestions,
+        root: rootSuggestions, 
+        api: apiSuggestions,
         type: typeSuggestions,
         interfaces: interfaceSuggestions,
         examples: exampleSuggestions,
@@ -331,7 +323,7 @@ export const handleBeforeMount = (monaco: any) => {
         format: formatSuggestion,
         outputs: outputsSuggestions,
     };
-    
+
     monaco.languages.registerCompletionItemProvider("yaml", {
         provideCompletionItems: (model: any, position: any) => {
             const lineNumber = position.lineNumber;
@@ -341,16 +333,11 @@ export const handleBeforeMount = (monaco: any) => {
             // Check if current line is like: key: <cursor> (maybe with spaces)
             const keyValueMatch = lineContent.match(/^(\s*)(\w+):\s*(.*)$/);
             if (keyValueMatch) {
-                const indentation = keyValueMatch[1];
                 const key = keyValueMatch[2];
-                const value = keyValueMatch[3];
                 const colonPosition = lineContent.indexOf(':');
                 const valueStartColumn = colonPosition + 2;
 
                 if (position.column >= valueStartColumn) {
-                    // Cursor is after the colon, so the parent should be the key itself
-                    console.log(`Cursor after colon for key: ${key}`);
-
                     // Use the key as parent context
                     if (key in keySuggestionsByParent) {
                         return {
@@ -367,7 +354,6 @@ export const handleBeforeMount = (monaco: any) => {
                         };
                     }
 
-                    // If no specific suggestions for this key, return empty
                     return { suggestions: [] };
                 }
             }
@@ -377,13 +363,10 @@ export const handleBeforeMount = (monaco: any) => {
             if (listItemMatch) {
                 const indentation = listItemMatch[1];
                 const key = listItemMatch[2];
-                const value = listItemMatch[3];
                 const colonPosition = lineContent.lastIndexOf(':');
                 const valueStartColumn = colonPosition + 2;
 
                 if (position.column >= valueStartColumn) {
-                    console.log(`Cursor after colon in list item for key: ${key}`);
-                    
                     // For list items, use the key as context
                     if (key in keySuggestionsByParent) {
                         return {
@@ -400,12 +383,10 @@ export const handleBeforeMount = (monaco: any) => {
                         };
                     }
 
-                    // Special handling for outputs list items - ANY key under outputs should show output suggestions
-                    // Check if we're under an outputs parent
                     for (let i = lines.length - 1; i >= 0; i--) {
                         const line = lines[i];
                         if (!line.trim()) continue;
-                        
+
                         const indent = line.search(/\S|$/);
                         if (indent < indentation.length) {
                             const match = line.trim().match(/^(\w+):/);
@@ -430,13 +411,15 @@ export const handleBeforeMount = (monaco: any) => {
                 }
             }
 
-            // fallback: your existing logic to find parent by indentation and previous lines
             let parent = "root";
             const currentIndent = lineContent.search(/\S|$/);
 
-            // If we're at root level (indent 0), show root suggestions
-            if (currentIndent === 0) {
-                parent = "root";
+            if (currentIndent === 0 && model.getLineContent(1).trim() === ("type: api")) {
+                parent = "api";
+            } else if (currentIndent === 0 && model.getLineContent(1).trim() === ("type: env")) {
+                parent = "env";
+            } else if (currentIndent === 0 && model.getLineContent(1).trim() === ("type: var")) {
+                parent = "var";
             } else {
                 // Look for parent context by indentation
                 for (let i = lines.length - 1; i >= 0; i--) {
@@ -466,8 +449,6 @@ export const handleBeforeMount = (monaco: any) => {
                     }
                 }
             }
-
-            console.log(`Parent key found: ${parent}, position.column: ${position.column}, line: ${lineNumber}`);
 
             const baseSuggestions = keySuggestionsByParent[parent] || [];
 
