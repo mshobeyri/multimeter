@@ -56,7 +56,7 @@ export const APISchema = {
             type: 'array',
             items: {
                 type: 'object',
-                required: ['name', 'protocol', 'method', 'format', 'url', 'headers', 'body', 'outputs'],
+                required: ['name', 'protocol', 'format', 'url'],
                 properties: {
                     name: { type: 'string' },
                     protocol: { type: 'string', enum: ['http', 'ws'] },
@@ -66,13 +66,62 @@ export const APISchema = {
                     },
                     format: { type: 'string', enum: ['json', 'xml', 'text'] },
                     url: { type: 'string', format: 'uri' },
-                    headers: { type: 'object', additionalProperties: { type: 'string' } },
-                    body: { type: 'object', additionalProperties: true },
+                    headers: { type: 'array', items: { type: 'object', additionalProperties: { type: 'string' } } },
+                    query: { type: 'array', items: { type: 'object', additionalProperties: { type: 'string' } } },
+                    cookies: { type: 'array', items: { type: 'object', additionalProperties: { type: 'string' } } },
+                    body: {
+                        anyOf: [
+                            { type: 'string' },
+                            { type: 'object', additionalProperties: true }
+                        ]
+                    },
                     outputs: {
                         type: 'object',
                         additionalProperties: true
                     }
                 },
+                allOf: [
+                    {
+                        if: {
+                            properties: {
+                                protocol: { const: 'http' }
+                            }
+                        },
+                        then: {
+                            required: ['method']
+                        }
+                    },
+                    {
+                        if: {
+                            properties: {
+                                method: { const: 'post' }
+                            }
+                        },
+                        then: {
+                            required: ['body']
+                        }
+                    },
+                    {
+                        if: {
+                            properties: {
+                                method: { const: 'put' }
+                            }
+                        },
+                        then: {
+                            required: ['body']
+                        }
+                    },
+                    {
+                        if: {
+                            properties: {
+                                method: { const: 'patch' }
+                            }
+                        },
+                        then: {
+                            required: ['body']
+                        }
+                    }
+                ],
                 additionalProperties: false
             }
         },

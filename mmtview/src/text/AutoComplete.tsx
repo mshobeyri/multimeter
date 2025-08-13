@@ -1,3 +1,80 @@
+import { APISchema } from './Schema';
+import Ajv from 'ajv';
+import { js2xml, xml2js } from 'xml-js';
+import YAML from 'yaml';
+
+// Add validation functions
+const ajv = new Ajv({ allErrors: true, verbose: true });
+
+const validateYamlContent = (content: string): any[] => {
+  const errors: any[] = [];
+  
+  try {
+    // Parse YAML to JavaScript object using YAML library
+    const parsedContent = YAML.parse(content);
+    
+    if (!parsedContent) {
+      return errors;
+    }
+    
+    // Validate against schema
+    const validate = ajv.compile(APISchema);
+    const isValid = validate(parsedContent);
+    
+    if (!isValid && validate.errors) {
+      validate.errors.forEach(error => {
+        const path = (error as any).instancePath || (error as any).dataPath || '';
+        const line = getLineNumberFromPath(content, path);
+        errors.push({
+          severity: 8, // monaco.MarkerSeverity.Error
+          startLineNumber: line,
+          startColumn: 1,
+          endLineNumber: line,
+          endColumn: 100,
+          message: `${path}: ${error.message}`,
+          source: 'mmt-validation'
+        });
+      });
+    }
+    
+    return errors;
+  } catch (yamlError: any) {
+    // YAML parsing error from YAML library
+    const line = yamlError.linePos?.[0]?.line || yamlError.source?.start?.line || 1;
+    const column = yamlError.linePos?.[0]?.col || yamlError.source?.start?.col || 1;
+    
+    errors.push({
+      severity: 8, // monaco.MarkerSeverity.Error
+      startLineNumber: line,
+      startColumn: column,
+      endLineNumber: line,
+      endColumn: column + 10,
+      message: `YAML Parse Error: ${yamlError.message}`,
+      source: 'yaml-syntax'
+    });
+    
+    return errors;
+  }
+};
+
+// Helper function to get line number from JSON path
+const getLineNumberFromPath = (content: string, path: string): number => {
+  const lines = content.split('\n');
+  const pathParts = path.split('/').filter(part => part !== '');
+  
+  if (pathParts.length === 0) return 1;
+  
+  let currentLine = 1;
+  for (const line of lines) {
+    if (line.trim().startsWith(`${pathParts[0]}:`)) {
+      return currentLine;
+    }
+    currentLine++;
+  }
+  
+  return 1;
+};
+
 export const handleBeforeMount = (monaco: any) => {
     const rootSuggestions = [
         {
@@ -466,5 +543,43 @@ export const handleBeforeMount = (monaco: any) => {
             return { suggestions };
         },
         triggerCharacters: ["\n", " ", ":", "-"],
+    });
+
+    // Add validation provider
+    let validationTimeout: NodeJS.Timeout;
+
+    const validateModel = (model: any) => {
+        clearTimeout(validationTimeout);
+        
+        // Debounce validation by 500ms
+        validationTimeout = setTimeout(() => {
+            const content = model.getValue();
+            const markers = validateYamlContent(content);
+            
+            // Set markers on the model
+            monaco.editor.setModelMarkers(model, 'mmt-validation', markers);
+        }, 500);
+    };
+
+    // Register model change listener for validation
+    monaco.editor.onDidCreateModel((model: any) => {
+        // Validate when model is created
+        validateModel(model);
+        
+        // Validate when content changes
+        model.onDidChangeContent(() => {
+            validateModel(model);
+        });
+    });
+
+    // Also validate existing models
+    const models = monaco.editor.getModels();
+    models.forEach((model: any) => {
+        validateModel(model);
+        
+        // Add listener if not already added
+        model.onDidChangeContent(() => {
+            validateModel(model);
+        });
     });
 };
