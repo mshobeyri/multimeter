@@ -1,6 +1,9 @@
 export const GeneralSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
-    type: { type: 'object', enum: ['api', 'env', 'var'], description: 'Type of mmt file, must be one of: api, env, var' },
+    type: 'object',
+    properties: {
+        type: { type: 'string', enum: ['api', 'env', 'var'], description: 'Type of mmt file, must be one of: api, env, var' },
+    }
 }
 
 export const APISchema = {

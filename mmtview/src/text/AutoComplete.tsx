@@ -1,5 +1,6 @@
-import { APISchema } from './Schema';
+import { APISchema, GeneralSchema } from './Schema';
 import Ajv from 'ajv';
+import { Test } from 'mocha';
 import { js2xml, xml2js } from 'xml-js';
 import YAML from 'yaml';
 
@@ -18,7 +19,16 @@ const validateYamlContent = (content: string): any[] => {
         }
 
         // Validate against schema
-        const validate = ajv.compile(APISchema);
+        let validate = ajv.compile(GeneralSchema);
+        if (parsedContent.type && parsedContent.type === 'api') {
+            validate = ajv.compile(APISchema);
+        } else if (parsedContent.type && parsedContent.type === 'env') {
+            // validate = ajv.compile(EnvSchema);
+        } else if (parsedContent.type && parsedContent.type === 'var') {
+            // validate = ajv.compile(VarSchema);
+        } else if (parsedContent.type && parsedContent.type === 'test') {
+            // validate = ajv.compile(TestSchema);
+        }
         const isValid = validate(parsedContent);
 
         if (!isValid && validate.errors) {
