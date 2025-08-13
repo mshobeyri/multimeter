@@ -23,6 +23,7 @@ const validateYamlContent = (content: string): any[] => {
 
         if (!isValid && validate.errors) {
             validate.errors.forEach(error => {
+                console.log('Validation error:', error);
                 if (
                     error.keyword === "additionalProperties" &&
                     typeof (error.params as any).additionalProperty === "string"
@@ -37,8 +38,18 @@ const validateYamlContent = (content: string): any[] => {
                         message: `Invalid property "${(error.params as any).additionalProperty}"`,
                         source: 'mmt-validation'
                     });
-                }
-                else {
+                } else if (error.keyword === "enum") {
+                    const { line, column } = findFirstOccurrence(content, error.data);
+                    errors.push({
+                        severity: 8,
+                        startLineNumber: line,
+                        startColumn: column,
+                        endLineNumber: line,
+                        endColumn: 100,
+                        message: `Invalid value for property "${error.dataPath}", expected one of: ${(error.params as any).allowedValues ? (error.params as any).allowedValues.join(', ') : (error.params as any).allowedValue}`,
+                        source: 'mmt-validation'
+                    });
+                } else {
                     const path = (error as any).instancePath || (error as any).dataPath || '';
                     const line = getLineNumberFromPath(content, path);
                     errors.push({
@@ -75,7 +86,6 @@ const validateYamlContent = (content: string): any[] => {
 };
 
 const getLineNumberFromPath = (content: string, path: string): number => {
-    console.log('getLineNumberFromPath', { content, path });
     const lines = content.split('\n');
     const pathParts = path.split('/').filter(part => part !== '');
 
