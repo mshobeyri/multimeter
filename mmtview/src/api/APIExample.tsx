@@ -3,12 +3,12 @@ import VEditor from "../components/VEditor";
 import { ExampleData } from "./APIData";
 import FieldWithRemove from "../components/FieldWithRemove";
 import DescriptionEditor from "../components/DescriptionEditor";
-import { safeList, extractParameterKeys, isNonEmptyList, toKVObject } from "../safer";
-import { Parameter } from "../CommonData";
+import { toKVObject, isNonEmptyObject } from "../safer";
+import { JSONRecord } from "../CommonData";
 
 interface APIExampleProps {
   data: ExampleData;
-  apiInputs?: Parameter[];
+  apiInputs?: JSONRecord;
   onChange: (data: ExampleData) => void;
   onRemove?: () => void;
 }
@@ -16,7 +16,7 @@ interface APIExampleProps {
 const APIExample: React.FC<APIExampleProps> = ({ data, apiInputs, onChange, onRemove }) => {
   // Helper to update fields
   const handleFieldsChange = (kv: Record<string, string>) => {
-    const newFields = safeList(Object.entries(kv)).map(([key, value]) => ({ [key]: value }));
+    const newFields = { ...kv };
     onChange({ ...data, inputs: newFields });
     apiInputs = newFields;
   };
@@ -48,12 +48,12 @@ const APIExample: React.FC<APIExampleProps> = ({ data, apiInputs, onChange, onRe
             />
           </td>
         </tr>
-        {isNonEmptyList(apiInputs) ? (
+        {isNonEmptyObject(apiInputs) ? (
           <VEditor
             label="fields"
-            value={toKVObject(data.inputs)}
+            value={data.inputs || {}}
             onChange={handleFieldsChange}
-            keyOptions={extractParameterKeys(apiInputs)}
+            keyOptions={Object.keys(apiInputs)}
           />
         ) : (
           <tr>

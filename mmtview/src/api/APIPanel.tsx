@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import parseYaml, { packYaml } from "../markupConvertor";
 import APIFieldEditor from "./APIEditor";
 import { APIData } from "./APIData";
-import { safeList, isNonEmptyList } from "../safer";
+import { safeList, isNonEmptyList, isNonEmptyObject } from "../safer";
 
 interface APIsProps {
   content: string;
@@ -19,10 +19,10 @@ function yamlToAPI(yamlContent: string): APIData {
       title: doc.title || "",
       description: doc.description || "",
       tags: safeList(doc.tags),
-      import: safeList(doc.import),
-      inputs: safeList(doc.inputs),
-      outputs: safeList(doc.outputs),
-      setenv: safeList(doc.setenv),
+      import: doc.import,
+      inputs: doc.inputs,
+      outputs: doc.outputs,
+      setenv: doc.setenv,
       interfaces: safeList(doc.interfaces),
       examples: safeList(doc.examples),
     };
@@ -39,10 +39,10 @@ function apiToYaml(api: APIData): string {
   };
   if (api.description) yamlObj.description = api.description;
   if (isNonEmptyList(api.tags)) yamlObj.tags = api.tags;
-  if (isNonEmptyList(api.import)) yamlObj.import = api.import;
-  if (isNonEmptyList(api.inputs)) yamlObj.inputs = api.inputs;
-  if (isNonEmptyList(api.outputs)) yamlObj.outputs = api.outputs;
-  if (isNonEmptyList(api.setenv)) yamlObj.setenv = api.setenv;
+  if (isNonEmptyObject(api.import)) yamlObj.import = api.import;
+  if (isNonEmptyObject(api.inputs)) yamlObj.inputs = api.inputs;
+  if (isNonEmptyObject(api.outputs)) yamlObj.outputs = api.outputs;
+  if (isNonEmptyObject(api.setenv)) yamlObj.setenv = api.setenv;
   if (isNonEmptyList(api.interfaces)) yamlObj.interfaces = api.interfaces;
   if (isNonEmptyList(api.examples)) yamlObj.examples = api.examples;
   return packYaml(yamlObj);
@@ -52,10 +52,10 @@ const defaultAPI: APIData = {
   title: "",
   description: "",
   tags: [],
-  import: [],
-  inputs: [],
-  outputs: [],
-  setenv: [],
+  import: {},
+  inputs: {},
+  outputs: {},
+  setenv: {},
   interfaces: [],
   examples: [],
 };

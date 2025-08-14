@@ -20,3 +20,4 @@ export interface MMTFile {
 };
 
 export type Parameter = { [key: string]: string | number | boolean };
+export type JSONRecord = Record<string, string | number | boolean>;

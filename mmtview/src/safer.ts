@@ -12,13 +12,8 @@ export function safeListCopy(value: any): any[] {
   return value && Array.isArray(value) ? [...value] : [];
 }
 
-export function extractParameterKeys(parameters: Parameter[]): string[] {
-  if (!parameters || !Array.isArray(parameters)) {
-    return [];
-  }
-
-  return parameters.flatMap(param => param ? Object.keys(param) : [])
-      .filter(key => key && key !== 'undefined');
+export function isNonEmptyObject(value: any): value is Record<string, any> {
+  return value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0;
 }
 
 export function isNonEmptyList(value: any): value is any[] {

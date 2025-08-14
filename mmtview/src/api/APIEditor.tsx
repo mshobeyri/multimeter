@@ -4,7 +4,7 @@ import InterfaceEditor from "./APIInterface";
 import APIExample from "./APIExample";
 import APITest from "./APITest";
 import { APIData, InterfaceData, ExampleData } from "./APIData";
-import { isList, safeList, safeListCopy } from "../safer";
+import { safeList, safeListCopy } from "../safer";
 
 const LAST_API_TAB_KEY = "mmtview:api:lastTab";
 
@@ -47,7 +47,9 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
   }, []);
 
   // Helper to update top-level fields
-  const update = (patch: Partial<APIData>) => setAPI({ ...api, ...patch });
+  const update = (patch: Partial<APIData>) => {
+    setAPI({ ...api, ...patch });
+  };
 
   // Helper to update a specific interface
   const updateInterface = (idx: number, patch: Partial<InterfaceData>) => {

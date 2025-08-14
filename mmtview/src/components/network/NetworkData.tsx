@@ -5,9 +5,9 @@ export interface Request {
   protocol?: "http" | "ws";
   format?: "json" | "xml" | "text";
   method?: string;
-  headers?: Parameter[];
-  cookies?: Parameter[];
-  query?: Parameter[];
+  headers?: Record<string, string>;
+  cookies?: Record<string, string>;
+  query?: Record<string, string>;
   body?: any;
 }
 

@@ -6,7 +6,7 @@ import { InterfaceData } from "./APIData";
 import { Protocol, Method, Format } from "../CommonData"
 import { formatBody, formattedBodyToYamlObject } from "../markupConvertor";
 import BodyView from "../components/BodyView";
-import { safeList, toKVObject, toKVList, isNonEmptyList } from "../safer";
+import { safeList, isNonEmptyList } from "../safer";
 
 interface InterfaceEditorProps {
   data: InterfaceData;
@@ -58,7 +58,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
       if (prev !== next) {
         onChange({
           ...data,
-          query: toKVList(query),
+          query,
         });
       }
     },
@@ -127,7 +127,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
           <td style={{ padding: "8px" }}>
             <UrlInput
               url={url}
-              query={toKVObject(data.query) || {}}
+              query={data.query || {}}
               onUrlChange={handleUrlChange}
               onQueryChange={handleQueryChange}
             />
@@ -154,7 +154,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
         {data.protocol === "http" || isNonEmptyList(data.query) ? (
           <KVEditor
             label="query"
-            value={toKVObject(data.query)}
+            value={data.query || {}}
             onChange={handleQueryChange}
             disabled={data.protocol !== "http"}
           />
@@ -162,16 +162,16 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
         {data.protocol === "http" || isNonEmptyList(data.headers) ? (
           <KVEditor
             label="headers"
-            value={toKVObject(data.headers)}
-            onChange={headers => { onChange({ ...data, headers: toKVList(headers) }) }}
+            value={data.headers || {}}
+            onChange={headers => { onChange({ ...data, headers: headers }) }}
             disabled={data.protocol !== "http"}
           />
         ) : null}
         {data.protocol === "http" || isNonEmptyList(data.cookies) ? (
           <KVEditor
             label="cookies"
-            value={toKVObject(data.cookies)}
-            onChange={cookies => onChange({ ...data, cookies: toKVList(cookies) })}
+            value={data.cookies || {}}
+            onChange={cookies => onChange({ ...data, cookies: cookies })}
             disabled={data.protocol !== "http"}
           />
         ) : null}

@@ -11,8 +11,8 @@ import UrlInput from "../components/UrlInput";
 import { extractOutputs } from "./outputExtractor";
 import ViewSelector, { ViewMode } from "../components/ViewSelector";
 import { saveEnvVariablesFromObject, loadEnvVariables } from "../workspaceStorage";
-import { isList, isNonEmptyList, safeList, toKVList, toKVObject } from "../safer";
-import { Parameter } from "../CommonData";
+import { isList, isNonEmptyList, safeList, toKVList } from "../safer";
+import { JSONRecord, Parameter } from "../CommonData";
 
 interface APITestProps {
   api: APIData;
@@ -23,9 +23,6 @@ const handleSetEnvVariables = (
   api: APIData,
   finalOutputs: Record<string, string | number | boolean>
 ) => {
-  if (!isList(api.setenv)) {
-    return;
-  }
   // Load existing environment variables
   const cleanup = loadEnvVariables((existingVars) => {
     const existing = Array.isArray(existingVars) ? existingVars : [];
@@ -159,7 +156,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
       if (prev !== next) {
         network.setRequestData({
           ...network.requestData,
-          query: toKVList(query)
+          query: query
         });
       }
     },
@@ -172,14 +169,15 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     iface.body = iface.body ? formatBody(iface.format || "json", iface.body || "") : ""
 
     loadEnvVariables(envVars => {
-      const envParameters: Parameter[] = safeList(envVars).map(envVar => ({
-        [envVar.name]: envVar.value
-      }));
+      const envParameters: JSONRecord = safeList(envVars).reduce((acc, envVar) => {
+        acc[envVar.name] = envVar.value;
+        return acc;
+      }, {} as JSONRecord);
 
       let replaced = replaceAllRefs(
         iface,
-        api?.inputs ?? [],
-        selectedExample?.inputs ?? [],
+        api?.inputs ?? {},
+        selectedExample?.inputs ?? {},
         envParameters
       );
       setBody(replaced.body);
@@ -291,7 +289,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           <td style={{ padding: "8px" }}>
             <UrlInput
               url={req.url ?? ""}
-              query={toKVObject(req.query || {})}
+              query={req.query || {}}
               onUrlChange={handleUrlChange}
               onQueryChange={handleQueryChange}
             />
@@ -322,18 +320,18 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         </div>
         {shouldShowQuery() && <KVEditor
           label="query"
-          value={toKVObject(req.query || {})}
-          onChange={query => updateField("query", toKVList(query))}
+          value={req.query || {}}
+          onChange={query => updateField("query", query)}
         />}
         {shouldShowHeaders() && (< KVEditor
           label="headers"
-          value={toKVObject(req.headers || {})}
-          onChange={headers => updateField("headers", toKVList(headers))}
+          value={req.headers || {}}
+          onChange={headers => updateField("headers", headers)}
         />)}
         {shouldShowCookies() && <KVEditor
           label="cookies"
-          value={toKVObject(req.cookies || {})}
-          onChange={cookies => updateField("cookies", toKVList(cookies))}
+          value={req.cookies || {}}
+          onChange={cookies => updateField("cookies", cookies)}
         />}
 
         {shouldShowBody() && (

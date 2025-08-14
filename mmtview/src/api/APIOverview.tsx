@@ -12,7 +12,6 @@ interface APIOverviewProps {
 }
 
 const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
-  // Extract output keys to use as options for setenv values
   const outputKeys = safeList(api.outputs)
     .reduce((acc, cur) => ({ ...acc, ...cur }), {});
   const outputOptions = Object.keys(outputKeys);
@@ -59,20 +58,18 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         </tr>
         <KVEditor
           label="import"
-          value={safeList(api.import).reduce((acc, cur) => ({ ...acc, ...cur }), {})}
+          value={api.import}
           onChange={kv => {
-            const newImports = safeList(Object.entries(kv)).map(([key, value]) => ({ [key]: value }));
-            update({ import: newImports });
+            update({ import: kv });
           }}
           keyPlaceholder="name"
           valuePlaceholder="path"
         />
         <KVEditor
           label="inputs"
-          value={safeList(api.inputs).reduce((acc, cur) => ({ ...acc, ...cur }), {})}
+          value={api.inputs}
           onChange={kv => {
-            const newInputs = safeList(Object.entries(kv)).map(([key, value]) => ({ [key]: value }));
-            update({ inputs: newInputs });
+            update({ inputs: kv });
           }}
           keyPlaceholder="name"
           valuePlaceholder="value"
@@ -80,10 +77,9 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         />
         <KVEditor
           label="outputs"
-          value={safeList(api.outputs).reduce((acc, cur) => ({ ...acc, ...cur }), {})}
+          value={api.outputs}
           onChange={kv => {
-            const newOutputs = safeList(Object.entries(kv)).map(([key, value]) => ({ [key]: value }));
-            update({ outputs: newOutputs });
+            update({ outputs: kv });
           }}
           keyPlaceholder="name"
           valuePlaceholder="value"
@@ -91,10 +87,9 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         />
         <KVEditor
           label="setenv"
-          value={safeList(api.setenv).reduce((acc, cur) => ({ ...acc, ...cur }), {})}
+          value={api.setenv}
           onChange={kv => {
-            const newSetenv = safeList(Object.entries(kv)).map(([key, value]) => ({ [key]: value }));
-            update({ setenv: newSetenv });
+            update({ setenv: kv });
           }}
           keyPlaceholder="name"
           valuePlaceholder="output key"

@@ -249,8 +249,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "headers",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "headers:\n\t- ",
-            detail: 'HTTP headers [array of key: value]',
+            insertText: "headers:\n\t", // Remove the "- "
+            detail: 'HTTP headers [object of key: value]',
             documentation: 'Key-value pairs for HTTP headers to include in the request. Common headers include Authorization, Content-Type, Accept, etc.\nExample:\nheaders:\n  Authorization: "Bearer {{token}}"\n  Content-Type: "application/json"\n  Accept: "application/json"',
         },
         {
@@ -263,16 +263,16 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "query",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "query:\n\t- ",
-            detail: 'Query parameters [array of key: value]',
-            documentation: 'URL query parameters as key-value pairs. These are appended to the URL after the ? symbol.\nExample:\nquery:\n  page: "{{page}}"\n  limit: "10"\n  sort: "name"\n  filter: "active"',
+            insertText: "query:\n\t", // Remove the "- "
+            detail: 'Query parameters [object of key: value]',
+            documentation: 'URL query parameters as key-value pairs. These are appended to the URL after the ? symbol.\nExample:\nquery:\n  page: "1"\n  limit: "10"',
         },
         {
             label: "cookies",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "cookies:\n\t- ",
-            detail: 'HTTP cookies [array of key: value]',
-            documentation: 'Cookies to include in the request as key-value pairs. These are sent in the Cookie header.\nExample:\ncookies:\n  sessionId: "{{sessionId}}"\n  userId: "{{userId}}"\n  preferences: "dark-mode"',
+            insertText: "cookies:\n\t", // Remove the "- "
+            detail: 'HTTP cookies [object of key: value]',
+            documentation: 'Cookies to include in the request as key-value pairs. These are sent in the Cookie header.\nExample:\ncookies:\n  sessionId: "{{sessionId}}"',
         },
         {
             label: "outputs",
