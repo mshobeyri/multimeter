@@ -11,8 +11,8 @@ import UrlInput from "../components/UrlInput";
 import { extractOutputs } from "./outputExtractor";
 import ViewSelector, { ViewMode } from "../components/ViewSelector";
 import { saveEnvVariablesFromObject, loadEnvVariables } from "../workspaceStorage";
-import { isList, isNonEmptyList, safeList, toKVList } from "../safer";
-import { JSONRecord, Parameter } from "../CommonData";
+import { safeList } from "../safer";
+import { JSONRecord } from "../CommonData";
 
 interface APITestProps {
   api: APIData;
@@ -21,41 +21,42 @@ interface APITestProps {
 // Function to handle setting environment variables from API setenv configuration
 const handleSetEnvVariables = (
   api: APIData,
-  finalOutputs: Record<string, string | number | boolean>
+  finalOutputs: JSONRecord
 ) => {
   // Load existing environment variables
   const cleanup = loadEnvVariables((existingVars) => {
     const existing = Array.isArray(existingVars) ? existingVars : [];
     let updated = [...existing];
 
-    safeList(api.setenv).forEach((envVar: { [key: string]: string }) => {
-      const envKey = Object.keys(envVar)[0];
-      const outputKey = envVar[envKey];
-      if (envKey && outputKey) {
-        // Remove existing variable with same name first
-        updated = updated.filter(v => v.name !== envKey);
+    // Handle setenv as object instead of array
+    if (api.setenv && typeof api.setenv === 'object') {
+      Object.entries(api.setenv).forEach(([envKey, outputKey]) => {
+        if (envKey && outputKey) {
+          // Remove existing variable with same name first
+          updated = updated.filter(v => v.name !== envKey);
 
-        // Check if the value refers to an output
-        if (outputKey in finalOutputs) {
-          const outputValue = finalOutputs[outputKey];
-          if (outputValue !== "" && outputValue != null) {
-            // Add new/updated variable with output value
+          // Check if the value refers to an output
+          if (finalOutputs.hasOwnProperty(String(outputKey))) {
+            const outputValue = finalOutputs[String(outputKey)];
+            if (outputValue !== "" && outputValue != null) {
+              // Add new/updated variable with output value
+              updated.push({
+                name: envKey,
+                label: api.title ? `api(${api.title})` : envKey,
+                value: String(outputValue)
+              });
+            }
+          } else {
+            // Direct value assignment (not from outputs)
             updated.push({
               name: envKey,
               label: api.title ? `api(${api.title})` : envKey,
-              value: String(outputValue)
+              value: outputKey
             });
           }
-        } else {
-          // Direct value assignment (not from outputs)
-          updated.push({
-            name: envKey,
-            label: api.title ? `api(${api.title})` : envKey,
-            value: outputKey
-          });
         }
-      }
-    });
+      });
+    }
 
     // Only save if there were changes
     if (updated.length !== existing.length ||
@@ -91,23 +92,27 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   const req = network.requestData || {};
 
   // Outputs state
-  const [outputs, setOutputs] = useState<Record<string, string | number | boolean>>({});
+  const [outputs, setOutputs] = useState<JSONRecord>({});
 
   // Update outputs when response changes
   useEffect(() => {
+    // Check if outputs exist as object instead of array
     if (
-      (!isNonEmptyList(api.outputs)) || (
+      (!api.outputs || Object.keys(api.outputs).length === 0) || (
         (!network.responseBody || network.responseBody == "") &&
         (!network.responseHeaders || Object.keys(network.responseHeaders).length === 0) &&
         (!network.responseCookies || Object.keys(network.responseCookies).length === 0))
     ) {
       return;
     }
+    
     const iface = { ...interfaces[selectedInterfaceIdx] };
-    const ifaceOutputsDef = safeList(iface.outputs).reduce((acc, cur) => ({ ...acc, ...cur }), {});
+    
+    // Handle interface outputs as object instead of array
+    const ifaceOutputsDef = iface.outputs || {};
 
-    // Get all API output keys
-    const apiOutputsDef = safeList(api.outputs).reduce((acc, cur) => ({ ...acc, ...cur }), {});
+    // Get all API output keys - now it's an object
+    const apiOutputsDef = api.outputs || {};
     const apiOutputKeys = Object.keys(apiOutputsDef);
 
     // Extract outputs for interface-defined keys only
@@ -409,9 +414,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         {shouldShowOutputs() && (
           <KVEditor
             label="outputs"
-            value={Object.fromEntries(
-              safeList(Object.entries(outputs)).map(([k, v]) => [k, String(v)])
-            )}
+            value={outputs}
             onChange={() => { }}
             deactivated={true}
           />
