@@ -3,7 +3,7 @@ import VEditor from "../components/VEditor";
 import { ExampleData } from "./APIData";
 import FieldWithRemove from "../components/FieldWithRemove";
 import DescriptionEditor from "../components/DescriptionEditor";
-import { toKVObject, isNonEmptyObject } from "../safer";
+import { isNonEmptyObject } from "../safer";
 import { JSONRecord } from "../CommonData";
 
 interface APIExampleProps {

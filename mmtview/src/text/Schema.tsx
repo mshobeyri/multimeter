@@ -2,7 +2,7 @@ export const GeneralSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
     properties: {
-        type: { type: 'string', enum: ['api', 'env', 'var'], description: 'Type of mmt file, must be one of: api, env, var' },
+        type: { type: 'string', enum: ['api', 'env', 'var'] },
     }
 }
 
@@ -11,49 +11,26 @@ export const APISchema = {
     type: 'object',
     required: ['type'],
     properties: {
-        type: { type: 'string', enum: ['api'], description: 'To define an API schema' },
-        title: { type: 'string', description: 'The title of the API' },
-        tags: { type: 'array', items: { type: 'string' }, description: 'Tags for the API, helps with organization and searchability' },
+        type: { type: 'string', enum: ['api'] },
+        title: { type: 'string'},
+        tags: { type: 'array', items: { type: 'string' }},
         description: { type: 'string' },
-        import: { type: 'array', items: { type: 'object', additionalProperties: { type: 'string' } } },
+        import: { 
+            type: 'object', 
+            additionalProperties: { type: 'string' }
+        },
         inputs: {
-            type: 'array',
-            items: {
-                type: 'object',
-                additionalProperties: {
-                    anyOf: [
-                        { type: 'string' },
-                        { type: 'number' },
-                        { type: 'boolean' },
-                        { type: 'null' }
-                    ]
-                }
-            }
+            type: 'object',
+            additionalProperties: { type: 'string' }
         },
         outputs: {
-            type: 'array',
-            items: {
-                type: 'object',
-                additionalProperties: {
-                    anyOf: [
-                        { type: 'string' },
-                        { type: 'number' },
-                        { type: 'boolean' },
-                        { type: 'null' }
-                    ]
-                }
-            }
+            type: 'object',
+            description: 'Output parameters as key-value pairs',
+            additionalProperties: { type: 'string' }
         },
         setenv: {
-            type: 'array',
-            items: {
-                type: 'object',
-                additionalProperties: {
-                    anyOf: [
-                        { type: 'string' }
-                    ]
-                }
-            }
+            type: 'object',
+            additionalProperties: { type: 'string' }
         },
         interfaces: {
             type: 'array',
@@ -97,27 +74,7 @@ export const APISchema = {
                     {
                         if: {
                             properties: {
-                                method: { const: 'post' }
-                            }
-                        },
-                        then: {
-                            required: ['body']
-                        }
-                    },
-                    {
-                        if: {
-                            properties: {
-                                method: { const: 'put' }
-                            }
-                        },
-                        then: {
-                            required: ['body']
-                        }
-                    },
-                    {
-                        if: {
-                            properties: {
-                                method: { const: 'patch' }
+                                method: { enum: ['post', 'put', 'patch'] }
                             }
                         },
                         then: {
@@ -135,17 +92,16 @@ export const APISchema = {
                 required: ['name'],
                 properties: {
                     name: { type: 'string' },
+                    description: { type: 'string' },
                     inputs: {
-                        type: 'array', items: {
-                            type: 'object',
-                            additionalProperties: {
-                                anyOf: [
-                                    { type: 'string' },
-                                    { type: 'number' },
-                                    { type: 'boolean' },
-                                    { type: 'null' }
-                                ]
-                            }
+                        type: 'object',
+                        additionalProperties: {
+                            anyOf: [
+                                { type: 'string' },
+                                { type: 'number' },
+                                { type: 'boolean' },
+                                { type: 'null' }
+                            ]
                         }
                     }
                 },

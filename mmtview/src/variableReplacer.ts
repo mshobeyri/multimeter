@@ -1,6 +1,6 @@
 import {InterfaceData} from './api/APIData';
 import {JSONRecord} from './CommonData';
-import {safeList, toKVObject} from './safer';
+import {safeList} from './safer';
 
 // Generic replacement function
 function replaceRefs(
@@ -51,7 +51,7 @@ export function replaceInputRefsWithNone(obj: any, inputs: any): any {
 export function replaceAllRefs(
     iface: InterfaceData, defaults: JSONRecord, inputs: JSONRecord,
     envs: JSONRecord): any {
-  const mergedInputs = Object.assign({}, defaults, toKVObject(inputs));
+  const mergedInputs = Object.assign({}, defaults, inputs);
 
   // Prepend "i:" to all keys from defaults and inputs
   const inputsWithPrefix = Object.fromEntries(
@@ -59,8 +59,7 @@ export function replaceAllRefs(
 
   // Prepend "e:" to all keys from envs
   const envsWithPrefix = Object.fromEntries(
-      Object.entries(toKVObject(envs)).map(([key,
-                                             value]) => [`e:${key}`, value]));
+      Object.entries(envs).map(([key, value]) => [`e:${key}`, value]));
 
   // Merge both prefixed objects
   const allVariables = Object.assign({}, inputsWithPrefix, envsWithPrefix);
