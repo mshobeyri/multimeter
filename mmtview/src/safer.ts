@@ -19,7 +19,3 @@ export function isNonEmptyObject(value: any): value is Record<string, any> {
 export function isNonEmptyList(value: any): value is any[] {
   return isList(value) && value.length > 0;
 }
-
-export function toKVList(obj: Record<string, string>): any[] {
-  return Object.entries(obj).map(([key, value]) => ({ [key]: value }));
-}

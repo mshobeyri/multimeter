@@ -6,7 +6,7 @@ import { InterfaceData } from "./APIData";
 import { Protocol, Method, Format } from "../CommonData"
 import { formatBody, formattedBodyToYamlObject } from "../markupConvertor";
 import BodyView from "../components/BodyView";
-import { safeList, isNonEmptyList } from "../safer";
+import { safeList, isNonEmptyObject } from "../safer";
 
 interface InterfaceEditorProps {
   data: InterfaceData;
@@ -151,7 +151,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
             </td>
           </tr>
         ) : null}
-        {data.protocol === "http" || isNonEmptyList(data.query) ? (
+        {data.protocol === "http" || isNonEmptyObject(data.query) ? (
           <KVEditor
             label="query"
             value={data.query || {}}
@@ -159,7 +159,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
             disabled={data.protocol !== "http"}
           />
         ) : null}
-        {data.protocol === "http" || isNonEmptyList(data.headers) ? (
+        {data.protocol === "http" || isNonEmptyObject(data.headers) ? (
           <KVEditor
             label="headers"
             value={data.headers || {}}
@@ -167,7 +167,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
             disabled={data.protocol !== "http"}
           />
         ) : null}
-        {data.protocol === "http" || isNonEmptyList(data.cookies) ? (
+        {data.protocol === "http" || isNonEmptyObject(data.cookies) ? (
           <KVEditor
             label="cookies"
             value={data.cookies || {}}

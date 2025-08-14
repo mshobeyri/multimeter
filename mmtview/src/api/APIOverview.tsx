@@ -12,9 +12,7 @@ interface APIOverviewProps {
 }
 
 const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
-  const outputKeys = safeList(api.outputs)
-    .reduce((acc, cur) => ({ ...acc, ...cur }), {});
-  const outputOptions = Object.keys(outputKeys);
+  const outputOptions = Object.keys(api.outputs || {});
 
   return (
     <table
