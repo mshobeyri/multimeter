@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { parseYamlDoc } from "../markupConvertor";
 import TextEditor from "../text/TextEditor";
-import { handleBeforeMount } from "./AutoComplete";
+import { handleBeforeMount } from "./BeforeMount";
 import { safeList } from "../safer";
 
 interface YamlEditorPanelProps {

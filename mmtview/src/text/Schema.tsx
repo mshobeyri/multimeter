@@ -155,3 +155,53 @@ export const APISchema = {
     },
     additionalProperties: false
 };
+
+export const EnvSchema = {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    type: 'object',
+    required: ['type'],
+    properties: {
+        type: { type: 'string', enum: ['env'], description: 'To define an environment schema' },
+        variables: {
+            type: 'object',
+            description: 'Environment variables definition',
+            additionalProperties: {
+                anyOf: [
+                    { type: 'string' },
+                    { type: 'object', additionalProperties: true },
+                    {
+                        type: 'array',
+                        items: {
+                            anyOf: [
+                                { type: 'string' },
+                                { type: 'number' },
+                                { type: 'boolean' },
+                                { type: 'null' }
+                            ]
+                        }
+                    }
+                ]
+            },
+        },
+        presets: {
+            type: 'object',
+            description: 'Environment presets configuration',
+            additionalProperties: {
+                type: 'object',
+                additionalProperties: {
+                    type: 'object',
+                    description: 'Environment configuration referencing variables section keys',
+                    additionalProperties: {
+                        anyOf: [
+                            { type: 'string' },
+                            { type: 'number' },
+                            { type: 'boolean' },
+                            { type: 'null' }
+                        ]
+                    }
+                }
+            }
+        }
+    },
+    additionalProperties: false
+};

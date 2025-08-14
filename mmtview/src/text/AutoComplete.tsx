@@ -1,140 +1,5 @@
-import { APISchema, GeneralSchema } from './Schema';
-import Ajv from 'ajv';
-import { Test } from 'mocha';
-import { js2xml, xml2js } from 'xml-js';
-import YAML from 'yaml';
+export const KeySuggestionsByParent = (monaco: any) => {
 
-// Add validation functions
-const ajv = new Ajv({ allErrors: true, verbose: true });
-
-const validateYamlContent = (content: string): any[] => {
-    const errors: any[] = [];
-
-    try {
-        // Parse YAML to JavaScript object using YAML library
-        const parsedContent = YAML.parse(content);
-
-        if (!parsedContent) {
-            return errors;
-        }
-
-        // Validate against schema
-        let validate = ajv.compile(GeneralSchema);
-        if (parsedContent.type && parsedContent.type === 'api') {
-            validate = ajv.compile(APISchema);
-        } else if (parsedContent.type && parsedContent.type === 'env') {
-            // validate = ajv.compile(EnvSchema);
-        } else if (parsedContent.type && parsedContent.type === 'var') {
-            // validate = ajv.compile(VarSchema);
-        } else if (parsedContent.type && parsedContent.type === 'test') {
-            // validate = ajv.compile(TestSchema);
-        }
-        const isValid = validate(parsedContent);
-
-        if (!isValid && validate.errors) {
-            validate.errors.forEach(error => {
-                if (
-                    error.keyword === "additionalProperties" &&
-                    typeof (error.params as any).additionalProperty === "string"
-                ) {
-                    const { line, column } = findFirstOccurrence(content, (error.params as any).additionalProperty);
-                    errors.push({
-                        severity: 8,
-                        startLineNumber: line,
-                        startColumn: column,
-                        endLineNumber: line,
-                        endColumn: 100,
-                        message: `Invalid property "${(error.params as any).additionalProperty}"`,
-                        source: 'mmt-validation'
-                    });
-                } else if (error.keyword === "enum") {
-                    const { line, column } = findFirstOccurrence(content, error.data);
-                    errors.push({
-                        severity: 8,
-                        startLineNumber: line,
-                        startColumn: column,
-                        endLineNumber: line,
-                        endColumn: 100,
-                        message: `Invalid value for property "${error.dataPath}", expected one of: ${(error.params as any).allowedValues ? (error.params as any).allowedValues.join(', ') : (error.params as any).allowedValue}`,
-                        source: 'mmt-validation'
-                    });
-                } else {
-                    const path = (error as any).instancePath || (error as any).dataPath || '';
-                    const line = getLineNumberFromPath(content, path);
-                    errors.push({
-                        severity: 8,
-                        startLineNumber: line,
-                        startColumn: 1,
-                        endLineNumber: line,
-                        endColumn: 100,
-                        message: `${path}: ${error.message}`,
-                        source: 'mmt-validation'
-                    });
-                }
-            });
-        }
-
-        return errors;
-    } catch (yamlError: any) {
-        // YAML parsing error from YAML library
-        const line = yamlError.linePos?.[0]?.line || yamlError.source?.start?.line || 1;
-        const column = yamlError.linePos?.[0]?.col || yamlError.source?.start?.col || 1;
-
-        errors.push({
-            severity: 8,
-            startLineNumber: line,
-            startColumn: column,
-            endLineNumber: line,
-            endColumn: column + 10,
-            message: `YAML Parse Error: ${yamlError.message}`,
-            source: 'yaml-syntax'
-        });
-
-        return errors;
-    }
-};
-
-const getLineNumberFromPath = (content: string, path: string): number => {
-    const lines = content.split('\n');
-    const pathParts = path.split('/').filter(part => part !== '');
-
-    if (pathParts.length === 0) return 1;
-
-    let currentLine = 1;
-    for (const line of lines) {
-        if (line.trim().startsWith(`${pathParts[0]}:`)) {
-            return currentLine;
-        }
-        currentLine++;
-    }
-
-    return 1;
-};
-
-const findFirstOccurrence = (content: string, searchText: string): { line: number; column: number; found: boolean } => {
-    if (!content || !searchText) {
-        return { line: 1, column: 1, found: false };
-    }
-
-    const lines = content.split('\n');
-
-    for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-        const line = lines[lineIndex];
-        const columnIndex = line.indexOf(searchText);
-
-        if (columnIndex !== -1) {
-            return {
-                line: lineIndex + 1, // 1-based line number
-                column: columnIndex + 1, // 1-based column number
-                found: true
-            };
-        }
-    }
-
-    return { line: 1, column: 1, found: false };
-};
-
-export const handleBeforeMount = (monaco: any) => {
     const rootSuggestions = [
         {
             label: "type",
@@ -231,6 +96,22 @@ export const handleBeforeMount = (monaco: any) => {
             detail: 'Usage examples [array of key: value]',
             documentation: 'Provide concrete examples of how to use the API with specific input values. These examples can be used for testing and documentation.\nExample:\nexamples:\n\t- name: "Get Admin User"\n    inputs:\n      - userId: "admin123"\n      - apiKey: "test-key-456"',
         }
+    ];
+    const envSuggestions = [
+        {
+            label: "variables",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "variables:\n\t",
+            detail: 'Environment variables [object of key: value]',
+            documentation: 'Define variables that can be used throughout the API definition. These are placeholders that can be replaced with actual values at runtime.\nExample:\nvariables:\n\turl: \n\t\tdevelopment: "https://api.example.com"\n\t\tproduction: "http://localhost:3000"',
+        },
+        {
+            label: "presets",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "presets:\n\t",
+            detail: 'API presets [object of key: value]',
+            documentation: 'Presets for commonly used environment variable values. Helps with reusability and consistency.\nExample:\npresets:\n\t- name: "production"\n\t  value: "prod"\n\t- name: "staging"\n\t  value: "staging"\n\t- name: "development"\n\t  value: "dev"',
+        },
     ];
     const protocolSuggestion = [
         {
@@ -451,6 +332,7 @@ export const handleBeforeMount = (monaco: any) => {
     const keySuggestionsByParent: Record<string, any[]> = {
         root: rootSuggestions,
         api: apiSuggestions,
+        env: envSuggestions,
         type: typeSuggestions,
         interfaces: interfaceSuggestions,
         examples: exampleSuggestions,
@@ -460,201 +342,5 @@ export const handleBeforeMount = (monaco: any) => {
         outputs: outputsSuggestions,
     };
 
-    monaco.languages.registerCompletionItemProvider("yaml", {
-        provideCompletionItems: (model: any, position: any) => {
-            // Only provide completions for YAML language
-            const language = model.getLanguageId();
-            if (language !== "yaml") {
-                return { suggestions: [] };
-            }
-
-            const lineNumber = position.lineNumber;
-            const lineContent = model.getLineContent(lineNumber);
-            const lines = model.getLinesContent().slice(0, lineNumber - 1);
-
-            // Check if current line is like: key: <cursor> (maybe with spaces)
-            const keyValueMatch = lineContent.match(/^(\s*)(\w+):\s*(.*)$/);
-            if (keyValueMatch) {
-                const key = keyValueMatch[2];
-                const colonPosition = lineContent.indexOf(':');
-                const valueStartColumn = colonPosition + 2;
-
-                if (position.column >= valueStartColumn) {
-                    // Use the key as parent context
-                    if (key in keySuggestionsByParent) {
-                        return {
-                            suggestions: keySuggestionsByParent[key].map(item => ({
-                                ...item,
-                                documentation: `${item.documentation}`,
-                                range: {
-                                    startLineNumber: position.lineNumber,
-                                    startColumn: valueStartColumn,
-                                    endLineNumber: position.lineNumber,
-                                    endColumn: lineContent.length + 1
-                                }
-                            }))
-                        };
-                    }
-
-                    return { suggestions: [] };
-                }
-            }
-
-            // Check if we're in a list item context (after "- key: ")
-            const listItemMatch = lineContent.match(/^(\s*)-\s+(\w+):\s*(.*)$/);
-            if (listItemMatch) {
-                const indentation = listItemMatch[1];
-                const key = listItemMatch[2];
-                const colonPosition = lineContent.lastIndexOf(':');
-                const valueStartColumn = colonPosition + 2;
-
-                if (position.column >= valueStartColumn) {
-                    // For list items, use the key as context
-                    if (key in keySuggestionsByParent) {
-                        return {
-                            suggestions: keySuggestionsByParent[key].map(item => ({
-                                ...item,
-                                documentation: `${item.documentation}`,
-                                range: {
-                                    startLineNumber: position.lineNumber,
-                                    startColumn: valueStartColumn,
-                                    endLineNumber: position.lineNumber,
-                                    endColumn: lineContent.length + 1
-                                }
-                            }))
-                        };
-                    }
-
-                    for (let i = lines.length - 1; i >= 0; i--) {
-                        const line = lines[i];
-                        if (!line.trim()) continue;
-
-                        const indent = line.search(/\S|$/);
-                        if (indent < indentation.length) {
-                            const match = line.trim().match(/^(\w+):/);
-                            if (match && match[1] === "outputs") {
-                                return {
-                                    suggestions: outputsSuggestions.map(item => ({
-                                        ...item,
-                                        range: {
-                                            startLineNumber: position.lineNumber,
-                                            startColumn: valueStartColumn,
-                                            endLineNumber: position.lineNumber,
-                                            endColumn: lineContent.length + 1
-                                        }
-                                    }))
-                                };
-                            }
-                            break;
-                        }
-                    }
-
-                    return { suggestions: [] };
-                }
-            }
-
-            let parent = "root";
-            const currentIndent = lineContent.search(/\S|$/);
-
-            if (currentIndent === 0 && model.getLineContent(1).trim() === ("type: api")) {
-                parent = "api";
-            } else if (currentIndent === 0 && model.getLineContent(1).trim() === ("type: env")) {
-                parent = "env";
-            } else if (currentIndent === 0 && model.getLineContent(1).trim() === ("type: var")) {
-                parent = "var";
-            } else {
-                // Look for parent context by indentation
-                for (let i = lines.length - 1; i >= 0; i--) {
-                    const line = lines[i];
-                    if (!line.trim()) continue;
-
-                    const indent = line.search(/\S|$/);
-                    if (indent < currentIndent) {
-                        const match = line.trim().match(/^\s*(\w+):/);
-                        if (match) {
-                            parent = match[1];
-                            break;
-                        }
-
-                        if (line.trim().startsWith("- ")) {
-                            for (let j = i - 1; j >= 0; j--) {
-                                const upperLine = lines[j];
-                                if (!upperLine.trim()) continue;
-                                const upperMatch = upperLine.trim().match(/^\s*(\w+):/);
-                                if (upperMatch) {
-                                    parent = upperMatch[1];
-                                    break;
-                                }
-                            }
-                            break;
-                        }
-                    }
-                }
-            }
-
-            const baseSuggestions = keySuggestionsByParent[parent] || [];
-
-            const suggestions = baseSuggestions.map(item => ({
-                ...item,
-                documentation: item.documentation,
-                range: {
-                    startLineNumber: position.lineNumber,
-                    startColumn: model.getLineFirstNonWhitespaceColumn(position.lineNumber) || position.lineNumber,
-                    endLineNumber: position.lineNumber,
-                    endColumn: position.column
-                }
-            }));
-
-            return { suggestions };
-        },
-        triggerCharacters: ["\n", " ", ":", "-"],
-    });
-
-    // Add validation provider with language filtering
-    let validationTimeout: NodeJS.Timeout;
-
-    const validateModel = (model: any) => {
-        // Only validate YAML models
-        const language = model.getLanguageId();
-        if (language !== "yaml") {
-            return;
-        }
-
-        clearTimeout(validationTimeout);
-
-        // Debounce validation by 500ms
-        validationTimeout = setTimeout(() => {
-            const content = model.getValue();
-            const markers = validateYamlContent(content);
-
-            // Set markers on the model
-            monaco.editor.setModelMarkers(model, 'mmt-validation', markers);
-        }, 500);
-    };
-
-    // Register model change listener for validation
-    monaco.editor.onDidCreateModel((model: any) => {
-        // Only validate YAML models
-        if (model.getLanguageId() === "yaml") {
-            validateModel(model);
-
-            // Validate when content changes
-            model.onDidChangeContent(() => {
-                validateModel(model);
-            });
-        }
-    });
-
-    // Also validate existing models (only YAML ones)
-    const models = monaco.editor.getModels();
-    models.forEach((model: any) => {
-        if (model.getLanguageId() === "yaml") {
-            validateModel(model);
-
-            // Add listener if not already added
-            model.onDidChangeContent(() => {
-                validateModel(model);
-            });
-        }
-    });
-};
+    return keySuggestionsByParent;
+}
