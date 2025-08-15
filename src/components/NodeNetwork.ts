@@ -139,6 +139,7 @@ export function handleNetworkMessage(
   switch (message.action) {
     case 'http-send':
       (async () => {
+        let lastSendTime: number|null = null;
         try {
           const {
             url,
@@ -179,7 +180,9 @@ export function handleNetworkMessage(
             timeout: config.timeout,  // Use timeout from config
           };
 
+          lastSendTime = Date.now();
           const response = await axios.request(request);
+          const duration = lastSendTime ? Date.now() - lastSendTime : -1;
 
           webviewPanel.webview.postMessage({
             command: 'network',
@@ -189,11 +192,13 @@ export function handleNetworkMessage(
               headers: response.headers,
               status: response.status,
               statusText: response.statusText,
+              duration: duration,
             },
             requestId,
           });
 
         } catch (err: any) {
+          const duration = lastSendTime ? Date.now() - lastSendTime : -1;
           let errorMessage = err?.message || String(err);
           let status = err?.response?.status;
           let responseBody = null;
@@ -233,14 +238,15 @@ export function handleNetworkMessage(
               headers: responseHeaders,
               status: status,
               message: errorMessage,
-              code: err.code
+              code: err.code,
+              duration: duration,
             },
             requestId: message.requestId,
           });
         }
       })();
       break;
-      
+
     case 'ws-connect':
       try {
         const {url, wsId} = message;

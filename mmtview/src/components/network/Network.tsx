@@ -41,8 +41,6 @@ export function useNetwork(): NetworkAPI {
     return String(data);
   };
 
-  let lastSendTime: number | null = null;
-
   const send = async () => {
     setError(null);
     if (loading) {
@@ -50,7 +48,7 @@ export function useNetwork(): NetworkAPI {
     }
     setLoading(true);
     if (!requestData) {
-      setError({ message: "Request data is undefined", body: null, headers: {}, status: 400, code: "REQUEST_DATA_UNDEFINED" });
+      setError({ message: "Request data is undefined", body: null, headers: {}, status: 400, code: "REQUEST_DATA_UNDEFINED", duration: -1 });
       setLoading(false);
       return;
     }
@@ -77,7 +75,6 @@ export function useNetwork(): NetworkAPI {
       content: method === "get" ? "" : toContentString(body),
     });
 
-    lastSendTime = Date.now();
     if (protocol === "http") {
       lastRequestID.current = NetworkNodeApi.sendHttp({
         url: url ?? "",
@@ -87,8 +84,7 @@ export function useNetwork(): NetworkAPI {
         cookies: cookies || {},
         query: query || {},
         onResponse: (res: any) => {
-          const duration = lastSendTime ? Date.now() - lastSendTime : -1;
-          setLastDuration(duration);
+          setLastDuration(res.duration || -1);
           setResponseBody(res.body);
           setResponseHeaders(res.headers || {});
           setResponseCookies(parseSetCookie(res.headers?.["set-cookie"]));
@@ -102,14 +98,12 @@ export function useNetwork(): NetworkAPI {
             cookies: parseSetCookie(res.headers?.["set-cookie"]),
             headers: res.headers || {},
             content: toContentString(res.body),
-            duration: duration, // Use calculated duration
+            duration: res.duration || -1,
             status: res.status || -1,
           });
-          lastSendTime = null;
         },
         onError: (error: Error) => {
-          const duration = lastSendTime ? Date.now() - lastSendTime : -1;
-          setLastDuration(duration);
+          setLastDuration(error.duration || -1);
           setResponseBody(error.body || null);
           setResponseHeaders(error.headers || {});
           setResponseCookies({});
@@ -125,14 +119,14 @@ export function useNetwork(): NetworkAPI {
             cookies: {},
             headers: {},
             content: toContentString(error),
-            duration: duration, // Use calculated duration
+            duration: error.duration || -1,
             status: error?.status ? error?.status : 500
           });
         }
       });
     } else if (protocol === "ws") {
       if (!connected) {
-        setError({ message: "WebSocket not connected", body: null, headers: {}, status: 400, code: "WS_NOT_CONNECTED" });
+        setError({ message: "WebSocket not connected", body: null, headers: {}, status: 400, code: "WS_NOT_CONNECTED", duration: -1 });
         setLoading(false);
         return;
       }
@@ -170,7 +164,7 @@ export function useNetwork(): NetworkAPI {
     } = opts;
 
     if (protocol === "http") {
-      setError({ message: "WebSocket protocol required for WebSocket connection", body: null, headers: {}, status: 400, code: "WS_PROTOCOL_REQUIRED" });
+      setError({ message: "WebSocket protocol required for WebSocket connection", body: null, headers: {}, status: 400, code: "WS_PROTOCOL_REQUIRED" , duration: -1 });
       return;
     }
 
@@ -224,7 +218,7 @@ export function useNetwork(): NetworkAPI {
         });
       },
       onError: (err: any) => {
-        setError({ message: "WebSocket cannot connect", body: null, headers: {}, status: 400, code: "WS_NOT_CONNECTED" });
+        setError({ message: "WebSocket cannot connect", body: null, headers: {}, status: 400, code: "WS_NOT_CONNECTED", duration: -1 });
         setLoading(false);
 
         // Save WS error to history

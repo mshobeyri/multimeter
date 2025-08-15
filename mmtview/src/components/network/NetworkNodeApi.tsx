@@ -8,6 +8,7 @@ export type Error = {
     status: number | null;
     message: string | null;
     code: string | null;
+    duration: number | null;
 }
 
 type HttpOptions = {
