@@ -15,7 +15,7 @@ interface APIExampleProps {
 
 const APIExample: React.FC<APIExampleProps> = ({ data, apiInputs, onChange, onRemove }) => {
   // Helper to update fields
-  const handleFieldsChange = (kv: Record<string, string>) => {
+  const handleFieldsChange = (kv: JSONRecord) => {
     const newFields = { ...kv };
     onChange({ ...data, inputs: newFields });
     apiInputs = newFields;

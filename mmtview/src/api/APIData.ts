@@ -16,7 +16,7 @@ export interface InterfaceData {
 export interface ExampleData {
   name?: string;
   description?: string;
-  inputs?: Record<string, string>;
+  inputs?: JSONRecord;
 }
 
 export interface APIData extends MMTFile {
@@ -24,7 +24,7 @@ export interface APIData extends MMTFile {
   tags?: string[];
   description?: string;
   import?: Record<string, string>;
-  inputs?: Record<string, string>;
+  inputs?: JSONRecord;
   outputs?: Record<string, string>;
   setenv?: JSONRecord;
   interfaces?: Array<InterfaceData>;
