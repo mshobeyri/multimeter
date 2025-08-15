@@ -471,7 +471,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                     {network.error.status || network.error.code || 'ERROR'}
                   </div>
                 )}
-                {network.statusCode && network.statusCode > 0 && (
+                {network.statusCode && network.statusCode > 0 && !network.error && (
                   <div
                     style={{
                       backgroundColor: '#4caf50',
