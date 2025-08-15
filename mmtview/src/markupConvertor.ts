@@ -10,7 +10,6 @@ function parseYaml(yamlString: string): any {
   try {
     return YAML.parse(yamlString);
   } catch (e) {
-    console.error('Failed to parse YAML:', e);
     return null;
   }
 }
@@ -19,7 +18,6 @@ function packYaml(obj: any): string {
   try {
     return YAML.stringify(obj);
   } catch (e) {
-    console.error('Failed to stringify YAML:', e);
     return '';
   }
 }
