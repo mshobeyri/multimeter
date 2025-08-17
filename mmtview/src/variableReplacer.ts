@@ -72,7 +72,6 @@ export function replaceInputRefsWithNone(obj: any, inputs: any): any {
 export function replaceAllRefs(
     iface: InterfaceData, defaults: JSONRecord, inputs: JSONRecord,
     envs: JSONRecord): any {
-  console.log('replaceAllRefs', iface, defaults, inputs, envs);
   const mergedInputs = Object.assign({}, defaults, inputs);
 
   // Prepend "i:" to all keys from defaults and inputs
