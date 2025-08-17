@@ -116,7 +116,6 @@ const VEditor: React.FC<VEditorProps> = ({
       // Convert string input to match original type
       updated[key] = convertToOriginalType(newVal, originalValue);
     }
-    
     onChange(updated);
   };
 
