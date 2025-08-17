@@ -105,9 +105,9 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     ) {
       return;
     }
-    
+
     const iface = { ...interfaces[selectedInterfaceIdx] };
-    
+
     // Handle interface outputs as object instead of array
     const ifaceOutputsDef = iface.outputs || {};
 
@@ -233,20 +233,20 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const message = event.data;
-      
+
       switch (message.command) {
         case 'loadDocument':
           if (message.viewMode) {
             setViewMode(message.viewMode);
           }
           break;
-          
+
         case 'multimeter.mmt.show.panel':
           setViewMode(message.panelId);
           break;
       }
     };
-    
+
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, []);
@@ -256,198 +256,190 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   }
 
   return (
-    <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
-      <colgroup>
-        <col style={{ width: "20%" }} />
-        <col style={{ width: "80%" }} />
-      </colgroup>
-      <tbody>
-        {/* Example select - with additional safety checks */}
-        {examples.length > 0 && (
-          <tr>
-            <td className="label">example</td>
-            <td style={{ padding: "8px" }}>
-              <select
-                value={selectedExampleIdx ?? ""}
-                onChange={e => {
-                  setSelectedExampleIdx(0);
-                  setSelectedExampleIdx(Number(e.target.value));
-                }}
-                style={{ width: "100%" }}
-              >
-                <option value="default">defaults</option>
-                {safeList(examples)
-                  .filter(ex => ex && typeof ex === 'object')
-                  .map((ex, idx) => (
-                    <option key={ex?.name || idx} value={idx}>
-                      {ex?.name || `Example ${idx + 1}`}
-                    </option>
-                  ))}
-              </select>
-            </td>
-          </tr>
-        )}
-
-        <tr>
-          <td className="label">interface</td>
-          <td style={{ padding: "8px" }}>
+    <div style={{ width: "100%" }}>
+      {/* Example select - with additional safety checks */}
+      {examples.length > 0 && (
+        <>
+          <div className="label">example</div>
+          <div style={{ padding: "8px" }}>
             <select
-              value={selectedInterfaceIdx}
+              value={selectedExampleIdx ?? ""}
               onChange={e => {
-                setSelectedInterfaceIdx(-1);
-                setSelectedInterfaceIdx(Number(e.target.value));
+                setSelectedExampleIdx(0);
+                setSelectedExampleIdx(Number(e.target.value));
               }}
               style={{ width: "100%" }}
             >
-              {safeList(interfaces)
-                .filter(Boolean) // Remove null/undefined entries
-                .filter(iface => iface && typeof iface === 'object') // Ensure it's an object
-                .map((iface, idx) => (
-                  <option key={iface?.name || idx} value={idx}>
-                    {iface?.name || `Interface ${idx + 1}`}
+              <option value="default">defaults</option>
+              {safeList(examples)
+                .filter(ex => ex && typeof ex === 'object')
+                .map((ex, idx) => (
+                  <option key={ex?.name || idx} value={idx}>
+                    {ex?.name || `Example ${idx + 1}`}
                   </option>
                 ))}
             </select>
-          </td>
-        </tr>
-        <tr>
-          <td className="label">url</td>
-          <td style={{ padding: "8px" }}>
-            <UrlInput
-              url={req.url ?? ""}
-              query={req.query || {}}
-              onUrlChange={handleUrlChange}
-              onQueryChange={handleQueryChange}
-            />
-          </td>
-        </tr>
-        <tr style={{ zIndex: 100, position: "relative", padding: 0 }}>
-          <td colSpan={2} style={{ position: "relative", paddingTop: 0, paddingBottom: 8, height: 40 }}>
-            <div className="horizontal-line" />
-            <div style={{
-              position: "absolute",
-              right: 8,
-              top: "80%",
-              transform: "translateY(-50%)",
-              zIndex: 100
-            }}>
-              <ViewSelector
-                viewMode={viewMode}
-                onViewModeChange={setViewMode}
-              />
-            </div>
-          </td>
-        </tr>
+          </div>
+        </>
+      )}
+
+
+      <div className="label">interface</div>
+      <div style={{ padding: "8px" }}>
+        <select
+          value={selectedInterfaceIdx}
+          onChange={e => {
+            setSelectedInterfaceIdx(-1);
+            setSelectedInterfaceIdx(Number(e.target.value));
+          }}
+          style={{ width: "100%" }}
+        >
+          {safeList(interfaces)
+            .filter(Boolean) // Remove null/undefined entries
+            .filter(iface => iface && typeof iface === 'object') // Ensure it's an object
+            .map((iface, idx) => (
+              <option key={iface?.name || idx} value={idx}>
+                {iface?.name || `Interface ${idx + 1}`}
+              </option>
+            ))}
+        </select>
+      </div>
+
+
+      <div className="label">url</div>
+      <div style={{ padding: "8px" }}>
+        <UrlInput
+          url={req.url ?? ""}
+          query={req.query || {}}
+          onUrlChange={handleUrlChange}
+          onQueryChange={handleQueryChange}
+        />
+      </div>
+
+      <div style={{ position: "relative", paddingTop: 0, paddingBottom: 8, height: 40 }}>
+        <div className="horizontal-line" />
         <div style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          marginBottom: "4px",
+          position: "absolute",
+          right: 8,
+          top: "80%",
+          transform: "translateY(-50%)",
+          zIndex: 100
         }}>
+          <ViewSelector
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+          />
         </div>
-        {shouldShowQuery() && <KVEditor
-          label="query"
-          value={req.query || {}}
-          onChange={query => updateField("query", query)}
-        />}
-        {shouldShowHeaders() && (< KVEditor
-          label="headers"
-          value={req.headers || {}}
-          onChange={headers => updateField("headers", headers)}
-        />)}
-        {shouldShowCookies() && <KVEditor
-          label="cookies"
-          value={req.cookies || {}}
-          onChange={cookies => updateField("cookies", cookies)}
-        />}
+      </div>
 
-        {shouldShowBody() && (
-          <tr>
-            <td className="label">body</td>
-            <td style={{ padding: "8px" }}>
-              <BodyView
-                value={body == null ? "" : body}
-                format={req.format || "json"}
-                mode="live"
-                onChange={val => {
-                  setBody(val);
-                  updateField("body", val);
-                }}
-              />
-            </td>
-          </tr>
-        )}
+      <div style={{
+        display: "flex",
+        justifyContent: "flex-end",
+        marginBottom: "4px",
+      }}>
+      </div>
 
-        <tr>
-          <td colSpan={2} style={{ position: "relative", padding: 0, height: 40 }}>
-            <div className="horizontal-line" />
-            {req.protocol === "ws" && (
-              <ConnectButton
-                connected={network.connected}
-                onClick={handleConnect}
-              />
-            )}
-            <SendButton
-              onClick={handleSend}
-              onCancel={handleCancel}
-              disabled={req.protocol === "ws" && !network.connected}
-              loading={network.loading}
+      {shouldShowQuery() && <KVEditor
+        label="query"
+        value={req.query || {}}
+        onChange={query => updateField("query", query)}
+      />}
+      {shouldShowHeaders() && < KVEditor
+        label="headers"
+        value={req.headers || {}}
+        onChange={headers => updateField("headers", headers)}
+      />}
+      {shouldShowCookies() && <KVEditor
+        label="cookies"
+        value={req.cookies || {}}
+        onChange={cookies => updateField("cookies", cookies)}
+      />}
+
+      {shouldShowBody() && (
+        <>
+          <div className="label">body</div>
+          <div style={{ padding: "8px" }}>
+            <BodyView
+              value={body == null ? "" : body}
+              format={req.format || "json"}
+              mode="live"
+              onChange={val => {
+                setBody(val);
+                updateField("body", val);
+              }}
             />
-          </td>
-        </tr>
+          </div>
+        </>
+      )}
 
-        {shouldShowResponseHeaders() && (
-          <KVEditor
-            label="headers"
-            value={network.responseHeaders}
-            onChange={headers => { }}
-            deactivated={true}
+      <div style={{ position: "relative", paddingTop: 0, paddingBottom: 8, height: 40 }}>
+        <div className="horizontal-line" />
+        {req.protocol === "ws" && (
+          <ConnectButton
+            connected={network.connected}
+            onClick={handleConnect}
           />
         )}
+        <SendButton
+          onClick={handleSend}
+          onCancel={handleCancel}
+          disabled={req.protocol === "ws" && !network.connected}
+          loading={network.loading}
+        />
+      </div>
 
-        {shouldShowResponseCookies() && (
-          <KVEditor
-            label="cookies"
-            value={network.responseCookies}
-            onChange={cookies => { }}
-            deactivated={true}
-          />
-        )}
 
-        {shouldShowResponse() && (
-          <tr>
-            <td className="label">body</td>
-            <td style={{ padding: "8px" }}>
-              <BodyView
-                value={
-                  network.responseBody == null
-                    ? ""
-                    : typeof network.responseBody === "string"
-                      ? network.responseBody
-                      : JSON.stringify(network.responseBody, null, 2)
-                }
-                format={req.format || "json"}
-                mode="live"
-              />
-            </td>
-          </tr>
-        )}
+      {shouldShowResponseHeaders() && (
+        <KVEditor
+          label="headers"
+          value={network.responseHeaders}
+          onChange={headers => { }}
+          deactivated={true}
+        />
+      )}
 
-        {shouldShowOutputs() && (
-          <KVEditor
-            label="outputs"
-            value={outputs}
-            onChange={() => { }}
-            deactivated={true}
-          />
-        )}
-        {(network.statusCode || network.error) && (<>
-          <tr>
-            <td colSpan={2} style={{ position: "relative", padding: 4, height: 1 }}>
-              <div className="horizontal-line" />
-            </td>
-          </tr>
-          <tr style={{ position: 'relative', height: 20 }}>
-            <td colSpan={2} style={{ padding: 0, height: 20, position: 'relative' }}>
+      {shouldShowResponseCookies() && (
+        <KVEditor
+          label="cookies"
+          value={network.responseCookies}
+          onChange={cookies => { }}
+          deactivated={true}
+        />
+      )}
+
+      {shouldShowResponse() && (
+        <>
+          <div className="label">body</div>
+          <div style={{ padding: "8px" }}>
+            <BodyView
+              value={
+                network.responseBody == null
+                  ? ""
+                  : typeof network.responseBody === "string"
+                    ? network.responseBody
+                    : JSON.stringify(network.responseBody, null, 2)
+              }
+              format={req.format || "json"}
+              mode="live"
+            />
+          </div>
+        </>
+      )}
+
+      {shouldShowOutputs() && (
+        <KVEditor
+          label="outputs"
+          value={outputs}
+          onChange={() => { }}
+          deactivated={true}
+        />
+      )}
+      {(network.statusCode || network.error) && (
+        <>
+          <div className="horizontal-line" style={{ position: "relative", padding: 4, height: 1 }} />
+
+          <div style={{ position: 'relative', height: 20 }}>
+            <div style={{ padding: 0, height: 20, position: 'relative' }}>
               <div
                 style={{
                   position: 'absolute',
@@ -510,11 +502,10 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                   </div>
                 )}
               </div>
-            </td>
-          </tr>
+            </div>
+          </div>
         </>)}
-      </tbody>
-    </table>
+    </div >
   );
 };
 

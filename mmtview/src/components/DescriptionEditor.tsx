@@ -27,7 +27,10 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ value, onChange }
     }, [localValue]);
 
     return (
-        <div style={{ position: "relative" }}>
+        <div style={{ 
+            width: "calc(100% - 10px)", // Subtract margin from width
+            boxSizing: "border-box"
+        }}>
             <textarea
                 ref={bodyRef}
                 value={localValue}
@@ -59,7 +62,8 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ value, onChange }
                 style={{
                     width: "100%",
                     resize: "none",
-                    overflow: "hidden"
+                    overflow: "hidden",
+                    boxSizing: "border-box"
                 }}
             />
         </div>

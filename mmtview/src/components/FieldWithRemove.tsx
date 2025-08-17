@@ -37,7 +37,7 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
       disabled={disabled}
       style={{
         position: "absolute",
-        top: 0,
+        top: 2,
         right: 0,
         width: 28,
         height: 24,

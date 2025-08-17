@@ -20,13 +20,13 @@ function withTrailingEmptyKey(obj?: Record<string, string> | JSONRecord): Array<
   if (!obj) {
     return [["", ""]];
   }
-  
+
   // Convert JSONRecord or Record<string, string> to entries
   const entries = Object.entries(obj).map(([key, value]): [string, string] => [
-    key, 
+    key,
     typeof value === 'string' ? value : String(value || '')
   ]);
-  
+
   // Ensure there's always an empty entry at the end for adding new items
   if (entries.length === 0 || entries[entries.length - 1][0] !== "") {
     return [...entries, ["", ""]];
@@ -63,7 +63,7 @@ const KVEditor: React.FC<KVEditorProps> = ({
     const newEntries = safeList(entries).map(([k, v], i): [string, string] =>
       i === idx ? [newKey, v] : [k, v]
     );
-    
+
     // Remove duplicate keys except for the current one
     const seen = new Set<string>();
     const filtered = newEntries.filter(([k], i) => {
@@ -72,7 +72,7 @@ const KVEditor: React.FC<KVEditorProps> = ({
       seen.add(k);
       return true;
     });
-    
+
     onChange(toObject(filtered));
   };
 
@@ -89,53 +89,55 @@ const KVEditor: React.FC<KVEditorProps> = ({
   };
 
   return (
-    <tr>
-      <td className={disabled ? "label label-disabled" : "label"}>{label}</td>
-      <td style={{ padding: "5px" }}>
-        <table style={{ width: "100%" }}>
-          <tbody>
-            {safeList(entries)
-              .filter(([k], i) => !(deactivated && k === "" && i === entries.length - 1))
-              .map(([k, v], i) => (
-                <tr key={i}> {/* Use stable index-based key instead of key content */}
-                  <td style={{ width: "50%" }}>
-                    <input
-                      value={k}
-                      onChange={e => handleKeyChange(i, e.target.value)}
-                      placeholder={keyPlaceholder}
-                      style={{ width: "100%" }}
-                      disabled={disabled}
-                    />
-                  </td>
-                  <td style={{ width: "50%" }}>
-                    {k.trim() !== "" && (
-                      safeOptions.length > 0 ? (
-                        <SelectWithRemove
-                          value={v}
-                          onChange={newVal => handleValueChange(i, newVal)}
-                          onRemovePressed={() => handleRemove(i)}
-                          options={safeOptions}
-                          placeholder={valuePlaceholder}
-                          disabled={disabled}
-                        />
-                      ) : (
-                        <FieldWithRemove
-                          value={v}
-                          onChange={newVal => handleValueChange(i, newVal)}
-                          onRemovePressed={() => handleRemove(i)}
-                          placeholder={valuePlaceholder}
-                          disabled={disabled}
-                          removable={!deactivated}
-                        />
-                      )
-                    )}
-                  </td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
-      </td>
-    </tr>
+    <div style={{ width: "100%" }}>
+      <div
+        className={disabled ? "label label-disabled" : "label"}
+      >
+        {label}
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <tbody style={{ width: "100%" }}>
+          {safeList(entries)
+            .filter(([k], i) => !(deactivated && k === "" && i === entries.length - 1))
+            .map(([k, v], i) => (
+              <tr style={{ width: "100%" }} key={i}>
+                <td style={{ width: "50%", padding: "5px", verticalAlign: "top" }}>
+                  <input
+                    value={k}
+                    onChange={e => handleKeyChange(i, e.target.value)}
+                    placeholder={keyPlaceholder}
+                    style={{ width: "100%", boxSizing: "border-box" }}
+                    disabled={disabled}
+                  />
+                </td>
+                <td style={{ width: "50%", padding: "5px", verticalAlign: "top" }}>
+                  {k.trim() !== "" && (
+                    safeOptions.length > 0 ? (
+                      <SelectWithRemove
+                        value={v}
+                        onChange={newVal => handleValueChange(i, newVal)}
+                        onRemovePressed={() => handleRemove(i)}
+                        options={safeOptions}
+                        placeholder={valuePlaceholder}
+                        disabled={disabled}
+                      />
+                    ) : (
+                      <FieldWithRemove
+                        value={v}
+                        onChange={newVal => handleValueChange(i, newVal)}
+                        onRemovePressed={() => handleRemove(i)}
+                        placeholder={valuePlaceholder}
+                        disabled={disabled}
+                        removable={!deactivated}
+                      />
+                    )
+                  )}
+                </td>
+              </tr>
+            ))}
+        </tbody>
+      </table>
+    </div>
   );
 };
 

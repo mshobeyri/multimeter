@@ -108,10 +108,11 @@ select:focus {
   border: 1px solid var(--vscode-input-border, #3c3c3c);
   border-radius: 2px;
   padding: 4px 8px;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   font-family: var(--vscode-editor-font-family, inherit);
   outline: none;
   transition: border-color 0.2s;
+  height: 1.6rem;
 }
 
 select:focus {
@@ -131,11 +132,12 @@ textarea {
   border: 1px solid var(--vscode-input-border, #3c3c3c);
   border-radius: 2px;
   padding: 4px 8px;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   font-family: var(--vscode-editor-font-family, inherit);
   outline: none;
   transition: border-color 0.2s;
   resize: vertical;
+  height: 1.6rem;
 }
 
 input:focus,
@@ -303,7 +305,10 @@ button:focus {
 .label {
   color: var(--vscode-editorWidget-foreground, #939393);
   font-size: 0.75rem;
-  padding: 2px 0 0 0;
+  padding: 5px;
+  padding-bottom: 0px;
+  padding-top: 10px;
+
   text-align: left;
   overflow: hidden;
 }
