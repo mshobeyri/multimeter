@@ -9,7 +9,6 @@ enum ReplacementMode {
   NONE = 'none'       // key format
 }
 
-// Generic replacement function with flags
 function replaceRefs(
     obj: any, pattern: RegExp, mode: ReplacementMode,
     inputs: Record<string, any>): any {
@@ -18,19 +17,18 @@ function replaceRefs(
       const found = inputs[key];
 
       if (found === undefined) {
-        return `"${key}"`;
+        if (mode === ReplacementMode.QUOTES) {
+          return `"${key}"`;
+        }
+        return key;
       }
 
-      if( mode === ReplacementMode.NONE) {
-        return found;
-      }
-
-      if (typeof found === 'number' || typeof found === 'boolean') {
+      if (mode === ReplacementMode.NONE || typeof found === 'number' ||
+          typeof found === 'boolean') {
         return found;
       } else if (typeof found === 'string') {
         return `"${found}"`;
       }
-      // Fallback to original match if type is not handled
       return match;
     });
   }
