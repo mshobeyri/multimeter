@@ -316,7 +316,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         />
       </div>
 
-      <div style={{ position: "relative", paddingTop: 0, paddingBottom: 8, height: 40 }}>
+      <div style={{ position: "relative", paddingTop: 0, paddingBottom: 8, height: 30 }}>
         <div className="horizontal-line" />
         <div style={{
           position: "absolute",
@@ -330,13 +330,6 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
             onViewModeChange={setViewMode}
           />
         </div>
-      </div>
-
-      <div style={{
-        display: "flex",
-        justifyContent: "flex-end",
-        marginBottom: "4px",
-      }}>
       </div>
 
       {shouldShowQuery() && <KVEditor

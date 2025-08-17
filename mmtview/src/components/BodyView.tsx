@@ -68,9 +68,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
             style={{
                 position: "relative",
                 width: "100%",
-                minHeight: 100,
                 height: 250,
-                resize: "vertical",
                 overflow: "auto",
                 borderRadius: 2,
             }}

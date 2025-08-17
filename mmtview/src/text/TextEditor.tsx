@@ -73,45 +73,43 @@ const TextEditor: React.FC<TextEditorProps> = ({
   }, []);
 
   return (
-    <div style={{ height: "100%" }}>
-      <MonacoEditor
-        height="100%"
-        width="100%"
-        language={language}
-        value={content}
-        theme={FIXED_BG_THEME}
-        beforeMount={monaco => {
-          monacoRefToUse.current = monaco;
-          defineTheme(monaco);
-          beforeMount?.(monaco);
-        }}
-        onMount={editor => {
-          setEditorReady && setEditorReady(true);
-          editorRefToUse.current = editor;
-          // Listen for focus/blur
-          editor.onDidFocusEditorWidget?.(() => {
-            if (typeof onFocusChange === "function") onFocusChange(true);
-          });
-          editor.onDidBlurEditorWidget?.(() => {
-            if (typeof onFocusChange === "function") onFocusChange(false);
-          });
-        }}
-        onChange={value => setContent(value ?? "")}
-        options={{
-          fontSize,
-          minimap: { enabled: false },
-          wordWrap: "on",
-          scrollBeyondLastLine: false,
-          tabSize: 2,
-          automaticLayout: true,
-          lineNumbers: showNumbers ? "on" : "off",
-          scrollbar: {
-            horizontal: "auto",
-            vertical: "auto"
-          }
-        }}
-      />
-    </div>
+    <MonacoEditor
+      height="100%"
+      width="100%"
+      language={language}
+      value={content}
+      theme={FIXED_BG_THEME}
+      beforeMount={monaco => {
+        monacoRefToUse.current = monaco;
+        defineTheme(monaco);
+        beforeMount?.(monaco);
+      }}
+      onMount={editor => {
+        setEditorReady && setEditorReady(true);
+        editorRefToUse.current = editor;
+        // Listen for focus/blur
+        editor.onDidFocusEditorWidget?.(() => {
+          if (typeof onFocusChange === "function") onFocusChange(true);
+        });
+        editor.onDidBlurEditorWidget?.(() => {
+          if (typeof onFocusChange === "function") onFocusChange(false);
+        });
+      }}
+      onChange={value => setContent(value ?? "")}
+      options={{
+        fontSize,
+        minimap: { enabled: false },
+        wordWrap: "on",
+        scrollBeyondLastLine: false,
+        tabSize: 2,
+        automaticLayout: true,
+        lineNumbers: showNumbers ? "on" : "off",
+        scrollbar: {
+          horizontal: "auto",
+          vertical: "auto"
+        }
+      }}
+    />
   );
 };
 
