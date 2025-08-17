@@ -41,7 +41,7 @@ const VEditor: React.FC<VEditorProps> = ({
     }
 
     const originalType = typeof originalValue;
-    
+
     try {
       switch (originalType) {
         case 'boolean':
@@ -49,7 +49,7 @@ const VEditor: React.FC<VEditorProps> = ({
           if (stringValue.toLowerCase() === 'false') return false;
           // If not a valid boolean, return as string
           return stringValue;
-        
+
         case 'number':
           const num = Number(stringValue);
           if (!isNaN(num) && stringValue.trim() !== '') {
@@ -57,7 +57,7 @@ const VEditor: React.FC<VEditorProps> = ({
           }
           // If not a valid number, return as string
           return stringValue;
-        
+
         case 'object':
           if (originalValue === null) return stringValue;
           try {
@@ -66,7 +66,7 @@ const VEditor: React.FC<VEditorProps> = ({
             // If not valid JSON, return as string
             return stringValue;
           }
-        
+
         case 'string':
         default:
           return stringValue;
@@ -81,23 +81,23 @@ const VEditor: React.FC<VEditorProps> = ({
     // Check if it's a boolean
     if (str.toLowerCase() === 'true') return true;
     if (str.toLowerCase() === 'false') return false;
-    
+
     // Check if it's a number
     const num = Number(str);
     if (!isNaN(num) && str.trim() !== '') {
       return num;
     }
-    
+
     // Check if it's JSON
-    if ((str.startsWith('{') && str.endsWith('}')) || 
-        (str.startsWith('[') && str.endsWith(']'))) {
+    if ((str.startsWith('{') && str.endsWith('}')) ||
+      (str.startsWith('[') && str.endsWith(']'))) {
       try {
         return JSON.parse(str);
       } catch {
         // Fall through to string
       }
     }
-    
+
     // Default to string
     return str;
   };
@@ -108,7 +108,7 @@ const VEditor: React.FC<VEditorProps> = ({
 
     const updated: JSONRecord = { ...(value || {}) };
     const originalValue = value?.[key];
-    
+
     if (newVal.trim() === "") {
       // Remove the key if value is empty
       delete updated[key];
@@ -129,54 +129,57 @@ const VEditor: React.FC<VEditorProps> = ({
   };
 
   return (
-    <tr>
-      <td className={disabled ? "label label-disabled" : "label"}>{label}</td>
-      <td style={{ padding: "5px" }}>
-        <table style={{ width: "100%" }}>
-          <tbody>
-            {safeList(keyOptions).map((key, index) => {
-              const currentValue = value?.[key];
-              const displayValue = valueToString(currentValue);
-              const hasValue = currentValue !== undefined;
-              
-              return (
-                <tr key={key}>
-                  <td style={{ width: "50%" }}>
-                    <span style={{ fontWeight: 500 }}>{key}</span>
-                    {hasValue && (
-                      <span style={{ fontSize: "8px", color: "#888", marginLeft: "4px" }}>
-                        ({typeof currentValue})
-                      </span>
-                    )}
-                  </td>
-                  <td style={{ width: "50%" }}>
-                    {valueOptions && valueOptions.length > 0 ? (
-                      <SelectWithRemove
-                        value={displayValue}
-                        onChange={newVal => handleValueChange(index, newVal)}
-                        onRemovePressed={() => handleRemove(index)}
-                        options={valueOptions}
-                        placeholder="Value"
-                        disabled={disabled}
-                      />
-                    ) : (
-                      <FieldWithRemove
-                        value={displayValue}
-                        onChange={newVal => handleValueChange(index, newVal)}
-                        onRemovePressed={() => handleRemove(index)}
-                        placeholder="Value"
-                        disabled={disabled}
-                        removable={hasValue}
-                      />
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </td>
-    </tr>
+    <div style={{ width: "100%" }}>
+      <div
+        className={disabled ? "label label-disabled" : "label"}
+        style={{ marginBottom: "10px" }}
+      >
+        {label}
+      </div>
+      <table style={{ width: "100%" }}>
+        <tbody>
+          {safeList(keyOptions).map((key, index) => {
+            const currentValue = value?.[key];
+            const displayValue = valueToString(currentValue);
+            const hasValue = currentValue !== undefined;
+
+            return (
+              <tr key={key}>
+                <td style={{ width: "50%" }}>
+                  <span style={{ fontWeight: 500 }}>{key}</span>
+                  {hasValue && (
+                    <span style={{ fontSize: "8px", color: "#888", marginLeft: "4px" }}>
+                      ({typeof currentValue})
+                    </span>
+                  )}
+                </td>
+                <td style={{ width: "50%" }}>
+                  {valueOptions && valueOptions.length > 0 ? (
+                    <SelectWithRemove
+                      value={displayValue}
+                      onChange={newVal => handleValueChange(index, newVal)}
+                      onRemovePressed={() => handleRemove(index)}
+                      options={valueOptions}
+                      placeholder="Value"
+                      disabled={disabled}
+                    />
+                  ) : (
+                    <FieldWithRemove
+                      value={displayValue}
+                      onChange={newVal => handleValueChange(index, newVal)}
+                      onRemovePressed={() => handleRemove(index)}
+                      placeholder="Value"
+                      disabled={disabled}
+                      removable={hasValue}
+                    />
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 };
 
