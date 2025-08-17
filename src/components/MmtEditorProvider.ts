@@ -6,6 +6,8 @@ import WebSocket from 'ws';
 
 import {handleNetworkMessage} from './NodeNetwork';
 
+const LAST_VIEW_MODE = 'mmtview:view:selectedViewMode';
+
 export async function readFileContent(filename: string): Promise<string> {
   try {
     // filename should be a filesystem path here
@@ -33,7 +35,10 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     return MmtEditorProvider.instance;
   }
 
-  constructor(private readonly context: vscode.ExtensionContext) {}
+  constructor(private readonly context: vscode.ExtensionContext) {
+    // Set the static instance when constructor is called
+    MmtEditorProvider.instance = this;
+  }
 
   // Method to send message to all active webview panels
   public sendMessageToAllPanels(message: any) {
@@ -47,9 +52,18 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     this.sendMessageToAllPanels(message);
   }
 
-  public showPanel(panelId: 'full' | 'ui' | 'yaml') {
+  public showPanel(panelId: 'full'|'ui'|'yaml') {
+    // Save the view mode
+    this.context.globalState.update(LAST_VIEW_MODE, panelId);
+    
+    // Send to all panels
     const message = {command: 'multimeter.mmt.show.panel', panelId};
     this.sendMessageToAllPanels(message);
+  }
+
+  // Method to get the last saved view mode
+  private getLastViewMode(): 'full'|'ui'|'yaml' {
+    return this.context.globalState.get(LAST_VIEW_MODE, 'full');
   }
 
   public async resolveCustomTextEditor(
@@ -87,6 +101,10 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     webviewPanel.webview.onDidReceiveMessage(async (message) => {
       switch (message.command) {
         case 'ready':
+          // Get the last saved view mode
+          const lastViewMode = this.getLastViewMode();
+          
+          // Send document data to the current panel
           webviewPanel.webview.postMessage({
             command: 'loadDocument',
             uri: document.uri.toString(),
@@ -94,7 +112,16 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
             mode: vscode.window.tabGroups.activeTabGroup.activeTab?.input ?
                 'normal' :
                 'compare',
+            viewMode: lastViewMode
           });
+          
+          // Ensure ALL panels are synchronized to the same view mode
+          if (this.activeWebviewPanels.size > 1) {
+            this.sendMessageToAllPanels({
+              command: 'multimeter.mmt.show.panel', 
+              panelId: lastViewMode
+            });
+          }
           break;
 
         case 'update':
