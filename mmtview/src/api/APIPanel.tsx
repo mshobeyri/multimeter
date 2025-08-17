@@ -43,7 +43,25 @@ function apiToYaml(api: APIData): string {
   if (isNonEmptyObject(api.inputs)) yamlObj.inputs = api.inputs;
   if (isNonEmptyObject(api.outputs)) yamlObj.outputs = api.outputs;
   if (isNonEmptyObject(api.setenv)) yamlObj.setenv = api.setenv;
-  if (isNonEmptyList(api.interfaces)) yamlObj.interfaces = api.interfaces;
+  if (isNonEmptyList(api.interfaces)) {
+    yamlObj.interfaces = api.interfaces.map((iface) => {
+      let yamlInterface: Record<string, any> = {
+        name: iface.name,
+        protocol: iface.protocol,
+        format: iface.format,
+        url: iface.url
+      };
+
+      if (iface.method) yamlInterface.method = iface.method;
+      if (isNonEmptyObject(iface.headers)) yamlInterface.headers = iface.headers;
+      if (iface.body && iface.body !== "") yamlInterface.body = iface.body;
+      if (isNonEmptyObject(iface.query)) yamlInterface.query = iface.query;
+      if (isNonEmptyObject(iface.cookies)) yamlInterface.cookies = iface.cookies;
+      if (isNonEmptyObject(iface.outputs)) yamlInterface.outputs = iface.outputs;
+
+      return yamlInterface;
+    });
+  }
   if (isNonEmptyList(api.examples)) yamlObj.examples = api.examples;
   return packYaml(yamlObj);
 }

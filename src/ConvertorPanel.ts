@@ -5,14 +5,16 @@ import * as yaml from 'yaml';
 
 import {APIData, InterfaceData} from '../mmtview/src/api/APIData';
 
-// Helper to extract key-value pairs from Postman format
-function extractKeyValue(arr: any[] = []) {
+// Helper to extract key-value pairs from Postman format and convert to object
+function extractKeyValue(arr: any[] = []): Record<string, string> {
   const obj: Record<string, string> = {};
-  arr.forEach(item => {
-    if (item.key && typeof item.value !== 'undefined') {
-      obj[item.key] = item.value;
-    }
-  });
+  if (Array.isArray(arr)) {
+    arr.forEach(item => {
+      if (item && item.key && typeof item.value !== 'undefined') {
+        obj[item.key] = String(item.value);
+      }
+    });
+  }
   return obj;
 }
 
@@ -20,18 +22,24 @@ export function postmanToAPI(postmanJson: any): APIData[] {
   if (!postmanJson || !postmanJson.item) {
     return [];
   }
+
   function flattenItems(items: any[]): any[] {
     return items.flatMap(item => item.item ? flattenItems(item.item) : [item]);
   }
+
   const requests = flattenItems(postmanJson.item);
 
   return requests.map((req: any) => {
     const request = req.request || {};
-    const url =
-        typeof request.url === 'string' ? request.url : request.url?.raw || '';
-    const headers = request.header;
-    const query = request.url?.query;
-    let body: string|object|undefined = undefined;
+    const url = typeof request.url === 'string' ? request.url : request.url?.raw || '';
+    
+    // Convert Postman headers array to object
+    const headers = extractKeyValue(request.header);
+    
+    // Convert Postman query array to object
+    const query = extractKeyValue(request.url?.query);
+    
+    let body: string | object | undefined = undefined;
     if (request.body?.mode === 'raw') {
       body = request.body.raw;
     } else if (request.body?.mode === 'urlencoded') {
@@ -40,42 +48,54 @@ export function postmanToAPI(postmanJson: any): APIData[] {
       body = extractKeyValue(request.body.formdata);
     }
 
+    // Determine format from content-type header
     let format = 'json';
     const contentType = headers['content-type'] || headers['Content-Type'];
-    if (typeof contentType === 'string' &&
-        contentType.toLowerCase().includes('xml')) {
-      format = 'xml';
-    }
-    if (typeof contentType === 'string' &&
-        contentType.toLowerCase().includes('text')) {
-      format = 'text';
+    if (typeof contentType === 'string') {
+      if (contentType.toLowerCase().includes('xml')) {
+        format = 'xml';
+      } else if (contentType.toLowerCase().includes('text')) {
+        format = 'text';
+      }
     }
 
+    // Determine protocol
     let protocol = 'http';
     if (url.toLowerCase().startsWith('ws')) {
       protocol = 'ws';
     }
 
-    const apiData: any = {
+    // Build the APIData object with new structure
+    const apiData: APIData = {
       type: 'api',
       title: req.name || request.url?.raw || '',
+      description: req.description || undefined,
+      tags: [], // You could extract tags from Postman collections if needed
+      import: {}, // Empty for now, could be populated from Postman variables
+      inputs: {}, // Empty for now, could be extracted from request variables
+      outputs: {}, // Empty for now, would need to be defined manually
+      setenv: {}, // Empty for now, could be mapped from Postman tests
       interfaces: [{
         name: req.name || request.url?.raw || '',
-        protocol,
-        format,
+        protocol: protocol as 'http' | 'ws',
+        format: format as 'json' | 'xml' | 'text',
         url,
-        method: request.method?.toLowerCase() || 'get',
-        headers,
-        query,
+        method: request.method?.toLowerCase() as 'get' | 'post' | 'put' | 'patch' | 'delete' | 'head' | 'options' | 'trace',
+        headers, // Now an object instead of array
+        query,   // Now an object instead of array
+        cookies: {}, // Empty for now, Postman doesn't typically export cookies
         body,
-      } as InterfaceData]
+        outputs: {} // Empty for now, would need to be defined manually
+      } as InterfaceData],
+      examples: [] // Empty for now, could be populated from Postman examples
     };
 
-    if (req.description) {
-      apiData.description = req.description;
+    // Remove undefined fields to keep the YAML clean
+    if (!apiData.description) {
+      delete apiData.description;
     }
 
-    return apiData as APIData;
+    return apiData;
   });
 }
 
@@ -87,18 +107,17 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
       context: vscode.WebviewViewResolveContext,
       _token: vscode.CancellationToken) {
     webviewView.webview.options = {enableScripts: true};
-    const postmanIconPath =
-        vscode.Uri.file(this.context.asAbsolutePath('res/postman.svg'));
-    const postmanIconWebviewUri =
-        webviewView.webview.asWebviewUri(postmanIconPath);
+    
+    const postmanIconPath = vscode.Uri.file(this.context.asAbsolutePath('res/postman.svg'));
+    const postmanIconWebviewUri = webviewView.webview.asWebviewUri(postmanIconPath);
 
-    const multimeterIconPath =
-        vscode.Uri.file(this.context.asAbsolutePath('res/icon.png'));
-    const multimeterIconWebviewUri =
-        webviewView.webview.asWebviewUri(multimeterIconPath);
+    const multimeterIconPath = vscode.Uri.file(this.context.asAbsolutePath('res/icon.png'));
+    const multimeterIconWebviewUri = webviewView.webview.asWebviewUri(multimeterIconPath);
 
     webviewView.webview.html = this.getHtml(
-        postmanIconWebviewUri.toString(), multimeterIconWebviewUri.toString());
+        postmanIconWebviewUri.toString(), 
+        multimeterIconWebviewUri.toString()
+    );
 
     webviewView.webview.onDidReceiveMessage(async (msg) => {
       if (msg.type === 'chooseSaveDir') {
@@ -108,15 +127,18 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
           canSelectMany: false,
           openLabel: 'Select target folder for MMT files'
         });
+        
         if (uri && uri[0]) {
           webviewView.webview.postMessage({type: 'saveDirSelected'});
           webviewView.webview.postMessage({type: 'saving'});
+          
           // Save files
           for (const file of msg.files) {
             const fileUri = vscode.Uri.joinPath(uri[0], file.name);
             await vscode.workspace.fs.writeFile(
                 fileUri, Buffer.from(file.content, 'utf8'));
           }
+          
           vscode.window.showInformationMessage(
               `Saved ${msg.files.length} file(s) to ${uri[0].fsPath}`);
         }
@@ -125,20 +147,29 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
           const fileContent = msg.text;
           const postmanJson = JSON.parse(fileContent);
           const apis = postmanToAPI(postmanJson);
+          
           const files = apis.map(api => {
-            const safeName =
-                (api.title || 'api').replace(/[\\/:*?"<>|]+/g, '_');
-            return {name: safeName + '.mmt', content: yaml.stringify(api)};
+            const safeName = (api.title || 'api').replace(/[\\/:*?"<>|]+/g, '_');
+            return {
+              name: safeName + '.mmt', 
+              content: yaml.stringify(api, {
+                indent: 2,
+                lineWidth: 0, // Prevent line wrapping
+                minContentWidth: 0
+              })
+            };
           });
+          
           webviewView.webview.postMessage({type: 'fileList', files});
         } catch (e) {
           webviewView.webview.postMessage({
             type: 'fileList',
             files: [],
-            error: 'Error: ' +
-                (typeof e === 'object' && e && 'message' in e ?
-                     (e as any).message :
-                     String(e))
+            error: 'Error: ' + (
+              typeof e === 'object' && e && 'message' in e ? 
+              (e as any).message : 
+              String(e)
+            )
           });
         }
       } else if (msg.type === 'openFile') {
@@ -146,16 +177,15 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
         const edit = new vscode.WorkspaceEdit();
         edit.insert(uri, new vscode.Position(0, 0), msg.content);
         await vscode.workspace.applyEdit(edit);
-        await vscode.commands.executeCommand(
-            'vscode.openWith', uri, 'mmt.editor');
+        await vscode.commands.executeCommand('vscode.openWith', uri, 'mmt.editor');
       } else if (msg.type === 'saveSelected') {
         // msg.files: [{name, content}], msg.targetDir: string
         for (const file of msg.files) {
-          const fileUri =
-              vscode.Uri.joinPath(vscode.Uri.file(msg.targetDir), file.name);
+          const fileUri = vscode.Uri.joinPath(vscode.Uri.file(msg.targetDir), file.name);
           await vscode.workspace.fs.writeFile(
               fileUri, Buffer.from(file.content, 'utf8'));
         }
+        
         vscode.window.showInformationMessage(
             `Saved ${msg.files.length} file(s) to ${msg.targetDir}`);
       }
@@ -163,9 +193,9 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
   }
 
   getHtml(postmanIconUri: string, multimeterIconUri: string) {
-    const htmlPath =
-        path.join(this.context.extensionPath, 'src', 'convertor.html');
+    const htmlPath = path.join(this.context.extensionPath, 'src', 'convertor.html');
     let html = fs.readFileSync(htmlPath, 'utf8');
+    
     // Replace placeholders with icon URIs
     html = html.replace(/__POSTMAN_ICON__/g, postmanIconUri)
                .replace(/__MULTIMETER_ICON__/g, multimeterIconUri);
