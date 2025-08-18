@@ -45,7 +45,7 @@ export const APISchema = {
                         enum: ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
                     },
                     format: { type: 'string', enum: ['json', 'xml', 'text'] },
-                    url: { type: 'string', format: 'uri' },
+                    url: { type: 'string' },
                     headers: { type: 'object', additionalProperties: { type: 'string' } },
                     query: { type: 'object', additionalProperties: { type: 'string' } },
                     cookies: { type: 'object', additionalProperties: { type: 'string' } },
