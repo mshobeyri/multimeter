@@ -64,24 +64,25 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     const model = editor.getModel();
     if (!model) return;
 
-    const regex = /\<?[ieo]:[a-zA-Z0-9_\/-]+\>?/g;
+    const regex = [/[ieo]:[a-zA-Z0-9_\/-]+/g, /\<\<[ieo]:[a-zA-Z0-9_\/-]+\>\>/g];
     const value = model.getValue();
     const matches: any[] = [];
     let match;
-    while ((match = regex.exec(value)) !== null) {
-      const start = model.getPositionAt(match.index);
-      const end = model.getPositionAt(match.index + match[0].length);
-      matches.push({
-        range: new monaco.Range(
-          start.lineNumber,
-          start.column,
-          end.lineNumber,
-          end.column
-        ),
-        options: { inlineClassName: I_PREFIX_CLASS }
-      });
+    for (const re of regex) {
+      while ((match = re.exec(value)) !== null) {
+        const start = model.getPositionAt(match.index);
+        const end = model.getPositionAt(match.index + match[0].length);
+        matches.push({
+          range: new monaco.Range(
+            start.lineNumber,
+            start.column,
+            end.lineNumber,
+            end.column
+          ),
+          options: { inlineClassName: I_PREFIX_CLASS }
+        });
+      }
     }
-
     decorationsRef.current = editor.deltaDecorations(
       decorationsRef.current,
       matches
