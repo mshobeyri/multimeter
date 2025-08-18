@@ -1,6 +1,8 @@
 // Save variables to VSCode workspace state
 
-export function saveEnvVariablesFromObject(flatVars: { name: string; label: string; value: string|number|boolean }[]) {
+import { JSONValue } from "./CommonData";
+
+export function saveEnvVariablesFromObject(flatVars: { name: string; label: string; value: JSONValue }[]) {
   window.vscode?.postMessage({
     command: "updateWorkspaceState",
     name: "multimeter.environment.storage",
@@ -9,7 +11,7 @@ export function saveEnvVariablesFromObject(flatVars: { name: string; label: stri
 }
 
 // Load variables from VSCode workspace state
-export function loadEnvVariables(callback: (variables: { name: string; label: string; value: string|number|boolean }[]) => void) {
+export function loadEnvVariables(callback: (variables: { name: string; label: string; value: JSONValue }[]) => void) {
   function handler(event: MessageEvent) {
     const message = event.data;
     if (message.command === "loadWorkspaceState" && message.name === "multimeter.environment.storage") {

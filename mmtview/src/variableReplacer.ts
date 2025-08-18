@@ -33,7 +33,8 @@ function replaceRefs(
     });
   }
 
-  if (typeof obj === 'number' || typeof obj === 'boolean') {
+  if (mode === ReplacementMode.NONE || typeof obj === 'number' ||
+      typeof obj === 'boolean') {
     return obj;
   }
 
@@ -53,7 +54,7 @@ function replaceRefs(
 // Specific replacers using flags
 export function replaceInputRefsWithBrace(obj: any, inputs: any): any {
   return replaceRefs(
-      obj, /<([a-zA-Z0-9_]+:[a-zA-Z0-9_]+)>/g, ReplacementMode.BRACE, inputs);
+      obj, /<<([a-zA-Z0-9_]+:[a-zA-Z0-9_]+)>>/g, ReplacementMode.BRACE, inputs);
 }
 
 export function replaceInputRefsWithQuotes(obj: any, inputs: any): any {

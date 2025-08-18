@@ -1,5 +1,7 @@
-import { xml2js } from "xml-js";
-import { flattenXmlObj } from "../markupConvertor";
+import {xml2js} from 'xml-js';
+
+import {JSONRecord} from '../CommonData';
+import {flattenXmlObj} from '../markupConvertor';
 
 export interface ResponseData {
   type: 'xml'|'json'|'text';
@@ -38,37 +40,35 @@ function resolvePath(response: ResponseData, expr: string): any {
 }
 
 export function extractOutputs(
-  response: ResponseData,
-  outputsDef: Record<string, string>
-): Record<string, string | number | boolean> {
-  const result: Record<string, string | number | boolean> = {};
+    response: ResponseData, outputsDef: Record<string, string>): JSONRecord {
+  const result: JSONRecord = {};
 
   // Keep original body as text for regex operations
-  const bodyText = typeof response.body === 'string' 
-    ? response.body 
-    : JSON.stringify(response.body);
+  const bodyText = typeof response.body === 'string' ?
+      response.body :
+      JSON.stringify(response.body);
 
   // Convert XML body to JS object if needed for property path resolution
   let bodyObject = response.body;
-  if (response.type === "xml" && typeof response.body === "string") {
+  if (response.type === 'xml' && typeof response.body === 'string') {
     try {
-      const jsObj = xml2js(response.body, { compact: true });
+      const jsObj = xml2js(response.body, {compact: true});
       bodyObject = flattenXmlObj(jsObj);
     } catch (e) {
       bodyObject = {};
     }
   }
-  
+
   // Create response objects for different operations
-  const textResponse = { ...response, body: bodyText };
-  const objectResponse = { ...response, body: bodyObject };
+  const textResponse = {...response, body: bodyText};
+  const objectResponse = {...response, body: bodyObject};
 
   for (const [key, expr] of Object.entries(outputsDef)) {
     if (typeof expr !== 'string') {
       result[key] = '';
       continue;
     }
-    
+
     if (expr.startsWith('regex ')) {
       // Use text body for regex operations
       const pattern = expr.slice(6);

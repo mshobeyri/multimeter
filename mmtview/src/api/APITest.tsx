@@ -126,7 +126,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     }, ifaceOutputsDef);
 
     // Create final outputs with all API keys, filled with interface values where available
-    const finalOutputs: Record<string, string | number | boolean> = {};
+    const finalOutputs: JSONRecord = {};
 
     apiOutputKeys.forEach(key => {
       if (key in ifaceOutputsExtracted) {

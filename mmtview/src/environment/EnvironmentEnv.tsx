@@ -1,10 +1,11 @@
 import React from "react";
 import ComboTable, { ComboTablePair } from "../components/ComboTable";
+import { JSONValue } from "../CommonData";
 
 interface EnvironmentEnvProps {
     variables: ComboTablePair[];
     presets: ComboTablePair[];
-    handleVariablesChange: (name: string, label: string, value: string) => void;
+    handleVariablesChange: (name: string, label: string, value: JSONValue) => void;
     handlePresetsChange: (presetName: string, envName: string) => void;
     onClearCache?: () => void;
     onSaveToCache?: () => void;

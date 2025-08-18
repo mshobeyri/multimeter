@@ -1,3 +1,4 @@
+import {JSONValue} from '../CommonData';
 import {loadEnvVariables, saveEnvVariablesFromObject} from '../workspaceStorage';
 
 /**
@@ -6,7 +7,7 @@ import {loadEnvVariables, saveEnvVariablesFromObject} from '../workspaceStorage'
  * @returns Cleanup function to unsubscribe from updates
  */
 export const readEnvironmentVariables =
-    (callback: (vars: {name: string;label: string; value: string | number | boolean}[]|
+    (callback: (vars: {name: string; label: string; value: JSONValue}[]|
                 undefined|null) => void): (() => void) => {
       return loadEnvVariables(callback);
     };
@@ -16,8 +17,7 @@ export const readEnvironmentVariables =
  * @param variables Array of environment variables to save
  */
 export const writeEnvironmentVariables =
-    (variables: {name: string; label: string;
-                 value: string | number | boolean}[]): void => {
+    (variables: {name: string; label: string; value: JSONValue}[]): void => {
       saveEnvVariablesFromObject(variables);
     };
 
@@ -49,17 +49,16 @@ export const setEnvironmentVariable =
  * @returns Promise that resolves with the variable value or undefined if not
  *     found
  */
-export const getEnvironmentVariable =
-    (name: string): Promise<string|number|boolean|undefined> => {
-      return new Promise((resolve) => {
-        const cleanup = loadEnvVariables((vars) => {
-          const existing = Array.isArray(vars) ? vars : [];
-          const found = existing.find(v => v.name === name);
-          resolve(found?.value);
-          cleanup();  // Clean up the subscription immediately
-        });
-      });
-    };
+export const getEnvironmentVariable = (name: string): Promise<JSONValue> => {
+  return new Promise((resolve) => {
+    const cleanup = loadEnvVariables((vars) => {
+      const existing = Array.isArray(vars) ? vars : [];
+      const found = existing.find(v => v.name === name);
+      resolve(found ? found.value : null);
+      cleanup();  // Clean up the subscription immediately
+    });
+  });
+};
 
 /**
  * Clears all environment variables from storage

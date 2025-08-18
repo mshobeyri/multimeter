@@ -1,6 +1,7 @@
 import React, { useState } from "react";
+import { JSONValue } from "../CommonData";
 
-export type EnvironmentViewVar = { name: string; label: string; value: string | number | boolean };
+export type EnvironmentViewVar = { name: string; label: string; value: JSONValue};
 
 interface EnvironmentViewProps {
   vars: EnvironmentViewVar[];

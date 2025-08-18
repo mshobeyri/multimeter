@@ -7,6 +7,7 @@ import { Protocol, Method, Format } from "../CommonData"
 import { formatBody, formattedBodyToYamlObject } from "../markupConvertor";
 import BodyView from "../components/BodyView";
 import { safeList, isNonEmptyObject } from "../safer";
+import { JSONRecord } from "../CommonData";
 
 interface InterfaceEditorProps {
   data: InterfaceData;
@@ -51,7 +52,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
 
   // Only call onChange if query value actually changed
   const handleQueryChange = useCallback(
-    (query: Record<string, string | number | boolean>) => {
+    (query: JSONRecord) => {
       // Convert all values to strings
       const stringQuery: Record<string, string> = {};
       Object.entries(query || {}).forEach(([k, v]) => {

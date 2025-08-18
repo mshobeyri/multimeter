@@ -1,10 +1,11 @@
 import React from "react";
 import ValidatableSelect from "./ValidatableSelect";
 import { safeList } from "../safer";
+import { JSONValue } from "../CommonData";
 
 interface ComboTableOption {
   label: string;
-  value: string;
+  value: JSONValue;
 }
 
 interface ComboTablePair {
@@ -15,7 +16,7 @@ interface ComboTablePair {
 
 interface ComboTableProps {
   pairs: ComboTablePair[];
-  onChange: (name: string, label: string, value: string) => void;
+  onChange: (name: string, label: string, value: JSONValue) => void;
   showPlaceholder?: boolean;
 }
 
@@ -47,7 +48,7 @@ const ComboTable: React.FC<ComboTableProps> = ({ pairs, onChange, showPlaceholde
                 onChange={label => {
                   const found = safeList(pair.options).find(opt => opt.label === label);
                   if (found) {
-                    onChange(pair.name, found.label,found.value);
+                    onChange(pair.name, found.label, found.value);
                   }
                 }}
                 showPlaceholder={showPlaceholder}

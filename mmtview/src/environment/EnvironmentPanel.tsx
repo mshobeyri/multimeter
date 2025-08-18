@@ -6,6 +6,7 @@ import EnvironmentView from "./EnvironmentView";
 import { readEnvironmentVariables, writeEnvironmentVariables, clearEnvironmentVariables } from "./environmentUtils";
 import { ComboTablePair } from "../components/ComboTable";
 import { isList, safeList } from "../safer";
+import { JSONValue } from "../CommonData";
 
 const LAST_ENV_TAB_KEY = "mmtview:env:lastTab";
 
@@ -24,8 +25,8 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   const [variables, setVariables] = useState<ComboTablePair[]>([]);
   const [presets, setPresets] = useState<ComboTablePair[]>([]);
   const [presetData, setPresetData] = useState<any>({});
-  const [workspaceVars, setWorkspaceVars] = useState<{ name: string; label: string; value: string | number | boolean }[]>([]);
-  const loadedVarsRef = React.useRef<{ name: string; value: string | number | boolean }[]>([]);
+  const [workspaceVars, setWorkspaceVars] = useState<{ name: string; label: string; value: JSONValue }[]>([]);
+  const loadedVarsRef = React.useRef<{ name: string; value: JSONValue }[]>([]);
 
   // Save tab selection to localStorage whenever it changes
   useEffect(() => {
@@ -35,19 +36,19 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   useEffect(() => {
     const checkTabWidth = () => {
       if (!tabContainerRef.current) return;
-      
+
       const container = tabContainerRef.current;
       const containerWidth = container.clientWidth;
-      
+
       // Calculate approximate width needed for full text tabs
       // Rough estimate: 140px per tab for text + icon
       const fullTextWidth = 3 * 140;
-      
+
       setShowIconsOnly(containerWidth < fullTextWidth);
     };
 
     checkTabWidth();
-    
+
     const resizeObserver = new ResizeObserver(checkTabWidth);
     if (tabContainerRef.current) {
       resizeObserver.observe(tabContainerRef.current);
@@ -107,7 +108,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
       } else if (typeof value === "object" && value !== null) {
         const options = Object.entries(value).map(([k, v]) => ({
           label: k,
-          value: String(v)
+          value: v
         }));
         let selected = options[0];
         if (found) {
@@ -144,20 +145,20 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   }, [content]);
 
   // Handler for variables
-  const handleVariablesChange = (name: string, label: string, value: string | number | boolean) => {
+  const handleVariablesChange = (name: string, label: string, value: JSONValue) => {
     setVariables(prev => {
       const updated = safeList(prev).map(pair => {
         if (pair.name === name) {
           // Find the correct ComboTableOption from options
           const selectedOption = pair.options.find(
-            (opt: { label: string; value: string }) => opt.value === value || opt.label === label
+            (opt: { label: string; value: JSONValue }) => opt.value === value || opt.label === label
           ) || pair.options[0];
           return { ...pair, value: selectedOption };
         }
         return pair;
       });
       // Save all variables at once, each as { name, label, value }
-      const flatVars: { name: string; label: string; value: string | number | boolean }[] = [];
+      const flatVars: { name: string; label: string; value: JSONValue }[] = [];
       updated.forEach(pair => {
         flatVars.push({
           name: pair.name,
@@ -197,7 +198,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         });
 
         // Save all variables at once, with correct label and value
-        const flatVars: { name: string; label: string; value: string | number | boolean }[] = [];
+        const flatVars: { name: string; label: string; value: JSONValue }[] = [];
         updated.forEach(pair => {
           flatVars.push({
             name: pair.name,
@@ -219,7 +220,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         ? loaded.map(v => ({
           name: v.name,
           label: v.label || v.name,
-          value: String(v.value)
+          value: v.value
         }))
         : [];
       setVariables(vars =>
@@ -247,7 +248,6 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
       refreshWorkspaceVars();
 
       const cleanup = readEnvironmentVariables((loaded) => {
-        // loaded: { name: string; value: string | number | boolean }[] | null | undefined
         if (isList(loaded)) {
           setWorkspaceVars(
             loaded.map(v => ({
@@ -274,12 +274,11 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         value: pair.options[0] || { label: "", value: "" }
       }))
     );
-    // Clear workspace vars as well
     setWorkspaceVars([]);
   };
 
   const handleSaveToCache = () => {
-    const flatVars: { name: string; label: string; value: string | number | boolean }[] = [];
+    const flatVars: { name: string; label: string; value: JSONValue }[] = [];
     variables.forEach(pair => {
       flatVars.push({
         name: pair.name,
@@ -288,7 +287,6 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
       });
     });
     writeEnvironmentVariables(flatVars);
-    // Refresh workspace vars after saving
     refreshWorkspaceVars();
   };
 
@@ -296,7 +294,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     <div className="panel">
       <div className="panel-box">
         {/* Tab Bar */}
-        <div 
+        <div
           ref={tabContainerRef}
           style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 16 }}
         >
