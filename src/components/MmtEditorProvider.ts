@@ -55,7 +55,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   public showPanel(panelId: 'full'|'ui'|'yaml') {
     // Save the view mode
     this.context.globalState.update(LAST_VIEW_MODE, panelId);
-    
+
     // Send to all panels
     const message = {command: 'multimeter.mmt.show.panel', panelId};
     this.sendMessageToAllPanels(message);
@@ -103,7 +103,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         case 'ready':
           // Get the last saved view mode
           const lastViewMode = this.getLastViewMode();
-          
+
           // Send document data to the current panel
           webviewPanel.webview.postMessage({
             command: 'loadDocument',
@@ -114,13 +114,11 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
                 'compare',
             viewMode: lastViewMode
           });
-          
+
           // Ensure ALL panels are synchronized to the same view mode
           if (this.activeWebviewPanels.size > 1) {
-            this.sendMessageToAllPanels({
-              command: 'multimeter.mmt.show.panel', 
-              panelId: lastViewMode
-            });
+            this.sendMessageToAllPanels(
+                {command: 'multimeter.mmt.show.panel', panelId: lastViewMode});
           }
           break;
 
@@ -180,6 +178,9 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
               Buffer.from(JSON.stringify(history, null, 2), 'utf8'));
           await vscode.commands.executeCommand('multimeter.history.refresh');
           break;
+        }
+        case 'multimeter.history.show': {
+          await vscode.commands.executeCommand('multimeter.history.show');
         }
       }
     });

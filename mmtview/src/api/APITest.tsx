@@ -423,7 +423,6 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                   gap: '4px',
                 }}
               >
-
                 {network.duration >= 0 && (
                   <div
                     style={{
@@ -474,6 +473,26 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                     {network.statusCode}
                   </div>
                 )}
+                <button
+                  onClick={() => {
+                    window.vscode?.postMessage({
+                      command: 'multimeter.history.show'
+                    });
+                  }}
+                  style={{
+                    background: "transparent",
+                    borderRadius: "4px",
+                    padding: "0px 0px",
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px",
+                    color: "var(--vscode-foreground, #333)",
+                  }}
+                  title="Show History Panel"
+                >
+                  <span className="codicon codicon-history" style={{ fontSize: "12px" }}></span>
+                </button>
               </div>
             </div>
           </div>

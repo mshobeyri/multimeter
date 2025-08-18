@@ -109,4 +109,11 @@ export function activate(context: vscode.ExtensionContext) {
         // Set language to YAML for syntax highlighting and Git compatibility
         await vscode.languages.setTextDocumentLanguage(document, 'mmt');
       }));
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand('multimeter.history.show', async () => {
+      // This will show and focus the history panel
+      await vscode.commands.executeCommand('multimeter.history.focus');
+    })
+  );
 }
