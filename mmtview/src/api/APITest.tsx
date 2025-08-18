@@ -231,27 +231,6 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   const shouldShowResponseCookies = () => (viewMode === "all") && Object.keys(network.responseCookies || {}).length > 0;
   const shouldShowOutputs = () => (viewMode === "all" || viewMode === "in/out") && Object.keys(outputs).length > 0;
 
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      const message = event.data;
-
-      switch (message.command) {
-        case 'loadDocument':
-          if (message.viewMode) {
-            setViewMode(message.viewMode);
-          }
-          break;
-
-        case 'multimeter.mmt.show.panel':
-          setViewMode(message.panelId);
-          break;
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
   if (interfaces.length === 0) {
     return <div style={{ color: "#888" }}>No interfaces defined.</div>;
   }
