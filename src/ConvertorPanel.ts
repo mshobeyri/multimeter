@@ -31,15 +31,16 @@ export function postmanToAPI(postmanJson: any): APIData[] {
 
   return requests.map((req: any) => {
     const request = req.request || {};
-    const url = typeof request.url === 'string' ? request.url : request.url?.raw || '';
-    
+    const url =
+        typeof request.url === 'string' ? request.url : request.url?.raw || '';
+
     // Convert Postman headers array to object
     const headers = extractKeyValue(request.header);
-    
+
     // Convert Postman query array to object
     const query = extractKeyValue(request.url?.query);
-    
-    let body: string | object | undefined = undefined;
+
+    let body: string|object|undefined = undefined;
     if (request.body?.mode === 'raw') {
       body = request.body.raw;
     } else if (request.body?.mode === 'urlencoded') {
@@ -70,29 +71,36 @@ export function postmanToAPI(postmanJson: any): APIData[] {
       type: 'api',
       title: req.name || request.url?.raw || '',
       description: req.description || undefined,
-      tags: [], // You could extract tags from Postman collections if needed
-      import: {}, // Empty for now, could be populated from Postman variables
-      inputs: {}, // Empty for now, could be extracted from request variables
-      outputs: {}, // Empty for now, would need to be defined manually
-      setenv: {}, // Empty for now, could be mapped from Postman tests
       interfaces: [{
         name: req.name || request.url?.raw || '',
         protocol: protocol as 'http' | 'ws',
         format: format as 'json' | 'xml' | 'text',
         url,
-        method: request.method?.toLowerCase() as 'get' | 'post' | 'put' | 'patch' | 'delete' | 'head' | 'options' | 'trace',
-        headers, // Now an object instead of array
-        query,   // Now an object instead of array
-        cookies: {}, // Empty for now, Postman doesn't typically export cookies
+        method: request.method?.toLowerCase() as 'get' | 'post' | 'put' |
+            'patch' | 'delete' | 'head' | 'options' | 'trace',
+        headers,
+        query,
         body,
-        outputs: {} // Empty for now, would need to be defined manually
       } as InterfaceData],
-      examples: [] // Empty for now, could be populated from Postman examples
     };
 
     // Remove undefined fields to keep the YAML clean
     if (!apiData.description) {
       delete apiData.description;
+    }
+
+    if (Array.isArray(apiData.interfaces) && apiData.interfaces[0]) {
+      if (!apiData.interfaces[0].headers ||
+          Object.keys(apiData.interfaces[0].headers).length === 0) {
+        delete apiData.interfaces[0].headers;
+      }
+      if (!apiData.interfaces[0].cookies ||
+          Object.keys(apiData.interfaces[0].cookies).length === 0) {
+        delete apiData.interfaces[0].cookies;
+      }
+      if (!apiData.interfaces[0].body) {
+        delete apiData.interfaces[0].body;
+      }
     }
 
     return apiData;
@@ -107,17 +115,19 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
       context: vscode.WebviewViewResolveContext,
       _token: vscode.CancellationToken) {
     webviewView.webview.options = {enableScripts: true};
-    
-    const postmanIconPath = vscode.Uri.file(this.context.asAbsolutePath('res/postman.svg'));
-    const postmanIconWebviewUri = webviewView.webview.asWebviewUri(postmanIconPath);
 
-    const multimeterIconPath = vscode.Uri.file(this.context.asAbsolutePath('res/icon.png'));
-    const multimeterIconWebviewUri = webviewView.webview.asWebviewUri(multimeterIconPath);
+    const postmanIconPath =
+        vscode.Uri.file(this.context.asAbsolutePath('res/postman.svg'));
+    const postmanIconWebviewUri =
+        webviewView.webview.asWebviewUri(postmanIconPath);
+
+    const multimeterIconPath =
+        vscode.Uri.file(this.context.asAbsolutePath('res/icon.png'));
+    const multimeterIconWebviewUri =
+        webviewView.webview.asWebviewUri(multimeterIconPath);
 
     webviewView.webview.html = this.getHtml(
-        postmanIconWebviewUri.toString(), 
-        multimeterIconWebviewUri.toString()
-    );
+        postmanIconWebviewUri.toString(), multimeterIconWebviewUri.toString());
 
     webviewView.webview.onDidReceiveMessage(async (msg) => {
       if (msg.type === 'chooseSaveDir') {
@@ -127,18 +137,18 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
           canSelectMany: false,
           openLabel: 'Select target folder for MMT files'
         });
-        
+
         if (uri && uri[0]) {
           webviewView.webview.postMessage({type: 'saveDirSelected'});
           webviewView.webview.postMessage({type: 'saving'});
-          
+
           // Save files
           for (const file of msg.files) {
             const fileUri = vscode.Uri.joinPath(uri[0], file.name);
             await vscode.workspace.fs.writeFile(
                 fileUri, Buffer.from(file.content, 'utf8'));
           }
-          
+
           vscode.window.showInformationMessage(
               `Saved ${msg.files.length} file(s) to ${uri[0].fsPath}`);
         }
@@ -147,29 +157,29 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
           const fileContent = msg.text;
           const postmanJson = JSON.parse(fileContent);
           const apis = postmanToAPI(postmanJson);
-          
+
           const files = apis.map(api => {
-            const safeName = (api.title || 'api').replace(/[\\/:*?"<>|]+/g, '_');
+            const safeName =
+                (api.title || 'api').replace(/[\\/:*?"<>|]+/g, '_');
             return {
-              name: safeName + '.mmt', 
+              name: safeName + '.mmt',
               content: yaml.stringify(api, {
                 indent: 2,
-                lineWidth: 0, // Prevent line wrapping
+                lineWidth: 0,  // Prevent line wrapping
                 minContentWidth: 0
               })
             };
           });
-          
+
           webviewView.webview.postMessage({type: 'fileList', files});
         } catch (e) {
           webviewView.webview.postMessage({
             type: 'fileList',
             files: [],
-            error: 'Error: ' + (
-              typeof e === 'object' && e && 'message' in e ? 
-              (e as any).message : 
-              String(e)
-            )
+            error: 'Error: ' +
+                (typeof e === 'object' && e && 'message' in e ?
+                     (e as any).message :
+                     String(e))
           });
         }
       } else if (msg.type === 'openFile') {
@@ -177,15 +187,17 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
         const edit = new vscode.WorkspaceEdit();
         edit.insert(uri, new vscode.Position(0, 0), msg.content);
         await vscode.workspace.applyEdit(edit);
-        await vscode.commands.executeCommand('vscode.openWith', uri, 'mmt.editor');
+        await vscode.commands.executeCommand(
+            'vscode.openWith', uri, 'mmt.editor');
       } else if (msg.type === 'saveSelected') {
         // msg.files: [{name, content}], msg.targetDir: string
         for (const file of msg.files) {
-          const fileUri = vscode.Uri.joinPath(vscode.Uri.file(msg.targetDir), file.name);
+          const fileUri =
+              vscode.Uri.joinPath(vscode.Uri.file(msg.targetDir), file.name);
           await vscode.workspace.fs.writeFile(
               fileUri, Buffer.from(file.content, 'utf8'));
         }
-        
+
         vscode.window.showInformationMessage(
             `Saved ${msg.files.length} file(s) to ${msg.targetDir}`);
       }
@@ -193,9 +205,10 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
   }
 
   getHtml(postmanIconUri: string, multimeterIconUri: string) {
-    const htmlPath = path.join(this.context.extensionPath, 'src', 'convertor.html');
+    const htmlPath =
+        path.join(this.context.extensionPath, 'src', 'convertor.html');
     let html = fs.readFileSync(htmlPath, 'utf8');
-    
+
     // Replace placeholders with icon URIs
     html = html.replace(/__POSTMAN_ICON__/g, postmanIconUri)
                .replace(/__MULTIMETER_ICON__/g, multimeterIconUri);
