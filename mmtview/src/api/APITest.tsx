@@ -171,22 +171,23 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   useEffect(() => {
     const iface = { ...interfaces[selectedInterfaceIdx] };
     const selectedExample = examples[selectedExampleIdx] || {};
-    iface.body = iface.body ? formatBody(iface.format || "json", iface.body || "") : ""
-
     loadEnvVariables(envVars => {
       const envParameters: JSONRecord = safeList(envVars).reduce((acc, envVar) => {
         acc[envVar.name] = envVar.value;
         return acc;
       }, {} as JSONRecord);
 
-      let replaced = replaceAllRefs(
+      let rface = replaceAllRefs(
         iface,
         api?.inputs ?? {},
         selectedExample?.inputs ?? {},
         envParameters
       );
-      setBody(replaced.body);
-      network.setRequestData(replaced);
+
+      rface.body = formatBody(rface.format || "json", rface.body || "");
+
+      setBody(rface.body || "");
+      network.setRequestData(rface);
     });
 
   }, [api, selectedInterfaceIdx, selectedExampleIdx]);

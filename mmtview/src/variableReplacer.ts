@@ -13,28 +13,32 @@ function replaceRefs(
     obj: any, pattern: RegExp, mode: ReplacementMode,
     inputs: Record<string, any>): any {
   if (typeof obj === 'string') {
+    // Check if the entire string is a single variable reference
+    const matches = Array.from(obj.matchAll(pattern));
+    
+    // If there's exactly one match and it covers the entire string
+    if (matches.length === 1 && matches[0][0] === obj) {
+      const key = matches[0][1];
+      const found = inputs[key];
+      
+      if (found !== undefined) {
+        // Return the original type for complete string replacement
+        return found;
+      }
+      return key;
+    }
+    
+    // For partial replacements or multiple matches, convert to string
     return obj.replace(pattern, (match, key) => {
       const found = inputs[key];
-
       if (found === undefined) {
-        if (mode === ReplacementMode.QUOTES) {
-          return `"${key}"`;
-        }
         return key;
       }
-
-      if (mode === ReplacementMode.NONE || typeof found === 'number' ||
-          typeof found === 'boolean') {
-        return found;
-      } else if (typeof found === 'string') {
-        return `"${found}"`;
-      }
-      return match;
+      return String(found);
     });
   }
 
-  if (mode === ReplacementMode.NONE || typeof obj === 'number' ||
-      typeof obj === 'boolean') {
+  if (typeof obj === 'boolean' || typeof obj === 'number') {
     return obj;
   }
 
@@ -55,11 +59,6 @@ function replaceRefs(
 export function replaceInputRefsWithBrace(obj: any, inputs: any): any {
   return replaceRefs(
       obj, /<<([a-zA-Z0-9_]+:[a-zA-Z0-9_]+)>>/g, ReplacementMode.BRACE, inputs);
-}
-
-export function replaceInputRefsWithQuotes(obj: any, inputs: any): any {
-  return replaceRefs(
-      obj, /"([a-zA-Z0-9_]+:[a-zA-Z0-9_]+)"/g, ReplacementMode.QUOTES, inputs);
 }
 
 export function replaceInputRefsWithNone(obj: any, inputs: any): any {
@@ -86,7 +85,6 @@ export function replaceAllRefs(
 
   // Now replace all references using the merged variables
   let replacedIface = replaceInputRefsWithBrace(iface, allVariables);
-  replacedIface = replaceInputRefsWithQuotes(replacedIface, allVariables);
   replacedIface = replaceInputRefsWithNone(replacedIface, allVariables);
 
   return replacedIface;
