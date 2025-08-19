@@ -10,8 +10,8 @@ export type NetworkMessage =|{
   url: string;
   method?: string;
   headers?: Record<string, string>;
-  body?: any;
-  query?: any;
+  body?: string;
+  query?: Record<string, string>;
   cookies?: Record<string, string>;
   requestId: string;
 }
@@ -57,7 +57,8 @@ function getConfiguration() {
         'certificates.ca', {enabled: false, certPath: ''}),
     clients: config.get<ClientCertificate[]>('certificates.clients', []),
     sslValidation: config.get<boolean>('enableCertificateValidation', true),
-    timeout: config.get<number>('network.timeout', 30000)
+    timeout: config.get<number>('network.timeout', 30000),
+    autoFormat: config.get<boolean>('body.auto.format', false)
   };
 }
 
@@ -136,6 +137,7 @@ function createWebSocketOptionsWithCertificates(hostname: string) {
 export function handleNetworkMessage(
     message: NetworkMessage, webviewPanel: vscode.WebviewPanel,
     wsConnections: Record<string, WebSocket>) {
+  const config = getConfiguration();
   switch (message.action) {
     case 'http-send':
       (async () => {
@@ -161,9 +163,6 @@ export function handleNetworkMessage(
                 Object.entries(cookies).map(([k, v]) => `${k}=${v}`).join('; ');
           }
 
-          // Get configuration including timeout
-          const config = getConfiguration();
-
           // Create HTTPS agent with certificates for HTTPS requests
           const httpsAgent = parsedUrl.protocol === 'https:' ?
               createHttpsAgentWithCertificates(hostname) :
@@ -177,7 +176,11 @@ export function handleNetworkMessage(
             withCredentials: true,
             headers: reqHeaders,
             httpsAgent,
-            timeout: config.timeout,  // Use timeout from config
+            timeout: config.timeout,
+            responseType: 'text' as const,
+            transformResponse: [function(data: string) {
+              return data;
+            }],
           };
 
           lastSendTime = Date.now();
@@ -193,6 +196,7 @@ export function handleNetworkMessage(
               status: response.status,
               statusText: response.statusText,
               duration: duration,
+              autoformat: config.autoFormat
             },
             requestId,
           });
@@ -240,6 +244,7 @@ export function handleNetworkMessage(
               message: errorMessage,
               code: err.code,
               duration: duration,
+              autoformat: config.autoFormat
             },
             requestId: message.requestId,
           });
@@ -308,7 +313,8 @@ export function handleNetworkMessage(
             command: 'network',
             action: 'ws-message',
             wsId,
-            data: data.toString()
+            data: data.toString(),
+            autoformat: config.autoFormat
           });
         });
 

@@ -79,7 +79,6 @@ export default class MockServerPanel implements vscode.WebviewViewProvider {
   private _doStartServer() {
     if (this.serverType === 'http') {
       this.httpServer = http.createServer((_, res) => {
-        res.writeHead(this.statusCode, {'Content-Type': 'application/json'});
         res.end(this.response);
       });
       this.httpServer.listen(this.port, '127.0.0.1', () => {

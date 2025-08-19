@@ -1,3 +1,4 @@
+import {format} from 'path/win32';
 import {js2xml, xml2js} from 'xml-js';
 import YAML from 'yaml';
 
@@ -23,7 +24,7 @@ function packYaml(obj: any): string {
 }
 
 
-function formatBody(format: string, body: string|object): string {
+function formatBody(format: 'json'|'xml'|'text', body: string|object): string {
   if (body === null) {
     return '';
   }
@@ -63,7 +64,8 @@ function flattenXmlObj(obj: any): any {
   return result;
 }
 
-function formattedBodyToYamlObject(format: string, body: string): any {
+function formattedBodyToYamlObject(
+    format: 'json'|'xml'|'text', body: string): any {
   try {
     if (format === 'json') {
       return JSON.parse(body);
@@ -81,7 +83,7 @@ function formattedBodyToYamlObject(format: string, body: string): any {
   }
 }
 
-function beautify(format: string, value: string): string {
+function beautify(format: 'json'|'xml'|'text', value: string): string {
   try {
     if (format === 'json') {
       return JSON.stringify(JSON.parse(value), null, 2);
@@ -99,6 +101,17 @@ function beautify(format: string, value: string): string {
   return value;
 }
 
+function beautifyWithContentType(contentType: string, value: string): string {
+  if ((contentType && contentType.includes('json')) || value.startsWith('{') ||
+      value.startsWith('[')) {
+    return beautify('json', value);
+  } else if (
+      (contentType && contentType.includes('xml')) || value.startsWith('<')) {
+    return beautify('xml', value);
+  } else {
+    return value;
+  }
+}
 
 export {
   parseYaml,
@@ -107,6 +120,7 @@ export {
   formatBody,
   flattenXmlObj,
   formattedBodyToYamlObject,
-  beautify
+  beautify,
+  beautifyWithContentType
 };
 export default parseYaml;

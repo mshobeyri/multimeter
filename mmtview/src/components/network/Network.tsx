@@ -1,11 +1,12 @@
-import { use, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { NetworkAPI, Request } from "./NetworkData";
 import { NetworkNodeApi, Error } from "./NetworkNodeApi";
 import { pushHistory } from "../../vsAPI";
+import { beautifyWithContentType } from "../../markupConvertor";
 
 export function useNetwork(): NetworkAPI {
   const [connected, setConnected] = useState(false);
-  const [responseBody, setResponseBody] = useState<any>(null);
+  const [responseBody, setResponseBody] = useState<string | null>(null);
   const [responseHeaders, setResponseHeaders] = useState<Record<string, string>>({});
   const [responseCookies, setResponseCookies] = useState<Record<string, string>>({});
   const [statusCode, setStatusCode] = useState<number | null>(null);
@@ -84,6 +85,9 @@ export function useNetwork(): NetworkAPI {
         cookies: cookies || {},
         query: query || {},
         onResponse: (res: any) => {
+          if (res.autoformat) {
+            res.body = beautifyWithContentType(res.headers["Content-Type"], res.body);
+          }
           setLastDuration(res.duration || -1);
           setResponseBody(res.body);
           setResponseHeaders(res.headers || {});
@@ -164,7 +168,7 @@ export function useNetwork(): NetworkAPI {
     } = opts;
 
     if (protocol === "http") {
-      setError({ message: "WebSocket protocol required for WebSocket connection", body: null, headers: {}, status: 400, code: "WS_PROTOCOL_REQUIRED" , duration: -1 });
+      setError({ message: "WebSocket protocol required for WebSocket connection", body: null, headers: {}, status: 400, code: "WS_PROTOCOL_REQUIRED", duration: -1 });
       return;
     }
 

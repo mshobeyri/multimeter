@@ -55,7 +55,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
         setIsValid(valid);
         setErrorMsg(valid ? null : err);
 
-        if (isValid && valid && beautify(format, localValue) !== value) {
+        if (isValid && valid && beautify(format as "json" | "xml", localValue) !== value) {
             setCanApply(true);
         } else {
             setCanApply(false);

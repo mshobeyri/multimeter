@@ -16,7 +16,7 @@ export interface NetworkAPI {
   send: () => Promise<void>;
   requestData?: Request;
   setRequestData: (data: Request) => void;
-  responseBody?: any;
+  responseBody?: string | null;
   loading: boolean;
   error: Error | null;
   duration: number;
