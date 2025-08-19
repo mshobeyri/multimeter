@@ -110,8 +110,8 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
                         marginBottom: "16px"
                     }}
                 >
-                    <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
-                        <span className="label" style={{ marginRight: 8, minWidth: 60 }}>preset</span>
+                    <span className="label">preset</span>
+                    <div style={{ padding: "5px" }}>
                         <FieldWithRemove
                             value={board.name}
                             onChange={v => handleBoardChange(boardIdx, { name: v })}
@@ -120,38 +120,28 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
                         />
                     </div>
                     <hr style={{ border: 0, borderTop: "1px solid #444", margin: "12px 0" }} />
-                    <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
-                        <tbody>
-                            {safeList(board.values).map((v, envIdx) => (
-                                <React.Fragment key={envIdx}>
-                                    <tr>
-                                        <td className="label" style={{ width: "20%" }}>label</td>
-                                        <td style={{ width: "80%", verticalAlign: "top" }}>
-                                            <FieldWithRemove
-                                                value={v.env}
-                                                onChange={envName => handleEnvChange(boardIdx, envIdx, { env: envName })}
-                                                onRemovePressed={() => handleRemoveEnv(boardIdx, envIdx)}
-                                                placeholder="Env (e.g. dev)"
-                                            />
-                                        </td>
-                                    </tr>
-                                    <KVEditor
-                                        label="fields"
-                                        value={v.kv}
-                                        onChange={kv => handleEnvChange(boardIdx, envIdx, { kv })}
-                                        keyPlaceholder="key"
-                                        valuePlaceholder="value"
-                                    />
+                    {safeList(board.values).map((v, envIdx) => (
+                        <div className="inner-box">
+                            <div className="label">name</div>
+                            <div style={{ padding: "5px" }}>
+                                <FieldWithRemove
+                                    value={v.env}
+                                    onChange={envName => handleEnvChange(boardIdx, envIdx, { env: envName })}
+                                    onRemovePressed={() => handleRemoveEnv(boardIdx, envIdx)}
+                                    placeholder="Env (e.g. dev)"
+                                />
+                            </div>
+                            <KVEditor
+                                label="fields"
+                                value={v.kv}
+                                onChange={kv => handleEnvChange(boardIdx, envIdx, { kv })}
+                                keyPlaceholder="key"
+                                valuePlaceholder="value"
+                            />
 
-                                    <tr>
-                                        <td colSpan={2}>
-                                            <hr style={{ border: 0, borderTop: "1px solid #444", margin: "12px 0" }} />
-                                        </td>
-                                    </tr>
-                                </React.Fragment>
-                            ))}
-                        </tbody>
-                    </table>
+                            <hr style={{ border: 0, borderTop: "1px solid #444", margin: "12px 0" }} />
+                        </div>
+                    ))}
                     <button onClick={() => handleAddEnv(boardIdx)} className="add-button" >
                         Add Label
                     </button>

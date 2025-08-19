@@ -83,58 +83,46 @@ const EnvironmentVariableEdit: React.FC<EnvironmentVariableEditProps> = ({ varia
         <div>
             {safeList(boards).map((board, idx) => (
                 <div className="inner-box">
-                    <table style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
-                        <colgroup>
-                            <col style={{ width: "20%" }} />
-                            <col style={{ width: "80%" }} />
-                        </colgroup>
-                        <tbody>
-                            <tr>
-                                <td className="label">name</td>
-                                <td style={{ padding: "8px" }}>
-                                    <FieldWithRemove
-                                        value={board.name}
-                                        onChange={v => handleBoardChange(idx, { name: v })}
-                                        onRemovePressed={() => handleRemove(idx)}
-                                        placeholder="name"
-                                    />
-                                </td>
-                            </tr>
-                            <tr>
-                                <td className="label">type</td>
-                                <td style={{ padding: "8px" }}>
-                                    <ValidatableSelect
-                                        value={board.type}
-                                        options={safeList(typeOptions).map(opt => opt.value)}
-                                        onChange={val =>
-                                            handleBoardChange(idx, {
-                                                type: val as "list" | "object",
-                                                value: val === "list" ? [] : {}
-                                            })
-                                        }
-                                        showPlaceholder={true}
-                                        placeholder="Select type..."
-                                    />
-                                </td>
-                            </tr>
-                            {board.type === "list" ? (
-                                <LEditor
-                                    label="values"
-                                    value={Array.isArray(board.value) ? board.value : []}
-                                    onChange={v => handleBoardChange(idx, { value: v })}
-                                    placeholder="Value"
-                                />
-                            ) : (
-                                <KVEditor
-                                    label="fields"
-                                    value={typeof board.value === "object" && !Array.isArray(board.value) ? board.value : {}}
-                                    onChange={v => handleBoardChange(idx, { value: v })}
-                                    keyPlaceholder="Field"
-                                    valuePlaceholder="Value"
-                                />
-                            )}
-                        </tbody>
-                    </table>
+                    <div className="label">name</div>
+                    <div style={{ padding: "5px" }}>
+                        <FieldWithRemove
+                            value={board.name}
+                            onChange={v => handleBoardChange(idx, { name: v })}
+                            onRemovePressed={() => handleRemove(idx)}
+                            placeholder="name"
+                        />
+                    </div>
+                    <div className="label">type</div>
+                    <div style={{ padding: "5px" }}>
+                        <ValidatableSelect
+                            value={board.type}
+                            options={safeList(typeOptions).map(opt => opt.value)}
+                            onChange={val =>
+                                handleBoardChange(idx, {
+                                    type: val as "list" | "object",
+                                    value: val === "list" ? [] : {}
+                                })
+                            }
+                            showPlaceholder={true}
+                            placeholder="Select type..."
+                        />
+                    </div>
+                    {board.type === "list" ? (
+                        <LEditor
+                            label="values"
+                            value={Array.isArray(board.value) ? board.value : []}
+                            onChange={v => handleBoardChange(idx, { value: v })}
+                            placeholder="Value"
+                        />
+                    ) : (
+                        <KVEditor
+                            label="fields"
+                            value={typeof board.value === "object" && !Array.isArray(board.value) ? board.value : {}}
+                            onChange={v => handleBoardChange(idx, { value: v })}
+                            keyPlaceholder="Field"
+                            valuePlaceholder="Value"
+                        />
+                    )}
                 </div>
             ))}
             <button onClick={handleAdd} className="add-button" >

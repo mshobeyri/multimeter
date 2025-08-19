@@ -50,48 +50,38 @@ const LEditor: React.FC<LEditorProps> = ({
         }
     };
 
-    return (
-        <tr>
-            <td className={disabled ? "label label-disabled" : "label"}>{label}</td>
-            <td style={{ padding: "5px" }}>
-            <table style={{ width: "100%" }}>
-                <tbody>
-                    {safeList(value).map((val, idx) => (
-                        <tr key={idx}>
-                            <td style={{ width: "90%" }}>
-                                <FieldWithRemove
-                                    value={val}
-                                    onChange={v => handleChange(idx, v)}
-                                    onRemovePressed={() => handleRemove(idx)}
-                                    placeholder={placeholder || "Value"}
-                                    disabled={disabled}
-                                />
-                            </td>
-                        </tr>
-                    ))}
-                    {/* Always show an empty input at the end for adding new items */}
-                    <tr>
-                        <td style={{ width: "90%" }}>
-                            <input
-                                ref={inputRef}
-                                value={newValue}
-                                onChange={e => setNewValue(e.target.value)}
-                                onKeyDown={e => {
-                                    if (e.key === "Enter") handleAdd();
-                                }}
-                                placeholder={placeholder || "Value"}
-                                disabled={disabled}
-                                style={{
-                                    width: "100%"
-                                }}
-                            />
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </td>
-    </tr >
-  );
+    return (<>
+        <div className={disabled ? "label label-disabled" : "label"}>{label}</div>
+        <div style={{ padding: "0", marginRight: "10px" }}>
+            {safeList(value).map((val, idx) => (
+                <div key={idx} style={{ width: "100%", padding: "5px"}}>
+                    <FieldWithRemove
+                        value={val}
+                        onChange={v => handleChange(idx, v)}
+                        onRemovePressed={() => handleRemove(idx)}
+                        placeholder={placeholder || "Value"}
+                        disabled={disabled}
+                    />
+                </div>
+            ))}
+            <div style={{ width: "100%", padding: "5px"}}>
+                <input
+                    ref={inputRef}
+                    value={newValue}
+                    onChange={e => setNewValue(e.target.value)}
+                    onKeyDown={e => {
+                        if (e.key === "Enter") handleAdd();
+                    }}
+                    placeholder={placeholder || "Value"}
+                    disabled={disabled}
+                    style={{
+                        width: "100%"
+                    }}
+                />
+            </div>
+        </div>
+    </>
+    );
 };
 
 export default LEditor;
