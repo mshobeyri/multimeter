@@ -1,17 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <link rel="stylesheet" href="https://microsoft.github.io/vscode-codicons/dist/codicon.css">
 </head>
+
 <body>
   <div style="text-align:center; margin:28px 0;">
-    <button id="uploadBtn" class="mmt-upload-btn">
-      <img src="__POSTMAN_ICON__" alt="Postman" class="postman-logo" />
+    <button id="uploadBtn" class="mmt-upload-btn mmt-btn-postman">
+      <img src="__POSTMAN_ICON__" alt="Postman" class="logo" />
       <span style="margin-left:8px;font-size:13px;">Import Postman Collection...</span>
     </button>
-    <input type="file" id="fileInput" style="display:none" />
+
+    <button id="openApiBtn" class="mmt-upload-btn mmt-btn-openapi" style="margin-top: 12px;">
+      <img src="__OPENAPI_ICON__" alt="OpenAPI" class="logo" />
+      <span style="margin-left:8px;font-size:13px;">Import OpenAPI Spec...</span>
+    </button>
+
+    <input type="file" id="fileInput" style="display:none" accept=".json,.yaml,.yml" />
+    <input type="file" id="openApiInput" style="display:none" accept=".json,.yaml,.yml" />
   </div>
-  <div id="frame" style="display:none; border: 1px solid #444; border-radius: 8px; background: var(--vscode-editor-background, #1e1e1e); padding: 10px 10px 18px 10px; margin-bottom: 16px;">
+  <div id="frame"
+    style="display:none; border: 1px solid #444; border-radius: 8px; background: var(--vscode-editor-background, #1e1e1e); padding: 10px 10px 18px 10px; margin-bottom: 16px;">
     <div id="file-actions" style="margin-bottom: 8px; display: flex; justify-content: flex-end; gap: 6px;">
       <button id="selectAllBtn" class="mmt-action-btn" title="Select All">
         <span class="codicon codicon-check-all"></span>
@@ -26,15 +36,15 @@
     <div id="file-list"></div>
   </div>
   <style>
-    .postman-logo {
+    .logo {
       width: 32px;
       height: 32px;
       vertical-align: middle;
       margin-right: 4px;
+      margin-left: 8px;
     }
-    .mmt-upload-btn {
-      background: var(--vscode-button-background, #222);
-      border: 1px solid #444;
+
+     .mmt-upload-btn {
       border-radius: 6px;
       padding: 14px 0;
       cursor: pointer;
@@ -43,15 +53,17 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 100%; /* Fill parent width */
+      width: 100%;
+      /* Fill parent width */
       transition: background 0.15s, border-color 0.15s;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
-    .mmt-upload-btn:hover {
-      background: var(--vscode-list-hoverBackground, #2a2d2e);
-      border-color: #3399ff;
+
+    .mmt-file-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
     }
-    .mmt-file-list { list-style: none; padding: 0; margin: 0; }
+
     .mmt-file-list li {
       display: flex;
       align-items: center;
@@ -63,12 +75,15 @@
       font-size: 12px;
       margin-bottom: 4px;
     }
+
     .mmt-file-list li.selected {
       background: var(--vscode-list-activeSelectionBackground, #094771);
     }
+
     .mmt-file-list li:hover {
       background: var(--vscode-list-hoverBackground, #2a2d2e);
     }
+
     .mmt-file-icon {
       width: 16px;
       height: 16px;
@@ -76,6 +91,7 @@
       opacity: 0.9;
       vertical-align: middle;
     }
+
     .mmt-file-name {
       flex: 1;
       color: var(--vscode-list-foreground, #d4d4d4);
@@ -86,12 +102,14 @@
       font-size: 12px;
       cursor: pointer;
     }
+
     .mmt-file-checkbox {
       margin-right: 10px;
       width: 12px;
       height: 12px;
       cursor: pointer;
     }
+
     .mmt-action-btn {
       background: transparent;
       border: none;
@@ -104,10 +122,28 @@
       display: flex;
       align-items: center;
     }
+
+    .mmt-btn-postman {
+      background: #FF6C37;
+    }
+
+    .mmt-btn-openapi {
+      background: #6BA539;
+    }
+
+    .mmt-btn-postman:hover:enabled {
+      background: #E65A2C;
+    }
+
+    .mmt-btn-openapi:hover:enabled {
+      background: #558A2F;
+    }
+
     .mmt-action-btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
+
     .mmt-action-btn:hover:enabled {
       background: var(--vscode-list-hoverBackground, #2a2d2e);
     }
@@ -118,11 +154,14 @@
     let selected = [];
 
     const uploadBtn = document.getElementById('uploadBtn');
+    const openApiBtn = document.getElementById('openApiBtn');
     const fileInput = document.getElementById('fileInput');
+    const openApiInput = document.getElementById('openApiInput');
     const saveBtn = document.getElementById('saveBtn');
     const selectAllBtn = document.getElementById('selectAllBtn');
     const frame = document.getElementById('frame');
 
+    // Postman import
     uploadBtn.addEventListener('click', () => {
       fileInput.value = "";
       fileInput.click();
@@ -132,8 +171,35 @@
       const file = fileInput.files[0];
       if (file) {
         const reader = new FileReader();
-        reader.onload = function(evt) {
-          vscode.postMessage({ type: 'file', name: file.name, text: evt.target.result });
+        reader.onload = function (evt) {
+          vscode.postMessage({
+            type: 'file',
+            source: 'postman',
+            name: file.name,
+            text: evt.target.result
+          });
+        };
+        reader.readAsText(file);
+      }
+    });
+
+    // OpenAPI import
+    openApiBtn.addEventListener('click', () => {
+      openApiInput.value = "";
+      openApiInput.click();
+    });
+
+    openApiInput.addEventListener('change', e => {
+      const file = openApiInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (evt) {
+          vscode.postMessage({
+            type: 'file',
+            source: 'openapi',
+            name: file.name,
+            text: evt.target.result
+          });
         };
         reader.readAsText(file);
       }
@@ -166,24 +232,24 @@
       const fileListDiv = document.getElementById('file-list');
       fileListDiv.innerHTML = mmtFiles.length
         ? '<ul class="mmt-file-list">' +
-        mmtFiles.map(function(f, i) {
+        mmtFiles.map(function (f, i) {
           return '<li class="' + (selected.includes(i) ? 'selected' : '') + '">' +
             '<input type="checkbox" class="mmt-file-checkbox" ' + (selected.includes(i) ? 'checked' : '') + ' onclick="toggleSelect(' + i + ', event)" />' +
             '<span class="mmt-file-name" onclick="openFile(' + i + ', event)">' +
-              '<img src="__MULTIMETER_ICON__" class="mmt-file-icon" />' +
-              f.name +
+            '<img src="__MULTIMETER_ICON__" class="mmt-file-icon" />' +
+            f.name +
             '</span>' +
-          '</li>';
+            '</li>';
         }).join('') +
         '</ul>'
-      : '';
+        : '';
     }
 
     function updateSaveBtn() {
       saveBtn.disabled = selected.length === 0;
     }
 
-    window.toggleSelect = function(idx, event) {
+    window.toggleSelect = function (idx, event) {
       event.stopPropagation();
       if (selected.includes(idx)) {
         selected = selected.filter(i => i !== idx);
@@ -194,11 +260,12 @@
       updateSaveBtn();
     };
 
-    window.openFile = function(idx, event) {
+    window.openFile = function (idx, event) {
       event.stopPropagation();
       const file = mmtFiles[idx];
       vscode.postMessage({ type: 'openFile', name: file.name, content: file.content });
     };
   </script>
 </body>
+
 </html>
