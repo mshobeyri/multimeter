@@ -9,6 +9,7 @@
     <div id="history-list"></div>
     <style>
         .history-list {
+            color: var(--vscode-foreground, #aaa);
             list-style: none;
             padding: 0;
             margin: 0;
@@ -41,7 +42,7 @@
 
         .history-title {
             flex: 1;
-            color: var(--vscode-list-foreground, #d4d4d4);
+            color: var(--vscode-foreground, #aaa);
             font-size: 12px;
             margin-left: 4px;
             overflow: hidden;
@@ -51,20 +52,18 @@
 
         .history-time {
             font-size: 11px;
-            color: #aaa;
+            color: var(--vscode-foreground, #aaa);
             margin-left: 12px;
             min-width: 90px;
             text-align: right;
         }
 
         .drawer-content {
-            background: var(--vscode-editor-background, #23272e);
             border-radius: 0 0 8px 8px;
             margin: 0 0 8px 0;
             padding: 18px 24px;
-            /* more padding inside drawer */
             font-size: 13px;
-            color: var(--vscode-editor-foreground, #d4d4d4);
+            color: var(--vscode-foreground, #aaa);
             border-top: 1px solid #444;
             white-space: pre-wrap;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
@@ -73,7 +72,6 @@
 
         .drawer-section {
             margin-bottom: 18px;
-            /* more space between sections */
         }
 
         .drawer-label {
@@ -83,7 +81,7 @@
         }
 
         .drawer-value {
-            color: #d4d4d4;
+            color: var(--vscode-foreground, #aaa);
             font-family: var(--vscode-font-family, monospace);
             word-break: break-all;
         }
@@ -91,9 +89,7 @@
         .drawer-table {
             border-collapse: collapse;
             margin-top: 8px;
-            /* more space above table */
             margin-bottom: 12px;
-            /* more space below table */
             min-width: 240px;
             max-width: 600px;
         }
@@ -102,7 +98,6 @@
         .drawer-table td {
             border: 1px solid #444;
             padding: 6px 16px;
-            /* more padding in table cells */
             font-size: 12px;
             text-align: left;
             vertical-align: top;
@@ -118,14 +113,12 @@
 
         .drawer-table td {
             background: none;
-            color: #d4d4d4;
+            color: var(--vscode-foreground, #aaa);
         }
 
         .drawer-content pre {
-            background: #222;
-            color: #d4d4d4;
+            color: var(--vscode-foreground, #aaa);
             padding: 10px 16px;
-            /* more padding in content view */
             border-radius: 4px;
             font-size: 12px;
             margin: 0;
@@ -147,7 +140,7 @@
         .drawer-arrow {
             margin-right: 6px;
             font-size: 13px;
-            color: #888;
+            color: var(--vscode-foreground, #aaa);
             transition: transform 0.2s;
             cursor: pointer;
             user-select: none;
