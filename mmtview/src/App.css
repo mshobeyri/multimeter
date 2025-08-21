@@ -1,3 +1,13 @@
+/* Add this at the top of your CSS file to set the default font for everything */
+input,
+select,
+textarea,
+button,
+.tab-button,
+.tab-button-small {
+  font-family: var(--vscode-editor-font-family, var(--vscode-font-family, 'Consolas', 'Courier New', monospace));
+}
+
 /* VS Code style resizer */
 .Resizer {
   background: var(--vscode-widget-border, #454545);
@@ -138,8 +148,9 @@ tag {
   border: 1px solid var(--vscode-input-border, #3c3c3c);
   border-radius: 2px;
   padding: 4px 8px;
-  font-size: 0.7rem;
-  font-family: var(--vscode-editor-font-family, inherit);
+  font-size: var(--vscode-font-size, 13px);
+  /* Use VS Code font size */
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
   outline: none;
   transition: border-color 0.2s;
   height: 1.6rem;
@@ -178,8 +189,9 @@ button {
   border: 1px solid var(--vscode-button-border, #3c3c3c);
   border-radius: 2px;
   padding: 4px 12px;
-  font-size: 0.7rem;
-  font-family: var(--vscode-editor-font-family, inherit);
+  font-size: var(--vscode-font-size, 13px);
+  /* Use VS Code font size */
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s;
   outline: none;
@@ -200,11 +212,12 @@ button:focus {
   border-radius: 4px;
   transition: background 0.15s;
   color: var(--vscode-foreground, #d4d4d4);
-  font-size: 14px;
+  font-size: var(--vscode-font-size, 13px);
+  /* Use VS Code font size */
   display: flex;
   align-items: center;
   gap: 4px;
-  font-family: var(--vscode-font-family, inherit);
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
   outline: none;
 }
 
@@ -237,6 +250,7 @@ button:focus {
   border: none;
   background: transparent;
   color: var(--vscode-foreground);
+  opacity: 0.5;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -245,12 +259,19 @@ button:focus {
   transition: all 0.2s ease;
   white-space: nowrap;
   min-width: fit-content;
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  font-size: var(--vscode-font-size, 13px);
+}
+
+.tab-button:hover {
+  color: var(--vscode-foreground);
+  opacity: 0.7;
+  background: transparent;
 }
 
 .tab-button.active {
-  border-bottom: 1px solid var(--vscode-foreground);
   color: var(--vscode-foreground);
-  font-weight: bold;
+  opacity: 1;
   background: transparent;
 }
 
@@ -266,25 +287,33 @@ button:focus {
 
 /* Tab view element styles */
 .tab-button-small {
-  padding: 6px 16px;
+  padding: 8px 12px;
   border: none;
-  border-bottom: 2px solid transparent;
-  background: none;
-  color: inherit;
-  font-weight: normal;
+  background: transparent;
+  color: var(--vscode-foreground);
+  opacity: 0.5;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: var(--vscode-editor-font-family, inherit);
-  font-size: 0.6rem;
-  transition: border-color 0.2s, font-weight 0.2s;
+  border-radius: 0;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  min-width: fit-content;
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  font-size: var(--vscode-font-size, 13px);
+}
+
+.tab-button-small:hover {
+  color: var(--vscode-foreground);
+  opacity: 0.7;
+  background: transparent;
 }
 
 .tab-button-small.active {
-  border-bottom: 2px solid #0e639c;
-  font-weight: bold;
-  background: none;
+  color: var(--vscode-foreground);
+  opacity: 1;
+  background: transparent;
 }
 
 .tab-button-small:hover {
@@ -294,14 +323,18 @@ button:focus {
 .header {
   font-weight: bold;
   color: var(--vscode-editorWidget-foreground, #d4d4d4);
-  font-size: 0.8rem;
+  font-size: var(--vscode-font-size, 13px);
+  /* Use VS Code font size */
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
   letter-spacing: 0.01em;
   padding: 8px 0;
 }
 
 .label {
   color: var(--vscode-editorWidget-foreground, #939393);
-  font-size: 0.75rem;
+  font-size: var(--vscode-font-size, 13px);
+  /* Use VS Code font size */
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
   padding: 5px;
   padding-bottom: 0px;
   padding-top: 10px;
@@ -365,12 +398,16 @@ button:focus {
   background: var(--vscode-button-background, #0e639c);
   color: var(--vscode-button-foreground, #fff);
   border: none;
-  border-radius: 4px;
+  border-radius: 2px;
   padding: 8px 16px;
   cursor: pointer;
-  width: 100%;
+  font-size: var(--vscode-font-size, 13px);
+  /* Use VS Code font size */
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  height: 1.5rem;
 }
 
+/* Update error panel */
 .error-panel {
   color: var(--vscode-foreground, #d4d4d4);
   font-style: italic;
@@ -379,4 +416,7 @@ button:focus {
   border: 1px dashed var(--vscode-border, #444);
   border-radius: 4px;
   background-color: var(--vscode-editorWidget-background, #232323);
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  font-size: var(--vscode-font-size, 13px);
+  /* Use VS Code font size */
 }
