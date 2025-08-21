@@ -13,7 +13,7 @@
 - 🧱 JSON/XML schema-aware editing.
 - ⛏️ Extract data from results using xpath, jsonpath and regular expression.
 - 🌐 HTTP/WS protocols support.
-- 🧑‍🚀 Support Postman collection.
+- 🔄 Support Postman and OpenAPI collection convert.
 - 🪞 Server mocking.
 
 ## 🛠️ Usage
