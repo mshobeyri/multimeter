@@ -114,6 +114,8 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
             ]}
           />
         )}
+
+        <div className="label">optional fields</div>
         {(availableOptionals.length > 0 || (variable.type === "object" || variable.type === "object[]")) && (
           <div style={{ padding: "5px" }}>
             <select

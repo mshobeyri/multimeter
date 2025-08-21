@@ -148,9 +148,6 @@ tag {
   border: 1px solid var(--vscode-input-border, #3c3c3c);
   border-radius: 2px;
   padding: 4px 8px;
-  font-size: var(--vscode-font-size, 13px);
-  /* Use VS Code font size */
-  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
   outline: none;
   transition: border-color 0.2s;
   height: 1.6rem;
@@ -207,17 +204,17 @@ button:focus {
   border-radius: 4px;
   transition: background 0.15s;
   color: var(--vscode-foreground, #d4d4d4);
-  font-size: var(--vscode-font-size, 13px);
   /* Use VS Code font size */
   display: flex;
+  opacity: 0.8;
   align-items: center;
   gap: 4px;
-  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
   outline: none;
 }
 
 .action-button:hover {
-  background: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1)) !important;
+  opacity: 1;
+  background: transparent;
 }
 
 .action-button:active {
