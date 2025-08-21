@@ -123,11 +123,7 @@ button,
   height: 250px;
   overflow: auto;
   border-radius: 2px;
-}
-
-/* For a more prominent border */
-.bodyview.focused {
-  border-color: var(--vscode-focusBorder, #007fd4);
+  transition: border-color 0.2s;
 }
 
 option {

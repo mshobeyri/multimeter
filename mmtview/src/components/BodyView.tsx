@@ -15,6 +15,7 @@ export type BodyViewProps = {
 const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "appliable" }) => {
     const [localValue, setLocalValue] = useState(value);
     const [isValid, setIsValid] = useState(true);
+    const [isFocused, setIsFocused] = useState(false);
     const [canApply, setCanApply] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -64,86 +65,93 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
     }, [localValue, format, value, isValid]);
 
     return (
-        <div className="bodyview">
+        <div className="bodyview" style={{ borderColor: isFocused ? "var(--vscode-focusBorder, #007fd4)" : "var(--vscode-input-border, #3c3c3c)" }}>
             <TextEditor
                 content={localValue}
                 setContent={setLocalValue}
                 language={format}
                 showNumbers={false}
                 fontSize={10}
+                onFocusChange={setIsFocused}
             />
-            {!isValid && (
-                <span
-                    style={{
-                        position: "absolute",
-                        right: 8,
-                        bottom: 8,
-                        width: 16,
-                        height: 16,
-                        borderRadius: "50%",
-                        background: "red",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        color: "#fff",
-                        fontSize: 12,
-                        boxShadow: "0 0 2px #900",
-                        cursor: "pointer"
-                    }}
-                    title={errorMsg || (format === "json" ? "Invalid JSON" : format === "xml" ? "Invalid XML" : "Invalid")}
-                >
-                    i
-                </span>
-            )}
-            {((format === "json" || format === "xml") && isValid && beautify(format, localValue) !== localValue) && (
-                <button
-                    style={{
-                        position: "absolute",
-                        right: 8,
-                        bottom: mode === "appliable" && canApply && isValid ? 36 : 8,
-                        background: "#1976d2",
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: 4,
-                        padding: "2px 10px",
-                        fontSize: 12,
-                        cursor: "pointer",
-                        boxShadow: "0 0 2px #1976d2"
-                    }}
-                    onClick={() => {
-                        const beautified = beautify(format, localValue);
-                        setLocalValue(beautified);
-                    }}
-                >
-                    Beautify
-                </button>
-            )}
-            {mode == "appliable" && canApply && isValid && (
-                <button
-                    style={{
-                        position: "absolute",
-                        right: 8,
-                        bottom: 8,
-                        background: "#43a047",
-                        color: "#fff",
-                        border: "none",
-                        borderRadius: 4,
-                        padding: "2px 10px",
-                        fontSize: 12,
-                        cursor: "pointer",
-                        boxShadow: "0 0 2px #090"
-                    }}
-                    onClick={() => {
-                        if (onChange) {
-                            onChange(localValue);
-                        }
-                        setCanApply(false);
-                    }}
-                >
-                    Apply
-                </button>
-            )}
-        </div>
+            {
+                !isValid && (
+                    <span
+                        style={{
+                            position: "absolute",
+                            right: 8,
+                            bottom: 8,
+                            width: 16,
+                            height: 16,
+                            borderRadius: "50%",
+                            background: "red",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#fff",
+                            fontSize: 12,
+                            boxShadow: "0 0 2px #900",
+                            cursor: "pointer"
+                        }}
+                        title={errorMsg || (format === "json" ? "Invalid JSON" : format === "xml" ? "Invalid XML" : "Invalid")}
+                    >
+                        i
+                    </span>
+                )
+            }
+            {
+                ((format === "json" || format === "xml") && isValid && beautify(format, localValue) !== localValue) && (
+                    <button
+                        style={{
+                            position: "absolute",
+                            right: 8,
+                            bottom: mode === "appliable" && canApply && isValid ? 36 : 8,
+                            background: "#1976d2",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: 4,
+                            padding: "2px 10px",
+                            fontSize: 12,
+                            cursor: "pointer",
+                            boxShadow: "0 0 2px #1976d2"
+                        }}
+                        onClick={() => {
+                            const beautified = beautify(format, localValue);
+                            setLocalValue(beautified);
+                        }}
+                    >
+                        Beautify
+                    </button>
+                )
+            }
+            {
+                mode == "appliable" && canApply && isValid && (
+                    <button
+                        style={{
+                            position: "absolute",
+                            right: 8,
+                            bottom: 8,
+                            background: "#43a047",
+                            color: "#fff",
+                            border: "none",
+                            borderRadius: 4,
+                            padding: "2px 10px",
+                            fontSize: 12,
+                            cursor: "pointer",
+                            boxShadow: "0 0 2px #090"
+                        }}
+                        onClick={() => {
+                            if (onChange) {
+                                onChange(localValue);
+                            }
+                            setCanApply(false);
+                        }}
+                    >
+                        Apply
+                    </button>
+                )
+            }
+        </div >
     );
 };
 
