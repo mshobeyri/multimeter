@@ -25,7 +25,6 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
       style={{
         width: "100%",
         verticalAlign: "top",
-        paddingRight: 32,
         cursor: disabled ? "not-allowed" : undefined,
       }}
       onChange={e => onChange(e.target.value)}

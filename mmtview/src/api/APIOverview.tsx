@@ -23,6 +23,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
 
       <div style={{ width: "100%", padding: "5px" }}>
       <input
+        style={{ width: "100%" }}
         value={api.title || ""}
         onChange={e => update({ title: e.target.value })}
         placeholder="title"
