@@ -7,7 +7,7 @@
 
 <body>
   <div style="text-align:center; margin:28px 0;">
-    <button id="uploadBtn" class="mmt-upload-btn mmt-btn-postman">
+    <button id="postmanBtn" class="mmt-upload-btn mmt-btn-postman">
       <img src="__POSTMAN_ICON__" alt="Postman" class="logo" />
       <span style="margin-left:8px;font-size:13px;">Import Postman Collection...</span>
     </button>
@@ -44,7 +44,7 @@
       margin-left: 8px;
     }
 
-     .mmt-upload-btn {
+    .mmt-upload-btn {
       border-radius: 6px;
       padding: 14px 0;
       cursor: pointer;
@@ -153,7 +153,7 @@
     let mmtFiles = [];
     let selected = [];
 
-    const uploadBtn = document.getElementById('uploadBtn');
+    const postmanBtn = document.getElementById('postmanBtn');
     const openApiBtn = document.getElementById('openApiBtn');
     const fileInput = document.getElementById('fileInput');
     const openApiInput = document.getElementById('openApiInput');
@@ -162,7 +162,7 @@
     const frame = document.getElementById('frame');
 
     // Postman import
-    uploadBtn.addEventListener('click', () => {
+    postmanBtn.addEventListener('click', () => {
       fileInput.value = "";
       fileInput.click();
     });
