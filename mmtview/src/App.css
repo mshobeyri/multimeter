@@ -177,11 +177,6 @@ textarea:disabled {
   border-color: var(--vscode-input-border, #3c3c3c);
 }
 
-/* Variable editor styles */
-.VariableEditor td {
-  vertical-align: middle !important;
-}
-
 /* Button styles */
 button {
   background-color: var(--vscode-button-background, #0e639c);
@@ -402,9 +397,12 @@ button:focus {
   padding: 8px 16px;
   cursor: pointer;
   font-size: var(--vscode-font-size, 13px);
-  /* Use VS Code font size */
   font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
   height: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 /* Update error panel */

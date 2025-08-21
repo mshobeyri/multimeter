@@ -55,94 +55,82 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
   };
 
   const previousVariableNames = safeList(variables)
-      .filter(v => v !== variable && v.name && v.name !== variable.name)
-      .map(v => v.name);
+    .filter(v => v !== variable && v.name && v.name !== variable.name)
+    .map(v => v.name);
 
   return (
     <div className="inner-box" >
-      <table
+      <div
         className="VariableEditor"
         style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}
       >
-        <colgroup>
-          <col style={{ width: "20%" }} />
-          <col style={{ width: "80%" }} />
-        </colgroup>
-        <tbody>
-          <tr>
-            <td className="label">name</td>
-            <td style={{ padding: "8px" }}>
-              <FieldWithRemove
-                value={variable.name || ""}
-                onChange={v => updateField({ name: v })}
-                onRemovePressed={onRemove ?? (() => { })}
-                placeholder="name"
-              />
-            </td>
-          </tr>
-          <tr>
-            <td className="label">type</td>
-            <td style={{ padding: "8px" }}>
-              <ValidatableSelect
-                value={variable.type || ""}
-                options={[
-                  ...jsonTypes,
-                  ...previousVariableNames.flatMap(opt => [opt, `${opt}[]`])
-                ]}
-                onChange={val => updateField({ type: val })}
-                showPlaceholder={true}
-                placeholder="Select type..."
-              />
-            </td>
-          </tr>
-          {safeList(fieldOptions).map(opt =>
-            variable[opt as keyof Variable] !== undefined ? (
-              <tr key={opt}>
-                <td className="label">{opt}</td>
-                <td style={{ padding: "8px", position: "relative" }}>
-                  <FieldWithRemove
-                    value={variable[opt as keyof Variable] as string || ""}
-                    onChange={v => updateField({ [opt]: v })}
-                    onRemovePressed={() => removeOptionalField(opt as keyof Variable)}
-                    placeholder={opt}
-                  />
-                </td>
-              </tr>
-            ) : null
-          )}
-          {(variable.type === "object" || variable.type === "object[]") && (
-            <KVEditor
-              label="fields"
-              value={variable.fields || {}}
-              onChange={fields => updateField({ fields })}
-              keyPlaceholder="Field name"
-              valuePlaceholder="Type"
-              options={[
-                ...jsonTypes,
-                ...previousVariableNames.flatMap(opt => [opt, `${opt}[]`])
-              ]}
-            />
-          )}
-          {(availableOptionals.length > 0 || (variable.type === "object" || variable.type === "object[]")) && (
-            <tr>
-              <td colSpan={2} style={{ padding: "8px", paddingRight: "28px" }}>
-                <select
-                  value={addType}
-                  onChange={e => {
-                    if (e.target.value) handleAdd(e.target.value);
-                  }}
-                  style={{ width: "40%" }}
-                >
-                  <option value="">optionals...</option>
-                  {safeList(availableOptionals).map(opt => (
-                    <option key={opt} value={opt}>{opt}</option>
-                  ))}
-                </select>
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+        <div className="label">name</div>
+        <div style={{ padding: "8px" }}>
+          <FieldWithRemove
+            value={variable.name || ""}
+            onChange={v => updateField({ name: v })}
+            onRemovePressed={onRemove ?? (() => { })}
+            placeholder="name"
+          />
+        </div>
+        <div className="label">type</div>
+        <div style={{ padding: "8px" }}>
+          <ValidatableSelect
+            value={variable.type || ""}
+            options={[
+              ...jsonTypes,
+              ...previousVariableNames.flatMap(opt => [opt, `${opt}[]`])
+            ]}
+            onChange={val => updateField({ type: val })}
+            showPlaceholder={true}
+            placeholder="Select type..."
+          />
+        </div>
+        {safeList(fieldOptions).map(opt =>
+          variable[opt as keyof Variable] !== undefined ? (
+            <div key={opt}>
+              <div className="label">{opt}</div>
+              <div style={{ padding: "8px", position: "relative" }}>
+                <FieldWithRemove
+                  value={variable[opt as keyof Variable] as string || ""}
+                  onChange={v => updateField({ [opt]: v })}
+                  onRemovePressed={() => removeOptionalField(opt as keyof Variable)}
+                  placeholder={opt}
+                />
+              </div>
+            </div>
+          ) : null
+        )}
+        {(variable.type === "object" || variable.type === "object[]") && (
+          <KVEditor
+            label="fields"
+            value={variable.fields || {}}
+            onChange={fields => updateField({ fields })}
+            keyPlaceholder="Field name"
+            valuePlaceholder="Type"
+            options={[
+              ...jsonTypes,
+              ...previousVariableNames.flatMap(opt => [opt, `${opt}[]`])
+            ]}
+          />
+        )}
+        {(availableOptionals.length > 0 || (variable.type === "object" || variable.type === "object[]")) && (
+          <div style={{ padding: "5px" }}>
+            <select
+              value={addType}
+              onChange={e => {
+                if (e.target.value) handleAdd(e.target.value);
+              }}
+              style={{ width: "40%" }}
+            >
+              <option value="">optionals...</option>
+              {safeList(availableOptionals).map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

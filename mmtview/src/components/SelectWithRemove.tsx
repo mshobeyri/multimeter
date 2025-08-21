@@ -63,7 +63,7 @@ const SelectWithRemove: React.FC<SelectWithRemoveProps> = ({
       }}
     >
       <span style={{ fontSize: "14.4px", lineHeight: 1 }}>
-        <span className="codicon codicon-trash" style={{ fontSize: "16px" }}>
+        <span className="codicon codicon-trash action-button" style={{ fontSize: "16px"}}>
         </span>
       </span>
     </button>
