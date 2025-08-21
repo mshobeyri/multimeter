@@ -47,6 +47,8 @@ const SearchableTagInput: React.FC<SearchableTagInputProps> = ({
         alignItems: "center",
         gap: 4,
         background: "var(--vscode-input-background, #1e1e1e)",
+        color: "var(--vscode-editorWidget-foreground, #d4d4d4)",
+        border: "1px solid var(--vscode-input-border, #3c3c3c)",
       }}
     >
       {safeList(tags).map((tag) => (
@@ -56,7 +58,7 @@ const SearchableTagInput: React.FC<SearchableTagInputProps> = ({
           style={{
             borderRadius: 2,
             padding: "2px 8px",
-            marginRight: 4,
+            marginRight: 2,
             display: "flex",
             alignItems: "center",
             background: "var(--vscode-editorWidget-background, #232323)",
@@ -71,7 +73,7 @@ const SearchableTagInput: React.FC<SearchableTagInputProps> = ({
               marginLeft: 4,
               background: "transparent",
               border: "none",
-              color: "var(--vscode-button-foreground, #c00)",
+              color: "var(--vscode-foreground, #c00)",
               cursor: "pointer",
               fontSize: 14,
               lineHeight: 1,

@@ -17,8 +17,17 @@ const ViewSelector: React.FC<ViewSelectorProps> = ({ viewMode, onViewModeChange 
   ];
 
   return (
-    <div style={{ position: "relative" }}>
+    <div style={{
+      position: "relative",
+      zIndex: 1000,
+      background: "transparent"
+    }}>
       <button
+        style={{
+          zIndex: 1000,
+          color: "var(--vscode-foreground, #d4d4d4)",
+          background: "transparent"
+        }}
         onClick={() => setIsOpen(!isOpen)}
         className="action-button"
       >
@@ -29,13 +38,13 @@ const ViewSelector: React.FC<ViewSelectorProps> = ({ viewMode, onViewModeChange 
 
       {isOpen && (
         <div style={{
+          color: "var(--vscode-foreground, #d4d4d4)",
           position: "absolute",
           top: "100%",
           right: 0,
           zIndex: 1000,
-          background: "var(--vscode-menu-background, #252526)",
-          border: "1px solid var(--vscode-menu-border, #454545)",
-          borderRadius: "4px",
+          background: "var(--vscode-menu-background, #1e1e1e)",
+          border: 0,
           padding: "4px 0",
           minWidth: "120px",
           boxShadow: "0 2px 8px rgba(0, 0, 0, 0.3)"
@@ -48,20 +57,21 @@ const ViewSelector: React.FC<ViewSelectorProps> = ({ viewMode, onViewModeChange 
                 setIsOpen(false);
               }}
               style={{
+                color:  viewMode === mode ? "var(--vscode-menu-selectionForeground, #094771)" : "var(--vscode-menu-foreground, #d4d4d4)",
+                background: viewMode === mode ? "var(--vscode-menu-selectionBackground, #094771)" : "none",
                 display: "flex",
                 alignItems: "center",
                 gap: "8px",
                 padding: "6px 12px",
                 width: "100%",
-                background: viewMode === mode ? "var(--vscode-menu-selectionBackground, #094771)" : "none",
                 border: "none",
-                color: "inherit",
                 fontSize: "10px",
                 cursor: "pointer",
-                textAlign: "left"
+                textAlign: "left",
+                zIndex: 1000
               }}
             >
-              <span className={`codicon ${icon}`} style={{ fontSize: "10px" }}></span>
+              <span className={`codicon ${icon}`} style={{ zIndex: 1000, fontSize: "10px" }}></span>
               {label}
             </button>
           ))}

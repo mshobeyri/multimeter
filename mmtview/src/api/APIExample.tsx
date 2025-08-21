@@ -54,15 +54,7 @@ const APIExample: React.FC<APIExampleProps> = ({ data, apiInputs, onChange, onRe
         <>
           <div className="label">fields</div>
           <div style={{ padding: "5px" }}>
-            <div style={{
-              color: "#999",
-              fontStyle: "italic",
-              padding: "12px",
-              textAlign: "center",
-              border: "1px dashed #444",
-              borderRadius: "4px",
-              backgroundColor: "#2a2a2a"
-            }}>
+            <div className="error-panel">
               You need to define inputs first
             </div>
           </div>

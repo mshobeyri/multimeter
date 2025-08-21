@@ -232,7 +232,9 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   const shouldShowOutputs = () => (viewMode === "all" || viewMode === "in/out") && Object.keys(outputs).length > 0;
 
   if (interfaces.length === 0) {
-    return <div style={{ color: "#888" }}>No interfaces defined.</div>;
+    return (
+      <div className="error-panel">No interfaces defined</div>
+    );
   }
 
   return (

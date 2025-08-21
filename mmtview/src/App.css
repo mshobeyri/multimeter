@@ -74,6 +74,7 @@
     animation: App-logo-spin infinite 20s linear;
   }
 }
+
 .App-header {
   background-color: #282c34;
   min-height: 100vh;
@@ -99,26 +100,8 @@
   }
 }
 
-.monaco-editor{
+.monaco-editor {
   position: absolute !important;
-}
-/* Form elements */
-select,
-select:focus {
-  background-color: var(--vscode-input-background, #1e1e1e);
-  color: var(--vscode-input-foreground, #d4d4d4);
-  border: 1px solid var(--vscode-input-border, #3c3c3c);
-  border-radius: 2px;
-  padding: 4px 8px;
-  font-size: 0.7rem;
-  font-family: var(--vscode-editor-font-family, inherit);
-  outline: none;
-  transition: border-color 0.2s;
-  height: 1.6rem;
-}
-
-select:focus {
-  border-color: var(--vscode-focusBorder, #007fd4);
 }
 
 option {
@@ -127,7 +110,12 @@ option {
 }
 
 input,
-textarea {
+select,
+textarea,
+input:focus,
+textarea:focus,
+select:focus,
+tag {
   box-sizing: border-box;
   background-color: var(--vscode-input-background, #1e1e1e);
   color: var(--vscode-input-foreground, #d4d4d4);
@@ -138,12 +126,18 @@ textarea {
   font-family: var(--vscode-editor-font-family, inherit);
   outline: none;
   transition: border-color 0.2s;
-  resize: vertical;
   height: 1.6rem;
 }
 
+.tag {
+  height: 1.3rem;
+  display: inline-flex;
+  align-items: center;
+}
+
 input:focus,
-textarea:focus {
+textarea:focus,
+select:focus {
   border-color: var(--vscode-focusBorder, #007fd4);
 }
 
@@ -227,18 +221,20 @@ button:focus {
   align-items: center;
   gap: 6px;
   border-bottom: 2px solid transparent;
+  border-radius: 0;
   transition: all 0.2s ease;
   white-space: nowrap;
   min-width: fit-content;
 }
 
 .tab-button:hover {
-  background: var(--vscode-button-hoverBackground);
+  background: var(--vscode-list-hoverBackground, #aaa);
 }
 
 .tab-button.active {
   border-bottom-color: var(--vscode-button-background);
-  color: var(--vscode-button-foreground);
+  color: var(--vscode-foreground);
+  background: transparent;
 }
 
 .tab-button-icon {
@@ -278,32 +274,14 @@ button:focus {
   background-color: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1));
 }
 
-.tag,
-.SearchableTagInput-tag {
-  background: var(--vscode-editorWidget-background, #232323);
-  color: var(--vscode-editorWidget-foreground, #d4d4d4);
-  border: 1px solid var(--vscode-input-border, #3c3c3c);
-  border-radius: 2px;
-  padding: 2px 8px;
-  margin-right: 4px;
-  font-size: 0.7rem;
-  font-family: var(--vscode-editor-font-family, inherit);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* Header style for table headers and section headers */
 .header {
   font-weight: bold;
   color: var(--vscode-editorWidget-foreground, #d4d4d4);
   font-size: 0.8rem;
   letter-spacing: 0.01em;
   padding: 8px 0;
-  /* border-bottom: 1px solid var(--vscode-editorWidget-border, #333); */
 }
 
-/* Style for item names (field labels) */
 .label {
   color: var(--vscode-editorWidget-foreground, #939393);
   font-size: 0.75rem;
@@ -323,8 +301,7 @@ button:focus {
 }
 
 .horizontal-line {
-  border-top: 1px solid #ccc;
-  opacity: 0.2;
+  border-top: 1px solid var(--vscode-editorWidget-border, #444);
   position: absolute;
   top: 50%;
   left: 0;
@@ -374,4 +351,14 @@ button:focus {
   padding: 8px 16px;
   cursor: pointer;
   width: 100%;
+}
+
+.error-panel {
+  color: var(--vscode-foreground, #d4d4d4);
+    font-style: italic;
+    padding: 12px;
+    text-align: center;
+    border: 1px dashed var(--vscode-border, #444);
+    border-radius: 4px;
+    background-color: var(--vscode-editorWidget-background, #232323);
 }
