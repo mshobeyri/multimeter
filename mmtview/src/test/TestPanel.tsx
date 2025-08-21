@@ -74,19 +74,19 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
   useEffect(() => {
     const checkTabWidth = () => {
       if (!tabContainerRef.current) return;
-      
+
       const container = tabContainerRef.current;
       const containerWidth = container.clientWidth;
-      
+
       // Calculate approximate width needed for full text tabs
       // Rough estimate: 120px per tab for text + icon
       const fullTextWidth = 3 * 120;
-      
+
       setShowIconsOnly(containerWidth < fullTextWidth);
     };
 
     checkTabWidth();
-    
+
     const resizeObserver = new ResizeObserver(checkTabWidth);
     if (tabContainerRef.current) {
       resizeObserver.observe(tabContainerRef.current);
@@ -118,10 +118,9 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
   return (
     <div className="panel">
       <div className="panel-box">
-        {/* Tab Bar */}
-        <div 
+        <div
           ref={tabContainerRef}
-          style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 16 }}
+          className="tab-bar"
         >
           <button
             onClick={() => setTab("overview")}

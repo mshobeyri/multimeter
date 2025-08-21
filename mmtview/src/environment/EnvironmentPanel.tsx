@@ -293,10 +293,9 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   return (
     <div className="panel">
       <div className="panel-box">
-        {/* Tab Bar */}
         <div
           ref={tabContainerRef}
-          style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 16 }}
+          className="tab-bar"
         >
           <button
             onClick={() => setTab("environment")}

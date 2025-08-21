@@ -43,7 +43,7 @@ const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent }
 
   return (
     <div style={{ padding: 0 }}>
-      <div style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 12 }}>
+      <div className="tab-bar">
         <button
           onClick={() => setTab("variables")}
           className={`tab-button-small ${tab === "variables" ? "active" : ""}`}

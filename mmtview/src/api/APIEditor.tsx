@@ -27,17 +27,17 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
   useEffect(() => {
     const checkTabWidth = () => {
       if (!tabContainerRef.current) return;
-      
+
       const container = tabContainerRef.current;
       const containerWidth = container.clientWidth;
 
       const fullTextWidth = 4 * 100;
-      
+
       setShowIconsOnly(containerWidth < fullTextWidth);
     };
 
     checkTabWidth();
-    
+
     const resizeObserver = new ResizeObserver(checkTabWidth);
     if (tabContainerRef.current) {
       resizeObserver.observe(tabContainerRef.current);
@@ -97,10 +97,9 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
 
   return (
     <div className="panel-box">
-      {/* Tab Bar */}
-      <div 
+      <div
         ref={tabContainerRef}
-        style={{ display: "flex", borderBottom: "1px solid #444", marginBottom: 16 }}
+        className="tab-bar"
       >
         <button
           onClick={() => setTab("overview")}
