@@ -261,6 +261,7 @@ button:focus {
   color: var(--vscode-foreground);
   opacity: 1;
   background: transparent;
+  border-bottom: 1px solid var(--vscode-foreground);
 }
 
 .tab-button-icon {
@@ -302,6 +303,7 @@ button:focus {
   color: var(--vscode-foreground);
   opacity: 1;
   background: transparent;
+  border-bottom: 1px solid var(--vscode-foreground);
 }
 
 .tab-button-small:hover {
