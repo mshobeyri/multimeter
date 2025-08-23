@@ -3,7 +3,7 @@ import APIOverview from "./APIOverview";
 import InterfaceEditor from "./APIInterface";
 import APIExample from "./APIExample";
 import APITest from "./APITest";
-import { APIData, InterfaceData, ExampleData } from "./APIData";
+import { APIData, ExampleData } from "./APIData";
 import { safeList, safeListCopy } from "../safer";
 
 const LAST_API_TAB_KEY = "mmtview:api:lastTab";
@@ -14,8 +14,8 @@ interface APIEditorProps {
 }
 
 const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
-  const [tab, setTab] = useState<"overview" | "interfaces" | "examples" | "test">(
-    () => (localStorage.getItem(LAST_API_TAB_KEY) as "overview" | "interfaces" | "examples" | "test") || "test"
+  const [tab, setTab] = useState<"overview" | "interface" | "examples" | "test">(
+    () => (localStorage.getItem(LAST_API_TAB_KEY) as "overview" | "interface" | "examples" | "test") || "test"
   );
   const [showIconsOnly, setShowIconsOnly] = useState(false);
   const tabContainerRef = useRef<HTMLDivElement>(null);
@@ -52,28 +52,8 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
   };
 
   // Helper to update a specific interface
-  const updateInterface = (idx: number, patch: Partial<InterfaceData>) => {
-    const interfaces = safeListCopy(api.interfaces);
-    interfaces[idx] = { ...interfaces[idx], ...patch };
-    setAPI({ ...api, interfaces });
-  };
-
-  // Helper to remove an interface
-  const removeInterface = (idx: number) => {
-    const interfaces = safeList(api.interfaces).filter((_, i) => i !== idx);
-    setAPI({ ...api, interfaces });
-  };
-
-  // Helper to add a new interface
-  const addInterface = () => {
-    const interfaces = safeListCopy(api.interfaces);
-    interfaces.push({
-      name: "",
-      protocol: "http",
-      format: "json",
-      url: "",
-    });
-    setAPI({ ...api, interfaces });
+  const updateInterface = (patch: Partial<APIData>) => {
+    setAPI({ ...api, ...patch });
   };
 
   const updateExample = (idx: number, patch: Partial<ExampleData>) => {
@@ -110,12 +90,12 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
           {!showIconsOnly && "Overview"}
         </button>
         <button
-          onClick={() => setTab("interfaces")}
-          className={`tab-button ${tab === "interfaces" ? "active" : ""}`}
-          title={showIconsOnly ? "Interfaces" : undefined}
+          onClick={() => setTab("interface")}
+          className={`tab-button ${tab === "interface" ? "active" : ""}`}
+          title={showIconsOnly ? "Interface" : undefined}
         >
           <span className="codicon codicon-symbol-interface tab-button-icon"></span>
-          {!showIconsOnly && "Interfaces"}
+          {!showIconsOnly && "Interface"}
         </button>
         <button
           onClick={() => setTab("examples")}
@@ -140,30 +120,11 @@ const APIEditor: React.FC<APIEditorProps> = ({ api, setAPI }) => {
         <APIOverview api={api} update={update} />
       )}
 
-      {tab === "interfaces" && (
-        <table
-          className="APIEditor"
-          style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed", marginTop: 0 }}
-        >
-          <tbody>
-            <tr>
-              <td colSpan={2} style={{ padding: 0 }}>
-                {safeList(api.interfaces).map((iface, idx) => (
-                  <div key={idx} className="inner-box">
-                    <InterfaceEditor
-                      data={iface}
-                      onChange={updated => updateInterface(idx, updated)}
-                      onRemove={() => removeInterface(idx)}
-                    />
-                  </div>
-                ))}
-                <button className="add-button" onClick={addInterface}>
-                  Add Interface
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      {tab === "interface" && (
+        <InterfaceEditor
+          data={api}
+          onChange={updated => updateInterface(updated)}
+        />
       )}
 
       {tab === "examples" && (

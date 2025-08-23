@@ -1,25 +1,23 @@
 import React, { useCallback, useRef, useEffect, useState } from "react";
-import FieldWithRemove from "../components/FieldWithRemove";
 import KVEditor from "../components/KVEditor";
 import UrlInput from "../components/UrlInput";
-import { InterfaceData } from "./APIData";
 import { Protocol, Method, Format } from "../CommonData"
 import { formatBody, formattedBodyToYamlObject } from "../markupConvertor";
 import BodyView from "../components/BodyView";
 import { safeList, isNonEmptyObject } from "../safer";
 import { JSONRecord } from "../CommonData";
+import { APIData } from "./APIData";
 
 interface InterfaceEditorProps {
-  data: InterfaceData;
-  onChange: (data: InterfaceData) => void;
-  onRemove?: () => void;
+  data: APIData;
+  onChange: (data: APIData) => void;
 }
 
 const protocolOptions: Protocol[] = ["http", "ws"];
 const formatOptions: Format[] = ["json", "xml", "text"];
 const methodOptions: Method[] = ["get", "post", "put", "delete", "patch", "head", "options", "trace"];
 
-const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRemove }) => {
+const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => {
   // Split url and query string safely
   const url = (data.url || "").split("?")[0];
 
@@ -84,18 +82,6 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
 
   return (
     <div style={{ width: "100%" }}>
-
-      <div className="label">name</div>
-      <div style={{ padding: "5px" }}>
-        <FieldWithRemove
-          value={data.name}
-          onChange={v => onChange({ ...data, name: v })}
-          onRemovePressed={onRemove ?? (() => { })}
-          placeholder="name"
-        />
-      </div>
-
-
       <div className="label">protocol</div>
       <div style={{ padding: "5px" }}>
         <select
@@ -190,25 +176,23 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange, onRem
       ) : null}
       {/* Only show body editor if method is not get */}
       {(data.protocol == "ws" || !data.method || data.method.toLowerCase() !== "get") && (
-        
-          <>
-            <div className="label">body</div>
-            <div style={{ padding: "5px", position: "relative" }}>
-              <BodyView
-                value={formattedBody === null ? "" : formattedBody}
-                format={data.format}
-                mode="appliable"
-                onChange={val => {
-                  setFormattedBody(val);
-                  const yamlObj = formattedBodyToYamlObject(data.format, val);
-                  if (yamlObj !== null) {
-                    onChange({ ...data, body: yamlObj });
-                  }
-                }}
-              />
-            </div>
-          </>
-
+        <>
+          <div className="label">body</div>
+          <div style={{ padding: "5px", position: "relative" }}>
+            <BodyView
+              value={formattedBody === null ? "" : formattedBody}
+              format={data.format}
+              mode="appliable"
+              onChange={val => {
+                setFormattedBody(val);
+                const yamlObj = formattedBodyToYamlObject(data.format, val);
+                if (yamlObj !== null) {
+                  onChange({ ...data, body: yamlObj });
+                }
+              }}
+            />
+          </div>
+        </>
       )}
     </div>
   );

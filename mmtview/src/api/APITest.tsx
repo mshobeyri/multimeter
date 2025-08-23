@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { InterfaceData, APIData } from "./APIData";
+import { APIData } from "./APIData";
 import KVEditor from "../components/KVEditor";
 import BodyView from "../components/BodyView";
 import { formatBody } from "../markupConvertor";
@@ -70,11 +70,9 @@ const handleSetEnvVariables = (
 
 const APITest: React.FC<APITestProps> = ({ api }) => {
   // Add safety checks for arrays
-  const interfaces = safeList(api.interfaces);
   const examples = safeList(api.examples);
 
   const [body, setBody] = useState<string>("");
-  const [selectedInterfaceIdx, setSelectedInterfaceIdx] = useState<number>(0);
   const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(0);
 
   // View state with localStorage persistence
@@ -106,10 +104,8 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
       return;
     }
 
-    const iface = { ...interfaces[selectedInterfaceIdx] };
-
     // Handle interface outputs as object instead of array
-    const ifaceOutputsDef = iface.outputs || {};
+    const ifaceOutputsDef = api.outputs || {};
 
     // Get all API output keys - now it's an object
     const apiOutputsDef = api.outputs || {};
@@ -140,7 +136,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
 
     // Handle setenv - set environment variables based on API configuration
     handleSetEnvVariables(api, finalOutputs);
-  }, [network.responseBody, network.responseHeaders, network.responseCookies, api.outputs, interfaces, selectedInterfaceIdx, api.setenv]);
+  }, [network.responseBody, network.responseHeaders, network.responseCookies, api.outputs, api.setenv]);
 
   // Only call onChange if url value actually changed
   const handleUrlChange = useCallback(
@@ -169,7 +165,6 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   );
 
   useEffect(() => {
-    const iface = { ...interfaces[selectedInterfaceIdx] };
     const selectedExample = examples[selectedExampleIdx] || {};
     loadEnvVariables(envVars => {
       const envParameters: JSONRecord = safeList(envVars).reduce((acc, envVar) => {
@@ -178,7 +173,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
       }, {} as JSONRecord);
 
       let rface = replaceAllRefs(
-        iface,
+        api,
         api?.inputs ?? {},
         selectedExample?.inputs ?? {},
         envParameters
@@ -190,9 +185,9 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
       network.setRequestData(rface);
     });
 
-  }, [api, selectedInterfaceIdx, selectedExampleIdx]);
+  }, [api, selectedExampleIdx]);
 
-  const updateField = (field: keyof InterfaceData, value: any) => {
+  const updateField = (field: keyof APIData, value: any) => {
     network.setRequestData({
       ...network.requestData,
       [field]: value,
@@ -231,15 +226,8 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   const shouldShowResponseCookies = () => (viewMode === "all") && Object.keys(network.responseCookies || {}).length > 0;
   const shouldShowOutputs = () => (viewMode === "all" || viewMode === "in/out") && Object.keys(outputs).length > 0;
 
-  if (interfaces.length === 0) {
-    return (
-      <div className="error-panel">No interfaces defined</div>
-    );
-  }
-
   return (
     <div style={{ width: "100%" }}>
-      {/* Example select - with additional safety checks */}
       {examples.length > 0 && (
         <>
           <div className="label">example</div>
@@ -264,29 +252,6 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           </div>
         </>
       )}
-
-
-      <div className="label">interface</div>
-      <div style={{ padding: "8px" }}>
-        <select
-          value={selectedInterfaceIdx}
-          onChange={e => {
-            setSelectedInterfaceIdx(-1);
-            setSelectedInterfaceIdx(Number(e.target.value));
-          }}
-          style={{ width: "100%" }}
-        >
-          {safeList(interfaces)
-            .filter(Boolean) // Remove null/undefined entries
-            .filter(iface => iface && typeof iface === 'object') // Ensure it's an object
-            .map((iface, idx) => (
-              <option key={iface?.name || idx} value={idx}>
-                {iface?.name || `Interface ${idx + 1}`}
-              </option>
-            ))}
-        </select>
-      </div>
-
 
       <div className="label">url</div>
       <div style={{ padding: "8px" }}>

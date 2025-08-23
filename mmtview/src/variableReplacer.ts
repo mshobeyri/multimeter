@@ -1,4 +1,4 @@
-import {InterfaceData} from './api/APIData';
+import { APIData } from './api/APIData';
 import {JSONRecord} from './CommonData';
 import {safeList} from './safer';
 
@@ -68,7 +68,7 @@ export function replaceInputRefsWithNone(obj: any, inputs: any): any {
 
 // Replaces all references (inputs first, then environment vars)
 export function replaceAllRefs(
-    iface: InterfaceData, defaults: JSONRecord, inputs: JSONRecord,
+    iface: APIData, defaults: JSONRecord, inputs: JSONRecord,
     envs: JSONRecord): any {
   const mergedInputs = Object.assign({}, defaults, inputs);
 

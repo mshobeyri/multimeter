@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as yaml from 'yaml';
 
-import {APIData, InterfaceData} from '../mmtview/src/api/APIData';
+import {APIData} from '../mmtview/src/api/APIData';
 
 // Helper to extract key-value pairs from Postman format and convert to object
 function extractKeyValue(arr: any[] = []): Record<string, string> {
@@ -71,38 +71,29 @@ export function postmanToAPI(postmanJson: any): APIData[] {
       type: 'api',
       title: req.name || request.url?.raw || '',
       description: req.description || undefined,
-      interfaces: [{
-        name: req.name || request.url?.raw || '',
-        protocol: protocol as 'http' | 'ws',
-        format: format as 'json' | 'xml' | 'text',
-        url,
-        method: request.method?.toLowerCase() as 'get' | 'post' | 'put' |
-            'patch' | 'delete' | 'head' | 'options' | 'trace',
-        headers,
-        query,
-        body,
-      } as InterfaceData],
+      protocol: protocol as 'http' | 'ws',
+      format: format as 'json' | 'xml' | 'text',
+      url,
+      method: request.method?.toLowerCase() as 'get' | 'post' | 'put' |
+          'patch' | 'delete' | 'head' | 'options' | 'trace',
+      headers,
+      query,
+      body,
     };
 
     // Remove undefined fields to keep the YAML clean
     if (!apiData.description) {
       delete apiData.description;
     }
-
-    if (Array.isArray(apiData.interfaces) && apiData.interfaces[0]) {
-      if (!apiData.interfaces[0].headers ||
-          Object.keys(apiData.interfaces[0].headers).length === 0) {
-        delete apiData.interfaces[0].headers;
-      }
-      if (!apiData.interfaces[0].cookies ||
-          Object.keys(apiData.interfaces[0].cookies).length === 0) {
-        delete apiData.interfaces[0].cookies;
-      }
-      if (!apiData.interfaces[0].body) {
-        delete apiData.interfaces[0].body;
-      }
+    if (!apiData.headers || Object.keys(apiData.headers).length === 0) {
+      delete apiData.headers;
     }
-
+    if (!apiData.cookies || Object.keys(apiData.cookies).length === 0) {
+      delete apiData.cookies;
+    }
+    if (!apiData.body) {
+      delete apiData.body;
+    }
     return apiData;
   });
 }
@@ -114,21 +105,24 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
 
   const apis: APIData[] = [];
   const baseUrl = openApiSpec.servers?.[0]?.url || '';
-  
+
   // Iterate through all paths
-  Object.entries(openApiSpec.paths).forEach(([path, pathItem]: [string, any]) => {
+  Object.entries(openApiSpec.paths).forEach(([path,
+                                              pathItem]: [string, any]) => {
     // Iterate through all HTTP methods for this path
     Object.entries(pathItem).forEach(([method, operation]: [string, any]) => {
-      if (!['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace'].includes(method)) {
-        return; // Skip non-HTTP methods
+      if (!['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
+               .includes(method)) {
+        return;  // Skip non-HTTP methods
       }
 
-      const title = operation.summary || operation.operationId || `${method.toUpperCase()} ${path}`;
-      
+      const title = operation.summary || operation.operationId ||
+          `${method.toUpperCase()} ${path}`;
+
       // Build headers from parameters
       const headers: Record<string, string> = {};
       const query: Record<string, string> = {};
-      
+
       if (operation.parameters) {
         operation.parameters.forEach((param: any) => {
           if (param.in === 'header') {
@@ -140,48 +134,52 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
       }
 
       // Handle request body
-      let body: string | object | undefined;
-      let format: 'json' | 'xml' | 'text' = 'json';
-      
+      let body: string|object|undefined;
+      let format: 'json'|'xml'|'text' = 'json';
+
       if (operation.requestBody?.content) {
         const contentTypes = Object.keys(operation.requestBody.content);
         const firstContentType = contentTypes[0];
-        
+
         if (firstContentType) {
           if (firstContentType.includes('xml')) {
             format = 'xml';
           } else if (firstContentType.includes('text')) {
             format = 'text';
           }
-          
+
           headers['Content-Type'] = firstContentType;
-          
+
           const contentSpec = operation.requestBody.content[firstContentType];
-          
+
           // Check for example at content level first (common for XML)
           if (contentSpec?.example) {
             body = contentSpec.example;
           }
           // Then check for example at schema level
           else if (contentSpec?.schema?.example) {
-            body = typeof contentSpec.schema.example === 'string' 
-              ? contentSpec.schema.example 
-              : JSON.stringify(contentSpec.schema.example, null, 2);
+            body = typeof contentSpec.schema.example === 'string' ?
+                contentSpec.schema.example :
+                JSON.stringify(contentSpec.schema.example, null, 2);
           }
           // Generate example from schema properties
           else if (contentSpec?.schema?.properties) {
             const example: any = {};
-            Object.entries(contentSpec.schema.properties).forEach(([propName, propSchema]: [string, any]) => {
-              example[propName] = propSchema.example || propSchema.default || 
-                (propSchema.type === 'string' ? 'string' : 
-                 propSchema.type === 'number' ? 0 : 
-                 propSchema.type === 'boolean' ? false : null);
-            });
-            body = format === 'xml' ? JSON.stringify(example, null, 2) : JSON.stringify(example, null, 2);
+            Object.entries(contentSpec.schema.properties)
+                .forEach(([propName, propSchema]: [string, any]) => {
+                  example[propName] = propSchema.example ||
+                      propSchema.default ||
+                      (propSchema.type === 'string'      ? 'string' :
+                           propSchema.type === 'number'  ? 0 :
+                           propSchema.type === 'boolean' ? false :
+                                                           null);
+                });
+            body = format === 'xml' ? JSON.stringify(example, null, 2) :
+                                      JSON.stringify(example, null, 2);
           }
           // For XML with string schema type, try to create a basic structure
           else if (format === 'xml' && contentSpec?.schema?.type === 'string') {
-            body = '<root></root>'; // Fallback XML structure
+            body = '<root></root>';  // Fallback XML structure
           }
         }
       }
@@ -191,28 +189,28 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
       if (operation.parameters) {
         operation.parameters.forEach((param: any) => {
           if (param.in === 'path') {
-            const example = param.example || param.schema?.example || `{${param.name}}`;
-            processedPath = processedPath.replace(`{${param.name}}`, String(example));
+            const example =
+                param.example || param.schema?.example || `{${param.name}}`;
+            processedPath =
+                processedPath.replace(`{${param.name}}`, String(example));
           }
         });
       }
-      
+
       const fullUrl = baseUrl + processedPath;
 
       const apiData: APIData = {
         type: 'api',
         title,
         description: operation.description,
-        interfaces: [{
-          name: title,
-          protocol: 'http' as const,
-          format,
-          url: fullUrl,
-          method: method as 'get' | 'post' | 'put' | 'patch' | 'delete' | 'head' | 'options' | 'trace',
-          headers: Object.keys(headers).length > 0 ? headers : undefined,
-          query: Object.keys(query).length > 0 ? query : undefined,
-          body,
-        }] as InterfaceData[],
+        protocol: 'http' as const,
+        format,
+        url: fullUrl,
+        method: method as 'get' | 'post' | 'put' | 'patch' | 'delete' | 'head' |
+            'options' | 'trace',
+        headers: Object.keys(headers).length > 0 ? headers : undefined,
+        query: Object.keys(query).length > 0 ? query : undefined,
+        body
       };
 
       // Clean up undefined fields
@@ -220,16 +218,14 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
         delete apiData.description;
       }
 
-      if (apiData.interfaces && apiData.interfaces[0]) {
-        if (!apiData.interfaces[0].headers || Object.keys(apiData.interfaces[0].headers).length === 0) {
-          delete apiData.interfaces[0].headers;
-        }
-        if (!apiData.interfaces[0].query || Object.keys(apiData.interfaces[0].query).length === 0) {
-          delete apiData.interfaces[0].query;
-        }
-        if (!apiData.interfaces[0].body) {
-          delete apiData.interfaces[0].body;
-        }
+      if (!apiData.headers || Object.keys(apiData.headers).length === 0) {
+        delete apiData.headers;
+      }
+      if (!apiData.query || Object.keys(apiData.query).length === 0) {
+        delete apiData.query;
+      }
+      if (!apiData.body) {
+        delete apiData.body;
       }
 
       apis.push(apiData);
@@ -313,14 +309,12 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
           }
 
           const files = apis.map(api => {
-            const safeName = (api.title || 'api').replace(/[\\/:*?"<>|]+/g, '_');
+            const safeName =
+                (api.title || 'api').replace(/[\\/:*?"<>|]+/g, '_');
             return {
               name: safeName + '.mmt',
-              content: yaml.stringify(api, {
-                indent: 2,
-                lineWidth: 0,
-                minContentWidth: 0
-              })
+              content: yaml.stringify(
+                  api, {indent: 2, lineWidth: 0, minContentWidth: 0})
             };
           });
 
@@ -329,7 +323,10 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
           webviewView.webview.postMessage({
             type: 'fileList',
             files: [],
-            error: 'Error: ' + (typeof e === 'object' && e && 'message' in e ? (e as any).message : String(e))
+            error: 'Error: ' +
+                (typeof e === 'object' && e && 'message' in e ?
+                     (e as any).message :
+                     String(e))
           });
         }
       } else if (msg.type === 'openFile') {
@@ -354,7 +351,9 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
     });
   }
 
-  getHtml(postmanIconUri: string, openApiIconUri: string, multimeterIconUri: string) {
+  getHtml(
+      postmanIconUri: string, openApiIconUri: string,
+      multimeterIconUri: string) {
     const htmlPath =
         path.join(this.context.extensionPath, 'src', 'convertor.html');
     let html = fs.readFileSync(htmlPath, 'utf8');

@@ -1,18 +1,5 @@
 import {Format, JSONRecord, Method, MMTFile, Protocol} from '../CommonData'
 
-export interface InterfaceData {
-  name: string;
-  protocol: Protocol;
-  format: Format;
-  url: string;
-  method?: Method;
-  headers?: Record<string, string>;
-  body?: string|object;
-  query?: Record<string, string>;
-  cookies?: Record<string, string>;
-  outputs?: JSONRecord;
-}
-
 export interface ExampleData {
   name?: string;
   description?: string;
@@ -27,7 +14,14 @@ export interface APIData extends MMTFile {
   inputs?: JSONRecord;
   outputs?: Record<string, string>;
   setenv?: JSONRecord;
-  interfaces?: Array<InterfaceData>;
+  protocol: Protocol;
+  format: Format;
+  url: string;
+  method?: Method;
+  headers?: Record<string, string>;
+  body?: string|object;
+  query?: Record<string, string>;
+  cookies?: Record<string, string>;
   examples?: Array<ExampleData>;
 }
 
