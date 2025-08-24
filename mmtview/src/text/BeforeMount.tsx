@@ -1,5 +1,3 @@
-
-    
 import { validateYamlContent } from './Validate';
 import { KeySuggestionsByParent } from './AutoComplete';
 
@@ -26,7 +24,6 @@ export const handleBeforeMount = (monaco: any) => {
                 const valueStartColumn = colonPosition + 2;
 
                 if (position.column >= valueStartColumn) {
-                    // Use the key as parent context
                     if (key in keySuggestionsByParent) {
                         return {
                             suggestions: keySuggestionsByParent[key].map(item => ({
@@ -47,7 +44,7 @@ export const handleBeforeMount = (monaco: any) => {
             }
 
             // Check if we're in a list item context (after "- key: ")
-            const listItemMatch = lineContent.match(/^(\s*)-\s+(\w+):\s*(.*)$/);
+            const listItemMatch = lineContent.match(/^(\s*):\s*(.*)$/);
             if (listItemMatch) {
                 const indentation = listItemMatch[1];
                 const key = listItemMatch[2];

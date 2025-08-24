@@ -1,4 +1,19 @@
+import { loadEnvVariables } from '../workspaceStorage';
+import { JSONValue } from '../CommonData';
+
 export const KeySuggestionsByParent = (monaco: any) => {
+    const envVariablesSuggestions: any[] = [];
+
+    loadEnvVariables((variables: { name: string; label: string; value: JSONValue }[]) => {
+        envVariablesSuggestions.push(...variables.map(envVar => ({
+            label: envVar.name,
+            kind: monaco.languages.CompletionItemKind.Variable,
+            insertText: ' <<e:' + envVar.name + '>>',
+            documentation: envVar.label || `Environment variable: ${envVar.name}`,
+            detail: `Value: ${envVar.value || 'undefined'}`,
+            sortText: `0_${envVar.name}`
+        })));
+    });
 
     const rootSuggestions = [
         {
@@ -316,6 +331,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         method: methodSuggestions,
         format: formatSuggestion,
         outputs: outputsSuggestions,
+        url: envVariablesSuggestions
     };
 
     return keySuggestionsByParent;
