@@ -1,31 +1,12 @@
 type: api
 title: generate session
+description: returns session information.
 tags:
   - smoke
   - authentication
-description: returns session information.
-inputs:
-  - username: string
-  - password: string
-  - traceId: string
-outputs:
-  - session: string
-  - errorcode: number
-interfaces:
-  - name: http-xml
-    protocol: http
-    format: json
-    method: post
-    url: https://httpbin.org/s
-    headers:
-      traceId: i:traceId
-      content-type: application/xml
-    body:
-      username: i:username
-      password: i:password
 examples:
   - name: simple login
     description: simple login with a sample user
     inputs:
-      - username: mehrdad
-      - password: 123456
+      username: mehrdad
+      password: 123456

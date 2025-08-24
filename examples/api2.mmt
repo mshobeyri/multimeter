@@ -1,69 +1,26 @@
 type: api
 title: generate session
-tags: []
 description: returns session information.
-import:
-  - p: _parameters.mmt
-inputs:
-  - username: string
-  - password: string
-  - url: string
-  - traceId: string
 outputs:
-  - session: string
-  - errorcode: number
-interfaces:
-  - name: ws-json
-    protocol: ws
-    format: json
-    url: i:url
-    body:
-      username: i:username
-      password: i:password
-    outputs:
-      session:
-        json: body.session
-      errors: body.errors[0]
-    query: {}
-  - name: http-xml
-    protocol: http
-    format: xml
-    method: post
-    url: https://httpbin.org/s
-    headers:
-      traceId: i:traceId
-      content-type: application/xml
-      url: i:url
-    body:
-      soapenv:Envlope:
-        soapenv:Headers: null
-        soapenv:Body:
-          sesstion:
-            username: i:username
-            password: i:password
-    outputs:
-      session:
-        regex: body, /<session>(.*)<\\/session>/
-      errors: body.errors[]
-    query:
-      url: i:url
+  session: regex body, /<session>(.*)<\\/session>/
+  errors: body.errors[]
 examples:
   - name: example1
     description: mehrdad
     inputs:
-      - username: mehrdad
-      - password: 123
-      - url: www.sss.con
+      username: mehrdad
+      password: 123
+      url: www.sss.con
   - name: milad cred
     inputs:
-      - username: milad
-      - password: 123
-      - url: ""
-      - traceId: ""
+      username: milad
+      password: 123
+      url: ""
+      traceId: ""
     description: milad credentials
   - name: example3
     inputs:
-      - username: davood
-      - password: 12312
-      - traceId: 123123
+      username: davood
+      password: 12312
+      traceId: 123123
     description: davood

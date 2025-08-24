@@ -57,44 +57,93 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "import",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "import:\n\t- ",
+            insertText: "import:\n\t",
             detail: 'Import external parameters [array of key: value]',
-            documentation: 'Import parameters from external sources or other API definitions. Allows reusing common parameters across multiple APIs.\nExample:\nimport:\n\t- baseUrl: "{{env.API_BASE_URL}}"\n\t- authToken: "{{env.AUTH_TOKEN}}"',
+            documentation: 'Import parameters from external sources or other API definitions. Allows reusing common parameters across multiple APIs.\nExample:\nimport:\n\tbaseUrl: "{{env.API_BASE_URL}}"\n\tauthToken: "{{env.AUTH_TOKEN}}"',
         },
         {
             label: "inputs",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "inputs:\n\t- ",
+            insertText: "inputs:\n\t",
             detail: 'Input parameters [array of key: value]',
-            documentation: 'Define input parameters that can be used throughout the API definition. These are variables that can be referenced in URLs, headers, and body.\nExample:\ninputs:\n\t- userId: "123"\n\t- apiKey: "{{env.API_KEY}}"',
+            documentation: 'Define input parameters that can be used throughout the API definition. These are variables that can be referenced in URLs, headers, and body.\nExample:\ninputs:\n\tuserId: "123"\n\tapiKey: "{{env.API_KEY}}"',
         },
         {
             label: "outputs",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "outputs:\n\t- ",
+            insertText: "outputs:\n\t",
             detail: 'Output parameters [array of key: value]',
-            documentation: 'Define how to extract values from API responses. These extracted values can be used in subsequent requests or stored as environment variables.\nExample:\noutputs:\n\t- userId: "$.data.user.id"\n\t- token: "$.data.access_token"',
+            documentation: 'Define how to extract values from API responses. These extracted values can be used in subsequent requests or stored as environment variables.\nExample:\noutputs:\n\tuserId: "$.data.user.id"\n\ttoken: "$.data.access_token"',
+        },
+        {
+            label: "protocol",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "protocol: ",
+            detail: 'Communication protocol [http, ws]',
+            documentation: 'The protocol used for communication. Supports HTTP for REST APIs and WebSocket for real-time communication.\nOptions:\n\t- http: Standard HTTP/HTTPS requests\n\t- ws: WebSocket connections\nExample: protocol: http',
+        },
+        {
+            label: "method",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "method: ",
+            detail: 'HTTP method [get, post, put, patch, delete, head, options, trace]',
+            documentation: 'The HTTP method for the request. Defines the type of operation to perform.\nOptions:\n\t- get: Retrieve data\n\t- post: Create new resource\n\t- put: Update entire resource\n\t- patch: Partial update\n\t- delete: Remove resource\n\t- head: Get headers only\n\t- options: Get allowed methods\n\t- trace: Debug request path\nExample: method: post',
+        },
+        {
+            label: "format",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "format: json",
+            detail: 'Data format [json, xml, text]',
+            documentation: 'The format of the request and response data. Determines how the body content is parsed and serialized.\nOptions:\n\t- json: JavaScript Object Notation\n\t- xml: Extensible Markup Language\n\t- text: Plain text format\nExample: format: json',
+        },
+        {
+            label: "url",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "url: ",
+            detail: 'Endpoint URL [string]',
+            documentation: 'The complete URL or URL template for the API endpoint. Can include variables using {{variable}} syntax.\nExample: url: "{{baseUrl}}/api/v1/users/{{userId}}"',
+        },
+        {
+            label: "headers",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "headers:\n\t",
+            detail: 'HTTP headers [object of key: value]',
+            documentation: 'Key-value pairs for HTTP headers to include in the request. Common headers include Authorization, Content-Type, Accept, etc.\nExample:\nheaders:\n  Authorization: "Bearer {{token}}"\n  Content-Type: "application/json"\n  Accept: "application/json"',
+        },
+        {
+            label: "body",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "body: ",
+            detail: 'Request body [string or object]',
+            documentation: 'The request payload/body content. Can be a string, object, or template with variables. Used primarily with POST, PUT, PATCH methods.\nExample:\nbody:\n  username: "{{username}}"\n  email: "{{email}}"\n  password: "{{password}}"',
+        },
+        {
+            label: "query",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "query:\n\t",
+            detail: 'Query parameters [object of key: value]',
+            documentation: 'URL query parameters as key-value pairs. These are appended to the URL after the ? symbol.\nExample:\nquery:\n  page: "1"\n  limit: "10"',
+        },
+        {
+            label: "cookies",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "cookies:\n\t",
+            detail: 'HTTP cookies [object of key: value]',
+            documentation: 'Cookies to include in the request as key-value pairs. These are sent in the Cookie header.\nExample:\ncookies:\n  sessionId: "{{sessionId}}"',
         },
         {
             label: "setenv",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "setenv:\n\t- ",
+            insertText: "setenv:\n\t",
             detail: 'Set environment variables [array of key: value]',
-            documentation: 'Map output values to environment variables that can be used in other APIs. Links extracted outputs to environment variable names.\nExample:\nsetenv:\n\t- USER_ID: "userId"\n\t- ACCESS_TOKEN: "token"',
-        },
-        {
-            label: "interfaces",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "interfaces:\n\t- name: interface1\n\t\tprotocol: http\n\t\tmethod: post\n\t\tformat: json\n\t\turl: localhost:8080\n\t\theaders:\n\t\t\t- agent: multimeter\n\t\tbody:\n\t\t\tsample: json\n",
-            detail: 'API interfaces [array of key: value]',
-            documentation: 'Define the actual API endpoints and their configurations. Each interface represents a specific API call with its method, URL, headers, body, and expected outputs.\nExample:\ninterfaces:\n\t- name: "get_user"\n    protocol: http\n    method: get\n    format: json\n    url: "{{baseUrl}}/users/{{userId}}"\n    headers:\n      Authorization: "Bearer {{token}}"\n    body: {}\n    outputs:\n      username: "$.data.username"',
+            documentation: 'Map output values to environment variables that can be used in other APIs. Links extracted outputs to environment variable names.\nExample:\nsetenv:\n\tUSER_ID: "userId"\n\tACCESS_TOKEN: "token"',
         },
         {
             label: "examples",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "examples:\n\t- name: example1\n\t\tinputs: \n\t\t\t- key1: value1\n\t\t\t- key2: value2\n",
+            insertText: "examples:\n\t- name: example1\n\t\tinputs: \n\t\t\tkey1: value1\n\t\t\tkey2: value2\n",
             detail: 'Usage examples [array of key: value]',
-            documentation: 'Provide concrete examples of how to use the API with specific input values. These examples can be used for testing and documentation.\nExample:\nexamples:\n\t- name: "Get Admin User"\n    inputs:\n      - userId: "admin123"\n      - apiKey: "test-key-456"',
+            documentation: 'Provide concrete examples of how to use the API with specific input values. These examples can be used for testing and documentation.\nExample:\nexamples:\n\t- name: "Get Admin User"\n\tinputs:\n\tuserId: "admin123"\n\tapiKey: "test-key-456"',
         }
     ];
     const envSuggestions = [
@@ -209,78 +258,6 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Define a TRACE API',
             documentation: 'TRACE method for diagnostic purposes. Returns the request as received by the server',
         }
-    ]
-    const interfaceSuggestions = [
-        {
-            label: "name",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "name: ",
-            detail: 'Interface name [string]',
-            documentation: 'A unique identifier for this interface/endpoint. Used to reference this specific API call within the API definition.\nExample: name: "get_user_profile"',
-        },
-        {
-            label: "protocol",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "protocol: ",
-            detail: 'Communication protocol [http, ws]',
-            documentation: 'The protocol used for communication. Supports HTTP for REST APIs and WebSocket for real-time communication.\nOptions:\n\t- http: Standard HTTP/HTTPS requests\n\t- ws: WebSocket connections\nExample: protocol: http',
-        },
-        {
-            label: "method",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "method: ",
-            detail: 'HTTP method [get, post, put, patch, delete, head, options, trace]',
-            documentation: 'The HTTP method for the request. Defines the type of operation to perform.\nOptions:\n\t- get: Retrieve data\n\t- post: Create new resource\n\t- put: Update entire resource\n\t- patch: Partial update\n\t- delete: Remove resource\n\t- head: Get headers only\n\t- options: Get allowed methods\n\t- trace: Debug request path\nExample: method: post',
-        },
-        {
-            label: "format",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "format: json",
-            detail: 'Data format [json, xml, text]',
-            documentation: 'The format of the request and response data. Determines how the body content is parsed and serialized.\nOptions:\n\t- json: JavaScript Object Notation\n\t- xml: Extensible Markup Language\n\t- text: Plain text format\nExample: format: json',
-        },
-        {
-            label: "url",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "url: ",
-            detail: 'Endpoint URL [string]',
-            documentation: 'The complete URL or URL template for the API endpoint. Can include variables using {{variable}} syntax.\nExample: url: "{{baseUrl}}/api/v1/users/{{userId}}"',
-        },
-        {
-            label: "headers",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "headers:\n\t", // Remove the "- "
-            detail: 'HTTP headers [object of key: value]',
-            documentation: 'Key-value pairs for HTTP headers to include in the request. Common headers include Authorization, Content-Type, Accept, etc.\nExample:\nheaders:\n  Authorization: "Bearer {{token}}"\n  Content-Type: "application/json"\n  Accept: "application/json"',
-        },
-        {
-            label: "body",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "body: ",
-            detail: 'Request body [string or object]',
-            documentation: 'The request payload/body content. Can be a string, object, or template with variables. Used primarily with POST, PUT, PATCH methods.\nExample:\nbody:\n  username: "{{username}}"\n  email: "{{email}}"\n  password: "{{password}}"',
-        },
-        {
-            label: "query",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "query:\n\t", // Remove the "- "
-            detail: 'Query parameters [object of key: value]',
-            documentation: 'URL query parameters as key-value pairs. These are appended to the URL after the ? symbol.\nExample:\nquery:\n  page: "1"\n  limit: "10"',
-        },
-        {
-            label: "cookies",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "cookies:\n\t", // Remove the "- "
-            detail: 'HTTP cookies [object of key: value]',
-            documentation: 'Cookies to include in the request as key-value pairs. These are sent in the Cookie header.\nExample:\ncookies:\n  sessionId: "{{sessionId}}"',
-        },
-        {
-            label: "outputs",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "outputs:\n\t- ",
-            detail: 'Response data extraction [array of key: value]',
-            documentation: 'Define how to extract specific values from the API response. Uses JSONPath expressions to extract data that can be used in other requests or stored as variables.\nExample:\noutputs:\n  userId: "body.data.user.id"\n  token: "header.access_token"\n  userName: "regex <`data>(.*)</data>"',
-        }
     ];
     const outputsSuggestions = [
         {
@@ -334,7 +311,6 @@ export const KeySuggestionsByParent = (monaco: any) => {
         api: apiSuggestions,
         env: envSuggestions,
         type: typeSuggestions,
-        interfaces: interfaceSuggestions,
         examples: exampleSuggestions,
         protocol: protocolSuggestion,
         method: methodSuggestions,
