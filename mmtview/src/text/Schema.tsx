@@ -9,14 +9,14 @@ export const GeneralSchema = {
 export const APISchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
-    required: ['type'],
+    required: ['type', 'protocol', 'format', 'url'],
     properties: {
         type: { type: 'string', enum: ['api'] },
-        title: { type: 'string'},
-        tags: { type: 'array', items: { type: 'string' }},
+        title: { type: 'string' },
+        tags: { type: 'array', items: { type: 'string' } },
         description: { type: 'string' },
-        import: { 
-            type: 'object', 
+        import: {
+            type: 'object',
             additionalProperties: { type: 'string' }
         },
         inputs: {
@@ -32,58 +32,21 @@ export const APISchema = {
             type: 'object',
             additionalProperties: { type: 'string' }
         },
-        interfaces: {
-            type: 'array',
-            items: {
-                type: 'object',
-                required: ['name', 'protocol', 'format', 'url'],
-                properties: {
-                    name: { type: 'string' },
-                    protocol: { type: 'string', enum: ['http', 'ws'] },
-                    method: {
-                        type: 'string',
-                        enum: ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
-                    },
-                    format: { type: 'string', enum: ['json', 'xml', 'text'] },
-                    url: { type: 'string' },
-                    headers: { type: 'object', additionalProperties: { type: 'string' } },
-                    query: { type: 'object', additionalProperties: { type: 'string' } },
-                    cookies: { type: 'object', additionalProperties: { type: 'string' } },
-                    body: {
-                        anyOf: [
-                            { type: 'string' },
-                            { type: 'object', additionalProperties: true }
-                        ]
-                    },
-                    outputs: {
-                        type: 'object',
-                        additionalProperties: true
-                    }
-                },
-                allOf: [
-                    {
-                        if: {
-                            properties: {
-                                protocol: { const: 'http' }
-                            }
-                        },
-                        then: {
-                            required: ['method']
-                        }
-                    },
-                    {
-                        if: {
-                            properties: {
-                                method: { enum: ['post', 'put', 'patch'] }
-                            }
-                        },
-                        then: {
-                            required: ['body']
-                        }
-                    }
-                ],
-                additionalProperties: false
-            }
+        protocol: { type: 'string', enum: ['http', 'ws'] },
+        method: {
+            type: 'string',
+            enum: ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
+        },
+        format: { type: 'string', enum: ['json', 'xml', 'text'] },
+        url: { type: 'string' },
+        headers: { type: 'object', additionalProperties: { type: 'string' } },
+        query: { type: 'object', additionalProperties: { type: 'string' } },
+        cookies: { type: 'object', additionalProperties: { type: 'string' } },
+        body: {
+            anyOf: [
+                { type: 'string' },
+                { type: 'object', additionalProperties: true }
+            ]
         },
         examples: {
             type: 'array',
@@ -109,6 +72,28 @@ export const APISchema = {
             }
         }
     },
+    allOf: [
+        {
+            if: {
+                properties: {
+                    protocol: { const: 'http' }
+                }
+            },
+            then: {
+                required: ['method']
+            }
+        },
+        {
+            if: {
+                properties: {
+                    method: { enum: ['post', 'put', 'patch'] }
+                }
+            },
+            then: {
+                required: ['body']
+            }
+        }
+    ],
     additionalProperties: false
 };
 
