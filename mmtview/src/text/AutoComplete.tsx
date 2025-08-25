@@ -7,7 +7,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
 
     loadEnvVariables((variables: { name: string; label: string; value: JSONValue }[]) => {
         envVariablesSuggestions.push(...variables.map(envVar => ({
-            label: envVar.name,
+            label: 'e:' + envVar.name,
             kind: monaco.languages.CompletionItemKind.Variable,
             insertText: ' e:' + envVar.name,
             documentation: envVar.label || `Environment variable: ${envVar.name}`,
@@ -331,8 +331,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         protocol: protocolSuggestion,
         method: methodSuggestions,
         format: formatSuggestion,
-        outputs: outputsSuggestions,
-        url: envVariablesSuggestions
+        outputs: outputsSuggestions
     };
 
     return keySuggestionsByParent;
