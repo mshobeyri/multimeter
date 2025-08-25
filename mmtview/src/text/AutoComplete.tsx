@@ -1,5 +1,6 @@
 import { loadEnvVariables } from '../workspaceStorage';
 import { JSONValue } from '../CommonData';
+import { url } from 'inspector';
 
 export const KeySuggestionsByParent = (monaco: any) => {
     const envVariablesSuggestions: any[] = [];
@@ -8,10 +9,9 @@ export const KeySuggestionsByParent = (monaco: any) => {
         envVariablesSuggestions.push(...variables.map(envVar => ({
             label: envVar.name,
             kind: monaco.languages.CompletionItemKind.Variable,
-            insertText: ' <<e:' + envVar.name + '>>',
+            insertText: ' e:' + envVar.name,
             documentation: envVar.label || `Environment variable: ${envVar.name}`,
-            detail: `Value: ${envVar.value || 'undefined'}`,
-            sortText: `0_${envVar.name}`
+            detail: `${envVar.name}: ${envVar.value || 'undefined'}`,
         })));
     });
 
@@ -323,6 +323,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
 
     const keySuggestionsByParent: Record<string, any[]> = {
         root: rootSuggestions,
+        general: envVariablesSuggestions,
         api: apiSuggestions,
         env: envSuggestions,
         type: typeSuggestions,
