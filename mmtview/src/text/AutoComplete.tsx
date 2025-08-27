@@ -73,22 +73,29 @@ export const KeySuggestionsByParent = (monaco: any) => {
             label: "import",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "import:\n\t",
-            detail: 'Import external parameters [array of key: value]',
+            detail: 'Import external parameters [object of key: value]',
             documentation: 'Import parameters from external sources or other API definitions. Allows reusing common parameters across multiple APIs.\nExample:\nimport:\n\tbaseUrl: "{{env.API_BASE_URL}}"\n\tauthToken: "{{env.AUTH_TOKEN}}"',
         },
         {
             label: "inputs",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "inputs:\n\t",
-            detail: 'Input parameters [array of key: value]',
+            detail: 'Input parameters [object of key: value]',
             documentation: 'Define input parameters that can be used throughout the API definition. These are variables that can be referenced in URLs, headers, and body.\nExample:\ninputs:\n\tuserId: "123"\n\tapiKey: "{{env.API_KEY}}"',
         },
-        {
+            {
             label: "outputs",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "outputs:\n\t",
-            detail: 'Output parameters [array of key: value]',
-            documentation: 'Define how to extract values from API responses. These extracted values can be used in subsequent requests or stored as environment variables.\nExample:\noutputs:\n\tuserId: "$.data.user.id"\n\ttoken: "$.data.access_token"',
+            detail: 'Output parameters [object of key: value]',
+            documentation: 'Define output parameters that can be used throughout the API definition. These are variables that can be extracted from headers, and body.',
+        },
+        {
+            label: "extract",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "extract:\n\t",
+            detail: 'Output parameters [object of key: value]',
+            documentation: 'Define how to extract values from API responses. These extracted values can be used in subsequent requests or stored as environment variables.\nExample:\extract:\n\tuserId: "$.data.user.id"\n\ttoken: "$.data.access_token"',
         },
         {
             label: "protocol",
@@ -150,7 +157,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             label: "setenv",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "setenv:\n\t",
-            detail: 'Set environment variables [array of key: value]',
+            detail: 'Set environment variables [object of key: value]',
             documentation: 'Map output values to environment variables that can be used in other APIs. Links extracted outputs to environment variable names.\nExample:\nsetenv:\n\tUSER_ID: "userId"\n\tACCESS_TOKEN: "token"',
         },
         {
