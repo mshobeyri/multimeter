@@ -58,7 +58,7 @@
     "mmt-api": {
       "patterns": [
         {
-          "match": "^(import|inputs|outputs|setenv|interfaces|examples)\\s*:",
+          "match": "^(import|inputs|outputs|extract|setenv|interfaces|examples)\\s*:",
           "captures": {
             "1": {
               "name": "keyword.control.mmt.api"
@@ -75,7 +75,7 @@
           "end": "^(?=\\S)",
           "patterns": [
             {
-              "match": "^\\s+(-\\s+)?(name|protocol|method|format|url|headers|body|outputs|query|cookies)\\s*:",
+              "match": "^\\s+(-\\s+)?(name|protocol|method|format|url|headers|body|outputs|extract|query|cookies)\\s*:",
               "captures": {
                 "2": {
                   "name": "entity.name.tag.mmt.interface"

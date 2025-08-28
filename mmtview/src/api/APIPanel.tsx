@@ -22,6 +22,7 @@ function yamlToAPI(yamlContent: string): APIData {
       import: doc.import,
       inputs: doc.inputs,
       outputs: doc.outputs,
+      extract: doc.extract,
       setenv: doc.setenv,
       protocol: doc.protocol || "",
       format: doc.format || "",
@@ -49,6 +50,7 @@ function apiToYaml(api: APIData): string {
   if (isNonEmptyObject(api.import)) yamlObj.import = api.import;
   if (isNonEmptyObject(api.inputs)) yamlObj.inputs = api.inputs;
   if (isNonEmptyObject(api.outputs)) yamlObj.outputs = api.outputs;
+  if (isNonEmptyObject(api.extract)) yamlObj.extract = api.extract;
   if (isNonEmptyObject(api.setenv)) yamlObj.setenv = api.setenv;
   if (api.protocol) yamlObj.protocol = api.protocol;
   if (api.format) yamlObj.format = api.format;
@@ -69,6 +71,7 @@ const defaultAPI: APIData = {
   import: {},
   inputs: {},
   outputs: {},
+  extract: {},
   setenv: {},
   protocol: "http",
   format: "json",

@@ -28,7 +28,7 @@ const handleSetEnvVariables = (
     const existing = Array.isArray(existingVars) ? existingVars : [];
     let updated = [...existing];
 
-    // Handle setenv as object instead of array
+    // Handle setenv as object mapping env var names to output names
     if (api.setenv && typeof api.setenv === 'object') {
       Object.entries(api.setenv).forEach(([envKey, outputKey]) => {
         if (envKey && outputKey) {
@@ -42,7 +42,7 @@ const handleSetEnvVariables = (
               // Add new/updated variable with output value
               updated.push({
                 name: envKey,
-                label: api.title ? `api(${api.title})` : envKey,
+                label: api.title ? `api(${api.title}) - ${outputKey}` : envKey,
                 value: String(outputValue)
               });
             }
@@ -51,7 +51,7 @@ const handleSetEnvVariables = (
             updated.push({
               name: envKey,
               label: api.title ? `api(${api.title})` : envKey,
-              value: outputKey
+              value: String(outputKey)
             });
           }
         }
@@ -92,11 +92,10 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   // Outputs state
   const [outputs, setOutputs] = useState<JSONRecord>({});
 
-  // Update outputs when response changes
+  // Update outputs when response changes using extracts
   useEffect(() => {
-    // Check if outputs exist as object instead of array
     if (
-      (!api.outputs || Object.keys(api.outputs).length === 0) || (
+      (!api.extract || Object.keys(api.extract).length === 0) || (
         (!network.responseBody || network.responseBody == "") &&
         (!network.responseHeaders || Object.keys(network.responseHeaders).length === 0) &&
         (!network.responseCookies || Object.keys(network.responseCookies).length === 0))
@@ -104,31 +103,25 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
       return;
     }
 
-    // Handle interface outputs as object instead of array
-    const ifaceOutputsDef = api.outputs || {};
+    // api.extract contains the extraction rules (key = output name, value = regex/path)
+    const extractRules = api.extract || {};
+    const outputNames = Object.keys(extractRules);
 
-    // Get all API output keys - now it's an object
-    const apiOutputsDef = api.outputs || {};
-    const apiOutputKeys = Object.keys(apiOutputsDef);
-
-    // Extract outputs for interface-defined keys only
-    const ifaceOutputsExtracted = extractOutputs({
+    const extractedValues = extractOutputs({
       type: network.responseHeaders?.["Content-Type"] ||
         network.responseHeaders?.["content-type"]?.includes("xml") ||
         (network.responseBody && network.responseBody.startsWith && network.responseBody.startsWith("<")) ? "xml" : "json",
       body: network.responseBody,
       headers: network.responseHeaders || {},
       cookies: network.responseCookies || {}
-    }, ifaceOutputsDef);
+    }, extractRules);
 
-    // Create final outputs with all API keys, filled with interface values where available
     const finalOutputs: JSONRecord = {};
-
-    apiOutputKeys.forEach(key => {
-      if (key in ifaceOutputsExtracted) {
-        finalOutputs[key] = ifaceOutputsExtracted[key];
+    outputNames.forEach(outputName => {
+      if (outputName in extractedValues) {
+        finalOutputs[outputName] = extractedValues[outputName];
       } else {
-        finalOutputs[key] = ""; // Empty value for keys not defined in interface
+        finalOutputs[outputName] = "";
       }
     });
 
@@ -136,7 +129,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
 
     // Handle setenv - set environment variables based on API configuration
     handleSetEnvVariables(api, finalOutputs);
-  }, [network.responseBody, network.responseHeaders, network.responseCookies, api.outputs, api.setenv]);
+  }, [network.responseBody, network.responseHeaders, network.responseCookies, api.outputs, api.extract, api.setenv]);
 
   // Only call onChange if url value actually changed
   const handleUrlChange = useCallback(

@@ -25,7 +25,10 @@ export const APISchema = {
         },
         outputs: {
             type: 'object',
-            description: 'Output parameters as key-value pairs',
+            additionalProperties: { type: 'string' }
+        },
+        extract: {
+            type: 'object',
             additionalProperties: { type: 'string' }
         },
         setenv: {
@@ -102,10 +105,9 @@ export const EnvSchema = {
     type: 'object',
     required: ['type'],
     properties: {
-        type: { type: 'string', enum: ['env'], description: 'To define an environment schema' },
+        type: { type: 'string', enum: ['env']},
         variables: {
             type: 'object',
-            description: 'Environment variables definition',
             additionalProperties: {
                 anyOf: [
                     { type: 'string' },
@@ -126,12 +128,10 @@ export const EnvSchema = {
         },
         presets: {
             type: 'object',
-            description: 'Environment presets configuration',
             additionalProperties: {
                 type: 'object',
                 additionalProperties: {
                     type: 'object',
-                    description: 'Environment configuration referencing variables section keys',
                     additionalProperties: {
                         anyOf: [
                             { type: 'string' },

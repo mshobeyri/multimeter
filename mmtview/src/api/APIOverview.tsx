@@ -22,12 +22,12 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
       <div className="label">title</div>
 
       <div style={{ width: "100%", padding: "5px" }}>
-      <input
-        style={{ width: "100%" }}
-        value={api.title || ""}
-        onChange={e => update({ title: e.target.value })}
-        placeholder="title"
-      />
+        <input
+          style={{ width: "100%" }}
+          value={api.title || ""}
+          onChange={e => update({ title: e.target.value })}
+          placeholder="title"
+        />
       </div>
 
       <div className="label">tags</div>
@@ -71,6 +71,16 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         value={api.outputs}
         onChange={kv => {
           update({ outputs: kv });
+        }}
+        keyPlaceholder="name"
+        valuePlaceholder="value"
+        options={jsonTypes}
+      />
+      <KVEditor
+        label="extract"
+        value={api.extract}
+        onChange={kv => {
+          update({ extract: kv });
         }}
         keyPlaceholder="name"
         valuePlaceholder="value"
