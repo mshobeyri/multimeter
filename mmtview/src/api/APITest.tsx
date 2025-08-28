@@ -23,6 +23,9 @@ const handleSetEnvVariables = (
   api: APIData,
   finalOutputs: JSONRecord
 ) => {
+  if (!api.setenv || typeof api.setenv !== 'object' || Object.keys(api.setenv).length === 0) {
+    return;
+  }
   // Load existing environment variables
   const cleanup = loadEnvVariables((existingVars) => {
     const existing = Array.isArray(existingVars) ? existingVars : [];
@@ -69,7 +72,6 @@ const handleSetEnvVariables = (
 };
 
 const APITest: React.FC<APITestProps> = ({ api }) => {
-  // Add safety checks for arrays
   const examples = safeList(api.examples);
 
   const [body, setBody] = useState<string>("");
@@ -126,8 +128,6 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     });
 
     setOutputs(finalOutputs);
-
-    // Handle setenv - set environment variables based on API configuration
     handleSetEnvVariables(api, finalOutputs);
   }, [network.responseBody, network.responseHeaders, network.responseCookies, api.outputs, api.extract, api.setenv]);
 
