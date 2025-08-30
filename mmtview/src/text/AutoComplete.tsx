@@ -83,7 +83,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Input parameters [object of key: value]',
             documentation: 'Define input parameters that can be used throughout the API definition. These are variables that can be referenced in URLs, headers, and body.\nExample:\ninputs:\n\tuserId: "123"\n\tapiKey: "{{env.API_KEY}}"',
         },
-            {
+        {
             label: "outputs",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "outputs:\n\t",

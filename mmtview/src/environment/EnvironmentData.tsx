@@ -1,3 +1,6 @@
+
+import { JSONValue } from "../CommonData";
+
 export type EnvironmentData = {
   type: string;
   variables: {
@@ -11,3 +14,15 @@ export type EnvironmentData = {
     };
   };
 };
+
+export interface EnvOption {
+  label: string;
+  value: JSONValue;
+}
+
+export interface EnvVariable {
+  name: string;
+  label: string;
+  value: JSONValue;
+  options: EnvOption[];
+}

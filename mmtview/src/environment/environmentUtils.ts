@@ -1,4 +1,5 @@
 import {JSONValue} from '../CommonData';
+import {EnvVariable} from './EnvironmentData';
 import {loadEnvVariables, saveEnvVariablesFromObject} from '../workspaceStorage';
 
 /**
@@ -7,8 +8,7 @@ import {loadEnvVariables, saveEnvVariablesFromObject} from '../workspaceStorage'
  * @returns Cleanup function to unsubscribe from updates
  */
 export const readEnvironmentVariables =
-    (callback: (vars: {name: string; label: string; value: JSONValue}[]|
-                undefined|null) => void): (() => void) => {
+    (callback: (vars: EnvVariable[]|undefined|null) => void): (() => void) => {
       return loadEnvVariables(callback);
     };
 
@@ -17,7 +17,7 @@ export const readEnvironmentVariables =
  * @param variables Array of environment variables to save
  */
 export const writeEnvironmentVariables =
-    (variables: {name: string; label: string; value: JSONValue}[]): void => {
+    (variables: EnvVariable[]): void => {
       saveEnvVariablesFromObject(variables);
     };
 
@@ -35,7 +35,7 @@ export const setEnvironmentVariable =
 
         // Update or add the new variable
         const updated = existing.filter(v => v.name !== name);
-        updated.push({name, label: label || name, value});
+        updated.push({name, label: label || name, value, options: []});
 
         // Save back to storage
         saveEnvVariablesFromObject(updated);

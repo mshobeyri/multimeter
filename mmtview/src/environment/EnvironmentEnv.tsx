@@ -1,11 +1,11 @@
 import React from "react";
 import ComboTable, { ComboTablePair } from "../components/ComboTable";
-import { JSONValue } from "../CommonData";
+import { EnvVariable } from "./EnvironmentData";
 
 interface EnvironmentEnvProps {
     variables: ComboTablePair[];
     presets: ComboTablePair[];
-    handleVariablesChange: (name: string, label: string, value: JSONValue) => void;
+    handleVariablesChange: (variable: EnvVariable) => void;
     handlePresetsChange: (presetName: string, envName: string) => void;
     onClearCache?: () => void;
     onSaveToCache?: () => void;
@@ -44,7 +44,18 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                         )}
                     </div>
                 </div>
-                <ComboTable pairs={variables} onChange={handleVariablesChange} />
+                <ComboTable
+                    pairs={variables}
+                    onChange={(name, label, value) => {
+                        const variable = variables.find(v => v.name === name);
+                        handleVariablesChange({
+                            name,
+                            label,
+                            value,
+                            options: variable?.options ?? [],
+                        });
+                    }}
+                />
             </div>
 
             <div className="inner-box">

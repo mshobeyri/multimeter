@@ -7,6 +7,7 @@ import { readEnvironmentVariables, writeEnvironmentVariables, clearEnvironmentVa
 import { ComboTablePair } from "../components/ComboTable";
 import { isList, safeList } from "../safer";
 import { JSONValue } from "../CommonData";
+import { EnvVariable } from "./EnvironmentData";
 
 const LAST_ENV_TAB_KEY = "mmtview:env:lastTab";
 
@@ -25,8 +26,8 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   const [variables, setVariables] = useState<ComboTablePair[]>([]);
   const [presets, setPresets] = useState<ComboTablePair[]>([]);
   const [presetData, setPresetData] = useState<any>({});
-  const [workspaceVars, setWorkspaceVars] = useState<{ name: string; label: string; value: JSONValue }[]>([]);
-  const loadedVarsRef = React.useRef<{ name: string; value: JSONValue }[]>([]);
+  const [workspaceVars, setWorkspaceVars] = useState<EnvVariable[]>([]);
+  const loadedVarsRef = React.useRef<{ name: string; value: JSONValue, options: JSONValue[] }[]>([]);
 
   // Save tab selection to localStorage whenever it changes
   useEffect(() => {
@@ -96,7 +97,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         ? loadedVarsRef.current.find((v: any) => v.name === name)
         : undefined;
       if (isList(value)) {
-        const options = value.map((v: string) => ({ label: String(v), value: String(v) }));
+        const options = value.map((v: string) => ({ label: String(v), value: String(v), options: [] }));
         const selected = found
           ? options.find(opt => opt.value === found.value) || options[0]
           : options[0];
@@ -145,25 +146,25 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   }, [content]);
 
   // Handler for variables
-  const handleVariablesChange = (name: string, label: string, value: JSONValue) => {
+  const handleVariablesChange = (variable: EnvVariable) => {
     setVariables(prev => {
       const updated = safeList(prev).map(pair => {
-        if (pair.name === name) {
+        if (pair.name === variable.name) {
           // Find the correct ComboTableOption from options
           const selectedOption = pair.options.find(
-            (opt: { label: string; value: JSONValue }) => opt.value === value || opt.label === label
+            (opt: { label: string; value: JSONValue }) => opt.value === variable.value || opt.label === variable.label
           ) || pair.options[0];
-          return { ...pair, value: selectedOption };
+          return { ...pair, value: selectedOption, options: pair.options };
         }
         return pair;
       });
-      // Save all variables at once, each as { name, label, value }
-      const flatVars: { name: string; label: string; value: JSONValue }[] = [];
+      const flatVars: EnvVariable[] = [];
       updated.forEach(pair => {
         flatVars.push({
           name: pair.name,
           label: pair.value.label,
-          value: pair.value.value
+          value: pair.value.value,
+          options: pair.options
         });
       });
 
@@ -171,6 +172,9 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
       return updated;
     });
   };
+
+  // Handler for presets: when a preset env is selected, update all variables accordingly
+  // (removed duplicate declaration)
 
   // Handler for presets: when a preset env is selected, update all variables accordingly
   const handlePresetsChange = (presetName: string, envName: string) => {
@@ -192,18 +196,21 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
               safeList(pair.options).find(
                 opt => opt.value === String(envVars[pair.name]) || opt.label === String(envVars[pair.name])
               ) || pair.options[0];
-            return { ...pair, value: selected };
+            return { ...pair, value: selected, options: pair.options };
           }
           return pair;
         });
 
         // Save all variables at once, with correct label and value
-        const flatVars: { name: string; label: string; value: JSONValue }[] = [];
+        const flatVars: EnvVariable[] = [];
         updated.forEach(pair => {
           flatVars.push({
             name: pair.name,
             label: pair.value.label,
-            value: pair.value.value
+            value: pair.value.value,
+            options: Array.isArray(pair.options)
+              ? pair.options.filter((opt: any): opt is { label: string; value: string } => !!opt && typeof opt === "object" && "label" in opt && "value" in opt)
+              : []
           });
         });
         writeEnvironmentVariables(flatVars);
@@ -219,8 +226,8 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
       loadedVarsRef.current = isList(loaded)
         ? loaded.map(v => ({
           name: v.name,
-          label: v.label || v.name,
-          value: v.value
+          value: v.value,
+          options: Array.isArray(v.options) ? v.options.map(opt => typeof opt === "object" && "value" in opt ? opt.value : opt) : []
         }))
         : [];
       setVariables(vars =>
@@ -253,7 +260,8 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
             loaded.map(v => ({
               name: v.name,
               label: v.label || v.name, // Use label if available, fallback to name
-              value: v.value
+              value: v.value,
+              options: v.options || []
             }))
           );
         } else {
@@ -278,12 +286,15 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   };
 
   const handleSaveToCache = () => {
-    const flatVars: { name: string; label: string; value: JSONValue }[] = [];
+    const flatVars: EnvVariable[] = [];
     variables.forEach(pair => {
       flatVars.push({
         name: pair.name,
         label: pair.value.label,
-        value: pair.value.value
+        value: pair.value.value,
+        options: Array.isArray(pair.options)
+          ? pair.options.filter((opt): opt is { label: string; value: string } => !!opt && typeof opt === "object" && "label" in opt && "value" in opt)
+          : []
       });
     });
     writeEnvironmentVariables(flatVars);

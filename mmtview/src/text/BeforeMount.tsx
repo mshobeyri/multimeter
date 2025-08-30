@@ -5,7 +5,7 @@ import { JSONValue } from '../CommonData';
 
 export const handleBeforeMount = (monaco: any) => {
     const keySuggestionsByParent = KeySuggestionsByParent(monaco);
-    
+
     // Store loaded environment variables
     let envVariables: { name: string; label: string; value: JSONValue }[] = [];
 
@@ -86,12 +86,12 @@ export const handleBeforeMount = (monaco: any) => {
         if (key === 'key' || key === 'name' || key === 'variable' || key === 'env') {
             suggestions.push(...getEnvironmentVariableSuggestions());
         }
-        
+
         // Specific key suggestions
         if (key in keySuggestionsByParent) {
             suggestions.push(...keySuggestionsByParent[key]);
         }
-        
+
         // If no specific suggestions found, add general suggestions
         if (suggestions.length === 0) {
             suggestions.push(...(keySuggestionsByParent.general || []));
@@ -171,7 +171,7 @@ export const handleBeforeMount = (monaco: any) => {
             const currentIndent = lineContent.search(/\S|$/);
             const firstLine = model.getLineContent(1).trim();
             const parent = getParentContext(lines, currentIndent, firstLine);
-            
+
             // Get parent-specific suggestions and deduplicate
             const parentSuggestions = keySuggestionsByParent[parent] || [];
             const baseSuggestions = deduplicateSuggestions(parentSuggestions);

@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import { JSONValue } from "../CommonData";
+import { EnvVariable } from "./EnvironmentData";
 
-export type EnvironmentViewVar = { name: string; label: string; value: JSONValue};
 
 interface EnvironmentViewProps {
-  vars: EnvironmentViewVar[];
+  vars: EnvVariable[];
   onClearCache?: () => void;
 }
 
@@ -12,8 +11,8 @@ const EnvironmentView: React.FC<EnvironmentViewProps> = ({
   vars,
   onClearCache
 }) => {
-  const [localVars, setLocalVars] = useState<EnvironmentViewVar[]>(vars);
-  
+  const [localVars, setLocalVars] = useState<EnvVariable[]>(vars);
+
   // Update local vars when props change
   React.useEffect(() => {
     setLocalVars(vars);
@@ -24,7 +23,7 @@ const EnvironmentView: React.FC<EnvironmentViewProps> = ({
   const handleClearCache = () => {
     // Clear local display immediately
     setLocalVars([]);
-    
+
     // Call parent handler
     if (onClearCache) {
       onClearCache();
@@ -78,8 +77,8 @@ const EnvironmentView: React.FC<EnvironmentViewProps> = ({
         </div>
       </div>
 
-      <div style={{ 
-        width: "100%", 
+      <div style={{
+        width: "100%",
         overflowX: "auto", // Allow horizontal scrolling if absolutely necessary
         overflowY: "visible"
       }}>
