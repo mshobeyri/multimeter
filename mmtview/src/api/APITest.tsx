@@ -10,65 +10,48 @@ import { replaceAllRefs } from "../variableReplacer";
 import UrlInput from "../components/UrlInput";
 import { extractOutputs } from "./outputExtractor";
 import ViewSelector, { ViewMode } from "../components/ViewSelector";
-import { saveEnvVariablesFromObject, loadEnvVariables } from "../workspaceStorage";
+import { loadEnvVariables } from "../workspaceStorage";
 import { safeList } from "../safer";
 import { JSONRecord } from "../CommonData";
+import { setEnvironmentVariable, getEnvironmentVariable } from "../environment/environmentUtils";
 
 interface APITestProps {
   api: APIData;
 }
 
 // Function to handle setting environment variables from API setenv configuration
-const handleSetEnvVariables = (
+const handleSetEnvVariables = async (
   api: APIData,
   finalOutputs: JSONRecord
 ) => {
   if (!api.setenv || typeof api.setenv !== 'object' || Object.keys(api.setenv).length === 0) {
     return;
   }
-  // Load existing environment variables
-  const cleanup = loadEnvVariables((existingVars) => {
-    const existing = Array.isArray(existingVars) ? existingVars : [];
-    let updated = [...existing];
+  await Promise.all(
+    Object.entries(api.setenv).map(async ([envKey, outputKey]) => {
+      if (envKey && outputKey) {
+        let value = "";
+        let label = api.title ? `api(${api.title}) - ${outputKey}` : envKey;
 
-    // Handle setenv as object mapping env var names to output names
-    if (api.setenv && typeof api.setenv === 'object') {
-      Object.entries(api.setenv).forEach(([envKey, outputKey]) => {
-        if (envKey && outputKey) {
-          // Remove existing variable with same name first
-          updated = updated.filter(v => v.name !== envKey);
-
-          // Check if the value refers to an output
-          if (finalOutputs.hasOwnProperty(String(outputKey))) {
-            const outputValue = finalOutputs[String(outputKey)];
-            if (outputValue !== "" && outputValue != null) {
-              // Add new/updated variable with output value
-              updated.push({
-                name: envKey,
-                label: api.title ? `api(${api.title}) - ${outputKey}` : envKey,
-                value: String(outputValue)
-              });
-            }
-          } else {
-            // Direct value assignment (not from outputs)
-            updated.push({
-              name: envKey,
-              label: api.title ? `api(${api.title})` : envKey,
-              value: String(outputKey)
-            });
+        if (finalOutputs.hasOwnProperty(String(outputKey))) {
+          const outputValue = finalOutputs[String(outputKey)];
+          if (outputValue !== "" && outputValue != null) {
+            value = String(outputValue);
           }
+        } else {
+          // Direct value assignment (not from outputs)
+          value = String(outputKey);
+          label = api.title ? `api(${api.title})` : envKey;
         }
-      });
-    }
 
-    // Only save if there were changes
-    if (updated.length !== existing.length ||
-      JSON.stringify(updated) !== JSON.stringify(existing)) {
-      saveEnvVariablesFromObject(updated);
-    }
-
-    cleanup(); // Clean up the subscription
-  });
+        // Optionally, avoid unnecessary writes:
+        const currentValue = await getEnvironmentVariable(envKey);
+        if (currentValue !== value) {
+          setEnvironmentVariable(envKey, value, label);
+        }
+      }
+    })
+  );
 };
 
 const APITest: React.FC<APITestProps> = ({ api }) => {
@@ -105,7 +88,6 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
       return;
     }
 
-    // api.extract contains the extraction rules (key = output name, value = regex/path)
     const extractRules = api.extract || {};
     const outputNames = Object.keys(extractRules);
 
@@ -144,7 +126,6 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   // Only call onChange if query value actually changed
   const handleQueryChange = useCallback(
     (query: Record<string, string>) => {
-      // Compare stringified versions for shallow equality
       const prev = JSON.stringify(req.query || {});
       const next = JSON.stringify(query || {});
       if (prev !== next) {
@@ -159,7 +140,15 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
 
   useEffect(() => {
     const selectedExample = examples[selectedExampleIdx] || {};
-    loadEnvVariables(envVars => {
+
+    (async () => {
+      const envVars = await new Promise(resolve => {
+        const cleanup = loadEnvVariables(vars => {
+          cleanup();
+          resolve(vars);
+        });
+      });
+
       const envParameters: JSONRecord = safeList(envVars).reduce((acc, envVar) => {
         acc[envVar.name] = envVar.value;
         return acc;
@@ -174,11 +163,18 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
 
       rface.body = formatBody(rface.format || "json", rface.body || "");
 
-      setBody(rface.body || "");
-      network.setRequestData(rface);
-    });
+      // Only update body if it actually changed to avoid feedback loop
+      setBody(prevBody => {
+        if (prevBody !== (rface.body || "")) {
+          return rface.body || "";
+        }
+        return prevBody;
+      });
 
+      network.setRequestData(rface);
+    })();
   }, [api, selectedExampleIdx]);
+  // --- CHANGED EFFECT END ---
 
   const updateField = (field: keyof APIData, value: any) => {
     network.setRequestData({
@@ -186,10 +182,6 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
       [field]: value,
     });
   };
-
-  useEffect(() => {
-    updateField("body", body);
-  }, [body]);
 
   const handleSend = async () => {
     await network.send();
