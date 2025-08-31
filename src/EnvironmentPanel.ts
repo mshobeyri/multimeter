@@ -7,6 +7,7 @@ export interface EnvironmentVar {
   name: string;
   label: string;
   value: string|number|boolean;
+  options: {label: string; value: string | number | boolean}[];
 }
 
 export default class EnvironmentPanel implements vscode.WebviewViewProvider {
@@ -29,18 +30,32 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
 
     webviewView.webview.html = this.getHtmlForWebview();
 
-    // Add visibility change listener to refresh data when panel becomes visible
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
-        // Small delay to ensure webview is fully rendered
         setTimeout(() => {
           this.refreshEnvironmentVars();
         }, 100);
       }
     });
 
-    // Initial load
     this.refreshEnvironmentVars();
+
+    webviewView.webview.onDidReceiveMessage(async message => {
+      console.log('Received message:', message);
+      switch (message.type) {
+        case 'multimeter.environment.set': {
+          const environmentVars = this.getWorkspaceEnvironmentVars();
+          const idx = environmentVars.findIndex(v => v.name === message.name);
+          if (idx !== -1) {
+            environmentVars[idx].value = message.value;
+            environmentVars[idx].label = message.label;
+            await this.context.workspaceState.update(
+                'multimeter.environment.storage', environmentVars);
+            this.refreshEnvironmentVars();
+          }
+        }
+      }
+    });
   }
 
   private getHtmlForWebview(): string {
@@ -102,58 +117,5 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
       vscode.window.showErrorMessage(
           `Failed to clear environment variables: ${error}`);
     }
-  }
-
-  public updateEnvironmentVars(vars: EnvironmentVar[]) {
-    this.view?.webview.postMessage({type: 'updateEnvironmentVars', data: vars});
-  }
-
-  public addEnvironmentVar(envVar: EnvironmentVar) {
-    const currentVars = this.getStoredEnvironmentVars();
-    currentVars[envVar.name] = envVar.value;
-
-    this.saveEnvironmentVars(currentVars);
-  }
-
-  public removeEnvironmentVar(name: string) {
-    const currentVars = this.getStoredEnvironmentVars();
-    delete currentVars[name];
-
-    this.saveEnvironmentVars(currentVars);
-  }
-
-  private getStoredEnvironmentVars(): Record<string, any> {
-    return this.context.workspaceState.get<Record<string, any>>(
-        'multimeter.environment.storage', {});
-  }
-
-  private async saveEnvironmentVars(vars: Record<string, any>) {
-    try {
-      await this.context.workspaceState.update(
-          'multimeter.environment.storage', vars);
-      this.refreshEnvironmentVars();
-    } catch (error) {
-      vscode.window.showErrorMessage(
-          `Failed to save environment variables: ${error}`);
-    }
-  }
-
-  // Method to get all environment variables as a record (useful for other parts
-  // of the extension)
-  public getEnvironmentVariables(): Record<string, any> {
-    return this.getStoredEnvironmentVars();
-  }
-
-  // Method to set a single environment variable
-  public async setEnvironmentVariable(name: string, value: any) {
-    const currentVars = this.getStoredEnvironmentVars();
-    currentVars[name] = value;
-    await this.saveEnvironmentVars(currentVars);
-  }
-
-  // Method to get a single environment variable
-  public getEnvironmentVariable(name: string): any {
-    const vars = this.getStoredEnvironmentVars();
-    return vars[name];
   }
 }

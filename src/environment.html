@@ -5,6 +5,122 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Environment Variables</title>
+    <style>
+        :root {
+            --table-font-size: 12px;
+            --table-header-font-size: 11px;
+            --cell-height: 1.5rem;
+            --cell-padding-left: 2px;
+        }
+
+        .env-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: var(--table-font-size);
+            background-color: var(--input-background);
+            border: 1px solid var(--input-border);
+            border-radius: var(--border-radius);
+            overflow: hidden;
+        }
+
+        .env-table thead {
+            background-color: var(--vscode-editor-background);
+        }
+
+        .env-table th {
+            padding: 0 0 0 var(--cell-padding-left);
+            text-align: left;
+            font-weight: bold;
+            font-size: var(--table-header-font-size);
+            color: var(--foreground);
+            border-bottom: 1px solid var(--input-border);
+            border-right: 1px solid var(--input-border);
+            height: var(--cell-height);
+            line-height: var(--cell-height);
+            vertical-align: middle;
+        }
+
+        .env-table th:last-child {
+            border-right: none;
+        }
+
+        .env-table td {
+            padding: 0 0 0 var(--cell-padding-left);
+            border-bottom: 1px solid var(--panel-border);
+            border-right: 1px solid var(--panel-border);
+            vertical-align: middle;
+            word-break: break-word;
+            height: var(--cell-height);
+            line-height: var(--cell-height);
+        }
+
+        .env-table td:last-child {
+            border-right: none;
+        }
+
+        .env-row:hover {
+            background-color: var(--vscode-list-hoverBackground);
+        }
+
+        .env-name,
+        .env-value {
+            font-family: inherit;
+            color: inherit;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .env-label {
+            color: var(--description-foreground);
+            font-style: italic;
+            height: var(--cell-height);
+            vertical-align: middle;
+        }
+
+        .env-value {
+            font-family: var(--vscode-editor-fontFamily, monospace);
+            color: var(--vscode-symbolIcon-stringForeground, var(--foreground));
+        }
+
+        .flat-select {
+            border: none;
+            background: none;
+            font: inherit;
+            padding: 0;
+            margin: 0;
+            appearance: none;
+            -webkit-appearance: none;
+            border-radius: 0;
+            outline: none;
+            box-shadow: none;
+            height: var(--cell-height);
+            width: 100%;
+            min-width: 0;
+            min-height: 0;
+            display: block;
+        }
+
+        .flat-select:focus {
+            outline: 1px solid #aaa;
+        }
+
+        /* Responsive table */
+        @media (max-width: 600px) {
+            .env-table {
+                font-size: 10px;
+            }
+
+            .env-table th,
+            .env-table td {
+                padding: 0 0 0 var(--cell-padding-left);
+            }
+
+            .env-value {
+                max-width: 120px;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -41,10 +157,6 @@
             }
         });
 
-        function clearEnvironments() {
-            vscode.postMessage({ type: 'clearEnvironments' });
-        }
-
         function updateUI() {
             const tableContainer = document.getElementById('env-table-container');
             const emptyState = document.getElementById('empty-state');
@@ -57,19 +169,49 @@
                 tableContainer.style.display = 'block';
                 emptyState.style.display = 'none';
 
-                // Clear existing rows
                 tableBody.innerHTML = '';
 
-                // Add environment variable rows
                 environmentVars.forEach((envVar, index) => {
                     const row = document.createElement('tr');
                     row.className = 'env-row fade-in';
+
+                    let optionsHtml = '';
+                    if (Array.isArray(envVar.options) && envVar.options.length > 0) {
+                        optionsHtml = envVar.options.map(opt =>
+                            `<option value="${escapeHtml(opt.label)}" data-opt-value="${escapeHtml(opt.value)}"${envVar.label === opt.label ? ' selected' : ''}>${escapeHtml(opt.label)}</option>`
+                        ).join('');
+                    } else {
+                        optionsHtml = `<option value="${escapeHtml(envVar.label)}" selected>${escapeHtml(envVar.label)}</option>`;
+                    }
+
                     row.innerHTML = `
                         <td class="env-name">${escapeHtml(envVar.name)}</td>
-                        <td class="env-label">${escapeHtml(envVar.label)}</td>
+                        <td class="env-label">
+                            <select class="flat-select" data-index="${index}">
+                                ${optionsHtml}
+                            </select>
+                        </td>
                         <td class="env-value">${escapeHtml(String(envVar.value))}</td>
                     `;
                     tableBody.appendChild(row);
+                });
+
+                document.querySelectorAll('.flat-select').forEach(select => {
+                    select.addEventListener('change', function (e) {
+                        const idx = this.getAttribute('data-index');
+                        const optLabel = this.value;
+                        const selectedOption = this.options[this.selectedIndex];
+                        const optValue = selectedOption.getAttribute('data-opt-value');
+                        const envVar = environmentVars[idx];
+                        envVar.label = optLabel; // Only update label!
+                        updateUI();
+                        vscode.postMessage({
+                            type: 'multimeter.environment.set',
+                            name: envVar.name,
+                            value: optValue, // send value for backend use
+                            label: optLabel  // send label for backend use
+                        });
+                    });
                 });
             }
         }
