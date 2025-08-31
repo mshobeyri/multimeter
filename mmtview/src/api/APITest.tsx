@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { APIData } from "./APIData";
 import KVEditor from "../components/KVEditor";
 import BodyView from "../components/BodyView";
@@ -21,10 +21,18 @@ interface APITestProps {
 }
 
 const APITest: React.FC<APITestProps> = ({ api }) => {
+  console.log("Rendering APITest with api:", api);
   const examples = safeList(api.examples);
 
-  const [body, setBody] = useState<string>("");
-  const [requestData, setRequestData] = useState<Request>({ url: "", query: {}, headers: {}, cookies: {}, method: "", format: "json" });
+  const [requestData, setRequestData] = useState<Request>();
+
+  const updateField = (field: keyof Request, value: any) => {
+    setRequestData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   const [responseData, setResponseData] = useState<Response>();
   const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(0);
 
@@ -40,7 +48,6 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   };
 
   const network = useNetwork();
-  const req = requestData || {};
 
   // Outputs state
   const [outputs, setOutputs] = useState<JSONRecord>({});
@@ -84,26 +91,26 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   // Only call onChange if url value actually changed
   const handleUrlChange = useCallback(
     (newUrl: string) => {
-      if (newUrl !== req.url) {
-        req.url = newUrl;
+      if (newUrl !== requestData?.url) {
+        setRequestData(prev => ({
+          ...prev,
+          url: newUrl
+        }));
       }
     },
-    [req.url, req.query]
+    [requestData?.url, requestData?.query]
   );
 
   // Only call onChange if query value actually changed
   const handleQueryChange = useCallback(
     (query: Record<string, string>) => {
-      const prev = JSON.stringify(req.query || {});
+      const prev = JSON.stringify(requestData?.query || {});
       const next = JSON.stringify(query || {});
       if (prev !== next) {
-        setRequestData({
-          ...requestData,
-          query: query
-        });
+        updateField("query", query);
       }
     },
-    [req.url, req.query]
+    [requestData?.url, requestData?.query]
   );
 
   useEffect(() => {
@@ -132,23 +139,19 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
       rface.body = formatBody(rface.format || "json", rface.body || "");
 
       // Only update body if it actually changed to avoid feedback loop
-      setBody(prevBody => {
-        if (prevBody !== (rface.body || "")) {
-          return rface.body || "";
+      setRequestData(prevRequestData => {
+        if (prevRequestData?.body !== (rface.body || "")) {
+          return {
+            ...prevRequestData,
+            body: rface.body || ""
+          };
         }
-        return prevBody;
+        return prevRequestData;
       });
 
       setRequestData(rface);
     })();
   }, [api, selectedExampleIdx]);
-
-  const updateField = (field: keyof APIData, value: any) => {
-    setRequestData({
-      ...requestData,
-      [field]: value,
-    });
-  };
 
   const handleSend = async () => {
     network.send(requestData, setResponseData);
@@ -164,7 +167,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     if (network.connected) {
       network.closeWs();
     } else {
-      network.connectWs(req.url || "", setResponseData);
+      network.connectWs(requestData?.url || "", setResponseData);
     }
   };
 
@@ -172,7 +175,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   const shouldShowQuery = () => viewMode === "all";
   const shouldShowHeaders = () => viewMode === "all";
   const shouldShowCookies = () => viewMode === "all";
-  const shouldShowBody = () => !req.method || req.method.toLowerCase() !== "get";
+  const shouldShowBody = () => !requestData?.method || requestData?.method.toLowerCase() !== "get";
   const shouldShowResponse = () => viewMode === "all" || viewMode === "body";
   const shouldShowResponseHeaders = () => (viewMode === "all") && Object.keys(responseData?.headers || {}).length > 0;
   const shouldShowResponseCookies = () => (viewMode === "all") && Object.keys(responseData?.cookies || {}).length > 0;
@@ -208,8 +211,8 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
       <div className="label">url</div>
       <div style={{ padding: "8px" }}>
         <UrlInput
-          url={req.url ?? ""}
-          query={req.query || {}}
+          url={requestData?.url ?? ""}
+          query={requestData?.query || {}}
           onUrlChange={handleUrlChange}
           onQueryChange={handleQueryChange}
         />
@@ -233,17 +236,17 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
 
       {shouldShowQuery() && <KVEditor
         label="query"
-        value={req.query || {}}
+        value={requestData?.query || {}}
         onChange={query => updateField("query", query)}
       />}
       {shouldShowHeaders() && < KVEditor
         label="headers"
-        value={req.headers || {}}
+        value={requestData?.headers || {}}
         onChange={headers => updateField("headers", headers)}
       />}
       {shouldShowCookies() && <KVEditor
         label="cookies"
-        value={req.cookies || {}}
+        value={requestData?.cookies || {}}
         onChange={cookies => updateField("cookies", cookies)}
       />}
 
@@ -252,11 +255,10 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           <div className="label">body</div>
           <div style={{ padding: "8px" }}>
             <BodyView
-              value={body == null ? "" : body}
-              format={req.format || "json"}
+              value={requestData?.body || ""}
+              format={requestData?.format || "json"}
               mode="live"
               onChange={val => {
-                setBody(val);
                 updateField("body", val);
               }}
             />
@@ -266,7 +268,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
 
       <div style={{ position: "relative", paddingTop: 0, paddingBottom: 8, height: 40 }}>
         <div className="horizontal-line" />
-        {req.protocol === "ws" && (
+        {requestData?.protocol === "ws" && (
           <ConnectButton
             connected={network.connected}
             onClick={handleConnect}
@@ -275,7 +277,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         <SendButton
           onClick={handleSend}
           onCancel={handleCancel}
-          disabled={req.protocol === "ws" && !network.connected}
+          disabled={requestData?.protocol === "ws" && !network.connected}
           loading={network.loading}
         />
       </div>
@@ -311,7 +313,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                     ? responseData?.body
                     : JSON.stringify(responseData?.body, null, 2)
               }
-              format={req.format || "json"}
+              format={requestData?.format || "json"}
               mode="live"
             />
           </div>
@@ -356,7 +358,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                   </div>
                 )}
 
-                {/* {responseData?.error && (
+                {responseData.errorMessage && (
                   <div
                     style={{
                       backgroundColor: '#d32f2f',
@@ -369,13 +371,13 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                       minWidth: '20px',
                       textAlign: 'center',
                     }}
-                    title={`${responseData?.error.message || 'Unknown error'}${responseData?.error.status ? ` (Status: ${responseData?.error.status})` : ''
-                      }${responseData?.error.code ? ` (Code: ${responseData?.error.code})` : ''}`}
+                    title={`${responseData?.errorMessage || 'Unknown error'}${responseData?.status ? ` (Status: ${responseData?.status})` : ''
+                      }${responseData?.errorCode ? ` (Code: ${responseData?.errorCode})` : ''}`}
                   >
-                    {responseData?.error.status || responseData?.error.code || 'ERROR'}
+                    {responseData?.status || responseData?.errorCode || 'ERROR'}
                   </div>
                 )}
-                {responseData?.status && responseData?.status > 0 && !responseData?.error && (
+                {responseData?.status && responseData?.status > 0 && !responseData?.errorMessage && (
                   <div
                     style={{
                       backgroundColor: '#4caf50',
@@ -389,9 +391,9 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                     }}
                     title="Request successful"
                   >
-                    {responseData?.statusCode}
+                    {responseData?.status}
                   </div>
-                )} */}
+                )}
                 <button
                   onClick={() => {
                     window.vscode?.postMessage({
