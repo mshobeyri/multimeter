@@ -52,10 +52,10 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
     title: "",
     tags: [],
     description: "",
-    import: [],
+    import: {},
     metrics: {},
-    inputs: [],
-    outputs: [],
+    inputs: {},
+    outputs: {},
     flow: [],
   });
   const lastUpdate = useRef<"yaml" | "ui" | null>(null);

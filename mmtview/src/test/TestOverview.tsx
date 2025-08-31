@@ -44,20 +44,18 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update }) => (
 
     <KVEditor
       label="import"
-      value={safeList(test.import).reduce((acc, cur) => ({ ...acc, ...cur }), {})}
+      value={test.import}
       onChange={kv => {
-        const newImports = Object.entries(kv).map(([key, value]) => ({ [key]: value }));
-        update({ import: newImports });
+        update({ import: kv });
       }}
       keyPlaceholder="name"
       valuePlaceholder="path"
     />
     <KVEditor
       label="input"
-      value={safeList(test.inputs)?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
+      value={test.inputs}
       onChange={kv => {
-        const newInputs = Object.entries(kv).map(([key, value]) => ({ [key]: value }));
-        update({ inputs: newInputs });
+        update({ inputs: kv });
       }}
       keyPlaceholder="name"
       valuePlaceholder="value"
@@ -65,10 +63,9 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update }) => (
     />
     <KVEditor
       label="output"
-      value={safeList(test.outputs)?.reduce((acc, cur) => ({ ...acc, ...cur }), {})}
+      value={test.outputs}
       onChange={kv => {
-        const newOutputs = Object.entries(kv).map(([key, value]) => ({ [key]: value }));
-        update({ outputs: newOutputs });
+        update({ outputs: kv });
       }}
       keyPlaceholder="name"
       valuePlaceholder="value"

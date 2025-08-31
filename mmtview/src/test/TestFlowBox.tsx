@@ -15,7 +15,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ type, step, testData, onChang
       return (
         <TestCall
           value={step || ""}
-          imports={testData.import || []}
+          imports={typeof testData.import === "object" ? testData.import : undefined}
           onChange={(yamlString) => onChange(yamlString)}
           placeholder="select a call"
         />

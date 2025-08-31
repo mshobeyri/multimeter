@@ -75,9 +75,9 @@ export interface TestData extends MMTFile {
   title: string;
   tags: string[];
   description: string;
-  import?: Parameter[];
-  inputs?: Parameter[];
-  outputs?: Parameter[];
+  import?: Record<string, string>;
+  inputs?: Record<string, string>;
+  outputs?: Record<string, string>;
   metrics?: TestMetric;
   flow?: TestFlowStep[];
 }

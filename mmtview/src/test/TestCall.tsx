@@ -7,7 +7,7 @@ import { safeList } from "../safer";
 
 interface TestCallProps {
   value: string;
-  imports?: Parameter[];
+  imports?: Record<string, string>;
   onChange: (value: any) => void;
   placeholder?: string;
 }
@@ -29,8 +29,10 @@ const TestCall: React.FC<TestCallProps> = ({
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selected = e.target.value;
     // Find the fileName for the selected alias
-    const imp = imports?.find(imp => Object.keys(imp)[0] === selected);
-    const fileName = imp ? Object.values(imp)[0] as string : "";
+    let fileName = "";
+    if (imports && selected in imports) {
+      fileName = imports[selected];
+    }
     setSelectedAlias({ alias: selected, fileName });
   };
 
