@@ -1,37 +1,39 @@
-import { Parameter } from "../../CommonData";
-import { Error } from "./NetworkNodeApi"
+
 export interface Request {
   url?: string;
-  protocol?: "http" | "ws";
-  format?: "json" | "xml" | "text";
+  protocol?: "http" | "ws" | undefined;
+  format?: "json" | "xml" | "text" | undefined;
   method?: string;
-  headers?: Record<string, string>;
-  cookies?: Record<string, string>;
-  query?: Record<string, string>;
+  headers?: Record<string, string> | undefined;
+  cookies?: Record<string, string> | undefined;
+  query?: Record<string, string> | undefined;
   body?: any;
 }
 
+export interface Response {
+  format?: "json" | "xml" | "text" | undefined;
+  headers?: Record<string, string> | undefined;
+  cookies?: Record<string, string> | undefined;
+  query?: Record<string, string> | undefined;
+  body?: any;
+  status?: number | -1;
+  duration?: number | -1;
+  errorMessage: string | "";
+  errorCode: string | "";
+}
+
+export type ResponseCallback = (response: Response) => void;
+
 export interface NetworkAPI {
   // Common
-  send: () => Promise<void>;
-  requestData?: Request;
-  setRequestData: (data: Request) => void;
-  responseBody?: string | null;
+  send: (requestData: Request | undefined, setResponseData: ResponseCallback) => void;
   loading: boolean;
-  error: Error | null;
-  duration: number;
   cancel: () => Promise<void>;
 
-  // HTTP
-  responseHeaders?: Record<string, string>;
-  responseCookies?: Record<string, string>;
-  statusCode?: number | null;
-
-  // WebSocket 
-  connectWs: () => void;
+  // WebSocket
+  connectWs: (url: string, setResponseData: ResponseCallback) => void;
   connecting: boolean;
   connected: boolean;
   closeWs: () => void;
-  clearRespond: () => void;
 }
 

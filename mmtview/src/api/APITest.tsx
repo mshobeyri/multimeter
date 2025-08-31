@@ -12,6 +12,7 @@ import { extractOutputs } from "./outputExtractor";
 import ViewSelector, { ViewMode } from "../components/ViewSelector";
 import { loadEnvVariables } from "../workspaceStorage";
 import { safeList } from "../safer";
+import { Request, Response } from "../components/network/NetworkData";
 import { JSONRecord } from "../CommonData";
 import { setEnvironmentVariable, getEnvironmentVariable } from "../environment/environmentUtils";
 
@@ -19,45 +20,12 @@ interface APITestProps {
   api: APIData;
 }
 
-// Function to handle setting environment variables from API setenv configuration
-const handleSetEnvVariables = async (
-  api: APIData,
-  finalOutputs: JSONRecord
-) => {
-  if (!api.setenv || typeof api.setenv !== 'object' || Object.keys(api.setenv).length === 0) {
-    return;
-  }
-  await Promise.all(
-    Object.entries(api.setenv).map(async ([envKey, outputKey]) => {
-      if (envKey && outputKey) {
-        let value = "";
-        let label = api.title ? `api(${api.title}) - ${outputKey}` : envKey;
-
-        if (finalOutputs.hasOwnProperty(String(outputKey))) {
-          const outputValue = finalOutputs[String(outputKey)];
-          if (outputValue !== "" && outputValue != null) {
-            value = String(outputValue);
-          }
-        } else {
-          // Direct value assignment (not from outputs)
-          value = String(outputKey);
-          label = api.title ? `api(${api.title})` : envKey;
-        }
-
-        // Optionally, avoid unnecessary writes:
-        const currentValue = await getEnvironmentVariable(envKey);
-        if (currentValue !== value) {
-          setEnvironmentVariable(envKey, value, label);
-        }
-      }
-    })
-  );
-};
-
 const APITest: React.FC<APITestProps> = ({ api }) => {
   const examples = safeList(api.examples);
 
   const [body, setBody] = useState<string>("");
+  const [requestData, setRequestData] = useState<Request>({ url: "", query: {}, headers: {}, cookies: {}, method: "", format: "json" });
+  const [responseData, setResponseData] = useState<Response>();
   const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(0);
 
   // View state with localStorage persistence
@@ -72,7 +40,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   };
 
   const network = useNetwork();
-  const req = network.requestData || {};
+  const req = requestData || {};
 
   // Outputs state
   const [outputs, setOutputs] = useState<JSONRecord>({});
@@ -81,9 +49,9 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   useEffect(() => {
     if (
       (!api.extract || Object.keys(api.extract).length === 0) || (
-        (!network.responseBody || network.responseBody == "") &&
-        (!network.responseHeaders || Object.keys(network.responseHeaders).length === 0) &&
-        (!network.responseCookies || Object.keys(network.responseCookies).length === 0))
+        (!responseData?.body || responseData.body == "") &&
+        (!responseData?.headers || Object.keys(responseData.headers).length === 0) &&
+        (!responseData?.cookies || Object.keys(responseData.cookies).length === 0))
     ) {
       return;
     }
@@ -92,12 +60,12 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     const outputNames = Object.keys(extractRules);
 
     const extractedValues = extractOutputs({
-      type: network.responseHeaders?.["Content-Type"] ||
-        network.responseHeaders?.["content-type"]?.includes("xml") ||
-        (network.responseBody && network.responseBody.startsWith && network.responseBody.startsWith("<")) ? "xml" : "json",
-      body: network.responseBody,
-      headers: network.responseHeaders || {},
-      cookies: network.responseCookies || {}
+      type: responseData?.headers?.["Content-Type"] ||
+        responseData?.headers?.["content-type"]?.includes("xml") ||
+        (responseData?.body && responseData.body.startsWith && responseData.body.startsWith("<")) ? "xml" : "json",
+      body: responseData?.body,
+      headers: responseData?.headers || {},
+      cookies: responseData?.cookies || {}
     }, extractRules);
 
     const finalOutputs: JSONRecord = {};
@@ -111,7 +79,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
 
     setOutputs(finalOutputs);
     handleSetEnvVariables(api, finalOutputs);
-  }, [network.responseBody, network.responseHeaders, network.responseCookies, api.outputs, api.extract, api.setenv]);
+  }, [responseData?.body, responseData?.headers, responseData?.cookies, api.outputs, api.extract, api.setenv]);
 
   // Only call onChange if url value actually changed
   const handleUrlChange = useCallback(
@@ -129,8 +97,8 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
       const prev = JSON.stringify(req.query || {});
       const next = JSON.stringify(query || {});
       if (prev !== next) {
-        network.setRequestData({
-          ...network.requestData,
+        setRequestData({
+          ...requestData,
           query: query
         });
       }
@@ -171,33 +139,32 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         return prevBody;
       });
 
-      network.setRequestData(rface);
+      setRequestData(rface);
     })();
   }, [api, selectedExampleIdx]);
-  // --- CHANGED EFFECT END ---
 
   const updateField = (field: keyof APIData, value: any) => {
-    network.setRequestData({
-      ...network.requestData,
+    setRequestData({
+      ...requestData,
       [field]: value,
     });
   };
 
   const handleSend = async () => {
-    await network.send();
+    network.send(requestData, setResponseData);
   };
 
   const handleCancel = async () => {
-    network.clearRespond();
+    setResponseData(undefined);
     await network.cancel();
   };
 
   const handleConnect = () => {
-    network.clearRespond();
+    setResponseData(undefined);
     if (network.connected) {
       network.closeWs();
     } else {
-      network.connectWs();
+      network.connectWs(req.url || "", setResponseData);
     }
   };
 
@@ -207,8 +174,8 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   const shouldShowCookies = () => viewMode === "all";
   const shouldShowBody = () => !req.method || req.method.toLowerCase() !== "get";
   const shouldShowResponse = () => viewMode === "all" || viewMode === "body";
-  const shouldShowResponseHeaders = () => (viewMode === "all") && Object.keys(network.responseHeaders || {}).length > 0;
-  const shouldShowResponseCookies = () => (viewMode === "all") && Object.keys(network.responseCookies || {}).length > 0;
+  const shouldShowResponseHeaders = () => (viewMode === "all") && Object.keys(responseData?.headers || {}).length > 0;
+  const shouldShowResponseCookies = () => (viewMode === "all") && Object.keys(responseData?.cookies || {}).length > 0;
   const shouldShowOutputs = () => (viewMode === "all" || viewMode === "in/out") && Object.keys(outputs).length > 0;
 
   return (
@@ -317,7 +284,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
       {shouldShowResponseHeaders() && (
         <KVEditor
           label="headers"
-          value={network.responseHeaders}
+          value={responseData?.headers || {}}
           onChange={headers => { }}
           deactivated={true}
         />
@@ -326,7 +293,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
       {shouldShowResponseCookies() && (
         <KVEditor
           label="cookies"
-          value={network.responseCookies}
+          value={responseData?.cookies || {}}
           onChange={cookies => { }}
           deactivated={true}
         />
@@ -338,11 +305,11 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           <div style={{ padding: "8px" }}>
             <BodyView
               value={
-                network.responseBody == null
+                responseData?.body == null
                   ? ""
-                  : typeof network.responseBody === "string"
-                    ? network.responseBody
-                    : JSON.stringify(network.responseBody, null, 2)
+                  : typeof responseData?.body === "string"
+                    ? responseData?.body
+                    : JSON.stringify(responseData?.body, null, 2)
               }
               format={req.format || "json"}
               mode="live"
@@ -359,7 +326,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           deactivated={true}
         />
       )}
-      {(network.statusCode || network.error) && (
+      {(responseData?.status) && (
         <>
           <div className="horizontal-line" style={{ position: "relative", padding: 4, height: 1 }} />
 
@@ -375,7 +342,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                   gap: '4px',
                 }}
               >
-                {network.duration >= 0 && (
+                {responseData.duration || -1 >= 0 && (
                   <div
                     style={{
                       padding: '2px 4px',
@@ -385,11 +352,11 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                       minWidth: '20px',
                     }}
                   >
-                    {network.duration}ms
+                    {responseData.duration}ms
                   </div>
                 )}
 
-                {network.error && (
+                {/* {responseData?.error && (
                   <div
                     style={{
                       backgroundColor: '#d32f2f',
@@ -402,13 +369,13 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                       minWidth: '20px',
                       textAlign: 'center',
                     }}
-                    title={`${network.error.message || 'Unknown error'}${network.error.status ? ` (Status: ${network.error.status})` : ''
-                      }${network.error.code ? ` (Code: ${network.error.code})` : ''}`}
+                    title={`${responseData?.error.message || 'Unknown error'}${responseData?.error.status ? ` (Status: ${responseData?.error.status})` : ''
+                      }${responseData?.error.code ? ` (Code: ${responseData?.error.code})` : ''}`}
                   >
-                    {network.error.status || network.error.code || 'ERROR'}
+                    {responseData?.error.status || responseData?.error.code || 'ERROR'}
                   </div>
                 )}
-                {network.statusCode && network.statusCode > 0 && !network.error && (
+                {responseData?.status && responseData?.status > 0 && !responseData?.error && (
                   <div
                     style={{
                       backgroundColor: '#4caf50',
@@ -422,9 +389,9 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                     }}
                     title="Request successful"
                   >
-                    {network.statusCode}
+                    {responseData?.statusCode}
                   </div>
-                )}
+                )} */}
                 <button
                   onClick={() => {
                     window.vscode?.postMessage({
@@ -450,6 +417,42 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           </div>
         </>)}
     </div >
+  );
+};
+
+
+// Function to handle setting environment variables from API setenv configuration
+const handleSetEnvVariables = async (
+  api: APIData,
+  finalOutputs: JSONRecord
+) => {
+  if (!api.setenv || typeof api.setenv !== 'object' || Object.keys(api.setenv).length === 0) {
+    return;
+  }
+  await Promise.all(
+    Object.entries(api.setenv).map(async ([envKey, outputKey]) => {
+      if (envKey && outputKey) {
+        let value = "";
+        let label = api.title ? `api(${api.title}) - ${outputKey}` : envKey;
+
+        if (finalOutputs.hasOwnProperty(String(outputKey))) {
+          const outputValue = finalOutputs[String(outputKey)];
+          if (outputValue !== "" && outputValue != null) {
+            value = String(outputValue);
+          }
+        } else {
+          // Direct value assignment (not from outputs)
+          value = String(outputKey);
+          label = api.title ? `api(${api.title})` : envKey;
+        }
+
+        // Optionally, avoid unnecessary writes:
+        const currentValue = await getEnvironmentVariable(envKey);
+        if (currentValue !== value) {
+          setEnvironmentVariable(envKey, value, label);
+        }
+      }
+    })
   );
 };
 

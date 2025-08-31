@@ -6,19 +6,9 @@ import { beautifyWithContentType } from "../../markupConvertor";
 
 export function useNetwork(): NetworkAPI {
   const [connected, setConnected] = useState(false);
-  const [responseBody, setResponseBody] = useState<string | null>(null);
-  const [responseHeaders, setResponseHeaders] = useState<Record<string, string>>({});
-  const [responseCookies, setResponseCookies] = useState<Record<string, string>>({});
-  const [statusCode, setStatusCode] = useState<number | null>(null);
-  const [error, setError] = useState<Error | null>(null);
-
-  const [requestData, setRequestData] = useState<Request>();
-
   const [loading, setLoading] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [wsId, setWsId] = useState<string | null>(null);
-
-  const [lastDuration, setLastDuration] = useState<number>(-1);
 
   let lastRequestID = useRef<string | null>(null);
 
@@ -42,14 +32,19 @@ export function useNetwork(): NetworkAPI {
     return String(data);
   };
 
-  const send = async () => {
-    setError(null);
+  const send = async (requestData: Request | undefined, setResponseData: any) => {
+    setResponseData(null);
     if (loading) {
       return;
     }
     setLoading(true);
     if (!requestData) {
-      setError({ message: "Request data is undefined", body: null, headers: {}, status: 400, code: "REQUEST_DATA_UNDEFINED", duration: -1 });
+      setResponseData({
+        errorMessage: "Request data is undefined",
+        status: 400,
+        errorCode: "REQUEST_DATA_UNDEFINED",
+        duration: -1
+      });
       setLoading(false);
       return;
     }
@@ -88,12 +83,16 @@ export function useNetwork(): NetworkAPI {
           if (res.autoformat) {
             res.body = beautifyWithContentType(res.headers["Content-Type"], res.body);
           }
-          setLastDuration(res.duration || -1);
-          setResponseBody(res.body);
-          setResponseHeaders(res.headers || {});
-          setResponseCookies(parseSetCookie(res.headers?.["set-cookie"]));
+          setResponseData({
+            body: res.body,
+            headers: res.headers || {},
+            cookies: parseSetCookie(res.headers?.["set-cookie"]),
+            errorMessage: "",
+            status: res.status || -1,
+            errorCode: "",
+            duration: res.duration || -1
+          });
           setLoading(false);
-          setStatusCode(res.status || -1);
           pushHistory({
             type: "recv",
             method,
@@ -107,11 +106,15 @@ export function useNetwork(): NetworkAPI {
           });
         },
         onError: (error: Error) => {
-          setLastDuration(error.duration || -1);
-          setResponseBody(error.body || null);
-          setResponseHeaders(error.headers || {});
-          setResponseCookies({});
-          setError(error);
+
+          setResponseData({
+            body: error.body || null,
+            headers: error.headers || {},
+            errorMessage: error.message,
+            status: error.status || 500,
+            errorCode: error.code || "UNKNOWN_ERROR",
+            duration: error.duration || -1
+          });
           setLoading(false);
 
           // Save error to history
@@ -130,7 +133,7 @@ export function useNetwork(): NetworkAPI {
       });
     } else if (protocol === "ws") {
       if (!connected) {
-        setError({ message: "WebSocket not connected", body: null, headers: {}, status: 400, code: "WS_NOT_CONNECTED", duration: -1 });
+        setResponseData({ errorMessage: "WebSocket not connected", status: 400, errorCode: "WS_NOT_CONNECTED", duration: -1 });
         setLoading(false);
         return;
       }
@@ -150,33 +153,20 @@ export function useNetwork(): NetworkAPI {
       });
     }
   };
+
   const cancel = async () => {
     await NetworkNodeApi.cancel(lastRequestID.current ?? "");
     setLoading(false);
-    setResponseBody(null);
-    setResponseHeaders({});
-    setResponseCookies({});
-    setStatusCode(null);
   };
 
-  const connectWs = () => {
+  const connectWs = (url: string, setResponseData: any) => {
     setConnecting(true);
-    const opts = requestData ?? {};
-    const {
-      url = "",
-      protocol = "http",
-    } = opts;
-
-    if (protocol === "http") {
-      setError({ message: "WebSocket protocol required for WebSocket connection", body: null, headers: {}, status: 400, code: "WS_PROTOCOL_REQUIRED", duration: -1 });
-      return;
-    }
 
     // Save WS connect to history
     pushHistory({
       type: "send",
       method: "CONNECT",
-      protocol,
+      protocol: "ws",
       title: `CONNECT ${url}`
     });
 
@@ -190,20 +180,28 @@ export function useNetwork(): NetworkAPI {
         pushHistory({
           type: "recv",
           method: "CONNECTED",
-          protocol,
+          protocol: "ws",
           title: `CONNECTED ${url}`,
           content: url
         });
       },
+
       onMessage: (data: string) => {
-        setResponseBody(data);
+        setResponseData({
+          body: data,
+          headers: undefined,
+          status: null,
+          message: null,
+          code: null,
+          duration: null
+        } as unknown as Response);
         setLoading(false);
 
         // Save WS message to history
         pushHistory({
           type: "recv",
           method: "RECV",
-          protocol,
+          protocol: "ws",
           title: `RECV ${url}`,
           content: data
         });
@@ -216,20 +214,25 @@ export function useNetwork(): NetworkAPI {
         pushHistory({
           type: "recv",
           method: "CLOSED",
-          protocol,
+          protocol: "ws",
           title: `CLOSED ${url}`,
           content: url
         });
       },
       onError: (err: any) => {
-        setError({ message: "WebSocket cannot connect", body: null, headers: {}, status: 400, code: "WS_NOT_CONNECTED", duration: -1 });
+        setResponseData({
+          errorMessage: "WebSocket cannot connect",
+          status: 400,
+          errorCode: "WS_NOT_CONNECTED",
+          duration: -1
+        } as unknown as Response);
         setLoading(false);
 
         // Save WS error to history
         pushHistory({
           type: "recv",
           method: "ERROR",
-          protocol,
+          protocol: "ws",
           title: `ERROR ${url}`,
           content: err?.message
         });
@@ -242,8 +245,8 @@ export function useNetwork(): NetworkAPI {
     pushHistory({
       type: "send",
       method: "CLOSE",
-      protocol: requestData?.protocol || "ws",
-      title: `CLOSE ${requestData?.url ?? ""}`
+      protocol: "ws",
+      title: `CLOSE`
     });
     NetworkNodeApi.disconnectWs({
       wsId: wsId || "",
@@ -252,31 +255,13 @@ export function useNetwork(): NetworkAPI {
     setLoading(true);
   };
 
-  // Add this function to clear response headers, cookies, and body
-  const clearRespond = () => {
-    setLastDuration(-1);
-    setResponseBody(null);
-    setStatusCode(null);
-    setResponseHeaders({});
-    setResponseCookies({});
-  };
-
   return {
     send,
-    requestData,
-    setRequestData,
-    responseBody,
     loading,
-    error,
-    duration: lastDuration,
     cancel,
-    responseHeaders,
-    responseCookies,
-    statusCode,
     connectWs,
     connecting,
     connected,
     closeWs,
-    clearRespond,
   };
 }
