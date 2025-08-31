@@ -4,7 +4,7 @@
 
 ## 🚀 Features
 
-- 🧩 UI editor along with text editor.
+- 🧩 UI editor along with text editor + auto complete.
 - 🧪 Supports all kinds of test logic, from simple checks to complex flows.
 - 💾 Store test cases as files in your application git repo.
   - ⏳ Preserve tests' history in the git repo.
@@ -15,6 +15,12 @@
 - 🌐 HTTP/WS protocols support.
 - 🔄 Support Postman and OpenAPI collection convert.
 - 🪞 Server mocking.
+
+## 🎯 Next
+- 🔗 Chaining request responses.
+- ⛓️ Running tests in the pipeline.
+- 📃 Auto documentation.
+- 🏋 Load testing.
 
 ## 🛠️ Usage
 - Add <img src="res/icon.png" alt="Multimeter Logo" width="16" height="16"/>[Multimeter](https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter) extention to your vscode.
