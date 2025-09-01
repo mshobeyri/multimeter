@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import APIOverview from "./APIOverview";
 import InterfaceEditor from "./APIInterface";
 import APIExample from "./APIExample";
-import APITest from "./APITest";
+import APITest from "./APITester";
 import { APIData, ExampleData } from "./APIData";
 import { safeList, safeListCopy } from "../safer";
 

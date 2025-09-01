@@ -21,9 +21,7 @@ interface APITestProps {
 }
 
 const APITest: React.FC<APITestProps> = ({ api }) => {
-  console.log("Rendering APITest with api:", api);
   const examples = safeList(api.examples);
-
   const [requestData, setRequestData] = useState<Request>();
 
   const updateField = (field: keyof Request, value: any) => {
