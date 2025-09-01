@@ -11,6 +11,7 @@
   - 🤖 Ability to generate tests using AI.
   - 📦 Having tests along with the changes in a same pull request.
 - 🧱 JSON/XML schema-aware editing.
+- 🗄 Environmet variable and presets support.
 - ⛏️ Extract data from results using xpath, jsonpath and regular expression.
 - 🌐 HTTP/WS protocols support.
 - 🔄 Support Postman and OpenAPI collection convert.
