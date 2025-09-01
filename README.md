@@ -29,7 +29,7 @@
 - Follow the UI instructions 👌.
 
 ## ✍️ Example
-
+### HTTP POST
 Here is a simple example of a post request.
 ```yaml
 type: api
@@ -44,6 +44,11 @@ body:
 
 In the following gif, you can see the way of using this sample.
 
-<img src="screenshots/sample_post.gif" alt="Multimeter sample post" width="800" height="600"/> 
+<img src="screenshots/postsample.gif" alt="Multimeter sample post" width="800" height="600"/> 
+
+### Environment
+Here I created an env varibale named url and used it in the previous example. This time I used UI to update yaml file. The url can has two value (localhost:8080 and google.com, labled as local and product), that helps to switch url easily. As you can see in the following gif, the url will be changed in the tests by changing it in environment panel.
+
+<img src="screenshots/environment.gif" alt="Multimeter sample environment" width="800" height="600"/> 
 
 **Special thanks to: Dear Ashkan Palganeh 👨🏻‍🦱.**
