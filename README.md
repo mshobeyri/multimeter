@@ -29,21 +29,20 @@
 
 ## ✍️ Example
 
-Here is the most simple test file you can have.
+Here is a simple example of a post request.
 ```yaml
 type: api
-title: GET sample
-tags:
-  - regression
-  - smoke
 protocol: http
-format: json
 url: http://localhost:8080
-method: get
+method: post
+format: json
+body: 
+  username: mehrdad
+  password: 123456
 ```
 
-Here you can see the screen shot of using this sample. On the right side, beside a UI for modifying the test yaml file interactively, you can have some smoke tests.
+In the following gif, you can see the way of using this sample.
 
-<img src="screenshots/simple_get.png" alt="Multimeter simple get" width="800" height="600"/> 
+<img src="screenshots/sample_post.gif" alt="Multimeter sample post" width="800" height="600"/> 
 
 **Special thanks to: Dear Ashkan Palganeh 👨🏻‍🦱.**
