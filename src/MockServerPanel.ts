@@ -6,14 +6,13 @@ import WebSocket = require('ws');
 
 type ServerType = 'http'|'ws';
 
-export default class MockServerPanel implements vscode.WebviewViewProvider {
+export default class MockServerPanel implements vscode.WebviewViewProvider, vscode.Disposable {
   private _view?: vscode.WebviewView;
   private serverType: ServerType = 'http';
   private port = 8080;
-  private response = `
-{
-  "message" : "Hello",
-  "from" : "Mock Server"
+  private response = `{
+  "message": "Hello",
+  "from": "Mock Server"
 }`;
   private running = false;
   private httpServer?: http.Server;
@@ -79,6 +78,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider {
   private _doStartServer() {
     if (this.serverType === 'http') {
       this.httpServer = http.createServer((_, res) => {
+        res.statusCode = this.statusCode;
         res.end(this.response);
       });
       this.httpServer.listen(this.port, '127.0.0.1', () => {
@@ -87,19 +87,19 @@ export default class MockServerPanel implements vscode.WebviewViewProvider {
       this.httpServer.on('close', () => (this.running = false));
     } else {
       try {
-        this.wsServer = new WebSocket.Server({ port: this.port });
+        this.wsServer = new WebSocket.Server({port: this.port});
         this.wsServer.on('connection', ws => {
           ws.on('message', () => {
-            ws.send(this.response); // Always send the latest response
+            ws.send(this.response);
           });
-          // Optionally, send the response immediately on connect as well:
           ws.send(this.response);
         });
         this.wsServer.on('listening', () => (this.running = true));
         this.wsServer.on('close', () => (this.running = false));
       } catch (err) {
         const message = (err instanceof Error) ? err.message : String(err);
-        vscode.window.showErrorMessage('WebSocket server could not be started: ' + message);
+        vscode.window.showErrorMessage(
+            'WebSocket server could not be started: ' + message);
       }
     }
   }
@@ -124,31 +124,37 @@ export default class MockServerPanel implements vscode.WebviewViewProvider {
     }
   }
 
-  private getHtmlForWebview(serverType: string, port: number, statusCode: number, response: string, isRunning: boolean): string {
-    const htmlPath = path.join(this.context.extensionPath, 'src', 'mockserver.html');
+  private getHtmlForWebview(
+      serverType: string, port: number, statusCode: number, response: string,
+      isRunning: boolean): string {
+    const htmlPath =
+        path.join(this.context.extensionPath, 'src', 'mockserver.html');
     const cssPath = path.join(this.context.extensionPath, 'src', 'common.css');
-    
+
     let html = fs.readFileSync(htmlPath, 'utf8');
     const css = fs.readFileSync(cssPath, 'utf8');
-    
+
     // Inject CSS into HTML head
     html = html.replace('</head>', `<style>${css}</style></head>`);
-    
+
     const disabled = isRunning ? 'disabled' : '';
-    const buttonText = isRunning ? 
-      `Stop localhost:${port}` : 
-      'Run Mock Server';
-    
-    return html
-      .replace(/\${serverType}/g, serverType)
-      .replace(/\${port}/g, port.toString())
-      .replace(/\${statusCode}/g, statusCode.toString())
-      .replace(/\${response}/g, response)
-      .replace(/\${disabled}/g, disabled)
-      .replace(/\${buttonText}/g, buttonText);
+    const buttonText = isRunning ? `Stop localhost:${port}` : 'Run Mock Server';
+
+    return html.replace(/\${serverType}/g, serverType)
+        .replace(/\${port}/g, port.toString())
+        .replace(/\${statusCode}/g, statusCode.toString())
+        .replace(/\${response}/g, response)
+        .replace(/\${disabled}/g, disabled)
+        .replace(/\${buttonText}/g, buttonText);
   }
 
   private getHtmlContent(): string {
-    return this.getHtmlForWebview(this.serverType, this.port, this.statusCode, this.response, this.running);
+    return this.getHtmlForWebview(
+        this.serverType, this.port, this.statusCode, this.response,
+        this.running);
+  }
+
+  dispose() {
+    this.stopServer();
   }
 }
