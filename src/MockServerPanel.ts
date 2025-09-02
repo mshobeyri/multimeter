@@ -18,6 +18,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider, vsco
   private httpServer?: http.Server;
   private wsServer?: WebSocket.Server;
   private statusCode = 200;
+  private reflect = false;
 
   constructor(private readonly context: vscode.ExtensionContext) {}
 
@@ -41,6 +42,8 @@ export default class MockServerPanel implements vscode.WebviewViewProvider, vsco
       this.statusCode = Number(value);
     } else if (type === 'setResponse') {
       this.response = value;
+    } else if (type === 'setReflect') {
+      this.reflect = value;
     } else if (type === 'startServer') {
       this.startServer();
       this.updateViewHtml();
@@ -77,9 +80,18 @@ export default class MockServerPanel implements vscode.WebviewViewProvider, vsco
 
   private _doStartServer() {
     if (this.serverType === 'http') {
-      this.httpServer = http.createServer((_, res) => {
-        res.statusCode = this.statusCode;
-        res.end(this.response);
+      this.httpServer = http.createServer((req, res) => {
+        if (this.reflect) {
+          let body = '';
+          req.on('data', chunk => body += chunk);
+          req.on('end', () => {
+            res.statusCode = this.statusCode;
+            res.end(body || JSON.stringify({ headers: req.headers, url: req.url }));
+          });
+        } else {
+          res.statusCode = this.statusCode;
+          res.end(this.response);
+        }
       });
       this.httpServer.listen(this.port, '127.0.0.1', () => {
         this.running = true;

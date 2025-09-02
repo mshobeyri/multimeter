@@ -29,8 +29,13 @@
     </div>
 
     <div class="mb-12">
+      <label class="label" for="reflect">Reflect request as response</label>
+      <input id="reflect" type="checkbox" ${reflect ? 'checked' : ''} />
+    </div>
+
+    <div class="mb-12">
       <label class="label" for="response">Response</label>
-      <textarea id="response" class="textarea">${response}</textarea>
+      <textarea id="response" class="textarea" ${reflect ? 'disabled' : ''}>${response}</textarea>
     </div>
 
     <button id="runBtn" class="button">
@@ -52,6 +57,12 @@
 
     document.getElementById('statusCode').onchange = e => {
       vscode.postMessage({ type: 'setStatusCode', value: e.target.value });
+    };
+
+    document.querySelector('#reflect').onchange = e => {
+      vscode.postMessage({ type: 'setReflect', value: e.target.checked });
+      // Disable/enable response textarea based on reflect
+      document.getElementById('response').disabled = e.target.checked;
     };
 
     document.querySelector('#response').oninput = e => {
