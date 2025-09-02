@@ -111,9 +111,8 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     [requestData?.url, requestData?.query]
   );
 
-  useEffect(() => {
+  const prepareRequestData = () => {
     const selectedExample = examples[selectedExampleIdx] || {};
-
     (async () => {
       const envVars = await new Promise(resolve => {
         const cleanup = loadEnvVariables(vars => {
@@ -149,7 +148,27 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
 
       setRequestData(rface);
     })();
+  }
+
+  useEffect(() => {
+    prepareRequestData();
   }, [api, selectedExampleIdx]);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const message = event.data;
+      if (message.command === 'multimeter.environment.refresh') {
+        prepareRequestData();
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
+
 
   const handleSend = async () => {
     network.send(requestData, setResponseData);

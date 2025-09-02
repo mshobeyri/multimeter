@@ -30,6 +30,8 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
 
     webviewView.webview.html = this.getHtmlForWebview();
 
+
+    // Refresh environment variables when the we open the view
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible) {
         setTimeout(() => {
@@ -37,11 +39,11 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
         }, 100);
       }
     });
-
+    
+    // Refresh environment variables when reload window
     this.refreshEnvironmentVars();
 
     webviewView.webview.onDidReceiveMessage(async message => {
-      console.log('Received message:', message);
       switch (message.type) {
         case 'multimeter.environment.set': {
           const environmentVars = this.getWorkspaceEnvironmentVars();
@@ -51,7 +53,7 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
             environmentVars[idx].label = message.label;
             await this.context.workspaceState.update(
                 'multimeter.environment.storage', environmentVars);
-            this.refreshEnvironmentVars();
+            await vscode.commands.executeCommand('multimeter.environment.refresh');
           }
         }
       }
@@ -73,9 +75,12 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
   }
 
   refreshEnvironmentVars() {
+    console.log("refressssss");
     const environmentVars = this.getWorkspaceEnvironmentVars();
-    this.view?.webview.postMessage(
-        {type: 'updateEnvironmentVars', data: environmentVars});
+    this.view?.webview.postMessage({
+      command: 'multimeter.environment.panel.refresh',
+      data: environmentVars
+    });
   }
 
   private getWorkspaceEnvironmentVars(): EnvironmentVar[] {
