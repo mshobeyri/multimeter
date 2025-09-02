@@ -75,7 +75,6 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
   }
 
   refreshEnvironmentVars() {
-    console.log("refressssss");
     const environmentVars = this.getWorkspaceEnvironmentVars();
     this.view?.webview.postMessage({
       command: 'multimeter.environment.panel.refresh',
