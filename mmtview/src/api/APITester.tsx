@@ -361,7 +361,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                   gap: '4px',
                 }}
               >
-                {responseData.duration || -1 >= 0 && (
+                {(responseData.duration || -1) >= 0 && (
                   <div
                     style={{
                       padding: '2px 4px',

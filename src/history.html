@@ -191,15 +191,15 @@
                         getProtocolIcon(item.protocol) +
                         '<span class="history-title"' + (isError ? ' style="color:#ff5555;"' : '') + '>' + item.title + '</span>' +
                         '<span class="history-time">' +
-                        (item.duration
+                        (item.duration >= 0
                             ? '<span style="color:' + (isError ? '#ff5555' : '#66bb6a') + ';">(' + item.duration + 'ms)</span> '
                             : '') +
                         (item.status !== undefined
                             ? (
                                 isError
-                                ? '<span style="color:#ff5555;font-weight: bold;">[' + item.status + ']</span> '
-                                : '<span style="color:#66bb6a;font-weight: bold;">[' + item.status + ']</span> '
-                              )
+                                    ? '<span style="color:#ff5555;font-weight: bold;">[' + item.status + ']</span> '
+                                    : '<span style="color:#66bb6a;font-weight: bold;">[' + item.status + ']</span> '
+                            )
                             : ''
                         ) +
                         item.time +
@@ -212,9 +212,9 @@
                             (item.status !== undefined
                                 ? (
                                     isError
-                                    ? '<div class="drawer-section"><span class="drawer-label">Status:</span> <span class="drawer-value" style="color:#ff5555;">' + item.status + '</span></div>'
-                                    : '<div class="drawer-section"><span class="drawer-label">Status:</span> <span class="drawer-value" style="color:#66bb6a;">' + item.status + '</span></div>'
-                                  )
+                                        ? '<div class="drawer-section"><span class="drawer-label">Status:</span> <span class="drawer-value" style="color:#ff5555;">' + item.status + '</span></div>'
+                                        : '<div class="drawer-section"><span class="drawer-label">Status:</span> <span class="drawer-value" style="color:#66bb6a;">' + item.status + '</span></div>'
+                                )
                                 : ''
                             ) +
                             (item.cookies && Object.keys(item.cookies).length

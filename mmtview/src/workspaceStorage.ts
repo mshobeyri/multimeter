@@ -3,7 +3,6 @@
 import {EnvVariable} from './environment/EnvironmentData';
 
 export function saveEnvVariablesFromObject(flatVars: EnvVariable[]) {
-  console.log('Saving environment variables to workspace state:', flatVars);
   window.vscode?.postMessage({
     command: 'updateWorkspaceState',
     name: 'multimeter.environment.storage',
