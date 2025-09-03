@@ -169,7 +169,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                             />
                         )}
 
-                        <div className="inner-box" style={{ marginBottom: 0 }}>
+                        <div className="inner-box" style={{ marginBottom: 0, marginLeft: intent * 24 }}>
                             {/* Combo for type (changes YAML key, not adds a field) */}
                             <select
                                 value={currentType}
