@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import APIFieldEditor from "./APIEditor";
 import { APIData } from "./APIData";
-import { yamlToAPI, apiToYaml } from "./ParsePack";
+import { yamlToAPI, apiToYaml } from "./parsePack";
 interface APIsProps {
   content: string;
   setContent: (value: string) => void;

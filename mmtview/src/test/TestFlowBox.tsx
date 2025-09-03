@@ -36,7 +36,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ type, step, testData, onChang
         }
       }
       return (
-        <div style={{ marginTop: 8 }}>
+        <div>
           <TestCheck
             left={left}
             op={op}
@@ -62,7 +62,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ type, step, testData, onChang
         }
       }
       return (
-        <div style={{ marginTop: 8 }}>
+        <div>
           <TestCheck
             left={left}
             op={op}
@@ -74,7 +74,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ type, step, testData, onChang
     }
     case "for":
       return (
-        <div style={{ marginTop: 8 }}>
+        <div>
           <input
             placeholder="100, 10s, 5-10, i:data"
             value={step || ""}

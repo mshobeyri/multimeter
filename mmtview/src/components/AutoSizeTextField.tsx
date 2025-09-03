@@ -26,7 +26,7 @@ const AutoSizeTextField: React.FC<AutoSizeTextFieldProps> = ({
         Math.max(spanRef.current.offsetWidth + 12, minWidth),
         maxWidth
       );
-      setInputWidth(width);
+      setInputWidth(width + 16);
     }
   }, [value, minWidth, maxWidth]);
 
@@ -39,9 +39,9 @@ const AutoSizeTextField: React.FC<AutoSizeTextFieldProps> = ({
         onChange={(e) => onChange && onChange(e.target.value)}
         style={{
           width: inputWidth,
+          height: "1.6rem",
           minWidth,
           maxWidth,
-          boxSizing: "content-box",
           ...style,
         }}
       />
