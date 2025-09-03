@@ -6,7 +6,8 @@ import WebSocket = require('ws');
 
 type ServerType = 'http'|'ws';
 
-export default class MockServerPanel implements vscode.WebviewViewProvider, vscode.Disposable {
+export default class MockServerPanel implements vscode.WebviewViewProvider,
+                                                vscode.Disposable {
   private _view?: vscode.WebviewView;
   private serverType: ServerType = 'http';
   private port = 8080;
@@ -86,7 +87,8 @@ export default class MockServerPanel implements vscode.WebviewViewProvider, vsco
           req.on('data', chunk => body += chunk);
           req.on('end', () => {
             res.statusCode = this.statusCode;
-            res.end(body || JSON.stringify({ headers: req.headers, url: req.url }));
+            res.end(
+                body || JSON.stringify({headers: req.headers, url: req.url}));
           });
         } else {
           res.statusCode = this.statusCode;
@@ -101,10 +103,16 @@ export default class MockServerPanel implements vscode.WebviewViewProvider, vsco
       try {
         this.wsServer = new WebSocket.Server({port: this.port});
         this.wsServer.on('connection', ws => {
-          ws.on('message', () => {
-            ws.send(this.response);
+          ws.on('message', msg => {
+            if (this.reflect) {
+              ws.send(msg);
+            } else {
+              ws.send(this.response);
+            }
           });
-          ws.send(this.response);
+          if (!this.reflect) {
+            ws.send(this.response);
+          }
         });
         this.wsServer.on('listening', () => (this.running = true));
         this.wsServer.on('close', () => (this.running = false));
