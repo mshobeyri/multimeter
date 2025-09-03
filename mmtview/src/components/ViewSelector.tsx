@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-export type ViewMode = "all" | "body" | "in/out";
+export type ViewMode = "all" | "params" | "headers" | "body" | "in/out" | "cookies";
 
 interface ViewSelectorProps {
   viewMode: ViewMode;
@@ -12,8 +12,11 @@ const ViewSelector: React.FC<ViewSelectorProps> = ({ viewMode, onViewModeChange 
 
   const viewOptions: { mode: ViewMode; icon: string; label: string }[] = [
     { mode: "all", icon: "codicon-list-unordered", label: "all" },
+    { mode: "params", icon: "codicon-symbol-parameter", label: "params" },
+    { mode: "headers", icon: "codicon-symbol-keyword", label: "headers" },
     { mode: "body", icon: "codicon-file-text", label: "body" },
-    { mode: "in/out", icon: "codicon-arrow-swap", label: "in/out" }
+    { mode: "in/out", icon: "codicon-arrow-swap", label: "in/out" },
+    { mode: "cookies", icon: "codicon-symbol-color", label: "cookies" }
   ];
 
   return (
