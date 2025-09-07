@@ -1,4 +1,4 @@
-import {Format, JSONRecord, Method, MMTFile, Protocol} from '../CommonData'
+import {Format, JSONRecord, Method, MMTFile, Protocol} from '../CommonData';
 
 export interface ExampleData {
   name?: string;

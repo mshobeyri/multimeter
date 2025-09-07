@@ -1,5 +1,5 @@
 
-import { APISchema, EnvSchema, GeneralSchema } from './Schema';
+import { APISchema, EnvSchema, TestSchema, GeneralSchema } from './Schema';
 import YAML from 'yaml';
 import Ajv from 'ajv';
 
@@ -65,7 +65,7 @@ export const validateYamlContent = (content: string): any[] => {
         } else if (parsedContent.type && parsedContent.type === 'var') {
             // validate = ajv.compile(VarSchema);
         } else if (parsedContent.type && parsedContent.type === 'test') {
-            // validate = ajv.compile(TestSchema);
+            validate = ajv.compile(TestSchema);
         }
         const isValid = validate(parsedContent);
 

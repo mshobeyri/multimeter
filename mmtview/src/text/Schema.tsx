@@ -146,3 +146,111 @@ export const EnvSchema = {
     },
     additionalProperties: false
 };
+
+export const TestSchema = {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    type: 'object',
+    required: ['type'],
+    properties: {
+        type: { type: 'string', enum: ['test'] },
+        title: { type: 'string' },
+        tags: { type: 'array', items: { type: 'string' } },
+        import: {
+            type: 'object',
+            additionalProperties: { type: 'string' }
+        },
+        steps: {
+            type: 'array',
+            items: {
+                anyOf: [
+                    // call step
+                    {
+                        type: 'object',
+                        required: ['call'],
+                        properties: {
+                            call: { type: 'string' },
+                            id: { type: 'string' },
+                            inputs: {
+                                type: 'object',
+                                additionalProperties: {
+                                    anyOf: [
+                                        { type: 'string' },
+                                        { type: 'number' },
+                                        { type: 'boolean' },
+                                        { type: 'null' }
+                                    ]
+                                }
+                            }
+                        },
+                        additionalProperties: false
+                    },
+                    // check step
+                    {
+                        type: 'object',
+                        required: ['check'],
+                        properties: {
+                            check: { type: 'string' }
+                        },
+                        additionalProperties: false
+                    },
+                    // if step
+                    {
+                        type: 'object',
+                        required: ['if', 'steps'],
+                        properties: {
+                            if: { type: 'string' },
+                            steps: { $ref: '#/properties/steps' },
+                            else: { $ref: '#/properties/steps' }
+                        },
+                        additionalProperties: false
+                    },
+                    // for step
+                    {
+                        type: 'object',
+                        required: ['for', 'steps'],
+                        properties: {
+                            for: { type: 'string' },
+                            steps: { $ref: '#/properties/steps' }
+                        },
+                        additionalProperties: false
+                    },
+                    // repeat step
+                    {
+                        type: 'object',
+                        required: ['repeat', 'steps'],
+                        properties: {
+                            repeat: { type: ['integer', 'string', 'boolean', 'object', 'array', 'null'] },
+                            steps: { $ref: '#/properties/steps' }
+                        },
+                        additionalProperties: false
+                    }
+                ]
+            }
+        },
+        stages: {
+            type: 'array',
+            items: {
+                type: 'object',
+                required: ['id', 'steps'],
+                properties: {
+                    id: { type: 'string' },
+                    depends_on: {
+                        anyOf: [
+                            { type: 'string' },
+                            { type: 'array', items: { type: 'string' } }
+                        ]
+                    },
+                    condition: { type: 'string' },
+                    steps: { $ref: '#/properties/steps' }
+                },
+                additionalProperties: false
+            }
+        }
+    },
+    additionalProperties: false,
+    // Allow either steps or stages or both at the root
+    anyOf: [
+        { required: ['steps'] },
+        { required: ['stages'] }
+    ]
+};
