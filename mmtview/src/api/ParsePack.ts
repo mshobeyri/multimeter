@@ -43,7 +43,7 @@ export function apiToYaml(api: APIData): string {
     title: api.title,
   };
   if (api.description) {
-    yamlObj.description = api.description
+    yamlObj.description = api.description;
   };
   if (isNonEmptyList(api.tags)) {
     yamlObj.tags = api.tags;

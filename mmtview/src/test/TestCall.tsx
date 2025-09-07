@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { TestFlowCallTest, TestFlowCallAPI, TestFlowCallWS, TestFlowCallHTTP } from "./TestData";
+import { TestFlowCallTest, TestFlowCallAPI } from "./TestData";
 import parseYaml, { packYaml } from "../markupConvertor";
 import { MMTFile, Parameter } from "../CommonData";
 import { showVSCodeMessage, readFile } from "../vsAPI";
@@ -23,7 +23,7 @@ const TestCall: React.FC<TestCallProps> = ({
   onChange,
   placeholder = "Select an item...",
 }) => {
-  const [callInfo, setCallInfo] = useState<TestFlowCallTest | TestFlowCallAPI | TestFlowCallWS | TestFlowCallHTTP | null>(null);
+  const [callInfo, setCallInfo] = useState<TestFlowCallTest | TestFlowCallAPI | null>(null);
   const [selectedAlias, setSelectedAlias] = useState<SelectedAlias | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -38,16 +38,6 @@ const TestCall: React.FC<TestCallProps> = ({
 
   useEffect(() => {
     if (!selectedAlias) return
-
-    if (selectedAlias.alias === "ws") {
-      setCallInfo({ target: "ws" } as TestFlowCallWS);
-      return;
-    }
-
-    if (selectedAlias.alias === "http") {
-      setCallInfo({ target: "http" } as TestFlowCallHTTP);
-      return;
-    }
 
     const { alias, fileName } = selectedAlias;
 

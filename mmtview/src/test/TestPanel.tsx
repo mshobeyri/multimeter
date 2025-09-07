@@ -1,47 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import parseYaml, { packYaml } from "../markupConvertor";
 import { TestData } from "./TestData";
 import TestOverview from "./TestOverview";
 import TestFlow from "./TestFlow";
+import { yamlToTest, testToYaml } from "./parsePack";
 
 interface TestPanelProps {
   content: string;
   setContent: (value: string) => void;
-}
-
-function yamlToTest(yamlContent: string): TestData {
-  try {
-    const doc = parseYaml(yamlContent) as any;
-    if (!doc || typeof doc !== "object") return {} as TestData;
-    return {
-      type: doc.type || "",
-      title: doc.title || "",
-      tags: doc.tags || [],
-      description: doc.description || "",
-      import: doc.import,
-      metrics: doc.metrics,
-      inputs: doc.inputs,
-      outputs: doc.outputs,
-      flow: doc.flow,
-    };
-  } catch {
-    return {} as TestData;
-  }
-}
-
-function testToYaml(test: TestData): string {
-  const yamlObj: Record<string, any> = {
-    type: test.type,
-    title: test.title,
-    tags: test.tags,
-  };
-  if (test.description) yamlObj.description = test.description;
-  if (test.import) yamlObj.import = test.import;
-  if (test.inputs) yamlObj.inputs = test.inputs;
-  if (test.outputs) yamlObj.outputs = test.outputs;
-  if (test.metrics) yamlObj.metrics = test.metrics;
-  if (test.flow) yamlObj.flow = test.flow;
-  return packYaml(yamlObj);
 }
 
 const LAST_TAB_KEY = "mmtview:lastTab";
