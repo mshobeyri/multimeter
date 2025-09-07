@@ -18,7 +18,8 @@ export function yamlToTest(yamlContent: string): TestData {
       metrics: doc.metrics,
       inputs: doc.inputs,
       outputs: doc.outputs,
-      flow: doc.flow,
+      steps: doc.steps,
+      stages: doc.stages,
     };
   } catch {
     return {} as TestData;
@@ -46,8 +47,11 @@ export function testToYaml(test: TestData): string {
   if (test.metrics) {
     yamlObj.metrics = test.metrics;
   }
-  if (test.flow) {
-    yamlObj.flow = test.flow;
+  if (test.steps) {
+    yamlObj.steps = test.steps;
+  }
+  if (test.stages) {
+    yamlObj.stages = test.stages;
   }
   return packYaml(yamlObj);
 }

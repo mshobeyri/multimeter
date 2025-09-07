@@ -21,7 +21,8 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
     metrics: {},
     inputs: {},
     outputs: {},
-    flow: [],
+    steps: [],
+    stages: [],
   });
   const lastUpdate = useRef<"yaml" | "ui" | null>(null);
   // Restore last selected tab from localStorage, default to "overview"
@@ -125,7 +126,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
           <div>
             <TestFlow
               testData={test}
-              update={newTest => setTest(prev => ({ ...prev, flow: newTest.flow }))}
+              update={newTest => setTest(prev => ({ ...prev, steps: newTest.flow }))}
             />
           </div>
         )}

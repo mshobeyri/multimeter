@@ -216,7 +216,7 @@ export interface TestContext {
 
 export const testToJsfunc = (ctx: TestContext): string => {
   const importedFuncs = importsToJsfunc(ctx.test.import ?? {});
-  const flow = flowStepsToJsfunc(ctx.test.flow ?? []);
+  const flow = flowStepsToJsfunc(ctx.test.steps ?? []);
   return `
 const ${ctx.name} = async(${Object.keys(ctx.inputs).join(', ')}) => {
 ${indentLines(importedFuncs)}

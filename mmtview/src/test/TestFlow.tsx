@@ -71,7 +71,7 @@ const updateStepValue = (step: any, value: any) => {
 };
 
 const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
-    const flow = safeList(testData.flow);
+    const flow = safeList(testData.steps);
     const [draggedIdx, setDraggedIdx] = React.useState<number | null>(null);
     const [dragOverIdx, setDragOverIdx] = React.useState<number | null>(null);
 

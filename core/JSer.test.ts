@@ -114,7 +114,7 @@ describe('testToJsfunc', () => {
       name: 'myTest',
       inputs: {x: '', y: ''},
       test: {
-        flow:
+        steps:
             [{type: 'call', id: 'step1', target: 'apiFunc', inputs: ['x', 'y']}]
       } as any,
       envVars: {ENV1: ''}
@@ -130,7 +130,7 @@ describe('testToJsfunc', () => {
       name: 'myTest',
       inputs: {x: '', y: ''},
       test: {
-        flow: [
+        steps: [
           {type: 'call', id: 'step1', target: 'apiFunc', inputs: ['x', 'y']},
           {
             type: 'call',

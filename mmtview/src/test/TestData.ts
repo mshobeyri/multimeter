@@ -68,7 +68,16 @@ export type TestFlowStep = TestFlowCallTest|TestFlowCallAPI|TestFlowCheck|
 
 export type TestFlowSteps = TestFlowStep[];
 
-export interface TestData extends MMTFile {
+export interface TestFlowStage {
+  id: string;
+  steps: TestFlowSteps;
+  condition?: Comparison;
+  dependencies?: string[];
+}
+
+export type TestFlowStages = TestFlowStage[];
+
+export interface TestDataBase extends MMTFile {
   title: string;
   tags: string[];
   description: string;
@@ -76,8 +85,18 @@ import?: Record<string, string>;
   inputs?: Record<string, string>;
   outputs?: Record<string, string>;
   metrics?: TestMetric;
-  flow?: TestFlowSteps;
+  steps?: TestFlowSteps;
+  stages?: TestFlowStages;
 }
+
+export interface TestDataSteps extends TestDataBase {
+  steps?: TestFlowSteps;
+}
+export interface TestDataStages extends TestDataBase {
+  stages?: TestFlowStages;
+}
+
+export type TestData = TestDataSteps|TestDataStages;
 
 export const flowTypeOptions = ['call', 'check', 'if', 'for', 'repeat', 'end'];
 export type CheckOps =
