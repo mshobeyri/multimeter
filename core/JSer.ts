@@ -2,7 +2,7 @@ import {APIData} from '../mmtview/src/api/APIData';
 import {yamlToAPI} from '../mmtview/src/api/parsePack';
 import {JSONRecord, Type} from '../mmtview/src/CommonData';
 import {yamlToTest} from '../mmtview/src/test/parsePack';
-import {TestData, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowStep, TestFlowSteps} from '../mmtview/src/test/TestData';
+import {TestData, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowStage, TestFlowStages, TestFlowStep, TestFlowSteps} from '../mmtview/src/test/TestData';
 
 export function indentLines(str: string): string {
   return str.split('\n').map(line => '    ' + line).join('\n');
@@ -210,13 +210,84 @@ export const flowStepsToJsfunc = (flow: TestFlowSteps): string => {
       .join('\n');
 };
 
+export const flowStagesToJsfunc = (flow: TestFlowStages): string => {
+  if (!flow || flow.length === 0) {
+    return '';
+  };
+
+  // Map stage name to its code and dependencies
+  const stageMap = new Map < string, {
+    code: string;
+    dependsOn?: string[]
+  }
+  > ();
+
+  for (const stage of flow) {
+    const stageName = stage.id || randomName();
+    const dependsOn = Array.isArray(stage.dependencies) ? stage.dependencies :
+        stage.dependencies                              ? [stage.dependencies] :
+                                                          [];
+    const code = flowStepsToJsfunc(stage.steps ?? []);
+    stageMap.set(stageName, {code, dependsOn});
+  }
+
+  // Helper to generate code for each stage with dependency handling
+  const generated: string[] = [];
+  const launched = new Set<string>();
+
+  function genStage(stageName: string) {
+    if (launched.has(stageName)) {
+      return;
+    }
+    const stage = stageMap.get(stageName);
+    if (!stage) {
+      return;
+    }
+    // Generate dependencies first
+    if (stage.dependsOn && stage.dependsOn.length > 0) {
+      for (const dep of stage.dependsOn) {
+        genStage(dep);
+      }
+      // Wait for dependencies to finish
+      generated.push(`await Promise.all([${
+          stage.dependsOn.map(dep => `${dep}Promise`).join(', ')}]);`);
+    }
+    // Launch this stage as a promise
+    generated.push(`const ${stageName}Promise = (async () => {\n${
+        indentLines(stage.code)}\n})();`);
+    launched.add(stageName);
+  }
+
+  // Launch all stages
+  for (const stageName of stageMap.keys()) {
+    genStage(stageName);
+  }
+
+  // Wait for all stages to finish
+  generated.push(`await Promise.all([${
+      Array.from(stageMap.keys())
+          .map(name => `${name}Promise`)
+          .join(', ')}]);`);
+
+  return generated.join('\n');
+};
+
 export interface TestContext {
   test: TestData, name: string, inputs: JSONRecord, envVars: JSONRecord
 }
 
 export const testToJsfunc = (ctx: TestContext): string => {
+  if (ctx.test.stages && ctx.test.stages.length > 0 && ctx.test.steps &&
+      ctx.test.steps.length > 0) {
+    throw new Error(`${ctx.name}: Test cannot have both stages and steps`);
+  }
+  let flow = '';
+  if (ctx.test.stages && ctx.test.stages.length > 0) {
+    flow = flowStagesToJsfunc(ctx.test.stages ?? []);
+  }else if (ctx.test.steps && ctx.test.steps.length > 0) {
+    flow = flowStepsToJsfunc(ctx.test.steps ?? []);
+  }
   const importedFuncs = importsToJsfunc(ctx.test.import ?? {});
-  const flow = flowStepsToJsfunc(ctx.test.steps ?? []);
   return `
 const ${ctx.name} = async(${Object.keys(ctx.inputs).join(', ')}) => {
 ${indentLines(importedFuncs)}
@@ -232,3 +303,7 @@ const result = await ${ctx.name}(inputs, envParameters);
 return result;
 `;
 };
+function randomName(): string {
+  // Generate a random stage name like "stage_xxxxx"
+  return 'stage_' + Math.random().toString(36).substr(2, 8);
+}

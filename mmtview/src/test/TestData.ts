@@ -68,11 +68,14 @@ export type TestFlowStep = TestFlowCallTest|TestFlowCallAPI|TestFlowCheck|
 
 export type TestFlowSteps = TestFlowStep[];
 
+export type TestFlowStageId = string;
+
 export interface TestFlowStage {
-  id: string;
+  id: TestFlowStageId;
+  name?: string;
   steps: TestFlowSteps;
   condition?: Comparison;
-  dependencies?: string[];
+  dependencies?: TestFlowStageId|TestFlowStageId[];
 }
 
 export type TestFlowStages = TestFlowStage[];
