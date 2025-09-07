@@ -4,6 +4,10 @@ import {JSONRecord, Type} from '../mmtview/src/CommonData';
 import {yamlToTest} from '../mmtview/src/test/parsePack';
 import {TestData, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowStep, TestFlowSteps} from '../mmtview/src/test/TestData';
 
+export function indentLines(str: string): string {
+  return str.split('\n').map(line => '    ' + line).join('\n');
+}
+
 export interface APIContext {
   api: APIData, name: string, inputs: JSONRecord, envVars: JSONRecord
 }
@@ -38,11 +42,11 @@ export const apiToJSfunc = (ctx: APIContext): string => {
   return `
 async function ${ctx.name}(${inputParams}) {
   const envParameters = {${
-             envVarNames
-                 .map(
-                     name => `${name}: (typeof ${name} !== 'undefined' ? ${
-                         name} : '')`)
-                 .join(', ')}};
+      envVarNames
+          .map(
+              name =>
+                  `${name}: (typeof ${name} !== 'undefined' ? ${name} : '')`)
+          .join(', ')}};
 
   const inputs = {${inputNames.map(name => `${name}: ${name}`).join(', ')}};
 
@@ -66,15 +70,15 @@ async function ${ctx.name}(${inputParams}) {
   // Build final outputs object
   const finalOutputs = {};
   ${
-             outputNames
-                 .map(
-                     name => `finalOutputs["${name}"] = extractedValues["${
-                         name}"] ?? "";`)
-                 .join('\n  ')}
+      outputNames
+          .map(
+              name =>
+                  `finalOutputs["${name}"] = extractedValues["${name}"] ?? "";`)
+          .join('\n  ')}
 
   return finalOutputs;
 }
-`.trim();
+`;
 };
 
 export const importsToJsfunc = (imports: Record<string, string>): string => {
@@ -101,33 +105,33 @@ export const conditionalStatementToJSfunc = (check: string): string => {
   const [left, operator, right] = checkParts;
   switch (operator) {
     case '<':
-      return `less(${left}, ${right});`;
+      return `less(${left}, ${right})`;
     case '>':
-      return `greater(${left}, ${right});`;
+      return `greater(${left}, ${right})`;
     case '<=':
-      return `lessOrEqual(${left}, ${right});`;
+      return `lessOrEqual(${left}, ${right})`;
     case '>=':
-      return `greaterOrEqual(${left}, ${right});`;
+      return `greaterOrEqual(${left}, ${right})`;
     case '==':
-      return `equals(${left}, ${right});`;
+      return `equals(${left}, ${right})`;
     case '!=':
-      return `notEquals(${left}, ${right});`;
+      return `notEquals(${left}, ${right})`;
     case '=@':
-      return `isAt(${left}, ${right});`;
+      return `isAt(${left}, ${right})`;
     case '!@':
-      return `isNotAt(${left}, ${right});`;
+      return `isNotAt(${left}, ${right})`;
     case '=~':
-      return `matches(${left}, ${right});`;
+      return `matches(${left}, ${right})`;
     case '!~':
-      return `notMatches(${left}, ${right});`;
+      return `notMatches(${left}, ${right})`;
     case '=^':
-      return `startsWith(${left}, ${right});`;
+      return `startsWith(${left}, ${right})`;
     case '!^':
-      return `notStartsWith(${left}, ${right});`;
+      return `notStartsWith(${left}, ${right})`;
     case '=$':
-      return `endsWith(${left}, ${right});`;
+      return `endsWith(${left}, ${right})`;
     case '!$':
-      return `notEndsWith(${left}, ${right});`;
+      return `notEndsWith(${left}, ${right})`;
     default:
       throw new Error(`${check}: Unknown operator: ${operator}`);
   }
@@ -142,14 +146,15 @@ export const ifToJSfunc = (condition: TestFlowCondition): string => {
   if (!elseBlock) {
     return `
 if (${conditionStatement}) {
-    ${thenBlock}
-}`;
+${indentLines(thenBlock)}
+}
+`;
   } else {
     return `
 if (${conditionStatement}) {
-    ${thenBlock}
+${indentLines(thenBlock)}
 } else {
-    ${elseBlock}
+${indentLines(elseBlock)}
 }`;
   }
 };
@@ -158,8 +163,8 @@ export const repeatToJSfunc = (loop: TestFlowRepeat): string => {
   const loopCondition = loop.repeat;
   const loopBody = flowStepsToJsfunc(loop.steps);
   return `
-for (const i = 0; i < ${loopCondition}; i++) {
-    ${loopBody}
+for (let i = 0; i < ${loopCondition}; i++) {
+${indentLines(loopBody)}
 }`;
 };
 
@@ -167,7 +172,7 @@ export const forToJSfunc = (loop: TestFlowLoop): string => {
   const loopBody = flowStepsToJsfunc(loop.steps);
   return `
 for (${loop.for}) {
-    ${loopBody}
+${indentLines(loopBody)}
 }`;
 };
 
@@ -175,18 +180,10 @@ for (${loop.for}) {
 export const checkToJSfunc = (check: string): string => {
   const conditionStatement = conditionalStatementToJSfunc(check);
   return `
-if (!(${conditionStatement})) {
+if (!${conditionStatement}) {
     throw new Error("Check failed: ${check}");
 }`;
 };
-
-export interface TestContext {
-  test: TestData, name: string, inputs: JSONRecord, envVars: JSONRecord
-}
-
-export interface TestContext {
-  test: TestData, name: string, inputs: JSONRecord, envVars: JSONRecord
-}
 
 export const flowStepsToJsfunc = (flow: TestFlowSteps): string => {
   return (flow ?? [])
@@ -213,29 +210,25 @@ export const flowStepsToJsfunc = (flow: TestFlowSteps): string => {
       .join('\n');
 };
 
+export interface TestContext {
+  test: TestData, name: string, inputs: JSONRecord, envVars: JSONRecord
+}
 
 export const testToJsfunc = (ctx: TestContext): string => {
   const importedFuncs = importsToJsfunc(ctx.test.import ?? {});
   const flow = flowStepsToJsfunc(ctx.test.flow ?? []);
   return `
-${importedFuncs}
+const ${ctx.name} = async(${Object.keys(ctx.inputs).join(', ')}) => {
+${indentLines(importedFuncs)}
+${indentLines(flow)}
+};
 
-async function ${ctx.name}(${Object.keys(ctx.inputs).join(', ')}) {
-  const envParameters = {${
-             Object.keys(ctx.envVars)
-                 .map(
-                     name => `${name}: (typeof ${name} !== 'undefined' ? ${
-                         name} : '')`)
-                 .join(', ')}};
+const envParameters = {${
+      Object.keys(ctx.envVars).map(name => `${name}: ${name}`).join(', ')}};
 
-  const inputs = {${
-             Object.keys(ctx.inputs)
-                 .map(name => `${name}: ${name}`)
-                 .join(', ')}};
-
-  // Call the test function with the prepared inputs and env parameters
-  const result = await ${ctx.name}(inputs, envParameters);
-  return result;
-}
-`.trim();
+const inputs = {${
+      Object.keys(ctx.inputs).map(name => `${name}: ${name}`).join(', ')}};
+const result = await ${ctx.name}(inputs, envParameters);
+return result;
+`;
 };

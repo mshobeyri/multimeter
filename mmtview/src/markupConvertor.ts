@@ -1,6 +1,5 @@
-import {format} from 'path/win32';
 import {js2xml, xml2js} from 'xml-js';
-import YAML from 'yaml';
+import * as YAML from 'yaml';
 
 function parseYamlDoc(yamlString: string): any {
   return YAML.parseDocument(yamlString);
@@ -123,4 +122,5 @@ export {
   beautify,
   beautifyWithContentType
 };
+
 export default parseYaml;
