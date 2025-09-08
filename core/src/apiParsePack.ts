@@ -1,6 +1,6 @@
 
-import parseYaml, {packYaml} from '../markupConvertor';
-import {isNonEmptyList, isNonEmptyObject, safeList} from '../safer';
+import parseYaml, {packYaml} from './markupConvertor';
+import {isNonEmptyList, isNonEmptyObject, safeList} from './safer';
 
 import {APIData} from './APIData';
 

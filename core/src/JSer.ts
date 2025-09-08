@@ -1,8 +1,8 @@
-import {APIData} from '../mmtview/src/api/APIData';
-import {yamlToAPI} from '../mmtview/src/api/parsePack';
-import {JSONRecord, Type} from '../mmtview/src/CommonData';
-import {yamlToTest} from '../mmtview/src/test/parsePack';
-import {TestData, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowStage, TestFlowStages, TestFlowStep, TestFlowSteps} from '../mmtview/src/test/TestData';
+import {APIData} from './APIData';
+import {yamlToAPI} from './apiParsePack';
+import {JSONRecord, Type} from './CommonData';
+import {TestData, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowStage, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
+import {yamlToTest} from './testParsePack';
 
 export function indentLines(str: string): string {
   return str.split('\n').map(line => '    ' + line).join('\n');
@@ -284,7 +284,7 @@ export const testToJsfunc = (ctx: TestContext): string => {
   let flow = '';
   if (ctx.test.stages && ctx.test.stages.length > 0) {
     flow = flowStagesToJsfunc(ctx.test.stages ?? []);
-  }else if (ctx.test.steps && ctx.test.steps.length > 0) {
+  } else if (ctx.test.steps && ctx.test.steps.length > 0) {
     flow = flowStepsToJsfunc(ctx.test.steps ?? []);
   }
   const importedFuncs = importsToJsfunc(ctx.test.import ?? {});

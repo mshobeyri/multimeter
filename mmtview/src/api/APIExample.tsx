@@ -1,10 +1,10 @@
 import React from "react";
 import VEditor from "../components/VEditor";
-import { ExampleData } from "./APIData";
+import { ExampleData } from "mmt-core/dist/APIData";
 import FieldWithRemove from "../components/FieldWithRemove";
 import DescriptionEditor from "../components/DescriptionEditor";
-import { isNonEmptyObject } from "../safer";
-import { JSONRecord } from "../CommonData";
+import { isNonEmptyObject } from "mmt-core/dist/safer";
+import { JSONRecord } from "mmt-core/dist/CommonData";
 
 interface APIExampleProps {
   data: ExampleData;

@@ -1,5 +1,5 @@
 import React from "react";
-import { safeList } from "../safer";
+import { safeList } from "mmt-core/dist/safer";
 
 interface ValidatableSelectProps {
   value: string;

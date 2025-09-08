@@ -1,4 +1,4 @@
-import {JSONValue} from '../CommonData';
+import {JSONValue} from 'mmt-core/dist/CommonData';
 import {EnvVariable} from './EnvironmentData';
 import {loadEnvVariables, saveEnvVariablesFromObject} from '../workspaceStorage';
 

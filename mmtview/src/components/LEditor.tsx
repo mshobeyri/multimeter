@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useEffect, useState } from "react";
 import FieldWithRemove from "./FieldWithRemove";
-import { safeList } from "../safer";
+import { safeList } from "mmt-core/dist/safer";
 
 interface LEditorProps {
     label: string,

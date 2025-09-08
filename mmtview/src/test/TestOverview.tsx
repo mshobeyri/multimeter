@@ -1,11 +1,11 @@
 import React from "react";
 import SearchableTagInput from "../components/SearchableTagInput";
 import KVEditor from "../components/KVEditor";
-import { TestData } from "./TestData";
-import { jsonTypes } from "../CommonData";
+import { TestData } from "mmt-core/dist/TestData";
+import { jsonTypes } from "mmt-core/dist/CommonData";
 import VEditor from "../components/VEditor";
 import DescriptionEditor from "../components/DescriptionEditor";
-import { safeList } from "../safer";
+import { safeList } from "mmt-core/dist/safer";
 
 interface TestOverviewProps {
   test: TestData;

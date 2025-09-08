@@ -1,4 +1,4 @@
-import { APIData } from './api/APIData';
+import { APIData } from './APIData';
 import {JSONRecord} from './CommonData';
 import {safeList} from './safer';
 
@@ -14,13 +14,16 @@ function replaceRefs(
     inputs: Record<string, any>): any {
   if (typeof obj === 'string') {
     // Check if the entire string is a single variable reference
-    const matches = Array.from(obj.matchAll(pattern));
-    
+    const match = obj.match(pattern);
+
     // If there's exactly one match and it covers the entire string
-    if (matches.length === 1 && matches[0][0] === obj) {
-      const key = matches[0][1];
-      const found = inputs[key];
-      
+    if (match && match.length === 1 && match[0] === obj) {
+      // Extract the key using the pattern
+      const keyMatch = pattern.exec(obj);
+      pattern.lastIndex = 0; // Reset lastIndex for global regex
+      const key = keyMatch && keyMatch[1];
+      const found = key ? inputs[key] : undefined;
+
       if (found !== undefined) {
         // Return the original type for complete string replacement
         return found;

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import MonacoEditor from "@monaco-editor/react";
 import { FIXED_BG_THEME, defineTheme } from "./Theme";
 
@@ -72,9 +72,30 @@ const TextEditor: React.FC<TextEditorProps> = ({
     });
   }, []);
 
+  const [height, setHeight] = useState(100);
+  const editorDidMount = (editor: any) => {
+    editorRefToUse.current = editor;
+    updateHeight(editor);
+    editor.onDidChangeModelContent(() => updateHeight(editor));
+    // Listen for focus/blur
+    editor.onDidFocusEditorWidget?.(() => {
+      if (typeof onFocusChange === "function") onFocusChange(true);
+    });
+    editor.onDidBlurEditorWidget?.(() => {
+      if (typeof onFocusChange === "function") onFocusChange(false);
+    });
+  };
+
+  const updateHeight = (editor: any) => {
+    if (editor) {
+      const lineCount = editor.getModel().getLineCount();
+      setHeight(lineCount * 20 + 20); // 20px per line, adjust as needed
+    }
+  };
+
   return (
     <MonacoEditor
-      height="100%"
+      height={height}
       width="100%"
       language={language}
       value={content}
@@ -84,17 +105,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
         defineTheme(monaco);
         beforeMount?.(monaco);
       }}
-      onMount={editor => {
-        setEditorReady && setEditorReady(true);
-        editorRefToUse.current = editor;
-        // Listen for focus/blur
-        editor.onDidFocusEditorWidget?.(() => {
-          if (typeof onFocusChange === "function") onFocusChange(true);
-        });
-        editor.onDidBlurEditorWidget?.(() => {
-          if (typeof onFocusChange === "function") onFocusChange(false);
-        });
-      }}
+      onMount={editorDidMount}
       onChange={value => setContent(value ?? "")}
       options={{
         fontSize,

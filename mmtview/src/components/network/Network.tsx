@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { NetworkAPI, Request } from "./NetworkData";
 import { NetworkNodeApi, Error } from "./NetworkNodeApi";
 import { pushHistory } from "../../vsAPI";
-import { beautifyWithContentType } from "../../markupConvertor";
+import { beautifyWithContentType } from "mmt-core/dist/markupConvertor";
 
 export function useNetwork(): NetworkAPI {
   const [connected, setConnected] = useState(false);

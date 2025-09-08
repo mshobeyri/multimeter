@@ -1,6 +1,6 @@
 import {xml2js} from 'xml-js';
-import {JSONRecord} from '../CommonData';
-import {flattenXmlObj} from '../markupConvertor';
+import {JSONRecord} from './CommonData';
+import {flattenXmlObj} from './markupConvertor';
 
 export interface ResponseData {
   type: 'xml'|'json'|'text';

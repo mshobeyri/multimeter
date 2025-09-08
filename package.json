@@ -323,12 +323,13 @@
   ],
   "license": "MIT",
   "scripts": {
+    "buildcore": "npm run build --prefix core",
     "buildview": "npm run build --prefix mmtview",
     "pack": "vsce package",
     "publish": "vsce publish",
     "install-package": "code --install-extension multimeter-0.18.0.vsix",
     "vscode:prepublish": "npm run package",
-    "compile": "npm run buildview && npm run check-types && npm run lint && node esbuild.js",
+    "compile": "npm run buildcore && npm run buildview && npm run check-types && npm run lint && node esbuild.js",
     "watch": "npm-run-all -p watch:*",
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
@@ -360,6 +361,7 @@
   "dependencies": {
     "axios": "^1.10.0",
     "buffer": "^6.0.3",
+    "mmt-core": "file:./core",
     "uuid": "^11.1.0",
     "ws": "^8.18.3",
     "xml-js": "^1.6.11",

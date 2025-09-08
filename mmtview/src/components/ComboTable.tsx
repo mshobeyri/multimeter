@@ -1,7 +1,7 @@
 import React from "react";
 import ValidatableSelect from "./ValidatableSelect";
-import { safeList } from "../safer";
-import { JSONValue } from "../CommonData";
+import { safeList } from "mmt-core/dist/safer";
+import { JSONValue } from "mmt-core/dist/CommonData";
 
 interface ComboTableOption {
   label: string;

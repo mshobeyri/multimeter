@@ -4,7 +4,7 @@ import ValidatableSelect from "../components/ValidatableSelect";
 import KVEditor from "../components/KVEditor";
 import LEditor from "../components/LEditor"; // <-- Use LEditor instead of VEditor
 import { EnvironmentData } from "./EnvironmentData";
-import { safeList } from "../safer";
+import { safeList } from "mmt-core/dist/safer";
 
 // Only two types for this editor: "list" and "object"
 const typeOptions = [

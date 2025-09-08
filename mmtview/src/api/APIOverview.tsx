@@ -1,10 +1,10 @@
 import React from "react";
 import SearchableTagInput from "../components/SearchableTagInput";
 import KVEditor from "../components/KVEditor";
-import { APIData } from "./APIData";
-import { jsonTypes } from "../CommonData"
+import { APIData } from "mmt-core/dist/APIData";
+import { jsonTypes } from "mmt-core/dist/CommonData"
 import DescriptionEditor from "../components/DescriptionEditor";
-import { safeList } from "../safer";
+import { safeList } from "mmt-core/dist/safer";
 
 interface APIOverviewProps {
   api: APIData;

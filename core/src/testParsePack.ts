@@ -1,5 +1,5 @@
 
-import parseYaml, {packYaml} from '../markupConvertor';
+import parseYaml, {packYaml} from './markupConvertor';
 
 import {TestData} from './TestData';
 

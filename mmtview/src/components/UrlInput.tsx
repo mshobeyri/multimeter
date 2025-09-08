@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { safeList } from "../safer";
+import { safeList } from "mmt-core/dist/safer";
 
 interface UrlInputProps {
   url: string;

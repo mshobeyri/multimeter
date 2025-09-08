@@ -1,7 +1,7 @@
-import {JSONRecord} from '../CommonData';
-import {formatBody} from '../markupConvertor';
-import {safeList} from '../safer';
-import {replaceAllRefs} from '../variableReplacer';
+import {JSONRecord} from './CommonData';
+import {formatBody} from './markupConvertor';
+import {safeList} from './safer';
+import {replaceAllRefs} from './variableReplacer';
 
 import {APIData} from './APIData';
 import {extractOutputs} from './outputExtractor';

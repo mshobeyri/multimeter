@@ -1,5 +1,3 @@
-import {Parameter} from './CommonData';
-
 export function safeList(value: any): any[] {
   return value && Array.isArray(value) ? value : [];
 }

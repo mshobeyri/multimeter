@@ -6,9 +6,8 @@ import VariablesPanel from "./variable/VariablesPanel";
 import APIPanel from "./api/APIPanel";
 import NotypePanel from "./NotypePanel";
 import TestPanel from "./test/TestPanel";
-import parseYaml from "./markupConvertor";
+import parseYaml from "mmt-core/dist/markupConvertor";
 import YamlEditorPanel from "./text/YamlEditorPanel";
-import { set } from "yaml/dist/schema/yaml-1.1/set";
 
 declare global {
   interface Window {

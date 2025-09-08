@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import FieldWithRemove from "../components/FieldWithRemove";
 import ValidatableSelect from "../components/ValidatableSelect";
-import { jsonTypes } from "../CommonData";
+import { jsonTypes } from "mmt-core/dist/CommonData";
 import { Variable, Variables } from "./VariablesData";
 import KVEditor from "../components/KVEditor";
-import { safeList } from "../safer";
+import { safeList } from "mmt-core/dist/safer";
 
 const fieldOptions = [
   "description", "default"

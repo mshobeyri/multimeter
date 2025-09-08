@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as yaml from 'yaml';
 
-import {APIData} from '../mmtview/src/api/APIData';
+import {APIData} from '../core/src/APIData';
 
 // Helper to extract key-value pairs from Postman format and convert to object
 function extractKeyValue(arr: any[] = []): Record<string, string> {

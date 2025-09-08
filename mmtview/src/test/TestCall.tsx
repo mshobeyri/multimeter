@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { TestFlowCallTest, TestFlowCallAPI } from "./TestData";
-import parseYaml, { packYaml } from "../markupConvertor";
-import { MMTFile, Parameter } from "../CommonData";
+import { TestFlowCallTest, TestFlowCallAPI } from "mmt-core/dist/TestData";
+import parseYaml, { packYaml } from "mmt-core/dist/markupConvertor";
+import { MMTFile, Parameter } from "mmt-core/dist/CommonData";
 import { showVSCodeMessage, readFile } from "../vsAPI";
-import { safeList } from "../safer";
+import { safeList } from "mmt-core/dist/safer";
 
 interface TestCallProps {
   value: string;

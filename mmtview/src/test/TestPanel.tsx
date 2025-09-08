@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
-import { TestData } from "./TestData";
+import { TestData } from "mmt-core/dist/TestData";
 import TestOverview from "./TestOverview";
 import TestFlow from "./TestFlow";
-import { yamlToTest, testToYaml } from "./parsePack";
+import { yamlToTest, testToYaml } from "mmt-core/dist/testParsePack";
+import TestCode from "./TestCode";
 
 interface TestPanelProps {
   content: string;
@@ -26,8 +27,8 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
   });
   const lastUpdate = useRef<"yaml" | "ui" | null>(null);
   // Restore last selected tab from localStorage, default to "overview"
-  const [tab, setTab] = useState<"overview" | "flow" | "examples">(
-    () => (localStorage.getItem(LAST_TAB_KEY) as "overview" | "flow" | "examples") || "overview"
+  const [tab, setTab] = useState<"overview" | "flow" | "code" | "examples">(
+    () => (localStorage.getItem(LAST_TAB_KEY) as "overview" | "flow" | "code" | "examples") || "overview"
   );
   const [showIconsOnly, setShowIconsOnly] = useState(false);
   const tabContainerRef = useRef<HTMLDivElement>(null);
@@ -105,6 +106,14 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
             {!showIconsOnly && "Flow"}
           </button>
           <button
+            onClick={() => setTab("code")}
+            className={`tab-button ${tab === "code" ? "active" : ""}`}
+            title={showIconsOnly ? "Code" : undefined}
+          >
+            <span className="codicon codicon-code tab-button-icon"></span>
+            {!showIconsOnly && "Code"}
+          </button>
+          <button
             onClick={() => setTab("examples")}
             className={`tab-button ${tab === "examples" ? "active" : ""}`}
             title={showIconsOnly ? "Examples" : undefined}
@@ -126,7 +135,13 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
           <div>
             <TestFlow
               testData={test}
-              update={newTest => setTest(prev => ({ ...prev, steps: newTest.flow }))}
+            />
+          </div>
+        )}
+        {tab === "code" && (
+          <div>
+            <TestCode
+              testData={test}
             />
           </div>
         )}

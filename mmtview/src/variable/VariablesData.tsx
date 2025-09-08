@@ -1,4 +1,4 @@
-import { MMTFile } from "../CommonData";
+import { MMTFile } from "mmt-core/dist/CommonData";
 
 export interface Variable {
   name: string;

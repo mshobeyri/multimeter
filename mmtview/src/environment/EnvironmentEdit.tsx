@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import parseYaml, { packYaml } from "../markupConvertor";
+import parseYaml, { packYaml } from "mmt-core/dist/markupConvertor";
 import EnvironmentVariableEdit from "./EnvironmentVariableEdit";
 import EnvironmentPresetEdit from "./EnvironmentPresetEdit";
 import { EnvironmentData } from "./EnvironmentData";

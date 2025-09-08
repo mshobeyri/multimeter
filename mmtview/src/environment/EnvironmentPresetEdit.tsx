@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import FieldWithRemove from "../components/FieldWithRemove";
 import KVEditor from "../components/KVEditor";
-import { safeList } from "../safer";
+import { safeList } from "mmt-core/dist/safer";
 
 interface PresetBoard {
     name: string; // e.g. "runner"

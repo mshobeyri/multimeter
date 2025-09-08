@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import ValidatableSelect from "./ValidatableSelect";
-import { safeList } from "../safer";
+import { safeList } from "mmt-core/dist/safer";
 
 interface ObjectFieldsEditorProps {
     fields: Record<string, string>;

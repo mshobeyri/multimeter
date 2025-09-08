@@ -103,10 +103,10 @@ describe('testToJsfunc (multi-stage)', () => {
       envVars: {},
     };
     // Patch testToJsfunc to use flowStagesToJsfunc for this test
-    const originalFlowStagesToJsfunc = (global as any).flowStagesToJsfunc;
-    (global as any).flowStagesToJsfunc = flowStagesToJsfunc;
+    const originalFlowStagesToJsfunc = (globalThis as any).flowStagesToJsfunc;
+    (globalThis as any).flowStagesToJsfunc = flowStagesToJsfunc;
     const js = testToJsfunc(ctx);
-    (global as any).flowStagesToJsfunc = originalFlowStagesToJsfunc;
+    (globalThis as any).flowStagesToJsfunc = originalFlowStagesToJsfunc;
     expect(js).toContain('const stage1Promise = (async () =>');
     expect(js).toContain('const stage2Promise = (async () =>');
     expect(js).toContain('await Promise.all([stage1Promise]);');

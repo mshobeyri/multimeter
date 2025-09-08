@@ -1,6 +1,6 @@
 
 
-import {MMTFile} from '../CommonData';
+import {MMTFile} from './CommonData';
 
 export type Timestr = `${number}s`|`${number}m`|`${number}h`|'inf';
 export type Repeat = `${number}`|'inf';

@@ -1,5 +1,5 @@
 
-import { JSONValue } from "../CommonData";
+import { JSONValue } from "mmt-core/dist/CommonData";
 
 export type EnvironmentData = {
   type: string;

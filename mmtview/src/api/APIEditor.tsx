@@ -3,8 +3,8 @@ import APIOverview from "./APIOverview";
 import InterfaceEditor from "./APIInterface";
 import APIExample from "./APIExample";
 import APITest from "./APITester";
-import { APIData, ExampleData } from "./APIData";
-import { safeList, safeListCopy } from "../safer";
+import { APIData, ExampleData } from "mmt-core/dist/APIData";
+import { safeList, safeListCopy } from "mmt-core/dist/safer";
 
 const LAST_API_TAB_KEY = "mmtview:api:lastTab";
 

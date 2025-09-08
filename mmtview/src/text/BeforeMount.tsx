@@ -1,7 +1,7 @@
 import { validateYamlContent } from './Validate';
 import { KeySuggestionsByParent } from './AutoComplete';
 import { loadEnvVariables } from '../workspaceStorage';
-import { JSONValue } from '../CommonData';
+import { JSONValue } from 'mmt-core/dist/CommonData';
 
 export const handleBeforeMount = (monaco: any) => {
     const keySuggestionsByParent = KeySuggestionsByParent(monaco);

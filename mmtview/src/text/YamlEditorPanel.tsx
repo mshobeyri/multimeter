@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
-import { parseYamlDoc } from "../markupConvertor";
+import { parseYamlDoc } from "mmt-core/dist/markupConvertor";
 import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./BeforeMount";
-import { safeList } from "../safer";
+import { safeList } from "mmt-core/dist/safer";
 
 interface YamlEditorPanelProps {
   content: string;
