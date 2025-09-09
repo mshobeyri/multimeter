@@ -56,3 +56,14 @@ export const pushHistory = (item: {
     }
   });
 };
+
+export const importsToJsfunc = async (imports: Record<string, string>) => {
+  const results = await Promise.all(
+    Object.entries(imports).map(async ([name, path]) => {
+      const content = await readFile(path);
+      // ...process content...
+      return `function ${name}() {${content}}`;
+    })
+  );
+  return results.join('\n');
+};

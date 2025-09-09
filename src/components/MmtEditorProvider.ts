@@ -145,7 +145,8 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           let contentPromise =
               readRelativeFileContent(document.uri.fsPath, message.filename);
           contentPromise.then(content => {
-            webviewPanel.webview.postMessage({command: 'fileContent', content});
+            webviewPanel.webview.postMessage(
+                {command: 'fileContent', content, filename: message.filename});
           });
           break;
 

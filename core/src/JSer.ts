@@ -13,24 +13,40 @@ export interface APIContext {
 }
 
 export const fileType = (content: string): Type => {
-  // Implementation for determining the file type
-  return 'test';
+  if (content.includes('type: api')) {
+    return 'api';
+  }
+  if (content.includes('type: test')) {
+    return 'test';
+  }
+  if (content.includes('type: var')) {
+    return 'var';
+  }
+  if (content.includes('type: env')) {
+    return 'env';
+  }
+  return null;
 };
 
+export type FileLoader = (path: string) => Promise<string>;
+
 declare let window: any;
-export const readFile = (path: string): string => {
-  // Node.js: Use fs to read file synchronously  
-  if (typeof window === "undefined" && typeof require !== "undefined") {
+export let readFile: FileLoader = async (path: string) => {
+  if (typeof window === 'undefined' && typeof require !== 'undefined') {
     try {
-      const fs = require("fs");
-      return fs.readFileSync(path, "utf8");
+      const fs = require('fs');
+      return fs.readFileSync(path, 'utf8');
     } catch (e) {
-      return ""; // Return empty string on error
+      return '';
     }
   }
-  // Browser: Return empty string instead of throwing
-  return "";
+  return '';
 };
+
+// Allow overriding the file loader
+export function setFileLoader(loader: FileLoader) {
+  readFile = loader;
+}
 
 export const importApiToJSfunc = (ctx: APIContext): string => {
   // Prepare input parameter names
@@ -89,10 +105,11 @@ export const importApiToJSfunc = (ctx: APIContext): string => {
 }`;
 };
 
-export const importsToJsfunc = (imports: Record<string, string>): string => {
-  return Object.entries(imports)
-      .map(([name, path]) => {
-        let content = readFile(path);
+export const importsToJsfunc =
+    async(imports: Record<string, string>): Promise<string> => {
+  const results =
+      await Promise.all(Object.entries(imports).map(async ([name, path]) => {
+        let content = await readFile(path);
         let type = fileType(content);
         if (type === 'test') {
           return importTestToJsfunc(
@@ -101,8 +118,10 @@ export const importsToJsfunc = (imports: Record<string, string>): string => {
           return importApiToJSfunc(
               {api: yamlToAPI(content), name, inputs: {}, envVars: {}});
         }
-      })
-      .join('\n');
+        return '';
+      }));
+  console.log('ssss', results);
+  return results.join('\n');
 };
 
 export const conditionalStatementToJSfunc = (check: string): string => {
@@ -291,7 +310,7 @@ export interface TestContext {
   test: TestData, name: string, inputs: JSONRecord, envVars: JSONRecord
 }
 
-export const importTestToJsfunc = (ctx: TestContext): string => {
+export const importTestToJsfunc = async(ctx: TestContext): Promise<string> => {
   if (ctx.test.stages && ctx.test.stages.length > 0 && ctx.test.steps &&
       ctx.test.steps.length > 0) {
     throw new Error(`${ctx.name}: Test cannot have both stages and steps`);
@@ -302,21 +321,21 @@ export const importTestToJsfunc = (ctx: TestContext): string => {
   } else if (ctx.test.steps && ctx.test.steps.length > 0) {
     flow = flowStepsToJsfunc(ctx.test.steps ?? []);
   }
-  const importedFuncs = importsToJsfunc(ctx.test.import ?? {});
+  const importedFuncs = await importsToJsfunc(ctx.test.import ?? {});
   return `const ${ctx.name} = async (${Object.keys(ctx.inputs).join(', ')}) => {
 ${indentLines(importedFuncs)}
 ${indentLines(flow)}
 };`;
 };
 
-export const rootTestToJsfunc = (ctx: TestContext): string => {
+export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
   if (ctx.test.stages && ctx.test.stages.length > 0 && ctx.test.steps &&
       ctx.test.steps.length > 0) {
     throw new Error(`${ctx.name}: Test cannot have both stages and steps`);
   }
 
   let importedFuncs = '// Imported tests and APIs\n';
-  importedFuncs += importsToJsfunc(ctx.test.import ?? {});
+  importedFuncs += await importsToJsfunc(ctx.test.import ?? {});
 
   let flow = '// Test flow\n';
   if (ctx.test.stages && ctx.test.stages.length > 0) {

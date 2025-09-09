@@ -1,6 +1,7 @@
 import React from "react";
 import TextEditor from "../text/TextEditor";
-import { rootTestToJsfunc } from "mmt-core/dist/JSer";
+import { rootTestToJsfunc, setFileLoader } from "mmt-core/dist/JSer";
+import {readFile} from "../vsAPI"
 
 interface TestCodeProps {
     testData: any;
@@ -10,20 +11,25 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
     const [jsCode, setJsCode] = React.useState<string>("");
     const [error, setError] = React.useState<string | null>(null);
 
+    setFileLoader(readFile);
+
     React.useEffect(() => {
-        try {
-            const code = rootTestToJsfunc({
-                name: testData?.title || "testFlow",
-                test: testData,
-                inputs: testData?.inputs || {},
-                envVars: testData?.envVars || {},
-            });
-            setJsCode(code);
-            setError(null);
-        } catch (e: any) {
-            setError(e?.message || String(e));
-            setJsCode("");
-        }
+        const generateCode = async () => {
+            try {
+                const code = await rootTestToJsfunc({
+                    name: testData?.title || "testFlow",
+                    test: testData,
+                    inputs: testData?.inputs || {},
+                    envVars: testData?.envVars || {},
+                });
+                setJsCode(code);
+                setError(null);
+            } catch (e: any) {
+                setError(e?.message || String(e));
+                setJsCode("");
+            }
+        };
+        generateCode();
     }, [testData]);
 
     return (
