@@ -17,12 +17,22 @@ export const fileType = (content: string): Type => {
   return 'test';
 };
 
+declare let window: any;
 export const readFile = (path: string): string => {
-  // Implementation for reading a file
-  return '';
+  // Node.js: Use fs to read file synchronously  
+  if (typeof window === "undefined" && typeof require !== "undefined") {
+    try {
+      const fs = require("fs");
+      return fs.readFileSync(path, "utf8");
+    } catch (e) {
+      return ""; // Return empty string on error
+    }
+  }
+  // Browser: Return empty string instead of throwing
+  return "";
 };
 
-export const apiToJSfunc = (ctx: APIContext): string => {
+export const importApiToJSfunc = (ctx: APIContext): string => {
   // Prepare input parameter names
   const inputNames = Array.isArray(ctx.api.inputs) ?
       ctx.api.inputs.map((input: any) => input.name) :
@@ -39,8 +49,7 @@ export const apiToJSfunc = (ctx: APIContext): string => {
       Object.keys(ctx.envVars ?? {});
 
   // Generate the function as a string
-  return `
-async function ${ctx.name}(${inputParams}) {
+  return `async function ${ctx.name}(${inputParams}) {
   const envParameters = {${
       envVarNames
           .map(
@@ -77,8 +86,7 @@ async function ${ctx.name}(${inputParams}) {
           .join('\n  ')}
 
   return finalOutputs;
-}
-`;
+}`;
 };
 
 export const importsToJsfunc = (imports: Record<string, string>): string => {
@@ -87,10 +95,10 @@ export const importsToJsfunc = (imports: Record<string, string>): string => {
         let content = readFile(path);
         let type = fileType(content);
         if (type === 'test') {
-          return testToJsfunc(
+          return importTestToJsfunc(
               {test: yamlToTest(content), name, inputs: {}, envVars: {}});
         } else if (type === 'api') {
-          return apiToJSfunc(
+          return importApiToJSfunc(
               {api: yamlToAPI(content), name, inputs: {}, envVars: {}});
         }
       })
@@ -144,14 +152,11 @@ export const ifToJSfunc = (condition: TestFlowCondition): string => {
       condition.else ? flowStepsToJsfunc(condition.else) : undefined;
 
   if (!elseBlock) {
-    return `
-if (${conditionStatement}) {
+    return `if (${conditionStatement}) {
 ${indentLines(thenBlock)}
-}
-`;
+}`;
   } else {
-    return `
-if (${conditionStatement}) {
+    return `if (${conditionStatement}) {
 ${indentLines(thenBlock)}
 } else {
 ${indentLines(elseBlock)}
@@ -162,8 +167,7 @@ ${indentLines(elseBlock)}
 export const repeatToJSfunc = (loop: TestFlowRepeat): string => {
   const loopCondition = loop.repeat;
   const loopBody = flowStepsToJsfunc(loop.steps);
-  return `
-for (let i = 0; i < ${loopCondition}; i++) {
+  return `for (let i = 0; i < ${loopCondition}; i++) {
 ${indentLines(loopBody)}
 }`;
 };
@@ -179,29 +183,40 @@ ${indentLines(loopBody)}
 
 export const checkToJSfunc = (check: string): string => {
   const conditionStatement = conditionalStatementToJSfunc(check);
-  return `
-if (!${conditionStatement}) {
+  return `if (!${conditionStatement}) {
     throw new Error("Check failed: ${check}");
 }`;
+};
+
+
+export const callToJSfunc = (step: TestFlowCall): string => {
+  const inputs = Object.values(step.inputs || {})
+                     .map(v => typeof v === 'string' ? JSON.stringify(v) : v)
+                     .join(', ');
+
+  if (step.id) {
+    return `const ${step.id} = await ${step.call}(${inputs});`;
+  } else {
+    return `await ${step.call}(${inputs});`;
+  }
 };
 
 export const flowStepsToJsfunc = (flow: TestFlowSteps): string => {
   return (flow ?? [])
       .map((step: TestFlowStep) => {
-        if (step?.type === 'call') {
+        if ('call' in step) {
           step = step as TestFlowCall;
-          return `const ${step.id} = await ${step.target}(${
-              step.inputs?.join(', ')});`;
-        } else if (step?.type === 'check') {
+          return callToJSfunc(step);
+        } else if ('check' in step) {
           step = step as TestFlowCheck;
           return checkToJSfunc(step.check);
-        } else if (step?.type === 'if') {
+        } else if ('if' in step) {
           step = step as TestFlowCondition;
           return ifToJSfunc(step);
-        } else if (step?.type === 'repeat') {
+        } else if ('repeat' in step) {
           step = step as TestFlowRepeat;
           return repeatToJSfunc(step);
-        } else if (step?.type === 'for') {
+        } else if ('for' in step) {
           step = step as TestFlowLoop;
           return forToJSfunc(step);
         }
@@ -276,7 +291,7 @@ export interface TestContext {
   test: TestData, name: string, inputs: JSONRecord, envVars: JSONRecord
 }
 
-export const testToJsfunc = (ctx: TestContext): string => {
+export const importTestToJsfunc = (ctx: TestContext): string => {
   if (ctx.test.stages && ctx.test.stages.length > 0 && ctx.test.steps &&
       ctx.test.steps.length > 0) {
     throw new Error(`${ctx.name}: Test cannot have both stages and steps`);
@@ -288,21 +303,39 @@ export const testToJsfunc = (ctx: TestContext): string => {
     flow = flowStepsToJsfunc(ctx.test.steps ?? []);
   }
   const importedFuncs = importsToJsfunc(ctx.test.import ?? {});
-  return `
-const ${ctx.name} = async(${Object.keys(ctx.inputs).join(', ')}) => {
+  return `const ${ctx.name} = async (${Object.keys(ctx.inputs).join(', ')}) => {
 ${indentLines(importedFuncs)}
+${indentLines(flow)}
+};`;
+};
+
+export const rootTestToJsfunc = (ctx: TestContext): string => {
+  if (ctx.test.stages && ctx.test.stages.length > 0 && ctx.test.steps &&
+      ctx.test.steps.length > 0) {
+    throw new Error(`${ctx.name}: Test cannot have both stages and steps`);
+  }
+
+  let importedFuncs = '// Imported tests and APIs\n';
+  importedFuncs += importsToJsfunc(ctx.test.import ?? {});
+
+  let flow = '// Test flow\n';
+  if (ctx.test.stages && ctx.test.stages.length > 0) {
+    flow += flowStagesToJsfunc(ctx.test.stages ?? []);
+  } else if (ctx.test.steps && ctx.test.steps.length > 0) {
+    flow += flowStepsToJsfunc(ctx.test.steps ?? []);
+  }
+  return `const ${ctx.name} = async (envParameters) => {
+${indentLines(importedFuncs)}
+
 ${indentLines(flow)}
 };
 
 const envParameters = {${
       Object.keys(ctx.envVars).map(name => `${name}: ${name}`).join(', ')}};
-
-const inputs = {${
-      Object.keys(ctx.inputs).map(name => `${name}: ${name}`).join(', ')}};
-const result = await ${ctx.name}(inputs, envParameters);
-return result;
-`;
+const result = await ${ctx.name}(envParameters);
+return result;`;
 };
+
 function randomName(): string {
   // Generate a random stage name like "stage_xxxxx"
   return 'stage_' + Math.random().toString(36).substr(2, 8);

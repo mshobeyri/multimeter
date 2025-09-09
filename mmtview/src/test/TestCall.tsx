@@ -57,7 +57,7 @@ const TestCall: React.FC<TestCallProps> = ({
           showVSCodeMessage("error", fileName + " type should be test or api!");
           return;
         }
-        setCallInfo({ target: alias, inputs: yaml.inputs } as TestFlowCallTest);
+        setCallInfo({ call: alias, inputs: yaml.inputs } as TestFlowCallTest);
       })
       .catch(() => {
         showVSCodeMessage("error", "Failed to read file: \n" + fileName);
