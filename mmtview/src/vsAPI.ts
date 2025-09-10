@@ -27,9 +27,19 @@ export function readFile(filename: string): Promise<string> {
   });
 }
 
-export function showVSCodeMessage(type: 'error'|'warning', message: string) {
+export function showVSCodeMessage(
+    level: 'error'|'warning'|'info', message: string) {
   window.vscode?.postMessage({
-    command: type === 'error' ? 'showErrorMessage' : 'showWarningMessage',
+    command: 'showPopupMessage',
+    level,
+    message,
+  });
+}
+
+export function logToOutput(level: 'error'|'warning'|'info', message: string) {
+  window.vscode?.postMessage({
+    command: 'logToOutput',
+    level,
     message,
   });
 }
@@ -44,7 +54,7 @@ export const pushHistory = (item: {
   query?: Record<string, string>,
   content?: string,
   time?: string
-  duration?: number
+duration?: number
   status?: number
 }) => {
   window.vscode?.postMessage({
@@ -57,13 +67,12 @@ export const pushHistory = (item: {
   });
 };
 
-export const importsToJsfunc = async (imports: Record<string, string>) => {
-  const results = await Promise.all(
-    Object.entries(imports).map(async ([name, path]) => {
-      const content = await readFile(path);
-      // ...process content...
-      return `function ${name}() {${content}}`;
-    })
-  );
-  return results.join('\n');
-};
+  export const importsToJsfunc = async (imports: Record<string, string>) => {
+    const results =
+        await Promise.all(Object.entries(imports).map(async ([name, path]) => {
+          const content = await readFile(path);
+          // ...process content...
+          return `function ${name}() {${content}}`;
+        }));
+    return results.join('\n');
+  };

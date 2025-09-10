@@ -7,6 +7,7 @@ import WebSocket from 'ws';
 import {handleNetworkMessage} from './NodeNetwork';
 
 const LAST_VIEW_MODE = 'mmtview:view:selectedViewMode';
+export const logOutputChannel = vscode.window.createOutputChannel('Multimeter',{log: true});
 
 export async function readFileContent(filename: string): Promise<string> {
   try {
@@ -150,19 +151,41 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           });
           break;
 
-        case 'showErrorMessage':
-          vscode.window.showErrorMessage(message.message);
+        case 'showPopupMessage':
+          switch (message.level) {
+            case 'error':
+              vscode.window.showErrorMessage(message.message);
+              break;
+            case 'warning':
+              vscode.window.showWarningMessage(message.message);
+              break;
+            case 'info':
+              vscode.window.showInformationMessage(message.message);
+              break;
+          }
           break;
 
-        case 'showWarningMessage':
-          vscode.window.showWarningMessage(message.message);
+        case 'logToOutput': {
+          switch (message.level) {
+            case 'error':
+              logOutputChannel.error(message.message);
+              break;
+            case 'warning':
+              logOutputChannel.warn(message.message);
+              break;
+            case 'info':
+              logOutputChannel.info(message.message);
+              break;
+          }
+          logOutputChannel.show(true);
           break;
+        }
 
         case 'network':
           handleNetworkMessage(message, webviewPanel, wsConnections);
           break;
 
-        case 'addHistory': {
+        case 'addHistory':
           const historyFile = vscode.Uri.joinPath(
               this.context.globalStorageUri, 'history.json');
           let history: any[] = [];
@@ -179,7 +202,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
               Buffer.from(JSON.stringify(history, null, 2), 'utf8'));
           await vscode.commands.executeCommand('multimeter.history.refresh');
           break;
-        }
+
         case 'multimeter.history.show': {
           await vscode.commands.executeCommand('multimeter.history.show');
         }
@@ -198,4 +221,9 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     edit.replace(document.uri, fullRange, text);
     return vscode.workspace.applyEdit(edit);
   }
+}
+
+export function getTimeString() {
+  const now = new Date();
+  return now.toLocaleString();
 }
