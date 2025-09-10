@@ -20,7 +20,5 @@
     "noEmit": true,
     "jsx": "react-jsx"
   },
-  "include": [
-    "src"
-, "../core/src/markupConvertor.ts", "../core/src/CommonData.ts", "../core/src/safer.ts", "../core/src/variableReplacer.ts", "../core/src/APIData.ts", "../core/src/call.ts", "../core/src/apiParsePack.ts"  ]
+  "include": ["src"]
 }

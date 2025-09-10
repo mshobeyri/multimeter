@@ -66,15 +66,8 @@ export const importApiToJSfunc = (ctx: APIContext): string => {
 
   // Generate the function as a string
   return `async function ${ctx.name}(${inputParams}) {
-  const envParameters = {${
-      envVarNames
-          .map(
-              name =>
-                  `${name}: (typeof ${name} !== 'undefined' ? ${name} : '')`)
-          .join(', ')}};
 
   const inputs = {${inputNames.map(name => `${name}: ${name}`).join(', ')}};
-
   let req = replaceAllRefs(api, api.inputs ?? {}, inputs, envParameters);
   req.body = formatBody(req.format || 'json', req.body || '');
 
@@ -346,16 +339,16 @@ export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
   } else if (ctx.test.steps && ctx.test.steps.length > 0) {
     flow += flowStepsToJsfunc(ctx.test.steps ?? []);
   }
-  return `const ${ctx.name} = async (envParameters) => {
+  return `let envParameters = {${
+      Object.keys(ctx.envVars).map(name => `${name}: ${name}`).join(', ')}};
+
+const ${ctx.name} = async () => {
 ${indentLines(importedFuncs)}
 
 ${indentLines(flow)}
 };
 
-const envParameters = {${
-      Object.keys(ctx.envVars).map(name => `${name}: ${name}`).join(', ')}};
-const result = await ${ctx.name}(envParameters);
-return result;`;
+return ${ctx.name}();`;
 };
 
 function randomName(): string {

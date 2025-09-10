@@ -2,7 +2,7 @@ import React from "react";
 import TextEditor from "../text/TextEditor";
 import { rootTestToJsfunc, setFileLoader } from "mmt-core/dist/JSer";
 import { logToOutput, readFile, showVSCodeMessage } from "../vsAPI";
-import { set } from "yaml/dist/schema/yaml-1.1/set";
+import * as mmt from "mmt-core/dist/testHelper"; 
 
 interface TestCodeProps {
     testData: any;
@@ -11,7 +11,6 @@ interface TestCodeProps {
 const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
     const [jsCode, setJsCode] = React.useState<string>("");
     const [error, setError] = React.useState<string | null>(null);
-    const [runResult, setRunResult] = React.useState<string | null>(null);
 
     setFileLoader(readFile);
 
@@ -46,10 +45,14 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
             logToOutput("warning", args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' '));
         };
         try {
-            await (new Function(jsCode))();
+            const fn = new Function(jsCode);
+            await fn(mmt);
+
             showVSCodeMessage("info", "Done");
+            logToOutput("info", "Done");
         } catch (e: any) {
             showVSCodeMessage("error", "Error: " + (e?.message || String(e)));
+            logToOutput("error", "Error: " + (e?.message || String(e)));
         } finally {
             logToOutput("info", `Finished running test ${testData?.title || ""}`);
         }
@@ -64,11 +67,6 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
                 justifyContent: "flex-end",
                 gap: 8
             }}>
-                {runResult && (
-                    <span style={{ color: runResult.startsWith("Error:") ? "red" : "green", marginLeft: 12 }}>
-                        {runResult}
-                    </span>
-                )}
                 <button
                     onClick={handleRun}
                     disabled={!jsCode || !!error}
