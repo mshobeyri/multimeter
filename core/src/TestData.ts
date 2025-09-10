@@ -20,7 +20,7 @@ export interface TestMetric {
   rampup?: Timestr;
 }
 
-export type FlowType = 'call'|'check'|'if'|'for'|'repeat'|'end';
+export type FlowType = 'call'|'check'|'if'|'for'|'repeat'|'js'|'print'|'end';
 
 export interface TestFlowBase {
   type?: FlowType;
@@ -63,9 +63,15 @@ export interface TestFlowLoop extends TestFlowBase {
   for: Repeat|Timestr|string;
   steps: TestFlowSteps;
 }
+export interface TestFlowJS extends TestFlowBase {
+  js: string
+}
+export interface TestFlowPrint extends TestFlowBase {
+  print: string
+}
 
 export type TestFlowStep = TestFlowCallTest|TestFlowCallAPI|TestFlowCheck|
-    TestFlowCondition|TestFlowRepeat|TestFlowLoop;
+    TestFlowCondition|TestFlowRepeat|TestFlowLoop|TestFlowJS|TestFlowPrint;
 
 export type TestFlowSteps = TestFlowStep[];
 

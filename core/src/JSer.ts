@@ -237,6 +237,10 @@ export const flowStepsToJsfunc = (flow: TestFlowSteps): string => {
         } else if ('for' in step) {
           step = step as TestFlowLoop;
           return forToJSfunc(step);
+        } else if ('js' in step) {
+          return step.js;
+        } else if ('print' in step) {
+          return `console.log(\`${step.print}\`);`;
         }
         return '';
       })

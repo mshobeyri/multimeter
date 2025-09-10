@@ -105,7 +105,7 @@ export const EnvSchema = {
     type: 'object',
     required: ['type'],
     properties: {
-        type: { type: 'string', enum: ['env']},
+        type: { type: 'string', enum: ['env'] },
         variables: {
             type: 'object',
             additionalProperties: {
@@ -221,6 +221,24 @@ export const TestSchema = {
                         properties: {
                             repeat: { type: ['integer', 'string', 'boolean', 'object', 'array', 'null'] },
                             steps: { $ref: '#/properties/steps' }
+                        },
+                        additionalProperties: false
+                    },
+                    // js step
+                    {
+                        type: 'object',
+                        required: ['js'],
+                        properties: {
+                            js: { type: 'string' }
+                        },
+                        additionalProperties: false
+                    },
+                    // print step
+                    {
+                        type: 'object',
+                        required: ['print'],
+                        properties: {
+                            print: { type: 'string' }
                         },
                         additionalProperties: false
                     }
