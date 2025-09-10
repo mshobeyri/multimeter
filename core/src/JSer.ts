@@ -120,7 +120,6 @@ export const importsToJsfunc =
         }
         return '';
       }));
-  console.log('ssss', results);
   return results.join('\n');
 };
 

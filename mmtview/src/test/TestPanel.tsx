@@ -13,19 +13,24 @@ interface TestPanelProps {
 const LAST_TAB_KEY = "mmtview:lastTab";
 
 const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
-  const [test, setTest] = useState<TestData>({
-    type: "test",
-    title: "",
-    tags: [],
-    description: "",
-    import: {},
-    metrics: {},
-    inputs: {},
-    outputs: {},
-    steps: [],
-    stages: [],
-  });
-  const lastUpdate = useRef<"yaml" | "ui" | null>(null);
+  const [test, setTest] = useState<TestData>(yamlToTest(content));
+
+  // Parse YAML to test when content changes (but not if we just updated content from UI)
+  useEffect(() => {
+    const newTest = yamlToTest(content);
+    if (newTest === test || newTest === {} as TestData) return;
+    setTest(newTest);
+  }, [content]);
+
+  // Update YAML when test changes (but not if we just updated test from YAML)
+  useEffect(() => {
+    const newYaml = testToYaml(test);
+    if (newYaml === content || newYaml === "") { 
+      return;
+    }
+    setContent(newYaml);
+  }, [test]);
+
   // Restore last selected tab from localStorage, default to "overview"
   const [tab, setTab] = useState<"overview" | "flow" | "code" | "examples">(
     () => (localStorage.getItem(LAST_TAB_KEY) as "overview" | "flow" | "code" | "examples") || "overview"
@@ -45,9 +50,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
       const container = tabContainerRef.current;
       const containerWidth = container.clientWidth;
 
-      // Calculate approximate width needed for full text tabs
-      // Rough estimate: 120px per tab for text + icon
-      const fullTextWidth = 3 * 120;
+      const fullTextWidth = 4 * 100;
 
       setShowIconsOnly(containerWidth < fullTextWidth);
     };
@@ -61,26 +64,6 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
 
     return () => resizeObserver.disconnect();
   }, []);
-
-  // Parse YAML to test when content changes (but not if we just updated content from UI)
-  useEffect(() => {
-    if (lastUpdate.current === "ui") {
-      lastUpdate.current = null;
-      return;
-    }
-    setTest(yamlToTest(content));
-    lastUpdate.current = "yaml";
-  }, [content]);
-
-  // Update YAML when test changes (but not if we just updated test from YAML)
-  useEffect(() => {
-    if (lastUpdate.current === "yaml") {
-      lastUpdate.current = null;
-      return;
-    }
-    setContent(testToYaml(test));
-    lastUpdate.current = "ui";
-  }, [test, setContent]);
 
   return (
     <div className="panel">
