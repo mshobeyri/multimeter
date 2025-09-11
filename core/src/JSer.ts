@@ -1,8 +1,10 @@
 import {APIData} from './APIData';
 import {yamlToAPI} from './apiParsePack';
 import {JSONRecord, Type} from './CommonData';
+import {formatBody} from './markupConvertor';
 import {TestData, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowStage, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
 import {yamlToTest} from './testParsePack';
+import {replaceAllRefs} from './variableReplacer';
 
 export function indentLines(str: string): string {
   return str.split('\n').map(line => '    ' + line).join('\n');
@@ -64,14 +66,20 @@ export const importApiToJSfunc = (ctx: APIContext): string => {
       ctx.envVars.map((envVar: any) => envVar.name) :
       Object.keys(ctx.envVars ?? {});
 
+  let replaced = replaceAllRefs(
+      ctx.api, ctx.api.inputs ?? {}, ctx.inputs, ctx.envVars ?? {});
+  let formattedBody =
+      formatBody(replaced.format || 'json', replaced.body || '');
+
   // Generate the function as a string
   return `async function ${ctx.name}(${inputParams}) {
 
-  const inputs = {${inputNames.map(name => `${name}: ${name}`).join(', ')}};
-  let req = replaceAllRefs(api, api.inputs ?? {}, inputs, envParameters);
-  req.body = formatBody(req.format || 'json', req.body || '');
-
-  const conn = getConn(req.url, req.protocol);
+  const req = {
+    method: '${ctx.api.method}',
+    headers: ${JSON.stringify(ctx.api.headers)},
+    body: ${JSON.stringify(formattedBody)}
+  };
+  const conn = getConn('${ctx.api.url}', '${ctx.api.protocol}');
   const res = await conn.send(req);
 
   const extractedValues = extractOutputs(
