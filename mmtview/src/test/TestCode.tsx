@@ -2,7 +2,7 @@ import React from "react";
 import TextEditor from "../text/TextEditor";
 import { rootTestToJsfunc, setFileLoader } from "mmt-core/dist/JSer";
 import { logToOutput, readFile, showVSCodeMessage } from "../vsAPI";
-import * as mmt from "mmt-core/dist/testHelper"; 
+import * as mmtHelper from "mmt-core/dist/testHelper";
 
 interface TestCodeProps {
     testData: any;
@@ -45,14 +45,17 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
             logToOutput("warning", args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' '));
         };
         try {
-            const fn = new Function(jsCode);
-            await fn(mmt);
-
-            showVSCodeMessage("info", "Done");
-            logToOutput("info", "Done");
+            const helperDecls = Object.keys(mmtHelper)
+                .map(name => `const ${name} = mmtHelper["${name}"];`)
+                .join('\n');
+            const fn = new Function("mmtHelper", `${helperDecls}\n${jsCode}`);
+            await fn(mmtHelper);
+            
+            showVSCodeMessage("info", "Done successfully");
+            logToOutput("info", "Done successfully");
         } catch (e: any) {
             showVSCodeMessage("error", "Error: " + (e?.message || String(e)));
-            logToOutput("error", "Error: " + (e?.message || String(e)));
+            logToOutput("error", (e?.message || String(e)));
         } finally {
             logToOutput("info", `Finished running test ${testData?.title || ""}`);
         }
