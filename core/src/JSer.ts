@@ -51,33 +51,39 @@ export function setFileLoader(loader: FileLoader) {
 }
 
 export const importApiToJSfunc = (ctx: APIContext): string => {
-  // Prepare input parameter names
-  const inputNames = Array.isArray(ctx.api.inputs) ?
-      ctx.api.inputs.map((input: any) => input.name) :
-      Object.keys(ctx.api.inputs ?? {});
-  const inputParams = inputNames.join(', ');
+  const inputParams =
+      Object.entries(ctx.api.inputs ?? {})
+          .map(
+              ([key, value]) => `${key} = ${
+                  typeof value === 'string' ? `"${value}"` : value}`)
+          .join(', ');
 
-  // Prepare output names
+  const paramsAsObj: Record<string, string> = Object.fromEntries(
+      Object.keys(ctx.api.inputs ?? {}).map(key => [key, `\${${key}}`]));
+
   const extractRules = ctx.api.extract || ctx.api.outputs || {};
   const outputNames = Object.keys(extractRules);
 
   // Prepare env variable names
-  const envVarNames = Array.isArray(ctx.envVars) ?
-      ctx.envVars.map((envVar: any) => envVar.name) :
-      Object.keys(ctx.envVars ?? {});
+  // const envVarNames = Array.isArray(ctx.envVars) ?
+  //     ctx.envVars.map((envVar: any) => envVar.name) :
+  //     Object.keys(ctx.envVars ?? {});
 
-  let replaced = replaceAllRefs(
-      ctx.api, ctx.api.inputs ?? {}, ctx.inputs, ctx.envVars ?? {});
+  let replaced =
+      replaceAllRefs(ctx.api, paramsAsObj, ctx.inputs, ctx.envVars ?? {});
+
   let formattedBody =
-      formatBody(replaced.format || 'json', replaced.body || '');
+      formatBody(replaced.format || 'json', replaced.body || '', false);
 
-  // Generate the function as a string
-  return `async function ${ctx.name}(${inputParams}) {
+  let headers = Object.entries(replaced.headers || {})
+                    .map(([k, v]) => `"${k}": \`${v}\``)
+                    .join(', ');
 
+  return `const ${ctx.name} = async (${inputParams}) => {
   const req = {
-    method: '${ctx.api.method}',
-    headers: ${JSON.stringify(ctx.api.headers)},
-    body: ${JSON.stringify(formattedBody)}
+    method: '${replaced.method}',
+    headers: {${headers}},
+    body: \`${formattedBody}\`
   };
   const conn = getConn('${ctx.api.url}', '${ctx.api.protocol}');
   const res = await conn.send(req);

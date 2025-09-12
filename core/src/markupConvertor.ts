@@ -23,20 +23,22 @@ function packYaml(obj: any): string {
 }
 
 
-function formatBody(format: 'json'|'xml'|'text', body: string|object): string {
+function formatBody(
+    format: 'json'|'xml'|'text', body: string|object,
+    pretty: boolean = true): string {
   if (body === null) {
     return '';
   }
   try {
     if (format === 'json') {
       const obj = typeof body === 'string' ? YAML.parse(body) : body;
-      return JSON.stringify(obj, null, 2);
+      return pretty ? JSON.stringify(obj, null, 2) : JSON.stringify(obj);
     }
     if (format === 'xml') {
       if (typeof body === 'string') {
         return body;
       }
-      return js2xml(body, {compact: true, spaces: 2});
+      return js2xml(body, {compact: true, spaces: pretty ? 2 : 0});
     }
     if (format === 'text') {
       return typeof body === 'string' ? body : String(body);
