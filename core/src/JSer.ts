@@ -7,7 +7,7 @@ import {yamlToTest} from './testParsePack';
 import {replaceAllRefs} from './variableReplacer';
 
 export function indentLines(str: string): string {
-  return str.split('\n').map(line => '    ' + line).join('\n');
+  return str.split('\n').map(line => '  ' + line).join('\n');
 }
 
 export interface APIContext {
