@@ -109,7 +109,7 @@ export const importApiToJSfunc = (ctx: APIContext): string => {
           .join('\n  ')}
 
   return finalOutputs;
-}`;
+};`;
 };
 
 export const importsToJsfunc =
