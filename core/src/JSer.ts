@@ -75,14 +75,22 @@ export const importApiToJSfunc = (ctx: APIContext): string => {
   let formattedBody =
       formatBody(replaced.format || 'json', replaced.body || '', false);
 
+  if (replaced.cookies && Object.keys(replaced.cookies).length > 0) {
+    let cookies = Object.entries(replaced.cookies || {})
+                      .map(([k, v]) => `${k}=${v}`)
+                      .join('; ');
+    replaced.headers = replaced.headers || {};
+    replaced.headers['Cookie'] = cookies;
+  }
+
   let headers = Object.entries(replaced.headers || {})
                     .map(([k, v]) => `"${k}": \`${v}\``)
                     .join(', ');
 
-  return `const ${ctx.name} = async ({${inputParams}} = {}) => {
+  return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
   const req = {
     method: '${replaced.method}',
-    headers: {${headers}},
+    headers: { ${headers} },
     body: \`${formattedBody}\`
   };
   const conn = getConn('${ctx.api.url}', '${ctx.api.protocol}');
@@ -341,7 +349,7 @@ export const importTestToJsfunc = async(ctx: TestContext): Promise<string> => {
               ([key, value]) => `${key} = ${
                   typeof value === 'string' ? `"${value}"` : value}`)
           .join(', ');
-  return `const ${ctx.name} = async ({${inputParams}} = {}) => {
+  return `const ${ctx.name} = async ( {${inputParams} } = {}) => {
 ${indentLines(importedFuncs)}
 ${indentLines(flow)}
 };`;
