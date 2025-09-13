@@ -171,7 +171,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
 
 
   const handleSend = async () => {
-    network.send(requestData, setResponseData);
+    network.send(requestData).then(setResponseData);
   };
 
   const handleCancel = async () => {
@@ -184,7 +184,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     if (network.connected) {
       network.closeWs();
     } else {
-      network.connectWs(requestData?.url || "", setResponseData);
+      network.connectWs(requestData?.url || "").then(setResponseData);
     }
   };
 

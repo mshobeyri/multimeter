@@ -22,16 +22,14 @@ export interface Response {
   errorCode: string | "";
 }
 
-export type ResponseCallback = (response: Response) => void;
-
 export interface NetworkAPI {
   // Common
-  send: (requestData: Request | undefined, setResponseData: ResponseCallback) => void;
+  send: (requestData: Request | undefined) => Promise<Response | undefined>;
   loading: boolean;
   cancel: () => Promise<void>;
 
   // WebSocket
-  connectWs: (url: string, setResponseData: ResponseCallback) => void;
+  connectWs: (url: string) => Promise<Response | undefined>;
   connecting: boolean;
   connected: boolean;
   closeWs: () => void;

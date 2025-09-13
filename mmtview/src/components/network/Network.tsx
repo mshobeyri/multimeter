@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { NetworkAPI, Request } from "./NetworkData";
+import { NetworkAPI, Request, Response } from "./NetworkData";
 import { NetworkNodeApi, Error } from "./NetworkNodeApi";
 import { pushHistory } from "../../vsAPI";
 import { beautifyWithContentType } from "mmt-core/dist/markupConvertor";
@@ -32,21 +32,19 @@ export function useNetwork(): NetworkAPI {
     return String(data);
   };
 
-  const send = async (requestData: Request | undefined, setResponseData: any) => {
-    setResponseData(null);
+  const send = async (requestData: Request | undefined): Promise<Response | undefined> => {
     if (loading) {
-      return;
+      return undefined;
     }
     setLoading(true);
     if (!requestData) {
-      setResponseData({
+      setLoading(false);
+      return {
         errorMessage: "Request data is undefined",
         status: 400,
         errorCode: "REQUEST_DATA_UNDEFINED",
         duration: -1
-      });
-      setLoading(false);
-      return;
+      };
     }
     const opts = requestData;
     const {
@@ -71,87 +69,93 @@ export function useNetwork(): NetworkAPI {
       content: method === "get" ? "" : toContentString(body),
     });
 
-    if (protocol === "http") {
-      lastRequestID.current = NetworkNodeApi.sendHttp({
-        url: url ?? "",
-        method: method.toLowerCase(),
-        headers: headers || {},
-        body,
-        cookies: cookies || {},
-        query: query || {},
-        onResponse: (res: any) => {
-          if (res.autoformat) {
-            res.body = beautifyWithContentType(res.headers["Content-Type"], res.body);
+    return new Promise<Response | undefined>((resolve) => {
+      if (protocol === "http") {
+        lastRequestID.current = NetworkNodeApi.sendHttp({
+          url: url ?? "",
+          method: method.toLowerCase(),
+          headers: headers || {},
+          body,
+          cookies: cookies || {},
+          query: query || {},
+          onResponse: (res: any) => {
+            if (res.autoformat) {
+              res.body = beautifyWithContentType(res.headers["Content-Type"], res.body);
+            }
+            setLoading(false);
+            pushHistory({
+              type: "recv",
+              method,
+              protocol,
+              title: `${method.toLowerCase()} ${url}`,
+              cookies: parseSetCookie(res.headers?.["set-cookie"]),
+              headers: res.headers || {},
+              content: toContentString(res.body),
+              duration: res.duration || -1,
+              status: res.status || -1,
+            });
+            resolve({
+              body: res.body,
+              headers: res.headers || {},
+              cookies: parseSetCookie(res.headers?.["set-cookie"]),
+              errorMessage: "",
+              status: res.status || -1,
+              errorCode: "",
+              duration: res.duration || -1
+            });
+          },
+          onError: (error: Error) => {
+            setLoading(false);
+            // Save error to history
+            pushHistory({
+              type: "error",
+              method,
+              protocol,
+              title: `${method.toLowerCase()} ${url} Error`,
+              cookies: {},
+              headers: {},
+              content: toContentString(error),
+              duration: error.duration || -1,
+              status: error?.status ? error?.status : 500
+            });
+
+            resolve({
+              body: error.body || null,
+              headers: error.headers || {},
+              errorMessage: error.message ?? "",
+              status: error.status || 500,
+              errorCode: error.code || "UNKNOWN_ERROR",
+              duration: error.duration || -1
+            });
           }
-          setResponseData({
-            body: res.body,
-            headers: res.headers || {},
-            cookies: parseSetCookie(res.headers?.["set-cookie"]),
-            errorMessage: "",
-            status: res.status || -1,
-            errorCode: "",
-            duration: res.duration || -1
-          });
+        });
+      } else if (protocol === "ws") {
+        if (!connected) {
           setLoading(false);
-          pushHistory({
-            type: "recv",
-            method,
-            protocol,
-            title: `${method.toLowerCase()} ${url}`,
-            cookies: parseSetCookie(res.headers?.["set-cookie"]),
-            headers: res.headers || {},
-            content: toContentString(res.body),
-            duration: res.duration || -1,
-            status: res.status || -1,
+          resolve({
+            errorMessage: "WebSocket not connected",
+            status: 400,
+            errorCode: "WS_NOT_CONNECTED",
+            duration: -1
           });
-        },
-        onError: (error: Error) => {
-
-          setResponseData({
-            body: error.body || null,
-            headers: error.headers || {},
-            errorMessage: error.message,
-            status: error.status || 500,
-            errorCode: error.code || "UNKNOWN_ERROR",
-            duration: error.duration || -1
-          });
-          setLoading(false);
-
-          // Save error to history
-          pushHistory({
-            type: "error",
-            method,
-            protocol,
-            title: `${method.toLowerCase()} ${url} Error`,
-            cookies: {},
-            headers: {},
-            content: toContentString(error),
-            duration: error.duration || -1,
-            status: error?.status ? error?.status : 500
-          });
+          return;
         }
-      });
-    } else if (protocol === "ws") {
-      if (!connected) {
-        setResponseData({ errorMessage: "WebSocket not connected", status: 400, errorCode: "WS_NOT_CONNECTED", duration: -1 });
-        setLoading(false);
-        return;
+
+        // Save WS send to history
+        pushHistory({
+          type: "send",
+          method: "SEND",
+          protocol,
+          title: `SEND ${url}`,
+          content: toContentString(body)
+        });
+
+        lastRequestID.current = NetworkNodeApi.sendWs({
+          wsId: wsId || "",
+          data: toContentString(body)
+        });
       }
-
-      // Save WS send to history
-      pushHistory({
-        type: "send",
-        method: "SEND",
-        protocol,
-        title: `SEND ${url}`,
-        content: toContentString(body)
-      });
-
-      lastRequestID.current = NetworkNodeApi.sendWs({
-        wsId: wsId || "",
-        data: toContentString(body),
-      });
-    }
+    });
   };
 
   const cancel = async () => {
@@ -159,10 +163,8 @@ export function useNetwork(): NetworkAPI {
     setLoading(false);
   };
 
-  const connectWs = (url: string, setResponseData: any) => {
+  const connectWs = async (url: string): Promise<Response | undefined> => {
     setConnecting(true);
-
-    // Save WS connect to history
     pushHistory({
       type: "send",
       method: "CONNECT",
@@ -170,75 +172,82 @@ export function useNetwork(): NetworkAPI {
       title: `CONNECT ${url}`
     });
 
-    const websocketId = NetworkNodeApi.connectWs({
-      url,
-      onOpen: () => {
-        setConnected(true);
-        setConnecting(false);
+    return new Promise<Response | undefined>((resolve) => {
+      const websocketId = NetworkNodeApi.connectWs({
+        url,
+        onOpen: () => {
+          setConnected(true);
+          setConnecting(false);
 
-        // Save WS connected to history
-        pushHistory({
-          type: "recv",
-          method: "CONNECTED",
-          protocol: "ws",
-          title: `CONNECTED ${url}`,
-          content: url
-        });
-      },
+          // Save WS connected to history
+          pushHistory({
+            type: "recv",
+            method: "CONNECTED",
+            protocol: "ws",
+            title: `CONNECTED ${url}`,
+            content: url
+          });
 
-      onMessage: (data: string) => {
-        setResponseData({
-          body: data,
-          headers: undefined,
-          status: null,
-          message: null,
-          code: null,
-          duration: null
-        } as unknown as Response);
-        setLoading(false);
+          resolve({
+            errorMessage: "",
+            status: 200,
+            errorCode: "",
+            duration: -1
+          });
+        },
 
-        // Save WS message to history
-        pushHistory({
-          type: "recv",
-          method: "RECV",
-          protocol: "ws",
-          title: `RECV ${url}`,
-          content: data
-        });
-      },
-      onClose: () => {
-        setConnected(false);
-        setLoading(false);
+        onMessage: (data: string) => {
+          setLoading(false);
+          pushHistory({
+            type: "recv",
+            method: "RECV",
+            protocol: "ws",
+            title: `RECV ${url}`,
+            content: data
+          });
+          // Optionally resolve here if you want to return on first message
+          return {
+            body: data,
+            headers: undefined,
+            status: null,
+            message: null,
+            code: null,
+            duration: null
+          };
+        },
+        onClose: () => {
+          setConnected(false);
+          setLoading(false);
 
-        // Save WS close to history
-        pushHistory({
-          type: "recv",
-          method: "CLOSED",
-          protocol: "ws",
-          title: `CLOSED ${url}`,
-          content: url
-        });
-      },
-      onError: (err: any) => {
-        setResponseData({
-          errorMessage: "WebSocket cannot connect",
-          status: 400,
-          errorCode: "WS_NOT_CONNECTED",
-          duration: -1
-        } as unknown as Response);
-        setLoading(false);
-
-        // Save WS error to history
-        pushHistory({
-          type: "recv",
-          method: "ERROR",
-          protocol: "ws",
-          title: `ERROR ${url}`,
-          content: err?.message
-        });
-      }
+          // Save WS close to history
+          pushHistory({
+            type: "recv",
+            method: "CLOSED",
+            protocol: "ws",
+            title: `CLOSED ${url}`,
+            content: url
+          });
+        },
+        onError: (err: any) => {
+          setLoading(false);
+          // Save WS error to history
+          pushHistory({
+            type: "recv",
+            method: "ERROR",
+            protocol: "ws",
+            title: `ERROR ${url}`,
+            content: err?.message
+          });
+          resolve({
+            errorMessage: "WebSocket cannot connect",
+            status: 400,
+            errorCode: "WS_NOT_CONNECTED",
+            duration: -1
+          });
+        }
+      });
+      setWsId(websocketId);
     });
-    setWsId(websocketId);
   };
 
   const closeWs = () => {
