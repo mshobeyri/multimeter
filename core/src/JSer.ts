@@ -79,7 +79,7 @@ export const importApiToJSfunc = (ctx: APIContext): string => {
                     .map(([k, v]) => `"${k}": \`${v}\``)
                     .join(', ');
 
-  return `const ${ctx.name} = async (${inputParams}) => {
+  return `const ${ctx.name} = async ({${inputParams}} = {}) => {
   const req = {
     method: '${replaced.method}',
     headers: {${headers}},
@@ -215,15 +215,18 @@ export const checkToJSfunc = (check: string): string => {
 
 
 export const callToJSfunc = (step: TestFlowCall): string => {
-  const inputs = Object.values(step.inputs || {})
-                     .map(v => typeof v === 'string' ? JSON.stringify(v) : v)
+  const inputs = Object.entries(step.inputs ?? {})
+                     .map(
+                         ([key, value]) => `${key} : ${
+                             typeof value === 'string' ? `"${value}"` : value}`)
                      .join(', ');
 
+  let call = `await ${step.call}({${inputs}});`;
   if (step.id) {
-    return `const ${step.id} = await ${step.call}(${inputs});`;
-  } else {
-    return `await ${step.call}(${inputs});`;
+    call = `const ${step.id} = ` + call;
   }
+
+  return call;
 };
 
 export const flowStepsToJsfunc = (flow: TestFlowSteps): string => {
@@ -332,7 +335,13 @@ export const importTestToJsfunc = async(ctx: TestContext): Promise<string> => {
     flow = flowStepsToJsfunc(ctx.test.steps ?? []);
   }
   const importedFuncs = await importsToJsfunc(ctx.test.import ?? {});
-  return `const ${ctx.name} = async (${Object.keys(ctx.inputs).join(', ')}) => {
+  const inputParams =
+      Object.entries(ctx.inputs ?? {})
+          .map(
+              ([key, value]) => `${key} = ${
+                  typeof value === 'string' ? `"${value}"` : value}`)
+          .join(', ');
+  return `const ${ctx.name} = async ({${inputParams}} = {}) => {
 ${indentLines(importedFuncs)}
 ${indentLines(flow)}
 };`;
