@@ -1,5 +1,5 @@
 import React from "react";
-import { FlowType, CheckOps, TestData } from "mmt-core/dist/TestData";
+import { FlowType, CheckOps, TestData } from "mmt-core/TestData";
 import TestCheck from "./TestCheck";
 import TestCall from "./TestCall";
 

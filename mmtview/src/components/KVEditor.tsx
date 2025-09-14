@@ -1,8 +1,8 @@
 import React, { useMemo } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import SelectWithRemove from "./SelectWithRemove";
-import { safeList } from "mmt-core/dist/safer";
-import { JSONRecord } from "mmt-core/dist/CommonData";
+import { safeList } from "mmt-core/safer";
+import { JSONRecord } from "mmt-core/CommonData";
 
 interface KVEditorProps {
   label: string;

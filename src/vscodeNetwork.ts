@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import {handleNetworkMessage as coreHandleNetworkMessage, NetworkConfig, NetworkMessage, PostMessage} from 'mmt-core/dist/network';
+import {handleNetworkMessage as coreHandleNetworkMessage, NetworkConfig, NetworkMessage, PostMessage} from 'mmt-core/network';
 import * as vscode from 'vscode';
 import WebSocket from 'ws';
 // Certificate interfaces (should match NodeNetwork.ts)

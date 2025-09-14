@@ -1,7 +1,7 @@
 import React from "react";
-import { TestFlowSteps, FlowType, flowTypeOptions, TestData } from "mmt-core/dist/TestData";
+import { TestFlowSteps, FlowType, flowTypeOptions, TestData } from "mmt-core/TestData";
 import TestFlowBox from "./TestFlowBox";
-import { safeList } from "mmt-core/dist/safer";
+import { safeList } from "mmt-core/safer";
 
 interface TestFlowProps {
     testData: TestData;

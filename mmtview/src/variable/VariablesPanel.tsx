@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import parseYaml, { packYaml } from "mmt-core/dist/markupConvertor";
+import parseYaml, { packYaml } from "mmt-core/markupConvertor";
 import VariablesEditor from "./VariablesEditor";
 import { Variable, VariablesData } from "./VariablesData";
 

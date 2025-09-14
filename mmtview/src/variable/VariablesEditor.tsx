@@ -1,7 +1,7 @@
 import React from "react";
 import VariableEditor from "./VariableEditor";
 import { VariablesData, Variable } from "./VariablesData";
-import { safeList } from "mmt-core/dist/safer";
+import { safeList } from "mmt-core/safer";
 
 interface VariablesEditorProps {
   variablesData: VariablesData;

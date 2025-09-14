@@ -13,7 +13,7 @@
     "postcss": "^8.5.6",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "mmt-core": "file:../core"
+    "mmt-core": "file:../core/dist"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.0",

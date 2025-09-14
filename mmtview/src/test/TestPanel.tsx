@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
-import { TestData } from "mmt-core/dist/TestData";
+import { TestData } from "mmt-core/TestData";
 import TestOverview from "./TestOverview";
 import TestFlow from "./TestFlow";
-import { yamlToTest, testToYaml } from "mmt-core/dist/testParsePack";
+import { yamlToTest, testToYaml } from "mmt-core/testParsePack";
 import TestCode from "./TestCode";
 
 interface TestPanelProps {

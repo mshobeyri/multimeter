@@ -1,7 +1,7 @@
 import React from "react";
 import AutoSizeTextField from "../components/AutoSizeTextField";
-import { CheckOps, opsList, opsNames } from "mmt-core/dist/TestData";
-import { safeList } from "mmt-core/dist/safer";
+import { CheckOps, opsList, opsNames } from "mmt-core/TestData";
+import { safeList } from "mmt-core/safer";
 
 interface TestCheckProps {
   left: string;

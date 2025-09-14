@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { xml2js } from "xml-js";
-import { beautify } from "mmt-core/dist/markupConvertor";
+import { beautify } from "mmt-core/markupConvertor";
 import TextEditor from "../text/TextEditor";
 
 export type mode = "appliable" | "live";

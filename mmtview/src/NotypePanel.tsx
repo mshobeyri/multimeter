@@ -1,6 +1,6 @@
 import React from "react";
-import parseYaml from "mmt-core/dist/markupConvertor";
-import { typeOptions } from "mmt-core/dist/CommonData";
+import parseYaml from "mmt-core/markupConvertor";
+import { typeOptions } from "mmt-core/CommonData";
 
 interface NotypePanelProps {
   content: string;

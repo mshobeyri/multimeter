@@ -1,12 +1,12 @@
 import React, { useCallback, useRef, useEffect, useState } from "react";
 import KVEditor from "../components/KVEditor";
 import UrlInput from "../components/UrlInput";
-import { Protocol, Method, Format } from "mmt-core/dist/CommonData"
-import { formatBody, formattedBodyToYamlObject } from "mmt-core/dist/markupConvertor";
+import { Protocol, Method, Format } from "mmt-core/CommonData"
+import { formatBody, formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import BodyView from "../components/BodyView";
-import { safeList, isNonEmptyObject } from "mmt-core/dist/safer";
-import { JSONRecord } from "mmt-core/dist/CommonData";
-import { APIData } from "mmt-core/dist/APIData";
+import { safeList, isNonEmptyObject } from "mmt-core/safer";
+import { JSONRecord } from "mmt-core/CommonData";
+import { APIData } from "mmt-core/APIData";
 
 interface InterfaceEditorProps {
   data: APIData;

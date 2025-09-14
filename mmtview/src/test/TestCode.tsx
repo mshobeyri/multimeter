@@ -1,8 +1,8 @@
 import React from "react";
 import TextEditor from "../text/TextEditor";
-import { rootTestToJsfunc, setFileLoader } from "mmt-core/dist/JSer";
+import { rootTestToJsfunc, setFileLoader } from "mmt-core/JSer";
 import { logToOutput, readFile, showVSCodeMessage } from "../vsAPI";
-import * as mmtHelper from "mmt-core/dist/testHelper";
+import * as mmtHelper from "mmt-core/testHelper";
 
 interface TestCodeProps {
     testData: any;

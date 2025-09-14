@@ -361,7 +361,7 @@
   "dependencies": {
     "axios": "^1.10.0",
     "buffer": "^6.0.3",
-    "mmt-core": "file:./core",
+    "mmt-core": "file:./core/dist",
     "uuid": "^11.1.0",
     "ws": "^8.18.3",
     "xml-js": "^1.6.11",

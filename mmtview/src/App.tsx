@@ -6,7 +6,7 @@ import VariablesPanel from "./variable/VariablesPanel";
 import APIPanel from "./api/APIPanel";
 import NotypePanel from "./NotypePanel";
 import TestPanel from "./test/TestPanel";
-import parseYaml from "mmt-core/dist/markupConvertor";
+import parseYaml from "mmt-core/markupConvertor";
 import YamlEditorPanel from "./text/YamlEditorPanel";
 
 declare global {

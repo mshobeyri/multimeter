@@ -1,4 +1,4 @@
-import { safeList } from "mmt-core/dist/safer";
+import { safeList } from "mmt-core/safer";
 import { Request } from "./NetworkData";
 
 export function buildCurlCommand(options: Request): string {

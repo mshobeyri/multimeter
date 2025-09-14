@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { APIData } from "mmt-core/dist/APIData";
+import { APIData } from "mmt-core/APIData";
 import KVEditor from "../components/KVEditor";
 import BodyView from "../components/BodyView";
-import { formatBody } from "mmt-core/dist/markupConvertor";
+import { formatBody } from "mmt-core/markupConvertor";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
 import { useNetwork } from "../components/network/Network";
-import { replaceAllRefs } from "mmt-core/dist/variableReplacer";
+import { replaceAllRefs } from "mmt-core/variableReplacer";
 import UrlInput from "../components/UrlInput";
-import { extractOutputs } from "mmt-core/dist/outputExtractor";
+import { extractOutputs } from "mmt-core/outputExtractor";
 import ViewSelector, { ViewMode } from "../components/ViewSelector";
 import { loadEnvVariables } from "../workspaceStorage";
-import { safeList } from "mmt-core/dist/safer";
+import { safeList } from "mmt-core/safer";
 import { Request, Response } from "../components/network/NetworkData";
-import { JSONRecord } from "mmt-core/dist/CommonData";
+import { JSONRecord } from "mmt-core/CommonData";
 import { setEnvironmentVariable, getEnvironmentVariable } from "../environment/environmentUtils";
 
 interface APITestProps {

@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import parseYaml from "mmt-core/dist/markupConvertor";
+import parseYaml from "mmt-core/markupConvertor";
 import EnvironmentEnv from "./EnvironmentEnv";
 import EnvironmentEdit from "./EnvironmentEdit";
 import EnvironmentView from "./EnvironmentView";
 import { readEnvironmentVariables, writeEnvironmentVariables, clearEnvironmentVariables } from "./environmentUtils";
 import { ComboTablePair } from "../components/ComboTable";
-import { isList, safeList } from "mmt-core/dist/safer";
-import { JSONValue } from "mmt-core/dist/CommonData";
+import { isList, safeList } from "mmt-core/safer";
+import { JSONValue } from "mmt-core/CommonData";
 import { EnvVariable } from "./EnvironmentData";
 
 const LAST_ENV_TAB_KEY = "mmtview:env:lastTab";

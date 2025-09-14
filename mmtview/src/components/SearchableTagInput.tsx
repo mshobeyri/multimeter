@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { safeList } from "mmt-core/dist/safer";
+import { safeList } from "mmt-core/safer";
 
 interface SearchableTagInputProps {
   tags: string[];
