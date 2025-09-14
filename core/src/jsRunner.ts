@@ -23,9 +23,8 @@ export async function runJSCode(
         Object.keys(mmtHelper)
             .map(name => `const ${name} = mmtHelper["${name}"];`)
             .join('\n');
-    const fn =
-        new Function('mmtHelper', 'lg', 'console', `${helperDecls}\n${code}`);
-    await fn(mmtHelper, lg, customConsole);
+    const fn = new Function('mmtHelper', 'console', `${helperDecls}\n${code}`);
+    await fn(mmtHelper, customConsole);
 
     lg('info', 'Done successfully');
   } catch (e: any) {
