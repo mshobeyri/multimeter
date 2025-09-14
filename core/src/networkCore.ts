@@ -2,8 +2,6 @@ import axios from 'axios';
 import * as https from 'https';
 import WebSocket from 'ws';
 
-const openConnections: Record<string, WebSocket> = {};
-
 export interface CaCertificate {
   enabled: boolean;
   certData?: Buffer;
@@ -44,34 +42,20 @@ export interface HttpResponse {
   autoformat: boolean;
 }
 
-export function wsConnections(wsId: string) {
-    return openConnections[wsId];
-}
-
-export function deleteWsConnection(wsId: string) {
-    const ws = openConnections[wsId];
-    if (ws) {
-        ws.close();
-        delete openConnections[wsId];
-    }
-    return ws;
-}
-
-export function addWsConnection(wsId: string, ws: WebSocket) {
-    openConnections[wsId] = ws;
-}
 
 export function createHttpsAgentWithCertificates(
-  hostname: string, config: NetworkConfig
-) {
-  const agentOptions: https.AgentOptions = { rejectUnauthorized: config.sslValidation };
+    hostname: string, config: NetworkConfig) {
+  const agentOptions:
+      https.AgentOptions = {rejectUnauthorized: config.sslValidation};
   if (config.ca.enabled && config.ca.certData) {
     agentOptions.ca = [config.ca.certData];
   }
   const matchingClientCert = config.clients.find(
-    cert => cert.enabled && (cert.host === hostname || hostname.includes(cert.host) || cert.host === '*')
-  );
-  if (matchingClientCert && matchingClientCert.certData && matchingClientCert.keyData) {
+      cert => cert.enabled &&
+          (cert.host === hostname || hostname.includes(cert.host) ||
+           cert.host === '*'));
+  if (matchingClientCert && matchingClientCert.certData &&
+      matchingClientCert.keyData) {
     agentOptions.cert = matchingClientCert.certData;
     agentOptions.key = matchingClientCert.keyData;
   }
@@ -79,16 +63,17 @@ export function createHttpsAgentWithCertificates(
 }
 
 export async function sendHttpRequest(
-  req: HttpRequest, config: NetworkConfig
-): Promise<HttpResponse> {
+    req: HttpRequest, config: NetworkConfig): Promise<HttpResponse> {
   const parsedUrl = new URL(req.url);
   const hostname = parsedUrl.hostname;
-  let reqHeaders = { ...req.headers };
+  let reqHeaders = {...req.headers};
   if (req.cookies && Object.keys(req.cookies).length > 0) {
-    reqHeaders['Cookie'] = Object.entries(req.cookies).map(([k, v]) => `${k}=${v}`).join('; ');
+    reqHeaders['Cookie'] =
+        Object.entries(req.cookies).map(([k, v]) => `${k}=${v}`).join('; ');
   }
   const httpsAgent = parsedUrl.protocol === 'https:' ?
-    createHttpsAgentWithCertificates(hostname, config) : undefined;
+      createHttpsAgentWithCertificates(hostname, config) :
+      undefined;
   const request = {
     url: req.url,
     method: req.method || 'get',
@@ -106,9 +91,9 @@ export async function sendHttpRequest(
   const duration = Date.now() - start;
   return {
     body: response.data,
-    headers: Object.fromEntries(
-      Object.entries(response.headers).filter(([_, v]) => v !== undefined).map(([k, v]) => [k, String(v)])
-    ),
+    headers: Object.fromEntries(Object.entries(response.headers)
+                                    .filter(([_, v]) => v !== undefined)
+                                    .map(([k, v]) => [k, String(v)])),
     status: response.status,
     statusText: response.statusText,
     duration,
@@ -118,14 +103,31 @@ export async function sendHttpRequest(
 
 // --- WebSocket Core ---
 
+const openConnections: Record<string, WebSocket> = {};
 export interface WsConnection {
   ws: WebSocket;
   wsId: string;
 }
 
+export function wsConnections(wsId: string) {
+  return openConnections[wsId];
+}
+
+export function deleteWsConnection(wsId: string) {
+  const ws = openConnections[wsId];
+  if (ws) {
+    ws.close();
+    delete openConnections[wsId];
+  }
+  return ws;
+}
+
+export function addWsConnection(wsId: string, ws: WebSocket) {
+  openConnections[wsId] = ws;
+}
+
 export function createWebSocket(
-  url: string, wsId: string, config: NetworkConfig
-): WsConnection {
+    url: string, wsId: string, config: NetworkConfig): WsConnection {
   const parsedUrl = new URL(url);
   const hostname = parsedUrl.hostname;
   let wsOptions = {};
@@ -133,20 +135,21 @@ export function createWebSocket(
     wsOptions = createWebSocketOptionsWithCertificates(hostname, config);
   }
   const ws = new WebSocket(url, wsOptions);
-  return { ws, wsId };
+  return {ws, wsId};
 }
 
 export function createWebSocketOptionsWithCertificates(
-  hostname: string, config: NetworkConfig
-) {
-  const wsOptions: any = { rejectUnauthorized: config.sslValidation };
+    hostname: string, config: NetworkConfig) {
+  const wsOptions: any = {rejectUnauthorized: config.sslValidation};
   if (config.ca.enabled && config.ca.certData) {
     wsOptions.ca = [config.ca.certData];
   }
   const matchingClientCert = config.clients.find(
-    cert => cert.enabled && (cert.host === hostname || hostname.includes(cert.host) || cert.host === '*')
-  );
-  if (matchingClientCert && matchingClientCert.certData && matchingClientCert.keyData) {
+      cert => cert.enabled &&
+          (cert.host === hostname || hostname.includes(cert.host) ||
+           cert.host === '*'));
+  if (matchingClientCert && matchingClientCert.certData &&
+      matchingClientCert.keyData) {
     wsOptions.cert = matchingClientCert.certData;
     wsOptions.key = matchingClientCert.keyData;
   }
