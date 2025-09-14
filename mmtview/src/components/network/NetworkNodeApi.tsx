@@ -33,6 +33,8 @@ type WsOptions = {
 type SendWsOptions = {
     wsId: string;
     data: string;
+    onResponse?: (response: any) => void;
+    onError?: (error: Error) => void;
 };
 
 type DisconnectWsOptions = {
@@ -45,7 +47,7 @@ function generateRequestId() {
 }
 
 // Store pending HTTP requests by requestId
-const pendingHttp: Record<
+const pendingRequests: Record<
     string,
     {
         onResponse?: (response: any) => void;
@@ -66,7 +68,7 @@ const openWebsockets: Record<
 export const NetworkNodeApi = {
     sendHttp: (options: HttpOptions) => {
         const requestId = generateRequestId();
-        pendingHttp[requestId] = {
+        pendingRequests[requestId] = {
             onResponse: options.onResponse,
             onError: options.onError,
         };
@@ -84,7 +86,7 @@ export const NetworkNodeApi = {
         return requestId;
     },
     cancel: (requestId: string) => {
-        delete pendingHttp[requestId];
+        delete pendingRequests[requestId];
     },
     connectWs: (options: WsOptions) => {
         const wsId = generateRequestId();
@@ -104,6 +106,10 @@ export const NetworkNodeApi = {
     },
 
     sendWs: (options: SendWsOptions) => {
+        pendingRequests[options.wsId] = {
+            onResponse: options.onResponse,
+            onError: options.onError,
+        };
         window.vscode?.postMessage({
             command: "network",
             action: "ws-send",
@@ -129,16 +135,16 @@ window.addEventListener("message", (event: MessageEvent) => {
 
     // HTTP response
     if (msg.action === "http-response" && typeof msg.data !== "undefined") {
-        const cb = pendingHttp[msg.requestId];
+        const cb = pendingRequests[msg.requestId];
         if (cb && typeof cb.onResponse === "function") {
             cb.onResponse(msg.data);
-            delete pendingHttp[msg.requestId];
+            delete pendingRequests[msg.requestId];
         }
     } else if (msg.action === "http-error" && typeof msg.data !== "undefined") {
-        const cb = pendingHttp[msg.requestId];
+        const cb = pendingRequests[msg.requestId];
         if (cb && typeof cb.onError === "function") {
             cb.onError(msg.data);
-            delete pendingHttp[msg.requestId];
+            delete pendingRequests[msg.requestId];
         }
     }
 
@@ -146,7 +152,16 @@ window.addEventListener("message", (event: MessageEvent) => {
     if (msg.wsId && openWebsockets[msg.wsId]) {
         const wsListener = openWebsockets[msg.wsId];
         if (msg.action === "ws-open" && wsListener.onOpen) wsListener.onOpen();
-        if (msg.action === "ws-message" && wsListener.onMessage) wsListener.onMessage(msg.data);
+        if (msg.action === "ws-message") {
+            const cb = pendingRequests[msg.wsId];
+            if (cb && typeof cb.onResponse === "function") {
+                cb.onResponse(msg.data);
+                delete pendingRequests[msg.wsId];
+            }
+            if(wsListener.onMessage){
+                wsListener.onMessage(msg.data);
+            }
+        }
         if (msg.action === "ws-close" && wsListener.onClose) wsListener.onClose();
         if (msg.action === "ws-error" && wsListener.onError) wsListener.onError(msg.error);
     }

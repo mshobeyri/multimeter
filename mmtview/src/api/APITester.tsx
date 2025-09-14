@@ -171,7 +171,8 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
 
 
   const handleSend = async () => {
-    network.send(requestData).then(setResponseData);
+    const res = await network.send(requestData);
+    setResponseData(res);
   };
 
   const handleCancel = async () => {

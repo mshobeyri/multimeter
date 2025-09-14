@@ -152,15 +152,34 @@ export function useNetwork(): NetworkAPI {
         // Save WS send to history
         pushHistory({
           type: "send",
-          method: "SEND",
+          method: "send",
           protocol,
-          title: `SEND ${url}`,
+          title: `send ${url}`,
           content: toContentString(body)
         });
 
         lastRequestID.current = NetworkNodeApi.sendWs({
           wsId: wsId || "",
-          data: toContentString(body)
+          data: toContentString(body),
+          onResponse: (res: any) => {
+            setLoading(false);
+            resolve({
+              body: res,
+              errorMessage: "",
+              status: -1,
+              errorCode: "",
+              duration: -1
+            });
+          },
+          onError: (error: Error) => {
+            setLoading(false);
+            resolve({
+              errorMessage: error.message || "",
+              status: error.status || 500,
+              errorCode: error.code || "UNKNOWN_ERROR",
+              duration: error.duration || -1
+            });
+          }
         });
       });
     } else {
@@ -185,9 +204,9 @@ export function useNetwork(): NetworkAPI {
     setConnecting(true);
     pushHistory({
       type: "send",
-      method: "CONNECT",
+      method: "connect",
       protocol: "ws",
-      title: `CONNECT ${url}`
+      title: `connnect ${url}`
     });
 
     return new Promise<Response | undefined>((resolve) => {
@@ -200,9 +219,9 @@ export function useNetwork(): NetworkAPI {
           // Save WS connected to history
           pushHistory({
             type: "recv",
-            method: "CONNECTED",
+            method: "connected",
             protocol: "ws",
-            title: `CONNECTED ${url}`,
+            title: `connected ${url}`,
             content: url
           });
 
@@ -218,9 +237,9 @@ export function useNetwork(): NetworkAPI {
           setLoading(false);
           pushHistory({
             type: "recv",
-            method: "RECV",
+            method: "recv",
             protocol: "ws",
-            title: `RECV ${url}`,
+            title: `recv ${url}`,
             content: data
           });
           // Optionally resolve here if you want to return on first message
@@ -239,9 +258,9 @@ export function useNetwork(): NetworkAPI {
           // Save WS close to history
           pushHistory({
             type: "recv",
-            method: "CLOSED",
+            method: "closed",
             protocol: "ws",
-            title: `CLOSED ${url}`,
+            title: `closed ${url}`,
             content: url
           });
         },
@@ -250,9 +269,9 @@ export function useNetwork(): NetworkAPI {
           // Save WS error to history
           pushHistory({
             type: "recv",
-            method: "ERROR",
+            method: "error",
             protocol: "ws",
-            title: `ERROR ${url}`,
+            title: `error ${url}`,
             content: err?.message
           });
           resolve({
@@ -270,9 +289,9 @@ export function useNetwork(): NetworkAPI {
   const closeWs = () => {
     pushHistory({
       type: "send",
-      method: "CLOSE",
+      method: "close",
       protocol: "ws",
-      title: `CLOSE`
+      title: `close`
     });
     NetworkNodeApi.disconnectWs({
       wsId: wsId || "",
