@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
 
-import CertificatesPanel from './CertificatesPanel';
-import {MmtEditorProvider} from './components/MmtEditorProvider';
-import ConvertorPanel from './ConvertorPanel';
-import EnvironmentPanel from './EnvironmentPanel';
-import HistoryPanel from './HistoryPanel';
-import MockServerPanel from './MockServerPanel';
+import CertificatesPanel from './panels/CertificatesPanel';
+import {MmtEditorProvider} from './mmtEditorProvider';
+import ConvertorPanel from './panels/ConvertorPanel';
+import EnvironmentPanel from './panels/EnvironmentPanel';
+import HistoryPanel from './panels/HistoryPanel';
+import MockServerPanel from './panels/MockServerPanel';
 
 export function activate(context: vscode.ExtensionContext) {
   const mmtviewPanel = new MmtEditorProvider(context);

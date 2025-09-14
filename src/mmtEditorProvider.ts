@@ -4,10 +4,11 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import WebSocket from 'ws';
 
-import {handleNetworkMessage} from './NodeNetwork';
+import {handleNetworkMessage} from './vscodeNetwork';
 
 const LAST_VIEW_MODE = 'mmtview:view:selectedViewMode';
-export const logOutputChannel = vscode.window.createOutputChannel('Multimeter',{log: true});
+export const logOutputChannel =
+    vscode.window.createOutputChannel('Multimeter', {log: true});
 
 export async function readFileContent(filename: string): Promise<string> {
   try {

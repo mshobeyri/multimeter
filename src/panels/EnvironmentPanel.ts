@@ -1,4 +1,3 @@
-/* filepath: /Users/mehrdad/projects/multimeter/src/EnvironmentPanel.ts */
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -62,7 +61,7 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
 
   private getHtmlForWebview(): string {
     const htmlPath =
-        path.join(this.context.extensionPath, 'src', 'environment.html');
+        path.join(this.context.extensionPath, 'src', 'panels', 'environment.html');
     const cssPath = path.join(this.context.extensionPath, 'src', 'common.css');
 
     let html = fs.readFileSync(htmlPath, 'utf8');

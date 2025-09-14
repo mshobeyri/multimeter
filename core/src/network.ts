@@ -1,12 +1,12 @@
 import axios from 'axios';
-import * as fs from 'fs';
-import {stat} from 'fs';
 import * as https from 'https';
-import * as vscode from 'vscode';
 import WebSocket from 'ws';
 
+// --- Types ---
+
 export type NetworkMessage =|{
-  command: 'network', action: 'http-send';
+  command: 'network';
+  action: 'http-send';
   url: string;
   method?: string;
   headers?: Record<string, string>;
@@ -16,128 +16,107 @@ export type NetworkMessage =|{
   requestId: string;
 }
 |{
-  command: 'network', action: 'cancel';
+  command: 'network';
+  action: 'cancel';
   requestId: string;
 }
 |{
-  command: 'network', action: 'ws-connect';
+  command: 'network';
+  action: 'ws-connect';
   url: string;
-  wsId: string
-}
-|{
-  command: 'network', action: 'ws-send';
   wsId: string;
-  data: string
 }
 |{
-  command: 'network', action: 'ws-disconnect';
-  wsId: string
+  command: 'network';
+  action: 'ws-send';
+  wsId: string;
+  data: string;
+}
+|{
+  command: 'network';
+  action: 'ws-disconnect';
+  wsId: string;
 };
 
 // Certificate interfaces
-interface CaCertificate {
+export interface CaCertificate {
   enabled: boolean;
-  certPath: string;
+  certData?: Buffer;  // The CA certificate data (already loaded)
 }
 
-interface ClientCertificate {
+export interface ClientCertificate {
   id: string;
   name: string;
   host: string;
-  certPath: string;
-  keyPath: string;
+  certData?: Buffer;  // The client certificate data (already loaded)
+  keyData?: Buffer;   // The client key data (already loaded)
   enabled: boolean;
 }
 
-function getConfiguration() {
-  const config = vscode.workspace.getConfiguration('multimeter');
-
-  return {
-    ca: config.get<CaCertificate>(
-        'certificates.ca', {enabled: false, certPath: ''}),
-    clients: config.get<ClientCertificate[]>('certificates.clients', []),
-    sslValidation: config.get<boolean>('enableCertificateValidation', true),
-    timeout: config.get<number>('network.timeout', 30000),
-    autoFormat: config.get<boolean>('body.auto.format', false)
-  };
+export interface NetworkConfig {
+  ca: CaCertificate;
+  clients: ClientCertificate[];
+  sslValidation: boolean;
+  timeout: number;
+  autoFormat: boolean;
 }
 
-function createHttpsAgentWithCertificates(hostname: string) {
-  const certConfig = getConfiguration();
+export type PostMessage = (msg: any) => void;
 
+// --- Core Certificate/WS Option Functions ---
+
+function createHttpsAgentWithCertificates(
+    hostname: string, config: NetworkConfig) {
   const agentOptions:
-      https.AgentOptions = {rejectUnauthorized: certConfig.sslValidation};
+      https.AgentOptions = {rejectUnauthorized: config.sslValidation};
 
   // Add CA certificate if configured
-  if (certConfig.ca.enabled && certConfig.ca.certPath) {
-    try {
-      const caCertData = fs.readFileSync(certConfig.ca.certPath);
-      agentOptions.ca = [caCertData];
-    } catch (error) {
-      console.error('Failed to load CA certificate:', error);
-      vscode.window.showErrorMessage(`Failed to load CA certificate: ${error}`);
-    }
+  if (config.ca.enabled && config.ca.certData) {
+    agentOptions.ca = [config.ca.certData];
   }
 
   // Find matching client certificate for this host
-  const matchingClientCert = certConfig.clients.find(
+  const matchingClientCert = config.clients.find(
       cert => cert.enabled &&
           (cert.host === hostname || hostname.includes(cert.host) ||
            cert.host === '*'));
 
-  if (matchingClientCert && matchingClientCert.certPath &&
-      matchingClientCert.keyPath) {
-    try {
-      agentOptions.cert = fs.readFileSync(matchingClientCert.certPath);
-      agentOptions.key = fs.readFileSync(matchingClientCert.keyPath);
-    } catch (error) {
-      console.error('Failed to load client certificate:', error);
-      vscode.window.showErrorMessage(
-          `Failed to load client certificate for ${hostname}: ${error}`);
-    }
+  if (matchingClientCert && matchingClientCert.certData &&
+      matchingClientCert.keyData) {
+    agentOptions.cert = matchingClientCert.certData;
+    agentOptions.key = matchingClientCert.keyData;
   }
 
   return new https.Agent(agentOptions);
 }
 
-function createWebSocketOptionsWithCertificates(hostname: string) {
-  const certConfig = getConfiguration();
+function createWebSocketOptionsWithCertificates(
+    hostname: string, config: NetworkConfig) {
+  const wsOptions: any = {rejectUnauthorized: config.sslValidation};
 
-  const wsOptions: any = {rejectUnauthorized: certConfig.sslValidation};
-
-  // Add CA certificate if configured
-  if (certConfig.ca.enabled && certConfig.ca.certPath) {
-    try {
-      const caCertData = fs.readFileSync(certConfig.ca.certPath);
-      wsOptions.ca = [caCertData];
-    } catch (error) {
-      console.error('Failed to load CA certificate for WebSocket:', error);
-    }
+  if (config.ca.enabled && config.ca.certData) {
+    wsOptions.ca = [config.ca.certData];
   }
 
-  // Find matching client certificate for this host
-  const matchingClientCert = certConfig.clients.find(
+  const matchingClientCert = config.clients.find(
       cert => cert.enabled &&
           (cert.host === hostname || hostname.includes(cert.host) ||
            cert.host === '*'));
 
-  if (matchingClientCert && matchingClientCert.certPath &&
-      matchingClientCert.keyPath) {
-    try {
-      wsOptions.cert = fs.readFileSync(matchingClientCert.certPath);
-      wsOptions.key = fs.readFileSync(matchingClientCert.keyPath);
-    } catch (error) {
-      console.error('Failed to load client certificate for WebSocket:', error);
-    }
+  if (matchingClientCert && matchingClientCert.certData &&
+      matchingClientCert.keyData) {
+    wsOptions.cert = matchingClientCert.certData;
+    wsOptions.key = matchingClientCert.keyData;
   }
 
   return wsOptions;
 }
 
+// --- Main Handler ---
+
 export function handleNetworkMessage(
-    message: NetworkMessage, webviewPanel: vscode.WebviewPanel,
-    wsConnections: Record<string, WebSocket>) {
-  const config = getConfiguration();
+    message: NetworkMessage, wsConnections: Record<string, WebSocket>,
+    config: NetworkConfig, postMessage: PostMessage) {
   switch (message.action) {
     case 'http-send':
       (async () => {
@@ -165,7 +144,7 @@ export function handleNetworkMessage(
 
           // Create HTTPS agent with certificates for HTTPS requests
           const httpsAgent = parsedUrl.protocol === 'https:' ?
-              createHttpsAgentWithCertificates(hostname) :
+              createHttpsAgentWithCertificates(hostname, config) :
               undefined;
 
           let request = {
@@ -180,14 +159,14 @@ export function handleNetworkMessage(
             responseType: 'text' as const,
             transformResponse: [function(data: string) {
               return data;
-            }],
+            }]
           };
 
           lastSendTime = Date.now();
           const response = await axios.request(request);
           const duration = lastSendTime ? Date.now() - lastSendTime : -1;
 
-          webviewPanel.webview.postMessage({
+          postMessage({
             command: 'network',
             action: 'http-response',
             data: {
@@ -198,9 +177,8 @@ export function handleNetworkMessage(
               duration: duration,
               autoformat: config.autoFormat
             },
-            requestId,
+            requestId
           });
-
         } catch (err: any) {
           const duration = lastSendTime ? Date.now() - lastSendTime : -1;
           let errorMessage = err?.message || String(err);
@@ -208,7 +186,6 @@ export function handleNetworkMessage(
           let responseBody = null;
           let responseHeaders = null;
 
-          // Extract response data safely, avoiding circular references
           if (err.response) {
             responseBody = err.response.data;
             responseHeaders = err.response.headers;
@@ -234,7 +211,7 @@ export function handleNetworkMessage(
             errorMessage = 'Host not found. Check the URL.';
           }
 
-          webviewPanel.webview.postMessage({
+          postMessage({
             command: 'network',
             action: 'http-error',
             data: {
@@ -246,7 +223,7 @@ export function handleNetworkMessage(
               duration: duration,
               autoformat: config.autoFormat
             },
-            requestId: message.requestId,
+            requestId: message.requestId
           });
         }
       })();
@@ -269,19 +246,18 @@ export function handleNetworkMessage(
         // Create WebSocket with certificate options for WSS connections
         let wsOptions = {};
         if (parsedUrl.protocol === 'wss:') {
-          wsOptions = createWebSocketOptionsWithCertificates(hostname);
+          wsOptions = createWebSocketOptionsWithCertificates(hostname, config);
         }
 
         const ws = new WebSocket(url, wsOptions);
         wsConnections[wsId] = ws;
 
         ws.on('open', () => {
-          webviewPanel.webview.postMessage(
-              {command: 'network', action: 'ws-open', wsId});
+          postMessage({command: 'network', action: 'ws-open', wsId});
         });
 
         ws.on('close', (code, reason) => {
-          webviewPanel.webview.postMessage({
+          postMessage({
             command: 'network',
             action: 'ws-close',
             wsId,
@@ -300,7 +276,7 @@ export function handleNetworkMessage(
                 'WebSocket certificate error. Check your certificate configuration.';
           }
 
-          webviewPanel.webview.postMessage({
+          postMessage({
             command: 'network',
             action: 'ws-error',
             wsId,
@@ -309,7 +285,7 @@ export function handleNetworkMessage(
         });
 
         ws.on('message', (data) => {
-          webviewPanel.webview.postMessage({
+          postMessage({
             command: 'network',
             action: 'ws-message',
             wsId,
@@ -317,9 +293,8 @@ export function handleNetworkMessage(
             autoformat: config.autoFormat
           });
         });
-
       } catch (err: any) {
-        webviewPanel.webview.postMessage({
+        postMessage({
           command: 'network',
           action: 'ws-error',
           wsId: (message as any).wsId,
@@ -334,7 +309,7 @@ export function handleNetworkMessage(
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(typeof data === 'string' ? data : JSON.stringify(data));
       } else {
-        webviewPanel.webview.postMessage({
+        postMessage({
           command: 'network',
           action: 'ws-error',
           wsId,
@@ -349,21 +324,19 @@ export function handleNetworkMessage(
       if (ws) {
         ws.close();
         delete wsConnections[wsId];
-        webviewPanel.webview.postMessage(
-            {command: 'network', action: 'ws-close', wsId});
+        postMessage({command: 'network', action: 'ws-close', wsId});
       }
     } break;
   }
 }
 
 // Helper function to get certificate status for a URL (useful for UI feedback)
-export function getCertificateStatusForUrl(url: string) {
+export function getCertificateStatusForUrl(url: string, config: NetworkConfig) {
   try {
     const parsedUrl = new URL(url);
     const hostname = parsedUrl.hostname;
-    const certConfig = getConfiguration();
 
-    const hasMatchingClientCert = certConfig.clients.some(
+    const hasMatchingClientCert = config.clients.some(
         cert => cert.enabled &&
             (cert.host === hostname || hostname.includes(cert.host) ||
              cert.host === '*'));
@@ -371,8 +344,8 @@ export function getCertificateStatusForUrl(url: string) {
     return {
       protocol: parsedUrl.protocol,
       hostname,
-      sslValidation: certConfig.sslValidation,
-      hasCA: certConfig.ca.enabled && certConfig.ca.certPath,
+      sslValidation: config.sslValidation,
+      hasCA: config.ca.enabled && !!config.ca.certData,
       hasClientCert: hasMatchingClientCert,
       isSecure: parsedUrl.protocol === 'https:' || parsedUrl.protocol === 'wss:'
     };

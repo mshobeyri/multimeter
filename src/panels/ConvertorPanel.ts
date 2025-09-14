@@ -3,7 +3,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as yaml from 'yaml';
 
-import {APIData} from '../core/src/APIData';
+import {APIData} from 'mmt-core/src/APIData';
 
 // Helper to extract key-value pairs from Postman format and convert to object
 function extractKeyValue(arr: any[] = []): Record<string, string> {
@@ -355,7 +355,7 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
       postmanIconUri: string, openApiIconUri: string,
       multimeterIconUri: string) {
     const htmlPath =
-        path.join(this.context.extensionPath, 'src', 'convertor.html');
+        path.join(this.context.extensionPath, 'src', 'panels', 'convertor.html');
     let html = fs.readFileSync(htmlPath, 'utf8');
 
 
