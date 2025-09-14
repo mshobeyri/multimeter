@@ -95,10 +95,6 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
             .replace(/href="(.+?)"/g, (match, p1) => `href="${fixUri(p1)}"`);
 
     webviewPanel.webview.html = html;
-
-    // Store active WebSocket connections by uuid
-    const wsConnections: Record<string, WebSocket> = {};
-
     webviewPanel.webview.onDidReceiveMessage(async (message) => {
       switch (message.command) {
         case 'ready':
@@ -182,7 +178,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         }
 
         case 'network':
-          handleNetworkMessage(message, webviewPanel, wsConnections);
+          handleNetworkMessage(message, webviewPanel);
           break;
 
         case 'addHistory':

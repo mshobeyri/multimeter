@@ -64,12 +64,11 @@ function getPreparedConfig(): NetworkConfig {
 
 // The VS Code-specific handler
 export function handleNetworkMessage(
-    message: NetworkMessage, webviewPanel: vscode.WebviewPanel,
-    wsConnections: Record<string, WebSocket>) {
+    message: NetworkMessage, webviewPanel: vscode.WebviewPanel) {
   const config = getPreparedConfig();
   const postMessage: PostMessage = (msg: any) =>
       webviewPanel.webview.postMessage(msg);
 
   // Call the core handler with prepared config and postMessage
-  coreHandleNetworkMessage(message, wsConnections, config, postMessage);
+  coreHandleNetworkMessage(message, config, postMessage);
 }

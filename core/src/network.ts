@@ -1,12 +1,9 @@
 import WebSocket from 'ws';
-import {
-  NetworkConfig,
-  sendHttpRequest,
-  createWebSocket,
-  HttpRequest,
-} from './networkCore';
 
-export { NetworkConfig, HttpRequest, HttpResponse } from './networkCore';
+import {addWsConnection, createWebSocket, deleteWsConnection, HttpRequest, NetworkConfig, sendHttpRequest, wsConnections} from './networkCore';
+
+export {HttpRequest, HttpResponse, NetworkConfig} from './networkCore';
+
 // --- Types ---
 
 export type NetworkMessage =|{
@@ -61,17 +58,14 @@ export interface ClientCertificate {
 export type PostMessage = (msg: any) => void;
 
 export function handleNetworkMessage(
-  message: NetworkMessage,
-  wsConnections: Record<string, WebSocket>,
-  config: NetworkConfig,
-  postMessage: PostMessage
-) {
+    message: NetworkMessage, config: NetworkConfig, postMessage: PostMessage) {
   switch (message.action) {
     case 'http-send':
       (async () => {
         try {
-          const { url, method, headers, body, query, cookies, requestId } = message;
-          const req: HttpRequest = { url, method, headers, body, query, cookies };
+          const {url, method, headers, body, query, cookies, requestId} =
+              message;
+          const req: HttpRequest = {url, method, headers, body, query, cookies};
           const response = await sendHttpRequest(req, config);
           postMessage({
             command: 'network',
@@ -99,14 +93,16 @@ export function handleNetworkMessage(
       break;
 
     case 'ws-connect': {
-      const { url, wsId } = message;
-      if (wsConnections[wsId]) {
-        wsConnections[wsId].close();
-        delete wsConnections[wsId];
+      const {url, wsId} = message;
+      if (wsConnections(wsId)) {
+        wsConnections(wsId).close();
+        deleteWsConnection(wsId);
       }
-      const { ws } = createWebSocket(url, wsId, config);
-      wsConnections[wsId] = ws;
-      ws.on('open', () => postMessage({ command: 'network', action: 'ws-open', wsId }));
+      const {ws} = createWebSocket(url, wsId, config);
+      addWsConnection(wsId, ws);
+      ws.on(
+          'open',
+          () => postMessage({command: 'network', action: 'ws-open', wsId}));
       ws.on('close', (code, reason) => {
         postMessage({
           command: 'network',
@@ -115,7 +111,7 @@ export function handleNetworkMessage(
           code,
           reason: reason?.toString(),
         });
-        delete wsConnections[wsId];
+        deleteWsConnection(wsId);
       });
       ws.on('error', (error) => {
         postMessage({
@@ -138,8 +134,8 @@ export function handleNetworkMessage(
     }
 
     case 'ws-send': {
-      const { wsId, data } = message;
-      const ws = wsConnections[wsId];
+      const {wsId, data} = message;
+      const ws = wsConnections(wsId);
       if (ws && ws.readyState === WebSocket.OPEN) {
         ws.send(typeof data === 'string' ? data : JSON.stringify(data));
       } else {
@@ -154,12 +150,12 @@ export function handleNetworkMessage(
     }
 
     case 'ws-disconnect': {
-      const { wsId } = message;
-      const ws = wsConnections[wsId];
+      const {wsId} = message;
+      const ws = wsConnections(wsId);
       if (ws) {
         ws.close();
-        delete wsConnections[wsId];
-        postMessage({ command: 'network', action: 'ws-close', wsId });
+        deleteWsConnection(wsId);
+        postMessage({command: 'network', action: 'ws-close', wsId});
       }
       break;
     }

@@ -2,6 +2,8 @@ import axios from 'axios';
 import * as https from 'https';
 import WebSocket from 'ws';
 
+const openConnections: Record<string, WebSocket> = {};
+
 export interface CaCertificate {
   enabled: boolean;
   certData?: Buffer;
@@ -40,6 +42,23 @@ export interface HttpResponse {
   statusText: string;
   duration: number;
   autoformat: boolean;
+}
+
+export function wsConnections(wsId: string) {
+    return openConnections[wsId];
+}
+
+export function deleteWsConnection(wsId: string) {
+    const ws = openConnections[wsId];
+    if (ws) {
+        ws.close();
+        delete openConnections[wsId];
+    }
+    return ws;
+}
+
+export function addWsConnection(wsId: string, ws: WebSocket) {
+    openConnections[wsId] = ws;
 }
 
 export function createHttpsAgentWithCertificates(
