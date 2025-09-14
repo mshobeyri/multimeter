@@ -1,7 +1,8 @@
 import * as fs from 'fs';
+import {runJSCode} from 'mmt-core/jsRunner';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import WebSocket from 'ws';
+import { LogLevel } from 'mmt-core/CommonData';
 
 import {handleNetworkMessage} from './vscodeNetwork';
 
@@ -19,6 +20,21 @@ export async function readFileContent(filename: string): Promise<string> {
     vscode.window.showErrorMessage(`Failed to read file ${filename}: ${err}`);
     return '';
   }
+}
+
+export function logToOutput(level: LogLevel, message: string) {
+  switch (level) {
+    case 'error':
+      logOutputChannel.error(message);
+      break;
+    case 'warn':
+      logOutputChannel.warn(message);
+      break;
+    case 'info':
+      logOutputChannel.info(message);
+      break;
+  }
+  logOutputChannel.show(true);
 }
 
 export async function readRelativeFileContent(
@@ -162,20 +178,13 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           break;
 
         case 'logToOutput': {
-          switch (message.level) {
-            case 'error':
-              logOutputChannel.error(message.message);
-              break;
-            case 'warning':
-              logOutputChannel.warn(message.message);
-              break;
-            case 'info':
-              logOutputChannel.info(message.message);
-              break;
-          }
-          logOutputChannel.show(true);
+          logToOutput(message.level, message.message);
           break;
         }
+
+        case 'runJSCode':
+          await runJSCode(message.code, message.title, logToOutput);
+          break;
 
         case 'network':
           handleNetworkMessage(message, webviewPanel);

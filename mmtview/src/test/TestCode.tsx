@@ -1,7 +1,7 @@
 import React from "react";
 import TextEditor from "../text/TextEditor";
 import { rootTestToJsfunc, setFileLoader } from "mmt-core/JSer";
-import { logToOutput, readFile, showVSCodeMessage } from "../vsAPI";
+import { logToOutput, readFile, runJSCode, showVSCodeMessage } from "../vsAPI";
 import * as mmtHelper from "mmt-core/testHelper";
 
 interface TestCodeProps {
@@ -34,7 +34,6 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
     }, [testData]);
 
     const handleRun = async () => {
-        logToOutput("info", `Running test ${testData?.title || ""}...`);
         console.log = (...args: any[]) => {
             logToOutput("info", args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' '));
         };
@@ -42,22 +41,17 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
             logToOutput("error", args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' '));
         };
         console.warn = (...args: any[]) => {
-            logToOutput("warning", args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' '));
+            logToOutput("warn", args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' '));
         };
         try {
-            const helperDecls = Object.keys(mmtHelper)
-                .map(name => `const ${name} = mmtHelper["${name}"];`)
-                .join('\n');
-            const fn = new Function("mmtHelper", `${helperDecls}\n${jsCode}`);
-            await fn(mmtHelper);
-            
-            showVSCodeMessage("info", "Done successfully");
-            logToOutput("info", "Done successfully");
+            // const helperDecls = Object.keys(mmtHelper)
+            //     .map(name => `const ${name} = mmtHelper["${name}"];`)
+            //     .join('\n');
+            // const fn = new Function("mmtHelper", `${helperDecls}\n${jsCode}`);
+            // await fn(mmtHelper);
+            runJSCode(jsCode, testData?.title || "");
         } catch (e: any) {
             showVSCodeMessage("error", "Error: " + (e?.message || String(e)));
-            logToOutput("error", (e?.message || String(e)));
-        } finally {
-            logToOutput("info", `Finished running test ${testData?.title || ""}`);
         }
     };
 

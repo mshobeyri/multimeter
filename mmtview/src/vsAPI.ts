@@ -1,3 +1,5 @@
+import {LogLevel} from 'mmt-core/CommonData';
+
 let lastFileContentResolver: ((content: string) => void)|null = null;
 let lastFileContentRejecter: ((error: any) => void)|null = null;
 
@@ -27,8 +29,7 @@ export function readFile(filename: string): Promise<string> {
   });
 }
 
-export function showVSCodeMessage(
-    level: 'error'|'warning'|'info', message: string) {
+export function showVSCodeMessage(level: LogLevel, message: string) {
   window.vscode?.postMessage({
     command: 'showPopupMessage',
     level,
@@ -36,11 +37,19 @@ export function showVSCodeMessage(
   });
 }
 
-export function logToOutput(level: 'error'|'warning'|'info', message: string) {
+export function logToOutput(level: LogLevel, message: string) {
   window.vscode?.postMessage({
     command: 'logToOutput',
     level,
     message,
+  });
+}
+
+export function runJSCode(code: string, title: string) {
+  window.vscode?.postMessage({
+    command: 'runJSCode',
+    code,
+    title,
   });
 }
 
