@@ -89,12 +89,13 @@ export const importApiToJSfunc = (ctx: APIContext): string => {
 
   return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
   const req = {
+    url: '${ctx.api.url}',
+    protocol: '${ctx.api.protocol}',
     method: '${replaced.method}',
     headers: { ${headers} },
     body: \`${formattedBody}\`
   };
-  const conn = getConn('${ctx.api.url}', '${ctx.api.protocol}');
-  const res = await conn.send(req);
+  const res = await send(req);
 
   const extractedValues = extractOutputs(
     {

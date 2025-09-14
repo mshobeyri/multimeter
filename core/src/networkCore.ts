@@ -155,3 +155,17 @@ export function createWebSocketOptionsWithCertificates(
   }
   return wsOptions;
 }
+
+// Define your default config (adjust values as needed)
+const defaultConfig: NetworkConfig = {
+  ca: {enabled: false},
+  clients: [],
+  sslValidation: true,
+  timeout: 30000,
+  autoFormat: false,
+};
+
+// Generic send function using default config
+export async function send(req: HttpRequest): Promise<HttpResponse> {
+  return sendHttpRequest(req, defaultConfig);
+}
