@@ -46,31 +46,31 @@ export function useNetwork(): NetworkAPI {
         duration: -1
       };
     }
-    const opts = requestData;
-    const {
-      url = requestData.url,
-      method = requestData.method || "get",
-      headers = requestData.headers,
-      body = requestData.body,
-      protocol = requestData.protocol || "http",
-      cookies = requestData.cookies,
-      query = requestData.query,
-    } = opts;
-
-    // Save request to history
-    pushHistory({
-      type: "send",
-      method: method.toLowerCase(),
-      protocol,
-      title: `${method.toLowerCase()} ${url}`,
-      cookies: cookies,
-      headers: headers,
-      query: query,
-      content: method === "get" ? "" : toContentString(body),
-    });
 
     return new Promise<Response | undefined>((resolve) => {
+      const opts = requestData;
+      const {
+        url = requestData.url,
+        method = requestData.method || "get",
+        headers = requestData.headers,
+        body = requestData.body,
+        protocol = requestData.protocol || "http",
+        cookies = requestData.cookies,
+        query = requestData.query,
+      } = opts;
       if (protocol === "http") {
+        // Save request to history
+        pushHistory({
+          type: "send",
+          method: method.toLowerCase(),
+          protocol,
+          title: `${method.toLowerCase()} ${url}`,
+          cookies: cookies,
+          headers: headers,
+          query: query,
+          content: method === "get" ? "" : toContentString(body),
+        });
+
         lastRequestID.current = NetworkNodeApi.sendHttp({
           url: url ?? "",
           method: method.toLowerCase(),
