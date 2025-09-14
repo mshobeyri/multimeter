@@ -12,7 +12,7 @@ import { extractOutputs } from "mmt-core/outputExtractor";
 import ViewSelector, { ViewMode } from "../components/ViewSelector";
 import { loadEnvVariables } from "../workspaceStorage";
 import { safeList } from "mmt-core/safer";
-import { Request, Response } from "../components/network/NetworkData";
+import { Request, Response } from "mmt-core/NetworkData";
 import { JSONRecord } from "mmt-core/CommonData";
 import { setEnvironmentVariable, getEnvironmentVariable } from "../environment/environmentUtils";
 

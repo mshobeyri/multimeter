@@ -1,5 +1,5 @@
 import { safeList } from "mmt-core/safer";
-import { Request } from "./NetworkData";
+import { Request } from "mmt-core/NetworkData";
 
 export function buildCurlCommand(options: Request): string {
     const {

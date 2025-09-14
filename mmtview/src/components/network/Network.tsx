@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { NetworkAPI, Request, Response } from "./NetworkData";
+import { NetworkAPI, Request, Response } from "mmt-core/NetworkData";
 import { NetworkNodeApi, Error } from "./NetworkNodeApi";
 import { pushHistory } from "../../vsAPI";
 import { beautifyWithContentType } from "mmt-core/markupConvertor";
