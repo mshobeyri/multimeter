@@ -47,18 +47,17 @@ export function useNetwork(): NetworkAPI {
       };
     }
 
-    return new Promise<Response | undefined>((resolve) => {
-      const opts = requestData;
-      const {
-        url = requestData.url,
-        method = requestData.method || "get",
-        headers = requestData.headers,
-        body = requestData.body,
-        protocol = requestData.protocol || "http",
-        cookies = requestData.cookies,
-        query = requestData.query,
-      } = opts;
-      if (protocol === "http") {
+    if (requestData.protocol === "http") {
+      return new Promise<Response | undefined>((resolve) => {
+        const {
+          url = requestData.url,
+          method = requestData.method || "get",
+          headers = requestData.headers,
+          body = requestData.body,
+          protocol = requestData.protocol || "http",
+          cookies = requestData.cookies,
+          query = requestData.query,
+        } = requestData;
         // Save request to history
         pushHistory({
           type: "send",
@@ -129,7 +128,16 @@ export function useNetwork(): NetworkAPI {
             });
           }
         });
-      } else if (protocol === "ws") {
+      });
+    } else if (requestData.protocol === "ws") {
+      return new Promise<Response | undefined>((resolve) => {
+        const opts = requestData;
+        const {
+          url = requestData.url,
+          body = requestData.body,
+          protocol = requestData.protocol || "http",
+        } = opts;
+
         if (!connected) {
           setLoading(false);
           resolve({
@@ -154,8 +162,18 @@ export function useNetwork(): NetworkAPI {
           wsId: wsId || "",
           data: toContentString(body)
         });
-      }
-    });
+      });
+    } else {
+      return new Promise<Response | undefined>((resolve) => {
+        setLoading(false);
+        resolve({
+          errorMessage: "Protocol not specified",
+          status: 400,
+          errorCode: "PROTOCOL_NOT_SPECIFIED",
+          duration: -1
+        });
+      });
+    }
   };
 
   const cancel = async () => {
@@ -206,14 +224,13 @@ export function useNetwork(): NetworkAPI {
             content: data
           });
           // Optionally resolve here if you want to return on first message
-          return {
+          resolve({
             body: data,
-            headers: undefined,
-            status: null,
-            message: null,
-            code: null,
-            duration: null
-          };
+            errorMessage: "",
+            status: -1,
+            errorCode: "",
+            duration: -1
+          });
         },
         onClose: () => {
           setConnected(false);
