@@ -1,6 +1,7 @@
-import { APIData } from './APIData';
+import {APIData} from './APIData';
 import {JSONRecord} from './CommonData';
 import {safeList} from './safer';
+import {TestData} from './TestData';
 
 // Replacement modes enum
 enum ReplacementMode {
@@ -20,7 +21,7 @@ function replaceRefs(
     if (match && match.length === 1 && match[0] === obj) {
       // Extract the key using the pattern
       const keyMatch = pattern.exec(obj);
-      pattern.lastIndex = 0; // Reset lastIndex for global regex
+      pattern.lastIndex = 0;  // Reset lastIndex for global regex
       const key = keyMatch && keyMatch[1];
       const found = key ? inputs[key] : undefined;
 
@@ -30,7 +31,7 @@ function replaceRefs(
       }
       return key;
     }
-    
+
     // For partial replacements or multiple matches, convert to string
     return obj.replace(pattern, (match, key) => {
       const found = inputs[key];
@@ -71,7 +72,7 @@ export function replaceInputRefsWithNone(obj: any, inputs: any): any {
 
 // Replaces all references (inputs first, then environment vars)
 export function replaceAllRefs(
-    iface: APIData, defaults: JSONRecord, inputs: JSONRecord,
+    iface: any, defaults: JSONRecord, inputs: JSONRecord,
     envs: JSONRecord): any {
   const mergedInputs = Object.assign({}, defaults, inputs);
 

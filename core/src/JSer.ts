@@ -62,12 +62,6 @@ export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
       Object.keys(ctx.api.inputs ?? {}).map(key => [key, `\${${key}}`]));
 
   const extractRules = ctx.api.extract || ctx.api.outputs || {};
-  const outputNames = Object.keys(extractRules);
-
-  // Prepare env variable names
-  // const envVarNames = Array.isArray(ctx.envVars) ?
-  //     ctx.envVars.map((envVar: any) => envVar.name) :
-  //     Object.keys(ctx.envVars ?? {});
 
   let replaced =
       replaceAllRefs(ctx.api, paramsAsObj, ctx.inputs, ctx.envVars ?? {});
@@ -235,15 +229,20 @@ export const checkToJSfunc = (check: string): string => {
 }`;
 };
 
+const toInputsParams = (inputs: Record<string, any>, operator: string) => {
+  const formattedInputs =
+      Object.entries(inputs ?? {})
+          .map(
+              ([key, value]) => `${key}${operator}${
+                  typeof value === 'string' ? '`' + value + '`' : value}`)
+          .join(', ');
+  return formattedInputs;
+};
 
 export const callToJSfunc = (step: TestFlowCall): string => {
-  const inputs = Object.entries(step.inputs ?? {})
-                     .map(
-                         ([key, value]) => `${key} : ${
-                             typeof value === 'string' ? `"${value}"` : value}`)
-                     .join(', ');
+  const inputs = toInputsParams(step.inputs || {}, ': ');
 
-  let call = `await ${step.call}({${inputs}});`;
+  let call = `await ${step.call}({ ${inputs} });`;
   if (step.id) {
     call = `const ${step.id} = ` + call;
   }
@@ -350,48 +349,35 @@ export const importTestToJsfunc = async(ctx: TestContext): Promise<string> => {
       ctx.test.steps.length > 0) {
     throw new Error(`${ctx.name}: Test cannot have both stages and steps`);
   }
-  let flow = '';
-  if (ctx.test.stages && ctx.test.stages.length > 0) {
-    flow = flowStagesToJsfunc(ctx.test.stages ?? []);
-  } else if (ctx.test.steps && ctx.test.steps.length > 0) {
-    flow = flowStepsToJsfunc(ctx.test.steps ?? []);
+  let importedFuncs = '// Imported tests and APIs\n';
+  importedFuncs += await importsToJsfunc(ctx.test.import ?? {});
+  const paramsAsObj: Record<string, string> = Object.fromEntries(
+      Object.keys(ctx.test.inputs ?? {}).map(key => [key, `\${${key}}`]));
+
+  let replaced =
+      replaceAllRefs(ctx.test, paramsAsObj, ctx.inputs, ctx.envVars ?? {});
+
+  const inputParams = toInputsParams(replaced.inputs || {}, ' = ');
+
+  let flow = '// Test flow\n';
+  if (replaced.stages && replaced.stages.length > 0) {
+    flow += flowStagesToJsfunc(replaced.stages);
+  } else if (replaced.steps && replaced.steps.length > 0) {
+    flow += flowStepsToJsfunc(replaced.steps);
   }
-  const importedFuncs = await importsToJsfunc(ctx.test.import ?? {});
-  const inputParams =
-      Object.entries(ctx.inputs ?? {})
-          .map(
-              ([key, value]) => `${key} = ${
-                  typeof value === 'string' ? `"${value}"` : value}`)
-          .join(', ');
-  return `const ${ctx.name} = async ( {${inputParams} } = {}) => {
+  return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
 ${indentLines(importedFuncs)}
+
 ${indentLines(flow)}
 };`;
 };
 
 export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
-  if (ctx.test.stages && ctx.test.stages.length > 0 && ctx.test.steps &&
-      ctx.test.steps.length > 0) {
-    throw new Error(`${ctx.name}: Test cannot have both stages and steps`);
-  }
-
-  let importedFuncs = '// Imported tests and APIs\n';
-  importedFuncs += await importsToJsfunc(ctx.test.import ?? {});
-
-  let flow = '// Test flow\n';
-  if (ctx.test.stages && ctx.test.stages.length > 0) {
-    flow += flowStagesToJsfunc(ctx.test.stages ?? []);
-  } else if (ctx.test.steps && ctx.test.steps.length > 0) {
-    flow += flowStepsToJsfunc(ctx.test.steps ?? []);
-  }
+  const test = await importTestToJsfunc(ctx);
   return `let envParameters = {${
       Object.keys(ctx.envVars).map(name => `${name}: ${name}`).join(', ')}};
 
-const ${ctx.name} = async () => {
-${indentLines(importedFuncs)}
-
-${indentLines(flow)}
-};
+${test}
 
 return ${ctx.name}();`;
 };
