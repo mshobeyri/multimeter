@@ -50,7 +50,7 @@ export function setFileLoader(loader: FileLoader) {
   readFile = loader;
 }
 
-export const importApiToJSfunc = (ctx: APIContext): string => {
+export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
   const inputParams =
       Object.entries(ctx.api.inputs ?? {})
           .map(
@@ -123,20 +123,43 @@ export const importApiToJSfunc = (ctx: APIContext): string => {
 
 export const importsToJsfunc =
     async(imports: Record<string, string>): Promise<string> => {
-  const results =
-      await Promise.all(Object.entries(imports).map(async ([name, path]) => {
-        let content = await readFile(path);
-        let type = fileType(content);
+  try {
+    const results: string[] = [];
+
+    for (const [name, path] of Object.entries(imports)) {
+      try {
+        const content = await readFile(path);
+        const type = fileType(content);
+
         if (type === 'test') {
-          return importTestToJsfunc(
-              {test: yamlToTest(content), name, inputs: {}, envVars: {}});
+          const res = await importTestToJsfunc({
+            test: yamlToTest(content),
+            name,
+            inputs: {},
+            envVars: {},
+          });
+          results.push(res);
         } else if (type === 'api') {
-          return importApiToJSfunc(
-              {api: yamlToAPI(content), name, inputs: {}, envVars: {}});
+          const res = await importApiToJSfunc({
+            api: yamlToAPI(content),
+            name,
+            inputs: {},
+            envVars: {},
+          });
+          results.push(res);
+        } else {
+          console.warn(`Skipping ${path}: unknown type "${type}"`);
         }
-        return '';
-      }));
-  return results.join('\n');
+      } catch (innerErr) {
+        console.error(`Failed to import ${path}:`, innerErr);
+      }
+    }
+
+    return results.join('\n');
+  } catch (error) {
+    console.error('Error importing functions:', error);
+    return '';
+  }
 };
 
 export const conditionalStatementToJSfunc = (check: string): string => {
