@@ -1,12 +1,12 @@
 import {LogLevel} from './CommonData';
-import * as mmtHelper from './testHelper';
 // Import your send function from the network core
-import { send } from './networkCore'; // Adjust the path as needed
+import {send} from './networkCore';  // Adjust the path as needed
+import {extractOutputs} from './outputExtractor'
+import * as mmtHelper from './testHelper';
 
 export async function runJSCode(
     code: string, title: string,
-    lg: (level: LogLevel, message: string) => void
-): Promise<any> {
+    lg: (level: LogLevel, message: string) => void): Promise<any> {
   lg('info', `Running test ${title}...`);
 
   const customConsole = {
@@ -27,8 +27,10 @@ export async function runJSCode(
             .map(name => `const ${name} = mmtHelper["${name}"];`)
             .join('\n');
     // Pass send as a third argument
-    const fn = new Function('mmtHelper', 'console', 'send', `${helperDecls}\n${code}`);
-    await fn(mmtHelper, customConsole, send);
+    const fn = new Function(
+        'mmtHelper', 'console', 'send', 'extractOutputs',
+        `${helperDecls}\n${code}`);
+    await fn(mmtHelper, customConsole, send, extractOutputs);
 
     lg('info', 'Done successfully');
   } catch (e: any) {

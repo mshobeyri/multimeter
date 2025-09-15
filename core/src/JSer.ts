@@ -99,8 +99,7 @@ export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
 
   const extractedValues = extractOutputs(
     {
-      type: (res?.headers?.['Content-Type'] || res?.headers?.['content-type'] || '').includes('xml') ||
-            (res?.body && res.body.startsWith && res.body.startsWith('<')) ? 'xml' : 'json',
+      type: 'auto',
       body: res?.body,
       headers: res?.headers || {},
       cookies: res?.cookies || {}

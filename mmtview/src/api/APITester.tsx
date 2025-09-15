@@ -65,9 +65,7 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
     const outputNames = Object.keys(extractRules);
 
     const extractedValues = extractOutputs({
-      type: responseData?.headers?.["Content-Type"] ||
-        responseData?.headers?.["content-type"]?.includes("xml") ||
-        (responseData?.body && responseData.body.startsWith && responseData.body.startsWith("<")) ? "xml" : "json",
+      type: 'auto',
       body: responseData?.body,
       headers: responseData?.headers || {},
       cookies: responseData?.cookies || {}
