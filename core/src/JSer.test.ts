@@ -79,7 +79,7 @@ describe('flowStagesToJsfunc', () => {
 });
 
 describe('testToJsfunc (multi-stage)', () => {
-  it('generates code for a test with only stages', () => {
+  it('generates code for a test with only stages', async () => {
     const ctx: TestContext = {
       name: 'multiStageTest',
       test: {
@@ -105,7 +105,7 @@ describe('testToJsfunc (multi-stage)', () => {
     // Patch testToJsfunc to use flowStagesToJsfunc for this test
     const originalFlowStagesToJsfunc = (globalThis as any).flowStagesToJsfunc;
     (globalThis as any).flowStagesToJsfunc = flowStagesToJsfunc;
-    const js = importTestToJsfunc(ctx);
+    const js = await importTestToJsfunc(ctx);
     (globalThis as any).flowStagesToJsfunc = originalFlowStagesToJsfunc;
     expect(js).toContain('const stage1Promise = (async () =>');
     expect(js).toContain('const stage2Promise = (async () =>');
