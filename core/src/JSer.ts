@@ -97,7 +97,7 @@ export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
   };
   const res = await send(req);
 
-  const extractedValues = extractOutputs(
+  const output = extractOutputs(
     {
       type: 'auto',
       body: res?.body,
@@ -107,16 +107,7 @@ export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
     ${JSON.stringify(extractRules)}
   );
 
-  // Build final outputs object
-  const finalOutputs = {};
-  ${
-      outputNames
-          .map(
-              name =>
-                  `finalOutputs["${name}"] = extractedValues["${name}"] ?? "";`)
-          .join('\n  ')}
-
-  return finalOutputs;
+  return output;
 };`;
 };
 
