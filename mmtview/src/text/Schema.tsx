@@ -21,11 +21,25 @@ export const APISchema = {
         },
         inputs: {
             type: 'object',
-            additionalProperties: { type: 'string' }
+            additionalProperties: {
+                anyOf: [
+                    { type: 'string' },
+                    { type: 'number' },
+                    { type: 'boolean' },
+                    { type: 'null' }
+                ]
+            }
         },
         outputs: {
             type: 'object',
-            additionalProperties: { type: 'string' }
+            additionalProperties: {
+                anyOf: [
+                    { type: 'string' },
+                    { type: 'number' },
+                    { type: 'boolean' },
+                    { type: 'null' }
+                ]
+            }
         },
         extract: {
             type: 'object',
@@ -158,6 +172,28 @@ export const TestSchema = {
         import: {
             type: 'object',
             additionalProperties: { type: 'string' }
+        },
+        inputs: {
+            type: 'object',
+            additionalProperties: {
+                anyOf: [
+                    { type: 'string' },
+                    { type: 'number' },
+                    { type: 'boolean' },
+                    { type: 'null' }
+                ]
+            }
+        },
+        outputs: {
+            type: 'object',
+            additionalProperties: {
+                anyOf: [
+                    { type: 'string' },
+                    { type: 'number' },
+                    { type: 'boolean' },
+                    { type: 'null' }
+                ]
+            }
         },
         steps: {
             type: 'array',
