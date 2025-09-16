@@ -14,7 +14,15 @@ export interface APIContext {
   api: APIData, name: string, inputs: JSONRecord, envVars: JSONRecord
 }
 
-export const fileType = (content: string): Type => {
+export const fileType = (path: string, content: string): Type => {
+  if (path.endsWith('.csv')) {
+    return 'csv';
+  }
+
+  if (!path.endsWith('.mmt')) {
+    return null;
+  }
+
   if (content.includes('type: api')) {
     return 'api';
   }
@@ -86,7 +94,7 @@ export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
     url: '${ctx.api.url}',
     protocol: '${ctx.api.protocol}',
     method: '${replaced.method}',
-    headers: { ${headers} },
+    headers: ${headers? '{ ' + headers + ' }' : '{}'},
     body: \`${formattedBody}\`
   };
   const res = await send(req);
@@ -98,11 +106,24 @@ export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
       headers: res?.headers || {},
       cookies: res?.cookies || {}
     },
-    ${JSON.stringify(extractRules)}
+    ${indentLines(JSON.stringify(extractRules, null, 2))}
   );
 
   return output;
 };`;
+};
+
+export const importCSVToJSObj =
+    async(content: string, name: string): Promise<string> => {
+  const rows = content.split('\n').map(row => row.split(','));
+  const headers = rows[0];
+  const jsonArray = rows.slice(1).map(row => {
+    return row.reduce((acc, value, index) => {
+      acc[headers[index]] = value;
+      return acc;
+    }, {} as JSONRecord);
+  });
+  return `const ${name} = ${JSON.stringify(jsonArray, null, 2)};`;
 };
 
 export const importsToJsfunc =
@@ -113,7 +134,7 @@ export const importsToJsfunc =
     for (const [name, path] of Object.entries(imports)) {
       try {
         const content = await readFile(path);
-        const type = fileType(content);
+        const type = fileType(path, content);
 
         if (type === 'test') {
           const res = await importTestToJsfunc({
@@ -130,6 +151,10 @@ export const importsToJsfunc =
             inputs: {},
             envVars: {},
           });
+          results.push(res);
+        } else if (type === 'csv') {
+          console.log(`Importing CSV file ${path} as JS object array named ${name}`);
+          const res = await importCSVToJSObj(content, name);
           results.push(res);
         } else {
           console.warn(`Skipping ${path}: unknown type "${type}"`);
@@ -206,9 +231,8 @@ export const ifToJSfunc = (condition: TestFlowCondition): string => {
 };
 
 export const repeatToJSfunc = (loop: TestFlowRepeat): string => {
-  const loopCondition = typeof loop.repeat === 'string'
-    ? loop.repeat.trim()
-    : String(loop.repeat);
+  const loopCondition = typeof loop.repeat === 'string' ? loop.repeat.trim() :
+                                                          String(loop.repeat);
   const loopBody = flowStepsToJsfunc(loop.steps);
 
   // Check for time-based repeat
@@ -218,13 +242,24 @@ export const repeatToJSfunc = (loop: TestFlowRepeat): string => {
     const unit = timeMatch[2];
     let durationMs = 0;
     switch (unit) {
-      case 'ns': durationMs = value / 1e6; break;
-      case 'ms': durationMs = value; break;
-      case 's':  durationMs = value * 1000; break;
-      case 'm':  durationMs = value * 60 * 1000; break;
-      case 'h':  durationMs = value * 60 * 60 * 1000; break;
+      case 'ns':
+        durationMs = value / 1e6;
+        break;
+      case 'ms':
+        durationMs = value;
+        break;
+      case 's':
+        durationMs = value * 1000;
+        break;
+      case 'm':
+        durationMs = value * 60 * 1000;
+        break;
+      case 'h':
+        durationMs = value * 60 * 60 * 1000;
+        break;
     }
-    return `for (const start = Date.now(); Date.now() < start + ${durationMs}; ) {
+    return `for (const start = Date.now(); Date.now() < start + ${
+        durationMs}; ) {
   ${indentLines(loopBody)}
 }`;
   }
