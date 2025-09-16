@@ -8,6 +8,7 @@ export async function runJSCode(
     code: string, title: string,
     lg: (level: LogLevel, message: string) => void): Promise<any> {
   lg('info', `Running test ${title}...`);
+  const startTime = Date.now();
 
   const customConsole = {
     log: (...args: any[]) => lg(
@@ -26,7 +27,6 @@ export async function runJSCode(
         Object.keys(mmtHelper)
             .map(name => `const ${name} = mmtHelper["${name}"];`)
             .join('\n');
-    // Pass send as a third argument
     const fn = new Function(
         'mmtHelper', 'console', 'send', 'extractOutputs',
         `${helperDecls}\n${code}`);
@@ -36,7 +36,8 @@ export async function runJSCode(
   } catch (e: any) {
     lg('error', (e?.message || String(e)));
   } finally {
-    lg('info', `Finished running test ${title}`);
+    const elapsed = Date.now() - startTime;
+    lg('info', `Finished running test ${title} in ${elapsed} ms`);
   }
   return;
 }
