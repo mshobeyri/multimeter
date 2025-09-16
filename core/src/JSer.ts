@@ -206,8 +206,30 @@ export const ifToJSfunc = (condition: TestFlowCondition): string => {
 };
 
 export const repeatToJSfunc = (loop: TestFlowRepeat): string => {
-  const loopCondition = loop.repeat;
+  const loopCondition = typeof loop.repeat === 'string'
+    ? loop.repeat.trim()
+    : String(loop.repeat);
   const loopBody = flowStepsToJsfunc(loop.steps);
+
+  // Check for time-based repeat
+  const timeMatch = loopCondition.match(/^(\d+(?:\.\d+)?)(ns|ms|s|m|h)$/);
+  if (timeMatch) {
+    const value = parseFloat(timeMatch[1]);
+    const unit = timeMatch[2];
+    let durationMs = 0;
+    switch (unit) {
+      case 'ns': durationMs = value / 1e6; break;
+      case 'ms': durationMs = value; break;
+      case 's':  durationMs = value * 1000; break;
+      case 'm':  durationMs = value * 60 * 1000; break;
+      case 'h':  durationMs = value * 60 * 60 * 1000; break;
+    }
+    return `for (const start = Date.now(); Date.now() < start + ${durationMs}; ) {
+  ${indentLines(loopBody)}
+}`;
+  }
+
+  // Default: count-based repeat
   return `for (let i = 0; i < ${loopCondition}; i++) {
   ${indentLines(loopBody)}
 }`;

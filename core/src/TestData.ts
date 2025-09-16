@@ -56,7 +56,7 @@ export interface TestFlowCondition extends TestFlowBase {
   else?: TestFlowSteps;
 }
 export interface TestFlowRepeat extends TestFlowBase {
-  repeat: number;
+  repeat: number|string;
   steps: TestFlowSteps;
 }
 export interface TestFlowLoop extends TestFlowBase {
