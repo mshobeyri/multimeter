@@ -70,8 +70,21 @@ export interface TestFlowPrint extends TestFlowBase {
   print: string
 }
 
+export interface TestFlowSet extends TestFlowBase {
+  set: Record<string, any>;
+}
+export interface TestFlowVar extends TestFlowBase {
+  var : Record<string, any>;
+}
+export interface TestFlowConst extends TestFlowBase {
+  const : Record<string, any>;
+}
+export interface TestFlowLet extends TestFlowBase {
+  let : Record<string, any>;
+}
 export type TestFlowStep = TestFlowCallTest|TestFlowCallAPI|TestFlowCheck|
-    TestFlowCondition|TestFlowRepeat|TestFlowLoop|TestFlowJS|TestFlowPrint;
+    TestFlowCondition|TestFlowRepeat|TestFlowLoop|TestFlowJS|TestFlowPrint|
+    TestFlowSet|TestFlowVar|TestFlowConst|TestFlowLet;
 
 export type TestFlowSteps = TestFlowStep[];
 

@@ -277,6 +277,80 @@ export const TestSchema = {
                             print: { type: 'string' }
                         },
                         additionalProperties: false
+                    },
+                    // set step
+                    {
+                        type: 'object',
+                        required: ['set'],
+                        properties: {
+                            set: {
+                                type: 'object',
+                                additionalProperties: {
+                                    anyOf: [
+                                        { type: 'string' },
+                                        { type: 'number' },
+                                        { type: 'boolean' },
+                                        { type: 'null' }
+                                    ]
+                                }
+                            }
+                        },
+                        additionalProperties: false
+                    },
+                    // var step
+                    {
+                        type: 'object',
+                        required: ['var'],
+                        properties: {
+                            var: {
+                                type: 'object',
+                                additionalProperties: {
+                                    anyOf: [
+                                        { type: 'string' },
+                                        { type: 'number' },
+                                        { type: 'boolean' },
+                                        { type: 'null' }
+                                    ]
+                                }
+                            }
+                        },
+                        additionalProperties: false
+                    },
+                    {
+                        type: 'object',
+                        required: ['const'],
+                        properties: {
+                            const: {
+                                type: 'object',
+                                additionalProperties: {
+                                    anyOf: [
+                                        { type: 'string' },
+                                        { type: 'number' },
+                                        { type: 'boolean' },
+                                        { type: 'null' }
+                                    ]
+                                }
+                            }
+                        },
+                        additionalProperties: false
+                    },
+                    {
+                        type: 'object',
+                        required: ['let'],
+                        properties: {
+                            let: {
+                                type: 'object',
+                                additionalProperties: {
+                                    anyOf: [
+                                        { type: 'string' },
+                                        { type: 'number' },
+                                        { type: 'boolean' },
+                                        { type: 'null' }
+                                    ]
+                                }
+                            }
+                        },
+                        additionalProperties: false
                     }
                 ]
             }

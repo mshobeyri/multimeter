@@ -7,7 +7,7 @@ import {yamlToTest} from './testParsePack';
 import {replaceAllRefs} from './variableReplacer';
 
 export function indentLines(str: string): string {
-  return str.split('\n').map(line => '  ' + line).join('\n');
+  return str.split('\n').map(line => '  ' + line).join('\n').slice(2);
 }
 
 export interface APIContext {
@@ -194,13 +194,13 @@ export const ifToJSfunc = (condition: TestFlowCondition): string => {
 
   if (!elseBlock) {
     return `if (${conditionStatement}) {
-${indentLines(thenBlock)}
+  ${indentLines(thenBlock)}
 }`;
   } else {
     return `if (${conditionStatement}) {
-${indentLines(thenBlock)}
+  ${indentLines(thenBlock)}
 } else {
-${indentLines(elseBlock)}
+  ${indentLines(elseBlock)}
 }`;
   }
 };
@@ -209,7 +209,7 @@ export const repeatToJSfunc = (loop: TestFlowRepeat): string => {
   const loopCondition = loop.repeat;
   const loopBody = flowStepsToJsfunc(loop.steps);
   return `for (let i = 0; i < ${loopCondition}; i++) {
-${indentLines(loopBody)}
+  ${indentLines(loopBody)}
 }`;
 };
 
@@ -217,8 +217,12 @@ export const forToJSfunc = (loop: TestFlowLoop): string => {
   const loopBody = flowStepsToJsfunc(loop.steps);
   return `
 for (${loop.for}) {
-${indentLines(loopBody)}
+  ${indentLines(loopBody)}
 }`;
+};
+
+export const setToJSfunc = (set: Record<string, any>): string => {
+  return `${set} = ${set.value};`;
 };
 
 
@@ -250,6 +254,14 @@ export const callToJSfunc = (step: TestFlowCall): string => {
   return call;
 };
 
+export const varToJSfunc = (key: string, step: any): string => {
+  return Object.entries(step)
+      .map(([varName, value]) => {
+        return `${key}${varName} = ${value};`;
+      })
+      .join('\n');
+};
+
 export const flowStepsToJsfunc = (flow: TestFlowSteps): string => {
   return (flow ?? [])
       .map((step: TestFlowStep) => {
@@ -272,8 +284,15 @@ export const flowStepsToJsfunc = (flow: TestFlowSteps): string => {
           return step.js;
         } else if ('print' in step) {
           return `console.log(\`${step.print}\`);`;
+        } else if ('set' in step) {
+          return varToJSfunc('', step.set);
+        } else if ('var' in step) {
+          return varToJSfunc('var ', step.var);
+        } else if ('const' in step) {
+          return varToJSfunc('const ', step.const);
+        } else if ('let' in step) {
+          return varToJSfunc('let ', step.let);
         }
-        return '';
       })
       .join('\n');
 };
@@ -360,15 +379,21 @@ export const importTestToJsfunc = async(ctx: TestContext): Promise<string> => {
   const inputParams = toInputsParams(replaced.inputs || {}, ' = ');
 
   let flow = '// Test flow\n';
+  const outputParams = toInputsParams(replaced.outputs || {}, ': ');
+
   if (replaced.stages && replaced.stages.length > 0) {
     flow += flowStagesToJsfunc(replaced.stages);
   } else if (replaced.steps && replaced.steps.length > 0) {
     flow += flowStepsToJsfunc(replaced.steps);
   }
   return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
-${indentLines(importedFuncs)}
+  ${indentLines(importedFuncs)}
 
-${indentLines(flow)}
+  let outputs = { ${outputParams} };
+
+  ${indentLines(flow)}
+
+  return outputs;
 };`;
 };
 
