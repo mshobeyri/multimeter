@@ -68,7 +68,7 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update }) => (
       valuePlaceholder="value"
       options={jsonTypes}
     />
-    <hr style={{ border: 0, borderTop: "1px solid #444", margin: "16px 0" }} />
+    {/* <hr style={{ border: 0, borderTop: "1px solid #444", margin: "16px 0" }} />
     <VEditor
       label="metrics"
       value={
@@ -86,7 +86,7 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update }) => (
         })
       }
       keyOptions={["repeat", "threads", "duration", "rampup"]}
-    />
+    /> */}
   </div>
 );
 
