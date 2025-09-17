@@ -32,8 +32,8 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
   }, [test]);
 
   // Restore last selected tab from localStorage, default to "overview"
-  const [tab, setTab] = useState<"overview" | "flow" | "code" | "examples">(
-    () => (localStorage.getItem(LAST_TAB_KEY) as "overview" | "flow" | "code" | "examples") || "overview"
+  const [tab, setTab] = useState<"overview" | "flow" | "examples" | "test">(
+    () => (localStorage.getItem(LAST_TAB_KEY) as "overview" | "flow" | "examples" | "test") || "overview"
   );
   const [showIconsOnly, setShowIconsOnly] = useState(false);
   const tabContainerRef = useRef<HTMLDivElement>(null);
@@ -89,14 +89,6 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
             {!showIconsOnly && "Flow"}
           </button>
           <button
-            onClick={() => setTab("code")}
-            className={`tab-button ${tab === "code" ? "active" : ""}`}
-            title={showIconsOnly ? "Code" : undefined}
-          >
-            <span className="codicon codicon-code tab-button-icon"></span>
-            {!showIconsOnly && "Code"}
-          </button>
-          <button
             onClick={() => setTab("examples")}
             className={`tab-button ${tab === "examples" ? "active" : ""}`}
             title={showIconsOnly ? "Examples" : undefined}
@@ -104,8 +96,16 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
             <span className="codicon codicon-lightbulb tab-button-icon"></span>
             {!showIconsOnly && "Examples"}
           </button>
+          <button
+            onClick={() => setTab("test")}
+            className={`tab-button ${tab === "test" ? "active" : ""}`}
+            title={showIconsOnly ? "Test" : undefined}
+          >
+            <span className="codicon codicon-play tab-button-icon"></span>
+            {!showIconsOnly && "Test"}
+          </button>
         </div>
-        
+
         {tab === "overview" && (
           <TestOverview
             test={test}
@@ -117,16 +117,16 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
             testData={test}
           />
         )}
-        {tab === "code" && (
-          <TestCode
-            testData={test}
-          />
-        )}
         {tab === "examples" && (
           <div>
             <h2>Examples</h2>
             {/* <pre>{JSON.stringify(test.examples, null, 2)}</pre> */}
           </div>
+        )}
+        {tab === "test" && (
+          <TestCode
+            testData={test}
+          />
         )}
       </div>
     </div>
