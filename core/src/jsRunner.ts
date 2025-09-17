@@ -37,7 +37,7 @@ export async function runJSCode(
     lg('error', (e?.message || String(e)));
   } finally {
     const elapsed = Date.now() - startTime;
-    lg('info', `Finished running test ${title} in ${elapsed} ms`);
+    lg('info', `Test ${title} finished in ${elapsed} ms`);
   }
   return;
 }

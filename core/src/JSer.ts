@@ -1,8 +1,10 @@
+import {assert} from 'console';
+
 import {APIData} from './APIData';
 import {yamlToAPI} from './apiParsePack';
 import {JSONRecord, Type} from './CommonData';
 import {formatBody} from './markupConvertor';
-import {TestData, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowStage, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
+import {TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowStage, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
 import {yamlToTest} from './testParsePack';
 import {replaceAllRefs} from './variableReplacer';
 
@@ -94,7 +96,7 @@ export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
     url: '${ctx.api.url}',
     protocol: '${ctx.api.protocol}',
     method: '${replaced.method}',
-    headers: ${headers? '{ ' + headers + ' }' : '{}'},
+    headers: ${headers ? '{ ' + headers + ' }' : '{}'},
     body: \`${formattedBody}\`
   };
   const res = await send(req);
@@ -284,8 +286,29 @@ export const setToJSfunc = (set: Record<string, any>): string => {
 
 export const checkToJSfunc = (check: string): string => {
   const conditionStatement = conditionalStatementToJSfunc(check);
+  const checkParts = check.split(' ');
+  if (checkParts.length !== 3) {
+    throw new Error(`Invalid check format: ${check}`);
+  }
+  const [left, operator, right] = checkParts;
+
   return `if (!${conditionStatement}) {
-    throw new Error("Check failed: ${check}");
+    console.error("Check ${check} failed, as " + JSON.stringify(${left}) + " ${
+      operator} " + ${right} + " is false");
+}`;
+};
+
+export const assertToJSfunc = (assert: string): string => {
+  const conditionStatement = conditionalStatementToJSfunc(assert);
+  const assertParts = assert.split(' ');
+  if (assertParts.length !== 3) {
+    throw new Error(`Invalid assert format: ${assert}`);
+  }
+  const [left, operator, right] = assertParts;
+
+  return `if (!${conditionStatement}) {
+    throw new Error("Assertion ${assert} failed, as " + JSON.stringify(${
+      left}) + " ${operator} " + ${right}+ " is false");
 }`;
 };
 
@@ -327,6 +350,9 @@ export const flowStepsToJsfunc = (flow: TestFlowSteps): string => {
         } else if ('check' in step) {
           step = step as TestFlowCheck;
           return checkToJSfunc(step.check);
+        } else if ('assert' in step) {
+          step = step as TestFlowAssert;
+          return assertToJSfunc(step.assert);
         } else if ('if' in step) {
           step = step as TestFlowCondition;
           return ifToJSfunc(step);

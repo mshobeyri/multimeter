@@ -49,6 +49,9 @@ export interface TestFlowCallAPI extends TestFlowCall {
 export interface TestFlowCheck extends TestFlowBase {
   check: Comparison;
 }
+export interface TestFlowAssert extends TestFlowBase {
+  assert: Comparison;
+}
 
 export interface TestFlowCondition extends TestFlowBase {
   if: Comparison;
@@ -83,8 +86,8 @@ export interface TestFlowLet extends TestFlowBase {
   let : Record<string, any>;
 }
 export type TestFlowStep = TestFlowCallTest|TestFlowCallAPI|TestFlowCheck|
-    TestFlowCondition|TestFlowRepeat|TestFlowLoop|TestFlowJS|TestFlowPrint|
-    TestFlowSet|TestFlowVar|TestFlowConst|TestFlowLet;
+    TestFlowAssert|TestFlowCondition|TestFlowRepeat|TestFlowLoop|TestFlowJS|
+    TestFlowPrint|TestFlowSet|TestFlowVar|TestFlowConst|TestFlowLet;
 
 export type TestFlowSteps = TestFlowStep[];
 

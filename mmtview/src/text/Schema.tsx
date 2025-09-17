@@ -229,6 +229,15 @@ export const TestSchema = {
                         },
                         additionalProperties: false
                     },
+                    // assert step
+                    {
+                        type: 'object',
+                        required: ['assert'],
+                        properties: {
+                            assert: { type: 'string' }
+                        },
+                        additionalProperties: false
+                    },
                     // if step
                     {
                         type: 'object',
