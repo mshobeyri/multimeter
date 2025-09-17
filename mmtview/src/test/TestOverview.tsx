@@ -13,10 +13,7 @@ interface TestOverviewProps {
 }
 
 const TestOverview: React.FC<TestOverviewProps> = ({ test, update }) => (
-  <div
-    className="TestOverview"
-    style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}
-  >
+  <div style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
     <div className="label">title</div>
     <div style={{ padding: "5px" }}>
       <input
