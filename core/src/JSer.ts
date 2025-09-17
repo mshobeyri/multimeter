@@ -153,7 +153,6 @@ export const importsToJsfunc =
           });
           results.push(res);
         } else if (type === 'csv') {
-          console.log(`Importing CSV file ${path} as JS object array named ${name}`);
           const res = await importCSVToJSObj(content, name);
           results.push(res);
         } else {
