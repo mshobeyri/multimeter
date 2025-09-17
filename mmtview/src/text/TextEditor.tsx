@@ -72,12 +72,8 @@ const TextEditor: React.FC<TextEditorProps> = ({
     });
   }, []);
 
-  const [height, setHeight] = useState(100);
   const editorDidMount = (editor: any) => {
     editorRefToUse.current = editor;
-    updateHeight(editor);
-    editor.onDidChangeModelContent(() => updateHeight(editor));
-    // Listen for focus/blur
     editor.onDidFocusEditorWidget?.(() => {
       if (typeof onFocusChange === "function") onFocusChange(true);
     });
@@ -86,16 +82,9 @@ const TextEditor: React.FC<TextEditorProps> = ({
     });
   };
 
-  const updateHeight = (editor: any) => {
-    if (editor) {
-      const lineCount = editor.getModel().getLineCount();
-      setHeight(lineCount * 20 + 20); // 20px per line, adjust as needed
-    }
-  };
-
   return (
     <MonacoEditor
-      height={height}
+      height="100%"
       width="100%"
       language={language}
       value={content}

@@ -44,11 +44,6 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
             logToOutput("warn", args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' '));
         };
         try {
-            // const helperDecls = Object.keys(mmtHelper)
-            //     .map(name => `const ${name} = mmtHelper["${name}"];`)
-            //     .join('\n');
-            // const fn = new Function("mmtHelper", `${helperDecls}\n${jsCode}`);
-            // await fn(mmtHelper);
             runJSCode(jsCode, testData?.title || "");
         } catch (e: any) {
             showVSCodeMessage("error", "Error: " + (e?.message || String(e)));
@@ -56,7 +51,7 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
     };
 
     return (
-        <div style={{ height: "100%", width: "100%" }}>
+        <div style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
             <div style={{
                 marginBottom: 8,
                 display: "flex",
@@ -81,11 +76,13 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
             {error ? (
                 <div style={{ color: "red", whiteSpace: "pre-wrap" }}>{error}</div>
             ) : (
-                <TextEditor
-                    content={jsCode}
-                    setContent={setJsCode}
-                    language="javascript"
-                />
+                <div style={{ height: "calc(100vh - 140px)" }}>
+                    <TextEditor
+                        content={jsCode}
+                        setContent={setJsCode}
+                        language="javascript"
+                    />
+                </div>
             )}
         </div>
     );

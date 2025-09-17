@@ -136,7 +136,6 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
           </button>
         </div>
 
-        {/* Tab Content */}
         {tab === "overview" && (
           <APIOverview api={api} update={update} />
         )}

@@ -99,7 +99,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         editorRef={editorRef}
         monacoRef={monacoRef}
         setEditorReady={setEditorReady}
-        onFocusChange={onFocusChange} // <-- pass it down
+        onFocusChange={onFocusChange}
       />
     </div>
   );

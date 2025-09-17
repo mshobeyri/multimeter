@@ -140,26 +140,30 @@ const App: React.FC = () => {
           fontSize: "var(--vscode-editor-font-size, 14px)",
         }}
       >
-        <YamlEditorPanel
-          content={content}
-          setContent={setContent}
-          onFocusChange={setYamlEditorFocused}
-        />
-        {docType === "env" && (
-          <EnvironmentPanel content={content} setContent={uiSetContentHandler} />
-        )}
-        {docType === "var" && (
-          <VariablesPanel content={content} setContent={uiSetContentHandler} />
-        )}
-        {docType === "api" && (
-          <APIPanel content={content} setContent={uiSetContentHandler} />
-        )}
-        {docType === "test" && (
-          <TestPanel content={content} setContent={uiSetContentHandler} />
-        )}
-        {docType === null && (
-          <NotypePanel content={content} setContent={uiSetContentHandler} />
-        )}
+        <div style={{ height: "100vh", minHeight: 0 }}>
+          <YamlEditorPanel
+            content={content}
+            setContent={setContent}
+            onFocusChange={setYamlEditorFocused}
+          />
+        </div>
+        <div style={{ height: "100vh", minHeight: 0 }}>
+          {docType === "env" && (
+            <EnvironmentPanel content={content} setContent={uiSetContentHandler} />
+          )}
+          {docType === "var" && (
+            <VariablesPanel content={content} setContent={uiSetContentHandler} />
+          )}
+          {docType === "api" && (
+            <APIPanel content={content} setContent={uiSetContentHandler} />
+          )}
+          {docType === "test" && (
+            <TestPanel content={content} setContent={uiSetContentHandler} />
+          )}
+          {docType === null && (
+            <NotypePanel content={content} setContent={uiSetContentHandler} />
+          )}
+        </div>
       </SplitPane>
     </FileContext.Provider>
   );

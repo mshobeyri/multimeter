@@ -25,7 +25,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
   // Update YAML when test changes (but not if we just updated test from YAML)
   useEffect(() => {
     const newYaml = testToYaml(test);
-    if (newYaml === content || newYaml === "") { 
+    if (newYaml === content || newYaml === "") {
       return;
     }
     setContent(newYaml);
@@ -105,28 +105,22 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
             {!showIconsOnly && "Examples"}
           </button>
         </div>
-        {/* Tab Content */}
+        
         {tab === "overview" && (
-          <div>
-            <TestOverview
-              test={test}
-              update={(patch) => setTest(prev => ({ ...prev, ...patch }))}
-            />
-          </div>
+          <TestOverview
+            test={test}
+            update={(patch) => setTest(prev => ({ ...prev, ...patch }))}
+          />
         )}
         {tab === "flow" && (
-          <div>
-            <TestFlow
-              testData={test}
-            />
-          </div>
+          <TestFlow
+            testData={test}
+          />
         )}
         {tab === "code" && (
-          <div>
-            <TestCode
-              testData={test}
-            />
-          </div>
+          <TestCode
+            testData={test}
+          />
         )}
         {tab === "examples" && (
           <div>
