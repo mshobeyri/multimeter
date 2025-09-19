@@ -11,6 +11,15 @@ interface TestFlowBoxProps {
 }
 const TestFlowBox: React.FC<TestFlowBoxProps> = ({ type, step, testData, onChange }) => {
   switch (type) {
+    case "step":
+      return (
+        <TestCall
+          value={step || ""}
+          imports={typeof testData.import === "object" ? testData.import : undefined}
+          onChange={(yamlString) => onChange(yamlString)}
+          placeholder="select a call"
+        />
+      );
     case "call":
       return (
         <TestCall
@@ -36,7 +45,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ type, step, testData, onChang
         }
       }
       return (
-        <div>
+        <div style={{ marginTop: 8 }}>
           <TestCheck
             left={left}
             op={op}
@@ -62,7 +71,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ type, step, testData, onChang
         }
       }
       return (
-        <div>
+        <div style={{ marginTop: 8 }}>
           <TestCheck
             left={left}
             op={op}
@@ -74,7 +83,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ type, step, testData, onChang
     }
     case "for":
       return (
-        <div>
+        <div style={{ marginTop: 8 }}>
           <input
             placeholder="100, 10s, 5-10, i:data"
             value={step || ""}

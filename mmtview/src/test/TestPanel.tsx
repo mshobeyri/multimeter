@@ -115,6 +115,9 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
         {tab === "flow" && (
           <TestFlow
             testData={test}
+            update={(newFlow) => {
+              console.log("Updating flow:", newFlow);
+            }}
           />
         )}
         {tab === "examples" && (

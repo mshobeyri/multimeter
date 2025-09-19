@@ -20,7 +20,8 @@ export interface TestMetric {
   rampup?: Timestr;
 }
 
-export type FlowType = 'call'|'check'|'if'|'for'|'repeat'|'js'|'print'|'end';
+export type FlowType = 'stage'|'step'|'call'|'check'|'assert'|'if'|'for'|
+    'repeat'|'js'|'print'|'end'|'set'|'var'|'const'|'let';
 
 export interface TestFlowBase {
   type?: FlowType;
@@ -124,7 +125,10 @@ export interface TestDataStages extends TestDataBase {
 
 export type TestData = TestDataSteps|TestDataStages;
 
-export const flowTypeOptions = ['call', 'check', 'if', 'for', 'repeat', 'end'];
+export const flowTypeOptions = [
+  'call', 'check', 'assert', 'if', 'for', 'repeat', 'end', 'js', 'print', 'set',
+  'var', 'const', 'let'
+] as FlowType[];
 export type CheckOps =
     '<'|'>'|'<='|'>='|'=='|'!='|'=@'|'!@'|'=^'|'!^'|'=$'|'!$'|'=~'|'!~';
 

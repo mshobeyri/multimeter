@@ -2,6 +2,7 @@ import React from "react";
 import { TestFlowSteps, FlowType, flowTypeOptions, TestData } from "mmt-core/TestData";
 import TestFlowBox from "./TestFlowBox";
 import { safeList } from "mmt-core/safer";
+import { UncontrolledTreeEnvironment, Tree, StaticTreeDataProvider } from 'react-complex-tree';
 
 interface TestFlowProps {
     testData: TestData;
@@ -34,6 +35,24 @@ const getDefaultStepForType = (type: FlowType): any => {
             return { if: "" };
         case "for":
             return { for: "" };
+        case "assert":
+            return { assert: "" };
+        case "repeat":
+            return { repeat: "" };
+        case "js":
+            return { js: "" };
+        case "print":
+            return { print: "" };
+        case "end":
+            return { end: "" };
+        case "set":
+            return { set: "" };
+        case "var":
+            return { var: "" };
+        case "const":
+            return { const: "" };
+        case "let":
+            return { let: "" };
         default:
             return { [type]: null };
     }
@@ -100,167 +119,101 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
         update({ ...testData, flow: newFlow });
     };
 
+    // Define a minimal shortTree object for the tree data
+    const shortTree = {
+        items: {
+            root: {
+                index: 'root',
+                isFolder: true,
+                children: ['container'],
+                data: 'Root',
+            },
+            container: {
+                index: 'container',
+                isFolder: true,
+                children: ['child1', 'child2'],
+                data: 'Container',
+            },
+            child1: {
+                index: 'child1',
+                canMove: true,
+                isFolder: true,
+                children: [],
+                data: 'Child item 1',
+                canRename: true,
+            },
+            child2: {
+                index: 'child2',
+                canMove: true,
+                isFolder: false,
+                children: [],
+                data: 'Child item 2',
+                canRename: true,
+            },
+        },
+    };
+
+
     return (
-        <div style={{ display: "flex", flexDirection: "column", gap: 0, padding: 0 }}>
-            {flow.map((step, idx) => {
-                const intentadd = flow.slice(0, idx).filter(s => {
-                    const t = getStepType(s);
-                    return t === "if" || t === "for";
-                }).length;
-                const intentremove = flow.slice(0, idx + 1).filter(s => {
-                    const t = getStepType(s);
-                    return t === "end";
-                }).length;
-
-                let intent = Math.max(intentadd - intentremove, 0);
-
-                const currentType = getStepType(step);
-                let value: any = "";
-                if (step) {
-                    switch (currentType) {
-                        case "call":
-                            value = (step as any).call ?? "";
-                            break;
-                        case "check":
-                            value = (step as any).check ?? "";
-                            break;
-                        case "if":
-                            value = (step as any).if ?? "";
-                            break;
-                        case "for":
-                            value = (step as any).for ?? "";
-                            break;
-                        default:
-                            value = "";
-                    }
-                }
-
+        <UncontrolledTreeEnvironment
+            canDragAndDrop={true}
+            canDropOnFolder={true}
+            canReorderItems={true}
+            dataProvider={new StaticTreeDataProvider(shortTree.items, (item, data) => ({ ...item, data }))}
+            getItemTitle={item => item.data}
+            viewState={{
+                ['tree-1']: {
+                    expandedItems: ['container'],
+                },
+            }}
+            renderItemTitle={({ title }) => <span>{title}</span>}
+            renderItemArrow={({ item, context }) =>
+                item.isFolder ? (
+                    <span {...context.arrowProps}>
+                        {context.isExpanded ? '▼' : '▶'}
+                    </span>
+                ) : null
+            }
+            renderItem={({ title, arrow, depth, context, children }) => {
+                const InteractiveComponent = context.isRenaming ? 'div' : 'button';
                 return (
-                    <React.Fragment key={idx}>
-                        {update && (
-                            <div
-                                onDragOver={e => {
-                                    e.preventDefault();
-                                    setDragOverIdx(idx);
-                                }}
-                                onDrop={() => {
-                                    if (
-                                        update &&
-                                        draggedIdx !== null &&
-                                        draggedIdx !== idx
-                                    ) {
-                                        update({ ...testData, flow: moveBox(flow, draggedIdx, idx) });
-                                    }
-                                    setDraggedIdx(null);
-                                    setDragOverIdx(null);
-                                }}
-                                onDragLeave={() => setDragOverIdx(null)}
-                                style={{
-                                    height: 16,
-                                    margin: "0 0 0 0",
-                                    background:
-                                        dragOverIdx === idx
-                                            ? "var(--vscode-editor-selectionBackground, #264f78cc)"
-                                            : "transparent",
-                                    borderRadius: 4,
-                                    transition: "background 0.2s",
-                                    cursor: "pointer",
-                                }}
-                            />
-                        )}
-
-                        <div className="inner-box" style={{ marginBottom: 0, marginLeft: intent * 24 }}>
-                            {/* Combo for type (changes YAML key, not adds a field) */}
-                            <select
-                                value={currentType}
-                                onChange={e => changeStepType(idx, e.target.value as FlowType)}
-                                style={{ marginBottom: 8, marginRight: 20 }}
+                    
+                    <li
+                        {...context.itemContainerWithChildrenProps}
+                        style={{
+                            margin: 0,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'flex-start',
+                        }}
+                    >
+                        {InteractiveComponent === 'button' ? (
+                            <button
+                                {...context.itemContainerWithoutChildrenProps}
+                                {...context.interactiveElementProps}
+                                type="button"
                             >
-                                {flowTypeOptions.map(type => (
-                                    <option key={type} value={type}>{type}</option>
-                                ))}
-                            </select>
-                            <TestFlowBox
-                                type={currentType}
-                                step={value}
-                                testData={testData}
-                                onChange={patch => updateStep(idx, patch)}
-                            />
-                            {update && (
-                                <span
-                                    role="button"
-                                    title="Move"
-                                    tabIndex={0}
-                                    draggable
-                                    onDragStart={e => {
-                                        setDraggedIdx(idx);
-                                        e.stopPropagation();
-                                    }}
-                                    onDragEnd={() => {
-                                        setDraggedIdx(null);
-                                        setDragOverIdx(null);
-                                    }}
-                                    style={{
-                                        position: "absolute",
-                                        top: 8,
-                                        right: 8,
-                                        cursor: "grab",
-                                        fontSize: "16px",
-                                        userSelect: "none",
-                                        background: "none",
-                                        border: "none",
-                                        outline: "none",
-                                        zIndex: 2,
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        width: "24px",
-                                        height: "24px",
-                                    }}
-                                >
-                                    <span className="codicon codicon-gripper" style={{ fontSize: "16px" }}></span>
-                                </span>
-                            )}
-                        </div>
-                    </React.Fragment>
+                                {arrow}
+                                {title}
+                            </button>
+                        ) : (
+                            <div
+                                {...context.itemContainerWithoutChildrenProps}
+                                {...context.interactiveElementProps}
+                            >
+                                {arrow}
+                                {title}
+                            </div>
+                        )}
+                        {children}
+                    </li>
                 );
-            })}
-            {/* Drop area after the last item */}
-            {update && (
-                <div
-                    onDragOver={e => {
-                        e.preventDefault();
-                        setDragOverIdx(flow.length);
-                    }}
-                    onDrop={() => {
-                        if (
-                            update &&
-                            draggedIdx !== null &&
-                            draggedIdx !== flow.length
-                        ) {
-                            update({ ...testData, flow: moveBox(flow, draggedIdx, flow.length) });
-                        }
-                        setDraggedIdx(null);
-                        setDragOverIdx(null);
-                    }}
-                    onDragLeave={() => setDragOverIdx(null)}
-                    style={{
-                        height: 16,
-                        margin: "0 0 0 0",
-                        background:
-                            dragOverIdx === flow.length
-                                ? "var(--vscode-editor-selectionBackground, #264f78cc)"
-                                : "transparent",
-                        borderRadius: 4,
-                        transition: "background 0.2s",
-                        cursor: "pointer",
-                    }}
-                />
-            )}
-            <button type="button" onClick={addFlowBox} className="add-button" >
-                Add Step
-            </button>
-        </div>
+            }}
+            renderTreeContainer={({ children, containerProps }) => <div {...containerProps}>{children}</div>}
+            renderItemsContainer={({ children, containerProps }) => <ul {...containerProps}>{children}</ul>}
+        >
+            <Tree treeId="tree-1" rootItem="root" treeLabel="Tree Example" />
+        </UncontrolledTreeEnvironment>
     );
 };
 
