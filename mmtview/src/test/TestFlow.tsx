@@ -131,8 +131,16 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
             container: {
                 index: 'container',
                 isFolder: true,
-                children: ['child1', 'child2'],
+                children: ['child0'],
                 data: 'Container',
+            },
+            child0: {
+                index: 'child0',
+                isFolder: true,
+                canMove: true,
+                children: ['child1', 'child2'],
+                data: 'Child 0',
+                canRename: true,
             },
             child1: {
                 index: 'child1',
@@ -166,47 +174,39 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                     expandedItems: ['container'],
                 },
             }}
-            renderItemTitle={({ title }) => <span>{title}</span>}
+            // renderItemTitle={({ title }) => <span>{title}</span>}
             renderItemArrow={({ item, context }) =>
                 item.isFolder ? (
                     <span {...context.arrowProps}>
-                        {context.isExpanded ? '▼' : '▶'}
+                        {context.isExpanded ? (
+                            <span className="codicon codicon-chevron-down" style={{ fontSize: "16px" }}></span>
+                        ) : (
+                            <span className="codicon codicon-chevron-right" style={{ fontSize: "16px" }}></span>
+                        )}
                     </span>
                 ) : null
             }
             renderItem={({ title, arrow, depth, context, children }) => {
                 const InteractiveComponent = context.isRenaming ? 'div' : 'button';
                 return (
-                    
-                    <li
-                        {...context.itemContainerWithChildrenProps}
-                        style={{
-                            margin: 0,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'flex-start',
-                        }}
-                    >
-                        {InteractiveComponent === 'button' ? (
-                            <button
-                                {...context.itemContainerWithoutChildrenProps}
-                                {...context.interactiveElementProps}
-                                type="button"
-                            >
-                                {arrow}
-                                {title}
-                            </button>
-                        ) : (
-                            <div
-                                {...context.itemContainerWithoutChildrenProps}
-                                {...context.interactiveElementProps}
-                            >
-                                {arrow}
-                                {title}
-                            </div>
-                        )}
+                    <div {...context.itemContainerWithChildrenProps}>
+                        <div
+                            style={{ border: '1px solid #ccc', display: 'flex' }}
+                            {...context.itemContainerWithoutChildrenProps}
+                            {...context.interactiveElementProps}
+                        >
+                            {arrow}
+                            <TestFlowBox
+                                data={{
+                                    type: "check",
+                                    step: "xxx == xsss",
+                                    testData
+                                }}
+                                onChange={() => { /* implement handler or leave empty for now */ }}
+                            ></TestFlowBox>
+                        </div>
                         {children}
-                    </li>
+                    </div>
                 );
             }}
             renderTreeContainer={({ children, containerProps }) => <div {...containerProps}>{children}</div>}

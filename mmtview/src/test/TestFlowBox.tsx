@@ -4,12 +4,12 @@ import TestCheck from "./TestCheck";
 import TestCall from "./TestCall";
 
 interface TestFlowBoxProps {
-  type: FlowType;
-  step: any;
-  testData: TestData,
+  data: any,
   onChange: (value: any) => void;
 }
-const TestFlowBox: React.FC<TestFlowBoxProps> = ({ type, step, testData, onChange }) => {
+const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
+  console.log("Rendering TestFlowBox with data:", data);
+  const { type, step, testData } = data;
   switch (type) {
     case "step":
       return (
