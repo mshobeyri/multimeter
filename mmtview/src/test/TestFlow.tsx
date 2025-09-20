@@ -127,36 +127,37 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                 isFolder: true,
                 children: ['container'],
                 data: 'Root',
+                type: 'root',
             },
             container: {
                 index: 'container',
                 isFolder: true,
                 children: ['child0'],
-                data: 'Container',
+                data: 'if zzz == ddd'
             },
             child0: {
                 index: 'child0',
                 isFolder: true,
                 canMove: true,
                 children: ['child1', 'child2'],
-                data: 'Child 0',
-                canRename: true,
+                data: 'step',
+                canRename: true
             },
             child1: {
                 index: 'child1',
                 canMove: true,
                 isFolder: true,
                 children: [],
-                data: 'Child item 1',
-                canRename: true,
+                data: 'for x of xxx',
+                canRename: true
             },
             child2: {
                 index: 'child2',
                 canMove: true,
                 isFolder: false,
                 children: [],
-                data: 'Child item 2',
-                canRename: true,
+                data: 'check xxx == sss',
+                canRename: true
             },
         },
     };
@@ -189,16 +190,25 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
             renderItem={({ title, arrow, depth, context, children }) => {
                 const InteractiveComponent = context.isRenaming ? 'div' : 'button';
                 return (
-                    <div {...context.itemContainerWithChildrenProps}>
-                        <div
-                            style={{ border: '1px solid #ccc', display: 'flex' }}
+                    <div {...context.itemContainerWithChildrenProps}
+                        style={{
+                            backgroundColor: context.isDraggingOver ? "var(--vscode-list-activeSelectionBackground, #264f78)" : "transparent",
+                            borderRadius: "2px",
+                        }}>
+                        <div className="inner-box"
                             {...context.itemContainerWithoutChildrenProps}
                             {...context.interactiveElementProps}
+                            style={{
+                                display: "flex",
+                                flexDirection: "row",
+                                alignItems: "center",
+                                gap: 8,
+                            }}
                         >
                             {arrow}
                             <TestFlowBox
                                 data={{
-                                    type: "check",
+                                    type: title?.toString().split(" ")[0] as FlowType,
                                     step: "xxx == xsss",
                                     testData
                                 }}
