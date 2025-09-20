@@ -126,21 +126,21 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                 index: 'root',
                 isFolder: true,
                 children: ['container'],
-                data: 'Root',
+                data: '{ "type": "root", "data": { "stepData": "Root" } }',
                 type: 'root',
             },
             container: {
                 index: 'container',
                 isFolder: true,
                 children: ['child0'],
-                data: 'if zzz == ddd'
+                data: '{ "type": "if", "data": { "stepData": "zzz == ddd" } }',
             },
             child0: {
                 index: 'child0',
                 isFolder: true,
                 canMove: true,
                 children: ['child1', 'child2'],
-                data: 'step',
+                data: '{ "type": "for", "data": { "stepData": "x of xxx" } }',
                 canRename: true
             },
             child1: {
@@ -148,7 +148,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                 canMove: true,
                 isFolder: true,
                 children: [],
-                data: 'for x of xxx',
+                data: '{ "type": "for", "data": { "stepData": "x of xxx" } }',
                 canRename: true
             },
             child2: {
@@ -156,7 +156,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                 canMove: true,
                 isFolder: false,
                 children: [],
-                data: 'check xxx == sss',
+                data: '{ "type": "check", "data": { "stepData": "xxx == sss" } }',
                 canRename: true
             },
         },
@@ -187,8 +187,8 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                     </span>
                 ) : null
             }
-            renderItem={({ title, arrow, depth, context, children }) => {
-                const InteractiveComponent = context.isRenaming ? 'div' : 'button';
+            renderItem={({ title, arrow, context, children }) => {
+                const item = JSON.parse(title as string);
                 return (
                     <div {...context.itemContainerWithChildrenProps}
                         style={{
@@ -208,8 +208,8 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                             {arrow}
                             <TestFlowBox
                                 data={{
-                                    type: title?.toString().split(" ")[0] as FlowType,
-                                    step: "xxx == xsss",
+                                    type: item.type as FlowType,
+                                    step: item.data.value,
                                     testData
                                 }}
                                 onChange={() => { /* implement handler or leave empty for now */ }}

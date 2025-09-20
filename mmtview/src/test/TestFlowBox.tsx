@@ -8,32 +8,37 @@ interface TestFlowBoxProps {
   onChange: (value: any) => void;
 }
 const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
-  console.log("Rendering TestFlowBox with data:", data);
-  const { type, step, testData } = data;
+  const { type, step: stepData, testData } = data;
   switch (type) {
     case "step":
       return (
-        <TestCall
-          value={step || ""}
-          imports={typeof testData.import === "object" ? testData.import : undefined}
-          onChange={(yamlString) => onChange(yamlString)}
-          placeholder="select a call"
-        />
+        <div style={{ marginTop: 8 }}>
+          {<span>{type}</span>}
+          <TestCall
+            value={stepData || ""}
+            imports={typeof testData.import === "object" ? testData.import : undefined}
+            onChange={(yamlString) => onChange(yamlString)}
+            placeholder="select a call"
+          />
+        </div>
       );
     case "call":
       return (
-        <TestCall
-          value={step || ""}
-          imports={typeof testData.import === "object" ? testData.import : undefined}
-          onChange={(yamlString) => onChange(yamlString)}
-          placeholder="select a call"
-        />
+        <div style={{ marginTop: 8 }}>
+          {<span>{type}</span>}
+          <TestCall
+            value={stepData || ""}
+            imports={typeof testData.import === "object" ? testData.import : undefined}
+            onChange={(yamlString) => onChange(yamlString)}
+            placeholder="select a call"
+          />
+        </div>
       );
     case "check": {
       // Parse step as "left op right"
       let left = "?", op: CheckOps = "==" as CheckOps, right = "?";
-      if (typeof step === "string") {
-        const match = step.match(/^(\S*)\s+([=!<>$@^~]+)\s+(\S*)$/);
+      if (typeof stepData === "string") {
+        const match = stepData.match(/^(\S*)\s+([=!<>$@^~]+)\s+(\S*)$/);
         if (match) {
           left = match[1];
           op = match[2] as CheckOps;
@@ -45,7 +50,8 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
         }
       }
       return (
-        <div style={{ marginTop: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {<span>{type}</span>}
           <TestCheck
             left={left}
             op={op}
@@ -58,8 +64,8 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
     case "if": {
       // Parse step as "left op right"
       let left = "?", op: CheckOps = "==" as CheckOps, right = "?";
-      if (typeof step === "string") {
-        const match = step.match(/^(\S*)\s+([=!<>$@^~]+)\s+(\S*)$/);
+      if (typeof stepData === "string") {
+        const match = stepData.match(/^(\S*)\s+([=!<>$@^~]+)\s+(\S*)$/);
         if (match) {
           left = match[1];
           op = match[2] as CheckOps;
@@ -71,7 +77,8 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
         }
       }
       return (
-        <div style={{ marginTop: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {<span>{type}</span>}
           <TestCheck
             left={left}
             op={op}
@@ -83,10 +90,11 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
     }
     case "for":
       return (
-        <div style={{ marginTop: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span>{type}</span>
           <input
             placeholder="100, 10s, 5-10, i:data"
-            value={step || ""}
+            value={stepData || ""}
             onChange={e => onChange(e.target.value)}
             style={{ width: "100%" }}
           />
