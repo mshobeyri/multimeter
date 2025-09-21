@@ -1,7 +1,6 @@
 
 import parseYaml, {packYaml} from './markupConvertor';
-
-import {TestData} from './TestData';
+import {FlowType, TestData, TestFlowStep} from './TestData';
 
 export function yamlToTest(yamlContent: string): TestData {
   try {
@@ -54,4 +53,50 @@ export function testToYaml(test: TestData): string {
     yamlObj.stages = test.stages;
   }
   return packYaml(yamlObj);
+}
+
+export function getTestFlowStepType(step: TestFlowStep): FlowType|'unknown' {
+  if ('stage' in step) {
+    return 'stage';
+  }
+  if ('step' in step) {
+    return 'step';
+  }
+  if ('call' in step) {
+    return 'call';
+  }
+  if ('check' in step) {
+    return 'check';
+  }
+  if ('assert' in step) {
+    return 'assert';
+  }
+  if ('if' in step) {
+    return 'if';
+  }
+  if ('repeat' in step) {
+    return 'repeat';
+  }
+  if ('for' in step) {
+    return 'for';
+  }
+  if ('js' in step) {
+    return 'js';
+  }
+  if ('print' in step) {
+    return 'print';
+  }
+  if ('set' in step) {
+    return 'set';
+  }
+  if ('var' in step) {
+    return 'var';
+  }
+  if ('const' in step) {
+    return 'const';
+  }
+  if ('let' in step) {
+    return 'let';
+  }
+  return 'unknown';
 }

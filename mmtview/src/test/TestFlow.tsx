@@ -2,6 +2,7 @@ import React from "react";
 import { TestFlowSteps, FlowType, flowTypeOptions, TestData } from "mmt-core/TestData";
 import TestFlowBox from "./TestFlowBox";
 import { safeList } from "mmt-core/safer";
+import { getTestFlowStepType } from "mmt-core/testParsePack";
 import { UncontrolledTreeEnvironment, Tree, StaticTreeDataProvider } from 'react-complex-tree';
 
 interface TestFlowProps {
@@ -91,77 +92,69 @@ const updateStepValue = (step: any, value: any) => {
 
 const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
     const flow = safeList(testData.steps);
-    const [draggedIdx, setDraggedIdx] = React.useState<number | null>(null);
-    const [dragOverIdx, setDragOverIdx] = React.useState<number | null>(null);
+    const [shortTree, setShortTree] = React.useState(() => testDataToShortTree(testData));
 
-    // Helper to update a single step in the flow
-    const updateStep = (idx: number, patch: any) => {
-        if (!update) return;
-        const newFlow = flow.map((step, i) =>
-            i === idx ? updateStepValue(step, patch) : step
-        );
-        update({ ...testData, flow: newFlow });
-    };
+    React.useEffect(() => {
+        setShortTree(testDataToShortTree(testData));
+    }, [testData]);
 
-    // Helper to change the type (key) of a step
-    const changeStepType = (idx: number, newType: FlowType) => {
-        if (!update) return;
-        const newFlow = flow.map((step, i) =>
-            i === idx ? updateStepKey(step, newType) : step
-        );
-        update({ ...testData, flow: newFlow });
-    };
+    function testDataToShortTree(testData: TestData): {
+        items: Record<string, any>;
+    } {
+        const steps = Array.isArray(testData.steps) ? testData.steps : [];
+        let items: Record<string, any> = {};
 
-    // Add a new flow box (default to "call")
-    const addFlowBox = () => {
-        if (!update) return;
-        const newFlow = [...flow, getDefaultStepForType("call")];
-        update({ ...testData, flow: newFlow });
-    };
+        // Helper to recursively process steps
+        function toItem(step: any, idx: number, parentKey: string): string {
+            const type = getTestFlowStepType(step);
+            const key = `${parentKey}_child${idx}`;
+            let children: string[] = [];
 
-    // Define a minimal shortTree object for the tree data
-    const shortTree = {
-        items: {
-            root: {
-                index: 'root',
-                isFolder: true,
-                children: ['container'],
-                data: '{ "type": "root", "data": { "stepData": "Root" } }',
-                type: 'root',
-            },
-            container: {
-                index: 'container',
-                isFolder: true,
-                children: ['child0'],
-                data: '{ "type": "if", "data": { "stepData": "zzz == ddd" } }',
-            },
-            child0: {
-                index: 'child0',
-                isFolder: true,
+            // If step has nested steps, process them recursively
+            if ((type === 'for' || type === 'if' || type === 'repeat') && Array.isArray(step.steps)) {
+                step.steps.forEach((subStep: any, subIdx: number) => {
+                    const childKey = toItem(subStep, subIdx, key);
+                    children.push(childKey);
+                });
+            }
+
+            items[key] = {
+                index: key,
+                isFolder: children.length > 0,
                 canMove: true,
-                children: ['child1', 'child2'],
-                data: '{ "type": "for", "data": { "stepData": "x of xxx" } }',
-                canRename: true
-            },
-            child1: {
-                index: 'child1',
-                canMove: true,
-                isFolder: true,
-                children: [],
-                data: '{ "type": "for", "data": { "stepData": "x of xxx" } }',
-                canRename: true
-            },
-            child2: {
-                index: 'child2',
-                canMove: true,
-                isFolder: false,
-                children: [],
-                data: '{ "type": "check", "data": { "stepData": "xxx == sss" } }',
-                canRename: true
-            },
-        },
-    };
+                children,
+                data: JSON.stringify({ type, data: { stepData: step } }),
+                canRename: true,
+            };
+            return key;
+        }
 
+        // Build top-level children from root steps
+        const topChildren: string[] = [];
+        steps.forEach((step, idx) => {
+            const childKey = toItem(step, idx, "container");
+            topChildren.push(childKey);
+        });
+
+        // Root node
+        items.root = {
+            index: 'root',
+            isFolder: true,
+            children: ['container'],
+            data: JSON.stringify({ type: "root", data: { stepData: "Root" } }),
+            type: 'root',
+        };
+
+        // Container node (holds all top-level steps)
+        items.container = {
+            index: 'container',
+            isFolder: true,
+            children: topChildren,
+            data: JSON.stringify({ type: "container", data: { stepData: "Flow" } }),
+        };
+
+        return { items };
+    }
 
     return (
         <UncontrolledTreeEnvironment

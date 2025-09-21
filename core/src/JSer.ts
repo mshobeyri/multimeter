@@ -1,11 +1,9 @@
-import {assert} from 'console';
-
 import {APIData} from './APIData';
 import {yamlToAPI} from './apiParsePack';
 import {JSONRecord, Type} from './CommonData';
 import {formatBody} from './markupConvertor';
 import {TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowStage, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
-import {yamlToTest} from './testParsePack';
+import {getTestFlowStepType, yamlToTest} from './testParsePack';
 import {replaceAllRefs} from './variableReplacer';
 
 export function indentLines(str: string): string {
@@ -344,36 +342,33 @@ export const varToJSfunc = (key: string, step: any): string => {
 export const flowStepsToJsfunc = (flow: TestFlowSteps): string => {
   return (flow ?? [])
       .map((step: TestFlowStep) => {
-        if ('call' in step) {
-          step = step as TestFlowCall;
-          return callToJSfunc(step);
-        } else if ('check' in step) {
-          step = step as TestFlowCheck;
-          return checkToJSfunc(step.check);
-        } else if ('assert' in step) {
-          step = step as TestFlowAssert;
-          return assertToJSfunc(step.assert);
-        } else if ('if' in step) {
-          step = step as TestFlowCondition;
-          return ifToJSfunc(step);
-        } else if ('repeat' in step) {
-          step = step as TestFlowRepeat;
-          return repeatToJSfunc(step);
-        } else if ('for' in step) {
-          step = step as TestFlowLoop;
-          return forToJSfunc(step);
-        } else if ('js' in step) {
-          return step.js;
-        } else if ('print' in step) {
-          return `console.log(\`${step.print}\`);`;
-        } else if ('set' in step) {
-          return varToJSfunc('', step.set);
-        } else if ('var' in step) {
-          return varToJSfunc('var ', step.var);
-        } else if ('const' in step) {
-          return varToJSfunc('const ', step.const);
-        } else if ('let' in step) {
-          return varToJSfunc('let ', step.let);
+        switch (getTestFlowStepType(step)) {
+          case 'call':
+            return callToJSfunc(step as TestFlowCall);
+          case 'check':
+            return checkToJSfunc((step as TestFlowCheck).check);
+          case 'assert':
+            return assertToJSfunc((step as TestFlowAssert).assert);
+          case 'if':
+            return ifToJSfunc(step as TestFlowCondition);
+          case 'repeat':
+            return repeatToJSfunc(step as TestFlowRepeat);
+          case 'for':
+            return forToJSfunc(step as TestFlowLoop);
+          case 'js':
+            return (step as any).js;
+          case 'print':
+            return `console.log(\`${(step as any).print}\`);`;
+          case 'set':
+            return varToJSfunc('', (step as any).set);
+          case 'var':
+            return varToJSfunc('var ', (step as any).var);
+          case 'const':
+            return varToJSfunc('const ', (step as any).const);
+          case 'let':
+            return varToJSfunc('let ', (step as any).let);
+          default:
+            return '';
         }
       })
       .join('\n');
