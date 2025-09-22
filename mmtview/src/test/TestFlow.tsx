@@ -3,7 +3,7 @@ import { TestFlowSteps, FlowType, flowTypeOptions, TestData } from "mmt-core/Tes
 import TestFlowBox from "./TestFlowBox";
 import { safeList } from "mmt-core/safer";
 import { getTestFlowStepType } from "mmt-core/testParsePack";
-import { UncontrolledTreeEnvironment, Tree, StaticTreeDataProvider } from 'react-complex-tree';
+import { UncontrolledTreeEnvironment, Tree, StaticTreeDataProvider, InteractionMode } from 'react-complex-tree';
 
 interface TestFlowProps {
     testData: TestData;
@@ -95,7 +95,11 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
     const [shortTree, setShortTree] = React.useState(() => testDataToShortTree(testData));
 
     React.useEffect(() => {
-        setShortTree(testDataToShortTree(testData));
+        try {
+            setShortTree(testDataToShortTree(testData));
+        } catch (error) {
+            console.error("Error updating short tree:", error);
+        }
     }, [testData]);
 
     function testDataToShortTree(testData: TestData): {
@@ -158,6 +162,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
 
     return (
         <UncontrolledTreeEnvironment
+            defaultInteractionMode={InteractionMode.ClickArrowToExpand}
             canDragAndDrop={true}
             canDropOnFolder={true}
             canReorderItems={true}
@@ -181,7 +186,13 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                 ) : null
             }
             renderItem={({ title, arrow, context, children }) => {
-                const item = JSON.parse(title as string);
+                if (!title) return null;
+                let item = { type: "unknown", data: { stepData: title } };
+                try {
+                    item = JSON.parse(title as string);
+                } catch (error) {
+                    console.error("Error parsing item:", error);
+                }
                 return (
                     <div {...context.itemContainerWithChildrenProps}
                         style={{
@@ -202,7 +213,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                             <TestFlowBox
                                 data={{
                                     type: item.type as FlowType,
-                                    step: item.data.value,
+                                    stepData: item.data.stepData,
                                     testData
                                 }}
                                 onChange={() => { /* implement handler or leave empty for now */ }}

@@ -9,7 +9,7 @@ interface TestFlowBoxProps {
 }
 
 const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
-  const { type, step: stepData, testData } = data;
+  const { type, stepData, testData } = data;
 
   switch (type as FlowType) {
     case "step":
