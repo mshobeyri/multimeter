@@ -10,7 +10,6 @@ interface TestFlowBoxProps {
 
 const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
   const { type, stepData, testData } = data;
-
   switch (type as FlowType) {
     case "step":
     case "call":
@@ -29,14 +28,11 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
     case "if":
     case "assert": {
       let left = "?", op: CheckOps = "==" as CheckOps, right = "?";
-      if (typeof stepData === "string") {
-        const match = stepData.match(/^(\S*)\s+([=!<>$@^~]+)\s+(\S*)$/);
-        if (match) {
-          left = match[1];
-          op = match[2] as CheckOps;
-          right = match[3];
-        }
-      }
+      const match = stepData[type].split(" ");
+      left = match[0];
+      op = match[1] as CheckOps;
+      right = match[2];
+
       return (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span>{type}</span>

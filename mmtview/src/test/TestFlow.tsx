@@ -10,88 +10,7 @@ interface TestFlowProps {
     update?: (newTest: { flow: TestFlowSteps }) => void;
 }
 
-const moveBox = (arr: TestFlowSteps, from: number, to: number): TestFlowSteps => {
-    if (from === to || from === to - 1) return arr;
-    const updated = [...arr];
-    const [removed] = updated.splice(from, 1);
-    // If dragging down, after removal, the target index decreases by 1
-    const insertAt = from < to ? to - 1 : to;
-    updated.splice(insertAt, 0, removed);
-    return updated;
-};
-
-const getStepType = (step: any): FlowType => {
-    if (!step || typeof step !== "object") return "call";
-    const keys = Object.keys(step);
-    return (keys[0] as FlowType) || "call";
-};
-
-const getDefaultStepForType = (type: FlowType): any => {
-    switch (type) {
-        case "call":
-            return { call: "" };
-        case "check":
-            return { check: "" };
-        case "if":
-            return { if: "" };
-        case "for":
-            return { for: "" };
-        case "assert":
-            return { assert: "" };
-        case "repeat":
-            return { repeat: "" };
-        case "js":
-            return { js: "" };
-        case "print":
-            return { print: "" };
-        case "end":
-            return { end: "" };
-        case "set":
-            return { set: "" };
-        case "var":
-            return { var: "" };
-        case "const":
-            return { const: "" };
-        case "let":
-            return { let: "" };
-        default:
-            return { [type]: null };
-    }
-};
-
-const updateStepKey = (step: any, newKey: FlowType) => {
-    if (!step || typeof step !== "object") return getDefaultStepForType(newKey);
-    const oldKey = Object.keys(step)[0];
-    const value = step[oldKey];
-    // If the value is not compatible with the new type, use default
-    if (newKey === oldKey) return step;
-    return getDefaultStepForType(newKey);
-};
-
-const updateStepValue = (step: any, value: any) => {
-    if (!step || typeof step !== "object") return step;
-    const key = Object.keys(step)[0];
-    // Only allow update if the key is a valid FlowType
-    if (!["call", "direct", "check", "if", "for"].includes(key)) return step;
-    // Build a valid TestFlowStep for the key
-    switch (key) {
-        case "call":
-            return { call: value };
-        case "direct":
-            return { direct: value };
-        case "check":
-            return { check: value };
-        case "if":
-            return { if: value };
-        case "for":
-            return { for: value };
-        default:
-            return step;
-    }
-};
-
 const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
-    const flow = safeList(testData.steps);
     const [shortTree, setShortTree] = React.useState(() => testDataToShortTree(testData));
 
     React.useEffect(() => {
@@ -105,19 +24,21 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
     function testDataToShortTree(testData: TestData): {
         items: Record<string, any>;
     } {
-        const steps = Array.isArray(testData.steps) ? testData.steps : [];
+        // Prefer stages if present, otherwise use steps
+        const flow = Array.isArray(testData.stages) ? testData.stages : Array.isArray(testData.steps) ? testData.steps : [];
         let items: Record<string, any> = {};
+        let nodeCount = 0;
 
-        // Helper to recursively process steps
-        function toItem(step: any, idx: number, parentKey: string): string {
+        // Helper to recursively process steps and stages
+        function toItem(step: any, parentKey: string): string {
             const type = getTestFlowStepType(step);
-            const key = `${parentKey}_child${idx}`;
+            const key = `${parentKey}_child${nodeCount++}`;
             let children: string[] = [];
 
-            // If step has nested steps, process them recursively
-            if ((type === 'for' || type === 'if' || type === 'repeat') && Array.isArray(step.steps)) {
-                step.steps.forEach((subStep: any, subIdx: number) => {
-                    const childKey = toItem(subStep, subIdx, key);
+            // Handle stages (top-level)
+            if (Array.isArray(step.stages)) {
+                step.stages.forEach((stage: any) => {
+                    const childKey = toItem(stage, key);
                     children.push(childKey);
                 });
             }
@@ -133,10 +54,10 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
             return key;
         }
 
-        // Build top-level children from root steps
+        // Build top-level children from flow array
         const topChildren: string[] = [];
-        steps.forEach((step, idx) => {
-            const childKey = toItem(step, idx, "container");
+        flow.forEach((step: any) => {
+            const childKey = toItem(step, "flow");
             topChildren.push(childKey);
         });
 
@@ -144,17 +65,17 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
         items.root = {
             index: 'root',
             isFolder: true,
-            children: ['container'],
+            children: ['flow'],
             data: JSON.stringify({ type: "root", data: { stepData: "Root" } }),
             type: 'root',
         };
 
-        // Container node (holds all top-level steps)
-        items.container = {
-            index: 'container',
+        // Container node (holds all top-level steps/stages)
+        items.flow = {
+            index: 'flow',
             isFolder: true,
             children: topChildren,
-            data: JSON.stringify({ type: "container", data: { stepData: "Flow" } }),
+            data: JSON.stringify({ type: "flow", data: { stepData: "Flow" } }),
         };
 
         return { items };
@@ -170,7 +91,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
             getItemTitle={item => item.data}
             viewState={{
                 ['tree-1']: {
-                    expandedItems: ['container'],
+                    expandedItems: ['flow'],
                 },
             }}
             // renderItemTitle={({ title }) => <span>{title}</span>}
@@ -194,19 +115,16 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                     console.error("Error parsing item:", error);
                 }
                 return (
-                    <div {...context.itemContainerWithChildrenProps}
-                        style={{
-                            backgroundColor: context.isDraggingOver ? "var(--vscode-list-activeSelectionBackground, #264f78)" : "transparent",
-                            borderRadius: "2px",
-                        }}>
+                    <div {...context.itemContainerWithChildrenProps}>
                         <div className="inner-box"
                             {...context.itemContainerWithoutChildrenProps}
-                            {...context.interactiveElementProps}
                             style={{
                                 display: "flex",
                                 flexDirection: "row",
                                 alignItems: "center",
-                                gap: 8,
+                                gap: 4,
+                                position: "relative",
+                                borderColor: context.isDraggingOver ? "var(--vscode-focusBorder, #264f78)" : "var(--vscode-editorWidget-border, #333)",
                             }}
                         >
                             {arrow}
@@ -217,7 +135,24 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                                     testData
                                 }}
                                 onChange={() => { /* implement handler or leave empty for now */ }}
-                            ></TestFlowBox>
+                            />
+                            {/* Drag handle as a direct child, not inside another div */}
+                            <span
+                                className="codicon codicon-grabber"
+                                style={{
+                                    position: "absolute",
+                                    top: 8,
+                                    right: 8,
+                                    cursor: "grab",
+                                    fontSize: "18px",
+                                    userSelect: "none",
+                                    background: "none",
+                                    border: "none",
+                                    zIndex: 2,
+                                }}
+                                title="Drag to move"
+                                {...context.interactiveElementProps}
+                            />
                         </div>
                         {children}
                     </div>
@@ -225,6 +160,9 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
             }}
             renderTreeContainer={({ children, containerProps }) => <div {...containerProps}>{children}</div>}
             renderItemsContainer={({ children, containerProps }) => <ul {...containerProps}>{children}</ul>}
+            renderDragBetweenLine={({ lineProps }) => (
+                <div {...lineProps} style={{ background: "var(--vscode-focusBorder, #264f78)", height: "1px" }} />
+            )}
         >
             <Tree treeId="tree-1" rootItem="root" treeLabel="Tree Example" />
         </UncontrolledTreeEnvironment>

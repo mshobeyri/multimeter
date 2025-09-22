@@ -20,7 +20,7 @@ export interface TestMetric {
   rampup?: Timestr;
 }
 
-export type FlowType = 'stage'|'step'|'call'|'check'|'assert'|'if'|'for'|
+export type FlowType = 'stages'|'steps'|'stage'|'step'|'call'|'check'|'assert'|'if'|'for'|
     'repeat'|'js'|'print'|'end'|'set'|'var'|'const'|'let';
 
 export interface TestFlowBase {

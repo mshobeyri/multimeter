@@ -62,6 +62,12 @@ export function getTestFlowStepType(step: TestFlowStep): FlowType|'unknown' {
   if ('step' in step) {
     return 'step';
   }
+  if ('stages' in step) {
+    return 'stages';
+  }
+  if ('steps' in step) {
+    return 'steps';
+  }
   if ('call' in step) {
     return 'call';
   }

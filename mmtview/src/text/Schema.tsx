@@ -245,7 +245,6 @@ export const TestSchema = {
                         properties: {
                             if: { type: 'string' },
                             steps: { $ref: '#/properties/steps' },
-                            else: { $ref: '#/properties/steps' }
                         },
                         additionalProperties: false
                     },
