@@ -1,9 +1,8 @@
 import React from "react";
-import { TestFlowSteps, FlowType, flowTypeOptions, TestData } from "mmt-core/TestData";
+import { TestFlowSteps, FlowType, TestData } from "mmt-core/TestData";
 import TestFlowBox from "./TestFlowBox";
-import { safeList } from "mmt-core/safer";
 import { getTestFlowStepType } from "mmt-core/testParsePack";
-import { UncontrolledTreeEnvironment, Tree, StaticTreeDataProvider, InteractionMode } from 'react-complex-tree';
+import { ControlledTreeEnvironment, Tree, InteractionMode, DraggingPosition, DraggingPositionItem, DraggingPositionBetweenItems } from 'react-complex-tree';
 
 interface TestFlowProps {
     testData: TestData;
@@ -12,133 +11,178 @@ interface TestFlowProps {
 
 const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
     const [shortTree, setShortTree] = React.useState(() => testDataToShortTree(testData));
+    const [expandedItems, setExpandedItems] = React.useState<string[]>([]);
+    const [draggedItem, setDraggedItem] = React.useState<string | null>(null);
 
     React.useEffect(() => {
         try {
-            setShortTree(testDataToShortTree(testData));
+            const newTree = testDataToShortTree(testData);
+            setShortTree(newTree);
         } catch (error) {
             console.error("Error updating short tree:", error);
         }
     }, [testData]);
 
-    function testDataToShortTree(testData: TestData): {
-        items: Record<string, any>;
-    } {
-        // Prefer stages if present, otherwise use steps
-        const flow = Array.isArray(testData.stages) ? testData.stages : Array.isArray(testData.steps) ? testData.steps : [];
-        let items: Record<string, any> = {};
-        let nodeCount = 0;
+    const handleExpand = (item: any, treeId: string) => {
+        if (treeId !== 'tree-1') return;
+        setExpandedItems(prev => (prev.includes(item.index) ? prev : [...prev, item.index]));
+    };
 
-        // Helper to recursively process steps and stages
-        function toItem(step: any, parentKey: string): string {
-            const type = getTestFlowStepType(step);
-            const key = `${parentKey}_child${nodeCount++}`;
-            let children: string[] = [];
+    const handleCollapse = (item: any, treeId: string) => {
+        if (treeId !== 'tree-1') return;
+        setExpandedItems(prev => prev.filter(i => i !== item.index));
+    };
 
-            // Handle stages (top-level)
-            if (Array.isArray(step.stages)) {
-                step.stages.forEach((stage: any) => {
-                    const childKey = toItem(stage, key);
-                    children.push(childKey);
-                });
+    const handleDrop = (
+        draggedItems: any[],
+        target: DraggingPosition
+    ) => {
+        if (!Array.isArray(draggedItems) || draggedItems.length === 0) return;
+        
+        // Copy the items tree
+        const itemsCopy = { ...shortTree.items };
+
+        // Helper: remove dragged items from their current parent
+        const removeDraggedFromParent = (index: string) => {
+            const parentKey = Object.keys(itemsCopy).find(key =>
+                itemsCopy[key].children?.includes(index)
+            );
+            if (parentKey) {
+                const newChildren = itemsCopy[parentKey].children.filter((c: string) => c !== index);
+                itemsCopy[parentKey] = {
+                    ...itemsCopy[parentKey],
+                    children: newChildren,
+                };
+                if (newChildren.length === 0) {
+                    itemsCopy[parentKey] = { ...itemsCopy[parentKey], isFolder: false };
+                }
             }
+        };
 
-            items[key] = {
-                index: key,
-                isFolder: children.length > 0,
-                canMove: true,
-                children,
-                data: JSON.stringify({ type, data: { stepData: step } }),
-                canRename: true,
+        draggedItems.forEach(di => removeDraggedFromParent(di.index));
+
+        if (target.targetType === "item") {
+            const targetKey = (target as DraggingPositionItem).targetItem;
+            const existing = itemsCopy[targetKey].children || [];
+            const newChildren = [
+                ...existing,
+                ...draggedItems.map(di => di.index),
+            ];
+            itemsCopy[targetKey] = {
+                ...itemsCopy[targetKey],
+                children: newChildren,
+                isFolder: true,
             };
-            return key;
+        } else if (target.targetType === "between-items") {
+            const parentKey = (target as DraggingPositionBetweenItems).parentItem;
+            const siblings = itemsCopy[parentKey].children;
+            const insertIdx = (target as DraggingPositionBetweenItems).linePosition === "bottom"
+                ? (target as DraggingPositionBetweenItems).childIndex + 1
+                : (target as DraggingPositionBetweenItems).childIndex;
+            const newChildren = [
+                ...siblings.slice(0, insertIdx),
+                ...draggedItems.map(di => di.index),
+                ...siblings.slice(insertIdx),
+            ];
+            itemsCopy[parentKey] = {
+                ...itemsCopy[parentKey],
+                children: newChildren,
+            };
+        } else if (target.targetType === "root") {
+            const rootKey = 'flow';
+            const siblings = itemsCopy[rootKey].children;
+            const newChildren = [...siblings, ...draggedItems.map(di => di.index)];
+            itemsCopy[rootKey] = {
+                ...itemsCopy[rootKey],
+                children: newChildren,
+            };
         }
 
-        // Build top-level children from flow array
-        const topChildren: string[] = [];
-        flow.forEach((step: any) => {
-            const childKey = toItem(step, "flow");
-            topChildren.push(childKey);
-        });
+        setShortTree({ items: itemsCopy });
 
-        // Root node
-        items.root = {
-            index: 'root',
-            isFolder: true,
-            children: ['flow'],
-            data: JSON.stringify({ type: "root", data: { stepData: "Root" } }),
-            type: 'root',
-        };
-
-        // Container node (holds all top-level steps/stages)
-        items.flow = {
-            index: 'flow',
-            isFolder: true,
-            children: topChildren,
-            data: JSON.stringify({ type: "flow", data: { stepData: "Flow" } }),
-        };
-
-        return { items };
-    }
+        if (target.targetType === 'item') {
+            setExpandedItems(prev => (prev.includes(String(target.targetItem)) ? prev : [...prev, String(target.targetItem)]));
+        } else if (target.targetType === 'between-items') {
+            const parentItem = (target as DraggingPositionBetweenItems).parentItem;
+            if (parentItem) {
+                setExpandedItems(prev => (prev.includes(String(parentItem)) ? prev : [...prev, String(parentItem)]));
+            }
+        }
+    };
 
     return (
-        <UncontrolledTreeEnvironment
-            defaultInteractionMode={InteractionMode.ClickArrowToExpand}
-            canDragAndDrop={true}
-            canDropOnFolder={true}
-            canReorderItems={true}
-            dataProvider={new StaticTreeDataProvider(shortTree.items, (item, data) => ({ ...item, data }))}
+        <ControlledTreeEnvironment
+            items={shortTree.items}
             getItemTitle={item => item.data}
             viewState={{
                 ['tree-1']: {
-                    expandedItems: ['flow'],
+                    expandedItems,
                 },
             }}
-            // renderItemTitle={({ title }) => <span>{title}</span>}
+            onExpandItem={handleExpand}
+            onCollapseItem={handleCollapse}
+            canDragAndDrop={true}
+            canDropOnFolder={true}
+            canReorderItems={true}
+            onDrop={handleDrop}
             renderItemArrow={({ item, context }) =>
                 item.isFolder ? (
                     <span {...context.arrowProps}>
                         {context.isExpanded ? (
-                            <span className="codicon codicon-chevron-down" style={{ fontSize: "16px" }}></span>
+                            <span className="codicon codicon-chevron-down" style={{ fontSize: "16px" }} />
                         ) : (
-                            <span className="codicon codicon-chevron-right" style={{ fontSize: "16px" }}></span>
+                            <span className="codicon codicon-chevron-right" style={{ fontSize: "16px" }} />
                         )}
                     </span>
                 ) : null
             }
-            renderItem={({ title, arrow, context, children }) => {
+            renderItem={({ title, arrow, context, item, children }) => {
                 if (!title) return null;
-                let item = { type: "unknown", data: { stepData: title } };
+                let itemParsed = { type: "unknown", data: { stepData: title } };
                 try {
-                    item = JSON.parse(title as string);
-                } catch (error) {
-                    console.error("Error parsing item:", error);
+                    itemParsed = JSON.parse(title as string);
+                } catch (err) {
+                    console.error("Error parsing item:", err);
                 }
+
                 return (
                     <div {...context.itemContainerWithChildrenProps}>
-                        <div className="inner-box"
+                        <div
+                            className="inner-box"
                             {...context.itemContainerWithoutChildrenProps}
+                            {...context.interactiveElementProps}
                             style={{
                                 display: "flex",
                                 flexDirection: "row",
                                 alignItems: "center",
                                 gap: 4,
                                 position: "relative",
-                                borderColor: context.isDraggingOver ? "var(--vscode-focusBorder, #264f78)" : "var(--vscode-editorWidget-border, #333)",
+                                borderColor: context.isDraggingOver
+                                    ? "var(--vscode-focusBorder, #264f78)"
+                                    : "var(--vscode-editorWidget-border, #333)",
                             }}
                         >
                             {arrow}
                             <TestFlowBox
                                 data={{
-                                    type: item.type as FlowType,
-                                    stepData: item.data.stepData,
-                                    testData
+                                    type: itemParsed.type as FlowType,
+                                    stepData: itemParsed.data.stepData,
+                                    testData,
                                 }}
-                                onChange={() => { /* implement handler or leave empty for now */ }}
+                                onChange={() => { /* implement handler if needed */ }}
                             />
-                            {/* Drag handle as a direct child, not inside another div */}
+                            {/* Drag handle only */}
                             <span
                                 className="codicon codicon-grabber"
+                                draggable
+                                onDragStart={e => {
+                                    setDraggedItem(String(item.index));
+                                    e.stopPropagation();
+                                }}
+                                onDragEnd={e => {
+                                    setDraggedItem(null);
+                                    e.stopPropagation();
+                                }}
                                 style={{
                                     position: "absolute",
                                     top: 8,
@@ -151,7 +195,6 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                                     zIndex: 2,
                                 }}
                                 title="Drag to move"
-                                {...context.interactiveElementProps}
                             />
                         </div>
                         {children}
@@ -165,8 +208,69 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
             )}
         >
             <Tree treeId="tree-1" rootItem="root" treeLabel="Tree Example" />
-        </UncontrolledTreeEnvironment>
+        </ControlledTreeEnvironment>
     );
 };
+
+function testDataToShortTree(testData: TestData): { items: Record<string, any> } {
+    const flow = Array.isArray(testData.stages)
+        ? testData.stages
+        : Array.isArray(testData.steps)
+            ? testData.steps
+            : [];
+
+    const items: Record<string, any> = {};
+
+    // deterministic path-based keys: flow_0, flow_0_0, ...
+    function toItem(step: any, path: string) {
+        const type = getTestFlowStepType(step);
+        const children: string[] = [];
+
+        if (Array.isArray(step.steps)) {
+            step.steps.forEach((childStep: any, idx: number) => {
+                const childPath = `${path}_${idx}`;
+                children.push(childPath);
+                toItem(childStep, childPath);
+            });
+        }
+
+        items[path] = {
+            index: path,
+            isFolder: children.length > 0,
+            canMove: true,
+            children,
+            data: JSON.stringify({ type, data: { stepData: step } }),
+            canRename: true,
+        };
+    }
+
+    // top-level children
+    const topChildren: string[] = [];
+    flow.forEach((step: any, i: number) => {
+        const key = `flow_${i}`;
+        topChildren.push(key);
+        toItem(step, key);
+    });
+
+    // root and container
+    items.root = {
+        index: 'root',
+        isFolder: true,
+        children: ['flow'],
+        data: JSON.stringify({ type: "root", data: { stepData: "Root" } }),
+        type: 'root',
+    };
+
+    items.flow = {
+        index: 'flow',
+        isFolder: true,
+        children: topChildren,
+        data: JSON.stringify({ type: "flow", data: { stepData: "Flow" } }),
+    };
+
+    return { items };
+}
+
+
 
 export default TestFlow;

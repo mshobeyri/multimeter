@@ -367,9 +367,9 @@ export const TestSchema = {
             type: 'array',
             items: {
                 type: 'object',
-                required: ['id', 'steps'],
+                required: ['stage', 'steps'],
                 properties: {
-                    id: { type: 'string' },
+                    stage: { type: 'string' },
                     depends_on: {
                         anyOf: [
                             { type: 'string' },
