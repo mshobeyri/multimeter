@@ -38,7 +38,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
         target: DraggingPosition
     ) => {
         if (!Array.isArray(draggedItems) || draggedItems.length === 0) return;
-        
+
         // Copy the items tree
         const itemsCopy = { ...shortTree.items };
 
@@ -54,7 +54,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                     children: newChildren,
                 };
                 if (newChildren.length === 0) {
-                    itemsCopy[parentKey] = { ...itemsCopy[parentKey], isFolder: false };
+                    itemsCopy[parentKey] = { ...itemsCopy[parentKey], isFolder: true };
                 }
             }
         };
@@ -236,7 +236,7 @@ function testDataToShortTree(testData: TestData): { items: Record<string, any> }
 
         items[path] = {
             index: path,
-            isFolder: children.length > 0,
+            isFolder: isTypeFolder(type),
             canMove: true,
             children,
             data: JSON.stringify({ type, data: { stepData: step } }),
@@ -271,6 +271,9 @@ function testDataToShortTree(testData: TestData): { items: Record<string, any> }
     return { items };
 }
 
+const isTypeFolder = (type: FlowType | unknown): boolean => {
+    return type === "stage" || type === "stages" || type === "steps" || type === "if" || type === "for" || type === "repeat";
+}
 
 
 export default TestFlow;
