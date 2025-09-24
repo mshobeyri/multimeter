@@ -9,15 +9,26 @@ interface TestFlowProps {
     update?: (newTest: { flow: TestFlowSteps }) => void;
 }
 
+// Collect all folder item ids
+const collectFolderIds = (items: Record<string, any>, includeEmpty = true): string[] =>
+    Object.values(items)
+        .filter((it: any) => it?.isFolder && (includeEmpty || (it.children?.length > 0)))
+        .map((it: any) => String(it.index));
+
 const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
     const [shortTree, setShortTree] = React.useState(() => testDataToShortTree(testData));
-    const [expandedItems, setExpandedItems] = React.useState<string[]>([]);
-    const [draggedItem, setDraggedItem] = React.useState<string | null>(null);
-
+    // Initialize expanded with all folders
+    const [expandedItems, setExpandedItems] = React.useState<string[]>(
+        () => collectFolderIds(shortTree.items)
+    );
     React.useEffect(() => {
         try {
             const newTree = testDataToShortTree(testData);
             setShortTree(newTree);
+            // Expand all folders after rebuild
+            setExpandedItems(collectFolderIds(newTree.items));
+            // If you want to preserve user expansions, use:
+            // setExpandedItems(prev => Array.from(new Set([...prev, ...collectFolderIds(newTree.items)])));
         } catch (error) {
             console.error("Error updating short tree:", error);
         }
@@ -182,30 +193,6 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                                     onChange={(v) => { /* update your data */ }}
                                 />
                             </NoTreeInterference>
-                            <span
-                                className="codicon codicon-grabber"
-                                draggable
-                                onDragStart={e => {
-                                    setDraggedItem(String(item.index));
-                                    e.stopPropagation();
-                                }}
-                                onDragEnd={e => {
-                                    setDraggedItem(null);
-                                    e.stopPropagation();
-                                }}
-                                style={{
-                                    position: "absolute",
-                                    top: 8,
-                                    right: 8,
-                                    cursor: "grab",
-                                    fontSize: "18px",
-                                    userSelect: "none",
-                                    background: "none",
-                                    border: "none",
-                                    zIndex: 2,
-                                }}
-                                title="Drag to move"
-                            />
                         </div>
                         {children}
                     </div>

@@ -103,21 +103,29 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
           />
         </div>
       );
-    case "end":
+    case "steps":
+    case "stages":
       return (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, fontStyle: "italic", color: "#888" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span>{type}</span>
+        </div>
+      );
+    case "stage":
+      return (
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span>{type}</span>
+          <input
+            placeholder="Stage name"
+            value={stepData || ""}
+            onChange={e => onChange(e.target.value)}
+            style={{ width: "100%" }}
+          />
         </div>
       );
     default:
       return (
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span>{type}</span>
-          <input
-            value={stepData || ""}
-            onChange={e => onChange(e.target.value)}
-            style={{ width: "100%" }}
-          />
         </div>
       );
   }
