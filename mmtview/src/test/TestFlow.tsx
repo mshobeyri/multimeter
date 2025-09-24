@@ -145,33 +145,43 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                     console.error("Error parsing item:", err);
                 }
 
+                const stopAll = (e: React.SyntheticEvent) => {
+                    e.stopPropagation();
+                    if (e.nativeEvent?.stopImmediatePropagation) e.nativeEvent.stopImmediatePropagation();
+                };
+
+                const NoTreeInterference: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+                    <div
+                        onMouseDownCapture={stopAll}
+                        onClickCapture={stopAll}
+                        onFocusCapture={stopAll}
+                        onKeyDownCapture={stopAll}
+                        onKeyUpCapture={stopAll}
+                        onInputCapture={stopAll}
+                    >
+                        {children}
+                    </div>
+                );
+
                 return (
                     <div {...context.itemContainerWithChildrenProps}>
                         <div
                             className="inner-box"
                             {...context.itemContainerWithoutChildrenProps}
                             {...context.interactiveElementProps}
-                            style={{
-                                display: "flex",
-                                flexDirection: "row",
-                                alignItems: "center",
-                                gap: 4,
-                                position: "relative",
-                                borderColor: context.isDraggingOver
-                                    ? "var(--vscode-focusBorder, #264f78)"
-                                    : "var(--vscode-editorWidget-border, #333)",
-                            }}
+                            style={{ display: "flex", alignItems: "center", gap: 8, position: "relative" }}
                         >
                             {arrow}
-                            <TestFlowBox
-                                data={{
-                                    type: itemParsed.type as FlowType,
-                                    stepData: itemParsed.data.stepData,
-                                    testData,
-                                }}
-                                onChange={() => { /* implement handler if needed */ }}
-                            />
-                            {/* Drag handle only */}
+                            <NoTreeInterference>
+                                <TestFlowBox
+                                    data={{
+                                        type: itemParsed.type as FlowType,
+                                        stepData: itemParsed.data.stepData,
+                                        testData,
+                                    }}
+                                    onChange={(v) => { /* update your data */ }}
+                                />
+                            </NoTreeInterference>
                             <span
                                 className="codicon codicon-grabber"
                                 draggable
