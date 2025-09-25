@@ -10,6 +10,7 @@ interface TestFlowBoxProps {
 
 const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
   const { type, stepData, testData } = data;
+  console.log(data)
   switch (type as FlowType) {
     case "step":
     case "call":
@@ -17,7 +18,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
         <div className="test-flow-box-items">
           <span>{type}</span>
           <TestCall
-            value={stepData || ""}
+            value={stepData[type] || ""}
             imports={typeof testData?.import === "object" ? testData.import : undefined}
             onChange={yamlString => onChange(yamlString)}
             placeholder="select a call"
@@ -62,9 +63,9 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
       return (
         <div className="test-flow-box-items">
           <span>{type}</span>
-          <input
+          <textarea
             placeholder="JavaScript code"
-            value={stepData || ""}
+            value={stepData[type] || ""}
             onChange={e => onChange(e.target.value)}
             style={{ width: "100%" }}
           />
@@ -76,7 +77,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
           <span>{type}</span>
           <input
             placeholder="Message to print"
-            value={stepData || ""}
+            value={stepData[type] || ""}
             onChange={e => onChange(e.target.value)}
             style={{ width: "100%" }}
           />
@@ -116,7 +117,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
           <span>{type}</span>
           <input
             placeholder="Stage name"
-            value={stepData || ""}
+            value={stepData[type] || ""}
             onChange={e => onChange(e.target.value)}
             style={{ width: "100%" }}
           />

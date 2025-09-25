@@ -377,7 +377,7 @@ button:focus {
   padding: 16px;
   background: var(--vscode-editor-background, #232323);
   border: 1px solid var(--vscode-editorWidget-border, #333);
-  border-radius: 6px;
+  border-radius: 4px;
   color: var(--vscode-editor-foreground, #fff);
   user-select: none;
   transition: background 0.35s;
@@ -385,15 +385,18 @@ button:focus {
 }
 
 .tree-view-box {
-  position: absolute;
+  position: relative;
+  display: flex;
+  align-items: center;
   height: 40px;
   background: var(--vscode-editor-background, #232323);
   border: 1px solid var(--vscode-editorWidget-border, #333);
-  border-radius: 6px;
+  border-radius: 4px;
   color: var(--vscode-editor-foreground, #fff);
   user-select: none;
   transition: background 0.35s;
   margin-bottom: 8px;
+  padding-left: 8px;
   gap: 8px;
 }
 

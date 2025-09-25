@@ -180,7 +180,6 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                             className="tree-view-box"
                             {...context.itemContainerWithoutChildrenProps}
                             {...context.interactiveElementProps}
-                            style={{ display: "flex", alignItems: "center", gap: 8, position: "relative" }}
                         >
                             {arrow}
                             <NoTreeInterference>
