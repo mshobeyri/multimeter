@@ -14,7 +14,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
     case "step":
     case "call":
       return (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="test-flow-box-items">
           <span>{type}</span>
           <TestCall
             value={stepData || ""}
@@ -34,7 +34,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
       right = match[2];
 
       return (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="test-flow-box-items">
           <span>{type}</span>
           <TestCheck
             left={left}
@@ -48,7 +48,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
     case "for":
     case "repeat":
       return (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="test-flow-box-items">
           <span>{type}</span>
           <input
             placeholder={type === "for" ? "100, 10s, 5-10, i:data" : "repeat count or duration"}
@@ -60,7 +60,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
       );
     case "js":
       return (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="test-flow-box-items">
           <span>{type}</span>
           <input
             placeholder="JavaScript code"
@@ -72,7 +72,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
       );
     case "print":
       return (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="test-flow-box-items">
           <span>{type}</span>
           <input
             placeholder="Message to print"
@@ -87,7 +87,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
     case "const":
     case "let":
       return (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="test-flow-box-items">
           <span>{type}</span>
           <textarea
             placeholder="key: value pairs (YAML or JSON)"
@@ -106,13 +106,13 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
     case "steps":
     case "stages":
       return (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="test-flow-box-items">
           <span>{type}</span>
         </div>
       );
     case "stage":
       return (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="test-flow-box-items">
           <span>{type}</span>
           <input
             placeholder="Stage name"
@@ -124,7 +124,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
       );
     default:
       return (
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div className="test-flow-box-items">
           <span>{type}</span>
         </div>
       );

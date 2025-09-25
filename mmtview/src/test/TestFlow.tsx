@@ -177,7 +177,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                 return (
                     <div {...context.itemContainerWithChildrenProps}>
                         <div
-                            className="inner-box"
+                            className="tree-view-box"
                             {...context.itemContainerWithoutChildrenProps}
                             {...context.interactiveElementProps}
                             style={{ display: "flex", alignItems: "center", gap: 8, position: "relative" }}

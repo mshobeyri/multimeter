@@ -384,6 +384,28 @@ button:focus {
   margin-bottom: 16px;
 }
 
+.tree-view-box {
+  position: absolute;
+  height: 40px;
+  background: var(--vscode-editor-background, #232323);
+  border: 1px solid var(--vscode-editorWidget-border, #333);
+  border-radius: 6px;
+  color: var(--vscode-editor-foreground, #fff);
+  user-select: none;
+  transition: background 0.35s;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.test-flow-box-items {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* border: 1px solid var(--vscode-editorWidget-border, #333); */
+
+  padding: 4px;
+}
+
 .add-button {
   background: var(--vscode-button-background, #0e639c);
   color: var(--vscode-button-foreground, #fff);
