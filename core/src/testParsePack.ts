@@ -62,12 +62,6 @@ export function getTestFlowStepType(step: TestFlowStep): FlowType|'unknown' {
   if ('step' in step) {
     return 'step';
   }
-  if ('stages' in step) {
-    return 'stages';
-  }
-  if ('steps' in step) {
-    return 'steps';
-  }
   if ('call' in step) {
     return 'call';
   }
@@ -103,6 +97,13 @@ export function getTestFlowStepType(step: TestFlowStep): FlowType|'unknown' {
   }
   if ('let' in step) {
     return 'let';
+  }
+  // Generic containers should be detected after specific control-steps
+  if ('stages' in step) {
+    return 'stages';
+  }
+  if ('steps' in step) {
+    return 'steps';
   }
   return 'unknown';
 }

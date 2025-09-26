@@ -394,10 +394,16 @@ button:focus {
   border-radius: 4px;
   color: var(--vscode-editor-foreground, #fff);
   user-select: none;
-  transition: background 0.35s;
+  transition: background 0.35s, height 0.25s ease;
   margin-bottom: 8px;
   padding-left: 8px;
   gap: 8px;
+  overflow: hidden;
+}
+
+
+.tree-view-box.active {
+  height: 120px;
 }
 
 .test-flow-box-items {

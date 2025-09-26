@@ -21,6 +21,8 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
     const [expandedItems, setExpandedItems] = React.useState<string[]>(
         () => collectFolderIds(shortTree.items)
     );
+    // Track selected items to toggle active class on click
+    const [selectedItems, setSelectedItems] = React.useState<string[]>([]);
     React.useEffect(() => {
         try {
             const newTree = testDataToShortTree(testData);
@@ -128,6 +130,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
             viewState={{
                 ['tree-1']: {
                     expandedItems,
+                    selectedItems,
                 },
             }}
             onExpandItem={handleExpand}
@@ -136,6 +139,10 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
             canDropOnFolder={true}
             canReorderItems={true}
             onDrop={handleDrop}
+            onSelectItems={(items, treeId) => {
+                if (treeId !== 'tree-1') return;
+                setSelectedItems(items as string[]);
+            }}
             renderItemArrow={({ item, context }) =>
                 item.isFolder ? (
                     <span {...context.arrowProps}>
@@ -177,7 +184,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                 return (
                     <div {...context.itemContainerWithChildrenProps}>
                         <div
-                            className="tree-view-box"
+                            className={`tree-view-box${context.isSelected && isExpandable(itemParsed.type) ? ' active' : ''}`}
                             {...context.itemContainerWithoutChildrenProps}
                             {...context.interactiveElementProps}
                         >
@@ -271,5 +278,8 @@ const isTypeFolder = (type: FlowType | unknown): boolean => {
     return type === "stage" || type === "stages" || type === "steps" || type === "if" || type === "for" || type === "repeat";
 }
 
+const isExpandable = (type: FlowType | unknown): boolean => {
+    return type === "print" || type === "js" || type === "call" || type === "set" || type === "var" || type === "const" || type === "let";
+}
 
 export default TestFlow;
