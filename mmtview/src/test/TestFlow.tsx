@@ -145,7 +145,15 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
             }}
             renderItemArrow={({ item, context }) =>
                 item.isFolder ? (
-                    <span {...context.arrowProps}>
+                    <span
+                        {...context.arrowProps}
+                        style={{
+                            display: "inline-flex",
+                            paddingTop: 8, 
+                            lineHeight: 0,
+                            alignSelf: "flex-start"
+                        }}
+                    >
                         {context.isExpanded ? (
                             <span className="codicon codicon-chevron-down" style={{ fontSize: "16px" }} />
                         ) : (

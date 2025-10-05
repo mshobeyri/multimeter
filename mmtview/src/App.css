@@ -387,7 +387,7 @@ button:focus {
 .tree-view-box {
   position: relative;
   display: flex;
-  align-items: center;
+  align-items: top;
   height: 40px;
   background: var(--vscode-editor-background, #232323);
   border: 1px solid var(--vscode-editorWidget-border, #333);
@@ -397,6 +397,7 @@ button:focus {
   transition: background 0.35s, height 0.25s ease;
   margin-bottom: 8px;
   padding-left: 8px;
+  padding-top: 8px;
   gap: 8px;
   overflow: hidden;
 }
@@ -408,7 +409,7 @@ button:focus {
 
 .test-flow-box-items {
   display: flex;
-  align-items: center;
+  align-items: top;
   gap: 8px;
   /* border: 1px solid var(--vscode-editorWidget-border, #333); */
 
