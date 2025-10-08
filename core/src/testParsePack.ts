@@ -8,6 +8,10 @@ export function yamlToTest(yamlContent: string): TestData {
     if (!doc || typeof doc !== 'object') {
       return {} as TestData;
     }
+    // Backwards compatibility: allow legacy 'flow' key as alias for 'steps'
+    if (!doc.steps && Array.isArray(doc.flow)) {
+      doc.steps = doc.flow;
+    }
     return {
       type: doc.type || '',
       title: doc.title || '',

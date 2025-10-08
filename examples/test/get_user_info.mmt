@@ -1,0 +1,19 @@
+type: api
+title: create_session
+inputs:
+  session: qwe
+  user: mehrdad@gmail.com
+outputs:
+  name: mehrdad
+  family: shobeyri
+  age: 35
+extract:
+  name: body[message]
+  family: body[from]
+protocol: http
+format: json
+url: http://localhost:8080
+method: post
+body:
+  session: i:session
+  user: i:user

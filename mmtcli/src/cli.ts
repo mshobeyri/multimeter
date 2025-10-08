@@ -3,6 +3,8 @@ import { Command } from 'commander';
 import path from 'path';
 import fs from 'fs';
 import { loadTestFile, summarize, maybeGenerateJs } from './loadTest.js';
+import { JSer, testParsePack } from 'mmt-core';
+import yaml from 'js-yaml';
 import { runTestObject } from './runTest.js';
 
 const program = new Command();
@@ -54,10 +56,27 @@ program
   .argument('<file>', 'Test file (.yaml/.yml/.json/.mmt)')
   .description('Convert a test definition file to executable JS using JSer and print to stdout')
   .option('-s, --stages', 'Include stage headers as comments when stages exist', true)
-  .action((file: string, opts: { stages?: boolean }) => {
+  .action(async (file: string, opts: { stages?: boolean }) => {
     try {
-      const raw = loadTestFile(file);
-      const js = maybeGenerateJs(raw) || '';
+      const full = path.resolve(process.cwd(), file);
+      const dir = path.dirname(full);
+      const rawText = fs.readFileSync(full, 'utf8');
+      const raw = /\.json$/i.test(full) ? JSON.parse(rawText) : yaml.load(rawText);
+
+      // Custom file loader resolving relative to test file directory
+      JSer.setFileLoader(async (p: string) => {
+        const rel = path.isAbsolute(p) ? p : path.join(dir, p);
+        if (!fs.existsSync(rel)) { return ''; }
+        return fs.readFileSync(rel, 'utf8');
+      });
+
+      const test = testParsePack.yamlToTest ? testParsePack.yamlToTest(rawText) : raw; // fallback
+      const js = await JSer.rootTestToJsfunc({
+        test,
+        name: path.basename(full).replace(/[^a-zA-Z0-9_]/g, '_'),
+        inputs: {},
+        envVars: {}
+      });
       if (!js.trim()) {
         console.error('No JS could be generated (empty flow).');
         process.exit(1);

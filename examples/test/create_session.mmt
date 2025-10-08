@@ -1,0 +1,16 @@
+type: api
+title: create_session
+inputs:
+  username: mahmood@gmail.com
+  password: 123456
+outputs:
+  session: aaaaaas
+extract:
+  session: body[message]
+protocol: http
+format: json
+url: http://localhost:8080
+method: post
+body:
+  username: i:username
+  password: i:password
