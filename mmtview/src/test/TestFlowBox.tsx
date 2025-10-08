@@ -53,7 +53,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
           <span style={{ paddingTop: "6px" }}>{type}</span>
           <input
             placeholder={type === "for" ? "100, 10s, 5-10, i:data" : "repeat count or duration"}
-            value={stepData || ""}
+            value={stepData[type] || ""}
             onChange={e => onChange(e.target.value)}
             style={{ width: "100%" }}
           />
@@ -67,7 +67,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
             placeholder="JavaScript code"
             value={stepData[type] || ""}
             onChange={e => onChange(e.target.value)}
-            style={{ width: "100%" }}
+            style={{ width: "100%", height: "calc(100% - 14px)" }}
           />
         </div>
       );

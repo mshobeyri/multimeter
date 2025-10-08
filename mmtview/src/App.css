@@ -411,6 +411,9 @@ button:focus {
   display: flex;
   align-items: top;
   gap: 8px;
+  width: 100%;
+  height: 100%;
+
   /* border: 1px solid var(--vscode-editorWidget-border, #333); */
 
   padding: 4px;

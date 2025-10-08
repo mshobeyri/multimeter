@@ -20,7 +20,7 @@ const TestCheck: React.FC<TestCheckProps> = ({
   minWidth = 40,
   maxWidth = 200,
 }) => (
-  <div style={{ display: "flex", alignItems: "center", gap: 0 }}>
+  <div style={{ display: "flex", verticalAlign: "center", gap: 0 }}>
     <AutoSizeTextField
       value={left}
       minWidth={minWidth}
