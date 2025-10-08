@@ -1,6 +1,8 @@
 node_modules
 dist
 out
+mmtcli/dist-cjs
+mmtcli/dist/bin
 mmtview/node_modules
 mmtview/build
 TODO

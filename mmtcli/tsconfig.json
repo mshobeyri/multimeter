@@ -3,15 +3,20 @@
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "dist",
-  "module": "NodeNext",
+    "module": "NodeNext",
     "target": "ES2022",
     "moduleResolution": "NodeNext",
     "esModuleInterop": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-  "declaration": false,
-  "types": ["node"],
-  "lib": ["ES2022"]
+    "declaration": false,
+    "types": ["node"],
+    "lib": ["ES2022"],
+    "baseUrl": "..",
+    "paths": {
+      "mmt-core": ["core/dist"],
+      "mmt-core/*": ["core/dist/*"]
+    }
   },
   "include": ["src/**/*"]
 }

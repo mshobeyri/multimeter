@@ -9,15 +9,20 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+  "build:cjs": "tsc -p tsconfig.cjs.json",
     "dev": "tsx src/cli.ts --help",
     "clean": "rimraf dist",
-    "pkg": "npm run build && pkg dist/cli.js --targets node18-macos-x64,node18-linux-x64,node18-win-x64 --output dist/multimeter",
+    "pkg": "npm run build:cjs && pkg dist-cjs/cli.js --targets node18-macos-x64,node18-linux-x64,node18-win-x64 --out-path dist/bin",
     "test": "echo \"(no tests yet)\""
+  },
+  "pkg": {
+    "scripts": ["dist-cjs/**/*.js"],
+    "assets": []
   },
   "dependencies": {
     "commander": "^12.1.0",
   "js-yaml": "^4.1.0",
-  "mmt-core": "file:../core/dist"
+  "mmt-core": "file:../core"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",

@@ -2,7 +2,7 @@
 import { Command } from 'commander';
 import path from 'path';
 import fs from 'fs';
-import { loadTestFile, summarize } from './loadTest.js';
+import { loadTestFile, summarize, maybeGenerateJs } from './loadTest.js';
 import { runTestObject } from './runTest.js';
 
 const program = new Command();
@@ -21,7 +21,7 @@ program
     try {
       const raw = loadTestFile(file);
       const summary = summarize(raw);
-      if (!opts.quiet) {
+  if (!opts.quiet) {
         console.log(`Loaded: ${path.resolve(file)} (${summary})`);
       }
       const result = await runTestObject(raw);
@@ -36,11 +36,35 @@ program
       if (opts.out) {
         const outPath = path.resolve(opts.out);
         fs.writeFileSync(outPath, JSON.stringify(result, null, 2), 'utf8');
-        if (!opts.quiet) console.log(`Result written: ${outPath}`);
+        if (!opts.quiet) {
+          console.log(`Result written: ${outPath}`);
+        }
       }
       process.exit(result.success ? 0 : 1);
     } catch (e: any) {
-      if (!opts.quiet) console.error('Error:', e?.message || e);
+      if (!opts.quiet) {
+        console.error('Error:', e?.message || e);
+      }
+      process.exit(2);
+    }
+  });
+
+program
+  .command('to-js')
+  .argument('<file>', 'Test file (.yaml/.yml/.json/.mmt)')
+  .description('Convert a test definition file to executable JS using JSer and print to stdout')
+  .option('-s, --stages', 'Include stage headers as comments when stages exist', true)
+  .action((file: string, opts: { stages?: boolean }) => {
+    try {
+      const raw = loadTestFile(file);
+      const js = maybeGenerateJs(raw) || '';
+      if (!js.trim()) {
+        console.error('No JS could be generated (empty flow).');
+        process.exit(1);
+      }
+      console.log(js.trim());
+    } catch (e: any) {
+      console.error('Error generating JS:', e?.message || e);
       process.exit(2);
     }
   });

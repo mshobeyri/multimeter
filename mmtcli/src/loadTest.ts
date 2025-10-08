@@ -1,22 +1,34 @@
 import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
-// Import directly from built core dist (workspace file reference)
-// Alternatively, add a path mapping in tsconfig base to 'mmt-core'.
-import { flowStepsToJsfunc } from '../../core/dist/JSer.js';
+import { JSer } from 'mmt-core';
 
 export function loadTestFile(filePath: string): any {
   const full = path.resolve(process.cwd(), filePath);
-  if (!fs.existsSync(full)) throw new Error(`File not found: ${full}`);
+  if (!fs.existsSync(full)) {
+    throw new Error(`File not found: ${full}`);
+  }
   const txt = fs.readFileSync(full, 'utf8');
-  if (/(\.ya?ml|\.mmt)$/i.test(full)) return yaml.load(txt);
-  if (/\.json$/i.test(full)) return JSON.parse(txt);
-  try { return yaml.load(txt); } catch { return JSON.parse(txt); }
+  if(/(\.ya?ml|\.mmt)$/i.test(full)) {
+    return yaml.load(txt);
+  }
+  if (/\.json$/i.test(full)) {
+    return JSON.parse(txt);
+  }
+  try {
+    return yaml.load(txt);
+  } catch {
+    return JSON.parse(txt);
+  }
 }
 
 export function extractFlow(obj: any): { steps: any[]; stages?: any[] } {
-  if (Array.isArray(obj?.stages)) return { steps: [], stages: obj.stages };
-  if (Array.isArray(obj?.steps)) return { steps: obj.steps };
+  if (Array.isArray(obj?.stages)) {
+    return { steps: [], stages: obj.stages };
+  }
+  if (Array.isArray(obj?.steps)) {
+    return { steps: obj.steps };
+  }
   return { steps: [] };
 }
 
@@ -30,9 +42,11 @@ export function maybeGenerateJs(obj: any): string | undefined {
   if (stages) {
     return stages.map(s =>
       `// stage: ${s.stage || s.name || 'unnamed'}\n` +
-  (Array.isArray(s.steps) ? (flowStepsToJsfunc?.(s.steps as any) || '') : '')
+      (Array.isArray(s.steps) ? (JSer.flowStepsToJsfunc?.(s.steps as any) || '') : '')
     ).join('\n');
   }
-  if (steps) return flowStepsToJsfunc?.(steps as any);
+  if (steps) {
+    return JSer.flowStepsToJsfunc?.(steps as any);
+  }
   return;
 }

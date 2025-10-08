@@ -8,7 +8,9 @@ export async function runTestObject(testObj: any): Promise<CliRunResult> {
   const errors: string[] = [];
   try {
     const js = maybeGenerateJs(testObj) || '';
-    if (!js.trim()) errors.push('No executable flow content.');
+    if (!js.trim()) {
+      errors.push('No executable flow content.');
+    }
     if (js) {
       const sandbox = { console } as any;
       vm.createContext(sandbox);
