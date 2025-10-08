@@ -1,0 +1,30 @@
+{
+  "name": "mmtcli",
+  "version": "0.1.0",
+  "description": "Multimeter CLI test runner",
+  "type": "module",
+  "private": false,
+  "bin": {
+    "multimeter": "dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts --help",
+    "clean": "rimraf dist",
+    "pkg": "npm run build && pkg dist/cli.js --targets node18-macos-x64,node18-linux-x64,node18-win-x64 --output dist/multimeter",
+    "test": "echo \"(no tests yet)\""
+  },
+  "dependencies": {
+    "commander": "^12.1.0",
+  "js-yaml": "^4.1.0",
+  "mmt-core": "file:../core/dist"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20.11.30",
+    "pkg": "^5.8.1",
+    "rimraf": "^5.0.5",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.2"
+  }
+}

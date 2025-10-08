@@ -322,9 +322,15 @@
     "robot framework"
   ],
   "license": "MIT",
+  "workspaces": [
+    "core",
+    "mmtview",
+    "mmtcli"
+  ],
   "scripts": {
     "buildcore": "npm run build --prefix core",
     "buildview": "npm run build --prefix mmtview",
+    "buildcli": "npm run buildcore && npm install --prefix mmtcli && npm run pkg --prefix mmtcli",
     "pack": "vsce package",
     "publish": "vsce publish",
     "install-package": "code --install-extension multimeter-0.18.0.vsix",
