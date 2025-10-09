@@ -3,9 +3,10 @@ import { Command } from 'commander';
 import path from 'path';
 import fs from 'fs';
 import { loadTestFile, summarize, maybeGenerateJs } from './loadTest.js';
-import { JSer, testParsePack } from 'mmt-core';
+import * as JSer from 'mmt-core/dist/JSer.js';
+import * as testParsePack from 'mmt-core/dist/testParsePack.js';
 import yaml from 'js-yaml';
-import { runTestObject } from './runTest.js';
+// Defer importing runTest until needed to avoid pulling axios for to-js
 
 const program = new Command();
 
@@ -21,12 +22,29 @@ program
   .option('-o, --out <file>', 'Write result JSON to file')
   .action(async (file: string, opts: { quiet?: boolean; out?: string }) => {
     try {
-      const raw = loadTestFile(file);
+      const full = path.resolve(process.cwd(), file);
+      const dir = path.dirname(full);
+      const rawText = fs.readFileSync(full, 'utf8');
+      const raw = /\.json$/i.test(full) ? JSON.parse(rawText) : yaml.load(rawText);
       const summary = summarize(raw);
-  if (!opts.quiet) {
+      if (!opts.quiet) {
         console.log(`Loaded: ${path.resolve(file)} (${summary})`);
       }
-      const result = await runTestObject(raw);
+      // Ensure imports resolve relative to the test file
+      JSer.setFileLoader(async (p: string) => {
+        const rel = path.isAbsolute(p) ? p : path.join(dir, p);
+        if (!fs.existsSync(rel)) { return ''; }
+        return fs.readFileSync(rel, 'utf8');
+      });
+      const test = testParsePack.yamlToTest ? testParsePack.yamlToTest(rawText) : raw;
+      const js = await JSer.rootTestToJsfunc({
+        test,
+        name: path.basename(full).replace(/[^a-zA-Z0-9_]/g, '_'),
+        inputs: {},
+        envVars: {}
+      });
+  const { runGeneratedJs } = await import('./runTest.js');
+  const result = await runGeneratedJs(js);
       if (!opts.quiet) {
         console.log(`Success: ${result.success}`);
         console.log(`Duration: ${result.durationMs.toFixed(2)} ms`);

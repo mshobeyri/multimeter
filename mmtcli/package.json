@@ -16,13 +16,22 @@
     "test": "echo \"(no tests yet)\""
   },
   "pkg": {
-    "scripts": ["dist-cjs/**/*.js"],
-    "assets": []
+    "scripts": [
+      "dist-cjs/**/*.js"
+    ],
+    "assets": [
+      "node_modules/axios/dist/**",
+      "node_modules/axios/lib/**",
+      "node_modules/axios/index.js",
+      "node_modules/ws/**/*.js"
+    ]
   },
   "dependencies": {
     "commander": "^12.1.0",
   "js-yaml": "^4.1.0",
-  "mmt-core": "file:../core"
+  "mmt-core": "file:../core",
+  "axios": "^1.7.7",
+  "ws": "^8.18.0"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",

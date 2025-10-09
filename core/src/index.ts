@@ -7,3 +7,4 @@ export * as testParsePack from "./testParsePack";
 export * as markupConvertor from "./markupConvertor";
 export * as variableReplacer from "./variableReplacer";
 export * as outputExtractor from "./outputExtractor";
+export * as testHelper from "./testHelper";

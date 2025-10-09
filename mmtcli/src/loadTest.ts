@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
-import { JSer } from 'mmt-core';
+import * as JSer from 'mmt-core/dist/JSer.js';
 
 export function loadTestFile(filePath: string): any {
   const full = path.resolve(process.cwd(), filePath);
