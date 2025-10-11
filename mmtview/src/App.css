@@ -388,13 +388,15 @@ button:focus {
   position: relative;
   display: flex;
   align-items: top;
-  height: 40px;
+  height: auto;
+  min-height: 40px;
+  max-height: 40px;
   background: var(--vscode-editor-background, #232323);
   border: 1px solid var(--vscode-editorWidget-border, #333);
   border-radius: 4px;
   color: var(--vscode-editor-foreground, #fff);
   user-select: none;
-  transition: background 0.35s, height 0.25s ease;
+  transition: background 0.35s, max-height 0.25s ease;
   margin-bottom: 8px;
   padding-left: 8px;
   padding-top: 8px;
@@ -404,7 +406,7 @@ button:focus {
 
 
 .tree-view-box.active {
-  height: 120px;
+  max-height: 320px; /* allow content to expand within */
 }
 
 .test-flow-box-items {
@@ -413,6 +415,7 @@ button:focus {
   gap: 8px;
   width: 100%;
   height: 100%;
+  overflow: auto; /* scroll inside the element when expanded */
 
   /* border: 1px solid var(--vscode-editorWidget-border, #333); */
 

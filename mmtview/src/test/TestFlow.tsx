@@ -141,7 +141,13 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
             onDrop={handleDrop}
             onSelectItems={(items, treeId) => {
                 if (treeId !== 'tree-1') return;
-                setSelectedItems(items as string[]);
+                const next = items as string[];
+                // Toggle: if the same single item is selected again, clear selection to collapse
+                if (next.length === 1 && selectedItems.length === 1 && selectedItems[0] === next[0]) {
+                    setSelectedItems([]);
+                } else {
+                    setSelectedItems(next);
+                }
             }}
             renderItemArrow={({ item, context }) =>
                 item.isFolder ? (
