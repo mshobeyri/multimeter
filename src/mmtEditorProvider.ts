@@ -1,8 +1,8 @@
 import * as fs from 'fs';
+import {LogLevel} from 'mmt-core/CommonData';
 import {runJSCode} from 'mmt-core/jsRunner';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { LogLevel } from 'mmt-core/CommonData';
 
 import {handleNetworkMessage} from './vscodeNetwork';
 

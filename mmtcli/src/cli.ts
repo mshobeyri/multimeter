@@ -2,9 +2,9 @@
 import { Command } from 'commander';
 import path from 'path';
 import fs from 'fs';
-import { loadTestFile, summarize, maybeGenerateJs } from './loadTest.js';
-import * as JSer from 'mmt-core/dist/JSer.js';
-import * as testParsePack from 'mmt-core/dist/testParsePack.js';
+import { summarize } from './loadTest.js';
+import * as JSer from 'mmt-core/JSer.js';
+import * as testParsePack from 'mmt-core/testParsePack.js';
 import yaml from 'js-yaml';
 // Defer importing runTest until needed to avoid pulling axios for to-js
 
@@ -20,6 +20,10 @@ program
   .argument('<file>', 'Test file (.yaml/.yml/.json/.mmt)')
   .option('-q, --quiet', 'Minimal output', false)
   .option('-o, --out <file>', 'Write result JSON to file')
+  .option('-e, --env <key=val...>', 'Environment variables or choices (repeatable)')
+  .option('--env-file <path>', 'Environment file (.mmt/.yaml) to read variables from')
+  .option('--preset <name>', 'Preset name from env file (e.g., runner.dev) or just name under runner')
+  .option('--print-js', 'Print generated JS before executing', false)
   .action(async (file: string, opts: { quiet?: boolean; out?: string }) => {
     try {
       const full = path.resolve(process.cwd(), file);
@@ -36,13 +40,18 @@ program
         if (!fs.existsSync(rel)) { return ''; }
         return fs.readFileSync(rel, 'utf8');
       });
+      // Build env vars from env-file + preset + --env overrides
+      const { envVars } = buildEnvVars(opts as any, dir);
       const test = testParsePack.yamlToTest ? testParsePack.yamlToTest(rawText) : raw;
       const js = await JSer.rootTestToJsfunc({
         test,
         name: path.basename(full).replace(/[^a-zA-Z0-9_]/g, '_'),
         inputs: {},
-        envVars: {}
+        envVars
       });
+  if ((opts as any).printJs) {
+    console.log(js.trim());
+  }
   const { runGeneratedJs } = await import('./runTest.js');
   const result = await runGeneratedJs(js);
       if (!opts.quiet) {
@@ -74,6 +83,9 @@ program
   .argument('<file>', 'Test file (.yaml/.yml/.json/.mmt)')
   .description('Convert a test definition file to executable JS using JSer and print to stdout')
   .option('-s, --stages', 'Include stage headers as comments when stages exist', true)
+  .option('-e, --env <key=val...>', 'Environment variables or choices (repeatable)')
+  .option('--env-file <path>', 'Environment file (.mmt/.yaml) to read variables from')
+  .option('--preset <name>', 'Preset name from env file (e.g., runner.dev) or just name under runner')
   .action(async (file: string, opts: { stages?: boolean }) => {
     try {
       const full = path.resolve(process.cwd(), file);
@@ -89,11 +101,12 @@ program
       });
 
       const test = testParsePack.yamlToTest ? testParsePack.yamlToTest(rawText) : raw; // fallback
+      const { envVars } = buildEnvVars(opts as any, dir);
       const js = await JSer.rootTestToJsfunc({
         test,
         name: path.basename(full).replace(/[^a-zA-Z0-9_]/g, '_'),
         inputs: {},
-        envVars: {}
+        envVars
       });
       if (!js.trim()) {
         console.error('No JS could be generated (empty flow).');
@@ -115,3 +128,85 @@ program
   });
 
 program.parseAsync(process.argv);
+
+// Helpers
+type EnvLike = Record<string, any>;
+
+function parseKeyValList(list: string[] | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const item of list || []) {
+    const idx = item.indexOf('=');
+    if (idx === -1) { continue; }
+    const k = item.slice(0, idx).trim();
+    const v = item.slice(idx + 1).trim();
+    if (!k) { continue; }
+    out[k] = v;
+  }
+  return out;
+}
+
+function loadEnvFile(envPath: string): { variables?: EnvLike; presets?: EnvLike } {
+  try {
+    const txt = fs.readFileSync(envPath, 'utf8');
+    const data = yaml.load(txt) as any;
+    if (!data || typeof data !== 'object') { return {}; }
+    if (data.type && String(data.type) !== 'env') { return {}; }
+    return { variables: data.variables || {}, presets: data.presets || {} };
+  } catch {
+    return {};
+  }
+}
+
+function selectFromVariables(variables: EnvLike, key: string, choiceOrValue: any): any {
+  const def = variables?.[key];
+  if (def && typeof def === 'object' && !Array.isArray(def)) {
+    // Named choices map
+    if (Object.prototype.hasOwnProperty.call(def, choiceOrValue)) {
+      return def[choiceOrValue];
+    }
+    return choiceOrValue; // direct value override
+  }
+  if (Array.isArray(def)) {
+    // List of allowed values
+    return choiceOrValue;
+  }
+  // Scalar or missing
+  return choiceOrValue;
+}
+
+function buildEnvVars(opts: any, cwd: string): { envVars: Record<string, any> } {
+  const envVars: Record<string, any> = {};
+  let variables: EnvLike | undefined;
+  let presets: EnvLike | undefined;
+  if (opts.envFile) {
+    const p = path.isAbsolute(opts.envFile) ? opts.envFile : path.join(cwd, opts.envFile);
+    const loaded = loadEnvFile(p);
+    variables = loaded.variables;
+    presets = loaded.presets;
+  }
+  // Apply preset first, then overrides
+  const presetName: string | undefined = opts.preset;
+  if (presetName && presets) {
+    // Allow forms: "dev" meaning presets.runner.dev OR "runner.dev"
+    let mapping: Record<string, any> | undefined;
+    if (presets.runner && presets.runner[presetName]) {
+      mapping = presets.runner[presetName];
+    } else if (presetName.includes('.')) {
+      const [group, name] = presetName.split('.', 2);
+      if (presets[group] && presets[group][name]) {
+        mapping = presets[group][name];
+      }
+    }
+    if (mapping && variables) {
+      for (const [k, choice] of Object.entries(mapping)) {
+        envVars[k] = selectFromVariables(variables, k, choice);
+      }
+    }
+  }
+  // Apply --env KEY=VAL overrides
+  const kv = parseKeyValList(opts.env);
+  for (const [k, v] of Object.entries(kv)) {
+    envVars[k] = variables ? selectFromVariables(variables, k, v) : v;
+  }
+  return { envVars };
+}

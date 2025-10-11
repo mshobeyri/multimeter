@@ -1,6 +1,5 @@
 import { loadEnvVariables } from '../workspaceStorage';
 import { JSONValue } from 'mmt-core/CommonData';
-import { url } from 'inspector';
 
 export const KeySuggestionsByParent = (monaco: any) => {
     const envVariablesSuggestions: any[] = [];

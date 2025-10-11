@@ -3,6 +3,33 @@
   "version": "0.1.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./jsRunner": {
+      "types": "./dist/jsRunner.d.ts",
+      "require": "./dist/jsRunner.js",
+      "default": "./dist/jsRunner.js"
+    },
+    "./CommonData": {
+      "types": "./dist/CommonData.d.ts",
+      "require": "./dist/CommonData.js",
+      "default": "./dist/CommonData.js"
+    },
+    "./APIData": {
+      "types": "./dist/APIData.d.ts",
+      "require": "./dist/APIData.js",
+      "default": "./dist/APIData.js"
+    },
+    "./network": {
+      "types": "./dist/network.d.ts",
+      "require": "./dist/network.js",
+      "default": "./dist/network.js"
+    }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json"
   },

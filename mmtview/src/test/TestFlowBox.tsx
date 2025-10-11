@@ -10,15 +10,14 @@ interface TestFlowBoxProps {
 
 const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
   const { type, stepData, testData } = data;
-  console.log(data)
+  console.log("data", data)
   switch (type as FlowType) {
-    case "step":
     case "call":
       return (
         <div className="test-flow-box-items">
           <span style={{ paddingTop: "6px" }}>{type}</span>
           <TestCall
-            value={stepData[type] || ""}
+            value={stepData}
             imports={typeof testData?.import === "object" ? testData.import : undefined}
             onChange={yamlString => onChange(yamlString)}
             placeholder="select a call"
