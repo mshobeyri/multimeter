@@ -87,7 +87,7 @@ const TestCall: React.FC<TestCallProps> = ({
       <select
         value={currentTarget}
         onChange={handleChange}
-        style={{ width: "100%" }}
+        style={{ width: "100%", marginBottom: 10 }}
       >
         <option value="">{placeholder}</option>
         {imports &&
@@ -99,12 +99,7 @@ const TestCall: React.FC<TestCallProps> = ({
               </option>
             );
           })}
-        <option disabled>──────────</option>
-        <option value="http">http</option>
-        <option value="ws">ws</option>
       </select>
-
-      {/* Editable details of current call selection */}
       {(() => {
         const current = local;
         if (!current || typeof current !== 'object') return null;
@@ -126,8 +121,8 @@ const TestCall: React.FC<TestCallProps> = ({
 
         return (
           <div style={{ marginTop: 8 }}>
-            <div style={{ marginBottom: 8 }}>
-              <label style={{ display: 'block', fontWeight: 600, marginBottom: 4 }}>ID</label>
+            <div style={{ marginBottom: 12 }}>
+              <label className="Label">Id</label>
               <input
                 type="text"
                 value={(current as any).id || ''}
@@ -136,24 +131,26 @@ const TestCall: React.FC<TestCallProps> = ({
                 placeholder="Optional id to capture call result"
               />
             </div>
-            <div style={{ margin: '4px 0 6px 0', fontWeight: 600 }}>Parameters</div>
-            {keys.length ? (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 8 }}>
-                {keys.map((k) => (
-                  <React.Fragment key={k}>
-                    <div style={{ alignSelf: 'center', opacity: 0.9 }}>{k}</div>
-                    <input
-                      type="text"
-                      value={typeof inputs[k] === 'string' ? (inputs[k] as string) : JSON.stringify(inputs[k])}
-                      onChange={(e) => onInputChange(k, e.target.value)}
-                      style={{ width: '100%', padding: '6px 8px' }}
-                    />
-                  </React.Fragment>
-                ))}
-              </div>
-            ) : (
-              <div style={{ opacity: 0.7 }}>No parameters</div>
-            )}
+            <label className="Label">Parameters</label>
+            <div style={{ paddingLeft: 12, marginTop: 8 }}>
+              {keys.length ? (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', columnGap: 12, rowGap: 8 }}>
+                  {keys.map((k) => (
+                    <React.Fragment key={k}>
+                      <div style={{ alignSelf: 'center', opacity: 0.9 }}>{k}</div>
+                      <input
+                        type="text"
+                        value={typeof inputs[k] === 'string' ? (inputs[k] as string) : JSON.stringify(inputs[k])}
+                        onChange={(e) => onInputChange(k, e.target.value)}
+                        style={{ width: '100%', padding: '6px 8px' }}
+                      />
+                    </React.Fragment>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ opacity: 0.7 }}>No parameters</div>
+              )}
+            </div>
           </div>
         );
       })()}
