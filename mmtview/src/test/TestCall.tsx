@@ -25,7 +25,7 @@ const TestCall: React.FC<TestCallProps> = ({
 }) => {
   const [callInfo, setCallInfo] = useState<TestFlowCallTest | TestFlowCallAPI | null>(null);
   const [selectedAlias, setSelectedAlias] = useState<SelectedAlias | null>(null);
-  console.log("ss", value)
+  const [local, setLocal] = useState<any>(typeof value === 'object' && value ? value : null);
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selected = e.target.value;
     // Find the fileName for the selected alias
@@ -65,14 +65,22 @@ const TestCall: React.FC<TestCallProps> = ({
       });
   }, [selectedAlias]);
 
+  // Keep local state in sync with external value updates
+  useEffect(() => {
+    if (value && typeof value === 'object') {
+      setLocal(value);
+    }
+  }, [value]);
+
   useEffect(() => {
     if (callInfo) {
+      setLocal(callInfo);
       onChange(callInfo);
     }
   }, [callInfo]);
 
-  // Use the current target as the select value
-  const currentTarget = (callInfo && (callInfo as any).target) || "";
+  // Use the current call as the select value
+  const currentTarget = (local && (local as any).call) || "";
 
   return (
     <div>
@@ -96,25 +104,53 @@ const TestCall: React.FC<TestCallProps> = ({
         <option value="ws">ws</option>
       </select>
 
-      {/* Details of current call selection */}
+      {/* Editable details of current call selection */}
       {(() => {
-        const current = (value && typeof value === 'object') ? value : callInfo;
+        const current = local;
         if (!current || typeof current !== 'object') return null;
         const inputs = (current as any).inputs || {};
-        const id = (current as any).id;
         const keys = Object.keys(inputs || {});
+
+        const onIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+          const next = { ...current, id: e.target.value };
+          setLocal(next);
+          onChange(next);
+        };
+
+        const onInputChange = (key: string, val: string) => {
+          const nextInputs = { ...inputs, [key]: val };
+          const next = { ...current, inputs: nextInputs };
+          setLocal(next);
+          onChange(next);
+        };
+
         return (
           <div style={{ marginTop: 8 }}>
-            {id ? <div><strong>ID:</strong> {String(id)}</div> : null}
-            <div style={{ marginTop: 4 }}><strong>Parameters:</strong></div>
+            <div style={{ marginBottom: 8 }}>
+              <label style={{ display: 'block', fontWeight: 600, marginBottom: 4 }}>ID</label>
+              <input
+                type="text"
+                value={(current as any).id || ''}
+                onChange={onIdChange}
+                style={{ width: '100%', padding: '6px 8px' }}
+                placeholder="Optional id to capture call result"
+              />
+            </div>
+            <div style={{ margin: '4px 0 6px 0', fontWeight: 600 }}>Parameters</div>
             {keys.length ? (
-              <ul style={{ margin: '4px 0 0 16px' }}>
-                {Object.entries(inputs).map(([k, v]) => (
-                  <li key={k}>
-                    {k}: <code>{typeof v === 'string' ? v : JSON.stringify(v)}</code>
-                  </li>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 8 }}>
+                {keys.map((k) => (
+                  <React.Fragment key={k}>
+                    <div style={{ alignSelf: 'center', opacity: 0.9 }}>{k}</div>
+                    <input
+                      type="text"
+                      value={typeof inputs[k] === 'string' ? (inputs[k] as string) : JSON.stringify(inputs[k])}
+                      onChange={(e) => onInputChange(k, e.target.value)}
+                      style={{ width: '100%', padding: '6px 8px' }}
+                    />
+                  </React.Fragment>
                 ))}
-              </ul>
+              </div>
             ) : (
               <div style={{ opacity: 0.7 }}>No parameters</div>
             )}
