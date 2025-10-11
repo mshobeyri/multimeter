@@ -406,7 +406,8 @@ button:focus {
 
 
 .tree-view-box.active {
-  max-height: 320px; /* allow content to expand within */
+  max-height: none;
+  overflow: visible;
 }
 
 .test-flow-box-items {
@@ -415,7 +416,6 @@ button:focus {
   gap: 8px;
   width: 100%;
   height: 100%;
-  overflow: auto; /* scroll inside the element when expanded */
 
   /* border: 1px solid var(--vscode-editorWidget-border, #333); */
 
