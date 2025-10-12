@@ -6,7 +6,7 @@ import { ControlledTreeEnvironment, Tree, InteractionMode, DraggingPosition, Dra
 
 interface TestFlowProps {
     testData: TestData;
-    update?: (newTest: { flow: TestFlowSteps }) => void;
+    update?: (patch: { steps?: any[]; stages?: any[] }) => void;
 }
 
 // Collect all folder item ids
@@ -16,6 +16,7 @@ const collectFolderIds = (items: Record<string, any>, includeEmpty = true): stri
         .map((it: any) => String(it.index));
 
 const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
+    const isStages = Array.isArray(testData.stages);
     const [shortTree, setShortTree] = React.useState(() => testDataToShortTree(testData));
     // Initialize expanded with all folders
     const [expandedItems, setExpandedItems] = React.useState<string[]>(
@@ -112,6 +113,15 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
         }
 
         setShortTree({ items: itemsCopy });
+
+        // After reordering, convert tree back to flow and notify
+        try {
+            const newFlow = treeItemsToFlow(itemsCopy, 'flow');
+            const patch = isStages ? { stages: newFlow } : { steps: newFlow };
+            update && update(patch);
+        } catch (e) {
+            console.error('Failed to convert tree to flow:', e);
+        }
 
         if (target.targetType === 'item') {
             setExpandedItems(prev => (prev.includes(String(target.targetItem)) ? prev : [...prev, String(target.targetItem)]));
@@ -210,7 +220,29 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                                         stepData: itemParsed.data.stepData,
                                         testData,
                                     }}
-                                    onChange={(v) => { /* update your data */ }}
+                                    onChange={(newStepData) => {
+                                        // Update this item's stepData in the tree
+                                        setShortTree(prev => {
+                                            const itemsCopy = { ...prev.items } as Record<string, any>;
+                                            const cur = itemsCopy[item.index];
+                                            if (cur) {
+                                                const parsed = JSON.parse(cur.data);
+                                                itemsCopy[item.index] = {
+                                                    ...cur,
+                                                    data: JSON.stringify({ type: parsed.type, data: { stepData: newStepData } })
+                                                };
+                                            }
+                                            // Convert to flow and notify upstream
+                                            try {
+                                                const flow = treeItemsToFlow(itemsCopy, 'flow');
+                                                const patch = isStages ? { stages: flow } : { steps: flow };
+                                                update && update(patch);
+                                            } catch (e) {
+                                                console.error('Failed to convert tree to flow after edit:', e);
+                                            }
+                                            return { items: itemsCopy };
+                                        });
+                                    }}
                                 />
                             </NoTreeInterference>
                         </div>
@@ -297,3 +329,30 @@ const isExpandable = (type: FlowType | unknown): boolean => {
 }
 
 export default TestFlow;
+
+// Reusable: Convert react-complex-tree items back into TestFlowSteps
+export function treeItemsToFlow(items: Record<string, any>, rootKey: string): TestFlowSteps {
+    const root = items[rootKey];
+    if (!root) return [] as TestFlowSteps;
+    const order: string[] = Array.isArray(root.children) ? root.children : [];
+    return order.map((childKey: string) => buildStepFromTree(items, childKey));
+}
+
+function buildStepFromTree(items: Record<string, any>, key: string): any {
+    const node = items[key];
+    if (!node) return {};
+    let parsed: { type: string; data: { stepData: any } };
+    try {
+        parsed = JSON.parse(node.data);
+    } catch {
+        parsed = { type: 'unknown', data: { stepData: {} } } as any;
+    }
+    const base = parsed.data.stepData || {};
+    const kids: string[] = Array.isArray(node.children) ? node.children : [];
+    if (kids.length > 0) {
+        // For folder-like steps, write back children under `steps`
+        const newSteps = kids.map((k) => buildStepFromTree(items, k));
+        return { ...base, steps: newSteps };
+    }
+    return base;
+}

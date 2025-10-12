@@ -115,8 +115,24 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
         {tab === "flow" && (
           <TestFlow
             testData={test}
-            update={(newFlow) => {
-              console.log("Updating flow:", newFlow);
+            update={(patch) => {
+              setTest(prev => {
+                // If stages provided, prefer stages and clear steps
+                if (patch.stages) {
+                  const next = { ...prev } as any;
+                  next.stages = patch.stages;
+                  delete next.steps;
+                  return next;
+                }
+                // If steps provided, prefer steps and clear stages
+                if (patch.steps) {
+                  const next = { ...prev } as any;
+                  next.steps = patch.steps;
+                  delete next.stages;
+                  return next;
+                }
+                return prev;
+              });
             }}
           />
         )}
