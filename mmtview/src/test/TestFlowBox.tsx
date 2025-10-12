@@ -19,7 +19,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
           <TestCall
             value={stepData}
             imports={typeof testData?.import === "object" ? testData.import : undefined}
-            onChange={yamlString => onChange(yamlString)}
+            onChange={callObj => onChange({ ...callObj })}
             placeholder="select a call"
           />
         </div>
@@ -40,7 +40,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
             left={left}
             op={op}
             right={right}
-            onChange={({ left, op, right }) => onChange(`${left} ${op} ${right}`)}
+            onChange={({ left, op, right }) => onChange({ [type]: `${left} ${op} ${right}` })}
           />
         </div>
       );
@@ -53,7 +53,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
           <input
             placeholder={type === "for" ? "100, 10s, 5-10, i:data" : "repeat count or duration"}
             value={stepData[type] || ""}
-            onChange={e => onChange(e.target.value)}
+            onChange={e => onChange({ [type]: e.target.value })}
             style={{ width: "100%" }}
           />
         </div>
@@ -65,7 +65,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
           <textarea
             placeholder="JavaScript code"
             value={stepData[type] || ""}
-            onChange={e => onChange(e.target.value)}
+            onChange={e => onChange({ js: e.target.value })}
             style={{ width: "100%", height: "calc(100% - 14px)" }}
           />
         </div>
@@ -77,7 +77,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
           <input
             placeholder="Message to print"
             value={stepData[type] || ""}
-            onChange={e => onChange(e.target.value)}
+            onChange={e => onChange({ print: e.target.value })}
             style={{ width: "100%" }}
           />
         </div>
@@ -89,14 +89,14 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
       return (
         <div className="test-flow-box-items">
           <span style={{ paddingTop: "6px" }}>{type}</span>
-          <textarea
+      <textarea
             placeholder="key: value pairs (YAML or JSON)"
             value={typeof stepData === "string" ? stepData : JSON.stringify(stepData, null, 2)}
             onChange={e => {
               try {
-                onChange(JSON.parse(e.target.value));
+        onChange({ [type]: JSON.parse(e.target.value) });
               } catch {
-                onChange(e.target.value);
+        onChange({ [type]: e.target.value });
               }
             }}
             style={{ width: "100%", minHeight: 32 }}
@@ -117,7 +117,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
           <input
             placeholder="Stage name"
             value={stepData[type] || ""}
-            onChange={e => onChange(e.target.value)}
+            onChange={e => onChange({ stage: e.target.value })}
             style={{ width: "100%" }}
           />
         </div>
