@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useLayoutEffect, useState } from "react";
 
 interface AutoSizeTextFieldProps {
   value: string;
@@ -20,7 +20,7 @@ const AutoSizeTextField: React.FC<AutoSizeTextFieldProps> = ({
   const spanRef = useRef<HTMLSpanElement>(null);
   const [inputWidth, setInputWidth] = useState(minWidth);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (spanRef.current) {
       const width = Math.min(
         Math.max(spanRef.current.offsetWidth + 12, minWidth),

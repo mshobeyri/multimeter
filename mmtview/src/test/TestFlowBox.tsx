@@ -89,14 +89,14 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
       return (
         <div className="test-flow-box-items">
           <span style={{ paddingTop: "6px" }}>{type}</span>
-      <textarea
+          <textarea
             placeholder="key: value pairs (YAML or JSON)"
             value={typeof stepData === "string" ? stepData : JSON.stringify(stepData, null, 2)}
             onChange={e => {
               try {
-        onChange({ [type]: JSON.parse(e.target.value) });
+                onChange({ [type]: JSON.parse(e.target.value) });
               } catch {
-        onChange({ [type]: e.target.value });
+                onChange({ [type]: e.target.value });
               }
             }}
             style={{ width: "100%", minHeight: 32 }}
