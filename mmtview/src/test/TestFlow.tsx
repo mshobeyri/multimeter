@@ -24,11 +24,22 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
     // Toggle "active" mode per item for inline editors of expandable types
     const [openEditors, setOpenEditors] = React.useState<Record<string, boolean>>({});
 
+    const expandedInitializedRef = React.useRef(false);
     React.useEffect(() => {
         try {
             const newTree = testDataToShortTree(testData);
             setShortTree(newTree);
-            setExpandedItems(collectFolderIds(newTree.items));
+            setExpandedItems(prev => {
+                const allIds = new Set(
+                    Object.values(newTree.items).map((it: any) => String(it.index))
+                );
+                if (!expandedInitializedRef.current) {
+                    expandedInitializedRef.current = true;
+                    return collectFolderIds(newTree.items);
+                }
+                // preserve previous expanded entries that still exist
+                return prev.filter(id => allIds.has(id));
+            });
         } catch (error) {
             console.error("Error updating short tree:", error);
         }
