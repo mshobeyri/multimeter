@@ -1,5 +1,5 @@
 import React from "react";
-import { TestFlowSteps, FlowType, TestData } from "mmt-core/TestData";
+import { TestFlowSteps, FlowType, TestData, addableFlowTypes } from "mmt-core/TestData";
 import TestFlowBox from "./TestFlowBox";
 import { getTestFlowStepType } from "mmt-core/testParsePack";
 import { ControlledTreeEnvironment, Tree, DraggingPosition, DraggingPositionItem, DraggingPositionBetweenItems } from 'react-complex-tree';
@@ -145,7 +145,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
         setAddMenuPos({ left: Math.max(8, r.right - 200), top: r.bottom + 6 });
     };
 
-    const createDefaultStep = (type: string): any => {
+    const createDefaultStep = (type: FlowType): any => {
         switch (type) {
             case 'print': return { print: '' };
             case 'call': return { call: '', id: '', inputs: {} };
@@ -163,7 +163,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
         }
     };
 
-    const addItemOfType = (type: string) => {
+    const addItemOfType = (type: FlowType) => {
         const itemsCopy = { ...shortTree.items } as Record<string, any>;
         const selectedKey = selectedItems.length === 1 ? selectedItems[0] : undefined;
 
@@ -243,7 +243,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                          onPointerDown={(e) => e.stopPropagation()}
                          onMouseDown={(e) => e.stopPropagation()}
                          onClick={(e) => e.stopPropagation()}>
-                        {['print','call','js','set','var','const','let','check','if','for','repeat','stage'].map(t => (
+                        {addableFlowTypes.map(t => (
                             <button key={t} className="action-button" style={{ width: '100%', justifyContent: 'flex-start' }} onPointerUp={() => { setAddMenuOpen(false); addItemOfType(t); }}>
                                 {t}
                             </button>

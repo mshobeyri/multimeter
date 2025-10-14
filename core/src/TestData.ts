@@ -129,6 +129,12 @@ export const flowTypeOptions = [
   'call', 'check', 'assert', 'if', 'for', 'repeat', 'end', 'js', 'print', 'set',
   'var', 'const', 'let'
 ] as FlowType[];
+
+// Flow types that the UI can add as individual steps/folders
+export const addableFlowTypes = [
+  'print', 'call', 'js', 'set', 'var', 'const', 'let',
+  'check', 'if', 'for', 'repeat', 'stage'
+] as FlowType[];
 export type CheckOps =
     '<'|'>'|'<='|'>='|'=='|'!='|'=@'|'!@'|'=^'|'!^'|'=$'|'!$'|'=~'|'!~';
 
