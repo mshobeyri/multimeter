@@ -2,14 +2,13 @@ import React from "react";
 import { TestFlowSteps, FlowType, TestData } from "mmt-core/TestData";
 import TestFlowBox from "./TestFlowBox";
 import { getTestFlowStepType } from "mmt-core/testParsePack";
-import { ControlledTreeEnvironment, Tree, InteractionMode, DraggingPosition, DraggingPositionItem, DraggingPositionBetweenItems } from 'react-complex-tree';
+import { ControlledTreeEnvironment, Tree, DraggingPosition, DraggingPositionItem, DraggingPositionBetweenItems } from 'react-complex-tree';
 
 interface TestFlowProps {
     testData: TestData;
     update?: (patch: { steps?: any[]; stages?: any[] }) => void;
 }
 
-// Collect all folder item ids
 const collectFolderIds = (items: Record<string, any>, includeEmpty = true): string[] =>
     Object.values(items)
         .filter((it: any) => it?.isFolder && (includeEmpty || (it.children?.length > 0)))
@@ -18,20 +17,16 @@ const collectFolderIds = (items: Record<string, any>, includeEmpty = true): stri
 const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
     const isStages = Array.isArray(testData.stages);
     const [shortTree, setShortTree] = React.useState(() => testDataToShortTree(testData));
-    // Initialize expanded with all folders
     const [expandedItems, setExpandedItems] = React.useState<string[]>(
         () => collectFolderIds(shortTree.items)
     );
-    // Track selected items to toggle active class on click
     const [selectedItems, setSelectedItems] = React.useState<string[]>([]);
+
     React.useEffect(() => {
         try {
             const newTree = testDataToShortTree(testData);
             setShortTree(newTree);
-            // Expand all folders after rebuild
             setExpandedItems(collectFolderIds(newTree.items));
-            // If you want to preserve user expansions, use:
-            // setExpandedItems(prev => Array.from(new Set([...prev, ...collectFolderIds(newTree.items)])));
         } catch (error) {
             console.error("Error updating short tree:", error);
         }
@@ -52,11 +47,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
         target: DraggingPosition
     ) => {
         if (!Array.isArray(draggedItems) || draggedItems.length === 0) return;
-
-        // Copy the items tree
         const itemsCopy = { ...shortTree.items };
-
-        // Helper: remove dragged items from their current parent
         const removeDraggedFromParent = (index: string) => {
             const parentKey = Object.keys(itemsCopy).find(key =>
                 itemsCopy[key].children?.includes(index)
@@ -113,8 +104,6 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
         }
 
         setShortTree({ items: itemsCopy });
-
-        // After reordering, convert tree back to flow and notify
         try {
             const newFlow = treeItemsToFlow(itemsCopy, 'flow');
             const patch = isStages ? { stages: newFlow } : { steps: newFlow };
@@ -197,7 +186,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
     };
 
     return (
-        <div>
+        <div className="test-flow-tree">
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
                 <button className="add-button" onClick={addItem} title="Add flow item">Add item</button>
             </div>
@@ -219,7 +208,6 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
             onSelectItems={(items, treeId) => {
                 if (treeId !== 'tree-1') return;
                 const next = items as string[];
-                // Toggle: if the same single item is selected again, clear selection to collapse
                 if (next.length === 1 && selectedItems.length === 1 && selectedItems[0] === next[0]) {
                     setSelectedItems([]);
                 } else {
@@ -256,7 +244,6 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
 
                 const stopAll = (e: React.SyntheticEvent) => {
                     e.stopPropagation();
-                    if (e.nativeEvent?.stopImmediatePropagation) e.nativeEvent.stopImmediatePropagation();
                 };
 
                 const NoTreeInterference: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -267,10 +254,84 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                         onKeyDownCapture={stopAll}
                         onKeyUpCapture={stopAll}
                         onInputCapture={stopAll}
+                        style={{ flex: 1, minWidth: 0 }}
                     >
                         {children}
                     </div>
                 );
+
+                const duplicateSubtree = (itemsCopy: Record<string, any>, key: string): string | null => {
+                    const src = itemsCopy[key];
+                    if (!src) return null;
+                    const base = key.split('_')[0] || 'node';
+                    let newKey = `${base}_${Math.random().toString(36).slice(2, 8)}`;
+                    while (itemsCopy[newKey]) newKey = `${base}_${Math.random().toString(36).slice(2, 8)}`;
+                    const newNode = { ...src, index: newKey, children: [] as string[] };
+                    itemsCopy[newKey] = newNode;
+                    const kids: string[] = Array.isArray(src.children) ? src.children : [];
+                    for (const child of kids) {
+                        const dupChild = duplicateSubtree(itemsCopy, child);
+                        if (dupChild) {
+                            newNode.children.push(dupChild);
+                        }
+                    }
+                    return newKey;
+                };
+
+                const findParentOf = (itemsCopy: Record<string, any>, childKey: string): string | undefined => {
+                    return Object.keys(itemsCopy).find(pk => Array.isArray(itemsCopy[pk].children) && itemsCopy[pk].children.includes(childKey));
+                };
+
+                const removeSubtree = (itemsCopy: Record<string, any>, key: string) => {
+                    const node = itemsCopy[key];
+                    if (!node) return;
+                    // remove children first
+                    const kids: string[] = Array.isArray(node.children) ? node.children : [];
+                    for (const c of kids) removeSubtree(itemsCopy, c);
+                    delete itemsCopy[key];
+                };
+
+                const doDuplicate = (targetKey: string) => {
+                    setShortTree(prev => {
+                        const itemsCopy = { ...prev.items } as Record<string, any>;
+                        const parentKey = findParentOf(itemsCopy, targetKey) || 'flow';
+                        const dupKey = duplicateSubtree(itemsCopy, targetKey);
+                        if (dupKey) {
+                            const parent = itemsCopy[parentKey];
+                            const children: string[] = Array.isArray(parent.children) ? [...parent.children] : [];
+                            const idx = children.indexOf(targetKey);
+                            const insertIdx = idx >= 0 ? idx + 1 : children.length;
+                            children.splice(insertIdx, 0, dupKey);
+                            itemsCopy[parentKey] = { ...parent, children };
+                        }
+                        try {
+                            const flow = treeItemsToFlow(itemsCopy, 'flow');
+                            const patch = isStages ? { stages: flow } : { steps: flow };
+                            update && update(patch);
+                        } catch (e) { console.error('Failed to convert after duplicate:', e); }
+                        return { items: itemsCopy };
+                    });
+                };
+
+                const doRemove = (targetKey: string) => {
+                    if (targetKey === 'root' || targetKey === 'flow') return;
+                    setShortTree(prev => {
+                        const itemsCopy = { ...prev.items } as Record<string, any>;
+                        const parentKey = findParentOf(itemsCopy, targetKey) || 'flow';
+                        const parent = itemsCopy[parentKey];
+                        const children: string[] = Array.isArray(parent.children) ? [...parent.children] : [];
+                        const idx = children.indexOf(targetKey);
+                        if (idx >= 0) children.splice(idx, 1);
+                        itemsCopy[parentKey] = { ...parent, children };
+                        removeSubtree(itemsCopy, targetKey);
+                        try {
+                            const flow = treeItemsToFlow(itemsCopy, 'flow');
+                            const patch = isStages ? { stages: flow } : { steps: flow };
+                            update && update(patch);
+                        } catch (e) { console.error('Failed to convert after remove:', e); }
+                        return { items: itemsCopy };
+                    });
+                };
 
                 return (
                     <div {...context.itemContainerWithChildrenProps}>
@@ -281,44 +342,47 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                         >
                             {arrow}
                             <NoTreeInterference>
-                                <TestFlowBox
-                                    data={{
-                                        type: itemParsed.type as FlowType,
-                                        stepData: itemParsed.data.stepData,
-                                        testData,
-                                    }}
-                                    onChange={(newStepData) => {
-                                        // Update this item's stepData in the tree
-                                        setShortTree(prev => {
-                                            const itemsCopy = { ...prev.items } as Record<string, any>;
-                                            const cur = itemsCopy[item.index];
-                                            if (cur) {
-                                                const parsed = JSON.parse(cur.data);
-                                                itemsCopy[item.index] = {
-                                                    ...cur,
-                                                    data: JSON.stringify({ type: parsed.type, data: { stepData: newStepData } })
-                                                };
-                                            }
-                                            // Convert to flow and notify upstream
-                                            try {
-                                                const flow = treeItemsToFlow(itemsCopy, 'flow');
-                                                const patch = isStages ? { stages: flow } : { steps: flow };
-                                                update && update(patch);
-                                            } catch (e) {
-                                                console.error('Failed to convert tree to flow after edit:', e);
-                                            }
-                                            return { items: itemsCopy };
-                                        });
-                                    }}
-                                />
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <TestFlowBox
+                                        data={{
+                                            type: itemParsed.type as FlowType,
+                                            stepData: itemParsed.data.stepData,
+                                            testData,
+                                        }}
+                                        onChange={(newStepData) => {
+                                            setShortTree(prev => {
+                                                const itemsCopy = { ...prev.items } as Record<string, any>;
+                                                const cur = itemsCopy[item.index];
+                                                if (cur) {
+                                                    const parsed = JSON.parse(cur.data);
+                                                    itemsCopy[item.index] = {
+                                                        ...cur,
+                                                        data: JSON.stringify({ type: parsed.type, data: { stepData: newStepData } })
+                                                    };
+                                                }
+                                                try {
+                                                    const flow = treeItemsToFlow(itemsCopy, 'flow');
+                                                    const patch = isStages ? { stages: flow } : { steps: flow };
+                                                    update && update(patch);
+                                                } catch (e) {
+                                                    console.error('Failed to convert tree to flow after edit:', e);
+                                                }
+                                                return { items: itemsCopy };
+                                            });
+                                        }}
+                                        onDuplicate={() => doDuplicate(String(item.index))}
+                                        onRemove={() => doRemove(String(item.index))}
+                                    />
+                                </div>
                             </NoTreeInterference>
+                            {/* actions handled within TestFlowBox */}
                         </div>
                         {children}
                     </div>
                 );
             }}
             renderTreeContainer={({ children, containerProps }) => <div {...containerProps}>{children}</div>}
-            renderItemsContainer={({ children, containerProps }) => <ul {...containerProps}>{children}</ul>}
+            renderItemsContainer={({ children, containerProps }) => <ul {...containerProps} style={{ ...(containerProps.style || {}), margin: 0, listStyle: 'none' }}>{children}</ul>}
             renderDragBetweenLine={({ lineProps }) => (
                 <div {...lineProps} style={{ background: "var(--vscode-focusBorder, #264f78)", height: "1px" }} />
             )}
@@ -338,7 +402,6 @@ function testDataToShortTree(testData: TestData): { items: Record<string, any> }
 
     const items: Record<string, any> = {};
 
-    // deterministic path-based keys: flow_0, flow_0_0, ...
     function toItem(step: any, path: string) {
         const type = getTestFlowStepType(step);
         const children: string[] = [];
@@ -360,8 +423,6 @@ function testDataToShortTree(testData: TestData): { items: Record<string, any> }
             canRename: true,
         };
     }
-
-    // top-level children
     const topChildren: string[] = [];
     flow.forEach((step: any, i: number) => {
         const key = `flow_${i}`;
@@ -369,7 +430,6 @@ function testDataToShortTree(testData: TestData): { items: Record<string, any> }
         toItem(step, key);
     });
 
-    // root and container
     items.root = {
         index: 'root',
         isFolder: true,
@@ -398,7 +458,6 @@ const isExpandable = (type: FlowType | unknown): boolean => {
 
 export default TestFlow;
 
-// Reusable: Convert react-complex-tree items back into TestFlowSteps
 export function treeItemsToFlow(items: Record<string, any>, rootKey: string): TestFlowSteps {
     const root = items[rootKey];
     if (!root) return [] as TestFlowSteps;
@@ -418,7 +477,6 @@ function buildStepFromTree(items: Record<string, any>, key: string): any {
     const base = parsed.data.stepData || {};
     const kids: string[] = Array.isArray(node.children) ? node.children : [];
     if (kids.length > 0) {
-        // For folder-like steps, write back children under `steps`
         const newSteps = kids.map((k) => buildStepFromTree(items, k));
         return { ...base, steps: newSteps };
     }
