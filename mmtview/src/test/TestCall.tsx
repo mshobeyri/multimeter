@@ -26,6 +26,20 @@ const TestCall: React.FC<TestCallProps> = ({
   const [callInfo, setCallInfo] = useState<TestFlowCallTest | TestFlowCallAPI | null>(null);
   const [selectedAlias, setSelectedAlias] = useState<SelectedAlias | null>(null);
   const [local, setLocal] = useState<any>(typeof value === 'object' && value ? value : null);
+  const parseLiteral = (text: string): any => {
+    const t = (text ?? '').trim();
+    if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
+      return t.slice(1, -1);
+    }
+    if (/^(true|false)$/i.test(t)) {
+      return /^true$/i.test(t);
+    }
+    if (/^-?\d+(?:\.\d+)?$/.test(t)) {
+      const n = Number(t);
+      if (!Number.isNaN(n)) return n;
+    }
+    return text;
+  };
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selected = e.target.value;
     // Find the fileName for the selected alias
@@ -113,7 +127,7 @@ const TestCall: React.FC<TestCallProps> = ({
         };
 
         const onInputChange = (key: string, val: string) => {
-          const nextInputs = { ...inputs, [key]: val };
+          const nextInputs = { ...inputs, [key]: parseLiteral(val) };
           const next = { ...current, inputs: nextInputs };
           setLocal(next);
           onChange(next);

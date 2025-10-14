@@ -11,6 +11,20 @@ interface TestFlowBoxProps {
 const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
   const { type, stepData, testData } = data;
   console.log("data", data)
+  const parseLiteral = (text: string): any => {
+    const t = (text ?? '').trim();
+    if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
+      return t.slice(1, -1);
+    }
+    if (/^(true|false)$/i.test(t)) {
+      return /^true$/i.test(t);
+    }
+    if (/^-?\d+(?:\.\d+)?$/.test(t)) {
+      const n = Number(t);
+      if (!Number.isNaN(n)) return n;
+    }
+    return text;
+  };
   switch (type as FlowType) {
     case "call":
       return (
@@ -85,24 +99,52 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange }) => {
     case "set":
     case "var":
     case "const":
-    case "let":
+    case "let": {
+      const currentType = type as "set" | "var" | "const" | "let";
+      const payload = (stepData && typeof stepData === 'object') ? stepData[currentType] : undefined;
+      const key = payload && typeof payload === 'object' ? Object.keys(payload)[0] || '' : '';
+      const valRaw = key ? (payload as any)[key] : '';
+      const val = typeof valRaw === 'string' ? valRaw : (valRaw != null ? JSON.stringify(valRaw) : '');
+
+      const handleKindChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newKind = e.target.value as 'set' | 'var' | 'const' | 'let';
+        const nextObj = key ? { [newKind]: { [key]: parseLiteral(val) } } : { [newKind]: {} } as any;
+        onChange(nextObj);
+      };
+      const handleKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newKey = e.target.value;
+        const nextPayload = newKey ? { [newKey]: parseLiteral(val) } : {};
+        onChange({ [currentType]: nextPayload });
+      };
+      const handleValChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newVal = e.target.value;
+        const nextPayload = key ? { [key]: parseLiteral(newVal) } : {};
+        onChange({ [currentType]: nextPayload });
+      };
+
       return (
-        <div className="test-flow-box-items">
-          <span style={{ paddingTop: "6px" }}>{type}</span>
-          <textarea
-            placeholder="key: value pairs (YAML or JSON)"
-            value={typeof stepData === "string" ? stepData : JSON.stringify(stepData, null, 2)}
-            onChange={e => {
-              try {
-                onChange({ [type]: JSON.parse(e.target.value) });
-              } catch {
-                onChange({ [type]: e.target.value });
-              }
-            }}
-            style={{ width: "100%", minHeight: 32 }}
+        <div className="test-flow-box-items" style={{ gap: 8, width: '100%' }}>
+          <select value={currentType} onChange={handleKindChange} style={{ minWidth: 72 }}>
+            <option value="set">set</option>
+            <option value="var">var</option>
+            <option value="const">const</option>
+            <option value="let">let</option>
+          </select>
+          <input
+            placeholder="property (e.g., outputs.name)"
+            value={key}
+            onChange={handleKeyChange}
+            style={{ width: '40%' }}
+          />
+          <input
+            placeholder="value (e.g., user_info.name or 'text')"
+            value={val}
+            onChange={handleValChange}
+            style={{ width: '60%' }}
           />
         </div>
       );
+    }
     case "steps":
     case "stages":
       return (
