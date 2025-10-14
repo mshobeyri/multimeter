@@ -21,6 +21,8 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
         () => collectFolderIds(shortTree.items)
     );
     const [selectedItems, setSelectedItems] = React.useState<string[]>([]);
+    // Toggle "active" mode per item for inline editors of expandable types
+    const [openEditors, setOpenEditors] = React.useState<Record<string, boolean>>({});
 
     React.useEffect(() => {
         try {
@@ -266,15 +268,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
             canDropOnFolder={true}
             canReorderItems={true}
             onDrop={handleDrop}
-            onSelectItems={(items, treeId) => {
-                if (treeId !== 'tree-1') return;
-                const next = items as string[];
-                if (next.length === 1 && selectedItems.length === 1 && selectedItems[0] === next[0]) {
-                    setSelectedItems([]);
-                } else {
-                    setSelectedItems(next);
-                }
-            }}
+            onSelectItems={() => { /* disable selection-driven active changes */ }}
             renderItemArrow={({ item, context }) =>
                 item.isFolder ? (
                     <span
@@ -394,10 +388,13 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                     });
                 };
 
+                const expandable = isExpandable(itemParsed.type);
+                const isOpen = !!openEditors[String(item.index)];
+
                 return (
                     <div {...context.itemContainerWithChildrenProps}>
                         <div
-                            className={`tree-view-box${context.isSelected && isExpandable(itemParsed.type) ? ' active' : ''}`}
+                            className={`tree-view-box${(expandable && isOpen) ? ' active' : ''}`}
                             {...context.itemContainerWithoutChildrenProps}
                             {...context.interactiveElementProps}
                         >
@@ -431,6 +428,9 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                                                 return { items: itemsCopy };
                                             });
                                         }}
+                                                        showExpand={expandable}
+                                                        expanded={isOpen}
+                                                        onToggleExpand={() => setOpenEditors(prev => ({ ...prev, [String(item.index)]: !prev[String(item.index)] }))}
                                         onDuplicate={() => doDuplicate(String(item.index))}
                                         onRemove={() => doRemove(String(item.index))}
                                     />

@@ -9,9 +9,12 @@ interface TestFlowBoxProps {
   onChange: (value: any) => void;
   onDuplicate?: () => void;
   onRemove?: () => void;
+  showExpand?: boolean;
+  expanded?: boolean;
+  onToggleExpand?: () => void;
 }
 
-const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, onRemove }) => {
+const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, onRemove, showExpand, expanded, onToggleExpand }) => {
   const { type, stepData, testData } = data;
   const [openMenu, setOpenMenu] = React.useState(false);
 
@@ -88,7 +91,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
     ) : null;
 
     return (
-      <div style={{ marginLeft: 'auto', paddingRight: 8, display: 'flex', alignItems: 'flex-start', pointerEvents: 'auto' }}>
+      <div style={{ marginLeft: 'auto', paddingRight: 8, display: 'flex', alignItems: 'flex-start', pointerEvents: 'auto', gap: 4 }}>
         <button
           ref={btnRef}
           className="action-button"
@@ -104,6 +107,20 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
         >
           <span className="codicon codicon-kebab-vertical" />
         </button>
+    {showExpand && (
+          <button
+            className="action-button"
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+      onPointerUp={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
+      onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleExpand?.(); } }}
+            draggable={false}
+            tabIndex={0}
+      title={expanded ? 'Make inactive' : 'Make active'}
+          >
+      <span className={`codicon ${expanded ? 'codicon-circle-filled' : 'codicon-circle-outline'}`} />
+          </button>
+        )}
         {menu && ReactDOM.createPortal(menu, document.body)}
       </div>
     );
