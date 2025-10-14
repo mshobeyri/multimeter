@@ -122,16 +122,57 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
         }
     };
 
-    const addItem = () => {
+    const [addMenuOpen, setAddMenuOpen] = React.useState(false);
+    const [addMenuPos, setAddMenuPos] = React.useState<{ left: number; top: number } | null>(null);
+    const addBtnRef = React.useRef<HTMLButtonElement | null>(null);
+
+    React.useEffect(() => {
+        if (!addMenuOpen) return;
+        const onDocDown = (e: MouseEvent) => {
+            const t = e.target as Node | null;
+            if (addBtnRef.current && addBtnRef.current.contains(t as Node)) return;
+            setAddMenuOpen(false);
+        };
+        document.addEventListener('click', onDocDown, true);
+        window.addEventListener('resize', () => setAddMenuOpen(false), { once: true });
+        return () => document.removeEventListener('click', onDocDown, true);
+    }, [addMenuOpen]);
+
+    const openAddMenuAtButton = () => {
+        const el = addBtnRef.current;
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        setAddMenuPos({ left: Math.max(8, r.right - 200), top: r.bottom + 6 });
+    };
+
+    const createDefaultStep = (type: string): any => {
+        switch (type) {
+            case 'print': return { print: '' };
+            case 'call': return { call: '', id: '', inputs: {} };
+            case 'js': return { js: '' };
+            case 'set': return { set: {} };
+            case 'var': return { var: {} };
+            case 'const': return { const: {} };
+            case 'let': return { let: {} };
+            case 'check': return { check: '1 == 1' };
+            case 'if': return { if: '1 != 1', steps: [] };
+            case 'for': return { for: '' };
+            case 'repeat': return { repeat: '' };
+            case 'stage': return { stage: '', steps: [] };
+            default: return { print: '' };
+        }
+    };
+
+    const addItemOfType = (type: string) => {
         const itemsCopy = { ...shortTree.items } as Record<string, any>;
         const selectedKey = selectedItems.length === 1 ? selectedItems[0] : undefined;
 
-        const makeNode = (key: string) => ({
+        const makeNode = (key: string, stepObj: any) => ({
             index: key,
             isFolder: false,
             canMove: true,
             children: [],
-            data: JSON.stringify({ type: 'print', data: { stepData: { print: '' } } }),
+            data: JSON.stringify({ type: getTestFlowStepType(stepObj), data: { stepData: stepObj } }),
             canRename: true,
         });
 
@@ -145,7 +186,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
             const parent = itemsCopy[parentKey];
             if (!parent) return;
             const key = uniqueKey(parentKey);
-            const node = makeNode(key);
+            const node = makeNode(key, createDefaultStep(type));
             itemsCopy[key] = node;
             const children: string[] = Array.isArray(parent.children) ? [...parent.children] : [];
             if (afterKey) {
@@ -187,8 +228,28 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
 
     return (
         <div className="test-flow-tree">
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-                <button className="add-button" onClick={addItem} title="Add flow item">Add item</button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8, position: 'relative' }}>
+                <button
+                    ref={addBtnRef}
+                    className="add-button"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onPointerUp={(e) => { e.stopPropagation(); setAddMenuOpen(v => { const next = !v; if (!v) openAddMenuAtButton(); return next; }); }}
+                    title="Add flow item"
+                >
+                    Add item
+                </button>
+                {addMenuOpen && addMenuPos && (
+                    <div style={{ position: 'fixed', left: addMenuPos.left, top: addMenuPos.top, zIndex: 1000, background: 'var(--vscode-editorWidget-background,#232323)', border: '1px solid var(--vscode-editorWidget-border,#333)', borderRadius: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.4)', minWidth: 200 }}
+                         onPointerDown={(e) => e.stopPropagation()}
+                         onMouseDown={(e) => e.stopPropagation()}
+                         onClick={(e) => e.stopPropagation()}>
+                        {['print','call','js','set','var','const','let','check','if','for','repeat','stage'].map(t => (
+                            <button key={t} className="action-button" style={{ width: '100%', justifyContent: 'flex-start' }} onPointerUp={() => { setAddMenuOpen(false); addItemOfType(t); }}>
+                                {t}
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
         <ControlledTreeEnvironment
             items={shortTree.items}

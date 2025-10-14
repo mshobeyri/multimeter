@@ -101,7 +101,7 @@ const TestCall: React.FC<TestCallProps> = ({
       <select
         value={currentTarget}
         onChange={handleChange}
-        style={{ width: "100%", marginBottom: 10 }}
+        style={{ width: 150, marginBottom: 10 }}
       >
         <option value="">{placeholder}</option>
         {imports &&

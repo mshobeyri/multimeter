@@ -157,7 +157,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             placeholder={type === 'for' ? '100, 10s, 5-10, i:data' : 'repeat count or duration'}
             value={stepData[type] || ''}
             onChange={e => onChange({ [type]: e.target.value })}
-            style={{ width: '100%' }}
+            style={{ width: 150 }}
           />
         );
       case 'js':
@@ -166,7 +166,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             placeholder="JavaScript code"
             value={stepData[type] || ''}
             onChange={e => onChange({ js: e.target.value })}
-            style={{ width: '100%', height: 'calc(100% - 14px)' }}
+            style={{ width: 150 , height: 'calc(100% - 14px)' }}
           />
         );
       case 'print':
@@ -175,7 +175,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             placeholder="Message to print"
             value={stepData[type] || ''}
             onChange={e => onChange({ print: e.target.value })}
-            style={{ width: '100%' }}
+            style={{ width: 150 }}
           />
         );
       case 'set':
@@ -216,13 +216,13 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
               placeholder="property (e.g., outputs.name)"
               value={key}
               onChange={handleKeyChange}
-              style={{ width: 80 }}
+              style={{ width: 100 }}
             />
             <input
               placeholder="value (e.g., user_info.name or 'text')"
               value={val}
               onChange={handleValChange}
-              style={{ width: 80 }}
+              style={{ width: 100 }}
             />
           </>
         );
@@ -236,7 +236,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             placeholder="Stage name"
             value={stepData[type] || ''}
             onChange={e => onChange({ stage: e.target.value })}
-            style={{ width: '100%' }}
+            style={{ width: 150 }}
           />
         );
       default:
