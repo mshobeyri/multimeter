@@ -133,7 +133,74 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
         }
     };
 
+    const addItem = () => {
+        const itemsCopy = { ...shortTree.items } as Record<string, any>;
+        const selectedKey = selectedItems.length === 1 ? selectedItems[0] : undefined;
+
+        const makeNode = (key: string) => ({
+            index: key,
+            isFolder: false,
+            canMove: true,
+            children: [],
+            data: JSON.stringify({ type: 'print', data: { stepData: { print: '' } } }),
+            canRename: true,
+        });
+
+        const uniqueKey = (base: string) => {
+            let k = `${base}_${Date.now().toString(36)}`;
+            while (itemsCopy[k]) { k = `${base}_${Math.random().toString(36).slice(2, 8)}`; }
+            return k;
+        };
+
+        const insertUnder = (parentKey: string, afterKey?: string) => {
+            const parent = itemsCopy[parentKey];
+            if (!parent) return;
+            const key = uniqueKey(parentKey);
+            const node = makeNode(key);
+            itemsCopy[key] = node;
+            const children: string[] = Array.isArray(parent.children) ? [...parent.children] : [];
+            if (afterKey) {
+                const idx = children.indexOf(afterKey);
+                const insertIdx = idx >= 0 ? idx + 1 : children.length;
+                children.splice(insertIdx, 0, key);
+            } else {
+                children.push(key);
+            }
+            itemsCopy[parentKey] = { ...parent, children };
+        };
+
+        const findParentOf = (childKey: string | undefined): string | undefined => {
+            if (!childKey) return undefined;
+            return Object.keys(itemsCopy).find(pk => Array.isArray(itemsCopy[pk].children) && itemsCopy[pk].children.includes(childKey));
+        };
+
+        if (selectedKey) {
+            const sel = itemsCopy[selectedKey];
+            if (sel?.isFolder) {
+                insertUnder(selectedKey);
+            } else {
+                const parentKey = findParentOf(selectedKey) || 'flow';
+                insertUnder(parentKey, selectedKey);
+            }
+        } else {
+            insertUnder('flow');
+        }
+
+        setShortTree({ items: itemsCopy });
+        try {
+            const flow = treeItemsToFlow(itemsCopy, 'flow');
+            const patch = isStages ? { stages: flow } : { steps: flow };
+            update && update(patch);
+        } catch (e) {
+            console.error('Failed to convert tree to flow after add:', e);
+        }
+    };
+
     return (
+        <div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+                <button className="add-button" onClick={addItem} title="Add flow item">Add item</button>
+            </div>
         <ControlledTreeEnvironment
             items={shortTree.items}
             getItemTitle={item => item.data}
@@ -257,7 +324,8 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
             )}
         >
             <Tree treeId="tree-1" rootItem="root" treeLabel="Tree Example" />
-        </ControlledTreeEnvironment>
+    </ControlledTreeEnvironment>
+    </div>
     );
 };
 
