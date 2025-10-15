@@ -120,12 +120,6 @@ const TestCall: React.FC<TestCallProps> = ({
     setLocal(next);
   };
 
-  const handleCommit = () => {
-    if (local && typeof local === 'object' && (local as any).call) {
-      scheduleEmit(local);
-    }
-  };
-
   const inputs: Record<string, any> = (local && typeof local === 'object' && (local as any).inputs) || {};
   const keys = Object.keys(inputs);
 
@@ -156,12 +150,12 @@ const TestCall: React.FC<TestCallProps> = ({
           onChange={handleIdChange}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
-              handleCommit();
+              scheduleEmit(local);
             }
           }}
           onKeyUp={(e) => {
             if (e.key === 'Enter') {
-              handleCommit();
+              scheduleEmit(local);
             }
           }}
           disabled={!currentAlias}
@@ -184,12 +178,12 @@ const TestCall: React.FC<TestCallProps> = ({
                       onChange={(e) => onInputChange(k, e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
-                          handleCommit();
+                          scheduleEmit(local);
                         }
                       }}
                       onKeyUp={(e) => {
                         if (e.key === 'Enter') {
-                          handleCommit();
+                          scheduleEmit(local);
                         }
                       }}
                       style={{ width: '100%', padding: '6px 8px' }}
