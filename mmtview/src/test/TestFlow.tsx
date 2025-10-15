@@ -40,6 +40,17 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                 // preserve previous expanded entries that still exist
                 return prev.filter(id => allIds.has(id));
             });
+            // keep openEditors aligned with current items to avoid stale active icon after rebuilds
+            setOpenEditors(prev => {
+                const allIds = new Set(
+                    Object.values(newTree.items).map((it: any) => String(it.index))
+                );
+                const next: Record<string, boolean> = {};
+                for (const k of Object.keys(prev)) {
+                    if (allIds.has(k)) next[k] = prev[k];
+                }
+                return next;
+            });
         } catch (error) {
             console.error("Error updating short tree:", error);
         }
@@ -124,6 +135,13 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
         } catch (e) {
             console.error('Failed to convert tree to flow:', e);
         }
+
+        // Ensure dragged items are marked inactive (close circle) after move
+        setOpenEditors(prev => {
+            const next = { ...prev } as Record<string, boolean>;
+            draggedItems.forEach(di => { delete next[String(di.index)]; });
+            return next;
+        });
 
         if (target.targetType === 'item') {
             setExpandedItems(prev => (prev.includes(String(target.targetItem)) ? prev : [...prev, String(target.targetItem)]));
@@ -403,7 +421,14 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                 const isOpen = !!openEditors[String(item.index)];
 
                 return (
-                    <div {...context.itemContainerWithChildrenProps}>
+                    <div
+                        {...context.itemContainerWithChildrenProps}
+                        onDragStart={() => {
+                            // Close active state when starting a drag for this item
+                            const key = String(item.index);
+                            setOpenEditors(prev => (prev[key] ? { ...prev, [key]: false } : prev));
+                        }}
+                    >
                         <div
                             className={`tree-view-box${(expandable && isOpen) ? ' active' : ''}`}
                             {...context.itemContainerWithoutChildrenProps}
