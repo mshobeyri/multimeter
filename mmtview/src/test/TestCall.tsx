@@ -162,7 +162,7 @@ const TestCall: React.FC<TestCallProps> = ({
           onChange={handleIdChange}
           onBlur={handleIdBlur}
           disabled={!currentAlias}
-          style={{ width: 240, padding: '6px 8px' }}
+          style={{ width: 240, padding: '6px 8px', marginLeft: 16 }}
           placeholder="Optional id to capture call result"
         />
       </div>
