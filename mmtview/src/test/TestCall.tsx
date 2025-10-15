@@ -53,17 +53,17 @@ const TestCall: React.FC<TestCallProps> = ({
   // Derive selected alias from YAML: either a plain string or an object with `call`
   const aliasFromValue =
     typeof value === 'string' ? value
-    : value && typeof value === 'object' && typeof (value as any).call === 'string' ? (value as any).call
-    : '';
+      : value && typeof value === 'object' && typeof (value as any).call === 'string' ? (value as any).call
+        : '';
   const aliases = imports ? Object.keys(imports) : [];
   const currentAlias = aliases.includes(aliasFromValue)
     ? aliasFromValue
     : (
-        local && typeof local === 'object' && typeof (local as any).call === 'string'
-          && aliases.includes((local as any).call)
-          ? (local as any).call
-          : ''
-      );
+      local && typeof local === 'object' && typeof (local as any).call === 'string'
+        && aliases.includes((local as any).call)
+        ? (local as any).call
+        : ''
+    );
   const currentId = local && typeof local === 'object' && typeof (local as any).id === 'string'
     ? (local as any).id
     : (value && typeof value === 'object' && typeof (value as any).id === 'string' ? (value as any).id : '');
@@ -81,7 +81,7 @@ const TestCall: React.FC<TestCallProps> = ({
     if (!imports || !currentAlias) return;
     const fileName = imports[currentAlias];
     if (!fileName) return;
-  readFile(fileName)
+    readFile(fileName)
       .then((content: string) => {
         const yaml = parseYaml(content);
         if (!yaml || typeof yaml !== 'object') { showVSCodeMessage('error', `Cannot parse ${fileName}!`); return; }
@@ -90,14 +90,14 @@ const TestCall: React.FC<TestCallProps> = ({
         const prevInputs = local && typeof local === 'object' && (local as any).inputs && typeof (local as any).inputs === 'object' ? (local as any).inputs : (value && typeof value === 'object' && (value as any).inputs || {});
         const merged = { ...defaults, ...prevInputs };
         const next = currentId ? { call: currentAlias, id: currentId, inputs: merged } : { call: currentAlias, inputs: merged };
-  setLocal(next);
-  // Only emit if different from current value to avoid loops
-  if (!equalCall(next, value)) scheduleEmit(next);
+        setLocal(next);
+        // Only emit if different from current value to avoid loops
+        if (!equalCall(next, value)) scheduleEmit(next);
       })
       .catch(() => {
         showVSCodeMessage('error', `Failed to read file: \n${fileName}`);
       });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentAlias, imports]);
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -120,7 +120,7 @@ const TestCall: React.FC<TestCallProps> = ({
     setLocal(next);
   };
 
-  const handleIdBlur = () => {
+  const handleCommit = () => {
     if (local && typeof local === 'object' && (local as any).call) {
       scheduleEmit(local);
     }
@@ -134,12 +134,6 @@ const TestCall: React.FC<TestCallProps> = ({
     const nextInputs = { ...inputs, [key]: parseLiteral(val) };
     const next = currentId ? { call: currentAlias, id: currentId, inputs: nextInputs } : { call: currentAlias, inputs: nextInputs };
     setLocal(next);
-  };
-
-  const onInputBlur = () => {
-    if (local && typeof local === 'object' && (local as any).call) {
-      scheduleEmit(local);
-    }
   };
 
   return (
@@ -160,7 +154,16 @@ const TestCall: React.FC<TestCallProps> = ({
           type="text"
           value={currentId}
           onChange={handleIdChange}
-          onBlur={handleIdBlur}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              handleCommit();
+            }
+          }}
+          onKeyUp={(e) => {
+            if (e.key === 'Enter') {
+              handleCommit();
+            }
+          }}
           disabled={!currentAlias}
           style={{ width: 240, padding: '6px 8px', marginLeft: 16 }}
           placeholder="Optional id to capture call result"
@@ -179,7 +182,16 @@ const TestCall: React.FC<TestCallProps> = ({
                       type="text"
                       value={typeof inputs[k] === 'string' ? inputs[k] as string : JSON.stringify(inputs[k])}
                       onChange={(e) => onInputChange(k, e.target.value)}
-                      onBlur={onInputBlur}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleCommit();
+                        }
+                      }}
+                      onKeyUp={(e) => {
+                        if (e.key === 'Enter') {
+                          handleCommit();
+                        }
+                      }}
                       style={{ width: '100%', padding: '6px 8px' }}
                     />
                   </React.Fragment>

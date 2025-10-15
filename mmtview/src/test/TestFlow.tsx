@@ -349,11 +349,13 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
 
                 const NoTreeInterference: React.FC<{ children: React.ReactNode }> = ({ children }) => (
                     <div
+                        // Keep captures for mouse/focus so tree doesn't grab focus/drag; allow keydown to reach inputs
                         onMouseDownCapture={stopAll}
                         onClickCapture={stopAll}
                         onFocusCapture={stopAll}
-                        onKeyDownCapture={stopAll}
-                        onKeyUpCapture={stopAll}
+                        // Stop key events at bubble so tree remains inert, but inputs still get onKeyDown
+                        onKeyDown={stopAll}
+                        onKeyUp={stopAll}
                         onInputCapture={stopAll}
                         style={{ flex: 1, minWidth: 0 }}
                     >
