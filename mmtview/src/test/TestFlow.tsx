@@ -4,6 +4,23 @@ import TestFlowBox from "./TestFlowBox";
 import { getTestFlowStepType } from "mmt-core/testParsePack";
 import { ControlledTreeEnvironment, Tree, DraggingPosition, DraggingPositionItem, DraggingPositionBetweenItems } from 'react-complex-tree';
 
+// Transparent drag image to remove native ghost preview while preserving drop lines
+let dragPreviewEl: HTMLDivElement | null = null;
+function setTransparentDragImage(dt: DataTransfer | null | undefined) {
+    if (!dt) return;
+    try {
+        const el = document.createElement('div');
+        el.setAttribute('aria-hidden', 'true');
+        Object.assign(el.style, {
+            position: 'fixed', top: '-10000px', left: '-10000px',
+            width: '1px', height: '1px', opacity: '0', pointerEvents: 'none',
+        } as Partial<CSSStyleDeclaration>);
+        document.body.appendChild(el);
+        dragPreviewEl = el;
+        dt.setDragImage(el, 0, 0);
+    } catch {}
+}
+
 interface TestFlowProps {
     testData: TestData;
     update?: (patch: { steps?: any[]; stages?: any[] }) => void;
@@ -423,10 +440,17 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                 return (
                     <div
                         {...context.itemContainerWithChildrenProps}
-                        onDragStart={() => {
+                        onDragStart={(e) => {
                             // Close active state when starting a drag for this item
                             const key = String(item.index);
                             setOpenEditors(prev => (prev[key] ? { ...prev, [key]: false } : prev));
+                            setTransparentDragImage(e.dataTransfer);
+                        }}
+                        onDragEnd={() => {
+                            if (dragPreviewEl && dragPreviewEl.parentNode) {
+                                (dragPreviewEl.parentNode as Node).removeChild(dragPreviewEl);
+                            }
+                            dragPreviewEl = null;
                         }}
                     >
                         <div
