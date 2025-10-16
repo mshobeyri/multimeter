@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
-import { parseYamlDoc } from "mmt-core/markupConvertor";
+import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
 import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./BeforeMount";
 import { safeList } from "mmt-core/safer";
+import { openRelativeFile } from "../vsAPI";
 
 interface YamlEditorPanelProps {
   content: string;
@@ -23,7 +24,10 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const monacoRef = useRef<any>(null);
   const editorRef = useRef<any>(null);
   const decorationsRef = useRef<string[]>([]);
+  const linkDecorationsRef = useRef<string[]>([]);
   const [editorReady, setEditorReady] = useState(false);
+  const importsMapRef = useRef<Record<string, string>>({});
+  const ctrlDownRef = useRef<boolean>(false);
 
   // Validate YAML and set error marker if invalid
   useEffect(() => {
@@ -54,6 +58,97 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       }
     } catch (e: any) {
     }
+  }, [content, editorReady]);
+
+  // Parse imports map whenever content changes
+  useEffect(() => {
+    try {
+      // Use plain YAML parse to get a JS object and read imports/import
+      const js = parseYaml(content) as any;
+      const imps = (js && (js.imports || js.import)) || {};
+      importsMapRef.current = imps && typeof imps === 'object' ? imps : {};
+    } catch {
+      importsMapRef.current = {};
+    }
+  }, [content]);
+
+  // Ctrl/Cmd hover + click to open imported files or call names
+  useEffect(() => {
+    if (!monacoRef.current || !editorRef.current) return;
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) return;
+
+    const isMac = navigator.platform.toLowerCase().includes('mac');
+    const modifier = isMac ? 'metaKey' : 'ctrlKey';
+
+    const getAliasAtPosition = (pos: any): string | null => {
+      const word = model.getWordAtPosition(pos);
+      if (!word) return null;
+      const token = word.word;
+      // Only treat as alias if it exists in imports
+      return importsMapRef.current[token] ? token : null;
+    };
+
+    const updateUnderline = (pos: any, withModifier: boolean) => {
+      const alias = withModifier ? getAliasAtPosition(pos) : null;
+      linkDecorationsRef.current = editor.deltaDecorations(linkDecorationsRef.current, []);
+      if (!alias) return;
+      const word = model.getWordAtPosition(pos);
+      if (!word) return;
+      const range = new monaco.Range(pos.lineNumber, word.startColumn, pos.lineNumber, word.endColumn);
+    linkDecorationsRef.current = editor.deltaDecorations(linkDecorationsRef.current, [{
+        range,
+        options: {
+      // Use our own underline class to avoid relying on Monaco internal styles
+      inlineClassName: 'mmt-link-underline',
+          stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
+        },
+      }]);
+    };
+
+    const onMouseMove = editor.onMouseMove((e: any) => {
+      const evt = e.event?.browserEvent as MouseEvent | undefined;
+      const pos = e.target?.position;
+      if (!evt || !pos) return;
+      const withMod = (evt as any)[modifier];
+      updateUnderline(pos, withMod);
+      editor.updateOptions({ mouseStyle: withMod && getAliasAtPosition(pos) ? 'pointer' : 'text' });
+    });
+
+    const onKeyDown = editor.onKeyDown((e: any) => {
+      if ((isMac && e.metaKey) || (!isMac && e.ctrlKey)) ctrlDownRef.current = true;
+      const pos = editor.getPosition();
+      if (pos) updateUnderline(pos, ctrlDownRef.current);
+    });
+    const onKeyUp = editor.onKeyUp((e: any) => {
+      if (!(isMac ? e.metaKey : e.ctrlKey)) ctrlDownRef.current = false;
+      linkDecorationsRef.current = editor.deltaDecorations(linkDecorationsRef.current, []);
+      editor.updateOptions({ mouseStyle: 'text' });
+    });
+
+    const onMouseDown = editor.onMouseDown((e: any) => {
+      const evt = e.event?.browserEvent as MouseEvent | undefined;
+      const pos = e.target?.position;
+      if (!evt || !pos) return;
+      const withMod = (evt as any)[modifier];
+      if (!withMod) return;
+      const alias = getAliasAtPosition(pos);
+      if (alias) {
+        const path = importsMapRef.current[alias];
+        if (path) openRelativeFile(path);
+      }
+    });
+
+    return () => {
+      onMouseMove.dispose();
+      onMouseDown.dispose();
+      onKeyDown.dispose();
+      onKeyUp.dispose();
+      linkDecorationsRef.current = editor.deltaDecorations(linkDecorationsRef.current, []);
+      editor.updateOptions({ mouseStyle: 'text' });
+    };
   }, [content, editorReady]);
 
   // Effect to handle custom decorations

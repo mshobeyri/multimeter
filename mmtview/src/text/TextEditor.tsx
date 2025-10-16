@@ -63,6 +63,21 @@ const TextEditor: React.FC<TextEditorProps> = ({
     document.head.appendChild(style);
   }, []);
 
+  // Add CSS for link underline used by YamlEditorPanel
+  useEffect(() => {
+    if (document.getElementById("mmt-link-underline-style")) return;
+    const style = document.createElement("style");
+    style.id = "mmt-link-underline-style";
+    style.innerHTML = `
+      .mmt-link-underline {
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        cursor: pointer;
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
   // Add this in your main React entry file (e.g. index.tsx or App.tsx)
   useEffect(() => {
     window.addEventListener("message", event => {
@@ -80,6 +95,8 @@ const TextEditor: React.FC<TextEditorProps> = ({
     editor.onDidBlurEditorWidget?.(() => {
       if (typeof onFocusChange === "function") onFocusChange(false);
     });
+    // Mark editor as ready for consumers like YamlEditorPanel effects
+    setEditorReady?.(true);
   };
 
   return (

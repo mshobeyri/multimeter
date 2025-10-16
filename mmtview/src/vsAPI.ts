@@ -85,3 +85,7 @@ duration?: number
         }));
     return results.join('\n');
   };
+
+export function openRelativeFile(filename: string) {
+  window.vscode?.postMessage({ command: 'openRelativeFile', filename });
+}

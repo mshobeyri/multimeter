@@ -163,6 +163,32 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           });
           break;
 
+        case 'openRelativeFile': {
+          const absolutePath = path.resolve(
+              path.dirname(document.uri.fsPath), message.filename);
+          const uri = vscode.Uri.file(absolutePath);
+          try {
+            // Prefer opening with our custom MMT editor when the file is an .mmt
+            if (absolutePath.toLowerCase().endsWith('.mmt')) {
+              await vscode.commands.executeCommand(
+                  'vscode.openWith', uri, 'mmt.editor', {preview: false});
+            } else {
+              const doc = await vscode.workspace.openTextDocument(uri);
+              await vscode.window.showTextDocument(doc, {preview: false});
+            }
+          } catch (err) {
+            // Fallback to default text editor if custom opening fails
+            try {
+              const doc = await vscode.workspace.openTextDocument(uri);
+              await vscode.window.showTextDocument(doc, {preview: false});
+            } catch (e2) {
+              vscode.window.showErrorMessage(
+                  `Failed to open file ${message.filename}: ${err}`);
+            }
+          }
+          break;
+        }
+
         case 'showPopupMessage':
           switch (message.level) {
             case 'error':
