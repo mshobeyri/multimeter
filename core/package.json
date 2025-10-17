@@ -28,6 +28,16 @@
       "types": "./dist/network.d.ts",
       "require": "./dist/network.js",
       "default": "./dist/network.js"
+    },
+    "./JSer": {
+      "types": "./dist/JSer.d.ts",
+      "require": "./dist/JSer.js",
+      "default": "./dist/JSer.js"
+    },
+    "./testParsePack": {
+      "types": "./dist/testParsePack.d.ts",
+      "require": "./dist/testParsePack.js",
+      "default": "./dist/testParsePack.js"
     }
   },
   "scripts": {

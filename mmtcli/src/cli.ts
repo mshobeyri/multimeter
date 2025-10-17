@@ -3,8 +3,8 @@ import { Command } from 'commander';
 import path from 'path';
 import fs from 'fs';
 import { summarize } from './loadTest.js';
-import * as JSer from 'mmt-core/JSer.js';
-import * as testParsePack from 'mmt-core/testParsePack.js';
+// Import from mmt-core root exports to avoid subpath resolution issues under pkg
+import { JSer, testParsePack } from 'mmt-core';
 import yaml from 'js-yaml';
 // Defer importing runTest until needed to avoid pulling axios for to-js
 

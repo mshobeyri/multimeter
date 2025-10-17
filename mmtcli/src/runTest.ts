@@ -46,30 +46,47 @@ export async function runGeneratedJs(js: string): Promise<CliRunResult> {
     const sandbox: any = { console };
     // Inject runtime helpers required by generated code
     sandbox.extractOutputs = outputExtractor.extractOutputs;
-    // Minimal HTTP sender using Node 18+ fetch API to avoid bundling axios in pkg
+    // Use axios for HTTP; under pkg snapshot ensure module is reachable
     sandbox.send = async (req: any) => {
-      const headers = new Headers();
+  // Use axios Node CJS build explicitly so pkg bundles it reliably
+  let axiosReq;
+  try {
+    axiosReq = require('axios/dist/node/axios.cjs');
+  } catch {
+    // Fallback for dev environments
+    axiosReq = require('axios');
+  }
+      const axiosMod = axiosReq.default || axiosReq;
+      const headers: Record<string, string> = {};
       for (const [k, v] of Object.entries(req.headers || {})) {
-        headers.set(String(k), String(v));
+        headers[String(k)] = String(v);
       }
       if (req.cookies && Object.keys(req.cookies).length) {
         const cookie = Object.entries(req.cookies).map(([k, v]) => `${k}=${v}`).join('; ');
         if (cookie) {
-          headers.set('Cookie', cookie);
+          headers['Cookie'] = cookie;
         }
       }
-      const init: RequestInit = {
+      const request = {
+        url: req.url,
         method: req.method || 'GET',
         headers,
-        body: req.body,
+        data: req.body,
+        responseType: 'text' as const,
+        transformResponse: [(data: string) => data],
+        timeout: 30000,
+        validateStatus: () => true,
       };
       const t0 = Date.now();
-      const res = await fetch(req.url, init);
-      const body = await res.text();
+  const res = await axiosMod.request(request);
       const outHeaders: Record<string, string> = {};
-      res.headers.forEach((v, k) => { outHeaders[k] = v; });
+      Object.entries(res.headers || {}).forEach(([k, v]) => {
+        if (v !== undefined) {
+          outHeaders[k] = String(v);
+        }
+      });
       return {
-        body,
+        body: res.data,
         headers: outHeaders,
         status: res.status,
         statusText: res.statusText,
