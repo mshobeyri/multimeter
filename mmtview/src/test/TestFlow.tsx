@@ -144,11 +144,21 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                 isFolder: true,
             };
         } else if (target.targetType === "between-items") {
-            const parentKey = (target as DraggingPositionBetweenItems).parentItem;
+            const t = target as DraggingPositionBetweenItems;
+            const parentKey = t.parentItem;
             const siblings = itemsCopy[parentKey].children;
-            const insertIdx = (target as DraggingPositionBetweenItems).linePosition === "bottom"
-                ? (target as DraggingPositionBetweenItems).childIndex + 1
-                : (target as DraggingPositionBetweenItems).childIndex;
+            const childIndex = t.childIndex;
+            // Adjust insertion index when dragging within the same parent to a later position
+            const originalSiblings: string[] = (shortTree.items[parentKey]?.children) || [];
+            const removedBefore = draggedItems.reduce((acc, di) => {
+                const wasSameParent = originalSiblings.includes(di.index);
+                if (wasSameParent) {
+                    const origIdx = originalSiblings.indexOf(di.index);
+                    if (origIdx >= 0 && origIdx < childIndex) return acc + 1;
+                }
+                return acc;
+            }, 0);
+            const insertIdx = Math.max(0, Math.min(childIndex - removedBefore, siblings.length));
             const newChildren = [
                 ...siblings.slice(0, insertIdx),
                 ...draggedItems.map(di => di.index),
