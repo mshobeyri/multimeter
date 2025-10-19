@@ -57,13 +57,13 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       };
     }, [openMenu]);
 
-  const menu = openMenu && menuPos ? (
+    const menu = openMenu && menuPos ? (
       <div
         ref={menuRef}
-    role="menu"
-    style={{ position: 'fixed', left: menuPos.left, top: menuPos.top, zIndex: 1000, background: 'var(--vscode-editorWidget-background,#232323)', border: '1px solid var(--vscode-editorWidget-border,#333)', borderRadius: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.4)', minWidth: 140, pointerEvents: 'auto' }}
-    onPointerDown={(e) => e.stopPropagation()}
-    onClick={(e) => e.stopPropagation()}
+        role="menu"
+        style={{ position: 'fixed', left: menuPos.left, top: menuPos.top, zIndex: 1000, background: 'var(--vscode-editorWidget-background,#232323)', border: '1px solid var(--vscode-editorWidget-border,#333)', borderRadius: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.4)', minWidth: 140, pointerEvents: 'auto' }}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         <button
           type="button"
@@ -107,18 +107,18 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
         >
           <span className="codicon codicon-kebab-vertical" />
         </button>
-    {showExpand && (
+        {showExpand && (
           <button
             className="action-button"
             type="button"
             onPointerDown={(e) => e.stopPropagation()}
-      onPointerUp={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
-      onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleExpand?.(); } }}
+            onPointerUp={(e) => { e.stopPropagation(); onToggleExpand?.(); }}
+            onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleExpand?.(); } }}
             draggable={false}
             tabIndex={0}
-      title={expanded ? 'Make inactive' : 'Make active'}
+            title={expanded ? 'Make inactive' : 'Make active'}
           >
-      <span className={`codicon ${expanded ? 'codicon-circle-filled' : 'codicon-circle-outline'}`} />
+            <span className={`codicon ${expanded ? 'codicon-circle-filled' : 'codicon-circle-outline'}`} />
           </button>
         )}
         {menu && ReactDOM.createPortal(menu, document.body)}
@@ -183,16 +183,26 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             placeholder="JavaScript code"
             value={stepData[type] || ''}
             onChange={e => onChange({ js: e.target.value })}
-            style={{ width: 150 , height: 'calc(100% - 14px)' }}
+            style={{
+              width: expanded ? '100%' : 200,
+              height: expanded ? 400 : 24,
+              resize: 'none',
+              overflow: 'auto'
+            }}
           />
         );
       case 'print':
         return (
-          <input
+          <textarea
             placeholder="Message to print"
             value={stepData[type] || ''}
             onChange={e => onChange({ print: e.target.value })}
-            style={{ width: 150 }}
+            style={{
+              width: expanded ? '100%' : 200,
+              height: expanded ? 400 : 24,
+              resize: 'none',
+              overflow: 'auto'
+            }}
           />
         );
       case 'set':
