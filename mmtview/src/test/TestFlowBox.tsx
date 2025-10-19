@@ -278,7 +278,18 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
 
   return (
     <div className="test-flow-box-items" style={containerStyle}>
-      <span style={{ paddingTop: '6px', flex: '0 0 auto' }}>{type}</span>
+      <span
+        style={{
+          paddingTop: '6px',
+          flex: '0 0 80px',
+          width: 80,
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis'
+        }}
+      >
+        {type}
+      </span>
       <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
         {renderInner()}
       </div>

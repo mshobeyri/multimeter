@@ -26,6 +26,30 @@ interface TestFlowProps {
     update?: (patch: { steps?: any[]; stages?: any[] }) => void;
 }
 
+// Map flow step types to specific codicons for non-folder items
+const codiconForType = (t?: string): string => {
+    switch (t) {
+        case 'print':
+            return 'codicon-output';
+        case 'js':
+            return 'codicon-code';
+        case 'call':
+            return 'codicon-symbol-method';
+        case 'set':
+            return 'codicon-symbol-constant';
+        case 'const':
+        case 'var':
+        case 'let':
+            return 'codicon-symbol-variable';
+        case 'check':    
+            return 'codicon-check';
+        case 'assert':
+            return 'codicon-pass';
+        default:
+            return 'codicon-file';
+    }
+};
+
 const collectFolderIds = (items: Record<string, any>, includeEmpty = true): string[] =>
     Object.values(items)
         .filter((it: any) => it?.isFolder && (includeEmpty || (it.children?.length > 0)))
@@ -314,14 +338,14 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
             canDropOnFolder={true}
             canReorderItems={true}
             onDrop={handleDrop}
-            onSelectItems={() => { /* disable selection-driven active changes */ }}
-            renderItemArrow={({ item, context }) =>
+            onSelectItems={() => { }}
+            renderItemArrow={({ item, context }) => (
                 item.isFolder ? (
                     <span
                         {...context.arrowProps}
                         style={{
                             display: "inline-flex",
-                            paddingTop: 8, 
+                            paddingTop: 8,
                             lineHeight: 0,
                             alignSelf: "flex-start"
                         }}
@@ -332,8 +356,32 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                             <span className="codicon codicon-chevron-right" style={{ fontSize: "16px" }} />
                         )}
                     </span>
-                ) : null
-            }
+                ) : (
+                    (() => {
+                        let t: string | undefined;
+                        try {
+                            const parsed = JSON.parse(item.data as string);
+                            t = parsed?.type;
+                        } catch {}
+                        const ico = codiconForType(t);
+                        return (
+                            <span
+                                style={{
+                                    display: "inline-flex",
+                                    paddingTop: 8,
+                                    lineHeight: 0,
+                                    alignSelf: "flex-start",
+                                    width: 16,
+                                    justifyContent: 'center'
+                                }}
+                                aria-hidden
+                            >
+                                <span className={`codicon ${ico}`} style={{ fontSize: "14px", opacity: 0.8 }} />
+                            </span>
+                        );
+                    })()
+                )
+            )}
             renderItem={({ title, arrow, context, item, children }) => {
                 if (!title) return null;
                 let itemParsed = { type: "unknown", data: { stepData: title } };
