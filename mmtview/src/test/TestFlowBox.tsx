@@ -174,7 +174,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             placeholder={type === 'for' ? '100, 10s, 5-10, i:data' : 'repeat count or duration'}
             value={stepData[type] || ''}
             onChange={e => onChange({ [type]: e.target.value })}
-            style={{ width: 150 }}
+            style={{ width: 300 }}
           />
         );
       case 'js':
@@ -184,7 +184,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             value={stepData[type] || ''}
             onChange={e => onChange({ js: e.target.value })}
             style={{
-              width: expanded ? '100%' : 200,
+              width: expanded ? '100%' : 300,
               height: expanded ? 400 : 24,
               resize: 'none',
               overflow: 'auto'
@@ -198,7 +198,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             value={stepData[type] || ''}
             onChange={e => onChange({ print: e.target.value })}
             style={{
-              width: expanded ? '100%' : 200,
+              width: expanded ? '100%' : 300,
               height: expanded ? 400 : 24,
               resize: 'none',
               overflow: 'auto'
@@ -233,7 +233,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
 
         return (
           <>
-            <select value={currentType} onChange={handleKindChange} style={{ minWidth: 72 }}>
+            <select value={currentType} onChange={handleKindChange} style={{ width: 80 }}>
               <option value="set">set</option>
               <option value="var">var</option>
               <option value="const">const</option>
@@ -243,13 +243,13 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
               placeholder="property (e.g., outputs.name)"
               value={key}
               onChange={handleKeyChange}
-              style={{ width: 100 }}
+              style={{ width: 110 }}
             />
             <input
               placeholder="value (e.g., user_info.name or 'text')"
               value={val}
               onChange={handleValChange}
-              style={{ width: 100 }}
+              style={{ width: 110 }}
             />
           </>
         );
@@ -263,7 +263,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             placeholder="Stage name"
             value={stepData[type] || ''}
             onChange={e => onChange({ stage: e.target.value })}
-            style={{ width: 150 }}
+            style={{ width: 300 }}
           />
         );
       default:

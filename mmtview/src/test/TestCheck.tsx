@@ -17,8 +17,8 @@ const TestCheck: React.FC<TestCheckProps> = ({
   op,
   right,
   onChange,
-  minWidth = 40,
-  maxWidth = 200,
+  minWidth = 110,
+  maxWidth = 110,
 }) => (
   <div style={{ display: "flex", verticalAlign: "center", gap: 0 }}>
     <AutoSizeTextField
@@ -30,7 +30,7 @@ const TestCheck: React.FC<TestCheckProps> = ({
     <select
       value={op}
       onChange={e => onChange({ left, op: e.target.value as CheckOps, right })}
-      style={{ minWidth: 56, flex: '0 0 auto' }}
+      style={{ width: 80, flex: '0 0 auto' }}
     >
       {safeList(opsList).map((relation, idx) => (
         <option key={relation} value={safeList(opsList)[idx]} title={safeList(opsNames)[idx]}>
