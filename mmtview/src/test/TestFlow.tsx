@@ -227,7 +227,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
         setAddMenuPos({ left: Math.max(8, r.right - 200), top: r.bottom + 6 });
     };
 
-    const createDefaultStep = (type: FlowType): any => {
+    const createDefaultStep = (type: FlowType | 'data'): any => {
         switch (type) {
             case 'print': return { print: '' };
             case 'call': return { call: '', id: '', inputs: {} };
@@ -236,6 +236,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
             case 'var': return { var: {} };
             case 'const': return { const: {} };
             case 'let': return { let: {} };
+            case 'data': return { data: '' };
             case 'check': return { check: '1 == 1' };
             case 'if': return { if: '1 != 1', steps: [] };
             case 'for': return { for: '' };

@@ -4,6 +4,7 @@ import { FlowType, CheckOps } from "mmt-core/TestData";
 import TestCheck from "./TestCheck";
 import TestCall from "./TestCall";
 import TestFlowVar from "./TestFlowVar";
+import TestFlowCSV from "./TestFlowCSV";
 
 interface TestFlowBoxProps {
   data: any,
@@ -126,15 +127,24 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       </div>
     );
   };
+  type FlowTypeWithCsv = FlowType | 'data';
   const renderInner = () => {
-    switch (type as FlowType) {
+    switch (type as FlowTypeWithCsv) {
       case 'call':
         return (
           <TestCall
             value={stepData}
-            imports={typeof testData?.import === 'object' ? testData.import : undefined}
+            imports={typeof testData?.import === 'object' ? (Object.fromEntries(Object.entries(testData.import).filter(([_, p]) => typeof p === 'string' && (p as string).endsWith('.mmt'))) as Record<string, string>) : undefined}
             onChange={callObj => onChange({ ...callObj })}
             placeholder="select a call"
+          />
+        );
+  case 'data':
+        return (
+          <TestFlowCSV
+            value={stepData}
+            imports={typeof testData?.import === 'object' ? testData.import : undefined}
+            onChange={(v) => onChange(v)}
           />
         );
       case 'check':

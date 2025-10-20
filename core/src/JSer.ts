@@ -44,7 +44,9 @@ declare let window: any;
 export let readFile: FileLoader = async (path: string) => {
   if (typeof window === 'undefined' && typeof require !== 'undefined') {
     try {
-      const fs = require('fs');
+  // Use an indirect require so bundlers (webpack 5) don't try to resolve 'fs' for the browser build
+  const req = Function('return require')();
+  const fs = req('fs');
       return fs.readFileSync(path, 'utf8');
     } catch (e) {
       return '';
@@ -113,16 +115,77 @@ export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
 };`;
 };
 
-export const importCSVToJSObj =
-    async(content: string, name: string): Promise<string> => {
-  const rows = content.split('\n').map(row => row.split(','));
-  const headers = rows[0];
-  const jsonArray = rows.slice(1).map(row => {
-    return row.reduce((acc, value, index) => {
-      acc[headers[index]] = value;
-      return acc;
-    }, {} as JSONRecord);
+export const importCSVToJSObj = async (content: string, name: string): Promise<string> => {
+  const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')
+    .map(l => l.trim())
+    .filter(l => l.length > 0);
+
+  // Guard: if first line looks like YAML (no comma but has key: value), skip to avoid trash output
+  if (lines.length > 0 && !lines[0].includes(',') && /:\s*/.test(lines[0])) {
+    console.warn(`CSV import for ${name} looks invalid (no commas in header). Skipping.`);
+    return `const ${name} = [];`;
+  }
+
+  // Simple CSV parser handling commas and double-quoted fields
+  const parseCsvLine = (line: string): string[] => {
+    const out: string[] = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuotes) {
+        if (ch === '"') {
+          if (i + 1 < line.length && line[i + 1] === '"') {
+            // Escaped quote
+            cur += '"';
+            i++;
+          } else {
+            inQuotes = false;
+          }
+        } else {
+          cur += ch;
+        }
+      } else {
+        if (ch === ',') {
+          out.push(cur);
+          cur = '';
+        } else if (ch === '"') {
+          inQuotes = true;
+        } else {
+          cur += ch;
+        }
+      }
+    }
+    out.push(cur);
+    return out.map(s => s.trim());
+  };
+
+  if (lines.length === 0) {
+    return `const ${name} = [];`;
+  }
+
+  const headers = parseCsvLine(lines[0]).map(h => h.trim());
+
+  const coerce = (v: string): any => {
+    const s = v.trim();
+    if (s === '') { return ''; }
+    if (/^\d+$/.test(s)) { return parseInt(s, 10); }
+    if (/^\d*\.\d+$/.test(s)) { return parseFloat(s); }
+    if (/^(true|false)$/i.test(s)) { return /^true$/i.test(s); }
+    return s;
+  };
+
+  const jsonArray = lines.slice(1).map(line => {
+    const cols = parseCsvLine(line);
+    const obj: JSONRecord = {};
+    for (let i = 0; i < headers.length; i++) {
+      const key = headers[i];
+      const val = i < cols.length ? cols[i] : '';
+      obj[key] = coerce(val);
+    }
+    return obj;
   });
+
   return `const ${name} = ${JSON.stringify(jsonArray, null, 2)};`;
 };
 
@@ -367,6 +430,10 @@ export const flowStepsToJsfunc = (flow: TestFlowSteps): string => {
             return varToJSfunc('const ', (step as any).const);
           case 'let':
             return varToJSfunc('let ', (step as any).let);
+          case 'data': {
+            const alias = (step as any).data;
+            return `/* data: ${alias} */`;
+          }
           default:
             return '';
         }

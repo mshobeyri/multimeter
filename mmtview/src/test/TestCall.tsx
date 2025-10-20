@@ -55,7 +55,8 @@ const TestCall: React.FC<TestCallProps> = ({
     typeof value === 'string' ? value
       : value && typeof value === 'object' && typeof (value as any).call === 'string' ? (value as any).call
         : '';
-  const aliases = imports ? Object.keys(imports) : [];
+  const mmtImports: Record<string, string> | undefined = imports ? Object.fromEntries(Object.entries(imports).filter(([_, p]) => typeof p === 'string' && p.endsWith('.mmt'))) as Record<string, string> : undefined;
+  const aliases = mmtImports ? Object.keys(mmtImports) : [];
   const currentAlias = aliases.includes(aliasFromValue)
     ? aliasFromValue
     : (
@@ -78,8 +79,8 @@ const TestCall: React.FC<TestCallProps> = ({
 
   // Load defaults when alias changes
   React.useEffect(() => {
-    if (!imports || !currentAlias) return;
-    const fileName = imports[currentAlias];
+  if (!mmtImports || !currentAlias) return;
+  const fileName = mmtImports[currentAlias];
     if (!fileName) return;
     readFile(fileName)
       .then((content: string) => {
