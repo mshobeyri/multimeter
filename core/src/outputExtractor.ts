@@ -48,6 +48,7 @@ function resolveJSONPath(response: ResponseData, path: string): any {
   }
 
   // Remove leading $ and parse the path
+  // Support both $[body]... and $body[...] syntaxes; normalize to section + parts
   let normalizedPath = path.startsWith('$') ? path.slice(1) : path;
   const {section, parts} = parseBracketPath(normalizedPath);
 
@@ -166,12 +167,15 @@ export function extractOutputs(
   let bodyObject = response.body;
 
   if (response.type === 'auto') {
-    response.type = response.headers['Content-Type'] ||
-            response.headers['content-type']?.includes('xml') ||
-            (response.body && response.body.startsWith &&
-             response.body.startsWith('<')) ?
-        'xml' :
-        'json';
+    // Normalize header names once
+    const headersLower = Object.fromEntries(
+        Object.entries(response.headers || {}).map(([k, v]) => [k.toLowerCase(), v]));
+    const ct = headersLower['content-type'];
+    if (typeof ct === 'string') {
+      response.type = ct.includes('xml') ? 'xml' : 'json';
+    } else {
+      response.type = (response.body && response.body.startsWith && response.body.startsWith('<')) ? 'xml' : 'json';
+    }
   }
 
   if (response.type === 'xml' && typeof response.body === 'string') {
@@ -212,10 +216,8 @@ export function extractOutputs(
         const found = bodyText.match(regex);
         extractedValue = found && found[1] ? found[1] : '';
       }
-      // Check if it contains regex pattern indicators (parentheses for capture
-      // groups)
-      else if (
-          expr.includes('(') && expr.includes(')') && !expr.includes('[')) {
+      // Check if it contains regex pattern indicators (legacy fallback):
+      else if (expr.includes('(') && expr.includes(')') && !expr.includes('[')) {
         const regex = new RegExp(expr);
         const found = bodyText.match(regex);
         extractedValue = found && found[1] ? found[1] : '';

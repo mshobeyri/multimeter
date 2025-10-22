@@ -145,4 +145,14 @@ describe('CSV import parsing', () => {
     const users = new Function(bundle + '\nreturn users;')();
     expect(users).toEqual([{ name: 'mehrdad', family: 'shobeyri', age: 35 }]);
   });
+
+  it('parses CSV with BOM and CRLF and quoted commas/quotes', async () => {
+    const csv = '\uFEFFname,comment\r\n"john","said, ""hello"""\r\n"doe","plain"\n';
+    const code = await importCSVToJSObj(csv, 'rows');
+    const rows = new Function(code + '\nreturn rows;')();
+    expect(rows).toEqual([
+      { name: 'john', comment: 'said, "hello"' },
+      { name: 'doe', comment: 'plain' }
+    ]);
+  });
 });

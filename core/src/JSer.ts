@@ -115,78 +115,62 @@ export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
 };`;
 };
 
-export const importCSVToJSObj = async (content: string, name: string): Promise<string> => {
-  const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')
-    .map(l => l.trim())
-    .filter(l => l.length > 0);
-
-  // Guard: if first line looks like YAML (no comma but has key: value), skip to avoid trash output
-  if (lines.length > 0 && !lines[0].includes(',') && /:\s*/.test(lines[0])) {
-    console.warn(`CSV import for ${name} looks invalid (no commas in header). Skipping.`);
-    return `const ${name} = [];`;
+export const parseCsv = (content: string): Array<Record<string, any>> => {
+  let text = (content || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+  // Strip BOM if present
+  text = text.replace(/^\uFEFF/, '');
+  if (!text) {
+    return [];
   }
-
-  // Simple CSV parser handling commas and double-quoted fields
+  const lines = text.split('\n').filter(l => l.trim().length > 0);
+  if (lines.length === 0) {
+    return [];
+  }
+  if (!lines[0].includes(',') && /:\s*/.test(lines[0])) {
+    return [];
+  }
   const parseCsvLine = (line: string): string[] => {
-    const out: string[] = [];
-    let cur = '';
+    const result: string[] = [];
+    let current = '';
     let inQuotes = false;
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
-      if (inQuotes) {
-        if (ch === '"') {
-          if (i + 1 < line.length && line[i + 1] === '"') {
-            // Escaped quote
-            cur += '"';
-            i++;
-          } else {
-            inQuotes = false;
-          }
-        } else {
-          cur += ch;
-        }
-      } else {
-        if (ch === ',') {
-          out.push(cur);
-          cur = '';
-        } else if (ch === '"') {
-          inQuotes = true;
-        } else {
-          cur += ch;
-        }
-      }
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+        else { inQuotes = !inQuotes; }
+      } else if (ch === ',' && !inQuotes) {
+        result.push(current); current = '';
+      } else { current += ch; }
     }
-    out.push(cur);
-    return out.map(s => s.trim());
+    result.push(current);
+    return result;
   };
-
-  if (lines.length === 0) {
-    return `const ${name} = [];`;
-  }
-
-  const headers = parseCsvLine(lines[0]).map(h => h.trim());
-
   const coerce = (v: string): any => {
-    const s = v.trim();
-    if (s === '') { return ''; }
-    if (/^\d+$/.test(s)) { return parseInt(s, 10); }
-    if (/^\d*\.\d+$/.test(s)) { return parseFloat(s); }
-    if (/^(true|false)$/i.test(s)) { return /^true$/i.test(s); }
-    return s;
-  };
-
-  const jsonArray = lines.slice(1).map(line => {
-    const cols = parseCsvLine(line);
-    const obj: JSONRecord = {};
-    for (let i = 0; i < headers.length; i++) {
-      const key = headers[i];
-      const val = i < cols.length ? cols[i] : '';
-      obj[key] = coerce(val);
+    const t = (v ?? '').trim();
+    if (t === '') {
+      return '';
     }
-    return obj;
-  });
+    if (/^\d+(?:\.\d+)?$/.test(t)) {
+      return Number(t);
+    }
+    if (/^(true|false)$/i.test(t)) {
+      return t.toLowerCase() === 'true';
+    }
+    return t;
+  };
+  const headers = parseCsvLine(lines[0]).map(h => h.trim());
+  const rows = lines.slice(1).map(parseCsvLine);
+  return rows
+    .filter(r => r.some(c => (c ?? '').trim() !== ''))
+    .map(cols => Object.fromEntries(headers.map((h, i) => [h, coerce(cols[i] ?? '')])));
+};
 
-  return `const ${name} = ${JSON.stringify(jsonArray, null, 2)};`;
+export const importCSVToJSObj = async (content: string, name: string): Promise<string> => {
+  const arr = parseCsv(content);
+  if (arr.length === 0 && (content || '').trim()) {
+    console.warn(`CSV import for ${name} looks invalid (no commas in header). Skipping.`);
+  }
+  return `const ${name} = ${JSON.stringify(arr)};`;
 };
 
 export const importsToJsfunc =

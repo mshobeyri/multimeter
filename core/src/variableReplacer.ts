@@ -14,21 +14,20 @@ function replaceRefs(
     obj: any, pattern: RegExp, mode: ReplacementMode,
     inputs: Record<string, any>): any {
   if (typeof obj === 'string') {
-    // Check if the entire string is a single variable reference
-    const match = obj.match(pattern);
+    // Build anchored (non-global) pattern for full-string variable match based on mode
+    const anchored = mode === ReplacementMode.BRACE
+        ? /^<<([a-zA-Z0-9_]+:[a-zA-Z0-9_]+)>>$/
+        : /^([a-zA-Z0-9_]+:[a-zA-Z0-9_]+)$/;
 
-    // If there's exactly one match and it covers the entire string
-    if (match && match.length === 1 && match[0] === obj) {
-      // Extract the key using the pattern
-      const keyMatch = pattern.exec(obj);
-      pattern.lastIndex = 0;  // Reset lastIndex for global regex
-      const key = keyMatch && keyMatch[1];
-      const found = key ? inputs[key] : undefined;
-
+    const full = anchored.exec(obj);
+    if (full && full[1]) {
+      const key = full[1];
+      const found = inputs[key];
       if (found !== undefined) {
         // Return the original type for complete string replacement
         return found;
       }
+      // If not found, return the key literal
       return key;
     }
 
@@ -62,12 +61,12 @@ function replaceRefs(
 // Specific replacers using flags
 export function replaceInputRefsWithBrace(obj: any, inputs: any): any {
   return replaceRefs(
-      obj, /<<([a-zA-Z0-9_]+:[a-zA-Z0-9_]+)>>/g, ReplacementMode.BRACE, inputs);
+    obj, /<<([a-zA-Z0-9_]+:[a-zA-Z0-9_]+)>>/g, ReplacementMode.BRACE, inputs);
 }
 
 export function replaceInputRefsWithNone(obj: any, inputs: any): any {
   return replaceRefs(
-      obj, /([a-zA-Z0-9_]+:[a-zA-Z0-9_]+)/g, ReplacementMode.NONE, inputs);
+    obj, /([a-zA-Z0-9_]+:[a-zA-Z0-9_]+)/g, ReplacementMode.NONE, inputs);
 }
 
 // Replaces all references (inputs first, then environment vars)
