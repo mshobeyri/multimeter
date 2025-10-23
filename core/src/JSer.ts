@@ -44,9 +44,10 @@ declare let window: any;
 export let readFile: FileLoader = async (path: string) => {
   if (typeof window === 'undefined' && typeof require !== 'undefined') {
     try {
-  // Use an indirect require so bundlers (webpack 5) don't try to resolve 'fs' for the browser build
-  const req = Function('return require')();
-  const fs = req('fs');
+      // Use an indirect require so bundlers (webpack 5) don't try to resolve
+      // 'fs' for the browser build
+      const req = Function('return require')();
+      const fs = req('fs');
       return fs.readFileSync(path, 'utf8');
     } catch (e) {
       return '';
@@ -136,11 +137,18 @@ export const parseCsv = (content: string): Array<Record<string, any>> => {
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
       if (ch === '"') {
-        if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
-        else { inQuotes = !inQuotes; }
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
       } else if (ch === ',' && !inQuotes) {
-        result.push(current); current = '';
-      } else { current += ch; }
+        result.push(current);
+        current = '';
+      } else {
+        current += ch;
+      }
     }
     result.push(current);
     return result;
@@ -160,15 +168,18 @@ export const parseCsv = (content: string): Array<Record<string, any>> => {
   };
   const headers = parseCsvLine(lines[0]).map(h => h.trim());
   const rows = lines.slice(1).map(parseCsvLine);
-  return rows
-    .filter(r => r.some(c => (c ?? '').trim() !== ''))
-    .map(cols => Object.fromEntries(headers.map((h, i) => [h, coerce(cols[i] ?? '')])));
+  return rows.filter(r => r.some(c => (c ?? '').trim() !== ''))
+      .map(
+          cols => Object.fromEntries(
+              headers.map((h, i) => [h, coerce(cols[i] ?? '')])));
 };
 
-export const importCSVToJSObj = async (content: string, name: string): Promise<string> => {
+export const importCSVToJSObj =
+    async(content: string, name: string): Promise<string> => {
   const arr = parseCsv(content);
   if (arr.length === 0 && (content || '').trim()) {
-    console.warn(`CSV import for ${name} looks invalid (no commas in header). Skipping.`);
+    console.warn(`CSV import for ${
+        name} looks invalid (no commas in header). Skipping.`);
   }
   return `const ${name} = ${JSON.stringify(arr)};`;
 };
@@ -217,8 +228,13 @@ export const importsToJsfunc =
   }
 };
 
+const replaceEnvTokens = (s: string): string =>
+    s.replace(/\be:([A-Za-z_][A-Za-z0-9_]*)\b/g, 'envVariables.$1');
+
 export const conditionalStatementToJSfunc = (check: string): string => {
-  const checkParts = check.split(' ');
+  // Replace env tokens like e:FOO -> envVariables.FOO
+  const normalized = replaceEnvTokens(check);
+  const checkParts = normalized.split(' ');
   if (checkParts.length !== 3) {
     throw new Error(`Invalid check format: ${check}`);
   }
@@ -501,8 +517,7 @@ export const importTestToJsfunc = async(ctx: TestContext): Promise<string> => {
   const paramsAsObj: Record<string, string> = Object.fromEntries(
       Object.keys(ctx.test.inputs ?? {}).map(key => [key, `\${${key}}`]));
 
-  let replaced =
-      replaceAllRefs(ctx.test, paramsAsObj, ctx.inputs, ctx.envVars ?? {});
+  let replaced = replaceAllRefs(ctx.test, paramsAsObj, ctx.inputs, {});
 
   const inputParams = toInputsParams(replaced.inputs || {}, ' = ');
 
@@ -514,7 +529,8 @@ export const importTestToJsfunc = async(ctx: TestContext): Promise<string> => {
   } else if (replaced.steps && replaced.steps.length > 0) {
     flow += flowStepsToJsfunc(replaced.steps);
   }
-  return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
+  return `const ${ctx.name} = async ({ ${
+      inputParams} } = {}, envVariables = {}) => {
   ${indentLines(importedFuncs)}
 
   let outputs = { ${outputParams} };
@@ -527,12 +543,46 @@ export const importTestToJsfunc = async(ctx: TestContext): Promise<string> => {
 
 export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
   const test = await importTestToJsfunc(ctx);
-  return `let envParameters = {${
-      Object.keys(ctx.envVars).map(name => `${name}: ${name}`).join(', ')}};
+  const full = `${test}\n\nreturn ${ctx.name}({}, envVariables);`;
+  return variableReplacer(full);
+};
 
-${test}
+// Replace environment variable tokens with envVariables.* both
+// outside and inside template literals
+export const variableReplacer = (full: string): string => {
+  const replaceOutside = (s: string) =>
+    s
+      .replace(/<<\s*e:([A-Za-z0-9_]+)\s*>>/g, 'envVariables.$1')
+      .replace(/<\s*e:([A-Za-z0-9_]+)\s*>/g, 'envVariables.$1')
+      .replace(/\be:\{([A-Za-z0-9_]+)\}/g, 'envVariables.$1')
+      .replace(/\be:([A-Za-z0-9_]+)(?![A-Za-z0-9_])/g, 'envVariables.$1');
 
-return ${ctx.name}();`;
+  const replaceInsideTpl = (s: string) =>
+    s
+      .replace(/<<\s*e:([A-Za-z0-9_]+)\s*>>/g, '${envVariables.$1}')
+      .replace(/<\s*e:([A-Za-z0-9_]+)\s*>/g, '${envVariables.$1}')
+      .replace(/\be:\{([A-Za-z0-9_]+)\}/g, '${envVariables.$1}')
+      .replace(/\be:([A-Za-z0-9_]+)(?![A-Za-z0-9_])/g, '${envVariables.$1}');
+
+  let out = '';
+  let i = 0;
+  while (i < full.length) {
+    const start = full.indexOf('`', i);
+    if (start === -1) {
+      out += replaceOutside(full.slice(i));
+      break;
+    }
+    out += replaceOutside(full.slice(i, start));
+    const end = full.indexOf('`', start + 1);
+    if (end === -1) {
+      out += replaceOutside(full.slice(start));
+      break;
+    }
+    const inner = full.slice(start + 1, end);
+    out += '`' + replaceInsideTpl(inner) + '`';
+    i = end + 1;
+  }
+  return out;
 };
 
 function randomName(): string {

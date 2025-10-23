@@ -6,6 +6,8 @@ import {
   importCSVToJSObj,
   importsToJsfunc,
   setFileLoader,
+  rootTestToJsfunc,
+  variableReplacer,
 } from './JSer';
 
 describe('flowStagesToJsfunc', () => {
@@ -154,5 +156,52 @@ describe('CSV import parsing', () => {
       { name: 'john', comment: 'said, "hello"' },
       { name: 'doe', comment: 'plain' }
     ]);
+  });
+});
+
+describe('env token replacements in generated JS', () => {
+  it('replaces e:VAR, e:{VAR}, <e:VAR> and <<e:VAR>> inside template literals', async () => {
+    const ctx: TestContext = {
+      name: 'envTplTest',
+      test: {
+        steps: [
+          { print: 'FOO=<e:FOO>, BAR=<<e:BAR>>, BAZ=e:BAZ, QUX=e:{QUX}' } as any
+        ]
+      } as any,
+      inputs: {},
+      envVars: {}
+    };
+  const js = await rootTestToJsfunc(ctx);
+    expect(js).toContain('${envVariables.FOO}');
+    expect(js).toContain('${envVariables.BAR}');
+    expect(js).toContain('${envVariables.BAZ}');
+    expect(js).toContain('${envVariables.QUX}');
+  });
+
+  it('replaces tokens outside template literals as plain envVariables access', async () => {
+    const ctx: TestContext = {
+      name: 'envOutsideTest',
+      test: {
+        steps: [
+          { for: 'let i = 0; i < e:LIMIT; i++', steps: [ { print: 'ok' } as any ] } as any
+        ]
+      } as any,
+      inputs: {},
+      envVars: {}
+    };
+  const js = await rootTestToJsfunc(ctx);
+    expect(js).toContain('i < envVariables.LIMIT');
+  });
+
+  it('variableReplacer works on raw JS strings inside and outside template literals', () => {
+    const input = [
+      'const a = e:AAA;',
+      'const b = e:{BBB};',
+      'console.log(`X=<e:FOO> Y=<<e:BAR>> Z=e:BAZ W=e:{QUX}`);'
+    ].join('\n');
+    const out = variableReplacer(input);
+    expect(out).toContain('const a = envVariables.AAA;');
+    expect(out).toContain('const b = envVariables.BBB;');
+    expect(out).toContain('`X=${envVariables.FOO} Y=${envVariables.BAR} Z=${envVariables.BAZ} W=${envVariables.QUX}`');
   });
 });
