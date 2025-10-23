@@ -35,6 +35,8 @@ const codiconForType = (t?: string): string => {
             return 'codicon-code';
         case 'call':
             return 'codicon-symbol-method';
+        case 'delay':
+            return 'codicon-clock';
         case 'set':
             return 'codicon-symbol-constant';
         case 'const':
@@ -241,6 +243,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
             case 'if': return { if: '1 != 1', steps: [] };
             case 'for': return { for: '' };
             case 'repeat': return { repeat: '' };
+            case 'delay': return { delay: '' };
             case 'stage': return { stage: '', steps: [] };
             default: return { print: '' };
         }

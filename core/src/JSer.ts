@@ -332,6 +332,34 @@ export const repeatToJSfunc = (loop: TestFlowRepeat): string => {
 }`;
 };
 
+export function delayToJSfunc(d: string | number): string {
+  const val = typeof d === 'number' ? String(d) : String(d).trim();
+  let msExpr = '0';
+  const m = val.match(/^(\d+(?:\.\d+)?)(ns|ms|s|m|h)?$/);
+  if (m) {
+    const num = parseFloat(m[1]);
+    const unit = m[2] || 'ms';
+    switch (unit) {
+      case 'ns': msExpr = String(num / 1e6); break;
+      case 'ms': msExpr = String(num); break;
+      case 's': msExpr = String(num * 1000); break;
+      case 'm': msExpr = String(num * 60 * 1000); break;
+      case 'h': msExpr = String(num * 60 * 60 * 1000); break;
+      default: msExpr = String(num);
+    }
+  } else {
+    msExpr = `(function(x){
+      const s = String(x).trim();
+      const mm = s.match(/^(\\d+(?:\\.\\d+)?)(ns|ms|s|m|h)?$/);
+      if(!mm) return Number(s)||0;
+      const n = parseFloat(mm[1]);
+      const u = mm[2]||'ms';
+      return u==='ns'? n/1e6 : u==='ms'? n : u==='s'? n*1000 : u==='m'? n*60000 : n*3600000;
+    })(${val})`;
+  }
+  return `await new Promise(r => setTimeout(r, ${msExpr}));`;
+}
+
 export const forToJSfunc = (loop: TestFlowLoop): string => {
   const loopBody = flowStepsToJsfunc(loop.steps);
   return `
@@ -416,6 +444,8 @@ export const flowStepsToJsfunc = (flow: TestFlowSteps): string => {
             return ifToJSfunc(step as TestFlowCondition);
           case 'repeat':
             return repeatToJSfunc(step as TestFlowRepeat);
+           case 'delay':
+             return delayToJSfunc((step as any).delay);
           case 'for':
             return forToJSfunc(step as TestFlowLoop);
           case 'js':

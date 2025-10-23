@@ -80,6 +80,9 @@ export function getTestFlowStepType(step: TestFlowStep): FlowType | 'unknown' {
   if ('repeat' in step) {
     return 'repeat';
   }
+  if ('delay' in step) {
+    return 'delay' as FlowType;
+  }
   if ('for' in step) {
     return 'for';
   }

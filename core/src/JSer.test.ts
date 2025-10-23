@@ -205,3 +205,25 @@ describe('env token replacements in generated JS', () => {
     expect(out).toContain('`X=${envVariables.FOO} Y=${envVariables.BAR} Z=${envVariables.BAZ} W=${envVariables.QUX}`');
   });
 });
+
+describe('delay step generation', () => {
+  it('generates setTimeout-based await for ms and unit strings', async () => {
+    const ctx1: TestContext = {
+      name: 'delayTest1',
+      test: { steps: [ { delay: 500 } as any ] } as any,
+      inputs: {},
+      envVars: {}
+    };
+    const js1 = await importTestToJsfunc(ctx1);
+    expect(js1).toContain('setTimeout(r, 500)');
+
+    const ctx2: TestContext = {
+      name: 'delayTest2',
+      test: { steps: [ { delay: '2s' } as any ] } as any,
+      inputs: {},
+      envVars: {}
+    };
+    const js2 = await importTestToJsfunc(ctx2);
+    expect(js2).toContain('setTimeout(r, 2000)');
+  });
+});
