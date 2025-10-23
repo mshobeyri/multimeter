@@ -2,17 +2,30 @@ import React from "react";
 import TextEditor from "../text/TextEditor";
 import { rootTestToJsfunc, setFileLoader } from "mmt-core/JSer";
 import { logToOutput, readFile, runJSCode, showVSCodeMessage } from "../vsAPI";
-import * as mmtHelper from "mmt-core/testHelper";
+import { TestData } from "mmt-core/TestData";
+import { loadEnvVariables } from "../workspaceStorage";
 
 interface TestCodeProps {
-    testData: any;
+    testData: TestData;
 }
 
 const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
     const [jsCode, setJsCode] = React.useState<string>("");
     const [error, setError] = React.useState<string | null>(null);
+    const [envVars, setEnvVars] = React.useState<Record<string, any>>({});
 
     setFileLoader(readFile);
+
+    // Load env variables from VS Code workspace storage
+    React.useEffect(() => {
+        const cleanup = loadEnvVariables((variables) => {
+            const map: Record<string, any> = Object.fromEntries(
+                (variables || []).map(v => [v.name, v.value])
+            );
+            setEnvVars(map);
+        });
+        return () => { if (typeof cleanup === 'function') cleanup(); };
+    }, []);
 
     React.useEffect(() => {
         const generateCode = async () => {
@@ -21,7 +34,7 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
                     name: testData?.title || "testFlow",
                     test: testData,
                     inputs: testData?.inputs || {},
-                    envVars: testData?.envVars || {},
+                    envVars: envVars,
                 });
                 setJsCode(code);
                 setError(null);
@@ -31,7 +44,7 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
             }
         };
         generateCode();
-    }, [testData]);
+    }, [testData, envVars]);
 
     const handleRun = async () => {
         console.log = (...args: any[]) => {

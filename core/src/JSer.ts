@@ -543,12 +543,10 @@ export const importTestToJsfunc = async(ctx: TestContext): Promise<string> => {
 
 export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
   const test = await importTestToJsfunc(ctx);
-  const full = `${test}\n\nreturn ${ctx.name}({}, envVariables);`;
+  const full = `${test}\n\nreturn ${ctx.name}({}, ${JSON.stringify(ctx.envVars || {})});`;
   return variableReplacer(full);
 };
 
-// Replace environment variable tokens with envVariables.* both
-// outside and inside template literals
 export const variableReplacer = (full: string): string => {
   const replaceOutside = (s: string) =>
     s
