@@ -27,6 +27,29 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
         return () => { if (typeof cleanup === 'function') cleanup(); };
     }, []);
 
+    // Allow external signal to refresh env variables from storage
+    const refreshWorkspaceVars = React.useCallback(() => {
+        try {
+            (window as any).vscode?.postMessage({
+                command: 'loadWorkspaceState',
+                name: 'multimeter.environment.storage'
+            });
+        } catch {
+            // ignore
+        }
+    }, []);
+
+    React.useEffect(() => {
+        const handleMessage = (event: MessageEvent) => {
+            const message = (event as any).data;
+            if (message && message.command === 'multimeter.environment.refresh') {
+                refreshWorkspaceVars();
+            }
+        };
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, [refreshWorkspaceVars]);
+
     React.useEffect(() => {
         const generateCode = async () => {
             try {
