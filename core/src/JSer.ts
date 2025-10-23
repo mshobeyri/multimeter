@@ -432,7 +432,7 @@ export const flowStepsToJsfunc = (flow: TestFlowSteps): string => {
             return varToJSfunc('let ', (step as any).let);
           case 'data': {
             const alias = (step as any).data;
-            return `/* data: ${alias} */`;
+            return '';
           }
           default:
             return '';
@@ -521,7 +521,7 @@ export const importTestToJsfunc = async(ctx: TestContext): Promise<string> => {
 
   const inputParams = toInputsParams(replaced.inputs || {}, ' = ');
 
-  let flow = '// Test flow\n';
+  let flow = '';
   const outputParams = toInputsParams(replaced.outputs || {}, ': ');
 
   if (replaced.stages && replaced.stages.length > 0) {
