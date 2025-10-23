@@ -573,7 +573,8 @@ export const importTestToJsfunc = async(ctx: TestContext): Promise<string> => {
 
 export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
   const test = await importTestToJsfunc(ctx);
-  const full = `${test}\n\nreturn ${ctx.name}({}, ${JSON.stringify(ctx.envVars || {})});`;
+  const envPretty = JSON.stringify(ctx.envVars || {}, null, 2);
+  const full = `${test}\n\nconst envVar = ${envPretty};\nreturn ${ctx.name}({}, envVar);`;
   return variableReplacer(full);
 };
 
