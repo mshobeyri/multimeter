@@ -279,6 +279,21 @@ export const TestSchema = {
                         },
                         additionalProperties: false
                     },
+                    // delay step
+                    {
+                        type: 'object',
+                        required: ['delay'],
+                        properties: {
+                            delay: {
+                                anyOf: [
+                                    { type: 'integer' },
+                                    { type: 'number' },
+                                    { type: 'string' }
+                                ]
+                            }
+                        },
+                        additionalProperties: false
+                    },
                     // js step
                     {
                         type: 'object',
