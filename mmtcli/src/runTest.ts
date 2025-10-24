@@ -13,7 +13,35 @@ export async function runTestObject(testObj: any): Promise<CliRunResult> {
       errors.push('No executable flow content.');
     }
     if (js) {
-      const sandbox = { console } as any;
+      const forward =
+        (method: 'log' | 'info' | 'warn' | 'error') =>
+        (...args: any[]) => {
+          const msg = args
+            .map(a => {
+              if (typeof a === 'string') {
+                return a;
+              }
+              try {
+                return JSON.stringify(a);
+              } catch {
+                return String(a);
+              }
+            })
+            .join(' ');
+          const out = method === 'error' || method === 'warn' ? process.stderr : process.stdout;
+          out.write(msg + '\n');
+        };
+      const sandbox: any = {
+        console: {
+          log: forward('log'),
+          info: forward('info'),
+          warn: forward('warn'),
+          error: forward('error'),
+        },
+        lg: forward('log'),
+        setTimeout,
+        clearTimeout,
+      };
       vm.createContext(sandbox);
       try {
         vm.runInContext(js, sandbox, { timeout: 5000 });
@@ -43,7 +71,35 @@ export async function runGeneratedJs(js: string): Promise<CliRunResult> {
     return { success: false, durationMs: performance.now() - start, errors: ['Empty JS input'] };
   }
   try {
-    const sandbox: any = { console };
+    const forward =
+      (method: 'log' | 'info' | 'warn' | 'error') =>
+      (...args: any[]) => {
+        const msg = args
+          .map(a => {
+            if (typeof a === 'string') {
+              return a;
+            }
+            try {
+              return JSON.stringify(a);
+            } catch {
+              return String(a);
+            }
+          })
+          .join(' ');
+        const out = method === 'error' || method === 'warn' ? process.stderr : process.stdout;
+        out.write(msg + '\n');
+      };
+    const sandbox: any = {
+      console: {
+        log: forward('log'),
+        info: forward('info'),
+        warn: forward('warn'),
+        error: forward('error'),
+      },
+      lg: forward('log'),
+      setTimeout,
+      clearTimeout,
+    };
     // Inject runtime helpers required by generated code
     sandbox.extractOutputs = outputExtractor.extractOutputs;
     // Use axios for HTTP; under pkg snapshot ensure module is reachable

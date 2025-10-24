@@ -20,7 +20,8 @@ program
   .argument('<file>', 'Test file (.yaml/.yml/.json/.mmt)')
   .option('-q, --quiet', 'Minimal output', false)
   .option('-o, --out <file>', 'Write result JSON to file')
-  .option('-e, --env <key=val...>', 'Environment variables or choices (repeatable)')
+  .option('-i, --input <values...>', 'Input variables as key value pairs (repeatable)')
+  .option('-e, --env <values...>', 'Environment variables as key value pairs or key=val (repeatable)')
   .option('--env-file <path>', 'Environment file (.mmt/.yaml) to read variables from')
   .option('--preset <name>', 'Preset name from env file (e.g., runner.dev) or just name under runner')
   .option('--print-js', 'Print generated JS before executing', false)
@@ -40,15 +41,20 @@ program
         if (!fs.existsSync(rel)) { return ''; }
         return fs.readFileSync(rel, 'utf8');
       });
-      // Build env vars from env-file + preset + --env overrides
+      // Build inputs and env vars
+      const inputs = buildInputs(opts as any);
       const { envVars } = buildEnvVars(opts as any, dir);
       const test = testParsePack.yamlToTest ? testParsePack.yamlToTest(rawText) : raw;
-      const js = await JSer.rootTestToJsfunc({
+      let js = await JSer.rootTestToJsfunc({
         test,
         name: path.basename(full).replace(/[^a-zA-Z0-9_]/g, '_'),
-        inputs: {},
+        inputs,
         envVars
       });
+      // Ensure env tokens are rewritten in case upstream generator changes
+      if (JSer.variableReplacer && typeof JSer.variableReplacer === 'function') {
+        js = JSer.variableReplacer(js);
+      }
   if ((opts as any).printJs) {
     console.log(js.trim());
   }
@@ -72,8 +78,8 @@ program
       process.exit(result.success ? 0 : 1);
     } catch (e: any) {
       if (!opts.quiet) {
-        console.error('Error:', e?.message || e);
       }
+      console.error('Error:', e?.message || e);
       process.exit(2);
     }
   });
@@ -83,7 +89,8 @@ program
   .argument('<file>', 'Test file (.yaml/.yml/.json/.mmt)')
   .description('Convert a test definition file to executable JS using JSer and print to stdout')
   .option('-s, --stages', 'Include stage headers as comments when stages exist', true)
-  .option('-e, --env <key=val...>', 'Environment variables or choices (repeatable)')
+  .option('-i, --input <values...>', 'Input variables as key value pairs (repeatable)')
+  .option('-e, --env <values...>', 'Environment variables as key value pairs or key=val (repeatable)')
   .option('--env-file <path>', 'Environment file (.mmt/.yaml) to read variables from')
   .option('--preset <name>', 'Preset name from env file (e.g., runner.dev) or just name under runner')
   .action(async (file: string, opts: { stages?: boolean }) => {
@@ -101,13 +108,17 @@ program
       });
 
       const test = testParsePack.yamlToTest ? testParsePack.yamlToTest(rawText) : raw; // fallback
+      const inputs = buildInputs(opts as any);
       const { envVars } = buildEnvVars(opts as any, dir);
-      const js = await JSer.rootTestToJsfunc({
+      let js = await JSer.rootTestToJsfunc({
         test,
         name: path.basename(full).replace(/[^a-zA-Z0-9_]/g, '_'),
-        inputs: {},
+        inputs,
         envVars
       });
+      if (JSer.variableReplacer && typeof JSer.variableReplacer === 'function') {
+        js = JSer.variableReplacer(js);
+      }
       if (!js.trim()) {
         console.error('No JS could be generated (empty flow).');
         process.exit(1);
@@ -143,6 +154,46 @@ function parseKeyValList(list: string[] | undefined): Record<string, string> {
     out[k] = v;
   }
   return out;
+}
+
+function parsePairs(list: string[] | undefined): Record<string, any> {
+  // Accept either [key=value, ...] or [key, value, key, value, ...]
+  const out: Record<string, any> = {};
+  const arr = Array.isArray(list) ? list : [];
+  for (let i = 0; i < arr.length; i++) {
+    const token = arr[i] ?? '';
+    const eq = token.indexOf('=');
+    if (eq > 0) {
+      const k = token.slice(0, eq).trim();
+      const v = token.slice(eq + 1);
+      if (k) {
+        out[k] = coerceCliValue(v);
+      }
+    } else if (i + 1 < arr.length) {
+      const k = token.trim();
+      const v = arr[++i];
+      if (k) {
+        out[k] = coerceCliValue(v);
+      }
+    }
+  }
+  return out;
+}
+
+function coerceCliValue(v: string): any {
+  const t = (v ?? '').trim();
+  if (/^(true|false)$/i.test(t)) { return /^true$/i.test(t); }
+  if (/^[-+]?\d+$/.test(t)) { return Number(t); }
+  if (/^[-+]?\d*\.\d+$/.test(t)) { return Number(t); }
+  // Keep quoted numbers as strings: remove surrounding quotes if present
+  if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith('\'') && t.endsWith('\''))) {
+    return t.slice(1, -1);
+  }
+  return t;
+}
+
+function buildInputs(opts: any): Record<string, any> {
+  return parsePairs(opts.input);
 }
 
 function loadEnvFile(envPath: string): { variables?: EnvLike; presets?: EnvLike } {
@@ -204,8 +255,8 @@ function buildEnvVars(opts: any, cwd: string): { envVars: Record<string, any> } 
     }
   }
   // Apply --env KEY=VAL overrides
-  const kv = parseKeyValList(opts.env);
-  for (const [k, v] of Object.entries(kv)) {
+  const pairs = parsePairs(opts.env);
+  for (const [k, v] of Object.entries(pairs)) {
     envVars[k] = variables ? selectFromVariables(variables, k, v) : v;
   }
   return { envVars };
