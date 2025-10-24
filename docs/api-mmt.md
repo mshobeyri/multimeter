@@ -1,4 +1,4 @@
-# API YAML Reference (HTTP & WS)
+# API
 
 Usage-first guide to author APIs in `.mmt` files. Includes HTTP/WS, params, bodies, env, reuse, and a compact reference at the end.
 

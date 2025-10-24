@@ -3,9 +3,9 @@
 A quick tour of Multimeter `.mmt` YAML types: api, test, and env—what each is for, how they relate, and where to go deeper.
 
 For full details, see the references:
-- [API YAML Reference](./api-mmt.md)
-- [Test YAML Reference](./test-mmt.md)
-- [Environment YAML Reference](./environment-mmt.md)
+- [API](./api-mmt.md)
+- [Test](./test-mmt.md)
+- [Environment](./environment-mmt.md)
 
 ## Tokens at a glance
 - Environment: e:VAR, <e:VAR>, <<e:VAR>>
@@ -31,7 +31,7 @@ extract:
 ```
 Use from Tests: tests import APIs and call them with inputs.
 
-Deep dive: see [API YAML Reference](./api-mmt.md).
+Deep dive: see [API](./api-mmt.md).
 
 ## Test (type: test)
 Purpose: Orchestrate flows using steps/stages; call APIs/tests, assert, loop, and set outputs.
@@ -55,7 +55,7 @@ steps:
 UI: The flow is editable/visible in the Flow and Test panels; logs appear in Log.
 Run: Click Run in the Test panel or use CLI (testlight run ...).
 
-Deep dive: see [Test YAML Reference](./test-mmt.md).
+Deep dive: see [Test](./test-mmt.md).
 
 ## Environment (type: env)
 Purpose: Centralize variables and presets; select per runner/preset and override via CLI.
@@ -76,7 +76,7 @@ presets:
 UI: Edit variables/presets in the Environment and Environment Variables panels (Reset/Clear to apply or clean).
 CLI: --env-file env.mmt --preset runner.dev, plus -e KEY=VAL overrides.
 
-Deep dive: see [Environment YAML Reference](./environment-mmt.md).
+Deep dive: see [Environment](./environment-mmt.md).
 
 ## How they fit together
 - Tests import APIs and data; Environments supply variables consumed by both.
@@ -84,6 +84,6 @@ Deep dive: see [Environment YAML Reference](./environment-mmt.md).
 - The JS that runs is generated automatically from your YAML.
 
 ## Links
-- API YAML Reference: ./api-mmt.md
-- Test YAML Reference: ./test-mmt.md
-- Environment YAML Reference: ./environment-mmt.md
+- API: ./api-mmt.md
+- Test: ./test-mmt.md
+- Environment: ./environment-mmt.md
