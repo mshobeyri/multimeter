@@ -1,4 +1,4 @@
-# Test YAML Reference (Flows)
+# Test (Flows)
 
 Usage-first guide for writing test `.mmt` files: steps, stages, metrics, inputs/outputs, and examples.
 
