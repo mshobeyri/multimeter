@@ -5,14 +5,14 @@
   "type": "module",
   "private": false,
   "bin": {
-    "multimeter": "dist/cli.js"
+  "testlight": "dist/cli.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "dev": "tsx src/cli.ts --help",
     "clean": "rimraf dist",
-    "pkg": "rimraf dist-cjs && npm run build:cjs && pkg dist-cjs/cli.js --targets node18-macos-x64,node18-linux-x64,node18-win-x64 --out-path dist/bin",
+    "pkg": "rimraf dist-cjs && npm run build:cjs && pkg dist-cjs/cli.js --targets node18-macos-x64,node18-linux-x64,node18-win-x64 --output dist/bin/testlight",
     "test": "echo \"(no tests yet)\""
   },
   "pkg": {
