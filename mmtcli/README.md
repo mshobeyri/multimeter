@@ -5,13 +5,13 @@ CLI runner for Multimeter test files.
 ## Usage
 
 ```
-npx multimeter run sample.yaml
-multimeter run test.mmt.yaml -o result.json
+npx testlight run sample.yaml
+testlight run test.mmt.yaml -o result.json
 ```
 
 Commands:
-- `multimeter run <file>`
-- `multimeter version-info`
+- `testlight run <file>`
+- `testlight version-info`
 
 ## Build
 
@@ -39,12 +39,12 @@ Examples:
 
 ```
 # macOS
-./dist/bin/cli-macos version-info
-./dist/bin/cli-macos to-js ../examples/test/login_and_get_user_info.mmt
-./dist/bin/cli-macos run ../examples/test/login_and_get_user_info.mmt --quiet
+./dist/bin/testlight-macos version-info
+./dist/bin/testlight-macos to-js ../examples/test/login_and_get_user_info.mmt
+./dist/bin/testlight-macos run ../examples/test/login_and_get_user_info.mmt --quiet
 
 # Linux
-./dist/bin/cli-linux run path/to/test.mmt --quiet
+./dist/bin/testlight-linux run path/to/test.mmt --quiet
 ```
 
 Tip: Upload the platform binary to your artifact store and invoke it in pipelines.
