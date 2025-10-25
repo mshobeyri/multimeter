@@ -1,8 +1,8 @@
-# Environment YAML Reference
+# Environment
 
 Usage-first guide for environment `.mmt` files: variables, presets, and overrides.
 
-Supported token forms in tests/APIs
+Supported token forms in tests and APIs
 - `e:VAR`
 - `<e:VAR>`
 - `<<e:VAR>>`
@@ -37,7 +37,7 @@ Notes
   - array list of allowed values
 - `presets` groups can be hierarchical; `runner.dev` is a common pattern
 
-## Using presets and overrides (CLI)
+## Using presets and overrides in CLI
 ```
 # Use preset from env file
  testlight run tests/login.mmt --env-file env.mmt --preset runner.dev
@@ -54,7 +54,7 @@ Typing rules for CLI values
 - Unquoted numbers and booleans are coerced (e.g., `true`, `42`)
 - Quoted numbers remain strings (`'00123'`)
 
-## Referencing env in tests/APIs
+## Referencing env in tests and APIs
 ```yaml
 url: <e:API_URL>/login
 headers:
@@ -80,7 +80,7 @@ body:
 In API definitions, use `setenv` to capture values from responses for later steps.
 ```yaml
 setenv:
-  TOKEN: $.body.token
+  TOKEN: body[token]
 ```
 
 ## Reference (types)

@@ -1,4 +1,4 @@
-# Test (Flows)
+# Test
 
 Usage-first guide for writing test `.mmt` files: steps, stages, metrics, inputs/outputs, and examples.
 
@@ -46,11 +46,37 @@ Test panel (click Run to execute):
 
 ![Test panel](../screenshots/test_panel_test.png)
 
+## Stages
+Stages let you run groups of steps in parallel. All stages start concurrently; use dependencies to control order. If you have a single linear flow, you can skip stages and place steps at the test root.
+
+```yaml
+stages:
+  - id: login
+    name: Login Stage
+    steps:
+      - call: login
+        id: doLogin
+  - id: profile
+    dependencies: login   # or
+                          #   - login
+                          #   - anotherStage
+    condition: doLogin.status == 200  # optional guard
+    steps:
+      - call: getUser
+        id: me
+        inputs:
+          token: doLogin.token
+```
+
+## Steps
+Steps are the building blocks of a test. When placed at the test root, they run sequentially. Inside stages, steps run within that stage; parallelism is controlled by the stages.
+
 ## Define a test
 ```yaml
  type: test
  title: Login and fetch profile
- tags: [auth]
+ tags:
+   - auth
  description: Validate login flow then load user profile
  import:
    users: ./users.csv      # CSV alias
@@ -69,14 +95,16 @@ Test panel (click Run to execute):
 
 Create and inspect tests from the Test panel in the UI; fields map directly to the YAML shown above.
 
-## Steps (building blocks)
+## Steps
+
+You can visualize and run the flow from the Flow panel; each step here corresponds to a UI block in that panel.
 
 You can visualize and run the flow from the Flow panel; each step here corresponds to a UI block in that panel.
 
 ![Flow panel](../screenshots/test_panel_flow.png)
 
-### call (invoke API or Test)
-- Call a named API or another test; give it an `id` to reference later.
+### call
+Invoke an imported API or another test; give it an id to reference its outputs later.
 ```yaml
 # call an API named login
 - call: login
@@ -93,8 +121,7 @@ You can visualize and run the flow from the Flow panel; each step here correspon
 ```
 
 ### check and assert
-- `check`: logs a failure but continues
-- `assert`: throws on failure and stops the flow
+Use check to log a failure and continue; use assert to stop the flow on failure.
 
 Supported operators
 - `<`, `>`, `<=`, `>=`, `==`, `!=`, `=@` (contains), `!@` (not contains), `=^` (starts with), `!^` (not starts with), `=$` (ends with), `!$` (not ends with), `=~` (regex), `!~` (not regex)
@@ -109,7 +136,8 @@ Checks, assertions, prints, and errors appear in the Log panel while the flow ru
 
 ![Log panel](../screenshots/test_panel_log.png)
 
-### if / else (conditions)
+### if or else
+Conditionally run nested steps based on an expression.
 ```yaml
 - if: doLogin.status == 200
   steps:
@@ -119,14 +147,18 @@ Checks, assertions, prints, and errors appear in the Log panel while the flow ru
     - print: "Login failed"
 ```
 
-### for / repeat (loops)
+### for or repeat
+for runs with a JavaScript-style header (e.g., `const user of users`) and executes the inner steps per item. repeat runs the inner steps a fixed number of times (or time-based if supported).
 ```yaml
-# iterate imported CSV rows (from import: { users: ./users.csv })
+# iterate imported CSV rows (from import:
+#   users: ./users.csv)
 - for: const user of users
   steps:
     - call: login
       id: login1
-      inputs: { username: user.username, password: user.password }
+      inputs:
+        username: user.username
+        password: user.password
 
 # repeat N times (or "inf")
 - repeat: 3
@@ -136,12 +168,14 @@ Checks, assertions, prints, and errors appear in the Log panel while the flow ru
 ```
 
 ### delay
+Pause the flow for a duration.
 ```yaml
 - delay: 500    # ms
 - delay: 2s     # units: ns|ms|s|m|h
 ```
 
 ### js
+Run inline JavaScript for custom logic or logging.
 ```yaml
 - js: |
     const t = Date.now();
@@ -149,41 +183,34 @@ Checks, assertions, prints, and errors appear in the Log panel while the flow ru
 ```
 
 ### print
+Write a message to the log output.
 ```yaml
 - print: "Starting flow"
 ```
 
-### set / var / const / let (variables)
+### set, var, const, or let
+Create or change variables for later steps. set mutates existing or creates new; var/const/let follow JS scoping.
 ```yaml
-- set: { token: doLogin.token }   # mutable
-- var: { attempt: 1 }
-- const: { role: "admin" }
-- let: { note: "temp" }
+- set:
+  token: doLogin.token   # mutable
+- var:
+  attempt: 1
+- const:
+  role: "admin"
+- let:
+  note: "temp"
 ```
 
-### data (bind imported CSV)
+### data
+Bind an imported CSV alias (from the test's import section) into scope for use in loops and steps.
 ```yaml
-- data: users   # where import: { users: ./users.csv }
+- data: users   # where import:
+                #   users: ./users.csv
 ```
 
-## Stages (grouping and dependencies)
-```yaml
-stages:
-  - id: login
-    name: Login Stage
-    steps:
-      - call: login
-        id: doLogin
-  - id: profile
-    dependencies: login   # or [login, anotherStage]
-  condition: doLogin.status == 200  # optional
-    steps:
-      - call: getUser
-        id: me
-    inputs: { token: doLogin.token }
-```
 
-## Metrics (simple load controls)
+
+## Metrics (simple load controls, under develop)
 ```yaml
 metrics:
   repeat: "100"   # or number or "inf"
@@ -205,25 +232,34 @@ Use `<i:key>` inside steps to substitute test inputs:
 ```yaml
 - call: login
   id: doLogin
-  inputs: { username: <i:user>, password: <i:pass> }
+  inputs:
+    username: <i:user>
+    password: <i:pass>
 ```
 
 ## Complete example
 ```yaml
  type: test
  title: Login + Profile
- import: { users: ./users.csv }
- inputs: { user: string, pass: string }
+ import:
+   users: ./users.csv
+ inputs:
+   user: string
+   pass: string
  steps:
   - call: login
     id: doLogin
-    inputs: { username: <i:user>, password: <i:pass> }
+    inputs:
+      username: <i:user>
+      password: <i:pass>
   - assert: doLogin.status == 200
-  - set: { token: doLogin.token }
+  - set:
+      token: doLogin.token
   - delay: 2s
   - call: getUser
     id: me
-    inputs: { token: token }
+    inputs:
+      token: token
   - check: me.email =~ /@example.com$/
 ```
 

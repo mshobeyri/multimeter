@@ -8,7 +8,7 @@ Supported protocols: `http`, `ws` • Formats: `json`, `xml`, `text` • Methods
 
 ## Define APIs
 
-### HTTP quick start (GET)
+### HTTP quick start — GET
 ```yaml
  type: api
  protocol: http
@@ -25,7 +25,7 @@ Notes
 - `format` sets how the body is encoded/decoded
 - `query` merges with any query string in `url`
 
-### HTTP quick start (POST JSON)
+### HTTP quick start — POST JSON
 ```yaml
  type: api
  protocol: http
@@ -39,7 +39,7 @@ Notes
    password: e:PASS
 ```
 
-### HTTP with raw text or XML
+### HTTP with raw text or with XML
 ```yaml
 # text
  type: api
@@ -60,7 +60,7 @@ Notes
    <root><value>42</value></root>
 ```
 
-### WebSocket (WS)
+### WebSocket
 ```yaml
  type: api
  protocol: ws
@@ -74,9 +74,9 @@ Tip: For WS, use tests to send/receive frames with `call` steps that invoke this
 
 ---
 
-## Send requests (params + bodies)
+## Send requests — params and bodies
 
-### URL, Query, Headers, Cookies
+### URL, query, headers, and cookies
 ```yaml
 headers:
   Authorization: Bearer <e:TOKEN>
@@ -90,7 +90,7 @@ cookies:
 - Values are strings and can use env tokens
 - `query` merges with any query string in `url`
 
-### Body formats and Content-Type (recommended)
+### Body formats and Content-Type — recommended
 Author bodies in YAML and get the right wire format automatically.
 
 - JSON request (recommended): `format: json` + YAML object `body` → serialized to JSON; `Content-Type: application/json` by default.
@@ -103,7 +103,9 @@ Author bodies in YAML and get the right wire format automatically.
  body:
    id: 123
    name: "Widget"
-   tags: [a, b]
+   tags:
+     - a
+     - b
 ```
 
 - YAML payload (server expects YAML): `format: text` + block string `body` + explicit header.
@@ -139,9 +141,9 @@ Tip: If you set `headers.Content-Type`, it overrides the default implied by `for
 
 ---
 
-## Reuse and compose (inputs, extract, outputs, env, data)
+## Reuse and compose — inputs, extract, outputs, env, and data
 
-### Inputs (parameterize APIs)
+### Inputs — parameterize APIs
 Declare inputs and reference them with `<i:key>` in url/headers/body.
 ```yaml
  type: api
@@ -153,38 +155,33 @@ Declare inputs and reference them with `<i:key>` in url/headers/body.
  method: get
  url: <e:API_URL>/users/<i:userId>
 ```
-Use in a test
+Use it in a test
 ```yaml
 steps:
   - call: getUser
     id: u1
-    inputs: { userId: "123" }
-  - assert: $.u1.status == 200
+    inputs:
+      userId: "123"
+  - assert: u1.status == 200
 ```
 Notes
 - `<i:key>` can appear inside `url`, `headers`, and `body`
 - Declare input names under `inputs:` (string/number/boolean/null)
 
-### Extract (pull fields from the response)
-Add named extraction rules (JSONPath-like) to reuse values or promote to env.
+### Extract — pull fields from the response
+Use one of the following per key:
+- A regex applied to the raw response body text: `regex ...`
+- A bracket path starting with `body[...]` to read structured fields
+
+Example
 ```yaml
 extract:
-  # HTTP metadata
-  status: $.status               # 200
-  statusText: $.statusString     # e.g., OK
-  contentType: $.headers['content-type']
-  
-  # Request context
-  q: $.query.q
-  session: $.cookies.session
-
-  # Body content
-  id: $.body.id
-  firstName: $.body.user.name.first
-  itemsCount: $.body.items.length
+  name: regex message(.*)
+  from: body[from][0]
+  method: body[method]
 ```
 
-### Outputs (document exported values)
+### Outputs — document exported values
 Describe the shape/type of values exposed by this API for downstream consumers.
 ```yaml
 outputs:
@@ -192,29 +189,29 @@ outputs:
   status: number
   name: string
 ```
-Tip: Pair `extract` with `outputs` so tests can reference `$.<stepId>.<key>` with confidence.
+Tip: Pair `extract` with `outputs` so tests can reference `<stepId>.<key>` with confidence.
 
-### setenv (promote values to environment)
+### setenv — promote values to environment
 Promote values (often from `extract`) into the runtime environment.
 ```yaml
 setenv:
-  TOKEN: $.body.token
+  TOKEN: body[token]
   USERNAME: <e:USER>
 ```
 These become available to subsequent steps/tests as env variables.
 
-### Import and data alias (CSV)
+### Import and data alias — CSV
 Import CSV and expose an alias to scripts.
 ```yaml
 import:
   users: ./users.csv
-# Optional direct alias available in scripts as $.data
+# Optional direct alias available in scripts as data
 data: users
 ```
 - `import` maps alias → CSV path
 - `data` references a single imported alias
 
-### Examples block (document request shapes)
+### Examples — document request shapes
 ```yaml
 examples:
   - name: happy-path
@@ -228,7 +225,7 @@ examples:
       password: wrong
 ```
 
-### Environment tokens (supported forms)
+### Environment tokens — supported forms
 - `e:VAR`
 - `<e:VAR>`
 - `<<e:VAR>>`
@@ -247,7 +244,9 @@ Note: `e:{VAR}` is not supported.
 ```yaml
  type: api
  title: Search users
- tags: [user, search]
+ tags:
+   - user
+   - search
  description: Full-text search on users
  protocol: http
  format: json
@@ -262,9 +261,9 @@ Note: `e:{VAR}` is not supported.
  cookies:
    locale: en-US
  extract:
-   total: $.body.total
+  total: body[total]
  setenv:
-   LAST_TOTAL: $.body.total
+  LAST_TOTAL: body[total]
  outputs:
    total: number
 ```

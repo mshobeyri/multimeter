@@ -21,13 +21,14 @@ protocol: http
 url: <e:API_URL>/login
 method: post
 format: json
-headers: { 'content-type': application/json }
+headers: 
+ - content-type: application/json
 body:
   username: <i:user>
   password: <i:pass>
 # Capture values from the response
 extract:
-  token: $[body][token]
+  token: body[token]
 ```
 Use from Tests: tests import APIs and call them with inputs.
 
@@ -67,11 +68,17 @@ variables:
   API_URL:
     dev: http://localhost:8080
     prod: https://api.example.com
-  test_type: [smoke, regression]
+  test_type: 
+    - smoke
+    - regression
 presets:
   runner:
-    dev: { API_URL: dev, test_type: smoke }
-    ci:  { API_URL: prod, test_type: regression }
+    dev: 
+      API_URL: dev
+      test_type: smoke
+    ci:  
+      API_URL: prod
+      test_type: regression
 ```
 UI: Edit variables/presets in the Environment and Environment Variables panels (Reset/Clear to apply or clean).
 CLI: --env-file env.mmt --preset runner.dev, plus -e KEY=VAL overrides.
@@ -82,8 +89,3 @@ Deep dive: see [Environment](./environment-mmt.md).
 - Tests import APIs and data; Environments supply variables consumed by both.
 - Inputs (<i:key>) are test-provided; Envs (e:VAR) come from env files/UI.
 - The JS that runs is generated automatically from your YAML.
-
-## Links
-- API: ./api-mmt.md
-- Test: ./test-mmt.md
-- Environment: ./environment-mmt.md
