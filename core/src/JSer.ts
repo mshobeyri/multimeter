@@ -10,6 +10,14 @@ export function indentLines(str: string): string {
   return str.split('\n').map(line => '  ' + line).join('\n').slice(2);
 }
 
+// Convert a string to lowercase and replace spaces with underscores
+export function toLowerUnderscore(input: string): string {
+  if (input === undefined || input === null) {
+    return '';
+  }
+  return String(input).replace(/ /g, '_').toLowerCase();
+}
+
 export interface APIContext {
   api: APIData, name: string, inputs: JSONRecord, envVars: JSONRecord
 }
@@ -92,7 +100,7 @@ export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
                     .map(([k, v]) => `"${k}": \`${v}\``)
                     .join(', ');
 
-  return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
+  return `const ${toLowerUnderscore(ctx.name)} = async ({ ${inputParams} } = {}) => {
   const req = {
     url: '${ctx.api.url}',
     protocol: '${ctx.api.protocol}',
@@ -559,7 +567,7 @@ export const importTestToJsfunc = async(ctx: TestContext): Promise<string> => {
   } else if (replaced.steps && replaced.steps.length > 0) {
     flow += flowStepsToJsfunc(replaced.steps);
   }
-  return `const ${ctx.name} = async ({ ${
+  return `const ${toLowerUnderscore(ctx.name)} = async ({ ${
       inputParams} } = {}, envVariables = {}) => {
   ${indentLines(importedFuncs)}
 
@@ -574,7 +582,7 @@ export const importTestToJsfunc = async(ctx: TestContext): Promise<string> => {
 export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
   const test = await importTestToJsfunc(ctx);
   const envPretty = JSON.stringify(ctx.envVars || {}, null, 2);
-  const full = `${test}\n\nconst envVar = ${envPretty};\nreturn ${ctx.name}({}, envVar);`;
+  const full = `${test}\n\nconst envVar = ${envPretty};\nreturn ${toLowerUnderscore(ctx.name)}({}, envVar);`;
   return variableReplacer(full);
 };
 
