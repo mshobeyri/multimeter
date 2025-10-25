@@ -7,10 +7,6 @@ For full details, see the references:
 - [Test](./test-mmt.md)
 - [Environment](./environment-mmt.md)
 
-## Tokens at a glance
-- Environment: e:VAR, <e:VAR>, <<e:VAR>>
-- Inputs: <i:key>
-
 ## API (type: api)
 Purpose: Define a single HTTP/WS request with inputs, headers, body, and extraction rules.
 
@@ -18,14 +14,14 @@ Minimal example
 ```yaml
 type: api
 protocol: http
-url: <e:API_URL>/login
+url: https://abc.com/login
 method: post
 format: json
 headers: 
  - content-type: application/json
 body:
-  username: <i:user>
-  password: <i:pass>
+  username: mehrdad
+  password: 123456
 # Capture values from the response
 extract:
   token: body[token]
@@ -37,7 +33,7 @@ Deep dive: see [API](./api-mmt.md).
 ## Test (type: test)
 Purpose: Orchestrate flows using steps/stages; call APIs/tests, assert, loop, and set outputs.
 
-Minimal example
+Minimal example for calling loging and make sure the response is fine.
 ```yaml
 type: test
 title: Login flow
@@ -49,9 +45,12 @@ inputs:
 steps:
   - call: login
     id: doLogin
-    inputs: { user: <i:user>, pass: <i:pass> }
+    inputs: 
+      user: i:user
+      pass: i:pass
   - assert: doLogin.status == 200
-  - set: { token: doLogin.token }
+  - set:
+    token: doLogin.token
 ```
 UI: The flow is editable/visible in the Flow and Test panels; logs appear in Log.
 Run: Click Run in the Test panel or use CLI (testlight run ...).
@@ -59,7 +58,7 @@ Run: Click Run in the Test panel or use CLI (testlight run ...).
 Deep dive: see [Test](./test-mmt.md).
 
 ## Environment (type: env)
-Purpose: Centralize variables and presets; select per runner/preset and override via CLI.
+Purpose: Centralize variables and presets.
 
 Minimal example
 ```yaml
@@ -80,8 +79,8 @@ presets:
       API_URL: prod
       test_type: regression
 ```
-UI: Edit variables/presets in the Environment and Environment Variables panels (Reset/Clear to apply or clean).
-CLI: --env-file env.mmt --preset runner.dev, plus -e KEY=VAL overrides.
+Here we defined two urls 'dev' and 'prod' to switch target machines easily. Also a variable called test type to filter some of tests for example. In the presets section also we defined two presets as environmets that can modify both variables with just one click.
+variables are accessible in the whole yamls by ```e:NAME```, ```<e:NAME>``` and ```<<e:NAME>>```.
 
 Deep dive: see [Environment](./environment-mmt.md).
 
