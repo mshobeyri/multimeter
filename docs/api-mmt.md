@@ -1,22 +1,25 @@
 # API
 
-Usage-first guide to author APIs in `.mmt` files. Includes HTTP/WS, params, bodies, env, reuse, and a compact reference at the end.
+Usage-first guide to write APIs in `.mmt` files. Includes HTTP/WS, params, bodies, env, reuse, and a compact reference at the end.
 
-Supported protocols: `http`, `ws` • Formats: `json`, `xml`, `text` • Methods: `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
+Supported:
+- Protocols: `http`, `ws`
+- Formats: `json`, `xml`, `text`
+- Methods: `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
 
 ---
 
-## Define APIs
+## Quick start
 
-### HTTP quick start — GET
+### HTTP GET
 ```yaml
  type: api
  protocol: http
  format: json   # affects default Content-Type and body handling
  method: get
- url: <e:API_URL>/users?active=true
+ url: <e:API_URL>/users
  headers:
-   Authorization: Bearer <e:TOKEN>
+   Session: <e:TOKEN>
  query:
    limit: "10"
    sort: desc
@@ -25,7 +28,7 @@ Notes
 - `format` sets how the body is encoded/decoded
 - `query` merges with any query string in `url`
 
-### HTTP quick start — POST JSON
+### HTTP POST JSON or XML
 ```yaml
  type: api
  protocol: http
@@ -39,7 +42,9 @@ Notes
    password: e:PASS
 ```
 
-### HTTP with raw text or with XML
+Change `format` to `xml` to send an XML body instead of JSON.
+
+### HTTP raw text or raw XML
 ```yaml
 # text
  type: api
@@ -57,7 +62,9 @@ Notes
  method: post
  url: <e:API_URL>/xml
  body: |
-   <root><value>42</value></root>
+   <root>
+    <value>42</value>
+  </root>
 ```
 
 ### WebSocket
@@ -74,77 +81,66 @@ Tip: For WS, use tests to send/receive frames with `call` steps that invoke this
 
 ---
 
-## Send requests — params and bodies
+## API elements
+Items in the `api` type fall into a few sections:
+- Documentation: fields that help search, filter, and auto-document APIs
+- Request: the request/message you’ll send
+- Reuse and compose: inputs/outputs/extract/setenv for reuse
+- Examples: sample inputs you can run as smoke tests
 
-### URL, query, headers, and cookies
+The next sections cover each category in detail.
+
+## Documentation
+The following fields make it easy to search, filter, and auto‑document APIs:
+- title: API title
+- tags: related tags
+- description: short explanation of the API
+
+Sample:
 ```yaml
+type: api
+title: generate session
+description: create a session from username and password.
+tags:
+  - smoke
+  - authentication
+```
+
+## Request
+- protocol: `http` or `ws`
+- method: HTTP method `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
+- format: body format `json` | `xml` | `text`
+- url: server URL
+- headers: HTTP headers
+- query: query parameters for HTTP requests
+- cookies: HTTP cookies
+- body: request body (HTTP) or message (WS)
+
+As noted in the quick start, the body can be raw XML, JSON, or text. It can also be a YAML object that’s automatically converted to the specified format.
+
+
+Sample:
+```yaml
+protocol: http
+method: get
+url: x.com/blog
 headers:
   Authorization: Bearer <e:TOKEN>
   Accept: application/json
 query:
   limit: "20"
   page: "1"
+  # will be converted to x.com/blog?limit=20&page=1
 cookies:
   session: e:SESSION_ID
 ```
-- Values are strings and can use env tokens
-- `query` merges with any query string in `url`
 
-### Body formats and Content-Type — recommended
-Author bodies in YAML and get the right wire format automatically.
+## Reuse and compose
+These fields help you call an API with different inputs and capture outputs.
 
-- JSON request (recommended): `format: json` + YAML object `body` → serialized to JSON; `Content-Type: application/json` by default.
-```yaml
- type: api
- protocol: http
- format: json
- method: post
- url: <e:API_URL>/items
- body:
-   id: 123
-   name: "Widget"
-   tags:
-     - a
-     - b
-```
-
-- YAML payload (server expects YAML): `format: text` + block string `body` + explicit header.
-```yaml
- type: api
- protocol: http
- format: text
- method: post
- url: <e:API_URL>/ingest-yaml
- headers:
-   Content-Type: application/yaml
- body: |
-   id: 123
-   name: Widget
-   tags:
-     - a
-     - b
-```
-
-- XML payload: `format: xml` + string `body`; optionally set `Content-Type: application/xml`.
-```yaml
- type: api
- protocol: http
- format: xml
- method: post
- url: <e:API_URL>/ingest-xml
- headers:
-   Content-Type: application/xml
- body: |
-   <root><id>123</id><name>Widget</name></root>
-```
-Tip: If you set `headers.Content-Type`, it overrides the default implied by `format`.
-
----
-
-## Reuse and compose — inputs, extract, outputs, env, and data
-
-### Inputs — parameterize APIs
-Declare inputs and reference them with `<i:key>` in url/headers/body.
+### inputs
+Declare inputs and reference them with `<i:key>` in URL, headers, or body. This lets you reuse the API with different values across tests. Tests have the same structure to chain calls.
+You can also write `i:name` if it doesn’t conflict with surrounding text. When embedded in other text (like inside a URL), use `<i:name>`.
 ```yaml
  type: api
  title: Get user by ID
@@ -155,23 +151,15 @@ Declare inputs and reference them with `<i:key>` in url/headers/body.
  method: get
  url: <e:API_URL>/users/<i:userId>
 ```
-Use it in a test
-```yaml
-steps:
-  - call: getUser
-    id: u1
-    inputs:
-      userId: "123"
-  - assert: u1.status == 200
-```
+
 Notes
 - `<i:key>` can appear inside `url`, `headers`, and `body`
 - Declare input names under `inputs:` (string/number/boolean/null)
 
-### Extract — pull fields from the response
-Use one of the following per key:
+### extract
+Pull fields from the response to populate outputs. Use one of the following per key:
 - A regex applied to the raw response body text: `regex ...`
-- A bracket path starting with `body[...]` to read structured fields
+- A bracket path starting with `body[...]` to read structured fields (you can also use `headers[...]` or `cookies[...]`)
 
 Example
 ```yaml
@@ -181,8 +169,8 @@ extract:
   method: body[method]
 ```
 
-### Outputs — document exported values
-Describe the shape/type of values exposed by this API for downstream consumers.
+### outputs
+Describe the shape/type of values this API exposes for downstream consumers.
 ```yaml
 outputs:
   id: string
@@ -191,27 +179,18 @@ outputs:
 ```
 Tip: Pair `extract` with `outputs` so tests can reference `<stepId>.<key>` with confidence.
 
-### setenv — promote values to environment
+### setenv
 Promote values (often from `extract`) into the runtime environment.
 ```yaml
 setenv:
   TOKEN: body[token]
   USERNAME: <e:USER>
 ```
-These become available to subsequent steps/tests as env variables.
+These become available to subsequent steps/tests as environment variables.
 
-### Import and data alias — CSV
-Import CSV and expose an alias to scripts.
-```yaml
-import:
-  users: ./users.csv
-# Optional direct alias available in scripts as data
-data: users
-```
-- `import` maps alias → CSV path
-- `data` references a single imported alias
+## Examples
+Define example inputs so you can run them as smoke tests. When examples exist, the Tests panel shows a dropdown; picking one pre‑fills the inputs.
 
-### Examples — document request shapes
 ```yaml
 examples:
   - name: happy-path
@@ -225,13 +204,7 @@ examples:
       password: wrong
 ```
 
-### Environment tokens — supported forms
-- `e:VAR`
-- `<e:VAR>`
-- `<<e:VAR>>`
-Note: `e:{VAR}` is not supported.
-
-### Validation and requirements
+## Validation and requirements
 - For `protocol: http`, `method` is required
 - For `method: post|put|patch`, `body` is required
 - Unknown fields are rejected (strict schema)
@@ -287,18 +260,17 @@ Note: `e:{VAR}` is not supported.
 - title: string
 - tags: string[]
 - description: string
-- import: record<string,string>
-- data: string (alias of an imported CSV)
-- inputs: record<string, string|number|boolean|null>
-- outputs: record<string, string|number|boolean|null>
+- import: record<string, string>
+- inputs: record<string, string | number | boolean | null>
+- outputs: record<string, string | number | boolean | null>
 - extract: record<string, string>
 - setenv: record<string, string>
 - protocol: `http` or `ws`
 - method: HTTP verbs (HTTP only)
 - format: `json` | `xml` | `text`
 - url: string (can contain query string)
-- headers: record<string,string>
-- query: record<string,string>
-- cookies: record<string,string>
+- headers: record<string, string>
+- query: record<string, string>
+- cookies: record<string, string>
 - body: string or object (json/xml/text based on format)
 - examples: array of { name (required), description?, inputs? }
