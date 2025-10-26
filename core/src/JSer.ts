@@ -102,7 +102,7 @@ export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
 
   return `const ${toLowerUnderscore(ctx.name)} = async ({ ${inputParams} } = {}) => {
   const req = {
-    url: '${ctx.api.url}',
+    url: \`${replaced.url || ''}\`,
     protocol: '${ctx.api.protocol}',
     method: '${replaced.method}',
     headers: ${headers ? '{ ' + headers + ' }' : '{}'},
@@ -571,6 +571,16 @@ export const importTestToJsfunc = async(ctx: TestContext): Promise<string> => {
       inputParams} } = {}, envVariables = {}) => {
   ${indentLines(importedFuncs)}
 
+  const getEnv = (k) => {
+    if (!k) return '';
+    if (envVariables && Object.prototype.hasOwnProperty.call(envVariables, k)) return envVariables[k];
+    const lower = String(k).toLowerCase();
+    const upper = String(k).toUpperCase();
+    if (envVariables && Object.prototype.hasOwnProperty.call(envVariables, lower)) return envVariables[lower];
+    if (envVariables && Object.prototype.hasOwnProperty.call(envVariables, upper)) return envVariables[upper];
+    return '';
+  };
+
   let outputs = { ${outputParams} };
 
   ${indentLines(flow)}
@@ -589,17 +599,17 @@ export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
 export const variableReplacer = (full: string): string => {
   const replaceOutside = (s: string) =>
     s
-      .replace(/<<\s*e:([A-Za-z0-9_]+)\s*>>/g, 'envVariables.$1')
-      .replace(/<\s*e:([A-Za-z0-9_]+)\s*>/g, 'envVariables.$1')
-      .replace(/\be:\{([A-Za-z0-9_]+)\}/g, 'envVariables.$1')
-      .replace(/\be:([A-Za-z0-9_]+)(?![A-Za-z0-9_])/g, 'envVariables.$1');
+      .replace(/<<\s*e:([A-Za-z0-9_]+)\s*>>/g, 'getEnv("$1")')
+      .replace(/<\s*e:([A-Za-z0-9_]+)\s*>/g, 'getEnv("$1")')
+      .replace(/\be:\{([A-Za-z0-9_]+)\}/g, 'getEnv("$1")')
+      .replace(/\be:([A-Za-z0-9_]+)(?![A-Za-z0-9_])/g, 'getEnv("$1")');
 
   const replaceInsideTpl = (s: string) =>
     s
-      .replace(/<<\s*e:([A-Za-z0-9_]+)\s*>>/g, '${envVariables.$1}')
-      .replace(/<\s*e:([A-Za-z0-9_]+)\s*>/g, '${envVariables.$1}')
-      .replace(/\be:\{([A-Za-z0-9_]+)\}/g, '${envVariables.$1}')
-      .replace(/\be:([A-Za-z0-9_]+)(?![A-Za-z0-9_])/g, '${envVariables.$1}');
+      .replace(/<<\s*e:([A-Za-z0-9_]+)\s*>>/g, '${getEnv("$1")}')
+      .replace(/<\s*e:([A-Za-z0-9_]+)\s*>/g, '${getEnv("$1")}')
+      .replace(/\be:\{([A-Za-z0-9_]+)\}/g, '${getEnv("$1")}')
+      .replace(/\be:([A-Za-z0-9_]+)(?![A-Za-z0-9_])/g, '${getEnv("$1")}');
 
   let out = '';
   let i = 0;

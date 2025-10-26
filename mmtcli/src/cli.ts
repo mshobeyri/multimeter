@@ -86,7 +86,6 @@ program
 
 program
   .command('print-js')
-  .alias('to-js')
   .argument('<file>', 'Test file (.yaml/.yml/.json/.mmt)')
   .description('Convert a test definition file to executable JS using JSer and print to stdout')
   .option('-s, --stages', 'Include stage headers as comments when stages exist', true)
@@ -226,12 +225,20 @@ function selectFromVariables(variables: EnvLike, key: string, choiceOrValue: any
   return choiceOrValue;
 }
 
-function buildEnvVars(opts: any, cwd: string): { envVars: Record<string, any> } {
+function buildEnvVars(opts: any, testDir: string): { envVars: Record<string, any> } {
   const envVars: Record<string, any> = {};
   let variables: EnvLike | undefined;
   let presets: EnvLike | undefined;
   if (opts.envFile) {
-    const p = path.isAbsolute(opts.envFile) ? opts.envFile : path.join(cwd, opts.envFile);
+    let p = String(opts.envFile);
+    if (!path.isAbsolute(p)) {
+      const fromCwd = path.resolve(process.cwd(), p);
+      if (fs.existsSync(fromCwd)) {
+        p = fromCwd;
+      } else {
+        p = path.resolve(testDir, p);
+      }
+    }
     const loaded = loadEnvFile(p);
     variables = loaded.variables;
     presets = loaded.presets;
