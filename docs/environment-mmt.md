@@ -4,7 +4,6 @@ Usage-first guide for environment `.mmt` files: variables, presets, and override
 
 Supported token forms in tests and APIs
 - `e:VAR`
-- `<e:VAR>`
 - `<<e:VAR>>`
 
 ## Define an environment file
@@ -56,9 +55,9 @@ Typing rules for CLI values
 
 ## Referencing env in tests and APIs
 ```yaml
-url: <e:API_URL>/login
+url: <<e:API_URL>>/login
 headers:
-  Authorization: Bearer <e:TOKEN>
+  Authorization: Bearer <<e:TOKEN>>
 body:
   username: e:USER
   password: e:PASS

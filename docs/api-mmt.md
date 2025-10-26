@@ -17,9 +17,9 @@ Supported:
  protocol: http
  format: json   # affects default Content-Type and body handling
  method: get
- url: <e:API_URL>/users
+ url: <<e:API_URL>>/users
  headers:
-   Session: <e:TOKEN>
+   Session: e:TOKEN
  query:
    limit: "10"
    sort: desc
@@ -34,7 +34,7 @@ Notes
  protocol: http
  format: json
  method: post
- url: <e:API_URL>/login
+ url: <<e:API_URL>>/login
  headers:
    X-App: multimeter
  body:
@@ -51,7 +51,7 @@ Change `format` to `xml` to send an XML body instead of JSON.
  protocol: http
  format: text
  method: post
- url: <e:API_URL>/echo
+ url: <<e:API_URL>>/echo
  body: |
    hello world
 
@@ -60,7 +60,7 @@ Change `format` to `xml` to send an XML body instead of JSON.
  protocol: http
  format: xml
  method: post
- url: <e:API_URL>/xml
+ url: <<e:API_URL>>/xml
  body: |
    <root>
     <value>42</value>
@@ -74,7 +74,7 @@ Change `format` to `xml` to send an XML body instead of JSON.
  format: json
  url: ws://localhost:8080/ws
  headers:
-   X-Auth: <e:TOKEN>
+   X-Auth: e:TOKEN
  # drive messages in tests via call steps
 ```
 Tip: For WS, use tests to send/receive frames with `call` steps that invoke this API.
@@ -125,7 +125,7 @@ protocol: http
 method: get
 url: x.com/blog
 headers:
-  Authorization: Bearer <e:TOKEN>
+  Authorization: Bearer <<e:TOKEN>>
   Accept: application/json
 query:
   limit: "20"
@@ -139,8 +139,8 @@ cookies:
 These fields help you call an API with different inputs and capture outputs.
 
 ### inputs
-Declare inputs and reference them with `<i:key>` in URL, headers, or body. This lets you reuse the API with different values across tests. Tests have the same structure to chain calls.
-You can also write `i:name` if it doesn’t conflict with surrounding text. When embedded in other text (like inside a URL), use `<i:name>`.
+Declare inputs and reference them with `<<i:key>>` in URL, headers, or body. This lets you reuse the API with different values across tests. Tests have the same structure to chain calls.
+You can also write `i:name` if it doesn’t conflict with surrounding text. When embedded in other text (like inside a URL), use `<<i:name>>`.
 ```yaml
  type: api
  title: Get user by ID
@@ -149,11 +149,11 @@ You can also write `i:name` if it doesn’t conflict with surrounding text. When
  protocol: http
  format: json
  method: get
- url: <e:API_URL>/users/<i:userId>
+ url: <<e:API_URL>>/users/<<i:userId>>
 ```
 
 Notes
-- `<i:key>` can appear inside `url`, `headers`, and `body`
+- `<<i:key>>` can appear inside `url`, `headers`, and `body`
 - Declare input names under `inputs:` (string/number/boolean/null)
 
 ### extract
@@ -184,7 +184,7 @@ Promote values (often from `extract`) into the runtime environment.
 ```yaml
 setenv:
   TOKEN: body[token]
-  USERNAME: <e:USER>
+  USERNAME: e:USER
 ```
 These become available to subsequent steps/tests as environment variables.
 
@@ -224,9 +224,9 @@ examples:
  protocol: http
  format: json
  method: get
- url: <e:API_URL>/users/search
+ url: <<e:API_URL>>/users/search
  headers:
-   Authorization: Bearer <e:TOKEN>
+   Authorization: Bearer <<e:TOKEN>>
    X-Client: test
  query:
    q: john
@@ -249,7 +249,7 @@ examples:
  format: json
  url: wss://example.com/ws
  headers:
-   X-Auth: <e:TOKEN>
+   X-Auth: e:TOKEN
  # Drive messages in a test using steps
 ```
 
