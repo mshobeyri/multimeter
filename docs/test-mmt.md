@@ -77,8 +77,8 @@ Invoke an imported API or another test; give it an id to reference its outputs l
 - call: login
   id: doLogin
   inputs:
-    username: <i:user>
-    password: <i:pass>
+    username: i:user
+    password: i:pass
 
 # call another test named getUser
 - call: getUser
@@ -188,8 +188,8 @@ steps:
   - call: login
     id: doLogin
     inputs:
-      username: <i:user>
-      password: <i:pass>
+      username: i:user
+      password: i:pass
   - assert: doLogin.status == 200
   - set:
       token: doLogin.token
