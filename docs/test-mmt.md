@@ -1,19 +1,14 @@
 # Test
 
-Usage-first guide for writing test `.mmt` files: steps, stages, metrics, inputs/outputs, and examples.
+Use `type: test` to define a test MMT file. You can build complex flows with the elements below. Under the hood, Multimeter compiles your MMT to JavaScript and runs it inside VS Code or in CI with `testlight`.
 
-Supported tokens
-- Environment: `e:VAR`, `<e:VAR>`, `<<e:VAR>>`
-- Inputs: `<i:key>` (use inside url/headers/body)
+Example:
 
-## Example: YAML to auto-generated JS
-The JS that runs is automatically generated from your YAML. You can generate and run it directly by clicking the Run button in the Test panel.
-
-YAML
 ```yaml
 type: test
-title: login_and_get_user_info
-tags: []
+title: Login and get user info
+tags:
+  - smoke
 import:
   create_session: create_session.mmt
   get_user_info: get_user_info.mmt
@@ -42,11 +37,13 @@ steps:
       outputs.family: user_info.family
 ```
 
-Test panel (click Run to execute):
-
+For the provided MMT, the Test panel shows the generated JavaScript. Click Run to execute the test.
 ![Test panel](../screenshots/test_panel_test.png)
 
-## Stages
+## Elements
+The `test` type also supports documentation fields (title, tags, description) and reuse/compose elements (import, inputs, outputs). See the API doc for details. The sections below cover flow elements.
+
+### Stages
 Stages let you run groups of steps in parallel. All stages start concurrently; use dependencies to control order. If you have a single linear flow, you can skip stages and place steps at the test root.
 
 ```yaml
@@ -60,7 +57,6 @@ stages:
     dependencies: login   # or
                           #   - login
                           #   - anotherStage
-    condition: doLogin.status == 200  # optional guard
     steps:
       - call: getUser
         id: me
@@ -68,37 +64,8 @@ stages:
           token: doLogin.token
 ```
 
-## Steps
+### Steps
 Steps are the building blocks of a test. When placed at the test root, they run sequentially. Inside stages, steps run within that stage; parallelism is controlled by the stages.
-
-## Define a test
-```yaml
- type: test
- title: Login and fetch profile
- tags:
-   - auth
- description: Validate login flow then load user profile
- import:
-   users: ./users.csv      # CSV alias
- inputs:
-   user: string
-   pass: string
- outputs:
-   token: string
- metrics:
-   repeat: "3"            # or a number; can combine with threads/duration
-   threads: 2
-   duration: 30s
-   rampup: 5s
- steps: []                 # or use stages: []
-```
-
-Create and inspect tests from the Test panel in the UI; fields map directly to the YAML shown above.
-
-## Steps
-
-You can visualize and run the flow from the Flow panel; each step here corresponds to a UI block in that panel.
-
 You can visualize and run the flow from the Flow panel; each step here corresponds to a UI block in that panel.
 
 ![Flow panel](../screenshots/test_panel_flow.png)
@@ -120,7 +87,7 @@ Invoke an imported API or another test; give it an id to reference its outputs l
   token: doLogin.token
 ```
 
-### check and assert
+### check, assert
 Use check to log a failure and continue; use assert to stop the flow on failure.
 
 Supported operators
@@ -136,7 +103,7 @@ Checks, assertions, prints, and errors appear in the Log panel while the flow ru
 
 ![Log panel](../screenshots/test_panel_log.png)
 
-### if or else
+### if, else
 Conditionally run nested steps based on an expression.
 ```yaml
 - if: doLogin.status == 200
@@ -147,8 +114,8 @@ Conditionally run nested steps based on an expression.
     - print: "Login failed"
 ```
 
-### for or repeat
-for runs with a JavaScript-style header (e.g., `const user of users`) and executes the inner steps per item. repeat runs the inner steps a fixed number of times (or time-based if supported).
+### for, repeat
+for runs with a JavaScript-style header (for example, `const user of users`) and executes the inner steps per item. repeat runs the inner steps a fixed number of times (or time-based).
 ```yaml
 # iterate imported CSV rows (from import:
 #   users: ./users.csv)
@@ -160,7 +127,7 @@ for runs with a JavaScript-style header (e.g., `const user of users`) and execut
         username: user.username
         password: user.password
 
-# repeat N times (or "inf")
+# repeat N times
 - repeat: 3
   steps:
     - call: poll
@@ -189,7 +156,7 @@ Write a message to the log output.
 ```
 
 ### set, var, const, or let
-Create or change variables for later steps. set mutates existing or creates new; var/const/let follow JS scoping.
+Create or change variables for later steps. set mutates existing (or creates new); var/const/let follow JS scoping.
 ```yaml
 - set:
   token: doLogin.token   # mutable
@@ -208,45 +175,16 @@ Bind an imported CSV alias (from the test's import section) into scope for use i
                 #   users: ./users.csv
 ```
 
-
-
-## Metrics (simple load controls, under develop)
+## Complete example
 ```yaml
-metrics:
-  repeat: "100"   # or number or "inf"
-  threads: 5
-  duration: 60s
-  rampup: 10s
-```
-
-## Inputs and outputs (test level)
-- Declare inputs you expect to receive and outputs you plan to produce at the test level.
-```yaml
+type: test
+title: Login + Profile
+import:
+  users: ./users.csv
 inputs:
   user: string
   pass: string
-outputs:
-  token: string
-```
-Use `<i:key>` inside steps to substitute test inputs:
-```yaml
-- call: login
-  id: doLogin
-  inputs:
-    username: <i:user>
-    password: <i:pass>
-```
-
-## Complete example
-```yaml
- type: test
- title: Login + Profile
- import:
-   users: ./users.csv
- inputs:
-   user: string
-   pass: string
- steps:
+steps:
   - call: login
     id: doLogin
     inputs:
@@ -268,10 +206,10 @@ Use `<i:key>` inside steps to substitute test inputs:
 - title: string
 - tags: string[]
 - description: string
-- import: record<string,string> (CSV)
-- inputs: record<string, string|number|boolean|null>
-- outputs: record<string, string|number|boolean|null>
-- metrics: { repeat?: string|number, threads?: number, duration?: Timestr, rampup?: Timestr }
+- import: record<string, string> (CSV)
+- inputs: record<string, string | number | boolean | null>
+- outputs: record<string, string | number | boolean | null>
+- metrics: repeat?: string | number, threads?: number, duration?: string, rampup?: string
 - steps: array of step
 - stages: array of { id, name?, steps, condition?, dependencies? }
 - step types: `call`, `check`, `assert`, `if`, `for`, `repeat`, `delay`, `js`, `print`, `set`, `var`, `const`, `let`, `data`
