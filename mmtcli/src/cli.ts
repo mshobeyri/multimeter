@@ -85,7 +85,8 @@ program
   });
 
 program
-  .command('to-js')
+  .command('print-js')
+  .alias('to-js')
   .argument('<file>', 'Test file (.yaml/.yml/.json/.mmt)')
   .description('Convert a test definition file to executable JS using JSer and print to stdout')
   .option('-s, --stages', 'Include stage headers as comments when stages exist', true)
