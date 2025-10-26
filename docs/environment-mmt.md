@@ -1,32 +1,28 @@
 # Environment
+Acts as a global store for variables to read and write across tests. Like any global scope, use it sparingly. Prefer it for shared configuration (for example: base URLs, modes, timeouts) rather than per-step data.
 
-Usage-first guide for environment `.mmt` files: variables, presets, and overrides.
-
-Supported token forms in tests and APIs
-- `e:VAR`
-- `<<e:VAR>>`
 
 ## Define an environment file
 ```yaml
- type: env
- variables:
-   API_URL: "http://localhost:8080"
-   USER: "alice"
-   PASS: "secret"
-   MODE:
-     dev: "debug"      # map of named choices
-     prod: "release"
-   TIMEOUTS:
-     - 1000            # list of allowed values (optional)
-     - 2000
- presets:
-   runner:
-     dev:
-       API_URL: dev    # picks variables.API_URL choice "dev" if mapping exists
-       MODE: dev
-     prod:
-       API_URL: prod
-       MODE: prod
+type: env
+variables:
+  API_URL: "http://localhost:8080"
+  USER: "alice"
+  PASS: "secret"
+  MODE:
+    dev: "debug"      # map of named choices
+    prod: "release"
+  TIMEOUTS:
+    - 1000            # list of allowed values (optional)
+    - 2000
+presets:
+  runner:
+    dev:
+      API_URL: dev    # picks choice "dev" when the variable is defined as a mapping
+      MODE: dev
+    prod:
+      API_URL: prod
+      MODE: prod
 ```
 
 Notes
@@ -35,25 +31,19 @@ Notes
   - object map (named choices)
   - array list of allowed values
 - `presets` groups can be hierarchical; `runner.dev` is a common pattern
+ 
+## Usage
+Supported token forms in tests and APIs:
+- `e:VAR`
+- `<<e:VAR>>`
 
-## Using presets and overrides in CLI
-```
-# Use preset from env file
- testlight run tests/login.mmt --env-file env.mmt --preset runner.dev
+What to use when
+- Use `e:VAR` when the value is just the variable by itself (a standalone YAML value). Types are preserved (numbers, booleans, strings).
+- Use `<<e:VAR>>` to force substitution inside quoted/template strings in generated JS; it’s the safest choice when you’re unsure.
 
-# Override values explicitly (wins over preset)
- testlight run tests/login.mmt --env-file env.mmt --preset runner.dev \
-  -e API_URL http://localhost:8080 -e USER bob
+Note: `e:{VAR}` and `{{VAR}}` are not supported.
 
-# Without env file, pass env directly
- testlight run tests/login.mmt -e API_URL=http://localhost:8080 -e USER=alice -e PASS='00123'
-```
-
-Typing rules for CLI values
-- Unquoted numbers and booleans are coerced (e.g., `true`, `42`)
-- Quoted numbers remain strings (`'00123'`)
-
-## Referencing env in tests and APIs
+Example:
 ```yaml
 url: <<e:API_URL>>/login
 headers:
@@ -63,11 +53,32 @@ body:
   password: e:PASS
 ```
 
+## Using presets and overrides in CLI
+Use preset from env file:
+```sh
+ testlight run tests/login.mmt --env-file env.mmt --preset runner.dev
+```
+
+Override values explicitly (wins over preset):
+```sh
+ testlight run tests/login.mmt --env-file env.mmt --preset runner.dev \
+  -e API_URL http://localhost:8080 -e USER bob
+```
+Without env file, pass env directly:
+```sh
+ testlight run tests/login.mmt -e API_URL=http://localhost:8080 -e USER=alice -e PASS='00123'
+```
+
+Typing rules for CLI values
+- Unquoted numbers and booleans are coerced (e.g., `true`, `42`).
+- Quoted numbers remain strings (e.g., `'00123'`).
+
 ## Edit environments in the UI
 - You can modify variables and set presets using the UI panels.
 - From the Environment panel, you can pick preset groups and values, then:
   - Click "Reset Environments" to apply your changes to the Environment Variables panel.
   - Click "Clear Environments" to clear the Environment Variables panel.
+
 
 ![Environment panel](../screenshots/environment_panel.png)
 
