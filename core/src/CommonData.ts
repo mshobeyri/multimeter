@@ -1,4 +1,4 @@
-export type Type = "var" | "env" | "api" | "test" | "csv" | null;
+export type Type = "var" | "env" | "api" | "test" | "doc" | "csv" | null;
 
 export type Protocol = "http" | "ws";
 export type Format = "json" | "xml" | "text";
@@ -12,7 +12,8 @@ export const typeOptions = [
   { value: "api", label: "API" },
   { value: "env", label: "Environment" },
   { value: "var", label: "Variables" },
-  { value: "test", label: "Test" }
+  { value: "test", label: "Test" },
+  { value: "doc", label: "Documentation" }
 ];
 
 export interface MMTFile {

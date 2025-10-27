@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import { safeList } from "mmt-core/safer";
 
@@ -10,10 +10,7 @@ interface LEditorProps {
     disabled?: boolean;
 }
 
-// Helper: always show a trailing empty field for editing, but don't store it in value
-function withTrailingEmpty(arr: string[]): string[] {
-    return arr;
-}
+// Note: We use an explicit "new item" input row instead of a trailing empty field.
 
 const LEditor: React.FC<LEditorProps> = ({
     label,

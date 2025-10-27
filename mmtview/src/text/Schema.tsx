@@ -2,7 +2,7 @@ export const GeneralSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
     properties: {
-    type: { type: 'string', enum: ['api', 'env', 'var', 'test'] },
+        type: { type: 'string', enum: ['api', 'env', 'var', 'test', 'doc'] },
     }
 }
 
@@ -19,8 +19,8 @@ export const APISchema = {
             type: 'object',
             additionalProperties: { type: 'string' }
         },
-    // Optional alias of imported CSV data to be available in scripts
-    data: { type: 'string' },
+        // Optional alias of imported CSV data to be available in scripts
+        data: { type: 'string' },
         inputs: {
             type: 'object',
             additionalProperties: {
@@ -415,4 +415,29 @@ export const TestSchema = {
         { required: ['steps'] },
         { required: ['stages'] }
     ]
+};
+
+export const DocSchema = {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    type: 'object',
+    required: ['type'],
+    properties: {
+        type: { type: 'string', enum: ['doc'] },
+        title: { type: 'string' },
+        description: { type: 'string' },
+        sources: { type: 'array', items: { type: 'string' } },
+        services: {
+            type: 'array',
+            items: {
+                type: 'object',
+                required: ['name'],
+                properties: {
+                    name: { type: 'string' },
+                    sources: { type: 'array', items: { type: 'string' } }
+                },
+                additionalProperties: false
+            }
+        }
+    },
+    additionalProperties: false
 };
