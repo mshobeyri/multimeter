@@ -9,6 +9,16 @@
       "require": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./DocData": {
+      "types": "./dist/DocData.d.ts",
+      "require": "./dist/DocData.js",
+      "default": "./dist/DocData.js"
+    },
+    "./docParsePack": {
+      "types": "./dist/docParsePack.d.ts",
+      "require": "./dist/docParsePack.js",
+      "default": "./dist/docParsePack.js"
+    },
     "./jsRunner": {
       "types": "./dist/jsRunner.d.ts",
       "require": "./dist/jsRunner.js",

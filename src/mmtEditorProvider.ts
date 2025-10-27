@@ -189,6 +189,30 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           break;
         }
 
+        case 'listFiles': {
+          const { folder, recursive } = message;
+          const folderPath = path.resolve(path.dirname(document.uri.fsPath), folder);
+          const results: string[] = [];
+          const walk = (dir: string) => {
+            try {
+              const items = fs.readdirSync(dir, { withFileTypes: true });
+              for (const it of items) {
+                const full = path.join(dir, it.name);
+                if (it.isDirectory()) {
+                  if (recursive) { walk(full); }
+                } else if (it.isFile() && full.toLowerCase().endsWith('.mmt')) {
+                  // convert to relative to the doc file for consistent openRelativeFile
+                  const rel = path.relative(path.dirname(document.uri.fsPath), full);
+                  results.push(rel);
+                }
+              }
+            } catch {}
+          };
+          try { walk(folderPath); } catch {}
+          webviewPanel.webview.postMessage({ command: 'listFilesResult', folder, files: results });
+          break;
+        }
+
         case 'showPopupMessage':
           switch (message.level) {
             case 'error':

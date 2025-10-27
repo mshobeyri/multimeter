@@ -6,6 +6,7 @@ import VariablesPanel from "./variable/VariablesPanel";
 import APIPanel from "./api/APIPanel";
 import NotypePanel from "./NotypePanel";
 import TestPanel from "./test/TestPanel";
+import DocPanel from "./doc/DocPanel";
 import parseYaml from "mmt-core/markupConvertor";
 import YamlEditorPanel from "./text/YamlEditorPanel";
 
@@ -156,6 +157,9 @@ const App: React.FC = () => {
           )}
           {docType === "api" && (
             <APIPanel content={content} setContent={uiSetContentHandler} />
+          )}
+          {docType === "doc" && (
+            <DocPanel content={content} setContent={uiSetContentHandler} />
           )}
           {docType === "test" && (
             <TestPanel content={content} setContent={uiSetContentHandler} />
