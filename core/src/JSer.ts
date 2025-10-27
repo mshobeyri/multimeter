@@ -100,7 +100,7 @@ export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
                     .map(([k, v]) => `"${k}": \`${v}\``)
                     .join(', ');
 
-  return `const ${toLowerUnderscore(ctx.name)} = async ({ ${inputParams} } = {}) => {
+  return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
   const req = {
     url: \`${replaced.url || ''}\`,
     protocol: '${ctx.api.protocol}',
