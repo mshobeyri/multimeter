@@ -46,19 +46,30 @@ function renderApisToHtml(apis: any[], title?: string, description?: string): st
 		const body = api.body !== undefined && api.body !== null && String(api.body).length
 			? `<pre class="code">${escapeHtml(typeof api.body === 'string' ? api.body : JSON.stringify(api.body, null, 2))}</pre>`
 			: '';
+		const examples = api.examples && Array.isArray(api.examples) && api.examples.length
+			? `<div><h3>Examples</h3><ul>${(api.examples as any[]).map((ex: any) => `<li><pre class="code">${escapeHtml(typeof ex === 'string' ? ex : JSON.stringify(ex, null, 2))}</pre></li>`).join('')}</ul></div>`
+			: '';
 		const ttl = api.title || `${method} ${api.url}`;
 		const desc = api.description ? `<div class="desc">${escapeHtml(api.description)}</div>` : '';
-		return `
-			<section class="api" id="api-${idx}">
-				<h2>${badge}<span class="title">${escapeHtml(ttl)}</span></h2>
-				${desc}
+		const details = headers || query || cookies || body || examples ? `
+			<div class="details" id="details-${idx}" style="display: none;">
 				<div class="url">${escapeHtml(api.url || '')}</div>
 				<div class="meta">
 					${headers ? `<div><h3>Headers</h3>${headers}</div>` : ''}
 					${query ? `<div><h3>Query</h3>${query}</div>` : ''}
 					${cookies ? `<div><h3>Cookies</h3>${cookies}</div>` : ''}
 					${body ? `<div><h3>Body (${api.format || 'json'})</h3>${body}</div>` : ''}
+					${examples}
 				</div>
+			</div>` : '';
+		return `
+			<section class="api" id="api-${idx}">
+				<h2 onclick="toggleDetails(${idx})" style="cursor: pointer;">
+					<span class="toggle" id="toggle-${idx}">▶</span>
+					${badge}<span class="title">${escapeHtml(ttl)}</span>
+				</h2>
+				${desc}
+				${details}
 			</section>`;
 	}).join('\n');
 
@@ -76,6 +87,7 @@ function renderApisToHtml(apis: any[], title?: string, description?: string): st
 		.api { border: 1px solid #333; border-radius: 6px; padding: 12px; margin: 12px 0; background: #111; }
 		h2 { display: flex; align-items: center; gap: 8px; font-size: 16px; margin: 0 0 8px; }
 		.title { font-weight: 600; }
+		.toggle { color: var(--muted); }
 		.badge { font-size: 10px; padding: 2px 6px; border-radius: 3px; background: #444; color: #fff; }
 		.method-get { background:#2d7; }
 		.method-post { background:#27d; }
@@ -91,6 +103,19 @@ function renderApisToHtml(apis: any[], title?: string, description?: string): st
 			<h1>${escapeHtml(title || 'Documentation')}</h1>
 			${description ? `<div class="doc-desc">${escapeHtml(description)}</div>` : ''}
 		${rows || '<div>No APIs found.</div>'}
+		<script>
+			function toggleDetails(idx) {
+				const details = document.getElementById('details-' + idx);
+				const toggle = document.getElementById('toggle-' + idx);
+				if (details.style.display === 'none') {
+					details.style.display = 'block';
+					toggle.textContent = '▼';
+				} else {
+					details.style.display = 'none';
+					toggle.textContent = '▶';
+				}
+			}
+		</script>
 	</body></html>`;
 }
 
