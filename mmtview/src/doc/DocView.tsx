@@ -147,11 +147,18 @@ const DocView: React.FC<DocViewProps> = ({ doc }) => {
 		d.close();
 	}, [html]);
 
-	return (
-		<div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-			<iframe ref={iframeRef} style={{ flex: 1, width: '100%', height: '100%', border: '1px solid var(--panel-border)' }} title="Documentation Preview" />
-		</div>
-	);
+    const handleExport = () => {
+        window.vscode?.postMessage({ command: 'exportHtml', html, title: doc.title || 'documentation' });
+    };		return (
+			<div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+				<div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+					<button onClick={handleExport} style={{ padding: '6px 16px', fontWeight: 600, borderRadius: 4, border: '1px solid #888', background: '#222', color: '#fff', cursor: 'pointer' }}>
+						Export as HTML
+					</button>
+				</div>
+				<iframe ref={iframeRef} style={{ flex: 1, width: '100%', height: '100%', border: '1px solid var(--panel-border)' }} title="Documentation Preview" />
+			</div>
+		);
 };
 
 export default DocView;

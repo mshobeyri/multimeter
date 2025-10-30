@@ -261,6 +261,18 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         case 'multimeter.history.show': {
           await vscode.commands.executeCommand('multimeter.history.show');
         }
+
+        case 'exportHtml': {
+          const { html, title } = message;
+          const uri = await vscode.window.showSaveDialog({
+            defaultUri: vscode.Uri.file(`${title}.html`),
+            filters: { 'HTML files': ['html'] }
+          });
+          if (uri) {
+            await vscode.workspace.fs.writeFile(uri, Buffer.from(html, 'utf8'));
+          }
+          break;
+        }
       }
     });
 
