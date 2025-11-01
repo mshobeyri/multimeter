@@ -10,10 +10,30 @@ import yaml from 'js-yaml';
 
 const program = new Command();
 
+// Resolve version from package.json when available; fallback to a single const here.
+function resolveCliVersion(): string {
+  const fallback = '0.2.0';
+  try {
+  const pkgPath = path.resolve("mmtcli", '.', 'package.json');
+  const candidates = [pkgPath];
+    for (const p of candidates) {
+      if (p && fs.existsSync(p)) {
+        const txt = fs.readFileSync(p, 'utf8');
+        const pkg = JSON.parse(txt);
+        if (pkg && typeof pkg.version === 'string' && pkg.version) {
+          return pkg.version;
+        }
+      }
+    }
+  } catch {}
+  return fallback;
+}
+const CLI_VERSION = resolveCliVersion();
+
 program
   .name('multimeter')
   .description('Multimeter CLI runner')
-  .version('0.1.0');
+  .version(CLI_VERSION, '-v, --version', 'output the version number');
 
 program
   .command('run')
@@ -134,7 +154,7 @@ program
   .command('version-info')
   .description('Show environment info')
   .action(() => {
-    console.log('multimeter cli 0.1.0');
+  console.log(`multimeter cli ${CLI_VERSION}`);
     console.log('Node:', process.version);
   });
 
