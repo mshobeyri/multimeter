@@ -452,6 +452,7 @@ export const DocSchema = {
                 required: ['name'],
                 properties: {
                     name: { type: 'string' },
+                    description: { type: 'string' },
                     sources: { type: 'array', items: { type: 'string' } }
                 },
                 additionalProperties: false

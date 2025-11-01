@@ -176,17 +176,19 @@ program
           walk(abs);
         }
       }
-      const apis: any[] = [];
+  const apis: any[] = [];
       for (const f of Array.from(files)) {
         try {
           const t = fs.readFileSync(f, 'utf8');
           const parsed = yaml.load(t) as any;
           if (parsed && parsed.type === 'api') {
-            apis.push(apiParsePack.yamlToAPI(t));
+    const api = apiParsePack.yamlToAPI(t) as any;
+    api.__file = f; // attach file path for grouping
+    apis.push(api);
           }
         } catch {}
       }
-      // logo embedding
+  // logo embedding
       let logoDataUrl: string | undefined = undefined;
       const logo = doc?.theme?.logo;
       if (logo && typeof logo === 'string' && !/^https?:\/\//i.test(logo) && !/^data:/i.test(logo)) {
@@ -198,7 +200,14 @@ program
           logoDataUrl = `data:${mime};base64,${data.toString('base64')}`;
         } catch {}
       }
-  const html = docHtml.buildDocHtml(apis, { title: doc.title, description: doc.description, theme: doc.theme, logoDataUrl });
+  const html = docHtml.buildDocHtml(apis, {
+        title: doc.title,
+        description: doc.description,
+        theme: doc.theme,
+        logoDataUrl,
+        sources: Array.isArray(doc.sources) ? doc.sources : undefined,
+        services: Array.isArray(doc.services) ? doc.services : undefined,
+      });
       const outPath = opts.out ? path.resolve(process.cwd(), opts.out) : path.resolve(process.cwd(), `${path.basename(full, path.extname(full))}.html`);
       fs.writeFileSync(outPath, html, 'utf8');
       console.log(`Doc generated: ${outPath}`);

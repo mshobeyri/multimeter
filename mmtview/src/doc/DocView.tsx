@@ -31,8 +31,8 @@ function escapeHtml(s: string): string {
     return String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' } as any)[c]);
 }
 
-function renderApisToHtml(apis: any[], title?: string, description?: string, theme?: any, logoDataUrl?: string): string {
-    return docHtml.buildDocHtml(apis, { title, description, theme, logoDataUrl });
+function renderApisToHtml(apis: any[], opts: any): string {
+    return docHtml.buildDocHtml(apis, opts);
 }
 
 const DocView: React.FC<DocViewProps> = ({ doc }) => {
@@ -45,9 +45,7 @@ const DocView: React.FC<DocViewProps> = ({ doc }) => {
         // legacy fallback if files/folders accidentally exist
         const anyDoc = doc as any;
         if (Array.isArray(anyDoc.services)) {
-            for (const svc of anyDoc.services) {
-                if (Array.isArray(svc?.sources)) list.push(...svc.sources);
-            }
+            // keep service sources separate; grouping uses services below
         }
         if (Array.isArray(anyDoc.files)) list.push(...anyDoc.files);
         if (Array.isArray(anyDoc.folders)) list.push(...anyDoc.folders);
@@ -66,12 +64,30 @@ const DocView: React.FC<DocViewProps> = ({ doc }) => {
                     try { (await listFiles(entry, true)).forEach(p => fileSet.add(p)); } catch { }
                 }
             }
+            // Also collect files from service sources
+            const anyDoc: any = doc as any;
+            const services = Array.isArray(anyDoc.services) ? anyDoc.services as Array<{ sources?: string[] }> : [];
+            for (const svc of services) {
+                const svcSources = Array.isArray(svc.sources) ? svc.sources : [];
+                for (const entry of svcSources) {
+                    if (!entry) continue;
+                    if (entry.toLowerCase().endsWith('.mmt')) {
+                        fileSet.add(entry);
+                    } else {
+                        try { (await listFiles(entry, true)).forEach(p => fileSet.add(p)); } catch { }
+                    }
+                }
+            }
             const apis: any[] = [];
             for (const file of Array.from(fileSet)) {
                 try {
                     const text = await readFile(file);
                     const parsed = parseYaml(text) as any;
-                    if (parsed && parsed.type === 'api') { apis.push(yamlToAPI(text)); }
+                    if (parsed && parsed.type === 'api') {
+                        const api = yamlToAPI(text) as any;
+                        api.__file = file; // attach relative file path for grouping
+                        apis.push(api);
+                    }
                 } catch { }
             }
             // Prepare logo as data URL if theme.logo is a relative path or file path
@@ -87,10 +103,17 @@ const DocView: React.FC<DocViewProps> = ({ doc }) => {
                     } catch { /* ignore */ }
                 }
             }
-            if (!cancelled) setHtml(renderApisToHtml(apis, doc.title, (doc as any).description, (doc as any).theme, logoDataUrl));
+            if (!cancelled) setHtml(renderApisToHtml(apis, {
+                title: doc.title,
+                description: (doc as any).description,
+                theme: (doc as any).theme,
+                logoDataUrl,
+                sources: Array.isArray(doc.sources) ? doc.sources : undefined,
+                services: Array.isArray((doc as any).services) ? (doc as any).services : undefined,
+            }));
         })();
         return () => { cancelled = true; };
-    }, [sources, doc.title]);
+    }, [sources, doc.title, (doc as any).description, (doc as any).theme, (doc as any).services]);
 
     useEffect(() => {
         if (!iframeRef.current) return;

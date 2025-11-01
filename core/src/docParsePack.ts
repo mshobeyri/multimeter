@@ -14,13 +14,13 @@ export function yamlToDoc(yamlContent: string): DocData {
 		if (Array.isArray(doc.files)) { sources.push(...doc.files); }
 		if (Array.isArray(doc.folders)) { sources.push(...doc.folders); }
 
-		const services: DocService[] | undefined = Array.isArray(doc.services)
+	const services: DocService[] | undefined = Array.isArray(doc.services)
 			? doc.services.map((s: any) => {
 					const svcSources: string[] = [];
 					  if (Array.isArray(s?.sources)) { svcSources.push(...s.sources); }
 					  if (Array.isArray(s?.files)) { svcSources.push(...s.files); }
 					  if (Array.isArray(s?.folders)) { svcSources.push(...s.folders); }
-					return { name: s?.name, sources: svcSources };
+		    return { name: s?.name, description: s?.description, sources: svcSources };
 				})
 			: undefined;
 
@@ -58,9 +58,10 @@ export function docToYaml(data: DocData): string {
 		if (isNonEmptyList(data.sources)) { out.sources = data.sources; }
 	if (isNonEmptyList(data.services)) {
 		out.services = data.services?.map(s => ({
-			...(s.name ? { name: s.name } : {}),
-			...(isNonEmptyList(s.sources) ? { sources: s.sources } : {}),
-		}));
+				...(s.name ? { name: s.name } : {}),
+				...(s.description ? { description: s.description } : {}),
+				...(isNonEmptyList(s.sources) ? { sources: s.sources } : {}),
+			}));
 	}
 	if (data.theme) {
 		out.theme = {} as any;

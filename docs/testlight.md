@@ -1,6 +1,6 @@
 # Testlight CLI
 
-Run Multimeter tests from the command line and in CI/CD.
+Run Multimeter api, tests and generate documentation from the command line and in CI/CD.
 
 Testlight compiles your `.mmt`/YAML tests to JS on the fly and executes them with the same core engine the VS Code extension uses.
 
@@ -18,6 +18,12 @@ Testlight compiles your `.mmt`/YAML tests to JS on the fly and executes them wit
   - Writes a JSON summary if `--out` is provided
 - print-js <file>
   - Print the generated executable JS for a test file
+  - Use this to inspect how a test will run
+- doc <file>
+  - Generate a standalone HTML document from a `type: doc` file (.mmt/.yaml/.yml)
+  - Options:
+    - -o, --out <file>  Write HTML to file (default: <docname>.html in the current directory)
+  - See [Doc](./doc-mmt.md) for authoring `type: doc` files
 - version-info
   - Print the CLI and Node.js version
 
@@ -57,6 +63,15 @@ Testlight compiles your `.mmt`/YAML tests to JS on the fly and executes them wit
 - Print generated JS for inspection
   ```sh
   testlight print-js examples/test/login_and_get_user_info.mmt --env-file ./examples/_environments.mmt --preset dev
+  ```
+
+- Generate documentation HTML from a Doc file
+  ```sh
+  # default output: ./catalog.html
+  testlight doc docs/catalog.mmt
+
+  # custom output path
+  testlight doc docs/catalog.mmt --out ./public/catalog.html
   ```
 
 ## Tips

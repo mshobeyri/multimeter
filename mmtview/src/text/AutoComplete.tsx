@@ -159,6 +159,13 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'Files or folders to scan for API definitions. Folders are scanned recursively.'
         },
         {
+            label: "services",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "services:\n\t- name: \n\t  description: \n\t  sources:\n\t    - ",
+            detail: 'Service groups [array]',
+            documentation: 'Optional grouping of sources by service. Each item has name, optional description, and sources (folders or files).'
+        },
+        {
             label: "files",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "files:\n\t- ",
@@ -184,14 +191,14 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "logo",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "logo: ",
+            insertText: "\tlogo: ",
             detail: 'Logo URL/path [string]',
             documentation: 'Path or URL to a logo image shown next to the title.'
         },
         {
             label: "colors",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "colors:\n\tfg: \"#ddd\"\n\tbg: \"#1e1e1e\"\n\tmuted: \"#aaa\"\n\taccent: \"#0e639c\"\n\tcard: \"#111\"\n\tborder: \"#333\"\n",
+            insertText: "\tcolors:\n\t\tfg: \"#ddd\"\n\t\tbg: \"#1e1e1e\"\n\t\tmuted: \"#aaa\"\n\t\taccent: \"#0e639c\"\n\t\tcard: \"#111\"\n\t\tborder: \"#333\"\n",
             detail: 'Theme colors [object]',
             documentation: 'Override colors used in the documentation page.'
         },
@@ -484,6 +491,11 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'Define specific input values for this example. These override the default inputs defined at the API level and provide concrete test data.\nExample:\ninputs:\n\t- username: "admin123"\n\t- email: "admin@example.com"\n\t- role: "administrator"\n\t- password: "SecurePass123!"',
         }
     ];
+    const servicesSuggestions = [
+        { label: 'name', kind: monaco.languages.CompletionItemKind.Property, insertText: 'name: ', detail: 'Service name', documentation: 'Section title for a group of APIs.' },
+        { label: 'description', kind: monaco.languages.CompletionItemKind.Property, insertText: 'description: ', detail: 'Service description', documentation: 'Shown under the section title.' },
+        { label: 'sources', kind: monaco.languages.CompletionItemKind.Property, insertText: 'sources:\n\t- ', detail: 'Service sources', documentation: 'Folders or .mmt files for this group.' },
+    ];
 
     const keySuggestionsByParent: Record<string, any[]> = {
         root: rootSuggestions,
@@ -491,6 +503,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         api: apiSuggestions,
         test: testSuggestions,
         doc: docSuggestions,
+        services: servicesSuggestions,
         theme: themeSuggestions,
         colors: themeColorsSuggestions,
         env: envSuggestions,
