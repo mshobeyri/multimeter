@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { summarize } from './loadTest.js';
 // Import from mmt-core root exports to avoid subpath resolution issues under pkg
-import { JSer, testParsePack } from 'mmt-core';
+import { JSer, testParsePack, docParsePack, apiParsePack, docHtml } from 'mmt-core';
 import yaml from 'js-yaml';
 // Defer importing runTest until needed to avoid pulling axios for to-js
 
@@ -136,6 +136,76 @@ program
   .action(() => {
     console.log('multimeter cli 0.1.0');
     console.log('Node:', process.version);
+  });
+
+program
+  .command('doc')
+  .argument('<file>', 'Doc file (.mmt/.yaml/.yml)')
+  .description('Generate HTML documentation from a doc .mmt')
+  .option('-o, --out <file>', 'Write HTML to file (default: <docname>.html)')
+  .action(async (file: string, opts: { out?: string }) => {
+    try {
+      const full = path.resolve(process.cwd(), file);
+      const docDir = path.dirname(full);
+      const text = fs.readFileSync(full, 'utf8');
+      const doc = docParsePack.yamlToDoc(text) as any;
+      const sources: string[] = [];
+      if (Array.isArray(doc.sources)) { sources.push(...doc.sources); }
+      if (Array.isArray(doc.services)) {
+        for (const s of doc.services) {
+          if (Array.isArray(s?.sources)) { sources.push(...s.sources); }
+        }
+      }
+      const files = new Set<string>();
+      const walk = (p: string) => {
+        if (!fs.existsSync(p)) { return; }
+        const stat = fs.statSync(p);
+        if (stat.isDirectory()) {
+          for (const entry of fs.readdirSync(p)) {
+            walk(path.join(p, entry));
+          }
+        } else if (stat.isFile() && p.toLowerCase().endsWith('.mmt')) {
+          files.add(p);
+        }
+      };
+      for (const s of sources) {
+        const abs = path.isAbsolute(s) ? s : path.join(docDir, s);
+        if (/\.mmt$/i.test(abs)) {
+          files.add(abs);
+        } else {
+          walk(abs);
+        }
+      }
+      const apis: any[] = [];
+      for (const f of Array.from(files)) {
+        try {
+          const t = fs.readFileSync(f, 'utf8');
+          const parsed = yaml.load(t) as any;
+          if (parsed && parsed.type === 'api') {
+            apis.push(apiParsePack.yamlToAPI(t));
+          }
+        } catch {}
+      }
+      // logo embedding
+      let logoDataUrl: string | undefined = undefined;
+      const logo = doc?.theme?.logo;
+      if (logo && typeof logo === 'string' && !/^https?:\/\//i.test(logo) && !/^data:/i.test(logo)) {
+        const p = path.isAbsolute(logo) ? logo : path.join(docDir, logo);
+        try {
+          const data = fs.readFileSync(p);
+          const ext = (path.extname(p) || '').toLowerCase();
+          const mime = ext === '.png' ? 'image/png' : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : ext === '.svg' ? 'image/svg+xml' : ext === '.gif' ? 'image/gif' : 'application/octet-stream';
+          logoDataUrl = `data:${mime};base64,${data.toString('base64')}`;
+        } catch {}
+      }
+  const html = docHtml.buildDocHtml(apis, { title: doc.title, description: doc.description, theme: doc.theme, logoDataUrl });
+      const outPath = opts.out ? path.resolve(process.cwd(), opts.out) : path.resolve(process.cwd(), `${path.basename(full, path.extname(full))}.html`);
+      fs.writeFileSync(outPath, html, 'utf8');
+      console.log(`Doc generated: ${outPath}`);
+    } catch (e: any) {
+      console.error('Error generating doc:', e?.message || e);
+      process.exit(2);
+    }
   });
 
 program.parseAsync(process.argv);

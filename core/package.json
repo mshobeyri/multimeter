@@ -9,6 +9,11 @@
       "require": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./docHtml": {
+      "types": "./dist/docHtml.d.ts",
+      "require": "./dist/docHtml.js",
+      "default": "./dist/docHtml.js"
+    },
     "./DocData": {
       "types": "./dist/DocData.d.ts",
       "require": "./dist/DocData.js",
