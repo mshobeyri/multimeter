@@ -162,11 +162,20 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     body { margin: 0; padding: 12px; font-size: 12px; line-height: 1.4; font-family: -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--fg); box-sizing: border-box; }
     h1 { margin: 0 0 6px; font-size: 16px; }
     .doc-desc { color: var(--muted); margin: 0 0 8px; white-space: pre-wrap; }
-  .doc-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
-  .doc-head-left { display: flex; align-items: center; gap: 8px; }
-    .logo { height: 18px; width: auto; object-fit: contain; }
-  .search { margin-left: auto; }
-  .search-input { min-width: 220px; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: var(--fg); outline: none; }
+    /* Sticky header spanning full width with bottom border (horizontal line) */
+    .doc-header {
+      position: sticky; top: 0; z-index: 1000;
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      margin: -12px -12px 8px; padding: 8px 12px;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      min-height: 40px;
+    }
+    .doc-head-left { display: flex; align-items: center; gap: 10px; }
+    .doc-head-left h1 { margin: 0; font-size: 16px; line-height: 24px; display: flex; align-items: center; }
+    .logo { height: 20px; width: auto; object-fit: contain; display: block; }
+    .search { margin-left: auto; display: flex; align-items: center; }
+    .search-input { min-width: 240px; height: 28px; padding: 0 10px; border-radius: 4px; border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: var(--fg); outline: none; }
   .search-input::placeholder { color: var(--muted); }
     .api { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin: 10px 0; background: var(--card); box-sizing: border-box; }
     h2 { display: flex; align-items: center; gap: 6px; font-size: 13px; margin: 0 0 6px; }
