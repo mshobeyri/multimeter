@@ -162,8 +162,12 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     body { margin: 0; padding: 12px; font-size: 12px; line-height: 1.4; font-family: -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--fg); box-sizing: border-box; }
     h1 { margin: 0 0 6px; font-size: 16px; }
     .doc-desc { color: var(--muted); margin: 0 0 8px; white-space: pre-wrap; }
-    .doc-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .doc-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+  .doc-head-left { display: flex; align-items: center; gap: 8px; }
     .logo { height: 18px; width: auto; object-fit: contain; }
+  .search { margin-left: auto; }
+  .search-input { min-width: 220px; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: var(--fg); outline: none; }
+  .search-input::placeholder { color: var(--muted); }
     .api { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin: 10px 0; background: var(--card); box-sizing: border-box; }
     h2 { display: flex; align-items: center; gap: 6px; font-size: 13px; margin: 0 0 6px; }
     .title { font-weight: 700; }
@@ -195,7 +199,15 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     .ex-desc { color: var(--muted); margin-bottom: 2px; }
   </style>
   </head><body>
-    ${logo ? `<div class="doc-header"><img class="logo" src="${escapeHtml(logo)}" alt="logo" /><h1>${escapeHtml(title || 'Documentation')}</h1></div>` : `<h1>${escapeHtml(title || 'Documentation')}</h1>`}
+    <div class="doc-header">
+      <div class="doc-head-left">
+        ${logo ? `<img class="logo" src="${escapeHtml(logo)}" alt="logo" />` : ''}
+        <h1>${escapeHtml(title || 'Documentation')}</h1>
+      </div>
+      <div class="search">
+        <input id="search-input" class="search-input" type="search" placeholder="Search..." aria-label="Filter endpoints" />
+      </div>
+    </div>
     ${description ? `<div class="doc-desc">${escapeHtml(description)}</div>` : ''}
     ${rows || '<div>No APIs found.</div>'}
     <script>
@@ -213,6 +225,37 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
           toggle.setAttribute('aria-expanded', 'false');
         }
       }
+      (function setUpSearch(){
+        var input = document.getElementById('search-input');
+        if (!input) return;
+        var noResId = 'no-results';
+        function applyFilter(){
+          var q = (input.value || '').toLowerCase().trim();
+          var nodes = Array.prototype.slice.call(document.querySelectorAll('section.api'));
+          var any = false;
+          for (var i=0;i<nodes.length;i++){
+            var sec = nodes[i];
+            var text = (sec.textContent || '').toLowerCase();
+            var match = !q || text.indexOf(q) !== -1;
+            sec.style.display = match ? '' : 'none';
+            if (match) any = true;
+          }
+          var noRes = document.getElementById(noResId);
+          if (!q || any) {
+            if (noRes && noRes.parentElement) noRes.parentElement.removeChild(noRes);
+          } else {
+            if (!noRes) {
+              var div = document.createElement('div');
+              div.id = noResId;
+              div.textContent = 'No results';
+              div.style.color = '#bbb';
+              div.style.margin = '8px 0';
+              document.body.appendChild(div);
+            }
+          }
+        }
+        input.addEventListener('input', applyFilter);
+      })();
     </script>
   </body></html>`;
 }
