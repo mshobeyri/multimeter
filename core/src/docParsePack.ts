@@ -29,6 +29,22 @@ export function yamlToDoc(yamlContent: string): DocData {
 		if (doc.description) { res.description = doc.description; }
 		if (sources.length) { res.sources = sources; }
 		if (services && services.length) { res.services = services; }
+		if (doc.theme && typeof doc.theme === 'object') {
+			const t = doc.theme as any;
+			const outTheme: any = {};
+			if (t.logo) { outTheme.logo = String(t.logo); }
+			if (t.colors && typeof t.colors === 'object') {
+				const c = t.colors as any;
+				outTheme.colors = {} as any;
+				if (c.fg) { outTheme.colors.fg = String(c.fg); }
+				if (c.bg) { outTheme.colors.bg = String(c.bg); }
+				if (c.muted) { outTheme.colors.muted = String(c.muted); }
+				if (c.accent) { outTheme.colors.accent = String(c.accent); }
+				if (c.card) { outTheme.colors.card = String(c.card); }
+				if (c.border) { outTheme.colors.border = String(c.border); }
+			}
+			res.theme = outTheme;
+		}
 		return res;
 	} catch {
 		return { type: 'doc' } as DocData;
@@ -45,6 +61,20 @@ export function docToYaml(data: DocData): string {
 			...(s.name ? { name: s.name } : {}),
 			...(isNonEmptyList(s.sources) ? { sources: s.sources } : {}),
 		}));
+	}
+	if (data.theme) {
+		out.theme = {} as any;
+		if (data.theme.logo) { out.theme.logo = data.theme.logo; }
+		if (data.theme.colors) {
+			out.theme.colors = {} as any;
+			const c = data.theme.colors as any;
+			if (c.fg) { out.theme.colors.fg = c.fg; }
+			if (c.bg) { out.theme.colors.bg = c.bg; }
+			if (c.muted) { out.theme.colors.muted = c.muted; }
+			if (c.accent) { out.theme.colors.accent = c.accent; }
+			if (c.card) { out.theme.colors.card = c.card; }
+			if (c.border) { out.theme.colors.border = c.border; }
+		}
 	}
 	return packYaml(out);
 }
