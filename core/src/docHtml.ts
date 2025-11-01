@@ -70,12 +70,33 @@ export interface BuildDocHtmlOptions {
   description?: string;
   theme?: any;
   logoDataUrl?: string;
+  sources?: string[];
+  services?: Array<{ name?: string; description?: string; sources?: string[] }>;
+}
+
+function cleanPath(p: string): string {
+  const x = String(p || '').replace(/\\/g, '/');
+  return x.replace(/^\.\/+/, ''); // strip leading ./
+}
+function matchesSource(filePath: string, src: string): boolean {
+  const fp = cleanPath(filePath);
+  const s = cleanPath(src);
+  if (!fp || !s) { return false; }
+  if (/\.mmt$/i.test(s)) {
+    return fp.endsWith(s) || fp === s;
+  }
+  // directory prefix match (ensure trailing slash on src)
+  const sDir = s.endsWith('/') ? s : s + '/';
+  return fp.startsWith(sDir) || fp.includes('/' + sDir) || fp.includes(sDir);
 }
 
 export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): string {
   const { title, description, theme, logoDataUrl } = opts;
 
-  const rows = (apis || []).map((api: any, idx: number) => {
+  // ensure unique IDs across the entire page, even when rendering per-group
+  let rowIdCounter = 0;
+  const makeRows = (list: any[]) => (list || []).map((api: any) => {
+    const idx = rowIdCounter++;
     const method = String(api?.method || '').toUpperCase();
     const badge = method ? `<span class="badge method-${method.toLowerCase()}">${method}</span>` : '';
     const headers = api?.headers && Object.keys(api.headers).length ? renderValueList(api.headers) : '';
@@ -151,6 +172,56 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
   const cssCard = colors.card || '#111';
   const cssBorder = colors.border || '#333';
 
+  // Build groups if services/sources provided and file info exists
+  let contentHtml = '';
+  const anyServices = Array.isArray(opts.services) && opts.services.length > 0;
+  const anySources = Array.isArray(opts.sources) && opts.sources.length > 0;
+  if ((anyServices || anySources) && (apis || []).some(a => (a as any).__file)) {
+    type Group = { title: string; description?: string; items: any[] };
+    const groups: Group[] = [];
+    const taken = new Set<string>();
+    const listApis = (apis || []) as any[];
+    if (anyServices) {
+      for (const svc of opts.services || []) {
+        const svcSources = (svc?.sources || []) as string[];
+        const items = listApis.filter(a => {
+          const f = String((a as any).__file || '');
+          return svcSources.some(s => matchesSource(f, s));
+        });
+        items.forEach(a => taken.add(String((a as any).__file)));
+        groups.push({ title: String(svc?.name || 'Service'), description: svc?.description, items });
+      }
+    }
+    // If only top-level sources (no services), render rows inline (no group header)
+    if (!anyServices && anySources) {
+      const items = listApis.filter(a => {
+        const f = String((a as any).__file || '');
+        return (opts.sources as string[]).some(s => matchesSource(f, s));
+      });
+      contentHtml = makeRows(items);
+    } else {
+      // When services exist, render service groups; top-level sources are rendered inline before groups (no "Ungrouped" group)
+      let topHtml = '';
+      if (anySources) {
+        const items = listApis.filter(a => {
+          const f = String((a as any).__file || '');
+          return !taken.has(f) && (opts.sources as string[]).some(s => matchesSource(f, s));
+        });
+        if (items.length) { topHtml = makeRows(items); }
+      }
+      const groupsHtml = groups.map((g, gi) => `
+        <section class="group" id="group-${gi}">
+          <h2 class="group-title">${escapeHtml(g.title)} <span class="count">(${g.items.length})</span></h2>
+          ${g.description ? `<div class="group-desc">${escapeHtml(g.description)}</div>` : ''}
+          ${makeRows(g.items)}
+        </section>
+      `).join('\n');
+      contentHtml = topHtml + groupsHtml;
+    }
+  } else {
+    contentHtml = makeRows(apis || []);
+  }
+
   return `<!DOCTYPE html>
   <html><head>
   <meta charset="UTF-8" />
@@ -176,8 +247,20 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     .logo { height: 20px; width: auto; object-fit: contain; display: block; }
     .search { margin-left: auto; display: flex; align-items: center; }
     .search-input { min-width: 240px; height: 28px; padding: 0 10px; border-radius: 4px; border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: var(--fg); outline: none; }
+    /* Style the native search cancel (clear) icon to a gray tone matching theme.
+       Keep the default appearance so it remains visible. */
+    .search-input::-webkit-search-cancel-button {
+      height: 14px;
+      width: 14px;
+      cursor: pointer;
+      filter: grayscale(1) brightness(0.85);
+      opacity: 0.9;
+    }
   .search-input::placeholder { color: var(--muted); }
-    .api { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin: 10px 0; background: var(--card); box-sizing: border-box; }
+  .group { margin: 16px 0; }
+  .group-title { margin: 12px 0 4px; font-size: 13px; color: var(--muted); border-bottom: 1px solid #2a2a2a; padding-bottom: 4px; }
+  .group-desc { color: var(--muted); margin: 0 0 8px; white-space: pre-wrap; }
+  .api { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin: 10px 0; background: var(--card); box-sizing: border-box; }
     h2 { display: flex; align-items: center; gap: 6px; font-size: 13px; margin: 0 0 6px; }
     .title { font-weight: 700; }
     .endpoint { font-weight: 400; color: #9aa0a6; word-break: break-all; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 11px; }
@@ -217,8 +300,8 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
         <input id="search-input" class="search-input" type="search" placeholder="Search..." aria-label="Filter endpoints" />
       </div>
     </div>
-    ${description ? `<div class="doc-desc">${escapeHtml(description)}</div>` : ''}
-    ${rows || '<div>No APIs found.</div>'}
+  ${description && !anyServices ? `<div class="doc-desc">${escapeHtml(description)}</div>` : ''}
+  ${contentHtml || '<div>No APIs found.</div>'}
     <script>
       function toggleDetails(idx) {
         const details = document.getElementById('details-' + idx);
@@ -248,6 +331,15 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
             var match = !q || text.indexOf(q) !== -1;
             sec.style.display = match ? '' : 'none';
             if (match) any = true;
+          }
+          // hide entire group blocks with no visible apis
+          var groups = Array.prototype.slice.call(document.querySelectorAll('section.group'));
+          for (var j=0;j<groups.length;j++){
+            var g = groups[j];
+            var vis = g.querySelector('section.api[style=""]') || g.querySelector('section.api:not([style])');
+            // If no child api is visible, hide the group
+            var anyApi = Array.prototype.some.call(g.querySelectorAll('section.api'), function(el){ return el.style.display !== 'none'; });
+            g.style.display = anyApi ? '' : 'none';
           }
           var noRes = document.getElementById(noResId);
           if (!q || any) {
