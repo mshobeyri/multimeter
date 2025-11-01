@@ -19,8 +19,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
             label: "type",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "type: ",
-            detail: 'Type of mmt file [api, env, var, doc]',
-            documentation: 'Type of mmt file, must be one of: api, env, var, doc\n\t- api: Define an API\n\t- env: Define environment variables\n\t- var: Define variables\n\t- doc: Define a documentation page (title/description/sources/theme)\nExample: type: doc',
+            detail: 'Type of mmt file [api, env, var, doc, test]',
+            documentation: 'Type of mmt file, must be one of: api, env, var, doc, test\n\t- api: Define an API\n\t- env: Define environment variables\n\t- var: Define variables\n\t- doc: Define a documentation page (title/description/sources/theme)\n\t- test: Define a test suite (steps/stages)\nExample: type: test',
         }];
 
     const typeSuggestions = [
@@ -52,7 +52,90 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Define a documentation page',
             documentation: 'Documentation definition that aggregates APIs into a styled page. Supports title, description, sources/files/folders, and theme (logo/colors).',
         },
+        {
+            label: "Test",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " test",
+            detail: 'Define a test suite',
+            documentation: 'Test definition using steps or stages. Supports steps like call, data, check, assert, if/for/repeat, delay, js, print, set, var, const, let.',
+        },
     ]
+    const testSuggestions = [
+        {
+            label: "title",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "title: ",
+            detail: 'Test title [string]',
+            documentation: 'A descriptive title for the test suite.'
+        },
+        {
+            label: "tags",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "tags:\n\t- ",
+            detail: 'Test tags [array of strings]',
+            documentation: 'Tags for categorizing tests.'
+        },
+        {
+            label: "import",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "import:\n\t",
+            detail: 'Import external parameters [object of key: value]',
+            documentation: 'Import parameters or data paths used in tests.'
+        },
+        {
+            label: "inputs",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "inputs:\n\t",
+            detail: 'Input variables [object]',
+            documentation: 'Input variables available to steps.'
+        },
+        {
+            label: "outputs",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "outputs:\n\t",
+            detail: 'Output variables [object]',
+            documentation: 'Values produced by the test to be reused.'
+        },
+        {
+            label: "steps",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "steps:\n\t- call: ",
+            detail: 'Linear steps [array]',
+            documentation: 'Define a sequence of steps (call, data, check, assert, if, for, repeat, delay, js, print, set, var, const, let).'
+        },
+        {
+            label: "stages",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "stages:\n\t- stage: name\n\t  steps:\n\t  \t- call: ",
+            detail: 'Stage-based steps [array]',
+            documentation: 'Define named stages with their own steps and optional dependencies.'
+        },
+    ];
+    const stepsSuggestions = [
+        { label: "call", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- call: ", detail: 'Call an API by name', documentation: 'Executes an API; supports id and inputs.' },
+        { label: "data", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- data: ", detail: 'Load data resource', documentation: 'Load CSV/JSON or other data resource alias.' },
+        { label: "check", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- check: ", detail: 'Check expression', documentation: 'Boolean expression to check.' },
+        { label: "assert", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- assert: ", detail: 'Assert expression', documentation: 'Boolean assertion that must pass.' },
+        { label: "if", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- if: \n  \tsteps:\n  \t- ", detail: 'Conditional block', documentation: 'Conditional steps; add nested steps under steps:' },
+        { label: "for", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- for: \n  \tsteps:\n  \t- ", detail: 'Loop over collection', documentation: 'Iterate and execute nested steps.' },
+        { label: "repeat", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- repeat: 1\n  \tsteps:\n  \t- ", detail: 'Repeat steps N times', documentation: 'Repeat nested steps.' },
+        { label: "delay", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- delay: 1000", detail: 'Delay in ms', documentation: 'Sleep/pause execution for ms.' },
+        { label: "js", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- js: ", detail: 'Run JavaScript', documentation: 'Execute JavaScript code.' },
+        { label: "print", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- print: ", detail: 'Print message', documentation: 'Log output for debugging.' },
+        { label: "set", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- set:\n\t", detail: 'Set variables', documentation: 'Assign variables from expressions.' },
+        { label: "var", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- var:\n\t", detail: 'Define variables', documentation: 'Create variables to be used later.' },
+        { label: "const", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- const:\n\t", detail: 'Define constants', documentation: 'Immutable values for test context.' },
+        { label: "let", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- let:\n\t", detail: 'Define lexical variables', documentation: 'Mutable values for test context.' },
+        { label: "id", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- id: ", detail: 'Optional step identifier', documentation: 'Identifier for referencing this step.' },
+        { label: "inputs", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- inputs:\n\t", detail: 'Inputs for step', documentation: 'Key-value inputs for this step.' },
+        { label: "steps", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- steps:\n\t\t- ", detail: 'Nested steps', documentation: 'Add nested steps for control-flow steps.' },
+    ];
+    const stageSuggestions = [
+        { label: "stage", kind: monaco.languages.CompletionItemKind.Property, insertText: "stage: ", detail: 'Stage name', documentation: 'A human-readable stage name.' },
+        { label: "depends_on", kind: monaco.languages.CompletionItemKind.Property, insertText: "depends_on: ", detail: 'Stage dependencies', documentation: 'Name or list of stage names this stage depends on.' },
+        { label: "condition", kind: monaco.languages.CompletionItemKind.Property, insertText: "condition: ", detail: 'Conditional expression', documentation: 'Only run the stage if condition is truthy.' },
+        { label: "steps", kind: monaco.languages.CompletionItemKind.Property, insertText: "steps:\n\t- call: ", detail: 'Stage steps', documentation: 'Steps to execute in this stage.' },
+    ];
     const docSuggestions = [
         {
             label: "title",
@@ -237,7 +320,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "examples",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "examples:\n\t- name: example1\n\t\tinputs: \n\t\t\tkey1: value1\n\t\t\tkey2: value2\n",
+            insertText: "examples:\n\t- name: example1\n\t  description: desc\n\t  inputs:\n\t\tkey1: value1\n\t\tkey2: value2\n",
             detail: 'Usage examples [array of key: value]',
             documentation: 'Provide concrete examples of how to use the API with specific input values. These examples can be used for testing and documentation.\nExample:\nexamples:\n\t- name: "Get Admin User"\n\tinputs:\n\tuserId: "admin123"\n\tapiKey: "test-key-456"',
         }
@@ -406,12 +489,15 @@ export const KeySuggestionsByParent = (monaco: any) => {
         root: rootSuggestions,
         general: envVariablesSuggestions,
         api: apiSuggestions,
+        test: testSuggestions,
         doc: docSuggestions,
         theme: themeSuggestions,
         colors: themeColorsSuggestions,
         env: envSuggestions,
         type: typeSuggestions,
         examples: exampleSuggestions,
+        steps: stepsSuggestions,
+        stages: stageSuggestions,
         protocol: protocolSuggestion,
         method: methodSuggestions,
         format: formatSuggestion,
