@@ -30,7 +30,7 @@ function escapeHtml(s: string): string {
     return String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' } as any)[c]);
 }
 
-function renderApisToHtml(apis: any[], title?: string, description?: string): string {
+function renderApisToHtml(apis: any[], title?: string, description?: string, theme?: any): string {
     // Helper: try to parse JSON strings to objects for better bullet rendering
     const tryParseJson = (s: any): any | null => {
         if (typeof s !== 'string') return null;
@@ -88,20 +88,20 @@ function renderApisToHtml(apis: any[], title?: string, description?: string): st
     const outputSource = (api as any).outputs !== undefined ? (api as any).outputs : (api as any).output;
     const output = outputSource ? renderValueList(typeof outputSource === 'string' ? (tryParseJson(outputSource) ?? outputSource) : outputSource) : '';
         const inputs = api.inputs ? renderValueList(typeof api.inputs === 'string' ? (tryParseJson(api.inputs) ?? api.inputs) : api.inputs) : '';
-        const metaList = [
-            headers ? `<li><strong>Headers:</strong> ${headers}</li>` : '',
-            cookies ? `<li><strong>Cookies:</strong> ${cookies}</li>` : '',
-            body ? `<li><strong>Body (${api.format || 'json'}):</strong> ${body}</li>` : ''
-        ].filter(Boolean).join('\n');
+        const metaHtml = [
+            headers ? `<h3>Headers</h3>${headers}` : '',
+            cookies ? `<h3>Cookies</h3>${cookies}` : '',
+            body ? `<h3>Body (${api.format || 'json'})</h3>${body}` : ''
+        ].filter(Boolean).join('');
         const details = inputs || output || headers || cookies || body || examplesHtml ? `
 			<div class="details" id="details-${idx}" style="display: none;">
 				<h3>URL</h3>
-				<div class="url"><input type="text" id="url-${idx}" value="${escapeHtml(api.url || '')}" style="width: 100%; padding: 4px; box-sizing: border-box;" /></div>
+                <div class="url"><input class="url-input" type="text" id="url-${idx}" value="${escapeHtml(api.url || '')}" /></div>
 				<h3>Inputs</h3>
 				<div class="inputs-block">${inputs || '<em>-</em>'}</div>
 				<h3>Outputs</h3>
                 <div id="response-${idx}" class="response" style="margin-top: 8px; padding: 8px; border-radius: 4px;">${output}</div>
-                ${metaList ? `<hr class="sep" />\n<ul>\n${metaList}\n</ul>` : ''}
+                ${metaHtml ? `<hr class="sep" />${metaHtml}` : ''}
                 ${examplesHtml ? `<hr class="sep" />\n<h3>Examples</h3>\n${examplesHtml}` : ''}
 			</div>` : '';
         return `
@@ -116,6 +116,15 @@ function renderApisToHtml(apis: any[], title?: string, description?: string): st
 			</section>`;
     }).join('\n');
 
+    const colors = (theme && theme.colors) ? theme.colors : {};
+    const logo = theme && theme.logo ? String(theme.logo) : '';
+    const cssFg = colors.fg || '#ddd';
+    const cssBg = colors.bg || '#1e1e1e';
+    const cssMuted = colors.muted || '#aaa';
+    const cssAccent = colors.accent || '#0e639c';
+    const cssCard = colors.card || '#111';
+    const cssBorder = colors.border || '#333';
+
     return `<!DOCTYPE html>
 	<html><head>
 	<meta charset="UTF-8" />
@@ -123,11 +132,13 @@ function renderApisToHtml(apis: any[], title?: string, description?: string): st
 	<title>${escapeHtml(title || 'Documentation')}</title>
 	<style>
             html, body { height: 100%; }
-        :root { --fg: #ddd; --bg: #1e1e1e; --muted: #aaa; --accent: #0e639c; }
+        :root { --fg: ${cssFg}; --bg: ${cssBg}; --muted: ${cssMuted}; --accent: ${cssAccent}; --card: ${cssCard}; --border: ${cssBorder}; }
             body { margin: 0; padding: 12px; font-size: 12px; line-height: 1.4; font-family: -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--fg); box-sizing: border-box; }
             h1 { margin: 0 0 6px; font-size: 16px; }
             .doc-desc { color: var(--muted); margin: 0 0 8px; white-space: pre-wrap; }
-        .api { width: 100%; border: 1px solid #333; border-radius: 6px; padding: 10px; margin: 10px 0; background: #111; box-sizing: border-box; }
+        .doc-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+        .logo { height: 18px; width: auto; object-fit: contain; }
+        .api { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin: 10px 0; background: var(--card); box-sizing: border-box; }
         h2 { display: flex; align-items: center; gap: 6px; font-size: 13px; margin: 0 0 6px; }
         .title { font-weight: 600; }
         .toggle { color: var(--muted); }
@@ -140,11 +151,11 @@ function renderApisToHtml(apis: any[], title?: string, description?: string): st
         .url { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; color: var(--accent); margin-bottom: 6px; word-break: break-all; }
         .desc { color: var(--muted); margin-bottom: 6px; white-space: pre-wrap; }
         h3 { font-size: 11px; margin: 8px 0 4px; color: #ddd; }
-        .kv, .code { background: #0b0b0b; padding: 6px; border-radius: 4px; overflow:auto; border: 1px solid #222; }
+    .kv, .code { background: #0b0b0b; padding: 6px; border-radius: 4px; overflow:auto; border: 1px solid #222; }
         .details { width: 100%; }
         .details ul { margin: 0 0 6px 16px; }
         .details li { margin: 2px 0; }
-        .details input[type="text"] { font-size: 12px; padding: 4px 6px; }
+    .details .url-input { width: 100%; box-sizing: border-box; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; padding: 4px 6px; color: var(--fg); background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 4px; }
         .response { width: 100%; box-sizing: border-box; min-height: 20px; }
     .sep { border: none; border-top: 1px solid #2a2a2a; margin: 8px 0; }
     .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; }
@@ -154,7 +165,7 @@ function renderApisToHtml(apis: any[], title?: string, description?: string): st
     .ex-desc { color: var(--muted); margin-bottom: 2px; }
 	</style>
 		</head><body>
-			<h1>${escapeHtml(title || 'Documentation')}</h1>
+			${logo ? `<div class="doc-header"><img class="logo" src="${escapeHtml(logo)}" alt="logo" /><h1>${escapeHtml(title || 'Documentation')}</h1></div>` : `<h1>${escapeHtml(title || 'Documentation')}</h1>`}
 			${description ? `<div class="doc-desc">${escapeHtml(description)}</div>` : ''}
 		${rows || '<div>No APIs found.</div>'}
 		<script>
@@ -212,7 +223,7 @@ const DocView: React.FC<DocViewProps> = ({ doc }) => {
                     if (parsed && parsed.type === 'api') { apis.push(yamlToAPI(text)); }
                 } catch { }
             }
-            if (!cancelled) setHtml(renderApisToHtml(apis, doc.title, (doc as any).description));
+            if (!cancelled) setHtml(renderApisToHtml(apis, doc.title, (doc as any).description, (doc as any).theme));
         })();
         return () => { cancelled = true; };
     }, [sources, doc.title]);

@@ -426,6 +426,25 @@ export const DocSchema = {
         title: { type: 'string' },
         description: { type: 'string' },
         sources: { type: 'array', items: { type: 'string' } },
+        theme: {
+            type: 'object',
+            properties: {
+                logo: { type: 'string' },
+                colors: {
+                    type: 'object',
+                    properties: {
+                        fg: { type: 'string' },
+                        bg: { type: 'string' },
+                        muted: { type: 'string' },
+                        accent: { type: 'string' },
+                        card: { type: 'string' },
+                        border: { type: 'string' }
+                    },
+                    additionalProperties: false
+                }
+            },
+            additionalProperties: false
+        },
         services: {
             type: 'array',
             items: {

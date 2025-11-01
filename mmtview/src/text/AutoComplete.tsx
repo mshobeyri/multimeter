@@ -19,8 +19,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
             label: "type",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "type: ",
-            detail: 'Type of mmt file [api, env, var]',
-            documentation: 'Type of mmt file, must be one of: api, env, var\n\t- api: Define an API\n\t- env: Define environment variables\n\t- var: Define variables\nExample: type: api',
+            detail: 'Type of mmt file [api, env, var, doc]',
+            documentation: 'Type of mmt file, must be one of: api, env, var, doc\n\t- api: Define an API\n\t- env: Define environment variables\n\t- var: Define variables\n\t- doc: Define a documentation page (title/description/sources/theme)\nExample: type: doc',
         }];
 
     const typeSuggestions = [
@@ -44,8 +44,83 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: " var",
             detail: 'Define variables',
             documentation: 'Variables that can be used within API definitions. These are typically used for dynamic values that change based on context or environment',
-        }
+        },
+        {
+            label: "Doc",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " doc",
+            detail: 'Define a documentation page',
+            documentation: 'Documentation definition that aggregates APIs into a styled page. Supports title, description, sources/files/folders, and theme (logo/colors).',
+        },
     ]
+    const docSuggestions = [
+        {
+            label: "title",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "title: ",
+            detail: 'Doc title [string]',
+            documentation: 'Title of the documentation page. Shown at the top.'
+        },
+        {
+            label: "description",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "description: ",
+            detail: 'Doc description [string]',
+            documentation: 'Optional description shown under the title.'
+        },
+        {
+            label: "sources",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "sources:\n\t- ",
+            detail: 'List of .mmt files or folders [array of strings]',
+            documentation: 'Files or folders to scan for API definitions. Folders are scanned recursively.'
+        },
+        {
+            label: "files",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "files:\n\t- ",
+            detail: 'Explicit list of .mmt files [array of strings]',
+            documentation: 'Add specific API files to include in the documentation.'
+        },
+        {
+            label: "folders",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "folders:\n\t- ",
+            detail: 'Folders to scan recursively [array of strings]',
+            documentation: 'Add folders to scan for API files.'
+        },
+        {
+            label: "theme",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "theme:\n\tlogo: \n\tcolors:\n\t\tfg: \"#ddd\"\n\t\tbg: \"#1e1e1e\"\n\t\tmuted: \"#aaa\"\n\t\taccent: \"#0e639c\"\n\t\tcard: \"#111\"\n\t\tborder: \"#333\"\n",
+            detail: 'Theming (logo and colors) [object]',
+            documentation: 'Customize the doc page appearance. Provide a logo URL and override colors: fg, bg, muted, accent, card, border.'
+        },
+    ];
+    const themeSuggestions = [
+        {
+            label: "logo",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "logo: ",
+            detail: 'Logo URL/path [string]',
+            documentation: 'Path or URL to a logo image shown next to the title.'
+        },
+        {
+            label: "colors",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "colors:\n\tfg: \"#ddd\"\n\tbg: \"#1e1e1e\"\n\tmuted: \"#aaa\"\n\taccent: \"#0e639c\"\n\tcard: \"#111\"\n\tborder: \"#333\"\n",
+            detail: 'Theme colors [object]',
+            documentation: 'Override colors used in the documentation page.'
+        },
+    ];
+    const themeColorsSuggestions = [
+        { label: "fg", kind: monaco.languages.CompletionItemKind.Property, insertText: "fg: \"#ddd\"", detail: 'Foreground color', documentation: 'Text color (default #ddd)' },
+        { label: "bg", kind: monaco.languages.CompletionItemKind.Property, insertText: "bg: \"#1e1e1e\"", detail: 'Background color', documentation: 'Background color (default #1e1e1e)' },
+        { label: "muted", kind: monaco.languages.CompletionItemKind.Property, insertText: "muted: \"#aaa\"", detail: 'Muted text color', documentation: 'Secondary text color (default #aaa)' },
+        { label: "accent", kind: monaco.languages.CompletionItemKind.Property, insertText: "accent: \"#0e639c\"", detail: 'Accent color', documentation: 'Links, highlights (default #0e639c)' },
+        { label: "card", kind: monaco.languages.CompletionItemKind.Property, insertText: "card: \"#111\"", detail: 'Card background', documentation: 'Panel/card background (default #111)' },
+        { label: "border", kind: monaco.languages.CompletionItemKind.Property, insertText: "border: \"#333\"", detail: 'Border color', documentation: 'Borders and separators (default #333)' },
+    ];
     const apiSuggestions = [
         {
             label: "title",
@@ -331,6 +406,9 @@ export const KeySuggestionsByParent = (monaco: any) => {
         root: rootSuggestions,
         general: envVariablesSuggestions,
         api: apiSuggestions,
+        doc: docSuggestions,
+        theme: themeSuggestions,
+        colors: themeColorsSuggestions,
         env: envSuggestions,
         type: typeSuggestions,
         examples: exampleSuggestions,
