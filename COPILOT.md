@@ -33,7 +33,20 @@ Build and tests
 - Prefer small, focused modules in `core/src` with explicit types. Reuse the existing request/response shapes.
 - UI components live only in `mmtview/src`. Avoid Node-only modules there.
 - For browser builds, don’t import `https`, `fs`, or other Node-only APIs.
-- Commit messages: Keep them short. Start with the component name in Uppercase (file/module/feature) and avoid generic labels like `docs:`/`feat:`. Examples: `Template URL for env in Jser`, `Rename to-js to print-js in cli`, `Link History doc in README`.
+- Commit messages
+  - Keep them short and imperative.
+  - Start with the touched area in Uppercase (file/module/feature), not `feat:`/`fix:` prefixes.
+  - Prefer concrete verbs: Add, Fix, Improve, Refactor, Update, Rename, Release.
+  - Examples from this repo:
+    - `Add test auto complete`
+    - `Improve UI of doc view`
+    - `Implement expandable API docs and HTML export functionality`
+    - `Rename to-js to print-js`
+    - `Release version 0.20`
+    - `Fix the issue with passing env file to cli`
+    - `Refactor network`
+    - `Update theme`
+  - Avoid trailing punctuation and long descriptions; put details in the body when needed.
 
 ## Common tasks Copilot can help with
 - Network core edits: update `core/src/networkCore.ts` and `core/src/network.ts`. Add config fields, extend WS events, or improve error shaping. Ensure no `vscode`/`fs` imports.

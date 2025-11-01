@@ -163,6 +163,36 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           });
           break;
 
+        case 'getFileAsDataUrl': {
+          try {
+            const absolutePath = path.resolve(
+                path.dirname(document.uri.fsPath), message.filename);
+            const data = await vscode.workspace.fs.readFile(vscode.Uri.file(absolutePath));
+            // naive mime detection by extension
+            const ext = (path.extname(absolutePath) || '').toLowerCase();
+            const mime =
+                ext === '.png' ? 'image/png' :
+                ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' :
+                ext === '.svg' ? 'image/svg+xml' :
+                ext === '.gif' ? 'image/gif' :
+                'application/octet-stream';
+            const base64 = Buffer.from(data).toString('base64');
+            const dataUrl = `data:${mime};base64,${base64}`;
+            webviewPanel.webview.postMessage({
+              command: 'fileDataUrl',
+              filename: message.filename,
+              dataUrl,
+            });
+          } catch (err) {
+            webviewPanel.webview.postMessage({
+              command: 'fileDataUrl',
+              filename: message.filename,
+              error: String(err)
+            });
+          }
+          break;
+        }
+
         case 'openRelativeFile': {
           const absolutePath = path.resolve(
               path.dirname(document.uri.fsPath), message.filename);

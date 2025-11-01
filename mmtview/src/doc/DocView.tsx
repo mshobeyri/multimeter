@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { DocData } from 'mmt-core/DocData';
 import { yamlToAPI } from 'mmt-core/apiParsePack';
 import parseYaml from 'mmt-core/markupConvertor';
-import { readFile } from '../vsAPI';
+import { readFile, readFileAsDataUrl } from '../vsAPI';
 
 interface DocViewProps {
     doc: DocData;
@@ -30,7 +30,7 @@ function escapeHtml(s: string): string {
     return String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' } as any)[c]);
 }
 
-function renderApisToHtml(apis: any[], title?: string, description?: string, theme?: any): string {
+function renderApisToHtml(apis: any[], title?: string, description?: string, theme?: any, logoDataUrl?: string): string {
     // Helper: try to parse JSON strings to objects for better bullet rendering
     const tryParseJson = (s: any): any | null => {
         if (typeof s !== 'string') return null;
@@ -55,6 +55,32 @@ function renderApisToHtml(apis: any[], title?: string, description?: string, the
         const keys = Object.keys(val as Record<string, any>);
         if (!keys.length) return '<ul><li><em>empty</em></li></ul>';
         return `<ul>` + keys.map((k) => `<li><strong>${escapeHtml(k)}:</strong> ${renderValueList((val as any)[k])}</li>`).join('') + `</ul>`;
+    };
+
+    // Helper: extract endpoint path from a URL or path string
+    // - Removes scheme/host if present
+    // - Strips query string and hash
+    // - Returns only values that start with '/'; otherwise returns '' to hide
+    const extractEndpoint = (rawUrl: any): string => {
+        const raw = String(rawUrl || '').trim();
+        if (!raw) return '';
+        // If it looks like a full URL, use URL parsing to get pathname
+        if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(raw)) {
+            try {
+                const u = new URL(raw);
+                const path = u.pathname || '';
+                return path && path.startsWith('/') ? path : '';
+            } catch {
+                // Fallback: strip scheme/host manually
+                const withoutOrigin = raw.replace(/^[a-zA-Z][a-zA-Z0-9+.+-]*:\/\/[^/]+/, '');
+                const onlyPath = withoutOrigin.split(/[?#]/)[0];
+                return onlyPath && onlyPath.startsWith('/') ? onlyPath : '';
+            }
+        } else {
+            // Not a full URL; treat as path or template; drop query/hash
+            const onlyPath = raw.split(/[?#]/)[0];
+            return onlyPath.startsWith('/') ? onlyPath : '';
+        }
     };
 
     const rows = apis.map((api, idx) => {
@@ -82,42 +108,51 @@ function renderApisToHtml(apis: any[], title?: string, description?: string, the
                 return `${i > 0 ? '<hr class="sep" />' : ''}<div class="example">${nameHtml}${descHtml}${exInputs}</div>`;
             }).join('')
             : '';
-    const tags = api.tags && api.tags.length ? `<div class="tags">${api.tags.map((t: string) => `<span class=\"tag\">${escapeHtml(t)}</span>`).join('')}</div>` : '';
-        const ttl = api.title || `${method} ${api.url}`;
+        const tags = api.tags && api.tags.length ? `<div class="tags">${api.tags.map((t: string) => `<span class=\"tag\">${escapeHtml(t)}</span>`).join('')}</div>` : '';
+    const ttl = api.title || `${method} ${api.url}`;
+    const endpoint = extractEndpoint(api.url);
         const desc = api.description ? `<div class="desc">${escapeHtml(api.description)}</div>` : '';
-    const outputSource = (api as any).outputs !== undefined ? (api as any).outputs : (api as any).output;
-    const output = outputSource ? renderValueList(typeof outputSource === 'string' ? (tryParseJson(outputSource) ?? outputSource) : outputSource) : '';
+        const outputSource = (api as any).outputs !== undefined ? (api as any).outputs : (api as any).output;
+        const output = outputSource ? renderValueList(typeof outputSource === 'string' ? (tryParseJson(outputSource) ?? outputSource) : outputSource) : '';
         const inputs = api.inputs ? renderValueList(typeof api.inputs === 'string' ? (tryParseJson(api.inputs) ?? api.inputs) : api.inputs) : '';
         const metaHtml = [
             headers ? `<h3>Headers</h3>${headers}` : '',
             cookies ? `<h3>Cookies</h3>${cookies}` : '',
             body ? `<h3>Body (${api.format || 'json'})</h3>${body}` : ''
         ].filter(Boolean).join('');
-        const details = inputs || output || headers || cookies || body || examplesHtml ? `
+                const hasInputs = !!inputs;
+                const hasOutputs = !!output;
+                const hasMeta = !!metaHtml;
+                const hasExamples = !!examplesHtml;
+                const details = hasInputs || hasOutputs || hasMeta || hasExamples ? `
 			<div class="details" id="details-${idx}" style="display: none;">
 				<h3>URL</h3>
-                <div class="url"><input class="url-input" type="text" id="url-${idx}" value="${escapeHtml(api.url || '')}" /></div>
-				<h3>Inputs</h3>
-				<div class="inputs-block">${inputs || '<em>-</em>'}</div>
-				<h3>Outputs</h3>
-                <div id="response-${idx}" class="response" style="margin-top: 8px; padding: 8px; border-radius: 4px;">${output}</div>
-                ${metaHtml ? `<hr class="sep" />${metaHtml}` : ''}
-                ${examplesHtml ? `<hr class="sep" />\n<h3>Examples</h3>\n${examplesHtml}` : ''}
+                                <div class="url"><input class="url-input" type="text" id="url-${idx}" value="${escapeHtml(api.url || '')}" /></div>
+                                ${desc}
+                                ${tags}
+                                ${hasInputs ? `<h3>Inputs</h3><div class="inputs-block">${inputs}</div>` : ''}
+                                ${hasOutputs ? `<h3>Outputs</h3><div id="response-${idx}" class="response" style="margin-top: 8px; padding: 8px; border-radius: 4px;">${output}</div>` : ''}
+                                ${hasMeta ? `<hr class="sep" />${metaHtml}` : ''}
+                                ${hasExamples ? `<hr class="sep" />\n<h3>Examples</h3>\n${examplesHtml}` : ''}
 			</div>` : '';
         return `
 			<section class="api" id="api-${idx}">
-				<h2 onclick="toggleDetails(${idx})" style="cursor: pointer;">
-					<span class="toggle" id="toggle-${idx}">▶</span>
-					${badge}<span class="title">${escapeHtml(ttl)}</span>
+                <h2 onclick="toggleDetails(${idx})" style="cursor: pointer;">
+                    <span class="toggle" id="toggle-${idx}" role="button" aria-expanded="false" aria-controls="details-${idx}">
+                        <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <polyline points="9 6 15 12 9 18"></polyline>
+                        </svg>
+                    </span>
+                    ${badge}
+                    ${api.title ? `<span class="fade-title">${escapeHtml(api.title)}</span>` : ''}
+                    ${endpoint ? `<span class="endpoint">${escapeHtml(endpoint)}</span>` : ''}
 				</h2>
-                ${desc}
-                ${tags}
                 ${details}
 			</section>`;
     }).join('\n');
 
     const colors = (theme && theme.colors) ? theme.colors : {};
-    const logo = theme && theme.logo ? String(theme.logo) : '';
+    const logo = logoDataUrl || (theme && theme.logo ? String(theme.logo) : '');
     const cssFg = colors.fg || '#ddd';
     const cssBg = colors.bg || '#1e1e1e';
     const cssMuted = colors.muted || '#aaa';
@@ -140,8 +175,12 @@ function renderApisToHtml(apis: any[], title?: string, description?: string, the
         .logo { height: 18px; width: auto; object-fit: contain; }
         .api { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin: 10px 0; background: var(--card); box-sizing: border-box; }
         h2 { display: flex; align-items: center; gap: 6px; font-size: 13px; margin: 0 0 6px; }
-        .title { font-weight: 600; }
-        .toggle { color: var(--muted); }
+    .title { font-weight: 700; }
+    .endpoint { font-weight: 400; color: #9aa0a6; word-break: break-all; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 11px; }
+    .fade-title { color: var(--muted); font-weight: 700; margin-right: 8px; }
+    .toggle { color: var(--muted); display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; }
+    .toggle .chevron { transition: transform 0.15s ease; transform: rotate(0deg); }
+    .toggle.open .chevron { transform: rotate(90deg); }
         .badge { font-size: 9px; padding: 1px 5px; border-radius: 3px; background: #444; color: #fff; }
         .method-get { background:#2d7; }
         .method-post { background:#27d; }
@@ -155,7 +194,7 @@ function renderApisToHtml(apis: any[], title?: string, description?: string, the
         .details { width: 100%; }
         .details ul { margin: 0 0 6px 16px; }
         .details li { margin: 2px 0; }
-    .details .url-input { width: 100%; box-sizing: border-box; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; padding: 4px 6px; color: var(--fg); background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 4px; }
+    .details .url-input { width: 100%; box-sizing: border-box; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; padding: 4px 6px; color: #cfcfcf; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 4px; }
         .response { width: 100%; box-sizing: border-box; min-height: 20px; }
     .sep { border: none; border-top: 1px solid #2a2a2a; margin: 8px 0; }
     .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; }
@@ -168,19 +207,22 @@ function renderApisToHtml(apis: any[], title?: string, description?: string, the
 			${logo ? `<div class="doc-header"><img class="logo" src="${escapeHtml(logo)}" alt="logo" /><h1>${escapeHtml(title || 'Documentation')}</h1></div>` : `<h1>${escapeHtml(title || 'Documentation')}</h1>`}
 			${description ? `<div class="doc-desc">${escapeHtml(description)}</div>` : ''}
 		${rows || '<div>No APIs found.</div>'}
-		<script>
-			function toggleDetails(idx) {
-				const details = document.getElementById('details-' + idx);
-				const toggle = document.getElementById('toggle-' + idx);
-				if (details.style.display === 'none') {
-					details.style.display = 'block';
-					toggle.textContent = '▼';
-				} else {
-					details.style.display = 'none';
-					toggle.textContent = '▶';
-				}
-			}
-		</script>
+        <script>
+            function toggleDetails(idx) {
+                const details = document.getElementById('details-' + idx);
+                const toggle = document.getElementById('toggle-' + idx);
+                const isClosed = details.style.display === 'none';
+                if (isClosed) {
+                    details.style.display = 'block';
+                    toggle.classList.add('open');
+                    toggle.setAttribute('aria-expanded', 'true');
+                } else {
+                    details.style.display = 'none';
+                    toggle.classList.remove('open');
+                    toggle.setAttribute('aria-expanded', 'false');
+                }
+            }
+        </script>
 	</body></html>`;
 }
 
@@ -223,7 +265,20 @@ const DocView: React.FC<DocViewProps> = ({ doc }) => {
                     if (parsed && parsed.type === 'api') { apis.push(yamlToAPI(text)); }
                 } catch { }
             }
-            if (!cancelled) setHtml(renderApisToHtml(apis, doc.title, (doc as any).description, (doc as any).theme));
+            // Prepare logo as data URL if theme.logo is a relative path or file path
+            let logoDataUrl: string | undefined = undefined;
+            const theme: any = (doc as any).theme;
+            if (theme && theme.logo && typeof theme.logo === 'string') {
+                const logoStr = theme.logo as string;
+                const isData = logoStr.startsWith('data:');
+                const isHttp = /^https?:\/\//i.test(logoStr);
+                if (!isData && !isHttp) {
+                    try {
+                        logoDataUrl = await readFileAsDataUrl(logoStr);
+                    } catch { /* ignore */ }
+                }
+            }
+            if (!cancelled) setHtml(renderApisToHtml(apis, doc.title, (doc as any).description, (doc as any).theme, logoDataUrl));
         })();
         return () => { cancelled = true; };
     }, [sources, doc.title]);
@@ -242,8 +297,8 @@ const DocView: React.FC<DocViewProps> = ({ doc }) => {
     };
 
     return (
-        <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column'}}>
-            <div style={{ display: 'flex', justifyContent: 'flex-end'}}>
+        <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                 <button
                     onClick={handleExport}
                     style={{
