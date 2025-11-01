@@ -72,7 +72,7 @@ const Doc: React.FC<DocProps> = ({ content, setContent }) => {
 
   return (
     <div className="panel">
-      <div className="panel-box" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, width: '100%', minWidth: 0 }}>
+      <div className="panel-box" style={{ display: 'flex', flexDirection: 'column', height: '100%'}}>
         <div
           ref={tabContainerRef}
           className="tab-bar"
