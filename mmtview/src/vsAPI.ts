@@ -2,6 +2,8 @@ import {LogLevel} from 'mmt-core/CommonData';
 
 let lastFileContentResolver: ((content: string) => void)|null = null;
 let lastFileContentRejecter: ((error: any) => void)|null = null;
+let lastFileDataUrlResolver: ((dataUrl: string) => void)|null = null;
+let lastFileDataUrlRejecter: ((error: any) => void)|null = null;
 
 // Add the event listener only once
 if (typeof window !== 'undefined' &&
@@ -16,6 +18,14 @@ if (typeof window !== 'undefined' &&
       }
       lastFileContentResolver = null;
       lastFileContentRejecter = null;
+    } else if (message.command === 'fileDataUrl') {
+      if (message.error && lastFileDataUrlRejecter) {
+        lastFileDataUrlRejecter(message.error);
+      } else if (lastFileDataUrlResolver) {
+        lastFileDataUrlResolver(message.dataUrl);
+      }
+      lastFileDataUrlResolver = null;
+      lastFileDataUrlRejecter = null;
     }
   });
   (window as any).__fileContentListenerAdded = true;
@@ -26,6 +36,14 @@ export function readFile(filename: string): Promise<string> {
     lastFileContentResolver = resolve;
     lastFileContentRejecter = reject;
     window.vscode?.postMessage({command: 'getFileContent', filename});
+  });
+}
+
+export function readFileAsDataUrl(filename: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    lastFileDataUrlResolver = resolve;
+    lastFileDataUrlRejecter = reject;
+    window.vscode?.postMessage({ command: 'getFileAsDataUrl', filename });
   });
 }
 
