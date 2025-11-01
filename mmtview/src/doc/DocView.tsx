@@ -61,43 +61,48 @@ function renderApisToHtml(apis: any[], title?: string, description?: string): st
         const method = String(api.method || '').toUpperCase();
         const badge = method ? `<span class="badge method-${method.toLowerCase()}">${method}</span>` : '';
         const headers = api.headers && Object.keys(api.headers).length ? renderValueList(api.headers) : '';
-        const query = api.query && Object.keys(api.query).length ? renderValueList(api.query) : '';
         const cookies = api.cookies && Object.keys(api.cookies).length ? renderValueList(api.cookies) : '';
         let body = '';
         if (api.body !== undefined && api.body !== null && String(api.body).length) {
-            const parsedBody = typeof api.body === 'string' ? (tryParseJson(api.body) ?? api.body) : api.body;
-            body = renderValueList(parsedBody);
+            const rawBody = api.body;
+            const parsed = typeof rawBody === 'string' ? tryParseJson(rawBody) : rawBody;
+            const isJsonObject = parsed && typeof parsed === 'object';
+            if (isJsonObject) {
+                body = `<pre class="code">${escapeHtml(JSON.stringify(parsed, null, 2))}</pre>`;
+            } else {
+                body = `<span class="value">${escapeHtml(typeof rawBody === 'string' ? rawBody : String(rawBody))}</span>`;
+            }
         }
-        const examples = api.examples && Array.isArray(api.examples) && api.examples.length
-            ? `<div><h3>Examples</h3><ul>${(api.examples as any[]).map((ex: any) => `<li>${renderValueList(typeof ex === 'string' ? (tryParseJson(ex) ?? ex) : ex)}</li>`).join('')}</ul></div>`
+        const examplesHtml = api.examples && Array.isArray(api.examples) && api.examples.length
+            ? (api.examples as any[]).map((ex: any, i: number) => {
+                const obj = typeof ex === 'string' ? (tryParseJson(ex) ?? { description: ex }) : ex;
+                const nameHtml = obj?.name ? `<div class="ex-name">${escapeHtml(String(obj.name))}</div>` : '';
+                const descHtml = obj?.description ? `<div class="ex-desc">${escapeHtml(String(obj.description))}</div>` : '';
+                const exInputs = obj?.inputs ? renderValueList(typeof obj.inputs === 'string' ? (tryParseJson(obj.inputs) ?? obj.inputs) : obj.inputs) : '';
+                return `${i > 0 ? '<hr class="sep" />' : ''}<div class="example">${nameHtml}${descHtml}${exInputs}</div>`;
+            }).join('')
             : '';
-        const tags = api.tags && api.tags.length ? `<div style="margin-top: 8px; color: var(--muted);">Tags: ${api.tags.join(', ')}</div>` : '';
+    const tags = api.tags && api.tags.length ? `<div class="tags">${api.tags.map((t: string) => `<span class=\"tag\">${escapeHtml(t)}</span>`).join('')}</div>` : '';
         const ttl = api.title || `${method} ${api.url}`;
         const desc = api.description ? `<div class="desc">${escapeHtml(api.description)}</div>` : '';
-        const output = api.output ? renderValueList(typeof api.output === 'string' ? (tryParseJson(api.output) ?? api.output) : api.output) : '';
+    const outputSource = (api as any).outputs !== undefined ? (api as any).outputs : (api as any).output;
+    const output = outputSource ? renderValueList(typeof outputSource === 'string' ? (tryParseJson(outputSource) ?? outputSource) : outputSource) : '';
         const inputs = api.inputs ? renderValueList(typeof api.inputs === 'string' ? (tryParseJson(api.inputs) ?? api.inputs) : api.inputs) : '';
-        const inputsList = [
+        const metaList = [
             headers ? `<li><strong>Headers:</strong> ${headers}</li>` : '',
-            query ? `<li><strong>Query:</strong> ${query}</li>` : '',
             cookies ? `<li><strong>Cookies:</strong> ${cookies}</li>` : '',
-            body ? `<li><strong>Body (${api.format || 'json'}):</strong> ${body}</li>` : '',
-            inputs ? `<li><strong>Inputs:</strong> ${inputs}</li>` : ''
+            body ? `<li><strong>Body (${api.format || 'json'}):</strong> ${body}</li>` : ''
         ].filter(Boolean).join('\n');
-        const details = headers || query || cookies || body || examples || output ? `
+        const details = inputs || output || headers || cookies || body || examplesHtml ? `
 			<div class="details" id="details-${idx}" style="display: none;">
 				<h3>URL</h3>
 				<div class="url"><input type="text" id="url-${idx}" value="${escapeHtml(api.url || '')}" style="width: 100%; padding: 4px; box-sizing: border-box;" /></div>
 				<h3>Inputs</h3>
-				<ul>
-					${inputsList}
-				</ul>
-				<div class="send-section">
-					<button onclick="sendRequest(${idx}, '${method}')" style="padding: 6px 12px; margin-top: 8px;">Send Request</button>
-				</div>
+				<div class="inputs-block">${inputs || '<em>-</em>'}</div>
 				<h3>Outputs</h3>
-				<div id="response-${idx}" class="response" style="margin-top: 8px; padding: 8px; background: #0b0b0b; border-radius: 4px;">${output}</div>
-				${examples}
-				${tags}
+                <div id="response-${idx}" class="response" style="margin-top: 8px; padding: 8px; border-radius: 4px;">${output}</div>
+                ${metaList ? `<hr class="sep" />\n<ul>\n${metaList}\n</ul>` : ''}
+                ${examplesHtml ? `<hr class="sep" />\n<h3>Examples</h3>\n${examplesHtml}` : ''}
 			</div>` : '';
         return `
 			<section class="api" id="api-${idx}">
@@ -105,8 +110,9 @@ function renderApisToHtml(apis: any[], title?: string, description?: string): st
 					<span class="toggle" id="toggle-${idx}">▶</span>
 					${badge}<span class="title">${escapeHtml(ttl)}</span>
 				</h2>
-				${desc}
-				${details}
+                ${desc}
+                ${tags}
+                ${details}
 			</section>`;
     }).join('\n');
 
@@ -140,6 +146,12 @@ function renderApisToHtml(apis: any[], title?: string, description?: string): st
         .details li { margin: 2px 0; }
         .details input[type="text"] { font-size: 12px; padding: 4px 6px; }
         .response { width: 100%; box-sizing: border-box; min-height: 20px; }
+    .sep { border: none; border-top: 1px solid #2a2a2a; margin: 8px 0; }
+    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; }
+    .tag { display: inline-block; padding: 2px 6px; font-size: 10px; border-radius: 999px; background: #222; border: 1px solid #333; color: #bbb; }
+    .example { padding: 4px 0; }
+    .ex-name { font-weight: 600; margin-bottom: 2px; }
+    .ex-desc { color: var(--muted); margin-bottom: 2px; }
 	</style>
 		</head><body>
 			<h1>${escapeHtml(title || 'Documentation')}</h1>
