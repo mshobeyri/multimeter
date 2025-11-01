@@ -300,7 +300,7 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
         <input id="search-input" class="search-input" type="search" placeholder="Search..." aria-label="Filter endpoints" />
       </div>
     </div>
-  ${description && !anyServices ? `<div class="doc-desc">${escapeHtml(description)}</div>` : ''}
+  ${description ? `<div class="doc-desc">${escapeHtml(description)}</div>` : ''}
   ${contentHtml || '<div>No APIs found.</div>'}
     <script>
       function toggleDetails(idx) {
