@@ -184,8 +184,10 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     if (anyServices) {
       for (const svc of opts.services || []) {
         const svcSources = (svc?.sources || []) as string[];
+        // pick only items matching this service AND not already assigned to a previous service
         const items = listApis.filter(a => {
           const f = String((a as any).__file || '');
+          if (!f || taken.has(f)) { return false; }
           return svcSources.some(s => matchesSource(f, s));
         });
         items.forEach(a => taken.add(String((a as any).__file)));
