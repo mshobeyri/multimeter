@@ -44,25 +44,27 @@ function renderValueList(val: any): string {
   return `<ul>` + keys.map((k) => `<li><strong>${escapeHtml(k)}:</strong> ${renderValueList((val as any)[k])}</li>`).join('') + `</ul>`;
 }
 
-function extractEndpoint(rawUrl: any): string {
+export function extractEndpoint(rawUrl: any): string {
   const raw = String(rawUrl || '').trim();
-  if (!raw) {
-    return '';
-  }
-  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(raw)) {
-    try {
-      const u = new URL(raw);
-      const path = u.pathname || '';
-      return path && path.startsWith('/') ? path : '';
-    } catch {
-      const withoutOrigin = raw.replace(/^[a-zA-Z][a-zA-Z0-9+.+-]*:\/\/[^/]+/, '');
-      const onlyPath = withoutOrigin.split(/[?#]/)[0];
-      return onlyPath && onlyPath.startsWith('/') ? onlyPath : '';
-    }
+  if (!raw) { return ''; }
+  // Trim query string first
+  const qIndex = raw.indexOf('?');
+  const base = qIndex >= 0 ? raw.slice(0, qIndex) : raw;
+  // If scheme present, skip past scheme and host to first '/'
+  const schemeIdx = base.indexOf('://');
+  let start = -1;
+  if (schemeIdx >= 0) {
+    const afterHost = base.indexOf('/', schemeIdx + 3);
+    start = afterHost; // may be -1
   } else {
-    const onlyPath = raw.split(/[?#]/)[0];
-    return onlyPath.startsWith('/') ? onlyPath : '';
+    // No scheme, use first '/'
+    start = base.indexOf('/');
   }
+  if (start < 0) { return ''; }
+  // Collapse multiple leading slashes in the path to a single '/'
+  const pathPortion = base.slice(start);
+  const collapsed = '/' + pathPortion.replace(/^\/+/, '');
+  return collapsed;
 }
 
 export interface BuildDocHtmlOptions {
