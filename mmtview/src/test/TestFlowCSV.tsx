@@ -15,7 +15,7 @@ const TestFlowCSV: React.FC<Props> = ({ value, imports, onChange }) => {
     <select
       value={cur}
   onChange={(e) => onChange({ data: e.target.value })}
-      style={{ width: 300 }}
+      style={{ width: '100%' }}
     >
       <option value="">select a csv import</option>
       {aliases.map(a => <option key={a} value={a}>{a}</option>)}

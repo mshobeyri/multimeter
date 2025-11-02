@@ -1,5 +1,4 @@
 import React from "react";
-import AutoSizeTextField from "../components/AutoSizeTextField";
 import { CheckOps, opsList, opsNames } from "mmt-core/TestData";
 import { safeList } from "mmt-core/safer";
 
@@ -8,8 +7,6 @@ interface TestCheckProps {
   op: CheckOps;
   right: string;
   onChange: (val: { left: string; op: CheckOps; right: string }) => void;
-  minWidth?: number;
-  maxWidth?: number;
 }
 
 const TestCheck: React.FC<TestCheckProps> = ({
@@ -17,15 +14,12 @@ const TestCheck: React.FC<TestCheckProps> = ({
   op,
   right,
   onChange,
-  minWidth = 110,
-  maxWidth = 110,
 }) => (
   <div style={{ display: "flex", verticalAlign: "center", gap: 0 }}>
-    <AutoSizeTextField
+    <input
       value={left}
-      minWidth={minWidth}
-      maxWidth={maxWidth}
-      onChange={v => onChange({ left: v, op, right })}
+      style={{ width: '100%' }}
+      onChange={v => onChange({ left: v.target.value, op, right })}
     />
     <select
       value={op}
@@ -38,11 +32,10 @@ const TestCheck: React.FC<TestCheckProps> = ({
         </option>
       ))}
     </select>
-    <AutoSizeTextField
-      value={right}
-      minWidth={minWidth}
-      maxWidth={maxWidth}
-      onChange={v => onChange({ left, op, right: v })}
+    <input
+      value={left}
+      style={{ width: '100%' }}
+      onChange={e => onChange({ left, op, right: e.target.value })}
     />
   </div>
 );
