@@ -8,7 +8,9 @@ import {
   setFileLoader,
   rootTestToJsfunc,
   variableReplacer,
+  importApiToJSfunc
 } from './JSer';
+import { yamlToAPI } from './apiParsePack';
 
 describe('flowStagesToJsfunc', () => {
   it('generates parallel execution for independent stages', () => {
@@ -203,6 +205,40 @@ describe('env token replacements in generated JS', () => {
     expect(out).toContain('const a = envVariables.AAA;');
     expect(out).toContain('const b = envVariables.BBB;');
     expect(out).toContain('`X=${envVariables.FOO} Y=${envVariables.BAR} Z=${envVariables.BAZ} W=${envVariables.QUX}`');
+  });
+});
+
+describe('body inputs numeric/boolean templating', () => {
+  it('does not quote numbers, floats, and booleans in JSON body', async () => {
+    const apiYaml = [
+      'type: api',
+      'protocol: http',
+      'method: post',
+      'format: json',
+      'url: http://<e:HOST>/login',
+      'inputs:',
+      '  username: username@gmail.com',
+      '  password: 123456',
+      '  pi: 3.14',
+      '  name: true',
+      'body: |',
+      '  {"user":"${username}","pass":${password},"pi":${pi},"flag":${name}}'
+    ].join('\n');
+    const ctx: APIContext = {
+      api: yamlToAPI(apiYaml),
+      name: 'login_api',
+      inputs: {},
+      envVars: {}
+    } as any;
+    const js = await importApiToJSfunc(ctx);
+    // url should interpolate env without double wrapping
+    expect(js).toContain('url: `http://${envVariables.HOST}/login`');
+    // numbers and booleans should be passed via var)
+  expect(js).toContain('"pass":${password}');
+  expect(js).toContain('"pi":${pi}');
+  expect(js).toContain('\"flag\":${name}');
+  // username remains a string at runtime
+  expect(js).toContain('\"user\":\"${username}\"');
   });
 });
 

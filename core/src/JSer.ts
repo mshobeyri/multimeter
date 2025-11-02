@@ -64,7 +64,6 @@ export let readFile: FileLoader = async (path: string) => {
   return '';
 };
 
-// Allow overriding the file loader
 export function setFileLoader(loader: FileLoader) {
   readFile = loader;
 }
@@ -87,6 +86,52 @@ export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
 
   let formattedBody =
       formatBody(replaced.format || 'json', replaced.body || '', false);
+  // Replace placeholders with JSON.stringify(var) so non-strings are not quoted
+  try {
+    if (typeof formattedBody === 'string') {
+      const entries = Object.entries(ctx.api.inputs ?? {});
+      for (const [name, value] of entries) {
+        // Replace "${name}" -> ${JSON.stringify(name)}
+        const quoted = new RegExp(`\"\\$\\{${name}\\}\"`, 'g');
+        if (typeof value === 'string') {
+          formattedBody =
+              (formattedBody as string).replace(quoted, '"${' + name + '}"');
+        } else {
+          formattedBody =
+              (formattedBody as string).replace(quoted, '${' + name + '}');
+        }
+      }
+    }
+  } catch {
+  }
+
+  // Helpers to build template literals with env variable slots safely
+  const escapeBackticks = (s: string) => String(s ?? '').replace(/`/g, '\\`');
+  const toTemplateWithEnvs = (s: string) => {
+    const src = String(s ?? '');
+    // Normalize env tokens to envVariables.NAME first
+    let withEnv =
+        src.replace(/<<\s*e:([A-Za-z_][A-Za-z0-9_]*)\s*>>/g, 'envVariables.$1')
+            .replace(/<\s*e:([A-Za-z_][A-Za-z0-9_]*)\s*>/g, 'envVariables.$1')
+            .replace(/\be:\{([A-Za-z_][A-Za-z0-9_]*)\}/g, 'envVariables.$1')
+            .replace(
+                /\be:([A-Za-z_][A-Za-z0-9_]*)(?![A-Za-z0-9_])/g,
+                'envVariables.$1');
+    // Inject ${envVariables.NAME}, avoiding double-wrapping
+    withEnv = withEnv.replace(
+        /envVariables\.([A-Za-z_][A-Za-z0-9_]*)/g, (m, name, offset, str) => {
+          if (offset >= 2 && str[offset - 2] === '$' &&
+              str[offset - 1] === '{') {
+            return m;  // already ${envVariables.name}
+          }
+          return '${envVariables.' + name + '}';
+        });
+    // Collapse nested patterns if any
+    withEnv = withEnv.replace(
+        /\$\{\s*\$\{\s*envVariables\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\s*\}/g,
+        '${envVariables.$1}');
+    return '`' + escapeBackticks(withEnv) + '`';
+  };
 
   if (replaced.cookies && Object.keys(replaced.cookies).length > 0) {
     let cookies = Object.entries(replaced.cookies || {})
@@ -97,16 +142,16 @@ export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
   }
 
   let headers = Object.entries(replaced.headers || {})
-                    .map(([k, v]) => `"${k}": \`${v}\``)
+                    .map(([k, v]) => `"${k}": ${toTemplateWithEnvs(String(v))}`)
                     .join(', ');
 
   return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
   const req = {
-    url: \`${replaced.url || ''}\`,
+    url: ${toTemplateWithEnvs(String(replaced.url || ''))},
     protocol: '${ctx.api.protocol}',
     method: '${replaced.method}',
     headers: ${headers ? '{ ' + headers + ' }' : '{}'},
-    body: \`${formattedBody}\`
+    body: ${toTemplateWithEnvs(formattedBody)}
   };
   const res = await send(req);
 
@@ -340,7 +385,7 @@ export const repeatToJSfunc = (loop: TestFlowRepeat): string => {
 }`;
 };
 
-export function delayToJSfunc(d: string | number): string {
+export function delayToJSfunc(d: string|number): string {
   const val = typeof d === 'number' ? String(d) : String(d).trim();
   let msExpr = '0';
   const m = val.match(/^(\d+(?:\.\d+)?)(ns|ms|s|m|h)?$/);
@@ -348,12 +393,23 @@ export function delayToJSfunc(d: string | number): string {
     const num = parseFloat(m[1]);
     const unit = m[2] || 'ms';
     switch (unit) {
-      case 'ns': msExpr = String(num / 1e6); break;
-      case 'ms': msExpr = String(num); break;
-      case 's': msExpr = String(num * 1000); break;
-      case 'm': msExpr = String(num * 60 * 1000); break;
-      case 'h': msExpr = String(num * 60 * 60 * 1000); break;
-      default: msExpr = String(num);
+      case 'ns':
+        msExpr = String(num / 1e6);
+        break;
+      case 'ms':
+        msExpr = String(num);
+        break;
+      case 's':
+        msExpr = String(num * 1000);
+        break;
+      case 'm':
+        msExpr = String(num * 60 * 1000);
+        break;
+      case 'h':
+        msExpr = String(num * 60 * 60 * 1000);
+        break;
+      default:
+        msExpr = String(num);
     }
   } else {
     msExpr = `(function(x){
@@ -452,8 +508,8 @@ export const flowStepsToJsfunc = (flow: TestFlowSteps): string => {
             return ifToJSfunc(step as TestFlowCondition);
           case 'repeat':
             return repeatToJSfunc(step as TestFlowRepeat);
-           case 'delay':
-             return delayToJSfunc((step as any).delay);
+          case 'delay':
+            return delayToJSfunc((step as any).delay);
           case 'for':
             return forToJSfunc(step as TestFlowLoop);
           case 'js':
@@ -582,24 +638,24 @@ export const importTestToJsfunc = async(ctx: TestContext): Promise<string> => {
 export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
   const test = await importTestToJsfunc(ctx);
   const envPretty = JSON.stringify(ctx.envVars || {}, null, 2);
-  const full = `${test}\n\nconst envVar = ${envPretty};\nreturn ${toLowerUnderscore(ctx.name)}({}, envVar);`;
+  const full = `${test}\n\nconst envVar = ${envPretty};\nreturn ${
+      toLowerUnderscore(ctx.name)}({}, envVar);`;
   return variableReplacer(full);
 };
 
 export const variableReplacer = (full: string): string => {
   const replaceOutside = (s: string) =>
-    s
-  .replace(/<<\s*e:([A-Za-z0-9_]+)\s*>>/g, 'envVariables.$1')
-  .replace(/<\s*e:([A-Za-z0-9_]+)\s*>/g, 'envVariables.$1')
-  .replace(/\be:\{([A-Za-z0-9_]+)\}/g, 'envVariables.$1')
-  .replace(/\be:([A-Za-z0-9_]+)(?![A-Za-z0-9_])/g, 'envVariables.$1');
+      s.replace(/<<\s*e:([A-Za-z0-9_]+)\s*>>/g, 'envVariables.$1')
+          .replace(/<\s*e:([A-Za-z0-9_]+)\s*>/g, 'envVariables.$1')
+          .replace(/\be:\{([A-Za-z0-9_]+)\}/g, 'envVariables.$1')
+          .replace(/\be:([A-Za-z0-9_]+)(?![A-Za-z0-9_])/g, 'envVariables.$1');
 
   const replaceInsideTpl = (s: string) =>
-    s
-  .replace(/<<\s*e:([A-Za-z0-9_]+)\s*>>/g, '${envVariables.$1}')
-  .replace(/<\s*e:([A-Za-z0-9_]+)\s*>/g, '${envVariables.$1}')
-  .replace(/\be:\{([A-Za-z0-9_]+)\}/g, '${envVariables.$1}')
-  .replace(/\be:([A-Za-z0-9_]+)(?![A-Za-z0-9_])/g, '${envVariables.$1}');
+      s.replace(/<<\s*e:([A-Za-z0-9_]+)\s*>>/g, '${envVariables.$1}')
+          .replace(/<\s*e:([A-Za-z0-9_]+)\s*>/g, '${envVariables.$1}')
+          .replace(/\be:\{([A-Za-z0-9_]+)\}/g, '${envVariables.$1}')
+          .replace(
+              /\be:([A-Za-z0-9_]+)(?![A-Za-z0-9_])/g, '${envVariables.$1}');
 
   let out = '';
   let i = 0;
@@ -619,19 +675,7 @@ export const variableReplacer = (full: string): string => {
     out += '`' + replaceInsideTpl(inner) + '`';
     i = end + 1;
   }
-  // As a safety net, convert quoted strings containing envVariables.* into
-  // template literals with ${envVariables.*} interpolation.
-  // This covers cases where upstream code accidentally used single/double quotes.
-  const toTemplateIfEnv = (s: string): string => {
-    const re = /(["'])((?:\\.|(?!\1).)*?envVariables\.[A-Za-z_][A-Za-z0-9_]*(?:\\.|(?!\1).)*?)\1/gs;
-    return s.replace(re, (_m, _q, inner) => {
-      // Replace plain envVariables.NAME occurrences with ${envVariables.NAME}
-      const withSlots = inner.replace(/envVariables\.([A-Za-z_][A-Za-z0-9_]*)/g, '${envVariables.$1}');
-      const escaped = withSlots.replace(/`/g, '\\`');
-      return '`' + escaped + '`';
-    });
-  };
-  return toTemplateIfEnv(out);
+  return out;
 };
 
 function randomName(): string {
