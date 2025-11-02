@@ -136,7 +136,7 @@ const TestCall: React.FC<TestCallProps> = ({
       <select
         value={currentAlias}
         onChange={handleChange}
-        style={{ width: 300, marginBottom: 8 }}
+        style={{ width: '100%', marginBottom: 8 }}
       >
         <option value="">{placeholder}</option>
         {aliases.map(a => (

@@ -47,8 +47,8 @@ const TestFlowVar: React.FC<TestFlowVarProps> = ({ type, stepData, onChange }) =
   };
 
   return (
-    <>
-      <select value={currentType} onChange={handleKindChange} style={{ width: 80 }}>
+    <div style={{ display: 'flex', gap: 8, width: '100%' }}>
+      <select value={currentType} onChange={handleKindChange} style={{ width: '30%' }}>
         <option value="set">set</option>
         <option value="var">var</option>
         <option value="const">const</option>
@@ -58,15 +58,15 @@ const TestFlowVar: React.FC<TestFlowVarProps> = ({ type, stepData, onChange }) =
         placeholder="property (e.g., outputs.name)"
         value={key}
         onChange={handleKeyChange}
-        style={{ width: 110 }}
+        style={{ width: '35%' }}
       />
       <input
         placeholder="value (e.g., user_info.name or 'text')"
         value={val}
         onChange={handleValChange}
-        style={{ width: 110 }}
+        style={{ width: '35%' }}
       />
-    </>
+    </div>
   );
 };
 

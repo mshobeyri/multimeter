@@ -172,7 +172,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
     placeholder={type === 'for' ? '100, 10s, 5-10, i:data' : (type === 'repeat' ? 'repeat count or duration' : 'delay (e.g., 500, 2s, 1m)')}
             value={stepData[type] || ''}
             onChange={e => onChange({ [type]: e.target.value })}
-            style={{ width: 300 }}
+            style={{ width: '100%' }}
           />
         );
       case 'js':
@@ -182,7 +182,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             value={stepData[type] || ''}
             onChange={e => onChange({ js: e.target.value })}
             style={{
-              width: expanded ? '100%' : 300,
+              width: '100%',
               height: expanded ? 400 : 24,
               resize: 'none',
               overflow: 'auto'
@@ -196,7 +196,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             value={stepData[type] || ''}
             onChange={e => onChange({ print: e.target.value })}
             style={{
-              width: expanded ? '100%' : 300,
+              width: '100%',
               height: expanded ? 400 : 24,
               resize: 'none',
               overflow: 'auto'
@@ -223,7 +223,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             placeholder="Stage name"
             value={stepData[type] || ''}
             onChange={e => onChange({ stage: e.target.value })}
-            style={{ width: 300 }}
+            style={{ width: '100%' }}
           />
         );
       default:
