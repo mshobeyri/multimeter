@@ -15,7 +15,7 @@ const TestCheck: React.FC<TestCheckProps> = ({
   right,
   onChange,
 }) => (
-  <div style={{ display: "flex", verticalAlign: "center", gap: 0 }}>
+  <div style={{ display: "flex", verticalAlign: "center", gap: 0, width: '100%' }}>
     <input
       value={left}
       style={{ width: '100%' }}

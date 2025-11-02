@@ -79,8 +79,8 @@ const TestCall: React.FC<TestCallProps> = ({
 
   // Load defaults when alias changes
   React.useEffect(() => {
-  if (!mmtImports || !currentAlias) return;
-  const fileName = mmtImports[currentAlias];
+    if (!mmtImports || !currentAlias) return;
+    const fileName = mmtImports[currentAlias];
     if (!fileName) return;
     readFile(fileName)
       .then((content: string) => {
@@ -132,7 +132,7 @@ const TestCall: React.FC<TestCallProps> = ({
   };
 
   return (
-    <div>
+    <div style={{ width: '100%' }}>
       <select
         value={currentAlias}
         onChange={handleChange}
@@ -160,7 +160,7 @@ const TestCall: React.FC<TestCallProps> = ({
             }
           }}
           disabled={!currentAlias}
-          style={{ width: 240, padding: '6px 8px', marginLeft: 16 }}
+          style={{ width: '100%', padding: '6px 8px', marginLeft: 16 }}
           placeholder="Optional id to capture call result"
         />
       </div>

@@ -139,7 +139,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             placeholder="select a call"
           />
         );
-  case 'data':
+      case 'data':
         return (
           <TestFlowCSV
             value={stepData}
@@ -164,12 +164,12 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
           />
         );
       }
-  case 'for':
-  case 'repeat':
-  case 'delay':
+      case 'for':
+      case 'repeat':
+      case 'delay':
         return (
           <input
-    placeholder={type === 'for' ? '100, 10s, 5-10, i:data' : (type === 'repeat' ? 'repeat count or duration' : 'delay (e.g., 500, 2s, 1m)')}
+            placeholder={type === 'for' ? '100, 10s, 5-10, i:data' : (type === 'repeat' ? 'repeat count or duration' : 'delay (e.g., 500, 2s, 1m)')}
             value={stepData[type] || ''}
             onChange={e => onChange({ [type]: e.target.value })}
             style={{ width: '100%' }}
@@ -241,8 +241,9 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       <span
         style={{
           paddingTop: '6px',
-          flex: '0 0 80px',
-          width: 80,
+          flex: '0 1 80px',
+          maxWidth: 80,
+          minWidth: 0,
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis'
@@ -250,10 +251,20 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       >
         {type}
       </span>
-      <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+      <div
+        style={{
+          flex: '1 1 auto',
+          minWidth: 0,
+          overflow: 'hidden'
+        }}
+      >
         {renderInner()}
       </div>
-      <Actions />
+      <div
+        style={{ marginLeft: 'auto', paddingRight: 8, display: 'flex', alignItems: 'flex-start', pointerEvents: 'auto', gap: 4, flex: '0 0 auto' }}
+      >
+        <Actions />
+      </div>
     </div>
   );
 };
