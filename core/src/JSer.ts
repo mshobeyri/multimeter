@@ -619,7 +619,19 @@ export const variableReplacer = (full: string): string => {
     out += '`' + replaceInsideTpl(inner) + '`';
     i = end + 1;
   }
-  return out;
+  // As a safety net, convert quoted strings containing envVariables.* into
+  // template literals with ${envVariables.*} interpolation.
+  // This covers cases where upstream code accidentally used single/double quotes.
+  const toTemplateIfEnv = (s: string): string => {
+    const re = /(["'])((?:\\.|(?!\1).)*?envVariables\.[A-Za-z_][A-Za-z0-9_]*(?:\\.|(?!\1).)*?)\1/gs;
+    return s.replace(re, (_m, _q, inner) => {
+      // Replace plain envVariables.NAME occurrences with ${envVariables.NAME}
+      const withSlots = inner.replace(/envVariables\.([A-Za-z_][A-Za-z0-9_]*)/g, '${envVariables.$1}');
+      const escaped = withSlots.replace(/`/g, '\\`');
+      return '`' + escaped + '`';
+    });
+  };
+  return toTemplateIfEnv(out);
 };
 
 function randomName(): string {
