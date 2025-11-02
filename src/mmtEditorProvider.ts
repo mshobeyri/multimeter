@@ -303,6 +303,35 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           }
           break;
         }
+
+        case 'exportMarkdown': {
+          const { markdown, title } = message;
+          const uri = await vscode.window.showSaveDialog({
+            defaultUri: vscode.Uri.file(`${title || 'documentation'}.md`),
+            filters: { 'Markdown files': ['md', 'markdown'] }
+          });
+          if (uri) {
+            await vscode.workspace.fs.writeFile(
+                uri, Buffer.from(markdown ?? '', 'utf8'));
+          }
+          break;
+        }
+
+        case 'openMarkdownPreview': {
+          const { markdown, title } = message as { markdown?: string, title?: string };
+          try {
+            const folder = vscode.Uri.joinPath(this.context.globalStorageUri, 'md-previews');
+            // Ensure directory exists
+            try { await vscode.workspace.fs.createDirectory(folder); } catch {}
+            const safe = String(title || 'documentation').replace(/[^a-z0-9._-]+/gi, '_');
+            const file = vscode.Uri.joinPath(folder, `${safe}-${Date.now()}.md`);
+            await vscode.workspace.fs.writeFile(file, Buffer.from(String(markdown || ''), 'utf8'));
+            await vscode.commands.executeCommand('markdown.showPreviewToSide', file);
+          } catch (err) {
+            vscode.window.showErrorMessage(`Failed to open Markdown preview: ${err}`);
+          }
+          break;
+        }
       }
     });
 

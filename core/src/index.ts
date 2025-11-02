@@ -11,3 +11,4 @@ export * as variableReplacer from "./variableReplacer";
 export * as outputExtractor from "./outputExtractor";
 export * as testHelper from "./testHelper";
 export * as docHtml from "./docHtml";
+export * as docMarkdown from "./docMarkdown";

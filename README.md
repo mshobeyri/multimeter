@@ -38,9 +38,9 @@ Here is a simple example of a post request, and you can see how it is being exec
 - 🔄 Support Postman and OpenAPI collection convert.
 - 🧪 Supports all kinds of test logic, from simple checks to complex flows.
 - 🪞 Server mocking.
+- 📃 Auto documentation: generate HTML and MD docs from API.
 
 ## 🎯 Upcoming Features
-- 📃 Auto documentation.
 - 🏋 Load testing.
 
 ## 🛠️ Usage
