@@ -3,7 +3,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { DocData } from 'mmt-core/DocData';
 import DocEdit from './DocEdit';
 import { docToYaml, yamlToDoc } from 'mmt-core/docParsePack';
-import DocView from './DocView';
+import DocViewHTML from './DocViewHTML';
+import DocViewMarkdown from './DocViewMarkdown';
 
 
 const LAST_DOC_TAB_KEY = "mmtview:doc:lastTab";
@@ -34,14 +35,14 @@ const Doc: React.FC<DocProps> = ({ content, setContent }) => {
     setContent(newYaml);
   }, [doc]);
 
-  const [tab, setTab] = useState<"edit" | "view">(
-    () => (localStorage.getItem(LAST_DOC_TAB_KEY) as "edit" | "view") || "view"
+  const [tab, setTab] = useState<"edit" | "view" | "md">(
+    () => (localStorage.getItem(LAST_DOC_TAB_KEY) as any) || "view"
   );
   const [showIconsOnly, setShowIconsOnly] = useState(false);
   const tabContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    localStorage.setItem(LAST_DOC_TAB_KEY, tab);
+  localStorage.setItem(LAST_DOC_TAB_KEY, tab);
   }, [tab]);
 
   useEffect(() => {
@@ -88,10 +89,18 @@ const Doc: React.FC<DocProps> = ({ content, setContent }) => {
           <button
             onClick={() => setTab("view")}
             className={`tab-button ${tab === "view" ? "active" : ""}`}
-            title={showIconsOnly ? "View" : undefined}
+            title={showIconsOnly ? "HTML" : undefined}
           >
-            <span className="codicon codicon-preview tab-button-icon"></span>
-            {!showIconsOnly && "View"}
+            <span className="codicon codicon-code tab-button-icon"></span>
+            {!showIconsOnly && "HTML"}
+          </button>
+          <button
+            onClick={() => setTab("md")}
+            className={`tab-button ${tab === "md" ? "active" : ""}`}
+            title={showIconsOnly ? "Markdown" : undefined}
+          >
+            <span className="codicon codicon-markdown tab-button-icon"></span>
+            {!showIconsOnly && "Markdown"}
           </button>
         </div>
 
@@ -103,7 +112,13 @@ const Doc: React.FC<DocProps> = ({ content, setContent }) => {
 
         {tab === "view" && (
           <div style={{ flex: 1, minHeight: 0, display: 'flex', width: '100%', minWidth: 0 }}>
-            <DocView doc={doc} />
+            <DocViewHTML doc={doc} />
+          </div>
+        )}
+
+        {tab === "md" && (
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', width: '100%', minWidth: 0 }}>
+            <DocViewMarkdown doc={doc} />
           </div>
         )}
       </div>
