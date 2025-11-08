@@ -11,9 +11,9 @@ body:
   username: mehrdad
   password: 123456
 ```
-<a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter" style="display: inline-block; background-color: #0078d4; color: white; padding: 10px 20px; margin-top: 25px; text-align: center; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); transition: background-color 0.3s, transform 0.3s;">
-  <img src="res/vscode.png" alt="Multimeter sample post" style="max-width: 20px; height: auto; position: relative; top: 4px; right: 4px" />
-Try it on VSCode!
+<a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter">
+  <img src="res/vscode.png" alt="VS Code" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
+  Try it on VSCode!
 </a>
 
 </br>
