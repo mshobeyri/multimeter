@@ -1,4 +1,4 @@
-# <img src="res/icon.png" alt="Multimeter Logo" width="40" height="40"/> Multimeter
+# <img src="res/icon.png" alt="Multimeter Logo" width="70" height="60" style="position: relative; top: 10px; left: 10px"/> Multimeter
 
 **Multimeter** simplifies the process of writing, running, and managing structured HTTP/WebSocket tests directly within Visual Studio Code. Tests will be stored in your application's repository as version-controlled yaml based files like the following:
 ```yaml
@@ -11,19 +11,29 @@ body:
   username: mehrdad
   password: 123456
 ```
-
-Here is a simple example of a post request, and you can see how it is being executed here;
-
-<img src="screenshots/postsample.gif" alt="Multimeter sample post" style="max-width: 100%; height: auto;" />
-
 <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter" style="display: inline-block; background-color: #0078d4; color: white; padding: 10px 20px; margin-top: 25px; text-align: center; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); transition: background-color 0.3s, transform 0.3s;">
-  Let's Try It!
+  <img src="res/vscode.png" alt="Multimeter sample post" style="max-width: 20px; height: auto; position: relative; top: 4px; right: 4px" />
+Try it on VSCode!
 </a>
 
+</br>
+</br>
+</br>
+Here is a simple example of a post request, and you can see how it is being executed here;
+
+<img src="demos/api.gif" alt="Multimeter sample post" style="max-width: 100%; height: auto;" />
+
+
+
+
+<a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter" style="display: inline-block; background-color: #0078d4; color: white; padding: 10px 20px; margin-top: 25px; text-align: center; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); transition: background-color 0.3s, transform 0.3s;">
+  ▸ See More Demos!
+</a>
 
 ## 🚀 Features
 
 - 🧩 UI editor ( No code mode ) along with text editor.
+
 - 💾 Store test cases as files in your application git repo.
   - ⏳ Preserve tests' history in the git repo.
   - 🤖 Ability to generate tests using AI.
