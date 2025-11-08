@@ -9,7 +9,7 @@ export const GeneralSchema = {
 export const APISchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
-    required: ['type', 'protocol', 'format', 'url'],
+    required: ['type', 'protocol', 'url'],
     properties: {
         type: { type: 'string', enum: ['api'] },
         title: { type: 'string' },
@@ -106,10 +106,19 @@ export const APISchema = {
             if: {
                 properties: {
                     method: { enum: ['post', 'put', 'patch'] }
-                }
+                },
+                required: ['method']
             },
             then: {
                 required: ['body']
+            }
+        },
+        {
+            if: {
+                required: ['body']
+            },
+            then: {
+                required: ['format']
             }
         }
     ],
