@@ -131,7 +131,12 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         envParameters
       );
 
-      rface.body = formatBody(rface.format || "json", rface.body || "");
+      rface.body = formatBody(rface.format || "json", rface.body ?? "");
+
+      if ((rface.format === 'text' || !rface.format) && rface.body && typeof rface.body !== 'string') {
+        rface.format = 'json';
+        rface.body = formatBody('json', rface.body);
+      }
 
       // Only update body if it actually changed to avoid feedback loop
       setRequestData(prevRequestData => {
@@ -271,8 +276,8 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
           <div className="label">body</div>
           <div style={{ padding: "8px" }}>
             <BodyView
-              value={requestData?.body || ""}
-              format={requestData?.format || "json"}
+              value={typeof requestData?.body === 'string' ? requestData?.body : JSON.stringify(requestData?.body || {}, null, 2)}
+              format={requestData?.format || (typeof requestData?.body === 'string' ? 'json' : 'json')}
               mode="live"
               onChange={val => {
                 updateField("body", val);

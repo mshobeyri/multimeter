@@ -49,7 +49,9 @@ function formatBody(
       return js2xml(body, {compact: true, spaces: pretty ? 2 : 0});
     }
     if (format === 'text') {
-      return typeof body === 'string' ? body : String(body);
+      return typeof body === 'string' ?
+          body :
+          JSON.stringify(body, null, pretty ? 2 : 0);
     }
     return typeof body === 'string' ? body : YAML.stringify(body);
   } catch {
