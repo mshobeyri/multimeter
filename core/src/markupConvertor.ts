@@ -26,12 +26,20 @@ function packYaml(obj: any): string {
 function formatBody(
     format: 'json'|'xml'|'text', body: string|object,
     pretty: boolean = true): string {
-  if (body === null) {
+  // Normalize empty-ish inputs to empty string for display/editing purposes
+  if (body === null || body === undefined) {
+    return '';
+  }
+  if (typeof body === 'string' && body.trim() === '') {
     return '';
   }
   try {
     if (format === 'json') {
       const obj = typeof body === 'string' ? YAML.parse(body) : body;
+      // If YAML.parse produced null (e.g., empty input), keep it empty
+      if (obj === null || obj === undefined) {
+        return '';
+      }
       return pretty ? JSON.stringify(obj, null, 2) : JSON.stringify(obj);
     }
     if (format === 'xml') {
