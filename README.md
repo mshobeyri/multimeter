@@ -24,9 +24,7 @@ Here is a simple example of a post request, and you can see how it is being exec
 <img src="demos/api.gif" alt="Multimeter sample post" style="max-width: 100%; height: auto;" />
 
 
-
-
-<a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter" style="display: inline-block; background-color: #0078d4; color: white; padding: 10px 20px; margin-top: 25px; text-align: center; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); transition: background-color 0.3s, transform 0.3s;">
+<a href="docs/demos.md" style="display: inline-block; background-color: #0078d4; color: white; padding: 10px 20px; margin-top: 25px; text-align: center; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); transition: background-color 0.3s, transform 0.3s;">
   ▸ See More Demos!
 </a>
 
