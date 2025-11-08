@@ -12,8 +12,8 @@
     <div class="mb-12">
       <label class="label" for="serverType">Server Type</label>
       <select id="serverType" class="input" ${disabled}>
-        <option value="http" ${serverType==='http' ? 'selected' : '' }>HTTP</option>
-        <option value="ws" ${serverType==='ws' ? 'selected' : '' }>WebSocket</option>
+        <option value="http" ${httpSelected}>HTTP</option>
+        <option value="ws" ${wsSelected}>WebSocket</option>
       </select>
     </div>
 
@@ -30,16 +30,16 @@
 
     <div class="mb-12">
       <label class="label" for="reflect">Reflect request as response</label>
-      <input id="reflect" type="checkbox" ${reflect ? 'checked' : ''} />
+  <input id="reflect" type="checkbox" ${reflectChecked} />
     </div>
 
     <div class="mb-12">
       <label class="label" for="response">Response</label>
-      <textarea id="response" class="textarea" ${reflect ? 'disabled' : ''}>${response}</textarea>
+  <textarea id="response" class="textarea" ${responseDisabled}>${response}</textarea>
     </div>
 
-    <button id="runBtn" class="button">
-      <span class="codicon codicon-play"></span>
+    <button id="runBtn" class="button" data-running="${isRunning}">
+      <span class="${buttonIcon}"></span>
       ${buttonText}
     </button>
   </div>
@@ -71,16 +71,11 @@
 
     document.querySelector('#runBtn').onclick = () => {
       const runBtn = document.getElementById('runBtn');
-      const iconSpan = runBtn.querySelector('.codicon');
-
-      if (runBtn.textContent.includes('Run') || runBtn.textContent.includes('Start')) {
-        vscode.postMessage({ type: 'startServer' });
-        iconSpan.className = 'codicon codicon-debug-stop';
-        runBtn.innerHTML = `<span class="codicon codicon-debug-stop"></span> Stop localhost:${document.getElementById('port').value}`;
-      } else {
+      const running = runBtn?.dataset?.running === 'true';
+      if (running) {
         vscode.postMessage({ type: 'stopServer' });
-        iconSpan.className = 'codicon codicon-play';
-        runBtn.innerHTML = `<span class="codicon codicon-play"></span> Run Mock Server`;
+      } else {
+        vscode.postMessage({ type: 'startServer' });
       }
     };
   </script>
