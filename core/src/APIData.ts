@@ -10,7 +10,7 @@ export interface APIData extends MMTFile {
   title?: string;
   tags?: string[];
   description?: string;
-  import?: Record<string, string>;
+import?: Record<string, string>;
   inputs?: JSONRecord;
   outputs?: Record<string, string>;
   extract?: Record<string, string>;
@@ -20,7 +20,7 @@ export interface APIData extends MMTFile {
   url: string;
   method?: Method;
   headers?: Record<string, string>;
-  body?: string|object;
+  body?: string|object|null;
   query?: Record<string, string>;
   cookies?: Record<string, string>;
   examples?: Array<ExampleData>;
