@@ -1,6 +1,28 @@
-# <img src="res/icon.png" alt="Multimeter Logo" width="70" height="60" style="position: relative; top: 10px; left: 10px"/> Multimeter
+<br />
+<div align="center">
+  <a href="https://github.com/othneildrew/Best-README-Template">
+    <img src="res/icon.png" alt="Logo" width="80" height="80">
+  </a>
 
-**Multimeter** simplifies the process of writing, running, and managing structured HTTP/WebSocket tests directly within Visual Studio Code. Tests will be stored in your application's repository as version-controlled yaml based files like the following:
+  <h3 align="center">Mutlimeter</h3>
+
+  <p align="center">
+    All possible tests for your service as code!
+    <br />
+    <a href="#-documentation"><strong>Explore the docs »</strong></a>
+    <br />
+    <br />
+    <a href="docs/demos.md">View Demo</a>
+    &middot;
+    <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter">Try on VSCode</a>
+    &middot;
+    <a href="https://github.com/mshobeyri/multimeter/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+  </p>
+</div>
+
+**Multimeter** simplifies the process of writing, running, and managing structured HTTP/WebSocket tests directly within Visual Studio Code. The idea is comming from docker word, where the complexity of managing machines is now simple YAML files. Here also, tests will be stored in your application's repository as version-controlled YAML based files.
+## Getting started
+
 ```yaml
 type: api
 protocol: http
@@ -11,20 +33,12 @@ body:
   username: mehrdad
   password: 123456
 ```
-<a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter">
-  <img src="res/vscode.png" alt="VS Code" width="20" height="20" style="vertical-align: middle; margin-right: 8px;">
-  Try it on VSCode!
-</a>
-
 </br>
-</br>
-</br>
-Here is a simple example of a post request, and you can see how it is being executed here;
-
+Here is a how you can run the test in VSCode <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter">Click & try!</a> ;
+</br></br>
 <img src="demos/api.gif" alt="Multimeter sample post" style="max-width: 100%; height: auto;" />
-
-
-<a href="docs/demos.md" style="display: inline-block; background-color: #0078d4; color: white; padding: 10px 20px; margin-top: 25px; text-align: center; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); transition: background-color 0.3s, transform 0.3s;">
+</br></br>
+<a href="docs/demos.md" >
   ▸ See More Demos!
 </a>
 
@@ -54,9 +68,9 @@ Here is a simple example of a post request, and you can see how it is being exec
 ## 🛠️ Usage
 - Add <img src="res/icon.png" alt="Multimeter Logo" width="16" height="16"/>[Multimeter](https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter) extension to your vscode.
 - Create a .mmt file in your project (e.g., login.mmt).
-- Follow the UI instructions 👌.
+- Use UI or write YAML file represent your test.
+- Click Run!
 
-**Special thanks to: Dear Ashkan Palganeh 👨🏻‍🦱.**
 
 ## 📚 Documentation
 - [MMT Overview](docs/mmt-overview.md)
@@ -68,3 +82,6 @@ Here is a simple example of a post request, and you can see how it is being exec
 - [Convertor](docs/convertor.md)
 - [Mock Server](docs/mock-server.md)
 - [History](docs/history.md)
+
+---
+**Special thanks to: Dear Ashkan Palganeh.**
