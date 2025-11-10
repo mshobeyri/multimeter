@@ -17,8 +17,8 @@ export async function readFileContent(filename: string): Promise<string> {
         await vscode.workspace.openTextDocument(vscode.Uri.file(filename));
     return document.getText();
   } catch (err) {
-    vscode.window.showErrorMessage(`Failed to read file ${filename}: ${err}`);
-    return '';
+    // Error will be handled by caller
+    throw err;
   }
 }
 
@@ -46,6 +46,7 @@ export async function readRelativeFileContent(
 export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   private static instance: MmtEditorProvider|null = null;
   private activeWebviewPanels: Set<vscode.WebviewPanel> = new Set();
+  private fileReadTimeouts: Map<vscode.WebviewPanel, NodeJS.Timeout> = new Map();
 
   // Static method to get the provider instance
   public static getInstance(): MmtEditorProvider|null {
@@ -92,6 +93,11 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     // Remove panel when it's disposed
     webviewPanel.onDidDispose(() => {
       this.activeWebviewPanels.delete(webviewPanel);
+      const timeout = this.fileReadTimeouts.get(webviewPanel);
+      if (timeout) {
+        clearTimeout(timeout);
+        this.fileReadTimeouts.delete(webviewPanel);
+      }
     });
 
     webviewPanel.webview.options = {
@@ -155,12 +161,23 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           break;
 
         case 'getFileContent':
-          let contentPromise =
-              readRelativeFileContent(document.uri.fsPath, message.filename);
-          contentPromise.then(content => {
-            webviewPanel.webview.postMessage(
-                {command: 'fileContent', content, filename: message.filename});
-          });
+          // Clear previous timeout for this panel
+          const prevTimeout = this.fileReadTimeouts.get(webviewPanel);
+          if (prevTimeout) {
+            clearTimeout(prevTimeout);
+          }
+          // Set new timeout for debounced file reading
+          const timeout = setTimeout(async () => {
+            this.fileReadTimeouts.delete(webviewPanel);
+            try {
+              const content = await readRelativeFileContent(document.uri.fsPath, message.filename);
+              webviewPanel.webview.postMessage({command: 'fileContent', content, filename: message.filename});
+            } catch (err) {
+              // Show error only after debounce delay
+              vscode.window.showErrorMessage(`Failed to read file ${message.filename}: ${err}`);
+            }
+          }, 1000); // 1 second debounce
+          this.fileReadTimeouts.set(webviewPanel, timeout);
           break;
 
         case 'getFileAsDataUrl': {
