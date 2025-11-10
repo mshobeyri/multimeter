@@ -42,6 +42,29 @@ export interface HttpResponse {
   autoformat: boolean;
 }
 
+export interface Request {
+  url?: string;
+  protocol?: "http" | "ws" | undefined;
+  format?: "json" | "xml" | "text" | undefined;
+  method?: string;
+  headers?: Record<string, string> | undefined;
+  cookies?: Record<string, string> | undefined;
+  query?: Record<string, string> | undefined;
+  body?: any;
+}
+
+export interface Response {
+  format?: "json" | "xml" | "text" | undefined;
+  headers?: Record<string, string> | undefined;
+  cookies?: Record<string, string> | undefined;
+  query?: Record<string, string> | undefined;
+  body?: any;
+  status?: number | -1;
+  duration?: number | -1;
+  errorMessage: string | "";
+  errorCode: string | "";
+}
+
 
 export function createHttpsAgentWithCertificates(
     hostname: string, config: NetworkConfig) {
@@ -99,6 +122,90 @@ export async function sendHttpRequest(
     duration,
     autoformat: config.autoFormat,
   };
+}
+
+export async function sendWsRequest(req: Request, config: NetworkConfig): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const url = req.url!;
+    const parsedUrl = new URL(url);
+    const hostname = parsedUrl.hostname;
+    let wsOptions = {};
+    if (parsedUrl.protocol === 'wss:') {
+      wsOptions = createWebSocketOptionsWithCertificates(hostname, config);
+    }
+    const ws = new WebSocket(url, wsOptions);
+    const start = Date.now();
+    let duration = 0;
+    let resolved = false;
+
+    ws.on('open', () => {
+      const message = req.body ? (typeof req.body === 'string' ? req.body : JSON.stringify(req.body)) : '';
+      ws.send(message);
+    });
+
+    ws.on('message', (data: WebSocket.RawData) => {
+      if (!resolved) {
+        resolved = true;
+        duration = Date.now() - start;
+        ws.close();
+        resolve({
+          body: data.toString(),
+          headers: {},
+          status: 200,
+          duration,
+          errorMessage: "",
+          errorCode: "",
+        });
+      }
+    });
+
+    ws.on('error', (error: Error) => {
+      if (!resolved) {
+        resolved = true;
+        duration = Date.now() - start;
+        ws.close();
+        reject({
+          body: "",
+          headers: {},
+          status: -1,
+          duration,
+          errorMessage: error.message,
+          errorCode: error.name,
+        });
+      }
+    });
+
+    ws.on('close', () => {
+      if (!resolved) {
+        resolved = true;
+        duration = Date.now() - start;
+        resolve({
+          body: "",
+          headers: {},
+          status: 200,
+          duration,
+          errorMessage: "",
+          errorCode: "",
+        });
+      }
+    });
+
+    // Timeout
+    setTimeout(() => {
+      if (!resolved) {
+        resolved = true;
+        ws.close();
+        reject({
+          body: "",
+          headers: {},
+          status: -1,
+          duration: config.timeout,
+          errorMessage: "WebSocket request timed out",
+          errorCode: "TIMEOUT",
+        });
+      }
+    }, config.timeout);
+  });
 }
 
 // --- WebSocket Core ---
@@ -166,6 +273,32 @@ const defaultConfig: NetworkConfig = {
 };
 
 // Generic send function using default config
-export async function send(req: HttpRequest): Promise<HttpResponse> {
-  return sendHttpRequest(req, defaultConfig);
+export async function send(req: Request): Promise<Response> {
+  if (!req.url) {
+    throw new Error('URL is required');
+  }
+  const protocol = req.protocol || 'http';
+  if (protocol === 'ws') {
+    return sendWsRequest(req, defaultConfig);
+  } else if (protocol === 'http') {
+    const httpReq: HttpRequest = {
+      url: req.url,
+      method: req.method,
+      headers: req.headers,
+      body: typeof req.body === 'string' ? req.body : JSON.stringify(req.body),
+      query: req.query,
+      cookies: req.cookies,
+    };
+    const httpRes = await sendHttpRequest(httpReq, defaultConfig);
+    return {
+      body: httpRes.body,
+      headers: httpRes.headers,
+      status: httpRes.status,
+      duration: httpRes.duration,
+      errorMessage: "",
+      errorCode: "",
+    };
+  } else {
+    throw new Error(`Unsupported protocol: ${protocol}`);
+  }
 }
