@@ -44,19 +44,21 @@ Here is a how you can run the test in VSCode <a href="https://marketplace.visual
 
 ## 🚀 Features
 
+- 💰 No login needed, all features are available for free.
 - 🧩 UI editor ( No code mode ) along with text editor.
-
 - 💾 Store test cases as files in your application git repo.
-  - ⏳ Preserve tests' history in the git repo.
+  - 👮🏻‍♂️ Security: sensitive info remains in your hand.
+  - ⏳ Preserve tests' history.
   - 🤖 Ability to generate tests using AI.
   - 📦 Having tests along with the changes in a same pull request.
   - 🔑 Access control can be handled by git.
-- 🧱 JSON/XML schema-aware editing.
+  - 🖌️ Bulk edit using vscode and regex.
+- 🧱 JSON/XML schema-aware formating and editing.
 - 🔗 Chaining request responses.
 - ⛓️ Running tests in the pipeline using testlight.
 - 🗄 Environment variable and presets support.
 - ⛏️ Extract data from results using xpath, jsonpath and regular expression.
-- 🌐 HTTP/WS protocols support.
+- 🌐 REST, WEBSOCKET, SOAP protocols support.
 - 🔄 Support Postman and OpenAPI collection convert.
 - 🧪 Supports all kinds of test logic, from simple checks to complex flows.
 - 🪞 Server mocking.
