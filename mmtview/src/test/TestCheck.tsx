@@ -33,7 +33,7 @@ const TestCheck: React.FC<TestCheckProps> = ({
       ))}
     </select>
     <input
-      value={left}
+      value={right}
       style={{ width: '100%' }}
       onChange={e => onChange({ left, op, right: e.target.value })}
     />
