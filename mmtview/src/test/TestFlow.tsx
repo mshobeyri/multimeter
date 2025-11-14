@@ -588,16 +588,17 @@ function testDataToShortTree(testData: TestData): { items: Record<string, any> }
     const items: Record<string, any> = {};
 
     function toItem(step: any, path: string) {
+        if (!step) { return; }
         const type = getTestFlowStepType(step);
         const children: string[] = [];
 
-        if (Array.isArray(step.steps)) {
-            step.steps.forEach((childStep: any, idx: number) => {
-                const childPath = `${path}_${idx}`;
-                children.push(childPath);
-                toItem(childStep, childPath);
-            });
-        }
+        const childSteps = (step && Array.isArray(step.steps)) ? step.steps : [];
+        childSteps.forEach((childStep: any, idx: number) => {
+            if (!childStep) { return; }
+            const childPath = `${path}_${idx}`;
+            children.push(childPath);
+            toItem(childStep, childPath);
+        });
 
         items[path] = {
             index: path,
@@ -610,6 +611,7 @@ function testDataToShortTree(testData: TestData): { items: Record<string, any> }
     }
     const topChildren: string[] = [];
     flow.forEach((step: any, i: number) => {
+        if (!step) { return; }
         const key = `flow_${i}`;
         topChildren.push(key);
         toItem(step, key);

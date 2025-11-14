@@ -289,7 +289,8 @@ export const conditionalStatementToJSfunc = (check: string): string => {
   const normalized = replaceEnvTokens(check);
   const checkParts = normalized.split(' ');
   if (checkParts.length !== 3) {
-    throw new Error(`Invalid check format: ${check}`);
+    // Return a harmless truthy condition to avoid breaking flows on partial edits
+    return 'true';
   }
   const [left, operator, right] = checkParts;
   switch (operator) {
@@ -438,6 +439,9 @@ export const setToJSfunc = (set: Record<string, any>): string => {
 
 
 export const checkToJSfunc = (check: string): string => {
+  if (!check || typeof check !== 'string' || check.trim() === '') {
+    return '';
+  }
   const conditionStatement = conditionalStatementToJSfunc(check);
   const checkParts = check.split(' ');
   if (checkParts.length !== 3) {
@@ -452,6 +456,9 @@ export const checkToJSfunc = (check: string): string => {
 };
 
 export const assertToJSfunc = (assert: string): string => {
+  if (!assert || typeof assert !== 'string' || assert.trim() === '') {
+    return '';
+  }
   const conditionStatement = conditionalStatementToJSfunc(assert);
   const assertParts = assert.split(' ');
   if (assertParts.length !== 3) {

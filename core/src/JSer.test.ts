@@ -208,6 +208,41 @@ describe('env token replacements in generated JS', () => {
   });
 });
 
+describe('empty test items are valid', () => {
+  it('handles empty assert without throwing and generates no code', async () => {
+    const ctx: TestContext = {
+      name: 'emptyAssert',
+      test: { steps: [ { assert: '' } as any ] } as any,
+      inputs: {},
+      envVars: {}
+    };
+    const js = await importTestToJsfunc(ctx);
+    expect(js).toContain('let outputs');
+  });
+
+  it('handles empty check without throwing and generates no code', async () => {
+    const ctx: TestContext = {
+      name: 'emptyCheck',
+      test: { steps: [ { check: '' } as any ] } as any,
+      inputs: {},
+      envVars: {}
+    };
+    const js = await importTestToJsfunc(ctx);
+    expect(js).toContain('let outputs');
+  });
+
+  it('handles empty if gracefully (treated as true) and nests steps', async () => {
+    const ctx: TestContext = {
+      name: 'emptyIf',
+      test: { steps: [ { if: '', steps: [ { print: 'ok' } as any ] } as any ] } as any,
+      inputs: {},
+      envVars: {}
+    };
+    const js = await importTestToJsfunc(ctx);
+    expect(js).toContain('if (true)');
+  });
+});
+
 describe('body inputs numeric/boolean templating', () => {
   it('does not quote numbers, floats, and booleans in JSON body', async () => {
     const apiYaml = [
