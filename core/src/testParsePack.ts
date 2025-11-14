@@ -59,6 +59,9 @@ export function testToYaml(test: TestData): string {
 }
 
 export function getTestFlowStepType(step: TestFlowStep): FlowType | 'unknown' {
+  if (!step || typeof step !== 'object') {
+    return 'unknown';
+  }
   if ('stage' in step) {
     return 'stage';
   }

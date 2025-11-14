@@ -150,11 +150,12 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       case 'check':
       case 'if':
       case 'assert': {
-        let left = '?', op: CheckOps = '==' as CheckOps, right = '?';
-        const match = stepData[type].split(' ');
-        left = match[0];
-        op = match[1] as CheckOps;
-        right = match[2];
+        let left = '', op: CheckOps = '==' as CheckOps, right = '';
+        const raw = (stepData && typeof stepData[type] === 'string') ? (stepData[type] as string) : '';
+        const match = raw.trim().length ? raw.trim().split(/\s+/) : [] as string[];
+        left = match[0] ?? '';
+        op = (match[1] as CheckOps) ?? '==';
+        right = match[2] ?? '';
         return (
           <TestCheck
             left={left}
