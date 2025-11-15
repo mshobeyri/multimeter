@@ -12,3 +12,5 @@ export * as outputExtractor from "./outputExtractor";
 export * as testHelper from "./testHelper";
 export * as docHtml from "./docHtml";
 export * as docMarkdown from "./docMarkdown";
+export * as postmanConvertor from "./postmanConvertor";
+export * as openapiConvertor from "./openapiConvertor";

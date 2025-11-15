@@ -53,6 +53,16 @@
       "types": "./dist/testParsePack.d.ts",
       "require": "./dist/testParsePack.js",
       "default": "./dist/testParsePack.js"
+    },
+    "./postmanConvertor": {
+      "types": "./dist/postmanConvertor.d.ts",
+      "require": "./dist/postmanConvertor.js",
+      "default": "./dist/postmanConvertor.js"
+    },
+    "./openapiConvertor": {
+      "types": "./dist/openapiConvertor.d.ts",
+      "require": "./dist/openapiConvertor.js",
+      "default": "./dist/openapiConvertor.js"
     }
   },
   "scripts": {
