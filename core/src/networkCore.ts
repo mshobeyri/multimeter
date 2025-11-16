@@ -90,9 +90,69 @@ export async function sendHttpRequest(
   const parsedUrl = new URL(req.url);
   const hostname = parsedUrl.hostname;
   let reqHeaders = {...req.headers};
+  // Remove any headers where user explicitly set value to '_' (opt-out) or left empty/null,
+  // and remember opt-out blocks by lower-cased name.
+  const blocked = new Set<string>();
+  for (const [k, v] of Object.entries({...reqHeaders})) {
+    if (v === '_') {
+      delete (reqHeaders as any)[k];
+      blocked.add(k.toLowerCase());
+      continue;
+    }
+    if (v === null || v === undefined || (typeof v === 'string' && v.trim() === '')) {
+      delete (reqHeaders as any)[k];
+    }
+  }
+  const hasHeader = (name: string) =>
+      Object.keys(reqHeaders).some(k => k.toLowerCase() === name.toLowerCase());
+  const getHeader = (name: string) => {
+    const key = Object.keys(reqHeaders).find(
+        k => k.toLowerCase() === name.toLowerCase());
+    return key ? reqHeaders[key] : undefined;
+  };
+  const setHeaderIfMissing = (name: string, value: string) => {
+    if (blocked.has(name.toLowerCase())) {
+      return;
+    }
+    if (hasHeader(name)) {
+      return;
+    }
+    reqHeaders[name] = value;
+  };
   if (req.cookies && Object.keys(req.cookies).length > 0) {
     reqHeaders['Cookie'] =
         Object.entries(req.cookies).map(([k, v]) => `${k}=${v}`).join('; ');
+  }
+  // Infer basic defaults for common HTTP headers unless blocked or already set
+  setHeaderIfMissing('User-Agent', 'Multimeter');
+  setHeaderIfMissing('Accept', '*/*');
+  setHeaderIfMissing('Connection', 'keep-alive');
+  setHeaderIfMissing('Accept-Encoding', 'gzip, deflate, br');
+
+  // Content-Type and Content-Length: only when a body exists and not blocked/overridden
+  const bodyStr = req.body ?? '';
+  const hasBody = typeof bodyStr === 'string' && bodyStr.length > 0;
+  if (hasBody) {
+    // Detect JSON body naïvely
+    let detectedType = 'text/plain; charset=utf-8';
+    try {
+      const trimmed = bodyStr.trim();
+      if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+        JSON.parse(trimmed);
+        detectedType = 'application/json; charset=utf-8';
+      } else if (trimmed.startsWith('<')) {
+        detectedType = 'application/xml; charset=utf-8';
+      }
+    } catch {
+      // keep detectedType as text/plain
+    }
+    if (!blocked.has('content-type') && !hasHeader('Content-Type')) {
+      reqHeaders['Content-Type'] = detectedType;
+    }
+    if (!blocked.has('content-length') && !hasHeader('Content-Length')) {
+      const len = Buffer.byteLength(bodyStr, 'utf8');
+      reqHeaders['Content-Length'] = String(len);
+    }
   }
   const httpsAgent = parsedUrl.protocol === 'https:' ?
       createHttpsAgentWithCertificates(hostname, config) :
