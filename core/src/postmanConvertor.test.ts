@@ -70,4 +70,33 @@ describe('postmanConvertor.postmanToAPI', () => {
     expect(socket.format).toBe('text');
     expect(socket.body).toEqual({ meta: 'x' });
   });
+
+  it('converts Postman dynamic random variables to r: tokens', () => {
+    const collection = {
+      item: [
+        {
+          name: 'Randomized',
+          request: {
+            method: 'POST',
+            header: [ { key: 'Content-Type', value: 'application/json' } ],
+            url: { raw: 'https://api.example.com/createUser?uuid={{$guid}}&ip={{$randomIP}}' },
+            body: { mode: 'raw', raw: '{"id":"{{$guid}}","email":"{{$randomEmail}}","v":"{{$randomInt}}","name":"{{$randomFullName}}"}' }
+          }
+        }
+      ]
+    };
+    const apis = postmanToAPI(collection);
+    expect(apis.length).toBe(1);
+    const api = apis[0];
+    // URL replacements
+    expect(api.url).toContain('uuid=r:uuid');
+    expect(api.url).toContain('ip=r:ip');
+    // Body replacements
+    expect(typeof api.body).toBe('string');
+    const bodyStr = api.body as string;
+    expect(bodyStr).toContain('"id":"r:uuid"');
+    expect(bodyStr).toContain('"email":"r:email"');
+    expect(bodyStr).toContain('"v":"r:int"');
+    expect(bodyStr).toContain('"name":"r:full_name"');
+  });
 });
