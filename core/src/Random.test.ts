@@ -1,12 +1,15 @@
-import { randomColor, randomHexColor, randomFirstName, randomLastName, randomFullName, randomIP, randomIPv6, randomCity, randomCountry, randomPhoneNumber, randomEmail, randomLatitude, randomLongitude, randomDateFuture, randomDatePast, randomDateRecent, randomWeekday, randomMonth, randomEpoch, randomEpochMs, randomEpochFuture, randomEpochFutureMs, randomEpochPast, randomEpochPastMs, randomEpochRecent, randomEpochRecentMs } from './Random';
-import { FIRST_NAMES, LAST_NAMES } from './RandomResources';
+import {randomCity, randomColor, randomCountry, randomDateFuture, randomDatePast, randomDateRecent, randomEmail, randomEpoch, randomEpochFuture, randomEpochFutureMs, randomEpochMs, randomEpochPast, randomEpochPastMs, randomEpochRecent, randomEpochRecentMs, randomFirstName, randomFullName, randomHexColor, randomIP, randomIPv6, randomLastName, randomLatitude, randomLongitude, randomMonth, randomPhoneNumber, randomWeekday} from './Random';
+import {FIRST_NAMES, LAST_NAMES} from './RandomResources';
 
 describe('Random color generators', () => {
   const PALETTE = new Set([
-    'red','orange','yellow','green','blue','indigo','violet','pink','purple','brown','black','white',
-    'gray','grey','cyan','magenta','lime','maroon','navy','olive','teal','silver','gold','beige',
-    'coral','fuchsia','turquoise','salmon','plum','orchid','khaki','crimson','azure','lavender',
-    'tan','aqua','aquamarine','chocolate','ivory','mint','peachpuff'
+    'red',        'orange',    'yellow',    'green',    'blue',     'indigo',
+    'violet',     'pink',      'purple',    'brown',    'black',    'white',
+    'gray',       'grey',      'cyan',      'magenta',  'lime',     'maroon',
+    'navy',       'olive',     'teal',      'silver',   'gold',     'beige',
+    'coral',      'fuchsia',   'turquoise', 'salmon',   'plum',     'orchid',
+    'khaki',      'crimson',   'azure',     'lavender', 'tan',      'aqua',
+    'aquamarine', 'chocolate', 'ivory',     'mint',     'peachpuff'
   ]);
 
   test('randomHexColor returns #RRGGBB', () => {
@@ -75,7 +78,8 @@ describe('Random city/country, phone, email, geo', () => {
   test('randomEmail returns email-like string', () => {
     for (let i = 0; i < 10; i++) {
       const email = randomEmail();
-      expect(/^[a-z0-9]+\.?[a-z0-9]*\d*@[^@\s]+\.[^@\s]+$/.test(email)).toBe(true);
+      expect(/^[a-z0-9]+\.?[a-z0-9]*\d*@[^@\s]+\.[^@\s]+$/.test(email))
+          .toBe(true);
     }
   });
 
@@ -100,8 +104,8 @@ describe('Random date and calendar generators', () => {
       const d = new Date(s);
       expect(d.toString()).toBe(s);
       expect(d.getTime()).toBeGreaterThan(Date.now());
-      const diffDays = (d.getTime() - Date.now()) / (24*60*60*1000);
-      expect(diffDays).toBeLessThanOrEqual(366); // allow leap year
+      const diffDays = (d.getTime() - Date.now()) / (24 * 60 * 60 * 1000);
+      expect(diffDays).toBeLessThanOrEqual(366);  // allow leap year
     }
   });
 
@@ -111,8 +115,8 @@ describe('Random date and calendar generators', () => {
       const d = new Date(s);
       expect(d.toString()).toBe(s);
       expect(d.getTime()).toBeLessThan(Date.now());
-      const diffDays = (Date.now() - d.getTime()) / (24*60*60*1000);
-      expect(diffDays).toBeLessThanOrEqual(365*5 + 2); // small cushion
+      const diffDays = (Date.now() - d.getTime()) / (24 * 60 * 60 * 1000);
+      expect(diffDays).toBeLessThanOrEqual(365 * 5 + 2);  // small cushion
     }
   });
 
@@ -121,21 +125,27 @@ describe('Random date and calendar generators', () => {
       const s = randomDateRecent();
       const d = new Date(s);
       expect(d.toString()).toBe(s);
-      const diffDays = (Date.now() - d.getTime()) / (24*60*60*1000);
+      const diffDays = (Date.now() - d.getTime()) / (24 * 60 * 60 * 1000);
       expect(diffDays).toBeGreaterThanOrEqual(0);
-      expect(diffDays).toBeLessThanOrEqual(31); // cushion
+      expect(diffDays).toBeLessThanOrEqual(31);  // cushion
     }
   });
 
   test('randomWeekday returns a valid weekday', () => {
-    const set = new Set(['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']);
+    const set = new Set([
+      'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday',
+      'Saturday'
+    ]);
     for (let i = 0; i < 10; i++) {
       expect(set.has(randomWeekday())).toBe(true);
     }
   });
 
   test('randomMonth returns a valid month', () => {
-    const set = new Set(['January','February','March','April','May','June','July','August','September','October','November','December']);
+    const set = new Set([
+      'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August',
+      'September', 'October', 'November', 'December'
+    ]);
     for (let i = 0; i < 12; i++) {
       expect(set.has(randomMonth())).toBe(true);
     }
@@ -170,10 +180,10 @@ describe('Random epoch generators', () => {
       const nowMs = Date.now();
       const s = randomEpochFuture();
       const ms = randomEpochFutureMs();
-      expect(s * 1000).toBeGreaterThan(nowMs - 2000); // small cushion
+      expect(s * 1000).toBeGreaterThan(nowMs - 2000);  // small cushion
       expect(ms).toBeGreaterThan(nowMs - 2000);
-      const diffDaysS = (s * 1000 - nowMs) / (24*60*60*1000);
-      const diffDaysMs = (ms - nowMs) / (24*60*60*1000);
+      const diffDaysS = (s * 1000 - nowMs) / (24 * 60 * 60 * 1000);
+      const diffDaysMs = (ms - nowMs) / (24 * 60 * 60 * 1000);
       expect(diffDaysS).toBeLessThanOrEqual(366);
       expect(diffDaysMs).toBeLessThanOrEqual(366);
     }
@@ -186,10 +196,10 @@ describe('Random epoch generators', () => {
       const ms = randomEpochPastMs();
       expect(s * 1000).toBeLessThan(nowMs + 2000);
       expect(ms).toBeLessThan(nowMs + 2000);
-      const diffDaysS = (nowMs - s * 1000) / (24*60*60*1000);
-      const diffDaysMs = (nowMs - ms) / (24*60*60*1000);
-      expect(diffDaysS).toBeLessThanOrEqual(365*5 + 2);
-      expect(diffDaysMs).toBeLessThanOrEqual(365*5 + 2);
+      const diffDaysS = (nowMs - s * 1000) / (24 * 60 * 60 * 1000);
+      const diffDaysMs = (nowMs - ms) / (24 * 60 * 60 * 1000);
+      expect(diffDaysS).toBeLessThanOrEqual(365 * 5 + 2);
+      expect(diffDaysMs).toBeLessThanOrEqual(365 * 5 + 2);
     }
   });
 
@@ -200,8 +210,8 @@ describe('Random epoch generators', () => {
       const ms = randomEpochRecentMs();
       expect(s * 1000).toBeLessThanOrEqual(nowMs + 2000);
       expect(ms).toBeLessThanOrEqual(nowMs + 2000);
-      const diffDaysS = (nowMs - s * 1000) / (24*60*60*1000);
-      const diffDaysMs = (nowMs - ms) / (24*60*60*1000);
+      const diffDaysS = (nowMs - s * 1000) / (24 * 60 * 60 * 1000);
+      const diffDaysMs = (nowMs - ms) / (24 * 60 * 60 * 1000);
       expect(diffDaysS).toBeGreaterThanOrEqual(0);
       expect(diffDaysS).toBeLessThanOrEqual(31);
       expect(diffDaysMs).toBeGreaterThanOrEqual(0);
@@ -218,7 +228,7 @@ describe('Random name generators', () => {
     for (let i = 0; i < 10; i++) {
       const n = randomFirstName();
       expect(typeof n).toBe('string');
-  expect(FIRST.has(n)).toBe(true);
+      expect(FIRST.has(n)).toBe(true);
     }
   });
 
@@ -226,7 +236,7 @@ describe('Random name generators', () => {
     for (let i = 0; i < 10; i++) {
       const n = randomLastName();
       expect(typeof n).toBe('string');
-  expect(LAST.has(n)).toBe(true);
+      expect(LAST.has(n)).toBe(true);
     }
   });
 
@@ -235,8 +245,8 @@ describe('Random name generators', () => {
       const n = randomFullName();
       expect(typeof n).toBe('string');
       const [f, l] = n.split(' ');
-  expect(FIRST.has(f)).toBe(true);
-  expect(LAST.has(l)).toBe(true);
+      expect(FIRST.has(f)).toBe(true);
+      expect(LAST.has(l)).toBe(true);
     }
   });
 });

@@ -1,6 +1,7 @@
 import {APIData} from './APIData';
 import {JSONRecord} from './CommonData';
 import {RANDOM_TOKEN_MAP} from './Random';
+import {CURRENT_TOKEN_MAP} from './Current';
 import {safeList} from './safer';
 import {TestData} from './TestData';
 
@@ -39,11 +40,32 @@ function generateRandomByName(name: string): any {
   return val;
 }
 
+// Cache for current token results to keep UI stable across re-renders (single evaluation per render cycle)
+const CURRENT_CACHE = new Map<string, any>();
+export function resetCurrentTokenCache(): void { CURRENT_CACHE.clear(); }
+
+function generateCurrentByName(name: string): any {
+  const normalized = normalizeTokenName(name);
+  const cacheKey = `current:${normalized}`;
+  if (CURRENT_CACHE.has(cacheKey)) {
+    return CURRENT_CACHE.get(cacheKey);
+  }
+  const fn = CURRENT_TOKEN_MAP[normalized] || CURRENT_TOKEN_MAP[name];
+  if (!fn) {
+    return undefined;
+  }
+  const val = fn();
+  CURRENT_CACHE.set(cacheKey, val);
+  return val;
+}
+
 function resolveEmbeddedTokens(val: any, envs: Record<string, any>): any {
   if (typeof val === 'string') {
     // Full matches first (random or environment) preserve original type
     const fullRandomAngle = /^<<r:([a-zA-Z0-9_\-]+)>>$/;
     const fullRandomPlain = /^r:([a-zA-Z0-9_\-]+)$/;
+    const fullCurrentAngle = /^<<c:([a-zA-Z0-9_\-]+)>>$/;
+    const fullCurrentPlain = /^c:([a-zA-Z0-9_\-]+)$/;
     const fullEnvAngle = /^<<e:([a-zA-Z0-9_\-]+)>>$/;
     const fullEnvPlain = /^e:([a-zA-Z0-9_\-]+)$/;
 
@@ -52,17 +74,27 @@ function resolveEmbeddedTokens(val: any, envs: Record<string, any>): any {
       const v = generateRandomByName(m[1]);
       return v !== undefined ? v : val;
     }
+    m = fullCurrentAngle.exec(val) || fullCurrentPlain.exec(val);
+    if (m && m[1]) {
+      const v = generateCurrentByName(m[1]);
+      return v !== undefined ? v : val;
+    }
     m = fullEnvAngle.exec(val) || fullEnvPlain.exec(val);
     if (m && m[1]) {
       const ev = envs[m[1]];
       return ev !== undefined ? ev : val;
     }
     // Partial occurrences: replace r:/e: inline, stringify results
-    return val.replace(/<<r:([a-zA-Z0-9_\-]+)>>|r:([a-zA-Z0-9_\-]+)|<<e:([a-zA-Z0-9_\-]+)>>|e:([a-zA-Z0-9_\-]+)/g,
-        (match, r1, r2, e1, e2) => {
+    return val.replace(/<<r:([a-zA-Z0-9_\-]+)>>|r:([a-zA-Z0-9_\-]+)|<<c:([a-zA-Z0-9_\-]+)>>|c:([a-zA-Z0-9_\-]+)|<<e:([a-zA-Z0-9_\-]+)>>|e:([a-zA-Z0-9_\-]+)/g,
+        (match, r1, r2, c1, c2, e1, e2) => {
           const rKey = r1 || r2;
           if (rKey) {
             const v = generateRandomByName(rKey);
+            return v !== undefined ? String(v) : match;
+          }
+          const cKey = c1 || c2;
+          if (cKey) {
+            const v = generateCurrentByName(cKey);
             return v !== undefined ? String(v) : match;
           }
           const eKey = e1 || e2;
@@ -174,9 +206,10 @@ export function replaceAllRefs(
         // random token via RANDOM_TOKEN_MAP with normalization + caching
         return generateRandomByName(name);
       }
-      case 'c':
-        // context: examples + inputs; resolve embedded r:/e:
-        return resolveEmbeddedTokens(mergedInputs[name], envs);
+      case 'c': {
+        // current token via CURRENT_TOKEN_MAP with normalization + caching
+        return generateCurrentByName(name);
+      }
       default:
         return undefined;
     }

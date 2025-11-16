@@ -15,3 +15,4 @@ export * as docMarkdown from "./docMarkdown";
 export * as postmanConvertor from "./postmanConvertor";
 export * as openapiConvertor from "./openapiConvertor";
 export * as Random from "./Random";
+export * as Current from "./Current";
