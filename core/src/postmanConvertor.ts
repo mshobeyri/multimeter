@@ -1,5 +1,21 @@
 import { APIData } from './APIData';
 
+function replacePostmanVars(str: string): string {
+  // Convert Postman {{var}} to Multimeter <<e:var>> placeholders
+  return str.replace(/\{\{\s*([^}]+?)\s*\}\}/g, '<<e:$1>>');
+}
+
+function transformRecordValues(obj: Record<string, string> | undefined): Record<string, string> | undefined {
+  if (!obj) {
+    return obj;
+  }
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(obj)) {
+    out[k] = typeof v === 'string' ? replacePostmanVars(v) : String(v);
+  }
+  return out;
+}
+
 // Helper to extract key-value pairs from Postman format and convert to object
 function extractKeyValue(arr: any[] = []): Record<string, string> {
   const obj: Record<string, string> = {};
@@ -26,26 +42,27 @@ export function postmanToAPI(postmanJson: any): APIData[] {
 
   return requests.map((req: any) => {
     const request = req.request || {};
-    const url = typeof request.url === 'string' ? request.url : request.url?.raw || '';
+    const rawUrl = typeof request.url === 'string' ? request.url : request.url?.raw || '';
+    const url = replacePostmanVars(rawUrl);
 
     // Convert Postman headers array to object
-    const headers = extractKeyValue(request.header);
+  const headers = transformRecordValues(extractKeyValue(request.header));
 
     // Convert Postman query array to object
-    const query = extractKeyValue(request.url?.query);
+  const query = transformRecordValues(extractKeyValue(request.url?.query));
 
     let body: string | object | undefined = undefined;
     if (request.body?.mode === 'raw') {
-      body = request.body.raw;
+      body = typeof request.body.raw === 'string' ? replacePostmanVars(request.body.raw) : request.body.raw;
     } else if (request.body?.mode === 'urlencoded') {
-      body = extractKeyValue(request.body.urlencoded);
+      body = transformRecordValues(extractKeyValue(request.body.urlencoded));
     } else if (request.body?.mode === 'formdata') {
-      body = extractKeyValue(request.body.formdata);
+      body = transformRecordValues(extractKeyValue(request.body.formdata));
     }
 
     // Determine format from content-type header
     let format: 'json' | 'xml' | 'text' = 'json';
-    const contentType = (headers['content-type'] || headers['Content-Type']) as string | undefined;
+  const contentType = (headers?.['content-type'] ?? headers?.['Content-Type']) as string | undefined;
     if (typeof contentType === 'string') {
       const lc = contentType.toLowerCase();
       if (lc.includes('xml')) {
