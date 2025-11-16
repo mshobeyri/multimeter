@@ -1,11 +1,24 @@
 import { loadEnvVariables } from '../workspaceStorage';
 import { JSONValue } from 'mmt-core/CommonData';
+import { Random } from 'mmt-core';
 
 export const KeySuggestionsByParent = (monaco: any) => {
-    const envVariablesSuggestions: any[] = [];
+    const variablesSuggestions: any[] = [];
+
+    // Dynamic random token suggestions sourced from Random.RANDOM_TOKEN_MAP (single source of truth)
+    const randomTokenSuggestions = Object.keys(Random.RANDOM_TOKEN_MAP)
+        .sort()
+        .map(name => ({
+            label: 'r:' + name,
+            kind: monaco.languages.CompletionItemKind.Function,
+            insertText: ' r:' + name,
+            detail: `Random ${name} value`,
+            documentation: `Generates a random ${name} at runtime. Token form r:${name}.`
+        }));
+    variablesSuggestions.push(...randomTokenSuggestions);
 
     loadEnvVariables((variables: { name: string; label: string; value: JSONValue }[]) => {
-        envVariablesSuggestions.push(...variables.map(envVar => ({
+        variablesSuggestions.push(...variables.map(envVar => ({
             label: 'e:' + envVar.name,
             kind: monaco.languages.CompletionItemKind.Variable,
             insertText: ' e:' + envVar.name,
@@ -499,7 +512,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
 
     const keySuggestionsByParent: Record<string, any[]> = {
         root: rootSuggestions,
-        general: envVariablesSuggestions,
+        general: variablesSuggestions,
         api: apiSuggestions,
         test: testSuggestions,
         doc: docSuggestions,
