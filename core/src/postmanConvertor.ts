@@ -129,6 +129,172 @@ export function postmanToAPI(postmanJson: any): APIData[] {
       delete (apiData as any).body;
     }
 
+    // If Postman item has one or more saved examples with originalRequest,
+    // expose url, headers, and body as inputs and create example overrides.
+    try {
+      const pmResponses: any[] = Array.isArray(req.response) ? req.response : [];
+      const exampleRequests = pmResponses
+          .map(r => r && (r.originalRequest || r.request))
+          .filter(rq => rq && (rq.url || rq.body || rq.header));
+
+      if (exampleRequests.length > 0) {
+        // Helper: normalize names to safe input keys
+        const norm = (s: string) => String(s)
+            .toLowerCase()
+            .replace(/[^a-z0-9_]+/g, '_')
+            .replace(/^_+|_+$/g, '')
+            .replace(/__+/g, '_');
+
+        const inputs: Record<string, any> = {};
+
+        // URL as input
+        inputs['url'] = url || '';
+        apiData.url = '<<i:url>>';
+
+        // Union header keys across base and all examples
+        const baseHeaders = headers || {};
+        const headerKeys = new Set<string>(Object.keys(baseHeaders));
+        for (const er of exampleRequests) {
+          const exHeaders = extractKeyValue(er.header || []);
+          for (const k of Object.keys(exHeaders)) {
+            headerKeys.add(k);
+          }
+        }
+
+        // Rebuild headers with input placeholders and defaults
+        const rebuiltHeaders: Record<string, string> = {};
+        for (const hk of Array.from(headerKeys)) {
+          const inputKey = `hdr_${norm(hk)}`;
+          const defVal = (baseHeaders as any)[hk] ?? '';
+          inputs[inputKey] = typeof defVal === 'string' ? replacePostmanVars(defVal) : String(defVal ?? '');
+          rebuiltHeaders[hk] = `<<i:${inputKey}>>`;
+        }
+        if (Object.keys(rebuiltHeaders).length > 0) {
+          apiData.headers = rebuiltHeaders;
+        }
+
+        // Body as input(s)
+        if (typeof body === 'string' || body === undefined) {
+          // Treat raw/undefined body as a single string input
+          inputs['body'] = typeof body === 'string' ? body : '';
+          apiData.body = '<<i:body>>';
+        } else if (body && typeof body === 'object') {
+          // urlencoded/formdata style: parameterize each field; union keys across examples
+          const baseBody: Record<string, any> = body as any;
+          const bodyKeys = new Set<string>(Object.keys(baseBody));
+          for (const er of exampleRequests) {
+            const mode = er.body?.mode;
+            if (mode === 'urlencoded') {
+              const bb = extractKeyValue(er.body?.urlencoded || []);
+              Object.keys(bb).forEach(k => bodyKeys.add(k));
+            } else if (mode === 'formdata') {
+              const bb = extractKeyValue(er.body?.formdata || []);
+              Object.keys(bb).forEach(k => bodyKeys.add(k));
+            } else if (mode === 'raw') {
+              // Raw string example body present, fallback to single body input approach
+              inputs['body'] = typeof baseBody === 'string' ? (baseBody as any) : JSON.stringify(baseBody);
+              apiData.body = '<<i:body>>';
+              // Clear per-field plan and stop collecting keys
+              bodyKeys.clear();
+              break;
+            }
+          }
+          if (bodyKeys.size > 0) {
+            const rebuiltBody: Record<string, any> = {};
+            for (const bk of Array.from(bodyKeys)) {
+              const inputKey = `body_${norm(bk)}`;
+              const defVal = baseBody[bk] ?? '';
+              inputs[inputKey] = typeof defVal === 'string' ? defVal : String(defVal ?? '');
+              rebuiltBody[bk] = `<<i:${inputKey}>>`;
+            }
+            apiData.body = rebuiltBody;
+          }
+        }
+
+        // Attach inputs defaults
+        apiData.inputs = inputs as any;
+
+        // Build examples overriding only changed inputs
+        const examples = pmResponses.map((resp, idx) => {
+          const or = resp && (resp.originalRequest || resp.request);
+          const example: any = {
+            name: resp?.name || `example_${idx + 1}`,
+            description: resp?.description || undefined,
+            inputs: {} as Record<string, any>,
+          };
+          if (!or) {
+            return example;
+          }
+
+          // URL override
+          const exRawUrl = typeof or.url === 'string' ? or.url : or.url?.raw || '';
+          const exUrl = replacePostmanVars(exRawUrl);
+          if (typeof exUrl === 'string' && exUrl !== inputs['url']) {
+            example.inputs!['url'] = exUrl;
+          }
+
+          // Header overrides
+          const exHeaders = transformRecordValues(extractKeyValue(or.header));
+          for (const hk of Array.from(headerKeys)) {
+            const inputKey = `hdr_${norm(hk)}`;
+            const exVal = (exHeaders as any)?.[hk] ?? '';
+            const normExVal = typeof exVal === 'string' ? exVal : String(exVal ?? '');
+            if (normExVal !== inputs[inputKey]) {
+              example.inputs![inputKey] = normExVal;
+            }
+          }
+
+          // Body overrides
+          const mode = or.body?.mode;
+          if (apiData.body === '<<i:body>>') {
+            // single body input
+            const exBodyVal = mode === 'raw' ? (typeof or.body?.raw === 'string' ? replacePostmanVars(or.body?.raw) : or.body?.raw) : '';
+            const normExBody = typeof exBodyVal === 'string' ? exBodyVal : String(exBodyVal ?? '');
+            if (normExBody !== inputs['body']) {
+              example.inputs!['body'] = normExBody;
+            }
+          } else if (apiData.body && typeof apiData.body === 'object') {
+            // per-field inputs
+            let exBodyObj: Record<string, any> = {};
+            if (mode === 'urlencoded') {
+              exBodyObj = transformRecordValues(extractKeyValue(or.body?.urlencoded)) || {};
+            } else if (mode === 'formdata') {
+              exBodyObj = transformRecordValues(extractKeyValue(or.body?.formdata)) || {};
+            }
+            for (const bk of Object.keys(apiData.body as any)) {
+              const inputKey = `body_${norm(bk)}`;
+              const exVal = exBodyObj[bk] ?? '';
+              const normExVal = typeof exVal === 'string' ? exVal : String(exVal ?? '');
+              if (normExVal !== inputs[inputKey]) {
+                example.inputs![inputKey] = normExVal;
+              }
+            }
+          }
+
+          // Clean empty inputs if none changed
+          if (Object.keys(example.inputs).length === 0) {
+            delete example.inputs;
+          }
+          if (!example.description) {
+            delete example.description;
+          }
+          return example;
+        });
+
+        // Keep only examples that have a name or inputs/description
+        apiData.examples = examples.filter(ex => ex && (ex.name || ex.inputs || ex.description));
+      }
+      // Fallback: responses exist but no originalRequest/request examples captured
+      if (!apiData.examples && pmResponses.length > 0) {
+        apiData.examples = pmResponses
+            .map((resp, idx) => ({ name: resp?.name || `example_${idx + 1}` }))
+            .filter(ex => ex.name);
+      }
+    } catch (e) {
+      // Non-fatal: if examples parsing fails, return base apiData
+  console.warn('postmanToAPI: Failed to parse examples for item', req?.name || request?.url?.raw || '', e);
+    }
+
     return apiData;
   });
 }
