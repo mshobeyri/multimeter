@@ -106,11 +106,20 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
         }
       } else if (msg.type === 'openFile') {
         const uri = vscode.Uri.parse(`untitled:${msg.name}`);
+        // If the document is already open, replace its entire contents instead of inserting again.
+        const existing = vscode.workspace.textDocuments.find(d => d.uri.toString() === uri.toString());
         const edit = new vscode.WorkspaceEdit();
-        edit.insert(uri, new vscode.Position(0, 0), msg.content);
+        if (existing) {
+          const lastLine = existing.lineCount > 0 ? existing.lineCount - 1 : 0;
+          const lastChar = existing.lineCount > 0 ? existing.lineAt(lastLine).text.length : 0;
+          const fullRange = new vscode.Range(0, 0, lastLine, lastChar);
+          edit.replace(uri, fullRange, msg.content);
+        } else {
+          edit.insert(uri, new vscode.Position(0, 0), msg.content);
+        }
         await vscode.workspace.applyEdit(edit);
-        await vscode.commands.executeCommand(
-            'vscode.openWith', uri, 'mmt.editor');
+        // Reveal with custom editor
+        await vscode.commands.executeCommand('vscode.openWith', uri, 'mmt.editor');
       } else if (msg.type === 'saveSelected') {
         // msg.files: [{name, content}], msg.targetDir: string
         for (const file of msg.files) {
