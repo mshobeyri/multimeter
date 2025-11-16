@@ -1,4 +1,4 @@
-import {COLOR_PALETTE, FIRST_NAMES, LAST_NAMES, CITY_LIST, COUNTRY_LIST, EMAIL_DOMAINS, WEEKDAYS, MONTHS} from './RandomResources';
+import {CITY_LIST, COLOR_PALETTE, COUNTRY_LIST, EMAIL_DOMAINS, FIRST_NAMES, LAST_NAMES, MONTHS, WEEKDAYS} from './RandomResources';
 
 // Internal helper to get random int in range [min, max]
 function randInt(min: number, max: number): number {
@@ -80,7 +80,8 @@ export function randomIP(): string {
 /** Random IPv6 address in full form (8 groups of 4 hex digits). */
 export function randomIPv6(): string {
   const group = () => randInt(0, 0xffff).toString(16).padStart(4, '0');
-  return `${group()}:${group()}:${group()}:${group()}:${group()}:${group()}:${group()}:${group()}`;
+  return `${group()}:${group()}:${group()}:${group()}:${group()}:${group()}:${
+      group()}:${group()}`;
 }
 
 /** Random city name from a curated list. */
@@ -93,11 +94,16 @@ export function randomCountry(): string {
   return COUNTRY_LIST[randInt(0, COUNTRY_LIST.length - 1)];
 }
 
-/** Random phone number in E.164 format like +14155550123 (8-15 digits total after +). */
+/**
+ * Random phone number in E.164 format like +14155550123 (8-15 digits total
+ * after +).
+ */
 export function randomPhoneNumber(): string {
-  const countryCodes = [1, 44, 49, 33, 34, 39, 61, 64, 81, 82, 86, 91, 351, 352, 353, 354, 358];
+  const countryCodes =
+      [1, 44, 49, 33, 34, 39, 61, 64, 81, 82, 86, 91, 351, 352, 353, 354, 358];
   const cc = countryCodes[randInt(0, countryCodes.length - 1)].toString();
-  const remainingLen = randInt(Math.max(8 - cc.length, 6), Math.max(15 - cc.length, 7));
+  const remainingLen =
+      randInt(Math.max(8 - cc.length, 6), Math.max(15 - cc.length, 7));
   let digits = '';
   for (let i = 0; i < remainingLen; i++) {
     digits += randInt(0, 9).toString();
@@ -117,40 +123,49 @@ export function randomEmail(): string {
 
 /** Random latitude in range [-90, 90], with up to 6 decimals. */
 export function randomLatitude(): number {
-  const v = Math.random() * 180 - 90; // -90..90
+  const v = Math.random() * 180 - 90;  // -90..90
   return Math.round(v * 1e6) / 1e6;
 }
 
 /** Random longitude in range [-180, 180], with up to 6 decimals. */
 export function randomLongitude(): number {
-  const v = Math.random() * 360 - 180; // -180..180
+  const v = Math.random() * 360 - 180;  // -180..180
   return Math.round(v * 1e6) / 1e6;
 }
 
-/** Random future date string within [minDaysAhead, maxDaysAhead] (defaults 1..365). */
+/**
+ * Random future date string within [minDaysAhead, maxDaysAhead]
+ * (defaults 1..365).
+ */
 export function randomDateFuture(minDaysAhead = 1, maxDaysAhead = 365): string {
   if (maxDaysAhead < minDaysAhead) {
     [minDaysAhead, maxDaysAhead] = [maxDaysAhead, minDaysAhead];
   }
   const days = randInt(minDaysAhead, maxDaysAhead);
-  const msOffset = days * 24 * 60 * 60 * 1000 + randInt(0, 24*60*60*1000 - 1);
+  const msOffset =
+      days * 24 * 60 * 60 * 1000 + randInt(0, 24 * 60 * 60 * 1000 - 1);
   return new Date(Date.now() + msOffset).toString();
 }
 
-/** Random past date string within [minDaysBack, maxDaysBack] (defaults 1..(365*5)). */
+/**
+ * Random past date string within [minDaysBack, maxDaysBack]
+ * (defaults 1..(365*5)).
+ */
 export function randomDatePast(minDaysBack = 1, maxDaysBack = 365 * 5): string {
   if (maxDaysBack < minDaysBack) {
     [minDaysBack, maxDaysBack] = [maxDaysBack, minDaysBack];
   }
   const days = randInt(minDaysBack, maxDaysBack);
-  const msOffset = days * 24 * 60 * 60 * 1000 + randInt(0, 24*60*60*1000 - 1);
+  const msOffset =
+      days * 24 * 60 * 60 * 1000 + randInt(0, 24 * 60 * 60 * 1000 - 1);
   return new Date(Date.now() - msOffset).toString();
 }
 
 /** Random recent date string within the last N days (default 30). */
 export function randomDateRecent(maxDaysBack = 30): string {
   const days = randInt(0, Math.max(0, maxDaysBack));
-  const msOffset = days * 24 * 60 * 60 * 1000 + randInt(0, 24*60*60*1000 - 1);
+  const msOffset =
+      days * 24 * 60 * 60 * 1000 + randInt(0, 24 * 60 * 60 * 1000 - 1);
   return new Date(Date.now() - msOffset).toString();
 }
 
@@ -163,3 +178,32 @@ export function randomWeekday(): string {
 export function randomMonth(): string {
   return MONTHS[randInt(0, MONTHS.length - 1)];
 }
+
+export const RANDOM_TOKEN_MAP: Record<string, () => any> = {
+  email: randomEmail,
+  ip: randomIP,
+  ipv6: randomIPv6,
+  city: randomCity,
+  country: randomCountry,
+  phone: randomPhoneNumber,
+  phone_number: randomPhoneNumber,
+  lat: randomLatitude,
+  latitude: randomLatitude,
+  lon: randomLongitude,
+  long: randomLongitude,
+  longitude: randomLongitude,
+  date_future: randomDateFuture,
+  date_past: randomDatePast,
+  date_recent: randomDateRecent,
+  weekday: randomWeekday,
+  month: randomMonth,
+  first_name: randomFirstName,
+  last_name: randomLastName,
+  full_name: randomFullName,
+  color: randomColor,
+  hex_color: randomHexColor,
+  uuid: randomUUID,
+  bool: randomBoolean,
+  boolean: randomBoolean,
+  int: () => randomInt(1000)  // default range 0..1000
+};
