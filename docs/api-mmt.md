@@ -28,6 +28,11 @@ Notes
 - `format` sets how the body is encoded/decoded
 - `query` merges with any query string in `url`
 
+Tip: You can use dynamic tokens anywhere in url/headers/body/query/cookies.
+- Random: `r:<name>` (e.g., `r:uuid`, `r:int`)
+- Current: `c:<name>` (e.g., `c:date`, `c:epoch`)
+See “Dynamic values: random and current” below for details and examples.
+
 ### HTTP POST JSON or XML
 ```yaml
  type: api
@@ -135,6 +140,28 @@ cookies:
   session: e:SESSION_ID
 ```
 
+### Headers
+For convenience, Multimeter adds a few sensible HTTP headers if they’re missing:
+- User-Agent: Multimeter
+- Accept: */*
+- Connection: keep-alive
+- Accept-Encoding: gzip, deflate, br
+
+When a body is present, it also infers Content-Type (json/xml/text) and sets Content-Length.
+
+You can explicitly block any of these by setting the header value to `_` in your API:
+
+```yaml
+headers:
+  User-Agent: _         # don’t send any UA (prevents axios defaults too)
+  Content-Type: _       # don’t infer a content type
+  Content-Length: _     # don’t send content length
+```
+
+Notes
+- Empty or whitespace-only header values are treated as absent and will not be sent.
+- Blocking is case-insensitive and prevents library defaults from reappearing.
+
 ## Reuse and compose
 These fields help you call an API with different inputs and capture outputs.
 
@@ -187,6 +214,48 @@ setenv:
   USERNAME: e:USER
 ```
 These become available to subsequent steps/tests as environment variables.
+
+## Dynamic values: random and current
+Use built-in dynamic tokens anywhere in url, headers, body, query, cookies, or even in inputs defaults.
+
+Syntax
+- Random: `r:<name>` or `<<r:<name>>>`
+- Current: `c:<name>` or `<<c:<name>>>`
+- Environment: `e:<NAME>` or `<<e:NAME>>`
+
+Resolution rules
+- If a field’s value is exactly a single token (e.g. `body: r:int`), the value keeps its native type (number/boolean/string), not a string.
+- If a token appears inline within other text, it’s replaced as a string (e.g. `X-Id: user-<<r:uuid>>`).
+
+Common random tokens (`r:`)
+- uuid, bool, int
+- ip, ipv6
+- email, phone
+- first_name, last_name, full_name, country
+- color
+- epoch, epoch_ms
+- epoch_past, epoch_past_ms
+- epoch_recent, epoch_recent_ms
+- epoch_future, epoch_future_ms
+- image (small SVG data URI), and other basic generators
+
+Common current tokens (`c:`)
+- time, date, day, month, year
+- epoch, epoch_ms
+- city, country (best effort based on your locale/time zone)
+
+Examples
+```yaml
+headers:
+  X-Req: req-<<r:uuid>>
+  X-Now: <<c:date>> <<c:time>>
+body:
+  id: r:int
+  created_at: c:epoch
+  active: r:bool
+```
+
+CLI and UI both resolve these tokens consistently. Random values are cached per render to keep the UI stable while editing.
 
 ## Examples
 Define example inputs so you can run them as smoke tests. When examples exist, the Tests panel shows a dropdown; picking one pre‑fills the inputs.
