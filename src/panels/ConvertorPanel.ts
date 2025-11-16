@@ -6,6 +6,7 @@ import * as yaml from 'yaml';
 import {APIData} from 'mmt-core/APIData';
 import {postmanConvertor} from 'mmt-core';
 import {openapiConvertor} from 'mmt-core';
+import {apiParsePack} from 'mmt-core';
 
 // Helper to extract key-value pairs from Postman format and convert to object
 // (legacy local implementation removed; now using core convertors)
@@ -88,8 +89,7 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
                 (api.title || 'api').replace(/[\\/:*?"<>|]+/g, '_');
             return {
               name: safeName + '.mmt',
-              content: yaml.stringify(
-                  api, {indent: 2, lineWidth: 0, minContentWidth: 0})
+              content: apiParsePack.apiToYaml(api)
             };
           });
 
