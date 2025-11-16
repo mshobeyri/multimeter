@@ -45,14 +45,15 @@ export function apiToYaml(api: APIData): string {
   if (api.description) {
     yamlObj.description = api.description;
   };
+  // Place inputs immediately after title/description for readability
+  if (isNonEmptyObject(api.inputs)) {
+    yamlObj.inputs = api.inputs;
+  };
   if (isNonEmptyList(api.tags)) {
     yamlObj.tags = api.tags;
   };
   if (isNonEmptyObject(api.import)) {
     yamlObj.import = api.import;
-  };
-  if (isNonEmptyObject(api.inputs)) {
-    yamlObj.inputs = api.inputs;
   };
   if (isNonEmptyObject(api.outputs)) {
     yamlObj.outputs = api.outputs;
