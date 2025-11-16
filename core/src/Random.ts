@@ -187,10 +187,7 @@ export const RANDOM_TOKEN_MAP: Record<string, () => any> = {
   country: randomCountry,
   phone: randomPhoneNumber,
   phone_number: randomPhoneNumber,
-  lat: randomLatitude,
   latitude: randomLatitude,
-  lon: randomLongitude,
-  long: randomLongitude,
   longitude: randomLongitude,
   date_future: randomDateFuture,
   date_past: randomDatePast,
@@ -204,6 +201,5 @@ export const RANDOM_TOKEN_MAP: Record<string, () => any> = {
   hex_color: randomHexColor,
   uuid: randomUUID,
   bool: randomBoolean,
-  boolean: randomBoolean,
   int: () => randomInt(1000)  // default range 0..1000
 };

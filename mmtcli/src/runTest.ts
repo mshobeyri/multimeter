@@ -2,7 +2,7 @@ import { performance } from 'perf_hooks';
 import vm from 'vm';
 import { CliRunResult } from './types.js';
 import { maybeGenerateJs } from './loadTest.js';
-import { outputExtractor, testHelper } from 'mmt-core';
+import { outputExtractor, testHelper, Random } from 'mmt-core';
 
 export async function runTestObject(testObj: any): Promise<CliRunResult> {
   const start = performance.now();
@@ -42,6 +42,13 @@ export async function runTestObject(testObj: any): Promise<CliRunResult> {
         setTimeout,
         clearTimeout,
       };
+      // Inject helpers and random generators (functions only) so generated code can call randomEmail(), randomIP(), etc.
+      Object.assign(sandbox, testHelper);
+      for (const [k, v] of Object.entries(Random)) {
+        if (typeof v === 'function' && !(k in sandbox)) {
+          sandbox[k] = v;
+        }
+      }
       vm.createContext(sandbox);
       try {
         vm.runInContext(js, sandbox, { timeout: 5000 });
@@ -151,6 +158,12 @@ export async function runGeneratedJs(js: string): Promise<CliRunResult> {
       };
     };
     Object.assign(sandbox, testHelper);
+    // Random generator functions injection
+    for (const [k, v] of Object.entries(Random)) {
+      if (typeof v === 'function' && !(k in sandbox)) {
+        sandbox[k] = v;
+      }
+    }
     vm.createContext(sandbox);
     const wrapped = `(async () => {\n${js}\n})()`;
     try {

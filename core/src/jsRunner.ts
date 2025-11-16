@@ -1,8 +1,9 @@
 import {LogLevel} from './CommonData';
 // Import your send function from the network core
 import {send} from './networkCore';  // Adjust the path as needed
-import {extractOutputs} from './outputExtractor'
+import {extractOutputs} from './outputExtractor';
 import * as mmtHelper from './testHelper';
+import * as Random from './Random';
 
 export async function runJSCode(
     code: string, title: string,
@@ -23,14 +24,19 @@ export async function runJSCode(
   };
 
   try {
-    const helperDecls =
-        Object.keys(mmtHelper)
-            .map(name => `const ${name} = mmtHelper["${name}"];`)
-            .join('\n');
-    const fn = new Function(
-        'mmtHelper', 'console', 'send', 'extractOutputs',
-        `${helperDecls}\n${code}`);
-    await fn(mmtHelper, customConsole, send, extractOutputs);
+  const helperDecls =
+    Object.keys(mmtHelper)
+      .map(name => `const ${name} = mmtHelper["${name}"];`)
+      .join('\n');
+  const randomDecls =
+    Object.keys(Random)
+      .filter(name => typeof (Random as any)[name] === 'function')
+      .map(name => `const ${name} = Random["${name}"];`)
+      .join('\n');
+  const fn = new Function(
+    'mmtHelper', 'console', 'send', 'extractOutputs', 'Random',
+    `${helperDecls}\n${randomDecls}\n${code}`);
+  await fn(mmtHelper, customConsole, send, extractOutputs, Random);
 
     lg('info', 'Done successfully');
   } catch (e: any) {
