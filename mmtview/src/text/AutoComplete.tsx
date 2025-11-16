@@ -1,6 +1,6 @@
 import { loadEnvVariables } from '../workspaceStorage';
 import { JSONValue } from 'mmt-core/CommonData';
-import { Random } from 'mmt-core';
+import { Random, Current } from 'mmt-core';
 
 export const KeySuggestionsByParent = (monaco: any) => {
     const variablesSuggestions: any[] = [];
@@ -16,6 +16,18 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: `Generates a random ${name} at runtime. Token form r:${name}.`
         }));
     variablesSuggestions.push(...randomTokenSuggestions);
+
+    // Dynamic current token suggestions sourced from Current.CURRENT_TOKEN_MAP
+    const currentTokenSuggestions = Object.keys(Current.CURRENT_TOKEN_MAP)
+        .sort()
+        .map(name => ({
+            label: 'c:' + name,
+            kind: monaco.languages.CompletionItemKind.Function,
+            insertText: ' c:' + name,
+            detail: `Current ${name} value`,
+            documentation: `Inserts current ${name} at runtime. Token form c:${name}.`
+        }));
+    variablesSuggestions.push(...currentTokenSuggestions);
 
     loadEnvVariables((variables: { name: string; label: string; value: JSONValue }[]) => {
         variablesSuggestions.push(...variables.map(envVar => ({
