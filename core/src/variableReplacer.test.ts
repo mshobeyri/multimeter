@@ -37,4 +37,20 @@ describe('variableReplacer', () => {
     expect(out.body).toEqual({ name: 'john', age: 30, admin: false });
     expect(out.tags).toEqual(['A', 'x', 'B']);
   });
+
+  it('resolves embedded e: and r: tokens inside input/default values', () => {
+    const defaults = { host: 'e:HOST', emailTmpl: 'User r:email at <<e:HOST>>' } as any;
+    const inputs = { alt: 'r:uuid', host: '<<e:HOST>>' } as any;
+    const envs = { HOST: 'api.local' } as any;
+    const iface = {
+      url: 'http://i:host/users',
+      meta: 'i:emailTmpl',
+      id: 'i:alt'
+    } as any;
+    const out = replaceAllRefs(iface, defaults, inputs, envs);
+    expect(out.url).toBe('http://api.local/users');
+    expect(out.meta).toMatch(/User .*@.* at api\.local/);
+    expect(out.meta).not.toMatch(/r:email|e:HOST/);
+    expect(out.id).toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/);
+  });
 });
