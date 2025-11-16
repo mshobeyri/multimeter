@@ -115,5 +115,9 @@ describe('postmanConvertor.postmanToAPI real collection features', () => {
     expect(ping!.url).toBe('');
     // Method undefined for response-only item
     expect(ping!.method).toBeUndefined();
+    // Should still surface examples array (fallback path)
+    expect(Array.isArray(ping!.examples)).toBe(true);
+    expect(ping!.examples!.length).toBeGreaterThan(0);
+    expect(ping!.examples![0].name).toBeTruthy();
   });
 });
