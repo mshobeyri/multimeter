@@ -4,6 +4,7 @@ import { APIData } from './APIData';
 // Only include those we support in RANDOM_TOKEN_MAP.
 const POSTMAN_RANDOM_MAP: Record<string, string> = {
   '$guid': 'uuid',
+  'timestamp': 'epoch',
   '$randomUUID': 'uuid',
   '$randomInt': 'int',
   '$randomBoolean': 'bool',
