@@ -179,6 +179,88 @@ export function randomMonth(): string {
   return MONTHS[randInt(0, MONTHS.length - 1)];
 }
 
+export function randomEpoch(startYear = 2000, endYear = 2035): number {
+  if (endYear < startYear) {
+    [startYear, endYear] = [endYear, startYear];
+  }
+  const year = randInt(startYear, endYear);
+  const month = randInt(0, 11);
+  const day = randInt(1, 28);
+  const hour = randInt(0, 23);
+  const minute = randInt(0, 59);
+  const second = randInt(0, 59);
+  const d = Date.UTC(year, month, day, hour, minute, second, 0);
+  return Math.floor(d / 1000);
+}
+
+export function randomEpochMs(startYear = 2000, endYear = 2035): number {
+  if (endYear < startYear) {
+    [startYear, endYear] = [endYear, startYear];
+  }
+  const year = randInt(startYear, endYear);
+  const month = randInt(0, 11);
+  const day = randInt(1, 28);
+  const hour = randInt(0, 23);
+  const minute = randInt(0, 59);
+  const second = randInt(0, 59);
+  const ms = randInt(0, 999);
+  return Date.UTC(year, month, day, hour, minute, second, ms);
+}
+
+export function randomEpochFuture(minDaysAhead = 1, maxDaysAhead = 365): number {
+  if (maxDaysAhead < minDaysAhead) {
+    [minDaysAhead, maxDaysAhead] = [maxDaysAhead, minDaysAhead];
+  }
+  const days = randInt(minDaysAhead, maxDaysAhead);
+  const msOffset =
+      days * 24 * 60 * 60 * 1000 + randInt(0, 24 * 60 * 60 * 1000 - 1);
+  return Math.floor((Date.now() + msOffset) / 1000);
+}
+
+export function randomEpochFutureMs(minDaysAhead = 1, maxDaysAhead = 365): number {
+  if (maxDaysAhead < minDaysAhead) {
+    [minDaysAhead, maxDaysAhead] = [maxDaysAhead, minDaysAhead];
+  }
+  const days = randInt(minDaysAhead, maxDaysAhead);
+  const msOffset =
+      days * 24 * 60 * 60 * 1000 + randInt(0, 24 * 60 * 60 * 1000 - 1);
+  return Date.now() + msOffset;
+}
+
+export function randomEpochPast(minDaysBack = 1, maxDaysBack = 365 * 5): number {
+  if (maxDaysBack < minDaysBack) {
+    [minDaysBack, maxDaysBack] = [maxDaysBack, minDaysBack];
+  }
+  const days = randInt(minDaysBack, maxDaysBack);
+  const msOffset =
+      days * 24 * 60 * 60 * 1000 + randInt(0, 24 * 60 * 60 * 1000 - 1);
+  return Math.floor((Date.now() - msOffset) / 1000);
+}
+
+export function randomEpochPastMs(minDaysBack = 1, maxDaysBack = 365 * 5): number {
+  if (maxDaysBack < minDaysBack) {
+    [minDaysBack, maxDaysBack] = [maxDaysBack, minDaysBack];
+  }
+  const days = randInt(minDaysBack, maxDaysBack);
+  const msOffset =
+      days * 24 * 60 * 60 * 1000 + randInt(0, 24 * 60 * 60 * 1000 - 1);
+  return Date.now() - msOffset;
+}
+
+export function randomEpochRecent(maxDaysBack = 30): number {
+  const days = randInt(0, Math.max(0, maxDaysBack));
+  const msOffset =
+      days * 24 * 60 * 60 * 1000 + randInt(0, 24 * 60 * 60 * 1000 - 1);
+  return Math.floor((Date.now() - msOffset) / 1000);
+}
+
+export function randomEpochRecentMs(maxDaysBack = 30): number {
+  const days = randInt(0, Math.max(0, maxDaysBack));
+  const msOffset =
+      days * 24 * 60 * 60 * 1000 + randInt(0, 24 * 60 * 60 * 1000 - 1);
+  return Date.now() - msOffset;
+}
+
 export const RANDOM_TOKEN_MAP: Record<string, () => any> = {
   email: randomEmail,
   ip: randomIP,
@@ -192,6 +274,14 @@ export const RANDOM_TOKEN_MAP: Record<string, () => any> = {
   date_future: randomDateFuture,
   date_past: randomDatePast,
   date_recent: randomDateRecent,
+  epoch: randomEpoch,
+  epoch_ms: randomEpochMs,
+  epoch_future: randomEpochFuture,
+  epoch_future_ms: randomEpochFutureMs,
+  epoch_past: randomEpochPast,
+  epoch_past_ms: randomEpochPastMs,
+  epoch_recent: randomEpochRecent,
+  epoch_recent_ms: randomEpochRecentMs,
   weekday: randomWeekday,
   month: randomMonth,
   first_name: randomFirstName,

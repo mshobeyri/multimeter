@@ -1,4 +1,4 @@
-import { randomColor, randomHexColor, randomFirstName, randomLastName, randomFullName, randomIP, randomIPv6, randomCity, randomCountry, randomPhoneNumber, randomEmail, randomLatitude, randomLongitude, randomDateFuture, randomDatePast, randomDateRecent, randomWeekday, randomMonth } from './Random';
+import { randomColor, randomHexColor, randomFirstName, randomLastName, randomFullName, randomIP, randomIPv6, randomCity, randomCountry, randomPhoneNumber, randomEmail, randomLatitude, randomLongitude, randomDateFuture, randomDatePast, randomDateRecent, randomWeekday, randomMonth, randomEpoch, randomEpochMs, randomEpochFuture, randomEpochFutureMs, randomEpochPast, randomEpochPastMs, randomEpochRecent, randomEpochRecentMs } from './Random';
 import { FIRST_NAMES, LAST_NAMES } from './RandomResources';
 
 describe('Random color generators', () => {
@@ -138,6 +138,74 @@ describe('Random date and calendar generators', () => {
     const set = new Set(['January','February','March','April','May','June','July','August','September','October','November','December']);
     for (let i = 0; i < 12; i++) {
       expect(set.has(randomMonth())).toBe(true);
+    }
+  });
+});
+
+describe('Random epoch generators', () => {
+  test('randomEpoch lies between 2000 and 2035 (seconds)', () => {
+    const minSec = Math.floor(Date.UTC(2000, 0, 1, 0, 0, 0, 0) / 1000);
+    const maxSec = Math.floor(Date.UTC(2035, 11, 31, 23, 59, 59, 999) / 1000);
+    for (let i = 0; i < 5; i++) {
+      const s = randomEpoch();
+      expect(Number.isInteger(s)).toBe(true);
+      expect(s).toBeGreaterThanOrEqual(minSec);
+      expect(s).toBeLessThanOrEqual(maxSec);
+    }
+  });
+
+  test('randomEpochMs lies between 2000 and 2035 (milliseconds)', () => {
+    const minMs = Date.UTC(2000, 0, 1, 0, 0, 0, 0);
+    const maxMs = Date.UTC(2035, 11, 31, 23, 59, 59, 999);
+    for (let i = 0; i < 5; i++) {
+      const ms = randomEpochMs();
+      expect(typeof ms).toBe('number');
+      expect(ms).toBeGreaterThanOrEqual(minMs);
+      expect(ms).toBeLessThanOrEqual(maxMs);
+    }
+  });
+
+  test('randomEpochFuture/_ms are in the future (within ~1 year)', () => {
+    for (let i = 0; i < 5; i++) {
+      const nowMs = Date.now();
+      const s = randomEpochFuture();
+      const ms = randomEpochFutureMs();
+      expect(s * 1000).toBeGreaterThan(nowMs - 2000); // small cushion
+      expect(ms).toBeGreaterThan(nowMs - 2000);
+      const diffDaysS = (s * 1000 - nowMs) / (24*60*60*1000);
+      const diffDaysMs = (ms - nowMs) / (24*60*60*1000);
+      expect(diffDaysS).toBeLessThanOrEqual(366);
+      expect(diffDaysMs).toBeLessThanOrEqual(366);
+    }
+  });
+
+  test('randomEpochPast/_ms are in the past (within ~5 years)', () => {
+    for (let i = 0; i < 5; i++) {
+      const nowMs = Date.now();
+      const s = randomEpochPast();
+      const ms = randomEpochPastMs();
+      expect(s * 1000).toBeLessThan(nowMs + 2000);
+      expect(ms).toBeLessThan(nowMs + 2000);
+      const diffDaysS = (nowMs - s * 1000) / (24*60*60*1000);
+      const diffDaysMs = (nowMs - ms) / (24*60*60*1000);
+      expect(diffDaysS).toBeLessThanOrEqual(365*5 + 2);
+      expect(diffDaysMs).toBeLessThanOrEqual(365*5 + 2);
+    }
+  });
+
+  test('randomEpochRecent/_ms are within ~30 days back', () => {
+    for (let i = 0; i < 5; i++) {
+      const nowMs = Date.now();
+      const s = randomEpochRecent();
+      const ms = randomEpochRecentMs();
+      expect(s * 1000).toBeLessThanOrEqual(nowMs + 2000);
+      expect(ms).toBeLessThanOrEqual(nowMs + 2000);
+      const diffDaysS = (nowMs - s * 1000) / (24*60*60*1000);
+      const diffDaysMs = (nowMs - ms) / (24*60*60*1000);
+      expect(diffDaysS).toBeGreaterThanOrEqual(0);
+      expect(diffDaysS).toBeLessThanOrEqual(31);
+      expect(diffDaysMs).toBeGreaterThanOrEqual(0);
+      expect(diffDaysMs).toBeLessThanOrEqual(31);
     }
   });
 });
