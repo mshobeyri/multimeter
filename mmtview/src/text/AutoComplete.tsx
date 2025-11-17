@@ -94,6 +94,13 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'A descriptive title for the test suite.'
         },
         {
+            label: "description",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "description: ",
+            detail: 'Test description [string]',
+            documentation: 'Optional description shown under the title.'
+        },
+        {
             label: "tags",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "tags:\n\t- ",
