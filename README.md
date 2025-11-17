@@ -84,6 +84,7 @@ Here is a how you can run the test in VSCode <a href="https://marketplace.visual
 - [Convertor](docs/convertor.md)
 - [Mock Server](docs/mock-server.md)
 - [History](docs/history.md)
+- [Test Generation Profile](docs/testgen-profile.md)
 
 ---
 **Special thanks to: Dear Ashkan Palganeh.**
