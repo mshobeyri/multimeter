@@ -71,3 +71,11 @@ Demonstrates WebSocket testing capabilities, including connection establishment,
 ![XML Demo](../demos/xml.gif)
 
 Shows XML body handling and formatting in API tests, including parsing, validation, and pretty-printing of XML payloads.
+
+## AI Test Generation
+
+![AI Test Generation Demo](../demos/ai.gif)
+
+Demonstrates using the Test Generation Reference to scaffold API and test files via AI assistance, converting descriptions or external specs (OpenAPI/Postman) into runnable `.mmt` artifacts.
+
+See also: [Test Generation Reference](testgen-profile.md)
