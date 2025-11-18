@@ -6,14 +6,14 @@
 
 
   <p align="center">
-    All possible tests for your service as code!
+    <h4>All possible tests for your service as code!</h4>
     <br />
     <a href="#-documentation"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-      <a href="docs/demos.md"><img src="res/demo.png" alt="Demo" width="20" height="20" style="vertical-align: text-bottom; "/> View Demo</a>
+      <a href="docs/demos.md"><img src="res/demo.png" alt="Demo" width="16" height="16" style="vertical-align: text-bottom;"/> View Demo</a>
     &middot;
-      <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter"><img src="res/vscode.png" alt="VS Code" width="15" height="16" style="vertical-align: text-bottom;"/> Try on VSCode</a>
+      <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter"><img src="res/vscode.png" alt="VS Code" width="16" height="16" style="vertical-align: text-bottom;"/> Try on VSCode</a>
     &middot;
       <a href="https://github.com/mshobeyri/multimeter/issues/new?labels=enhancement&template=feature-request---.md"><img src="res/request_feature.png" alt="Request Feature" width="16" height="16" style="vertical-align: text-bottom;"/> Request Feature</a>
   </p>
