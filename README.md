@@ -1,10 +1,9 @@
 <br />
 <div align="center">
   <a href="https://github.com/othneildrew/Best-README-Template">
-    <img src="res/icon.png" alt="Logo" width="80" height="80">
+    <img src="res/icon.png" alt="Logo" width="120" height="115">
   </a>
 
-    <h3 align="center">Multimeter</h3>
 
   <p align="center">
     All possible tests for your service as code!
@@ -12,11 +11,11 @@
     <a href="#-documentation"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-      <a href="docs/demos.md"><img src="res/demo.webp" alt="Demo" width="15" height="15" style="vertical-align: text-bottom; padding-bottom:2px;"/> View Demo</a>
+      <a href="docs/demos.md"><img src="res/demo.png" alt="Demo" width="20" height="20" style="vertical-align: text-bottom; "/> View Demo</a>
     &middot;
-      <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter"><img src="res/vscode.png" alt="VS Code" width="15" height="16" style="vertical-align: text-bottom; padding-bottom:2px;"/> Try on VSCode</a>
+      <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter"><img src="res/vscode.png" alt="VS Code" width="15" height="16" style="vertical-align: text-bottom;"/> Try on VSCode</a>
     &middot;
-      <a href="https://github.com/mshobeyri/multimeter/issues/new?labels=enhancement&template=feature-request---.md"><img src="res/request_feature.png" alt="Request Feature" width="16" height="16" style="vertical-align: text-bottom; padding-bottom:2px;"/> Request Feature</a>
+      <a href="https://github.com/mshobeyri/multimeter/issues/new?labels=enhancement&template=feature-request---.md"><img src="res/request_feature.png" alt="Request Feature" width="16" height="16" style="vertical-align: text-bottom;"/> Request Feature</a>
   </p>
 </div>
 
