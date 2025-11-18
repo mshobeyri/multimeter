@@ -4,7 +4,7 @@
     <img src="res/icon.png" alt="Logo" width="80" height="80">
   </a>
 
-  <h3 align="center">Mutlimeter</h3>
+    <h3 align="center">Multimeter</h3>
 
   <p align="center">
     All possible tests for your service as code!
@@ -12,11 +12,11 @@
     <a href="#-documentation"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    <a href="docs/demos.md">View Demo</a>
+      <a href="docs/demos.md"><img src="res/demo.webp" alt="Demo" width="15" height="15" style="vertical-align: text-bottom; padding-bottom:2px;"/> View Demo</a>
     &middot;
-    <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter">Try on VSCode</a>
+      <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter"><img src="res/vscode.png" alt="VS Code" width="15" height="16" style="vertical-align: text-bottom; padding-bottom:2px;"/> Try on VSCode</a>
     &middot;
-    <a href="https://github.com/mshobeyri/multimeter/issues/new?labels=enhancement&template=feature-request---.md">Request Feature</a>
+      <a href="https://github.com/mshobeyri/multimeter/issues/new?labels=enhancement&template=feature-request---.md"><img src="res/request_feature.png" alt="Request Feature" width="16" height="16" style="vertical-align: text-bottom; padding-bottom:2px;"/> Request Feature</a>
   </p>
 </div>
 
@@ -45,24 +45,24 @@ Here is a how you can run the test in VSCode <a href="https://marketplace.visual
 ## 🚀 Features
 
 - 💰 No login needed, all features are available for free.
-- 🧩 UI editor ( No code mode ) along with text editor.
+ - 🧩 UI editor ( No code mode ) along with text editor. <a href="docs/demos.md#ui-overview"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
 - 💾 Store test cases as files in your application git repo.
   - 👮🏻‍♂️ Security: sensitive info remains in your hand.
   - ⏳ Preserve tests' history.
-  - 🤖 Ability to generate tests using AI.
+  - 🤖 Ability to generate tests using AI. <a href="docs/demos.md#ai-test-generation"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
   - 📦 Having tests along with the changes in a same pull request.
   - 🔑 Access control can be handled by git.
   - 🖌️ Bulk edit using vscode and regex.
-- 🧱 JSON/XML schema-aware formating and editing.
-- 🔗 Chaining request responses.
+ - 🧱 JSON/XML schema-aware formating and editing. <a href="docs/demos.md#xml-handling"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
+ - 🔗 Chaining request responses. <a href="docs/demos.md#output-extraction"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
 - ⛓️ Running tests in the pipeline using testlight.
-- 🗄 Environment variable and presets support.
-- ⛏️ Extract data from results using xpath, jsonpath and regular expression.
-- 🌐 REST, WEBSOCKET, SOAP protocols support.
-- 🔄 Support Postman and OpenAPI collection convert.
+ - 🗄 Environment variable and presets support. <a href="docs/demos.md#environment-variables"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
+ - ⛏️ Extract data from results using xpath, jsonpath and regular expression. <a href="docs/demos.md#output-extraction"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
+ - 🌐 REST, WEBSOCKET, SOAP protocols support. <a href="docs/demos.md#websocket-testing"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
+ - 🔄 Support Postman and OpenAPI collection convert. <a href="docs/demos.md#postman-import"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
 - 🧪 Supports all kinds of test logic, from simple checks to complex flows.
-- 🪞 Server mocking.
-- 📃 Auto documentation: generate HTML and MD docs from API.
+ - 🪞 Server mocking. <a href="docs/demos.md#mock-server"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
+ - 📃 Auto documentation: generate HTML and MD docs from API. <a href="docs/demos.md#documentation-generation"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
 
 ## 🎯 Upcoming Features
 - 🏋 Load testing.
