@@ -1,132 +1,94 @@
 import * as vscode from 'vscode';
 
 async function handleChatRequest(
-    request: any, _chatContext: any, response: any, context: vscode.ExtensionContext, id: string) {
-  const text = request.message ?? '';
-  const textLower = text.toLowerCase();
+    request: any, _chatContext: any, response: any,
+    context: vscode.ExtensionContext, id: string) {
+  const userText = request.message ?? '';
+  const userTextLower = userText.toLowerCase();
 
+  // Map of keywords to doc filenames
   const docMap: {[key: string]: string} = {
     testgen: 'testgen-profile.md',
     environment: 'environment-mmt.md',
     api: 'api-mmt.md',
-    doc: 'doc-mmt.md'
+    doc: 'doc-mmt.md',
   };
 
-  let selected = 'testgen-profile.md';
-  for (const key of Object.keys(docMap)) {
-    if (textLower.includes(key)) {
-      selected = docMap[key];
-      break;
+  // Load all docs content
+  const docsContent: {[file: string]: string} = {};
+  for (const filename of Object.values(docMap)) {
+    const docUri = vscode.Uri.joinPath(context.extensionUri, 'docs', filename);
+    try {
+      const data = await vscode.workspace.fs.readFile(docUri);
+      docsContent[filename] = Buffer.from(data).toString('utf8');
+    } catch (err) {
+      console.warn(`[multimeter:${id}] failed to read ${filename}`, err);
+      docsContent[filename] = '';
     }
   }
 
-  const docUri = vscode.Uri.joinPath(
-      context.extensionUri, 'docs', selected);
+  // Base prompt: instruct the model
+  const BASE_PROMPT = `
+You are a Multimeter Test Generation Assistant. Use the Multimeter documentation and profiles to generate or explain tests in the correct syntax.
+Here are the relevant documents:
 
-  let content = '';
-  try {
-    const data = await vscode.workspace.fs.readFile(docUri);
-    content = Buffer.from(data).toString('utf8');
-  } catch (err) {
-    console.warn(
-        `[multimeter:${id}] couldn't read ${selected}`, err);
-    response.markdown(
-        `Sorry, I couldn't load the document **${
-            selected}**.`);
-    return;
+${
+      Object.entries(docsContent)
+          .map(([fname, content]) => `--- ${fname} ---\n${content}`)
+          .join('\n\n')}
+
+When the user asks a question, refer to these documents, pick the relevant sections, and respond with:
+- explanation, or
+- sample test code (in MMT syntax), or
+- suggested template
+
+Be concise, but include enough detail so the user can use or adapt the generated tests.
+`;
+
+  // Build messages for LLM: include base prompt, history, user message
+  const messages: vscode.LanguageModelChatMessage[] = [];
+  messages.push(vscode.LanguageModelChatMessage.User(BASE_PROMPT));
+
+  // Include conversation history
+  for (const turn of _chatContext.history) {
+    // _chatContext.history items may not exactly be ChatRequest/Response,
+    // depends on API assuming `turn` has `message` for user, or `response` for
+    // assistant
+    if ((turn as any).message) {
+      messages.push(
+          vscode.LanguageModelChatMessage.User((turn as any).message));
+    } else if ((turn as any).response) {
+      // response may be array of fragments
+      const fullResp =
+          (turn as any)
+              .response.map((r: any) => (r.value?.value ?? r.value ?? ''))
+              .join('\n');
+      messages.push(vscode.LanguageModelChatMessage.Assistant(fullResp));
+    }
   }
 
-  if (selected === 'testgen-profile.md') {
-    const lines = content.split('\n');
-    interface Section {
-      heading: string;
-      body: string;
-    }
-    const sections: Section[] = [];
-    let currentHeading: string|null = null;
-    let buffer: string[] = [];
-    const flush = () => {
-      if (currentHeading) {
-        sections.push({
-          heading: currentHeading,
-          body: buffer.join('\n').trim(),
-        });
-      }
-      buffer = [];
-    };
-    for (const line of lines) {
-      const m = /^(#{1,4})\s+(.*)$/.exec(line);
-      if (m) {
-        flush();
-        currentHeading = m[2].trim();
-      } else {
-        buffer.push(line);
-      }
-    }
-    flush();
+  // Finally user's current message
+  messages.push(vscode.LanguageModelChatMessage.User(userText));
 
-    const queryTokens =
-        textLower.split(/[^a-z0-9]+/)
-            .filter((t: string) => t.length > 2);
+  // Send to LLM
+  const chatResponse =
+      await request.model.sendRequest(messages, {}, request.token);
 
-    const scored = sections
-                       .map(sec => {
-                         const secText =
-                             (sec.heading + ' ' + sec.body)
-                                 .toLowerCase();
-                         let score = 0;
-                         for (const tok of queryTokens) {
-                           if (secText.includes(tok)) {
-                             score++;
-                           }
-                         }
-                         return {score, sec};
-                       })
-                       .filter(r => r.score > 0)
-                       .sort((a, b) => b.score - a.score)
-                       .slice(0, 3);
-
-    if (queryTokens.length === 0 || scored.length === 0) {
-      response.markdown(
-          `### Multimeter TestGen Profile\n\n` +
-          `I have the full profile here. Ask a more specific question (e.g. "suite strategy", "OpenAPI mapping", "data generation tokens"), or mention keywords like *api*, *environment*, *testgen* to get related sections.\n\n` +
-          `You can also say "generate me a sample test" or "generate me a sample api" to get starter templates.`);
-      return;
-    }
-
-    const answerParts = scored.map(r => {
-      return `### ${r.sec.heading}\n\n` +
-          '```md\n' + r.sec.body + '\n```';
-    });
-
-    response.markdown(
-        answerParts.join('\n\n') +
-        '\n\n(Ask for more detail or another topic.)');
-    return;
+  // Stream response back
+  for await (const fragment of chatResponse.text) {
+    response.markdown(fragment);
   }
-
-  const MAX_CHARS = 6000;
-  const snippet = content.length > MAX_CHARS ?
-      content.slice(0, MAX_CHARS) + `\n\n... (truncated)` :
-      content;
-
-  response.markdown(
-      `### Multimeter: ${selected}\n\n` +
-      '```md\n' + snippet + '\n```' +
-      `\n\nAsk for another section by using keywords like: ${
-          Object.keys(docMap).join(', ')}.` +
-      `\n\nOr try "generate me a sample test" for starter templates.`);
 }
 
 export function setupChatParticipants(context: vscode.ExtensionContext) {
   if ((vscode as any).chat && (vscode.chat as any).createChatParticipant) {
-    const registerDocsParticipant = (id: string) => {
+    const register = (id: string) => {
       const participant =
           (vscode.chat as any)
               .createChatParticipant(
-                  id,
-                  async (request: any, _chatContext: any, response: any) => {
-                    await handleChatRequest(request, _chatContext, response, context, id);
+                  id, async (req: any, chatContext: any, resp: any) => {
+                    await handleChatRequest(
+                        req, chatContext, resp, context, id);
                   });
 
       participant.iconPath = {
@@ -135,13 +97,13 @@ export function setupChatParticipants(context: vscode.ExtensionContext) {
         dark:
             vscode.Uri.joinPath(context.extensionUri, 'res', 'agent-dark.png'),
       };
+
       context.subscriptions.push(participant);
     };
 
-    registerDocsParticipant('multimeter');
-    registerDocsParticipant('mmt');
+    register('multimeter');
+    register('mmt');
   } else {
-    console.log(
-        '[multimeter] chatParticipant API unavailable (need Insiders + --enable-proposed-api).');
+    console.log('[multimeter] chatParticipant API is not available.');
   }
 }
