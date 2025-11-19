@@ -180,7 +180,6 @@ export const TestSchema = {
         type: { type: 'string', enum: ['test'] },
         title: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
-        description: { type: 'string' },
         import: {
             type: 'object',
             additionalProperties: { type: 'string' }

@@ -10,15 +10,19 @@
   },
   "icon": "res/icon.png",
   "engines": {
-    "vscode": "^1.70.0"
+    "vscode": "^1.95.0"
   },
   "categories": [
     "Other"
   ],
   "activationEvents": [
-    "onLanguage:mmt"
+    "onStartupFinished",
+    "onLanguage:mmt",
+    "onChatParticipant:multimeter",
+    "onChatParticipant:mmt"
   ],
   "main": "./dist/extension.js",
+  "enabledApiProposals": ["chatProvider"],
   "contributes": {
     "languages": [
       {
@@ -35,6 +39,22 @@
           "light": "res/icon.png",
           "dark": "res/icon.png"
         }
+      }
+    ],
+    "chatParticipants": [
+      {
+        "id": "multimeter",
+        "name": "Multimeter",
+        "fullName": "Multimeter Assistant",
+        "description": "What do you want to be tested today?",
+        "isSticky": true
+      },
+      {
+        "id": "mmt",
+        "name": "mmt",
+        "fullName": "Multimeter Assistant",
+        "description": "What do you want to be tested today?",
+        "isSticky": true
       }
     ],
     "grammars": [
@@ -351,7 +371,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "20.x",
     "@types/uuid": "^10.0.0",
-    "@types/vscode": "^1.70.0",
+    "@types/vscode": "^1.95.0",
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.31.1",
     "@typescript-eslint/parser": "^8.31.1",
