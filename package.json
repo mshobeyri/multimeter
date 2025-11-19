@@ -46,14 +46,14 @@
         "id": "multimeter",
         "name": "Multimeter",
         "fullName": "Multimeter Assistant",
-        "description": "What do you want to be tested today?",
+        "description": "What kind of test do you want today?",
         "isSticky": true
       },
       {
         "id": "mmt",
         "name": "mmt",
         "fullName": "Multimeter Assistant",
-        "description": "What do you want to be tested today?",
+        "description": "What kind of test do you want today?",
         "isSticky": true
       }
     ],
