@@ -4,6 +4,17 @@ A practical profile that guides AI/tools to generate Multimeter tests from user 
 
 This document explains the intent and gives examples; the machine-readable counterpart lives at `.mmt/testgen.profile.yaml`.
 
+## Generation Workflow (For AI/Tools)
+
+Follow these steps to generate MMT artifacts:
+
+1. **Parse Source**: Identify input type (OpenAPI, Postman, description). Use precedence order.
+2. **Map to APIs**: Create `type: api` files for each endpoint, using mapping rules. Include inputs, examples.
+3. **Generate Tests**: Produce smoke tests (required) and optional negative/boundary. Use `call`, `assert`, `check` steps.
+4. **Handle Data**: Use `r:`, `c:`, `e:` tokens for dynamic/random values. Honor schema constraints.
+5. **Output Files**: Name as `{method}-{path}.mmt` for APIs, group in suites for tests. Include env file if needed.
+6. **Validate**: Ensure generated YAML matches structures below. Skip unsupported features.
+
 ## Goals
 
 - Consistent mapping from OpenAPI/Postman/description to MMT APIs and tests
@@ -17,19 +28,25 @@ Preferred sources in order:
 2) Postman (v2.x)
 3) Free-form description
 
-Tools should attempt discovery using common filenames (openapi.yaml/yml/json, swagger.yaml) and `postman/*.json`.
+Other specs (e.g., GraphQL, RAML) not supported; REST APIs only. Tools should attempt discovery using common filenames (openapi.yaml/yml/json, swagger.yaml) and `postman/*.json`.
 
 ## Mapping rules
 
 ### OpenAPI → MMT
 - Base URL: first server url
-- Auth:
-  - bearer → `Authorization: Bearer <<e:TOKEN>>`
-  - apiKey (in header) → `<<e:API_KEY>>`
+- Auth: Not directly supported; handle via custom headers (e.g., `Authorization: Bearer <<e:TOKEN>>`) or JS code in tests.
 - URL = path + resolved query params
 - Method = `operationId` if available, else the HTTP method
 - Inputs = union of parameters + requestBody.schema
 - Examples = from `operation.examples` or schema examples when present
+
+### WebSocket → MMT
+- Treated as synchronous request-response protocol (similar to HTTP).
+- URL: WebSocket endpoint (ws:// or wss://).
+- Body: Message payload sent to the server.
+- Response: Expected reply message.
+- Auth: Via headers or query params if supported.
+- Inputs/Examples: Parameterize messages and expected responses.
 
 ### Postman → MMT
 - Base URL: collection variable `API_URL` if present; else inferred
@@ -43,10 +60,12 @@ Tools should attempt discovery using common filenames (openapi.yaml/yml/json, sw
 
 Provide three suites:
 - smoke (required): at least one per endpoint; prefer examples
-- negative: one per endpoint when feasible
+- negative: one per endpoint when feasible; users can pass invalid inputs manually
 - boundary: one per endpoint when feasible
 
 Timeouts: connect 5s, read 10s. Retries: off by default.
+
+Performance testing: Not yet supported; working on it. For now, use `check` steps in tests for response validation (see docs/test-mmt.md).
 
 ## Data generation
 
@@ -97,7 +116,8 @@ Generation knobs (see YAML profile):
 ### Tests
 - Suites: smoke (required), negative/boundary (optional) as configured
 - Flow style: sequential by default; stages/parallel when explicitly enabled
-- Assertions: assert by default; checks can be used for non-fatal validations
+- Assertions: assert by default; checks can be used for non-fatal validations (e.g., response content checks)
+- Chaining: Supported via outputs/inputs in test steps (see docs/test-mmt.md)
 
 Generation knobs (see YAML profile):
 - strategy.suites: controls which suites to generate and selection rules
@@ -120,9 +140,11 @@ Generation knobs (see YAML profile):
 - normalize path segments and sort inputs beneath title/description
 - examples are included and can be run as smoke checks
 
+Versioning: Not yet supported.
+
 ## Outputs for chaining
 
-Guess common keys: id, name, status. Add explicit ones if known.
+Guess common keys: id, name, status. Add explicit ones if known. Chaining happens in `type: test` files via step outputs/inputs (see docs/test-mmt.md).
 
 ## Machine-readable profile
 
@@ -141,6 +163,67 @@ Starter templates are included for quick scaffolding (also mirrored in files und
   - Minimal doc pointing to `./examples`
 
 Tools can substitute placeholders like `${TITLE}`, `${DESCRIPTION}`, and `${API_NAME}` before writing files.
+
+## End-to-End Example
+
+From OpenAPI snippet:
+```yaml
+openapi: 3.0.0
+paths:
+  /users:
+    post:
+      summary: Create user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: {type: string}
+                email: {type: string}
+```
+
+Generated MMT files:
+
+**users-api.mmt**:
+```yaml
+type: api
+title: Create User
+protocol: http
+method: post
+url: https://api.example.com/users
+inputs:
+  name: string
+  email: string
+body:
+  name: "{{name}}"
+  email: "{{email}}"
+examples:
+  - name: Valid User
+    inputs:
+      name: "John"
+      email: "john@example.com"
+```
+
+**users-test.mmt**:
+```yaml
+type: test
+title: Create User Test
+steps:
+  - call: users-api
+    inputs:
+      name: "Test User"
+      email: "test@example.com"
+  - assert: status == 201
+  - check: response.id != null
+```
+
+**env.mmt**:
+```yaml
+type: env
+variables:
+  API_URL: https://api.example.com
+```
 
 ## Structures (API, Test, Env, Doc)
 
@@ -175,9 +258,29 @@ examples: Array<{
 }>
 ```
 
+Example (HTTP):
+```yaml
+type: api
+protocol: http
+method: post
+url: https://api.example.com/users
+body:
+  name: John
+```
+
+Example (WebSocket):
+```yaml
+type: api
+protocol: ws
+url: wss://ws.example.com/chat
+body: "Hello, server!"
+# Response: Expected reply message
+```
+
 Notes
 - Dynamic tokens: `r:<name>`, `c:<name>`, `e:<VAR>` supported in url/headers/query/cookies/body/inputs
 - Default headers are auto-added; set a header value to `_` to block (User-Agent, Content-Type, Content-Length, etc.)
+- For WebSocket (`protocol: ws`): Treat as synchronous req-res; `body` is the sent message, response is the reply.
 - Place inputs immediately after title/description for readability
 - Skip empty maps/arrays unless the generator has a reason to include placeholders (empty blocks are optional per schema)
 
@@ -219,6 +322,23 @@ Where a Step is one of:
 - set | var | const | let: record<string, any>
 - data: string
 
+Example:
+```yaml
+type: test
+title: User CRUD Test
+steps:
+  - call: create-user
+    id: create
+    inputs:
+      name: "John"
+  - assert: status == 201
+  - check: response.id != null
+  - call: get-user
+    inputs:
+      id: "{{create.id}}"
+  - assert: response.name == "John"
+```
+
 See also: docs/test-mmt.md
 
 ### Env structure
@@ -229,6 +349,19 @@ Global variables and optional presets.
 type: env                    # literal
 variables: record<string, primitive | object (choices) | array (allowed)>
 presets: record<string, record<string, record<string, primitive>>>
+```
+
+Example:
+```yaml
+type: env
+variables:
+  API_URL: https://api.example.com
+  TOKEN: your-token
+presets:
+  dev:
+    API_URL: http://localhost:3000
+  prod:
+    API_URL: https://prod.api.com
 ```
 
 Usage
@@ -251,5 +384,9 @@ services?: Array<{
   sources?: string[]
 }>
 ```
+
+Mocking: Use the mock server tool for simple mocking (see docs/mock-server.md).
+
+Security testing: Not implemented yet.
 
 See also: docs/doc-mmt.md
