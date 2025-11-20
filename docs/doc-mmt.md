@@ -55,6 +55,7 @@ The editor’s Doc view:
 - Renders a sticky header with logo (if configured), title, and a search box
 - Lets you filter API boxes by typing in the search field (matches text in the box)
 - Each API row is expandable; details include URL, inputs, headers, cookies, body, outputs, and examples when present
+  - Example blocks may include their own inputs and outputs when provided
 
 ---
 

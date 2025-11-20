@@ -160,6 +160,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
                       <APIExample
                         data={example}
                         apiInputs={api.inputs}
+                        apiOutputs={api.outputs}
                         onChange={updated => updateExample(idx, updated)}
                         onRemove={() => removeExample(idx)}
                       />
