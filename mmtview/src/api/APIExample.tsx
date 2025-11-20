@@ -9,16 +9,22 @@ import { JSONRecord } from "mmt-core/CommonData";
 interface APIExampleProps {
   data: ExampleData;
   apiInputs?: JSONRecord;
+  apiOutputs?: Record<string, string>;
   onChange: (data: ExampleData) => void;
   onRemove?: () => void;
 }
 
-const APIExample: React.FC<APIExampleProps> = ({ data, apiInputs, onChange, onRemove }) => {
+const APIExample: React.FC<APIExampleProps> = ({ data, apiInputs, apiOutputs, onChange, onRemove }) => {
   // Helper to update fields
   const handleFieldsChange = (kv: JSONRecord) => {
     const newFields = { ...kv };
     onChange({ ...data, inputs: newFields });
     apiInputs = newFields;
+  };
+
+  const handleOutputsChange = (kv: JSONRecord) => {
+    const newFields = { ...kv };
+    onChange({ ...data, outputs: newFields });
   };
 
   return (
@@ -45,17 +51,35 @@ const APIExample: React.FC<APIExampleProps> = ({ data, apiInputs, onChange, onRe
 
       {isNonEmptyObject(apiInputs) ? (
         <VEditor
-          label="fields"
+          label="inputs"
           value={data.inputs || {}}
           onChange={handleFieldsChange}
           keyOptions={Object.keys(apiInputs)}
         />
       ) : (
         <>
-          <div className="label">fields</div>
+          <div className="label">inputs</div>
           <div style={{ padding: "5px" }}>
             <div className="error-panel">
               You need to define inputs first
+            </div>
+          </div>
+        </>
+      )}
+
+      {isNonEmptyObject(apiOutputs) ? (
+        <VEditor
+          label="expected"
+          value={data.outputs || {}}
+          onChange={handleOutputsChange}
+          keyOptions={Object.keys(apiOutputs)}
+        />
+      ) : (
+        <>
+          <div className="label">expected</div>
+          <div style={{ padding: "5px" }}>
+            <div className="info-panel">
+              Define outputs in the API to guide expected values
             </div>
           </div>
         </>

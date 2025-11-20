@@ -120,7 +120,12 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
         const nameHtml = obj?.name ? `<div class="ex-name">${escapeHtml(String(obj.name))}</div>` : '';
         const descHtml = obj?.description ? `<div class="ex-desc">${escapeHtml(String(obj.description))}</div>` : '';
         const exInputs = obj?.inputs ? renderValueList(typeof obj.inputs === 'string' ? (tryParseJson(obj.inputs) ?? obj.inputs) : obj.inputs) : '';
-        return `${i > 0 ? '<hr class="sep" />' : ''}<div class="example">${nameHtml}${descHtml}${exInputs}</div>`;
+        const exOutputs = obj?.outputs ? renderValueList(typeof obj.outputs === 'string' ? (tryParseJson(obj.outputs) ?? obj.outputs) : obj.outputs) : '';
+        const ioBlocks = [
+          exInputs ? `<div class="ex-sub"><strong>Inputs</strong>${exInputs}</div>` : '',
+          exOutputs ? `<div class="ex-sub"><strong>Outputs</strong>${exOutputs}</div>` : ''
+        ].filter(Boolean).join('');
+        return `${i > 0 ? '<hr class=\"sep\" />' : ''}<div class=\"example\">${nameHtml}${descHtml}${ioBlocks}</div>`;
       }).join('')
       : '';
     const tags = api?.tags && api.tags.length ? `<div class="tags">${api.tags.map((t: string) => `<span class=\"tag\">${escapeHtml(t)}</span>`).join('')}</div>` : '';

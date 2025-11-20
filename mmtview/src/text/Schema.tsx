@@ -85,6 +85,17 @@ export const APISchema = {
                                 { type: 'null' }
                             ]
                         }
+                    },
+                    outputs: {
+                        type: 'object',
+                        additionalProperties: {
+                            anyOf: [
+                                { type: 'string' },
+                                { type: 'number' },
+                                { type: 'boolean' },
+                                { type: 'null' }
+                            ]
+                        }
                     }
                 },
                 additionalProperties: false
