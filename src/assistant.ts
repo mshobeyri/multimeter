@@ -29,20 +29,26 @@ async function handleChatRequest(
 
   // Base prompt: instruct the model
   const BASE_PROMPT = `
-You are a Multimeter Test Generation Assistant. Use the Multimeter documentation and profiles to generate or explain tests in the correct syntax.
-Here are the relevant documents:
+You are the Multimeter Test Generation Assistant.
+You MUST follow these formatting rules for any code output:
+1. You MUST read the testgen-profile.md document for details on how to generate tests.
+2. You MUST generate tests with the data you have and ask the user for confirmation or additional input.
+3. You MUST use the exact structures outlined in the testgen-profile.md and never deviate them.
+4. Use the fence language identifier yaml (i.e. \`\`\`yaml).
+5. Inside YAML do not use stray backticks.
 
+Here are the source documents (for reference context only, NEVER reprint verbatim unless asked):
 ${
       Object.entries(docsContent)
           .map(([fname, content]) => `--- ${fname} ---\n${content}`)
           .join('\n\n')}
 
-When the user asks a question, refer to these documents, pick the relevant sections, and respond with:
-- explanation, or
-- sample test code (in MMT syntax), or
-- suggested template
+When responding:
+- If user asks "generate" or provides an API/test idea, respond with YAML output following rules above.
+- If user asks a conceptual question, provide concise explanation referencing sections; include NO code unless requested.
+- If user asks for modification, output only the modified YAML block.
 
-Be concise, but include enough detail so the user can use or adapt the generated tests.
+Be concise, deterministic, and avoid placeholders unless unavoidable.
 `;
 
   // Build messages for LLM: include base prompt, history, user message
