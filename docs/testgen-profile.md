@@ -10,7 +10,9 @@ Follow these steps to generate MMT artifacts:
 
 1. **Parse Source**: Identify input type (OpenAPI, Postman, description). Use precedence order.
 2. **Map to APIs**: Create `type: api` files for each endpoint, using mapping rules. Include inputs, examples.
-3. **Generate Tests**: Produce smoke tests (required) and optional negative/boundary. Use `call`, `assert`, `check` steps.
+3. **Generate Tests**: Produce smoke tests (required) and optional negative/boundary. Use `call`, `assert`, `check` steps. When user explicitly requests a *WebSocket sample test*, generate BOTH:
+  - a `type: api` file with `protocol: ws`
+  - a `type: test` file calling that ws api (single `call` + `assert`/`check`).
 4. **Handle Data**: Use `r:`, `c:`, `e:` tokens for dynamic/random values. Honor schema constraints.
 5. **Output Files**: Name as `{method}-{path}.mmt` for APIs, group in suites for tests. Include env file if needed.
 6. **Validate**: Ensure generated YAML matches structures below. Skip unsupported features.
@@ -47,7 +49,8 @@ Other specs (e.g., GraphQL, RAML) not supported; REST APIs only. Tools should at
 - Response: Expected reply message.
 - Auth: Via headers or query params if supported.
 - Inputs/Examples: Parameterize messages and expected responses.
-
+- Generation rules:
+  - Do NOT include `method` for `protocol: ws` APIs.
 ### Postman → MMT
 - Base URL: collection variable `API_URL` if present; else inferred
 - Inputs:
@@ -83,6 +86,21 @@ body:
   created_at: c:epoch
   active: r:bool
 ```
+
+### Token Prefix Summary
+
+Use these compact prefixes to indicate dynamic values. Generators and AI should prefer them over hard‑coded literals.
+
+- `i:<name>` – Input parameter placeholder (declared under `inputs:` in an API or test). Example: `inputs: { userId: string }` then use `{{userId}}` or `i:userId` depending on context.
+- `e:<VAR>` – Environment variable reference (type‑preserving). Inside strings use `<<e:VAR>>`; standalone use `e:VAR`.
+- `r:<type>` – Random value generator. Common types: `r:uuid`, `r:int`, `r:bool`, `r:email` (if supported). Honors constraints when possible.
+- `c:<name>` – Current/time/system value. Examples: `c:epoch`, `c:date`, `c:millis`.
+
+Guidelines:
+- Prefer `e:` for secrets / deployment specifics, `r:` for variability, `c:` for timestamps, `i:` for test/API parameterization.
+- Do not mix `<<e:VAR>>` with other token syntaxes inside the same scalar unless needed (avoid confusing expansions).
+- In examples, override only `inputs` values—not environment or random tokens (those remain dynamic).
+
 
 ## Environment and auth
 
@@ -151,7 +169,7 @@ Guess common keys: id, name, status. Add explicit ones if known. Chaining happen
 The companion YAML lives at `.mmt/testgen.profile.yaml` and is used by tools for deterministic behavior. Keep the YAML as the source of truth for settings and update this document for rationale and examples.
 
 ### Skeletons
-Starter templates are included for quick scaffolding (also mirrored in files under `.mmt/skeletons/`):
+Starter templates are included for quick scaffolding:
 
 - api
   - Minimal HTTP API with inputs just after title/description; empty headers/query/body ready to fill
@@ -196,8 +214,8 @@ inputs:
   name: string
   email: string
 body:
-  name: "{{name}}"
-  email: "{{email}}"
+  name: i:name
+  email: i:email
 examples:
   - name: Valid User
     inputs:
@@ -273,8 +291,10 @@ Example (WebSocket):
 type: api
 protocol: ws
 url: wss://ws.example.com/chat
-body: "Hello, server!"
-# Response: Expected reply message
+inputs:
+  greeting: "Hello, server!"
+body: i:greeting
+# Response handling occurs in test (use check/assert on returned payload)
 ```
 
 Notes
@@ -283,6 +303,7 @@ Notes
 - For WebSocket (`protocol: ws`): Treat as synchronous req-res; `body` is the sent message, response is the reply.
 - Place inputs immediately after title/description for readability
 - Skip empty maps/arrays unless the generator has a reason to include placeholders (empty blocks are optional per schema)
+- Inputs SHOULD NOT list data types as literal strings (e.g., `name: string`). Instead they hold default/sample primitive values or dynamic tokens. Example: `name: r:firstName`, `email: r:email`. Use examples section to override input values per example.
 
 See also: docs/api-mmt.md
 
@@ -333,9 +354,6 @@ steps:
       name: "John"
   - assert: status == 201
   - check: response.id != null
-  - call: get-user
-    inputs:
-      id: "{{create.id}}"
   - assert: response.name == "John"
 ```
 
