@@ -258,7 +258,7 @@ body:
 CLI and UI both resolve these tokens consistently. Random values are cached per render to keep the UI stable while editing.
 
 ## Examples
-Define example inputs so you can run them as smoke tests. When examples exist, the Tests panel shows a dropdown; picking one pre‑fills the inputs.
+Define example inputs and (optional) expected outputs so you can run them as smoke tests. When examples exist, the Tests panel shows a dropdown; picking one pre‑fills the inputs, and you can document expected outputs per example.
 
 ```yaml
 examples:
@@ -267,10 +267,15 @@ examples:
     inputs:
       username: alice
       password: secret
+    outputs:
+      status: 200
+      token: "*"   # wildcard/placeholder documentation if exact value varies
   - name: invalid-pass
     inputs:
       username: alice
       password: wrong
+    outputs:
+      status: 401
 ```
 
 ## Validation and requirements
@@ -342,4 +347,4 @@ examples:
 - query: record<string, string>
 - cookies: record<string, string>
 - body: string or object (json/xml/text based on format)
-- examples: array of { name (required), description?, inputs? }
+- examples: array of { name (required), description?, inputs?, outputs? }

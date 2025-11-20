@@ -4,13 +4,15 @@ export interface ExampleData {
   name?: string;
   description?: string;
   inputs?: JSONRecord;
+  // Optional expected outputs for this example (mirrors API level outputs)
+  outputs?: JSONRecord;
 }
 
 export interface APIData extends MMTFile {
   title?: string;
   tags?: string[];
   description?: string;
-import?: Record<string, string>;
+  import?: Record<string, string>;
   inputs?: JSONRecord;
   outputs?: Record<string, string>;
   extract?: Record<string, string>;

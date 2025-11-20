@@ -115,7 +115,8 @@ export function buildDocMarkdown(
         const exTitle = obj?.name ? String(obj.name) : 'Example';
         lines.push('', `##### ${exTitle}`);
         if (obj?.description) { lines.push('', obj.description); }
-        if (obj?.inputs) { lines.push('', renderKV(obj.inputs)); }
+        if (obj?.inputs) { lines.push('', '**Inputs**', '', renderKV(obj.inputs)); }
+        if (obj?.outputs) { lines.push('', '**Outputs**', '', renderKV(obj.outputs)); }
       });
     }
   };
