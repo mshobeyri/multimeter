@@ -402,9 +402,3 @@ services?: Array<{
   sources?: string[]
 }>
 ```
-
-Mocking: Use the mock server tool for simple mocking (see docs/mock-server.md).
-
-Security testing: Not implemented yet.
-
-See also: docs/doc-mmt.md

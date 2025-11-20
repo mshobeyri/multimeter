@@ -83,7 +83,8 @@ Here is a how you can run the test in VSCode <a href="https://marketplace.visual
 - [Convertor](docs/convertor.md)
 - [Mock Server](docs/mock-server.md)
 - [History](docs/history.md)
-- [Test Generation Profile - optimized for AI](docs/testgen-profile.md)
+- [Test Generation Profile(cheat sheet)](docs/testgen-profile.md)
+- [Test Generation Profile(AI optimized)](docs/testgen-profile-ai.md)
 
 ---
 **Special thanks to: Dear Ashkan Palganeh.**

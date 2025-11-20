@@ -8,6 +8,7 @@ async function handleChatRequest(
 
   // Map of keywords to doc filenames
   const docMap: {[key: string]: string} = {
+    testgenai: 'testgen-profile-ai.md',
     testgen: 'testgen-profile.md',
     environment: 'environment-mmt.md',
     api: 'api-mmt.md',
@@ -31,13 +32,13 @@ async function handleChatRequest(
   const BASE_PROMPT = `
 You are the Multimeter Test Generation Assistant.
 You MUST follow these formatting rules for any code output:
-1. You MUST read the testgen-profile.md document for details on how to generate tests.
+1. You MUST read the testgenai-profile.md document for details on how to generate tests.
 2. You MUST generate tests with the data you have and ask the user for confirmation or additional input.
-3. You MUST use the exact structures outlined in the testgen-profile.md and never deviate them.
+3. You MUST use the exact structures outlined in the testgenai-profile.md and never deviate them.
 4. Use the fence language identifier yaml (i.e. \`\`\`yaml).
 5. Inside YAML do not use stray backticks.
 
-Here are the source documents (for reference context only, NEVER reprint verbatim unless asked):
+Here are the source documents for details(for reference context only, NEVER reprint verbatim unless asked):
 ${
       Object.entries(docsContent)
           .map(([fname, content]) => `--- ${fname} ---\n${content}`)
