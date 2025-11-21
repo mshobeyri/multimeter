@@ -15,6 +15,8 @@ import { safeList } from "mmt-core/safer";
 import { Request, Response } from "mmt-core/NetworkData";
 import { JSONRecord } from "mmt-core/CommonData";
 import { setEnvironmentVariable, getEnvironmentVariable } from "../environment/environmentUtils";
+import ResponseDuration from "../components/ResponseDuration";
+import ResponseStatus from "../components/ResponseStatus";
 
 interface APITestProps {
   api: APIData;
@@ -365,56 +367,12 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                   gap: '4px',
                 }}
               >
-                {(responseData.duration || -1) >= 0 && (
-                  <div
-                    style={{
-                      padding: '2px 4px',
-                      borderRadius: '4px',
-                      fontSize: '10px',
-                      fontWeight: 'bold',
-                      minWidth: '20px',
-                    }}
-                  >
-                    {responseData.duration}ms
-                  </div>
-                )}
-
-                {responseData.errorMessage && (
-                  <div
-                    style={{
-                      backgroundColor: '#d32f2f',
-                      color: 'white',
-                      padding: '2px 4px',
-                      borderRadius: '4px',
-                      fontSize: '10px',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      minWidth: '20px',
-                      textAlign: 'center',
-                    }}
-                    title={`${responseData?.errorMessage || 'Unknown error'}${responseData?.status ? ` (Status: ${responseData?.status})` : ''
-                      }${responseData?.errorCode ? ` (Code: ${responseData?.errorCode})` : ''}`}
-                  >
-                    {responseData?.status || responseData?.errorCode || 'ERROR'}
-                  </div>
-                )}
-                {responseData?.status && responseData?.status > 0 && !responseData?.errorMessage && (
-                  <div
-                    style={{
-                      backgroundColor: '#4caf50',
-                      color: 'white',
-                      padding: '2px 4px',
-                      borderRadius: '4px',
-                      fontSize: '10px',
-                      fontWeight: 'bold',
-                      minWidth: '40px',
-                      textAlign: 'center',
-                    }}
-                    title="Request successful"
-                  >
-                    {responseData?.status}
-                  </div>
-                )}
+                <ResponseDuration duration={responseData.duration} />
+                <ResponseStatus
+                  status={responseData.status}
+                  errorMessage={responseData.errorMessage}
+                  errorCode={responseData.errorCode}
+                />
                 <button
                   onClick={() => {
                     window.vscode?.postMessage({
