@@ -427,10 +427,12 @@ button:focus {
 .test-flow-tree {
   width: 100%;
 }
-.test-flow-tree > div > ul {
+
+.test-flow-tree>div>ul {
   margin: 0;
   padding-left: 0;
 }
+
 .test-flow-tree li {
   list-style: none;
 }
@@ -463,4 +465,21 @@ button:focus {
   font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
   font-size: var(--vscode-font-size, 13px);
   /* Use VS Code font size */
+}
+
+/* Common response metric badge (status, duration, etc.) */
+.response-badge {
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 20px;
+  line-height: 12px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  box-sizing: border-box;
+  user-select: none;
+  min-width: 25px;
 }
