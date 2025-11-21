@@ -49,6 +49,9 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
 
   const network = useNetwork();
 
+  // Config state: whether to auto-format request body
+  const [autoFormatBody, setAutoFormatBody] = useState<boolean>(false);
+
   // Outputs state
   const [outputs, setOutputs] = useState<JSONRecord>({});
 
@@ -133,7 +136,9 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         envParameters
       );
 
-      rface.body = formatBody(rface.format || "json", rface.body ?? "");
+      if (autoFormatBody) {
+        rface.body = formatBody(rface.format || "json", rface.body ?? "");
+      }
 
       if ((rface.format === 'text' || !rface.format) && rface.body && typeof rface.body !== 'string') {
         rface.format = 'json';
@@ -162,16 +167,22 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const message = event.data;
-      if (message.command === 'multimeter.environment.refresh') {
-        prepareRequestData();
+      if (!message) return;
+      switch (message.command) {
+        case 'multimeter.environment.refresh':
+          prepareRequestData();
+          break;
+        case 'config':
+          if (typeof message.bodyAutoFormat === 'boolean') {
+            setAutoFormatBody(message.bodyAutoFormat);
+            // Rebuild request with new formatting preference
+            prepareRequestData();
+          }
+          break;
       }
     };
-
     window.addEventListener('message', handleMessage);
-
-    return () => {
-      window.removeEventListener('message', handleMessage);
-    };
+    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
 
@@ -364,7 +375,9 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                   right: 4,
                   display: 'flex',
                   justifyContent: 'flex-end',
+                  alignItems: 'center',
                   gap: '4px',
+                  height: '12px'
                 }}
               >
                 <ResponseDuration duration={responseData.duration} />
@@ -373,6 +386,33 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                   errorMessage={responseData.errorMessage}
                   errorCode={responseData.errorCode}
                 />
+                <button
+                  onClick={() => {
+                    const next = !autoFormatBody;
+                    setAutoFormatBody(next);
+                    window.vscode?.postMessage({
+                      command: 'updateConfig',
+                      section: 'multimeter',
+                      key: 'body.auto.format',
+                      value: next,
+                    });
+                  }}
+                  style={{
+                    background: autoFormatBody ? '#0e639c' : 'transparent',
+                    color: autoFormatBody ? '#fff' : 'var(--vscode-foreground, #ccc)',
+                    border: '1px solid #2a2a2a',
+                    borderRadius: '4px',
+                    width: '20px',
+                    height: '20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer'
+                  }}
+                  title={`Auto-format (beautify) body ${autoFormatBody ? 'on' : 'off'}`}
+                >
+                  <span className="codicon codicon-sparkle-filled" style={{ fontSize: '12px' }}></span>
+                </button>
                 <button
                   onClick={() => {
                     window.vscode?.postMessage({

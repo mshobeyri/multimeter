@@ -139,6 +139,15 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
             this.sendMessageToAllPanels(
                 {command: 'multimeter.mmt.show.panel', panelId: lastViewMode});
           }
+
+          // Send initial configuration values (e.g., body auto format)
+          try {
+            const autoFormat = vscode.workspace.getConfiguration('multimeter').get<boolean>('body.auto.format');
+            webviewPanel.webview.postMessage({
+              command: 'config',
+              bodyAutoFormat: !!autoFormat,
+            });
+          } catch {}
           break;
 
         case 'update':
@@ -307,6 +316,31 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
 
         case 'multimeter.history.show': {
           await vscode.commands.executeCommand('multimeter.history.show');
+        }
+
+        case 'updateConfig': {
+          // Allow either explicit section/key or a fullKey for future extensibility
+          try {
+            const { section, key, fullKey, value } = message as { section?: string; key?: string; fullKey?: string; value: any };
+            let targetSection = section;
+            let targetKey = key;
+            if (fullKey && (!section || !key)) {
+              // split first segment as section, rest as key path
+              const parts = String(fullKey).split('.');
+              targetSection = parts.shift();
+              targetKey = parts.join('.');
+            }
+            if (!targetSection || !targetKey) { break; }
+            await vscode.workspace.getConfiguration(targetSection).update(targetKey, value, vscode.ConfigurationTarget.Global);
+            // Broadcast updated config to all panels
+            this.sendMessageToAllPanels({
+              command: 'config',
+              bodyAutoFormat: vscode.workspace.getConfiguration('multimeter').get<boolean>('body.auto.format') || false,
+            });
+          } catch (err) {
+            vscode.window.showErrorMessage(`Failed to update configuration: ${err}`);
+          }
+          break;
         }
 
         case 'exportHtml': {
