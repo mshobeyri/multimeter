@@ -16,7 +16,7 @@ function parseYaml(yamlString: string): any {
 
 function packYaml(obj: any): string {
   try {
-    return YAML.stringify(obj);
+    return YAML.stringify(obj, {aliasDuplicateObjects: false});
   } catch (e) {
     return '';
   }
