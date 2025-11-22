@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import SelectWithRemove from "./SelectWithRemove";
 import { safeList } from "mmt-core/safer";
-import { JSONRecord } from "mmt-core/CommonData";
+import { JSONRecord,JSONValue } from "mmt-core/CommonData";
 
 interface VEditorProps {
   label: string;
@@ -24,59 +24,55 @@ const VEditor: React.FC<VEditorProps> = ({
   deletable = true
 }) => {
   // Helper to convert any value to string for display/editing
-  const valueToString = (val: any): string => {
+  const valueToString = (val: JSONValue): string => {
     if (val === null || val === undefined) return "";
-    if (typeof val === 'string') return val;
+    if (typeof val === 'string') {
+      if (val.toLowerCase() === 'true' || val.toLowerCase() === 'false') {
+        return `"${val}"`; // Show quotes for boolean-like strings
+      }
+      if (val.trim() !== '' && !isNaN(Number(val))) {
+        return `"${val}"`; // Show quotes for number-like strings
+      }
+      return val;
+    }
     if (typeof val === 'boolean') return val.toString();
     if (typeof val === 'number') return val.toString();
     if (typeof val === 'object') return JSON.stringify(val);
     return String(val);
   };
 
-  // Helper to convert string input back to the original type
-  const convertToOriginalType = (stringValue: string, originalValue: any): any => {
-    if (stringValue === "") return undefined; // Empty string means remove the key
-
-    if (originalValue === null || originalValue === undefined) {
-      // If no original value, try to infer type
-      return inferType(stringValue);
-    }
-
-    const originalType = typeof originalValue;
-
-    try {
-      switch (originalType) {
-        case 'boolean':
-          if (stringValue.toLowerCase() === 'true') return true;
-          if (stringValue.toLowerCase() === 'false') return false;
-          // If not a valid boolean, return as string
-          return stringValue;
-
-        case 'number':
-          const num = Number(stringValue);
-          if (!isNaN(num) && stringValue.trim() !== '') {
-            return num;
-          }
-          // If not a valid number, return as string
-          return stringValue;
-
-        case 'object':
-          if (originalValue === null) return stringValue;
-          try {
-            return JSON.parse(stringValue);
-          } catch {
-            // If not valid JSON, return as string
-            return stringValue;
-          }
-
-        case 'string':
-        default:
-          return stringValue;
+   const stringToValue = (val: string): JSONValue => {
+    if (val === null || val === undefined) return "";
+    if (typeof val === 'string') {
+      if (val.toLowerCase() === 'true') return true;
+      if (val.toLowerCase() === 'false') return false;
+      const num = Number(val);
+      if (!isNaN(num) && val.trim() !== '') {
+        return num;
       }
-    } catch {
-      return stringValue; // Fallback to string
+      // Try to parse JSON objects/arrays
+      if ((val.startsWith('{') && val.endsWith('}')) ||
+          (val.startsWith('[') && val.endsWith(']'))) {
+        try {
+          return JSON.parse(val);
+        } catch {
+          // Fall through to return as string
+        }
+      }
+      if (val.startsWith('"') && val.endsWith('"')){
+        let trimmed = val.slice(1, -1);
+        if (trimmed.toLowerCase() === 'true') return "true";
+        if (trimmed.toLowerCase() === 'false') return "false";
+        const num = Number(trimmed);
+        if (!isNaN(num) && trimmed.trim() !== '') {
+          return `${trimmed}`;
+        }
+      }
+      return val; // Return as string
     }
+    return val; // Fallback
   };
+
 
   // Helper to infer type for new values
   const inferType = (str: string): any => {
@@ -109,14 +105,13 @@ const VEditor: React.FC<VEditorProps> = ({
     if (!key) return;
 
     const updated: JSONRecord = { ...(value || {}) };
-    const originalValue = value?.[key];
 
     if (newVal.trim() === "") {
       // Remove the key if value is empty
       delete updated[key];
     } else {
       // Convert string input to match original type
-      updated[key] = convertToOriginalType(newVal, originalValue);
+      updated[key] = stringToValue(newVal);
     }
     onChange(updated);
   };
@@ -142,7 +137,7 @@ const VEditor: React.FC<VEditorProps> = ({
         <tbody>
           {safeList(keyOptions).map((key, index) => {
             const currentValue = value?.[key];
-            const displayValue = valueToString(currentValue);
+            const displayValue = valueToString(currentValue === undefined ? "" : currentValue);
             const hasValue = currentValue !== undefined;
 
             return (
