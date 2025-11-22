@@ -213,13 +213,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
   };
 
   // Helper functions to check what should be visible based on view mode
-  const shouldShowQuery = () => viewMode !== "in/out" && (viewMode === "all" || viewMode === "params");
-  const shouldShowHeaders = () => viewMode !== "in/out" && (viewMode === "all" || viewMode === "headers");
-  const shouldShowCookies = () => viewMode !== "in/out" && (viewMode === "all" || viewMode === "cookies");
-  const shouldShowBody = () => viewMode !== "in/out" && (!requestData?.method || requestData?.method.toLowerCase() !== "get");
-  const shouldShowResponse = () => viewMode !== "in/out" && (viewMode === "all" || viewMode === "body");
-  const shouldShowResponseHeaders = () => viewMode !== "in/out" && (viewMode === "all" || viewMode === "headers") && Object.keys(responseData?.headers || {}).length > 0;
-  const shouldShowResponseCookies = () => viewMode !== "in/out" && (viewMode === "all" || viewMode === "cookies") && Object.keys(responseData?.cookies || {}).length > 0;
+  const shouldShowQuery = () => viewMode === "all" || viewMode === "params";
+  const shouldShowHeaders = () => viewMode === "all" || viewMode === "headers";
+  const shouldShowCookies = () => viewMode === "all" || viewMode === "cookies";
+  const shouldShowBody = () => (viewMode === "all" || viewMode === "body") && (!requestData?.method || requestData?.method.toLowerCase() !== "get");
+  const shouldShowResponse = () => (viewMode === "all" || viewMode === "body");
+  const shouldShowResponseHeaders = () => (viewMode === "all" || viewMode === "headers") && Object.keys(responseData?.headers || {}).length > 0;
+  const shouldShowResponseCookies = () => (viewMode === "all" || viewMode === "cookies") && Object.keys(responseData?.cookies || {}).length > 0;
   const shouldShowInputs = () => (viewMode === "all" || viewMode === "in/out") && Object.keys(api.inputs || {}).length > 0;
   const shouldShowOutputs = () => (viewMode === "all" || viewMode === "in/out") && Object.keys(outputs).length > 0;
 
