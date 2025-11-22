@@ -394,101 +394,114 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
         <VEditor
           label="outputs"
           value={outputs}
-          onChange={() => {}}
+          onChange={() => { }}
           keyOptions={Object.keys(api.outputs || {})}
           disabled={true}
           deletable={false}
         />
       )}
-      {(responseData?.status) && (
-        <>
-          <div className="horizontal-line" style={{ position: "relative", padding: 4, height: 1 }} />
 
-          <div style={{ position: 'relative', height: 20 }}>
-            <div style={{ padding: 0, height: 20, position: 'relative' }}>
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 4,
-                  right: 4,
-                  display: 'flex',
-                  justifyContent: 'flex-end',
-                  alignItems: 'center',
-                  gap: '4px',
-                  height: '12px'
-                }}
-              >
-                <ResponseDuration duration={responseData.duration} />
-                <ResponseStatus
-                  status={responseData.status}
-                  errorMessage={responseData.errorMessage}
-                  errorCode={responseData.errorCode}
-                />
-                <button
-                  onClick={() => {
-                    const next = !autoFormatBody;
-                    setAutoFormatBody(next);
-                    window.vscode?.postMessage({
-                      command: 'updateConfig',
-                      section: 'multimeter',
-                      key: 'body.auto.format',
-                      value: next,
-                    });
-                  }}
-                  style={{
-                    background: autoFormatBody ? '#0e639c' : 'transparent',
-                    color: autoFormatBody ? '#fff' : 'var(--vscode-foreground, #ccc)',
-                    border: '1px solid #2a2a2a',
-                    borderRadius: '4px',
-                    width: '20px',
-                    height: '20px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer'
-                  }}
-                  title={`Auto-format (beautify) body ${autoFormatBody ? 'on' : 'off'}`}
-                >
-                  <span className="codicon codicon-sparkle-filled" style={{ fontSize: '12px' }}></span>
-                </button>
-                <button
-                  onClick={() => {
-                    window.vscode?.postMessage({
-                      command: 'multimeter.history.show'
-                    });
-                  }}
-                  className="toolbar-button"
-                  title="Show History Panel"
-                >
-                  <span className="codicon codicon-history" style={{ fontSize: "12px" }}></span>
-                </button>
-                <button
-                  onClick={async () => {
-                    // Build example from current inputs and extracted outputs
-                    const newExampleNameBase = 'example';
-                    let newName = newExampleNameBase;
-                    const nameSet = new Set((api.examples || []).map(e => (e?.name || '').toLowerCase()));
-                    let counter = 1;
-                    while (nameSet.has(newName.toLowerCase())) {
-                      newName = `${newExampleNameBase}${counter++}`;
-                    }
-                    const newExample: any = { name: newName };
-                    if (Object.keys(currentInputs).length) newExample.inputs = currentInputs;
-                    if (Object.keys(outputs).length) newExample.outputs = outputs;
-                    const updatedExamples = [...(api.examples || []), newExample];
-                    onUpdateApi?.({ examples: updatedExamples });
-                  }}
-                  className="toolbar-button"
-                  title="Add example from current inputs and outputs"
-                >
-                  <span style={{ position: 'relative' }}>
-                    <span className="codicon codicon-lightbulb-autofix" style={{ fontSize: '12px' }}></span>
-                  </span>
-                </button>
-              </div>
-            </div>
+      <div className="horizontal-line" style={{ position: "relative", padding: 4, height: 1 }} />
+
+      <div style={{ position: 'relative', height: 20 }}>
+        <div style={{ padding: 0, height: 20, position: 'relative' }}>
+          <div
+            style={{
+              position: 'absolute',
+              top: 4,
+              right: 4,
+              display: 'flex',
+              justifyContent: 'flex-end',
+              alignItems: 'center',
+              gap: '4px',
+              height: '12px'
+            }}
+          >
+            {(responseData?.status) && <ResponseDuration duration={responseData.duration} />}
+            {(responseData?.status) && (
+              <ResponseStatus
+                status={responseData.status}
+                errorMessage={responseData.errorMessage}
+                errorCode={responseData.errorCode}
+              />
+            )}
+
+            {(responseData?.status) && (<button
+              onClick={async () => {
+                // Build example from current inputs and extracted outputs
+                const newExampleNameBase = 'example';
+                let newName = newExampleNameBase;
+                const nameSet = new Set((api.examples || []).map(e => (e?.name || '').toLowerCase()));
+                let counter = 1;
+                while (nameSet.has(newName.toLowerCase())) {
+                  newName = `${newExampleNameBase}${counter++}`;
+                }
+                const newExample: any = { name: newName };
+                if (Object.keys(currentInputs).length) newExample.inputs = currentInputs;
+
+                // Start with current extracted outputs
+                const outputsWithStatus: JSONRecord = { ...outputs };
+
+                // For HTTP requests, also capture statusCode in outputs
+                if (requestData?.protocol !== 'ws' && typeof responseData?.status === 'number') {
+                  outputsWithStatus.statusCode = responseData.status;
+                }
+
+                if (Object.keys(outputsWithStatus).length) newExample.outputs = outputsWithStatus;
+
+                const updatedExamples = [...(api.examples || []), newExample];
+                onUpdateApi?.({ examples: updatedExamples });
+              }}
+              className="toolbar-button"
+              title="Add example from current inputs and outputs"
+            >
+              <span style={{ position: 'relative' }}>
+                <span className="codicon codicon-lightbulb-autofix" style={{ fontSize: '12px' }}></span>
+              </span>
+            </button>
+            )}
+
+            <button
+              onClick={() => {
+                const next = !autoFormatBody;
+                setAutoFormatBody(next);
+                window.vscode?.postMessage({
+                  command: 'updateConfig',
+                  section: 'multimeter',
+                  key: 'body.auto.format',
+                  value: next,
+                });
+              }}
+              style={{
+                background: autoFormatBody ? '#0e639c' : 'transparent',
+                color: autoFormatBody ? '#fff' : 'var(--vscode-foreground, #ccc)',
+                border: '1px solid #2a2a2a',
+                borderRadius: '4px',
+                width: '20px',
+                height: '20px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer'
+              }}
+              title={`Auto-format (beautify) body ${autoFormatBody ? 'on' : 'off'}`}
+            >
+              <span className="codicon codicon-sparkle-filled" style={{ fontSize: '12px' }}></span>
+            </button>
+            <button
+              onClick={() => {
+                window.vscode?.postMessage({
+                  command: 'multimeter.history.show'
+                });
+              }}
+              className="toolbar-button"
+              title="Show History Panel"
+            >
+              <span className="codicon codicon-history" style={{ fontSize: "12px" }}></span>
+            </button>
           </div>
-        </>)}
+        </div>
+      </div>
     </div >
   );
 };
