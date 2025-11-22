@@ -483,3 +483,23 @@ button:focus {
   user-select: none;
   min-width: 25px;
 }
+
+/* Toolbar button styles for status bar icons */
+.toolbar-button {
+  background: transparent;
+  color: var(--vscode-foreground, #ccc);
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.toolbar-button:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1));
+}
