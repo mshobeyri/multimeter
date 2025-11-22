@@ -435,16 +435,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
                       command: 'multimeter.history.show'
                     });
                   }}
-                  style={{
-                    background: "transparent",
-                    borderRadius: "4px",
-                    padding: "0px 0px",
-                    cursor: "pointer",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    color: "var(--vscode-foreground, #333)",
-                  }}
+                  className="toolbar-button"
                   title="Show History Panel"
                 >
                   <span className="codicon codicon-history" style={{ fontSize: "12px" }}></span>
@@ -465,18 +456,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
                     const updatedExamples = [...(api.examples || []), newExample];
                     onUpdateApi?.({ examples: updatedExamples });
                   }}
-                  style={{
-                    background: '#2d2d30',
-                    color: '#ccc',
-                    border: '1px solid #3a3a3a',
-                    borderRadius: '4px',
-                    width: '20px',
-                    height: '20px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer'
-                  }}
+                  className="toolbar-button"
                   title="Add example from current response"
                 >
                   <span style={{ position: 'relative' }}>
