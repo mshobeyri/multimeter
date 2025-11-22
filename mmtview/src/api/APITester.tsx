@@ -306,20 +306,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
         value={requestData?.cookies || {}}
         onChange={cookies => updateField("cookies", cookies)}
       />}
-      {shouldShowInputs() && (
-        <VEditor
-          label="inputs"
-          value={currentInputs}
-          onChange={(data) => {
-            setcurrentInputs(data);
-            prepareRequestData(data);
-          }}
-          keyOptions={Object.keys(api.inputs || {})}
-          deletable={false}
-        />
-      )}
-
-
       {shouldShowBody() && (
         <>
           <div className="label">body</div>
@@ -334,6 +320,19 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
             />
           </div>
         </>
+      )}
+
+      {shouldShowInputs() && (
+        <VEditor
+          label="inputs"
+          value={currentInputs}
+          onChange={(data) => {
+            setcurrentInputs(data);
+            prepareRequestData(data);
+          }}
+          keyOptions={Object.keys(api.inputs || {})}
+          deletable={false}
+        />
       )}
 
       <div style={{ position: "relative", paddingTop: 0, paddingBottom: 8, height: 40 }}>
@@ -396,7 +395,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
           value={outputs}
           onChange={() => { }}
           keyOptions={Object.keys(api.outputs || {})}
-          disabled={true}
           deletable={false}
         />
       )}
@@ -427,7 +425,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
             )}
 
             {(responseData?.status) && (<button
-              onClick={async () => {
+              onClick={async (e) => {
+                e.currentTarget.blur();
                 // Build example from current inputs and extracted outputs
                 const newExampleNameBase = 'example';
                 let newName = newExampleNameBase;
@@ -442,9 +441,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
                 // Start with current extracted outputs
                 const outputsWithStatus: JSONRecord = { ...outputs };
 
-                // For HTTP requests, also capture statusCode in outputs
+                // For HTTP requests, also capture status_code in outputs
                 if (requestData?.protocol !== 'ws' && typeof responseData?.status === 'number') {
-                  outputsWithStatus.statusCode = responseData.status;
+                  outputsWithStatus.status_code = responseData.status;
                 }
 
                 if (Object.keys(outputsWithStatus).length) newExample.outputs = outputsWithStatus;
@@ -456,11 +455,21 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
               title="Add example from current inputs and outputs"
             >
               <span style={{ position: 'relative' }}>
-                <span className="codicon codicon-lightbulb-autofix" style={{ fontSize: '12px' }}></span>
+                <span className="codicon codicon-lightbulb-autofix toolbar-button-icon"></span>
               </span>
             </button>
             )}
-
+            <button
+              onClick={() => {
+                window.vscode?.postMessage({
+                  command: 'multimeter.history.show'
+                });
+              }}
+              className="toolbar-button"
+              title="Show History Panel"
+            >
+              <span className="codicon codicon-history toolbar-button-icon"></span>
+            </button>
             <button
               onClick={() => {
                 const next = !autoFormatBody;
@@ -472,32 +481,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
                   value: next,
                 });
               }}
-              style={{
-                background: autoFormatBody ? '#0e639c' : 'transparent',
-                color: autoFormatBody ? '#fff' : 'var(--vscode-foreground, #ccc)',
-                border: '1px solid #2a2a2a',
-                borderRadius: '4px',
-                width: '20px',
-                height: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer'
-              }}
+              className={`toolbar-button ${autoFormatBody ? 'toolbar-button--toggle-active' : ''}`}
               title={`Auto-format (beautify) body ${autoFormatBody ? 'on' : 'off'}`}
             >
-              <span className="codicon codicon-sparkle-filled" style={{ fontSize: '12px' }}></span>
-            </button>
-            <button
-              onClick={() => {
-                window.vscode?.postMessage({
-                  command: 'multimeter.history.show'
-                });
-              }}
-              className="toolbar-button"
-              title="Show History Panel"
-            >
-              <span className="codicon codicon-history" style={{ fontSize: "12px" }}></span>
+              <span className="codicon codicon-sparkle-filled toolbar-button-icon"></span>
             </button>
           </div>
         </div>

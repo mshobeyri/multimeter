@@ -484,7 +484,7 @@ button:focus {
   min-width: 25px;
 }
 
-/* Toolbar button styles for status bar icons */
+/* Toolbar buttons used in API tester response header */
 .toolbar-button {
   background: transparent;
   color: var(--vscode-foreground, #ccc);
@@ -496,10 +496,21 @@ button:focus {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  outline: none;
-  transition: background 0.2s, border-color 0.2s;
+  padding: 0;
 }
 
-.toolbar-button:hover {
-  background: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.1));
+.toolbar-button:focus {
+  outline: none;
+}
+
+.toolbar-button-icon {
+  font-size: 8px;
+}
+
+.toolbar-button--toggle-active {
+  background: #0e639c;
+  color: #fff;
+}
+.toolbar-button--toggle-active:hover {
+  background: #1177bb;
 }
