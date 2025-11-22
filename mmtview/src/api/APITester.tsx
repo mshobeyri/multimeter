@@ -17,6 +17,7 @@ import { JSONRecord } from "mmt-core/CommonData";
 import { setEnvironmentVariable, getEnvironmentVariable } from "../environment/environmentUtils";
 import ResponseDuration from "../components/ResponseDuration";
 import ResponseStatus from "../components/ResponseStatus";
+import VEditor from "../components/VEditor";
 
 interface APITestProps {
   api: APIData;
@@ -305,18 +306,18 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
         value={requestData?.cookies || {}}
         onChange={cookies => updateField("cookies", cookies)}
       />}
-      {shouldShowInputs() &&
-        <KVEditor
+      {shouldShowInputs() && (
+        <VEditor
           label="inputs"
           value={currentInputs}
-          keysDisabled={true}
-          deletable={false}
-          expandable={false}
           onChange={(data) => {
             setcurrentInputs(data);
             prepareRequestData(data);
           }}
-        />}
+          keyOptions={Object.keys(api.inputs || {})}
+          deletable={false}
+        />
+      )}
 
 
       {shouldShowBody() && (
@@ -390,14 +391,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
       )}
 
       {shouldShowOutputs() && (
-        <KVEditor
+        <VEditor
           label="outputs"
           value={outputs}
-          deletable={true}
+          onChange={() => {}}
+          keyOptions={Object.keys(api.outputs || {})}
           disabled={true}
-          onChange={() => { }}
-          expandable={false}
-          deactivated={true}
+          deletable={false}
         />
       )}
       {(responseData?.status) && (
@@ -464,11 +464,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
                 </button>
                 <button
                   onClick={async () => {
-                    // Build example from current resolved inputs and extracted outputs
-                    const newExampleNameBase = 'new example';
+                    // Build example from current inputs and extracted outputs
+                    const newExampleNameBase = 'example';
                     let newName = newExampleNameBase;
                     const nameSet = new Set((api.examples || []).map(e => (e?.name || '').toLowerCase()));
-                    let counter = 2;
+                    let counter = 1;
                     while (nameSet.has(newName.toLowerCase())) {
                       newName = `${newExampleNameBase}${counter++}`;
                     }
@@ -479,7 +479,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
                     onUpdateApi?.({ examples: updatedExamples });
                   }}
                   className="toolbar-button"
-                  title="Add example from current response"
+                  title="Add example from current inputs and outputs"
                 >
                   <span style={{ position: 'relative' }}>
                     <span className="codicon codicon-lightbulb-autofix" style={{ fontSize: '12px' }}></span>

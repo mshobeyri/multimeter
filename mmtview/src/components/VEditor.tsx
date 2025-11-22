@@ -11,6 +11,7 @@ interface VEditorProps {
   keyOptions: string[];         // List of allowed keys
   valueOptions?: string[];      // List of allowed values (optional)
   disabled?: boolean;
+  deletable?: boolean;
 }
 
 const VEditor: React.FC<VEditorProps> = ({
@@ -19,7 +20,8 @@ const VEditor: React.FC<VEditorProps> = ({
   onChange,
   keyOptions,
   valueOptions,
-  disabled
+  disabled,
+  deletable = true
 }) => {
   // Helper to convert any value to string for display/editing
   const valueToString = (val: any): string => {
@@ -162,6 +164,7 @@ const VEditor: React.FC<VEditorProps> = ({
                       options={valueOptions}
                       placeholder="Value"
                       disabled={disabled}
+                      removable={deletable}
                     />
                   ) : (
                     <FieldWithRemove
@@ -170,7 +173,7 @@ const VEditor: React.FC<VEditorProps> = ({
                       onRemovePressed={() => handleRemove(index)}
                       placeholder="Value"
                       disabled={disabled}
-                      removable={hasValue}
+                      removable={deletable && hasValue}
                     />
                   )}
                 </td>
