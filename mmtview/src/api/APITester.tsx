@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { APIData } from "mmt-core/APIData";
 import KVEditor from "../components/KVEditor";
 import BodyView from "../components/BodyView";
@@ -35,7 +35,18 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
   };
 
   const [responseData, setResponseData] = useState<Response>();
-  const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(0);
+  const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(-1);
+
+  // Current example inputs buffer that can be modified
+  const [currentInputs, setcurrentInputs] = useState<JSONRecord>({});
+
+  // Ref for debouncing prepareRequestData calls
+  const prepareTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Reset selected example when API changes
+  useEffect(() => {
+    setSelectedExampleIdx(-1);
+  }, [api]);
 
   // View state with localStorage persistence
   const [viewMode, setViewModeState] = useState<ViewMode>(() => {
@@ -55,9 +66,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
 
   // Outputs state
   const [outputs, setOutputs] = useState<JSONRecord>({});
-
-  // Display inputs state: all api inputs with resolved values
-  const [displayInputs, setDisplayInputs] = useState<JSONRecord>({});
 
   // Update outputs when response changes using extracts
   useEffect(() => {
@@ -118,8 +126,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
     [requestData?.url, requestData?.query]
   );
 
-  const prepareRequestData = () => {
-    const selectedExample = examples[selectedExampleIdx] || {};
+  const prepareRequestData = (inputs?: JSONRecord) => {
+    inputs = inputs || currentInputs;
     (async () => {
       const envVars = await new Promise(resolve => {
         const cleanup = loadEnvVariables(vars => {
@@ -133,13 +141,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
         return acc;
       }, {} as JSONRecord);
 
-      const resolvedInputsObj = replaceAllRefs({ inputs: api.inputs || {} }, api.inputs || {}, selectedExample?.inputs ?? {}, envParameters).inputs;
-      setDisplayInputs(resolvedInputsObj);
-
       let rface = replaceAllRefs(
         api,
         api?.inputs ?? {},
-        selectedExample?.inputs ?? {},
+        inputs,
         envParameters
       );
 
@@ -168,6 +173,12 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
   }
 
   useEffect(() => {
+    if (selectedExampleIdx === -1) {
+      setcurrentInputs({});
+    } else {
+      const selectedExample = examples[selectedExampleIdx] || {};
+      setcurrentInputs(selectedExample?.inputs || {});
+    }
     prepareRequestData();
   }, [api, selectedExampleIdx]);
 
@@ -232,12 +243,18 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
             <select
               value={selectedExampleIdx ?? ""}
               onChange={e => {
-                setSelectedExampleIdx(0);
-                setSelectedExampleIdx(Number(e.target.value));
+                const newIdx = Number(e.target.value);
+                setSelectedExampleIdx(newIdx);
+                if (newIdx === -1) {
+                  setcurrentInputs({});
+                } else {
+                  const newExample = examples[newIdx] || {};
+                  setcurrentInputs(newExample?.inputs || {});
+                }
               }}
               style={{ width: "100%" }}
             >
-              <option value="default">defaults</option>
+              <option value={-1}>defaults</option>
               {safeList(examples)
                 .filter(ex => ex && typeof ex === 'object')
                 .map((ex, idx) => (
@@ -294,9 +311,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
       {shouldShowInputs() &&
         <KVEditor
           label="inputs"
-          value={displayInputs}
-          onChange={() => { }}
-          deactivated={true}
+          value={currentInputs}
+          onChange={(data) => {
+            setcurrentInputs(data);
+            prepareRequestData(data);
+          }}
         />}
 
 
@@ -451,7 +470,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
                       newName = `${newExampleNameBase}${counter++}`;
                     }
                     const newExample: any = { name: newName };
-                    if (Object.keys(displayInputs).length) newExample.inputs = displayInputs;
+                    if (Object.keys(currentInputs).length) newExample.inputs = currentInputs;
                     if (Object.keys(outputs).length) newExample.outputs = outputs;
                     const updatedExamples = [...(api.examples || []), newExample];
                     onUpdateApi?.({ examples: updatedExamples });
