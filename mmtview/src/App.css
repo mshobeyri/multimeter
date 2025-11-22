@@ -473,7 +473,7 @@ button:focus {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 20px;
+  height: 12px;
   line-height: 12px;
   padding: 2px 4px;
   border-radius: 4px;
