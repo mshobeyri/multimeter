@@ -40,9 +40,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
   // Current example inputs buffer that can be modified
   const [currentInputs, setcurrentInputs] = useState<JSONRecord>({});
 
-  // Ref for debouncing prepareRequestData calls
-  const prepareTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
   // Reset selected example when API changes
   useEffect(() => {
     setSelectedExampleIdx(-1);
@@ -174,7 +171,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
 
   useEffect(() => {
     if (selectedExampleIdx === -1) {
-      setcurrentInputs({});
+      setcurrentInputs(api.inputs || {});
     } else {
       const selectedExample = examples[selectedExampleIdx] || {};
       setcurrentInputs(selectedExample?.inputs || {});
