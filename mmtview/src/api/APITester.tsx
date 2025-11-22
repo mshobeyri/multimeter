@@ -309,6 +309,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
         <KVEditor
           label="inputs"
           value={currentInputs}
+          keysDisabled={true}
+          deletable={false}
+          expandable={false}
           onChange={(data) => {
             setcurrentInputs(data);
             prepareRequestData(data);
@@ -390,7 +393,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
         <KVEditor
           label="outputs"
           value={outputs}
+          deletable={true}
+          disabled={true}
           onChange={() => { }}
+          expandable={false}
           deactivated={true}
         />
       )}

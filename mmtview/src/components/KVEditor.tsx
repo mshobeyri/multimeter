@@ -13,12 +13,15 @@ interface KVEditorProps {
   options?: string[];
   disabled?: boolean;
   deactivated?: boolean;
+  keysDisabled?: boolean;
+  deletable?: boolean;
+  expandable?: boolean;
 }
 
 // Utility to ensure an empty key is always at the end
-function withTrailingEmptyKey(obj?: Record<string, string> | JSONRecord): Array<[string, string]> {
+function withTrailingEmptyKey(obj?: Record<string, string> | JSONRecord, addEmpty: boolean = true): Array<[string, string]> {
   if (!obj) {
-    return [["", ""]];
+    return addEmpty ? [["", ""]] : [];
   }
 
   // Convert JSONRecord or Record<string, string> to entries
@@ -28,7 +31,7 @@ function withTrailingEmptyKey(obj?: Record<string, string> | JSONRecord): Array<
   ]);
 
   // Ensure there's always an empty entry at the end for adding new items
-  if (entries.length === 0 || entries[entries.length - 1][0] !== "") {
+  if (addEmpty && (entries.length === 0 || entries[entries.length - 1][0] !== "")) {
     return [...entries, ["", ""]];
   }
   return entries;
@@ -42,10 +45,13 @@ const KVEditor: React.FC<KVEditorProps> = ({
   valuePlaceholder = "value",
   options,
   disabled,
-  deactivated = false
+  deactivated = false,
+  keysDisabled = false,
+  deletable = true,
+  expandable = true
 }) => {
   // Use an array of entries to preserve order and handle the object format
-  const entries = useMemo(() => withTrailingEmptyKey(value), [value]);
+  const entries = useMemo(() => withTrailingEmptyKey(value, expandable), [value, expandable]);
 
   // Ensure options is always an array - safety check
   const safeOptions = Array.isArray(options) ? options : [];
@@ -107,7 +113,7 @@ const KVEditor: React.FC<KVEditorProps> = ({
                     onChange={e => handleKeyChange(i, e.target.value)}
                     placeholder={keyPlaceholder}
                     style={{ width: "100%", boxSizing: "border-box" }}
-                    disabled={disabled}
+                    disabled={disabled || keysDisabled}
                   />
                 </td>
                 <td style={{ width: "50%", padding: "5px", verticalAlign: "top" }}>
@@ -120,6 +126,7 @@ const KVEditor: React.FC<KVEditorProps> = ({
                         options={safeOptions}
                         placeholder={valuePlaceholder}
                         disabled={disabled}
+                        removable={deletable && !deactivated}
                       />
                     ) : (
                       <FieldWithRemove
@@ -128,7 +135,7 @@ const KVEditor: React.FC<KVEditorProps> = ({
                         onRemovePressed={() => handleRemove(i)}
                         placeholder={valuePlaceholder}
                         disabled={disabled}
-                        removable={!deactivated}
+                        removable={deletable && !deactivated}
                       />
                     )
                   )}
