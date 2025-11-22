@@ -176,7 +176,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
         )}
 
         {tab === "test" && (
-          <APITest api={api} />
+          <APITest api={api} onUpdateApi={update} />
         )}
       </div>
     </div>

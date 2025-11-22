@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { APIData } from "mmt-core/APIData";
 import KVEditor from "../components/KVEditor";
 import BodyView from "../components/BodyView";
@@ -20,9 +20,10 @@ import ResponseStatus from "../components/ResponseStatus";
 
 interface APITestProps {
   api: APIData;
+  onUpdateApi?: (patch: Partial<APIData>) => void;
 }
 
-const APITest: React.FC<APITestProps> = ({ api }) => {
+const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
   const examples = safeList(api.examples);
   const [requestData, setRequestData] = useState<Request>();
 
@@ -54,6 +55,9 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
 
   // Outputs state
   const [outputs, setOutputs] = useState<JSONRecord>({});
+
+  // Display inputs state: all api inputs with resolved values
+  const [displayInputs, setDisplayInputs] = useState<JSONRecord>({});
 
   // Update outputs when response changes using extracts
   useEffect(() => {
@@ -128,6 +132,9 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         acc[envVar.name] = envVar.value;
         return acc;
       }, {} as JSONRecord);
+
+      const resolvedInputsObj = replaceAllRefs({ inputs: api.inputs || {} }, api.inputs || {}, selectedExample?.inputs ?? {}, envParameters).inputs;
+      setDisplayInputs(resolvedInputsObj);
 
       let rface = replaceAllRefs(
         api,
@@ -206,13 +213,14 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
   };
 
   // Helper functions to check what should be visible based on view mode
-  const shouldShowQuery = () => viewMode === "all" || viewMode === "params";
-  const shouldShowHeaders = () => viewMode === "all" || viewMode === "headers";
-  const shouldShowCookies = () => viewMode === "all" || viewMode === "cookies";
-  const shouldShowBody = () => !requestData?.method || requestData?.method.toLowerCase() !== "get";
-  const shouldShowResponse = () => viewMode === "all" || viewMode === "body";
-  const shouldShowResponseHeaders = () => (viewMode === "all" || viewMode === "headers") && Object.keys(responseData?.headers || {}).length > 0;
-  const shouldShowResponseCookies = () => (viewMode === "all" || viewMode === "cookies") && Object.keys(responseData?.cookies || {}).length > 0;
+  const shouldShowQuery = () => viewMode !== "in/out" && (viewMode === "all" || viewMode === "params");
+  const shouldShowHeaders = () => viewMode !== "in/out" && (viewMode === "all" || viewMode === "headers");
+  const shouldShowCookies = () => viewMode !== "in/out" && (viewMode === "all" || viewMode === "cookies");
+  const shouldShowBody = () => viewMode !== "in/out" && (!requestData?.method || requestData?.method.toLowerCase() !== "get");
+  const shouldShowResponse = () => viewMode !== "in/out" && (viewMode === "all" || viewMode === "body");
+  const shouldShowResponseHeaders = () => viewMode !== "in/out" && (viewMode === "all" || viewMode === "headers") && Object.keys(responseData?.headers || {}).length > 0;
+  const shouldShowResponseCookies = () => viewMode !== "in/out" && (viewMode === "all" || viewMode === "cookies") && Object.keys(responseData?.cookies || {}).length > 0;
+  const shouldShowInputs = () => (viewMode === "all" || viewMode === "in/out") && Object.keys(api.inputs || {}).length > 0;
   const shouldShowOutputs = () => (viewMode === "all" || viewMode === "in/out") && Object.keys(outputs).length > 0;
 
   return (
@@ -283,6 +291,14 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
         value={requestData?.cookies || {}}
         onChange={cookies => updateField("cookies", cookies)}
       />}
+      {shouldShowInputs() &&
+        <KVEditor
+          label="inputs"
+          value={displayInputs}
+          onChange={() => { }}
+          deactivated={true}
+        />}
+
 
       {shouldShowBody() && (
         <>
@@ -432,6 +448,40 @@ const APITest: React.FC<APITestProps> = ({ api }) => {
                   title="Show History Panel"
                 >
                   <span className="codicon codicon-history" style={{ fontSize: "12px" }}></span>
+                </button>
+                <button
+                  onClick={async () => {
+                    // Build example from current resolved inputs and extracted outputs
+                    const newExampleNameBase = 'new example';
+                    let newName = newExampleNameBase;
+                    const nameSet = new Set((api.examples || []).map(e => (e?.name || '').toLowerCase()));
+                    let counter = 2;
+                    while (nameSet.has(newName.toLowerCase())) {
+                      newName = `${newExampleNameBase}${counter++}`;
+                    }
+                    const newExample: any = { name: newName };
+                    if (Object.keys(displayInputs).length) newExample.inputs = displayInputs;
+                    if (Object.keys(outputs).length) newExample.outputs = outputs;
+                    const updatedExamples = [...(api.examples || []), newExample];
+                    onUpdateApi?.({ examples: updatedExamples });
+                  }}
+                  style={{
+                    background: '#2d2d30',
+                    color: '#ccc',
+                    border: '1px solid #3a3a3a',
+                    borderRadius: '4px',
+                    width: '20px',
+                    height: '20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer'
+                  }}
+                  title="Add example from current response"
+                >
+                  <span style={{ position: 'relative' }}>
+                    <span className="codicon codicon-lightbulb-autofix" style={{ fontSize: '12px' }}></span>
+                  </span>
                 </button>
               </div>
             </div>
