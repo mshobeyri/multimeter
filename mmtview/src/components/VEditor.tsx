@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import SelectWithRemove from "./SelectWithRemove";
 import { safeList } from "mmt-core/safer";
-import { JSONRecord,JSONValue } from "mmt-core/CommonData";
+import { JSONRecord, JSONValue } from "mmt-core/CommonData";
 
 interface VEditorProps {
   label: string;
@@ -28,10 +28,10 @@ const VEditor: React.FC<VEditorProps> = ({
     if (val === null || val === undefined) return "";
     if (typeof val === 'string') {
       if (val.toLowerCase() === 'true' || val.toLowerCase() === 'false') {
-        return `"${val}"`; // Show quotes for boolean-like strings
+        return `"${val}"`;
       }
       if (val.trim() !== '' && !isNaN(Number(val))) {
-        return `"${val}"`; // Show quotes for number-like strings
+        return `"${val}"`;
       }
       return val;
     }
@@ -41,7 +41,7 @@ const VEditor: React.FC<VEditorProps> = ({
     return String(val);
   };
 
-   const stringToValue = (val: string): JSONValue => {
+  const stringToValue = (val: string): JSONValue => {
     if (val === null || val === undefined) return "";
     if (typeof val === 'string') {
       if (val.toLowerCase() === 'true') return true;
@@ -52,14 +52,14 @@ const VEditor: React.FC<VEditorProps> = ({
       }
       // Try to parse JSON objects/arrays
       if ((val.startsWith('{') && val.endsWith('}')) ||
-          (val.startsWith('[') && val.endsWith(']'))) {
+        (val.startsWith('[') && val.endsWith(']'))) {
         try {
           return JSON.parse(val);
         } catch {
           // Fall through to return as string
         }
       }
-      if (val.startsWith('"') && val.endsWith('"')){
+      if (val.startsWith('"') && val.endsWith('"')) {
         let trimmed = val.slice(1, -1);
         if (trimmed.toLowerCase() === 'true') return "true";
         if (trimmed.toLowerCase() === 'false') return "false";
@@ -71,33 +71,6 @@ const VEditor: React.FC<VEditorProps> = ({
       return val; // Return as string
     }
     return val; // Fallback
-  };
-
-
-  // Helper to infer type for new values
-  const inferType = (str: string): any => {
-    // Check if it's a boolean
-    if (str.toLowerCase() === 'true') return true;
-    if (str.toLowerCase() === 'false') return false;
-
-    // Check if it's a number
-    const num = Number(str);
-    if (!isNaN(num) && str.trim() !== '') {
-      return num;
-    }
-
-    // Check if it's JSON
-    if ((str.startsWith('{') && str.endsWith('}')) ||
-      (str.startsWith('[') && str.endsWith(']'))) {
-      try {
-        return JSON.parse(str);
-      } catch {
-        // Fall through to string
-      }
-    }
-
-    // Default to string
-    return str;
   };
 
   const handleValueChange = (keyIndex: number, newVal: string) => {
