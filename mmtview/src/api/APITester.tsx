@@ -146,13 +146,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
         envParameters
       );
 
-      if (autoFormatBody) {
+      if (rface.body && typeof rface.body !== 'string') {
         rface.body = formatBody(rface.format || "json", rface.body ?? "");
-      }
-
-      if ((rface.format === 'text' || !rface.format) && rface.body && typeof rface.body !== 'string') {
-        rface.format = 'json';
-        rface.body = formatBody('json', rface.body);
       }
 
       // Only update body if it actually changed to avoid feedback loop
@@ -171,13 +166,15 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
   }
 
   useEffect(() => {
+    let inputs = {};
     if (selectedExampleIdx === -1) {
-      setcurrentInputs(api.inputs || {});
+      inputs = api.inputs || {};
     } else {
       const selectedExample = examples[selectedExampleIdx] || {};
-      setcurrentInputs(selectedExample?.inputs || {});
+      inputs = selectedExample?.inputs || {};
     }
-    prepareRequestData();
+    setcurrentInputs(inputs);
+    prepareRequestData(inputs);
   }, [api, selectedExampleIdx]);
 
   useEffect(() => {
@@ -311,8 +308,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
           <div className="label">body</div>
           <div style={{ padding: "8px" }}>
             <BodyView
-              value={typeof requestData?.body === 'string' ? requestData?.body : JSON.stringify(requestData?.body || {}, null, 2)}
-              format={requestData?.format || (typeof requestData?.body === 'string' ? 'json' : 'json')}
+              value={typeof requestData?.body === 'string'
+                ? requestData?.body
+                : formatBody(requestData?.format || "json", requestData?.body || {})
+              }
+              format={requestData?.format || "json"}
               mode="live"
               onChange={val => {
                 updateField("body", val);

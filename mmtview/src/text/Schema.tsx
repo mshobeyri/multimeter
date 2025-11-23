@@ -28,6 +28,8 @@ export const APISchema = {
                     { type: 'string' },
                     { type: 'number' },
                     { type: 'boolean' },
+                    { type: 'object' },
+                    { type: 'array' },
                     { type: 'null' }
                 ]
             }
@@ -39,6 +41,8 @@ export const APISchema = {
                     { type: 'string' },
                     { type: 'number' },
                     { type: 'boolean' },
+                    { type: 'object' },
+                    { type: 'array' },
                     { type: 'null' }
                 ]
             }
@@ -82,6 +86,8 @@ export const APISchema = {
                                 { type: 'string' },
                                 { type: 'number' },
                                 { type: 'boolean' },
+                                { type: 'object' },
+                                { type: 'array' },
                                 { type: 'null' }
                             ]
                         }
@@ -93,6 +99,8 @@ export const APISchema = {
                                 { type: 'string' },
                                 { type: 'number' },
                                 { type: 'boolean' },
+                                { type: 'object' },
+                                { type: 'array' },
                                 { type: 'null' }
                             ]
                         }
@@ -155,6 +163,8 @@ export const EnvSchema = {
                                 { type: 'string' },
                                 { type: 'number' },
                                 { type: 'boolean' },
+                                { type: 'object' },
+                                { type: 'array' },
                                 { type: 'null' }
                             ]
                         }
@@ -173,6 +183,8 @@ export const EnvSchema = {
                             { type: 'string' },
                             { type: 'number' },
                             { type: 'boolean' },
+                            { type: 'object' },
+                            { type: 'array' },
                             { type: 'null' }
                         ]
                     }
@@ -202,6 +214,8 @@ export const TestSchema = {
                     { type: 'string' },
                     { type: 'number' },
                     { type: 'boolean' },
+                    { type: 'object' },
+                    { type: 'array' },
                     { type: 'null' }
                 ]
             }
@@ -213,6 +227,8 @@ export const TestSchema = {
                     { type: 'string' },
                     { type: 'number' },
                     { type: 'boolean' },
+                    { type: 'object' },
+                    { type: 'array' },
                     { type: 'null' }
                 ]
             }
@@ -235,6 +251,8 @@ export const TestSchema = {
                                         { type: 'string' },
                                         { type: 'number' },
                                         { type: 'boolean' },
+                                        { type: 'object' },
+                                        { type: 'array' },
                                         { type: 'null' }
                                     ]
                                 }
@@ -344,6 +362,8 @@ export const TestSchema = {
                                         { type: 'string' },
                                         { type: 'number' },
                                         { type: 'boolean' },
+                                        { type: 'object' },
+                                        { type: 'array' },
                                         { type: 'null' }
                                     ]
                                 }
@@ -363,6 +383,8 @@ export const TestSchema = {
                                         { type: 'string' },
                                         { type: 'number' },
                                         { type: 'boolean' },
+                                        { type: 'object' },
+                                        { type: 'array' },
                                         { type: 'null' }
                                     ]
                                 }
@@ -381,6 +403,8 @@ export const TestSchema = {
                                         { type: 'string' },
                                         { type: 'number' },
                                         { type: 'boolean' },
+                                        { type: 'object' },
+                                        { type: 'array' },
                                         { type: 'null' }
                                     ]
                                 }
@@ -399,6 +423,8 @@ export const TestSchema = {
                                         { type: 'string' },
                                         { type: 'number' },
                                         { type: 'boolean' },
+                                        { type: 'object' },
+                                        { type: 'array' },
                                         { type: 'null' }
                                     ]
                                 }
