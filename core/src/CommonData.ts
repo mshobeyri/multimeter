@@ -20,7 +20,7 @@ export interface MMTFile {
   type: Type;
 };
 
-export type JSONValue =  string | number | boolean | null;
+export type JSONValue =  string | number | boolean | object | null;
 export type Parameter = { [key: string]: JSONValue };
 export type JSONRecord = Record<string, JSONValue>;
 

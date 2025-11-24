@@ -1,6 +1,6 @@
 import {APIData} from './APIData';
 import {yamlToAPI} from './apiParsePack';
-import {JSONRecord, Type} from './CommonData';
+import {JSONRecord, JSONValue, Type} from './CommonData';
 import {formatBody} from './markupConvertor';
 import {TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowStage, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
 import {getTestFlowStepType, yamlToTest} from './testParsePack';
@@ -69,12 +69,7 @@ export function setFileLoader(loader: FileLoader) {
 }
 
 export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
-  const inputParams =
-      Object.entries(ctx.api.inputs ?? {})
-          .map(
-              ([key, value]) => `${key} = ${
-                  typeof value === 'string' ? `"${value}"` : value}`)
-          .join(', ');
+  const inputParams = toInputsParams(ctx.api.inputs || {}, ' = ');
 
   const paramsAsObj: Record<string, string> = Object.fromEntries(
       Object.keys(ctx.api.inputs ?? {}).map(key => [key, `\${${key}}`]));
@@ -290,7 +285,6 @@ export const conditionalStatementToJSfunc = (check: string): string => {
   const normalized = replaceEnvTokens(check);
   const checkParts = normalized.split(' ');
   if (checkParts.length !== 3) {
-    // Return a harmless truthy condition to avoid breaking flows on partial edits
     return 'true';
   }
   const [left, operator, right] = checkParts;
@@ -473,15 +467,18 @@ export const assertToJSfunc = (assert: string): string => {
 }`;
 };
 
-const toInputsParams = (inputs: Record<string, any>, operator: string) => {
-  const formattedInputs =
-      Object.entries(inputs ?? {})
-          .map(
-              ([key, value]) => `${key}${operator}${
-                  typeof value === 'string' ? '`' + value + '`' : value}`)
-          .join(', ');
-  return formattedInputs;
-};
+const toInputsParams =
+    (inputs: Record<string, JSONValue>, operator: string) => {
+      const formattedInputs =
+          Object.entries(inputs ?? {})
+              .map(
+                  ([key, value]) => `${key}${operator}${
+                      typeof value === 'string'     ? '`' + value + '`' :
+                          typeof value === 'object' ? JSON.stringify(value) :
+                                                      value}`)
+              .join(', ');
+      return formattedInputs;
+    };
 
 export const callToJSfunc = (step: TestFlowCall): string => {
   const inputs = toInputsParams(step.inputs || {}, ': ');
