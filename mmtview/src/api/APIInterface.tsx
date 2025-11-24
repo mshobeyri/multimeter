@@ -1,5 +1,5 @@
 import React, { useCallback, useRef, useEffect, useState } from "react";
-import KVEditor from "../components/KVEditor";
+import KSVEditor from "../components/KSVEditor";
 import UrlInput from "../components/UrlInput";
 import { Protocol, Method, Format } from "mmt-core/CommonData"
 import { formatBody, formattedBodyToYamlObject } from "mmt-core/markupConvertor";
@@ -139,7 +139,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
         </>
       ) : null}
       {data.protocol === "http" || isNonEmptyObject(data.query) ? (
-        <KVEditor
+        <KSVEditor
           label="query"
           value={data.query || {}}
           onChange={handleQueryChange}
@@ -147,7 +147,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
         />
       ) : null}
       {data.protocol === "http" || isNonEmptyObject(data.headers) ? (
-        <KVEditor
+        <KSVEditor
           label="headers"
           value={data.headers || {}}
           onChange={headers => {
@@ -161,7 +161,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
         />
       ) : null}
       {data.protocol === "http" || isNonEmptyObject(data.cookies) ? (
-        <KVEditor
+        <KSVEditor
           label="cookies"
           value={data.cookies || {}}
           onChange={cookies => {

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import FieldWithRemove from "../components/FieldWithRemove";
-import KVEditor from "../components/KVEditor";
+import KSVEditor from "../components/KSVEditor";
 import { safeList } from "mmt-core/safer";
 
 interface PresetBoard {
@@ -131,7 +131,7 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
                                     placeholder="Env (e.g. dev)"
                                 />
                             </div>
-                            <KVEditor
+                            <KSVEditor
                                 label="fields"
                                 value={v.kv}
                                 onChange={kv => handleEnvChange(boardIdx, envIdx, { kv })}

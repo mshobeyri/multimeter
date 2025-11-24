@@ -1,8 +1,7 @@
 import React from "react";
 import SearchableTagInput from "../components/SearchableTagInput";
-import KVEditor from "../components/KVEditor";
+import KSVEditor from "../components/KSVEditor";
 import { APIData } from "mmt-core/APIData";
-import { jsonTypes } from "mmt-core/CommonData"
 import DescriptionEditor from "../components/DescriptionEditor";
 import { safeList } from "mmt-core/safer";
 
@@ -47,7 +46,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         />
       </div>
 
-      <KVEditor
+      <KSVEditor
         label="import"
         value={api.import}
         onChange={kv => {
@@ -56,7 +55,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         keyPlaceholder="name"
         valuePlaceholder="path"
       />
-      <KVEditor
+      <KSVEditor
         label="inputs"
         value={api.inputs}
         onChange={kv => {
@@ -64,9 +63,8 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         }}
         keyPlaceholder="name"
         valuePlaceholder="value"
-        options={jsonTypes}
       />
-      <KVEditor
+      <KSVEditor
         label="outputs"
         value={api.outputs}
         onChange={kv => {
@@ -74,9 +72,8 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         }}
         keyPlaceholder="name"
         valuePlaceholder="value"
-        options={jsonTypes}
       />
-      <KVEditor
+      <KSVEditor
         label="extract"
         value={api.extract}
         onChange={kv => {
@@ -84,9 +81,8 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         }}
         keyPlaceholder="name"
         valuePlaceholder="value"
-        options={jsonTypes}
       />
-      <KVEditor
+      <KSVEditor
         label="setenv"
         value={api.setenv}
         onChange={kv => {
