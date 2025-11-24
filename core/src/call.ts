@@ -23,7 +23,7 @@ const callAPI =
 
         const res = await send(req);
 
-        const extractRules = api.extract || {};
+        const extractRules = api.outputs || {};
         const outputNames = Object.keys(extractRules);
 
         const extractedValues = extractOutputs(

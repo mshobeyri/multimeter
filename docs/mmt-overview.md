@@ -23,7 +23,7 @@ body:
   username: mehrdad
   password: 123456
 # Capture values from the response
-extract:
+outputs:
   token: body[token]
 ```
 Use from Tests: tests import APIs and call them with inputs.

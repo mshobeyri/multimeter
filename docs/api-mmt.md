@@ -183,35 +183,24 @@ Notes
 - `<<i:key>>` can appear inside `url`, `headers`, and `body`
 - Declare input names under `inputs:` (string/number/boolean/null)
 
-### extract
+### outputs
 Pull fields from the response to populate outputs. Use one of the following per key:
 - A regex applied to the raw response body text: `regex ...`
 - A bracket path starting with `body[...]` to read structured fields (you can also use `headers[...]` or `cookies[...]`)
 
 Example
 ```yaml
-extract:
+outputs:
   name: regex message(.*)
   from: body[from][0]
   method: body[method]
 ```
 
-### outputs
-Describe the shape/type of values this API exposes for downstream consumers.
-```yaml
-outputs:
-  id: string
-  status: number
-  name: string
-```
-Tip: Pair `extract` with `outputs` so tests can reference `<stepId>.<key>` with confidence.
-
 ### setenv
-Promote values (often from `extract`) into the runtime environment.
+Promote values from `outputs` into the runtime environment.
 ```yaml
 setenv:
-  TOKEN: body[token]
-  USERNAME: e:USER
+  TOKEN: token
 ```
 These become available to subsequent steps/tests as environment variables.
 
@@ -295,6 +284,8 @@ examples:
    - user
    - search
  description: Full-text search on users
+ outputs:
+  total: body[total]
  protocol: http
  format: json
  method: get
@@ -306,13 +297,9 @@ examples:
    q: john
    limit: "10"
  cookies:
-   locale: en-US
- extract:
-  total: body[total]
+   locale: en-US 
  setenv:
-  LAST_TOTAL: body[total]
- outputs:
-   total: number
+  LAST_TOTAL: total
 ```
 
 ### WS
@@ -336,8 +323,7 @@ examples:
 - description: string
 - import: record<string, string>
 - inputs: record<string, string | number | boolean | null>
-- outputs: record<string, string | number | boolean | null>
-- extract: record<string, string>
+- outputs: record<string, string>
 - setenv: record<string, string>
 - protocol: `http` or `ws`
 - method: HTTP verbs (HTTP only)

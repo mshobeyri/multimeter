@@ -36,19 +36,6 @@ export const APISchema = {
         },
         outputs: {
             type: 'object',
-            additionalProperties: {
-                anyOf: [
-                    { type: 'string' },
-                    { type: 'number' },
-                    { type: 'boolean' },
-                    { type: 'object' },
-                    { type: 'array' },
-                    { type: 'null' }
-                ]
-            }
-        },
-        extract: {
-            type: 'object',
             additionalProperties: { type: 'string' }
         },
         setenv: {

@@ -68,7 +68,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
   // Update outputs when response changes using extracts
   useEffect(() => {
     if (
-      (!api.extract || Object.keys(api.extract).length === 0) || (
+      (!api.outputs || Object.keys(api.outputs).length === 0) || (
         (!responseData?.body || responseData.body == "") &&
         (!responseData?.headers || Object.keys(responseData.headers).length === 0) &&
         (!responseData?.cookies || Object.keys(responseData.cookies).length === 0))
@@ -76,7 +76,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
       return;
     }
 
-    const extractRules = api.extract || {};
+    const extractRules = api.outputs || {};
     const outputNames = Object.keys(extractRules);
 
     const extractedValues = extractOutputs({
@@ -97,7 +97,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
 
     setOutputs(finalOutputs);
     handleSetEnvVariables(api, finalOutputs);
-  }, [responseData?.body, responseData?.headers, responseData?.cookies, api.outputs, api.extract, api.setenv]);
+  }, [responseData?.body, responseData?.headers, responseData?.cookies, api.outputs, api.setenv]);
 
   // Only call onChange if url value actually changed
   const handleUrlChange = useCallback(

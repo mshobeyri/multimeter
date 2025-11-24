@@ -41,7 +41,7 @@ The panel parses the spec and creates one or more `.mmt` API files (and optional
 ## Tips
 - Map your base URL to an environment variable early (for example, API_URL) and reference it with `<<e:API_URL>>` so you can switch presets
 - Review generated inputs/headers—tweak names to match your project conventions
-- Use the API editor to refine bodies and add `extract`/`setenv` for downstream tests
+- Use the API editor to refine bodies and add `setenv` for downstream tests
 
 ## Notes and limits
 - Complex auth flows or vendor extensions may require manual touch-ups

@@ -74,7 +74,7 @@ export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
   const paramsAsObj: Record<string, string> = Object.fromEntries(
       Object.keys(ctx.api.inputs ?? {}).map(key => [key, `\${${key}}`]));
 
-  const extractRules = ctx.api.extract || ctx.api.outputs || {};
+  const extractRules = ctx.api.outputs || ctx.api.outputs || {};
 
   let replaced =
       replaceAllRefs(ctx.api, paramsAsObj, ctx.inputs, ctx.envVars ?? {});
