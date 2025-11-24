@@ -14,8 +14,7 @@ export interface APIData extends MMTFile {
   description?: string;
   import?: Record<string, string>;
   inputs?: JSONRecord;
-  outputs?: JSONRecord
-  extract?: Record<string, string>;
+  outputs?: Record<string, string>;
   setenv?: JSONRecord;
   protocol: Protocol;
   format: Format;

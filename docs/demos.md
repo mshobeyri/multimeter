@@ -26,14 +26,6 @@ Illustrates environment variable management, including defining variables, subst
 
 See also: [Environment Variables](environment-mmt.md)
 
-## Output Extraction
-
-![Output Extraction Demo](../demos/extract.gif)
-
-Displays how to extract values from API responses and use them in subsequent test steps or as environment variables for chaining requests.
-
-See also: [Test Extraction](test-mmt.md)
-
 ## Git Integration
 
 ![Git Integration Demo](../demos/git.gif)

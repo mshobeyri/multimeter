@@ -19,7 +19,6 @@ export function yamlToAPI(yamlContent: string): APIData {
       import: doc.import,
       inputs: doc.inputs,
       outputs: doc.outputs,
-      extract: doc.extract,
       setenv: doc.setenv,
       protocol: doc.protocol || '',
       format: doc.format || '',
@@ -57,9 +56,6 @@ export function apiToYaml(api: APIData): string {
   };
   if (isNonEmptyObject(api.outputs)) {
     yamlObj.outputs = api.outputs;
-  };
-  if (isNonEmptyObject(api.extract)) {
-    yamlObj.extract = api.extract;
   };
   if (isNonEmptyObject(api.setenv)) {
     yamlObj.setenv = api.setenv;

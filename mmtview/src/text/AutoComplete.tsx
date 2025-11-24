@@ -284,14 +284,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "outputs:\n\t",
             detail: 'Output parameters [object of key: value]',
-            documentation: 'Define output parameters that can be used throughout the API definition. These are variables that can be extracted from headers, and body.',
-        },
-        {
-            label: "extract",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "extract:\n\t",
-            detail: 'Output parameters [object of key: value]',
-            documentation: 'Define how to extract values from API responses. These extracted values can be used in subsequent requests or stored as environment variables.\nExample:\extract:\n\tuserId: "$.data.user.id"\n\ttoken: "$.data.access_token"',
+            documentation: 'Define how to extract values from API responses as output parameters. These extracted values can be used in subsequent requests or stored as environment variables.\nExample:\extract:\n\tuserId: "$.data.user.id"\n\ttoken: "$.data.access_token"',
         },
         {
             label: "protocol",

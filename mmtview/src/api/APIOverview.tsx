@@ -65,20 +65,11 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         keyPlaceholder="name"
         valuePlaceholder="value"
       />
-      <KVEditor
+      <KSVEditor
         label="outputs"
         value={api.outputs}
         onChange={kv => {
           update({ outputs: kv });
-        }}
-        keyPlaceholder="name"
-        valuePlaceholder="value"
-      />
-      <KSVEditor
-        label="extract"
-        value={api.extract}
-        onChange={kv => {
-          update({ extract: kv });
         }}
         keyPlaceholder="name"
         valuePlaceholder="value"

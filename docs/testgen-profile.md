@@ -258,8 +258,7 @@ tags: string[]               # optional
 description: string          # optional
 import: record<string,string># optional (alias -> path)
 inputs: record<string, primitive>
-outputs: record<string, primitive>
-extract: record<string, string>
+outputs: record<string, string>
 setenv: record<string, string>
 protocol: http | ws          # required
 method: get|post|put|delete|patch|head|options|trace   # HTTP only
