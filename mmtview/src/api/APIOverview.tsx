@@ -1,6 +1,7 @@
 import React from "react";
 import SearchableTagInput from "../components/SearchableTagInput";
 import KSVEditor from "../components/KSVEditor";
+import KVEditor from "../components/KVEditor";
 import { APIData } from "mmt-core/APIData";
 import DescriptionEditor from "../components/DescriptionEditor";
 import { safeList } from "mmt-core/safer";
@@ -55,7 +56,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         keyPlaceholder="name"
         valuePlaceholder="path"
       />
-      <KSVEditor
+      <KVEditor
         label="inputs"
         value={api.inputs}
         onChange={kv => {
@@ -64,7 +65,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         keyPlaceholder="name"
         valuePlaceholder="value"
       />
-      <KSVEditor
+      <KVEditor
         label="outputs"
         value={api.outputs}
         onChange={kv => {

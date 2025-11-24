@@ -9,7 +9,7 @@ import { JSONRecord } from "mmt-core/CommonData";
 interface APIExampleProps {
   data: ExampleData;
   apiInputs?: JSONRecord;
-  apiOutputs?: Record<string, string>;
+  apiOutputs?: JSONRecord;
   onChange: (data: ExampleData) => void;
   onRemove?: () => void;
 }
