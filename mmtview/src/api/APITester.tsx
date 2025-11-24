@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { APIData } from "mmt-core/APIData";
-import KVEditor from "../components/KVEditor";
+import KSVEditor from "../components/KSVEditor";
 import BodyView from "../components/BodyView";
 import { formatBody } from "mmt-core/markupConvertor";
 import SendButton from "../components/SendButton";
@@ -288,17 +288,17 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
         </div>
       </div>
 
-      {shouldShowQuery() && <KVEditor
+      {shouldShowQuery() && <KSVEditor
         label="query"
         value={requestData?.query || {}}
         onChange={query => updateField("query", query)}
       />}
-      {shouldShowHeaders() && < KVEditor
+      {shouldShowHeaders() && < KSVEditor
         label="headers"
         value={requestData?.headers || {}}
         onChange={headers => updateField("headers", headers)}
       />}
-      {shouldShowCookies() && <KVEditor
+      {shouldShowCookies() && <KSVEditor
         label="cookies"
         value={requestData?.cookies || {}}
         onChange={cookies => updateField("cookies", cookies)}
@@ -353,7 +353,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
 
 
       {shouldShowResponseHeaders() && (
-        <KVEditor
+        <KSVEditor
           label="headers"
           value={responseData?.headers || {}}
           onChange={headers => { }}
@@ -362,7 +362,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
       )}
 
       {shouldShowResponseCookies() && (
-        <KVEditor
+        <KSVEditor
           label="cookies"
           value={responseData?.cookies || {}}
           onChange={cookies => { }}

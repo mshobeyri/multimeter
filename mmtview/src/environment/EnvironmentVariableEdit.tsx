@@ -1,7 +1,7 @@
 import React from "react";
 import FieldWithRemove from "../components/FieldWithRemove";
 import ValidatableSelect from "../components/ValidatableSelect";
-import KVEditor from "../components/KVEditor";
+import KSVEditor from "../components/KSVEditor";
 import LEditor from "../components/LEditor"; // <-- Use LEditor instead of VEditor
 import { EnvironmentData } from "./EnvironmentData";
 import { safeList } from "mmt-core/safer";
@@ -115,7 +115,7 @@ const EnvironmentVariableEdit: React.FC<EnvironmentVariableEditProps> = ({ varia
                             placeholder="Value"
                         />
                     ) : (
-                        <KVEditor
+                        <KSVEditor
                             label="fields"
                             value={typeof board.value === "object" && !Array.isArray(board.value) ? board.value : {}}
                             onChange={v => handleBoardChange(idx, { value: v })}

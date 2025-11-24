@@ -1,6 +1,6 @@
 import React from "react";
 import SearchableTagInput from "../components/SearchableTagInput";
-import KVEditor from "../components/KVEditor";
+import KSVEditor from "../components/KSVEditor";
 import { TestData } from "mmt-core/TestData";
 import { jsonTypes } from "mmt-core/CommonData";
 import VEditor from "../components/VEditor";
@@ -39,7 +39,7 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update }) => (
       />
     </div>
 
-    <KVEditor
+    <KSVEditor
       label="import"
       value={test.import}
       onChange={kv => {
@@ -48,7 +48,7 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update }) => (
       keyPlaceholder="name"
       valuePlaceholder="path"
     />
-    <KVEditor
+    <KSVEditor
       label="input"
       value={test.inputs}
       onChange={kv => {
@@ -58,7 +58,7 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update }) => (
       valuePlaceholder="value"
       options={jsonTypes}
     />
-    <KVEditor
+    <KSVEditor
       label="output"
       value={test.outputs}
       onChange={kv => {

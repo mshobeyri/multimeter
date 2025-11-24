@@ -3,7 +3,7 @@ import FieldWithRemove from "../components/FieldWithRemove";
 import ValidatableSelect from "../components/ValidatableSelect";
 import { jsonTypes } from "mmt-core/CommonData";
 import { Variable, Variables } from "./VariablesData";
-import KVEditor from "../components/KVEditor";
+import KSVEditor from "../components/KSVEditor";
 import { safeList } from "mmt-core/safer";
 
 const fieldOptions = [
@@ -102,7 +102,7 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
           ) : null
         )}
         {(variable.type === "object" || variable.type === "object[]") && (
-          <KVEditor
+          <KSVEditor
             label="fields"
             value={variable.fields || {}}
             onChange={fields => updateField({ fields })}

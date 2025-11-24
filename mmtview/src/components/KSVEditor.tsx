@@ -4,7 +4,7 @@ import SelectWithRemove from "./SelectWithRemove";
 import { safeList } from "mmt-core/safer";
 import { JSONRecord } from "mmt-core/CommonData";
 
-interface KVEditorProps {
+interface KSVEditorProps {
   label: string;
   value?: Record<string, string> | JSONRecord;
   onChange: (v: Record<string, string>) => void;
@@ -37,7 +37,7 @@ function withTrailingEmptyKey(obj?: Record<string, string> | JSONRecord, addEmpt
   return entries;
 }
 
-const KVEditor: React.FC<KVEditorProps> = ({
+const KSVEditor: React.FC<KSVEditorProps> = ({
   label,
   value,
   onChange,
@@ -148,4 +148,4 @@ const KVEditor: React.FC<KVEditorProps> = ({
   );
 };
 
-export default KVEditor;
+export default KSVEditor;
