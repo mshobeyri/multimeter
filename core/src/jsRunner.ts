@@ -37,8 +37,6 @@ export async function runJSCode(
     'mmtHelper', 'console', 'send', 'extractOutputs', 'Random',
     `${helperDecls}\n${randomDecls}\n${code}`);
   await fn(mmtHelper, customConsole, send, extractOutputs, Random);
-
-    lg('info', 'Done successfully');
   } catch (e: any) {
     lg('error', (e?.message || String(e)));
   } finally {
