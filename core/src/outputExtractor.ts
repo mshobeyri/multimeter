@@ -242,10 +242,19 @@ export function extractOutputs(
       extractedValue = '';
     }
 
-    // Convert result to string
-    if (typeof extractedValue === 'object' && extractedValue !== null) {
-      result[key] = JSON.stringify(extractedValue);
+    // Preserve type for bracket notation and JSONPath extractions
+    if (
+      (expr.startsWith('$') || (expr.includes('[') && expr.includes(']')))
+      && extractedValue !== null && extractedValue !== undefined
+    ) {
+      // If object, keep JSON stringification for backward compatibility
+      if (typeof extractedValue === 'object') {
+        result[key] = JSON.stringify(extractedValue);
+      } else {
+        result[key] = extractedValue;
+      }
     } else if (extractedValue !== null && extractedValue !== undefined) {
+      // Regex and legacy: always string
       result[key] = String(extractedValue);
     } else {
       result[key] = '';
