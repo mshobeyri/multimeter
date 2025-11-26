@@ -2,69 +2,7 @@ import axios from 'axios';
 import * as https from 'https';
 import WebSocket from 'ws';
 
-export interface CaCertificate {
-  enabled: boolean;
-  certData?: Buffer;
-}
-
-export interface ClientCertificate {
-  id: string;
-  name: string;
-  host: string;
-  certData?: Buffer;
-  keyData?: Buffer;
-  enabled: boolean;
-}
-
-export interface NetworkConfig {
-  ca: CaCertificate;
-  clients: ClientCertificate[];
-  sslValidation: boolean;
-  timeout: number;
-  autoFormat: boolean;
-}
-
-export interface HttpRequest {
-  url: string;
-  method?: string;
-  headers?: Record<string, string>;
-  body?: string;
-  query?: Record<string, string>;
-  cookies?: Record<string, string>;
-}
-
-export interface HttpResponse {
-  body: string;
-  headers: Record<string, string>;
-  status: number;
-  statusText: string;
-  duration: number;
-  autoformat: boolean;
-}
-
-export interface Request {
-  url?: string;
-  protocol?: "http" | "ws" | undefined;
-  format?: "json" | "xml" | "text" | undefined;
-  method?: string;
-  headers?: Record<string, string> | undefined;
-  cookies?: Record<string, string> | undefined;
-  query?: Record<string, string> | undefined;
-  body?: any;
-}
-
-export interface Response {
-  format?: "json" | "xml" | "text" | undefined;
-  headers?: Record<string, string> | undefined;
-  cookies?: Record<string, string> | undefined;
-  query?: Record<string, string> | undefined;
-  body?: any;
-  status?: number | -1;
-  duration?: number | -1;
-  errorMessage: string | "";
-  errorCode: string | "";
-}
-
+import {HttpRequest, HttpResponse, NetworkConfig, Request, Response} from './NetworkData';
 
 export function createHttpsAgentWithCertificates(
     hostname: string, config: NetworkConfig) {
@@ -90,8 +28,8 @@ export async function sendHttpRequest(
   const parsedUrl = new URL(req.url);
   const hostname = parsedUrl.hostname;
   let reqHeaders = {...req.headers};
-  // Remove any headers where user explicitly set value to '_' (opt-out) or left empty/null,
-  // and remember opt-out blocks by lower-cased name.
+  // Remove any headers where user explicitly set value to '_' (opt-out) or left
+  // empty/null, and remember opt-out blocks by lower-cased name.
   const blocked = new Set<string>();
   for (const [k, v] of Object.entries({...reqHeaders})) {
     if (v === '_') {
@@ -99,15 +37,16 @@ export async function sendHttpRequest(
       blocked.add(k.toLowerCase());
       continue;
     }
-    if (v === null || v === undefined || (typeof v === 'string' && v.trim() === '')) {
+    if (v === null || v === undefined ||
+        (typeof v === 'string' && v.trim() === '')) {
       delete (reqHeaders as any)[k];
     }
   }
   const hasHeader = (name: string) =>
       Object.keys(reqHeaders).some(k => k.toLowerCase() === name.toLowerCase());
   const getHeader = (name: string) => {
-    const key = Object.keys(reqHeaders).find(
-        k => k.toLowerCase() === name.toLowerCase());
+    const key = Object.keys(reqHeaders)
+                    .find(k => k.toLowerCase() === name.toLowerCase());
     return key ? reqHeaders[key] : undefined;
   };
   const setHeaderIfMissing = (name: string, value: string) => {
@@ -129,7 +68,8 @@ export async function sendHttpRequest(
   setHeaderIfMissing('Connection', 'keep-alive');
   setHeaderIfMissing('Accept-Encoding', 'gzip, deflate, br');
 
-  // Content-Type and Content-Length: only when a body exists and not blocked/overridden
+  // Content-Type and Content-Length: only when a body exists and not
+  // blocked/overridden
   const bodyStr = req.body ?? '';
   const hasBody = typeof bodyStr === 'string' && bodyStr.length > 0;
   if (hasBody) {
@@ -170,21 +110,42 @@ export async function sendHttpRequest(
     transformResponse: [(data: string) => data],
   };
   const start = Date.now();
-  const response = await axios.request(request);
-  const duration = Date.now() - start;
-  return {
-    body: response.data,
-    headers: Object.fromEntries(Object.entries(response.headers)
-                                    .filter(([_, v]) => v !== undefined)
-                                    .map(([k, v]) => [k, String(v)])),
-    status: response.status,
-    statusText: response.statusText,
-    duration,
-    autoformat: config.autoFormat,
-  };
+  try {
+    const response = await axios.request(request);
+    const duration = Date.now() - start;
+    return {
+      body: response.data,
+      headers: Object.fromEntries(Object.entries(response.headers)
+                                      .filter(([_, v]) => v !== undefined)
+                                      .map(([k, v]) => [k, String(v)])),
+      status: response.status,
+      statusText: response.statusText,
+      duration,
+      autoformat: config.autoFormat,
+    };
+  } catch (err: any) {
+    const duration = Date.now() - start;
+    if (err.response) {
+      // HTTP error response (non-2xx)
+      return {
+        body: err.response.data,
+        headers: Object.fromEntries(Object.entries(err.response.headers)
+                                        .filter(([_, v]) => v !== undefined)
+                                        .map(([k, v]) => [k, String(v)])),
+        status: err.response.status,
+        statusText: err.response.statusText,
+        duration,
+        autoformat: config.autoFormat,
+      };
+    } else {
+      // Network error (no response)
+      throw err;
+    }
+  }
 }
 
-export async function sendWsRequest(req: Request, config: NetworkConfig): Promise<Response> {
+export async function sendWsRequest(
+    req: Request, config: NetworkConfig): Promise<Response> {
   return new Promise((resolve, reject) => {
     const url = req.url!;
     const parsedUrl = new URL(url);
@@ -199,7 +160,9 @@ export async function sendWsRequest(req: Request, config: NetworkConfig): Promis
     let resolved = false;
 
     ws.on('open', () => {
-      const message = req.body ? (typeof req.body === 'string' ? req.body : JSON.stringify(req.body)) : '';
+      const message = req.body ?
+          (typeof req.body === 'string' ? req.body : JSON.stringify(req.body)) :
+          '';
       ws.send(message);
     });
 
@@ -213,8 +176,8 @@ export async function sendWsRequest(req: Request, config: NetworkConfig): Promis
           headers: {},
           status: 200,
           duration,
-          errorMessage: "",
-          errorCode: "",
+          errorMessage: '',
+          errorCode: '',
         });
       }
     });
@@ -225,7 +188,7 @@ export async function sendWsRequest(req: Request, config: NetworkConfig): Promis
         duration = Date.now() - start;
         ws.close();
         reject({
-          body: "",
+          body: '',
           headers: {},
           status: -1,
           duration,
@@ -240,12 +203,12 @@ export async function sendWsRequest(req: Request, config: NetworkConfig): Promis
         resolved = true;
         duration = Date.now() - start;
         resolve({
-          body: "",
+          body: '',
           headers: {},
           status: 200,
           duration,
-          errorMessage: "",
-          errorCode: "",
+          errorMessage: '',
+          errorCode: '',
         });
       }
     });
@@ -256,12 +219,12 @@ export async function sendWsRequest(req: Request, config: NetworkConfig): Promis
         resolved = true;
         ws.close();
         reject({
-          body: "",
+          body: '',
           headers: {},
           status: -1,
           duration: config.timeout,
-          errorMessage: "WebSocket request timed out",
-          errorCode: "TIMEOUT",
+          errorMessage: 'WebSocket request timed out',
+          errorCode: 'TIMEOUT',
         });
       }
     }, config.timeout);

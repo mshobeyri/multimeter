@@ -1,8 +1,6 @@
 import WebSocket = require('ws');
-
-import {addWsConnection, createWebSocket, deleteWsConnection, HttpRequest, NetworkConfig, sendHttpRequest, wsConnections} from './networkCore';
-
-export {HttpRequest, HttpResponse, NetworkConfig} from './networkCore';
+import {addWsConnection, createWebSocket, deleteWsConnection, sendHttpRequest, wsConnections} from './networkCore';
+import {HttpRequest, NetworkConfig} from './NetworkData';
 
 // --- Types ---
 
@@ -76,7 +74,7 @@ export function handleNetworkMessage(
         } catch (err: any) {
           postMessage({
             command: 'network',
-            action: 'http-error',
+            action: 'http-response',
             data: {
               message: err?.message || String(err),
               code: err?.code,
@@ -103,7 +101,7 @@ export function handleNetworkMessage(
       ws.on(
           'open',
           () => postMessage({command: 'network', action: 'ws-open', wsId}));
-  ws.on('close', (code: number, reason: Buffer) => {
+      ws.on('close', (code: number, reason: Buffer) => {
         postMessage({
           command: 'network',
           action: 'ws-close',
@@ -113,7 +111,7 @@ export function handleNetworkMessage(
         });
         deleteWsConnection(wsId);
       });
-  ws.on('error', (error: Error) => {
+      ws.on('error', (error: Error) => {
         postMessage({
           command: 'network',
           action: 'ws-error',
@@ -121,7 +119,7 @@ export function handleNetworkMessage(
           error: error?.message || String(error),
         });
       });
-  ws.on('message', (data: WebSocket.RawData) => {
+      ws.on('message', (data: WebSocket.RawData) => {
         postMessage({
           command: 'network',
           action: 'ws-message',
