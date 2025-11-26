@@ -34,7 +34,7 @@ describe('outputExtractor', () => {
       id: '$body[user][id]',
       name: '$body[user][profile][name]'
     });
-    expect(res.id).toBe('7');
+    expect(res.id).toBe(7);
     expect(res.name).toBe('mehrdad');
   });
 
@@ -86,5 +86,25 @@ describe('outputExtractor', () => {
     } as any;
     const res = extractOutputs(response, { nope: 'body.user.id' });
     expect(res.nope).toBe('');
+  });
+
+  it('extracts message and from with correct types', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: { message: 'Hello', from: true, count: 42 },
+      headers: {},
+      cookies: {}
+    };
+    const res = extractOutputs(response, {
+      message: '$body[message]',
+      from: '$body[from]',
+      count: '$body[count]'
+    });
+    expect(res.message).toBe('Hello');
+    expect(typeof res.message).toBe('string');
+    expect(res.from).toBe(true);
+    expect(typeof res.from).toBe('boolean');
+    expect(res.count).toBe(42);
+    expect(typeof res.count).toBe('number');
   });
 });
