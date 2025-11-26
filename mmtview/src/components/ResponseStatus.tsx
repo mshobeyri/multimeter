@@ -23,7 +23,7 @@ const ResponseStatus: React.FC<ResponseStatusProps> = ({ status, errorMessage, e
       </div>
     );
   }
-  else if (status && status < 300) {
+  else if (status && status > 200 && status < 300) {
     return (
       <div
         className={`response-badge ${className || ''}`.trim()}
@@ -31,12 +31,12 @@ const ResponseStatus: React.FC<ResponseStatusProps> = ({ status, errorMessage, e
           backgroundColor: '#abf384',
           color: 'black',
         }}
-        title={`${errorMessage}${status ? ` (Status: ${status})` : ''}${errorCode ? ` (Code: ${errorCode})` : ''}`} 
+        title={`${errorMessage}${status ? ` (Status: ${status})` : ''}${errorCode ? ` (Code: ${errorCode})` : ''}`}
       >
         {status}
       </div>
     );
-  } else if (status && status < 400) {
+  } else if (status && ((status > 300 && status < 400) || (status > 100 && status < 199))) {
     return (
       <div
         className={`response-badge ${className || ''}`.trim()}
