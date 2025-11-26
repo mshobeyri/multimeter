@@ -34,6 +34,11 @@
       "require": "./dist/CommonData.js",
       "default": "./dist/CommonData.js"
     },
+    "./NetworkData": {
+      "types": "./dist/NetworkData.d.ts",
+      "require": "./dist/NetworkData.js",
+      "default": "./dist/NetworkData.js"
+    },
     "./APIData": {
       "types": "./dist/APIData.d.ts",
       "require": "./dist/APIData.js",

@@ -10,7 +10,7 @@ if (!distPath) {
   throw new Error(`network.dist not found. Tried: ${distCandidates.join(', ')}`);
 }
 const { getCertificateStatusForUrl } = require(distPath);
-import { NetworkConfig } from './networkCore';
+import { NetworkConfig } from './NetworkData';
 
 describe('network helpers', () => {
   const baseCfg: NetworkConfig = {

@@ -35,3 +35,42 @@ export interface NetworkAPI {
   closeWs: () => void;
 }
 
+export interface CaCertificate {
+  enabled: boolean;
+  certData?: Buffer;
+}
+
+export interface ClientCertificate {
+  id: string;
+  name: string;
+  host: string;
+  certData?: Buffer;
+  keyData?: Buffer;
+  enabled: boolean;
+}
+
+export interface NetworkConfig {
+  ca: CaCertificate;
+  clients: ClientCertificate[];
+  sslValidation: boolean;
+  timeout: number;
+  autoFormat: boolean;
+}
+
+export interface HttpRequest {
+  url: string;
+  method?: string;
+  headers?: Record<string, string>;
+  body?: string;
+  query?: Record<string, string>;
+  cookies?: Record<string, string>;
+}
+
+export interface HttpResponse {
+  body: string;
+  headers: Record<string, string>;
+  status: number;
+  statusText: string;
+  duration: number;
+  autoformat: boolean;
+}
