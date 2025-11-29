@@ -61,8 +61,8 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
 
   private getHtmlForWebview(): string {
     const htmlPath =
-        path.join(this.context.extensionPath, 'src', 'panels', 'environment.html');
-    const cssPath = path.join(this.context.extensionPath, 'src', 'common.css');
+        path.join(this.context.extensionPath, 'res', 'environment.html');
+    const cssPath = path.join(this.context.extensionPath, 'res', 'common.css');
 
     let html = fs.readFileSync(htmlPath, 'utf8');
     const css = fs.readFileSync(cssPath, 'utf8');

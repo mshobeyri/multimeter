@@ -286,8 +286,8 @@ export default class CertificatesPanel implements vscode.WebviewViewProvider {
   }
 
   private getHtmlForWebview(): string {
-    const htmlPath = path.join(this.context.extensionPath, 'src', 'panels', 'certificates.html');
-    const cssPath = path.join(this.context.extensionPath, 'src', 'common.css');
+    const htmlPath = path.join(this.context.extensionPath, 'res', 'certificates.html');
+    const cssPath = path.join(this.context.extensionPath, 'res', 'common.css');
     
     let html = fs.readFileSync(htmlPath, 'utf8');
     const css = fs.readFileSync(cssPath, 'utf8');
