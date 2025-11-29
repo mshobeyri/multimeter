@@ -2,6 +2,16 @@
 .vscode/**
 .vscode-test/**
 
+# Folders
+src/
+core/
+mmtview/src/
+mmtcli/
+out/
+demos/
+examples/
+screenshots/
+
 # Webview build artifacts (not needed in the vsix)
 mmtview/node_modules/**
 mmtview/package-lock.json
@@ -16,6 +26,7 @@ out/test/**
 **/test/**
 **/tests/**
 **/__tests__/**
+*.test.*
 
 # Dependencies (will be bundled, not shipped raw)
 node_modules/**
@@ -44,6 +55,9 @@ vite.config.js
 .prettierrc*
 .eslintrc.json
 **/eslint.config.js
+esbuild.js
+package-lock.json
+.eslintrc*
 
 # Logs & temp files
 **/*.log
@@ -80,10 +94,7 @@ coverage/
 # Docs & design assets
 README.dev.md
 CHANGELOG.dev.md
-docs/
-images/*.psd
-images/*.ai
-images/*.sketch
+COPILOT.md
 
 # Ignore packaged archives
 **/*.vsix
