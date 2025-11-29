@@ -18,12 +18,6 @@ declare global {
   }
 }
 
-const typeOptions = [
-  { value: "api", label: "API" },
-  { value: "env", label: "Environment" },
-  { value: "param", label: "Parameters" }
-];
-
 const SPLIT_PANE_KEY = "mmtview:splitPaneSize";
 
 // Create a context for file info
