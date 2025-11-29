@@ -139,7 +139,7 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
       postmanIconUri: string, openApiIconUri: string,
       multimeterIconUri: string) {
     const htmlPath =
-        path.join(this.context.extensionPath, 'src', 'panels', 'convertor.html');
+        path.join(this.context.extensionPath, 'res', 'convertor.html');
     let html = fs.readFileSync(htmlPath, 'utf8');
 
 

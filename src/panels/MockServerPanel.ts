@@ -199,8 +199,8 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
     isRunning: boolean,
     reflect: boolean
   ): string {
-    const htmlPath = path.join(this.context.extensionPath, 'src', 'panels', 'mockServer.html');
-    const cssPath = path.join(this.context.extensionPath, 'src', 'common.css');
+    const htmlPath = path.join(this.context.extensionPath, 'res', 'mockServer.html');
+    const cssPath = path.join(this.context.extensionPath, 'res', 'common.css');
     let html = fs.readFileSync(htmlPath, 'utf8');
     const css = fs.readFileSync(cssPath, 'utf8');
     html = html.replace('</head>', `<style>${css}</style></head>`);

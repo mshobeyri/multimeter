@@ -52,7 +52,7 @@ class HistoryPanel implements vscode.WebviewViewProvider {
   getHtml(httpIcon: string, wsIcon: string, grpcIcon: string, history: any[]) {
     // Load HTML template from external file
     const htmlPath =
-        path.join(this.context.extensionPath, 'src', 'panels', 'history.html');
+        path.join(this.context.extensionPath, 'res', 'history.html');
     let html = fs.readFileSync(htmlPath, 'utf8');
     // Replace tokens with actual icon URIs and history data
     html = html.replace(/__HTTP_ICON__/g, httpIcon)
