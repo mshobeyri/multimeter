@@ -1,0 +1,91 @@
+# VS Code project settings
+.vscode/**
+.vscode-test/**
+
+# Webview build artifacts (not needed in the vsix)
+mmtview/node_modules/**
+mmtview/package-lock.json
+mmtview/yarn.lock
+mmtview/.eslintrc*
+mmtview/tsconfig.json
+mmtview/webpack.config.js
+mmtview/craco.config.js
+
+# Test folders
+out/test/**
+**/test/**
+**/tests/**
+**/__tests__/**
+
+# Dependencies (will be bundled, not shipped raw)
+node_modules/**
+**/node_modules/**
+
+# Exclude CLI workspace from VSIX (not needed for the extension runtime)
+mmtcli/**
+!mmtcli/README.md
+
+# Git & dev files
+.gitignore
+.gitattributes
+**/.git
+**/.DS_Store
+*.code-workspace
+
+# Build configs not needed in vsix
+tsconfig.json
+tslint.json
+webpack.config.js
+babel.config.js
+jest.config.js
+rollup.config.js
+vite.config.js
+.editorconfig
+.prettierrc*
+.eslintrc.json
+**/eslint.config.js
+
+# Logs & temp files
+**/*.log
+**/*.lock
+yarn.lock
+package-lock.json
+**/*.orig
+**/*.rej
+**/*.bak
+**/*.swp
+**/*.tmp
+**/tmp/
+**/temp/
+**/.cache/
+
+# Coverage
+**/.nyc_output
+coverage/
+**/.coverage
+**/coverage
+
+# Env files
+.env
+.env.*.local
+
+# Test-only sources
+**/*.test.ts
+**/*.test.js
+**/*.spec.ts
+**/*.spec.js
+**/*.d.ts
+!out/**/*.d.ts
+
+# Docs & design assets
+README.dev.md
+CHANGELOG.dev.md
+docs/
+images/*.psd
+images/*.ai
+images/*.sketch
+
+# Ignore packaged archives
+**/*.vsix
+**/*.tgz
+**/*.tar.gz
