@@ -4,11 +4,10 @@
 
 # Folders
 src/
-core/
+core/src/
 mmtview/src/
 mmtcli/
 out/
-demos/
 examples/
 screenshots/
 
@@ -22,7 +21,6 @@ mmtview/webpack.config.js
 mmtview/craco.config.js
 
 # Test folders
-out/test/**
 **/test/**
 **/tests/**
 **/__tests__/**
