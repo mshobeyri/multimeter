@@ -1,0 +1,44 @@
+{
+  "platform": "MacOS",
+  "pretty_name": "sfd1:48",
+  "sharing": null,
+  "segments": [
+    {
+      "display": {
+        "path": "content/segments/segment-0/display.mp4",
+        "fps": 60,
+        "start_time": 0.176447166
+      },
+      "cursor": "content/segments/segment-0/cursor.json"
+    }
+  ],
+  "cursors": {
+    "1": {
+      "imagePath": "content/cursors/cursor_1.png",
+      "hotspot": {
+        "x": 0.40625,
+        "y": 0.25
+      },
+      "shape": "MacOS|PointingHand"
+    },
+    "2": {
+      "imagePath": "content/cursors/cursor_2.png",
+      "hotspot": {
+        "x": 0.4444444444444444,
+        "y": 0.5
+      },
+      "shape": "MacOS|IBeam"
+    },
+    "0": {
+      "imagePath": "content/cursors/cursor_0.png",
+      "hotspot": {
+        "x": 0.2352941176470588,
+        "y": 0.17391304347826086
+      },
+      "shape": "MacOS|Arrow"
+    }
+  },
+  "status": {
+    "status": "Complete"
+  }
+}

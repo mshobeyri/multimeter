@@ -1,0 +1,53 @@
+2025-11-05T06:20:08.025848Z DEBUG restart_recording:recording: cap_desktop_lib::recording: spawning start_recording actor
+2025-11-05T06:20:08.026871Z TRACE cap_recording::feeds::microphone: MicrophoneFeed.Lock
+2025-11-05T06:20:08.026972Z TRACE cap_recording::feeds::camera: CameraFeed.Lock
+2025-11-05T06:20:08.050666Z TRACE restart_recording:recording:studio_recording: cap_recording::studio_recording: creating recording actor
+2025-11-05T06:20:08.056861Z DEBUG restart_recording:recording:studio_recording:segment{index=0}: cap_recording::sources::screen_capture::macos: SCK content filter: Retained(ContentFilter(<SCContentFilter: 0x6000038c24c0>))
+2025-11-05T06:20:08.057076Z DEBUG restart_recording:recording:studio_recording:segment{index=0}: cap_recording::sources::screen_capture::macos: size: PhysicalSize { width: 2944.0, height: 1940.0 }
+2025-11-05T06:20:08.057267Z DEBUG restart_recording:recording:studio_recording:segment{index=0}: cap_recording::sources::screen_capture::macos: crop bounds: LogicalBounds { position: LogicalPosition { x: 7.0, y: 33.0 }, size: LogicalSize { width: 1472.0, height: 970.0 } }
+2025-11-05T06:20:08.058148Z TRACE restart_recording:recording:studio_recording:segment{index=0}: cap_recording::studio_recording: preparing segment pipeline 0
+2025-11-05T06:20:08.058538Z TRACE restart_recording:recording:studio_recording:segment{index=0}:screen-out:{task="screen-capture"}: cap_recording::output_pipeline::core: Task started
+2025-11-05T06:20:08.058532Z DEBUG restart_recording:recording:studio_recording:segment{index=0}:screen-out: cap_enc_avfoundation::mp4: VideoInfo {
+    pixel_format: BGRA,
+    width: 2944,
+    height: 1940,
+    time_base: Rational(1/1000000),
+    frame_rate: Rational(60/1),
+}
+2025-11-05T06:20:08.059000Z DEBUG restart_recording:recording:studio_recording:segment{index=0}:screen-out: cap_enc_avfoundation::mp4: None
+2025-11-05T06:20:08.061459Z DEBUG restart_recording:recording:studio_recording:segment{index=0}:screen-out: cap_enc_avfoundation::mp4: recording bitrate: 20508642
+2025-11-05T06:20:08.080130Z  INFO restart_recording:recording:studio_recording:segment{index=0}:screen-out: cap_recording::output_pipeline::core: Built pipeline for output /Users/mehrdad/Library/Application Support/so.cap.desktop/recordings/9cc3a981-5801-44ad-8a28-6f78cbdbdb3e.cap/content/segments/segment-0/display.mp4
+2025-11-05T06:20:08.080146Z TRACE restart_recording:recording:studio_recording:segment{index=0}:screen-out:{task="capture-video"}: cap_recording::output_pipeline::core: Task started
+2025-11-05T06:20:08.080172Z TRACE restart_recording:recording:studio_recording:segment{index=0}:screen-out:{task="mux-video"}: cap_recording::output_pipeline::core: Task started
+2025-11-05T06:20:08.082141Z  INFO restart_recording:recording:studio_recording:segment{index=0}: cap_recording::studio_recording: pipeline playing
+2025-11-05T06:20:08.082172Z TRACE restart_recording:recording:studio_recording: cap_recording::studio_recording: spawning recording actor
+2025-11-05T06:20:08.100948Z  INFO restart_recording:recording:studio_recording:segment{index=0}:cursor: cap_recording::cursor: Saved cursor 0 image to: "cursor_0.png"
+2025-11-05T06:20:09.461477Z  INFO restart_recording:recording:studio_recording:segment{index=0}:cursor: cap_recording::cursor: Saved cursor 1 image to: "cursor_1.png"
+2025-11-05T06:20:13.289985Z DEBUG restart_recording:recording:studio_recording:segment{index=0}:screen-out:{task="capture-video"}: cap_recording::sources::screen_capture::macos: Captured 35 frames
+2025-11-05T06:20:13.323341Z  INFO restart_recording:recording:studio_recording:segment{index=0}:cursor: cap_recording::cursor: Saved cursor 2 image to: "cursor_2.png"
+2025-11-05T06:20:18.291951Z DEBUG restart_recording:recording:studio_recording:segment{index=0}:screen-out:{task="capture-video"}: cap_recording::sources::screen_capture::macos: Captured 62 frames
+2025-11-05T06:20:23.293092Z DEBUG restart_recording:recording:studio_recording:segment{index=0}:screen-out:{task="capture-video"}: cap_recording::sources::screen_capture::macos: Captured 78 frames
+2025-11-05T06:20:28.294380Z DEBUG restart_recording:recording:studio_recording:segment{index=0}:screen-out:{task="capture-video"}: cap_recording::sources::screen_capture::macos: Captured 94 frames
+2025-11-05T06:20:33.296002Z DEBUG restart_recording:recording:studio_recording:segment{index=0}:screen-out:{task="capture-video"}: cap_recording::sources::screen_capture::macos: Captured 115 frames
+2025-11-05T06:20:38.300110Z DEBUG restart_recording:recording:studio_recording:segment{index=0}:screen-out:{task="capture-video"}: cap_recording::sources::screen_capture::macos: Captured 131 frames
+2025-11-05T06:20:43.302469Z DEBUG restart_recording:recording:studio_recording:segment{index=0}:screen-out:{task="capture-video"}: cap_recording::sources::screen_capture::macos: Captured 150 frames
+2025-11-05T06:20:48.304248Z DEBUG restart_recording:recording:studio_recording:segment{index=0}:screen-out:{task="capture-video"}: cap_recording::sources::screen_capture::macos: Captured 194 frames
+2025-11-05T06:20:53.307657Z DEBUG restart_recording:recording:studio_recording:segment{index=0}:screen-out:{task="capture-video"}: cap_recording::sources::screen_capture::macos: Captured 222 frames
+2025-11-05T06:20:58.308213Z DEBUG restart_recording:recording:studio_recording:segment{index=0}:screen-out:{task="capture-video"}: cap_recording::sources::screen_capture::macos: Captured 242 frames
+2025-11-05T06:20:58.797159Z  INFO restart_recording:recording:studio_recording:segment{index=0}:cursor: cap_recording::cursor: Saved cursor 3 image to: "cursor_3.png"
+2025-11-05T06:21:03.308776Z DEBUG restart_recording:recording:studio_recording:segment{index=0}:screen-out:{task="capture-video"}: cap_recording::sources::screen_capture::macos: Captured 284 frames
+2025-11-05T06:21:08.310714Z DEBUG restart_recording:recording:studio_recording:segment{index=0}:screen-out:{task="capture-video"}: cap_recording::sources::screen_capture::macos: Captured 332 frames
+2025-11-05T06:21:13.311216Z DEBUG restart_recording:recording:studio_recording:segment{index=0}:screen-out:{task="capture-video"}: cap_recording::sources::screen_capture::macos: Captured 439 frames
+2025-11-05T06:21:18.312071Z DEBUG restart_recording:recording:studio_recording:segment{index=0}:screen-out:{task="capture-video"}: cap_recording::sources::screen_capture::macos: Captured 520 frames
+2025-11-05T06:21:22.986844Z  INFO cap_recording::studio_recording: pipeline shuting down
+2025-11-05T06:21:22.987021Z DEBUG restart_recording:recording:studio_recording:segment{index=0}:screen-out:{task="capture-video"}: cap_recording::sources::screen_capture::macos: Capturer stopping after creating 598 video frames
+2025-11-05T06:21:22.987025Z  INFO restart_recording:recording:studio_recording:segment{index=0}:screen-out:{task="mux-video"}: cap_recording::output_pipeline::core: Task finished successfully
+2025-11-05T06:21:22.990794Z  INFO restart_recording:recording:studio_recording:segment{index=0}:screen-out:{task="capture-video"}: cap_recording::output_pipeline::core: Task finished successfully
+2025-11-05T06:21:22.990854Z  INFO restart_recording:recording:studio_recording:segment{index=0}:screen-out:{task="screen-capture"}: cap_recording::output_pipeline::core: Task finished successfully
+2025-11-05T06:21:22.996923Z  INFO restart_recording:recording:studio_recording:segment{index=0}:cursor: cap_recording::cursor: Saved cursor 4 image to: "cursor_4.png"
+2025-11-05T06:21:23.009638Z DEBUG cap_enc_avfoundation::mp4: Appended 598 video frames
+2025-11-05T06:21:23.009775Z DEBUG cap_enc_avfoundation::mp4: Appended 0 audio frames
+2025-11-05T06:21:23.009854Z  INFO cap_enc_avfoundation::mp4: Finished writing
+2025-11-05T06:21:23.013670Z  INFO cap_recording::studio_recording: pipeline shutdown
+2025-11-05T06:21:23.014393Z  INFO restart_recording:recording:studio_recording:segment{index=0}:cursor: cap_recording::cursor: cursor recorder done
+2025-11-05T06:21:23.800726Z  INFO restart_recording:recording: cap_desktop_lib::recording: recording wait actor done: Ok(())

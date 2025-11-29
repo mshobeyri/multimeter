@@ -1,0 +1,76 @@
+{
+  "platform": "MacOS",
+  "pretty_name": "api.mmt — overview 2025-11-05 06:55:42",
+  "sharing": null,
+  "segments": [
+    {
+      "display": {
+        "path": "content/segments/segment-0/display.mp4",
+        "fps": 60,
+        "start_time": 0.144686208
+      },
+      "cursor": "content/segments/segment-0/cursor.json"
+    }
+  ],
+  "cursors": {
+    "1": {
+      "imagePath": "content/cursors/cursor_1.png",
+      "hotspot": {
+        "x": 0.4444444444444444,
+        "y": 0.5
+      },
+      "shape": "MacOS|IBeam"
+    },
+    "5": {
+      "imagePath": "content/cursors/cursor_5.png",
+      "hotspot": {
+        "x": 0.45,
+        "y": 0.45
+      },
+      "shape": null
+    },
+    "6": {
+      "imagePath": "content/cursors/cursor_6.png",
+      "hotspot": {
+        "x": 0.17857142857142858,
+        "y": 0.125
+      },
+      "shape": "MacOS|OperationNotAllowed"
+    },
+    "2": {
+      "imagePath": "content/cursors/cursor_2.png",
+      "hotspot": {
+        "x": 0.40625,
+        "y": 0.25
+      },
+      "shape": "MacOS|PointingHand"
+    },
+    "4": {
+      "imagePath": "content/cursors/cursor_4.png",
+      "hotspot": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "shape": "MacOS|ResizeUpDown"
+    },
+    "3": {
+      "imagePath": "content/cursors/cursor_3.png",
+      "hotspot": {
+        "x": 0.5,
+        "y": 0.5
+      },
+      "shape": "MacOS|ResizeLeftRight"
+    },
+    "0": {
+      "imagePath": "content/cursors/cursor_0.png",
+      "hotspot": {
+        "x": 0.23529411764705882,
+        "y": 0.17391304347826086
+      },
+      "shape": "MacOS|Arrow"
+    }
+  },
+  "status": {
+    "status": "Complete"
+  }
+}

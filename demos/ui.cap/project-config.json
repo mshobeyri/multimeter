@@ -1,0 +1,86 @@
+{
+  "aspectRatio": null,
+  "background": {
+    "source": {
+      "type": "wallpaper",
+      "path": "/Applications/Cap.app/Contents/Resources/assets/backgrounds/macOS/sequoia-dark.jpg"
+    },
+    "blur": 9.8,
+    "padding": 6.1,
+    "rounding": 2.3,
+    "inset": 0,
+    "crop": null,
+    "shadow": 88.4,
+    "advancedShadow": {
+      "size": 14.4,
+      "opacity": 68.1,
+      "blur": 3.8
+    },
+    "border": {
+      "enabled": true,
+      "width": 15.6,
+      "color": [
+        0,
+        0,
+        0
+      ],
+      "opacity": 0.0
+    }
+  },
+  "camera": {
+    "hide": false,
+    "mirror": false,
+    "position": {
+      "x": "right",
+      "y": "bottom"
+    },
+    "size": 30.0,
+    "zoom_size": 60.0,
+    "rounding": 30.0,
+    "shadow": 62.5,
+    "advanced_shadow": {
+      "size": 33.9,
+      "opacity": 44.2,
+      "blur": 10.5
+    },
+    "shape": "square"
+  },
+  "audio": {
+    "mute": false,
+    "improve": false,
+    "micVolumeDb": 0.0,
+    "micStereoMode": "stereo",
+    "systemVolumeDb": 0.0
+  },
+  "cursor": {
+    "hide": false,
+    "hideWhenIdle": true,
+    "hideWhenIdleDelay": 1.0,
+    "size": 78,
+    "type": "pointer",
+    "animationStyle": "regular",
+    "tension": 500.0,
+    "mass": 4.76,
+    "friction": 50.0,
+    "raw": false,
+    "motionBlur": 0.5,
+    "useSvg": false
+  },
+  "hotkeys": {
+    "show": false
+  },
+  "timeline": {
+    "segments": [
+      {
+        "recordingSegment": 0,
+        "timescale": 1.0,
+        "start": 0.0,
+        "end": 82.791667
+      }
+    ],
+    "zoomSegments": [],
+    "sceneSegments": []
+  },
+  "captions": null,
+  "clips": []
+}
