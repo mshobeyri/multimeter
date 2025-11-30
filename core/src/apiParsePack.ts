@@ -1,8 +1,7 @@
 
+import {APIData} from './APIData';
 import parseYaml, {packYaml} from './markupConvertor';
 import {isNonEmptyList, isNonEmptyObject, safeList} from './safer';
-
-import {APIData} from './APIData';
 
 export function yamlToAPI(yamlContent: string): APIData {
   try {
@@ -15,7 +14,7 @@ export function yamlToAPI(yamlContent: string): APIData {
       type: doc.type || '',
       title: doc.title || '',
       description: doc.description || '',
-      tags: safeList(doc.tags),
+      tags: doc.tags,
       import: doc.import,
       inputs: doc.inputs,
       outputs: doc.outputs,
@@ -44,15 +43,14 @@ export function apiToYaml(api: APIData): string {
   if (api.description) {
     yamlObj.description = api.description;
   };
-  // Place inputs immediately after title/description for readability
-  if (isNonEmptyObject(api.inputs)) {
-    yamlObj.inputs = api.inputs;
-  };
   if (isNonEmptyList(api.tags)) {
     yamlObj.tags = api.tags;
   };
   if (isNonEmptyObject(api.import)) {
     yamlObj.import = api.import;
+  };
+  if (isNonEmptyObject(api.inputs)) {
+    yamlObj.inputs = api.inputs;
   };
   if (isNonEmptyObject(api.outputs)) {
     yamlObj.outputs = api.outputs;

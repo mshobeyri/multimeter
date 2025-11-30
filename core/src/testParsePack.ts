@@ -1,5 +1,6 @@
-import parseYaml, { packYaml } from './markupConvertor';
-import { FlowType, TestData, TestFlowStep } from './TestData';
+import parseYaml, {packYaml} from './markupConvertor';
+import {isNonEmptyList} from './safer';
+import {FlowType, TestData, TestFlowStep} from './TestData';
 
 export function yamlToTest(yamlContent: string): TestData {
   try {
@@ -14,12 +15,12 @@ export function yamlToTest(yamlContent: string): TestData {
     return {
       type: doc.type || '',
       title: doc.title || '',
-      tags: doc.tags || [],
       description: doc.description || '',
+      tags: doc.tags,
       import: doc.import,
-      metrics: doc.metrics,
       inputs: doc.inputs,
       outputs: doc.outputs,
+      metrics: doc.metrics,
       steps: doc.steps,
       stages: doc.stages,
     };
@@ -32,11 +33,13 @@ export function testToYaml(test: TestData): string {
   const yamlObj: Record<string, any> = {
     type: test.type,
     title: test.title,
-    tags: test.tags,
   };
   if (test.description) {
     yamlObj.description = test.description;
   }
+  if (isNonEmptyList(test.tags)) {
+    yamlObj.tags = test.tags;
+  };
   if (test.import) {
     yamlObj.import = test.import;
   }
@@ -58,7 +61,7 @@ export function testToYaml(test: TestData): string {
   return packYaml(yamlObj);
 }
 
-export function getTestFlowStepType(step: TestFlowStep): FlowType | 'unknown' {
+export function getTestFlowStepType(step: TestFlowStep): FlowType|'unknown' {
   if (!step || typeof step !== 'object') {
     return 'unknown';
   }
