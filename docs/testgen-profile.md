@@ -323,9 +323,9 @@ steps?: Step[]               # sequential when at root
 stages?: Array<{            # optional staged/parallel model
   id: string
   name?: string
-  steps: Step[]
   condition?: string
-  dependencies?: string | string[]
+  depends_on?: string | string[]
+  steps: Step[]
 }>
 ```
 

@@ -44,17 +44,17 @@ For the provided MMT, the Test panel shows the generated JavaScript. Click Run t
 The `test` type also supports documentation fields (title, tags, description) and reuse/compose elements (import, inputs, outputs). See the API doc for details. The sections below cover flow elements.
 
 ### Stages
-Stages let you run groups of steps in parallel. All stages start concurrently; use dependencies to control order. If you have a single linear flow, you can skip stages and place steps at the test root.
+Stages let you run groups of steps in parallel. All stages start concurrently; use depends_on to control order. If you have a single linear flow, you can skip stages and place steps at the test root.
 
 ```yaml
 stages:
   - id: login
-    name: Login Stage
+    title: Login Stage
     steps:
       - call: login
         id: doLogin
   - id: profile
-    dependencies: login   # or
+    depends_on: login   # or
                           #   - login
                           #   - anotherStage
     steps:
@@ -211,5 +211,5 @@ steps:
 - outputs: record<string, string | number | boolean | null>
 - metrics: repeat?: string | number, threads?: number, duration?: string, rampup?: string
 - steps: array of step
-- stages: array of { id, name?, steps, condition?, dependencies? }
+- stages: array of { id, title?, steps, condition?, depends_on? }
 - step types: `call`, `check`, `assert`, `if`, `for`, `repeat`, `delay`, `js`, `print`, `set`, `var`, `const`, `let`, `data`
