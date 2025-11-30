@@ -38,7 +38,7 @@ Here is a how you can run the test in VSCode <a href="https://marketplace.visual
 <img src="demos/api.gif" alt="Multimeter sample post" style="max-width: 100%; height: auto;" />
 </br></br>
 
-## 🤔 Why Multimeter?
+## ⭐ Why Multimeter?
 
 - 💰 **The extention is free and remains free** — no paywalls, no limitation.
 - 👤 **Zero setup friction.** No login or account needed — your Git repo controls access.  
@@ -55,7 +55,7 @@ Here is a how you can run the test in VSCode <a href="https://marketplace.visual
 - 🎛️ **No coding skills needed.** Modern graphical UI lets even non-coders create and run tests.  
 - ⛓️ **CI/CD ready.** Integrate with your pipeline via `testlight` to automatically run tests before merging — ensuring quality before merge.  
 
-## 🚀 (Some Of) Features' Demo
+## 🚀 Demo
 
  - 🧩 UI editor ( No code mode ) along with text editor. <a href="docs/demos.md#ui-overview"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
 
@@ -69,12 +69,29 @@ Here is a how you can run the test in VSCode <a href="https://marketplace.visual
  - 🪞 Server mocking. <a href="docs/demos.md#mock-server"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
  - 📃 Auto documentation: generate HTML and MD docs from API. <a href="docs/demos.md#documentation-generation"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
 
- <a href="docs/demos.md" >
-  ▸ See ALL Demos!
-</a>
+- 🏋 Load testing (soon).
+ - ▶️ And more...  <a href="docs/demos.md" > ▸ Explore all demos!</a>
 
-## 🎯 Upcoming Features
-- 🏋 Load testing.
+
+## 🔎 Tool Comparison  
+
+| Feature / Capability | **Multimeter** | Postman | JMeter | SoapUI|
+|----------------------|:-------------:|:------:|:--------:|:-------:|
+| HTTP API (REST/SOAP/HTTP) testing | ✔ | ✔ | ✔ | ✔ |
+| WebSocket / real‑time API support | ✔ | ✔ | ✖ | ✖ |
+| Tests stored as versionable, text‑based files (YAML/code) | ✔ | ✖ | ⚠ | ⚠ |
+| Built‑in mock server (HTTP/WS) for testing & simulation | ✔ | ✔ | ✖ | ✔ |
+| Modular & reusable test definitions (parameterized / composable) | ✔ | ✖ | ⚠ | ⚠ |
+| Auto‑generate API documentation from tests | ✔ | ✖ | ✖ | ✖ |
+| Lightweight & simple for small-to-medium projects | ✔ | ✔ | ⚠ | ⚠ |
+| AI‑powered test generation / assistant built‑in | ✔ | ⚠ | ✖ | ✖ |
+| No‑code / low‑code support  | ✔ | ✔ | ✖ | ✔ |
+| No GUI / full code support  | ✔ | ✖ | ✖ | ✖ |
+
+✔ supported / natural fit 
+✖ = not supported / missing
+⚠ = partial or caveat / less ideal  
+
 
 ## 🛠️ Usage
 - Add <img src="res/icon.png" alt="Multimeter Logo" width="16" height="16"/>[Multimeter](https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter) extension to your vscode.
