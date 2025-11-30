@@ -37,31 +37,41 @@ Here is a how you can run the test in VSCode <a href="https://marketplace.visual
 </br></br>
 <img src="demos/api.gif" alt="Multimeter sample post" style="max-width: 100%; height: auto;" />
 </br></br>
-<a href="docs/demos.md" >
-  ▸ See More Demos!
-</a>
 
-## 🚀 Features
+## 🤔 Why Multimeter?
 
-- 💰 No login needed, all features are available for free.
+- 💰 **The extention is free and remains free** — no paywalls, no limitation.
+- 👤 **Zero setup friction.** No login or account needed — your Git repo controls access.  
+- 🦾 **Generate tests automatically.** Ask AI to build tests, refine your code, deploy and run until everything passes.  
+- 🌈 **One tool instead of many.** Replace Postman, JMeter, NeoLoad, Robot Framework etc. — no juggling of tools.  
+- 🪞 **Instant mock servers.** Built-in HTTP / WebSocket mock server lets you simulate responses quickly (ideal for edge-cases).  
+- 🔄 **Seamless migration support.** Already have Postman collections or OpenAPI specs? Convert them to Multimeter tests without rewriting.  
+- 📄 **Auto-generated API docs.** Produce clean HTML or Markdown API docs from your tests — always up to date.  
+- 🪢 **Reusable & modular tests.** Write once — reuse elsewhere with different inputs, like calling a function.  
+- 📦 **Versioned tests alongside code.** Tests live in the same repo and can be updated in the same pull request — you retain ability to test older versions.  
+- 🖌️ **Easy bulk edits.** Want to update many tests at once? Use VS Code’s “Replace All” instead of manual edits.  
+- ⏳ **Full test history.** Store test results in your repo so you always have access to past runs.  
+- 👮‍♂️ **Your data stays yours — secure & private.** Sensitive info stays in your repo; nothing is uploaded externally.  
+- 🎛️ **No coding skills needed.** Modern graphical UI lets even non-coders create and run tests.  
+- ⛓️ **CI/CD ready.** Integrate with your pipeline via `testlight` to automatically run tests before merging — ensuring quality before merge.  
+
+## 🚀 (Some Of) Features' Demo
+
  - 🧩 UI editor ( No code mode ) along with text editor. <a href="docs/demos.md#ui-overview"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
-- 💾 Store test cases as files in your application git repo.
-  - 👮🏻‍♂️ Security: sensitive info remains in your hand.
-  - ⏳ Preserve tests' history.
-  - 🤖 Ability to generate tests using AI. <a href="docs/demos.md#ai-test-generation"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
-  - 📦 Having tests along with the changes in a same pull request.
-  - 🔑 Access control can be handled by git.
-  - 🖌️ Bulk edit using vscode and regex.
+
+- 🤖 Generate tests using AI (Multimeter assistant). <a href="docs/demos.md#ai-test-generation"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
  - 🧱 JSON/XML schema-aware formating and editing. <a href="docs/demos.md#xml-handling"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
  - 🔗 Chaining request responses. <a href="docs/demos.md#output-extraction"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
-- ⛓️ Running tests in the pipeline using testlight.
  - 🗄 Environment variable and presets support. <a href="docs/demos.md#environment-variables"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
  - ⛏️ Extract data from results using xpath, jsonpath and regular expression. <a href="docs/demos.md#output-extraction"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
  - 🌐 REST, WEBSOCKET, SOAP protocols support. <a href="docs/demos.md#websocket-testing"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
  - 🔄 Support Postman and OpenAPI collection convert. <a href="docs/demos.md#postman-import"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
-- 🧪 Supports all kinds of test logic, from simple checks to complex flows.
  - 🪞 Server mocking. <a href="docs/demos.md#mock-server"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
  - 📃 Auto documentation: generate HTML and MD docs from API. <a href="docs/demos.md#documentation-generation"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
+
+ <a href="docs/demos.md" >
+  ▸ See ALL Demos!
+</a>
 
 ## 🎯 Upcoming Features
 - 🏋 Load testing.
