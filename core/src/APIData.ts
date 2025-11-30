@@ -10,8 +10,8 @@ export interface ExampleData {
 
 export interface APIData extends MMTFile {
   title?: string;
-  tags?: string[];
   description?: string;
+  tags?: string[];
   import?: Record<string, string>;
   inputs?: JSONRecord;
   outputs?: Record<string, string>;

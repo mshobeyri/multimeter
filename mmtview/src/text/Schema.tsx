@@ -425,16 +425,17 @@ export const TestSchema = {
             type: 'array',
             items: {
                 type: 'object',
-                required: ['stage', 'steps'],
+                required: ['id', 'steps'],
                 properties: {
-                    stage: { type: 'string' },
+                    id: { type: 'string' },
+                    title: { type: 'string' },
+                    condition: { type: 'string' },
                     depends_on: {
                         anyOf: [
                             { type: 'string' },
                             { type: 'array', items: { type: 'string' } }
                         ]
                     },
-                    condition: { type: 'string' },
                     steps: { $ref: '#/properties/steps' }
                 },
                 additionalProperties: false
