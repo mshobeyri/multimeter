@@ -89,6 +89,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
           onChange={e => onChange({ ...data, protocol: e.target.value as Protocol })}
           style={{ width: "100%" }}
         >
+          <option key="" value="" disabled>Select protocol...</option>
           {safeList(protocolOptions).map(opt => (
             <option key={opt} value={opt}>{opt}</option>
           ))}
@@ -103,6 +104,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
           onChange={e => onChange({ ...data, format: e.target.value as Format })}
           style={{ width: "100%" }}
         >
+          <option key="" value="" disabled>Select format...</option>
           {safeList(formatOptions).map(opt => (
             <option key={opt} value={opt}>{opt}</option>
           ))}
