@@ -44,8 +44,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
             label: "type",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "type: ",
-            detail: 'Type of mmt file [api, env, var, doc, test]',
-            documentation: 'Type of mmt file, must be one of: api, env, var, doc, test\n\t- api: Define an API\n\t- env: Define environment variables\n\t- var: Define variables\n\t- doc: Define a documentation page (title/description/sources/theme)\n\t- test: Define a test suite (steps/stages)\nExample: type: test',
+            detail: 'Type of mmt file [api, env, doc, test]',
+            documentation: 'Type of mmt file, must be one of: api, env, doc, test\n\t- api: Define an API\n\t- env: Define environment variables\n\t- doc: Define a documentation page (title/description/sources/theme)\n\t- test: Define a test suite (steps/stages)\nExample: type: test',
         }];
 
     const typeSuggestions = [
