@@ -64,13 +64,6 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'Environment variables used across multiple APIs. This allows you to define reusable variables that can be referenced in API definitions',
         },
         {
-            label: "Variable",
-            kind: monaco.languages.CompletionItemKind.EnumMember,
-            insertText: " var",
-            detail: 'Define variables',
-            documentation: 'Variables that can be used within API definitions. These are typically used for dynamic values that change based on context or environment',
-        },
-        {
             label: "Doc",
             kind: monaco.languages.CompletionItemKind.EnumMember,
             insertText: " doc",
@@ -138,7 +131,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "stages",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "stages:\n\t- stage: name\n\t  steps:\n\t  \t- call: ",
+            insertText: "stages:\n\t- id: stage1\n\t  steps:\n\t  \t- call: ",
             detail: 'Stage-based steps [array]',
             documentation: 'Define named stages with their own steps and optional dependencies.'
         },
@@ -163,9 +156,10 @@ export const KeySuggestionsByParent = (monaco: any) => {
         { label: "steps", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- steps:\n\t\t- ", detail: 'Nested steps', documentation: 'Add nested steps for control-flow steps.' },
     ];
     const stageSuggestions = [
-        { label: "stage", kind: monaco.languages.CompletionItemKind.Property, insertText: "stage: ", detail: 'Stage name', documentation: 'A human-readable stage name.' },
-        { label: "depends_on", kind: monaco.languages.CompletionItemKind.Property, insertText: "depends_on: ", detail: 'Stage dependencies', documentation: 'Name or list of stage names this stage depends on.' },
+        { label: "id", kind: monaco.languages.CompletionItemKind.Property, insertText: "id: ", detail: 'Stage identifier', documentation: 'Id to reference this stage.' },
+        { label: "title", kind: monaco.languages.CompletionItemKind.Property, insertText: "title: ", detail: 'Stage title', documentation: 'Descriptive title for the stage.' },
         { label: "condition", kind: monaco.languages.CompletionItemKind.Property, insertText: "condition: ", detail: 'Conditional expression', documentation: 'Only run the stage if condition is truthy.' },
+        { label: "depends_on", kind: monaco.languages.CompletionItemKind.Property, insertText: "depends_on: ", detail: 'Stage dependencies', documentation: 'Name or list of stage names this stage depends on.' },
         { label: "steps", kind: monaco.languages.CompletionItemKind.Property, insertText: "steps:\n\t- call: ", detail: 'Stage steps', documentation: 'Steps to execute in this stage.' },
     ];
     const docSuggestions = [
@@ -252,18 +246,18 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'A descriptive title for your API. This helps identify and organize your APIs.\nExample: title: User Management API',
         },
         {
-            label: "tags",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "tags:\n\t- ",
-            detail: 'API tags [array of strings]',
-            documentation: 'Tags for categorizing and organizing APIs. Helps with searchability and filtering.\nExample:\ntags:\n\t- user\n\t- authentication\n\t- v1',
-        },
-        {
             label: "description",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "description: ",
             detail: 'API description [string]',
             documentation: 'A detailed description of what this API does, its purpose, and usage notes.\nExample: description: This API handles user authentication and profile management',
+        },
+        {
+            label: "tags",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "tags:\n\t- ",
+            detail: 'API tags [array of strings]',
+            documentation: 'Tags for categorizing and organizing APIs. Helps with searchability and filtering.\nExample:\ntags:\n\t- user\n\t- authentication\n\t- v1',
         },
         {
             label: "import",
@@ -285,6 +279,13 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: "outputs:\n\t",
             detail: 'Output parameters [object of key: value]',
             documentation: 'Define how to extract values from API responses as output parameters. These extracted values can be used in subsequent requests or stored as environment variables.\nExample:\extract:\n\tuserId: "$.data.user.id"\n\ttoken: "$.data.access_token"',
+        },
+        {
+            label: "setenv",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "setenv:\n\t",
+            detail: 'Set environment variables [object of key: value]',
+            documentation: 'Map output values to environment variables that can be used in other APIs. Links extracted outputs to environment variable names.\nExample:\nsetenv:\n\tUSER_ID: "userId"\n\tACCESS_TOKEN: "token"',
         },
         {
             label: "protocol",
@@ -341,13 +342,6 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: "cookies:\n\t",
             detail: 'HTTP cookies [object of key: value]',
             documentation: 'Cookies to include in the request as key-value pairs. These are sent in the Cookie header.\nExample:\ncookies:\n  sessionId: "{{sessionId}}"',
-        },
-        {
-            label: "setenv",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "setenv:\n\t",
-            detail: 'Set environment variables [object of key: value]',
-            documentation: 'Map output values to environment variables that can be used in other APIs. Links extracted outputs to environment variable names.\nExample:\nsetenv:\n\tUSER_ID: "userId"\n\tACCESS_TOKEN: "token"',
         },
         {
             label: "examples",

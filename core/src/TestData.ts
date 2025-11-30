@@ -20,8 +20,9 @@ export interface TestMetric {
   rampup?: Timestr;
 }
 
-export type FlowType = 'stages'|'steps'|'stage'|'step'|'call'|'check'|'assert'|'if'|'for'|
-  'repeat'|'delay'|'js'|'print'|'end'|'set'|'var'|'const'|'let'|'data';
+export type FlowType =
+    'stages'|'steps'|'stage'|'step'|'call'|'check'|'assert'|'if'|'for'|'repeat'|
+    'delay'|'js'|'print'|'end'|'set'|'var'|'const'|'let'|'data';
 
 export interface TestFlowBase {
   type?: FlowType;
@@ -75,7 +76,7 @@ export interface TestFlowPrint extends TestFlowBase {
 }
 export interface TestFlowDelay extends TestFlowBase {
   // delay duration: supports numbers (ms) or string with units: ns, ms, s, m, h
-  delay: number | string;
+  delay: number|string;
 }
 
 export interface TestFlowSet extends TestFlowBase {
@@ -91,11 +92,12 @@ export interface TestFlowLet extends TestFlowBase {
   let : Record<string, any>;
 }
 export interface TestFlowData extends TestFlowBase {
-  data: string; // alias of an imported CSV file
+  data: string;  // alias of an imported CSV file
 }
 export type TestFlowStep = TestFlowCallTest|TestFlowCallAPI|TestFlowCheck|
-  TestFlowAssert|TestFlowCondition|TestFlowRepeat|TestFlowLoop|TestFlowJS|
-  TestFlowPrint|TestFlowDelay|TestFlowSet|TestFlowVar|TestFlowConst|TestFlowLet|TestFlowData;
+    TestFlowAssert|TestFlowCondition|TestFlowRepeat|TestFlowLoop|TestFlowJS|
+    TestFlowPrint|TestFlowDelay|TestFlowSet|TestFlowVar|TestFlowConst|
+    TestFlowLet|TestFlowData;
 
 export type TestFlowSteps = TestFlowStep[];
 
@@ -103,10 +105,10 @@ export type TestFlowStageId = string;
 
 export interface TestFlowStage {
   id: TestFlowStageId;
-  name?: string;
-  steps: TestFlowSteps;
+  title?: string;
   condition?: Comparison;
-  dependencies?: TestFlowStageId|TestFlowStageId[];
+  depends_on?: TestFlowStageId|TestFlowStageId[];
+  steps: TestFlowSteps;
 }
 
 export type TestFlowStages = TestFlowStage[];
@@ -133,14 +135,14 @@ export interface TestDataStages extends TestDataBase {
 export type TestData = TestDataSteps|TestDataStages;
 
 export const flowTypeOptions = [
-  'call', 'check', 'assert', 'if', 'for', 'repeat', 'delay', 'end', 'js', 'print', 'data', 'set',
-  'var', 'const', 'let'
+  'call', 'check', 'assert', 'if', 'for', 'repeat', 'delay', 'end', 'js',
+  'print', 'data', 'set', 'var', 'const', 'let'
 ] as FlowType[];
 
 // Flow types that the UI can add as individual steps/folders
 export const addableFlowTypes = [
-  'print', 'call', 'js', 'data', 'set', 'var', 'const', 'let',
-  'check', 'if', 'for', 'repeat', 'delay', 'stage'
+  'print', 'call', 'js', 'data', 'set', 'var', 'const', 'let', 'check', 'if',
+  'for', 'repeat', 'delay', 'stage'
 ] as FlowType[];
 export type CheckOps =
     '<'|'>'|'<='|'>='|'=='|'!='|'=@'|'!@'|'=^'|'!^'|'=$'|'!$'|'=~'|'!~';

@@ -554,8 +554,8 @@ export const flowStagesToJsfunc = (flow: TestFlowStages): string => {
 
   for (const stage of flow) {
     const stageName = stage.id || randomName();
-    const dependsOn = Array.isArray(stage.dependencies) ? stage.dependencies :
-        stage.dependencies                              ? [stage.dependencies] :
+    const dependsOn = Array.isArray(stage.depends_on) ? stage.depends_on :
+        stage.depends_on                              ? [stage.depends_on] :
                                                           [];
     const code = flowStepsToJsfunc(stage.steps ?? []);
     stageMap.set(stageName, {code, dependsOn});

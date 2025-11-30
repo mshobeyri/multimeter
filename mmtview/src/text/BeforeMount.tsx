@@ -46,7 +46,7 @@ export const handleBeforeMount = (monaco: any) => {
         if (currentIndent === 0) {
             if (firstLine === "type: api") return "api";
             if (firstLine === "type: env") return "env";
-            if (firstLine === "type: var") return "var";
+            if (firstLine === "type: doc") return "doc";
             if (firstLine === "type: test") return "test";
         }
 
