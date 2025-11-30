@@ -13,14 +13,12 @@ export const APISchema = {
     properties: {
         type: { type: 'string', enum: ['api'] },
         title: { type: 'string' },
-        tags: { type: 'array', items: { type: 'string' } },
         description: { type: 'string' },
+        tags: { type: 'array', items: { type: 'string' } },
         import: {
             type: 'object',
             additionalProperties: { type: 'string' }
         },
-        // Optional alias of imported CSV data to be available in scripts
-        data: { type: 'string' },
         inputs: {
             type: 'object',
             additionalProperties: {
@@ -189,6 +187,7 @@ export const TestSchema = {
     properties: {
         type: { type: 'string', enum: ['test'] },
         title: { type: 'string' },
+        description: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
         import: {
             type: 'object',
