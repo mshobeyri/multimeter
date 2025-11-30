@@ -40,7 +40,7 @@ Here is a how you can run the test in VSCode <a href="https://marketplace.visual
 
 ## 🤔 Why Multimeter?
 
-- 💰 **Fully free — no paywalls, no limitations.**  
+- 💰 **The extention is free and remains free** — no paywalls, no limitation.
 - 👤 **Zero setup friction.** No login or account needed — your Git repo controls access.  
 - 🦾 **Generate tests automatically.** Ask AI to build tests, refine your code, deploy and run until everything passes.  
 - 🌈 **One tool instead of many.** Replace Postman, JMeter, NeoLoad, Robot Framework etc. — no juggling of tools.  
