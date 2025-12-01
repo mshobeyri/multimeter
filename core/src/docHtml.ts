@@ -260,8 +260,9 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
       }
       const groupsHtml = groups.map((g, gi) => `
         <section class="group" id="group-${gi}">
-          <h2 class="group-title">${escapeHtml(g.title)} <span class="count">(${g.items.length})</span></h2>
-          ${g.description ? `<div class="group-desc">${escapeHtml(g.description)}</div>` : ''}
+          <br /><br />
+          <h2 class="group-title">${escapeHtml(g.title)} </h2>
+          ${g.description ? `<div class="desc">${escapeHtml(g.description)}</div>` : ''}
           ${makeRows(g.items)}
         </section>
       `).join('\n');
