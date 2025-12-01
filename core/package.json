@@ -71,6 +71,7 @@
     }
   },
   "scripts": {
+    "prebuild": "node scripts/gen-doc-template.cjs",
     "build": "tsc -p tsconfig.json"
   },
   "devDependencies": {
