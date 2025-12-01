@@ -1,4 +1,5 @@
 import { DOC_TEMPLATE_HTML } from './docTemplate';
+import { formatBody } from './markupConvertor';
 // Shared HTML renderer for documentation pages
 // Framework-free and safe to use in Node and browser contexts
 
@@ -44,6 +45,23 @@ function renderValueList(val: any): string {
   }
   return `<ul>` + keys.map((k) => `<li><strong>${escapeHtml(k)}:</strong> ${renderValueList((val as any)[k])}</li>`).join('') + `</ul>`;
 }
+
+function isNonEmpty(val: any): boolean {
+  if (val === undefined || val === null) return false;
+  if (typeof val === 'string') {
+    const s = val.trim();
+    if (!s) return false;
+    const parsed = tryParseJson(val);
+    if (parsed && typeof parsed === 'object') return isNonEmpty(parsed);
+    return true;
+  }
+  if (typeof val !== 'object') return true;
+  if (Array.isArray(val)) return val.length > 0 && val.some(v => isNonEmpty(v));
+  const keys = Object.keys(val as Record<string, any>);
+  if (!keys.length) return false;
+  return keys.some(k => isNonEmpty((val as any)[k]));
+}
+
 
 export function extractEndpoint(rawUrl: any): string {
   const raw = String(rawUrl || '').trim();
@@ -100,26 +118,25 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
   let rowIdCounter = 0;
   const makeRows = (list: any[]) => (list || []).map((api: any) => {
     const idx = rowIdCounter++;
-    let method = String(api?.method || '').toUpperCase();
+    let method = api.protocol === "ws" ? "WS":  String(api?.method || '').toUpperCase();
     const urlStr = String(api?.url || '');
-    if (!method) {
-      if (/^wss?:/i.test(urlStr)) method = 'WS';
-      else if (urlStr) method = 'GET';
-    }
-    if (/^WS|WEBSOCKET$/i.test(String(api?.method || ''))) method = 'WS';
     const methodClass = (method || '').toLowerCase().startsWith('ws') ? 'ws' : (method || '').toLowerCase();
     const badge = method ? `<span class="badge method-${methodClass}">${method}</span>` : '';
     const headers = api?.headers && Object.keys(api.headers).length ? renderValueList(api.headers) : '';
     const cookies = api?.cookies && Object.keys(api.cookies).length ? renderValueList(api.cookies) : '';
     let body = '';
     if (api?.body !== undefined && api?.body !== null && String(api.body).length) {
-      const rawBody = api.body;
-      const parsed = typeof rawBody === 'string' ? tryParseJson(rawBody) : rawBody;
-      const isJsonObject = parsed && typeof parsed === 'object';
-      if (isJsonObject) {
-        body = `<pre class="code">${escapeHtml(JSON.stringify(parsed, null, 2))}</pre>`;
-      } else {
-        body = `<span class="value">${escapeHtml(typeof rawBody === 'string' ? rawBody : String(rawBody))}</span>`;
+      const fmtRaw = String(api?.format || 'json').toLowerCase();
+      const fmt = (fmtRaw === 'xml' || fmtRaw === 'json' || fmtRaw === 'text') ? fmtRaw : 'json';
+      try {
+        const converted = formatBody(fmt as any, api.body, true);
+        if (fmt === 'json' || fmt === 'xml') {
+          body = `<pre class="code">${escapeHtml(converted)}</pre>`;
+        } else {
+          body = `<span class="value">${escapeHtml(converted)}</span>`;
+        }
+      } catch {
+        body = `<span class="value">${escapeHtml(typeof api.body === 'string' ? api.body : String(api.body))}</span>`;
       }
     }
     const examplesHtml = api?.examples && Array.isArray(api.examples) && api.examples.length
@@ -142,14 +159,15 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     const outputSource = (api as any)?.outputs !== undefined ? (api as any).outputs : (api as any)?.output;
     const output = outputSource ? renderValueList(typeof outputSource === 'string' ? (tryParseJson(outputSource) ?? outputSource) : outputSource) : '';
     const inputs = api?.inputs ? renderValueList(typeof api.inputs === 'string' ? (tryParseJson(api.inputs) ?? api.inputs) : api.inputs) : '';
-    const query = (api as any)?.query ? renderValueList(typeof (api as any).query === 'string' ? (tryParseJson((api as any).query) ?? (api as any).query) : (api as any).query) : '';
+    const queryObj = (api as any)?.query;
+    const query = isNonEmpty(queryObj) ? renderValueList(typeof queryObj === 'string' ? (tryParseJson(queryObj) ?? queryObj) : queryObj) : '';
     const metaHtml = [
       headers ? `<h3>Headers</h3>${headers}` : '',
       cookies ? `<h3>Cookies</h3>${cookies}` : '',
       body ? `<h3>Body (${api?.format || 'json'})</h3>${body}` : ''
     ].filter(Boolean).join('');
     const hasInputs = !!inputs;
-    const hasQuery = !!query;
+    const hasQuery = isNonEmpty(queryObj);
     const hasOutputs = !!output;
     const hasMeta = !!metaHtml;
     const hasExamples = !!examplesHtml;
@@ -288,14 +306,19 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
   <style>
     html, body { height: 100%; }
     :root { --fg: ${cssFg}; --bg: ${cssBg}; --muted: ${cssMuted}; --accent: ${cssAccent}; --card: ${cssCard}; --border: ${cssBorder}; }
-    body { margin: 0; padding: 12px; font-size: 12px; line-height: 1.4; font-family: -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--fg); box-sizing: border-box; }
+    body { margin: 0; padding: 0; font-size: 12px; line-height: 1.4; font-family: -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--fg); box-sizing: border-box; display: flex; min-height: 100vh; flex-direction: column; }
+    .doc-container { padding: 12px; flex: 1 0 auto; }
+    .doc-footer { margin-top: auto; padding: 12px; text-align: center; color: var(--muted); border-top: 1px solid ${cssBorder}; background: rgba(255,255,255,0.02); }
     h1 { margin: 0 0 6px; font-size: 16px; }
     .doc-desc { color: var(--muted); margin: 0 0 8px; white-space: pre-wrap; }
   </style>
   </head><body>
-    <h1>${escapeHtml(title || 'Documentation')}</h1>
-    ${description ? `<div class="doc-desc">${escapeHtml(description)}</div>` : ''}
-    ${contentHtml || '<div>No APIs found.</div>'}
+    <div class="doc-container">
+      <h1>${escapeHtml(title || 'Documentation')}</h1>
+      ${description ? `<div class="doc-desc">${escapeHtml(description)}</div>` : ''}
+      ${contentHtml || '<div>No APIs found.</div>'}
+    </div>
+    <footer class="doc-footer">Powered by Multimeter</footer>
   </body></html>`;
 }
 
