@@ -166,12 +166,13 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
       cookies ? `<h3>Cookies</h3>${cookies}` : '',
       body ? `<h3>Body (${api?.format || 'json'})</h3>${body}` : ''
     ].filter(Boolean).join('');
+    const hasInfo = !!desc || !!tags || !!headers || !!cookies;
     const hasInputs = !!inputs;
     const hasQuery = isNonEmpty(queryObj);
     const hasOutputs = !!output;
     const hasMeta = !!metaHtml;
     const hasExamples = !!examplesHtml;
-    const details = hasInputs || hasQuery || hasOutputs || hasMeta || hasExamples ? `
+    const details = hasInfo || hasInputs || hasQuery || hasOutputs || hasMeta || hasExamples ? `
       <div class="details" id="details-${idx}" style="display: none;">
         <h3>URL</h3>
         <div class="url"><input class="url-input" type="text" id="url-${idx}" value="${escapeHtml(api?.url || '')}" /></div>
