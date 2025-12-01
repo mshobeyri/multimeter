@@ -58,29 +58,29 @@ export function apiToYaml(api: APIData): string {
   if (isNonEmptyObject(api.setenv)) {
     yamlObj.setenv = api.setenv;
   };
-  if (api.protocol) {
-    yamlObj.protocol = api.protocol;
-  };
-  if (api.format) {
-    yamlObj.format = api.format;
-  };
   if (api.url) {
     yamlObj.url = api.url;
-  };
-  if (api.method) {
-    yamlObj.method = api.method;
-  };
-  if (isNonEmptyObject(api.headers)) {
-    yamlObj.headers = api.headers;
-  };
-  if (api.body && api.body !== '') {
-    yamlObj.body = api.body;
   };
   if (isNonEmptyObject(api.query)) {
     yamlObj.query = api.query;
   };
+  if (api.protocol) {
+    yamlObj.protocol = api.protocol;
+  };
+  if (api.method) {
+    yamlObj.method = api.method;
+  };
+  if (api.format) {
+    yamlObj.format = api.format;
+  };
+  if (isNonEmptyObject(api.headers)) {
+    yamlObj.headers = api.headers;
+  };
   if (isNonEmptyObject(api.cookies)) {
     yamlObj.cookies = api.cookies;
+  };
+  if (api.body && api.body !== '') {
+    yamlObj.body = api.body;
   };
   if (isNonEmptyList(api.examples)) {
     yamlObj.examples = api.examples;
