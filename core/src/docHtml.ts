@@ -1,3 +1,4 @@
+import { DOC_TEMPLATE_HTML } from './docTemplate';
 // Shared HTML renderer for documentation pages
 // Framework-free and safe to use in Node and browser contexts
 
@@ -231,6 +232,28 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     contentHtml = makeRows(apis || []);
   }
 
+  // Use embedded HTML template (generated at build time) and inject content.
+  if (DOC_TEMPLATE_HTML && DOC_TEMPLATE_HTML.length > 0) {
+    let html = DOC_TEMPLATE_HTML;
+    // Replace <title>...</title>
+    html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(title || 'API Documentation')}</title>`);
+    // Replace description block
+    const descHtml = `<div class="doc-desc">${escapeHtml(description || 'Generated API Documentation')}</div>`;
+    html = html.replace(/<div class="doc-desc">[\s\S]*?<\/div>/i, descHtml);
+    // Inject generated content inside .doc-container (before footer)
+    const containerOpen = html.indexOf('<div class="doc-container">');
+    if (containerOpen >= 0) {
+      const insertStart = html.indexOf('>', containerOpen) + 1;
+      const footerIdx = html.indexOf('<footer', insertStart);
+      const containerClose = footerIdx > -1 ? html.lastIndexOf('</div>', footerIdx) : html.lastIndexOf('</div>');
+      if (insertStart > 0 && containerClose > insertStart) {
+        const injected = `\n${descHtml}\n${contentHtml || '<div>No APIs found.</div>'}\n`;
+        html = html.slice(0, insertStart) + injected + html.slice(containerClose);
+      }
+    }
+    return html;
+  }
+
   return `<!DOCTYPE html>
   <html><head>
   <meta charset="UTF-8" />
@@ -242,131 +265,11 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     body { margin: 0; padding: 12px; font-size: 12px; line-height: 1.4; font-family: -apple-system, Segoe UI, Roboto, sans-serif; background: var(--bg); color: var(--fg); box-sizing: border-box; }
     h1 { margin: 0 0 6px; font-size: 16px; }
     .doc-desc { color: var(--muted); margin: 0 0 8px; white-space: pre-wrap; }
-    /* Sticky header spanning full width with bottom border (horizontal line) */
-    .doc-header {
-      position: sticky; top: 0; z-index: 1000;
-      display: flex; align-items: center; justify-content: space-between; gap: 8px;
-      margin: -12px -12px 8px; padding: 8px 12px;
-      background: var(--bg);
-      border-bottom: 1px solid var(--border);
-      min-height: 40px;
-    }
-    .doc-head-left { display: flex; align-items: center; gap: 10px; }
-    .doc-head-left h1 { margin: 0; font-size: 16px; line-height: 24px; display: flex; align-items: center; }
-    .logo { height: 20px; width: auto; object-fit: contain; display: block; }
-    .search { margin-left: auto; display: flex; align-items: center; }
-    .search-input { min-width: 240px; height: 28px; padding: 0 10px; border-radius: 4px; border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: var(--fg); outline: none; }
-    /* Style the native search cancel (clear) icon to a gray tone matching theme.
-       Keep the default appearance so it remains visible. */
-    .search-input::-webkit-search-cancel-button {
-      height: 14px;
-      width: 14px;
-      cursor: pointer;
-      filter: grayscale(1) brightness(0.85);
-      opacity: 0.9;
-    }
-  .search-input::placeholder { color: var(--muted); }
-  .group { margin: 16px 0; }
-  .group-title { margin: 12px 0 4px; font-size: 13px; color: var(--muted); border-bottom: 1px solid #2a2a2a; padding-bottom: 4px; }
-  .group-desc { color: var(--muted); margin: 0 0 8px; white-space: pre-wrap; }
-  .api { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin: 10px 0; background: var(--card); box-sizing: border-box; }
-    h2 { display: flex; align-items: center; gap: 6px; font-size: 13px; margin: 0 0 6px; }
-    .title { font-weight: 700; }
-    .endpoint { font-weight: 400; color: #9aa0a6; word-break: break-all; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 11px; }
-    .fade-title { color: var(--muted); font-weight: 700; margin-right: 8px; }
-    .toggle { color: var(--muted); display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; }
-    .toggle .chevron { transition: transform 0.15s ease; transform: rotate(0deg); }
-    .toggle.open .chevron { transform: rotate(90deg); }
-    .badge { font-size: 9px; padding: 1px 5px; border-radius: 3px; background: #444; color: #fff; }
-    .method-get { background:#2d7; }
-    .method-post { background:#27d; }
-    .method-put { background:#d72; }
-    .method-patch { background:#a7d; }
-    .method-delete { background:#d44; }
-    .url { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; color: var(--accent); margin-bottom: 6px; word-break: break-all; }
-    .desc { color: var(--muted); margin-bottom: 6px; white-space: pre-wrap; }
-    h3 { font-size: 11px; margin: 8px 0 4px; color: #ddd; }
-    .kv, .code { background: #0b0b0b; padding: 6px; border-radius: 4px; overflow:auto; border: 1px solid #222; }
-    .details { width: 100%; }
-    .details ul { margin: 0 0 6px 16px; }
-    .details li { margin: 2px 0; }
-    .details .url-input { width: 100%; box-sizing: border-box; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 12px; padding: 4px 6px; color: #cfcfcf; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 4px; }
-    .response { width: 100%; box-sizing: border-box; min-height: 20px; }
-    .sep { border: none; border-top: 1px solid #2a2a2a; margin: 8px 0; }
-    .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; }
-    .tag { display: inline-block; padding: 2px 6px; font-size: 10px; border-radius: 999px; background: #222; border: 1px solid #333; color: #bbb; }
-    .example { padding: 4px 0; }
-    .ex-name { font-weight: 600; margin-bottom: 2px; }
-    .ex-desc { color: var(--muted); margin-bottom: 2px; }
   </style>
   </head><body>
-    <div class="doc-header">
-      <div class="doc-head-left">
-        ${logo ? `<img class="logo" src="${escapeHtml(logo)}" alt="logo" />` : ''}
-        <h1>${escapeHtml(title || 'Documentation')}</h1>
-      </div>
-      <div class="search">
-        <input id="search-input" class="search-input" type="search" placeholder="Search..." aria-label="Filter endpoints" />
-      </div>
-    </div>
-  ${description ? `<div class="doc-desc">${escapeHtml(description)}</div>` : ''}
-  ${contentHtml || '<div>No APIs found.</div>'}
-    <script>
-      function toggleDetails(idx) {
-        const details = document.getElementById('details-' + idx);
-        const toggle = document.getElementById('toggle-' + idx);
-        const isClosed = details.style.display === 'none';
-        if (isClosed) {
-          details.style.display = 'block';
-          toggle.classList.add('open');
-          toggle.setAttribute('aria-expanded', 'true');
-        } else {
-          details.style.display = 'none';
-          toggle.classList.remove('open');
-          toggle.setAttribute('aria-expanded', 'false');
-        }
-      }
-      (function setUpSearch(){
-        var input = document.getElementById('search-input');
-        if (!input) return;
-        var noResId = 'no-results';
-        function applyFilter(){
-          var q = (input.value || '').toLowerCase().trim();
-          var nodes = Array.prototype.slice.call(document.querySelectorAll('section.api'));
-          var any = false;
-          for (var i=0;i<nodes.length;i++){
-            var sec = nodes[i];
-            var text = (sec.textContent || '').toLowerCase();
-            var match = !q || text.indexOf(q) !== -1;
-            sec.style.display = match ? '' : 'none';
-            if (match) any = true;
-          }
-          // hide entire group blocks with no visible apis
-          var groups = Array.prototype.slice.call(document.querySelectorAll('section.group'));
-          for (var j=0;j<groups.length;j++){
-            var g = groups[j];
-            var vis = g.querySelector('section.api[style=""]') || g.querySelector('section.api:not([style])');
-            // If no child api is visible, hide the group
-            var anyApi = Array.prototype.some.call(g.querySelectorAll('section.api'), function(el){ return el.style.display !== 'none'; });
-            g.style.display = anyApi ? '' : 'none';
-          }
-          var noRes = document.getElementById(noResId);
-          if (!q || any) {
-            if (noRes && noRes.parentElement) noRes.parentElement.removeChild(noRes);
-          } else {
-            if (!noRes) {
-              var div = document.createElement('div');
-              div.id = noResId;
-              div.textContent = 'No results';
-              div.style.color = '#bbb';
-              div.style.margin = '8px 0';
-              document.body.appendChild(div);
-            }
-          }
-        }
-        input.addEventListener('input', applyFilter);
-      })();
-    </script>
+    <h1>${escapeHtml(title || 'Documentation')}</h1>
+    ${description ? `<div class="doc-desc">${escapeHtml(description)}</div>` : ''}
+    ${contentHtml || '<div>No APIs found.</div>'}
   </body></html>`;
 }
 

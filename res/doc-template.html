@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>API Documentation</title>
+<style>
+  html, body { height: 100%; }
+  
+  /* Dark theme (default) */
+  :root {
+    --fg: #e5e5e5;
+    --bg: #1a1a1a;
+    --bg-gradient: linear-gradient(135deg, #252525 0%, #2f2f2f 50%, #282828 100%);
+    --muted: #a8a8a8;
+    --accent: #999999;
+    --card: rgba(40, 40, 40, 0.8);
+    --card-hover: rgba(48, 48, 48, 0.9);
+    --border: rgba(110, 110, 110, 0.25);
+    --glass-bg: rgba(35, 35, 35, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  /* Light theme */
+  [data-theme="light"] {
+    --fg: #374151;
+    --bg: #f9fafb;
+    --bg-gradient: linear-gradient(135deg, #f0f4f8 0%, #f9fafb 50%, #f3f5f7 100%);
+    --muted: #6b7280;
+    --accent: #3b82f6;
+    --card: rgba(255, 255, 255, 0.75);
+    --card-hover: rgba(255, 255, 255, 0.95);
+    --border: rgba(100, 110, 150, 0.15);
+    --glass-bg: rgba(255, 255, 255, 0.6);
+    --glass-border: rgba(0, 0, 0, 0.06);
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;
+    background: var(--bg-gradient);
+    background-attachment: fixed;
+    color: var(--fg);
+    box-sizing: border-box;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
+  .doc-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+
+  h1 {
+    margin: 0 0 6px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .doc-desc {
+    color: var(--muted);
+    margin: 0 0 12px;
+    white-space: pre-wrap;
+    font-size: 13px;
+  }
+
+  .doc-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 0 16px;
+    padding: 12px 20px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid var(--glass-border);
+    border-radius: 0;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+    min-height: 50px;
+  }
+
+  .doc-head-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .doc-head-left h1 {
+    margin: 0;
+    font-size: 18px;
+    line-height: 28px;
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, #888888 0%, #d0d0d0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  [data-theme="light"] .doc-head-left h1 {
+    background: linear-gradient(135deg, #4a5568 0%, #718096 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .search {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .theme-toggle {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    color: var(--fg);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .theme-toggle:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    background: var(--card-hover);
+  }
+
+  .theme-toggle:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  .search-input {
+    min-width: 260px;
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 20px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    color: var(--fg);
+    outline: none;
+    font-size: 13px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(77, 159, 255, 0.2);
+    background: var(--card);
+  }
+
+  .search-input::-webkit-search-cancel-button {
+    height: 14px;
+    width: 14px;
+    cursor: pointer;
+    filter: grayscale(1) brightness(0.85);
+    opacity: 0.9;
+  }
+
+  .search-input::placeholder {
+    color: var(--muted);
+  }
+
+  .api {
+    width: 100%;
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    padding: 16px;
+    margin: 14px 0;
+    background: var(--card);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-sizing: border-box;
+    box-shadow: var(--shadow);
+    transition: all 0.3s ease;
+  }
+
+  .api:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+    background: var(--card-hover);
+    border-color: var(--accent);
+  }
+
+  .api.open:hover {
+    transform: none;
+    box-shadow: var(--shadow);
+    background: var(--card);
+    border-color: var(--glass-border);
+  }
+
+  h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    margin: 0 0 8px;
+    font-weight: 600;
+  }
+
+  .endpoint {
+    font-weight: 400;
+    color: var(--muted);
+    word-break: break-all;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 11px;
+  }
+
+  .fade-title {
+    color: var(--fg);
+    font-weight: 600;
+    margin-right: 8px;
+  }
+
+  .toggle {
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s ease;
+  }
+
+  .toggle:hover {
+    background: var(--accent);
+    color: white;
+  }
+
+  .toggle .chevron {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: rotate(0deg);
+  }
+
+  .toggle.open .chevron {
+    transform: rotate(90deg);
+  }
+
+  .badge {
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: #444;
+    color: #fff;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .method-get { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+  .method-post { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+  .method-put { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+  .method-patch { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+  .method-delete { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+  .method-ws { background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%); }
+
+  .url {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    color: var(--accent);
+    margin-bottom: 8px;
+    word-break: break-all;
+    font-size: 12px;
+  }
+
+  .desc {
+    color: var(--muted);
+    margin-bottom: 8px;
+    white-space: pre-wrap;
+    line-height: 1.6;
+  }
+
+  h3 {
+    font-size: 12px;
+    margin: 12px 0 6px;
+    color: var(--fg);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.8;
+  }
+
+  .kv, .code {
+    background: var(--glass-bg);
+    padding: 10px 12px;
+    border-radius: 12px;
+    overflow: auto;
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(10px);
+    font-size: 12px;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .details {
+    width: 100%;
+    animation: slideDown 0.3s ease;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .details ul {
+    margin: 0 0 8px 18px;
+  }
+
+  .details li {
+    margin: 3px 0;
+    line-height: 1.6;
+  }
+
+  /* Table styling */
+  .param-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 8px 0;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .param-table thead {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+  }
+
+  .param-table th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--glass-border);
+    width: 50%;
+  }
+
+  .param-table td {
+    padding: 10px 14px;
+    font-size: 12px;
+    border-bottom: 1px solid var(--glass-border);
+    line-height: 1.6;
+    width: 50%;
+  }
+
+  .param-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .param-table tbody tr {
+    transition: background 0.2s ease;
+  }
+
+  .param-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  [data-theme="light"] .param-table tbody tr:hover {
+    background: rgba(0, 0, 0, 0.02);
+  }
+
+  .param-table .param-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    color: var(--accent);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  .param-table .param-value {
+    color: var(--fg);
+  }
+
+  .details .url-input {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 12px;
+    padding: 8px 12px;
+    color: var(--fg);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+  }
+
+  .details .url-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(77, 159, 255, 0.15);
+  }
+
+  .response {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 20px;
+  }
+
+  .sep {
+    border: none;
+    border-top: 1px solid var(--glass-border);
+    margin: 14px 0;
+    opacity: 0.5;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 6px 0 10px;
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 4px 12px;
+    font-size: 11px;
+    border-radius: 16px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--fg);
+    backdrop-filter: blur(10px);
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .tag:hover {
+    background: var(--accent);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(77, 159, 255, 0.3);
+  }
+
+  .example {
+    padding: 12px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    margin: 8px 0;
+    backdrop-filter: blur(10px);
+  }
+
+  .ex-name {
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--fg);
+    font-size: 13px;
+  }
+
+  .ex-desc {
+    color: var(--muted);
+    margin-bottom: 8px;
+    line-height: 1.6;
+    font-size: 12px;
+  }
+
+  .ex-sub {
+    margin-top: 8px;
+  }
+
+  /* Smooth transitions for theme switching */
+  * {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
+
+  .doc-footer {
+    margin: 32px 0 0;
+    padding: 16px 20px;
+    text-align: center;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-top: 1px solid var(--glass-border);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .doc-footer a {
+    background: linear-gradient(135deg, #888888 0%, #d0d0d0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-decoration: none;
+    font-weight: 600;
+    transition: opacity 0.3s ease;
+  }
+
+  .doc-footer a:hover {
+    opacity: 0.8;
+  }
+
+  [data-theme="light"] .doc-footer a {
+    background: linear-gradient(135deg, #4a5568 0%, #718096 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+</style>
+</head><body>
+  <div class="doc-header">
+    <div class="doc-head-left">
+      <h1>API Documentation</h1>
+    </div>
+    <div class="search">
+      <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+      </button>
+      <input id="search-input" class="search-input" type="search" placeholder="Search..." aria-label="Filter endpoints" />
+    </div>
+  </div>
+  <div class="doc-container">
+  <div class="doc-desc">Generated API Documentation</div>
+  
+    <section class="api" id="api-0">
+      <h2 onclick="toggleDetails(0)" style="cursor: pointer;">
+        <span class="toggle" id="toggle-0" role="button" aria-expanded="false" aria-controls="details-0">
+          <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 6 15 12 9 18"></polyline>
+          </svg>
+        </span>
+        <span class="badge method-post">POST</span>
+        <span class="fade-title">Test1</span>
+        
+      </h2>
+      
+    <div class="details" id="details-0" style="display: none;">
+      <h3>URL</h3>
+      <div class="url"><input class="url-input" type="text" id="url-0" value="http://localhost:8080" /></div>
+      <div class="desc">test1</div>
+      <h3>Inputs</h3>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="param-name">username</td>
+            <td class="param-value">default@gmail.com</td>
+          </tr>
+          <tr>
+            <td class="param-name">password</td>
+            <td class="param-value">123456</td>
+          </tr>
+          <tr>
+            <td class="param-name">keep_login</td>
+            <td class="param-value">true</td>
+          </tr>
+        </tbody>
+      </table>
+      <h3>Outputs</h3>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="param-name">name</td>
+            <td class="param-value">string</td>
+          </tr>
+        </tbody>
+      </table>
+      <hr class="sep" /><h3>Body (JSON)</h3><pre class="code">{
+  "username": "i:username",
+  "password": "i:password",
+  "keep_login": "i:keep_login"
+}</pre>
+      <hr class="sep" />
+<h3>Examples</h3>
+<div class="example">
+          <div class="ex-name">example1</div>
+          <div class="ex-desc">test to handle normal request</div>
+          <div class="ex-sub">
+            <strong>Inputs</strong>
+            <table class="param-table">
+              <thead>
+                <tr>
+                  <th>Parameter</th>
+                  <th>Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="param-name">username</td>
+                  <td class="param-value">default@gmail.com</td>
+                </tr>
+                <tr>
+                  <td class="param-name">password</td>
+                  <td class="param-value">123456</td>
+                </tr>
+                <tr>
+                  <td class="param-name">keep_login</td>
+                  <td class="param-value">true</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="ex-sub">
+            <strong>Outputs</strong>
+            <table class="param-table">
+              <thead>
+                <tr>
+                  <th>Field</th>
+                  <th>Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="param-name">name</td>
+                  <td class="param-value">Hello</td>
+                </tr>
+                <tr>
+                  <td class="param-name">status_code</td>
+                  <td class="param-value">200</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+    </div>
+    </section>
+
+    <section class="api" id="api-1">
+      <h2 onclick="toggleDetails(1)" style="cursor: pointer;">
+        <span class="toggle" id="toggle-1" role="button" aria-expanded="false" aria-controls="details-1">
+          <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 6 15 12 9 18"></polyline>
+          </svg>
+        </span>
+        <span class="badge method-get">GET</span>
+        <span class="fade-title">Get User Info</span>
+        <span class="endpoint">/users/:id</span>
+      </h2>
+      
+    <div class="details" id="details-1" style="display: none;">
+      <h3>URL</h3>
+      <div class="url"><input class="url-input" type="text" id="url-1" value="https://api.example.com/users/:id" /></div>
+      <div class="desc">Retrieve user information by ID</div><div class="tags"><span class="tag">users</span><span class="tag">public</span></div>
+      <h3>Inputs</h3>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="param-name">id</td>
+            <td class="param-value">number - User ID</td>
+          </tr>
+        </tbody>
+      </table>
+      <h3>Outputs</h3>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="param-name">id</td>
+            <td class="param-value">number</td>
+          </tr>
+          <tr>
+            <td class="param-name">name</td>
+            <td class="param-value">string</td>
+          </tr>
+          <tr>
+            <td class="param-name">email</td>
+            <td class="param-value">string</td>
+          </tr>
+          <tr>
+            <td class="param-name">created_at</td>
+            <td class="param-value">string</td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <hr class="sep" />
+<h3>Examples</h3>
+<div class="example"><div class="ex-name">Get User 123</div><div class="ex-sub"><strong>Inputs</strong><ul><li><strong>id:</strong> <span class="value">123</span></li></ul></div><div class="ex-sub"><strong>Outputs</strong><ul><li><strong>id:</strong> <span class="value">123</span></li><li><strong>name:</strong> <span class="value">John Doe</span></li><li><strong>email:</strong> <span class="value">john@example.com</span></li><li><strong>created_at:</strong> <span class="value">2025-01-01T00:00:00Z</span></li></ul></div></div>
+    </div>
+    </section>
+
+    <section class="api" id="api-2">
+      <h2 onclick="toggleDetails(2)" style="cursor: pointer;">
+        <span class="toggle" id="toggle-2" role="button" aria-expanded="false" aria-controls="details-2">
+          <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 6 15 12 9 18"></polyline>
+          </svg>
+        </span>
+        <span class="badge method-post">POST</span>
+        <span class="fade-title">Create Order</span>
+        <span class="endpoint">/orders</span>
+      </h2>
+      
+    <div class="details" id="details-2" style="display: none;">
+      <h3>URL</h3>
+      <div class="url"><input class="url-input" type="text" id="url-2" value="https://api.example.com/orders" /></div>
+      <div class="desc">Submit a new order</div><div class="tags"><span class="tag">orders</span><span class="tag">admin</span></div>
+      <h3>Inputs</h3>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="param-name">product_id</td>
+            <td class="param-value">number - Product ID</td>
+          </tr>
+          <tr>
+            <td class="param-name">quantity</td>
+            <td class="param-value">number - Quantity to order</td>
+          </tr>
+          <tr>
+            <td class="param-name">customer_email</td>
+            <td class="param-value">string - Customer email</td>
+          </tr>
+        </tbody>
+      </table>
+      <h3>Outputs</h3>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="param-name">order_id</td>
+            <td class="param-value">number</td>
+          </tr>
+          <tr>
+            <td class="param-name">status</td>
+            <td class="param-value">string</td>
+          </tr>
+          <tr>
+            <td class="param-name">total_price</td>
+            <td class="param-value">number</td>
+          </tr>
+        </tbody>
+      </table>
+      <hr class="sep" />
+      <h3>Headers</h3>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Header</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="param-name">Content-Type</td>
+            <td class="param-value">application/json</td>
+          </tr>
+          <tr>
+            <td class="param-name">Authorization</td>
+            <td class="param-value">Bearer &lt;token&gt;</td>
+          </tr>
+        </tbody>
+      </table>
+      <h3>Body (JSON)</h3><pre class="code">{
+  "product_id": "number",
+  "quantity": "number",
+  "customer_email": "string"
+}</pre>
+      
+    </div>
+    </section>
+
+    <section class="api" id="api-3">
+      <h2 onclick="toggleDetails(3)" style="cursor: pointer;">
+        <span class="toggle" id="toggle-3" role="button" aria-expanded="false" aria-controls="details-3">
+          <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="9 6 15 12 9 18"></polyline>
+          </svg>
+        </span>
+        <span class="badge method-ws">WS</span>
+        <span class="fade-title">WebSocket Chat</span>
+        <span class="endpoint">/chat</span>
+      </h2>
+      
+    <div class="details" id="details-3" style="display: none;">
+      <h3>URL</h3>
+      <div class="url"><input class="url-input" type="text" id="url-3" value="wss://api.example.com/chat" /></div>
+      <div class="desc">Real-time chat via WebSocket</div><div class="tags"><span class="tag">chat</span><span class="tag">websocket</span></div>
+      <h3>Inputs</h3>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="param-name">message</td>
+            <td class="param-value">string - Message to send</td>
+          </tr>
+          <tr>
+            <td class="param-name">room</td>
+            <td class="param-value">string - Chat room ID</td>
+          </tr>
+        </tbody>
+      </table>
+      <h3>Outputs</h3>
+      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="param-name">message</td>
+            <td class="param-value">string - Received message</td>
+          </tr>
+          <tr>
+            <td class="param-name">sender</td>
+            <td class="param-value">string - Sender username</td>
+          </tr>
+          <tr>
+            <td class="param-name">timestamp</td>
+            <td class="param-value">number</td>
+          </tr>
+        </tbody>
+      </table>
+      
+      
+    </div>
+    </section>
+  <script>
+    function toggleDetails(idx) {
+      const details = document.getElementById('details-' + idx);
+      const toggle = document.getElementById('toggle-' + idx);
+      const isClosed = details.style.display === 'none';
+      if (isClosed) {
+        details.style.display = 'block';
+        toggle.classList.add('open');
+        toggle.setAttribute('aria-expanded', 'true');
+      } else {
+        details.style.display = 'none';
+        toggle.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+    }
+    (function setUpSearch(){
+      var input = document.getElementById('search-input');
+      if (!input) return;
+      var noResId = 'no-results';
+      function applyFilter(){
+        var q = (input.value || '').toLowerCase().trim();
+        var nodes = Array.prototype.slice.call(document.querySelectorAll('section.api'));
+        var any = false;
+        for (var i=0;i<nodes.length;i++){
+          var sec = nodes[i];
+          var text = (sec.textContent || '').toLowerCase();
+          var match = !q || text.indexOf(q) !== -1;
+          sec.style.display = match ? '' : 'none';
+          if (match) any = true;
+        }
+        var noRes = document.getElementById(noResId);
+        if (!q || any) {
+          if (noRes && noRes.parentElement) noRes.parentElement.removeChild(noRes);
+        } else {
+          if (!noRes) {
+            var div = document.createElement('div');
+            div.id = noResId;
+            div.textContent = 'No results';
+            div.style.color = '#bbb';
+            div.style.margin = '8px 0';
+            document.body.appendChild(div);
+          }
+        }
+      }
+      input.addEventListener('input', applyFilter);
+    })();
+
+    // Theme toggle functionality
+    (function setupTheme() {
+      const toggle = document.getElementById('theme-toggle');
+      const root = document.documentElement;
+      
+      // Check for saved theme preference or default to dark
+      const currentTheme = localStorage.getItem('theme') || 'dark';
+      root.setAttribute('data-theme', currentTheme);
+      updateThemeIcon(currentTheme);
+
+      toggle.addEventListener('click', function() {
+        const theme = root.getAttribute('data-theme');
+        const newTheme = theme === 'dark' ? 'light' : 'dark';
+        root.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateThemeIcon(newTheme);
+      });
+
+      function updateThemeIcon(theme) {
+        const sunIcon = `
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        `;
+        const moonIcon = `
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        `;
+        toggle.innerHTML = theme === 'dark' ? sunIcon : moonIcon;
+      }
+    })();
+
+    // Add open class to API cards when toggled
+    const apiSections = document.querySelectorAll('section.api');
+    apiSections.forEach(function(section) {
+      const toggleBtn = section.querySelector('h2');
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', function() {
+          section.classList.toggle('open');
+        });
+      }
+    });
+  </script>
+  </div>
+  <footer class="doc-footer">
+    Powered by <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter" target="_blank" rel="noopener noreferrer">Multimeter</a>
+  </footer>
+</body></html>
