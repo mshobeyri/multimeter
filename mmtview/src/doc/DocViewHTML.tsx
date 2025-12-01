@@ -115,6 +115,7 @@ const DocViewHTML: React.FC<DocViewProps> = ({ doc }) => {
           Export as HTML
         </button>
       </div>
+      <br />
       <iframe ref={iframeRef} style={{ flex: 1, width: '100%', height: '100%', border: '1px solid var(--panel-border)' }} title="Documentation Preview" />
     </div>
   );
