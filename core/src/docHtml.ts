@@ -47,18 +47,30 @@ function renderValueList(val: any): string {
 }
 
 function isNonEmpty(val: any): boolean {
-  if (val === undefined || val === null) return false;
+  if (val === undefined || val === null) {
+    return false;
+  }
   if (typeof val === 'string') {
     const s = val.trim();
-    if (!s) return false;
+    if (!s) {
+      return false;
+    }
     const parsed = tryParseJson(val);
-    if (parsed && typeof parsed === 'object') return isNonEmpty(parsed);
+    if (parsed && typeof parsed === 'object') {
+      return isNonEmpty(parsed);
+    }
     return true;
   }
-  if (typeof val !== 'object') return true;
-  if (Array.isArray(val)) return val.length > 0 && val.some(v => isNonEmpty(v));
+  if (typeof val !== 'object') {
+    return true;
+  }
+  if (Array.isArray(val)) {
+    return val.length > 0 && val.some(v => isNonEmpty(v));
+  }
   const keys = Object.keys(val as Record<string, any>);
-  if (!keys.length) return false;
+  if (!keys.length) {
+    return false;
+  }
   return keys.some(k => isNonEmpty((val as any)[k]));
 }
 
@@ -89,8 +101,7 @@ export function extractEndpoint(rawUrl: any): string {
 export interface BuildDocHtmlOptions {
   title?: string;
   description?: string;
-  theme?: any;
-  logoDataUrl?: string;
+  logo?: string;
   sources?: string[];
   services?: Array<{ name?: string; description?: string; sources?: string[] }>;
 }
@@ -112,7 +123,7 @@ function matchesSource(filePath: string, src: string): boolean {
 }
 
 export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): string {
-  const { title, description, theme, logoDataUrl } = opts;
+  const { title, description, logo } = opts;
 
   // ensure unique IDs across the entire page, even when rendering per-group
   let rowIdCounter = 0;
@@ -200,14 +211,13 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
       </section>`;
   }).join('\n');
 
-  const colors = (theme && theme.colors) ? theme.colors : {};
-  const logo = logoDataUrl || (theme && theme.logo ? String(theme.logo) : '');
-  const cssFg = colors.fg || '#ddd';
-  const cssBg = colors.bg || '#1e1e1e';
-  const cssMuted = colors.muted || '#aaa';
-  const cssAccent = colors.accent || '#0e639c';
-  const cssCard = colors.card || '#111';
-  const cssBorder = colors.border || '#333';
+  const logoStr = logo || '';
+  const cssFg = '#ddd';
+  const cssBg = '#1e1e1e';
+  const cssMuted = '#aaa';
+  const cssAccent = '#0e639c';
+  const cssCard = '#111';
+  const cssBorder = '#333';
 
   // Build groups if services/sources provided and file info exists
   let contentHtml = '';
@@ -285,16 +295,9 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
         const newInner = `\n${descHtml}\n${contentHtml || '<div>No APIs found.</div>'}\n${originalScript}`;
         html = html.replace(containerRegex, `<div class="doc-container">${newInner}</div>`);
       }
-      // Theme override: if custom theme colors provided, append style tag overriding CSS variables.
-      const hasCustomColors = theme && theme.colors;
-      if (hasCustomColors) {
-        const themeCss = `:root {${cssFg?`--fg:${cssFg};`:''}${cssBg?`--bg:${cssBg};`:''}${cssMuted?`--muted:${cssMuted};`:''}${cssAccent?`--accent:${cssAccent};`:''}${cssCard?`--card:${cssCard};`:''}${cssBorder?`--border:${cssBorder};`:''}}`;
-        // Insert before closing </head>
-        html = html.replace(/<\/head>/i, `<style id="dynamic-theme">${themeCss}</style></head>`);
-      }
       // Logo injection: replace existing <h1> block if logo provided.
-      if (logo) {
-        html = html.replace(/<div class="doc-head-left">[\s\S]*?<\/div>/i, `<div class="doc-head-left">${logo ? `<img class="logo" src="${escapeHtml(logo)}" alt="logo" style="height:24px;object-fit:contain;" />` : ''}<h1>${escapeHtml(title || 'API Documentation')}</h1></div>`);
+      if (logoStr) {
+        html = html.replace(/<div class="doc-head-left">[\s\S]*?<\/div>/i, `<div class="doc-head-left"><img class="logo" src="${escapeHtml(logoStr)}" alt="logo" style="height:24px;object-fit:contain;" /><h1>${escapeHtml(title || 'API Documentation')}</h1></div>`);
       }
     return html;
   }

@@ -191,51 +191,13 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Service groups [array]',
             documentation: 'Optional grouping of sources by service. Each item has name, optional description, and sources (folders or files).'
         },
-        {
-            label: "files",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "files:\n\t- ",
-            detail: 'Explicit list of .mmt files [array of strings]',
-            documentation: 'Add specific API files to include in the documentation.'
-        },
-        {
-            label: "folders",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "folders:\n\t- ",
-            detail: 'Folders to scan recursively [array of strings]',
-            documentation: 'Add folders to scan for API files.'
-        },
-        {
-            label: "theme",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "theme:\n\tlogo: \n\tcolors:\n\t\tfg: \"#ddd\"\n\t\tbg: \"#1e1e1e\"\n\t\tmuted: \"#aaa\"\n\t\taccent: \"#0e639c\"\n\t\tcard: \"#111\"\n\t\tborder: \"#333\"\n",
-            detail: 'Theming (logo and colors) [object]',
-            documentation: 'Customize the doc page appearance. Provide a logo URL and override colors: fg, bg, muted, accent, card, border.'
-        },
-    ];
-    const themeSuggestions = [
-        {
+         {
             label: "logo",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "\tlogo: ",
             detail: 'Logo URL/path [string]',
             documentation: 'Path or URL to a logo image shown next to the title.'
-        },
-        {
-            label: "colors",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "\tcolors:\n\t\tfg: \"#ddd\"\n\t\tbg: \"#1e1e1e\"\n\t\tmuted: \"#aaa\"\n\t\taccent: \"#0e639c\"\n\t\tcard: \"#111\"\n\t\tborder: \"#333\"\n",
-            detail: 'Theme colors [object]',
-            documentation: 'Override colors used in the documentation page.'
-        },
-    ];
-    const themeColorsSuggestions = [
-        { label: "fg", kind: monaco.languages.CompletionItemKind.Property, insertText: "fg: \"#ddd\"", detail: 'Foreground color', documentation: 'Text color (default #ddd)' },
-        { label: "bg", kind: monaco.languages.CompletionItemKind.Property, insertText: "bg: \"#1e1e1e\"", detail: 'Background color', documentation: 'Background color (default #1e1e1e)' },
-        { label: "muted", kind: monaco.languages.CompletionItemKind.Property, insertText: "muted: \"#aaa\"", detail: 'Muted text color', documentation: 'Secondary text color (default #aaa)' },
-        { label: "accent", kind: monaco.languages.CompletionItemKind.Property, insertText: "accent: \"#0e639c\"", detail: 'Accent color', documentation: 'Links, highlights (default #0e639c)' },
-        { label: "card", kind: monaco.languages.CompletionItemKind.Property, insertText: "card: \"#111\"", detail: 'Card background', documentation: 'Panel/card background (default #111)' },
-        { label: "border", kind: monaco.languages.CompletionItemKind.Property, insertText: "border: \"#333\"", detail: 'Border color', documentation: 'Borders and separators (default #333)' },
+        }
     ];
     const apiSuggestions = [
         {
@@ -523,8 +485,6 @@ export const KeySuggestionsByParent = (monaco: any) => {
         test: testSuggestions,
         doc: docSuggestions,
         services: servicesSuggestions,
-        theme: themeSuggestions,
-        colors: themeColorsSuggestions,
         env: envSuggestions,
         type: typeSuggestions,
         examples: exampleSuggestions,

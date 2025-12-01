@@ -74,26 +74,26 @@ const DocViewHTML: React.FC<DocViewProps> = ({ doc }) => {
         } catch { }
       }
       let logoDataUrl: string | undefined = undefined;
-      const theme: any = (doc as any).theme;
-      if (theme && theme.logo && typeof theme.logo === 'string') {
-        const logoStr = theme.logo as string;
+      if (doc.logo && typeof doc.logo === 'string') {
+        const logoStr = doc.logo as string;
         const isData = logoStr.startsWith('data:');
         const isHttp = /^https?:\/\//i.test(logoStr);
         if (!isData && !isHttp) {
           try { logoDataUrl = await readFileAsDataUrl(logoStr); } catch { }
+        } else {
+          logoDataUrl = logoStr;
         }
       }
       if (!cancelled) setHtml(docHtml.buildDocHtml(apis, {
         title: doc.title,
         description: (doc as any).description,
-        theme: (doc as any).theme,
-        logoDataUrl,
+        logo: logoDataUrl || doc.logo,
         sources: Array.isArray(doc.sources) ? doc.sources : undefined,
         services: Array.isArray((doc as any).services) ? (doc as any).services : undefined,
       }));
     })();
     return () => { cancelled = true; };
-  }, [sources, doc.title, (doc as any).description, (doc as any).theme, (doc as any).services]);
+  }, [sources, doc.title, (doc as any).description, doc.logo, (doc as any).services]);
 
   useEffect(() => {
     if (!iframeRef.current) return;

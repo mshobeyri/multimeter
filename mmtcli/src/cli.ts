@@ -249,7 +249,7 @@ program.command('doc')
         }
         // logo embedding
         let logoDataUrl: string|undefined = undefined;
-        const logo = doc?.theme?.logo;
+        const logo = doc?.logo;
         if (logo && typeof logo === 'string' && !/^https?:\/\//i.test(logo) &&
             !/^data:/i.test(logo)) {
           const p = path.isAbsolute(logo) ? logo : path.join(docDir, logo);
@@ -271,16 +271,14 @@ program.command('doc')
             (mmtcore as any).docMarkdown.buildDocMarkdown(apis, {
               title: doc.title,
               description: doc.description,
-              theme: doc.theme,
-              logoDataUrl,
+              logo: logoDataUrl || doc.logo,
               sources: Array.isArray(doc.sources) ? doc.sources : undefined,
               services: Array.isArray(doc.services) ? doc.services : undefined,
             }) :
             docHtml.buildDocHtml(apis, {
               title: doc.title,
               description: doc.description,
-              theme: doc.theme,
-              logoDataUrl,
+              logo: logoDataUrl || doc.logo,
               sources: Array.isArray(doc.sources) ? doc.sources : undefined,
               services: Array.isArray(doc.services) ? doc.services : undefined,
             });
