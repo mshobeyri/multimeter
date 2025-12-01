@@ -100,8 +100,15 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
   let rowIdCounter = 0;
   const makeRows = (list: any[]) => (list || []).map((api: any) => {
     const idx = rowIdCounter++;
-    const method = String(api?.method || '').toUpperCase();
-    const badge = method ? `<span class="badge method-${method.toLowerCase()}">${method}</span>` : '';
+    let method = String(api?.method || '').toUpperCase();
+    const urlStr = String(api?.url || '');
+    if (!method) {
+      if (/^wss?:/i.test(urlStr)) method = 'WS';
+      else if (urlStr) method = 'GET';
+    }
+    if (/^WS|WEBSOCKET$/i.test(String(api?.method || ''))) method = 'WS';
+    const methodClass = (method || '').toLowerCase().startsWith('ws') ? 'ws' : (method || '').toLowerCase();
+    const badge = method ? `<span class="badge method-${methodClass}">${method}</span>` : '';
     const headers = api?.headers && Object.keys(api.headers).length ? renderValueList(api.headers) : '';
     const cookies = api?.cookies && Object.keys(api.cookies).length ? renderValueList(api.cookies) : '';
     let body = '';
@@ -129,27 +136,30 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
         return `${i > 0 ? '<hr class=\"sep\" />' : ''}<div class=\"example\">${nameHtml}${descHtml}${ioBlocks}</div>`;
       }).join('')
       : '';
-    const tags = api?.tags && api.tags.length ? `<div class="tags">${api.tags.map((t: string) => `<span class=\"tag\">${escapeHtml(t)}</span>`).join('')}</div>` : '';
+    const tags = api?.tags && api.tags.length ? `<div class=\"tags\">${api.tags.map((t: string) => `<span class=\"tag\">${escapeHtml(t)}</span>`).join('')}</div>` : '';
     const endpoint = extractEndpoint(api?.url);
     const desc = api?.description ? `<div class="desc">${escapeHtml(api.description)}</div>` : '';
     const outputSource = (api as any)?.outputs !== undefined ? (api as any).outputs : (api as any)?.output;
     const output = outputSource ? renderValueList(typeof outputSource === 'string' ? (tryParseJson(outputSource) ?? outputSource) : outputSource) : '';
     const inputs = api?.inputs ? renderValueList(typeof api.inputs === 'string' ? (tryParseJson(api.inputs) ?? api.inputs) : api.inputs) : '';
+    const query = (api as any)?.query ? renderValueList(typeof (api as any).query === 'string' ? (tryParseJson((api as any).query) ?? (api as any).query) : (api as any).query) : '';
     const metaHtml = [
       headers ? `<h3>Headers</h3>${headers}` : '',
       cookies ? `<h3>Cookies</h3>${cookies}` : '',
       body ? `<h3>Body (${api?.format || 'json'})</h3>${body}` : ''
     ].filter(Boolean).join('');
     const hasInputs = !!inputs;
+    const hasQuery = !!query;
     const hasOutputs = !!output;
     const hasMeta = !!metaHtml;
     const hasExamples = !!examplesHtml;
-    const details = hasInputs || hasOutputs || hasMeta || hasExamples ? `
+    const details = hasInputs || hasQuery || hasOutputs || hasMeta || hasExamples ? `
       <div class="details" id="details-${idx}" style="display: none;">
         <h3>URL</h3>
         <div class="url"><input class="url-input" type="text" id="url-${idx}" value="${escapeHtml(api?.url || '')}" /></div>
         ${desc}
         ${tags}
+        ${hasQuery ? `<h3>Query</h3><div class="query-block">${query}</div>` : ''}
         ${hasInputs ? `<h3>Inputs</h3><div class="inputs-block">${inputs}</div>` : ''}
         ${hasOutputs ? `<h3>Outputs</h3><div id="response-${idx}" class="response" style="margin-top: 8px; padding: 8px; border-radius: 4px;">${output}</div>` : ''}
         ${hasMeta ? `<hr class="sep" />${metaHtml}` : ''}
