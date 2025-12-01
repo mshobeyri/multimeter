@@ -240,17 +240,33 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     // Replace description block
     const descHtml = `<div class="doc-desc">${escapeHtml(description || 'Generated API Documentation')}</div>`;
     html = html.replace(/<div class="doc-desc">[\s\S]*?<\/div>/i, descHtml);
-    // Inject generated content inside .doc-container (before footer)
-    const containerOpen = html.indexOf('<div class="doc-container">');
-    if (containerOpen >= 0) {
-      const insertStart = html.indexOf('>', containerOpen) + 1;
-      const footerIdx = html.indexOf('<footer', insertStart);
-      const containerClose = footerIdx > -1 ? html.lastIndexOf('</div>', footerIdx) : html.lastIndexOf('</div>');
-      if (insertStart > 0 && containerClose > insertStart) {
-        const injected = `\n${descHtml}\n${contentHtml || '<div>No APIs found.</div>'}\n`;
-        html = html.slice(0, insertStart) + injected + html.slice(containerClose);
+      // Inject generated API content but preserve existing <script> (interactivity) inside container.
+      // Strategy: locate the container, then the first <script> tag within it, and inject before that script.
+      const containerRegex = /<div class="doc-container">([\s\S]*?)<\/div>/i;
+      const match = containerRegex.exec(html);
+      if (match) {
+        const containerInner = match[1];
+        // Find script block inside original container to keep it.
+        const scriptMatch = /(<script[\s\S]*?<\/script>)/i.exec(containerInner);
+        const originalScript = scriptMatch ? scriptMatch[1] : '';
+        // Remove existing script from inner before injecting content
+        const withoutScript = originalScript ? containerInner.replace(originalScript, '') : containerInner;
+        // Remove existing (now replaced) description from inner to avoid duplication
+        const withoutDesc = withoutScript.replace(/<div class="doc-desc">[\s\S]*?<\/div>/i, '');
+        const newInner = `\n${descHtml}\n${contentHtml || '<div>No APIs found.</div>'}\n${originalScript}`;
+        html = html.replace(containerRegex, `<div class="doc-container">${newInner}</div>`);
       }
-    }
+      // Theme override: if custom theme colors provided, append style tag overriding CSS variables.
+      const hasCustomColors = theme && theme.colors;
+      if (hasCustomColors) {
+        const themeCss = `:root {${cssFg?`--fg:${cssFg};`:''}${cssBg?`--bg:${cssBg};`:''}${cssMuted?`--muted:${cssMuted};`:''}${cssAccent?`--accent:${cssAccent};`:''}${cssCard?`--card:${cssCard};`:''}${cssBorder?`--border:${cssBorder};`:''}}`;
+        // Insert before closing </head>
+        html = html.replace(/<\/head>/i, `<style id="dynamic-theme">${themeCss}</style></head>`);
+      }
+      // Logo injection: replace existing <h1> block if logo provided.
+      if (logo) {
+        html = html.replace(/<div class="doc-head-left">[\s\S]*?<\/div>/i, `<div class="doc-head-left">${logo ? `<img class="logo" src="${escapeHtml(logo)}" alt="logo" style="height:24px;object-fit:contain;" />` : ''}<h1>${escapeHtml(title || 'API Documentation')}</h1></div>`);
+      }
     return html;
   }
 
