@@ -1,9 +1,9 @@
-import * as vscode from 'vscode';
-import * as path from 'path';
-import YAML from 'yaml';
-import { runner, docParsePack, apiParsePack, docHtml } from 'mmt-core';
-import { runJSCode } from 'mmt-core/jsRunner';
 import * as mmtcore from 'mmt-core';
+import {apiParsePack, docHtml, docParsePack, runner} from 'mmt-core';
+import {runJSCode} from 'mmt-core/jsRunner';
+import * as path from 'path';
+import * as vscode from 'vscode';
+import YAML from 'yaml';
 
 async function handleChatRequest(
     request: any, _chatContext: any, response: any,
@@ -12,7 +12,8 @@ async function handleChatRequest(
   const userTextLower = userText.toLowerCase();
 
   // Handle structured chat commands: /run, /print-js, /doc
-  if (request.command === 'run' || request.command === 'print-js' || request.command === 'doc') {
+  if (request.command === 'run' || request.command === 'print-js' ||
+      request.command === 'doc') {
     const ws = vscode.workspace.workspaceFolders?.[0];
     if (!ws) {
       response.markdown('No workspace folder is open.');
@@ -21,17 +22,23 @@ async function handleChatRequest(
     const projectRoot = ws.uri.fsPath;
 
     // Simple token parser: split by spaces preserving quoted strings
-    const tokens = (request.prompt || '').match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || [];
+    const tokens =
+        (request.prompt || '').match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || [];
     const unquote = (s: string) => s.replace(/^['"]|['"]$/g, '');
 
     // Helpers: parse --key=value and repeated pairs
-    const takeFlag = (name: string) => tokens.some((t: string) => t === `--${name}` || t === `-${name[0]}`);
+    const takeFlag = (name: string) =>
+        tokens.some((t: string) => t === `--${name}` || t === `-${name[0]}`);
     const findOpt = (name: string) => {
       const pref = `--${name}`;
       for (let i = 0; i < tokens.length; i++) {
         const t = tokens[i];
-        if (t.startsWith(pref + '=')) return unquote(t.slice(pref.length + 1));
-        if (t === pref && i + 1 < tokens.length) return unquote(tokens[i + 1]);
+        if (t.startsWith(pref + '=')) {
+          return unquote(t.slice(pref.length + 1));
+        }
+        if (t === pref && i + 1 < tokens.length) {
+          return unquote(tokens[i + 1]);
+        }
       }
       return undefined;
     };
@@ -58,11 +65,15 @@ async function handleChatRequest(
         if (eq > 0) {
           const k = token.slice(0, eq).trim();
           const v = token.slice(eq + 1);
-          if (k) out[k] = v;
+          if (k) {
+            out[k] = v;
+          }
         } else if (i + 1 < arr.length) {
           const k = token.trim();
           const v = arr[++i];
-          if (k) out[k] = v;
+          if (k) {
+            out[k] = v;
+          }
         }
       }
       return out;
@@ -71,10 +82,12 @@ async function handleChatRequest(
     const argFile = tokens.find((t: string) => !t.startsWith('-')) || '';
     const relPath = unquote(argFile);
     if (!relPath) {
-      response.markdown('Usage: /run <file> [--input key=val ...] [--env key=val ...] [--env-file path] [--preset name] [--print-js]');
+      response.markdown(
+          'Usage: /run <file> [--input key=val ...] [--env key=val ...] [--env-file path] [--preset name] [--print-js]');
       return;
     }
-    const fileUri = vscode.Uri.file(path.isAbsolute(relPath) ? relPath : path.join(projectRoot, relPath));
+    const fileUri = vscode.Uri.file(
+        path.isAbsolute(relPath) ? relPath : path.join(projectRoot, relPath));
     const dir = path.dirname(fileUri.fsPath);
 
     const nodeLoader = async (p: string) => {
@@ -105,12 +118,15 @@ async function handleChatRequest(
             mapping = presets.runner[preset];
           } else if (preset.includes('.')) {
             const [group, name] = preset.split('.', 2);
-            if (presets[group] && presets[group][name]) mapping = presets[group][name];
+            if (presets[group] && presets[group][name]) {
+              mapping = presets[group][name];
+            }
           }
           if (mapping) {
             for (const [k, choice] of Object.entries(mapping)) {
               const def = variables?.[k];
-              if (def && typeof def === 'object' && !Array.isArray(def) && Object.prototype.hasOwnProperty.call(def, choice)) {
+              if (def && typeof def === 'object' && !Array.isArray(def) &&
+                  Object.prototype.hasOwnProperty.call(def, choice)) {
                 envVars[k] = def[choice as any];
               } else {
                 envVars[k] = choice;
@@ -122,7 +138,8 @@ async function handleChatRequest(
         for (const [k, v] of Object.entries(envVars)) {
           const def = variables?.[k];
           if (def && typeof def === 'object' && !Array.isArray(def)) {
-            envVars[k] = Object.prototype.hasOwnProperty.call(def, v) ? def[v] : v;
+            envVars[k] =
+                Object.prototype.hasOwnProperty.call(def, v) ? def[v] : v;
           }
         }
       } catch (e: any) {
@@ -135,35 +152,47 @@ async function handleChatRequest(
       if (request.command === 'run') {
         const data = await vscode.workspace.fs.readFile(fileUri);
         const rawText = Buffer.from(data).toString('utf8');
-        const name = path.basename(fileUri.fsPath).replace(/[^a-zA-Z0-9_]/g, '_');
-        const js = await runner.generateTestJs({ rawText, name, inputs: inputPairs, envVars, fileLoader: nodeLoader});
+        const name =
+            path.basename(fileUri.fsPath).replace(/[^a-zA-Z0-9_]/g, '_');
+        const js = await runner.generateTestJs({
+          rawText,
+          name,
+          inputs: inputPairs,
+          envVars,
+          fileLoader: nodeLoader
+        });
         const printJs = takeFlag('print-js');
         if (printJs) {
           response.markdown('```js');
           response.markdown(js.trim());
           response.markdown('```');
         }
-        const result = await runner.runGeneratedJs(js, path.basename(fileUri.fsPath), (lvl, msg) => {}, runJSCode);
+        const result = await runner.runGeneratedJs(
+            js, path.basename(fileUri.fsPath), (lvl, msg) => {}, runJSCode);
         // Pretty output formatting (single message with line breaks)
         const nameOnly = path.basename(fileUri.fsPath);
-        const logsBlock = (result.logs && result.logs.length)
-          ? `Logs:\n\n\`\`\`\n${result.logs.join('\n')}\n\`\`\``
-          : '';
-        const errorsBlock = (result.errors && result.errors.length)
-          ? ['Errors:', ...result.errors.map(e => ` - ${e}`)].join('\n')
-          : '';
-        const out = [
-          `Running test ${nameOnly}...`,
-          logsBlock,
-          `Success: ${result.success}`,
-          `Duration: ${result.durationMs.toFixed(2)} ms`,
-          errorsBlock
-        ].filter(Boolean).join('\n');
+        const logsBlock = (result.logs && result.logs.length) ?
+            `Logs:\n\n\`\`\`\n${result.logs.join('\n')}\n\`\`\`` :
+            '';
+        const errorsBlock = (result.errors && result.errors.length) ?
+            ['Errors:', ...result.errors.map(e => ` - ${e}`)].join('\n') :
+            '';
+        const out =
+            [
+              `Running test ${nameOnly}...`, logsBlock,
+              `Success: ${result.success}`,
+              `Duration: ${result.durationMs.toFixed(2)} ms`, errorsBlock
+            ].filter(Boolean)
+                .join('\n');
         response.markdown(out);
         const outFile = findOpt('out');
         if (outFile) {
-          const outPath = path.isAbsolute(outFile) ? outFile : path.join(projectRoot, outFile);
-          await vscode.workspace.fs.writeFile(vscode.Uri.file(outPath), Buffer.from(JSON.stringify(result, null, 2), 'utf8'));
+          const outPath = path.isAbsolute(outFile) ?
+              outFile :
+              path.join(projectRoot, outFile);
+          await vscode.workspace.fs.writeFile(
+              vscode.Uri.file(outPath),
+              Buffer.from(JSON.stringify(result, null, 2), 'utf8'));
           response.markdown(`Result written: ${outPath}`);
         }
         return;
@@ -171,8 +200,15 @@ async function handleChatRequest(
       if (request.command === 'print-js') {
         const data = await vscode.workspace.fs.readFile(fileUri);
         const rawText = Buffer.from(data).toString('utf8');
-        const name = path.basename(fileUri.fsPath).replace(/[^a-zA-Z0-9_]/g, '_');
-        const js = await runner.generateTestJs({ rawText, name, inputs: inputPairs, envVars, fileLoader: nodeLoader});
+        const name =
+            path.basename(fileUri.fsPath).replace(/[^a-zA-Z0-9_]/g, '_');
+        const js = await runner.generateTestJs({
+          rawText,
+          name,
+          inputs: inputPairs,
+          envVars,
+          fileLoader: nodeLoader
+        });
         if (!js.trim()) {
           response.markdown('No JS could be generated (empty flow).');
           return;
@@ -188,10 +224,14 @@ async function handleChatRequest(
         const doc = docParsePack.yamlToDoc(text) as any;
         const docDir = path.dirname(fileUri.fsPath);
         const sources: string[] = [];
-        if (Array.isArray(doc.sources)) sources.push(...doc.sources);
+        if (Array.isArray(doc.sources)) {
+          sources.push(...doc.sources);
+        }
         if (Array.isArray(doc.services)) {
           for (const s of doc.services) {
-            if (Array.isArray(s?.sources)) sources.push(...s.sources);
+            if (Array.isArray(s?.sources)) {
+              sources.push(...s.sources);
+            }
           }
         }
         const files = new Set<string>();
@@ -199,11 +239,14 @@ async function handleChatRequest(
           try {
             const stat = await vscode.workspace.fs.stat(vscode.Uri.file(p));
             if ((stat.type & vscode.FileType.Directory) !== 0) {
-              const entries = await vscode.workspace.fs.readDirectory(vscode.Uri.file(p));
+              const entries =
+                  await vscode.workspace.fs.readDirectory(vscode.Uri.file(p));
               for (const [name, type] of entries) {
                 await walk(path.join(p, name));
               }
-            } else if ((stat.type & vscode.FileType.File) !== 0 && p.toLowerCase().endsWith('.mmt')) {
+            } else if (
+                (stat.type & vscode.FileType.File) !== 0 &&
+                p.toLowerCase().endsWith('.mmt')) {
               files.add(p);
             }
           } catch {
@@ -228,19 +271,28 @@ async function handleChatRequest(
               (api as any).__file = f;
               apis.push(api);
             }
-          } catch {}
+          } catch {
+          }
         }
         // logo embedding
         let logoDataUrl: string|undefined = undefined;
         const logo = (doc as any)?.logo;
-        if (logo && typeof logo === 'string' && !/^https?:\/\//i.test(logo) && !/^data:/i.test(logo)) {
+        if (logo && typeof logo === 'string' && !/^https?:\/\//i.test(logo) &&
+            !/^data:/i.test(logo)) {
           const p = path.isAbsolute(logo) ? logo : path.join(docDir, logo);
           try {
-            const dataBuf = await vscode.workspace.fs.readFile(vscode.Uri.file(p));
+            const dataBuf =
+                await vscode.workspace.fs.readFile(vscode.Uri.file(p));
             const ext = (path.extname(p) || '').toLowerCase();
-            const mime = ext === '.png' ? 'image/png' : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : ext === '.svg' ? 'image/svg+xml' : ext === '.gif' ? 'image/gif' : 'application/octet-stream';
-            logoDataUrl = `data:${mime};base64,${Buffer.from(dataBuf).toString('base64')}`;
-          } catch {}
+            const mime = ext === '.png'           ? 'image/png' :
+                ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' :
+                ext === '.svg'                    ? 'image/svg+xml' :
+                ext === '.gif'                    ? 'image/gif' :
+                                                    'application/octet-stream';
+            logoDataUrl = `data:${mime};base64,${
+                Buffer.from(dataBuf).toString('base64')}`;
+          } catch {
+          }
         }
         const useMd = !!tokens.find((t: string) => t === '--md');
         const htmlOrMd = (docHtml && !useMd) ?
@@ -260,8 +312,11 @@ async function handleChatRequest(
             });
         const outPathOpt = findOpt('out');
         if (outPathOpt) {
-          const outPath = path.isAbsolute(outPathOpt) ? outPathOpt : path.join(projectRoot, outPathOpt);
-          await vscode.workspace.fs.writeFile(vscode.Uri.file(outPath), Buffer.from(htmlOrMd, 'utf8'));
+          const outPath = path.isAbsolute(outPathOpt) ?
+              outPathOpt :
+              path.join(projectRoot, outPathOpt);
+          await vscode.workspace.fs.writeFile(
+              vscode.Uri.file(outPath), Buffer.from(htmlOrMd, 'utf8'));
           response.markdown(`Doc generated: ${outPath}`);
         } else {
           response.markdown(htmlOrMd);
@@ -396,37 +451,83 @@ export function setupChatParticipants(context: vscode.ExtensionContext) {
       prompt: 'Enter relative path to .mmt/.yaml file',
       value: 'examples/test1.mmt'
     });
-    if (!filePick) return;
+    if (!filePick) {
+      return;
+    }
     const args = await vscode.window.showInputBox({
       title: 'Extra args (optional)',
-      prompt: 'e.g., --input user=alice --env-file examples/_environments.mmt --preset runner.dev --print-js'
+      prompt:
+          'e.g., --input user=alice --env-file examples/_environments.mmt --preset runner.dev --print-js'
     });
     const fakeReq = {
       command: 'run',
       prompt: `${filePick}${args ? ' ' + args : ''}`,
-      model: (vscode as any).model ?? { sendRequest: async () => ({ text: [] }) },
+      model: (vscode as any).model ?? {sendRequest: async () => ({text: []})},
       token: new vscode.CancellationTokenSource().token,
     };
-    const fakeResp = { markdown: (t: string) => vscode.window.showInformationMessage((t || '').trim()) };
-    await handleChatRequest(fakeReq, { history: [] }, fakeResp, context, 'multimeter');
+    const fakeResp = {
+      markdown: (t: string) =>
+          vscode.window.showInformationMessage((t || '').trim())
+    };
+    await handleChatRequest(
+        fakeReq, {history: []}, fakeResp, context, 'multimeter');
   });
 
-  const printJsCmd = vscode.commands.registerCommand('multimeter.printJs', async () => {
-    const filePick = await vscode.window.showInputBox({ title: 'Print JS from Test', prompt: 'Enter relative path to .mmt/.yaml file', value: 'examples/test1.mmt' });
-    if (!filePick) return;
-    const args = await vscode.window.showInputBox({ title: 'Extra args (optional)', prompt: 'e.g., --input user=alice --env-file examples/_environments.mmt --preset runner.dev' });
-    const fakeReq = { command: 'print-js', prompt: `${filePick}${args ? ' ' + args : ''}`, model: (vscode as any).model ?? { sendRequest: async () => ({ text: [] }) }, token: new vscode.CancellationTokenSource().token };
-    const fakeResp = { markdown: (t: string) => vscode.window.showInformationMessage((t || '').trim()) };
-    await handleChatRequest(fakeReq, { history: [] }, fakeResp, context, 'multimeter');
-  });
+  const printJsCmd =
+      vscode.commands.registerCommand('multimeter.printJs', async () => {
+        const filePick = await vscode.window.showInputBox({
+          title: 'Print JS from Test',
+          prompt: 'Enter relative path to .mmt/.yaml file',
+          value: 'examples/test1.mmt'
+        });
+        if (!filePick) {
+          return;
+        }
+        const args = await vscode.window.showInputBox({
+          title: 'Extra args (optional)',
+          prompt:
+              'e.g., --input user=alice --env-file examples/_environments.mmt --preset runner.dev'
+        });
+        const fakeReq = {
+          command: 'print-js',
+          prompt: `${filePick}${args ? ' ' + args : ''}`,
+          model:
+              (vscode as any).model ?? {sendRequest: async () => ({text: []})},
+          token: new vscode.CancellationTokenSource().token
+        };
+        const fakeResp = {
+          markdown: (t: string) =>
+              vscode.window.showInformationMessage((t || '').trim())
+        };
+        await handleChatRequest(
+            fakeReq, {history: []}, fakeResp, context, 'multimeter');
+      });
 
   const docCmd = vscode.commands.registerCommand('multimeter.doc', async () => {
-    const filePick = await vscode.window.showInputBox({ title: 'Generate Doc', prompt: 'Enter relative path to doc .mmt file', value: 'demos/doc.cap/project-config.json' });
-    if (!filePick) return;
-    const args = await vscode.window.showInputBox({ title: 'Options (optional)', prompt: 'e.g., --md --out docs/output.md' });
-    const fakeReq = { command: 'doc', prompt: `${filePick}${args ? ' ' + args : ''}`, model: (vscode as any).model ?? { sendRequest: async () => ({ text: [] }) }, token: new vscode.CancellationTokenSource().token };
-    const fakeResp = { markdown: (t: string) => vscode.window.showInformationMessage((t || '').trim()) };
-    await handleChatRequest(fakeReq, { history: [] }, fakeResp, context, 'multimeter');
+    const filePick = await vscode.window.showInputBox({
+      title: 'Generate Doc',
+      prompt: 'Enter relative path to doc .mmt file',
+      value: 'demos/doc.cap/project-config.json'
+    });
+    if (!filePick) {
+      return;
+    }
+    const args = await vscode.window.showInputBox({
+      title: 'Options (optional)',
+      prompt: 'e.g., --md --out docs/output.md'
+    });
+    const fakeReq = {
+      command: 'doc',
+      prompt: `${filePick}${args ? ' ' + args : ''}`,
+      model: (vscode as any).model ?? {sendRequest: async () => ({text: []})},
+      token: new vscode.CancellationTokenSource().token
+    };
+    const fakeResp = {
+      markdown: (t: string) =>
+          vscode.window.showInformationMessage((t || '').trim())
+    };
+    await handleChatRequest(
+        fakeReq, {history: []}, fakeResp, context, 'multimeter');
   });
 
   context.subscriptions.push(runCmd, printJsCmd, docCmd);

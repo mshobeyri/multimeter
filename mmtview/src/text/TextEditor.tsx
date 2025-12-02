@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef } from "react";
 import MonacoEditor from "@monaco-editor/react";
 import { FIXED_BG_THEME, defineTheme } from "./Theme";
 

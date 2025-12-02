@@ -1,8 +1,8 @@
-import React, { useMemo } from "react";
+import React from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import SelectWithRemove from "./SelectWithRemove";
 import { safeList } from "mmt-core/safer";
-import { JSONRecord, JSONValue } from "mmt-core/CommonData";
+import { JSONRecord } from "mmt-core/CommonData";
 import { valueToString, stringToValue } from "./convertor";
 
 interface VEditorProps {

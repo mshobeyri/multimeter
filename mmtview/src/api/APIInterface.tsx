@@ -177,7 +177,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
         />
       ) : null}
       {/* Only show body editor if method is not get */}
-      {(data.protocol == "ws" || !data.method || data.method.toLowerCase() !== "get") && (
+      {(data.protocol === "ws" || !data.method || data.method.toLowerCase() !== "get") && (
         <>
           <div className="label">body</div>
           <div style={{ padding: "5px", position: "relative" }}>

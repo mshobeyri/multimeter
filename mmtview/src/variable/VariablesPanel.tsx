@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import parseYaml, { packYaml } from "mmt-core/markupConvertor";
 import VariablesEditor from "./VariablesEditor";
-import { Variable, VariablesData } from "./VariablesData";
+import { VariablesData } from "./VariablesData";
 
 interface VariablesProps {
   content: string;

@@ -1,6 +1,4 @@
 import React, { useRef, useEffect, useState } from "react";
-import { xml2js } from "xml-js";
-import { beautify } from "mmt-core/markupConvertor";
 
 export type mode = "interface" | "test";
 
