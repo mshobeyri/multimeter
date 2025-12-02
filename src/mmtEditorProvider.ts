@@ -10,6 +10,9 @@ const LAST_VIEW_MODE = 'mmtview:view:selectedViewMode';
 export const logOutputChannel =
     vscode.window.createOutputChannel('Multimeter', {log: true});
 
+// Reusable terminal for running curl commands
+let curlTerminal: vscode.Terminal|null = null;
+
 export async function readFileContent(filename: string): Promise<string> {
   try {
     // filename should be a filesystem path here
@@ -314,7 +317,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           handleNetworkMessage(message, webviewPanel);
           break;
 
-        case 'addHistory':
+        case 'addHistory': {
           const historyFile = vscode.Uri.joinPath(
               this.context.globalStorageUri, 'history.json');
           let history: any[] = [];
@@ -331,9 +334,11 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
               Buffer.from(JSON.stringify(history, null, 2), 'utf8'));
           await vscode.commands.executeCommand('multimeter.history.refresh');
           break;
+        }
 
         case 'multimeter.history.show': {
           await vscode.commands.executeCommand('multimeter.history.show');
+          break;
         }
 
         case 'updateConfig': {
@@ -420,6 +425,38 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           } catch (err) {
             vscode.window.showErrorMessage(
                 `Failed to open Markdown preview: ${err}`);
+          }
+          break;
+        }
+
+        case 'runCurl': {
+          try {
+            const cmd = String(message.curl || '').trim();
+            if (!cmd) {
+              vscode.window.showWarningMessage('No curl command to run.');
+              break;
+            }
+
+            const exists = !!curlTerminal &&
+                vscode.window.terminals.some(t => t === curlTerminal);
+            if (!exists) {
+              curlTerminal =
+                  vscode.window.createTerminal({name: 'Multimeter Curl'});
+              const term = curlTerminal;
+              term.show(true);
+              const delay = (ms: number) =>
+                  new Promise<void>(resolve => setTimeout(resolve, ms));
+              await delay(1500);
+              term.sendText(cmd, true);
+              term.show(true);
+            } else {
+              const term = curlTerminal!;
+              term.show(true);
+              term.sendText(cmd, true);
+              term.show(true);
+            }
+          } catch (err) {
+            vscode.window.showErrorMessage(`Failed to open terminal: ${err}`);
           }
           break;
         }
