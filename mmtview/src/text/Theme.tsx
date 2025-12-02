@@ -1,5 +1,3 @@
-// Removed unused import
-
 export const FIXED_BG_THEME = "fixed-bg-theme";
 
 export const defineTheme = (monaco: any) => {

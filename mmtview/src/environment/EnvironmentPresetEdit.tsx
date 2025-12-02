@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import FieldWithRemove from "../components/FieldWithRemove";
 import KSVEditor from "../components/KSVEditor";
 import { safeList } from "mmt-core/safer";
