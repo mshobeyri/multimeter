@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { APIData } from "mmt-core/APIData";
 import KSVEditor from "../components/KSVEditor";
 import BodyView from "../components/BodyView";
@@ -69,7 +69,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
   useEffect(() => {
     if (
       (!api.outputs || Object.keys(api.outputs).length === 0) || (
-        (!responseData?.body || responseData.body == "") &&
+        (!responseData?.body || responseData.body === "") &&
         (!responseData?.headers || Object.keys(responseData.headers).length === 0) &&
         (!responseData?.cookies || Object.keys(responseData.cookies).length === 0))
     ) {
@@ -376,7 +376,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
           <div style={{ padding: "8px" }}>
             <BodyView
               value={
-                responseData?.body == null
+                responseData?.body === null || responseData?.body === undefined
                   ? ""
                   : typeof responseData?.body === "string"
                     ? responseData?.body

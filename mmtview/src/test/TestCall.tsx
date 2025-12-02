@@ -88,7 +88,7 @@ const TestCall: React.FC<TestCallProps> = ({
         if (!yaml || typeof yaml !== 'object') { showVSCodeMessage('error', `Cannot parse ${fileName}!`); return; }
         if (!yaml.type || (yaml.type !== 'test' && yaml.type !== 'api')) { showVSCodeMessage('error', `${fileName} type should be test or api!`); return; }
         const defaults = yaml.inputs && typeof yaml.inputs === 'object' ? yaml.inputs : {};
-        const prevInputs = local && typeof local === 'object' && (local as any).inputs && typeof (local as any).inputs === 'object' ? (local as any).inputs : (value && typeof value === 'object' && (value as any).inputs || {});
+        const prevInputs = local && typeof local === 'object' && (local as any).inputs && typeof (local as any).inputs === 'object' ? (local as any).inputs : ((value && typeof value === 'object' && (value as any).inputs) || {});
         const merged = { ...defaults, ...prevInputs };
         const next = currentId ? { call: currentAlias, id: currentId, inputs: merged } : { call: currentAlias, inputs: merged };
         setLocal(next);

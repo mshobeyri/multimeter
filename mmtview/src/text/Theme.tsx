@@ -1,4 +1,4 @@
-import { editor } from "monaco-editor";
+// Removed unused import
 
 export const FIXED_BG_THEME = "fixed-bg-theme";
 

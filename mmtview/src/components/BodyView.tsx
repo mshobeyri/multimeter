@@ -34,7 +34,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
     useEffect(() => {
         let valid = true;
         let err: string | null = null;
-        if (localValue == "") {
+        if (localValue === "") {
             setIsValid(true);
             return;
         }
@@ -125,7 +125,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                 )
             }
             {
-                mode == "appliable" && canApply && isValid && (
+                mode === "appliable" && canApply && isValid && (
                     <button
                         style={{
                             position: "absolute",

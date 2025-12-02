@@ -3,9 +3,7 @@ import SearchableTagInput from "../components/SearchableTagInput";
 import KSVEditor from "../components/KSVEditor";
 import { TestData } from "mmt-core/TestData";
 import { jsonTypes } from "mmt-core/CommonData";
-import VEditor from "../components/VEditor";
 import DescriptionEditor from "../components/DescriptionEditor";
-import { safeList } from "mmt-core/safer";
 
 interface TestOverviewProps {
   test: TestData;

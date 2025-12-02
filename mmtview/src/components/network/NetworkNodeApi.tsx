@@ -1,6 +1,3 @@
-import { act } from "react";
-import { showVSCodeMessage } from "../../vsAPI";
-import { on } from "events";
 
 export type Error = {
     body: string | null;
@@ -131,7 +128,7 @@ export const NetworkNodeApi = {
 // Listen for messages from node backend
 window.addEventListener("message", (event: MessageEvent) => {
     const msg = event.data;
-    if (!msg || !msg.command || msg.command != "network") return;
+    if (!msg || !msg.command || msg.command !== "network") return;
 
     // HTTP response
     if (msg.action === "http-response" && typeof msg.data !== "undefined") {
