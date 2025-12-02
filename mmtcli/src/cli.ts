@@ -1,11 +1,11 @@
-#!/usr/bin/env node
 import {Command} from 'commander';
 import path from 'path';
 import fs from 'fs';
 import {summarize} from './loadTest.js';
 // Import from mmt-core root exports to avoid subpath resolution issues under
 // pkg
-import {JSer, testParsePack, docParsePack, apiParsePack, docHtml} from 'mmt-core';
+import {docParsePack, apiParsePack, docHtml, runner} from 'mmt-core';
+import { runJSCode } from 'mmt-core/jsRunner';
 import * as mmtcore from 'mmt-core';
 import yaml from 'js-yaml';
 // Defer importing runTest until needed to avoid pulling axios for to-js
@@ -60,41 +60,38 @@ program.command('run')
         const full = path.resolve(process.cwd(), file);
         const dir = path.dirname(full);
         const rawText = fs.readFileSync(full, 'utf8');
-        const raw =
-            /\.json$/i.test(full) ? JSON.parse(rawText) : yaml.load(rawText);
+        const raw = /\.json$/i.test(full) ? JSON.parse(rawText) : yaml.load(rawText);
         const summary = summarize(raw);
         if (!opts.quiet) {
           console.log(`Loaded: ${path.resolve(file)} (${summary})`);
         }
-        // Ensure imports resolve relative to the test file
-        JSer.setFileLoader(async (p: string) => {
-          const rel = path.isAbsolute(p) ? p : path.join(dir, p);
-          if (!fs.existsSync(rel)) {
-            return '';
-          }
-          return fs.readFileSync(rel, 'utf8');
-        });
         // Build inputs and env vars
         const inputs = buildInputs(opts as any);
         const {envVars} = buildEnvVars(opts as any, dir);
-        const test =
-            testParsePack.yamlToTest ? testParsePack.yamlToTest(rawText) : raw;
-        let js = await JSer.rootTestToJsfunc({
-          test,
+        // Generate JS using core runner and execute via core jsRunner
+        const js = await mmtcore.runner.generateTestJs({
+          rawText,
           name: path.basename(full).replace(/[^a-zA-Z0-9_]/g, '_'),
           inputs,
-          envVars
+          envVars,
+          fileLoader: async (p: string) => {
+            const rel = path.isAbsolute(p) ? p : path.join(dir, p);
+            if (!fs.existsSync(rel)) return '';
+            return fs.readFileSync(rel, 'utf8');
+          }
         });
-        // Ensure env tokens are rewritten in case upstream generator changes
-        if (JSer.variableReplacer &&
-            typeof JSer.variableReplacer === 'function') {
-          js = JSer.variableReplacer(js);
-        }
         if ((opts as any).printJs) {
           console.log(js.trim());
         }
-        const {runGeneratedJs} = await import('./runTest.js');
-        const result = await runGeneratedJs(js);
+        const result = await mmtcore.runner.runGeneratedJs(
+          js,
+          path.basename(full),
+          (level, msg) => {
+            const out = (level === 'error' || level === 'warn') ? process.stderr : process.stdout;
+            out.write(String(msg) + '\n');
+          },
+          (code, title, lg) => runJSCode(code, title, lg as any)
+        );
         if (!opts.quiet) {
           console.log(`Success: ${result.success}`);
           console.log(`Duration: ${result.durationMs.toFixed(2)} ms`);
@@ -143,33 +140,19 @@ program.command('print-js')
         const full = path.resolve(process.cwd(), file);
         const dir = path.dirname(full);
         const rawText = fs.readFileSync(full, 'utf8');
-        const raw =
-            /\.json$/i.test(full) ? JSON.parse(rawText) : yaml.load(rawText);
-
-        // Custom file loader resolving relative to test file directory
-        JSer.setFileLoader(async (p: string) => {
-          const rel = path.isAbsolute(p) ? p : path.join(dir, p);
-          if (!fs.existsSync(rel)) {
-            return '';
-          }
-          return fs.readFileSync(rel, 'utf8');
-        });
-
-        const test = testParsePack.yamlToTest ?
-            testParsePack.yamlToTest(rawText) :
-            raw;  // fallback
         const inputs = buildInputs(opts as any);
         const {envVars} = buildEnvVars(opts as any, dir);
-        let js = await JSer.rootTestToJsfunc({
-          test,
+        const js = await mmtcore.runner.generateTestJs({
+          rawText,
           name: path.basename(full).replace(/[^a-zA-Z0-9_]/g, '_'),
           inputs,
-          envVars
+          envVars,
+          fileLoader: async (p: string) => {
+            const rel = path.isAbsolute(p) ? p : path.join(dir, p);
+            if (!fs.existsSync(rel)) return '';
+            return fs.readFileSync(rel, 'utf8');
+          }
         });
-        if (JSer.variableReplacer &&
-            typeof JSer.variableReplacer === 'function') {
-          js = JSer.variableReplacer(js);
-        }
         if (!js.trim()) {
           console.error('No JS could be generated (empty flow).');
           process.exit(1);
