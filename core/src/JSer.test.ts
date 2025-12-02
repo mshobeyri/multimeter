@@ -83,6 +83,53 @@ describe('flowStagesToJsfunc', () => {
     expect(js).toContain('const stage3Promise = (async () =>');
     expect(js).toContain('await Promise.all([stage1Promise, stage2Promise, stage3Promise]);');
   });
+
+  it('injects early return when stage condition exists', () => {
+    const stages = [
+      {
+        id: 'stage1',
+        condition: 'equals(status, 200)',
+        steps: [
+          { type: 'call', id: 'step1', target: 'apiFunc1', inputs: ['a'] },
+        ],
+      },
+      {
+        id: 'stage2',
+        steps: [
+          { type: 'call', id: 'step2', target: 'apiFunc2', inputs: ['b'] },
+        ],
+      },
+    ];
+    const js = flowStagesToJsfunc(stages as any);
+    expect(js).toContain('const stage1Promise = (async () =>');
+    // Presence of condition should introduce an early-return guard
+    expect(js).toContain('if (!(');
+    expect(js).toContain('return;');
+    // Final Promise.all should include both launched stages
+    expect(js).toContain('await Promise.all([stage1Promise, stage2Promise]);');
+  });
+
+  it('defaults to no condition (treated as true) when absent', () => {
+    const stages = [
+      {
+        id: 'stage1',
+        steps: [
+          { type: 'call', id: 'step1', target: 'apiFunc1', inputs: ['a'] },
+        ],
+      },
+      {
+        id: 'stage2',
+        steps: [
+          { type: 'call', id: 'step2', target: 'apiFunc2', inputs: ['b'] },
+        ],
+      },
+    ];
+    const js = flowStagesToJsfunc(stages as any);
+    expect(js).toContain('const stage1Promise = (async () =>');
+    // No condition means no early-return guard injected
+    expect(js.includes('if (!(')).toBe(false);
+    expect(js).toContain('await Promise.all([stage1Promise, stage2Promise]);');
+  });
 });
 
 describe('testToJsfunc (multi-stage)', () => {

@@ -557,28 +557,35 @@ export const flowStagesToJsfunc = (flow: TestFlowStages): string => {
     const dependsOn = Array.isArray(stage.depends_on) ? stage.depends_on :
         stage.depends_on                              ? [stage.depends_on] :
                                                           [];
-    const code = flowStepsToJsfunc(stage.steps ?? []);
+    // Build stage code with optional early-return condition
+    let code = '';
+    if (stage.condition && String(stage.condition).trim().length > 0) {
+      const cond = conditionalStatementToJSfunc(String(stage.condition));
+      code += `if (!(${cond})) {\n  return;\n}\n`;
+    }
+    code += flowStepsToJsfunc(stage.steps ?? []);
     stageMap.set(stageName, {code, dependsOn});
   }
 
   // Helper to generate code for each stage with dependency handling
   const generated: string[] = [];
   const launched = new Set<string>();
+  const processed = new Set<string>();
 
   function genStage(stageName: string) {
-    if (launched.has(stageName)) {
+    if (processed.has(stageName)) {
       return;
     }
     const stage = stageMap.get(stageName);
     if (!stage) {
       return;
     }
-    // Generate dependencies first
+    // Ensure dependencies are processed first
     if (stage.dependsOn && stage.dependsOn.length > 0) {
       for (const dep of stage.dependsOn) {
         genStage(dep);
       }
-      // Wait for dependencies to finish
+      // Wait for dependencies before launching this stage
       generated.push(`await Promise.all([${
           stage.dependsOn.map(dep => `${dep}Promise`).join(', ')}]);`);
     }
@@ -586,6 +593,7 @@ export const flowStagesToJsfunc = (flow: TestFlowStages): string => {
     generated.push(`const ${stageName}Promise = (async () => {\n${
         indentLines(stage.code)}\n})();`);
     launched.add(stageName);
+    processed.add(stageName);
   }
 
   // Launch all stages
@@ -593,11 +601,11 @@ export const flowStagesToJsfunc = (flow: TestFlowStages): string => {
     genStage(stageName);
   }
 
-  // Wait for all stages to finish
-  generated.push(`await Promise.all([${
-      Array.from(stageMap.keys())
-          .map(name => `${name}Promise`)
-          .join(', ')}]);`);
+    // Wait for all launched stages to finish
+    generated.push(`await Promise.all([${
+      Array.from(launched)
+        .map(name => `${name}Promise`)
+        .join(', ')}]);`);
 
   return generated.join('\n');
 };
