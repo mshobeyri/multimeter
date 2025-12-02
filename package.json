@@ -22,7 +22,9 @@
     "onChatParticipant:mmt"
   ],
   "main": "./dist/extension.js",
-  "enabledApiProposals": ["chatProvider"],
+  "enabledApiProposals": [
+    "chatProvider"
+  ],
   "contributes": {
     "languages": [
       {
@@ -47,14 +49,26 @@
         "name": "Multimeter",
         "fullName": "Multimeter Assistant",
         "description": "What kind of test do you want today?",
-        "isSticky": true
+        "isSticky": true,
+        "commands": [
+          {
+            "name": "run",
+            "description": "Run a test or api @mmt /run <test path or api .mmt file path>"
+          }
+        ]
       },
       {
         "id": "mmt",
         "name": "mmt",
         "fullName": "Multimeter Assistant",
         "description": "What kind of test do you want today?",
-        "isSticky": true
+        "isSticky": false,
+        "commands": [
+          {
+            "name": "run",
+            "description": "Run a test or api @mmt /run <test path or api .mmt file path>"
+          }
+        ]
       }
     ],
     "grammars": [
@@ -167,6 +181,24 @@
           "dark": "res/activity.png"
         }
       },
+        {
+          "command": "multimeter.run",
+          "title": "Run API/Test (Chat)",
+          "category": "Multimeter",
+          "icon": "$(run)"
+        },
+        {
+          "command": "multimeter.printJs",
+          "title": "Print JS from Test (Chat)",
+          "category": "Multimeter",
+          "icon": "$(zap)"
+        },
+        {
+          "command": "multimeter.doc",
+          "title": "Generate Doc (Chat)",
+          "category": "Multimeter",
+          "icon": "$(book)"
+        },
       {
         "command": "multimeter.mmt.show.yaml",
         "title": "Hide UI Preview",
