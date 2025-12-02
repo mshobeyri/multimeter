@@ -3,8 +3,7 @@ import {extractEndpoint} from './docHtml';
 export interface BuildDocMdOptions {
   title?: string;
   description?: string;
-  theme?: any;
-  logoDataUrl?: string;
+  logo?: string;
   sources?: string[];
   services?: Array<{name?: string; description?: string; sources?: string[]}>;
 }
@@ -32,23 +31,15 @@ function fence(code: string, lang = ''): string {
   return '```' + lang + '\n' + safe + '\n```';
 }
 
-function renderKV(obj: any): string {
-  if (!obj || typeof obj !== 'object') {
-    return '';
-  }
-  const parts: string[] = [];
-  for (const [k, v] of Object.entries(obj)) {
-    if (v && typeof v === 'object' && !Array.isArray(v)) {
-      parts.push(`- ${k}:`);
-      const inner = renderKV(v);
-      if (inner) {
-        parts.push(inner.split('\n').map(l => (l ? '  ' + l : l)).join('\n'));
-      }
-    } else {
-      parts.push(`- ${k}: ${typeof v === 'string' ? v : JSON.stringify(v)}`);
-    }
-  }
-  return parts.join('\n');
+function renderTableFromObject(obj: any, valueHeader = 'Value'): string {
+  if (!obj || typeof obj !== 'object') return '';
+  const entries = Object.entries(obj);
+  if (!entries.length) return '';
+  const rows = entries.map(([k, v]) => {
+    const val = typeof v === 'string' ? v : JSON.stringify(v);
+    return `|${k}| ${val}|`;
+  });
+  return ['|Parameter|'+valueHeader+'|', '|-|-|', ...rows].join('\n');
 }
 
 export function buildDocMarkdown(
@@ -69,54 +60,39 @@ export function buildDocMarkdown(
   const renderApi = (api: any) => {
     const method = String(api?.method || '').toUpperCase();
     const endpoint = extractEndpoint(api?.url);
-    const hdr =
-        [
-          '###', method ? `**${method}**` : '', api?.title ? api.title : '',
-          endpoint ? '`' + endpoint + '`' : ''
-        ].filter(Boolean)
-            .join(' ');
+    const hdr = [
+      '##', method ? `**\`${method}\`**` : '', api?.title ? api.title : '',
+      endpoint ? `*\`${endpoint}\`*` : ''
+    ].filter(Boolean).join(' ');
     lines.push('', hdr);
-    if (api?.description) {
-      lines.push('', api.description);
-    }
+    if (api?.description) { lines.push('', api.description); }
     if (api?.tags && api.tags.length) {
-      lines.push(
-          '', `Tags: ${api.tags.map((t: string) => `\`${t}\``).join(', ')}`);
+      lines.push('', `**Tags**: ${api.tags.map((t: string) => `\`${t}\``).join(', ')}`);
     }
-    if (api?.url) {
-      lines.push('', `URL: \`${String(api.url)}\``);
+    // Parameters section
+    lines.push('', '### Parameters');
+    if (api?.url) { lines.push('', `**URL**: \`${String(api.url)}\``); }
+    if (api?.inputs) { lines.push('', '**Inputs**', renderTableFromObject(api.inputs, 'Default Value')); }
+    const outputSource = (api as any)?.outputs !== undefined ? (api as any).outputs : (api as any)?.output;
+    if (outputSource) { lines.push('', '**Outputs**', renderTableFromObject(outputSource, 'Value')); }
+    if (api?.headers && Object.keys(api.headers).length) { lines.push('', '**Headers**', renderTableFromObject(api.headers, 'Value')); }
+    if (api?.cookies && Object.keys(api.cookies).length) { lines.push('', '**Cookies**', renderTableFromObject(api.cookies, 'Value')); }
+    // Body
+    if (api?.body !== undefined && api?.body !== null && String(api.body).length) {
+      const fmtRaw = String(api?.format || 'json').toLowerCase();
+      const lang = (fmtRaw === 'xml' || fmtRaw === 'json' || fmtRaw === 'text') ? fmtRaw : 'json';
+      const bodyStr = typeof api.body === 'string' ? api.body : JSON.stringify(api.body, null, 2);
+      lines.push('', '**Body**', '', fence(bodyStr, lang === 'text' ? '' : lang));
     }
-    if (api?.inputs) {
-      lines.push('', '#### Inputs', '', renderKV(api.inputs));
-    }
-    const outputSource = (api as any)?.outputs !== undefined ?
-        (api as any).outputs :
-        (api as any)?.output;
-    if (outputSource) {
-      lines.push('', '#### Outputs', '', renderKV(outputSource));
-    }
-    if (api?.headers && Object.keys(api.headers).length) {
-      lines.push('', '#### Headers', '', renderKV(api.headers));
-    }
-    if (api?.cookies && Object.keys(api.cookies).length) {
-      lines.push('', '#### Cookies', '', renderKV(api.cookies));
-    }
-    if (api?.body !== undefined && api?.body !== null &&
-        String(api.body).length) {
-      const bodyStr = typeof api.body === 'string' ?
-          api.body :
-          JSON.stringify(api.body, null, 2);
-      lines.push('', '#### Body', '', fence(bodyStr, 'json'));
-    }
+    // Examples
     if (api?.examples && Array.isArray(api.examples) && api.examples.length) {
-      lines.push('', '#### Examples');
+      lines.push('', '### Examples');
       (api.examples as any[]).forEach((ex: any) => {
-        const obj = typeof ex === 'string' ? {description: ex} : ex;
+        const obj = typeof ex === 'string' ? { description: ex } : ex;
         const exTitle = obj?.name ? String(obj.name) : 'Example';
-        lines.push('', `##### ${exTitle}`);
-        if (obj?.description) { lines.push('', obj.description); }
-        if (obj?.inputs) { lines.push('', '**Inputs**', '', renderKV(obj.inputs)); }
-        if (obj?.outputs) { lines.push('', '**Outputs**', '', renderKV(obj.outputs)); }
+        lines.push('', `**${exTitle}**`);
+        if (obj?.inputs) { lines.push('', 'Inputs', renderTableFromObject(obj.inputs, 'Value')); }
+        if (obj?.outputs) { lines.push('', 'Outputs', renderTableFromObject(obj.outputs, 'Value')); }
       });
     }
   };
@@ -154,8 +130,7 @@ export function buildDocMarkdown(
         if (!items.length) {
           continue;
         }
-    lines.push(
-      '', `## ${String(svc?.name || 'Service')} (${items.length})`);
+        lines.push('', `# ${String(svc?.name || 'Service')}`);
         if (svc?.description) {
           lines.push('', svc.description);
         }
