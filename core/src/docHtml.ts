@@ -74,6 +74,34 @@ function isNonEmpty(val: any): boolean {
   return keys.some(k => isNonEmpty((val as any)[k]));
 }
 
+function renderParamTable(obj: any, valueHeader = 'Value'): string {
+  if (!obj || typeof obj !== 'object') {
+    return '';
+  }
+  const entries = Object.entries(obj);
+  if (!entries.length) {
+    return '';
+  }
+  const rows = entries.map(([k, v]) => {
+    const val = typeof v === 'string' ? escapeHtml(v) : escapeHtml(JSON.stringify(v));
+    return `          <tr>
+            <td class="param-name">${escapeHtml(k)}</td>
+            <td class="param-value">${val}</td>
+          </tr>`;
+  }).join('\n');
+  return `      <table class="param-table">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>${escapeHtml(valueHeader)}</th>
+          </tr>
+        </thead>
+        <tbody>
+${rows}
+        </tbody>
+      </table>`;
+}
+
 
 export function extractEndpoint(rawUrl: any): string {
   const raw = String(rawUrl || '').trim();
@@ -133,8 +161,8 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     const urlStr = String(api?.url || '');
     const methodClass = (method || '').toLowerCase().startsWith('ws') ? 'ws' : (method || '').toLowerCase();
     const badge = method ? `<span class="badge method-${methodClass}">${method}</span>` : '';
-    const headers = api?.headers && Object.keys(api.headers).length ? renderValueList(api.headers) : '';
-    const cookies = api?.cookies && Object.keys(api.cookies).length ? renderValueList(api.cookies) : '';
+    const headers = api?.headers && Object.keys(api.headers).length ? renderParamTable(api.headers, 'Value') : '';
+    const cookies = api?.cookies && Object.keys(api.cookies).length ? renderParamTable(api.cookies, 'Value') : '';
     let body = '';
     if (api?.body !== undefined && api?.body !== null && String(api.body).length) {
       const fmtRaw = String(api?.format || 'json').toLowerCase();
@@ -155,8 +183,8 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
         const obj = typeof ex === 'string' ? (tryParseJson(ex) ?? { description: ex }) : ex;
         const nameHtml = obj?.name ? `<div class="ex-name">${escapeHtml(String(obj.name))}</div>` : '';
         const descHtml = obj?.description ? `<div class="ex-desc">${escapeHtml(String(obj.description))}</div>` : '';
-        const exInputs = obj?.inputs ? renderValueList(typeof obj.inputs === 'string' ? (tryParseJson(obj.inputs) ?? obj.inputs) : obj.inputs) : '';
-        const exOutputs = obj?.outputs ? renderValueList(typeof obj.outputs === 'string' ? (tryParseJson(obj.outputs) ?? obj.outputs) : obj.outputs) : '';
+        const exInputs = obj?.inputs ? renderParamTable(typeof obj.inputs === 'string' ? (tryParseJson(obj.inputs) ?? obj.inputs) : obj.inputs, 'Value') : '';
+        const exOutputs = obj?.outputs ? renderParamTable(typeof obj.outputs === 'string' ? (tryParseJson(obj.outputs) ?? obj.outputs) : obj.outputs, 'Value') : '';
         const ioBlocks = [
           exInputs ? `<div class="ex-sub"><strong>Inputs</strong>${exInputs}</div>` : '',
           exOutputs ? `<div class="ex-sub"><strong>Outputs</strong>${exOutputs}</div>` : ''
@@ -168,14 +196,14 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     const endpoint = extractEndpoint(api?.url);
     const desc = api?.description ? `<div class="desc">${escapeHtml(api.description)}</div>` : '';
     const outputSource = (api as any)?.outputs !== undefined ? (api as any).outputs : (api as any)?.output;
-    const output = outputSource ? renderValueList(typeof outputSource === 'string' ? (tryParseJson(outputSource) ?? outputSource) : outputSource) : '';
-    const inputs = api?.inputs ? renderValueList(typeof api.inputs === 'string' ? (tryParseJson(api.inputs) ?? api.inputs) : api.inputs) : '';
+    const output = outputSource ? renderParamTable(typeof outputSource === 'string' ? (tryParseJson(outputSource) ?? outputSource) : outputSource, 'Type') : '';
+    const inputs = api?.inputs ? renderParamTable(typeof api.inputs === 'string' ? (tryParseJson(api.inputs) ?? api.inputs) : api.inputs, 'Value') : '';
     const queryObj = (api as any)?.query;
-    const query = isNonEmpty(queryObj) ? renderValueList(typeof queryObj === 'string' ? (tryParseJson(queryObj) ?? queryObj) : queryObj) : '';
+    const query = isNonEmpty(queryObj) ? renderParamTable(typeof queryObj === 'string' ? (tryParseJson(queryObj) ?? queryObj) : queryObj, 'Value') : '';
     const metaHtml = [
       headers ? `<h3>Headers</h3>${headers}` : '',
       cookies ? `<h3>Cookies</h3>${cookies}` : '',
-      body ? `<h3>Body (${api?.format || 'json'})</h3>${body}` : ''
+      body ? `<h3>Body (${api?.format || 'JSON'})</h3>${body}` : ''
     ].filter(Boolean).join('');
     const hasInfo = !!desc || !!tags || !!headers || !!cookies;
     const hasInputs = !!inputs;
@@ -189,9 +217,9 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
         <div class="url"><input class="url-input" type="text" id="url-${idx}" value="${escapeHtml(api?.url || '')}" /></div>
         ${desc}
         ${tags}
-        ${hasQuery ? `<h3>Query</h3><div class="query-block">${query}</div>` : ''}
-        ${hasInputs ? `<h3>Inputs</h3><div class="inputs-block">${inputs}</div>` : ''}
-        ${hasOutputs ? `<h3>Outputs</h3><div id="response-${idx}" class="response" style="margin-top: 8px; padding: 8px; border-radius: 4px;">${output}</div>` : ''}
+        ${hasQuery ? `<h3>Query</h3>${query}` : ''}
+        ${hasInputs ? `<h3>Inputs</h3>${inputs}` : ''}
+        ${hasOutputs ? `<h3>Outputs</h3>${output}` : ''}
         ${hasMeta ? `<hr class="sep" />${metaHtml}` : ''}
         ${hasExamples ? `<hr class="sep" />\n<h3>Examples</h3>\n${examplesHtml}` : ''}
       </div>` : '';
