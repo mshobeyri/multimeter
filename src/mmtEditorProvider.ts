@@ -46,7 +46,8 @@ export async function readRelativeFileContent(
 export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   private static instance: MmtEditorProvider|null = null;
   private activeWebviewPanels: Set<vscode.WebviewPanel> = new Set();
-  private fileReadTimeouts: Map<vscode.WebviewPanel, NodeJS.Timeout> = new Map();
+  private fileReadTimeouts: Map<vscode.WebviewPanel, NodeJS.Timeout> =
+      new Map();
 
   // Static method to get the provider instance
   public static getInstance(): MmtEditorProvider|null {
@@ -142,12 +143,14 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
 
           // Send initial configuration values (e.g., body auto format)
           try {
-            const autoFormat = vscode.workspace.getConfiguration('multimeter').get<boolean>('body.auto.format');
+            const autoFormat = vscode.workspace.getConfiguration('multimeter')
+                                   .get<boolean>('body.auto.format');
             webviewPanel.webview.postMessage({
               command: 'config',
               bodyAutoFormat: !!autoFormat,
             });
-          } catch {}
+          } catch {
+          }
           break;
 
         case 'update':
@@ -170,38 +173,42 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           break;
 
         case 'getFileContent':
-          // Clear previous timeout for this panel
+          // Cancel previous error timer
           const prevTimeout = this.fileReadTimeouts.get(webviewPanel);
           if (prevTimeout) {
             clearTimeout(prevTimeout);
           }
-          // Set new timeout for debounced file reading
-          const timeout = setTimeout(async () => {
-            this.fileReadTimeouts.delete(webviewPanel);
-            try {
-              const content = await readRelativeFileContent(document.uri.fsPath, message.filename);
-              webviewPanel.webview.postMessage({command: 'fileContent', content, filename: message.filename});
-            } catch (err) {
-              // Show error only after debounce delay
-              vscode.window.showErrorMessage(`Failed to read file ${message.filename}: ${err}`);
-            }
-          }, 1000); // 1 second debounce
-          this.fileReadTimeouts.set(webviewPanel, timeout);
+
+          try {
+            const content = await readRelativeFileContent(
+                document.uri.fsPath, message.filename);
+            webviewPanel.webview.postMessage(
+                {command: 'fileContent', content, filename: message.filename});
+          } catch (err) {
+            // Delay only the error
+            const timeout = setTimeout(() => {
+              vscode.window.showErrorMessage(
+                  `Failed to read file ${message.filename}: ${err}`);
+              this.fileReadTimeouts.delete(webviewPanel);
+            }, 1000);
+
+            this.fileReadTimeouts.set(webviewPanel, timeout);
+          }
           break;
 
         case 'getFileAsDataUrl': {
           try {
             const absolutePath = path.resolve(
                 path.dirname(document.uri.fsPath), message.filename);
-            const data = await vscode.workspace.fs.readFile(vscode.Uri.file(absolutePath));
+            const data = await vscode.workspace.fs.readFile(
+                vscode.Uri.file(absolutePath));
             // naive mime detection by extension
             const ext = (path.extname(absolutePath) || '').toLowerCase();
-            const mime =
-                ext === '.png' ? 'image/png' :
+            const mime = ext === '.png'           ? 'image/png' :
                 ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' :
-                ext === '.svg' ? 'image/svg+xml' :
-                ext === '.gif' ? 'image/gif' :
-                'application/octet-stream';
+                ext === '.svg'                    ? 'image/svg+xml' :
+                ext === '.gif'                    ? 'image/gif' :
+                                                    'application/octet-stream';
             const base64 = Buffer.from(data).toString('base64');
             const dataUrl = `data:${mime};base64,${base64}`;
             webviewPanel.webview.postMessage({
@@ -220,11 +227,12 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         }
 
         case 'openRelativeFile': {
-          const absolutePath = path.resolve(
-              path.dirname(document.uri.fsPath), message.filename);
+          const absolutePath =
+              path.resolve(path.dirname(document.uri.fsPath), message.filename);
           const uri = vscode.Uri.file(absolutePath);
           try {
-            // Prefer opening with our custom MMT editor when the file is an .mmt
+            // Prefer opening with our custom MMT editor when the file is an
+            // .mmt
             if (absolutePath.toLowerCase().endsWith('.mmt')) {
               await vscode.commands.executeCommand(
                   'vscode.openWith', uri, 'mmt.editor', {preview: false});
@@ -246,26 +254,36 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         }
 
         case 'listFiles': {
-          const { folder, recursive } = message;
-          const folderPath = path.resolve(path.dirname(document.uri.fsPath), folder);
+          const {folder, recursive} = message;
+          const folderPath =
+              path.resolve(path.dirname(document.uri.fsPath), folder);
           const results: string[] = [];
           const walk = (dir: string) => {
             try {
-              const items = fs.readdirSync(dir, { withFileTypes: true });
+              const items = fs.readdirSync(dir, {withFileTypes: true});
               for (const it of items) {
                 const full = path.join(dir, it.name);
                 if (it.isDirectory()) {
-                  if (recursive) { walk(full); }
+                  if (recursive) {
+                    walk(full);
+                  }
                 } else if (it.isFile() && full.toLowerCase().endsWith('.mmt')) {
-                  // convert to relative to the doc file for consistent openRelativeFile
-                  const rel = path.relative(path.dirname(document.uri.fsPath), full);
+                  // convert to relative to the doc file for consistent
+                  // openRelativeFile
+                  const rel =
+                      path.relative(path.dirname(document.uri.fsPath), full);
                   results.push(rel);
                 }
               }
-            } catch {}
+            } catch {
+            }
           };
-          try { walk(folderPath); } catch {}
-          webviewPanel.webview.postMessage({ command: 'listFilesResult', folder, files: results });
+          try {
+            walk(folderPath);
+          } catch {
+          }
+          webviewPanel.webview.postMessage(
+              {command: 'listFilesResult', folder, files: results});
           break;
         }
 
@@ -319,9 +337,15 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         }
 
         case 'updateConfig': {
-          // Allow either explicit section/key or a fullKey for future extensibility
+          // Allow either explicit section/key or a fullKey for future
+          // extensibility
           try {
-            const { section, key, fullKey, value } = message as { section?: string; key?: string; fullKey?: string; value: any };
+            const {section, key, fullKey, value} = message as {
+              section?: string;
+              key?: string;
+              fullKey?: string;
+              value: any
+            };
             let targetSection = section;
             let targetKey = key;
             if (fullKey && (!section || !key)) {
@@ -330,24 +354,30 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
               targetSection = parts.shift();
               targetKey = parts.join('.');
             }
-            if (!targetSection || !targetKey) { break; }
-            await vscode.workspace.getConfiguration(targetSection).update(targetKey, value, vscode.ConfigurationTarget.Global);
+            if (!targetSection || !targetKey) {
+              break;
+            }
+            await vscode.workspace.getConfiguration(targetSection)
+                .update(targetKey, value, vscode.ConfigurationTarget.Global);
             // Broadcast updated config to all panels
             this.sendMessageToAllPanels({
               command: 'config',
-              bodyAutoFormat: vscode.workspace.getConfiguration('multimeter').get<boolean>('body.auto.format') || false,
+              bodyAutoFormat: vscode.workspace.getConfiguration('multimeter')
+                                  .get<boolean>('body.auto.format') ||
+                  false,
             });
           } catch (err) {
-            vscode.window.showErrorMessage(`Failed to update configuration: ${err}`);
+            vscode.window.showErrorMessage(
+                `Failed to update configuration: ${err}`);
           }
           break;
         }
 
         case 'exportHtml': {
-          const { html, title } = message;
+          const {html, title} = message;
           const uri = await vscode.window.showSaveDialog({
             defaultUri: vscode.Uri.file(`${title}.html`),
-            filters: { 'HTML files': ['html'] }
+            filters: {'HTML files': ['html']}
           });
           if (uri) {
             await vscode.workspace.fs.writeFile(uri, Buffer.from(html, 'utf8'));
@@ -356,10 +386,10 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         }
 
         case 'exportMarkdown': {
-          const { markdown, title } = message;
+          const {markdown, title} = message;
           const uri = await vscode.window.showSaveDialog({
             defaultUri: vscode.Uri.file(`${title || 'documentation'}.md`),
-            filters: { 'Markdown files': ['md', 'markdown'] }
+            filters: {'Markdown files': ['md', 'markdown']}
           });
           if (uri) {
             await vscode.workspace.fs.writeFile(
@@ -369,17 +399,27 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         }
 
         case 'openMarkdownPreview': {
-          const { markdown, title } = message as { markdown?: string, title?: string };
+          const {markdown, title} =
+              message as {markdown?: string, title?: string};
           try {
-            const folder = vscode.Uri.joinPath(this.context.globalStorageUri, 'md-previews');
+            const folder = vscode.Uri.joinPath(
+                this.context.globalStorageUri, 'md-previews');
             // Ensure directory exists
-            try { await vscode.workspace.fs.createDirectory(folder); } catch {}
-            const safe = String(title || 'documentation').replace(/[^a-z0-9._-]+/gi, '_');
-            const file = vscode.Uri.joinPath(folder, `${safe}-${Date.now()}.md`);
-            await vscode.workspace.fs.writeFile(file, Buffer.from(String(markdown || ''), 'utf8'));
-            await vscode.commands.executeCommand('markdown.showPreviewToSide', file);
+            try {
+              await vscode.workspace.fs.createDirectory(folder);
+            } catch {
+            }
+            const safe = String(title || 'documentation')
+                             .replace(/[^a-z0-9._-]+/gi, '_');
+            const file =
+                vscode.Uri.joinPath(folder, `${safe}-${Date.now()}.md`);
+            await vscode.workspace.fs.writeFile(
+                file, Buffer.from(String(markdown || ''), 'utf8'));
+            await vscode.commands.executeCommand(
+                'markdown.showPreviewToSide', file);
           } catch (err) {
-            vscode.window.showErrorMessage(`Failed to open Markdown preview: ${err}`);
+            vscode.window.showErrorMessage(
+                `Failed to open Markdown preview: ${err}`);
           }
           break;
         }
