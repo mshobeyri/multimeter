@@ -218,6 +218,39 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
     }
   };
 
+  const escapeSingleQuotes = (s: string) => String(s).replace(/'/g, "'\\''");
+  const buildCurl = (): string => {
+    const method = (requestData?.method || 'GET').toUpperCase();
+    const url = requestData?.url || '';
+    const parts: string[] = ['curl'];
+    if (method !== 'GET') {
+      parts.push('-X', method);
+    }
+    const headers = requestData?.headers || {};
+    const cookies = requestData?.cookies || {};
+    Object.entries(headers).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') {
+        parts.push('-H', `'${escapeSingleQuotes(`${k}: ${v}`)}'`);
+      }
+    });
+    const cookiePairs = Object.entries(cookies)
+      .filter(([_, v]) => v !== undefined && v !== null && v !== '')
+      .map(([k, v]) => `${k}=${v}`);
+    if (cookiePairs.length) {
+      parts.push('-H', `'Cookie: ${escapeSingleQuotes(cookiePairs.join('; '))}'`);
+    }
+    const bodyStr = typeof requestData?.body === 'string'
+      ? requestData?.body
+      : requestData?.body != null
+        ? JSON.stringify(requestData?.body)
+        : '';
+    if (method !== 'GET' && bodyStr) {
+      parts.push('--data', `'${escapeSingleQuotes(bodyStr)}'`);
+    }
+    parts.push(`'${escapeSingleQuotes(url)}'`);
+    return parts.join(' ');
+  };
+
   // Helper functions to check what should be visible based on view mode
   const shouldShowQuery = () => viewMode === "all" || viewMode === "params";
   const shouldShowHeaders = () => viewMode === "all" || viewMode === "headers";
@@ -470,6 +503,21 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
             >
               <span className="codicon codicon-history toolbar-button-icon"></span>
             </button>
+            {api.protocol === 'http' && (
+              <button
+                onClick={() => {
+                  const curl = buildCurl();
+                  window.vscode?.postMessage({
+                    command: 'runCurl',
+                    curl
+                  });
+                }}
+                className="toolbar-button"
+                title="run in terminal using curl"
+              >
+                <span className="codicon codicon-terminal toolbar-button-icon"></span>
+              </button>
+            )}
             <button
               onClick={() => {
                 const next = !autoFormatBody;
