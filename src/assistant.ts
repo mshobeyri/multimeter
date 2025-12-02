@@ -143,13 +143,23 @@ async function handleChatRequest(
           response.markdown(js.trim());
           response.markdown('```');
         }
-        const result = await runner.runGeneratedJs(js, path.basename(fileUri.fsPath), (lvl, msg) => response.markdown(String(msg)), runJSCode);
-        response.markdown(`Success: ${result.success}`);
-        response.markdown(`Duration: ${result.durationMs.toFixed(2)} ms`);
-        if (result.errors.length) {
-          response.markdown('Errors:');
-          result.errors.forEach(e => response.markdown(` - ${e}`));
-        }
+        const result = await runner.runGeneratedJs(js, path.basename(fileUri.fsPath), (lvl, msg) => {}, runJSCode);
+        // Pretty output formatting (single message with line breaks)
+        const nameOnly = path.basename(fileUri.fsPath);
+        const logsBlock = (result.logs && result.logs.length)
+          ? `Logs:\n\n\`\`\`\n${result.logs.join('\n')}\n\`\`\``
+          : '';
+        const errorsBlock = (result.errors && result.errors.length)
+          ? ['Errors:', ...result.errors.map(e => ` - ${e}`)].join('\n')
+          : '';
+        const out = [
+          `Running test ${nameOnly}...`,
+          logsBlock,
+          `Success: ${result.success}`,
+          `Duration: ${result.durationMs.toFixed(2)} ms`,
+          errorsBlock
+        ].filter(Boolean).join('\n');
+        response.markdown(out);
         const outFile = findOpt('out');
         if (outFile) {
           const outPath = path.isAbsolute(outFile) ? outFile : path.join(projectRoot, outFile);

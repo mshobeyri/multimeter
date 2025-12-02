@@ -9,6 +9,7 @@ export interface RunResult {
   success: boolean;
   durationMs: number;
   errors: string[];
+  logs?: string[];
 }
 
 export type FileLoader = (path: string) => Promise<string>;
@@ -50,22 +51,24 @@ export async function runGeneratedJs(
 ): Promise<RunResult> {
   const start = Date.now();
   const errors: string[] = [];
+  const logs: string[] = [];
   const forward = (level: LogLevel, msg: string) => {
     if (level === 'error') {
       errors.push(msg);
     }
+    logs.push(String(msg));
     logger(level, msg);
   };
   try {
     if (!js || !js.trim()) {
       errors.push('Empty JS input');
-      return {success: false, durationMs: Date.now() - start, errors};
+      return {success: false, durationMs: Date.now() - start, errors, logs};
     }
     await runCode(js, title, forward);
-    return {success: errors.length === 0, durationMs: Date.now() - start, errors};
+    return {success: errors.length === 0, durationMs: Date.now() - start, errors, logs};
   } catch (e: any) {
     errors.push(e?.message || String(e));
-    return {success: false, durationMs: Date.now() - start, errors};
+    return {success: false, durationMs: Date.now() - start, errors, logs};
   }
 }
 
