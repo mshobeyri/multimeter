@@ -54,6 +54,18 @@
           {
             "name": "run",
             "description": "Run a test or api @mmt /run <test path or api .mmt file path>"
+          },
+          {
+            "name": "printJs",
+            "description": "Print the generated JS code from a test @mmt /printJs <test path>"
+          },
+          {
+            "name": "doc",
+            "description": "Generate documentation from an API @mmt /doc <api .mmt file path>"
+          },
+          {
+            "name": "help",
+            "description": "Show help information about using Multimeter @mmt /help"
           }
         ]
       },
@@ -67,6 +79,18 @@
           {
             "name": "run",
             "description": "Run a test or api @mmt /run <test path or api .mmt file path>"
+          },
+          {
+            "name": "printJs",
+            "description": "Print the generated JS code from a test @mmt /printJs <test path>"
+          },
+          {
+            "name": "doc",
+            "description": "Generate documentation from an API @mmt /doc <api .mmt file path>"
+          },
+          {
+            "name": "help",
+            "description": "Show help information about using Multimeter @mmt /help"
           }
         ]
       }
@@ -181,24 +205,6 @@
           "dark": "res/activity.png"
         }
       },
-        {
-          "command": "multimeter.run",
-          "title": "Run API/Test (Chat)",
-          "category": "Multimeter",
-          "icon": "$(run)"
-        },
-        {
-          "command": "multimeter.printJs",
-          "title": "Print JS from Test (Chat)",
-          "category": "Multimeter",
-          "icon": "$(zap)"
-        },
-        {
-          "command": "multimeter.doc",
-          "title": "Generate Doc (Chat)",
-          "category": "Multimeter",
-          "icon": "$(book)"
-        },
       {
         "command": "multimeter.mmt.show.yaml",
         "title": "Hide UI Preview",
