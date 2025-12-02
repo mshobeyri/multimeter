@@ -11,6 +11,46 @@ async function handleChatRequest(
   const userText = request.message ?? '';
   const userTextLower = userText.toLowerCase();
 
+  // Provide help mirroring CLI when asked
+  const showHelp =
+      request.command === 'help' || /(^|\s)\/help(\s|$)/.test(userTextLower);
+  if (showHelp) {
+    const help = `# Multimeter Assistant\n\n` +
+        `## Usage:\n` +
+        `  You can ask any question from Multimeter asssistant.\n` +
+        `  Also, you can use the following format to interact with Multimeter in form of commands.\n` +
+        `  \`@multimeter /[command] [options]\`` +
+        `  or` +
+        `  \`@mmt /[command] [options]\`. \n\n` +
+        `  \`@Multimeter\` stays in the chat after responding, but \`@mmt\` goes away.\n\n` +
+        `## Commands:\n` +
+        `  \`/run <file>\`                    Test file (.yaml/.yml/.json/.mmt)\n` +
+        `    **-q**, **--quiet**              Minimal output\n` +
+        `    **-o**, **--out <file>**         Write result JSON to file\n` +
+        `    **-i**, **--input <values...>**  Input variables as key value pairs (repeatable)\n` +
+        `    **-e**, **--env <values...>**    Environment variables as key value pairs or key=val (repeatable)\n` +
+        `    **--env-file <path>**            Environment file (.mmt/.yaml) to read variables from\n` +
+        `    **--preset <name>**              Preset name from env file (e.g., runner.dev) or just name under runner\n` +
+        `    **--print-js**                   Print generated JS before executing\n\n` +
+        `  \`/print-js <file>\`               Convert a test definition file to executable JS and print\n` +
+        `    **-s**, **--stages**             Include stage headers as comments when stages exist\n` +
+        `    **-i**, **--input <values...>**\n` +
+        `    **-e**, **--env <values...>**\n` +
+        `    **--env-file <path>**\n` +
+        `    **--preset <name>**\n\n` +
+        `  \`/doc <file>\`              Generate documentation from a doc .mmt\n` +
+        `    **-o**, **--out <file>**   Write output to file (default: <docname>.<ext>)\n` +
+        `    **--html**                 Generate HTML (default)\n` +
+        `    **--md**                   Generate Markdown instead of HTML\n\n` +
+        `## Chat shortcuts:\n` +
+        `  \`/run <file> [args]\`       Run a test file (same options as CLI)\n` +
+        `  \`/print-js <file> [args]\`  Print generated JS\n` +
+        `  \`/doc <file> [--md] [--out <file>]\`  Generate docs\n` +
+        `  \`/help\`                    Show this help`;
+    response.markdown(help);
+    return;
+  }
+
   // Handle structured chat commands: /run, /print-js, /doc
   if (request.command === 'run' || request.command === 'print-js' ||
       request.command === 'doc') {
@@ -328,8 +368,6 @@ async function handleChatRequest(
       return;
     }
   }
-
-  // Legacy @mmt /run handler removed in favor of structured chat commands
 
   // Map of keywords to doc filenames
   const docMap: {[key: string]: string} = {
