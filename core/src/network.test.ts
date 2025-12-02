@@ -2,8 +2,10 @@
 const path = require('path');
 const fs = require('fs');
 const distCandidates = [
-  path.join(__dirname, '../dist/network.js'), // when running from core/src
-  path.join(__dirname, '../../../core/dist/network.js'), // when running from out/core/src
+  path.join(__dirname, './network.js'),
+  path.join(__dirname, '../core/dist/network.js'),
+  path.join(__dirname, '../dist/network.js'),
+  path.join(__dirname, '../../../core/dist/network.js'),
 ];
 const distPath = distCandidates.find(p => fs.existsSync(p));
 if (!distPath) {
