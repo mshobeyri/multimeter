@@ -514,3 +514,11 @@ button:focus {
 .toolbar-button--toggle-active:hover {
   background: #1177bb;
 }
+
+.monaco-editor .suggest-widget .details,
+.monaco-editor .suggest-widget .details .header,
+.monaco-editor .suggest-widget .details .header .title,
+.monaco-editor .suggest-widget .details .header .type {
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+}
