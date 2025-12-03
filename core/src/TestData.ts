@@ -141,7 +141,7 @@ export const flowTypeOptions = [
 
 // Flow types that the UI can add as individual steps/folders
 export const addableFlowTypes = [
-  'print', 'call', 'js', 'data', 'set', 'var', 'const', 'let', 'check', 'if',
+  'print', 'call', 'js', 'set', 'var', 'const', 'let', 'assert', 'check', 'if',
   'for', 'repeat', 'delay', 'stage'
 ] as FlowType[];
 export type CheckOps =
