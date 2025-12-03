@@ -218,15 +218,40 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       case 'steps':
       case 'stages':
         return null;
-      case 'stage':
+      case 'stage': {
+        const idVal = typeof stepData?.id === 'string' ? stepData.id : '';
+        const condVal = typeof stepData?.condition === 'string' ? stepData.condition : '';
+        const deps = Array.isArray(stepData?.depends_on)
+          ? stepData.depends_on as string[]
+          : (stepData?.depends_on ? [String(stepData.depends_on)] : []);
+        const depsStr = deps.join(', ');
+        const updateStage = (patch: Partial<{ id: string; condition: string; depends_on: string[] }>) => {
+          const next = { ...(stepData || {}), ...patch } as any;
+          onChange(next);
+        };
         return (
-          <input
-            placeholder="Stage name"
-            value={stepData[type] || ''}
-            onChange={e => onChange({ stage: e.target.value })}
-            style={{ width: '100%' }}
-          />
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input
+              placeholder="id"
+              value={idVal}
+              onChange={e => updateStage({ id: e.target.value })}
+              style={{ minWidth: 80, flex: '0 0 120px' }}
+            />
+            <input
+              placeholder="condition"
+              value={condVal}
+              onChange={e => updateStage({ condition: e.target.value })}
+              style={{ minWidth: 120, flex: '1 1 40%' }}
+            />
+            <input
+              placeholder="depends_on"
+              value={depsStr}
+              onChange={e => updateStage({ depends_on: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+              style={{ minWidth: 140, flex: '1 1 40%' }}
+            />
+          </div>
         );
+      }
       default:
         return null;
     }
