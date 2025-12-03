@@ -157,7 +157,7 @@ export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
       headers: res?.headers || {},
       cookies: res?.cookies || {}
     },
-    ${indentLines(JSON.stringify(extractRules, null, 2))}
+    ${indentLines(indentLines(JSON.stringify(extractRules, null, 2)))}
   );
   output.responseTime = res?.duration || 0;
   output.statusCode = res?.status || 0;
@@ -445,7 +445,7 @@ export const checkToJSfunc = (check: string): string => {
   const [left, operator, right] = checkParts;
 
   return `if (!${conditionStatement}) {
-    console.error("Check ${check} failed, as " + JSON.stringify(${left}) + " ${
+  console.error("Check ${check} failed, as " + JSON.stringify(${left}) + " ${
       operator} " + ${right} + " is false");
 }`;
 };
@@ -462,7 +462,7 @@ export const assertToJSfunc = (assert: string): string => {
   const [left, operator, right] = assertParts;
 
   return `if (!${conditionStatement}) {
-    throw new Error("Assertion ${assert} failed, as " + JSON.stringify(${
+  throw new Error("Assertion ${assert} failed, as " + JSON.stringify(${
       left}) + " ${operator} " + ${right}+ " is false");
 }`;
 };
@@ -481,9 +481,12 @@ const toInputsParams =
     };
 
 export const callToJSfunc = (step: TestFlowCall): string => {
-  const inputs = toInputsParams(step.inputs || {}, ': ');
+  let inputParams = toInputsParams(step.inputs || {}, ': ');
+  if (inputParams.length > 0) {
+    inputParams = ' ' + inputParams + ' ';
+  }
 
-  let call = `await ${step.call}({ ${inputs} });`;
+  let call = `await ${step.call}({${inputParams}});`;
   if (step.id) {
     call = `const ${step.id} = ` + call;
   }
@@ -494,7 +497,11 @@ export const callToJSfunc = (step: TestFlowCall): string => {
 export const varToJSfunc = (key: string, step: any): string => {
   return Object.entries(step)
       .map(([varName, value]) => {
-        return `${key}${varName} = ${value};`;
+        if (typeof value === 'string') {
+          return `${key}${varName} = \`${value}\`;`;
+        } else {
+          return `${key}${varName} = ${value};`;
+        }
       })
       .join('\n');
 };
@@ -556,7 +563,7 @@ export const flowStagesToJsfunc = (flow: TestFlowStages): string => {
     const stageName = stage.id || randomName();
     const dependsOn = Array.isArray(stage.depends_on) ? stage.depends_on :
         stage.depends_on                              ? [stage.depends_on] :
-                                                          [];
+                                                        [];
     // Build stage code with optional early-return condition
     let code = '';
     if (stage.condition && String(stage.condition).trim().length > 0) {
@@ -590,8 +597,9 @@ export const flowStagesToJsfunc = (flow: TestFlowStages): string => {
           stage.dependsOn.map(dep => `${dep}Promise`).join(', ')}]);`);
     }
     // Launch this stage as a promise
-    generated.push(`const ${stageName}Promise = (async () => {\n${
-        indentLines(stage.code)}\n})();`);
+    generated.push(`const ${stageName}Promise = (async () => {
+${indentLines(stage.code)}
+})();`);
     launched.add(stageName);
     processed.add(stageName);
   }
@@ -601,11 +609,9 @@ export const flowStagesToJsfunc = (flow: TestFlowStages): string => {
     genStage(stageName);
   }
 
-    // Wait for all launched stages to finish
-    generated.push(`await Promise.all([${
-      Array.from(launched)
-        .map(name => `${name}Promise`)
-        .join(', ')}]);`);
+  // Wait for all launched stages to finish
+  generated.push(`await Promise.all([${
+      Array.from(launched).map(name => `${name}Promise`).join(', ')}]);`);
 
   return generated.join('\n');
 };
@@ -619,28 +625,34 @@ export const importTestToJsfunc = async(ctx: TestContext): Promise<string> => {
       ctx.test.steps.length > 0) {
     throw new Error(`${ctx.name}: Test cannot have both stages and steps`);
   }
-  let importedFuncs = '// Imported tests and APIs\n';
-  importedFuncs += await importsToJsfunc(ctx.test.import ?? {});
+  let importedFuncs = await importsToJsfunc(ctx.test.import ?? {});
   const paramsAsObj: Record<string, string> = Object.fromEntries(
       Object.keys(ctx.test.inputs ?? {}).map(key => [key, `\${${key}}`]));
 
   let replaced = replaceAllRefs(ctx.test, paramsAsObj, ctx.inputs, {});
 
-  const inputParams = toInputsParams(replaced.inputs || {}, ' = ');
+  let inputParams = toInputsParams(replaced.inputs || {}, ' = ');
+  if (inputParams.length > 0) {
+    inputParams += ' ';
+  }
 
   let flow = '';
-  const outputParams = toInputsParams(replaced.outputs || {}, ': ');
+  let outputParams = toInputsParams(replaced.outputs || {}, ': ');
+  if (outputParams.length > 0) {
+    outputParams = ' ' + outputParams + ' ';
+  }
 
   if (replaced.stages && replaced.stages.length > 0) {
     flow += flowStagesToJsfunc(replaced.stages);
   } else if (replaced.steps && replaced.steps.length > 0) {
     flow += flowStepsToJsfunc(replaced.steps);
   }
+
   return `const ${toLowerUnderscore(ctx.name)} = async ({ ${
-      inputParams} } = {}, envVariables = {}) => {
+      inputParams}} = {}, envVariables = {}) => {
   ${indentLines(importedFuncs)}
 
-  let outputs = { ${outputParams} };
+  let outputs = {${outputParams}};
 
   ${indentLines(flow)}
 
