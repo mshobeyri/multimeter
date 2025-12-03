@@ -69,6 +69,7 @@ const collectFolderIds = (items: Record<string, any>, includeEmpty = true): stri
 
 const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
     const isStages = Array.isArray(testData.stages);
+    const [multiStage, setMultiStage] = React.useState<boolean>(isStages);
     const [shortTree, setShortTree] = React.useState(() => testDataToShortTree(testData));
     const [expandedItems, setExpandedItems] = React.useState<string[]>(
         () => collectFolderIds(shortTree.items)
@@ -108,6 +109,26 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
             console.error("Error updating short tree:", error);
         }
     }, [testData]);
+
+    // Toggle multistage mode on root: switches between steps and stages in testData
+    const toggleMultiStage = (checked: boolean) => {
+        setMultiStage(checked);
+        try {
+            if (checked) {
+                // Convert all top-level steps into a single stage containing them
+                const steps = Array.isArray(testData.steps) ? (testData.steps as any[]) : [];
+                const singleStage = { id: 'stage_1', steps };
+                update && update({ stages: [singleStage], steps: undefined });
+            } else {
+                // Flatten stages back to steps by taking their steps arrays in order
+                const stages = Array.isArray(testData.stages) ? (testData.stages as any[]) : [];
+                const steps = stages.flatMap((st: any) => Array.isArray(st?.steps) ? st.steps : []);
+                update && update({ steps, stages: undefined });
+            }
+        } catch (e) {
+            console.error('Failed to toggle multistage:', e);
+        }
+    };
 
     const handleExpand = (item: any, treeId: string) => {
         if (treeId !== 'tree-1') return;
@@ -324,7 +345,15 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
 
     return (
         <div className="test-flow-tree">
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8, position: 'relative' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, position: 'relative', alignItems: 'center' }}>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }} title="Treat root flow as stages">
+                    <input
+                        type="checkbox"
+                        checked={multiStage}
+                        onChange={(e) => toggleMultiStage(e.currentTarget.checked)}
+                    />
+                    <span>Multistage</span>
+                </label>
                 <button
                     ref={addBtnRef}
                     className="add-button"
@@ -343,9 +372,10 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                             <button
                                 key={t}
                                 className="action-button"
-                                style={{ width: '100%', justifyContent: 'flex-start', display: 'flex', alignItems: 'center', gap: 8 }}
-                                onPointerUp={() => { setAddMenuOpen(false); addItemOfType(t); }}
-                                title={`Add ${t}`}
+                                style={{ width: '100%', justifyContent: 'flex-start', display: 'flex', alignItems: 'center', gap: 8, opacity: (t === 'stage' && !multiStage) ? 0.5 : 1 }}
+                                onPointerUp={() => { if (t === 'stage' && !multiStage) return; setAddMenuOpen(false); addItemOfType(t); }}
+                                disabled={t === 'stage' && !multiStage}
+                                title={(t === 'stage' && !multiStage) ? 'Enable Multistage to add a stage' : `Add ${t}`}
                             >
                                 <span className={`codicon ${codiconForType(t)}`} style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
                                 <span>{t}</span>
@@ -604,9 +634,12 @@ function testDataToShortTree(testData: TestData): { items: Record<string, any> }
 
     const items: Record<string, any> = {};
 
-    function toItem(step: any, path: string) {
+    const topIsStages = Array.isArray(testData.stages);
+
+    function toItem(step: any, path: string, forceStageType = false) {
         if (!step) { return; }
-        const type = getTestFlowStepType(step);
+        const computed = getTestFlowStepType(step);
+        const type = forceStageType ? 'stage' : computed;
         const children: string[] = [];
 
         const childSteps = (step && Array.isArray(step.steps)) ? step.steps : [];
@@ -631,7 +664,8 @@ function testDataToShortTree(testData: TestData): { items: Record<string, any> }
         if (!step) { return; }
         const key = `flow_${i}`;
         topChildren.push(key);
-        toItem(step, key);
+        // Top-level: if we are in stages mode, mark top items as 'stage'
+        toItem(step, key, topIsStages);
     });
 
     items.root = {
