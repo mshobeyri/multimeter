@@ -124,14 +124,14 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "steps",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "steps:\n\t- call: ",
+            insertText: "steps:\n\t",
             detail: 'Linear steps [array]',
             documentation: 'Define a sequence of steps (call, data, check, assert, if, for, repeat, delay, js, print, set, var, const, let).'
         },
         {
             label: "stages",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "stages:\n\t- id: stage1\n\t  steps:\n\t  \t- call: ",
+            insertText: "stages:\n\t",
             detail: 'Stage-based steps [array]',
             documentation: 'Define named stages with their own steps and optional dependencies.'
         },
@@ -418,7 +418,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "steps",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "steps:\n\t- call: ",
+            insertText: "steps:\n\t",
             detail: 'Stage steps',
             documentation: [
                 'Steps executed in this stage. Stages run concurrently by default and are synchronized by depends_on.',
