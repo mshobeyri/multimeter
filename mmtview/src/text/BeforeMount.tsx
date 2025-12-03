@@ -168,7 +168,7 @@ export const handleBeforeMount = (monaco: any) => {
                 }
             }
 
-            // Handle key suggestions (for new lines)
+            // Handle key suggestions (for new lines or mid-line insertion)
             const currentIndent = lineContent.search(/\S|$/);
             const firstLine = model.getLineContent(1).trim();
             const parent = getParentContext(lines, currentIndent, firstLine);
@@ -180,9 +180,10 @@ export const handleBeforeMount = (monaco: any) => {
             const suggestions = baseSuggestions.map(item => ({
                 ...item,
                 documentation: item.documentation,
+                // Insert exactly at cursor position without shifting to line start
                 range: {
                     startLineNumber: position.lineNumber,
-                    startColumn: model.getLineFirstNonWhitespaceColumn(position.lineNumber) || 1,
+                    startColumn: position.column,
                     endLineNumber: position.lineNumber,
                     endColumn: position.column
                 }
