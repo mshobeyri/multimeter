@@ -137,30 +137,296 @@ export const KeySuggestionsByParent = (monaco: any) => {
         },
     ];
     const stepsSuggestions = [
-        { label: "call", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- call: ", detail: 'Call an API by name', documentation: 'Executes an API; supports id and inputs.' },
-        { label: "data", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- data: ", detail: 'Load data resource', documentation: 'Load CSV/JSON or other data resource alias.' },
-        { label: "check", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- check: ", detail: 'Check expression', documentation: 'Boolean expression to check.' },
-        { label: "assert", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- assert: ", detail: 'Assert expression', documentation: 'Boolean assertion that must pass.' },
-        { label: "if", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- if: \n  \tsteps:\n  \t- ", detail: 'Conditional block', documentation: 'Conditional steps; add nested steps under steps:' },
-        { label: "for", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- for: \n  \tsteps:\n  \t- ", detail: 'Loop over collection', documentation: 'Iterate and execute nested steps.' },
-        { label: "repeat", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- repeat: 1\n  \tsteps:\n  \t- ", detail: 'Repeat steps N times', documentation: 'Repeat nested steps.' },
-        { label: "delay", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- delay: 1000", detail: 'Delay in ms', documentation: 'Sleep/pause execution for ms.' },
-        { label: "js", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- js: ", detail: 'Run JavaScript', documentation: 'Execute JavaScript code.' },
-        { label: "print", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- print: ", detail: 'Print message', documentation: 'Log output for debugging.' },
-        { label: "set", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- set:\n\t", detail: 'Set variables', documentation: 'Assign variables from expressions.' },
-        { label: "var", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- var:\n\t", detail: 'Define variables', documentation: 'Create variables to be used later.' },
-        { label: "const", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- const:\n\t", detail: 'Define constants', documentation: 'Immutable values for test context.' },
-        { label: "let", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- let:\n\t", detail: 'Define lexical variables', documentation: 'Mutable values for test context.' },
-        { label: "id", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- id: ", detail: 'Optional step identifier', documentation: 'Identifier for referencing this step.' },
-        { label: "inputs", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- inputs:\n\t", detail: 'Inputs for step', documentation: 'Key-value inputs for this step.' },
-        { label: "steps", kind: monaco.languages.CompletionItemKind.Property, insertText: "\t- steps:\n\t\t- ", detail: 'Nested steps', documentation: 'Add nested steps for control-flow steps.' },
+        {
+            label: "call",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "- call: ",
+            detail: 'Call an API by name',
+            documentation: [
+                'Executes an API and optionally captures its result.',
+                'Fields:',
+                '  - id: optional variable name to assign the output',
+                '  - inputs: overrides for API inputs',
+                'Example:',
+                '- call: get_user',
+                '  id: user',
+                '  inputs:',
+                '    userId: "u-123"',
+                'Note: Outputs returned by the API include mapped fields plus statusCode and responseTime.'
+            ].join('\n')
+        },
+        {
+            label: "data",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "- data: ",
+            detail: 'Load data resource',
+            documentation: [
+                'Loads a data alias (CSV/JSON) for use in steps.',
+                'Example:',
+                '- data: users.csv',
+                '  id: users',
+                'Then use in JS: users[0].email'
+            ].join('\n')
+        },
+        {
+            label: "check",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "- check: ",
+            detail: 'Check expression',
+            documentation: [
+                'Evaluates a boolean condition and logs an error if false.',
+                'Supported operators: <, >, <=, >=, ==, !=, =@, !@, =~, !~, =^, !^, =$ , !$',
+                'Env tokens: use e:NAME or <<e:NAME>> which resolve to envVariables.NAME',
+                'Example:',
+                '- check: response.statusCode == 200'
+            ].join('\n')
+        },
+        {
+            label: "assert",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "- assert: ",
+            detail: 'Assert expression',
+            documentation: [
+                'Evaluates a boolean condition and throws if false (fails the test).',
+                'Same operators as check.',
+                'Example:',
+                '- assert: total_users >= 1'
+            ].join('\n')
+        },
+        {
+            label: "if",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "- if: ",
+            detail: 'Conditional block',
+            documentation: [
+                'Runs nested steps only when the condition is true. Optional else with its own steps.',
+                'Example:',
+                '- if: user.role == `admin`',
+                '  steps:',
+                '    - print: "Admin access granted"',
+                '  else:',
+                '    - print: "Limited access"'
+            ].join('\n')
+        },
+        {
+            label: "for",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "- for: ",
+            detail: 'Loop over collection',
+            documentation: [
+                'Executes nested steps for each item in an iterable.',
+                'Use native JS for clause.',
+                'Example:',
+                '- for: const user of users',
+                '  steps:',
+                '    - print: `Processing ${user.id}`'
+            ].join('\n')
+        },
+        {
+            label: "repeat",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "- repeat: ",
+            detail: 'Repeat steps N times or for duration',
+            documentation: [
+                'Repeats nested steps a fixed number of times, or for a duration.',
+                'Count example:',
+                '- repeat: 3',
+                '    steps:',
+                '        - print: "loop"',
+                'Duration example (supports ns, ms, s, m, h):',
+                '- repeat: 2s',
+                '    steps:',
+                '        - call: ping'
+            ].join('\n')
+        },
+        {
+            label: "delay",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "- delay: 1000",
+            detail: 'Delay in time units',
+            documentation: [
+                'Pauses execution. Accepts number (ms) or duration with units ns|ms|s|m|h.',
+                'Examples:',
+                '- delay: 500',
+                '- delay: 1.5s'
+            ].join('\n')
+        },
+        {
+            label: "js",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "- js: ",
+            detail: 'Run JavaScript',
+            documentation: [
+                'Executes inline JavaScript in the test context.',
+                'Access variables, envVariables, and prior step outputs.',
+                'Example:',
+                '- js: total = users.length'
+            ].join('\n')
+        },
+        {
+            label: "print",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "- print: ",
+            detail: 'Print message',
+            documentation: [
+                'Logs a message for debugging.',
+                'Template strings supported.',
+                'Example:',
+                '- print: `User id: ${user.id}`'
+            ].join('\n')
+        },
+        {
+            label: "set",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "- set: ",
+            detail: 'Set variables',
+            documentation: [
+                'Assign values to existing variables.',
+                'Example:',
+                '- set:',
+                '    responseTime: 0'
+            ].join('\n')
+        },
+        {
+            label: "var",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "- var: ",
+            detail: 'Define variables',
+            documentation: [
+                'Declare variables available to subsequent steps. Strings are template-enabled; objects and numbers are inserted directly.',
+                'Examples:',
+                '- var:',
+                '    baseUrl: `https://api.example.com`',
+                '    threshold: 10'
+            ].join('\n')
+        },
+        {
+            label: "const",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "- const: ",
+            detail: 'Define constants',
+            documentation: [
+                'Declare immutable values for the test context.',
+                'Example:',
+                '- const:',
+                '    roles: [`admin`, `user`]'
+            ].join('\n')
+        },
+        {
+            label: "let",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "- let: ",
+            detail: 'Define lexical variables',
+            documentation: [
+                'Declare mutable values in the test context.',
+                'Example:',
+                '- let:',
+                '    counter: 0'
+            ].join('\n')
+        },
+        {
+            label: "id",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "- id: ",
+            detail: 'Optional step identifier',
+            documentation: [
+                'Identifier to capture a step result or refer to a stage.',
+                'Example (call capture):',
+                '- call: get_user',
+                '  id: user'
+            ].join('\n')
+        },
+        {
+            label: "inputs",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "inputs:\n\t",
+            detail: 'Inputs for step',
+            documentation: [
+                'Key-value inputs specific to a step (commonly for call).',
+                'Non-string inputs are injected without extra quoting.',
+                'Example:',
+                '- call: add_item',
+                '  inputs:',
+                '    count: 2',
+                '    note: `hello`'
+            ].join('\n')
+        },
+        {
+            label: "steps",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "steps:\n\t",
+            detail: 'Nested steps',
+            documentation: [
+                'Container for nested steps inside control-flow constructs like if/for/repeat and stages.',
+                'Example:',
+                '- if: total > 0',
+                '  steps:',
+                '    - print: `Total: ${total}`'
+            ].join('\n')
+        },
     ];
     const stageSuggestions = [
-        { label: "id", kind: monaco.languages.CompletionItemKind.Property, insertText: "id: ", detail: 'Stage identifier', documentation: 'Id to reference this stage.' },
-        { label: "title", kind: monaco.languages.CompletionItemKind.Property, insertText: "title: ", detail: 'Stage title', documentation: 'Descriptive title for the stage.' },
-        { label: "condition", kind: monaco.languages.CompletionItemKind.Property, insertText: "condition: ", detail: 'Conditional expression', documentation: 'Only run the stage if condition is truthy.' },
-        { label: "depends_on", kind: monaco.languages.CompletionItemKind.Property, insertText: "depends_on: ", detail: 'Stage dependencies', documentation: 'Name or list of stage names this stage depends on.' },
-        { label: "steps", kind: monaco.languages.CompletionItemKind.Property, insertText: "steps:\n\t- call: ", detail: 'Stage steps', documentation: 'Steps to execute in this stage.' },
+        {
+            label: "id",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "id: ",
+            detail: 'Stage identifier',
+            documentation: [
+                'Unique name for the stage. Used for dependencies and internal promises.',
+                'Example:',
+                '- id: prepare'
+            ].join('\n')
+        },
+        {
+            label: "title",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "title: ",
+            detail: 'Stage title',
+            documentation: [
+                'Human-friendly title shown in docs or logs.',
+                'Example:',
+                '- title: Prepare test data'
+            ].join('\n')
+        },
+        {
+            label: "condition",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "condition: ",
+            detail: 'Conditional expression',
+            documentation: [
+                'Only runs the stage when the condition is true; otherwise returns early.',
+                'Supports the same operators and env tokens as check/assert.',
+                'Example:',
+                '- condition: e:RUN_PREP == true'
+            ].join('\n')
+        },
+        {
+            label: "depends_on",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "depends_on: ",
+            detail: 'Stage dependencies',
+            documentation: [
+                'Single name or list of stage names that must finish before this stage starts.',
+                'Example:',
+                '- depends_on: prepare',
+                'or',
+                '- depends_on:',
+                '  - prepare',
+                '  - seed'
+            ].join('\n')
+        },
+        {
+            label: "steps",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "steps:\n\t- call: ",
+            detail: 'Stage steps',
+            documentation: [
+                'Steps executed in this stage. Stages run concurrently by default and are synchronized by depends_on.',
+                'Example:',
+                '- steps:',
+                '  - call: get_user'
+            ].join('\n')
+        },
     ];
     const docSuggestions = [
         {
@@ -191,10 +457,10 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Service groups [array]',
             documentation: 'Optional grouping of sources by service. Each item has name, optional description, and sources (folders or files).'
         },
-         {
+        {
             label: "logo",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "\tlogo: ",
+            insertText: "logo: ",
             detail: 'Logo URL/path [string]',
             documentation: 'Path or URL to a logo image shown next to the title.'
         }
@@ -266,7 +532,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "format",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "format: json",
+            insertText: "format: ",
             detail: 'Data format [json, xml, text]',
             documentation: 'The format of the request and response data. Determines how the body content is parsed and serialized.\nOptions:\n\t- json: JavaScript Object Notation\n\t- xml: Extensible Markup Language\n\t- text: Plain text format\nExample: format: json',
         },
@@ -308,9 +574,9 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "examples",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "examples:\n\t- name: example1\n\t  description: desc\n\t  inputs:\n\t\tkey1: value1\n\t\tkey2: value2\n",
+            insertText: "examples:\n\t- name: example1\n\t\tdescription: desc\n\t\tinputs:\n\t\t\tkey1: value1\n\t\t\tkey2: value2\n\t\toutputs:\n\t\t\tkey1: value1\n\t\t\tkey2: value2\n",
             detail: 'Usage examples [array of key: value]',
-            documentation: 'Provide concrete examples of how to use the API with specific input values. These examples can be used for testing and documentation.\nExample:\nexamples:\n\t- name: "Get Admin User"\n\tinputs:\n\tuserId: "admin123"\n\tapiKey: "test-key-456"',
+            documentation: 'Provide concrete examples of how to use the API with specific input values. These examples can be used for testing and documentation.\nExample:\nexamples:\n\t- name: "Get Admin User"\n\t\tinputs:\n\t\tuserId: "admin123"\n\t\tapiKey: "test-key-456 "\n\t\toutputs:\n\t\tstatusCode: 200\n\t\tuserName: "Admin User"',
         }
     ];
     const envSuggestions = [
@@ -467,7 +733,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "inputs",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "inputs:\n\t- ",
+            insertText: "inputs:\n\t",
             detail: 'Input parameters [array of objects]',
             documentation: 'Define specific input values for this example. These override the default inputs defined at the API level and provide concrete test data.\nExample:\ninputs:\n\t- username: "admin123"\n\t- email: "admin@example.com"\n\t- role: "administrator"\n\t- password: "SecurePass123!"',
         }
