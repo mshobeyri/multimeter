@@ -387,6 +387,8 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
             <ControlledTreeEnvironment
                 items={shortTree.items}
                 getItemTitle={item => item.data}
+                canSearch={false}
+                canSearchByStartingTyping={false}
                 viewState={{
                     ['tree-1']: {
                         expandedItems,
