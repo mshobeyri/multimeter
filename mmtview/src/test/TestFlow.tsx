@@ -18,7 +18,7 @@ function setTransparentDragImage(dt: DataTransfer | null | undefined) {
         document.body.appendChild(el);
         dragPreviewEl = el;
         dt.setDragImage(el, 0, 0);
-    } catch {}
+    } catch { }
 }
 
 interface TestFlowProps {
@@ -35,18 +35,28 @@ const codiconForType = (t?: string): string => {
             return 'codicon-code';
         case 'call':
             return 'codicon-symbol-method';
+        case 'data':
+            return 'codicon-database';
         case 'delay':
-            return 'codicon-clock';
+            return 'codicon-debug-pause';
         case 'set':
             return 'codicon-symbol-constant';
         case 'const':
         case 'var':
         case 'let':
             return 'codicon-symbol-variable';
-        case 'check':    
+        case 'check':
             return 'codicon-check';
         case 'assert':
             return 'codicon-pass';
+        case 'if':
+            return 'codicon-question';
+        case 'for':
+            return 'codicon-sync';
+        case 'repeat':
+            return 'codicon-debug-restart';
+        case 'stage':
+            return 'codicon-layers';
         default:
             return 'codicon-file';
     }
@@ -238,13 +248,13 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
             case 'var': return { var: {} };
             case 'const': return { const: {} };
             case 'let': return { let: {} };
-            case 'data': return { data: '' };
             case 'check': return { check: '1 == 1' };
+            case 'assert': return { assert: '1 == 1' };
             case 'if': return { if: '1 != 1', steps: [] };
             case 'for': return { for: '' };
-            case 'repeat': return { repeat: '' };
-            case 'delay': return { delay: '' };
-            case 'stage': return { stage: '', steps: [] };
+            case 'repeat': return { repeat: '2' };
+            case 'delay': return { delay: '1s' };
+            case 'stage': return { id: 'stage_1', steps: [{ print: 'stage 1' }] };
             default: return { print: '' };
         }
     };
@@ -326,255 +336,262 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                 </button>
                 {addMenuOpen && addMenuPos && (
                     <div style={{ position: 'fixed', left: addMenuPos.left, top: addMenuPos.top, zIndex: 1000, background: 'var(--vscode-editorWidget-background,#232323)', border: '1px solid var(--vscode-editorWidget-border,#333)', borderRadius: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.4)', minWidth: 200 }}
-                         onPointerDown={(e) => e.stopPropagation()}
-                         onMouseDown={(e) => e.stopPropagation()}
-                         onClick={(e) => e.stopPropagation()}>
+                        onPointerDown={(e) => e.stopPropagation()}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onClick={(e) => e.stopPropagation()}>
                         {addableFlowTypes.map(t => (
-                            <button key={t} className="action-button" style={{ width: '100%', justifyContent: 'flex-start' }} onPointerUp={() => { setAddMenuOpen(false); addItemOfType(t); }}>
-                                {t}
+                            <button
+                                key={t}
+                                className="action-button"
+                                style={{ width: '100%', justifyContent: 'flex-start', display: 'flex', alignItems: 'center', gap: 8 }}
+                                onPointerUp={() => { setAddMenuOpen(false); addItemOfType(t); }}
+                                title={`Add ${t}`}
+                            >
+                                <span className={`codicon ${codiconForType(t)}`} style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
+                                <span>{t}</span>
                             </button>
                         ))}
                     </div>
                 )}
             </div>
-        <ControlledTreeEnvironment
-            items={shortTree.items}
-            getItemTitle={item => item.data}
-            viewState={{
-                ['tree-1']: {
-                    expandedItems,
-                    selectedItems,
-                },
-            }}
-            onExpandItem={handleExpand}
-            onCollapseItem={handleCollapse}
-            canDragAndDrop={true}
-            canDropOnFolder={true}
-            canReorderItems={true}
-            onDrop={handleDrop}
-            onSelectItems={() => { }}
-            renderItemArrow={({ item, context }) => (
-                item.isFolder ? (
-                    <span
-                        {...context.arrowProps}
-                        style={{
-                            display: "inline-flex",
-                            paddingTop: 8,
-                            lineHeight: 0,
-                            alignSelf: "flex-start"
-                        }}
-                    >
-                        {context.isExpanded ? (
-                            <span className="codicon codicon-chevron-down" style={{ fontSize: "16px" }} />
-                        ) : (
-                            <span className="codicon codicon-chevron-right" style={{ fontSize: "16px" }} />
-                        )}
-                    </span>
-                ) : (
-                    (() => {
-                        let t: string | undefined;
-                        try {
-                            const parsed = JSON.parse(item.data as string);
-                            t = parsed?.type;
-                        } catch {}
-                        const ico = codiconForType(t);
-                        return (
-                            <span
-                                style={{
-                                    display: "inline-flex",
-                                    paddingTop: 8,
-                                    lineHeight: 0,
-                                    alignSelf: "flex-start",
-                                    width: 16,
-                                    justifyContent: 'center'
-                                }}
-                                aria-hidden
-                            >
-                                <span className={`codicon ${ico}`} style={{ fontSize: "14px", opacity: 0.8 }} />
-                            </span>
-                        );
-                    })()
-                )
-            )}
-            renderItem={({ title, arrow, context, item, children }) => {
-                if (!title) return null;
-                let itemParsed = { type: "unknown", data: { stepData: title } };
-                try {
-                    itemParsed = JSON.parse(title as string);
-                } catch (err) {
-                    console.error("Error parsing item:", err);
-                }
-
-                const stopAll = (e: React.SyntheticEvent) => {
-                    e.stopPropagation();
-                };
-
-                const NoTreeInterference: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-                    <div
-                        // Keep captures for mouse/focus so tree doesn't grab focus/drag; allow keydown to reach inputs
-                        onMouseDownCapture={stopAll}
-                        onClickCapture={stopAll}
-                        onFocusCapture={stopAll}
-                        // Stop key events at bubble so tree remains inert, but inputs still get onKeyDown
-                        onKeyDown={stopAll}
-                        onKeyUp={stopAll}
-                        onInputCapture={stopAll}
-                        style={{ flex: 1, minWidth: 0 }}
-                    >
-                        {children}
-                    </div>
-                );
-
-                const duplicateSubtree = (itemsCopy: Record<string, any>, key: string): string | null => {
-                    const src = itemsCopy[key];
-                    if (!src) return null;
-                    const base = key.split('_')[0] || 'node';
-                    let newKey = `${base}_${Math.random().toString(36).slice(2, 8)}`;
-                    while (itemsCopy[newKey]) newKey = `${base}_${Math.random().toString(36).slice(2, 8)}`;
-                    const newNode = { ...src, index: newKey, children: [] as string[] };
-                    itemsCopy[newKey] = newNode;
-                    const kids: string[] = Array.isArray(src.children) ? src.children : [];
-                    for (const child of kids) {
-                        const dupChild = duplicateSubtree(itemsCopy, child);
-                        if (dupChild) {
-                            newNode.children.push(dupChild);
-                        }
+            <ControlledTreeEnvironment
+                items={shortTree.items}
+                getItemTitle={item => item.data}
+                viewState={{
+                    ['tree-1']: {
+                        expandedItems,
+                        selectedItems,
+                    },
+                }}
+                onExpandItem={handleExpand}
+                onCollapseItem={handleCollapse}
+                canDragAndDrop={true}
+                canDropOnFolder={true}
+                canReorderItems={true}
+                onDrop={handleDrop}
+                onSelectItems={() => { }}
+                renderItemArrow={({ item, context }) => (
+                    item.isFolder ? (
+                        <span
+                            {...context.arrowProps}
+                            style={{
+                                display: "inline-flex",
+                                paddingTop: 8,
+                                lineHeight: 0,
+                                alignSelf: "flex-start"
+                            }}
+                        >
+                            {context.isExpanded ? (
+                                <span className="codicon codicon-chevron-down" style={{ fontSize: "16px" }} />
+                            ) : (
+                                <span className="codicon codicon-chevron-right" style={{ fontSize: "16px" }} />
+                            )}
+                        </span>
+                    ) : (
+                        (() => {
+                            let t: string | undefined;
+                            try {
+                                const parsed = JSON.parse(item.data as string);
+                                t = parsed?.type;
+                            } catch { }
+                            const ico = codiconForType(t);
+                            return (
+                                <span
+                                    style={{
+                                        display: "inline-flex",
+                                        paddingTop: 8,
+                                        lineHeight: 0,
+                                        alignSelf: "flex-start",
+                                        width: 16,
+                                        justifyContent: 'center'
+                                    }}
+                                    aria-hidden
+                                >
+                                    <span className={`codicon ${ico}`} style={{ fontSize: "14px", opacity: 0.8 }} />
+                                </span>
+                            );
+                        })()
+                    )
+                )}
+                renderItem={({ title, arrow, context, item, children }) => {
+                    if (!title) return null;
+                    let itemParsed = { type: "unknown", data: { stepData: title } };
+                    try {
+                        itemParsed = JSON.parse(title as string);
+                    } catch (err) {
+                        console.error("Error parsing item:", err);
                     }
-                    return newKey;
-                };
 
-                const findParentOf = (itemsCopy: Record<string, any>, childKey: string): string | undefined => {
-                    return Object.keys(itemsCopy).find(pk => Array.isArray(itemsCopy[pk].children) && itemsCopy[pk].children.includes(childKey));
-                };
+                    const stopAll = (e: React.SyntheticEvent) => {
+                        e.stopPropagation();
+                    };
 
-                const removeSubtree = (itemsCopy: Record<string, any>, key: string) => {
-                    const node = itemsCopy[key];
-                    if (!node) return;
-                    // remove children first
-                    const kids: string[] = Array.isArray(node.children) ? node.children : [];
-                    for (const c of kids) removeSubtree(itemsCopy, c);
-                    delete itemsCopy[key];
-                };
+                    const NoTreeInterference: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+                        <div
+                            // Keep captures for mouse/focus so tree doesn't grab focus/drag; allow keydown to reach inputs
+                            onMouseDownCapture={stopAll}
+                            onClickCapture={stopAll}
+                            onFocusCapture={stopAll}
+                            // Stop key events at bubble so tree remains inert, but inputs still get onKeyDown
+                            onKeyDown={stopAll}
+                            onKeyUp={stopAll}
+                            onInputCapture={stopAll}
+                            style={{ flex: 1, minWidth: 0 }}
+                        >
+                            {children}
+                        </div>
+                    );
 
-                const doDuplicate = (targetKey: string) => {
-                    setShortTree(prev => {
-                        const itemsCopy = { ...prev.items } as Record<string, any>;
-                        const parentKey = findParentOf(itemsCopy, targetKey) || 'flow';
-                        const dupKey = duplicateSubtree(itemsCopy, targetKey);
-                        if (dupKey) {
+                    const duplicateSubtree = (itemsCopy: Record<string, any>, key: string): string | null => {
+                        const src = itemsCopy[key];
+                        if (!src) return null;
+                        const base = key.split('_')[0] || 'node';
+                        let newKey = `${base}_${Math.random().toString(36).slice(2, 8)}`;
+                        while (itemsCopy[newKey]) newKey = `${base}_${Math.random().toString(36).slice(2, 8)}`;
+                        const newNode = { ...src, index: newKey, children: [] as string[] };
+                        itemsCopy[newKey] = newNode;
+                        const kids: string[] = Array.isArray(src.children) ? src.children : [];
+                        for (const child of kids) {
+                            const dupChild = duplicateSubtree(itemsCopy, child);
+                            if (dupChild) {
+                                newNode.children.push(dupChild);
+                            }
+                        }
+                        return newKey;
+                    };
+
+                    const findParentOf = (itemsCopy: Record<string, any>, childKey: string): string | undefined => {
+                        return Object.keys(itemsCopy).find(pk => Array.isArray(itemsCopy[pk].children) && itemsCopy[pk].children.includes(childKey));
+                    };
+
+                    const removeSubtree = (itemsCopy: Record<string, any>, key: string) => {
+                        const node = itemsCopy[key];
+                        if (!node) return;
+                        // remove children first
+                        const kids: string[] = Array.isArray(node.children) ? node.children : [];
+                        for (const c of kids) removeSubtree(itemsCopy, c);
+                        delete itemsCopy[key];
+                    };
+
+                    const doDuplicate = (targetKey: string) => {
+                        setShortTree(prev => {
+                            const itemsCopy = { ...prev.items } as Record<string, any>;
+                            const parentKey = findParentOf(itemsCopy, targetKey) || 'flow';
+                            const dupKey = duplicateSubtree(itemsCopy, targetKey);
+                            if (dupKey) {
+                                const parent = itemsCopy[parentKey];
+                                const children: string[] = Array.isArray(parent.children) ? [...parent.children] : [];
+                                const idx = children.indexOf(targetKey);
+                                const insertIdx = idx >= 0 ? idx + 1 : children.length;
+                                children.splice(insertIdx, 0, dupKey);
+                                itemsCopy[parentKey] = { ...parent, children };
+                            }
+                            try {
+                                const flow = treeItemsToFlow(itemsCopy, 'flow');
+                                const patch = isStages ? { stages: flow } : { steps: flow };
+                                update && update(patch);
+                            } catch (e) { console.error('Failed to convert after duplicate:', e); }
+                            return { items: itemsCopy };
+                        });
+                    };
+
+                    const doRemove = (targetKey: string) => {
+                        if (targetKey === 'root' || targetKey === 'flow') return;
+                        setShortTree(prev => {
+                            const itemsCopy = { ...prev.items } as Record<string, any>;
+                            const parentKey = findParentOf(itemsCopy, targetKey) || 'flow';
                             const parent = itemsCopy[parentKey];
                             const children: string[] = Array.isArray(parent.children) ? [...parent.children] : [];
                             const idx = children.indexOf(targetKey);
-                            const insertIdx = idx >= 0 ? idx + 1 : children.length;
-                            children.splice(insertIdx, 0, dupKey);
+                            if (idx >= 0) children.splice(idx, 1);
                             itemsCopy[parentKey] = { ...parent, children };
-                        }
-                        try {
-                            const flow = treeItemsToFlow(itemsCopy, 'flow');
-                            const patch = isStages ? { stages: flow } : { steps: flow };
-                            update && update(patch);
-                        } catch (e) { console.error('Failed to convert after duplicate:', e); }
-                        return { items: itemsCopy };
-                    });
-                };
+                            removeSubtree(itemsCopy, targetKey);
+                            try {
+                                const flow = treeItemsToFlow(itemsCopy, 'flow');
+                                const patch = isStages ? { stages: flow } : { steps: flow };
+                                update && update(patch);
+                            } catch (e) { console.error('Failed to convert after remove:', e); }
+                            return { items: itemsCopy };
+                        });
+                    };
 
-                const doRemove = (targetKey: string) => {
-                    if (targetKey === 'root' || targetKey === 'flow') return;
-                    setShortTree(prev => {
-                        const itemsCopy = { ...prev.items } as Record<string, any>;
-                        const parentKey = findParentOf(itemsCopy, targetKey) || 'flow';
-                        const parent = itemsCopy[parentKey];
-                        const children: string[] = Array.isArray(parent.children) ? [...parent.children] : [];
-                        const idx = children.indexOf(targetKey);
-                        if (idx >= 0) children.splice(idx, 1);
-                        itemsCopy[parentKey] = { ...parent, children };
-                        removeSubtree(itemsCopy, targetKey);
-                        try {
-                            const flow = treeItemsToFlow(itemsCopy, 'flow');
-                            const patch = isStages ? { stages: flow } : { steps: flow };
-                            update && update(patch);
-                        } catch (e) { console.error('Failed to convert after remove:', e); }
-                        return { items: itemsCopy };
-                    });
-                };
+                    const expandable = isExpandable(itemParsed.type);
+                    const isOpen = !!openEditors[String(item.index)];
 
-                const expandable = isExpandable(itemParsed.type);
-                const isOpen = !!openEditors[String(item.index)];
-
-                return (
-                    <div
-                        {...context.itemContainerWithChildrenProps}
-                        onDragStart={(e) => {
-                            // Close active state when starting a drag for this item
-                            const key = String(item.index);
-                            setOpenEditors(prev => (prev[key] ? { ...prev, [key]: false } : prev));
-                            setTransparentDragImage(e.dataTransfer);
-                        }}
-                        onDragEnd={() => {
-                            if (dragPreviewEl && dragPreviewEl.parentNode) {
-                                (dragPreviewEl.parentNode as Node).removeChild(dragPreviewEl);
-                            }
-                            dragPreviewEl = null;
-                        }}
-                    >
+                    return (
                         <div
-                            className={`tree-view-box${(expandable && isOpen) ? ' active' : ''}`}
-                            {...context.itemContainerWithoutChildrenProps}
-                            {...context.interactiveElementProps}
+                            {...context.itemContainerWithChildrenProps}
+                            onDragStart={(e) => {
+                                // Close active state when starting a drag for this item
+                                const key = String(item.index);
+                                setOpenEditors(prev => (prev[key] ? { ...prev, [key]: false } : prev));
+                                setTransparentDragImage(e.dataTransfer);
+                            }}
+                            onDragEnd={() => {
+                                if (dragPreviewEl && dragPreviewEl.parentNode) {
+                                    (dragPreviewEl.parentNode as Node).removeChild(dragPreviewEl);
+                                }
+                                dragPreviewEl = null;
+                            }}
                         >
-                            {arrow}
-                            <NoTreeInterference>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <TestFlowBox
-                                        data={{
-                                            type: itemParsed.type as FlowType,
-                                            stepData: itemParsed.data.stepData,
-                                            testData,
-                                        }}
-                                        onChange={(newStepData) => {
-                                            setShortTree(prev => {
-                                                const itemsCopy = { ...prev.items } as Record<string, any>;
-                                                const cur = itemsCopy[item.index];
-                                                if (cur) {
-                                                    const parsed = JSON.parse(cur.data);
-                                                    itemsCopy[item.index] = {
-                                                        ...cur,
-                                                        data: JSON.stringify({ type: parsed.type, data: { stepData: newStepData } })
-                                                    };
-                                                }
-                                                try {
-                                                    const flow = treeItemsToFlow(itemsCopy, 'flow');
-                                                    const patch = isStages ? { stages: flow } : { steps: flow };
-                                                    update && update(patch);
-                                                } catch (e) {
-                                                    console.error('Failed to convert tree to flow after edit:', e);
-                                                }
-                                                return { items: itemsCopy };
-                                            });
-                                        }}
-                                                        showExpand={expandable}
-                                                        expanded={isOpen}
-                                                        onToggleExpand={() => setOpenEditors(prev => ({ ...prev, [String(item.index)]: !prev[String(item.index)] }))}
-                                        onDuplicate={() => doDuplicate(String(item.index))}
-                                        onRemove={() => doRemove(String(item.index))}
-                                    />
-                                </div>
-                            </NoTreeInterference>
-                            {/* actions handled within TestFlowBox */}
+                            <div
+                                className={`tree-view-box${(expandable && isOpen) ? ' active' : ''}`}
+                                {...context.itemContainerWithoutChildrenProps}
+                                {...context.interactiveElementProps}
+                            >
+                                {arrow}
+                                <NoTreeInterference>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <TestFlowBox
+                                            data={{
+                                                type: itemParsed.type as FlowType,
+                                                stepData: itemParsed.data.stepData,
+                                                testData,
+                                            }}
+                                            onChange={(newStepData) => {
+                                                setShortTree(prev => {
+                                                    const itemsCopy = { ...prev.items } as Record<string, any>;
+                                                    const cur = itemsCopy[item.index];
+                                                    if (cur) {
+                                                        const parsed = JSON.parse(cur.data);
+                                                        itemsCopy[item.index] = {
+                                                            ...cur,
+                                                            data: JSON.stringify({ type: parsed.type, data: { stepData: newStepData } })
+                                                        };
+                                                    }
+                                                    try {
+                                                        const flow = treeItemsToFlow(itemsCopy, 'flow');
+                                                        const patch = isStages ? { stages: flow } : { steps: flow };
+                                                        update && update(patch);
+                                                    } catch (e) {
+                                                        console.error('Failed to convert tree to flow after edit:', e);
+                                                    }
+                                                    return { items: itemsCopy };
+                                                });
+                                            }}
+                                            showExpand={expandable}
+                                            expanded={isOpen}
+                                            onToggleExpand={() => setOpenEditors(prev => ({ ...prev, [String(item.index)]: !prev[String(item.index)] }))}
+                                            onDuplicate={() => doDuplicate(String(item.index))}
+                                            onRemove={() => doRemove(String(item.index))}
+                                        />
+                                    </div>
+                                </NoTreeInterference>
+                                {/* actions handled within TestFlowBox */}
+                            </div>
+                            {children}
                         </div>
-                        {children}
-                    </div>
-                );
-            }}
-            renderTreeContainer={({ children, containerProps }) => <div {...containerProps}>{children}</div>}
-            renderItemsContainer={({ children, containerProps }) => <ul {...containerProps} style={{ ...(containerProps.style || {}), margin: 0, listStyle: 'none' }}>{children}</ul>}
-            renderDragBetweenLine={({ lineProps }) => (
-                <div {...lineProps} style={{ background: "var(--vscode-focusBorder, #264f78)", height: "1px" }} />
-            )}
-        >
-            <Tree treeId="tree-1" rootItem="root" treeLabel="Tree Example" />
-    </ControlledTreeEnvironment>
-    </div>
+                    );
+                }}
+                renderTreeContainer={({ children, containerProps }) => <div {...containerProps}>{children}</div>}
+                renderItemsContainer={({ children, containerProps }) => <ul {...containerProps} style={{ ...(containerProps.style || {}), margin: 0, listStyle: 'none' }}>{children}</ul>}
+                renderDragBetweenLine={({ lineProps }) => (
+                    <div {...lineProps} style={{ background: "var(--vscode-focusBorder, #264f78)", height: "1px" }} />
+                )}
+            >
+                <Tree treeId="tree-1" rootItem="root" treeLabel="Tree Example" />
+            </ControlledTreeEnvironment>
+        </div>
     );
 };
 
