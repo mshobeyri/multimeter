@@ -1,17 +1,18 @@
 import * as vscode from 'vscode';
 
+import {setupChatParticipants} from './assistant';
 import {MmtEditorProvider} from './mmtEditorProvider';
 import CertificatesPanel from './panels/CertificatesPanel';
 import ConvertorPanel from './panels/ConvertorPanel';
 import EnvironmentPanel from './panels/EnvironmentPanel';
 import HistoryPanel from './panels/HistoryPanel';
 import MockServerPanel from './panels/MockServerPanel';
-import {setupChatParticipants} from './assistant';
 
 export function activate(context: vscode.ExtensionContext) {
   const mmtviewPanel = new MmtEditorProvider(context);
-  context.subscriptions.push(
-      vscode.window.registerCustomEditorProvider('mmt.editor', mmtviewPanel));
+  context.subscriptions.push(vscode.window.registerCustomEditorProvider(
+      'mmt.editor', mmtviewPanel,
+      {webviewOptions: {retainContextWhenHidden: true}}));
 
   context.subscriptions.push(
       vscode.commands.registerCommand('multimeter.mmt.show.full', () => {
