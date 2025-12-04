@@ -12,7 +12,7 @@ export function activate(context: vscode.ExtensionContext) {
   const mmtviewPanel = new MmtEditorProvider(context);
   context.subscriptions.push(vscode.window.registerCustomEditorProvider(
       'mmt.editor', mmtviewPanel,
-      {webviewOptions: {retainContextWhenHidden: true}}));
+      {webviewOptions: {retainContextWhenHidden: true, enableFindWidget: true}}));
 
   context.subscriptions.push(
       vscode.commands.registerCommand('multimeter.mmt.show.full', () => {
