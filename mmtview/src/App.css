@@ -126,6 +126,77 @@ button,
   transition: border-color 0.2s;
 }
 
+/* Fullscreen mode for request/response body editors */
+.bodyview.bodyview-fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  border-radius: 0;
+}
+
+/* Right-side glassy toolbar inside body editors */
+.bodyview-toolbar {
+  position: absolute;
+  right: 14px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  background-color: transparent;
+}
+
+.bodyview-btn {
+  border: none;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--vscode-button-foreground, #ffffff);
+  background-color: transparent;
+}
+
+.bodyview-btn-apply {
+  background-color: #43a047;
+}
+
+.bodyview-btn-icon {
+  border: none;
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background-color: transparent;
+  color: var(--vscode-foreground, #d4d4d4);
+}
+
+.bodyview-btn-icon .codicon {
+  font-size: 16px;
+}
+
+.bodyview-error-indicator {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ff4b4b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 11px;
+  box-shadow: 0 0 3px #900;
+}
+
 option {
   background-color: var(--vscode-input-background, #1e1e1e);
   color: var(--vscode-input-foreground, #d4d4d4);
