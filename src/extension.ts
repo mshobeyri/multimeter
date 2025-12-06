@@ -16,6 +16,14 @@ export function activate(context: vscode.ExtensionContext) {
       }));
 
   context.subscriptions.push(
+      vscode.workspace.onDidChangeConfiguration(event => {
+        if (event.affectsConfiguration('multimeter.body.auto.format') ||
+            event.affectsConfiguration('multimeter.mmtEditor.showRunButton')) {
+          mmtviewPanel.broadcastConfig();
+        }
+      }));
+
+  context.subscriptions.push(
       vscode.commands.registerCommand('multimeter.mmt.show.full', () => {
         mmtviewPanel.showPanel('full');
       }));

@@ -1,6 +1,9 @@
 import * as fs from 'fs';
 import {LogLevel} from 'mmt-core/CommonData';
 import {runJSCode} from 'mmt-core/jsRunner';
+import {importApiToJSfunc, rootTestToJsfunc, setFileLoader} from 'mmt-core/JSer';
+import {apiParsePack} from 'mmt-core';
+import {yamlToTest} from 'mmt-core/testParsePack';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
@@ -67,6 +70,30 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     this.activeWebviewPanels.forEach(panel => {
       panel.webview.postMessage(message);
     });
+  }
+
+  private getEditorConfigMessage() {
+    try {
+      const config = vscode.workspace.getConfiguration('multimeter');
+      const bodyAutoFormat = !!config.get<boolean>('body.auto.format');
+      const showRunButton = config.get<boolean>('mmtEditor.showRunButton');
+      return {
+        command: 'config',
+        bodyAutoFormat,
+        showRunButton: showRunButton !== false,
+      };
+    } catch {
+      return {
+        command: 'config',
+        bodyAutoFormat: false,
+        showRunButton: true,
+      };
+    }
+  }
+
+  public broadcastConfig() {
+    const message = this.getEditorConfigMessage();
+    this.sendMessageToAllPanels(message);
   }
 
   private postMessageToPanel(
@@ -159,12 +186,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
 
           // Send initial configuration values (e.g., body auto format)
           try {
-            const autoFormat = vscode.workspace.getConfiguration('multimeter')
-                                   .get<boolean>('body.auto.format');
-            webviewPanel.webview.postMessage({
-              command: 'config',
-              bodyAutoFormat: !!autoFormat,
-            });
+            webviewPanel.webview.postMessage(this.getEditorConfigMessage());
           } catch {
           }
           break;
@@ -265,6 +287,83 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
               vscode.window.showErrorMessage(
                   `Failed to open file ${message.filename}: ${err}`);
             }
+          }
+          break;
+        }
+
+        case 'runCurrentDocument': {
+          const rawText = document.getText();
+          const typeMatch = rawText.match(/^[\s\t]*type:[\s\t]*([\w-]+)/m);
+          const docType = typeMatch ? typeMatch[1].toLowerCase() : '';
+          const fileName = path.basename(document.uri.fsPath);
+          const identifierBase = path.parse(document.uri.fsPath).name || 'mmt';
+          const sanitizeIdentifier = (value: string) => {
+            const replaced = value.replace(/[^a-zA-Z0-9_]/g, '_');
+            return /^[A-Za-z_$]/.test(replaced) ? replaced : '_' + replaced;
+          };
+          const safeName = sanitizeIdentifier(identifierBase);
+          const errors: string[] = [];
+          const forwardLog = (level: LogLevel, message: string) => {
+            logToOutput(level, message);
+            if (level === 'error') {
+              errors.push(message);
+            }
+          };
+          try {
+            if (docType === 'test') {
+              setFileLoader(async (relPath: string) => {
+                try {
+                  return await readRelativeFileContent(document.uri.fsPath, relPath);
+                } catch {
+                  return '';
+                }
+              });
+
+              const testData = yamlToTest(rawText);
+              const js = await rootTestToJsfunc({
+                test: testData,
+                name: safeName,
+                inputs: {},
+                envVars: {},
+              });
+
+              await runJSCode(js, fileName, forwardLog);
+
+              if (errors.length === 0) {
+                vscode.window.showInformationMessage(
+                    `Test ${fileName} finished. Check the Multimeter output channel for details.`);
+              } else {
+                vscode.window.showErrorMessage(
+                    `Test ${fileName} reported errors: ${errors[0]}`);
+              }
+            } else if (docType === 'api') {
+              const apiData = apiParsePack.yamlToAPI(rawText);
+              const apiFuncSource = await importApiToJSfunc({
+                api: apiData,
+                name: safeName,
+                inputs: {},
+                envVars: {},
+              });
+              const defaultInputs = apiData && typeof apiData.inputs === 'object' && !Array.isArray(apiData.inputs) ? apiData.inputs : {};
+              const invocationArgs = JSON.stringify(defaultInputs ?? {});
+              const js = `${apiFuncSource}\n\nreturn (async () => {\n  const result = await ${safeName}(${invocationArgs});\n  if (result !== undefined) {\n    console.log('API response:', JSON.stringify(result, null, 2));\n  }\n  return result;\n})();`;
+
+              await runJSCode(js, fileName, forwardLog);
+
+              if (errors.length === 0) {
+                vscode.window.showInformationMessage(
+                    `API ${fileName} executed. Check the Multimeter output channel for details.`);
+              } else {
+                vscode.window.showErrorMessage(
+                    `API ${fileName} reported errors: ${errors[0]}`);
+              }
+            } else {
+              vscode.window.showWarningMessage(
+                  'Run is currently supported for test or api documents only.');
+            }
+          } catch (err: any) {
+            vscode.window.showErrorMessage(
+                `Failed to run ${fileName}: ${err?.message || String(err)}`);
           }
           break;
         }
@@ -378,12 +477,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
             await vscode.workspace.getConfiguration(targetSection)
                 .update(targetKey, value, vscode.ConfigurationTarget.Global);
             // Broadcast updated config to all panels
-            this.sendMessageToAllPanels({
-              command: 'config',
-              bodyAutoFormat: vscode.workspace.getConfiguration('multimeter')
-                                  .get<boolean>('body.auto.format') ||
-                  false,
-            });
+            this.broadcastConfig();
           } catch (err) {
             vscode.window.showErrorMessage(
                 `Failed to update configuration: ${err}`);

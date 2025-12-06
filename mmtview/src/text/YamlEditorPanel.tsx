@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
 import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./BeforeMount";
 import { safeList } from "mmt-core/safer";
 import { openRelativeFile } from "../vsAPI";
+import { FileContext } from "../fileContext";
 
 interface YamlEditorPanelProps {
   content: string;
@@ -21,13 +22,17 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   setContent,
   onFocusChange // <-- receive it as a prop
 }) => {
+  const { filePath } = useContext(FileContext);
   const monacoRef = useRef<any>(null);
   const editorRef = useRef<any>(null);
   const decorationsRef = useRef<string[]>([]);
   const linkDecorationsRef = useRef<string[]>([]);
+  const runGlyphDecorationsRef = useRef<string[]>([]);
   const [editorReady, setEditorReady] = useState(false);
   const importsMapRef = useRef<Record<string, string>>({});
   const ctrlDownRef = useRef<boolean>(false);
+  const [runButtonEnabled, setRunButtonEnabled] = useState(true);
+  const [docType, setDocType] = useState<string | null>(null);
 
   // Validate YAML and set error marker if invalid
   useEffect(() => {
@@ -67,8 +72,11 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       const js = parseYaml(content) as any;
       const imps = (js && (js.imports || js.import)) || {};
       importsMapRef.current = imps && typeof imps === 'object' ? imps : {};
+      const typeVal = typeof js?.type === "string" ? js.type.toLowerCase() : null;
+      setDocType(typeVal);
     } catch {
       importsMapRef.current = {};
+      setDocType(null);
     }
   }, [content]);
 
@@ -174,6 +182,100 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     };
   }, [content, editorReady]);
 
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      const message = event.data;
+      if (message?.command === "config" && typeof message.showRunButton === "boolean") {
+        setRunButtonEnabled(message.showRunButton);
+      }
+    };
+    window.addEventListener("message", handleMessage);
+    return () => window.removeEventListener("message", handleMessage);
+  }, []);
+
+  const toggleRunButton = useCallback(() => {
+    const next = !runButtonEnabled;
+    setRunButtonEnabled(next);
+    window.vscode?.postMessage({
+      command: "updateConfig",
+      fullKey: "multimeter.mmtEditor.showRunButton",
+      value: next,
+    });
+  }, [runButtonEnabled]);
+
+  const handleRunClick = useCallback(() => {
+    try {
+      if (docType === "api") {
+        window.postMessage({
+          command: "multimeter.api.run",
+          uri: filePath
+        }, "*");
+      } else {
+        window.vscode?.postMessage({ command: "runCurrentDocument" });
+      }
+    } catch {
+      // ignore
+    }
+  }, [docType, filePath]);
+
+  useEffect(() => {
+    if (!monacoRef.current || !editorRef.current) return;
+    const editor = editorRef.current;
+    if (!runButtonEnabled || !editorReady || !(docType === "test" || docType === "api")) {
+      runGlyphDecorationsRef.current = editor.deltaDecorations(
+        runGlyphDecorationsRef.current,
+        []
+      );
+    }
+  }, [runButtonEnabled, editorReady, docType]);
+
+  useEffect(() => {
+    if (!editorReady || !monacoRef.current || !editorRef.current) return;
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+
+    if (!runButtonEnabled) {
+      return;
+    }
+
+    if (!(docType === "test" || docType === "api")) {
+      return;
+    }
+
+    runGlyphDecorationsRef.current = editor.deltaDecorations(
+      runGlyphDecorationsRef.current,
+      [
+        {
+          range: new monaco.Range(1, 1, 1, 1),
+          options: {
+            isWholeLine: true,
+            glyphMarginClassName: "mmt-run-glyph codicon codicon-run",
+            glyphMarginHoverMessage: { value: "Run this MMT file" },
+            stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
+          },
+        },
+      ]
+    );
+
+    const mouseDownDisposable = editor.onMouseDown((e: any) => {
+      if (
+        e.target?.type === monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN &&
+        e.target?.position?.lineNumber === 1
+      ) {
+        e.event?.preventDefault?.();
+        handleRunClick();
+      }
+    });
+
+    return () => {
+      mouseDownDisposable.dispose();
+      runGlyphDecorationsRef.current = editor.deltaDecorations(
+        runGlyphDecorationsRef.current,
+        []
+      );
+    };
+  }, [editorReady, handleRunClick, runButtonEnabled, docType]);
+
   // Effect to handle custom decorations
   useEffect(() => {
     if (!monacoRef.current || !editorRef.current) return;
@@ -218,6 +320,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         monacoRef={monacoRef}
         setEditorReady={setEditorReady}
         onFocusChange={onFocusChange}
+        onToggleRunButton={(docType === "test" || docType === "api") ? toggleRunButton : undefined}
       />
     </div>
   );

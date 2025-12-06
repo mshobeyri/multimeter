@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useContext } from "react";
 import { APIData } from "mmt-core/APIData";
 import KSVEditor from "../components/KSVEditor";
 import BodyView from "../components/BodyView";
@@ -18,6 +18,7 @@ import { setEnvironmentVariable, getEnvironmentVariable } from "../environment/e
 import ResponseDuration from "../components/ResponseDuration";
 import ResponseStatus from "../components/ResponseStatus";
 import VEditor from "../components/VEditor";
+import { FileContext } from "../fileContext";
 
 interface APITestProps {
   api: APIData;
@@ -32,6 +33,7 @@ function buildBodyExprFromPath(path: Array<string | number>): string {
 }
 
 const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
+  const { filePath } = useContext(FileContext);
   const examples = safeList(api.examples);
   const [requestData, setRequestData] = useState<Request>();
 
@@ -244,10 +246,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
   }, []);
 
 
-  const handleSend = async () => {
+  const handleSend = useCallback(async () => {
     const res = await network.send(requestData);
     setResponseData(res);
-  };
+  }, [network, requestData]);
 
   const handleCancel = async () => {
     setResponseData(undefined);
@@ -262,6 +264,21 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
       network.connectWs(requestData?.url || "").then(setResponseData);
     }
   };
+
+  useEffect(() => {
+    const listener = (event: MessageEvent) => {
+      const message = event.data;
+      if (!message || message.command !== 'multimeter.api.run') {
+        return;
+      }
+      if (message.uri && filePath && message.uri !== filePath) {
+        return;
+      }
+      void handleSend();
+    };
+    window.addEventListener('message', listener);
+    return () => window.removeEventListener('message', listener);
+  }, [handleSend, filePath]);
 
   const escapeSingleQuotes = (s: string) => String(s).replace(/'/g, "'\\''");
   const buildCurl = (): string => {
