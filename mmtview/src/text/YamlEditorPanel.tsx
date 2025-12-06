@@ -83,26 +83,49 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     const isMac = navigator.platform.toLowerCase().includes('mac');
     const modifier = isMac ? 'metaKey' : 'ctrlKey';
 
-    const getAliasAtPosition = (pos: any): string | null => {
+    const getImportTargetAtPosition = (pos: any): { path: string; range: any } | null => {
+      if (!pos) return null;
+
+      const lineContent = model.getLineContent(pos.lineNumber);
+      const aliasMatch = lineContent.match(/^[\s\t-]*['"]?([^'"\s:]+)['"]?\s*:/);
+      if (!aliasMatch) return null;
+
+      const alias = aliasMatch[1];
+      const path = importsMapRef.current[alias];
+      if (!path) return null;
+
+      const colonIndex = lineContent.indexOf(':');
+      if (colonIndex === -1) return null;
+
+      const pathStartIdx = lineContent.indexOf(path, colonIndex + 1);
+      if (pathStartIdx !== -1) {
+        const startColumn = pathStartIdx + 1;
+        const endColumn = startColumn + path.length;
+        if (pos.column >= startColumn && pos.column <= endColumn) {
+          return {
+            path,
+            range: new monaco.Range(pos.lineNumber, startColumn, pos.lineNumber, endColumn),
+          };
+        }
+      }
+
       const word = model.getWordAtPosition(pos);
       if (!word) return null;
-      const token = word.word;
-      // Only treat as alias if it exists in imports
-      return importsMapRef.current[token] ? token : null;
+      if (word.word !== alias) return null;
+      return {
+        path,
+        range: new monaco.Range(pos.lineNumber, word.startColumn, pos.lineNumber, word.endColumn),
+      };
     };
 
     const updateUnderline = (pos: any, withModifier: boolean) => {
-      const alias = withModifier ? getAliasAtPosition(pos) : null;
+      const target = withModifier ? getImportTargetAtPosition(pos) : null;
       linkDecorationsRef.current = editor.deltaDecorations(linkDecorationsRef.current, []);
-      if (!alias) return;
-      const word = model.getWordAtPosition(pos);
-      if (!word) return;
-      const range = new monaco.Range(pos.lineNumber, word.startColumn, pos.lineNumber, word.endColumn);
-    linkDecorationsRef.current = editor.deltaDecorations(linkDecorationsRef.current, [{
-        range,
+      if (!target) return;
+      linkDecorationsRef.current = editor.deltaDecorations(linkDecorationsRef.current, [{
+        range: target.range,
         options: {
-      // Use our own underline class to avoid relying on Monaco internal styles
-      inlineClassName: 'mmt-link-underline',
+          inlineClassName: 'mmt-link-underline',
           stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
         },
       }]);
@@ -114,7 +137,8 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       if (!evt || !pos) return;
       const withMod = (evt as any)[modifier];
       updateUnderline(pos, withMod);
-      editor.updateOptions({ mouseStyle: withMod && getAliasAtPosition(pos) ? 'pointer' : 'text' });
+      const target = withMod ? getImportTargetAtPosition(pos) : null;
+      editor.updateOptions({ mouseStyle: target ? 'pointer' : 'text' });
     });
 
     const onKeyDown = editor.onKeyDown((e: any) => {
@@ -134,10 +158,9 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       if (!evt || !pos) return;
       const withMod = (evt as any)[modifier];
       if (!withMod) return;
-      const alias = getAliasAtPosition(pos);
-      if (alias) {
-        const path = importsMapRef.current[alias];
-        if (path) openRelativeFile(path);
+      const target = getImportTargetAtPosition(pos);
+      if (target) {
+        openRelativeFile(target.path);
       }
     });
 
