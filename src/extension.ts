@@ -10,9 +10,10 @@ import MockServerPanel from './panels/MockServerPanel';
 
 export function activate(context: vscode.ExtensionContext) {
   const mmtviewPanel = new MmtEditorProvider(context);
-  context.subscriptions.push(vscode.window.registerCustomEditorProvider(
-      'mmt.editor', mmtviewPanel,
-      {webviewOptions: {retainContextWhenHidden: true, enableFindWidget: true}}));
+  context.subscriptions.push(
+      vscode.window.registerCustomEditorProvider('mmt.editor', mmtviewPanel, {
+        webviewOptions: {retainContextWhenHidden: true, enableFindWidget: true}
+      }));
 
   context.subscriptions.push(
       vscode.commands.registerCommand('multimeter.mmt.show.full', () => {
@@ -28,15 +29,22 @@ export function activate(context: vscode.ExtensionContext) {
       }));
 
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(
-      'multimeter.convertor', new ConvertorPanel(context)));
+      'multimeter.convertor', new ConvertorPanel(context),
+      {webviewOptions: {retainContextWhenHidden: true}}));
+
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(
-      'multimeter.mock.server', new MockServerPanel(context)));
+      'multimeter.mock.server', new MockServerPanel(context),
+      {webviewOptions: {retainContextWhenHidden: true}}));
+
   const historyPanel = new HistoryPanel(context);
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(
-      'multimeter.history', historyPanel));
+      'multimeter.history', historyPanel,
+      {webviewOptions: {retainContextWhenHidden: true}}));
+
   const environmentPanel = new EnvironmentPanel(context);
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(
-      'multimeter.environment', environmentPanel));
+      'multimeter.environment', environmentPanel,
+      {webviewOptions: {retainContextWhenHidden: true}}));
 
   context.subscriptions.push(
       vscode.commands.registerCommand('multimeter.history.clear', async () => {
@@ -53,7 +61,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   const certificatesPanel = new CertificatesPanel(context);
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(
-      'multimeter.certificates', certificatesPanel));
+      'multimeter.certificates', certificatesPanel,
+      {webviewOptions: {retainContextWhenHidden: true}}));
 
   const openSettingsCommand =
       vscode.commands.registerCommand('multimeter.setting.open', () => {
