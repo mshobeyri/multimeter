@@ -152,7 +152,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 '  id: user',
                 '  inputs:',
                 '    userId: "u-123"',
-                'Note: Outputs returned by the API include mapped fields plus statusCode and responseTime.'
+                'Note: Outputs returned by the API include mapped fields plus status_code and response_time.'
             ].join('\n')
         },
         {
@@ -178,7 +178,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 'Supported operators: <, >, <=, >=, ==, !=, =@, !@, =~, !~, =^, !^, =$ , !$',
                 'Env tokens: use e:NAME or <<e:NAME>> which resolve to envVariables.NAME',
                 'Example:',
-                '- check: response.statusCode == 200'
+                '- check: response.status_code == 200'
             ].join('\n')
         },
         {
@@ -284,7 +284,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 'Assign values to existing variables.',
                 'Example:',
                 '- set:',
-                '    responseTime: 0'
+                '    response_time: 0'
             ].join('\n')
         },
         {
@@ -576,7 +576,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "examples:\n\t- name: example1\n\t\tdescription: desc\n\t\tinputs:\n\t\t\tkey1: value1\n\t\t\tkey2: value2\n\t\toutputs:\n\t\t\tkey1: value1\n\t\t\tkey2: value2\n",
             detail: 'Usage examples [array of key: value]',
-            documentation: 'Provide concrete examples of how to use the API with specific input values. These examples can be used for testing and documentation.\nExample:\nexamples:\n\t- name: "Get Admin User"\n\t\tinputs:\n\t\tuserId: "admin123"\n\t\tapiKey: "test-key-456 "\n\t\toutputs:\n\t\tstatusCode: 200\n\t\tuserName: "Admin User"',
+            documentation: 'Provide concrete examples of how to use the API with specific input values. These examples can be used for testing and documentation.\nExample:\nexamples:\n\t- name: "Get Admin User"\n\t\tinputs:\n\t\tuserId: "admin123"\n\t\tapiKey: "test-key-456 "\n\t\toutputs:\n\t\tstatus_code: 200\n\t\tuserName: "Admin User"',
         }
     ];
     const envSuggestions = [
