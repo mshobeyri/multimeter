@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, createContext } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import EnvironmentPanel from "./environment/EnvironmentPanel";
 import { SplitPane } from '@rexxars/react-split-pane';
 import './App.css';
@@ -9,6 +9,7 @@ import TestPanel from "./test/TestPanel";
 import DocPanel from "./doc/DocPanel";
 import parseYaml from "mmt-core/markupConvertor";
 import YamlEditorPanel from "./text/YamlEditorPanel";
+import { FileContext } from "./fileContext";
 
 declare global {
   interface Window {
@@ -17,10 +18,6 @@ declare global {
     };
   }
 }
-
-// Create a context for file info
-export const FileContext = createContext<{ filePath?: string; fileName?: string }>({});
-
 
 const App: React.FC = () => {
   // Pane size defaults to half the window width and remains in-memory only

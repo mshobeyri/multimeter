@@ -14,6 +14,7 @@ interface TextEditorProps {
   setEditorReady?: (ready: boolean) => void;
   onFocusChange?: (focused: boolean) => void;
   onInspectPosition?: (info: { line: number; column: number; text: string }) => void;
+  onToggleRunButton?: () => void;
 }
 
 const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
@@ -30,6 +31,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
   setEditorReady,
   onFocusChange,
   onInspectPosition,
+  onToggleRunButton,
 }) => {
   const localMonacoRef = useRef<any>(null);
   const localEditorRef = useRef<any>(null);
@@ -37,6 +39,11 @@ const TextEditor: React.FC<TextEditorProps> = ({
   // Use passed refs if provided, else fallback to local refs
   const monacoRefToUse = monacoRef || localMonacoRef;
   const editorRefToUse = editorRef || localEditorRef;
+
+  const toggleRunButtonRef = useRef(onToggleRunButton);
+  useEffect(() => {
+    toggleRunButtonRef.current = onToggleRunButton;
+  }, [onToggleRunButton]);
 
   // Listen for VS Code theme changes and update Monaco theme
   useEffect(() => {
@@ -80,6 +87,28 @@ const TextEditor: React.FC<TextEditorProps> = ({
     document.head.appendChild(style);
   }, []);
 
+  // Add CSS for run glyph rendered in the gutter
+  useEffect(() => {
+    if (document.getElementById("mmt-run-glyph-style")) return;
+    const style = document.createElement("style");
+    style.id = "mmt-run-glyph-style";
+    style.innerHTML = `
+      .mmt-run-glyph {
+        color: var(--vscode-testing-iconPassed, #3fb950);
+        cursor: pointer;
+        font-family: "codicon";
+        font-size: 16px;
+        line-height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
   // Add this in your main React entry file (e.g. index.tsx or App.tsx)
   useEffect(() => {
     window.addEventListener("message", event => {
@@ -118,6 +147,17 @@ const TextEditor: React.FC<TextEditorProps> = ({
         },
       });
     }
+    if (onToggleRunButton) {
+      editor.addAction({
+        id: "mmt.ToggleRunButtonVisibility",
+        label: "Toggle Run Button",
+        contextMenuGroupId: "navigation",
+        contextMenuOrder: 98,
+        run: () => {
+          toggleRunButtonRef.current?.();
+        },
+      });
+    }
     // Mark editor as ready for consumers like YamlEditorPanel effects
     setEditorReady?.(true);
   };
@@ -144,6 +184,8 @@ const TextEditor: React.FC<TextEditorProps> = ({
         tabSize: 2,
         automaticLayout: true,
         lineNumbers: showNumbers ? "on" : "off",
+        glyphMargin: true,
+        lineDecorationsWidth: 0,
         scrollbar: {
           horizontal: "auto",
           vertical: "auto"

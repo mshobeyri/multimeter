@@ -177,6 +177,11 @@
           "type": "boolean",
           "default": false,
           "description": "Automatically format the body of the responses"
+        },
+        "multimeter.mmtEditor.showRunButton": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the run button in the MMT editor gutter"
         }
       }
     },
