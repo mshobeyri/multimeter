@@ -159,8 +159,8 @@ export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
     },
     ${indentLines(indentLines(JSON.stringify(extractRules, null, 2)))}
   );
-  output.responseTime = res?.duration || 0;
-  output.statusCode = res?.status || 0;
+  output.response_time = res?.duration || 0;
+  output.status_code = res?.status || 0;
   return output;
 };`;
 };

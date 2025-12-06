@@ -275,7 +275,7 @@
           "end": "^(?=\\S)",
           "patterns": [
             {
-              "match": "\\b(status|statusCode|responseTime|size)\\s*:",
+              "match": "\\b(status|status_code|response_time|size)\\s*:",
               "captures": {
                 "1": {
                   "name": "entity.name.function.mmt.assertion"
