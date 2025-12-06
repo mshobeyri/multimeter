@@ -8,7 +8,7 @@ import ConnectButton from "../components/ConnectButton";
 import { useNetwork } from "../components/network/Network";
 import { replaceAllRefs } from "mmt-core/variableReplacer";
 import UrlInput from "../components/UrlInput";
-import { extractOutputs } from "mmt-core/outputExtractor";
+import { extractOutputs, extractPathAtPosition } from "mmt-core/outputExtractor";
 import ViewSelector, { ViewMode } from "../components/ViewSelector";
 import { loadEnvVariables } from "../workspaceStorage";
 import { safeList } from "mmt-core/safer";
@@ -22,6 +22,13 @@ import VEditor from "../components/VEditor";
 interface APITestProps {
   api: APIData;
   onUpdateApi?: (patch: Partial<APIData>) => void;
+}
+
+// Build a bracket-notation expression like body[user][items][0][name]
+// from a path array returned by extractPathAtPosition.
+function buildBodyExprFromPath(path: Array<string | number>): string {
+  const parts = path.map(seg => `[${String(seg)}]`).join("");
+  return `body${parts}`;
 }
 
 const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
@@ -123,6 +130,44 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
     },
     [requestData?.url, requestData?.query]
   );
+
+  const handleAddOutputVariable = (pos: { text?: string; line: number; column: number }) => {
+    // Use the exact text shown in the editor to keep offsets aligned
+    const bodyText = pos.text ?? '';
+
+    const fmt = (requestData?.format || "json").toLowerCase();
+    const contentType: "json" | "xml" =
+      fmt.includes("xml") || (bodyText || "").trim().startsWith("<")
+        ? "xml"
+        : "json";
+    const path = extractPathAtPosition(bodyText || "", contentType, pos.line, pos.column);
+    if (!path || path.length === 0) {
+      return;
+    }
+
+    const expr = buildBodyExprFromPath(path);
+    // Choose a key name: prefer the last string segment; fallback to 'value'
+    let suggestedKey = "value";
+    for (let i = path.length - 1; i >= 0; i--) {
+      const seg = path[i];
+      if (typeof seg === "string" && seg.trim()) {
+        suggestedKey = seg;
+        break;
+      }
+    }
+
+    // Ensure uniqueness in api.outputs
+    const existing = { ...(api.outputs || {}) };
+    let key = suggestedKey;
+    let counter = 1;
+    while (Object.prototype.hasOwnProperty.call(existing, key)) {
+      key = `${suggestedKey}_${counter++}`;
+    }
+
+    existing[key] = expr;
+    onUpdateApi?.({ outputs: existing });
+    api.outputs = existing;
+  };
 
   const prepareRequestData = (inputs?: JSONRecord) => {
     inputs = inputs || currentInputs;
@@ -417,6 +462,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
               }
               format={requestData?.format || "json"}
               mode="live"
+              onInspectPosition={handleAddOutputVariable}
             />
           </div>
         </>
