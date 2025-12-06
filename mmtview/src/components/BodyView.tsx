@@ -17,6 +17,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
     const [isValid, setIsValid] = useState(true);
     const [isFocused, setIsFocused] = useState(false);
     const [canApply, setCanApply] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     // Keep localValue in sync with parent value (when parent changes)
@@ -64,8 +65,24 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
         // eslint-disable-next-line
     }, [localValue, format, value, isValid]);
 
+    // Exit fullscreen on Escape
+    useEffect(() => {
+        if (!isFullscreen) return;
+
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") {
+                setIsFullscreen(false);
+            }
+        };
+
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [isFullscreen]);
+
     return (
-        <div className="bodyview" style={{ borderColor: isFocused ? "var(--vscode-focusBorder, #007fd4)" : "var(--vscode-input-border, #3c3c3c)" }}>
+        <div
+            className={`bodyview${isFullscreen ? " bodyview-fullscreen" : ""}`}
+        >
             <TextEditor
                 content={localValue}
                 setContent={setLocalValue}
@@ -74,72 +91,22 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                 fontSize={10}
                 onFocusChange={setIsFocused}
             />
-            {
-                !isValid && (
-                    <span
-                        style={{
-                            position: "absolute",
-                            right: 8,
-                            bottom: 8,
-                            width: 16,
-                            height: 16,
-                            borderRadius: "50%",
-                            background: "red",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "#fff",
-                            fontSize: 12,
-                            boxShadow: "0 0 2px #900",
-                            cursor: "pointer"
-                        }}
-                        title={errorMsg || (format === "json" ? "Invalid JSON" : format === "xml" ? "Invalid XML" : "Invalid")}
-                    >
-                        i
-                    </span>
-                )
-            }
-            {
-                ((format === "json" || format === "xml") && isValid && beautify(format, localValue) !== localValue) && (
+            <div className="bodyview-toolbar">
+                {((format === "json" || format === "xml") && isValid && beautify(format, localValue) !== localValue) && (
                     <button
-                        style={{
-                            position: "absolute",
-                            right: 8,
-                            bottom: mode === "appliable" && canApply && isValid ? 36 : 8,
-                            background: "#1976d2",
-                            color: "#fff",
-                            border: "none",
-                            borderRadius: 4,
-                            padding: "2px 10px",
-                            fontSize: 12,
-                            cursor: "pointer",
-                            boxShadow: "0 0 2px #1976d2"
-                        }}
+                        className="bodyview-btn-icon"
+                        title="Beautify"
                         onClick={() => {
                             const beautified = beautify(format, localValue);
                             setLocalValue(beautified);
                         }}
                     >
-                        Beautify
+                        <span className="codicon codicon-wand" />
                     </button>
-                )
-            }
-            {
-                mode === "appliable" && canApply && isValid && (
+                )}
+                {mode === "appliable" && canApply && isValid && (
                     <button
-                        style={{
-                            position: "absolute",
-                            right: 8,
-                            bottom: 8,
-                            background: "#43a047",
-                            color: "#fff",
-                            border: "none",
-                            borderRadius: 4,
-                            padding: "2px 10px",
-                            fontSize: 12,
-                            cursor: "pointer",
-                            boxShadow: "0 0 2px #090"
-                        }}
+                        className="bodyview-btn bodyview-btn-apply"
                         onClick={() => {
                             if (onChange) {
                                 onChange(localValue);
@@ -149,9 +116,24 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                     >
                         Apply
                     </button>
-                )
-            }
-        </div >
+                )}
+                {!isValid && (
+                    <span
+                        className="bodyview-error-indicator"
+                        title={errorMsg || (format === "json" ? "Invalid JSON" : format === "xml" ? "Invalid XML" : "Invalid")}
+                    >
+                        <span className="codicon codicon-error" />
+                    </span>
+                )}
+                <button
+                    className="bodyview-btn-icon"
+                    title={isFullscreen ? "Exit full screen (Esc)" : "Full screen"}
+                    onClick={() => setIsFullscreen(!isFullscreen)}
+                >
+                    <span className={`codicon ${isFullscreen ? "codicon-screen-normal" : "codicon-screen-full"}`} />
+                </button>
+            </div>
+        </div>
     );
 };
 
