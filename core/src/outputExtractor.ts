@@ -10,6 +10,272 @@ export interface ResponseData {
   cookies: Record<string, string>;
 }
 
+export type PathSegment = string|number;
+
+function toOffset(content: string, line: number, column: number): number {
+  const lines = content.split(/\n/);
+  const l = Math.max(1, Math.min(line, lines.length));
+  const c = Math.max(1, column);
+  let offset = 0;
+  for (let i = 0; i < l - 1; i++) {
+    // +1 for the \n separator
+    offset += lines[i].length + 1;
+  }
+  offset += (c - 1);
+  return offset;
+}
+
+// --- JSON path at position ---
+function skipWs(s: string, i: number): number {
+  while (i < s.length && /\s/.test(s[i])) {
+    i++;
+  }
+  return i;
+}
+
+function parseJSONString(s: string, i: number): {end: number; value: string} {
+  // s[i] === '"'
+  let j = i + 1;
+  let val = '';
+  while (j < s.length) {
+    const ch = s[j];
+    if (ch === '\\') {
+      const next = s[j + 1];
+      // naive escape handling
+      val += ch + next;
+      j += 2;
+      continue;
+    }
+    if (ch === '"') {
+      return {end: j, value: JSON.parse(s.slice(i, j + 1))};
+    }
+    j++;
+  }
+  return {end: j, value: ''};
+}
+
+function parseJSONNumber(s: string, i: number): {end: number} {
+  let j = i;
+  while (j < s.length && /[0-9eE+\-.]/.test(s[j])) {
+    j++;
+  }
+  return {end: j - 1};
+}
+
+function matchLiteral(s: string, i: number, lit: string): boolean {
+  return s.slice(i, i + lit.length) === lit;
+}
+
+function findJSONPathAtOffset(s: string, offset: number): PathSegment[]|null {
+  // Recursive descent with location tracking
+  function parseValue(i: number, path: PathSegment[]):
+      {end: number; found: PathSegment[] | null} {
+    i = skipWs(s, i);
+    const ch = s[i];
+    if (ch === '"') {
+      const {end} = parseJSONString(s, i);
+      // If offset lies within this primitive value range, return current path
+      if (offset >= i && offset <= end) {
+        return {end, found: path};
+      }
+      return {end, found: null};
+    }
+    if (ch === '{') {
+      let j = i + 1;
+      j = skipWs(s, j);
+      if (s[j] === '}') {
+        // empty object
+        if (offset >= i && offset <= j) {
+          return {end: j, found: path};
+        }
+        return {end: j, found: null};
+      }
+      while (j < s.length) {
+        j = skipWs(s, j);
+        if (s[j] !== '"') {
+          break;
+        }  // invalid
+        const keyStart = j;
+        const {end: keyEnd, value: keyVal} = parseJSONString(s, j);
+        j = skipWs(s, keyEnd + 1);
+        if (s[j] !== ':') {
+          break;
+        }
+        j = skipWs(s, j + 1);
+        const valStart = j;
+        const res = parseValue(j, path.concat(keyVal));
+        j = res.end + 1;
+        if (offset >= keyStart && offset <= res.end) {
+          return {end: j - 1, found: res.found ?? path.concat(keyVal)};
+        }
+        j = skipWs(s, j);
+        if (s[j] === ',') {
+          j++;
+          continue;
+        }
+        if (s[j] === '}') {
+          const endObj = j;
+          if (offset >= i && offset <= endObj) {
+            return {end: endObj, found: res.found};
+          }
+          return {end: endObj, found: res.found};
+        }
+      }
+      return {end: j, found: null};
+    }
+    if (ch === '[') {
+      let j = i + 1;
+      j = skipWs(s, j);
+      if (s[j] === ']') {
+        if (offset >= i && offset <= j) {
+          return {end: j, found: path};
+        }
+        return {end: j, found: null};
+      }
+      let idx = 0;
+      while (j < s.length) {
+        j = skipWs(s, j);
+        const valStart = j;
+        const res = parseValue(j, path.concat(idx));
+        j = res.end + 1;
+        if (offset >= valStart && offset <= res.end) {
+          return {end: j - 1, found: res.found ?? path.concat(idx)};
+        }
+        j = skipWs(s, j);
+        if (s[j] === ',') {
+          idx++;
+          j++;
+          continue;
+        }
+        if (s[j] === ']') {
+          const endArr = j;
+          if (offset >= i && offset <= endArr) {
+            return {end: endArr, found: res.found};
+          }
+          return {end: endArr, found: res.found};
+        }
+      }
+      return {end: j, found: null};
+    }
+    // number, true, false, null
+    if (/[0-9-]/.test(ch)) {
+      const {end} = parseJSONNumber(s, i);
+      if (offset >= i && offset <= end) {
+        return {end, found: path};
+      }
+      return {end, found: null};
+    }
+    if (matchLiteral(s, i, 'true')) {
+      const end = i + 3;
+      if (offset >= i && offset <= end) {
+        return {end, found: path};
+      }
+      return {end, found: null};
+    }
+    if (matchLiteral(s, i, 'false')) {
+      const end = i + 4;
+      if (offset >= i && offset <= end) {
+        return {end, found: path};
+      }
+      return {end, found: null};
+    }
+    if (matchLiteral(s, i, 'null')) {
+      const end = i + 3;
+      if (offset >= i && offset <= end) {
+        return {end, found: path};
+      }
+      return {end, found: null};
+    }
+    return {end: i, found: null};
+  }
+
+  const res = parseValue(skipWs(s, 0), []);
+  return res.found ?? null;
+}
+
+// --- XML path at position ---
+function findXMLPathAtOffset(s: string, offset: number): PathSegment[]|null {
+  const stack: {name: string; index: number}[] = [];
+  const counts: Map<string, number>[] = [new Map()];
+  let i = 0;
+  while (i < s.length) {
+    if (s[i] === '<') {
+      if (s.startsWith('<!--', i)) {
+        // skip comment
+        const endC = s.indexOf('-->', i + 4);
+        i = endC >= 0 ? endC + 3 : s.length;
+        continue;
+      }
+      if (s[i + 1] === '/') {
+        // closing tag
+        const end = s.indexOf('>', i + 2);
+        if (end < 0) break;
+        stack.pop();
+        counts.pop();
+        i = end + 1;
+        continue;
+      }
+      // open or self-closing
+      let j = i + 1;
+      // read name
+      let name = '';
+      while (j < s.length && /[A-Za-z0-9_:.-]/.test(s[j])) {
+        name += s[j++];
+      }
+      // advance to end of tag
+      const endTag = s.indexOf('>', j);
+      if (endTag < 0) break;
+      const selfClosing = s[endTag - 1] === '/';
+      // push stack
+      const top = counts[counts.length - 1];
+      const cur = (top.get(name) ?? 0);
+      top.set(name, cur + 1);
+      stack.push({name, index: cur});
+      counts.push(new Map());
+      const textStart = endTag + 1;
+      i = endTag + 1;
+      if (selfClosing) {
+        // no text, immediately close
+        stack.pop();
+        counts.pop();
+        continue;
+      }
+      // find next '<'
+      const nextLt = s.indexOf('<', i);
+      const textEnd = nextLt >= 0 ? nextLt - 1 : s.length - 1;
+      if (offset >= textStart && offset <= textEnd) {
+        // Build path
+        const path: PathSegment[] = [];
+        for (const seg of stack) {
+          path.push(seg.name);
+          // include index only for repeated elements (index > 0)
+          if (seg.index > 0) {
+            path.push(seg.index);
+          }
+        }
+        return path;
+      }
+      // continue; next loop will handle children or closing
+      continue;
+    }
+    i++;
+  }
+  return null;
+}
+
+export function extractPathAtPosition(
+    content: string, contentType: 'json'|'xml', line: number,
+    column: number): PathSegment[]|null {
+  const offset = toOffset(content, line, column);
+  if (contentType === 'json') {
+    return findJSONPathAtOffset(content, offset);
+  }
+  if (contentType === 'xml') {
+    return findXMLPathAtOffset(content, offset);
+  }
+  return null;
+}
+
 // Parse bracket notation like body[user][profile][name] or
 // headers[Content-Type]
 function parseBracketPath(path: string): {section: string; parts: string[]} {
@@ -48,7 +314,8 @@ function resolveJSONPath(response: ResponseData, path: string): any {
   }
 
   // Remove leading $ and parse the path
-  // Support both $[body]... and $body[...] syntaxes; normalize to section + parts
+  // Support both $[body]... and $body[...] syntaxes; normalize to section +
+  // parts
   let normalizedPath = path.startsWith('$') ? path.slice(1) : path;
   const {section, parts} = parseBracketPath(normalizedPath);
 
@@ -168,13 +435,17 @@ export function extractOutputs(
 
   if (response.type === 'auto') {
     // Normalize header names once
-    const headersLower = Object.fromEntries(
-        Object.entries(response.headers || {}).map(([k, v]) => [k.toLowerCase(), v]));
+    const headersLower =
+        Object.fromEntries(Object.entries(response.headers || {})
+                               .map(([k, v]) => [k.toLowerCase(), v]));
     const ct = headersLower['content-type'];
     if (typeof ct === 'string') {
       response.type = ct.includes('xml') ? 'xml' : 'json';
     } else {
-      response.type = (response.body && response.body.startsWith && response.body.startsWith('<')) ? 'xml' : 'json';
+      response.type = (response.body && response.body.startsWith &&
+                       response.body.startsWith('<')) ?
+          'xml' :
+          'json';
     }
   }
 
@@ -217,7 +488,8 @@ export function extractOutputs(
         extractedValue = found && found[1] ? found[1] : '';
       }
       // Check if it contains regex pattern indicators (legacy fallback):
-      else if (expr.includes('(') && expr.includes(')') && !expr.includes('[')) {
+      else if (
+          expr.includes('(') && expr.includes(')') && !expr.includes('[')) {
         const regex = new RegExp(expr);
         const found = bodyText.match(regex);
         extractedValue = found && found[1] ? found[1] : '';
@@ -243,10 +515,8 @@ export function extractOutputs(
     }
 
     // Preserve type for bracket notation and JSONPath extractions
-    if (
-      (expr.startsWith('$') || (expr.includes('[') && expr.includes(']')))
-      && extractedValue !== null && extractedValue !== undefined
-    ) {
+    if ((expr.startsWith('$') || (expr.includes('[') && expr.includes(']'))) &&
+        extractedValue !== null && extractedValue !== undefined) {
       // If object, keep JSON stringification for backward compatibility
       if (typeof extractedValue === 'object') {
         result[key] = JSON.stringify(extractedValue);

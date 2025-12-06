@@ -13,6 +13,7 @@ interface TextEditorProps {
   monacoRef?: React.MutableRefObject<any>;
   setEditorReady?: (ready: boolean) => void;
   onFocusChange?: (focused: boolean) => void;
+  onInspectPosition?: (info: { line: number; column: number; text: string }) => void;
 }
 
 const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
@@ -28,6 +29,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
   monacoRef,
   setEditorReady,
   onFocusChange,
+  onInspectPosition,
 }) => {
   const localMonacoRef = useRef<any>(null);
   const localEditorRef = useRef<any>(null);
@@ -95,6 +97,27 @@ const TextEditor: React.FC<TextEditorProps> = ({
     editor.onDidBlurEditorWidget?.(() => {
       if (typeof onFocusChange === "function") onFocusChange(false);
     });
+    // Add simple context menu action to log current cursor position
+    if (onInspectPosition) {
+      editor.addAction({
+        id: "mmt.AddAsOutputVariable",
+        label: "Add As Output Variable",
+        contextMenuGroupId: "navigation",
+        contextMenuOrder: 99,
+        run: () => {
+          const pos = editor.getPosition();
+          if (!pos) {
+            return;
+          }
+          const text = editor.getValue();
+          onInspectPosition({
+            line: pos.lineNumber,
+            column: pos.column,
+            text,
+          });
+        },
+      });
+    }
     // Mark editor as ready for consumers like YamlEditorPanel effects
     setEditorReady?.(true);
   };

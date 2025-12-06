@@ -10,9 +10,10 @@ export type BodyViewProps = {
     format: string;
     onChange?: (value: string) => void;
     mode?: mode;
+    onInspectPosition?: (info: { line: number; column: number; text: string }) => void;
 };
 
-const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "appliable" }) => {
+const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "appliable", onInspectPosition }) => {
     const [localValue, setLocalValue] = useState(value);
     const [isValid, setIsValid] = useState(true);
     const [isFocused, setIsFocused] = useState(false);
@@ -90,6 +91,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                 showNumbers={false}
                 fontSize={10}
                 onFocusChange={setIsFocused}
+                onInspectPosition={onInspectPosition}
             />
             <div className="bodyview-toolbar">
                 {((format === "json" || format === "xml") && isValid && beautify(format, localValue) !== localValue) && (

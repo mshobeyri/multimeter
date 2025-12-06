@@ -67,31 +67,35 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
 
   // Helper to update top-level fields
   const update = (patch: Partial<APIData>) => {
-    setAPI({ ...api, ...patch });
+    setAPI(prev => ({ ...prev, ...patch }));
   };
 
   // Helper to update a specific interface
   const updateInterface = (patch: Partial<APIData>) => {
-    setAPI({ ...api, ...patch });
+    setAPI(prev => ({ ...prev, ...patch }));
   };
 
   const updateExample = (idx: number, patch: Partial<ExampleData>) => {
-    const examples = safeListCopy(api.examples);
-    examples[idx] = { ...examples[idx], ...patch };
-    setAPI({ ...api, examples });
+    setAPI(prev => {
+      const examples = safeListCopy(prev.examples);
+      examples[idx] = { ...examples[idx], ...patch };
+      return { ...prev, examples };
+    });
   };
 
   const removeExample = (idx: number) => {
-    const examples = safeList(api.examples).filter((_, i) => i !== idx);
-    setAPI({ ...api, examples });
+    setAPI(prev => {
+      const examples = safeList(prev.examples).filter((_, i) => i !== idx);
+      return { ...prev, examples };
+    });
   };
 
   const addExample = () => {
-    const examples = safeListCopy(api.examples);
-    examples.push({
-      name: "",
+    setAPI(prev => {
+      const examples = safeListCopy(prev.examples);
+      examples.push({ name: "" });
+      return { ...prev, examples };
     });
-    setAPI({ ...api, examples });
   };
 
 

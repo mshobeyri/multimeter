@@ -1,13 +1,15 @@
 import {Command} from 'commander';
-import path from 'path';
 import fs from 'fs';
-import {summarize} from './loadTest.js';
+import yaml from 'js-yaml';
+import * as mmtcore from 'mmt-core';
 // Import from mmt-core root exports to avoid subpath resolution issues under
 // pkg
-import {docParsePack, apiParsePack, docHtml, runner} from 'mmt-core';
-import { runJSCode } from 'mmt-core/jsRunner';
-import * as mmtcore from 'mmt-core';
-import yaml from 'js-yaml';
+import {apiParsePack, docHtml, docParsePack, runner} from 'mmt-core';
+import {runJSCode} from 'mmt-core/jsRunner';
+import path from 'path';
+
+import {summarize} from './loadTest.js';
+
 // Defer importing runTest until needed to avoid pulling axios for to-js
 
 const program = new Command();
@@ -60,7 +62,8 @@ program.command('run')
         const full = path.resolve(process.cwd(), file);
         const dir = path.dirname(full);
         const rawText = fs.readFileSync(full, 'utf8');
-        const raw = /\.json$/i.test(full) ? JSON.parse(rawText) : yaml.load(rawText);
+        const raw =
+            /\.json$/i.test(full) ? JSON.parse(rawText) : yaml.load(rawText);
         const summary = summarize(raw);
         if (!opts.quiet) {
           console.log(`Loaded: ${path.resolve(file)} (${summary})`);
@@ -76,7 +79,9 @@ program.command('run')
           envVars,
           fileLoader: async (p: string) => {
             const rel = path.isAbsolute(p) ? p : path.join(dir, p);
-            if (!fs.existsSync(rel)) return '';
+            if (!fs.existsSync(rel)) {
+              return '';
+            }
             return fs.readFileSync(rel, 'utf8');
           }
         });
@@ -84,14 +89,12 @@ program.command('run')
           console.log(js.trim());
         }
         const result = await mmtcore.runner.runGeneratedJs(
-          js,
-          path.basename(full),
-          (level, msg) => {
-            const out = (level === 'error' || level === 'warn') ? process.stderr : process.stdout;
-            out.write(String(msg) + '\n');
-          },
-          (code, title, lg) => runJSCode(code, title, lg as any)
-        );
+            js, path.basename(full), (level, msg) => {
+              const out = (level === 'error' || level === 'warn') ?
+                  process.stderr :
+                  process.stdout;
+              out.write(String(msg) + '\n');
+            }, (code, title, lg) => runJSCode(code, title, lg as any));
         if (!opts.quiet) {
           console.log(`Success: ${result.success}`);
           console.log(`Duration: ${result.durationMs.toFixed(2)} ms`);
