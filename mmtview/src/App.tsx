@@ -18,21 +18,13 @@ declare global {
   }
 }
 
-const SPLIT_PANE_KEY = "mmtview:splitPaneSize";
-
 // Create a context for file info
 export const FileContext = createContext<{ filePath?: string; fileName?: string }>({});
 
 
 const App: React.FC = () => {
-  // Restore pane size from localStorage or default to half window width
-  const [paneSize, setPaneSize] = useState(() => {
-    const saved = localStorage.getItem(SPLIT_PANE_KEY);
-    return saved ? Number(saved) : window.innerWidth / 2;
-  });
-  const savePaneSize = (size: number) => {
-    localStorage.setItem(SPLIT_PANE_KEY, String(size));
-  };
+  // Pane size defaults to half the window width and remains in-memory only
+  const [paneSize, setPaneSize] = useState(() => window.innerWidth / 2);
   const [content, setContent] = useState("");
   const [docType, setDocType] = useState<string | null>(null);
   const [filePath, setFilePath] = useState<string | undefined>(undefined);
@@ -122,7 +114,6 @@ const App: React.FC = () => {
         size={paneSize}
         onChange={(size) => {
           setPaneSize(size);
-          savePaneSize(size)
         }}
         minSize={300}
         maxSize={window.innerWidth - 300}
