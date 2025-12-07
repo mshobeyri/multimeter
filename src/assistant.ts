@@ -192,25 +192,35 @@ async function handleChatRequest(
       if (request.command === 'run') {
         const data = await vscode.workspace.fs.readFile(fileUri);
         const rawText = Buffer.from(data).toString('utf8');
-        const name =
-            path.basename(fileUri.fsPath).replace(/[^a-zA-Z0-9_]/g, '_');
-        const js = await runner.generateTestJs({
+        const printJs = takeFlag('print-js');
+        const runOutcome = await runner.runFile({
           rawText,
-          name,
+          filePath: fileUri.fsPath,
           inputs: inputPairs,
           envVars,
-          fileLoader: nodeLoader
+          fileLoader: nodeLoader,
+          runCode: runJSCode,
+          logger: (lvl, msg) => {}
         });
-        const printJs = takeFlag('print-js');
+        const {js, result, displayName, docType, exampleName, exampleIndex} = runOutcome;
         if (printJs) {
           response.markdown('```js');
           response.markdown(js.trim());
           response.markdown('```');
         }
-        const result = await runner.runGeneratedJs(
-            js, path.basename(fileUri.fsPath), (lvl, msg) => {}, runJSCode);
         // Pretty output formatting (single message with line breaks)
-        const nameOnly = path.basename(fileUri.fsPath);
+        const nameOnly = displayName || path.basename(fileUri.fsPath);
+        const kindLabel = docType === 'api' ? 'API' : docType === 'test' ? 'test' : 'Document';
+        const exampleLabelParts: string[] = [];
+        if (typeof exampleIndex === 'number') {
+          exampleLabelParts.push(`#${exampleIndex + 1}`);
+        }
+        if (exampleName) {
+          exampleLabelParts.push(exampleName);
+        }
+        const header = exampleLabelParts.length ?
+            `${kindLabel} ${nameOnly} (example ${exampleLabelParts.join(' ')})` :
+            `${kindLabel} ${nameOnly}`;
         const logsBlock = (result.logs && result.logs.length) ?
             `Logs:\n\n\`\`\`\n${result.logs.join('\n')}\n\`\`\`` :
             '';
@@ -219,7 +229,7 @@ async function handleChatRequest(
             '';
         const out =
             [
-              `Running test ${nameOnly}...`, logsBlock,
+              `Running ${header}...`, logsBlock,
               `Success: ${result.success}`,
               `Duration: ${result.durationMs.toFixed(2)} ms`, errorsBlock
             ].filter(Boolean)

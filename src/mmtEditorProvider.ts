@@ -1,9 +1,7 @@
 import * as fs from 'fs';
+import {runner} from 'mmt-core';
 import {LogLevel} from 'mmt-core/CommonData';
 import {runJSCode} from 'mmt-core/jsRunner';
-import {importApiToJSfunc, rootTestToJsfunc, setFileLoader} from 'mmt-core/JSer';
-import {apiParsePack} from 'mmt-core';
-import {yamlToTest} from 'mmt-core/testParsePack';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
@@ -293,73 +291,40 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
 
         case 'runCurrentDocument': {
           const rawText = document.getText();
-          const typeMatch = rawText.match(/^[\s\t]*type:[\s\t]*([\w-]+)/m);
-          const docType = typeMatch ? typeMatch[1].toLowerCase() : '';
           const fileName = path.basename(document.uri.fsPath);
-          const identifierBase = path.parse(document.uri.fsPath).name || 'mmt';
-          const sanitizeIdentifier = (value: string) => {
-            const replaced = value.replace(/[^a-zA-Z0-9_]/g, '_');
-            return /^[A-Za-z_$]/.test(replaced) ? replaced : '_' + replaced;
-          };
-          const safeName = sanitizeIdentifier(identifierBase);
-          const errors: string[] = [];
+          const exampleName = typeof message.exampleName === 'string' && message.exampleName.trim() ? message.exampleName.trim() : undefined;
+          const exampleIndex = typeof message.exampleIndex === 'number' ? message.exampleIndex : undefined;
           const forwardLog = (level: LogLevel, message: string) => {
             logToOutput(level, message);
-            if (level === 'error') {
-              errors.push(message);
-            }
           };
           try {
-            if (docType === 'test') {
-              setFileLoader(async (relPath: string) => {
+            const runOutcome = await runner.runFile({
+              rawText,
+              filePath: document.uri.fsPath,
+              inputs: {},
+              envVars: {},
+              fileLoader: async (relPath: string) => {
                 try {
                   return await readRelativeFileContent(document.uri.fsPath, relPath);
                 } catch {
                   return '';
                 }
-              });
+              },
+              runCode: runJSCode,
+              logger: forwardLog,
+              exampleName,
+              exampleIndex,
+            });
 
-              const testData = yamlToTest(rawText);
-              const js = await rootTestToJsfunc({
-                test: testData,
-                name: safeName,
-                inputs: {},
-                envVars: {},
-              });
-
-              await runJSCode(js, fileName, forwardLog);
-
-              if (errors.length === 0) {
-                vscode.window.showInformationMessage(
-                    `Test ${fileName} finished. Check the Multimeter output channel for details.`);
-              } else {
-                vscode.window.showErrorMessage(
-                    `Test ${fileName} reported errors: ${errors[0]}`);
-              }
-            } else if (docType === 'api') {
-              const apiData = apiParsePack.yamlToAPI(rawText);
-              const apiFuncSource = await importApiToJSfunc({
-                api: apiData,
-                name: safeName,
-                inputs: {},
-                envVars: {},
-              });
-              const defaultInputs = apiData && typeof apiData.inputs === 'object' && !Array.isArray(apiData.inputs) ? apiData.inputs : {};
-              const invocationArgs = JSON.stringify(defaultInputs ?? {});
-              const js = `${apiFuncSource}\n\nreturn (async () => {\n  const result = await ${safeName}(${invocationArgs});\n  if (result !== undefined) {\n    console.log('API response:', JSON.stringify(result, null, 2));\n  }\n  return result;\n})();`;
-
-              await runJSCode(js, fileName, forwardLog);
-
-              if (errors.length === 0) {
-                vscode.window.showInformationMessage(
-                    `API ${fileName} executed. Check the Multimeter output channel for details.`);
-              } else {
-                vscode.window.showErrorMessage(
-                    `API ${fileName} reported errors: ${errors[0]}`);
-              }
+            const {docType, displayName, result} = runOutcome;
+            const label = docType === 'api' ? 'API' : docType === 'test' ? 'Test' : 'Document';
+            if (result.success) {
+              vscode.window.showInformationMessage(
+                  `${label} ${displayName} finished. Check the Multimeter output channel for logs.`);
             } else {
-              vscode.window.showWarningMessage(
-                  'Run is currently supported for test or api documents only.');
+              const firstError = result.errors[0] || 'Unknown error';
+              vscode.window.showErrorMessage(
+                  `${label} ${displayName} failed: ${firstError}. Check the Multimeter output channel for logs.`);
             }
           } catch (err: any) {
             vscode.window.showErrorMessage(
