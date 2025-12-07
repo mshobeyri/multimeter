@@ -1,10 +1,12 @@
 import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
 import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
+import { yamlToAPI } from "mmt-core/apiParsePack";
 import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./BeforeMount";
 import { safeList } from "mmt-core/safer";
-import { openRelativeFile } from "../vsAPI";
+import { openRelativeFile, showVSCodeMessage } from "../vsAPI";
 import { FileContext } from "../fileContext";
+import { runApiDocument } from "../api/useAPITesterLogic";
 
 interface YamlEditorPanelProps {
   content: string;
@@ -204,20 +206,18 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     });
   }, [runButtonEnabled]);
 
-  const handleRunClick = useCallback(() => {
+  const handleRunClick = useCallback(async () => {
     try {
       if (docType === "api") {
-        window.postMessage({
-          command: "multimeter.api.run",
-          uri: filePath
-        }, "*");
+        const apiData = yamlToAPI(content);
+        await runApiDocument({ api: apiData, filePath });
       } else {
         window.vscode?.postMessage({ command: "runCurrentDocument" });
       }
-    } catch {
-      // ignore
+    } catch (err: any) {
+      showVSCodeMessage("error", err?.message || "Failed to run document.");
     }
-  }, [docType, filePath]);
+  }, [docType, content, filePath]);
 
   useEffect(() => {
     if (!monacoRef.current || !editorRef.current) return;

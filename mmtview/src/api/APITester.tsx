@@ -12,6 +12,7 @@ import ResponseDuration from "../components/ResponseDuration";
 import ResponseStatus from "../components/ResponseStatus";
 import VEditor from "../components/VEditor";
 import { FileContext } from "../fileContext";
+import { showHistoryPanel } from "../vsAPI";
 import { useAPITesterLogic } from "./useAPITesterLogic";
 
 interface APITestProps {
@@ -303,9 +304,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
             )}
             <button
               onClick={() => {
-                window.vscode?.postMessage({
-                  command: 'multimeter.history.show'
-                });
+                showHistoryPanel();
               }}
               className="toolbar-button"
               title="Show History Panel"
