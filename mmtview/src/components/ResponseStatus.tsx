@@ -8,8 +8,19 @@ interface ResponseStatusProps {
 }
 
 const ResponseStatus: React.FC<ResponseStatusProps> = ({ status, errorMessage, errorCode, className }) => {
-
-  if (status === 200) {
+  if (status && status < 0) {
+    return (
+      <div
+        className={`response-badge ${className || ''}`.trim()}
+        style={{
+          backgroundColor: '#d32f2f',
+        }}
+        title={`${errorMessage}`}
+      >
+        {errorMessage || 'ERROR'}
+      </div>
+    );
+  } else if (status === 200) {
     return (
       <div
         className={`response-badge ${className || ''}`.trim()}

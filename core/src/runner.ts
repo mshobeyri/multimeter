@@ -401,6 +401,12 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `        body: __mmt_formatBodyValue(__body)\n` +
       `      };\n` +
       `      console.log(__mmt_formatSection('RESPONSE', __resLog));\n` +
+      `      if (typeof __status === 'number' && __status < 0) {\n` +
+      `        let err = new Error(__statusText || 'Network error');\n` +
+      `        err.status = __status;\n` +
+      `        err.statusText = __statusText;\n` +
+      `        throw err;\n` +
+      `      }\n` +
       `      return __res;\n` +
       `    } catch (err) {\n` +
       `      const __errorLog = {\n` +

@@ -138,8 +138,15 @@ export async function sendHttpRequest(
         autoformat: config.autoFormat,
       };
     } else {
-      // Network error (no response)
-      throw err;
+      const code = err?.code ? String(err.code) : 'NETWORK_ERROR';
+      return {
+        body: '',
+        headers: {},
+        status: -1,
+        statusText: `${code}`,
+        duration,
+        autoformat: config.autoFormat
+      } as any;
     }
   }
 }
@@ -318,8 +325,8 @@ export async function send(req: Request): Promise<Response> {
       headers: httpRes.headers,
       status: httpRes.status,
       duration: httpRes.duration,
-      errorMessage: "",
-      errorCode: "",
+      errorMessage: '',
+      errorCode: '',
     };
   } else {
     throw new Error(`Unsupported protocol: ${protocol}`);
