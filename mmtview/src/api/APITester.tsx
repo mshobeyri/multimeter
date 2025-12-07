@@ -1,59 +1,48 @@
-import React, { useState, useEffect, useCallback, useContext } from "react";
+import React, { useState, useContext } from "react";
 import { APIData } from "mmt-core/APIData";
+import { JSONRecord } from "mmt-core/CommonData";
 import KSVEditor from "../components/KSVEditor";
 import BodyView from "../components/BodyView";
 import { formatBody } from "mmt-core/markupConvertor";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
-import { useNetwork } from "../components/network/Network";
-import { replaceAllRefs } from "mmt-core/variableReplacer";
 import UrlInput from "../components/UrlInput";
-import { extractOutputs, extractPathAtPosition } from "mmt-core/outputExtractor";
 import ViewSelector, { ViewMode } from "../components/ViewSelector";
-import { loadEnvVariables } from "../workspaceStorage";
-import { safeList } from "mmt-core/safer";
-import { Request, Response } from "mmt-core/NetworkData";
-import { JSONRecord } from "mmt-core/CommonData";
-import { setEnvironmentVariable, getEnvironmentVariable } from "../environment/environmentUtils";
 import ResponseDuration from "../components/ResponseDuration";
 import ResponseStatus from "../components/ResponseStatus";
 import VEditor from "../components/VEditor";
 import { FileContext } from "../fileContext";
+import { useAPITesterLogic } from "./useAPITesterLogic";
 
 interface APITestProps {
   api: APIData;
   onUpdateApi?: (patch: Partial<APIData>) => void;
 }
 
-// Build a bracket-notation expression like body[user][items][0][name]
-// from a path array returned by extractPathAtPosition.
-function buildBodyExprFromPath(path: Array<string | number>): string {
-  const parts = path.map(seg => `[${String(seg)}]`).join("");
-  return `body${parts}`;
-}
-
 const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
   const { filePath } = useContext(FileContext);
-  const examples = safeList(api.examples);
-  const [requestData, setRequestData] = useState<Request>();
-
-  const updateField = (field: keyof Request, value: any) => {
-    setRequestData(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const [responseData, setResponseData] = useState<Response>();
-  const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(-1);
-
-  // Current example inputs buffer that can be modified
-  const [currentInputs, setcurrentInputs] = useState<JSONRecord>({});
-
-  // Reset selected example when API changes
-  useEffect(() => {
-    setSelectedExampleIdx(-1);
-  }, [api]);
+  const {
+    requestData,
+    responseData,
+    selectedExampleIdx,
+    setSelectedExampleIdx,
+    currentInputs,
+    setCurrentInputs,
+    autoFormatBody,
+    setAutoFormatBody,
+    outputs,
+    updateField,
+    handleUrlChange,
+    handleQueryChange,
+    handleAddOutputVariable,
+    prepareRequestData,
+    handleSend,
+    handleCancel,
+    handleConnect,
+    buildCurl,
+    network,
+    examples
+  } = useAPITesterLogic({ api, onUpdateApi, filePath });
 
   // View state with localStorage persistence
   const [viewMode, setViewModeState] = useState<ViewMode>(() => {
@@ -66,254 +55,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
     localStorage.setItem("apitest-view-mode", mode);
   };
 
-  const network = useNetwork();
-
-  // Config state: whether to auto-format request body
-  const [autoFormatBody, setAutoFormatBody] = useState<boolean>(false);
-
-  // Outputs state
-  const [outputs, setOutputs] = useState<JSONRecord>({});
-
-  // Update outputs when response changes using extracts
-  useEffect(() => {
-    if (
-      (!api.outputs || Object.keys(api.outputs).length === 0) || (
-        (!responseData?.body || responseData.body === "") &&
-        (!responseData?.headers || Object.keys(responseData.headers).length === 0) &&
-        (!responseData?.cookies || Object.keys(responseData.cookies).length === 0))
-    ) {
-      return;
-    }
-
-    const extractRules = api.outputs || {};
-    const outputNames = Object.keys(extractRules);
-
-    const extractedValues = extractOutputs({
-      type: 'auto',
-      body: responseData?.body,
-      headers: responseData?.headers || {},
-      cookies: responseData?.cookies || {}
-    }, extractRules);
-
-    const finalOutputs: JSONRecord = {};
-    outputNames.forEach(outputName => {
-      if (outputName in extractedValues) {
-        finalOutputs[outputName] = extractedValues[outputName];
-      } else {
-        finalOutputs[outputName] = "";
-      }
-    });
-
-    setOutputs(finalOutputs);
-    handleSetEnvVariables(api, finalOutputs);
-  }, [responseData?.body, responseData?.headers, responseData?.cookies, api.outputs, api.setenv]);
-
-  // Only call onChange if url value actually changed
-  const handleUrlChange = useCallback(
-    (newUrl: string) => {
-      if (newUrl !== requestData?.url) {
-        setRequestData(prev => ({
-          ...prev,
-          url: newUrl
-        }));
-      }
-    },
-    [requestData?.url, requestData?.query]
-  );
-
-  // Only call onChange if query value actually changed
-  const handleQueryChange = useCallback(
-    (query: Record<string, string>) => {
-      const prev = JSON.stringify(requestData?.query || {});
-      const next = JSON.stringify(query || {});
-      if (prev !== next) {
-        updateField("query", query);
-      }
-    },
-    [requestData?.url, requestData?.query]
-  );
-
-  const handleAddOutputVariable = (pos: { text?: string; line: number; column: number }) => {
-    // Use the exact text shown in the editor to keep offsets aligned
-    const bodyText = pos.text ?? '';
-
-    const fmt = (requestData?.format || "json").toLowerCase();
-    const contentType: "json" | "xml" =
-      fmt.includes("xml") || (bodyText || "").trim().startsWith("<")
-        ? "xml"
-        : "json";
-    const path = extractPathAtPosition(bodyText || "", contentType, pos.line, pos.column);
-    if (!path || path.length === 0) {
-      return;
-    }
-
-    const expr = buildBodyExprFromPath(path);
-    // Choose a key name: prefer the last string segment; fallback to 'value'
-    let suggestedKey = "value";
-    for (let i = path.length - 1; i >= 0; i--) {
-      const seg = path[i];
-      if (typeof seg === "string" && seg.trim()) {
-        suggestedKey = seg;
-        break;
-      }
-    }
-
-    // Ensure uniqueness in api.outputs
-    const existing = { ...(api.outputs || {}) };
-    let key = suggestedKey;
-    let counter = 1;
-    while (Object.prototype.hasOwnProperty.call(existing, key)) {
-      key = `${suggestedKey}_${counter++}`;
-    }
-
-    existing[key] = expr;
-    onUpdateApi?.({ outputs: existing });
-    api.outputs = existing;
-  };
-
-  const prepareRequestData = (inputs?: JSONRecord) => {
-    inputs = inputs || currentInputs;
-    (async () => {
-      const envVars = await new Promise(resolve => {
-        const cleanup = loadEnvVariables(vars => {
-          cleanup();
-          resolve(vars);
-        });
-      });
-
-      const envParameters: JSONRecord = safeList(envVars).reduce((acc, envVar) => {
-        acc[envVar.name] = envVar.value;
-        return acc;
-      }, {} as JSONRecord);
-
-      let rface = replaceAllRefs(
-        api,
-        api?.inputs ?? {},
-        inputs,
-        envParameters
-      );
-
-      if (rface.body && typeof rface.body !== 'string') {
-        rface.body = formatBody(rface.format || "json", rface.body ?? "");
-      }
-
-      // Only update body if it actually changed to avoid feedback loop
-      setRequestData(prevRequestData => {
-        if (prevRequestData?.body !== (rface.body || "")) {
-          return {
-            ...prevRequestData,
-            body: rface.body || ""
-          };
-        }
-        return prevRequestData;
-      });
-
-      setRequestData(rface);
-    })();
-  }
-
-  useEffect(() => {
-    let inputs = {};
-    if (selectedExampleIdx === -1) {
-      inputs = api.inputs || {};
-    } else {
-      const selectedExample = examples[selectedExampleIdx] || {};
-      inputs = selectedExample?.inputs || {};
-    }
-    setcurrentInputs(inputs);
-    prepareRequestData(inputs);
-  }, [api, selectedExampleIdx]);
-
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      const message = event.data;
-      if (!message) return;
-      switch (message.command) {
-        case 'multimeter.environment.refresh':
-          prepareRequestData();
-          break;
-        case 'config':
-          if (typeof message.bodyAutoFormat === 'boolean') {
-            setAutoFormatBody(message.bodyAutoFormat);
-            // Rebuild request with new formatting preference
-            prepareRequestData();
-          }
-          break;
-      }
-    };
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
-
-  const handleSend = useCallback(async () => {
-    const res = await network.send(requestData);
-    setResponseData(res);
-  }, [network, requestData]);
-
-  const handleCancel = async () => {
-    setResponseData(undefined);
-    await network.cancel();
-  };
-
-  const handleConnect = () => {
-    setResponseData(undefined);
-    if (network.connected) {
-      network.closeWs();
-    } else {
-      network.connectWs(requestData?.url || "").then(setResponseData);
-    }
-  };
-
-  useEffect(() => {
-    const listener = (event: MessageEvent) => {
-      const message = event.data;
-      if (!message || message.command !== 'multimeter.api.run') {
-        return;
-      }
-      if (message.uri && filePath && message.uri !== filePath) {
-        return;
-      }
-      void handleSend();
-    };
-    window.addEventListener('message', listener);
-    return () => window.removeEventListener('message', listener);
-  }, [handleSend, filePath]);
-
-  const escapeSingleQuotes = (s: string) => String(s).replace(/'/g, "'\\''");
-  const buildCurl = (): string => {
-    const method = (requestData?.method || 'GET').toUpperCase();
-    const url = requestData?.url || '';
-    const parts: string[] = ['curl'];
-    if (method !== 'GET') {
-      parts.push('-X', method);
-    }
-    const headers = requestData?.headers || {};
-    const cookies = requestData?.cookies || {};
-    Object.entries(headers).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== '') {
-        parts.push('-H', `'${escapeSingleQuotes(`${k}: ${v}`)}'`);
-      }
-    });
-    const cookiePairs = Object.entries(cookies)
-      .filter(([_, v]) => v !== undefined && v !== null && v !== '')
-      .map(([k, v]) => `${k}=${v}`);
-    if (cookiePairs.length) {
-      parts.push('-H', `'Cookie: ${escapeSingleQuotes(cookiePairs.join('; '))}'`);
-    }
-    const bodyStr = typeof requestData?.body === 'string'
-      ? requestData?.body
-      : requestData?.body != null
-        ? JSON.stringify(requestData?.body)
-        : '';
-    if (method !== 'GET' && bodyStr) {
-      parts.push('--data', `'${escapeSingleQuotes(bodyStr)}'`);
-    }
-    parts.push(`'${escapeSingleQuotes(url)}'`);
-    return parts.join(' ');
-  };
-
-  // Helper functions to check what should be visible based on view mode
   const shouldShowQuery = () => viewMode === "all" || viewMode === "params";
   const shouldShowHeaders = () => viewMode === "all" || viewMode === "headers";
   const shouldShowCookies = () => viewMode === "all" || viewMode === "cookies";
@@ -323,6 +64,15 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
   const shouldShowResponseCookies = () => (viewMode === "all" || viewMode === "cookies") && Object.keys(responseData?.cookies || {}).length > 0;
   const shouldShowInputs = () => (viewMode === "all" || viewMode === "in/out") && Object.keys(api.inputs || {}).length > 0;
   const shouldShowOutputs = () => (viewMode === "all" || viewMode === "in/out") && Object.keys(outputs).length > 0;
+
+  const handleExampleChange = (newIdx: number) => {
+    setSelectedExampleIdx(newIdx);
+    const nextInputs = newIdx === -1
+      ? (api.inputs || {})
+      : (examples[newIdx]?.inputs || {});
+    setCurrentInputs(nextInputs);
+    prepareRequestData(nextInputs);
+  };
 
   return (
     <div style={{ width: "100%" }}>
@@ -334,19 +84,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
               value={selectedExampleIdx ?? ""}
               onChange={e => {
                 const newIdx = Number(e.target.value);
-                setSelectedExampleIdx(newIdx);
-                if (newIdx === -1) {
-                  setcurrentInputs({});
-                } else {
-                  const newExample = examples[newIdx] || {};
-                  setcurrentInputs(newExample?.inputs || {});
-                }
+                handleExampleChange(newIdx);
               }}
               style={{ width: "100%" }}
             >
               <option value={-1}>defaults</option>
-              {safeList(examples)
-                .filter(ex => ex && typeof ex === 'object')
+              {examples
+                .filter(ex => ex && typeof ex === "object")
                 .map((ex, idx) => (
                   <option key={ex?.name || idx} value={idx}>
                     {ex?.name || `Example ${idx + 1}`}
@@ -422,7 +166,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
           label="inputs"
           value={currentInputs}
           onChange={(data) => {
-            setcurrentInputs(data);
+            setCurrentInputs(data);
             prepareRequestData(data);
           }}
           keyOptions={Object.keys(api.inputs || {})}
@@ -601,42 +345,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
         </div>
       </div>
     </div >
-  );
-};
-
-
-// Function to handle setting environment variables from API setenv configuration
-const handleSetEnvVariables = async (
-  api: APIData,
-  finalOutputs: JSONRecord
-) => {
-  if (!api.setenv || typeof api.setenv !== 'object' || Object.keys(api.setenv).length === 0) {
-    return;
-  }
-  await Promise.all(
-    Object.entries(api.setenv).map(async ([envKey, outputKey]) => {
-      if (envKey && outputKey) {
-        let value = "";
-        let label = api.title ? `api(${api.title}) - ${outputKey}` : envKey;
-
-        if (finalOutputs.hasOwnProperty(String(outputKey))) {
-          const outputValue = finalOutputs[String(outputKey)];
-          if (outputValue !== "" && outputValue != null) {
-            value = String(outputValue);
-          }
-        } else {
-          // Direct value assignment (not from outputs)
-          value = String(outputKey);
-          label = api.title ? `api(${api.title})` : envKey;
-        }
-
-        // Optionally, avoid unnecessary writes:
-        const currentValue = await getEnvironmentVariable(envKey);
-        if (currentValue !== value) {
-          setEnvironmentVariable(envKey, value, label);
-        }
-      }
-    })
   );
 };
 
