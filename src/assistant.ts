@@ -194,10 +194,10 @@ async function handleChatRequest(
         const rawText = Buffer.from(data).toString('utf8');
         const printJs = takeFlag('print-js');
         const runOutcome = await runner.runFile({
-          rawText,
+          rawFile: rawText,
           filePath: fileUri.fsPath,
-          inputs: inputPairs,
-          envVars,
+          inputs: {type: 'manual', inputs: inputPairs},
+          envvar: {type: 'vscode', inputs: envVars},
           fileLoader: nodeLoader,
           runCode: runJSCode,
           logger: (lvl, msg) => {}

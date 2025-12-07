@@ -207,7 +207,10 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
 
   const handleRunClick = useCallback(() => {
     try {
-      window.vscode?.postMessage({ command: "runCurrentDocument" });
+      window.vscode?.postMessage({
+        command: "runCurrentDocument",
+        inputs: { type: "defaults" },
+      });
     } catch (err: any) {
       showVSCodeMessage("error", err?.message || "Failed to run document.");
     }
@@ -223,11 +226,17 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         return;
       }
       const exampleName = typeof example?.name === "string" && example.name.trim() ? example.name : undefined;
-      window.vscode?.postMessage({
-        command: "runCurrentDocument",
-        exampleName,
-        exampleIndex,
-      });
+      if (exampleName) {
+        window.vscode?.postMessage({
+          command: "runCurrentDocument",
+          inputs: { type: "exampleId", exampleId: exampleName },
+        });
+      } else {
+        window.vscode?.postMessage({
+          command: "runCurrentDocument",
+          inputs: { type: "exampleIndex", exampleIndex },
+        });
+      }
     } catch (err: any) {
       showVSCodeMessage("error", err?.message || "Failed to run example.");
     }
