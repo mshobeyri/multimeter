@@ -15,6 +15,7 @@ interface TextEditorProps {
   onFocusChange?: (focused: boolean) => void;
   onInspectPosition?: (info: { line: number; column: number; text: string }) => void;
   onToggleRunButton?: () => void;
+  showGlyphMargin?: boolean;
 }
 
 const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
@@ -32,6 +33,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
   onFocusChange,
   onInspectPosition,
   onToggleRunButton,
+  showGlyphMargin = false,
 }) => {
   const localMonacoRef = useRef<any>(null);
   const localEditorRef = useRef<any>(null);
@@ -184,7 +186,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
         tabSize: 2,
         automaticLayout: true,
         lineNumbers: showNumbers ? "on" : "off",
-        glyphMargin: true,
+        glyphMargin: showGlyphMargin,
         lineDecorationsWidth: 0,
         scrollbar: {
           horizontal: "auto",

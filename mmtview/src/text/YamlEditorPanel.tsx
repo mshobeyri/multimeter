@@ -33,6 +33,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const ctrlDownRef = useRef<boolean>(false);
   const [runButtonEnabled, setRunButtonEnabled] = useState(true);
   const [docType, setDocType] = useState<string | null>(null);
+  const shouldShowRunControls = runButtonEnabled && (docType === "test" || docType === "api");
 
   // Validate YAML and set error marker if invalid
   useEffect(() => {
@@ -221,26 +222,19 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   useEffect(() => {
     if (!monacoRef.current || !editorRef.current) return;
     const editor = editorRef.current;
-    if (!runButtonEnabled || !editorReady || !(docType === "test" || docType === "api")) {
+    if (!shouldShowRunControls || !editorReady) {
       runGlyphDecorationsRef.current = editor.deltaDecorations(
         runGlyphDecorationsRef.current,
         []
       );
     }
-  }, [runButtonEnabled, editorReady, docType]);
+  }, [shouldShowRunControls, editorReady]);
 
   useEffect(() => {
-    if (!editorReady || !monacoRef.current || !editorRef.current) return;
+    if (!shouldShowRunControls || !editorReady) return;
+    if (!monacoRef.current || !editorRef.current) return;
     const monaco = monacoRef.current;
     const editor = editorRef.current;
-
-    if (!runButtonEnabled) {
-      return;
-    }
-
-    if (!(docType === "test" || docType === "api")) {
-      return;
-    }
 
     runGlyphDecorationsRef.current = editor.deltaDecorations(
       runGlyphDecorationsRef.current,
@@ -274,7 +268,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         []
       );
     };
-  }, [editorReady, handleRunClick, runButtonEnabled, docType]);
+  }, [editorReady, handleRunClick, shouldShowRunControls]);
 
   // Effect to handle custom decorations
   useEffect(() => {
@@ -321,6 +315,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         setEditorReady={setEditorReady}
         onFocusChange={onFocusChange}
         onToggleRunButton={(docType === "test" || docType === "api") ? toggleRunButton : undefined}
+        showGlyphMargin={shouldShowRunControls}
       />
     </div>
   );
