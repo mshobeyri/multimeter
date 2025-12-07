@@ -72,20 +72,6 @@ export function handleNetworkMessage(
             requestId,
           });
         } catch (err: any) {
-          postMessage({
-            command: 'network',
-            action: 'http-response',
-            data: {
-              message: err?.message || String(err),
-              code: err?.code,
-              status: err?.status,
-              body: err?.response?.data,
-              headers: err?.response?.headers,
-              duration: err?.duration,
-              autoformat: config.autoFormat,
-            },
-            requestId: message.requestId,
-          });
         }
       })();
       break;
