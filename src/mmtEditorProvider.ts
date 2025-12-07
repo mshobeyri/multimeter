@@ -290,19 +290,22 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         }
 
         case 'runCurrentDocument': {
-          const rawText = document.getText();
           const fileName = path.basename(document.uri.fsPath);
-          const exampleName = typeof message.exampleName === 'string' && message.exampleName.trim() ? message.exampleName.trim() : undefined;
-          const exampleIndex = typeof message.exampleIndex === 'number' ? message.exampleIndex : undefined;
+          const inputs = message.inputs ?? {type: 'defaults'};
           const forwardLog = (level: LogLevel, message: string) => {
             logToOutput(level, message);
           };
           try {
-            const runOutcome = await runner.runFile({
-              rawText,
+            const runOutcome = await runner.runFileWithDefaults({
               filePath: document.uri.fsPath,
-              inputs: {},
-              envVars: {},
+              readText: async (p: string) => {
+                if (p === document.uri.fsPath) {
+                  return document.getText();
+                }
+                return readFileContent(p);
+              },
+              inputs,
+              envvar: {type: 'vscode', inputs: {}},
               fileLoader: async (relPath: string) => {
                 try {
                   return await readRelativeFileContent(document.uri.fsPath, relPath);
@@ -312,8 +315,6 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
               },
               runCode: runJSCode,
               logger: forwardLog,
-              exampleName,
-              exampleIndex,
             });
 
             const {docType, displayName, result} = runOutcome;

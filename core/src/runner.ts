@@ -92,16 +92,26 @@ export function buildDocFromApis(apis: any[], opts: BuildDocOptions): string {
   return docHtml.buildDocHtml(apis, rest);
 }
 
-export interface RunFileOptions {
-  rawText: string;
-  filePath: string;
+export interface RunFileInputsOptions {
+  type: 'exampleId' | 'exampleIndex' | 'defaults' | 'manual';
+  exampleId?: string;
+  exampleIndex?: number;
   inputs?: Record<string, any>;
-  envVars?: Record<string, any>;
+}
+
+export interface RunFileEnvOptions {
+  type: 'vscode';
+  inputs?: Record<string, any>;
+}
+
+export interface RunFileOptions {
+  rawFile: string;
+  filePath: string;
+  inputs: RunFileInputsOptions;
+  envvar: RunFileEnvOptions;
   fileLoader: FileLoader;
   runCode: (code: string, title: string, logger: (level: LogLevel, msg: string) => void) => Promise<void>;
   logger?: (level: LogLevel, msg: string) => void;
-  exampleName?: string;
-  exampleIndex?: number;
 }
 
 export interface RunFileResult {
@@ -119,25 +129,23 @@ export interface RunFileResult {
 export interface RunFileWithDefaultsOptions {
   filePath: string;
   readText: (path: string) => Promise<string>;
+  inputs: RunFileInputsOptions;
+  envvar: RunFileEnvOptions;
   fileLoader: FileLoader;
   runCode: (code: string, title: string, logger: (level: LogLevel, msg: string) => void) => Promise<void>;
   logger?: (level: LogLevel, msg: string) => void;
-  inputs?: Record<string, any>;
-  envVars?: Record<string, any>;
-  exampleName?: string;
-  exampleIndex?: number;
 }
 
 export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
   const {
-    rawText,
+    rawFile,
     filePath,
     fileLoader,
     runCode,
     logger,
   } = options;
-  const inputOverrides = options.inputs ?? {};
-  const envVars = options.envVars ?? {};
+  const rawText = rawFile;
+  const envVars = options.envvar?.inputs ?? {};
   const docType = detectDocType(filePath, rawText);
   const sinkLogger: (level: LogLevel, msg: string) => void = logger ?? (() => {});
   const preLogs: Array<{level: LogLevel; message: string}> = [];
@@ -146,13 +154,17 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
     sinkLogger(level, message);
   };
   const baseName = basename(filePath);
-  const requestedExampleIndex =
-      typeof options.exampleIndex === 'number' ? options.exampleIndex : undefined;
+    const requestedExampleIndex =
+      options.inputs.type === 'exampleIndex' && typeof options.inputs.exampleIndex === 'number'
+        ? options.inputs.exampleIndex
+        : undefined;
 
   if (docType === 'api') {
     const api = yamlToAPI(rawText);
+    const inputOverrides = options.inputs.inputs ?? {};
+    const requestedExampleName = options.inputs.type === 'exampleId' ? options.inputs.exampleId : undefined;
     const {exampleInputs, resolvedExampleName, resolvedExampleIndex} =
-        resolveApiExample(api, options.exampleName, requestedExampleIndex, note);
+      resolveApiExample(api, requestedExampleName, requestedExampleIndex, note);
     const exampleLabelParts: string[] = [];
     if (typeof resolvedExampleIndex === 'number') {
       exampleLabelParts.push(`#${resolvedExampleIndex + 1}`);
@@ -198,11 +210,12 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
     const identifier = sanitizeIdentifier(baseName);
     const test = testParsePack.yamlToTest ? testParsePack.yamlToTest(rawText) : {} as any;
     const defaultInputs = isPlainObject(test?.inputs) ? test.inputs as Record<string, any> : {};
+    const inputOverrides = options.inputs.inputs ?? {};
     const mergedInputs = {...defaultInputs, ...inputOverrides};
     const js = await generateTestJs({
       rawText,
       name: identifier,
-      inputs: inputOverrides,
+      inputs: mergedInputs,
       envVars,
       fileLoader,
     });
@@ -225,17 +238,15 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
 }
 
 export async function runFileWithDefaults(options: RunFileWithDefaultsOptions): Promise<RunFileResult> {
-  const rawText = await options.readText(options.filePath);
+  const rawFile = await options.readText(options.filePath);
   return runFile({
-    rawText,
+    rawFile,
     filePath: options.filePath,
     inputs: options.inputs,
-    envVars: options.envVars,
+    envvar: options.envvar,
     fileLoader: options.fileLoader,
     runCode: options.runCode,
     logger: options.logger,
-    exampleName: options.exampleName,
-    exampleIndex: options.exampleIndex,
   });
 }
 
