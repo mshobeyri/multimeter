@@ -30,6 +30,8 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const decorationsRef = useRef<string[]>([]);
   const linkDecorationsRef = useRef<string[]>([]);
   const runGlyphDecorationsRef = useRef<string[]>([]);
+  const exampleRunDecorationsRef = useRef<string[]>([]);
+  const exampleRunInfoRef = useRef<{ line: number; index: number; name?: string }[]>([]);
   const [editorReady, setEditorReady] = useState(false);
   const importsMapRef = useRef<Record<string, string>>({});
   const ctrlDownRef = useRef<boolean>(false);
@@ -224,6 +226,29 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     }
   }, [docType, content, filePath]);
 
+  const handleRunExample = useCallback(async (exampleIndex: number) => {
+    try {
+      const apiData = yamlToAPI(content);
+      const examplesList = safeList(apiData?.examples);
+      const example = examplesList[exampleIndex];
+      if (!example) {
+        showVSCodeMessage("warn", "Selected example was not found in this document.");
+        return;
+      }
+
+      showHistoryPanel();
+      await new Promise<void>(resolve => setTimeout(resolve, 200));
+
+      const exampleInputs = (example && typeof example === "object" && example.inputs && typeof example.inputs === "object")
+        ? example.inputs
+        : (example as any)?.inputs || {};
+
+      await runApiDocument({ api: apiData, inputs: exampleInputs, filePath });
+    } catch (err: any) {
+      showVSCodeMessage("error", err?.message || "Failed to run example.");
+    }
+  }, [content, filePath]);
+
   useEffect(() => {
     if (!monacoRef.current || !editorRef.current) return;
     const editor = editorRef.current;
@@ -236,11 +261,18 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   }, [shouldShowRunControls, editorReady]);
 
   useEffect(() => {
-    if (!shouldShowRunControls || !editorReady) return;
     if (!monacoRef.current || !editorRef.current) return;
-    const monaco = monacoRef.current;
     const editor = editorRef.current;
 
+    if (!shouldShowRunControls || !editorReady) {
+      runGlyphDecorationsRef.current = editor.deltaDecorations(
+        runGlyphDecorationsRef.current,
+        []
+      );
+      return;
+    }
+
+    const monaco = monacoRef.current;
     runGlyphDecorationsRef.current = editor.deltaDecorations(
       runGlyphDecorationsRef.current,
       [
@@ -256,24 +288,98 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       ]
     );
 
-    const mouseDownDisposable = editor.onMouseDown((e: any) => {
-      if (
-        e.target?.type === monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN &&
-        e.target?.position?.lineNumber === 1
-      ) {
-        e.event?.preventDefault?.();
-        handleRunClick();
-      }
-    });
-
     return () => {
-      mouseDownDisposable.dispose();
       runGlyphDecorationsRef.current = editor.deltaDecorations(
         runGlyphDecorationsRef.current,
         []
       );
     };
-  }, [editorReady, handleRunClick, shouldShowRunControls]);
+  }, [editorReady, shouldShowRunControls]);
+
+  useEffect(() => {
+    if (!monacoRef.current || !editorRef.current) return;
+    const editor = editorRef.current;
+
+    if (!shouldShowRunControls || !editorReady || docType !== "api") {
+      exampleRunInfoRef.current = [];
+      exampleRunDecorationsRef.current = editor.deltaDecorations(
+        exampleRunDecorationsRef.current,
+        []
+      );
+      return;
+    }
+
+    const monaco = monacoRef.current;
+    const doc = parseYamlDoc(content);
+    const apiData = yamlToAPI(content);
+    const examplesList = safeList(apiData?.examples);
+
+    const positions = extractExampleLineInfo(doc, content).filter(info => info.line > 0);
+
+    exampleRunInfoRef.current = positions.map(info => ({
+      line: info.line,
+      index: info.index,
+      name: examplesList[info.index]?.name,
+    }));
+
+    exampleRunDecorationsRef.current = editor.deltaDecorations(
+      exampleRunDecorationsRef.current,
+      positions.map(info => {
+        const name = examplesList[info.index]?.name;
+        const label = name ? `Run example: ${name}` : `Run example ${info.index + 1}`;
+        return {
+          range: new monaco.Range(info.line, 1, info.line, 1),
+          options: {
+            isWholeLine: true,
+            glyphMarginClassName: "mmt-run-glyph codicon codicon-run",
+            glyphMarginHoverMessage: { value: label },
+            stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
+          },
+        };
+      })
+    );
+
+    return () => {
+      exampleRunInfoRef.current = [];
+      exampleRunDecorationsRef.current = editor.deltaDecorations(
+        exampleRunDecorationsRef.current,
+        []
+      );
+    };
+  }, [content, docType, editorReady, shouldShowRunControls]);
+
+  useEffect(() => {
+    if (!monacoRef.current || !editorRef.current) return;
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+
+    const mouseDownDisposable = editor.onMouseDown((e: any) => {
+      if (e.target?.type !== monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN) {
+        return;
+      }
+
+      const lineNumber = e.target?.position?.lineNumber;
+      if (!lineNumber) {
+        return;
+      }
+
+      if (lineNumber === 1) {
+        e.event?.preventDefault?.();
+        handleRunClick();
+        return;
+      }
+
+      if (docType === "api") {
+        const exampleInfo = exampleRunInfoRef.current.find(info => info.line === lineNumber);
+        if (exampleInfo) {
+          e.event?.preventDefault?.();
+          void handleRunExample(exampleInfo.index);
+        }
+      }
+    });
+
+    return () => mouseDownDisposable.dispose();
+  }, [handleRunClick, handleRunExample, docType]);
 
   // Effect to handle custom decorations
   useEffect(() => {
@@ -327,6 +433,57 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
 };
 
 export default YamlEditorPanel;
+
+
+type ExampleLineInfo = { line: number; index: number };
+
+function extractExampleLineInfo(doc: any, content: string): ExampleLineInfo[] {
+  if (!doc || !doc.contents) {
+    return [];
+  }
+
+  const root: any = doc.contents;
+  const rootItems: any[] = Array.isArray(root?.items) ? root.items : [];
+  const examplesPair = rootItems.find(item => item?.key?.value === "examples");
+  if (!examplesPair || !examplesPair.value) {
+    return [];
+  }
+
+  const seqItems: any[] = Array.isArray(examplesPair.value?.items) ? examplesPair.value.items : [];
+  const positions: ExampleLineInfo[] = [];
+
+  seqItems.forEach((exampleNode, idx) => {
+    let offset: number | undefined;
+    if (Array.isArray(exampleNode?.range) && typeof exampleNode.range[0] === "number") {
+      offset = exampleNode.range[0];
+    } else if (exampleNode?.key && Array.isArray(exampleNode.key.range) && typeof exampleNode.key.range[0] === "number") {
+      offset = exampleNode.key.range[0];
+    }
+
+    if (typeof offset === "number") {
+      positions.push({
+        line: offsetToLineNumber(content, offset),
+        index: idx,
+      });
+    }
+  });
+
+  return positions;
+}
+
+function offsetToLineNumber(content: string, offset: number): number {
+  if (offset <= 0) {
+    return 1;
+  }
+  let line = 1;
+  const limit = Math.min(offset, content.length);
+  for (let i = 0; i < limit; i++) {
+    if (content.charCodeAt(i) === 10) {
+      line += 1;
+    }
+  }
+  return line;
+}
 
 
 function setEditorErrorMarker(
