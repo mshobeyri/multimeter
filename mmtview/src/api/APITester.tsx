@@ -24,6 +24,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
   const {
     requestData,
     responseData,
+    responseRevision,
     selectedExampleIdx,
     setSelectedExampleIdx,
     currentInputs,
@@ -224,6 +225,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
               format={requestData?.format || "json"}
               mode="live"
               onInspectPosition={handleAddOutputVariable}
+              refreshKey={responseRevision}
             />
           </div>
         </>

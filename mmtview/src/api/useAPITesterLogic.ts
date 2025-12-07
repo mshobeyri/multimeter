@@ -22,6 +22,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
   const network = useNetwork();
   const [requestData, setRequestData] = useState<Request>();
   const [responseData, setResponseData] = useState<Response>();
+  const [responseRevision, setResponseRevision] = useState<number>(0);
   const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(-1);
   const [currentInputs, setCurrentInputs] = useState<JSONRecord>({});
   const [autoFormatBody, setAutoFormatBodyState] = useState<boolean>(false);
@@ -178,6 +179,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
   const handleSend = useCallback(async () => {
     const res = await network.send(requestData);
     setResponseData(res);
+    setResponseRevision(prev => prev + 1);
   }, [network, requestData]);
 
   const handleCancel = useCallback(async () => {
@@ -268,6 +270,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
   return {
     requestData,
     responseData,
+    responseRevision,
     selectedExampleIdx,
     setSelectedExampleIdx,
     currentInputs,
