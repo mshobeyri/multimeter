@@ -11,9 +11,10 @@ export type BodyViewProps = {
     onChange?: (value: string) => void;
     mode?: mode;
     onInspectPosition?: (info: { line: number; column: number; text: string }) => void;
+    refreshKey?: number;
 };
 
-const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "appliable", onInspectPosition }) => {
+const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "appliable", onInspectPosition, refreshKey }) => {
     const [localValue, setLocalValue] = useState(value);
     const [isValid, setIsValid] = useState(true);
     const [isFocused, setIsFocused] = useState(false);
@@ -24,7 +25,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
     // Keep localValue in sync with parent value (when parent changes)
     useEffect(() => {
         setLocalValue(value);
-    }, [value]);
+    }, [value, refreshKey]);
 
     useEffect(() => {
         if (mode === "live" && onChange) {
