@@ -1,12 +1,10 @@
-import React, { useCallback, useContext, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
 import { yamlToAPI } from "mmt-core/apiParsePack";
 import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./BeforeMount";
 import { safeList } from "mmt-core/safer";
-import { openRelativeFile, showVSCodeMessage, showHistoryPanel } from "../vsAPI";
-import { FileContext } from "../fileContext";
-import { runApiDocument } from "../api/useAPITesterLogic";
+import { openRelativeFile, showVSCodeMessage } from "../vsAPI";
 
 interface YamlEditorPanelProps {
   content: string;
@@ -24,7 +22,6 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   setContent,
   onFocusChange // <-- receive it as a prop
 }) => {
-  const { filePath } = useContext(FileContext);
   const monacoRef = useRef<any>(null);
   const editorRef = useRef<any>(null);
   const decorationsRef = useRef<string[]>([]);
@@ -208,25 +205,15 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     });
   }, [runButtonEnabled]);
 
-  const handleRunClick = useCallback(async () => {
+  const handleRunClick = useCallback(() => {
     try {
-      if (docType === "api") {
-        showHistoryPanel();
-        const delay = (ms: number) =>
-          new Promise<void>(resolve => setTimeout(resolve, ms));
-        await delay(200);
-
-        const apiData = yamlToAPI(content);
-        await runApiDocument({ api: apiData, filePath });
-      } else {
-        window.vscode?.postMessage({ command: "runCurrentDocument" });
-      }
+      window.vscode?.postMessage({ command: "runCurrentDocument" });
     } catch (err: any) {
       showVSCodeMessage("error", err?.message || "Failed to run document.");
     }
-  }, [docType, content, filePath]);
+  }, []);
 
-  const handleRunExample = useCallback(async (exampleIndex: number) => {
+  const handleRunExample = useCallback((exampleIndex: number) => {
     try {
       const apiData = yamlToAPI(content);
       const examplesList = safeList(apiData?.examples);
@@ -235,19 +222,16 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         showVSCodeMessage("warn", "Selected example was not found in this document.");
         return;
       }
-
-      showHistoryPanel();
-      await new Promise<void>(resolve => setTimeout(resolve, 200));
-
-      const exampleInputs = (example && typeof example === "object" && example.inputs && typeof example.inputs === "object")
-        ? example.inputs
-        : (example as any)?.inputs || {};
-
-      await runApiDocument({ api: apiData, inputs: exampleInputs, filePath });
+      const exampleName = typeof example?.name === "string" && example.name.trim() ? example.name : undefined;
+      window.vscode?.postMessage({
+        command: "runCurrentDocument",
+        exampleName,
+        exampleIndex,
+      });
     } catch (err: any) {
       showVSCodeMessage("error", err?.message || "Failed to run example.");
     }
-  }, [content, filePath]);
+  }, [content]);
 
   useEffect(() => {
     if (!monacoRef.current || !editorRef.current) return;
