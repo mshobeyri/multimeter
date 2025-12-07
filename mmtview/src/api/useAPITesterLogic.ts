@@ -9,6 +9,9 @@ import { loadEnvVariables } from "../workspaceStorage";
 import { extractOutputs, extractPathAtPosition } from "mmt-core/outputExtractor";
 import { setEnvironmentVariable, getEnvironmentVariable } from "../environment/environmentUtils";
 import { useNetwork } from "../components/network/Network";
+import { NetworkNodeApi, Error as NetworkError } from "../components/network/NetworkNodeApi";
+import { pushHistory, showVSCodeMessage, showHistoryPanel } from "../vsAPI";
+import { beautifyWithContentType } from "mmt-core/markupConvertor";
 
 type OutputPosition = { text?: string; line: number; column: number };
 
@@ -267,6 +270,24 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     return () => window.removeEventListener("message", listener);
   }, [handleSend, filePath]);
 
+  useEffect(() => {
+    const listener = (event: MessageEvent) => {
+      const message = event.data;
+      if (!message || message.command !== "multimeter.api.run.result") {
+        return;
+      }
+      if (message.uri && filePath && message.uri !== filePath) {
+        return;
+      }
+      if (typeof message.response !== "undefined") {
+        setResponseData(message.response);
+        setResponseRevision(prev => prev + 1);
+      }
+    };
+    window.addEventListener("message", listener);
+    return () => window.removeEventListener("message", listener);
+  }, [filePath]);
+
   return {
     requestData,
     responseData,
@@ -290,6 +311,200 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     network,
     examples
   };
+}
+
+type RunApiDocumentOptions = {
+  api: APIData;
+  inputs?: JSONRecord;
+  filePath?: string;
+};
+
+export async function runApiDocument({ api, inputs, filePath }: RunApiDocumentOptions): Promise<Response | undefined> {
+  const request = await buildRequestFromApi(api, inputs);
+  const protocol = request.protocol || "http";
+
+  if (protocol !== "http") {
+    showVSCodeMessage("warn", "Run from editor currently supports HTTP APIs only.");
+    return undefined;
+  }
+
+  if (!request.url) {
+    showVSCodeMessage("error", "API request URL is missing.");
+    return undefined;
+  }
+
+  return new Promise<Response | undefined>((resolve) => {
+    const method = (request.method || "get").toLowerCase();
+    const url = request.url ?? "";
+
+    showHistoryPanel();
+
+    pushHistory({
+      type: "send",
+      method,
+      protocol,
+      title: `${method} ${url}`,
+      cookies: request.cookies,
+      headers: request.headers,
+      query: request.query,
+      content: method === "get" ? "" : toContentString(request.body),
+    });
+
+    NetworkNodeApi.sendHttp({
+      url,
+      method,
+      headers: request.headers || {},
+      body: request.body,
+      cookies: request.cookies || {},
+      query: request.query || {},
+      onResponse: async (res: any) => {
+        if (res?.autoformat) {
+          res.body = beautifyWithContentType(res.headers?.["Content-Type"], res.body);
+        }
+
+        const response: Response = {
+          body: res?.body,
+          headers: res?.headers || {},
+          cookies: parseSetCookie(res?.headers?.["set-cookie"]),
+          errorMessage: "",
+          status: res?.status || -1,
+          errorCode: "",
+          duration: res?.duration || -1,
+        };
+
+        pushHistory({
+          type: "recv",
+          method,
+          protocol,
+          title: `${method} ${url}`,
+          cookies: response.cookies,
+          headers: response.headers,
+          content: toContentString(response.body),
+          duration: response.duration,
+          status: response.status,
+        });
+
+        await handleApiOutputs(api, response);
+
+        window.postMessage({
+          command: "multimeter.api.run.result",
+          uri: filePath,
+          response,
+        }, "*");
+
+        resolve(response);
+      },
+      onError: (error: NetworkError) => {
+        pushHistory({
+          type: "error",
+          method,
+          protocol,
+          title: `${method} ${url} Error`,
+          cookies: {},
+          headers: {},
+          content: toContentString(error),
+          duration: error?.duration || -1,
+          status: error?.status || 500,
+        });
+
+        const failure: Response = {
+          body: error.body || null,
+          headers: error.headers || {},
+          cookies: {},
+          errorMessage: error.message ?? "",
+          status: error.status || 500,
+          errorCode: error.code || "UNKNOWN_ERROR",
+          duration: error.duration || -1,
+        };
+
+        window.postMessage({
+          command: "multimeter.api.run.result",
+          uri: filePath,
+          response: failure,
+        }, "*");
+
+        resolve(failure);
+      },
+    });
+  });
+}
+
+async function handleApiOutputs(api: APIData, response: Response) {
+  if (!api.outputs || Object.keys(api.outputs).length === 0) {
+    return;
+  }
+
+  const extractRules = api.outputs || {};
+  const outputNames = Object.keys(extractRules);
+
+  const extractedValues = extractOutputs({
+    type: "auto",
+    body: response.body,
+    headers: response.headers || {},
+    cookies: response.cookies || {},
+  }, extractRules);
+
+  const finalOutputs: JSONRecord = {};
+  outputNames.forEach(outputName => {
+    if (outputName in extractedValues) {
+      finalOutputs[outputName] = extractedValues[outputName];
+    } else {
+      finalOutputs[outputName] = "";
+    }
+  });
+
+  await handleSetEnvVariables(api, finalOutputs);
+}
+
+async function buildRequestFromApi(api: APIData, inputs?: JSONRecord): Promise<Request> {
+  const resolvedInputs = inputs ?? (api.inputs || {});
+  const envParameters = await getEnvironmentParameters();
+
+  const request = replaceAllRefs(
+    api,
+    api?.inputs ?? {},
+    resolvedInputs,
+    envParameters
+  ) as Request;
+
+  if (request.body && typeof request.body !== "string") {
+    request.body = formatBody(request.format || "json", request.body ?? "");
+  }
+
+  return request;
+}
+
+async function getEnvironmentParameters(): Promise<JSONRecord> {
+  const envVars = await new Promise<any[]>(resolve => {
+    const cleanup = loadEnvVariables(vars => {
+      cleanup();
+      resolve(vars);
+    });
+  });
+
+  return safeList(envVars).reduce((acc, envVar) => {
+    acc[envVar.name] = envVar.value;
+    return acc;
+  }, {} as JSONRecord);
+}
+
+function parseSetCookie(setCookie: string[] | string | undefined): Record<string, string> {
+  if (!setCookie) return {};
+  const arr = Array.isArray(setCookie) ? setCookie : [setCookie];
+  const cookies: Record<string, string> = {};
+  arr.forEach(cookieStr => {
+    const [cookiePair] = cookieStr.split(";");
+    const [key, value] = cookiePair.split("=");
+    if (key && value) cookies[key.trim()] = value.trim();
+  });
+  return cookies;
+}
+
+function toContentString(data: any): string {
+  if (data === null || data === undefined) return "";
+  if (typeof data === "string") return data;
+  if (typeof data === "object") return JSON.stringify(data, null, 2);
+  return String(data);
 }
 
 function buildBodyExprFromPath(path: Array<string | number>): string {

@@ -107,3 +107,7 @@ duration?: number
 export function openRelativeFile(filename: string) {
   window.vscode?.postMessage({ command: 'openRelativeFile', filename });
 }
+
+export function showHistoryPanel() {
+  window.vscode?.postMessage({ command: 'multimeter.history.show' });
+}
