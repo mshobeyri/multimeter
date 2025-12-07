@@ -296,14 +296,9 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
             logToOutput(level, message);
           };
           try {
-            const runOutcome = await runner.runFileWithDefaults({
+            const runOutcome = await runner.runFile({
+              rawFile: document.getText(),
               filePath: document.uri.fsPath,
-              readText: async (p: string) => {
-                if (p === document.uri.fsPath) {
-                  return document.getText();
-                }
-                return readFileContent(p);
-              },
               inputs,
               envvar: {type: 'vscode', inputs: {}},
               fileLoader: async (relPath: string) => {

@@ -126,16 +126,6 @@ export interface RunFileResult {
   exampleIndex?: number;
 }
 
-export interface RunFileWithDefaultsOptions {
-  filePath: string;
-  readText: (path: string) => Promise<string>;
-  inputs: RunFileInputsOptions;
-  envvar: RunFileEnvOptions;
-  fileLoader: FileLoader;
-  runCode: (code: string, title: string, logger: (level: LogLevel, msg: string) => void) => Promise<void>;
-  logger?: (level: LogLevel, msg: string) => void;
-}
-
 export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
   const {
     rawFile,
@@ -235,19 +225,6 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
   }
 
   throw new Error('Run is currently supported for test or api documents only.');
-}
-
-export async function runFileWithDefaults(options: RunFileWithDefaultsOptions): Promise<RunFileResult> {
-  const rawFile = await options.readText(options.filePath);
-  return runFile({
-    rawFile,
-    filePath: options.filePath,
-    inputs: options.inputs,
-    envvar: options.envvar,
-    fileLoader: options.fileLoader,
-    runCode: options.runCode,
-    logger: options.logger,
-  });
 }
 
 function basename(filePath: string): string {
