@@ -74,17 +74,14 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     try {
       const config = vscode.workspace.getConfiguration('multimeter');
       const bodyAutoFormat = !!config.get<boolean>('body.auto.format');
-      const showRunButton = config.get<boolean>('mmtEditor.showRunButton');
       return {
         command: 'config',
-        bodyAutoFormat,
-        showRunButton: showRunButton !== false,
+        bodyAutoFormat
       };
     } catch {
       return {
         command: 'config',
-        bodyAutoFormat: false,
-        showRunButton: true,
+        bodyAutoFormat: false
       };
     }
   }
@@ -290,6 +287,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         }
 
         case 'runCurrentDocument': {
+          console.log('Running current document...');
           const fileName = path.basename(document.uri.fsPath);
           const inputs = message.inputs ?? {type: 'defaults'};
           const forwardLog = (level: LogLevel, message: string) => {
