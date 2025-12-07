@@ -385,7 +385,6 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `      cookies: __req.cookies || {},\n` +
       `      body: __mmt_formatBodyValue(__req.body)\n` +
       `    };\n` +
-      `    console.log('');\n` +
       `    console.log(__mmt_formatSection('REQUEST', __reqLog));\n` +
       `    try {\n` +
       `      const __res = await __mmt_originalSend(req);\n` +
@@ -401,7 +400,6 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `        headers: __headers,\n` +
       `        body: __mmt_formatBodyValue(__body)\n` +
       `      };\n` +
-      `      console.log('');\n` +
       `      console.log(__mmt_formatSection('RESPONSE', __resLog));\n` +
       `      return __res;\n` +
       `    } catch (err) {\n` +
@@ -416,7 +414,6 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `          __errorLog.headers = err.headers;\n` +
       `        }\n` +
       `      }\n` +
-      `      console.log('');\n` +
       `      console.log(__mmt_formatSection('RESPONSE', __errorLog));\n` +
       `      throw err;\n` +
       `    }\n` +
@@ -427,11 +424,9 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `    }\n` +
       `    const __mmt_hasEnv = Object.keys(__mmt_envVars || {}).length > 0;\n` +
       `    if (__mmt_hasEnv || __mmt_exampleLabel) {\n` +
-      `      console.log('');\n` +
       `    }\n` +
       `    if (__mmt_hasEnv) {\n` +
       `      console.log(__mmt_formatSection('ENVIRONMENT', __mmt_envVars));\n` +
-      `      console.log('');\n` +
       `    }\n` +
       `    console.log(__mmt_formatSection('INPUTS', __mmt_inputs));\n` +
       `    const result = await ${opts.name}({ ...__mmt_inputs });\n` +
@@ -451,7 +446,6 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `      }\n` +
       `      return copy;\n` +
       `    })();\n` +
-      `    console.log('');\n` +
       `    console.log(__mmt_formatSection('OUTPUTS', __outputLog));\n` +
       `    return result;\n` +
       `  } finally {\n` +
