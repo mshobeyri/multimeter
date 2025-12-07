@@ -28,6 +28,7 @@ const App: React.FC = () => {
 
   const isInitLoad = useRef(true);
   const [yamlEditorFocused, setYamlEditorFocused] = useState(false);
+  const lastWindowWidthRef = useRef(window.innerWidth);
 
   function uiSetContent(setContent: (c: string) => void) {
     return (value: string) => {
@@ -96,7 +97,21 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      setPaneSize(window.innerWidth / 2);
+      const newWidth = window.innerWidth;
+      const min = 300;
+      const max = Math.max(newWidth - 300, min);
+      setPaneSize(prevSize => {
+        const prevWidth = lastWindowWidthRef.current || newWidth;
+        if (prevWidth === 0) {
+          const fallback = Math.round(newWidth / 2);
+          return Math.min(Math.max(fallback, min), max);
+        }
+        const ratio = prevSize / prevWidth;
+        const desired = Math.round(ratio * newWidth);
+        const clamped = Math.min(Math.max(desired, min), max);
+        return clamped;
+      });
+      lastWindowWidthRef.current = newWidth;
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
