@@ -4,7 +4,7 @@ import { yamlToAPI } from "mmt-core/apiParsePack";
 import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./BeforeMount";
 import { safeList } from "mmt-core/safer";
-import { openRelativeFile, showVSCodeMessage } from "../vsAPI";
+import { openRelativeFile, showVSCodeMessage, showHistoryPanel } from "../vsAPI";
 import { FileContext } from "../fileContext";
 import { runApiDocument } from "../api/useAPITesterLogic";
 
@@ -209,6 +209,11 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const handleRunClick = useCallback(async () => {
     try {
       if (docType === "api") {
+        showHistoryPanel();
+        const delay = (ms: number) =>
+          new Promise<void>(resolve => setTimeout(resolve, ms));
+        await delay(200);
+
         const apiData = yamlToAPI(content);
         await runApiDocument({ api: apiData, filePath });
       } else {

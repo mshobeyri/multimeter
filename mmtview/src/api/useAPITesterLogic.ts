@@ -10,7 +10,7 @@ import { extractOutputs, extractPathAtPosition } from "mmt-core/outputExtractor"
 import { setEnvironmentVariable, getEnvironmentVariable } from "../environment/environmentUtils";
 import { useNetwork } from "../components/network/Network";
 import { NetworkNodeApi, Error as NetworkError } from "../components/network/NetworkNodeApi";
-import { pushHistory, showVSCodeMessage, showHistoryPanel } from "../vsAPI";
+import { pushHistory, showVSCodeMessage } from "../vsAPI";
 import { beautifyWithContentType } from "mmt-core/markupConvertor";
 
 type OutputPosition = { text?: string; line: number; column: number };
@@ -336,8 +336,6 @@ export async function runApiDocument({ api, inputs, filePath }: RunApiDocumentOp
   return new Promise<Response | undefined>((resolve) => {
     const method = (request.method || "get").toLowerCase();
     const url = request.url ?? "";
-
-    showHistoryPanel();
 
     pushHistory({
       type: "send",
