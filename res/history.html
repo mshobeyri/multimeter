@@ -156,10 +156,10 @@
         const history = __HISTORY_DATA__;
         let openIdx = null;
 
-        function getTypeIcon(type) {
+        function getTypeIcon(type, status) {
             return type === 'send'
                 ? '<span class="codicon codicon-arrow-up" style="color:#3399ff"></span>'
-                : type === 'recv'
+                : type === 'recv' && status < 400
                     ? '<span class="codicon codicon-arrow-down" style="color:#66bb6a"></span>'
                     : '<span class="codicon codicon-chrome-close" style="color:#ff5555"></span>';
         }
@@ -187,16 +187,16 @@
                     return '<li>' +
                         '<div class="history-row" onclick="toggleDrawer(' + idx + ')">' +
                         '<span class="drawer-arrow' + (openIdx === idx ? ' open' : '') + '">&#9654;</span>' +
-                        getTypeIcon(item.type) +
+                        getTypeIcon(item.type, item.status) +
                         getProtocolIcon(item.protocol) +
-                        '<span class="history-title"' + (isError ? ' style="color:#ff5555;"' : '') + '>' + item.title + '</span>' +
+                        '<span class="history-title"' + (isError || item.status >= 400 ? ' style="color:#ff5555;"' : '') + '>' + item.title + '</span>' +
                         '<span class="history-time">' +
                         (item.duration >= 0
-                            ? '<span style="color:' + (isError ? '#ff5555' : '#66bb6a') + ';">(' + item.duration + 'ms)</span> '
+                            ? '<span style="color:' + (isError || item.status >= 400 ? '#ff5555' : '#66bb6a') + ';">(' + item.duration + 'ms)</span> '
                             : '') +
                         (item.status !== undefined
                             ? (
-                                isError
+                                isError || item.status >= 400
                                     ? '<span style="color:#ff5555;font-weight: bold;">[' + item.status + ']</span> '
                                     : '<span style="color:#66bb6a;font-weight: bold;">[' + item.status + ']</span> '
                             )
@@ -211,7 +211,7 @@
                             '<div class="drawer-section"><span class="drawer-label">Protocol:</span> <span class="drawer-value">' + item.protocol + '</span></div>' +
                             (item.status !== undefined
                                 ? (
-                                    isError
+                                    isError || item.status >= 400
                                         ? '<div class="drawer-section"><span class="drawer-label">Status:</span> <span class="drawer-value" style="color:#ff5555;">' + item.status + '</span></div>'
                                         : '<div class="drawer-section"><span class="drawer-label">Status:</span> <span class="drawer-value" style="color:#66bb6a;">' + item.status + '</span></div>'
                                 )
