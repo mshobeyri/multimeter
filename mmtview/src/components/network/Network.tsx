@@ -97,9 +97,9 @@ export function useNetwork(): NetworkAPI {
               body: res.body,
               headers: res.headers || {},
               cookies: parseSetCookie(res.headers?.["set-cookie"]),
-              errorMessage: "",
+              errorMessage: res.statusText || "",
               status: res.status || -1,
-              errorCode: "",
+              errorCode: res.errorCode || "",
               duration: res.duration || -1
             });
           },
