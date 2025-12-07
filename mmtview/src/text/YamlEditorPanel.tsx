@@ -32,9 +32,8 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const [editorReady, setEditorReady] = useState(false);
   const importsMapRef = useRef<Record<string, string>>({});
   const ctrlDownRef = useRef<boolean>(false);
-  const [runButtonEnabled, setRunButtonEnabled] = useState(true);
   const [docType, setDocType] = useState<string | null>(null);
-  const shouldShowRunControls = runButtonEnabled && (docType === "test" || docType === "api");
+  const shouldShowRunControls = (docType === "test" || docType === "api");
 
   // Validate YAML and set error marker if invalid
   useEffect(() => {
@@ -184,28 +183,10 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     };
   }, [content, editorReady]);
 
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      const message = event.data;
-      if (message?.command === "config" && typeof message.showRunButton === "boolean") {
-        setRunButtonEnabled(message.showRunButton);
-      }
-    };
-    window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
-  }, []);
-
-  const toggleRunButton = useCallback(() => {
-    const next = !runButtonEnabled;
-    setRunButtonEnabled(next);
-    window.vscode?.postMessage({
-      command: "updateConfig",
-      fullKey: "multimeter.mmtEditor.showRunButton",
-      value: next,
-    });
-  }, [runButtonEnabled]);
-
-  const handleRunClick = useCallback(() => {
+  const handleRunClick = () => {
+    if(docType !== "test" && docType !== "api") {
+      return;
+    }
     try {
       window.vscode?.postMessage({
         command: "runCurrentDocument",
@@ -214,9 +195,9 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     } catch (err: any) {
       showVSCodeMessage("error", err?.message || "Failed to run document.");
     }
-  }, []);
+  };
 
-  const handleRunExample = useCallback((exampleIndex: number) => {
+  const handleRunExample = (exampleIndex: number) => {
     try {
       const apiData = yamlToAPI(content);
       const examplesList = safeList(apiData?.examples);
@@ -240,7 +221,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     } catch (err: any) {
       showVSCodeMessage("error", err?.message || "Failed to run example.");
     }
-  }, [content]);
+  };
 
   useEffect(() => {
     if (!monacoRef.current || !editorRef.current) return;
@@ -418,7 +399,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         monacoRef={monacoRef}
         setEditorReady={setEditorReady}
         onFocusChange={onFocusChange}
-        onToggleRunButton={(docType === "test" || docType === "api") ? toggleRunButton : undefined}
+        onToggleRunButton={handleRunClick}
         showGlyphMargin={shouldShowRunControls}
       />
     </div>
