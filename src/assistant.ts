@@ -193,16 +193,31 @@ async function handleChatRequest(
         const data = await vscode.workspace.fs.readFile(fileUri);
         const rawText = Buffer.from(data).toString('utf8');
         const printJs = takeFlag('print-js');
+        const vscodeEnvState = context.workspaceState.get<any>(
+            'multimeter.environment.storage', []);
+        const vscodeEnv: Record<string, any> = {};
+        if (Array.isArray(vscodeEnvState)) {
+          for (const item of vscodeEnvState) {
+            if (!item || typeof item !== 'object') {
+              continue;
+            }
+            const name = (item as any).name;
+            if (typeof name === 'string' && name) {
+              vscodeEnv[name] = (item as any).value;
+            }
+          }
+        }
         const runOutcome = await runner.runFile({
           rawFile: rawText,
           filePath: fileUri.fsPath,
-          inputs: {type: 'manual', inputs: inputPairs},
-          envvar: {type: 'vscode', inputs: envVars},
+          inputs: {inputs: inputPairs},
+          envvar: {inputs: {...vscodeEnv, ...envVars}},
           fileLoader: nodeLoader,
           runCode: runJSCode,
           logger: (lvl, msg) => {}
         });
-        const {js, result, displayName, docType, exampleName, exampleIndex} = runOutcome;
+        const {js, result, displayName, docType, exampleName, exampleIndex} =
+            runOutcome;
         if (printJs) {
           response.markdown('```js');
           response.markdown(js.trim());
@@ -210,7 +225,9 @@ async function handleChatRequest(
         }
         // Pretty output formatting (single message with line breaks)
         const nameOnly = displayName || path.basename(fileUri.fsPath);
-        const kindLabel = docType === 'api' ? 'API' : docType === 'test' ? 'test' : 'Document';
+        const kindLabel = docType === 'api' ? 'API' :
+            docType === 'test'              ? 'test' :
+                                              'Document';
         const exampleLabelParts: string[] = [];
         if (typeof exampleIndex === 'number') {
           exampleLabelParts.push(`#${exampleIndex + 1}`);
@@ -219,7 +236,8 @@ async function handleChatRequest(
           exampleLabelParts.push(exampleName);
         }
         const header = exampleLabelParts.length ?
-            `${kindLabel} ${nameOnly} (example ${exampleLabelParts.join(' ')})` :
+            `${kindLabel} ${nameOnly} (example ${
+                exampleLabelParts.join(' ')})` :
             `${kindLabel} ${nameOnly}`;
         const logsBlock = (result.logs && result.logs.length) ?
             `Logs:\n\n\`\`\`\n${result.logs.join('\n')}\n\`\`\`` :
@@ -229,8 +247,7 @@ async function handleChatRequest(
             '';
         const out =
             [
-              `Running ${header}...`, logsBlock,
-              `Success: ${result.success}`,
+              `Running ${header}...`, logsBlock, `Success: ${result.success}`,
               `Duration: ${result.durationMs.toFixed(2)} ms`, errorsBlock
             ].filter(Boolean)
                 .join('\n');

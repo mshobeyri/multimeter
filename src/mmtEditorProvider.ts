@@ -74,15 +74,9 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     try {
       const config = vscode.workspace.getConfiguration('multimeter');
       const bodyAutoFormat = !!config.get<boolean>('body.auto.format');
-      return {
-        command: 'config',
-        bodyAutoFormat
-      };
+      return {command: 'config', bodyAutoFormat};
     } catch {
-      return {
-        command: 'config',
-        bodyAutoFormat: false
-      };
+      return {command: 'config', bodyAutoFormat: false};
     }
   }
 
@@ -114,8 +108,8 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     const message = {command: 'multimeter.mmt.show.panel', panelId};
 
     // Prefer sending to the active panel only
-    const activePanel = Array.from(this.activeWebviewPanels)
-                              .find(panel => panel.active);
+    const activePanel =
+        Array.from(this.activeWebviewPanels).find(panel => panel.active);
     if (activePanel) {
       this.postMessageToPanel(activePanel, message);
     } else {
@@ -289,19 +283,34 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         case 'runCurrentDocument': {
           console.log('Running current document...');
           const fileName = path.basename(document.uri.fsPath);
-          const inputs = message.inputs ?? {type: 'defaults'};
+          const inputs = message.inputs ?? {};
           const forwardLog = (level: LogLevel, message: string) => {
             logToOutput(level, message);
           };
           try {
+            const envStorage = this.context.workspaceState.get<any>(
+                'multimeter.environment.storage', []);
+            const vscodeEnv: Record<string, any> = {};
+            if (Array.isArray(envStorage)) {
+              for (const item of envStorage) {
+                if (!item || typeof item !== 'object') {
+                  continue;
+                }
+                const name = (item as any).name;
+                if (typeof name === 'string' && name) {
+                  vscodeEnv[name] = (item as any).value;
+                }
+              }
+            }
             const runOutcome = await runner.runFile({
               rawFile: document.getText(),
               filePath: document.uri.fsPath,
               inputs,
-              envvar: {type: 'vscode', inputs: {}},
+              envvar: {inputs: vscodeEnv},
               fileLoader: async (relPath: string) => {
                 try {
-                  return await readRelativeFileContent(document.uri.fsPath, relPath);
+                  return await readRelativeFileContent(
+                      document.uri.fsPath, relPath);
                 } catch {
                   return '';
                 }
@@ -311,14 +320,16 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
             });
 
             const {docType, displayName, result} = runOutcome;
-            const label = docType === 'api' ? 'API' : docType === 'test' ? 'Test' : 'Document';
+            const label = docType === 'api' ? 'API' :
+                docType === 'test'          ? 'Test' :
+                                              'Document';
             if (result.success) {
-              vscode.window.showInformationMessage(
-                  `${label} ${displayName} finished. Check the Multimeter output channel for logs.`);
+              vscode.window.showInformationMessage(`${label} ${
+                  displayName} finished. Check the Multimeter output channel for logs.`);
             } else {
               const firstError = result.errors[0] || 'Unknown error';
-              vscode.window.showErrorMessage(
-                  `${label} ${displayName} failed: ${firstError}. Check the Multimeter output channel for logs.`);
+              vscode.window.showErrorMessage(`${label} ${displayName} failed: ${
+                  firstError}. Check the Multimeter output channel for logs.`);
             }
           } catch (err: any) {
             vscode.window.showErrorMessage(

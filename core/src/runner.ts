@@ -93,14 +93,11 @@ export function buildDocFromApis(apis: any[], opts: BuildDocOptions): string {
 }
 
 export interface RunFileInputsOptions {
-  type: 'exampleId' | 'exampleIndex' | 'defaults' | 'manual';
-  exampleId?: string;
   exampleIndex?: number;
   inputs?: Record<string, any>;
 }
 
 export interface RunFileEnvOptions {
-  type: 'vscode';
   inputs?: Record<string, any>;
 }
 
@@ -144,17 +141,16 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
     sinkLogger(level, message);
   };
   const baseName = basename(filePath);
-    const requestedExampleIndex =
-      options.inputs.type === 'exampleIndex' && typeof options.inputs.exampleIndex === 'number'
+  const requestedExampleIndex =
+      typeof options.inputs?.exampleIndex === 'number'
         ? options.inputs.exampleIndex
         : undefined;
 
   if (docType === 'api') {
     const api = yamlToAPI(rawText);
     const inputOverrides = options.inputs.inputs ?? {};
-    const requestedExampleName = options.inputs.type === 'exampleId' ? options.inputs.exampleId : undefined;
     const {exampleInputs, resolvedExampleName, resolvedExampleIndex} =
-      resolveApiExample(api, requestedExampleName, requestedExampleIndex, note);
+      resolveApiExample(api, undefined, requestedExampleIndex, note);
     const exampleLabelParts: string[] = [];
     if (typeof resolvedExampleIndex === 'number') {
       exampleLabelParts.push(`#${resolvedExampleIndex + 1}`);
