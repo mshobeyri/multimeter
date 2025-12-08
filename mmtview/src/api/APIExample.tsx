@@ -51,7 +51,7 @@ const APIExample: React.FC<APIExampleProps> = ({ data, apiInputs, apiOutputs, on
 
       {isNonEmptyObject(apiInputs) ? (
         <VEditor
-          label="inputs"
+          label="inputs:"
           value={data.inputs || {}}
           onChange={handleFieldsChange}
           keyOptions={Object.keys(apiInputs)}
@@ -69,7 +69,7 @@ const APIExample: React.FC<APIExampleProps> = ({ data, apiInputs, apiOutputs, on
 
       {isNonEmptyObject(apiOutputs) ? (
         <VEditor
-          label="expected"
+          label="outputs:"
           value={data.outputs || {}}
           onChange={handleOutputsChange}
           keyOptions={Object.keys(apiOutputs)}
