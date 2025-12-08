@@ -5,10 +5,11 @@ import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./BeforeMount";
 import { safeList } from "mmt-core/safer";
 import { openRelativeFile, showVSCodeMessage } from "../vsAPI";
+import { validateYamlContent } from "../text/Validate";
 
 interface YamlEditorPanelProps {
   content: string;
-  setContent: React.Dispatch<React.SetStateAction<string>>;
+  setContent: (value: string) => void;
   language?: string;
   showNumbers?: boolean;
   fontSize?: number;
@@ -184,7 +185,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   }, [content, editorReady]);
 
   const handleRunClick = () => {
-    if(docType !== "test" && docType !== "api") {
+    if (docType !== "test" && docType !== "api") {
       return;
     }
     try {
@@ -393,7 +394,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         setEditorReady={setEditorReady}
         onFocusChange={onFocusChange}
         onToggleRunButton={handleRunClick}
-        showGlyphMargin={shouldShowRunControls}
+        showGlyphMargin={true}
       />
     </div>
   );

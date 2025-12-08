@@ -4,7 +4,7 @@ import { FIXED_BG_THEME, defineTheme } from "./Theme";
 
 interface TextEditorProps {
   content: string;
-  setContent: React.Dispatch<React.SetStateAction<string>>;
+  setContent: (value: string) => void;
   language?: string;
   showNumbers?: boolean;
   fontSize?: number;

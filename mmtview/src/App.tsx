@@ -10,6 +10,7 @@ import DocPanel from "./doc/DocPanel";
 import parseYaml from "mmt-core/markupConvertor";
 import YamlEditorPanel from "./text/YamlEditorPanel";
 import { FileContext } from "./fileContext";
+import { validateYamlContent } from "./text/Validate";
 
 declare global {
   interface Window {
@@ -23,6 +24,7 @@ const App: React.FC = () => {
   // Pane size defaults to half the window width and remains in-memory only
   const [paneSize, setPaneSize] = useState(() => window.innerWidth / 2);
   const [content, setContent] = useState("");
+  const [validContent, setValidContent] = useState("");
   const [docType, setDocType] = useState<string | null>(null);
   const [filePath, setFilePath] = useState<string | undefined>(undefined);
 
@@ -33,6 +35,24 @@ const App: React.FC = () => {
   function uiSetContent(content: string) {
     if (!yamlEditorFocused) {
       setContent(content);
+      setValidContent(content);
+    }
+  }
+
+  function yamlSetContent(content: string) {
+    setContent(content);
+    if(content === "") {
+      setValidContent(content);
+      return;
+    }
+    try {
+      const parsed = parseYaml(content);
+      // Only update validContent when YAML parses and has no validation errors
+      if (parsed) {
+        setValidContent(content);
+      }
+    } catch {
+      // Keep previous validContent on parse/validation failure
     }
   }
 
@@ -42,6 +62,19 @@ const App: React.FC = () => {
       if (message.command === "loadDocument") {
         isInitLoad.current = true;
         setContent(message.content);
+
+        // Only seed validContent if the initial document is valid;
+        // otherwise leave it as-is (so UI doesn't see "{}" or "")
+        try {
+          const parsed = parseYaml(message.content);
+          if (parsed) {
+            setValidContent(message.content);
+          }
+          // else: do nothing, keep previous validContent
+        } catch {
+          // parsing failed: keep previous validContent
+        }
+
         if (message.uri) setFilePath(message.uri);
         if (message.mode) {
           if (message.mode === "compare") {
@@ -67,10 +100,9 @@ const App: React.FC = () => {
     return () => window.removeEventListener("message", handler);
   }, [setContent]);
 
-  // Parse YAML and extract "type" property
   useEffect(() => {
     try {
-      const parsed = parseYaml(content);
+      const parsed = parseYaml(validContent);
       if (parsed && typeof parsed === "object" && "type" in parsed) {
         setDocType((parsed as any).type);
       } else {
@@ -79,7 +111,7 @@ const App: React.FC = () => {
     } catch {
       setDocType(null);
     }
-  }, [content]);
+  }, [validContent]);
 
   useEffect(() => {
     if (isInitLoad.current) {
@@ -137,28 +169,28 @@ const App: React.FC = () => {
         <div style={{ height: "100vh", minHeight: 0 }}>
           <YamlEditorPanel
             content={content}
-            setContent={setContent}
+            setContent={yamlSetContent}
             onFocusChange={setYamlEditorFocused}
           />
         </div>
         <div style={{ height: "100vh", minHeight: 0 }}>
           {docType === "env" && (
-            <EnvironmentPanel content={content} setContent={uiSetContent} />
+            <EnvironmentPanel content={validContent} setContent={uiSetContent} />
           )}
           {docType === "var" && (
-            <VariablesPanel content={content} setContent={uiSetContent} />
+            <VariablesPanel content={validContent} setContent={uiSetContent} />
           )}
           {docType === "api" && (
-            <APIPanel content={content} setContent={uiSetContent} />
+            <APIPanel content={validContent} setContent={uiSetContent} />
           )}
           {docType === "doc" && (
-            <DocPanel content={content} setContent={uiSetContent} />
+            <DocPanel content={validContent} setContent={uiSetContent} />
           )}
           {docType === "test" && (
-            <TestPanel content={content} setContent={uiSetContent} />
+            <TestPanel content={validContent} setContent={uiSetContent} />
           )}
           {docType === null && (
-            <NotypePanel content={content} setContent={uiSetContent} />
+            <NotypePanel content={validContent} setContent={uiSetContent} />
           )}
         </div>
       </SplitPane>
