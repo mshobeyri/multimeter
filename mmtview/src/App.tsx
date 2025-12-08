@@ -30,12 +30,10 @@ const App: React.FC = () => {
   const [yamlEditorFocused, setYamlEditorFocused] = useState(false);
   const lastWindowWidthRef = useRef(window.innerWidth);
 
-  function uiSetContent(setContent: (c: string) => void) {
-    return (value: string) => {
-      if (!yamlEditorFocused) {
-        setContent(value);
-      }
-    };
+  function uiSetContent(content: string) {
+    if (!yamlEditorFocused) {
+      setContent(content);
+    }
   }
 
   useEffect(() => {
@@ -117,8 +115,6 @@ const App: React.FC = () => {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  const uiSetContentHandler = uiSetContent(setContent);
-
   return (
     <FileContext.Provider value={{ filePath }}>
       <SplitPane
@@ -147,22 +143,22 @@ const App: React.FC = () => {
         </div>
         <div style={{ height: "100vh", minHeight: 0 }}>
           {docType === "env" && (
-            <EnvironmentPanel content={content} setContent={uiSetContentHandler} />
+            <EnvironmentPanel content={content} setContent={uiSetContent} />
           )}
           {docType === "var" && (
-            <VariablesPanel content={content} setContent={uiSetContentHandler} />
+            <VariablesPanel content={content} setContent={uiSetContent} />
           )}
           {docType === "api" && (
-            <APIPanel content={content} setContent={uiSetContentHandler} />
+            <APIPanel content={content} setContent={uiSetContent} />
           )}
           {docType === "doc" && (
-            <DocPanel content={content} setContent={uiSetContentHandler} />
+            <DocPanel content={content} setContent={uiSetContent} />
           )}
           {docType === "test" && (
-            <TestPanel content={content} setContent={uiSetContentHandler} />
+            <TestPanel content={content} setContent={uiSetContent} />
           )}
           {docType === null && (
-            <NotypePanel content={content} setContent={uiSetContentHandler} />
+            <NotypePanel content={content} setContent={uiSetContent} />
           )}
         </div>
       </SplitPane>
