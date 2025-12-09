@@ -151,8 +151,8 @@ const TextEditor: React.FC<TextEditorProps> = ({
     }
     if (onToggleRunButton) {
       editor.addAction({
-        id: "mmt.ToggleRunButtonVisibility",
-        label: "Toggle Run Button",
+        id: "mmt.RunAPI",
+        label: "Run API",
         contextMenuGroupId: "navigation",
         contextMenuOrder: 98,
         run: () => {

@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
-import { yamlToAPI } from "mmt-core/apiParsePack";
+import { apiToYaml, yamlToAPI } from "mmt-core/apiParsePack";
+import { yamlToTest, testToYaml } from "mmt-core/testParsePack";
+import { yamlToDoc, docToYaml } from "mmt-core/docParsePack";
 import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./BeforeMount";
 import { safeList } from "mmt-core/safer";
 import { openRelativeFile, showVSCodeMessage } from "../vsAPI";
-import { validateYamlContent } from "../text/Validate";
 
 interface YamlEditorPanelProps {
   content: string;
@@ -30,11 +31,36 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const runGlyphDecorationsRef = useRef<string[]>([]);
   const exampleRunDecorationsRef = useRef<string[]>([]);
   const exampleRunInfoRef = useRef<{ line: number; index: number; name?: string }[]>([]);
+  const runGlyphLineRef = useRef<number>(1);
+  const contentRef = useRef(content);
   const [editorReady, setEditorReady] = useState(false);
   const importsMapRef = useRef<Record<string, string>>({});
   const ctrlDownRef = useRef<boolean>(false);
   const [docType, setDocType] = useState<string | null>(null);
+  // Keep track of whether the editor has detected a canonical key-order issue via markers.
   const shouldShowRunControls = (docType === "test" || docType === "api");
+
+  const reorderDocument = useCallback(() => {
+    if (!docType) {
+      showVSCodeMessage("warn", "Unknown document type. Cannot reorder items.");
+      return;
+    }
+    const currentContent = contentRef.current ?? "";
+    const reordered = buildCanonicalYaml(currentContent, docType);
+    if (!reordered) {
+      showVSCodeMessage("warn", "Unable to reorder items for this document.");
+      return;
+    }
+    if (normalizeForComparison(reordered) === normalizeForComparison(currentContent)) {
+      showVSCodeMessage("info", "Document already follows the canonical order.");
+      return;
+    }
+    setContent(reordered);
+  }, [docType, setContent]);
+
+  useEffect(() => {
+    contentRef.current = content;
+  }, [content]);
 
   // Validate YAML and set error marker if invalid
   useEffect(() => {
@@ -81,6 +107,67 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       setDocType(null);
     }
   }, [content]);
+
+  useEffect(() => {
+    if (!editorReady || !monacoRef.current || !editorRef.current) {
+      return;
+    }
+    const expectedOrder = getCanonicalOrder(docType);
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) {
+      return;
+    }
+
+    if (!expectedOrder || !content.trim()) {
+      monaco.editor.setModelMarkers(model, "yaml-ordering", []);
+      return;
+    }
+
+    try {
+      const yamlDoc = parseYamlDoc(content);
+      if (yamlDoc.errors && yamlDoc.errors.length > 0) {
+        monaco.editor.setModelMarkers(model, "yaml-ordering", []);
+        return;
+      }
+      const issue = detectOrderingIssue(yamlDoc, content, expectedOrder);
+      const markers = issue
+        ? [{
+          startLineNumber: issue.line,
+          startColumn: 1,
+          endLineNumber: issue.line,
+          endColumn: model.getLineMaxColumn(issue.line),
+          message: issue.message,
+          severity: monaco.MarkerSeverity.Warning,
+        }]
+        : [];
+      monaco.editor.setModelMarkers(model, "yaml-ordering", markers);
+    } catch {
+      monaco.editor.setModelMarkers(model, "yaml-ordering", []);
+    }
+  }, [content, docType, editorReady]);
+
+  useEffect(() => {
+    if (!editorReady || !editorRef.current || !monacoRef.current) {
+      return;
+    }
+    const editor = editorRef.current;
+    const monaco = monacoRef.current;
+
+    const formatAction = editor.addAction({
+      id: "mmt.reorderYaml.formatDocument",
+      label: "Format Document",
+      keybindings: [monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyF],
+      contextMenuGroupId: "1_modification",
+      contextMenuOrder: 1,
+      run: () => reorderDocument(),
+    });
+
+    return () => {
+      formatAction.dispose();
+    };
+  }, [editorReady, reorderDocument]);
 
   // Ctrl/Cmd hover + click to open imported files or call names
   useEffect(() => {
@@ -226,7 +313,13 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         []
       );
     }
-  }, [shouldShowRunControls, editorReady]);
+    // compute line of 'type' key or default to 1
+    const doc = parseYamlDoc(content);
+    const rootKeys = extractRootKeyInfo(doc, content);
+    const typeKey = rootKeys.find(k => k.key === 'type');
+    const runLine = (typeKey && typeKey.line) || 1;
+    runGlyphLineRef.current = runLine;
+  }, [shouldShowRunControls, editorReady, content]);
 
   useEffect(() => {
     if (!monacoRef.current || !editorRef.current) return;
@@ -245,7 +338,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       runGlyphDecorationsRef.current,
       [
         {
-          range: new monaco.Range(1, 1, 1, 1),
+          range: new monaco.Range(runGlyphLineRef.current, 1, runGlyphLineRef.current, 1),
           options: {
             isWholeLine: true,
             glyphMarginClassName: "mmt-run-glyph codicon codicon-run",
@@ -262,7 +355,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         []
       );
     };
-  }, [editorReady, shouldShowRunControls]);
+  }, [editorReady, shouldShowRunControls, content]);
 
   useEffect(() => {
     if (!monacoRef.current || !editorRef.current) return;
@@ -338,7 +431,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         return;
       }
 
-      if (lineNumber === 1) {
+      if (lineNumber === runGlyphLineRef.current) {
         e.event?.preventDefault?.();
         handleRunClick();
         return;
@@ -412,6 +505,18 @@ export default YamlEditorPanel;
 
 type ExampleLineInfo = { line: number; index: number };
 
+type OrderingIssue = {
+  line: number;
+  key: string;
+  prevKey?: string;
+  message: string;
+};
+
+type RootKeyInfo = {
+  key: string;
+  line: number;
+};
+
 function extractExampleLineInfo(doc: any, content: string): ExampleLineInfo[] {
   if (!doc || !doc.contents) {
     return [];
@@ -458,6 +563,107 @@ function offsetToLineNumber(content: string, offset: number): number {
     }
   }
   return line;
+}
+
+function extractRootKeyInfo(doc: any, content: string): RootKeyInfo[] {
+  const items: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
+  return items
+    .map(item => {
+      const key = item?.key?.value;
+      if (typeof key !== "string" || !key.trim()) {
+        return null;
+      }
+      const offset = Array.isArray(item?.key?.range) ? item.key.range[0] : Array.isArray(item?.range) ? item.range[0] : undefined;
+      const line = typeof offset === "number" ? offsetToLineNumber(content, offset) : 1;
+      return { key, line } as RootKeyInfo;
+    })
+    .filter(Boolean) as RootKeyInfo[];
+}
+
+function getCanonicalOrder(docType: string | null): string[] | null {
+  switch (docType) {
+    case "api":
+      return [
+        "type",
+        "title",
+        "description",
+        "tags",
+        "import",
+        "inputs",
+        "outputs",
+        "setenv",
+        "url",
+        "query",
+        "protocol",
+        "method",
+        "format",
+        "headers",
+        "cookies",
+        "body",
+        "examples"
+      ];
+    case "test":
+      return [
+        "type",
+        "title",
+        "description",
+        "tags",
+        "import",
+        "inputs",
+        "outputs",
+        "metrics",
+        "steps",
+        "stages"
+      ];
+    case "doc":
+      return ["type", "title", "description", "logo", "sources", "services"];
+    default:
+      return null;
+  }
+}
+
+function detectOrderingIssue(doc: any, content: string, expectedOrder: string[]): OrderingIssue | null {
+  const orderMap = new Map<string, number>();
+  expectedOrder.forEach((key, idx) => orderMap.set(key, idx));
+  const keys = extractRootKeyInfo(doc, content);
+  let lastIdx = -1;
+  let lastKey: string | undefined;
+  for (const entry of keys) {
+    if (!orderMap.has(entry.key)) {
+      continue;
+    }
+    const currentIdx = orderMap.get(entry.key) ?? 0;
+    if (currentIdx < lastIdx) {
+      const message = lastKey
+        ? `'${entry.key}' should appear before '${lastKey}' to follow the canonical order. Use Format Document (Shift+Alt+F) to fix it.`
+        : `'${entry.key}' is out of order. Use Format Document (Shift+Alt+F) to fix it.`;
+      return { line: entry.line, key: entry.key, prevKey: lastKey, message };
+    }
+    lastIdx = currentIdx;
+    lastKey = entry.key;
+  }
+  return null;
+}
+
+function buildCanonicalYaml(content: string, docType: string | null): string | null {
+  try {
+    switch (docType) {
+      case "api":
+        return apiToYaml(yamlToAPI(content));
+      case "test":
+        return testToYaml(yamlToTest(content));
+      case "doc":
+        return docToYaml(yamlToDoc(content));
+      default:
+        return null;
+    }
+  } catch {
+    return null;
+  }
+}
+
+function normalizeForComparison(value: string): string {
+  return value.replace(/\s+$/g, "").trim();
 }
 
 
