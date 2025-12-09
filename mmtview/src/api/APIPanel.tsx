@@ -159,7 +159,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
             <tbody>
               <tr>
                 <td colSpan={2} style={{ padding: 0 }}>
-                  {safeList(api.examples).map((example, idx) => (
+                  {safeList(api.examples).filter(ex => ex != null).map((example, idx) => (
                     <div key={idx} className="inner-box">
                       <APIExample
                         data={example}

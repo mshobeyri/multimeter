@@ -281,10 +281,15 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     const doc = parseYamlDoc(content);
     const apiData = yamlToAPI(content);
     const examplesList = safeList(apiData?.examples);
-
     const positions = extractExampleLineInfo(doc, content).filter(info => info.line > 0);
 
-    exampleRunInfoRef.current = positions.map(info => ({
+    // Filter out examples with empty or missing names
+    const filteredPositions = positions.filter(info => {
+      const name = examplesList[info.index]?.name;
+      return name && typeof name === 'string' && name.trim() !== '';
+    });
+
+    exampleRunInfoRef.current = filteredPositions.map(info => ({
       line: info.line,
       index: info.index,
       name: examplesList[info.index]?.name,
@@ -292,8 +297,10 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
 
     exampleRunDecorationsRef.current = editor.deltaDecorations(
       exampleRunDecorationsRef.current,
-      positions.map(info => {
-        const name = examplesList[info.index]?.name;
+      filteredPositions.map(info => {
+        const example = examplesList[info.index];
+        if (!example) { return; }
+        const name = example?.name;
         const label = name ? `Run example: ${name}` : `Run example ${info.index + 1}`;
         return {
           range: new monaco.Range(info.line, 1, info.line, 1),
