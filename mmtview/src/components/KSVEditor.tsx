@@ -6,7 +6,7 @@ import { JSONRecord } from "mmt-core/CommonData";
 
 interface KSVEditorProps {
   label: string;
-  value?: Record<string, string> | JSONRecord;
+  value?: string | Record<string, string> | JSONRecord;
   onChange: (v: Record<string, string>) => void;
   keyPlaceholder?: string;
   valuePlaceholder?: string;
@@ -19,8 +19,12 @@ interface KSVEditorProps {
 }
 
 // Utility to ensure an empty key is always at the end
-function withTrailingEmptyKey(obj?: Record<string, string> | JSONRecord, addEmpty: boolean = true): Array<[string, string]> {
+function withTrailingEmptyKey(obj?: string | Record<string, string> | JSONRecord, addEmpty: boolean = true): Array<[string, string]> {
   if (!obj) {
+    return addEmpty ? [["", ""]] : [];
+  }
+
+  if(typeof obj === "string") {
     return addEmpty ? [["", ""]] : [];
   }
 
