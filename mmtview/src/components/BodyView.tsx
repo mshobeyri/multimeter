@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { xml2js } from "xml-js";
 import { beautify } from "mmt-core/markupConvertor";
 import TextEditor from "../text/TextEditor";
@@ -21,6 +21,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
     const [canApply, setCanApply] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const isUserEditingRef = useRef(false);
 
     // Keep localValue in sync with parent value (when parent changes)
     useEffect(() => {
@@ -28,10 +29,11 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
     }, [value, refreshKey]);
 
     useEffect(() => {
-        if (mode === "live" && onChange) {
+        if (mode === "live" && onChange && isUserEditingRef.current) {
+            isUserEditingRef.current = false;
             onChange(localValue);
         }
-    }, [localValue]);
+    }, [localValue, mode, onChange]);
 
     // Validate JSON or XML when localValue or format changes
     useEffect(() => {
@@ -87,7 +89,10 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
         >
             <TextEditor
                 content={localValue}
-                setContent={setLocalValue}
+                setContent={(nextValue: string) => {
+                    isUserEditingRef.current = true;
+                    setLocalValue(nextValue);
+                }}
                 language={format}
                 showNumbers={false}
                 fontSize={10}

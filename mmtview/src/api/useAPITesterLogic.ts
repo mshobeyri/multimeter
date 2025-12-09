@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { APIData } from "mmt-core/APIData";
 import { Request, Response } from "mmt-core/NetworkData";
 import { JSONRecord } from "mmt-core/CommonData";
@@ -28,21 +28,36 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
   const [responseRevision, setResponseRevision] = useState<number>(0);
   const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(-1);
   const [currentInputs, setCurrentInputs] = useState<JSONRecord>({});
+  const currentInputsRef = useRef<JSONRecord>({});
+  const touchedFieldsRef = useRef<Set<keyof Request>>(new Set());
   const [autoFormatBody, setAutoFormatBodyState] = useState<boolean>(false);
   const [outputs, setOutputs] = useState<JSONRecord>({});
 
   const examples = useMemo(() => safeList(api.examples), [api.examples]);
 
   useEffect(() => {
+    currentInputsRef.current = currentInputs;
+  }, [currentInputs]);
+
+  useEffect(() => {
     setSelectedExampleIdx(-1);
   }, [api]);
 
+  const markFieldTouched = useCallback((field: keyof Request) => {
+    touchedFieldsRef.current.add(field);
+  }, []);
+
+  const resetTouchedFields = useCallback(() => {
+    touchedFieldsRef.current.clear();
+  }, []);
+
   const updateField = useCallback((field: keyof Request, value: unknown) => {
+    markFieldTouched(field);
     setRequestData(prev => ({
       ...(prev ?? {}),
       [field]: value
     } as Request));
-  }, []);
+  }, [markFieldTouched]);
 
   const handleUrlChange = useCallback((newUrl: string) => {
     if (newUrl !== requestData?.url) {
@@ -61,8 +76,13 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     }
   }, [requestData?.query, updateField]);
 
-  const prepareRequestData = useCallback((inputs?: JSONRecord) => {
-    const resolvedInputs = inputs ?? currentInputs;
+  const prepareRequestData = useCallback((inputs?: JSONRecord, options?: { forceReset?: boolean; respectTouched?: boolean }) => {
+    if (options?.forceReset) {
+      resetTouchedFields();
+    }
+
+    const resolvedInputs = inputs ?? currentInputsRef.current;
+    const respectTouched = options?.respectTouched ?? true;
 
     (async () => {
       const envVars = await new Promise<any[]>(resolve => {
@@ -88,27 +108,18 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
         rface.body = formatBody(rface.format || "json", rface.body ?? "");
       }
 
-      setRequestData(prevRequestData => {
-        if (prevRequestData?.body !== (rface.body || "")) {
-          return {
-            ...prevRequestData,
-            body: rface.body || ""
-          } as Request;
-        }
-        return prevRequestData;
-      });
-
-      setRequestData(rface);
+      setRequestData(prev => mergeRequestData(prev, rface, touchedFieldsRef.current, respectTouched));
     })();
-  }, [api, currentInputs]);
+  }, [api, resetTouchedFields]);
 
   useEffect(() => {
     const baseInputs = selectedExampleIdx === -1
       ? (api.inputs || {})
       : (examples[selectedExampleIdx]?.inputs || {});
 
-    setCurrentInputs(baseInputs);
-    prepareRequestData(baseInputs);
+    const clonedInputs = cloneInputs(baseInputs);
+    setCurrentInputs(clonedInputs);
+    prepareRequestData(clonedInputs, { forceReset: true });
   }, [api, examples, selectedExampleIdx, prepareRequestData]);
 
   useEffect(() => {
@@ -241,12 +252,12 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
       if (!message) return;
       switch (message.command) {
         case "multimeter.environment.refresh":
-          prepareRequestData();
+          prepareRequestData(undefined, { forceReset: true });
           break;
         case "config":
           if (typeof message.bodyAutoFormat === "boolean") {
             setAutoFormatBodyState(message.bodyAutoFormat);
-            prepareRequestData();
+            prepareRequestData(undefined, { forceReset: true });
           }
           break;
       }
@@ -309,8 +320,40 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     handleConnect,
     buildCurl,
     network,
-    examples
+    examples,
+    resetTouchedFields
   };
+}
+
+function cloneInputs(source?: JSONRecord): JSONRecord {
+  if (!source) {
+    return {};
+  }
+  try {
+    return JSON.parse(JSON.stringify(source));
+  } catch {
+    return { ...source };
+  }
+}
+
+function mergeRequestData(
+  prev: Request | undefined,
+  generated: Request,
+  touchedFields: Set<keyof Request>,
+  respectTouched: boolean
+): Request {
+  if (!respectTouched || !prev || touchedFields.size === 0) {
+    return generated;
+  }
+
+  const merged = { ...generated } as Request;
+  touchedFields.forEach(field => {
+    if (typeof prev[field] !== "undefined") {
+      merged[field] = prev[field];
+    }
+  });
+
+  return merged;
 }
 
 type RunApiDocumentOptions = {

@@ -20,6 +20,17 @@ interface APITestProps {
   onUpdateApi?: (patch: Partial<APIData>) => void;
 }
 
+function cloneInputs(source?: JSONRecord): JSONRecord {
+  if (!source) {
+    return {};
+  }
+  try {
+    return JSON.parse(JSON.stringify(source));
+  } catch {
+    return { ...source };
+  }
+}
+
 const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
   const { filePath } = useContext(FileContext);
   const {
@@ -69,9 +80,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
 
   const handleExampleChange = (newIdx: number) => {
     setSelectedExampleIdx(newIdx);
-    const nextInputs = newIdx === -1
+    const baseInputs = newIdx === -1
       ? (api.inputs || {})
       : (examples[newIdx]?.inputs || {});
+    const nextInputs = cloneInputs(baseInputs);
     setCurrentInputs(nextInputs);
     prepareRequestData(nextInputs);
   };
@@ -169,7 +181,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
           value={currentInputs}
           onChange={(data) => {
             setCurrentInputs(data);
-            prepareRequestData(data);
+            prepareRequestData(data, { respectTouched: false });
           }}
           keyOptions={Object.keys(api.inputs || {})}
           deletable={false}
