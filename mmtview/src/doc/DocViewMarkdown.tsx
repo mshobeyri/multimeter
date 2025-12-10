@@ -106,7 +106,7 @@ const DocViewMarkdown: React.FC<DocViewProps> = ({ doc }) => {
   
 
   return (
-    <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: 'calc(100vh - 100px)', width: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
         <div />
         <div>
@@ -114,7 +114,17 @@ const DocViewMarkdown: React.FC<DocViewProps> = ({ doc }) => {
           <button onClick={handleExport} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 12px' }}>Export as Markdown</button>
         </div>
       </div>
-      <pre style={{ flex: 1, margin: 0, padding: 8, overflow: 'auto' }}>{md}</pre>
+      <pre
+        style={{
+          flex: 1,
+          margin: 0,
+          padding: 8,
+          overflow: 'auto',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-word',
+          overflowWrap: 'anywhere'
+        }}
+      >{md}</pre>
     </div>
   );
 };
