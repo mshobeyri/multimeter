@@ -214,7 +214,7 @@ export const DOC_TEMPLATE_HTML = `
     align-items: center;
     gap: 8px;
     font-size: 14px;
-    margin: 0 0 8px;
+    margin: 0 0;
     font-weight: 600;
   }
 
