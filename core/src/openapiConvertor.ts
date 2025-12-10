@@ -1,4 +1,5 @@
 import { APIData } from './APIData';
+import { formatBody } from './markupConvertor';
 
 export function openApiToAPI(openApiSpec: any): APIData[] {
   if (!openApiSpec || !openApiSpec.paths) {
@@ -53,13 +54,13 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
 
           // Check for example at content level first (common for XML)
           if (contentSpec?.example) {
-            body = contentSpec.example;
+            body = typeof contentSpec.example === 'string' ? contentSpec.example : formatBody(format, contentSpec.example, true);
           }
           // Then check for example at schema level
           else if (contentSpec?.schema?.example) {
             body = typeof contentSpec.schema.example === 'string'
               ? contentSpec.schema.example
-              : JSON.stringify(contentSpec.schema.example, null, 2);
+              : formatBody(format, contentSpec.schema.example, true);
           }
           // Generate example from schema properties
           else if (contentSpec?.schema?.properties) {
@@ -72,7 +73,7 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
                   : propSchema.type === 'boolean' ? false
                   : null);
             });
-            body = format === 'xml' ? JSON.stringify(example, null, 2) : JSON.stringify(example, null, 2);
+            body = formatBody(format, example, true);
           }
           // For XML with string schema type, try to create a basic structure
           else if (format === 'xml' && contentSpec?.schema?.type === 'string') {

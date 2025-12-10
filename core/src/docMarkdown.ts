@@ -1,4 +1,5 @@
 import {extractEndpoint} from './docHtml';
+import { formatBody } from './markupConvertor';
 
 export interface BuildDocMdOptions {
   title?: string;
@@ -81,7 +82,7 @@ export function buildDocMarkdown(
     if (api?.body !== undefined && api?.body !== null && String(api.body).length) {
       const fmtRaw = String(api?.format || 'json').toLowerCase();
       const lang = (fmtRaw === 'xml' || fmtRaw === 'json' || fmtRaw === 'text') ? fmtRaw : 'json';
-      const bodyStr = typeof api.body === 'string' ? api.body : JSON.stringify(api.body, null, 2);
+      const bodyStr = formatBody(lang as any, api.body, true);
       lines.push('', '**Body**', '', fence(bodyStr, lang === 'text' ? '' : lang));
     }
     // Examples

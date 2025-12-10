@@ -94,4 +94,37 @@ describe('openapiConvertor.openApiToAPI', () => {
     expect(api.format).toBe('xml');
     expect(api.body).toBe('<root></root>');
   });
+
+  it('generates XML from schema properties when format is xml', () => {
+    const spec = {
+      openapi: '3.0.0',
+      paths: {
+        '/xmlprops': {
+          post: {
+            requestBody: {
+              content: {
+                'application/xml': {
+                  schema: {
+                    properties: {
+                      name: { type: 'string', example: 'Alice' },
+                      id: { type: 'number', example: 42 }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    };
+    const apis = openApiToAPI(spec);
+    expect(apis.length).toBe(1);
+    const api = apis[0];
+    expect(api.format).toBe('xml');
+    expect(typeof api.body).toBe('string');
+    expect((api.body as string).trim().startsWith('<')).toBe(true);
+    // basic check that element names are present
+    expect((api.body as string).includes('<name>')).toBe(true);
+    expect((api.body as string).includes('<id>')).toBe(true);
+  });
 });
