@@ -68,6 +68,11 @@
       "types": "./dist/openapiConvertor.d.ts",
       "require": "./dist/openapiConvertor.js",
       "default": "./dist/openapiConvertor.js"
+    },
+    "./runConfig": {
+      "types": "./dist/runConfig.d.ts",
+      "require": "./dist/runConfig.js",
+      "default": "./dist/runConfig.js"
     }
   },
   "scripts": {

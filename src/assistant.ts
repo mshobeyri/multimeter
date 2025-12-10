@@ -5,9 +5,11 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import YAML from 'yaml';
 
+import {parseAssistantRunArgs} from './assistantArgs';
+
 async function handleChatRequest(
-    request: any, _chatContext: any, response: any,
-    context: vscode.ExtensionContext, id: string) {
+  request: any, _chatContext: any, response: any,
+  context: vscode.ExtensionContext, id: string) {
   const userText = request.message ?? '';
   const userTextLower = userText.toLowerCase();
 
@@ -52,179 +54,30 @@ async function handleChatRequest(
   }
 
   // Handle structured chat commands: /run, /print-js, /doc
-  if (request.command === 'run' || request.command === 'print-js' ||
-      request.command === 'doc') {
+  const isCommand = typeof request.command === 'string' && request.command.length > 0;
+  if (isCommand) {
     const ws = vscode.workspace.workspaceFolders?.[0];
     if (!ws) {
-      response.markdown('No workspace folder is open.');
+      response.markdown('No workspace is open.');
       return;
     }
     const projectRoot = ws.uri.fsPath;
-
-    // Simple token parser: split by spaces preserving quoted strings
-    const tokens =
-        (request.prompt || '').match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || [];
-    const unquote = (s: string) => s.replace(/^['"]|['"]$/g, '');
-
-    // Helpers: parse --key=value and repeated pairs
-    const takeFlag = (name: string) =>
-        tokens.some((t: string) => t === `--${name}` || t === `-${name[0]}`);
-    const findOpt = (name: string) => {
-      const pref = `--${name}`;
-      for (let i = 0; i < tokens.length; i++) {
-        const t = tokens[i];
-        if (t.startsWith(pref + '=')) {
-          return unquote(t.slice(pref.length + 1));
-        }
-        if (t === pref && i + 1 < tokens.length) {
-          return unquote(tokens[i + 1]);
-        }
-      }
-      return undefined;
-    };
-    const collectList = (name: string): string[] => {
-      const out: string[] = [];
-      const pref = `--${name}`;
-      for (let i = 0; i < tokens.length; i++) {
-        const t = tokens[i];
-        if (t === pref && i + 1 < tokens.length) {
-          out.push(unquote(tokens[i + 1]));
-          i++;
-        } else if (t.startsWith(pref + '=')) {
-          out.push(unquote(t.slice(pref.length + 1)));
-        }
-      }
-      return out;
-    };
-    const parsePairs = (list: string[]|undefined): Record<string, any> => {
-      const out: Record<string, any> = {};
-      const arr = Array.isArray(list) ? list : [];
-      for (let i = 0; i < arr.length; i++) {
-        const token = arr[i] ?? '';
-        const eq = token.indexOf('=');
-        if (eq > 0) {
-          const k = token.slice(0, eq).trim();
-          const v = token.slice(eq + 1);
-          if (k) {
-            out[k] = v;
-          }
-        } else if (i + 1 < arr.length) {
-          const k = token.trim();
-          const v = arr[++i];
-          if (k) {
-            out[k] = v;
-          }
-        }
-      }
-      return out;
-    };
-
-    const argFile = tokens.find((t: string) => !t.startsWith('-')) || '';
-    const relPath = unquote(argFile);
-    if (!relPath) {
-      response.markdown(
-          'Usage: /run <file> [--input key=val ...] [--env key=val ...] [--env-file path] [--preset name] [--print-js]');
-      return;
-    }
-    const fileUri = vscode.Uri.file(
-        path.isAbsolute(relPath) ? relPath : path.join(projectRoot, relPath));
-    const dir = path.dirname(fileUri.fsPath);
-
-    const nodeLoader = async (p: string) => {
-      const abs = path.isAbsolute(p) ? p : path.join(dir, p);
-      try {
-        const data = await vscode.workspace.fs.readFile(vscode.Uri.file(abs));
-        return Buffer.from(data).toString('utf8');
-      } catch {
-        return '';
-      }
-    };
-
-    const inputPairs = parsePairs(collectList('input'));
-    let envVars: Record<string, any> = parsePairs(collectList('env'));
-
-    const envFile = findOpt('env-file');
-    const preset = findOpt('preset');
-    if (envFile) {
-      try {
-        const p = path.isAbsolute(envFile) ? envFile : path.join(dir, envFile);
-        const data = await vscode.workspace.fs.readFile(vscode.Uri.file(p));
-        const doc = YAML.parse(Buffer.from(data).toString('utf8')) as any;
-        const variables = doc?.variables || {};
-        const presets = doc?.presets || {};
-        if (preset) {
-          let mapping: Record<string, any>|undefined;
-          if (presets.runner && presets.runner[preset]) {
-            mapping = presets.runner[preset];
-          } else if (preset.includes('.')) {
-            const [group, name] = preset.split('.', 2);
-            if (presets[group] && presets[group][name]) {
-              mapping = presets[group][name];
-            }
-          }
-          if (mapping) {
-            for (const [k, choice] of Object.entries(mapping)) {
-              const def = variables?.[k];
-              if (def && typeof def === 'object' && !Array.isArray(def) &&
-                  Object.prototype.hasOwnProperty.call(def, choice)) {
-                envVars[k] = def[choice as any];
-              } else {
-                envVars[k] = choice;
-              }
-            }
-          }
-        }
-        // Apply overrides
-        for (const [k, v] of Object.entries(envVars)) {
-          const def = variables?.[k];
-          if (def && typeof def === 'object' && !Array.isArray(def)) {
-            envVars[k] =
-                Object.prototype.hasOwnProperty.call(def, v) ? def[v] : v;
-          }
-        }
-      } catch (e: any) {
-        response.markdown(`Failed to read env file: ${e?.message || e}`);
-        return;
-      }
-    }
-
     try {
       if (request.command === 'run') {
-        const data = await vscode.workspace.fs.readFile(fileUri);
-        const rawText = Buffer.from(data).toString('utf8');
-        const printJs = takeFlag('print-js');
-        const vscodeEnvState = context.workspaceState.get<any>(
-            'multimeter.environment.storage', []);
-        const vscodeEnv: Record<string, any> = {};
-        if (Array.isArray(vscodeEnvState)) {
-          for (const item of vscodeEnvState) {
-            if (!item || typeof item !== 'object') {
-              continue;
-            }
-            const name = (item as any).name;
-            if (typeof name === 'string' && name) {
-              vscodeEnv[name] = (item as any).value;
-            }
-          }
-        }
-        const runOutcome = await runner.runFile({
-          rawFile: rawText,
-          filePath: fileUri.fsPath,
-          inputs: {inputs: inputPairs},
-          envvar: {inputs: {...vscodeEnv, ...envVars}},
-          fileLoader: nodeLoader,
-          runCode: runJSCode,
-          logger: (lvl, msg) => {}
-        });
+        const {runFileOptions, outFile, printJs} =
+            await parseAssistantRunArgs(projectRoot, request.prompt || '', context);
+        runFileOptions.runCode = runJSCode;
+        const runOutcome = await runner.runFile(runFileOptions as any);
         const {js, result, displayName, docType, exampleName, exampleIndex} =
-            runOutcome;
-        if (printJs) {
+            runOutcome as any;
+
+        if (printJs && js && typeof js === 'string' && js.trim()) {
           response.markdown('```js');
           response.markdown(js.trim());
           response.markdown('```');
         }
-        // Pretty output formatting (single message with line breaks)
-        const nameOnly = displayName || path.basename(fileUri.fsPath);
+
+        const nameOnly = displayName || 'run';
         const kindLabel = docType === 'api' ? 'API' :
             docType === 'test'              ? 'test' :
                                               'Document';
@@ -236,27 +89,26 @@ async function handleChatRequest(
           exampleLabelParts.push(exampleName);
         }
         const header = exampleLabelParts.length ?
-            `${kindLabel} ${nameOnly} (example ${
-                exampleLabelParts.join(' ')})` :
+            `${kindLabel} ${nameOnly} (example ${exampleLabelParts.join(' ')})` :
             `${kindLabel} ${nameOnly}`;
         const logsBlock = (result.logs && result.logs.length) ?
             `Logs:\n\n\`\`\`\n${result.logs.join('\n')}\n\`\`\`` :
             '';
         const errorsBlock = (result.errors && result.errors.length) ?
-            ['Errors:', ...result.errors.map(e => ` - ${e}`)].join('\n') :
+            ['Errors:', ...result.errors.map((e: any) => ` - ${e}`)].join('\n') :
             '';
-        const out =
-            [
-              `Running ${header}...`, logsBlock, `Success: ${result.success}`,
-              `Duration: ${result.durationMs.toFixed(2)} ms`, errorsBlock
-            ].filter(Boolean)
-                .join('\n');
+        const out = [
+                         `Running ${header}...`, logsBlock,
+                         `Success: ${result.success}`,
+                         `Duration: ${result.durationMs.toFixed(2)} ms`,
+                         errorsBlock
+                       ]
+                           .filter(Boolean)
+                           .join('\n');
         response.markdown(out);
-        const outFile = findOpt('out');
         if (outFile) {
-          const outPath = path.isAbsolute(outFile) ?
-              outFile :
-              path.join(projectRoot, outFile);
+          const outPath = path.isAbsolute(outFile) ? outFile :
+                                                       path.join(projectRoot, outFile);
           await vscode.workspace.fs.writeFile(
               vscode.Uri.file(outPath),
               Buffer.from(JSON.stringify(result, null, 2), 'utf8'));
@@ -264,17 +116,20 @@ async function handleChatRequest(
         }
         return;
       }
+
       if (request.command === 'print-js') {
-        const data = await vscode.workspace.fs.readFile(fileUri);
-        const rawText = Buffer.from(data).toString('utf8');
-        const name =
-            path.basename(fileUri.fsPath).replace(/[^a-zA-Z0-9_]/g, '_');
+        const {runFileOptions} =
+            await parseAssistantRunArgs(projectRoot, request.prompt || '', context);
+        const rawText = runFileOptions.file;
+        const inputPairs = runFileOptions.manualInputs || {};
+        const envVars = runFileOptions.envvar || {};
+        const name = path.basename('file').replace(/[^a-zA-Z0-9_]/g, '_');
         const js = await runner.generateTestJs({
           rawText,
           name,
           inputs: inputPairs,
           envVars,
-          fileLoader: nodeLoader
+          fileLoader: runFileOptions.fileLoader,
         });
         if (!js.trim()) {
           response.markdown('No JS could be generated (empty flow).');
@@ -285,7 +140,22 @@ async function handleChatRequest(
         response.markdown('```');
         return;
       }
+
       if (request.command === 'doc') {
+        const tokens =
+            (request.prompt || '').match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) ||
+            [];
+        const unquote = (s: string) => s.replace(/^['"]|['"]$/g, '');
+        const argFile = tokens.find((t: string) => !t.startsWith('-')) || '';
+        const relPath = unquote(argFile);
+        if (!relPath) {
+          response.markdown(
+              'Usage: /doc <file> [--md] [--out <file>]');
+          return;
+        }
+        const fileUri = vscode.Uri.file(
+            path.isAbsolute(relPath) ? relPath :
+                                         path.join(projectRoot, relPath));
         const data = await vscode.workspace.fs.readFile(fileUri);
         const text = Buffer.from(data).toString('utf8');
         const doc = docParsePack.yamlToDoc(text) as any;
@@ -377,6 +247,19 @@ async function handleChatRequest(
               sources: Array.isArray(doc.sources) ? doc.sources : undefined,
               services: Array.isArray(doc.services) ? doc.services : undefined,
             });
+        const findOpt = (name: string) => {
+          const pref = `--${name}`;
+          for (let i = 0; i < tokens.length; i++) {
+            const t = tokens[i];
+            if (t.startsWith(pref + '=')) {
+              return unquote(t.slice(pref.length + 1));
+            }
+            if (t === pref && i + 1 < tokens.length) {
+              return unquote(tokens[i + 1]);
+            }
+          }
+          return undefined;
+        };
         const outPathOpt = findOpt('out');
         if (outPathOpt) {
           const outPath = path.isAbsolute(outPathOpt) ?

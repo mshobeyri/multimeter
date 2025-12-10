@@ -2,6 +2,8 @@
 	"compilerOptions": {
 		"module": "Node16",
 		"target": "ES2022",
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
 		"types": ["jest"],
 		"lib": [
 			"ES2022"

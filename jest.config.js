@@ -9,4 +9,11 @@ module.exports = {
   transform: {
     ...tsJestTransformCfg,
   },
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+  },
+  testPathIgnorePatterns: [
+    '<rootDir>/out/mmtcli/src/runArgs\.test\.js',
+    '<rootDir>/mmtcli/dist/runArgs\.test\.js',
+  ],
 };

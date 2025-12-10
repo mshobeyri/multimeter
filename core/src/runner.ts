@@ -5,6 +5,7 @@ import docMarkdown from './docMarkdown';
 import {APIData} from './APIData';
 import {Type} from './CommonData';
 import {yamlToAPI} from './apiParsePack';
+import {mergeEnv, mergeInputs, RunFileOptionsV2} from './runConfig';
 
 export type LogLevel = 'info' | 'warn' | 'error';
 
@@ -92,22 +93,10 @@ export function buildDocFromApis(apis: any[], opts: BuildDocOptions): string {
   return docHtml.buildDocHtml(apis, rest);
 }
 
-export interface RunFileInputsOptions {
-  exampleIndex?: number;
-  inputs?: Record<string, any>;
-}
-
-export interface RunFileEnvOptions {
-  inputs?: Record<string, any>;
-}
-
-export interface RunFileOptions {
-  rawFile: string;
-  filePath: string;
-  inputs: RunFileInputsOptions;
-  envvar: RunFileEnvOptions;
+export interface RunFileOptions extends RunFileOptionsV2 {
   fileLoader: FileLoader;
-  runCode: (code: string, title: string, logger: (level: LogLevel, msg: string) => void) => Promise<void>;
+  runCode: (code: string, title: string,
+            logger: (level: LogLevel, msg: string) => void) => Promise<void>;
   logger?: (level: LogLevel, msg: string) => void;
 }
 
@@ -123,57 +112,146 @@ export interface RunFileResult {
   exampleIndex?: number;
 }
 
-export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
-  const {
-    rawFile,
-    filePath,
-    fileLoader,
-    runCode,
-    logger,
-  } = options;
-  const rawText = rawFile;
-  const envVars = options.envvar?.inputs ?? {};
+export interface PreparedRun {
+  rawText: string;
+  filePath: string;
+  baseName: string;
+  docType: Type | null;
+  envVarsUsed: Record<string, any>;
+  inputsUsed: Record<string, any>;
+  apiDoc?: APIData;
+  exampleName?: string;
+  exampleIndex?: number;
+}
+
+export async function prepareRunFromOptions(
+    options: RunFileOptions,
+    log: (level: LogLevel, message: string) => void = () => {}):
+    Promise<PreparedRun> {
+  const {file, fileType, filePath: optFilePath} = options as any;
+  const filePath = typeof optFilePath === 'string' && optFilePath ?
+      optFilePath : (fileType === 'path' ? file : '');
+  const rawText = file;
   const docType = detectDocType(filePath, rawText);
+  const envVarsUsed = mergeEnv({
+    envvar: options.envvar,
+    manualEnvvars: options.manualEnvvars,
+  });
+  const baseName = basename(filePath || '');
+  const manualInputs: Record<string, any> = {...(options.manualInputs || {})};
+  const manualExampleId =
+      typeof manualInputs.exampleId === 'string' &&
+              manualInputs.exampleId.trim() ?
+          manualInputs.exampleId.trim() :
+          undefined;
+  const requestedExampleId = manualExampleId ? manualExampleId :
+      (typeof options.exampleId === 'string' && options.exampleId.trim() ?
+           options.exampleId.trim() :
+           undefined);
+  const requestedExampleIndex =
+      typeof options.exampleIndex === 'number' ? options.exampleIndex :
+                                              undefined;
+
+  if (docType === 'api') {
+    const apiDoc = yamlToAPI(rawText);
+    const defaultInputs = isPlainObject(apiDoc.inputs) ?
+        apiDoc.inputs as Record<string, any> :
+        {};
+    const manualInputsForMerge = {...manualInputs};
+    if (manualExampleId) {
+      delete manualInputsForMerge.exampleId;
+    }
+    const {exampleInputs, resolvedExampleName, resolvedExampleIndex} =
+        resolveApiExample(
+            apiDoc, requestedExampleId, requestedExampleIndex, log);
+    const inputsUsed = mergeInputs({
+      defaultInputs,
+      exampleInputs,
+      manualInputs: manualInputsForMerge,
+    });
+    return {
+      rawText,
+      filePath,
+      baseName,
+      docType,
+      envVarsUsed,
+      inputsUsed,
+      apiDoc,
+      exampleName: resolvedExampleName,
+      exampleIndex: resolvedExampleIndex,
+    };
+  }
+
+  if (docType === 'test') {
+    const testDoc = testParsePack.yamlToTest ?
+        testParsePack.yamlToTest(rawText) :
+        {} as any;
+    const defaultInputs = isPlainObject(testDoc?.inputs) ?
+        testDoc.inputs as Record<string, any> :
+        {};
+    const inputsUsed = mergeInputs({
+      defaultInputs,
+      manualInputs,
+    });
+    return {
+      rawText,
+      filePath,
+      baseName,
+      docType,
+      envVarsUsed,
+      inputsUsed,
+    };
+  }
+
+  return {
+    rawText,
+    filePath,
+    baseName,
+    docType,
+    envVarsUsed,
+    inputsUsed: manualInputs,
+  };
+}
+
+export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
+  const {fileLoader, runCode, logger} = options;
   const sinkLogger: (level: LogLevel, msg: string) => void = logger ?? (() => {});
   const preLogs: Array<{level: LogLevel; message: string}> = [];
   const note = (level: LogLevel, message: string) => {
     preLogs.push({level, message});
     sinkLogger(level, message);
   };
-  const baseName = basename(filePath);
-  const requestedExampleIndex =
-      typeof options.inputs?.exampleIndex === 'number'
-        ? options.inputs.exampleIndex
-        : undefined;
+  const prepared = await prepareRunFromOptions(options, note);
+  const {
+    docType,
+    baseName,
+    rawText,
+    envVarsUsed: envVars,
+    inputsUsed,
+    apiDoc,
+    exampleName,
+    exampleIndex,
+  } = prepared;
 
-  if (docType === 'api') {
-    const api = yamlToAPI(rawText);
-    const inputOverrides = options.inputs.inputs ?? {};
-    const {exampleInputs, resolvedExampleName, resolvedExampleIndex} =
-      resolveApiExample(api, undefined, requestedExampleIndex, note);
+  if (docType === 'api' && apiDoc) {
     const exampleLabelParts: string[] = [];
-    if (typeof resolvedExampleIndex === 'number') {
-      exampleLabelParts.push(`#${resolvedExampleIndex + 1}`);
+    if (typeof exampleIndex === 'number') {
+      exampleLabelParts.push(`#${exampleIndex + 1}`);
     }
-    if (resolvedExampleName) {
-      exampleLabelParts.push(resolvedExampleName);
+    if (exampleName) {
+      exampleLabelParts.push(exampleName);
     }
     const exampleLabel = exampleLabelParts.length > 0 ? exampleLabelParts.join(' ') : undefined;
     const displayName = exampleLabel ? `${baseName} (${exampleLabel})` : baseName;
     const identifier = sanitizeIdentifier(exampleLabel ? `${baseName}_${exampleLabel}` : baseName);
-    const mergedInputs = {
-      ...(isPlainObject(api.inputs) ? api.inputs as Record<string, any> : {}),
-      ...exampleInputs,
-      ...inputOverrides,
-    };
     const js = await generateApiJs({
-      api,
+      api: apiDoc,
       name: identifier,
       envVars,
-      inputs: mergedInputs,
+      inputs: inputsUsed,
       fileLoader,
-      exampleName: resolvedExampleName,
-      exampleIndex: resolvedExampleIndex,
+      exampleName,
+      exampleIndex,
     });
     const result = await runGeneratedJs(js, displayName, sinkLogger, runCode);
     if (preLogs.length) {
@@ -185,23 +263,19 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
       identifier,
       displayName,
       docType,
-      inputsUsed: mergedInputs,
+      inputsUsed,
       envVarsUsed: envVars,
-      exampleName: resolvedExampleName,
-      exampleIndex: resolvedExampleIndex,
+      exampleName,
+      exampleIndex,
     };
   }
 
   if (docType === 'test') {
     const identifier = sanitizeIdentifier(baseName);
-    const test = testParsePack.yamlToTest ? testParsePack.yamlToTest(rawText) : {} as any;
-    const defaultInputs = isPlainObject(test?.inputs) ? test.inputs as Record<string, any> : {};
-    const inputOverrides = options.inputs.inputs ?? {};
-    const mergedInputs = {...defaultInputs, ...inputOverrides};
     const js = await generateTestJs({
       rawText,
       name: identifier,
-      inputs: mergedInputs,
+      inputs: inputsUsed,
       envVars,
       fileLoader,
     });
@@ -215,8 +289,10 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
       identifier,
       displayName: baseName,
       docType,
-      inputsUsed: mergedInputs,
+      inputsUsed,
       envVarsUsed: envVars,
+      exampleName,
+      exampleIndex,
     };
   }
 
@@ -224,13 +300,17 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
 }
 
 function basename(filePath: string): string {
-  if (!filePath) return '';
+  if (!filePath) {
+    return '';
+  }
   const parts = filePath.split(/[/\\]/);
   return parts[parts.length - 1] || filePath;
 }
 
 function sanitizeIdentifier(value: string): string {
-  if (!value) return '_mmt';
+  if (!value) {
+    return '_mmt';
+  }
   const replaced = value.replace(/[^a-zA-Z0-9_]/g, '_');
   return /^[A-Za-z_$]/.test(replaced) ? replaced : `_${replaced}`;
 }

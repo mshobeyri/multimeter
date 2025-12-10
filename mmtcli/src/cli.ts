@@ -9,6 +9,7 @@ import {runJSCode} from 'mmt-core/jsRunner';
 import path from 'path';
 
 import {summarize} from './loadTest.js';
+import {buildCliRunArgs} from './runArgs.js';
 
 // Defer importing runTest until needed to avoid pulling axios for to-js
 
@@ -60,7 +61,6 @@ program.command('run')
     .action(async (file: string, opts: {quiet?: boolean; out?: string}) => {
       try {
         const full = path.resolve(process.cwd(), file);
-        const dir = path.dirname(full);
         const rawText = fs.readFileSync(full, 'utf8');
         const raw =
             /\.json$/i.test(full) ? JSON.parse(rawText) : yaml.load(rawText);
@@ -68,33 +68,16 @@ program.command('run')
         if (!opts.quiet) {
           console.log(`Loaded: ${path.resolve(file)} (${summary})`);
         }
-        // Build inputs and env vars
-        const inputs = buildInputs(opts as any);
-        const {envVars} = buildEnvVars(opts as any, dir);
-        // Generate JS using core runner and execute via core jsRunner
-        const js = await mmtcore.runner.generateTestJs({
-          rawText,
-          name: path.basename(full).replace(/[^a-zA-Z0-9_]/g, '_'),
-          inputs,
-          envVars,
-          fileLoader: async (p: string) => {
-            const rel = path.isAbsolute(p) ? p : path.join(dir, p);
-            if (!fs.existsSync(rel)) {
-              return '';
-            }
-            return fs.readFileSync(rel, 'utf8');
-          }
-        });
-        if ((opts as any).printJs) {
+        const {runFileOptions, quiet, outFile, printJs} =
+            buildCliRunArgs(file, opts as any);
+        const runOpts: any = runFileOptions;
+        runOpts.runCode = (code: string, title: string, lg: any) =>
+          runJSCode(code, title, lg as any);
+        const runOutcome = await runner.runFile(runFileOptions as any);
+        const {js, result} = runOutcome;
+        if (printJs) {
           console.log(js.trim());
         }
-        const result = await mmtcore.runner.runGeneratedJs(
-            js, path.basename(full), (level, msg) => {
-              const out = (level === 'error' || level === 'warn') ?
-                  process.stderr :
-                  process.stdout;
-              out.write(String(msg) + '\n');
-            }, (code, title, lg) => runJSCode(code, title, lg as any));
         if (!opts.quiet) {
           console.log(`Success: ${result.success}`);
           console.log(`Duration: ${result.durationMs.toFixed(2)} ms`);
@@ -103,8 +86,8 @@ program.command('run')
             result.errors.forEach(e => console.log(' -', e));
           }
         }
-        if (opts.out) {
-          const outPath = path.resolve(opts.out);
+        if (outFile) {
+          const outPath = path.resolve(outFile);
           fs.writeFileSync(outPath, JSON.stringify(result, null, 2), 'utf8');
           if (!opts.quiet) {
             console.log(`Result written: ${outPath}`);
@@ -143,8 +126,8 @@ program.command('print-js')
         const full = path.resolve(process.cwd(), file);
         const dir = path.dirname(full);
         const rawText = fs.readFileSync(full, 'utf8');
-        const inputs = buildInputs(opts as any);
-        const {envVars} = buildEnvVars(opts as any, dir);
+        const inputs = (opts as any).input || [];
+        const envVars = {};
         const js = await mmtcore.runner.generateTestJs({
           rawText,
           name: path.basename(full).replace(/[^a-zA-Z0-9_]/g, '_'),
@@ -287,70 +270,6 @@ program.parseAsync(process.argv);
 // Helpers
 type EnvLike = Record<string, any>;
 
-function parseKeyValList(list: string[]|undefined): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const item of list || []) {
-    const idx = item.indexOf('=');
-    if (idx === -1) {
-      continue;
-    }
-    const k = item.slice(0, idx).trim();
-    const v = item.slice(idx + 1).trim();
-    if (!k) {
-      continue;
-    }
-    out[k] = v;
-  }
-  return out;
-}
-
-function parsePairs(list: string[]|undefined): Record<string, any> {
-  // Accept either [key=value, ...] or [key, value, key, value, ...]
-  const out: Record<string, any> = {};
-  const arr = Array.isArray(list) ? list : [];
-  for (let i = 0; i < arr.length; i++) {
-    const token = arr[i] ?? '';
-    const eq = token.indexOf('=');
-    if (eq > 0) {
-      const k = token.slice(0, eq).trim();
-      const v = token.slice(eq + 1);
-      if (k) {
-        out[k] = coerceCliValue(v);
-      }
-    } else if (i + 1 < arr.length) {
-      const k = token.trim();
-      const v = arr[++i];
-      if (k) {
-        out[k] = coerceCliValue(v);
-      }
-    }
-  }
-  return out;
-}
-
-function coerceCliValue(v: string): any {
-  const t = (v ?? '').trim();
-  if (/^(true|false)$/i.test(t)) {
-    return /^true$/i.test(t);
-  }
-  if (/^[-+]?\d+$/.test(t)) {
-    return Number(t);
-  }
-  if (/^[-+]?\d*\.\d+$/.test(t)) {
-    return Number(t);
-  }
-  // Keep quoted numbers as strings: remove surrounding quotes if present
-  if ((t.startsWith('"') && t.endsWith('"')) ||
-      (t.startsWith('\'') && t.endsWith('\''))) {
-    return t.slice(1, -1);
-  }
-  return t;
-}
-
-function buildInputs(opts: any): Record<string, any> {
-  return parsePairs(opts.input);
-}
-
 function loadEnvFile(envPath: string):
     {variables?: EnvLike; presets?: EnvLike} {
   try {
@@ -386,48 +305,19 @@ function selectFromVariables(
   return choiceOrValue;
 }
 
-function buildEnvVars(
-    opts: any, testDir: string): {envVars: Record<string, any>} {
-  const envVars: Record<string, any> = {};
-  let variables: EnvLike|undefined;
-  let presets: EnvLike|undefined;
-  if (opts.envFile) {
-    let p = String(opts.envFile);
-    if (!path.isAbsolute(p)) {
-      const fromCwd = path.resolve(process.cwd(), p);
-      if (fs.existsSync(fromCwd)) {
-        p = fromCwd;
-      } else {
-        p = path.resolve(testDir, p);
-      }
+function parseKeyValList(list: string[]|undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const item of list || []) {
+    const idx = item.indexOf('=');
+    if (idx === -1) {
+      continue;
     }
-    const loaded = loadEnvFile(p);
-    variables = loaded.variables;
-    presets = loaded.presets;
-  }
-  // Apply preset first, then overrides
-  const presetName: string|undefined = opts.preset;
-  if (presetName && presets) {
-    // Allow forms: "dev" meaning presets.runner.dev OR "runner.dev"
-    let mapping: Record<string, any>|undefined;
-    if (presets.runner && presets.runner[presetName]) {
-      mapping = presets.runner[presetName];
-    } else if (presetName.includes('.')) {
-      const [group, name] = presetName.split('.', 2);
-      if (presets[group] && presets[group][name]) {
-        mapping = presets[group][name];
-      }
+    const k = item.slice(0, idx).trim();
+    const v = item.slice(idx + 1).trim();
+    if (!k) {
+      continue;
     }
-    if (mapping && variables) {
-      for (const [k, choice] of Object.entries(mapping)) {
-        envVars[k] = selectFromVariables(variables, k, choice);
-      }
-    }
+    out[k] = v;
   }
-  // Apply --env KEY=VAL overrides
-  const pairs = parsePairs(opts.env);
-  for (const [k, v] of Object.entries(pairs)) {
-    envVars[k] = variables ? selectFromVariables(variables, k, v) : v;
-  }
-  return {envVars};
+  return out;
 }
