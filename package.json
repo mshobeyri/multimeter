@@ -3,7 +3,7 @@
   "publisher": "mshobeyri",
   "displayName": "Multimeter",
   "description": "API test tools",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git"
@@ -392,7 +392,7 @@
     "buildcli": "npm run buildcore && npm run pkg --prefix mmtcli",
     "pack": "vsce package",
     "publish": "vsce publish",
-    "install-package": "code --install-extension multimeter-1.0.0.vsix",
+    "install-package": "code --install-extension multimeter-1.0.1.vsix",
     "vscode:prepublish": "npm run build:vendor && npm run package",
     "compile": "npm run buildcore && npm run buildview && npm run check-types && npm run lint && node esbuild.js",
     "watch": "npm-run-all -p watch:*",
