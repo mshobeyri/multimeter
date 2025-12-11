@@ -140,11 +140,33 @@ export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
                     .map(([k, v]) => `"${k}": ${toTemplateWithEnvs(String(v))}`)
                     .join(', ');
 
+  const toJsValue = (value: any): string => {
+    if (value === undefined) {
+      return 'undefined';
+    }
+    if (typeof value === 'string') {
+      return toTemplateWithEnvs(value);
+    }
+    if (typeof value === 'number' || typeof value === 'boolean') {
+      return JSON.stringify(value);
+    }
+    if (value === null) {
+      return 'null';
+    }
+    return JSON.stringify(value);
+  };
+
+  const queryParams = Object.entries(replaced.query || {})
+                           .filter(([, v]) => v !== undefined)
+                           .map(([k, v]) => `"${k}": ${toJsValue(v)}`)
+                           .join(', ');
+
   return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
   const req = {
     url: ${toTemplateWithEnvs(String(replaced.url || ''))},
     protocol: '${ctx.api.protocol}',
     method: '${replaced.method}',
+    query: ${queryParams ? '{ ' + queryParams + ' }' : '{}'},
     headers: ${headers ? '{ ' + headers + ' }' : '{}'},
     body: ${toTemplateWithEnvs(formattedBody)}
   };

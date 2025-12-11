@@ -324,6 +324,32 @@ describe('body inputs numeric/boolean templating', () => {
   });
 });
 
+describe('API query handling', () => {
+  it('injects query parameters into generated request objects', async () => {
+    const apiYaml = [
+      'type: api',
+      'protocol: http',
+      'method: get',
+      'url: https://example.com/users',
+      'inputs:',
+      '  page: 1',
+      'query:',
+      '  page: i:page',
+      '  locale: <e:LOCALE>',
+    ].join('\n');
+    const ctx: APIContext = {
+      api: yamlToAPI(apiYaml),
+      name: 'users_api',
+      inputs: {},
+      envVars: {}
+    } as any;
+    const js = await importApiToJSfunc(ctx);
+    expect(js).toContain('query: {');
+    expect(js).toContain('"page": `${page}`');
+    expect(js).toContain('"locale": `${envVariables.LOCALE}`');
+  });
+});
+
 describe('delay step generation', () => {
   it('generates setTimeout-based await for ms and unit strings', async () => {
     const ctx1: TestContext = {
