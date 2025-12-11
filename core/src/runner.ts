@@ -324,7 +324,8 @@ function resolveApiExample(
       resolvedExampleIndex: typeof idx === 'number' ? idx : undefined,
     };
   };
-  if (typeof requestedIndex === 'number' && requestedIndex >= 0 && Number.isInteger(requestedIndex)) {
+  if (typeof requestedIndex === 'number' && requestedIndex >= 0 &&
+      Number.isInteger(requestedIndex)) {
     if (requestedIndex < examples.length) {
       const ex = examples[requestedIndex];
       return toResult(ex, requestedIndex);
