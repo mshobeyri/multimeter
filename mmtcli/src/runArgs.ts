@@ -1,7 +1,7 @@
-import path from 'path';
 import fs from 'fs';
 import yaml from 'js-yaml';
-import {mergeEnv, resolvePresetEnv, RunFileOptionsV2} from 'mmt-core/runConfig';
+import {mergeEnv, resolvePresetEnv, RunFileOptions} from 'mmt-core/runConfig';
+import path from 'path';
 
 type AnyOpts = Record<string, any>;
 
@@ -46,7 +46,8 @@ function parsePairs(list: string[]|undefined): Record<string, any> {
   return out;
 }
 
-function loadEnvDoc(envPath: string): {variables?: Record<string, any>; presets?: Record<string, any>} {
+function loadEnvDoc(envPath: string):
+    {variables?: Record<string, any>; presets?: Record<string, any>} {
   try {
     const txt = fs.readFileSync(envPath, 'utf8');
     const data = yaml.load(txt) as any;
@@ -63,7 +64,7 @@ function loadEnvDoc(envPath: string): {variables?: Record<string, any>; presets?
 }
 
 export interface ParsedCliRunArgs {
-  runFileOptions: RunFileOptionsV2;
+  runFileOptions: RunFileOptions;
   quiet: boolean;
   outFile?: string;
   printJs: boolean;
@@ -78,8 +79,8 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
   const manualEnvvars = parsePairs(opts.env);
 
   let envvar: Record<string, any>|undefined = undefined;
-  const envFileOpt = opts.envFile as string|undefined;
-  const presetName = opts.preset as string|undefined;
+  const envFileOpt = opts.envFile as string | undefined;
+  const presetName = opts.preset as string | undefined;
   if (envFileOpt) {
     let p = String(envFileOpt);
     if (!path.isAbsolute(p)) {
@@ -94,11 +95,13 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
     const presetEnv = resolvePresetEnv(doc, presetName);
     envvar = mergeEnv({envvar: presetEnv});
   }
-  const runFileOptions: RunFileOptionsV2 & {
+  const runFileOptions: RunFileOptions&{
     fileLoader: (path: string) => Promise<string>;
-    runCode: (code: string, title: string,
-              logger: (level: any, msg: string) => void) => Promise<void>;
-  } = {
+    runCode: (
+        code: string, title: string,
+        logger: (level: any, msg: string) => void) => Promise<void>;
+  }
+  = {
     file: rawText,
     fileType: 'raw',
     filePath: full,

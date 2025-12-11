@@ -283,10 +283,6 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         case 'runCurrentDocument': {
           console.log('Running current document...');
           const fileName = path.basename(document.uri.fsPath);
-          const exampleIndex =
-              typeof message?.inputs?.exampleIndex === 'number' ?
-              message.inputs.exampleIndex :
-              undefined;
           const forwardLog = (level: LogLevel, message: string) => {
             logToOutput(level, message);
           };
@@ -309,7 +305,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
               file: document.getText(),
               fileType: 'raw' as any,
               filePath: document.uri.fsPath,
-              exampleIndex,
+              exampleIndex: message?.inputs?.exampleIndex,
               manualInputs: {},
               envvar: vscodeEnv,
               manualEnvvars: {},

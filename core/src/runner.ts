@@ -1,30 +1,12 @@
-import * as JSer from './JSer';
-import * as testParsePack from './testParsePack';
+import {APIData} from './APIData';
+import {yamlToAPI} from './apiParsePack';
+import {Type} from './CommonData';
 import docHtml from './docHtml';
 import docMarkdown from './docMarkdown';
-import {APIData} from './APIData';
-import {Type} from './CommonData';
-import {yamlToAPI} from './apiParsePack';
-import {mergeEnv, mergeInputs, RunFileOptionsV2} from './runConfig';
+import * as JSer from './JSer';
+import {FileLoader, GenerateJsOptions, LogLevel, mergeEnv, mergeInputs, RunFileOptions, RunResult} from './runConfig';
+import * as testParsePack from './testParsePack';
 
-export type LogLevel = 'info' | 'warn' | 'error';
-
-export interface RunResult {
-  success: boolean;
-  durationMs: number;
-  errors: string[];
-  logs?: string[];
-}
-
-export type FileLoader = (path: string) => Promise<string>;
-
-export interface GenerateJsOptions {
-  rawText: string;
-  name: string;
-  inputs: Record<string, any>;
-  envVars: Record<string, any>;
-  fileLoader: FileLoader; // Responsible for resolving relative imports
-}
 
 export async function generateTestJs(opts: GenerateJsOptions): Promise<string> {
   const {rawText, name, inputs, envVars, fileLoader} = opts;
@@ -37,22 +19,24 @@ export async function generateTestJs(opts: GenerateJsOptions): Promise<string> {
       return '';
     }
   });
-  const test = testParsePack.yamlToTest ? testParsePack.yamlToTest(rawText) : {} as any;
+  const test =
+      testParsePack.yamlToTest ? testParsePack.yamlToTest(rawText) : {} as any;
   let js = await JSer.rootTestToJsfunc({test, name, inputs, envVars});
   // Normalize env tokens in JS if variableReplacer is present on JSer
   const anyJSer: any = JSer as any;
-  if (anyJSer.variableReplacer && typeof anyJSer.variableReplacer === 'function') {
+  if (anyJSer.variableReplacer &&
+      typeof anyJSer.variableReplacer === 'function') {
     js = anyJSer.variableReplacer(js);
   }
   return js;
 }
 
 export async function runGeneratedJs(
-  js: string,
-  title: string,
-  logger: (level: LogLevel, msg: string) => void,
-  runCode: (code: string, title: string, lg: (lvl: LogLevel, msg: string) => void) => Promise<void>
-): Promise<RunResult> {
+    js: string, title: string, logger: (level: LogLevel, msg: string) => void,
+    runCode:
+        (code: string, title: string,
+         lg: (lvl: LogLevel, msg: string) => void) =>
+            Promise<void>): Promise<RunResult> {
   const start = Date.now();
   const errors: string[] = [];
   const logs: string[] = [];
@@ -69,7 +53,12 @@ export async function runGeneratedJs(
       return {success: false, durationMs: Date.now() - start, errors, logs};
     }
     await runCode(js, title, forward);
-    return {success: errors.length === 0, durationMs: Date.now() - start, errors, logs};
+    return {
+      success: errors.length === 0,
+      durationMs: Date.now() - start,
+      errors,
+      logs
+    };
   } catch (e: any) {
     errors.push(e?.message || String(e));
     return {success: false, durationMs: Date.now() - start, errors, logs};
@@ -82,7 +71,7 @@ export interface BuildDocOptions {
   logo?: string;
   sources?: string[];
   services?: any[];
-  format?: 'html' | 'md';
+  format?: 'html'|'md';
 }
 
 export function buildDocFromApis(apis: any[], opts: BuildDocOptions): string {
@@ -92,20 +81,12 @@ export function buildDocFromApis(apis: any[], opts: BuildDocOptions): string {
   }
   return docHtml.buildDocHtml(apis, rest);
 }
-
-export interface RunFileOptions extends RunFileOptionsV2 {
-  fileLoader: FileLoader;
-  runCode: (code: string, title: string,
-            logger: (level: LogLevel, msg: string) => void) => Promise<void>;
-  logger?: (level: LogLevel, msg: string) => void;
-}
-
 export interface RunFileResult {
   js: string;
   result: RunResult;
   identifier: string;
   displayName: string;
-  docType: Type | null;
+  docType: Type|null;
   inputsUsed: Record<string, any>;
   envVarsUsed: Record<string, any>;
   exampleName?: string;
@@ -116,7 +97,7 @@ export interface PreparedRun {
   rawText: string;
   filePath: string;
   baseName: string;
-  docType: Type | null;
+  docType: Type|null;
   envVarsUsed: Record<string, any>;
   inputsUsed: Record<string, any>;
   apiDoc?: APIData;
@@ -126,11 +107,12 @@ export interface PreparedRun {
 
 export async function prepareRunFromOptions(
     options: RunFileOptions,
-    log: (level: LogLevel, message: string) => void = () => {}):
-    Promise<PreparedRun> {
+    log: (level: LogLevel, message: string) => void =
+        () => {}): Promise<PreparedRun> {
   const {file, fileType, filePath: optFilePath} = options as any;
   const filePath = typeof optFilePath === 'string' && optFilePath ?
-      optFilePath : (fileType === 'path' ? file : '');
+      optFilePath :
+      (fileType === 'path' ? file : '');
   const rawText = file;
   const docType = detectDocType(filePath, rawText);
   const envVarsUsed = mergeEnv({
@@ -139,31 +121,18 @@ export async function prepareRunFromOptions(
   });
   const baseName = basename(filePath || '');
   const manualInputs: Record<string, any> = {...(options.manualInputs || {})};
-  const manualExampleId =
-      typeof manualInputs.exampleId === 'string' &&
-              manualInputs.exampleId.trim() ?
-          manualInputs.exampleId.trim() :
-          undefined;
-  const requestedExampleId = manualExampleId ? manualExampleId :
-      (typeof options.exampleId === 'string' && options.exampleId.trim() ?
-           options.exampleId.trim() :
-           undefined);
   const requestedExampleIndex =
-      typeof options.exampleIndex === 'number' ? options.exampleIndex :
-                                              undefined;
+      typeof options.exampleIndex === 'number' && options.exampleIndex >= 0 ?
+      options.exampleIndex :
+      undefined;
 
   if (docType === 'api') {
     const apiDoc = yamlToAPI(rawText);
-    const defaultInputs = isPlainObject(apiDoc.inputs) ?
-        apiDoc.inputs as Record<string, any> :
-        {};
+    const defaultInputs =
+        isPlainObject(apiDoc.inputs) ? apiDoc.inputs as Record<string, any>: {};
     const manualInputsForMerge = {...manualInputs};
-    if (manualExampleId) {
-      delete manualInputsForMerge.exampleId;
-    }
     const {exampleInputs, resolvedExampleName, resolvedExampleIndex} =
-        resolveApiExample(
-            apiDoc, requestedExampleId, requestedExampleIndex, log);
+        resolveApiExample(apiDoc, requestedExampleIndex, log);
     const inputsUsed = mergeInputs({
       defaultInputs,
       exampleInputs,
@@ -187,7 +156,7 @@ export async function prepareRunFromOptions(
         testParsePack.yamlToTest(rawText) :
         {} as any;
     const defaultInputs = isPlainObject(testDoc?.inputs) ?
-        testDoc.inputs as Record<string, any> :
+        testDoc.inputs as Record<string, any>:
         {};
     const inputsUsed = mergeInputs({
       defaultInputs,
@@ -215,7 +184,8 @@ export async function prepareRunFromOptions(
 
 export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
   const {fileLoader, runCode, logger} = options;
-  const sinkLogger: (level: LogLevel, msg: string) => void = logger ?? (() => {});
+  const sinkLogger: (level: LogLevel, msg: string) => void =
+      logger ?? (() => {});
   const preLogs: Array<{level: LogLevel; message: string}> = [];
   const note = (level: LogLevel, message: string) => {
     preLogs.push({level, message});
@@ -241,9 +211,12 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
     if (exampleName) {
       exampleLabelParts.push(exampleName);
     }
-    const exampleLabel = exampleLabelParts.length > 0 ? exampleLabelParts.join(' ') : undefined;
-    const displayName = exampleLabel ? `${baseName} (${exampleLabel})` : baseName;
-    const identifier = sanitizeIdentifier(exampleLabel ? `${baseName}_${exampleLabel}` : baseName);
+    const exampleLabel =
+        exampleLabelParts.length > 0 ? exampleLabelParts.join(' ') : undefined;
+    const displayName =
+        exampleLabel ? `${baseName} (${exampleLabel})` : baseName;
+    const identifier = sanitizeIdentifier(
+        exampleLabel ? `${baseName}_${exampleLabel}` : baseName);
     const js = await generateApiJs({
       api: apiDoc,
       name: identifier,
@@ -315,7 +288,7 @@ function sanitizeIdentifier(value: string): string {
   return /^[A-Za-z_$]/.test(replaced) ? replaced : `_${replaced}`;
 }
 
-function detectDocType(filePath: string, rawText: string): Type | null {
+function detectDocType(filePath: string, rawText: string): Type|null {
   try {
     return JSer.fileType(filePath, rawText);
   } catch {
@@ -334,47 +307,32 @@ interface ResolveExampleResult {
 }
 
 function resolveApiExample(
-    api: APIData, requestedName: string | undefined,
-    requestedIndex: number | undefined,
+    api: APIData, requestedIndex: number|undefined,
     log: (level: LogLevel, message: string) => void): ResolveExampleResult {
   const examples = Array.isArray(api.examples) ? api.examples : [];
   if (examples.length === 0) {
     return {exampleInputs: {}};
   }
   const toResult = (ex: any, idx?: number): ResolveExampleResult => {
-    const name = typeof ex?.name === 'string' && ex.name.trim() ? ex.name : undefined;
-    const inputs = isPlainObject(ex?.inputs) ? {...ex.inputs as Record<string, any>} : {};
+    const name =
+        typeof ex?.name === 'string' && ex.name.trim() ? ex.name : undefined;
+    const inputs =
+        isPlainObject(ex?.inputs) ? {...ex.inputs as Record<string, any>} : {};
     return {
       exampleInputs: inputs,
       resolvedExampleName: name,
       resolvedExampleIndex: typeof idx === 'number' ? idx : undefined,
     };
   };
-  if (typeof requestedIndex === 'number') {
-    if (requestedIndex >= 0 && requestedIndex < examples.length) {
+  if (typeof requestedIndex === 'number' && requestedIndex >= 0 && Number.isInteger(requestedIndex)) {
+    if (requestedIndex < examples.length) {
       const ex = examples[requestedIndex];
       return toResult(ex, requestedIndex);
     }
-    log('warn', `Example #${requestedIndex + 1} not found; using API defaults.`);
+    log('warn',
+        `Example #${requestedIndex + 1} not found; using API defaults.`);
   }
-  if (requestedName) {
-    const matchIndex = examples.findIndex(ex =>
-        typeof ex?.name === 'string' && ex.name.toLowerCase() === requestedName.toLowerCase());
-    if (matchIndex >= 0) {
-      return toResult(examples[matchIndex], matchIndex);
-    }
-    log('warn', `Example "${requestedName}" not found; using API defaults.`);
-  }
-  const candidates = examples
-                         .map((ex, idx) => ({ex, idx}))
-                         .filter(({ex}) => isPlainObject(ex?.inputs) &&
-                              Object.keys(ex.inputs || {}).length > 0);
-  if (candidates.length === 1) {
-    const {ex, idx} = candidates[0];
-    const label = typeof ex?.name === 'string' && ex.name.trim() ? ex.name : `#${idx + 1}`;
-    log('info', `Using example "${label}" (only example with inputs).`);
-    return toResult(ex, idx);
-  }
+
   return {exampleInputs: {}};
 }
 
@@ -389,7 +347,8 @@ interface GenerateApiJsOptions {
 }
 
 async function generateApiJs(options: GenerateApiJsOptions): Promise<string> {
-  const {api, name, envVars, inputs, fileLoader, exampleName, exampleIndex} = options;
+  const {api, name, envVars, inputs, fileLoader, exampleName, exampleIndex} =
+      options;
   JSer.setFileLoader(async (p: string) => {
     try {
       const t = await fileLoader(p);
@@ -398,14 +357,20 @@ async function generateApiJs(options: GenerateApiJsOptions): Promise<string> {
       return '';
     }
   });
-  const apiClone: APIData = {...api, inputs: isPlainObject(api.inputs) ? {...api.inputs as Record<string, any>} : api.inputs};
+  const apiClone: APIData = {
+    ...api,
+    inputs: isPlainObject(api.inputs) ? {...api.inputs as Record<string, any>} :
+                                        api.inputs
+  };
   const funcSource = await JSer.importApiToJSfunc({
     api: apiClone,
     name,
     inputs: {},
     envVars,
   });
-  return `${funcSource}\n\n${buildApiRunnerWrapper({name, envVars, inputs, exampleName, exampleIndex})}`;
+  return `${funcSource}\n\n${
+      buildApiRunnerWrapper(
+          {name, envVars, inputs, exampleName, exampleIndex})}`;
 }
 
 interface ApiRunnerWrapperOptions {
@@ -426,29 +391,32 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
   if (opts.exampleName) {
     exampleLabelParts.push(opts.exampleName);
   }
-  const exampleLabel = exampleLabelParts.length ? `Example ${exampleLabelParts.join(' ')}` : '';
-  const helperFactorySource = indentMultiline(createApiLogHelpers.toString(), '    ');
+  const exampleLabel =
+      exampleLabelParts.length ? `Example ${exampleLabelParts.join(' ')}` : '';
+  const helperFactorySource =
+      indentMultiline(createApiLogHelpers.toString(), '    ');
   const helperDestructure = `  const {\n` +
-    `    raw: __mmt_raw,\n` +
-    `    isRaw: __mmt_isRaw,\n` +
-    `    isPlainObject: __mmt_isPlainObject,\n` +
-    `    isComplex: __mmt_isComplex,\n` +
-    `    escapeString: __mmt_escapeString,\n` +
-    `    formatScalar: __mmt_formatScalar,\n` +
-    `    formatValue: __mmt_formatValue,\n` +
-    `    formatKeyValueObject: __mmt_formatKeyValueObject,\n` +
-    `    formatSection: __mmt_formatSection,\n` +
-    `    formatDuration: __mmt_formatDuration,\n` +
-    `    formatBodyValue: __mmt_formatBodyValue\n` +
-    `  } = (\n${helperFactorySource}\n  )();`;
-  const exampleLiteral = exampleLabel ? `'${escapeForJsString(exampleLabel)}'` : 'null';
+      `    raw: __mmt_raw,\n` +
+      `    isRaw: __mmt_isRaw,\n` +
+      `    isPlainObject: __mmt_isPlainObject,\n` +
+      `    isComplex: __mmt_isComplex,\n` +
+      `    escapeString: __mmt_escapeString,\n` +
+      `    formatScalar: __mmt_formatScalar,\n` +
+      `    formatValue: __mmt_formatValue,\n` +
+      `    formatKeyValueObject: __mmt_formatKeyValueObject,\n` +
+      `    formatSection: __mmt_formatSection,\n` +
+      `    formatDuration: __mmt_formatDuration,\n` +
+      `    formatBodyValue: __mmt_formatBodyValue\n` +
+      `  } = (\n${helperFactorySource}\n  )();`;
+  const exampleLiteral =
+      exampleLabel ? `'${escapeForJsString(exampleLabel)}'` : 'null';
   return `return (async () => {\n` +
       `  const envVar = ${envJson};\n` +
       `  const envVariables = envVar;\n` +
       `  const __mmt_envVars = envVar;\n` +
       `  const __mmt_inputs = ${inputsJson};\n` +
-      `  const __mmt_exampleLabel = ${exampleLiteral};\n` +
-      helperDestructure + '\n' +
+      `  const __mmt_exampleLabel = ${exampleLiteral};\n` + helperDestructure +
+      '\n' +
       `  const __mmt_originalSend = send;\n` +
       `  send = async function(req) {\n` +
       `    const __req = req || {};\n` +
@@ -547,7 +515,8 @@ export interface ApiLogHelpers {
   escapeString: (value: unknown) => string;
   formatScalar: (value: unknown) => string;
   formatValue: (value: unknown, indentLevel: number) => string;
-  formatKeyValueObject: (obj: Record<string, any>, indentLevel?: number) => string;
+  formatKeyValueObject:
+      (obj: Record<string, any>, indentLevel?: number) => string;
   formatSection: (title: string, obj: Record<string, any>) => string;
   formatDuration: (value: unknown) => ApiLogRawValue;
   formatBodyValue: (body: unknown) => unknown;
@@ -559,11 +528,13 @@ export function createApiLogHelpers(): ApiLogHelpers {
   }
 
   function isRaw(value: unknown): value is ApiLogRawValue {
-    return !!value && typeof value === 'object' && Object.prototype.hasOwnProperty.call(value, '__mmt_raw');
+    return !!value && typeof value === 'object' &&
+        Object.prototype.hasOwnProperty.call(value, '__mmt_raw');
   }
 
   function isPlainObject(value: unknown): value is Record<string, any> {
-    return !!value && typeof value === 'object' && !Array.isArray(value) && !isRaw(value);
+    return !!value && typeof value === 'object' && !Array.isArray(value) &&
+        !isRaw(value);
   }
 
   function isComplex(value: unknown): boolean {
@@ -634,21 +605,24 @@ export function createApiLogHelpers(): ApiLogHelpers {
     return lines.join('\n');
   }
 
-  function formatKeyValueObject(obj: Record<string, any>, indentLevel = 2): string {
+  function formatKeyValueObject(
+      obj: Record<string, any>, indentLevel = 2): string {
     const entries = Object.entries(obj || {});
     const indent = ' '.repeat(indentLevel);
     if (!entries.length) {
       return indent + '{}';
     }
     const maxKeyLen = Math.max(...entries.map(([key]) => key.length));
-    return entries.map(([key, value]) => {
-      const prefix = indent + key + ':';
-      if (isComplex(value)) {
-        return prefix + '\n' + formatValue(value, indentLevel + 2);
-      }
-      const padding = ' '.repeat(Math.max(0, maxKeyLen - key.length) + 2);
-      return prefix + padding + formatScalar(value);
-    }).join('\n');
+    return entries
+        .map(([key, value]) => {
+          const prefix = indent + key + ':';
+          if (isComplex(value)) {
+            return prefix + '\n' + formatValue(value, indentLevel + 2);
+          }
+          const padding = ' '.repeat(Math.max(0, maxKeyLen - key.length) + 2);
+          return prefix + padding + formatScalar(value);
+        })
+        .join('\n');
   }
 
   function formatSection(title: string, obj: Record<string, any>): string {
@@ -700,9 +674,8 @@ function indentMultiline(value: string, indent: string): string {
 }
 
 function escapeForJsString(value: string): string {
-  return value
-      .replace(/\\/g, '\\\\')
-      .replace(/'/g, "\\'")
+  return value.replace(/\\/g, '\\\\')
+      .replace(/'/g, '\\\'')
       .replace(/\r/g, '\\r')
       .replace(/\n/g, '\\n');
 }

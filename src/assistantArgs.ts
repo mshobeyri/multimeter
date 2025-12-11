@@ -1,15 +1,16 @@
+import {mergeEnv, resolvePresetEnv, RunFileOptions} from 'mmt-core/runConfig';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import YAML from 'yaml';
-import {mergeEnv, resolvePresetEnv, RunFileOptionsV2} from 'mmt-core/runConfig';
 
 type AnyOpts = Record<string, any>;
 
 export interface ParsedAssistantRun {
-  runFileOptions: RunFileOptionsV2 & {
+  runFileOptions: RunFileOptions&{
     fileLoader: (path: string) => Promise<string>;
-    runCode: (code: string, title: string,
-              logger: (level: any, msg: string) => void) => Promise<void>;
+    runCode: (
+        code: string, title: string,
+        logger: (level: any, msg: string) => void) => Promise<void>;
   };
   outFile?: string;
   printJs: boolean;
@@ -63,8 +64,8 @@ export async function parseAssistantRunArgs(
       (rawPrompt || '').match(/(?:[^\s"']+|"[^"]*"|'[^']*')+/g) || [];
   const unquote = (s: string) => s.replace(/^["']|["']$/g, '');
 
-  const takeFlag = (name: string, short?: string) =>
-      tokens.some((t: string) => t === `--${name}` || (short && t === `-${short}`));
+  const takeFlag = (name: string, short?: string) => tokens.some(
+      (t: string) => t === `--${name}` || (short && t === `-${short}`));
   const findOpt = (name: string, short?: string) => {
     const pref = `--${name}`;
     const shortPref = short ? `-${short}` : undefined;
@@ -158,8 +159,8 @@ export async function parseAssistantRunArgs(
     }
   }
 
-  const vscodeEnvState = context.workspaceState.get<any>(
-      'multimeter.environment.storage', []);
+  const vscodeEnvState =
+      context.workspaceState.get<any>('multimeter.environment.storage', []);
   const vscodeEnv: Record<string, any> = {};
   if (Array.isArray(vscodeEnvState)) {
     for (const item of vscodeEnvState) {

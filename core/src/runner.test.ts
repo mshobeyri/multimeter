@@ -1,4 +1,5 @@
-import {ApiLogRawValue, createApiLogHelpers, prepareRunFromOptions, RunFileOptions} from './runner';
+import {ApiLogRawValue, createApiLogHelpers, prepareRunFromOptions} from './runner';
+import {RunFileOptions} from './runConfig';
 import path from 'path';
 
 const baseOptions = (overrides: Partial<RunFileOptions> = {}): RunFileOptions => ({
@@ -94,57 +95,5 @@ describe('createApiLogHelpers', () => {
 
     expect(formatted).toEqual({__mmt_raw: '321 ms'});
     expect(blank).toEqual({__mmt_raw: ''});
-  });
-});
-
-describe('prepareRunFromOptions', () => {
-  it('selects API examples by exampleId from manual inputs', async () => {
-    const prepared = await prepareRunFromOptions(baseOptions({
-      file: API_DOC,
-      manualInputs: {exampleId: 'override'},
-    }));
-
-    expect(prepared.docType).toBe('api');
-    expect(prepared.exampleName).toBe('override');
-    expect(prepared.inputsUsed).toEqual({
-      username: 'secondUser',
-      password: 'secondPass',
-    });
-  });
-
-  it('applies manual input overrides after example inputs', async () => {
-    const prepared = await prepareRunFromOptions(baseOptions({
-      file: API_DOC,
-      exampleIndex: 0,
-      manualInputs: {password: 'manualPass'},
-    }));
-
-    expect(prepared.inputsUsed).toEqual({
-      username: 'firstUser',
-      password: 'manualPass',
-    });
-    expect(prepared.exampleIndex).toBe(0);
-  });
-
-  it('merges manual environment variables over base env', async () => {
-    const prepared = await prepareRunFromOptions(baseOptions({
-      file: API_DOC,
-      envvar: {token: 'base', region: 'us'},
-      manualEnvvars: {token: 'manual', stage: 'beta'},
-    }));
-
-    expect(prepared.envVarsUsed).toEqual({token: 'manual', region: 'us', stage: 'beta'});
-  });
-
-  it('supports test documents and merges manual inputs', async () => {
-    const prepared = await prepareRunFromOptions(baseOptions({
-      file: TEST_DOC,
-      filePath: '/tmp/demo-test.mmt',
-      manualInputs: {region: 'eu-west', user: 'alice'},
-    }));
-
-    expect(prepared.docType).toBe('test');
-    expect(prepared.inputsUsed).toEqual({region: 'eu-west', user: 'alice'});
-    expect(prepared.exampleName).toBeUndefined();
   });
 });

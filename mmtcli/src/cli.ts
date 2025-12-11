@@ -72,7 +72,7 @@ program.command('run')
             buildCliRunArgs(file, opts as any);
         const runOpts: any = runFileOptions;
         runOpts.runCode = (code: string, title: string, lg: any) =>
-          runJSCode(code, title, lg as any);
+            runJSCode(code, title, lg as any);
         const runOutcome = await runner.runFile(runFileOptions as any);
         const {js, result} = runOutcome;
         if (printJs) {

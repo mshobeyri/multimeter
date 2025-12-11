@@ -278,7 +278,9 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     try {
       window.vscode?.postMessage({
         command: "runCurrentDocument",
-        inputs: {},
+        inputs: {
+          exampleIndex: -1,
+        },
       });
     } catch (err: any) {
       showVSCodeMessage("error", err?.message || "Failed to run document.");

@@ -1,12 +1,36 @@
-export interface RunFileOptionsV2 {
+
+export type FileLoader = (path: string) => Promise<string>;
+
+export type LogLevel = 'info'|'warn'|'error';
+
+export interface RunResult {
+  success: boolean;
+  durationMs: number;
+  errors: string[];
+  logs?: string[];
+}
+
+export interface GenerateJsOptions {
+  rawText: string;
+  name: string;
+  inputs: Record<string, any>;
+  envVars: Record<string, any>;
+  fileLoader: FileLoader;  // Responsible for resolving relative imports
+}
+
+export interface RunFileOptions {
   file: string;
-  fileType: 'raw'|'path';
   filePath?: string;
+  fileType: 'raw'|'path';
   exampleIndex?: number;
-  exampleId?: string;
   manualInputs?: Record<string, any>;
   envvar?: Record<string, any>;
   manualEnvvars?: Record<string, any>;
+  fileLoader: FileLoader;
+  runCode:
+      (code: string, title: string,
+       logger: (level: LogLevel, msg: string) => void) => Promise<void>;
+  logger?: (level: LogLevel, msg: string) => void;
 }
 
 export interface MergeInputsParams {
