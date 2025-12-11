@@ -62,6 +62,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   private activeWebviewPanels: Set<vscode.WebviewPanel> = new Set();
   private fileReadTimeouts: Map<vscode.WebviewPanel, NodeJS.Timeout> =
       new Map();
+  private diagnostics: vscode.DiagnosticCollection;
 
   // Static method to get the provider instance
   public static getInstance(): MmtEditorProvider|null {
@@ -71,6 +72,8 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   constructor(private readonly context: vscode.ExtensionContext) {
     // Set the static instance when constructor is called
     MmtEditorProvider.instance = this;
+    this.diagnostics = vscode.languages.createDiagnosticCollection('multimeter');
+    this.context.subscriptions.push(this.diagnostics);
   }
 
   // Method to send message to all active webview panels
@@ -147,6 +150,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         clearTimeout(timeout);
         this.fileReadTimeouts.delete(webviewPanel);
       }
+      this.diagnostics.delete(document.uri);
     });
 
     webviewPanel.webview.options = {
@@ -260,6 +264,31 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
               error: String(err)
             });
           }
+          break;
+        }
+
+        case 'validateImports': {
+          const imports = message?.imports;
+          const importEntries = imports && typeof imports === 'object' ? imports : {};
+          const missing: Array<{alias: string; path: string}> = [];
+          for (const [alias, relativePath] of Object.entries(importEntries)) {
+            if (typeof alias !== 'string') {
+              continue;
+            }
+            if (typeof relativePath !== 'string' || !relativePath.trim()) {
+              continue;
+            }
+            const absolutePath = path.resolve(
+                path.dirname(document.uri.fsPath), relativePath);
+            if (!fs.existsSync(absolutePath)) {
+              missing.push({alias, path: relativePath});
+            }
+          }
+          webviewPanel.webview.postMessage({
+            command: 'importValidationResult',
+            requestId: message?.requestId,
+            missing,
+          });
           break;
         }
 
@@ -397,6 +426,28 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           }
           break;
 
+
+        case 'updateDocumentProblems': {
+          const problems = Array.isArray(message?.problems) ? message.problems : [];
+          const diagnostics = problems.map((problem: any) => {
+            const line = typeof problem?.line === 'number' ? problem.line : 1;
+            const column = typeof problem?.column === 'number' ? problem.column : 1;
+            const zeroLine = Math.max(0, line - 1);
+            const zeroColumn = Math.max(0, column - 1);
+            const range = new vscode.Range(
+                new vscode.Position(zeroLine, zeroColumn),
+                new vscode.Position(zeroLine, Math.max(zeroColumn + 1, zeroColumn)));
+            const severity = problem?.severity === 'error' ?
+                vscode.DiagnosticSeverity.Error :
+                vscode.DiagnosticSeverity.Warning;
+            const diagnostic = new vscode.Diagnostic(
+                range, String(problem?.message || ''), severity);
+            diagnostic.source = 'multimeter';
+            return diagnostic;
+          });
+          this.diagnostics.set(document.uri, diagnostics);
+          break;
+        }
         case 'logToOutput': {
           logToOutput(message.level, message.message);
           break;

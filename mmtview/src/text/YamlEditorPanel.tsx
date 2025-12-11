@@ -37,6 +37,13 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const importsMapRef = useRef<Record<string, string>>({});
   const ctrlDownRef = useRef<boolean>(false);
   const [docType, setDocType] = useState<string | null>(null);
+  const [importsVersion, setImportsVersion] = useState(0);
+  const lastImportsSignatureRef = useRef<string>("");
+  const pendingImportValidationIdRef = useRef<number>(0);
+  const [missingImports, setMissingImports] = useState<MissingImportEntry[]>([]);
+  const [yamlProblems, setYamlProblems] = useState<ProblemEntry[]>([]);
+  const [orderingProblems, setOrderingProblems] = useState<ProblemEntry[]>([]);
+  const [missingImportProblems, setMissingImportProblems] = useState<ProblemEntry[]>([]);
   // Keep track of whether the editor has detected a canonical key-order issue via markers.
   const shouldShowRunControls = (docType === "test" || docType === "api");
 
@@ -62,6 +69,27 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     contentRef.current = content;
   }, [content]);
 
+  useEffect(() => {
+    const listener = (event: MessageEvent) => {
+      const message = event.data;
+      if (!message || typeof message !== "object") {
+        return;
+      }
+      if (message.command === "importValidationResult") {
+        if (message.requestId && message.requestId !== pendingImportValidationIdRef.current) {
+          return;
+        }
+        const rawMissing = Array.isArray(message.missing) ? message.missing : [];
+        const formatted: MissingImportEntry[] = rawMissing
+          .filter((item: any) => item && typeof item.alias === "string" && typeof item.path === "string")
+          .map((item: any) => ({ alias: item.alias, path: item.path }));
+        setMissingImports(formatted);
+      }
+    };
+    window.addEventListener("message", listener);
+    return () => window.removeEventListener("message", listener);
+  }, []);
+
   // Validate YAML and set error marker if invalid
   useEffect(() => {
     if (!monacoRef.current || !editorRef.current) return;
@@ -74,6 +102,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       const yamlDoc = parseYamlDoc(content);
       let markers = [];
       if (yamlDoc.errors && yamlDoc.errors.length > 0) {
+        const problems: ProblemEntry[] = [];
         for (const error of yamlDoc.errors) {
           // Use linePos array for start/end
           const start = error.linePos?.[0];
@@ -84,12 +113,24 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
             column: start ? start.col : 0,
             endColumn: end ? end.col + 1 : (start ? start.col + 2 : 2)
           });
+          problems.push({
+            message: error.message,
+            severity: "error",
+            line: start ? start.line : 1,
+            column: start ? start.col : 1,
+          });
         }
         setEditorErrorMarker(monaco, editor, markers);
+        setYamlProblems(problems);
       } else {
         monaco.editor.setModelMarkers(model, "yaml", []);
+        setYamlProblems([]);
       }
     } catch (e: any) {
+      setYamlProblems([{
+        message: "Failed to parse YAML document.",
+        severity: "error",
+      }]);
     }
   }, [content, editorReady]);
 
@@ -102,11 +143,41 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       importsMapRef.current = imps && typeof imps === 'object' ? imps : {};
       const typeVal = typeof js?.type === "string" ? js.type.toLowerCase() : null;
       setDocType(typeVal);
+      const sortedEntries = Object.entries(importsMapRef.current)
+        .filter(([, value]) => typeof value === "string")
+        .sort(([a], [b]) => a.localeCompare(b));
+      const nextSignature = JSON.stringify(sortedEntries);
+      if (nextSignature !== lastImportsSignatureRef.current) {
+        lastImportsSignatureRef.current = nextSignature;
+        setImportsVersion((prev) => prev + 1);
+      }
     } catch {
       importsMapRef.current = {};
       setDocType(null);
+      if (lastImportsSignatureRef.current !== "[]") {
+        lastImportsSignatureRef.current = "[]";
+        setImportsVersion((prev) => prev + 1);
+      }
     }
   }, [content]);
+
+  useEffect(() => {
+    const importsObj = importsMapRef.current || {};
+    if (!importsObj || Object.keys(importsObj).length === 0) {
+      setMissingImports([]);
+      return;
+    }
+    if (!window?.vscode) {
+      return;
+    }
+    const requestId = Date.now();
+    pendingImportValidationIdRef.current = requestId;
+    window.vscode.postMessage({
+      command: "validateImports",
+      imports: importsObj,
+      requestId,
+    });
+  }, [importsVersion]);
 
   useEffect(() => {
     if (!editorReady || !monacoRef.current || !editorRef.current) {
@@ -122,6 +193,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
 
     if (!expectedOrder || !content.trim()) {
       monaco.editor.setModelMarkers(model, "yaml-ordering", []);
+      setOrderingProblems([]);
       return;
     }
 
@@ -129,6 +201,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       const yamlDoc = parseYamlDoc(content);
       if (yamlDoc.errors && yamlDoc.errors.length > 0) {
         monaco.editor.setModelMarkers(model, "yaml-ordering", []);
+        setOrderingProblems([]);
         return;
       }
       const issue = detectOrderingIssue(yamlDoc, content, expectedOrder);
@@ -143,10 +216,65 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         }]
         : [];
       monaco.editor.setModelMarkers(model, "yaml-ordering", markers);
+      if (issue) {
+        setOrderingProblems([{ message: issue.message, severity: "warning", line: issue.line, column: 1 }]);
+      } else {
+        setOrderingProblems([]);
+      }
     } catch {
       monaco.editor.setModelMarkers(model, "yaml-ordering", []);
+      setOrderingProblems([]);
     }
   }, [content, docType, editorReady]);
+
+  useEffect(() => {
+    if (!editorReady || !monacoRef.current || !editorRef.current) {
+      return;
+    }
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) {
+      return;
+    }
+
+    if (!missingImports.length) {
+      monaco.editor.setModelMarkers(model, "mmt-imports", []);
+      setMissingImportProblems([]);
+      return;
+    }
+
+    let doc: any = null;
+    try {
+      doc = parseYamlDoc(content);
+    } catch {
+      monaco.editor.setModelMarkers(model, "mmt-imports", []);
+      setMissingImportProblems([]);
+      return;
+    }
+
+    const lineInfo = extractImportLineInfo(doc, content);
+    const markers = missingImports.map(({ alias, path }) => {
+      const info = lineInfo.find(entry => entry.alias === alias) || lineInfo.find(entry => entry.path === path);
+      const targetLine = info?.line || 1;
+      const lineNumber = Math.min(Math.max(targetLine, 1), model.getLineCount());
+      return {
+        startLineNumber: lineNumber,
+        startColumn: 1,
+        endLineNumber: lineNumber,
+        endColumn: model.getLineMaxColumn(lineNumber),
+        message: `Imported file "${path}" was not found.`,
+        severity: monaco.MarkerSeverity.Warning,
+      };
+    });
+    monaco.editor.setModelMarkers(model, "mmt-imports", markers);
+    setMissingImportProblems(markers.map(marker => ({
+      message: marker.message,
+      severity: "warning",
+      line: marker.startLineNumber,
+      column: marker.startColumn,
+    })));
+  }, [missingImports, content, editorReady]);
 
   useEffect(() => {
     if (!editorReady || !editorRef.current || !monacoRef.current) {
@@ -484,6 +612,17 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     );
   }, [content, editorReady]);
 
+  useEffect(() => {
+    if (!window?.vscode) {
+      return;
+    }
+    const problems = [...yamlProblems, ...orderingProblems, ...missingImportProblems];
+    window.vscode.postMessage({
+      command: "updateDocumentProblems",
+      problems,
+    });
+  }, [yamlProblems, orderingProblems, missingImportProblems]);
+
   return (
     <div style={{ height: "100%" }}>
       <TextEditor
@@ -517,6 +656,21 @@ type OrderingIssue = {
 type RootKeyInfo = {
   key: string;
   line: number;
+};
+
+type MissingImportEntry = { alias: string; path: string };
+
+type ImportLineInfo = {
+  alias: string;
+  path?: string;
+  line: number;
+};
+
+type ProblemEntry = {
+  message: string;
+  severity: "error" | "warning";
+  line?: number;
+  column?: number;
 };
 
 function extractExampleLineInfo(doc: any, content: string): ExampleLineInfo[] {
@@ -580,6 +734,32 @@ function extractRootKeyInfo(doc: any, content: string): RootKeyInfo[] {
       return { key, line } as RootKeyInfo;
     })
     .filter(Boolean) as RootKeyInfo[];
+}
+
+function extractImportLineInfo(doc: any, content: string): ImportLineInfo[] {
+  const items: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
+  const importPair = items.find(entry => {
+    const key = entry?.key?.value;
+    return key === "import" || key === "imports";
+  });
+  if (!importPair || !importPair.value) {
+    return [];
+  }
+  const mapItems: any[] = Array.isArray(importPair.value.items) ? importPair.value.items : [];
+  return mapItems
+    .map(pair => {
+      const alias = typeof pair?.key?.value === "string" ? pair.key.value : undefined;
+      if (!alias) {
+        return null;
+      }
+      const path = typeof pair?.value?.value === "string" ? pair.value.value : undefined;
+      const offset = Array.isArray(pair?.value?.range) && typeof pair.value.range[0] === "number"
+        ? pair.value.range[0]
+        : Array.isArray(pair?.range) ? pair.range[0] : undefined;
+      const line = typeof offset === "number" ? offsetToLineNumber(content, offset) : 1;
+      return { alias, path, line } as ImportLineInfo;
+    })
+    .filter(Boolean) as ImportLineInfo[];
 }
 
 function getCanonicalOrder(docType: string | null): string[] | null {
