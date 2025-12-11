@@ -472,7 +472,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `  };\n\n` +
       `  try {\n` +
       `    if (__mmt_exampleLabel) {\n` +
-      `      console.info('Running ' + __mmt_exampleLabel);\n` +
+      `      console.log('Running ' + __mmt_exampleLabel);\n` +
       `    }\n` +
       `    const __mmt_hasEnv = Object.keys(__mmt_envVars || {}).length > 0;\n` +
       `    if (__mmt_hasEnv || __mmt_exampleLabel) {\n` +
