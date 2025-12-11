@@ -183,7 +183,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
             setCurrentInputs(data);
             prepareRequestData(data, { respectTouched: false });
           }}
-          keyOptions={Object.keys(api.inputs || {})}
+          keyOptions={typeof api.inputs === "object" ? Object.keys(api.inputs || {}) : []}
           deletable={false}
         />
       )}
@@ -249,7 +249,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
           label="outputs"
           value={outputs}
           onChange={() => { }}
-          keyOptions={Object.keys(api.outputs || {})}
+          keyOptions={ typeof api.outputs === "object" ? Object.keys(api.outputs || {}) : []}
           deletable={false}
         />
       )}

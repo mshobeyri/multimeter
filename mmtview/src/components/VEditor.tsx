@@ -9,7 +9,7 @@ interface VEditorProps {
   label: string;
   value?: JSONRecord;
   onChange: (v: JSONRecord) => void;
-  keyOptions: string[];         // List of allowed keys
+  keyOptions: string | string[];         // List of allowed keys
   valueOptions?: string[];      // List of allowed values (optional)
   disabled?: boolean;
   deletable?: boolean;
@@ -24,10 +24,10 @@ const VEditor: React.FC<VEditorProps> = ({
   disabled,
   deletable = true
 }) => {
-  // Helper to convert any value to string for display/editing
+  const keys = typeof keyOptions === "string" ? [keyOptions]: keyOptions;
 
   const handleValueChange = (keyIndex: number, newVal: string) => {
-    const key = keyOptions[keyIndex];
+    const key = keys[keyIndex];
     if (!key) return;
 
     const updated: JSONRecord = { ...(value || {}) };
@@ -43,7 +43,7 @@ const VEditor: React.FC<VEditorProps> = ({
   };
 
   const handleRemove = (keyIndex: number) => {
-    const key = keyOptions[keyIndex];
+    const key = keys[keyIndex];
     if (!key) return;
 
     const updated: JSONRecord = { ...(value || {}) };
@@ -61,7 +61,7 @@ const VEditor: React.FC<VEditorProps> = ({
       </div>
       <table style={{ width: "100%" }}>
         <tbody>
-          {safeList(keyOptions).map((key, index) => {
+          {safeList(keys).map((key, index) => {
             const currentValue = value?.[key];
             const displayValue = valueToString(currentValue === undefined ? "" : currentValue);
             const hasValue = currentValue !== undefined;
