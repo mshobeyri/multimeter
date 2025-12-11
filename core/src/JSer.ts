@@ -649,7 +649,7 @@ export const importTestToJsfunc = async(ctx: TestContext): Promise<string> => {
   }
 
   return `const ${toLowerUnderscore(ctx.name)} = async ({ ${
-      inputParams}} = {}, envVariables = {}) => {
+      inputParams}} = {}) => {
   ${indentLines(importedFuncs)}
 
   let outputs = {${outputParams}};
@@ -663,8 +663,8 @@ export const importTestToJsfunc = async(ctx: TestContext): Promise<string> => {
 export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
   const test = await importTestToJsfunc(ctx);
   const envPretty = JSON.stringify(ctx.envVars || {}, null, 2);
-  const full = `${test}\n\nconst envVar = ${envPretty};\nreturn ${
-      toLowerUnderscore(ctx.name)}({}, envVar);`;
+  const full = `const envVariables = ${envPretty};\n\n${test}\n\nreturn ${
+      toLowerUnderscore(ctx.name)}({});`;
   return variableReplacer(full);
 };
 
