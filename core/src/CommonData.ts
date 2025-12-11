@@ -23,4 +23,4 @@ export type JSONValue =  string | number | boolean | object | null;
 export type Parameter = { [key: string]: JSONValue };
 export type JSONRecord = Record<string, JSONValue>;
 
-export type LogLevel = 'error' | 'warn' | 'info';
+export type LogLevel = 'trace' | 'debug' | 'error' | 'warn' | 'info' | 'log';

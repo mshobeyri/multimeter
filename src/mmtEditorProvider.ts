@@ -28,6 +28,16 @@ export async function readFileContent(filename: string): Promise<string> {
 
 export function logToOutput(level: LogLevel, message: string) {
   switch (level) {
+    case 'trace':
+      logOutputChannel.trace(message);
+      break;
+    case 'debug':
+      logOutputChannel.debug(message);
+      break;
+    case 'info':
+    case 'log':
+      logOutputChannel.info(message);
+      break;
     case 'error':
       logOutputChannel.error(message);
       break;
@@ -281,7 +291,6 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         }
 
         case 'runCurrentDocument': {
-          console.log('Running current document...');
           const fileName = path.basename(document.uri.fsPath);
           const forwardLog = (level: LogLevel, message: string) => {
             logToOutput(level, message);

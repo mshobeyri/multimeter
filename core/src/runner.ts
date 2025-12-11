@@ -4,7 +4,8 @@ import {Type} from './CommonData';
 import docHtml from './docHtml';
 import docMarkdown from './docMarkdown';
 import * as JSer from './JSer';
-import {FileLoader, GenerateJsOptions, LogLevel, mergeEnv, mergeInputs, RunFileOptions, RunResult} from './runConfig';
+import { LogLevel } from "./CommonData";
+import {FileLoader, GenerateJsOptions, mergeEnv, mergeInputs, RunFileOptions, RunResult} from './runConfig';
 import * as testParsePack from './testParsePack';
 
 
@@ -430,7 +431,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `      cookies: __req.cookies || {},\n` +
       `      body: __mmt_formatBodyValue(__req.body)\n` +
       `    };\n` +
-      `    console.log(__mmt_formatSection('REQUEST', __reqLog));\n` +
+      `    console.debug(__mmt_formatSection('REQUEST', __reqLog));\n` +
       `    try {\n` +
       `      const __res = await __mmt_originalSend(req);\n` +
       `      const __status = __res && typeof __res.status === 'number' ? __res.status : '';\n` +
@@ -471,15 +472,15 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `  };\n\n` +
       `  try {\n` +
       `    if (__mmt_exampleLabel) {\n` +
-      `      console.log('Running ' + __mmt_exampleLabel);\n` +
+      `      console.info('Running ' + __mmt_exampleLabel);\n` +
       `    }\n` +
       `    const __mmt_hasEnv = Object.keys(__mmt_envVars || {}).length > 0;\n` +
       `    if (__mmt_hasEnv || __mmt_exampleLabel) {\n` +
       `    }\n` +
       `    if (__mmt_hasEnv) {\n` +
-      `      console.log(__mmt_formatSection('ENVIRONMENT', __mmt_envVars));\n` +
+      `      console.debug(__mmt_formatSection('ENVIRONMENT', __mmt_envVars));\n` +
       `    }\n` +
-      `    console.log(__mmt_formatSection('INPUTS', __mmt_inputs));\n` +
+      `    console.debug(__mmt_formatSection('INPUTS', __mmt_inputs));\n` +
       `    const result = await ${opts.name}({ ...__mmt_inputs });\n` +
       `    const __outputLog = (() => {\n` +
       `      if (result === undefined) {\n` +

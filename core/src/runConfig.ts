@@ -1,7 +1,6 @@
+import { LogLevel } from "./CommonData";
 
 export type FileLoader = (path: string) => Promise<string>;
-
-export type LogLevel = 'info'|'warn'|'error';
 
 export interface RunResult {
   success: boolean;
