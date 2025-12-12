@@ -99,9 +99,14 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
   };
 
 
+  const isTestTab = tab === "test";
+
   return (
     <div className="panel">
-      <div className="panel-box">
+      <div
+        className="panel-box"
+        style={isTestTab ? { display: "flex", flexDirection: "column", height: "100%", minHeight: 0 } : undefined}
+      >
         <div
           ref={tabContainerRef}
           className="tab-bar"
@@ -180,7 +185,9 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
         )}
 
         {tab === "test" && (
-          <APITest api={api} onUpdateApi={update} />
+          <div className="apitest-panel-wrapper">
+            <APITest api={api} onUpdateApi={update} />
+          </div>
         )}
       </div>
     </div>

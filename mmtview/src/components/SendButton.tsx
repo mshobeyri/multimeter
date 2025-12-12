@@ -37,7 +37,7 @@ const SendButton: React.FC<{
     <button
       style={{
         position: "absolute",
-        right: "16px",
+        right: "40px",
         top: "50%",
         transform: "translateY(-50%)",
         background: disabled
