@@ -9,73 +9,119 @@
         :root {
             --table-font-size: 12px;
             --table-header-font-size: 11px;
-            --cell-height: 1.5rem;
-            --cell-padding-left: 2px;
+            --cell-height: 28px;
+            --cell-padding-x: 8px;
+            --panel-radius: 6px;
+        }
+
+        .section-card {
+            border: 1px solid var(--panel-border);
+            border-radius: var(--panel-radius);
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .section-subtitle {
+            font-size: 11px;
+            color: var(--description-foreground);
+            margin: 2px 0 0 0;
+        }
+
+        .button-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .preset-section {
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .preset-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 10px;
+            border-radius: 4px;
+            background-color: transparent;
+            transition: border-color 0.2s ease, background-color 0.2s ease;
+        }
+
+        .preset-row-applied {
+            border-color: var(--status-enabled);
+            background-color: rgba(40, 167, 69, 0.08);
+        }
+
+        .preset-name {
+            font-weight: 600;
+            flex: 0 0 150px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .preset-controls {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .table-wrapper {
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            overflow: hidden;
+            display: none;
         }
 
         .env-table {
             width: 100%;
             border-collapse: collapse;
             font-size: var(--table-font-size);
-            background-color: var(--input-background);
-            border: 1px solid var(--input-border);
-            border-radius: var(--border-radius);
-            overflow: hidden;
         }
 
         .env-table thead {
-            background-color: var(--vscode-editor-background);
+            background-color: rgba(255, 255, 255, 0.03);
         }
 
         .env-table th {
-            padding: 0 0 0 var(--cell-padding-left);
             text-align: left;
-            font-weight: bold;
             font-size: var(--table-header-font-size);
-            color: var(--foreground);
-            border-bottom: 1px solid var(--input-border);
-            border-right: 1px solid var(--input-border);
-            height: var(--cell-height);
-            line-height: var(--cell-height);
-            vertical-align: middle;
-        }
-
-        .env-table th:last-child {
-            border-right: none;
+            color: var(--description-foreground);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            padding: 6px var(--cell-padding-x);
+            border-bottom: 1px solid var(--panel-border);
         }
 
         .env-table td {
-            padding: 0 0 0 var(--cell-padding-left);
+            padding: 6px var(--cell-padding-x);
             border-bottom: 1px solid var(--panel-border);
-            border-right: 1px solid var(--panel-border);
             vertical-align: middle;
-            word-break: break-word;
-            height: var(--cell-height);
-            line-height: var(--cell-height);
         }
 
-        .env-table td:last-child {
-            border-right: none;
+        .env-table tr:last-child td {
+            border-bottom: none;
         }
 
-        .env-row:hover {
-            background-color: var(--vscode-list-hoverBackground);
-        }
-
-        .env-name,
-        .env-value {
-            font-family: inherit;
-            color: inherit;
-            max-width: 200px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .env-label {
-            color: var(--description-foreground);
-            font-style: italic;
-            height: var(--cell-height);
-            vertical-align: middle;
+        .env-name {
+            font-weight: 600;
         }
 
         .env-value {
@@ -84,82 +130,87 @@
         }
 
         .flat-select {
-            border: none;
-            background: var(--input-background, #1e1e1e);
-            color: var(--foreground, #d4d4d4);
+            border: 1px solid var(--input-border);
+            background: var(--input-background);
+            color: var(--input-foreground);
             font: inherit;
-            padding: 0;
-            margin: 0;
+            padding: 4px 8px;
+            border-radius: 2px;
+            width: 100%;
+            height: var(--cell-height);
+            box-sizing: border-box;
             appearance: none;
             -webkit-appearance: none;
-            border-radius: 0;
-            outline: none;
-            box-shadow: none;
-            height: var(--cell-height);
-            width: 100%;
-            min-width: 0;
-            min-height: 0;
-            display: block;
         }
 
         .flat-select:focus {
-            outline: 1px solid #aaa;
+            outline: 1px solid var(--vscode-focusBorder);
         }
 
-        /* For dropdown arrow (optional, for more control) */
-        .flat-select::-ms-expand {
+        .empty-state {
             display: none;
+            text-align: center;
+            padding: 20px;
+            color: var(--description-foreground);
+            font-size: 12px;
+            font-style: italic;
+            border: 1px dashed var(--input-border);
+            border-radius: 4px;
+            margin-top: 12px;
         }
 
-        /* Responsive table */
-        @media (max-width: 600px) {
-            .env-table {
-                font-size: 10px;
-            }
-
-            .env-table th,
-            .env-table td {
-                padding: 0 0 0 var(--cell-padding-left);
-            }
-
-            .env-value {
-                max-width: 120px;
-            }
+        .actions {
+            display: flex;
+            justify-content: flex-end;
         }
     </style>
 </head>
 
 <body>
-    <div class="section">
-        <div id="env-table-container">
+    <div class="section-card">
+        <div class="section-header">
+            <div>
+                <div class="section-title">Presets</div>
+            </div>
+        </div>
+        <div id="preset-section" class="preset-section"></div>
+        <div id="preset-empty" class="empty-state">No presets found in the current environment file.</div>
+    </div>
+
+    <div class="section-card">
+        <div class="section-header">
+            <div>
+                <div class="section-title">Environment Variables</div>
+            </div>
+        </div>
+        <div id="env-table-container" class="table-wrapper">
             <table class="env-table">
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>Label</th>
-                        <th>Value</th>
+                        <th style="width: 30%;">Name</th>
+                        <th style="width: 35%;">Label</th>
+                        <th style="width: 35%;">Value</th>
                     </tr>
                 </thead>
-                <tbody id="env-table-body">
-                    <!-- Environment variables will be populated here -->
-                </tbody>
+                <tbody id="env-table-body"></tbody>
             </table>
         </div>
-
-        <div id="empty-state" class="empty-state" style="display: none;">
-            No environment variables saved in workspace.
-        </div>
+        <div id="empty-state" class="empty-state">No environment variables saved in workspace.</div>
     </div>
 
     <script>
         const vscode = acquireVsCodeApi();
         let environmentVars = [];
+        let environmentPresets = {};
+        const presetSelections = {};
 
         window.addEventListener('message', event => {
             const message = event.data;
             if (message.command === 'multimeter.environment.panel.refresh') {
                 environmentVars = message.data || [];
+                environmentPresets = message.presets || {};
                 updateUI();
+                renderPresets();
             }
         });
 
@@ -168,58 +219,151 @@
             const emptyState = document.getElementById('empty-state');
             const tableBody = document.getElementById('env-table-body');
 
-            if (environmentVars.length === 0) {
+            if (!environmentVars || environmentVars.length === 0) {
                 tableContainer.style.display = 'none';
                 emptyState.style.display = 'block';
-            } else {
-                tableContainer.style.display = 'block';
-                emptyState.style.display = 'none';
+                return;
+            }
 
-                tableBody.innerHTML = '';
+            tableContainer.style.display = 'block';
+            emptyState.style.display = 'none';
+            tableBody.innerHTML = '';
 
-                environmentVars.forEach((envVar, index) => {
-                    const row = document.createElement('tr');
-                    row.className = 'env-row fade-in';
+            environmentVars.forEach((envVar, index) => {
+                const row = document.createElement('tr');
+                row.className = 'env-row';
 
-                    let optionsHtml = '';
-                    if (Array.isArray(envVar.options) && envVar.options.length > 0) {
-                        optionsHtml = envVar.options.map(opt =>
-                            `<option value="${escapeHtml(opt.label)}" data-opt-value="${escapeHtml(opt.value)}"${envVar.label === opt.label ? ' selected' : ''}>${escapeHtml(opt.label)}</option>`
-                        ).join('');
-                    } else {
-                        optionsHtml = `<option value="${escapeHtml(envVar.label)}" selected>${escapeHtml(envVar.label)}</option>`;
+                const optionsHtml = Array.isArray(envVar.options) && envVar.options.length > 0
+                    ? envVar.options.map(opt =>
+                        `<option value="${escapeHtml(String(opt.label))}" data-opt-value="${escapeHtml(String(opt.value))}"${envVar.label === opt.label ? ' selected' : ''}>${escapeHtml(String(opt.label))}</option>`
+                    ).join('')
+                    : `<option value="${escapeHtml(String(envVar.label || envVar.name))}" selected>${escapeHtml(String(envVar.label || envVar.name))}</option>`;
+
+                row.innerHTML = `
+                    <td class="env-name">${escapeHtml(envVar.name)}</td>
+                    <td>
+                        <select class="flat-select env-select" data-index="${index}">
+                            ${optionsHtml}
+                        </select>
+                    </td>
+                    <td class="env-value">${escapeHtml(String(envVar.value ?? ''))}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            registerEnvSelectHandlers();
+        }
+
+        function registerEnvSelectHandlers() {
+            document.querySelectorAll('.env-select').forEach(select => {
+                select.addEventListener('change', function () {
+                    const idx = this.getAttribute('data-index');
+                    const optLabel = this.value;
+                    const selectedOption = this.options[this.selectedIndex];
+                    const optValue = selectedOption.getAttribute('data-opt-value');
+                    const envVar = environmentVars[idx];
+                    envVar.label = optLabel;
+                    if (typeof optValue !== 'undefined') {
+                        envVar.value = optValue;
                     }
-
-                    row.innerHTML = `
-                        <td class="env-name">${escapeHtml(envVar.name)}</td>
-                        <td class="env-label">
-                            <select class="flat-select" data-index="${index}">
-                                ${optionsHtml}
-                            </select>
-                        </td>
-                        <td class="env-value">${escapeHtml(String(envVar.value))}</td>
-                    `;
-                    tableBody.appendChild(row);
-                });
-
-                document.querySelectorAll('.flat-select').forEach(select => {
-                    select.addEventListener('change', function (e) {
-                        const idx = this.getAttribute('data-index');
-                        const optLabel = this.value;
-                        const selectedOption = this.options[this.selectedIndex];
-                        const optValue = selectedOption.getAttribute('data-opt-value');
-                        const envVar = environmentVars[idx];
-                        envVar.label = optLabel; // Only update label!
-                        updateUI();
-                        vscode.postMessage({
-                            type: 'multimeter.environment.set',
-                            name: envVar.name,
-                            value: optValue, // send value for backend use
-                            label: optLabel  // send label for backend use
-                        });
+                    updateUI();
+                    vscode.postMessage({
+                        type: 'multimeter.environment.set',
+                        name: envVar.name,
+                        value: optValue,
+                        label: optLabel
                     });
                 });
+            });
+        }
+
+        function renderPresets() {
+            const presetSection = document.getElementById('preset-section');
+            const presetEmpty = document.getElementById('preset-empty');
+            if (!presetSection || !presetEmpty) {
+                return;
             }
+
+            const presetEntries = Object.entries(environmentPresets || {});
+            presetSection.innerHTML = '';
+
+            if (presetEntries.length === 0) {
+                presetSection.style.display = 'none';
+                presetEmpty.style.display = 'block';
+                return;
+            }
+
+            presetSection.style.display = 'flex';
+            presetEmpty.style.display = 'none';
+
+            const validPresetNames = new Set(presetEntries.map(([name]) => name));
+            Object.keys(presetSelections).forEach(key => {
+                if (!validPresetNames.has(key)) {
+                    delete presetSelections[key];
+                }
+            });
+
+            presetEntries.forEach(([presetName, presetGroup]) => {
+                const envNames = Object.keys(presetGroup || {});
+                if (envNames.length === 0) {
+                    return;
+                }
+
+                const row = document.createElement('div');
+                row.className = 'preset-row';
+
+                const label = document.createElement('div');
+                label.className = 'preset-name';
+                label.textContent = presetName;
+
+                const controls = document.createElement('div');
+                controls.className = 'preset-controls';
+
+                const select = document.createElement('select');
+                select.className = 'flat-select preset-select';
+                const placeholder = document.createElement('option');
+                placeholder.value = '';
+                placeholder.textContent = 'Select environment';
+                placeholder.disabled = true;
+                placeholder.selected = true;
+                select.appendChild(placeholder);
+
+                envNames.forEach(envName => {
+                    const option = document.createElement('option');
+                    option.value = envName;
+                    option.textContent = envName;
+                    select.appendChild(option);
+                });
+
+                const savedSelection = presetSelections[presetName];
+                if (savedSelection && envNames.includes(savedSelection)) {
+                    select.value = savedSelection;
+                }
+
+                select.addEventListener('change', () => {
+                    const envName = select.value;
+                    if (!envName) {
+                        delete presetSelections[presetName];
+                        return;
+                    }
+                    presetSelections[presetName] = envName;
+                    vscode.postMessage({
+                        type: 'multimeter.environment.applyPreset',
+                        presetName,
+                        envName
+                    });
+                    row.classList.add('preset-row-applied');
+                    setTimeout(() => {
+                        row.classList.remove('preset-row-applied');
+                    }, 1000);
+                });
+
+                controls.appendChild(select);
+
+                row.appendChild(label);
+                row.appendChild(controls);
+                presetSection.appendChild(row);
+            });
         }
 
         function escapeHtml(text) {
@@ -228,8 +372,16 @@
             return div.innerHTML;
         }
 
-        // Request initial data
-        vscode.postMessage({ type: 'refresh' });
+        function requestRefresh() {
+            vscode.postMessage({ type: 'refresh' });
+        }
+
+        document.getElementById('preset-refresh')?.addEventListener('click', requestRefresh);
+        document.getElementById('clear-environments')?.addEventListener('click', () => {
+            vscode.postMessage({ type: 'multimeter.environment.clear' });
+        });
+
+        requestRefresh();
     </script>
 </body>
 

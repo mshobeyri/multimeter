@@ -27,8 +27,9 @@ describe('runConfig helpers', () => {
       scalar: 'x',
     };
     expect(selectFromVariables(variables, 'region', 'dev')).toBe('us-dev');
-    expect(selectFromVariables(variables, 'region', 'custom')).toBe('custom');
+    expect(selectFromVariables(variables, 'region', 'custom')).toBe('us-dev');
     expect(selectFromVariables(variables, 'mode', 'debug')).toBe('debug');
+    expect(selectFromVariables(variables, 'mode', 'invalid')).toBe('debug');
     expect(selectFromVariables(variables, 'scalar', 'y')).toBe('y');
     expect(selectFromVariables(variables, 'missing', 'z')).toBe('z');
   });

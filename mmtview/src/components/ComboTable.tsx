@@ -23,7 +23,7 @@ interface ComboTableProps {
 const ComboTable: React.FC<ComboTableProps> = ({ pairs, onChange, showPlaceholder }) => (
   <div
     style={{
-      background: "var(--vscode-editorWidget-background, #232323)",
+      background: "transparent",
       borderRadius: "6px",
       padding: "16px",
       minWidth: 200,

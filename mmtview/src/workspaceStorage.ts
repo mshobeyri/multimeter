@@ -10,6 +10,22 @@ export function saveEnvVariablesFromObject(flatVars: EnvVariable[]) {
   });
 }
 
+export function saveEnvPresets(presets: Record<string, any>) {
+  window.vscode?.postMessage({
+    command: 'updateWorkspaceState',
+    name: 'multimeter.environment.presets',
+    value: presets,
+  });
+}
+
+export function clearEnvPresets() {
+  window.vscode?.postMessage({
+    command: 'updateWorkspaceState',
+    name: 'multimeter.environment.presets',
+    value: {},
+  });
+}
+
 // Load variables from VSCode workspace state
 export function loadEnvVariables(
     callback: (variables: EnvVariable[]) => void) {

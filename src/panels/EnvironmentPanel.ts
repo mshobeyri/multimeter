@@ -44,6 +44,10 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
 
     webviewView.webview.onDidReceiveMessage(async message => {
       switch (message.type) {
+        case 'refresh': {
+          this.refreshEnvironmentVars();
+          break;
+        }
         case 'multimeter.environment.set': {
           const environmentVars = this.getWorkspaceEnvironmentVars();
           const idx = environmentVars.findIndex(v => v.name === message.name);
@@ -54,6 +58,21 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
                 'multimeter.environment.storage', environmentVars);
             await vscode.commands.executeCommand('multimeter.environment.refresh');
           }
+          break;
+        }
+        case 'multimeter.environment.applyPreset': {
+          const presetName = typeof message.presetName === 'string' ? message.presetName : '';
+          const envName = typeof message.envName === 'string' ? message.envName : '';
+          if (!presetName || !envName) {
+            break;
+          }
+          await this.applyPreset(presetName, envName);
+          break;
+        }
+        case 'multimeter.environment.clear': {
+          await this.clearEnvironments();
+          await vscode.commands.executeCommand('multimeter.environment.refresh');
+          break;
         }
       }
     });
@@ -75,9 +94,11 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
 
   refreshEnvironmentVars() {
     const environmentVars = this.getWorkspaceEnvironmentVars();
+    const presets = this.getWorkspaceEnvironmentPresets();
     this.view?.webview.postMessage({
       command: 'multimeter.environment.panel.refresh',
-      data: environmentVars
+      data: environmentVars,
+      presets,
     });
   }
 
@@ -102,6 +123,77 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
     }
   }
 
+  private getWorkspaceEnvironmentPresets(): Record<string, any> {
+    try {
+      const presets = this.context.workspaceState.get<Record<string, any>>(
+          'multimeter.environment.presets', {});
+      return presets || {};
+    } catch (error) {
+      console.error(
+          'Failed to load environment presets from workspace storage:',
+          error);
+      return {};
+    }
+  }
+
+  private async applyPreset(presetName: string, envName: string) {
+    const presets = this.getWorkspaceEnvironmentPresets();
+    const presetGroup = presets?.[presetName];
+    if (!presetGroup) {
+      vscode.window.showWarningMessage(
+          `Preset "${presetName}" was not found.`);
+      return;
+    }
+    const mapping = presetGroup?.[envName];
+    if (!mapping || typeof mapping !== 'object') {
+      vscode.window.showWarningMessage(
+          `Preset option "${envName}" was not found for ${presetName}.`);
+      return;
+    }
+
+    const environmentVars = this.getWorkspaceEnvironmentVars();
+    let updated = false;
+    const normalizedMapping = mapping as Record<string, any>;
+    for (const variable of environmentVars) {
+      if (!Object.prototype.hasOwnProperty.call(normalizedMapping, variable.name)) {
+        continue;
+      }
+      const desired = normalizedMapping[variable.name];
+      const options = Array.isArray(variable.options) ? variable.options : [];
+      const match = options.find(opt => {
+        const label = typeof opt.label === 'string' ? opt.label : String(opt.label);
+        const value =
+            typeof opt.value === 'string' || typeof opt.value === 'number' ||
+                typeof opt.value === 'boolean' ? opt.value : String(opt.value);
+        if (typeof desired === 'string') {
+          return label === desired || String(value) === desired;
+        }
+        return value === desired;
+      });
+      if (match) {
+        if (variable.value !== match.value || variable.label !== match.label) {
+          variable.value = match.value;
+          variable.label = match.label;
+          updated = true;
+        }
+      } else if (typeof desired !== 'undefined') {
+        if (variable.value !== desired) {
+          variable.value = desired;
+          variable.label = String(desired);
+          updated = true;
+        }
+      }
+    }
+
+    if (!updated) {
+      return;
+    }
+
+    await this.context.workspaceState.update(
+        'multimeter.environment.storage', environmentVars);
+    await vscode.commands.executeCommand('multimeter.environment.refresh');
+  }
+
   async clearEnvironments() {
     try {
       const result = await vscode.window.showWarningMessage(
@@ -112,6 +204,8 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
         // Clear from workspace storage
         await this.context.workspaceState.update(
             'multimeter.environment.storage', {});
+        await this.context.workspaceState.update(
+            'multimeter.environment.presets', {});
 
         vscode.window.showInformationMessage('Environment variables cleared');
         this.refreshEnvironmentVars();

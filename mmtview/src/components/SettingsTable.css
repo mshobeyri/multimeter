@@ -1,0 +1,65 @@
+.settings-table-block {
+  width: 100%;
+}
+
+.settings-table-wrapper {
+  border: 1px solid var(--vscode-panel-border, #2b2b2b);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--vscode-sideBar-background, #1e1e1e);
+}
+
+.settings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.settings-table thead {
+  background: var(--vscode-sideBarSectionHeader-background, rgba(255, 255, 255, 0.05));
+}
+
+.settings-table th {
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 11px;
+  padding: 8px 12px;
+  color: var(--vscode-descriptionForeground, #9da5b4);
+  border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+}
+
+.settings-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--vscode-panel-border, #2b2b2b);
+  color: var(--vscode-foreground, #f3f3f3);
+  vertical-align: top;
+}
+
+.settings-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.settings-table tbody tr:hover {
+  background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.06));
+}
+
+.settings-table-cell-key {
+  font-weight: 600;
+}
+
+.settings-table-cell-code {
+  font-family: var(--vscode-editor-fontFamily, "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace);
+  color: var(--vscode-symbolIcon-stringForeground, var(--vscode-foreground, #f3f3f3));
+}
+
+.settings-table-empty-cell {
+  color: var(--vscode-descriptionForeground, #9da5b4);
+}
+
+.settings-table-empty {
+  padding: 12px;
+  text-align: center;
+  color: var(--vscode-descriptionForeground, #9da5b4);
+  font-size: 12px;
+}

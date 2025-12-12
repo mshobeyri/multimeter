@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import parseYaml from "mmt-core/markupConvertor";
 import EnvironmentEnv from "./EnvironmentEnv";
 import EnvironmentEdit from "./EnvironmentEdit";
@@ -8,6 +8,8 @@ import { ComboTablePair } from "../components/ComboTable";
 import { isList, safeList } from "mmt-core/safer";
 import { JSONValue } from "mmt-core/CommonData";
 import { EnvVariable } from "./EnvironmentData";
+import { saveEnvPresets } from "../workspaceStorage";
+import { selectFromVariables } from "mmt-core/runConfig";
 
 const LAST_ENV_TAB_KEY = "mmtview:env:lastTab";
 
@@ -26,6 +28,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   const [variables, setVariables] = useState<ComboTablePair[]>([]);
   const [presets, setPresets] = useState<ComboTablePair[]>([]);
   const [presetData, setPresetData] = useState<any>({});
+  const [variableDefinitions, setVariableDefinitions] = useState<Record<string, any>>({});
   const [workspaceVars, setWorkspaceVars] = useState<EnvVariable[]>([]);
   const loadedVarsRef = React.useRef<{ name: string; value: JSONValue, options: JSONValue[] }[]>([]);
 
@@ -91,6 +94,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
 
     const variablePairs: ComboTablePair[] = [];
     const variablesObj = (yaml.variables && typeof yaml.variables === "object") ? yaml.variables : {};
+    setVariableDefinitions(variablesObj as Record<string, any>);
     Object.entries(variablesObj).forEach(([name, value]) => {
       // Ensure loadedVarsRef.current is always an array before calling .find
       const found = Array.isArray(loadedVarsRef.current)
@@ -136,7 +140,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         presetPairs.push({
           name: presetName,
           options: safeList(envNames).map(env => ({ label: env, value: env })),
-          value: { label: envNames[0] ?? "", value: envNames[0] ?? "" }
+          value: { label: "", value: "" }
         });
         presetDataObj[presetName] = presetObj;
       }
@@ -173,52 +177,58 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     });
   };
 
-  // Handler for presets: when a preset env is selected, update all variables accordingly
-  // (removed duplicate declaration)
-
-  // Handler for presets: when a preset env is selected, update all variables accordingly
   const handlePresetsChange = (presetName: string, envName: string) => {
     setPresets(prev =>
       safeList(prev).map(pair =>
         pair.name === presetName ? { ...pair, value: { label: envName, value: envName } } : pair
       )
     );
-    // Update variables based on the selected preset/env
-    const envVars = presetData[presetName]?.[envName];
-
-    if (envVars && typeof envVars === "object") {
-      setVariables(prev => {
-        const updated = safeList(prev).map(pair => {
-          // For object variables, envVars[pair.name] is the value, pair.options contains {label, value}
-          if (envVars[pair.name]) {
-            // Try to find the correct option by value or label
-            const selected =
-              safeList(pair.options).find(
-                opt => opt.value === String(envVars[pair.name]) || opt.label === String(envVars[pair.name])
-              ) || pair.options[0];
-            return { ...pair, value: selected, options: pair.options };
-          }
-          return pair;
-        });
-
-        // Save all variables at once, with correct label and value
-        const flatVars: EnvVariable[] = [];
-        updated.forEach(pair => {
-          flatVars.push({
-            name: pair.name,
-            label: pair.value.label,
-            value: pair.value.value,
-            options: Array.isArray(pair.options)
-              ? pair.options.filter((opt: any): opt is { label: string; value: string } => !!opt && typeof opt === "object" && "label" in opt && "value" in opt)
-              : []
-          });
-        });
-        writeEnvironmentVariables(flatVars);
-
-        return updated;
-      });
-    }
   };
+
+  const applyPresetsToVariables = useCallback((currentPairs: ComboTablePair[]): ComboTablePair[] => {
+    let updatedPairs = safeList(currentPairs).map(pair => ({ ...pair }));
+    safeList(presets).forEach(preset => {
+      const selection = preset.value?.value || preset.value?.label;
+      if (!selection) {
+        return;
+      }
+      const mapping = presetData?.[preset.name]?.[selection];
+      if (!mapping || typeof mapping !== "object") {
+        return;
+      }
+      updatedPairs = safeList(updatedPairs).map(pair => {
+        if (!Object.prototype.hasOwnProperty.call(mapping, pair.name)) {
+          return pair;
+        }
+        const choice = mapping[pair.name];
+        const resolvedValue = selectFromVariables(variableDefinitions, pair.name, choice);
+        const nextOption = safeList(pair.options).find(opt =>
+          opt.value === resolvedValue ||
+          opt.label === resolvedValue ||
+          String(opt.value) === String(resolvedValue)
+        );
+        if (nextOption) {
+          return { ...pair, value: nextOption };
+        }
+        const fallback = pair.options[0];
+        if (fallback) {
+          return { ...pair, value: fallback };
+        }
+        return pair;
+      });
+    });
+    return updatedPairs;
+  }, [presets, presetData, variableDefinitions]);
+
+  const toEnvVariables = (pairs: ComboTablePair[]): EnvVariable[] =>
+    safeList(pairs).map(pair => ({
+      name: pair.name,
+      label: pair.value?.label,
+      value: pair.value?.value,
+      options: Array.isArray(pair.options)
+        ? pair.options.filter((opt: any): opt is { label: string; value: JSONValue } => !!opt && typeof opt === "object" && "label" in opt && "value" in opt)
+        : []
+    }));
 
   // Load selections from VSCode
   useEffect(() => {
@@ -275,6 +285,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   // Add these handler functions in EnvironmentPanel component
   const handleClearCache = () => {
     clearEnvironmentVariables();
+    saveEnvPresets({});
     loadedVarsRef.current = [];
     setVariables(prev =>
       safeList(prev).map(pair => ({
@@ -286,18 +297,13 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   };
 
   const handleSaveToCache = () => {
-    const flatVars: EnvVariable[] = [];
-    variables.forEach(pair => {
-      flatVars.push({
-        name: pair.name,
-        label: pair.value.label,
-        value: pair.value.value,
-        options: Array.isArray(pair.options)
-          ? pair.options.filter((opt): opt is { label: string; value: string } => !!opt && typeof opt === "object" && "label" in opt && "value" in opt)
-          : []
-      });
+    setVariables(prev => {
+      const applied = applyPresetsToVariables(prev);
+      const flatVars = toEnvVariables(applied);
+      writeEnvironmentVariables(flatVars);
+      saveEnvPresets(presetData);
+      return applied;
     });
-    writeEnvironmentVariables(flatVars);
     refreshWorkspaceVars();
   };
 
@@ -327,10 +333,10 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
           <button
             onClick={() => setTab("view")}
             className={`tab-button ${tab === "view" ? "active" : ""}`}
-            title={showIconsOnly ? "View Current Vars" : undefined}
+            title={showIconsOnly ? "Current Variables" : undefined}
           >
             <span className="codicon codicon-eye tab-button-icon"></span>
-            {!showIconsOnly && "View Current Vars"}
+            {!showIconsOnly && "Current Variables"}
           </button>
         </div>
         {tab === "environment" && (

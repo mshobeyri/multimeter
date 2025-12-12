@@ -1,6 +1,6 @@
 import {JSONValue} from 'mmt-core/CommonData';
 import {EnvVariable} from './EnvironmentData';
-import {loadEnvVariables, saveEnvVariablesFromObject} from '../workspaceStorage';
+import {clearEnvPresets, loadEnvVariables, saveEnvVariablesFromObject} from '../workspaceStorage';
 
 /**
  * Reads environment variables from storage
@@ -65,4 +65,5 @@ export const getEnvironmentVariable = (name: string): Promise<JSONValue> => {
  */
 export const clearEnvironmentVariables = (): void => {
   saveEnvVariablesFromObject([]);
+  clearEnvPresets();
 };

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { EnvVariable } from "./EnvironmentData";
-
+import SettingsTable, { SettingsTableColumn, SettingsTableRow } from "../components/SettingsTable";
 
 interface EnvironmentViewProps {
   vars: EnvVariable[];
@@ -30,34 +30,20 @@ const EnvironmentView: React.FC<EnvironmentViewProps> = ({
     }
   };
 
-  const tableStyles = {
-    table: {
-      width: "100%",
-      borderCollapse: "collapse" as const,
-      fontSize: 10,
-      tableLayout: "fixed" as const, // Force fixed layout for consistent column widths
-      maxWidth: "100%", // Ensure table doesn't exceed container
-      overflow: "hidden" // Hide any content that might overflow
-    },
-    th: {
-      padding: 6,
-      border: "1px solid #444",
-      wordWrap: "break-word" as const,
-      wordBreak: "break-all" as const,
-      overflow: "hidden",
-      textOverflow: "ellipsis"
-    },
-    td: {
-      padding: 6,
-      border: "1px solid #444",
-      wordWrap: "break-word" as const,
-      wordBreak: "break-all" as const,
-      overflow: "hidden",
-      textOverflow: "ellipsis",
-      maxWidth: "0", // Allow flex shrinking
-      whiteSpace: "pre-wrap" as const // Preserve line breaks but allow wrapping
+  const columns: SettingsTableColumn[] = [
+    { key: "name", label: "Name", width: "30%", variant: "key" },
+    { key: "label", label: "Label", width: "35%" },
+    { key: "value", label: "Value", width: "35%", variant: "code" }
+  ];
+
+  const rows: SettingsTableRow[] = safeVars.map(v => ({
+    key: v.name,
+    cells: {
+      name: v.name,
+      label: v.label,
+      value: String(v.value ?? "")
     }
-  };
+  }));
 
   return (
     <div style={{ padding: 8, overflow: "hidden", width: "100%" }}>
@@ -77,47 +63,11 @@ const EnvironmentView: React.FC<EnvironmentViewProps> = ({
         </div>
       </div>
 
-      <div style={{
-        width: "100%",
-        overflowX: "auto", // Allow horizontal scrolling if absolutely necessary
-        overflowY: "visible"
-      }}>
-        <table style={tableStyles.table}>
-          <colgroup>
-            <col style={{ width: "25%" }} />
-            <col style={{ width: "25%" }} />
-            <col style={{ width: "50%" }} />
-          </colgroup>
-          <thead>
-            <tr style={{ background: "#222", color: "#fff" }}>
-              <th style={tableStyles.th}>Name</th>
-              <th style={tableStyles.th}>Label</th>
-              <th style={tableStyles.th}>Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            {safeVars.length > 0 && safeVars.map((v, i) => (
-              <tr key={i}>
-                <td style={tableStyles.td} title={String(v.name)}>
-                  {v.name}
-                </td>
-                <td style={tableStyles.td} title={String(v.label)}>
-                  {v.label}
-                </td>
-                <td style={tableStyles.td} title={String(v.value)}>
-                  {String(v.value)}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {safeVars.length === 0 && (
-        <div style={{ color: "#888", padding: 16, textAlign: "center" }}>
-          No environment variables saved in workspace.
-        </div>
-      )}
+      <SettingsTable
+        columns={columns}
+        rows={rows}
+        emptyLabel="No environment variables saved in workspace."
+      />
     </div>
   );
 };
