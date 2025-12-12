@@ -1,5 +1,4 @@
 import React from "react";
-import ValidatableSelect from "./ValidatableSelect";
 import { safeList } from "mmt-core/safer";
 import { JSONValue } from "mmt-core/CommonData";
 
@@ -42,17 +41,23 @@ const ComboTable: React.FC<ComboTableProps> = ({ pairs, onChange, showPlaceholde
               {pair.name}
             </td>
             <td style={{ padding: "8px" }}>
-              <ValidatableSelect
-                value={pair.value.label}
-                options={safeList(pair.options).map(opt => opt.label)}
-                onChange={label => {
+              <select
+                className="flat-select"
+                style={{ width: "100%" }}
+                value={pair.value?.label ?? ""}
+                onChange={e => {
+                  const label = e.target.value;
                   const found = safeList(pair.options).find(opt => opt.label === label);
                   if (found) {
                     onChange(pair.name, found.label, found.value);
                   }
                 }}
-                showPlaceholder={showPlaceholder}
-              />
+              >
+                {showPlaceholder && <option value="" disabled>{"Select..."}</option>}
+                {safeList(pair.options).map(opt => (
+                  <option key={opt.label} value={opt.label}>{opt.label}</option>
+                ))}
+              </select>
             </td>
           </tr>
         ))}

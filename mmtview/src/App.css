@@ -38,6 +38,8 @@ button,
 .Resizer.vertical:hover,
 .Resizer.vertical:active {
   width: 4px;
+  display: block;
+  min-width: 0;
   min-width: 4px;
   max-width: 4px;
   margin-left: 0px;
@@ -447,6 +449,58 @@ button:focus {
   border-radius: 0px;
   padding: 16px;
   min-width: 200px;
+  margin-bottom: 16px;
+}
+
+.environment-table-wrapper {
+  border: 1px solid var(--vscode-editorWidget-border, #333);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.environment-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.environment-table thead {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.environment-table th,
+.environment-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--vscode-editorWidget-border, #333);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.environment-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.environment-table-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.environment-table-value {
+  font-family: var(--vscode-editor-font-family, var(--vscode-font-family, 'Consolas', 'Courier New', monospace));
+  color: var(--vscode-symbolIcon-stringForeground, var(--vscode-foreground, #d4d4d4));
+  overflow-wrap: anywhere;
+}
+
+.environment-table-empty {
+  text-align: center;
+  padding: 16px;
+  border: 1px dashed var(--vscode-editorWidget-border, #333);
+  border-radius: 4px;
+  color: var(--vscode-descriptionForeground, #888);
+  font-size: 12px;
   margin-bottom: 16px;
 }
 

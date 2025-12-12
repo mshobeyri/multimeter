@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import parseYaml from "mmt-core/markupConvertor";
 import EnvironmentEnv from "./EnvironmentEnv";
 import EnvironmentEdit from "./EnvironmentEdit";
-import EnvironmentView from "./EnvironmentView";
 import { readEnvironmentVariables, writeEnvironmentVariables, clearEnvironmentVariables } from "./environmentUtils";
 import { ComboTablePair } from "../components/ComboTable";
 import { isList, safeList } from "mmt-core/safer";
@@ -20,9 +19,13 @@ interface EnvironmentPanelProps {
 
 const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent }) => {
   // Restore last selected tab from localStorage, default to "environment"
-  const [tab, setTab] = useState<"environment" | "edit" | "view">(
-    () => (localStorage.getItem(LAST_ENV_TAB_KEY) as "environment" | "edit" | "view") || "environment"
-  );
+  const [tab, setTab] = useState<"environment" | "edit">(() => {
+    const stored = localStorage.getItem(LAST_ENV_TAB_KEY);
+    if (stored === "edit") {
+      return "edit";
+    }
+    return "environment";
+  });
   const [showIconsOnly, setShowIconsOnly] = useState(false);
   const tabContainerRef = useRef<HTMLDivElement>(null);
   const [variables, setVariables] = useState<ComboTablePair[]>([]);
@@ -31,6 +34,15 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   const [variableDefinitions, setVariableDefinitions] = useState<Record<string, any>>({});
   const [workspaceVars, setWorkspaceVars] = useState<EnvVariable[]>([]);
   const loadedVarsRef = React.useRef<{ name: string; value: JSONValue, options: JSONValue[] }[]>([]);
+
+  const refreshWorkspaceVars = useCallback(() => {
+    if (window.vscode) {
+      window.vscode.postMessage({
+        command: 'loadWorkspaceState',
+        name: 'multimeter.environment.storage'
+      });
+    }
+  }, []);
 
   // Save tab selection to localStorage whenever it changes
   useEffect(() => {
@@ -46,7 +58,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
 
       // Calculate approximate width needed for full text tabs
       // Rough estimate: 140px per tab for text + icon
-      const fullTextWidth = 3 * 140;
+      const fullTextWidth = 2 * 140;
 
       setShowIconsOnly(containerWidth < fullTextWidth);
     };
@@ -75,17 +87,11 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, []);
+  }, [refreshWorkspaceVars]);
 
-  // Function to refresh workspace variables
-  const refreshWorkspaceVars = () => {
-    if (window.vscode) {
-      window.vscode.postMessage({
-        command: 'loadWorkspaceState',
-        name: 'multimeter.environment.storage'
-      });
-    }
-  };
+  useEffect(() => {
+    refreshWorkspaceVars();
+  }, [refreshWorkspaceVars]);
 
   // Parse YAML and update variables/presets when content changes
   useEffect(() => {
@@ -173,6 +179,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
       });
 
       writeEnvironmentVariables(flatVars);
+      setWorkspaceVars(flatVars);
       return updated;
     });
   };
@@ -183,6 +190,39 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         pair.name === presetName ? { ...pair, value: { label: envName, value: envName } } : pair
       )
     );
+    const mapping = presetData?.[presetName]?.[envName];
+    if (mapping && typeof mapping === "object") {
+      setVariables(prev => {
+        const updated = safeList(prev).map(pair => {
+          if (!Object.prototype.hasOwnProperty.call(mapping, pair.name)) {
+            return pair;
+          }
+          const choice = mapping[pair.name];
+          const resolvedValue = selectFromVariables(variableDefinitions, pair.name, choice);
+          const nextOption = safeList(pair.options).find(opt =>
+            opt.value === resolvedValue ||
+            opt.label === resolvedValue ||
+            String(opt.value) === String(resolvedValue)
+          );
+          if (nextOption) {
+            return { ...pair, value: nextOption };
+          }
+          const fallback = pair.options[0];
+          return fallback ? { ...pair, value: fallback } : pair;
+        });
+        const flatVars = toEnvVariables(updated);
+        writeEnvironmentVariables(flatVars);
+        setWorkspaceVars(flatVars);
+        return updated;
+      });
+    }
+    if (window.vscode) {
+      window.vscode.postMessage({
+        type: 'multimeter.environment.applyPreset',
+        presetName,
+        envName
+      });
+    }
   };
 
   const applyPresetsToVariables = useCallback((currentPairs: ComboTablePair[]): ComboTablePair[] => {
@@ -223,8 +263,8 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   const toEnvVariables = (pairs: ComboTablePair[]): EnvVariable[] =>
     safeList(pairs).map(pair => ({
       name: pair.name,
-      label: pair.value?.label,
-      value: pair.value?.value,
+      label: pair.value?.label ?? pair.name,
+      value: pair.value?.value ?? "",
       options: Array.isArray(pair.options)
         ? pair.options.filter((opt: any): opt is { label: string; value: JSONValue } => !!opt && typeof opt === "object" && "label" in opt && "value" in opt)
         : []
@@ -233,13 +273,18 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   // Load selections from VSCode
   useEffect(() => {
     const cleanup = readEnvironmentVariables((loaded) => {
-      loadedVarsRef.current = isList(loaded)
-        ? loaded.map(v => ({
-          name: v.name,
-          value: v.value,
-          options: Array.isArray(v.options) ? v.options.map(opt => typeof opt === "object" && "value" in opt ? opt.value : opt) : []
-        }))
-        : [];
+      const safeLoaded = isList(loaded) ? loaded : [];
+      loadedVarsRef.current = safeLoaded.map(v => ({
+        name: v.name,
+        value: v.value,
+        options: Array.isArray(v.options) ? v.options.map(opt => typeof opt === "object" && "value" in opt ? opt.value : opt) : []
+      }));
+      setWorkspaceVars(safeLoaded.map(v => ({
+        name: v.name,
+        label: v.label || v.name,
+        value: v.value,
+        options: v.options || []
+      })));
       setVariables(vars =>
         safeList(vars).map(pair => {
           const found = isList(loadedVarsRef.current)
@@ -258,42 +303,13 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     return cleanup;
   }, []);
 
-  // Load workspace variables for the "view" tab - also request initial data
-  useEffect(() => {
-    if (tab === "view") {
-      // Request initial workspace vars
-      refreshWorkspaceVars();
-
-      const cleanup = readEnvironmentVariables((loaded) => {
-        if (isList(loaded)) {
-          setWorkspaceVars(
-            loaded.map(v => ({
-              name: v.name,
-              label: v.label || v.name, // Use label if available, fallback to name
-              value: v.value,
-              options: v.options || []
-            }))
-          );
-        } else {
-          setWorkspaceVars([]);
-        }
-      });
-      return cleanup;
-    }
-  }, [tab]);
-
   // Add these handler functions in EnvironmentPanel component
   const handleClearCache = () => {
     clearEnvironmentVariables();
     saveEnvPresets({});
     loadedVarsRef.current = [];
-    setVariables(prev =>
-      safeList(prev).map(pair => ({
-        ...pair,
-        value: pair.options[0] || { label: "", value: "" }
-      }))
-    );
     setWorkspaceVars([]);
+    refreshWorkspaceVars();
   };
 
   const handleSaveToCache = () => {
@@ -302,6 +318,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
       const flatVars = toEnvVariables(applied);
       writeEnvironmentVariables(flatVars);
       saveEnvPresets(presetData);
+      setWorkspaceVars(flatVars);
       return applied;
     });
     refreshWorkspaceVars();
@@ -330,18 +347,11 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
             <span className="codicon codicon-edit tab-button-icon"></span>
             {!showIconsOnly && "Edit"}
           </button>
-          <button
-            onClick={() => setTab("view")}
-            className={`tab-button ${tab === "view" ? "active" : ""}`}
-            title={showIconsOnly ? "Current Variables" : undefined}
-          >
-            <span className="codicon codicon-eye tab-button-icon"></span>
-            {!showIconsOnly && "Current Variables"}
-          </button>
         </div>
         {tab === "environment" && (
           <EnvironmentEnv
             variables={variables}
+            currentVariables={workspaceVars}
             presets={presets}
             handleVariablesChange={handleVariablesChange}
             handlePresetsChange={handlePresetsChange}
@@ -351,12 +361,6 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
         )}
         {tab === "edit" && (
           <EnvironmentEdit content={content} setContent={setContent} />
-        )}
-        {tab === "view" && (
-          <EnvironmentView
-            vars={workspaceVars}
-            onClearCache={handleClearCache}
-          />
         )}
       </div>
     </div>

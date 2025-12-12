@@ -1,9 +1,12 @@
-import React from "react";
+import React, { useMemo } from "react";
 import ComboTable, { ComboTablePair } from "../components/ComboTable";
 import { EnvVariable } from "./EnvironmentData";
+import { safeList } from "mmt-core/safer";
+import { JSONValue } from "mmt-core/CommonData";
 
 interface EnvironmentEnvProps {
     variables: ComboTablePair[];
+    currentVariables: EnvVariable[];
     presets: ComboTablePair[];
     handleVariablesChange: (variable: EnvVariable) => void;
     handlePresetsChange: (presetName: string, envName: string) => void;
@@ -13,12 +16,56 @@ interface EnvironmentEnvProps {
 
 const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
     variables,
+    currentVariables,
     presets,
     handleVariablesChange,
     handlePresetsChange,
     onClearCache,
     onSaveToCache,
 }) => {
+    const currentMap = useMemo(() => {
+        const map = new Map<string, EnvVariable>();
+        safeList(currentVariables).forEach(variable => {
+            if (variable && typeof variable.name === "string") {
+                map.set(variable.name, variable);
+            }
+        });
+        return map;
+    }, [currentVariables]);
+
+    const formatValue = (value: JSONValue | undefined): string => {
+        if (value === null || typeof value === "undefined") {
+            return "";
+        }
+        if (typeof value === "object") {
+            try {
+                return JSON.stringify(value);
+            } catch (error) {
+                return String(value);
+            }
+        }
+        return String(value);
+    };
+
+    const handleSelectChange = (name: string, label: string) => {
+        const variable = variables.find(v => v.name === name);
+        if (!variable) {
+            return;
+        }
+        const selected = safeList(variable.options).find(opt => opt.label === label);
+        if (!selected) {
+            return;
+        }
+        handleVariablesChange({
+            name,
+            label: selected.label,
+            value: selected.value,
+            options: variable.options || []
+        });
+    };
+
+    const hasVariables = safeList(variables).length > 0;
+
     return (
         <div>
             <div style={{
@@ -27,7 +74,7 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                 alignItems: "center",
                 marginBottom: "12px"
             }}>
-                <div style={{ fontSize: "1.1em" }}>Variables</div>
+                <div className="label">Variables</div>
                 <div style={{ display: "flex", gap: "8px" }}>
                     {onSaveToCache && (
                         <button onClick={onSaveToCache} className="action-button">
@@ -43,20 +90,60 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                     )}
                 </div>
             </div>
-            <ComboTable
-                pairs={variables}
-                onChange={(name, label, value) => {
-                    const variable = variables.find(v => v.name === name);
-                    handleVariablesChange({
-                        name,
-                        label,
-                        value,
-                        options: variable?.options ?? [],
-                    });
-                }}
-            />
+            {hasVariables ? (
+                <div className="environment-table-wrapper">
+                    <table className="environment-table">
+                        <thead>
+                            <tr>
+                                <th style={{ width: "25%" }}>Name</th>
+                                <th style={{ width: "30%" }}>Label</th>
+                                <th style={{ width: "25%" }}>Value</th>
+                                <th style={{ width: "20%" }}>Current</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {safeList(variables).map(pair => {
+                                const current = currentMap.get(pair.name);
+                                const options = safeList(pair.options);
+                                const selectValue = options.length > 0
+                                    ? (pair.value?.label ?? options[0]?.label ?? "")
+                                    : "";
+                                return (
+                                    <tr key={pair.name}>
+                                        <td className="environment-table-name">{pair.name}</td>
+                                        <td>
+                                            <select
+                                                className="flat-select"
+                                                style={{ width: "100%" }}
+                                                value={selectValue}
+                                                onChange={event => handleSelectChange(pair.name, event.target.value)}
+                                            >
+                                                {options.length === 0 ? (
+                                                    <option value="" disabled>
+                                                        No options available
+                                                    </option>
+                                                ) : (
+                                                    options.map(option => (
+                                                        <option key={option.label} value={option.label}>
+                                                            {option.label}
+                                                        </option>
+                                                    ))
+                                                )}
+                                            </select>
+                                        </td>
+                                        <td className="environment-table-value">{formatValue(pair.value?.value)}</td>
+                                        <td className="environment-table-value">{formatValue(current?.value)}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            ) : (
+                <div className="environment-table-empty">No variables defined.</div>
+            )}
 
-            <div style={{ fontSize: "1.1em", marginBottom: "12px" }}>Presets</div>
+            <div className="label">Presets</div>
             <ComboTable pairs={presets} onChange={handlePresetsChange} showPlaceholder />
         </div>
     );
