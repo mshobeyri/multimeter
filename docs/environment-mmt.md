@@ -76,8 +76,8 @@ Typing rules for CLI values
 ## Edit environments in the UI
 - You can modify variables and set presets using the UI panels.
 - From the Environment panel, you can pick preset groups and values, then:
-  - Click "Reset Environments" to apply your changes to the Environment Variables panel.
-  - Click "Clear Environments" to clear the Environment Variables panel.
+  - Click "Set To Workspace" to apply your changes to the Environment Variables workspace.
+  - Click "Clear Workspace" to clear the Environment Variables from workspace.
 
 
 ![Environment panel](../screenshots/environment_panel.png)
