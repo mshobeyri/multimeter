@@ -15,7 +15,7 @@ const DocEdit: React.FC<DocEditProps> = ({ doc, update }) => {
       className="DocEdit"
       style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}
     >
-      <div className="label">title</div>
+      <div className="label">Title</div>
 
       <div style={{ width: "100%", padding: "5px" }}>
         <input
@@ -26,7 +26,7 @@ const DocEdit: React.FC<DocEditProps> = ({ doc, update }) => {
         />
       </div>
 
-      <div className="label">description</div>
+      <div className="label">Description</div>
       <div style={{ width: "100%", padding: "5px" }}>
         <DescriptionEditor
           value={doc.description || ""}
@@ -43,7 +43,7 @@ const DocEdit: React.FC<DocEditProps> = ({ doc, update }) => {
         placeholder="file or folder path"
       />
 
-      <div className="label">services</div>
+      <div className="label">Services</div>
       <div style={{ width: '100%', padding: '5px', display: 'flex', flexDirection: 'column', gap: 8 }}>
         {(doc.services || []).map((svc, idx) => (
           <div key={idx} style={{ border: '1px solid var(--panel-border)', borderRadius: 6, padding: 8 }}>

@@ -64,7 +64,7 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
         className="VariableEditor"
         style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}
       >
-        <div className="label">name</div>
+        <div className="label">Name</div>
         <div style={{ padding: "8px" }}>
           <FieldWithRemove
             value={variable.name || ""}
@@ -73,7 +73,7 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
             placeholder="name"
           />
         </div>
-        <div className="label">type</div>
+        <div className="label">Type</div>
         <div style={{ padding: "8px" }}>
           <ValidatableSelect
             value={variable.type || ""}
@@ -103,7 +103,7 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
         )}
         {(variable.type === "object" || variable.type === "object[]") && (
           <KSVEditor
-            label="fields"
+            label="Fields"
             value={variable.fields || {}}
             onChange={fields => updateField({ fields })}
             keyPlaceholder="Field name"
@@ -115,7 +115,7 @@ const VariableEditor: React.FC<VariableEditorProps> = ({
           />
         )}
 
-        <div className="label">optional fields</div>
+        <div className="label">Optional fields</div>
         {(availableOptionals.length > 0 || (variable.type === "object" || variable.type === "object[]")) && (
           <div style={{ padding: "5px" }}>
             <select

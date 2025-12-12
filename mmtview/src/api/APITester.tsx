@@ -92,7 +92,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
     <div style={{ width: "100%" }}>
       {examples.length > 0 && (
         <>
-          <div className="label">example</div>
+          <div className="label">Example</div>
           <div style={{ padding: "8px" }}>
             <select
               value={selectedExampleIdx ?? ""}
@@ -115,7 +115,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
         </>
       )}
 
-      <div className="label">url</div>
+      <div className="label">URL</div>
       <div style={{ padding: "8px" }}>
         <UrlInput
           url={requestData?.url ?? ""}
@@ -142,23 +142,23 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
       </div>
 
       {shouldShowQuery() && <KSVEditor
-        label="query"
+        label="Query"
         value={requestData?.query || {}}
         onChange={query => updateField("query", query)}
       />}
       {shouldShowHeaders() && < KSVEditor
-        label="headers"
+        label="Headers"
         value={requestData?.headers || {}}
         onChange={headers => updateField("headers", headers)}
       />}
       {shouldShowCookies() && <KSVEditor
-        label="cookies"
+        label="Cookies"
         value={requestData?.cookies || {}}
         onChange={cookies => updateField("cookies", cookies)}
       />}
       {shouldShowBody() && (
         <>
-          <div className="label">body</div>
+          <div className="label">Body</div>
           <div style={{ padding: "8px" }}>
             <BodyView
               value={typeof requestData?.body === 'string'
@@ -177,7 +177,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
 
       {shouldShowInputs() && (
         <VEditor
-          label="inputs"
+          label="Inputs"
           value={currentInputs}
           onChange={(data) => {
             setCurrentInputs(data);
@@ -225,7 +225,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
 
       {shouldShowResponse() && (
         <>
-          <div className="label">body</div>
+          <div className="label">Body</div>
           <div style={{ padding: "8px" }}>
             <BodyView
               value={

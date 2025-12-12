@@ -19,7 +19,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
       className="APIOverview"
       style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}
     >
-      <div className="label">title</div>
+      <div className="label">Title</div>
 
       <div style={{ width: "100%", padding: "5px" }}>
         <input
@@ -30,7 +30,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         />
       </div>
 
-      <div className="label">tags</div>
+      <div className="label">Tags</div>
       <div style={{ width: "100%", padding: "5px" }}>
         <SearchableTagInput
           tags={safeList(api.tags)}
@@ -39,7 +39,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         />
       </div>
 
-      <div className="label">description</div>
+      <div className="label">Description</div>
       <div style={{ width: "100%", padding: "5px" }}>
         <DescriptionEditor
           value={api.description || ""}
@@ -48,7 +48,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
       </div>
 
       <KSVEditor
-        label="import"
+        label="Import"
         value={api.import}
         onChange={kv => {
           update({ import: kv });
@@ -57,7 +57,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         valuePlaceholder="path"
       />
       <KVEditor
-        label="inputs"
+        label="Inputs"
         value={api.inputs}
         onChange={kv => {
           update({ inputs: kv });
@@ -66,7 +66,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         valuePlaceholder="value"
       />
       <KSVEditor
-        label="outputs"
+        label="Outputs"
         value={api.outputs}
         onChange={kv => {
           update({ outputs: kv });
@@ -75,7 +75,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         valuePlaceholder="value"
       />
       <KSVEditor
-        label="setenv"
+        label="Setenv"
         value={api.setenv}
         onChange={kv => {
           update({ setenv: kv });

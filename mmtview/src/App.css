@@ -394,12 +394,12 @@ button:focus {
 .label {
   color: var(--vscode-editorWidget-foreground, #939393);
   font-size: var(--vscode-font-size, 13px);
+  font-weight: bold;
   /* Use VS Code font size */
   font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
   padding: 5px;
-  padding-bottom: 0px;
-  padding-top: 10px;
-
+  padding-bottom: 5px;
+  padding-top: 15px;
   text-align: left;
   overflow: hidden;
 }

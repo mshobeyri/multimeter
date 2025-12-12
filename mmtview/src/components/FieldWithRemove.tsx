@@ -36,7 +36,7 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
       disabled={disabled}
       style={{
         position: "absolute",
-        top: 2,
+        top: 1,
         right: 0,
         width: 28,
         height: 24,
@@ -52,7 +52,7 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
         opacity: disabled ? 0.5 : 1,
       }}
     >
-      <span className="action-button codicon codicon-trash" style={{ fontSize: "16px" }}></span>
+      <span className="action-button codicon codicon-close" style={{ fontSize: "16px" }}></span>
     </button>}
   </div>
 );

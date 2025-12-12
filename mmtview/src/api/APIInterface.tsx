@@ -82,7 +82,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
 
   return (
     <div style={{ width: "100%" }}>
-      <div className="label">protocol</div>
+      <div className="label">Protocol</div>
       <div style={{ padding: "5px" }}>
         <select
           value={data.protocol}
@@ -97,7 +97,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
       </div>
 
 
-      <div className="label">format</div>
+      <div className="label">Format</div>
       <div style={{ padding: "5px" }}>
         <select
           value={data.format}
@@ -112,7 +112,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
       </div>
 
 
-      <div className="label">url</div>
+      <div className="label">URL</div>
       <div style={{ padding: "5px" }}>
         <UrlInput
           url={url}
@@ -124,7 +124,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
 
       {data.protocol === "http" || data.method ? (
         <>
-          <div className={data.protocol && data.protocol !== "http" ? "label label-disabled" : "label"}>method</div>
+          <div className={data.protocol && data.protocol !== "http" ? "label label-disabled" : "label"}>Method</div>
           <div style={{ padding: "5px" }}>
             <select
               value={data.method || ""}
@@ -142,7 +142,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
       ) : null}
       {data.protocol === "http" || isNonEmptyObject(data.query) ? (
         <KSVEditor
-          label="query"
+          label="Query"
           value={data.query || {}}
           onChange={handleQueryChange}
           disabled={data.protocol !== "http"}
@@ -150,7 +150,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
       ) : null}
       {data.protocol === "http" || isNonEmptyObject(data.headers) ? (
         <KSVEditor
-          label="headers"
+          label="Headers"
           value={data.headers || {}}
           onChange={headers => {
             const stringHeaders: Record<string, string> = {};
@@ -164,7 +164,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
       ) : null}
       {data.protocol === "http" || isNonEmptyObject(data.cookies) ? (
         <KSVEditor
-          label="cookies"
+          label="Cookies"
           value={data.cookies || {}}
           onChange={cookies => {
             const stringCookies: Record<string, string> = {};
@@ -179,7 +179,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
       {/* Only show body editor if method is not get */}
       {(data.protocol === "ws" || !data.method || data.method.toLowerCase() !== "get") && (
         <>
-          <div className="label">body</div>
+          <div className="label">Body</div>
           <div style={{ padding: "5px", position: "relative" }}>
             <BodyView
               value={formattedBody === null ? "" : formattedBody}

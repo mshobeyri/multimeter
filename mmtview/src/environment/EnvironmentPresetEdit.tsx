@@ -110,7 +110,7 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
                         marginBottom: "16px"
                     }}
                 >
-                    <span className="label">preset</span>
+                    <span className="label">Preset</span>
                     <div style={{ padding: "5px" }}>
                         <FieldWithRemove
                             value={board.name}
@@ -122,7 +122,7 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
                     <hr style={{ border: 0, borderTop: "1px solid #444", margin: "12px 0" }} />
                     {safeList(board.values).map((v, envIdx) => (
                         <div className="inner-box">
-                            <div className="label">name</div>
+                            <div className="label">Name</div>
                             <div style={{ padding: "5px" }}>
                                 <FieldWithRemove
                                     value={v.env}
@@ -132,7 +132,7 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
                                 />
                             </div>
                             <KSVEditor
-                                label="fields"
+                                label="Fields"
                                 value={v.kv}
                                 onChange={kv => handleEnvChange(boardIdx, envIdx, { kv })}
                                 keyPlaceholder="key"

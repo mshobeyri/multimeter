@@ -12,7 +12,7 @@ interface TestOverviewProps {
 
 const TestOverview: React.FC<TestOverviewProps> = ({ test, update }) => (
   <div style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
-    <div className="label">title</div>
+    <div className="label">Title</div>
     <div style={{ padding: "5px" }}>
       <input
         value={test.title || ""}
@@ -21,7 +21,7 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update }) => (
         style={{ width: "100%" }}
       />
     </div>
-    <div className="label">tags</div>
+    <div className="label">Tags</div>
     <div style={{ padding: "5px" }}>
       <SearchableTagInput
         tags={test.tags || []}
@@ -29,7 +29,7 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update }) => (
         suggestions={["security", "sessionless", "test", "user", "admin"]}
       />
     </div>
-    <div className="label">description</div>
+    <div className="label">Description</div>
     <div style={{ padding: "5px", width: "100%" }}>
       <DescriptionEditor
         value={test.description || ""}
@@ -38,7 +38,7 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update }) => (
     </div>
 
     <KSVEditor
-      label="import"
+      label="Import"
       value={test.import}
       onChange={kv => {
         update({ import: kv });
@@ -47,7 +47,7 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update }) => (
       valuePlaceholder="path"
     />
     <KSVEditor
-      label="input"
+      label="Inputs"
       value={test.inputs}
       onChange={kv => {
         update({ inputs: kv });
@@ -57,7 +57,7 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update }) => (
       options={jsonTypes}
     />
     <KSVEditor
-      label="output"
+      label="Outputs"
       value={test.outputs}
       onChange={kv => {
         update({ outputs: kv });

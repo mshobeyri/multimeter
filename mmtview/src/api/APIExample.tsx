@@ -31,7 +31,7 @@ const APIExample: React.FC<APIExampleProps> = ({ data, apiInputs, apiOutputs, on
     <div style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
 
 
-      <div className="label">name</div>
+      <div className="label">Name</div>
       <div style={{ padding: "5px" }}>
         <FieldWithRemove
           value={data.name ?? ""}
@@ -41,7 +41,7 @@ const APIExample: React.FC<APIExampleProps> = ({ data, apiInputs, apiOutputs, on
         />
       </div>
 
-      <div className="label">description</div>
+      <div className="label">Description</div>
       <div style={{ padding: "5px", width: "100%" }}>
         <DescriptionEditor
           value={data.description || ""}
@@ -51,14 +51,14 @@ const APIExample: React.FC<APIExampleProps> = ({ data, apiInputs, apiOutputs, on
 
       {isNonEmptyObject(apiInputs) ? (
         <VEditor
-          label="inputs:"
+          label="Inputs"
           value={data.inputs || {}}
           onChange={handleFieldsChange}
           keyOptions={Object.keys(apiInputs)}
         />
       ) : (
         <>
-          <div className="label">inputs</div>
+          <div className="label">Inputs</div>
           <div style={{ padding: "5px" }}>
             <div className="error-panel">
               You need to define inputs first
@@ -69,14 +69,14 @@ const APIExample: React.FC<APIExampleProps> = ({ data, apiInputs, apiOutputs, on
 
       {isNonEmptyObject(apiOutputs) ? (
         <VEditor
-          label="outputs:"
+          label="Outputs"
           value={data.outputs || {}}
           onChange={handleOutputsChange}
           keyOptions={Object.keys(apiOutputs)}
         />
       ) : (
         <>
-          <div className="label">expected</div>
+          <div className="label">Outputs</div>
           <div style={{ padding: "5px" }}>
             <div className="info-panel">
               Define outputs in the API to guide expected values
