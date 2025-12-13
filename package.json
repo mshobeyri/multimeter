@@ -255,21 +255,21 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "multimeter",
+          "id": "multimeter-activitybar",
           "title": "Multimeter",
           "icon": "res/activity.png"
         }
       ],
       "panel": [
         {
-          "id": "history-container",
-          "title": "Multimeter History",
+          "id": "multimeter-panel",
+          "title": "Multimeter",
           "icon": "res/activity.png"
         }
       ]
     },
     "views": {
-      "multimeter": [
+      "multimeter-activitybar": [
         {
           "id": "multimeter.convertor",
           "name": "Convertor",
@@ -295,7 +295,7 @@
           "type": "webview"
         }
       ],
-      "history-container": [
+      "multimeter-panel": [
         {
           "id": "multimeter.history",
           "name": "History",
