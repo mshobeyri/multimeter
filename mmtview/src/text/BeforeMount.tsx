@@ -40,6 +40,27 @@ export const handleBeforeMount = (monaco: any) => {
         return uniqueSuggestions;
     };
 
+    const getListPrefixLength = (line: string, wordStartColumn: number): number => {
+        if (wordStartColumn <= 1) {
+            return 0;
+        }
+
+        const slice = line.slice(0, wordStartColumn - 1);
+        const match = slice.match(/(-\s*)$/);
+
+        if (!match) {
+            return 0;
+        }
+
+        const dashIndex = slice.length - match[0].length;
+
+        if (dashIndex === 0 || /\s/.test(slice[dashIndex - 1])) {
+            return match[0].length;
+        }
+
+        return 0;
+    };
+
     // Determine the parent context for suggestions
     const getParentContext = (lines: string[], currentIndent: number, firstLine: string): string => {
         // Check document type first
@@ -177,17 +198,29 @@ export const handleBeforeMount = (monaco: any) => {
             const parentSuggestions = keySuggestionsByParent[parent] || [];
             const baseSuggestions = deduplicateSuggestions(parentSuggestions);
 
-            const suggestions = baseSuggestions.map(item => ({
-                ...item,
-                documentation: item.documentation,
-                // Insert exactly at cursor position without shifting to line start
-                range: {
-                    startLineNumber: position.lineNumber,
-                    startColumn: position.column,
-                    endLineNumber: position.lineNumber,
-                    endColumn: position.column
-                }
-            }));
+            const wordInfo = model.getWordUntilPosition(position);
+            const baseStartColumn = wordInfo?.startColumn ?? position.column;
+            const baseEndColumn = wordInfo?.endColumn ?? position.column;
+            const listPrefixLength = getListPrefixLength(lineContent, baseStartColumn);
+
+            const suggestions = baseSuggestions.map(item => {
+                const insertText = typeof item.insertText === 'string' ? item.insertText.trimStart() : '';
+                const needsListPrefix = insertText.startsWith('-');
+                const startColumn = needsListPrefix
+                    ? Math.max(1, baseStartColumn - listPrefixLength)
+                    : baseStartColumn;
+
+                return {
+                    ...item,
+                    documentation: item.documentation,
+                    range: {
+                        startLineNumber: position.lineNumber,
+                        startColumn,
+                        endLineNumber: position.lineNumber,
+                        endColumn: baseEndColumn
+                    }
+                };
+            });
 
             return { suggestions };
         },
