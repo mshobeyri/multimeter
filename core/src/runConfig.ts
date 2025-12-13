@@ -22,6 +22,7 @@ export interface RunFileOptions {
   filePath?: string;
   fileType: 'raw'|'path';
   exampleIndex?: number;
+  exampleName?: string;
   manualInputs?: Record<string, any>;
   envvar?: Record<string, any>;
   manualEnvvars?: Record<string, any>;

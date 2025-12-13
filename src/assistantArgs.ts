@@ -132,7 +132,7 @@ export async function parseAssistantRunArgs(
   const relPath = unquote(argFile);
   if (!relPath) {
     throw new Error(
-        'Usage: /run <file> [--input key=val ...] [--env key=val ...] [--env-file path] [--preset name] [--print-js]');
+      'Usage: /run <file> [--input key=val ...] [--env key=val ...] [--env-file path] [--preset name] [--example name|#index] [--print-js]');
   }
   const fileUri = vscode.Uri.file(
       path.isAbsolute(relPath) ? relPath : path.join(projectRoot, relPath));
@@ -142,6 +142,19 @@ export async function parseAssistantRunArgs(
 
   const manualInputs = parsePairs(collectList('input', 'i'));
   const manualEnvvars = parsePairs(collectList('env', 'e'));
+  const exampleOptRaw = findOpt('example');
+  let exampleIndexOpt: number|undefined = undefined;
+  let exampleNameOpt: string|undefined = undefined;
+  if (typeof exampleOptRaw === 'string' && exampleOptRaw.trim()) {
+    const trimmed = exampleOptRaw.trim();
+    const numeric = trimmed.match(/^#?(\d+)$/);
+    if (numeric) {
+      const parsed = Number(numeric[1]);
+      exampleIndexOpt = parsed > 0 ? parsed - 1 : 0;
+    } else {
+      exampleNameOpt = trimmed;
+    }
+  }
 
   const envFile = findOpt('env-file');
   const preset = findOpt('preset');
@@ -180,6 +193,8 @@ export async function parseAssistantRunArgs(
     file: rawText,
     fileType: 'raw',
     filePath: fileUri.fsPath,
+    exampleIndex: exampleIndexOpt,
+    exampleName: exampleNameOpt,
     manualInputs,
     envvar: mergedBaseEnv,
     manualEnvvars,

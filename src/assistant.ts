@@ -33,6 +33,7 @@ async function handleChatRequest(
         `    **-e**, **--env <values...>**    Environment variables as key value pairs or key=val (repeatable)\n` +
         `    **--env-file <path>**            Environment file (.mmt/.yaml) to read variables from\n` +
         `    **--preset <name>**              Preset name from env file (e.g., runner.dev) or just name under runner\n` +
+        `    **--example <name|#n>**          Run a named example (matches \`name\`) or numeric index (#1 = first)\n` +
         `    **--print-js**                   Print generated JS before executing\n\n` +
         `  \`/print-js <file>\`               Convert a test definition file to executable JS and print\n` +
         `    **-s**, **--stages**             Include stage headers as comments when stages exist\n` +

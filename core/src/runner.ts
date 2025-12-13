@@ -126,6 +126,10 @@ export async function prepareRunFromOptions(
       typeof options.exampleIndex === 'number' && options.exampleIndex >= 0 ?
       options.exampleIndex :
       undefined;
+    const requestedExampleName =
+      typeof options.exampleName === 'string' && options.exampleName.trim() ?
+      options.exampleName.trim() :
+      undefined;
 
   if (docType === 'api') {
     const apiDoc = yamlToAPI(rawText);
@@ -133,7 +137,8 @@ export async function prepareRunFromOptions(
         isPlainObject(apiDoc.inputs) ? apiDoc.inputs as Record<string, any>: {};
     const manualInputsForMerge = {...manualInputs};
     const {exampleInputs, resolvedExampleName, resolvedExampleIndex} =
-        resolveApiExample(apiDoc, requestedExampleIndex, log);
+      resolveApiExample(
+        apiDoc, requestedExampleIndex, requestedExampleName, log);
     const inputsUsed = mergeInputs({
       defaultInputs,
       exampleInputs,
@@ -309,6 +314,7 @@ interface ResolveExampleResult {
 
 function resolveApiExample(
     api: APIData, requestedIndex: number|undefined,
+    requestedName: string|undefined,
     log: (level: LogLevel, message: string) => void): ResolveExampleResult {
   const examples = Array.isArray(api.examples) ? api.examples : [];
   if (examples.length === 0) {
@@ -325,6 +331,17 @@ function resolveApiExample(
       resolvedExampleIndex: typeof idx === 'number' ? idx : undefined,
     };
   };
+  if (requestedName) {
+    const target = requestedName.trim().toLowerCase();
+    const idx = examples.findIndex(ex => {
+      const nm = typeof ex?.name === 'string' ? ex.name.trim() : '';
+      return nm.toLowerCase() === target;
+    });
+    if (idx >= 0) {
+      return toResult(examples[idx], idx);
+    }
+    log('warn', `Example "${requestedName}" not found; using API defaults.`);
+  }
   if (typeof requestedIndex === 'number' && requestedIndex >= 0 &&
       Number.isInteger(requestedIndex)) {
     if (requestedIndex < examples.length) {
