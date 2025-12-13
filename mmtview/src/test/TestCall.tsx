@@ -132,19 +132,20 @@ const TestCall: React.FC<TestCallProps> = ({
   };
 
   return (
-    <div style={{ width: '100%' }}>
+    <div style={{ width: '100%', borderCollapse: "collapse", tableLayout: "fixed" }}>
       <select
         value={currentAlias}
         onChange={handleChange}
-        style={{ width: '100%', marginBottom: 8 }}
+        style={{ width: '100%' }}
       >
         <option value="">{placeholder}</option>
         {aliases.map(a => (
           <option key={a} value={a}>{a}</option>
         ))}
       </select>
-      <div style={{ marginBottom: 8 }}>
-        <label className="Label" style={{ display: 'block', marginBottom: 4 }}>Id</label>
+
+      <div className="label">Id</div>
+      <div style={{ padding: "5px" }}>
         <input
           type="text"
           value={currentId}
@@ -160,14 +161,15 @@ const TestCall: React.FC<TestCallProps> = ({
             }
           }}
           disabled={!currentAlias}
-          style={{ width: '100%', padding: '6px 8px', marginLeft: 16 }}
+          style={{ width: '100%' }}
           placeholder="Optional id to capture call result"
         />
       </div>
+
       {currentAlias && (
-        <div>
-          <label className="Label">Parameters</label>
-          <div style={{ paddingLeft: 12, marginTop: 8 }}>
+        <>
+          <div className="label">Parameters</div>
+          <div style={{ padding: "5px" }}>
             {keys.length ? (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', columnGap: 12, rowGap: 8 }}>
                 {keys.map(k => (
@@ -196,7 +198,7 @@ const TestCall: React.FC<TestCallProps> = ({
               <div style={{ opacity: 0.7 }}>No parameters</div>
             )}
           </div>
-        </div>
+        </>
       )}
     </div>
   );
