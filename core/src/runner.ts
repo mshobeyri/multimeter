@@ -7,6 +7,7 @@ import * as JSer from './JSer';
 import { LogLevel } from "./CommonData";
 import {FileLoader, GenerateJsOptions, mergeEnv, mergeInputs, RunFileOptions, RunResult} from './runConfig';
 import * as testParsePack from './testParsePack';
+import { replaceAllRefs } from './variableReplacer';
 
 
 export async function generateTestJs(opts: GenerateJsOptions): Promise<string> {
@@ -401,6 +402,7 @@ interface ApiRunnerWrapperOptions {
 }
 
 function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
+  opts = replaceAllRefs(opts, {}, opts.inputs, opts.envVars);
   const envJson = JSON.stringify(opts.envVars ?? {}, null, 2);
   const inputsJson = JSON.stringify(opts.inputs ?? {}, null, 2);
   const exampleLabelParts: string[] = [];
