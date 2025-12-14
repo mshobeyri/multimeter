@@ -7,6 +7,16 @@ import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./BeforeMount";
 import { safeList } from "mmt-core/safer";
 import { openRelativeFile, showVSCodeMessage } from "../vsAPI";
+import {
+  computeMissingImportMarkers,
+  computeOrderingMarkers,
+  computeTestCallAliasMarkers,
+  computeTestCallInputsMarkers,
+  extractRootKeyInfo,
+  offsetToLineNumber,
+  type MissingImportEntry,
+  type ProblemEntry,
+} from "./validator";
 
 interface YamlEditorPanelProps {
   content: string;
@@ -41,9 +51,12 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const lastImportsSignatureRef = useRef<string>("");
   const pendingImportValidationIdRef = useRef<number>(0);
   const [missingImports, setMissingImports] = useState<MissingImportEntry[]>([]);
+  const [apiInputsByAlias, setApiInputsByAlias] = useState<Record<string, string[]>>({});
   const [yamlProblems, setYamlProblems] = useState<ProblemEntry[]>([]);
   const [orderingProblems, setOrderingProblems] = useState<ProblemEntry[]>([]);
   const [missingImportProblems, setMissingImportProblems] = useState<ProblemEntry[]>([]);
+  const [callAliasProblems, setCallAliasProblems] = useState<ProblemEntry[]>([]);
+  const [callInputsProblems, setCallInputsProblems] = useState<ProblemEntry[]>([]);
   // Keep track of whether the editor has detected a canonical key-order issue via markers.
   const shouldShowRunControls = (docType === "test" || docType === "api");
 
@@ -84,6 +97,13 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
           .filter((item: any) => item && typeof item.alias === "string" && typeof item.path === "string")
           .map((item: any) => ({ alias: item.alias, path: item.path }));
         setMissingImports(formatted);
+
+        const rawInputsByAlias = message.apiInputsByAlias;
+        if (rawInputsByAlias && typeof rawInputsByAlias === "object") {
+          setApiInputsByAlias(rawInputsByAlias as Record<string, string[]>);
+        } else {
+          setApiInputsByAlias({});
+        }
       }
     };
     window.addEventListener("message", listener);
@@ -176,6 +196,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       command: "validateImports",
       imports: importsObj,
       requestId,
+      includeInputs: true,
     });
   }, [importsVersion]);
 
@@ -183,17 +204,10 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     if (!editorReady || !monacoRef.current || !editorRef.current) {
       return;
     }
-    const expectedOrder = getCanonicalOrder(docType);
     const monaco = monacoRef.current;
     const editor = editorRef.current;
     const model = editor.getModel();
     if (!model) {
-      return;
-    }
-
-    if (!expectedOrder || !content.trim()) {
-      monaco.editor.setModelMarkers(model, "yaml-ordering", []);
-      setOrderingProblems([]);
       return;
     }
 
@@ -204,23 +218,10 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         setOrderingProblems([]);
         return;
       }
-      const issue = detectOrderingIssue(yamlDoc, content, expectedOrder);
-      const markers = issue
-        ? [{
-          startLineNumber: issue.line,
-          startColumn: 1,
-          endLineNumber: issue.line,
-          endColumn: model.getLineMaxColumn(issue.line),
-          message: issue.message,
-          severity: monaco.MarkerSeverity.Warning,
-        }]
-        : [];
+
+      const { markers, problems } = computeOrderingMarkers(monaco, model, content, yamlDoc, docType);
       monaco.editor.setModelMarkers(model, "yaml-ordering", markers);
-      if (issue) {
-        setOrderingProblems([{ message: issue.message, severity: "warning", line: issue.line, column: 1 }]);
-      } else {
-        setOrderingProblems([]);
-      }
+      setOrderingProblems(problems);
     } catch {
       monaco.editor.setModelMarkers(model, "yaml-ordering", []);
       setOrderingProblems([]);
@@ -238,12 +239,6 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       return;
     }
 
-    if (!missingImports.length) {
-      monaco.editor.setModelMarkers(model, "mmt-imports", []);
-      setMissingImportProblems([]);
-      return;
-    }
-
     let doc: any = null;
     try {
       doc = parseYamlDoc(content);
@@ -253,28 +248,62 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       return;
     }
 
-    const lineInfo = extractImportLineInfo(doc, content);
-    const markers = missingImports.map(({ alias, path }) => {
-      const info = lineInfo.find(entry => entry.alias === alias) || lineInfo.find(entry => entry.path === path);
-      const targetLine = info?.line || 1;
-      const lineNumber = Math.min(Math.max(targetLine, 1), model.getLineCount());
-      return {
-        startLineNumber: lineNumber,
-        startColumn: 1,
-        endLineNumber: lineNumber,
-        endColumn: model.getLineMaxColumn(lineNumber),
-        message: `Imported file "${path}" was not found.`,
-        severity: monaco.MarkerSeverity.Warning,
-      };
-    });
+    const { markers, problems } = computeMissingImportMarkers(monaco, model, content, doc, missingImports);
     monaco.editor.setModelMarkers(model, "mmt-imports", markers);
-    setMissingImportProblems(markers.map(marker => ({
-      message: marker.message,
-      severity: "warning",
-      line: marker.startLineNumber,
-      column: marker.startColumn,
-    })));
+    setMissingImportProblems(problems);
   }, [missingImports, content, editorReady]);
+
+  useEffect(() => {
+    if (!editorReady || !monacoRef.current || !editorRef.current) {
+      return;
+    }
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) {
+      return;
+    }
+
+    let doc: any = null;
+    try {
+      doc = parseYamlDoc(content);
+      if (doc.errors && doc.errors.length > 0) {
+        monaco.editor.setModelMarkers(model, "mmt-call", []);
+        setCallAliasProblems([]);
+        monaco.editor.setModelMarkers(model, "mmt-call-inputs", []);
+        setCallInputsProblems([]);
+        return;
+      }
+    } catch {
+      monaco.editor.setModelMarkers(model, "mmt-call", []);
+      setCallAliasProblems([]);
+      monaco.editor.setModelMarkers(model, "mmt-call-inputs", []);
+      setCallInputsProblems([]);
+      return;
+    }
+
+    const { markers: aliasMarkers, problems: aliasProblems } = computeTestCallAliasMarkers(
+      monaco,
+      model,
+      content,
+      doc,
+      importsMapRef.current,
+      docType
+    );
+    monaco.editor.setModelMarkers(model, "mmt-call", aliasMarkers);
+    setCallAliasProblems(aliasProblems);
+
+    const { markers: inputMarkers, problems: inputProblems } = computeTestCallInputsMarkers(
+      monaco,
+      model,
+      content,
+      doc,
+      docType,
+      apiInputsByAlias
+    );
+    monaco.editor.setModelMarkers(model, "mmt-call-inputs", inputMarkers);
+    setCallInputsProblems(inputProblems);
+  }, [content, docType, editorReady, apiInputsByAlias]);
 
   useEffect(() => {
     if (!editorReady || !editorRef.current || !monacoRef.current) {
@@ -616,12 +645,12 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     if (!window?.vscode) {
       return;
     }
-    const problems = [...yamlProblems, ...orderingProblems, ...missingImportProblems];
+    const problems = [...yamlProblems, ...orderingProblems, ...missingImportProblems, ...callAliasProblems, ...callInputsProblems];
     window.vscode.postMessage({
       command: "updateDocumentProblems",
       problems,
     });
-  }, [yamlProblems, orderingProblems, missingImportProblems]);
+  }, [yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems]);
 
   return (
     <div style={{ height: "100%" }}>
@@ -645,33 +674,6 @@ export default YamlEditorPanel;
 
 
 type ExampleLineInfo = { line: number; index: number };
-
-type OrderingIssue = {
-  line: number;
-  key: string;
-  prevKey?: string;
-  message: string;
-};
-
-type RootKeyInfo = {
-  key: string;
-  line: number;
-};
-
-type MissingImportEntry = { alias: string; path: string };
-
-type ImportLineInfo = {
-  alias: string;
-  path?: string;
-  line: number;
-};
-
-type ProblemEntry = {
-  message: string;
-  severity: "error" | "warning";
-  line?: number;
-  column?: number;
-};
 
 function extractExampleLineInfo(doc: any, content: string): ExampleLineInfo[] {
   if (!doc || !doc.contents) {
@@ -707,125 +709,6 @@ function extractExampleLineInfo(doc: any, content: string): ExampleLineInfo[] {
   return positions;
 }
 
-function offsetToLineNumber(content: string, offset: number): number {
-  if (offset <= 0) {
-    return 1;
-  }
-  let line = 1;
-  const limit = Math.min(offset, content.length);
-  for (let i = 0; i < limit; i++) {
-    if (content.charCodeAt(i) === 10) {
-      line += 1;
-    }
-  }
-  return line;
-}
-
-function extractRootKeyInfo(doc: any, content: string): RootKeyInfo[] {
-  const items: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
-  return items
-    .map(item => {
-      const key = item?.key?.value;
-      if (typeof key !== "string" || !key.trim()) {
-        return null;
-      }
-      const offset = Array.isArray(item?.key?.range) ? item.key.range[0] : Array.isArray(item?.range) ? item.range[0] : undefined;
-      const line = typeof offset === "number" ? offsetToLineNumber(content, offset) : 1;
-      return { key, line } as RootKeyInfo;
-    })
-    .filter(Boolean) as RootKeyInfo[];
-}
-
-function extractImportLineInfo(doc: any, content: string): ImportLineInfo[] {
-  const items: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
-  const importPair = items.find(entry => {
-    const key = entry?.key?.value;
-    return key === "import" || key === "imports";
-  });
-  if (!importPair || !importPair.value) {
-    return [];
-  }
-  const mapItems: any[] = Array.isArray(importPair.value.items) ? importPair.value.items : [];
-  return mapItems
-    .map(pair => {
-      const alias = typeof pair?.key?.value === "string" ? pair.key.value : undefined;
-      if (!alias) {
-        return null;
-      }
-      const path = typeof pair?.value?.value === "string" ? pair.value.value : undefined;
-      const offset = Array.isArray(pair?.value?.range) && typeof pair.value.range[0] === "number"
-        ? pair.value.range[0]
-        : Array.isArray(pair?.range) ? pair.range[0] : undefined;
-      const line = typeof offset === "number" ? offsetToLineNumber(content, offset) : 1;
-      return { alias, path, line } as ImportLineInfo;
-    })
-    .filter(Boolean) as ImportLineInfo[];
-}
-
-function getCanonicalOrder(docType: string | null): string[] | null {
-  switch (docType) {
-    case "api":
-      return [
-        "type",
-        "title",
-        "description",
-        "tags",
-        "import",
-        "inputs",
-        "outputs",
-        "setenv",
-        "url",
-        "query",
-        "protocol",
-        "method",
-        "format",
-        "headers",
-        "cookies",
-        "body",
-        "examples"
-      ];
-    case "test":
-      return [
-        "type",
-        "title",
-        "description",
-        "tags",
-        "import",
-        "inputs",
-        "outputs",
-        "metrics",
-        "steps",
-        "stages"
-      ];
-    case "doc":
-      return ["type", "title", "description", "logo", "sources", "services"];
-    default:
-      return null;
-  }
-}
-
-function detectOrderingIssue(doc: any, content: string, expectedOrder: string[]): OrderingIssue | null {
-  const orderMap = new Map<string, number>();
-  expectedOrder.forEach((key, idx) => orderMap.set(key, idx));
-  const keys = extractRootKeyInfo(doc, content);
-  let lastIdx = -1;
-  let lastKey: string | undefined;
-  for (const entry of keys) {
-    if (!orderMap.has(entry.key)) {
-      continue;
-    }
-    const currentIdx = orderMap.get(entry.key) ?? 0;
-    if (currentIdx < lastIdx) {
-      const message = lastKey
-        ? `'${entry.key}' should appear before '${lastKey}' to follow the canonical order. Use Format Document (Shift+Alt+F) to fix it.`
-        : `'${entry.key}' is out of order. Use Format Document (Shift+Alt+F) to fix it.`;
-      return { line: entry.line, key: entry.key, prevKey: lastKey, message };
-    }
-    lastIdx = currentIdx;
-    lastKey = entry.key;
-  }
-  return null;
-}
 
 function buildCanonicalYaml(content: string, docType: string | null): string | null {
   try {

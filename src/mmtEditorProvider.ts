@@ -1,6 +1,8 @@
 import * as fs from 'fs';
 import {runner} from 'mmt-core';
 import {LogLevel} from 'mmt-core/CommonData';
+import {markupConvertor} from 'mmt-core';
+const {parseYaml} = markupConvertor;
 import {runJSCode} from 'mmt-core/jsRunner';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -271,6 +273,8 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           const imports = message?.imports;
           const importEntries = imports && typeof imports === 'object' ? imports : {};
           const missing: Array<{alias: string; path: string}> = [];
+          const apiInputsByAlias: Record<string, string[]> = {};
+          const includeInputs = !!message?.includeInputs;
           for (const [alias, relativePath] of Object.entries(importEntries)) {
             if (typeof alias !== 'string') {
               continue;
@@ -282,12 +286,30 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
                 path.dirname(document.uri.fsPath), relativePath);
             if (!fs.existsSync(absolutePath)) {
               missing.push({alias, path: relativePath});
+              continue;
+            }
+
+            if (includeInputs) {
+              try {
+                const raw = await vscode.workspace.fs.readFile(vscode.Uri.file(absolutePath));
+                const text = Buffer.from(raw).toString('utf8');
+                const js: any = parseYaml(text);
+                const inputsObj = js && js.inputs;
+                if (inputsObj && typeof inputsObj === 'object' && !Array.isArray(inputsObj)) {
+                  apiInputsByAlias[alias] = Object.keys(inputsObj);
+                } else {
+                  apiInputsByAlias[alias] = [];
+                }
+              } catch {
+                apiInputsByAlias[alias] = [];
+              }
             }
           }
           webviewPanel.webview.postMessage({
             command: 'importValidationResult',
             requestId: message?.requestId,
             missing,
+            apiInputsByAlias: includeInputs ? apiInputsByAlias : undefined,
           });
           break;
         }
