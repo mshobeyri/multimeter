@@ -76,6 +76,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
           onPointerUp={(e) => { e.stopPropagation(); setOpenMenu(false); onDuplicate?.(); }}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenMenu(false); onDuplicate?.(); } }}
         >
+          <span className={`codicon codicon-copy`} ></span>
           Duplicate
         </button>
         <button
@@ -87,6 +88,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
           onPointerUp={(e) => { e.stopPropagation(); setOpenMenu(false); onRemove?.(); }}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenMenu(false); onRemove?.(); } }}
         >
+          <span className={`codicon codicon-trash`}></span>
           Remove
         </button>
       </div>
