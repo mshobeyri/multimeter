@@ -1,16 +1,5 @@
-import {
-  flowStagesToJsfunc,
-  APIContext,
-  TestContext,
-  importTestToJsfunc,
-  importCSVToJSObj,
-  importsToJsfunc,
-  setFileLoader,
-  rootTestToJsfunc,
-  variableReplacer,
-  importApiToJSfunc
-} from './JSer';
-import { yamlToAPI } from './apiParsePack';
+import {yamlToAPI} from './apiParsePack';
+import {APIContext, apiToJSfunc, csvToJSObj, flowStagesToJsfunc, importsToJsfunc, rootTestToJsfunc, setFileLoader, TestContext, testToJsfunc, variableReplacer} from './JSer';
 
 describe('flowStagesToJsfunc', () => {
   it('generates parallel execution for independent stages', () => {
@@ -18,17 +7,17 @@ describe('flowStagesToJsfunc', () => {
       {
         id: 'stage1',
         steps: [
-          { type: 'call', id: 'step1', target: 'apiFunc1', inputs: ['a'] },
+          {type: 'call', id: 'step1', target: 'apiFunc1', inputs: ['a']},
         ],
       },
       {
         id: 'stage2',
         steps: [
-          { type: 'call', id: 'step2', target: 'apiFunc2', inputs: ['b'] },
+          {type: 'call', id: 'step2', target: 'apiFunc2', inputs: ['b']},
         ],
       },
     ];
-    const js = flowStagesToJsfunc(stages as any);
+    const js = flowStagesToJsfunc(stages as any, true);
     expect(js).toContain('const stage1Promise = (async () =>');
     expect(js).toContain('const stage2Promise = (async () =>');
     expect(js).toContain('await Promise.all([stage1Promise, stage2Promise]);');
@@ -39,18 +28,18 @@ describe('flowStagesToJsfunc', () => {
       {
         id: 'stage1',
         steps: [
-          { type: 'call', id: 'step1', target: 'apiFunc1', inputs: ['a'] },
+          {type: 'call', id: 'step1', target: 'apiFunc1', inputs: ['a']},
         ],
       },
       {
         id: 'stage2',
         depends_on: ['stage1'],
         steps: [
-          { type: 'call', id: 'step2', target: 'apiFunc2', inputs: ['b'] },
+          {type: 'call', id: 'step2', target: 'apiFunc2', inputs: ['b']},
         ],
       },
     ];
-    const js = flowStagesToJsfunc(stages as any);
+    const js = flowStagesToJsfunc(stages as any, true);
     expect(js).toContain('await Promise.all([stage1Promise]);');
     expect(js).toContain('const stage2Promise = (async () =>');
     expect(js).toContain('await Promise.all([stage1Promise, stage2Promise]);');
@@ -61,27 +50,28 @@ describe('flowStagesToJsfunc', () => {
       {
         id: 'stage1',
         steps: [
-          { type: 'call', id: 'step1', target: 'apiFunc1', inputs: ['a'] },
+          {type: 'call', id: 'step1', target: 'apiFunc1', inputs: ['a']},
         ],
       },
       {
         id: 'stage2',
         steps: [
-          { type: 'call', id: 'step2', target: 'apiFunc2', inputs: ['b'] },
+          {type: 'call', id: 'step2', target: 'apiFunc2', inputs: ['b']},
         ],
       },
       {
         id: 'stage3',
         depends_on: ['stage1', 'stage2'],
         steps: [
-          { type: 'call', id: 'step3', target: 'apiFunc3', inputs: ['c'] },
+          {type: 'call', id: 'step3', target: 'apiFunc3', inputs: ['c']},
         ],
       },
     ];
-    const js = flowStagesToJsfunc(stages as any);
+    const js = flowStagesToJsfunc(stages as any, true);
     expect(js).toContain('await Promise.all([stage1Promise, stage2Promise]);');
     expect(js).toContain('const stage3Promise = (async () =>');
-    expect(js).toContain('await Promise.all([stage1Promise, stage2Promise, stage3Promise]);');
+    expect(js).toContain(
+        'await Promise.all([stage1Promise, stage2Promise, stage3Promise]);');
   });
 
   it('injects early return when stage condition exists', () => {
@@ -90,17 +80,17 @@ describe('flowStagesToJsfunc', () => {
         id: 'stage1',
         condition: 'equals(status, 200)',
         steps: [
-          { type: 'call', id: 'step1', target: 'apiFunc1', inputs: ['a'] },
+          {type: 'call', id: 'step1', target: 'apiFunc1', inputs: ['a']},
         ],
       },
       {
         id: 'stage2',
         steps: [
-          { type: 'call', id: 'step2', target: 'apiFunc2', inputs: ['b'] },
+          {type: 'call', id: 'step2', target: 'apiFunc2', inputs: ['b']},
         ],
       },
     ];
-    const js = flowStagesToJsfunc(stages as any);
+    const js = flowStagesToJsfunc(stages as any, true);
     expect(js).toContain('const stage1Promise = (async () =>');
     // Presence of condition should introduce an early-return guard
     expect(js).toContain('if (!(');
@@ -114,17 +104,17 @@ describe('flowStagesToJsfunc', () => {
       {
         id: 'stage1',
         steps: [
-          { type: 'call', id: 'step1', target: 'apiFunc1', inputs: ['a'] },
+          {type: 'call', id: 'step1', target: 'apiFunc1', inputs: ['a']},
         ],
       },
       {
         id: 'stage2',
         steps: [
-          { type: 'call', id: 'step2', target: 'apiFunc2', inputs: ['b'] },
+          {type: 'call', id: 'step2', target: 'apiFunc2', inputs: ['b']},
         ],
       },
     ];
-    const js = flowStagesToJsfunc(stages as any);
+    const js = flowStagesToJsfunc(stages as any, true);
     expect(js).toContain('const stage1Promise = (async () =>');
     // No condition means no early-return guard injected
     expect(js.includes('if (!(')).toBe(false);
@@ -141,25 +131,25 @@ describe('testToJsfunc (multi-stage)', () => {
           {
             id: 'stage1',
             steps: [
-              { type: 'call', id: 'step1', target: 'apiFunc1', inputs: ['a'] },
+              {type: 'call', id: 'step1', target: 'apiFunc1', inputs: ['a']},
             ],
           },
           {
             id: 'stage2',
             depends_on: ['stage1'],
             steps: [
-              { type: 'call', id: 'step2', target: 'apiFunc2', inputs: ['b'] },
+              {type: 'call', id: 'step2', target: 'apiFunc2', inputs: ['b']},
             ],
           },
         ],
       } as any,
-      inputs: { a: '', b: '' },
+      inputs: {a: '', b: ''},
       envVars: {},
     };
     // Patch testToJsfunc to use flowStagesToJsfunc for this test
     const originalFlowStagesToJsfunc = (globalThis as any).flowStagesToJsfunc;
     (globalThis as any).flowStagesToJsfunc = flowStagesToJsfunc;
-    const js = await importTestToJsfunc(ctx);
+    const js = await testToJsfunc(ctx, true);
     (globalThis as any).flowStagesToJsfunc = originalFlowStagesToJsfunc;
     expect(js).toContain('const stage1Promise = (async () =>');
     expect(js).toContain('const stage2Promise = (async () =>');
@@ -169,19 +159,20 @@ describe('testToJsfunc (multi-stage)', () => {
 });
 
 describe('CSV import parsing', () => {
-  it('parses simple CSV into array of objects with number coercion', async () => {
-    const csv = `name,family,age\nmehrdad,shobeyri,35\nsahar,ghazeydi,34\n`;
-    const code = await importCSVToJSObj(csv, 'users');
-    const users = new Function(code + '\nreturn users;')();
-    expect(Array.isArray(users)).toBe(true);
-    expect(users).toHaveLength(2);
-    expect(users[0]).toEqual({ name: 'mehrdad', family: 'shobeyri', age: 35 });
-    expect(users[1]).toEqual({ name: 'sahar', family: 'ghazeydi', age: 34 });
-  });
+  it('parses simple CSV into array of objects with number coercion',
+     async () => {
+       const csv = `name,family,age\nmehrdad,shobeyri,35\nsahar,ghazeydi,34\n`;
+       const code = await csvToJSObj(csv, 'users');
+       const users = new Function(code + '\nreturn users;')();
+       expect(Array.isArray(users)).toBe(true);
+       expect(users).toHaveLength(2);
+       expect(users[0]).toEqual({name: 'mehrdad', family: 'shobeyri', age: 35});
+       expect(users[1]).toEqual({name: 'sahar', family: 'ghazeydi', age: 34});
+     });
 
   it('returns empty array when content looks like YAML not CSV', async () => {
     const yamlLike = `type: api\nprotocol: http\n`;
-    const code = await importCSVToJSObj(yamlLike, 'users');
+    const code = await csvToJSObj(yamlLike, 'users');
     const users = new Function(code + '\nreturn users;')();
     expect(users).toEqual([]);
   });
@@ -189,138 +180,137 @@ describe('CSV import parsing', () => {
   it('wires through importsToJsfunc with a loader', async () => {
     const csv = `name,family,age\nmehrdad,shobeyri,35\n`;
     setFileLoader(async (p: string) => {
-      if (p.endsWith('.csv')) { return csv; }
+      if (p.endsWith('.csv')) {
+        return csv;
+      }
       return '';
     });
-    const bundle = await importsToJsfunc({ users: 'users.csv' });
+    const bundle = await importsToJsfunc({users: 'users.csv'});
     const users = new Function(bundle + '\nreturn users;')();
-    expect(users).toEqual([{ name: 'mehrdad', family: 'shobeyri', age: 35 }]);
+    expect(users).toEqual([{name: 'mehrdad', family: 'shobeyri', age: 35}]);
   });
 
   it('parses CSV with BOM and CRLF and quoted commas/quotes', async () => {
-    const csv = '\uFEFFname,comment\r\n"john","said, ""hello"""\r\n"doe","plain"\n';
-    const code = await importCSVToJSObj(csv, 'rows');
+    const csv =
+        '\uFEFFname,comment\r\n"john","said, ""hello"""\r\n"doe","plain"\n';
+    const code = await csvToJSObj(csv, 'rows');
     const rows = new Function(code + '\nreturn rows;')();
     expect(rows).toEqual([
-      { name: 'john', comment: 'said, "hello"' },
-      { name: 'doe', comment: 'plain' }
+      {name: 'john', comment: 'said, "hello"'}, {name: 'doe', comment: 'plain'}
     ]);
   });
 });
 
 describe('env token replacements in generated JS', () => {
-  it('replaces e:VAR, e:{VAR}, <e:VAR> and <<e:VAR>> inside template literals', async () => {
-    const ctx: TestContext = {
-      name: 'envTplTest',
-      test: {
-        steps: [
-          { print: 'FOO=<e:FOO>, BAR=<<e:BAR>>, BAZ=e:BAZ, QUX=e:{QUX}' } as any
-        ]
-      } as any,
-      inputs: {},
-      envVars: {}
-    };
-  const js = await rootTestToJsfunc(ctx);
-    expect(js).toContain('${envVariables.FOO}');
-    expect(js).toContain('${envVariables.BAR}');
-    expect(js).toContain('${envVariables.BAZ}');
-    expect(js).toContain('${envVariables.QUX}');
-  });
+  it('replaces e:VAR, e:{VAR}, <e:VAR> and <<e:VAR>> inside template literals',
+     async () => {
+       const ctx: TestContext = {
+         name: 'envTplTest',
+         test: {
+           steps:
+               [{print: 'FOO=<e:FOO>, BAR=<<e:BAR>>, BAZ=e:BAZ, QUX=e:{QUX}'} as
+                any]
+         } as any,
+         inputs: {},
+         envVars: {}
+       };
+       const js = await rootTestToJsfunc(ctx);
+       expect(js).toContain('${envVariables.FOO}');
+       expect(js).toContain('${envVariables.BAR}');
+       expect(js).toContain('${envVariables.BAZ}');
+       expect(js).toContain('${envVariables.QUX}');
+     });
 
-  it('replaces tokens outside template literals as plain envVariables access', async () => {
-    const ctx: TestContext = {
-      name: 'envOutsideTest',
-      test: {
-        steps: [
-          { for: 'let i = 0; i < e:LIMIT; i++', steps: [ { print: 'ok' } as any ] } as any
-        ]
-      } as any,
-      inputs: {},
-      envVars: {}
-    };
-  const js = await rootTestToJsfunc(ctx);
-    expect(js).toContain('i < envVariables.LIMIT');
-  });
+  it('replaces tokens outside template literals as plain envVariables access',
+     async () => {
+       const ctx: TestContext = {
+         name: 'envOutsideTest',
+         test: {
+           steps: [{ for: 'let i = 0; i < e:LIMIT; i++', steps: [ { print: 'ok' } as any ]
+           } as any]
+         } as any,
+         inputs: {},
+         envVars: {}
+       };
+       const js = await rootTestToJsfunc(ctx);
+       expect(js).toContain('i < envVariables.LIMIT');
+     });
 
-  it('variableReplacer works on raw JS strings inside and outside template literals', () => {
-    const input = [
-      'const a = e:AAA;',
-      'const b = e:{BBB};',
-      'console.log(`X=<e:FOO> Y=<<e:BAR>> Z=e:BAZ W=e:{QUX}`);'
-    ].join('\n');
-    const out = variableReplacer(input);
-    expect(out).toContain('const a = envVariables.AAA;');
-    expect(out).toContain('const b = envVariables.BBB;');
-    expect(out).toContain('`X=${envVariables.FOO} Y=${envVariables.BAR} Z=${envVariables.BAZ} W=${envVariables.QUX}`');
-  });
+  it('variableReplacer works on raw JS strings inside and outside template literals',
+     () => {
+       const input = [
+         'const a = e:AAA;', 'const b = e:{BBB};',
+         'console.log(`X=<e:FOO> Y=<<e:BAR>> Z=e:BAZ W=e:{QUX}`);'
+       ].join('\n');
+       const out = variableReplacer(input);
+       expect(out).toContain('const a = envVariables.AAA;');
+       expect(out).toContain('const b = envVariables.BBB;');
+       expect(out).toContain(
+           '`X=${envVariables.FOO} Y=${envVariables.BAR} Z=${envVariables.BAZ} W=${envVariables.QUX}`');
+     });
 });
 
 describe('empty test items are valid', () => {
-  it('handles empty assert without throwing and generates no code', async () => {
-    const ctx: TestContext = {
-      name: 'emptyAssert',
-      test: { steps: [ { assert: '' } as any ] } as any,
-      inputs: {},
-      envVars: {}
-    };
-    const js = await importTestToJsfunc(ctx);
-    expect(js).toContain('let outputs');
-  });
+  it('handles empty assert without throwing and generates no code',
+     async () => {
+       const ctx: TestContext = {
+         name: 'emptyAssert',
+         test: {steps: [{assert: ''} as any]} as any,
+         inputs: {},
+         envVars: {}
+       };
+       const js = await testToJsfunc(ctx, true);
+       expect(js).toContain('let outputs');
+     });
 
   it('handles empty check without throwing and generates no code', async () => {
     const ctx: TestContext = {
       name: 'emptyCheck',
-      test: { steps: [ { check: '' } as any ] } as any,
+      test: {steps: [{check: ''} as any]} as any,
       inputs: {},
       envVars: {}
     };
-    const js = await importTestToJsfunc(ctx);
+    const js = await testToJsfunc(ctx, true);
     expect(js).toContain('let outputs');
   });
 
-  it('handles empty if gracefully (treated as true) and nests steps', async () => {
-    const ctx: TestContext = {
-      name: 'emptyIf',
-      test: { steps: [ { if: '', steps: [ { print: 'ok' } as any ] } as any ] } as any,
-      inputs: {},
-      envVars: {}
-    };
-    const js = await importTestToJsfunc(ctx);
-    expect(js).toContain('if (true)');
-  });
+  it('handles empty if gracefully (treated as true) and nests steps',
+     async () => {
+       const ctx: TestContext = {
+         name: 'emptyIf',
+         test: {
+           steps: [{
+             if: '', steps: [ { print: 'ok' } as any ]
+           } as any]
+         } as any,
+         inputs: {},
+         envVars: {}
+       };
+       const js = await testToJsfunc(ctx, true);
+       expect(js).toContain('if (true)');
+     });
 });
 
 describe('body inputs numeric/boolean templating', () => {
   it('does not quote numbers, floats, and booleans in JSON body', async () => {
     const apiYaml = [
-      'type: api',
-      'protocol: http',
-      'method: post',
-      'format: json',
-      'url: http://<e:HOST>/login',
-      'inputs:',
-      '  username: username@gmail.com',
-      '  password: 123456',
-      '  pi: 3.14',
-      '  name: true',
-      'body: |',
+      'type: api', 'protocol: http', 'method: post', 'format: json',
+      'url: http://<e:HOST>/login', 'inputs:', '  username: username@gmail.com',
+      '  password: 123456', '  pi: 3.14', '  name: true', 'body: |',
       '  {"user":"${username}","pass":${password},"pi":${pi},"flag":${name}}'
     ].join('\n');
-    const ctx: APIContext = {
-      api: yamlToAPI(apiYaml),
-      name: 'login_api',
-      inputs: {},
-      envVars: {}
-    } as any;
-    const js = await importApiToJSfunc(ctx);
+    const ctx: APIContext =
+        {api: yamlToAPI(apiYaml), name: 'login_api', inputs: {}, envVars: {}} as
+        any;
+    const js = await apiToJSfunc(ctx);
     // url should interpolate env without double wrapping
     expect(js).toContain('url: `http://${envVariables.HOST}/login`');
     // numbers and booleans should be passed via var)
-  expect(js).toContain('"pass":${password}');
-  expect(js).toContain('"pi":${pi}');
-  expect(js).toContain('\"flag\":${name}');
-  // username remains a string at runtime
-  expect(js).toContain('\"user\":\"${username}\"');
+    expect(js).toContain('"pass":${password}');
+    expect(js).toContain('"pi":${pi}');
+    expect(js).toContain('\"flag\":${name}');
+    // username remains a string at runtime
+    expect(js).toContain('\"user\":\"${username}\"');
   });
 });
 
@@ -337,13 +327,10 @@ describe('API query handling', () => {
       '  page: i:page',
       '  locale: <e:LOCALE>',
     ].join('\n');
-    const ctx: APIContext = {
-      api: yamlToAPI(apiYaml),
-      name: 'users_api',
-      inputs: {},
-      envVars: {}
-    } as any;
-    const js = await importApiToJSfunc(ctx);
+    const ctx: APIContext =
+        {api: yamlToAPI(apiYaml), name: 'users_api', inputs: {}, envVars: {}} as
+        any;
+    const js = await apiToJSfunc(ctx);
     expect(js).toContain('query: {');
     expect(js).toContain('"page": `${page}`');
     expect(js).toContain('"locale": `${envVariables.LOCALE}`');
@@ -354,20 +341,20 @@ describe('delay step generation', () => {
   it('generates setTimeout-based await for ms and unit strings', async () => {
     const ctx1: TestContext = {
       name: 'delayTest1',
-      test: { steps: [ { delay: 500 } as any ] } as any,
+      test: {steps: [{delay: 500} as any]} as any,
       inputs: {},
       envVars: {}
     };
-    const js1 = await importTestToJsfunc(ctx1);
+    const js1 = await testToJsfunc(ctx1, true);
     expect(js1).toContain('setTimeout(r, 500)');
 
     const ctx2: TestContext = {
       name: 'delayTest2',
-      test: { steps: [ { delay: '2s' } as any ] } as any,
+      test: {steps: [{delay: '2s'} as any]} as any,
       inputs: {},
       envVars: {}
     };
-    const js2 = await importTestToJsfunc(ctx2);
+    const js2 = await testToJsfunc(ctx2, true);
     expect(js2).toContain('setTimeout(r, 2000)');
   });
 });

@@ -68,7 +68,7 @@ export function setFileLoader(loader: FileLoader) {
   readFile = loader;
 }
 
-export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
+export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   const inputParams = toInputsParams(ctx.api.inputs || {}, ' = ');
 
   const paramsAsObj: Record<string, string> = Object.fromEntries(
@@ -157,9 +157,9 @@ export const importApiToJSfunc = async(ctx: APIContext): Promise<string> => {
   };
 
   const queryParams = Object.entries(replaced.query || {})
-                           .filter(([, v]) => v !== undefined)
-                           .map(([k, v]) => `"${k}": ${toJsValue(v)}`)
-                           .join(', ');
+                          .filter(([, v]) => v !== undefined)
+                          .map(([k, v]) => `"${k}": ${toJsValue(v)}`)
+                          .join(', ');
 
   return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
   const req = {
@@ -245,7 +245,7 @@ export const parseCsv = (content: string): Array<Record<string, any>> => {
               headers.map((h, i) => [h, coerce(cols[i] ?? '')])));
 };
 
-export const importCSVToJSObj =
+export const csvToJSObj =
     async(content: string, name: string): Promise<string> => {
   const arr = parseCsv(content);
   if (arr.length === 0 && (content || '').trim()) {
@@ -266,15 +266,17 @@ export const importsToJsfunc =
         const type = fileType(path, content);
 
         if (type === 'test') {
-          const res = await importTestToJsfunc({
-            test: yamlToTest(content),
-            name,
-            inputs: {},
-            envVars: {},
-          });
+          const res = await testToJsfunc(
+              {
+                test: yamlToTest(content),
+                name,
+                inputs: {},
+                envVars: {},
+              },
+              false);
           results.push(res);
         } else if (type === 'api') {
-          const res = await importApiToJSfunc({
+          const res = await apiToJSfunc({
             api: yamlToAPI(content),
             name,
             inputs: {},
@@ -282,7 +284,7 @@ export const importsToJsfunc =
           });
           results.push(res);
         } else if (type === 'csv') {
-          const res = await importCSVToJSObj(content, name);
+          const res = await csvToJSObj(content, name);
           results.push(res);
         } else {
           console.warn(`Skipping ${path}: unknown type "${type}"`);
@@ -346,9 +348,9 @@ export const conditionalStatementToJSfunc = (check: string): string => {
 
 export const ifToJSfunc = (condition: TestFlowCondition): string => {
   const conditionStatement = conditionalStatementToJSfunc(condition.if);
-  const thenBlock = flowStepsToJsfunc(condition.steps);
+  const thenBlock = flowStepsToJsfunc(condition.steps, true);
   const elseBlock =
-      condition.else ? flowStepsToJsfunc(condition.else) : undefined;
+      condition.else ? flowStepsToJsfunc(condition.else, true) : undefined;
 
   if (!elseBlock) {
     return `if (${conditionStatement}) {
@@ -366,7 +368,7 @@ export const ifToJSfunc = (condition: TestFlowCondition): string => {
 export const repeatToJSfunc = (loop: TestFlowRepeat): string => {
   const loopCondition = typeof loop.repeat === 'string' ? loop.repeat.trim() :
                                                           String(loop.repeat);
-  const loopBody = flowStepsToJsfunc(loop.steps);
+  const loopBody = flowStepsToJsfunc(loop.steps, true);
 
   // Check for time-based repeat
   const timeMatch = loopCondition.match(/^(\d+(?:\.\d+)?)(ns|ms|s|m|h)$/);
@@ -443,7 +445,7 @@ export function delayToJSfunc(d: string|number): string {
 }
 
 export const forToJSfunc = (loop: TestFlowLoop): string => {
-  const loopBody = flowStepsToJsfunc(loop.steps);
+  const loopBody = flowStepsToJsfunc(loop.steps, true);
   return `
 for (${loop.for}) {
   ${indentLines(loopBody)}
@@ -528,121 +530,127 @@ export const varToJSfunc = (key: string, step: any): string => {
       .join('\n');
 };
 
-export const flowStepsToJsfunc = (flow: TestFlowSteps): string => {
-  return (flow ?? [])
-      .map((step: TestFlowStep) => {
-        switch (getTestFlowStepType(step)) {
-          case 'call':
-            return callToJSfunc(step as TestFlowCall);
-          case 'check':
-            return checkToJSfunc((step as TestFlowCheck).check);
-          case 'assert':
-            return assertToJSfunc((step as TestFlowAssert).assert);
-          case 'if':
-            return ifToJSfunc(step as TestFlowCondition);
-          case 'repeat':
-            return repeatToJSfunc(step as TestFlowRepeat);
-          case 'delay':
-            return delayToJSfunc((step as any).delay);
-          case 'for':
-            return forToJSfunc(step as TestFlowLoop);
-          case 'js':
-            return (step as any).js;
-          case 'print':
-            return `console.log(\`${(step as any).print}\`);`;
-          case 'set':
-            return varToJSfunc('', (step as any).set);
-          case 'var':
-            return varToJSfunc('var ', (step as any).var);
-          case 'const':
-            return varToJSfunc('const ', (step as any).const);
-          case 'let':
-            return varToJSfunc('let ', (step as any).let);
-          case 'data': {
-            const alias = (step as any).data;
-            return '';
-          }
-          default:
-            return '';
-        }
-      })
-      .join('\n');
-};
+export const flowStepsToJsfunc =
+    (flow: TestFlowSteps, root: boolean): string => {
+      return (flow ?? [])
+          .map((step: TestFlowStep) => {
+            switch (getTestFlowStepType(step)) {
+              case 'call':
+                return callToJSfunc(step as TestFlowCall);
+              case 'check':
+                return checkToJSfunc((step as TestFlowCheck).check);
+              case 'assert':
+                return assertToJSfunc((step as TestFlowAssert).assert);
+              case 'if':
+                return ifToJSfunc(step as TestFlowCondition);
+              case 'repeat':
+                return repeatToJSfunc(step as TestFlowRepeat);
+              case 'delay':
+                return delayToJSfunc((step as any).delay);
+              case 'for':
+                return forToJSfunc(step as TestFlowLoop);
+              case 'js':
+                return (step as any).js;
+              case 'print':
+                if (root) {
+                  return `console.log(\`${(step as any).print}\`);`;
+                }
+                return `console.debug(\`${(step as any).print}\`);`;
+              case 'set':
+                return varToJSfunc('', (step as any).set);
+              case 'var':
+                return varToJSfunc('var ', (step as any).var);
+              case 'const':
+                return varToJSfunc('const ', (step as any).const);
+              case 'let':
+                return varToJSfunc('let ', (step as any).let);
+              case 'data': {
+                const alias = (step as any).data;
+                return '';
+              }
+              default:
+                return '';
+            }
+          })
+          .join('\n');
+    };
 
-export const flowStagesToJsfunc = (flow: TestFlowStages): string => {
-  if (!flow || flow.length === 0) {
-    return '';
-  };
+export const flowStagesToJsfunc =
+    (flow: TestFlowStages, root: boolean): string => {
+      if (!flow || flow.length === 0) {
+        return '';
+      };
 
-  // Map stage name to its code and dependencies
-  const stageMap = new Map < string, {
-    code: string;
-    dependsOn?: string[]
-  }
-  > ();
-
-  for (const stage of flow) {
-    const stageName = stage.id || randomName();
-    const dependsOn = Array.isArray(stage.depends_on) ? stage.depends_on :
-        stage.depends_on                              ? [stage.depends_on] :
-                                                        [];
-    // Build stage code with optional early-return condition
-    let code = '';
-    if (stage.condition && String(stage.condition).trim().length > 0) {
-      const cond = conditionalStatementToJSfunc(String(stage.condition));
-      code += `if (!(${cond})) {\n  return;\n}\n`;
-    }
-    code += flowStepsToJsfunc(stage.steps ?? []);
-    stageMap.set(stageName, {code, dependsOn});
-  }
-
-  // Helper to generate code for each stage with dependency handling
-  const generated: string[] = [];
-  const launched = new Set<string>();
-  const processed = new Set<string>();
-
-  function genStage(stageName: string) {
-    if (processed.has(stageName)) {
-      return;
-    }
-    const stage = stageMap.get(stageName);
-    if (!stage) {
-      return;
-    }
-    // Ensure dependencies are processed first
-    if (stage.dependsOn && stage.dependsOn.length > 0) {
-      for (const dep of stage.dependsOn) {
-        genStage(dep);
+      // Map stage name to its code and dependencies
+      const stageMap = new Map < string, {
+        code: string;
+        dependsOn?: string[]
       }
-      // Wait for dependencies before launching this stage
-      generated.push(`await Promise.all([${
-          stage.dependsOn.map(dep => `${dep}Promise`).join(', ')}]);`);
-    }
-    // Launch this stage as a promise
-    generated.push(`const ${stageName}Promise = (async () => {
+      > ();
+
+      for (const stage of flow) {
+        const stageName = stage.id || randomName();
+        const dependsOn = Array.isArray(stage.depends_on) ? stage.depends_on :
+            stage.depends_on                              ? [stage.depends_on] :
+                                                            [];
+        // Build stage code with optional early-return condition
+        let code = '';
+        if (stage.condition && String(stage.condition).trim().length > 0) {
+          const cond = conditionalStatementToJSfunc(String(stage.condition));
+          code += `if (!(${cond})) {\n  return;\n}\n`;
+        }
+        code += flowStepsToJsfunc(stage.steps ?? [], root);
+        stageMap.set(stageName, {code, dependsOn});
+      }
+
+      // Helper to generate code for each stage with dependency handling
+      const generated: string[] = [];
+      const launched = new Set<string>();
+      const processed = new Set<string>();
+
+      function genStage(stageName: string) {
+        if (processed.has(stageName)) {
+          return;
+        }
+        const stage = stageMap.get(stageName);
+        if (!stage) {
+          return;
+        }
+        // Ensure dependencies are processed first
+        if (stage.dependsOn && stage.dependsOn.length > 0) {
+          for (const dep of stage.dependsOn) {
+            genStage(dep);
+          }
+          // Wait for dependencies before launching this stage
+          generated.push(`await Promise.all([${
+              stage.dependsOn.map(dep => `${dep}Promise`).join(', ')}]);`);
+        }
+        // Launch this stage as a promise
+        generated.push(`const ${stageName}Promise = (async () => {
 ${indentLines(stage.code)}
 })();`);
-    launched.add(stageName);
-    processed.add(stageName);
-  }
+        launched.add(stageName);
+        processed.add(stageName);
+      }
 
-  // Launch all stages
-  for (const stageName of stageMap.keys()) {
-    genStage(stageName);
-  }
+      // Launch all stages
+      for (const stageName of stageMap.keys()) {
+        genStage(stageName);
+      }
 
-  // Wait for all launched stages to finish
-  generated.push(`await Promise.all([${
-      Array.from(launched).map(name => `${name}Promise`).join(', ')}]);`);
+      // Wait for all launched stages to finish
+      generated.push(`await Promise.all([${
+          Array.from(launched).map(name => `${name}Promise`).join(', ')}]);`);
 
-  return generated.join('\n');
-};
+      return generated.join('\n');
+    };
 
 export interface TestContext {
   test: TestData, name: string, inputs: JSONRecord, envVars: JSONRecord
 }
 
-export const importTestToJsfunc = async(ctx: TestContext): Promise<string> => {
+export const testToJsfunc =
+    async(ctx: TestContext, root: boolean): Promise<string> => {
   if (ctx.test.stages && ctx.test.stages.length > 0 && ctx.test.steps &&
       ctx.test.steps.length > 0) {
     throw new Error(`${ctx.name}: Test cannot have both stages and steps`);
@@ -665,9 +673,9 @@ export const importTestToJsfunc = async(ctx: TestContext): Promise<string> => {
   }
 
   if (replaced.stages && replaced.stages.length > 0) {
-    flow += flowStagesToJsfunc(replaced.stages);
+    flow += flowStagesToJsfunc(replaced.stages, root);
   } else if (replaced.steps && replaced.steps.length > 0) {
-    flow += flowStepsToJsfunc(replaced.steps);
+    flow += flowStepsToJsfunc(replaced.steps, root);
   }
 
   return `const ${toLowerUnderscore(ctx.name)} = async ({ ${
@@ -683,7 +691,7 @@ export const importTestToJsfunc = async(ctx: TestContext): Promise<string> => {
 };
 
 export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
-  const test = await importTestToJsfunc(ctx);
+  const test = await testToJsfunc(ctx, true);
   const envPretty = JSON.stringify(ctx.envVars || {}, null, 2);
   const full = `const envVariables = ${envPretty};\n\n${test}\n\nreturn ${
       toLowerUnderscore(ctx.name)}({});`;

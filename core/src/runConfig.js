@@ -18,10 +18,17 @@ function selectFromVariables(variables, key, choiceOrValue) {
         if (Object.prototype.hasOwnProperty.call(def, choiceOrValue)) {
             return def[choiceOrValue];
         }
+        const firstKey = Object.keys(def)[0];
+        if (firstKey) {
+            return def[firstKey];
+        }
         return choiceOrValue;
     }
     if (Array.isArray(def)) {
-        return choiceOrValue;
+        if (def.some(entry => entry === choiceOrValue)) {
+            return choiceOrValue;
+        }
+        return def.length > 0 ? def[0] : choiceOrValue;
     }
     return choiceOrValue;
 }

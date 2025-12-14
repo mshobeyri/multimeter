@@ -42,11 +42,11 @@ export function maybeGenerateJs(obj: any): string | undefined {
   if (stages) {
     return stages.map(s =>
       `// stage: ${s.stage || s.name || 'unnamed'}\n` +
-      (Array.isArray(s.steps) ? (JSer.flowStepsToJsfunc?.(s.steps as any) || '') : '')
+      (Array.isArray(s.steps) ? (JSer.flowStepsToJsfunc?.(s.steps as any, true) || '') : '')
     ).join('\n');
   }
   if (steps) {
-    return JSer.flowStepsToJsfunc?.(steps as any);
+    return JSer.flowStepsToJsfunc?.(steps as any, true);
   }
   return;
 }

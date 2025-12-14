@@ -382,7 +382,7 @@ async function generateApiJs(options: GenerateApiJsOptions): Promise<string> {
     inputs: isPlainObject(api.inputs) ? {...api.inputs as Record<string, any>} :
                                         api.inputs
   };
-  const funcSource = await JSer.importApiToJSfunc({
+  const funcSource = await JSer.apiToJSfunc({
     api: apiClone,
     name,
     inputs: {},
