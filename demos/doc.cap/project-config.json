@@ -8,6 +8,7 @@
     "blur": 9.8,
     "padding": 6.1,
     "rounding": 2.3,
+    "roundingType": "squircle",
     "inset": 0,
     "crop": null,
     "shadow": 88.4,
@@ -43,7 +44,8 @@
       "opacity": 44.2,
       "blur": 10.5
     },
-    "shape": "square"
+    "shape": "square",
+    "rounding_type": "squircle"
   },
   "audio": {
     "mute": false,
@@ -58,7 +60,7 @@
     "hideWhenIdleDelay": 1.0,
     "size": 78,
     "type": "pointer",
-    "animationStyle": "regular",
+    "animationStyle": "mellow",
     "tension": 500.0,
     "mass": 4.76,
     "friction": 50.0,
@@ -75,7 +77,7 @@
         "recordingSegment": 0,
         "timescale": 1.0,
         "start": 0.0,
-        "end": 30.82
+        "end": 39.72
       }
     ],
     "zoomSegments": [],
