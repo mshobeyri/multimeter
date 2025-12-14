@@ -1,25 +1,25 @@
 {
   "platform": "MacOS",
-  "pretty_name": "sfd1:48",
+  "pretty_name": "overview 2025-12-14 21:50:33",
   "sharing": null,
   "segments": [
     {
       "display": {
         "path": "content/segments/segment-0/display.mp4",
         "fps": 60,
-        "start_time": 0.176447166
+        "start_time": 0.12020775
       },
       "cursor": "content/segments/segment-0/cursor.json"
     }
   ],
   "cursors": {
-    "1": {
-      "imagePath": "content/cursors/cursor_1.png",
+    "4": {
+      "imagePath": "content/cursors/cursor_4.png",
       "hotspot": {
-        "x": 0.40625,
-        "y": 0.25
+        "x": 0.17857142857142858,
+        "y": 0.125
       },
-      "shape": "MacOS|PointingHand"
+      "shape": "MacOS|OperationNotAllowed"
     },
     "2": {
       "imagePath": "content/cursors/cursor_2.png",
@@ -29,10 +29,26 @@
       },
       "shape": "MacOS|IBeam"
     },
+    "3": {
+      "imagePath": "content/cursors/cursor_3.png",
+      "hotspot": {
+        "x": 0.45,
+        "y": 0.45
+      },
+      "shape": null
+    },
+    "1": {
+      "imagePath": "content/cursors/cursor_1.png",
+      "hotspot": {
+        "x": 0.40625,
+        "y": 0.25
+      },
+      "shape": "MacOS|PointingHand"
+    },
     "0": {
       "imagePath": "content/cursors/cursor_0.png",
       "hotspot": {
-        "x": 0.2352941176470588,
+        "x": 0.23529411764705882,
         "y": 0.17391304347826086
       },
       "shape": "MacOS|Arrow"
