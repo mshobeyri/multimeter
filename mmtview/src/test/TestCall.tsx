@@ -1,6 +1,7 @@
 import React from "react";
 import { parseYamlDoc } from "mmt-core/markupConvertor";
 import { findTestCallAliasProblems, findTestCallInputsProblems, type MissingImportEntry, type ProblemEntry } from "../text/validator";
+import FieldWithRemove from "../components/FieldWithRemove";
 
 interface TestCallProps {
   value: any; // current value can be alias string
@@ -275,51 +276,28 @@ const TestCall: React.FC<TestCallProps> = ({
           <div className="label">Parameters</div>
           <div style={{ padding: "5px" }}>
             {keys.length ? (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr auto', columnGap: 12, rowGap: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', columnGap: 12, rowGap: 8 }}>
                 {keys.map(k => {
                   const hasProblem = invalidInputKeys.has(k);
                   const problemMessage = hasProblem ? validationProblems.inputProblems.find(p => p.inputKey === k)?.message : undefined;
                   const valueForInput = typeof inputs[k] === 'string' ? inputs[k] as string : JSON.stringify(inputs[k]);
                   return (
                     <React.Fragment key={k}>
-                      <div style={{ alignSelf: 'center', opacity: 0.9 }}>{k}</div>
-                      <input
-                        type="text"
+                      <div style={{ alignSelf: 'center' }}>{k}
+                        {hasProblem && problemMessage && (
+                          <span
+                            className="action-button codicon codicon-warning"
+                            style={{ fontSize: "10px", color: "yellow"}}
+                            title={problemMessage}
+                            aria-label={problemMessage}
+                          />
+                        )}
+                      </div>
+                      <FieldWithRemove
                         value={valueForInput}
-                        onChange={(e) => onInputChange(k, e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            scheduleEmit(local);
-                          }
-                        }}
-                        onKeyUp={(e) => {
-                          if (e.key === 'Enter') {
-                            scheduleEmit(local);
-                          }
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '6px 8px',
-                          borderColor: hasProblem ? 'var(--vscode-errorForeground, #f14c4c)' : undefined,
-                          boxShadow: hasProblem ? '0 0 0 1px var(--vscode-errorForeground, #f14c4c)' : undefined,
-                        }}
-                        title={problemMessage}
+                        onChange={(e) => onInputChange(k, e)}
+                        onRemovePressed={() => handleRemoveInput(k)}
                       />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveInput(k)}
-                        style={{
-                          alignSelf: 'center',
-                          border: 'none',
-                          background: 'transparent',
-                          color: 'var(--vscode-errorForeground, #f14c4c)',
-                          cursor: 'pointer',
-                        }}
-                        aria-label={`Remove ${k}`}
-                        title={`Remove ${k}`}
-                      >
-                        ×
-                      </button>
                     </React.Fragment>
                   );
                 })}
