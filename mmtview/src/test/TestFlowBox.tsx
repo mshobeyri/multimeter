@@ -93,7 +93,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
     ) : null;
 
     return (
-      <div style={{ marginLeft: 'auto', paddingRight: 8, display: 'flex', alignItems: 'flex-start', pointerEvents: 'auto', gap: 4 }}>
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'flex-start', pointerEvents: 'auto', gap: 0 }}>
         <button
           ref={btnRef}
           className="action-button"
@@ -118,7 +118,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleExpand?.(); } }}
             draggable={false}
             tabIndex={0}
-            title={expanded ? 'Make inactive' : 'Make active'}
+            title={expanded ? 'Collapse box' : 'Expand box'}
           >
             <span className={`codicon ${expanded ? 'codicon-circle-filled' : 'codicon-circle-outline'}`} />
           </button>
@@ -287,7 +287,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
         {renderInner()}
       </div>
       <div
-        style={{ marginLeft: 'auto', paddingRight: 8, display: 'flex', alignItems: 'flex-start', pointerEvents: 'auto', gap: 4, flex: '0 0 auto' }}
+        style={{ marginLeft: 'auto', display: 'flex', alignItems: 'flex-start', pointerEvents: 'auto', gap: 4, flex: '0 0 auto' }}
       >
         <Actions />
       </div>

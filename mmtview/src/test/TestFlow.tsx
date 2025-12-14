@@ -569,7 +569,6 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                             <div
                                 className={`tree-view-box${(expandable && isOpen) ? ' active' : ''}`}
                                 {...context.itemContainerWithoutChildrenProps}
-                                {...context.interactiveElementProps}
                             >
                                 {arrow}
                                 <NoTreeInterference>
@@ -609,7 +608,26 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                                         />
                                     </div>
                                 </NoTreeInterference>
-                                {/* actions handled within TestFlowBox */}
+                                <span
+                                    {...context.interactiveElementProps}
+                                    title="Drag to reorder"
+                                    onMouseDownCapture={(e) => e.stopPropagation()}
+                                    onPointerDownCapture={(e) => e.stopPropagation()}
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        width: 24,
+                                        minWidth: 24,
+                                        height: 24,
+                                        marginTop: 4,
+                                        opacity: 0.7,
+                                        cursor: 'grab',
+                                        userSelect: 'none',
+                                    }}
+                                >
+                                    <span className="codicon codicon-gripper" aria-hidden />
+                                </span>
                             </div>
                             {children}
                         </div>
