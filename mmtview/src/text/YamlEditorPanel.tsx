@@ -7,6 +7,7 @@ import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./BeforeMount";
 import { safeList } from "mmt-core/safer";
 import { openRelativeFile, showVSCodeMessage } from "../vsAPI";
+import { useImportValidation } from "./useImportValidation";
 import {
   computeMissingImportMarkers,
   computeOrderingMarkers,
@@ -14,7 +15,6 @@ import {
   computeTestCallInputsMarkers,
   extractRootKeyInfo,
   offsetToLineNumber,
-  type MissingImportEntry,
   type ProblemEntry,
 } from "./validator";
 
@@ -47,11 +47,9 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const importsMapRef = useRef<Record<string, string>>({});
   const ctrlDownRef = useRef<boolean>(false);
   const [docType, setDocType] = useState<string | null>(null);
-  const [importsVersion, setImportsVersion] = useState(0);
+  const [importsMapState, setImportsMapState] = useState<Record<string, string>>({});
   const lastImportsSignatureRef = useRef<string>("");
-  const pendingImportValidationIdRef = useRef<number>(0);
-  const [missingImports, setMissingImports] = useState<MissingImportEntry[]>([]);
-  const [apiInputsByAlias, setApiInputsByAlias] = useState<Record<string, string[]>>({});
+  const { missingImports, inputsByAlias: apiInputsByAlias } = useImportValidation(importsMapState);
   const [yamlProblems, setYamlProblems] = useState<ProblemEntry[]>([]);
   const [orderingProblems, setOrderingProblems] = useState<ProblemEntry[]>([]);
   const [missingImportProblems, setMissingImportProblems] = useState<ProblemEntry[]>([]);
@@ -81,34 +79,6 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   useEffect(() => {
     contentRef.current = content;
   }, [content]);
-
-  useEffect(() => {
-    const listener = (event: MessageEvent) => {
-      const message = event.data;
-      if (!message || typeof message !== "object") {
-        return;
-      }
-      if (message.command === "importValidationResult") {
-        if (message.requestId && message.requestId !== pendingImportValidationIdRef.current) {
-          return;
-        }
-        const rawMissing = Array.isArray(message.missing) ? message.missing : [];
-        const formatted: MissingImportEntry[] = rawMissing
-          .filter((item: any) => item && typeof item.alias === "string" && typeof item.path === "string")
-          .map((item: any) => ({ alias: item.alias, path: item.path }));
-        setMissingImports(formatted);
-
-        const rawInputsByAlias = message.apiInputsByAlias;
-        if (rawInputsByAlias && typeof rawInputsByAlias === "object") {
-          setApiInputsByAlias(rawInputsByAlias as Record<string, string[]>);
-        } else {
-          setApiInputsByAlias({});
-        }
-      }
-    };
-    window.addEventListener("message", listener);
-    return () => window.removeEventListener("message", listener);
-  }, []);
 
   // Validate YAML and set error marker if invalid
   useEffect(() => {
@@ -169,36 +139,17 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       const nextSignature = JSON.stringify(sortedEntries);
       if (nextSignature !== lastImportsSignatureRef.current) {
         lastImportsSignatureRef.current = nextSignature;
-        setImportsVersion((prev) => prev + 1);
+        setImportsMapState({ ...importsMapRef.current });
       }
     } catch {
       importsMapRef.current = {};
       setDocType(null);
       if (lastImportsSignatureRef.current !== "[]") {
         lastImportsSignatureRef.current = "[]";
-        setImportsVersion((prev) => prev + 1);
+        setImportsMapState({});
       }
     }
   }, [content]);
-
-  useEffect(() => {
-    const importsObj = importsMapRef.current || {};
-    if (!importsObj || Object.keys(importsObj).length === 0) {
-      setMissingImports([]);
-      return;
-    }
-    if (!window?.vscode) {
-      return;
-    }
-    const requestId = Date.now();
-    pendingImportValidationIdRef.current = requestId;
-    window.vscode.postMessage({
-      command: "validateImports",
-      imports: importsObj,
-      requestId,
-      includeInputs: true,
-    });
-  }, [importsVersion]);
 
   useEffect(() => {
     if (!editorReady || !monacoRef.current || !editorRef.current) {

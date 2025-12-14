@@ -4,6 +4,7 @@ import TestOverview from "./TestOverview";
 import TestFlow from "./TestFlow";
 import { yamlToTest, testToYaml } from "mmt-core/testParsePack";
 import TestCode from "./TestCode";
+import { useImportValidation } from "../text/useImportValidation";
 
 interface TestPanelProps {
   content: string;
@@ -14,6 +15,21 @@ const LAST_TAB_KEY = "mmtview:lastTab";
 
 const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
   const [test, setTest] = useState<TestData>(yamlToTest(content));
+
+  const importsMap = React.useMemo(() => {
+    const raw = test?.import;
+    if (!raw || typeof raw !== "object") {
+      return {} as Record<string, string>;
+    }
+    const sanitized: Record<string, string> = {};
+    for (const [alias, value] of Object.entries(raw)) {
+      if (typeof alias === "string" && typeof value === "string" && alias.trim() && value.trim()) {
+        sanitized[alias] = value;
+      }
+    }
+    return sanitized;
+  }, [test]);
+  const { missingImports, inputsByAlias } = useImportValidation(importsMap);
 
   // Parse YAML to test when content changes (but not if we just updated content from UI)
   useEffect(() => {
@@ -110,11 +126,13 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
           <TestOverview
             test={test}
             update={(patch) => setTest(prev => ({ ...prev, ...patch }))}
+            missingImports={missingImports}
           />
         )}
         {tab === "flow" && (
           <TestFlow
             testData={test}
+            importValidation={{ missingImports, inputsByAlias }}
             update={(patch) => {
               setTest(prev => {
                 // If stages provided, prefer stages and clear steps

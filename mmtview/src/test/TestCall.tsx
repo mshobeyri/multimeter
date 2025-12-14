@@ -1,12 +1,15 @@
 import React from "react";
-import parseYaml from "mmt-core/markupConvertor";
+import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
 import { readFile, showVSCodeMessage } from "../vsAPI";
+import { findTestCallAliasProblems, findTestCallInputsProblems, type MissingImportEntry, type ProblemEntry } from "../text/validator";
 
 interface TestCallProps {
   value: any; // current value can be alias string
   imports?: Record<string, string>; // alias -> file path
   onChange: (value: any) => void;
   placeholder?: string;
+  missingImports?: MissingImportEntry[];
+  importedInputsByAlias?: Record<string, string[]>;
 }
 
 const TestCall: React.FC<TestCallProps> = ({
@@ -14,6 +17,8 @@ const TestCall: React.FC<TestCallProps> = ({
   imports,
   onChange,
   placeholder = "Select an item...",
+  missingImports,
+  importedInputsByAlias,
 }) => {
   // Local model to avoid excessive parent re-renders while editing
   const [local, setLocal] = React.useState<any>(typeof value === 'object' && value ? value : null);
@@ -121,8 +126,81 @@ const TestCall: React.FC<TestCallProps> = ({
     setLocal(next);
   };
 
-  const inputs: Record<string, any> = (local && typeof local === 'object' && (local as any).inputs) || {};
-  const keys = Object.keys(inputs);
+  const inputs: Record<string, any> = React.useMemo(() => {
+    const source = local && typeof local === 'object' ? (local as any).inputs : undefined;
+    return (source && typeof source === 'object') ? source as Record<string, any> : {};
+  }, [local]);
+  const keys = React.useMemo(() => Object.keys(inputs), [inputs]);
+
+  const aliasForValidation = typeof value === 'string' && value.trim().length > 0
+    ? value.trim()
+    : (typeof (value as any)?.call === 'string' && (value as any).call.trim().length > 0
+      ? (value as any).call.trim()
+      : (currentAlias || ''));
+
+  const formatInputValue = (val: any): string => {
+    if (typeof val === 'number' || typeof val === 'boolean') {
+      return String(val);
+    }
+    if (typeof val === 'string') {
+      return JSON.stringify(val);
+    }
+    if (val === null || val === undefined) {
+      return 'null';
+    }
+    return JSON.stringify(val);
+  };
+
+  const validationProblems = React.useMemo(() => {
+    if (!aliasForValidation) {
+      return { aliasProblems: [] as ProblemEntry[], inputProblems: [] as ProblemEntry[] };
+    }
+    const importsMap = mmtImports || {};
+    const lines: string[] = ['type: test'];
+    const importEntries = Object.entries(importsMap);
+    if (importEntries.length) {
+      lines.push('import:');
+      importEntries.forEach(([alias, path]) => {
+        lines.push(`  ${alias}: ${path}`);
+      });
+    } else {
+      lines.push('import: {}');
+    }
+    lines.push('steps:');
+    lines.push(`  - call: ${aliasForValidation}`);
+    if (keys.length) {
+      lines.push('    inputs:');
+      keys.forEach(key => {
+        lines.push(`      ${key}: ${formatInputValue(inputs[key])}`);
+      });
+    }
+    const content = lines.join('\n');
+    try {
+      const doc = parseYamlDoc(content);
+      return {
+        aliasProblems: findTestCallAliasProblems(content, doc, 'test', importsMap),
+        inputProblems: findTestCallInputsProblems(content, doc, 'test', importedInputsByAlias || null),
+      };
+    } catch {
+      return { aliasProblems: [], inputProblems: [] };
+    }
+  }, [aliasForValidation, importedInputsByAlias, inputs, keys, mmtImports]);
+
+  const missingImportWarnings: ProblemEntry[] = React.useMemo(() => {
+    if (!aliasForValidation || !Array.isArray(missingImports)) {
+      return [];
+    }
+    return missingImports
+      .filter(entry => entry.alias === aliasForValidation)
+      .map(entry => ({
+        message: `Imported file "${entry.path}" for alias "${entry.alias}" was not found.`,
+        severity: 'warning' as const,
+      }));
+  }, [aliasForValidation, missingImports]);
+
+  const combinedProblems = React.useMemo(() => (
+    [...missingImportWarnings, ...validationProblems.aliasProblems, ...validationProblems.inputProblems]
+  ), [missingImportWarnings, validationProblems]);
 
   const onInputChange = (key: string, val: string) => {
     if (!currentAlias) return;
@@ -143,6 +221,14 @@ const TestCall: React.FC<TestCallProps> = ({
           <option key={a} value={a}>{a}</option>
         ))}
       </select>
+
+      {combinedProblems.length > 0 && (
+        <div style={{ padding: "4px 5px", color: "var(--vscode-errorForeground, #f14c4c)", fontSize: 12 }}>
+          {combinedProblems.map((problem, idx) => (
+            <div key={`${problem.message}-${idx}`}>{problem.message}</div>
+          ))}
+        </div>
+      )}
 
       <div className="label">Id</div>
       <div style={{ padding: "5px" }}>

@@ -3,6 +3,7 @@ import { TestFlowSteps, FlowType, TestData, addableFlowTypes } from "mmt-core/Te
 import TestFlowBox from "./TestFlowBox";
 import { getTestFlowStepType } from "mmt-core/testParsePack";
 import { ControlledTreeEnvironment, Tree, DraggingPosition, DraggingPositionItem, DraggingPositionBetweenItems } from 'react-complex-tree';
+import { type MissingImportEntry } from "../text/validator";
 
 // Transparent drag image to remove native ghost preview while preserving drop lines
 let dragPreviewEl: HTMLDivElement | null = null;
@@ -21,9 +22,15 @@ function setTransparentDragImage(dt: DataTransfer | null | undefined) {
     } catch { }
 }
 
+interface ImportValidationInfo {
+    missingImports: MissingImportEntry[];
+    inputsByAlias: Record<string, string[]>;
+}
+
 interface TestFlowProps {
     testData: TestData;
     update?: (patch: { steps?: any[]; stages?: any[] }) => void;
+    importValidation?: ImportValidationInfo;
 }
 
 // Map flow step types to specific codicons for non-folder items
@@ -67,7 +74,7 @@ const collectFolderIds = (items: Record<string, any>, includeEmpty = true): stri
         .filter((it: any) => it?.isFolder && (includeEmpty || (it.children?.length > 0)))
         .map((it: any) => String(it.index));
 
-const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
+const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation }) => {
     const isStages = Array.isArray(testData.stages);
     const [multiStage, setMultiStage] = React.useState<boolean>(isStages);
     const [shortTree, setShortTree] = React.useState(() => testDataToShortTree(testData));
@@ -579,6 +586,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update }) => {
                                                 stepData: itemParsed.data.stepData,
                                                 testData,
                                             }}
+                                            importValidation={importValidation}
                                             onChange={(newStepData) => {
                                                 setShortTree(prev => {
                                                     const itemsCopy = { ...prev.items } as Record<string, any>;

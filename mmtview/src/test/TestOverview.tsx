@@ -4,13 +4,15 @@ import KSVEditor from "../components/KSVEditor";
 import { TestData } from "mmt-core/TestData";
 import { jsonTypes } from "mmt-core/CommonData";
 import DescriptionEditor from "../components/DescriptionEditor";
+import { type MissingImportEntry } from "../text/validator";
 
 interface TestOverviewProps {
   test: TestData;
   update: (patch: Partial<TestData>) => void;
+  missingImports?: MissingImportEntry[];
 }
 
-const TestOverview: React.FC<TestOverviewProps> = ({ test, update }) => (
+const TestOverview: React.FC<TestOverviewProps> = ({ test, update, missingImports = [] }) => (
   <div style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
     <div className="label">Title</div>
     <div style={{ padding: "5px" }}>
@@ -46,6 +48,15 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update }) => (
       keyPlaceholder="name"
       valuePlaceholder="path"
     />
+    {missingImports.length > 0 && (
+      <div style={{ padding: "4px 5px", color: "var(--vscode-errorForeground, #f14c4c)", fontSize: 12 }}>
+        {missingImports.map(entry => (
+          <div key={`${entry.alias}-${entry.path}`}>
+            {entry.alias}: {entry.path} was not found.
+          </div>
+        ))}
+      </div>
+    )}
     <KSVEditor
       label="Inputs"
       value={test.inputs}

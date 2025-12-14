@@ -5,6 +5,7 @@ import TestCheck from "./TestCheck";
 import TestCall from "./TestCall";
 import TestFlowVar from "./TestFlowVar";
 import TestFlowCSV from "./TestFlowCSV";
+import { type MissingImportEntry } from "../text/validator";
 
 interface TestFlowBoxProps {
   data: any,
@@ -14,9 +15,13 @@ interface TestFlowBoxProps {
   showExpand?: boolean;
   expanded?: boolean;
   onToggleExpand?: () => void;
+  importValidation?: {
+    missingImports: MissingImportEntry[];
+    inputsByAlias: Record<string, string[]>;
+  };
 }
 
-const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, onRemove, showExpand, expanded, onToggleExpand }) => {
+const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, onRemove, showExpand, expanded, onToggleExpand, importValidation }) => {
   const { type, stepData, testData } = data;
   const [openMenu, setOpenMenu] = React.useState(false);
 
@@ -137,6 +142,8 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
           <TestCall
             value={stepData}
             imports={typeof testData?.import === 'object' ? (Object.fromEntries(Object.entries(testData.import).filter(([_, p]) => typeof p === 'string' && (p as string).endsWith('.mmt'))) as Record<string, string>) : undefined}
+            missingImports={importValidation?.missingImports}
+            importedInputsByAlias={importValidation?.inputsByAlias}
             onChange={callObj => onChange({ ...callObj })}
             placeholder="select a call"
           />
