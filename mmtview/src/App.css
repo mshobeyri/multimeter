@@ -545,7 +545,7 @@ button:focus {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 8px;
+  gap: 18px;
   z-index: 5;
 }
 

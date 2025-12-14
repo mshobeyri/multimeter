@@ -10,7 +10,7 @@ const ConnectButton: React.FC<{
     <button
       style={{
         position: "absolute",
-        right: "45px",
+        right: "70px",
         top: "50%",
         transform: "translateY(-50%)",
         background: connected
