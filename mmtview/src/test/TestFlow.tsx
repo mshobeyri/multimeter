@@ -469,7 +469,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                         <div
                             // Keep captures for mouse/focus so tree doesn't grab focus/drag; allow keydown to reach inputs
                             onMouseDownCapture={stopAll}
-                            onClickCapture={stopAll}
+                            // onClickCapture={stopAll}
                             onFocusCapture={stopAll}
                             // Stop key events at bubble so tree remains inert, but inputs still get onKeyDown
                             onKeyDown={stopAll}

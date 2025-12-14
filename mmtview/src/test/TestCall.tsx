@@ -1,6 +1,5 @@
 import React from "react";
-import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
-import { readFile, showVSCodeMessage } from "../vsAPI";
+import { parseYamlDoc } from "mmt-core/markupConvertor";
 import { findTestCallAliasProblems, findTestCallInputsProblems, type MissingImportEntry, type ProblemEntry } from "../text/validator";
 
 interface TestCallProps {
@@ -81,30 +80,6 @@ const TestCall: React.FC<TestCallProps> = ({
       setLocal(value);
     }
   }, [value]);
-
-  // Load defaults when alias changes
-  React.useEffect(() => {
-    if (!mmtImports || !currentAlias) return;
-    const fileName = mmtImports[currentAlias];
-    if (!fileName) return;
-    readFile(fileName)
-      .then((content: string) => {
-        const yaml = parseYaml(content);
-        if (!yaml || typeof yaml !== 'object') { showVSCodeMessage('error', `Cannot parse ${fileName}!`); return; }
-        if (!yaml.type || (yaml.type !== 'test' && yaml.type !== 'api')) { showVSCodeMessage('error', `${fileName} type should be test or api!`); return; }
-        const defaults = yaml.inputs && typeof yaml.inputs === 'object' ? yaml.inputs : {};
-        const prevInputs = local && typeof local === 'object' && (local as any).inputs && typeof (local as any).inputs === 'object' ? (local as any).inputs : ((value && typeof value === 'object' && (value as any).inputs) || {});
-        const merged = { ...defaults, ...prevInputs };
-        const next = currentId ? { call: currentAlias, id: currentId, inputs: merged } : { call: currentAlias, inputs: merged };
-        setLocal(next);
-        // Only emit if different from current value to avoid loops
-        if (!equalCall(next, value)) scheduleEmit(next);
-      })
-      .catch(() => {
-        showVSCodeMessage('error', `Failed to read file: \n${fileName}`);
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentAlias, imports]);
 
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const alias = e.target.value;
@@ -195,40 +170,83 @@ const TestCall: React.FC<TestCallProps> = ({
       .map(entry => ({
         message: `Imported file "${entry.path}" for alias "${entry.alias}" was not found.`,
         severity: 'warning' as const,
+        alias: entry.alias,
       }));
   }, [aliasForValidation, missingImports]);
 
-  const combinedProblems = React.useMemo(() => (
-    [...missingImportWarnings, ...validationProblems.aliasProblems, ...validationProblems.inputProblems]
-  ), [missingImportWarnings, validationProblems]);
+  const aliasProblems = React.useMemo(() => (
+    [...missingImportWarnings, ...validationProblems.aliasProblems]
+  ), [missingImportWarnings, validationProblems.aliasProblems]);
+
+  const invalidInputKeys = React.useMemo(() => {
+    const keys = new Set<string>();
+    validationProblems.inputProblems.forEach(problem => {
+      if (problem.inputKey) {
+        keys.add(problem.inputKey);
+      }
+    });
+    return keys;
+  }, [validationProblems.inputProblems]);
+
+  const availableInputs = React.useMemo(() => {
+    if (!currentAlias || !importedInputsByAlias) {
+      return [] as string[];
+    }
+    return (importedInputsByAlias[currentAlias] || []).filter(Boolean);
+  }, [currentAlias, importedInputsByAlias]);
+
+  const missingInputKeys = React.useMemo(() => (
+    availableInputs.filter((key) => !keys.includes(key))
+  ), [availableInputs, keys]);
 
   const onInputChange = (key: string, val: string) => {
     if (!currentAlias) return;
     const nextInputs = { ...inputs, [key]: parseLiteral(val) };
     const next = currentId ? { call: currentAlias, id: currentId, inputs: nextInputs } : { call: currentAlias, inputs: nextInputs };
     setLocal(next);
+    scheduleEmit(next);
   };
+
+  const handleRemoveInput = (key: string) => {
+    if (!currentAlias) return;
+    const nextInputs = { ...inputs };
+    delete nextInputs[key];
+    const next = currentId ? { call: currentAlias, id: currentId, inputs: nextInputs } : { call: currentAlias, inputs: nextInputs };
+    setLocal(next);
+    scheduleEmit(next);
+  };
+
+  const handleAddInput = (key: string) => {
+    if (!currentAlias) return;
+    if (keys.includes(key)) {
+      return;
+    }
+    const nextInputs = { ...inputs, [key]: '' };
+    const next = currentId ? { call: currentAlias, id: currentId, inputs: nextInputs } : { call: currentAlias, inputs: nextInputs };
+    setLocal(next);
+    scheduleEmit(next);
+  };
+
+  const aliasHasProblem = aliasProblems.length > 0;
+  const aliasErrorTitle = aliasHasProblem ? aliasProblems.map(p => p.message).join('\n') : undefined;
 
   return (
     <div style={{ width: '100%', borderCollapse: "collapse", tableLayout: "fixed" }}>
       <select
         value={currentAlias}
         onChange={handleChange}
-        style={{ width: '100%' }}
+        style={{
+          width: '100%',
+          borderColor: aliasHasProblem ? 'var(--vscode-errorForeground, #f14c4c)' : undefined,
+          boxShadow: aliasHasProblem ? '0 0 0 1px var(--vscode-errorForeground, #f14c4c)' : undefined,
+        }}
+        title={aliasErrorTitle}
       >
         <option value="">{placeholder}</option>
         {aliases.map(a => (
           <option key={a} value={a}>{a}</option>
         ))}
       </select>
-
-      {combinedProblems.length > 0 && (
-        <div style={{ padding: "4px 5px", color: "var(--vscode-errorForeground, #f14c4c)", fontSize: 12 }}>
-          {combinedProblems.map((problem, idx) => (
-            <div key={`${problem.message}-${idx}`}>{problem.message}</div>
-          ))}
-        </div>
-      )}
 
       <div className="label">Id</div>
       <div style={{ padding: "5px" }}>
@@ -257,31 +275,77 @@ const TestCall: React.FC<TestCallProps> = ({
           <div className="label">Parameters</div>
           <div style={{ padding: "5px" }}>
             {keys.length ? (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', columnGap: 12, rowGap: 8 }}>
-                {keys.map(k => (
-                  <React.Fragment key={k}>
-                    <div style={{ alignSelf: 'center', opacity: 0.9 }}>{k}</div>
-                    <input
-                      type="text"
-                      value={typeof inputs[k] === 'string' ? inputs[k] as string : JSON.stringify(inputs[k])}
-                      onChange={(e) => onInputChange(k, e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          scheduleEmit(local);
-                        }
-                      }}
-                      onKeyUp={(e) => {
-                        if (e.key === 'Enter') {
-                          scheduleEmit(local);
-                        }
-                      }}
-                      style={{ width: '100%', padding: '6px 8px' }}
-                    />
-                  </React.Fragment>
-                ))}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr auto', columnGap: 12, rowGap: 8 }}>
+                {keys.map(k => {
+                  const hasProblem = invalidInputKeys.has(k);
+                  const problemMessage = hasProblem ? validationProblems.inputProblems.find(p => p.inputKey === k)?.message : undefined;
+                  const valueForInput = typeof inputs[k] === 'string' ? inputs[k] as string : JSON.stringify(inputs[k]);
+                  return (
+                    <React.Fragment key={k}>
+                      <div style={{ alignSelf: 'center', opacity: 0.9 }}>{k}</div>
+                      <input
+                        type="text"
+                        value={valueForInput}
+                        onChange={(e) => onInputChange(k, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            scheduleEmit(local);
+                          }
+                        }}
+                        onKeyUp={(e) => {
+                          if (e.key === 'Enter') {
+                            scheduleEmit(local);
+                          }
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '6px 8px',
+                          borderColor: hasProblem ? 'var(--vscode-errorForeground, #f14c4c)' : undefined,
+                          boxShadow: hasProblem ? '0 0 0 1px var(--vscode-errorForeground, #f14c4c)' : undefined,
+                        }}
+                        title={problemMessage}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveInput(k)}
+                        style={{
+                          alignSelf: 'center',
+                          border: 'none',
+                          background: 'transparent',
+                          color: 'var(--vscode-errorForeground, #f14c4c)',
+                          cursor: 'pointer',
+                        }}
+                        aria-label={`Remove ${k}`}
+                        title={`Remove ${k}`}
+                      >
+                        ×
+                      </button>
+                    </React.Fragment>
+                  );
+                })}
               </div>
             ) : (
               <div style={{ opacity: 0.7 }}>No parameters</div>
+            )}
+            {missingInputKeys.length > 0 && (
+              <div style={{ marginTop: 12, display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {missingInputKeys.map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => handleAddInput(key)}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: 4,
+                      border: '1px dashed var(--vscode-editorWidget-border, #555)',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    + {key}
+                  </button>
+                ))}
+              </div>
             )}
           </div>
         </>

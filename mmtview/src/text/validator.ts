@@ -5,6 +5,8 @@ export type ProblemEntry = {
   severity: "error" | "warning";
   line?: number;
   column?: number;
+  inputKey?: string;
+  alias?: string;
 };
 
 export type OrderingIssue = {
@@ -331,6 +333,7 @@ export function findTestCallAliasProblems(
       severity: "warning" as const,
       line: site.line,
       column: 1,
+      alias: site.alias,
     }));
 }
 
@@ -357,6 +360,8 @@ export function findTestCallInputsProblems(
       severity: "warning" as const,
       line: site.line,
       column: 1,
+      inputKey: site.inputKey,
+      alias: site.alias,
     }));
 }
 
