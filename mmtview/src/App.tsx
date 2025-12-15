@@ -41,7 +41,7 @@ const App: React.FC = () => {
 
   function yamlSetContent(content: string) {
     setContent(content);
-    if(content === "") {
+    if (content === "") {
       setValidContent(content);
       return;
     }
@@ -118,7 +118,7 @@ const App: React.FC = () => {
       isInitLoad.current = false;
       return;
     }
-    window.vscode?.postMessage({ command: "update", text: content });
+    window.vscode?.postMessage({ command: "updateDocument", text: content });
   }, [content]);
 
   useEffect(() => {

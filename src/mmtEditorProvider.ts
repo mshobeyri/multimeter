@@ -1,7 +1,7 @@
 import * as fs from 'fs';
-import {runner} from 'mmt-core';
+import {markupConvertor, runner} from 'mmt-core';
 import {LogLevel} from 'mmt-core/CommonData';
-import {markupConvertor} from 'mmt-core';
+
 const {parseYaml} = markupConvertor;
 import {runJSCode} from 'mmt-core/jsRunner';
 import * as path from 'path';
@@ -74,7 +74,8 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   constructor(private readonly context: vscode.ExtensionContext) {
     // Set the static instance when constructor is called
     MmtEditorProvider.instance = this;
-    this.diagnostics = vscode.languages.createDiagnosticCollection('multimeter');
+    this.diagnostics =
+        vscode.languages.createDiagnosticCollection('multimeter');
     this.context.subscriptions.push(this.diagnostics);
   }
 
@@ -196,7 +197,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           }
           break;
 
-        case 'update':
+        case 'updateDocument':
           this.updateTextDocument(document, message.text);
           break;
 
@@ -271,7 +272,8 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
 
         case 'validateImports': {
           const imports = message?.imports;
-          const importEntries = imports && typeof imports === 'object' ? imports : {};
+          const importEntries =
+              imports && typeof imports === 'object' ? imports : {};
           const missing: Array<{alias: string; path: string}> = [];
           const apiInputsByAlias: Record<string, string[]> = {};
           const includeInputs = !!message?.includeInputs;
@@ -282,8 +284,8 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
             if (typeof relativePath !== 'string' || !relativePath.trim()) {
               continue;
             }
-            const absolutePath = path.resolve(
-                path.dirname(document.uri.fsPath), relativePath);
+            const absolutePath =
+                path.resolve(path.dirname(document.uri.fsPath), relativePath);
             if (!fs.existsSync(absolutePath)) {
               missing.push({alias, path: relativePath});
               continue;
@@ -291,11 +293,13 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
 
             if (includeInputs) {
               try {
-                const raw = await vscode.workspace.fs.readFile(vscode.Uri.file(absolutePath));
+                const raw = await vscode.workspace.fs.readFile(
+                    vscode.Uri.file(absolutePath));
                 const text = Buffer.from(raw).toString('utf8');
                 const js: any = parseYaml(text);
                 const inputsObj = js && js.inputs;
-                if (inputsObj && typeof inputsObj === 'object' && !Array.isArray(inputsObj)) {
+                if (inputsObj && typeof inputsObj === 'object' &&
+                    !Array.isArray(inputsObj)) {
                   apiInputsByAlias[alias] = Object.keys(inputsObj);
                 } else {
                   apiInputsByAlias[alias] = [];
@@ -450,15 +454,18 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
 
 
         case 'updateDocumentProblems': {
-          const problems = Array.isArray(message?.problems) ? message.problems : [];
+          const problems =
+              Array.isArray(message?.problems) ? message.problems : [];
           const diagnostics = problems.map((problem: any) => {
             const line = typeof problem?.line === 'number' ? problem.line : 1;
-            const column = typeof problem?.column === 'number' ? problem.column : 1;
+            const column =
+                typeof problem?.column === 'number' ? problem.column : 1;
             const zeroLine = Math.max(0, line - 1);
             const zeroColumn = Math.max(0, column - 1);
             const range = new vscode.Range(
                 new vscode.Position(zeroLine, zeroColumn),
-                new vscode.Position(zeroLine, Math.max(zeroColumn + 1, zeroColumn)));
+                new vscode.Position(
+                    zeroLine, Math.max(zeroColumn + 1, zeroColumn)));
             const severity = problem?.severity === 'error' ?
                 vscode.DiagnosticSeverity.Error :
                 vscode.DiagnosticSeverity.Warning;
