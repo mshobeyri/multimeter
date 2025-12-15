@@ -95,7 +95,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                 }}
                 language={format}
                 showNumbers={false}
-                fontSize={10}
+                fontSize={11}
                 onFocusChange={setIsFocused}
                 onInspectPosition={onInspectPosition}
             />

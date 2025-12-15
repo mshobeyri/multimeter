@@ -36,10 +36,6 @@ const SendButton: React.FC<{
   return (
     <button
       style={{
-        position: "absolute",
-        right: "40px",
-        top: "50%",
-        transform: "translateY(-50%)",
         background: disabled
           ? "#7a7979"
           : showCancel

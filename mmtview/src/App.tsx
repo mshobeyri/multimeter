@@ -173,25 +173,27 @@ const App: React.FC = () => {
             onFocusChange={setYamlEditorFocused}
           />
         </div>
-        <div style={{ height: "100vh", minHeight: 0 }}>
-          {docType === "env" && (
-            <EnvironmentPanel content={validContent} setContent={uiSetContent} />
-          )}
-          {docType === "var" && (
-            <VariablesPanel content={validContent} setContent={uiSetContent} />
-          )}
-          {docType === "api" && (
-            <APIPanel content={validContent} setContent={uiSetContent} />
-          )}
-          {docType === "doc" && (
-            <DocPanel content={validContent} setContent={uiSetContent} />
-          )}
-          {docType === "test" && (
-            <TestPanel content={validContent} setContent={uiSetContent} />
-          )}
-          {docType === null && (
-            <NotypePanel content={validContent} setContent={uiSetContent} />
-          )}
+        <div style={{ height: "100vh", minHeight: 0, display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
+          <div style={{ width: '100%', height: '100%', maxWidth: 1200 }}>
+            {docType === "env" && (
+              <EnvironmentPanel content={validContent} setContent={uiSetContent} />
+            )}
+            {docType === "var" && (
+              <VariablesPanel content={validContent} setContent={uiSetContent} />
+            )}
+            {docType === "api" && (
+              <APIPanel content={validContent} setContent={uiSetContent} />
+            )}
+            {docType === "doc" && (
+              <DocPanel content={validContent} setContent={uiSetContent} />
+            )}
+            {docType === "test" && (
+              <TestPanel content={validContent} setContent={uiSetContent} />
+            )}
+            {docType === null && (
+              <NotypePanel content={validContent} setContent={uiSetContent} />
+            )}
+          </div>
         </div>
       </SplitPane>
     </FileContext.Provider>

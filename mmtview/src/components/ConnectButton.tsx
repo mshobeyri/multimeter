@@ -9,10 +9,6 @@ const ConnectButton: React.FC<{
   return (
     <button
       style={{
-        position: "absolute",
-        right: "70px",
-        top: "50%",
-        transform: "translateY(-50%)",
         background: connected
           ? hover
             ? "#2e7d32"
