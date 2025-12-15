@@ -5,9 +5,10 @@ import WebSocket from 'ws';
 import {HttpRequest, HttpResponse, NetworkConfig, Request, Response} from './NetworkData';
 
 export function createHttpsAgentWithCertificates(
-    hostname: string, config: NetworkConfig) {
-  const agentOptions:
-      https.AgentOptions = {rejectUnauthorized: config.sslValidation};
+    hostname: string, config: NetworkConfig,
+    opts?: {skipCertificateValidation?: boolean}) {
+  const rejectUnauthorized = opts?.skipCertificateValidation ? false : config.sslValidation;
+  const agentOptions: https.AgentOptions = {rejectUnauthorized};
   if (config.ca.enabled && config.ca.certData) {
     agentOptions.ca = [config.ca.certData];
   }
@@ -94,61 +95,121 @@ export async function sendHttpRequest(
       reqHeaders['Content-Length'] = String(len);
     }
   }
-  const httpsAgent = parsedUrl.protocol === 'https:' ?
-      createHttpsAgentWithCertificates(hostname, config) :
-      undefined;
-  const request = {
+  const baseRequestConfig = {
     url: req.url,
     method: req.method || 'get',
     data: req.body,
     params: req.query,
     withCredentials: true,
     headers: reqHeaders,
-    httpsAgent,
     timeout: config.timeout,
     responseType: 'text' as const,
     transformResponse: [(data: string) => data],
   };
+  const executeRequest = (skipValidation = false) => {
+    const httpsAgent = parsedUrl.protocol === 'https:' ?
+        createHttpsAgentWithCertificates(
+            hostname, config,
+            {skipCertificateValidation: skipValidation}) :
+        undefined;
+    return axios.request({...baseRequestConfig, httpsAgent});
+  };
   const start = Date.now();
-  try {
-    const response = await axios.request(request);
+  const toSuccess = (response: any): HttpResponse => {
     const duration = Date.now() - start;
     return {
       body: response.data,
-      headers: Object.fromEntries(Object.entries(response.headers)
-                                      .filter(([_, v]) => v !== undefined)
-                                      .map(([k, v]) => [k, String(v)])),
+      headers: normalizeAxiosHeaders(response.headers),
       status: response.status,
       statusText: response.statusText,
       duration,
       autoformat: config.autoFormat,
     };
-  } catch (err: any) {
+  };
+  const toError = (err: any): HttpResponse => {
     const duration = Date.now() - start;
-    if (err.response) {
-      // HTTP error response (non-2xx)
+    if (err?.response) {
       return {
         body: err.response.data,
-        headers: Object.fromEntries(Object.entries(err.response.headers)
-                                        .filter(([_, v]) => v !== undefined)
-                                        .map(([k, v]) => [k, String(v)])),
+        headers: normalizeAxiosHeaders(err.response.headers),
         status: err.response.status,
         statusText: err.response.statusText,
         duration,
         autoformat: config.autoFormat,
       };
-    } else {
-      const code = err?.code ? String(err.code) : 'NETWORK_ERROR';
-      return {
-        body: '',
-        headers: {},
-        status: -1,
-        statusText: `${code}`,
-        duration,
-        autoformat: config.autoFormat
-      } as any;
     }
+    const code = err?.code ? String(err.code) : 'NETWORK_ERROR';
+    return {
+      body: '',
+      headers: {},
+      status: -1,
+      statusText: `${code}`,
+      duration,
+      autoformat: config.autoFormat,
+    } as any;
+  };
+  const canRetrySelfSigned = config.allowSelfSigned && config.sslValidation &&
+      parsedUrl.protocol === 'https:';
+  try {
+    const response = await executeRequest(false);
+    return toSuccess(response);
+  } catch (err: any) {
+    if (canRetrySelfSigned && isSelfSignedTlsError(err)) {
+      try {
+        const retryResponse = await executeRequest(true);
+        return toSuccess(retryResponse);
+      } catch (retryErr: any) {
+        return toError(retryErr);
+      }
+    }
+    return toError(err);
   }
+}
+
+const SELF_SIGNED_TLS_CODES = new Set([
+  'SELF_SIGNED_CERT_IN_CHAIN',
+  'DEPTH_ZERO_SELF_SIGNED_CERT',
+  'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+]);
+
+const SELF_SIGNED_MESSAGE_FRAGMENTS = [
+  'self signed certificate',
+  'unable to verify the first certificate',
+];
+
+function normalizeAxiosHeaders(raw: Record<string, any> = {}):
+    Record<string, string> {
+  return Object.fromEntries(Object.entries(raw)
+                                 .filter(([_, v]) => v !== undefined)
+                                 .map(([k, v]) => [k, String(v)]));
+}
+
+function isSelfSignedTlsError(err: any): boolean {
+  if (!err || err.response) {
+    return false;
+  }
+  const code = extractErrorCode(err);
+  if (code && SELF_SIGNED_TLS_CODES.has(code)) {
+    return true;
+  }
+  const message = typeof err?.message === 'string' ? err.message.toLowerCase() : '';
+  if (!message) {
+    return false;
+  }
+  return SELF_SIGNED_MESSAGE_FRAGMENTS.some(fragment => message.includes(fragment));
+}
+
+function extractErrorCode(err: any): string|undefined {
+  if (err && typeof err.code === 'string' && err.code) {
+    return err.code;
+  }
+  if (err?.cause && typeof err.cause.code === 'string' && err.cause.code) {
+    return err.cause.code;
+  }
+  if (err?.originalError && typeof err.originalError.code === 'string' && err.originalError.code) {
+    return err.originalError.code;
+  }
+  return undefined;
 }
 
 export async function sendWsRequest(
@@ -276,8 +337,11 @@ export function createWebSocket(
 }
 
 export function createWebSocketOptionsWithCertificates(
-    hostname: string, config: NetworkConfig) {
-  const wsOptions: any = {rejectUnauthorized: config.sslValidation};
+    hostname: string, config: NetworkConfig,
+    opts?: {skipCertificateValidation?: boolean}) {
+  const rejectUnauthorized = opts?.skipCertificateValidation ? false :
+      (config.allowSelfSigned ? false : config.sslValidation);
+  const wsOptions: any = {rejectUnauthorized};
   if (config.ca.enabled && config.ca.certData) {
     wsOptions.ca = [config.ca.certData];
   }
@@ -298,9 +362,36 @@ const defaultConfig: NetworkConfig = {
   ca: {enabled: false},
   clients: [],
   sslValidation: true,
+  allowSelfSigned: false,
   timeout: 30000,
   autoFormat: false,
 };
+
+function cloneNetworkConfig(config: NetworkConfig): NetworkConfig {
+  const ca = config?.ca ? {...config.ca} : {enabled: false};
+  const clients = Array.isArray(config?.clients) ?
+      config.clients.map(client => ({...client})) :
+      [];
+  return {
+    ...config,
+    ca,
+    clients,
+  };
+}
+
+let runnerNetworkConfig: NetworkConfig = cloneNetworkConfig(defaultConfig);
+
+export function setRunnerNetworkConfig(config: NetworkConfig) {
+  if (!config) {
+    runnerNetworkConfig = cloneNetworkConfig(defaultConfig);
+    return;
+  }
+  runnerNetworkConfig = cloneNetworkConfig(config);
+}
+
+export function getRunnerNetworkConfig(): NetworkConfig {
+  return cloneNetworkConfig(runnerNetworkConfig);
+}
 
 // Generic send function using default config
 export async function send(req: Request): Promise<Response> {
@@ -309,7 +400,7 @@ export async function send(req: Request): Promise<Response> {
   }
   const protocol = req.protocol || 'http';
   if (protocol === 'ws') {
-    return sendWsRequest(req, defaultConfig);
+    return sendWsRequest(req, runnerNetworkConfig);
   } else if (protocol === 'http') {
     const httpReq: HttpRequest = {
       url: req.url,
@@ -319,7 +410,7 @@ export async function send(req: Request): Promise<Response> {
       query: req.query,
       cookies: req.cookies,
     };
-    const httpRes = await sendHttpRequest(httpReq, defaultConfig);
+    const httpRes = await sendHttpRequest(httpReq, runnerNetworkConfig);
     return {
       body: httpRes.body,
       headers: httpRes.headers,

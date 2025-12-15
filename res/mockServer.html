@@ -28,14 +28,14 @@
       </div>
     </div>
 
-    <div class="mb-12">
-      <label class="label" for="reflect">Reflect request as response</label>
-  <input id="reflect" type="checkbox" ${reflectChecked} />
-    </div>
+    <label class="mb-12 checkbox-label">
+      <input id="reflect" type="checkbox" ${reflectChecked}>
+      Reflect request as response
+    </label>
 
     <div class="mb-12">
       <label class="label" for="response">Response</label>
-  <textarea id="response" class="textarea" ${responseDisabled}>${response}</textarea>
+      <textarea id="response" class="textarea" ${responseDisabled}>${response}</textarea>
     </div>
 
     <button id="runBtn" class="button" data-running="${isRunning}">

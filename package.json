@@ -110,6 +110,11 @@
           "default": true,
           "description": "Enable SSL certificate validation for HTTPS requests"
         },
+        "multimeter.allowSelfSignedCertificates": {
+          "type": "boolean",
+          "default": false,
+          "description": "Trust self-signed certificates without disabling validation globally"
+        },
         "multimeter.certificates.ca": {
           "type": "object",
           "default": {

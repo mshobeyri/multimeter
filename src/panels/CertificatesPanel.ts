@@ -73,6 +73,11 @@ export default class CertificatesPanel implements vscode.WebviewViewProvider {
           this.refreshWebview(webviewView);
           break;
 
+        case 'toggleSelfSigned':
+          await this.toggleSelfSigned();
+          this.refreshWebview(webviewView);
+          break;
+
         case 'refresh':
           this.refreshWebview(webviewView);
           break;
@@ -81,9 +86,11 @@ export default class CertificatesPanel implements vscode.WebviewViewProvider {
 
     // Listen for configuration changes
     vscode.workspace.onDidChangeConfiguration(event => {
-      if (event.affectsConfiguration('multimeter.certificates') ||
+        if (event.affectsConfiguration('multimeter.certificates') ||
           event.affectsConfiguration(
-              'multimeter.enableCertificateValidation')) {
+            'multimeter.enableCertificateValidation') ||
+          event.affectsConfiguration(
+            'multimeter.allowSelfSignedCertificates')) {
         this.refreshWebview(webviewView);
       }
     });
@@ -272,13 +279,23 @@ export default class CertificatesPanel implements vscode.WebviewViewProvider {
         vscode.ConfigurationTarget.Workspace);
   }
 
+  private async toggleSelfSigned() {
+    const config = vscode.workspace.getConfiguration('multimeter');
+    const current = config.get<boolean>('allowSelfSignedCertificates', false);
+    await config.update(
+        'allowSelfSignedCertificates', !current,
+        vscode.ConfigurationTarget.Workspace);
+  }
+
   private refreshWebview(webviewView: vscode.WebviewView) {
     const config = vscode.workspace.getConfiguration('multimeter');
     const certificates = {
       ca: config.get<CaCertificate>(
           'certificates.ca', {enabled: false, certPath: ''}),
       clients: config.get<ClientCertificate[]>('certificates.clients', []),
-      sslValidation: config.get<boolean>('enableCertificateValidation', true)
+      sslValidation: config.get<boolean>('enableCertificateValidation', true),
+      allowSelfSigned:
+          config.get<boolean>('allowSelfSignedCertificates', false)
     };
 
     webviewView.webview.postMessage(

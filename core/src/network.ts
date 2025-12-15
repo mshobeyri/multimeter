@@ -161,6 +161,7 @@ export function getCertificateStatusForUrl(url: string, config: NetworkConfig) {
       protocol: parsedUrl.protocol,
       hostname,
       sslValidation: config.sslValidation,
+      allowSelfSigned: config.allowSelfSigned,
       hasCA: config.ca.enabled && !!config.ca.certData,
       hasClientCert: hasMatchingClientCert,
       isSecure: parsedUrl.protocol === 'https:' || parsedUrl.protocol === 'wss:'

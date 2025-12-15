@@ -53,6 +53,7 @@ export interface NetworkConfig {
   ca: CaCertificate;
   clients: ClientCertificate[];
   sslValidation: boolean;
+  allowSelfSigned: boolean;
   timeout: number;
   autoFormat: boolean;
 }

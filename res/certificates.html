@@ -56,11 +56,16 @@
             <input type="checkbox" id="ssl-validation" onchange="toggleSslValidation()">
             Verify SSL certificates
         </label>
+
+        <label class="checkbox-label">
+            <input type="checkbox" id="allow-self-signed" onchange="toggleSelfSigned()">
+            Trust self-signed certificates
+        </label>
     </div>
 
     <script>
         const vscode = acquireVsCodeApi();
-        let certificates = { ca: { enabled: false, certPath: '' }, clients: [], sslValidation: true };
+        let certificates = { ca: { enabled: false, certPath: '' }, clients: [], sslValidation: true, allowSelfSigned: false };
 
         window.addEventListener('message', event => {
             const message = event.data;
@@ -98,6 +103,10 @@
             vscode.postMessage({ type: 'toggleSslValidation' });
         }
 
+        function toggleSelfSigned() {
+            vscode.postMessage({ type: 'toggleSelfSigned' });
+        }
+
         function updateUI() {
             // Update CA certificate
             const caEnabled = document.getElementById('ca-enabled');
@@ -113,6 +122,7 @@
 
             // Update SSL validation
             document.getElementById('ssl-validation').checked = certificates.sslValidation;
+            document.getElementById('allow-self-signed').checked = certificates.allowSelfSigned;
 
             // Update client certificates
             const container = document.getElementById('client-certs-container');

@@ -17,6 +17,7 @@ import { NetworkConfig } from './NetworkData';
 describe('network helpers', () => {
   const baseCfg: NetworkConfig = {
     sslValidation: true,
+    allowSelfSigned: false,
     autoFormat: true,
     ca: { enabled: true, certData: Buffer.from('abc') },
     clients: [
@@ -32,6 +33,7 @@ describe('network helpers', () => {
       protocol: 'https:',
       hostname: 'api.example.com',
       sslValidation: true,
+      allowSelfSigned: false,
       hasCA: true,
       hasClientCert: true,
       isSecure: true,

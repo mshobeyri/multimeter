@@ -3,11 +3,11 @@ import {markupConvertor, runner} from 'mmt-core';
 import {LogLevel} from 'mmt-core/CommonData';
 
 const {parseYaml} = markupConvertor;
-import {runJSCode} from 'mmt-core/jsRunner';
+import {runJSCode, setRunnerNetworkConfig} from 'mmt-core/jsRunner';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
-import {handleNetworkMessage} from './vscodeNetwork';
+import {handleNetworkMessage, getPreparedConfig} from './vscodeNetwork';
 
 const LAST_VIEW_MODE = 'mmtview:view:selectedViewMode';
 export const logOutputChannel =
@@ -350,6 +350,14 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           const forwardLog = (level: LogLevel, message: string) => {
             logToOutput(level, message);
           };
+          try {
+            const netConfig = getPreparedConfig();
+            setRunnerNetworkConfig(netConfig);
+          } catch (err: any) {
+            logToOutput(
+                'warn',
+                `Unable to apply certificate settings: ${err?.message || err}`);
+          }
           try {
             const envStorage = this.context.workspaceState.get<any>(
                 'multimeter.environment.storage', []);

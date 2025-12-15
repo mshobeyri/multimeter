@@ -22,7 +22,7 @@ interface ClientCertificate {
 }
 
 // Prepare config with loaded cert/key data
-function getPreparedConfig(): NetworkConfig {
+export function getPreparedConfig(): NetworkConfig {
   const config = vscode.workspace.getConfiguration('multimeter');
   const ca: CaCertificate =
       config.get('certificates.ca', {enabled: false, certPath: ''});
@@ -58,6 +58,7 @@ function getPreparedConfig(): NetworkConfig {
     ca: {...ca, certData: caCertData},
     clients: clientsWithData,
     sslValidation: config.get('enableCertificateValidation', true),
+    allowSelfSigned: config.get('allowSelfSignedCertificates', false),
     timeout: config.get('network.timeout', 30000),
     autoFormat: config.get('body.auto.format', false)
   };
