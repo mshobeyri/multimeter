@@ -17,6 +17,9 @@ import {
   offsetToLineNumber,
   type ProblemEntry,
 } from "./validator";
+import { APIData } from "mmt-core/APIData";
+import { TestData } from "mmt-core/TestData";
+import { DocData } from "mmt-core/DocData";
 
 interface YamlEditorPanelProps {
   content: string;
@@ -69,8 +72,8 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       showVSCodeMessage("warn", "Unable to reorder items for this document.");
       return;
     }
-    if (normalizeForComparison(reordered) === normalizeForComparison(currentContent)) {
-      showVSCodeMessage("info", "Document already follows the canonical order.");
+    if (reordered === currentContent) {
+      showVSCodeMessage("info", "Document is already formatted.");
       return;
     }
     setContent(reordered);
@@ -665,11 +668,26 @@ function buildCanonicalYaml(content: string, docType: string | null): string | n
   try {
     switch (docType) {
       case "api":
-        return apiToYaml(yamlToAPI(content));
+        const apiData = yamlToAPI(content);
+        if (!apiData || typeof apiData !== 'object' || apiData === {} as APIData) {
+          showVSCodeMessage("error", "Document is not a valid YAML.");
+          return null;
+        }
+        return apiToYaml(apiData);
       case "test":
-        return testToYaml(yamlToTest(content));
+        const testData = yamlToTest(content);
+        if (!testData || typeof testData !== 'object' || testData === {} as TestData) {
+          showVSCodeMessage("error", "Document is not a valid YAML.");
+          return null;
+        }
+        return testToYaml(testData);
       case "doc":
-        return docToYaml(yamlToDoc(content));
+        const docData = yamlToDoc(content);
+        if (!docData || typeof docData !== 'object' || docData === {} as DocData) {
+          showVSCodeMessage("error", "Document is not a valid YAML.");
+          return null;
+        }
+        return docToYaml(docData);
       default:
         return null;
     }
@@ -677,11 +695,6 @@ function buildCanonicalYaml(content: string, docType: string | null): string | n
     return null;
   }
 }
-
-function normalizeForComparison(value: string): string {
-  return value.replace(/\s+$/g, "").trim();
-}
-
 
 function setEditorErrorMarker(
   monaco: any,
