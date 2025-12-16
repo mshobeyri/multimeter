@@ -580,16 +580,13 @@ button:focus {
 
 .apitest-send-row {
   flex-shrink: 0;
-  padding: 0 8px 8px;
   display: flex;
   flex-direction: column;
 }
 
 .apitest-send-controls {
-  position: absolute;
-  right: 40px;
-  bottom: 8px;
-  top: 30px;
+  position: relative;
+  transform: translate(-10px, 70%);
   display: flex;
   justify-content: flex-end;
   align-items: center;

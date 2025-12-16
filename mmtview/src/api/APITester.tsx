@@ -102,30 +102,29 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
 
   return (
     <div className="apitest-root">
+      <div style={{ padding: "8px" }}>
+        <UrlInput
+          url={requestData?.url ?? ""}
+          query={requestData?.query || {}}
+          onUrlChange={handleUrlChange}
+          onQueryChange={handleQueryChange}
+        />
+      </div>
+
+      <div style={{ padding: "0 8px 8px" }}>
+        <div className="tab-bar" style={{ gap: 8 }}>
+          {TAB_OPTIONS.map(tab => (
+            <button
+              key={tab.key}
+              className={`tab-button-small ${editorTab === tab.key ? "active" : ""}`}
+              onClick={() => setEditorTab(tab.key)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="apitest-section apitest-section--request">
-        <div style={{ padding: "8px" }}>
-          <UrlInput
-            url={requestData?.url ?? ""}
-            query={requestData?.query || {}}
-            onUrlChange={handleUrlChange}
-            onQueryChange={handleQueryChange}
-          />
-        </div>
-
-        <div style={{ padding: "0 8px 8px" }}>
-          <div className="tab-bar" style={{ gap: 8 }}>
-            {TAB_OPTIONS.map(tab => (
-              <button
-                key={tab.key}
-                className={`tab-button-small ${editorTab === tab.key ? "active" : ""}`}
-                onClick={() => setEditorTab(tab.key)}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {shouldShowQuery() && <KSVEditor
           label="Query parameters"
           value={requestData?.query || {}}
@@ -144,7 +143,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
         {shouldShowBody() && (
           <>
             <div className="label">Request Body</div>
-            <div className="apitest-body-wrapper" style={{ marginBottom: 8 }}>
+            <div className="apitest-body-wrapper">
               <BodyView
                 value={typeof requestData?.body === "string"
                   ? requestData?.body
