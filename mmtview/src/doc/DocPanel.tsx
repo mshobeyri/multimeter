@@ -17,23 +17,30 @@ interface DocProps {
 
 
 const Doc: React.FC<DocProps> = ({ content, setContent }) => {
-  const [doc, setDoc] = useState<DocData>(yamlToDoc(content));
+  const doc = useMemo(() => yamlToDoc(content), [content]);
+  const docRef = useRef<DocData>(doc);
+  const contentRef = useRef(content);
 
-  // Parse YAML to doc when content changes (but not if we just updated content from UI)
   useEffect(() => {
-    const newDoc = yamlToDoc(content);
-    if (newDoc === doc || newDoc === {} as DocData) return;
-    setDoc(newDoc);
+    docRef.current = doc;
+  }, [doc]);
+
+  useEffect(() => {
+    contentRef.current = content;
   }, [content]);
 
-  // Update YAML when doc change (but not if we just updated doc from YAML)
-  useEffect(() => {
-    const newYaml = docToYaml(doc);
-    if (newYaml === content || newYaml === "") {
+  const setDoc = React.useCallback((next: DocData | ((prev: DocData) => DocData)) => {
+    const resolved = typeof next === 'function'
+        ? (next as (prev: DocData) => DocData)(docRef.current)
+        : next;
+    docRef.current = resolved;
+    const newYaml = docToYaml(resolved);
+    if (newYaml === contentRef.current || newYaml === '') {
       return;
     }
+    contentRef.current = newYaml;
     setContent(newYaml);
-  }, [doc]);
+  }, [setContent]);
 
   const [tab, setTab] = useState<"edit" | "view" | "md">(
     () => (localStorage.getItem(LAST_DOC_TAB_KEY) as any) || "view"
@@ -68,7 +75,7 @@ const Doc: React.FC<DocProps> = ({ content, setContent }) => {
   }, []);
 
   const update = (patch: Partial<DocData>) => {
-    setDoc((prevDoc) => ({ ...prevDoc, ...patch }));
+    setDoc(prev => ({ ...prev, ...patch }));
   };
 
   return (

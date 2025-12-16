@@ -3,6 +3,7 @@ import React from "react";
 import LEditor from "../components/LEditor";
 import { DocData } from "mmt-core/DocData";
 import DescriptionEditor from "../components/DescriptionEditor";
+import FieldWithRemove from "../components/FieldWithRemove";
 
 interface DocEditProps {
   doc: DocData;
@@ -35,8 +36,8 @@ const DocEdit: React.FC<DocEditProps> = ({ doc, update }) => {
       </div>
 
       <LEditor
-        label="sources"
-        value={doc.sources || []} 
+        label="Sources"
+        value={doc.sources || []}
         onChange={kv => {
           update({ sources: kv });
         }}
@@ -48,26 +49,20 @@ const DocEdit: React.FC<DocEditProps> = ({ doc, update }) => {
         {(doc.services || []).map((svc, idx) => (
           <div key={idx} style={{ border: '1px solid var(--panel-border)', borderRadius: 6, padding: 8 }}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <input
-                style={{ flex: 1 }}
+              <FieldWithRemove
                 value={svc?.name || ''}
                 placeholder="service name"
                 onChange={e => {
                   const next = (doc.services || []).slice();
-                  next[idx] = { ...next[idx], name: e.target.value } as any;
+                  next[idx] = { ...next[idx], name: e } as any;
                   update({ services: next });
                 }}
-              />
-              <button
-                onClick={() => {
+                onRemovePressed={() => {
                   const next = (doc.services || []).slice();
                   next.splice(idx, 1);
                   update({ services: next });
                 }}
-                title="Remove service"
-              >
-                ×
-              </button>
+              />
             </div>
             <div style={{ marginTop: 6 }}>
               <input
@@ -83,7 +78,7 @@ const DocEdit: React.FC<DocEditProps> = ({ doc, update }) => {
             </div>
             <div style={{ marginTop: 6 }}>
               <LEditor
-                label="sources"
+                label="Sources"
                 value={(svc?.sources || []) as string[]}
                 onChange={list => {
                   const next = (doc.services || []).slice();
