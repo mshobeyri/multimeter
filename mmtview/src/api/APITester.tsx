@@ -79,11 +79,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
     localStorage.setItem("apitest-editor-tab", tab);
   };
 
-  const canEditBody = !requestData?.method || requestData?.method.toLowerCase() !== "get";
   const shouldShowQuery = () => editorTab === "params";
   const shouldShowHeaders = () => editorTab === "headers";
   const shouldShowCookies = () => editorTab === "cookies";
-  const shouldShowBody = () => editorTab === "body" && canEditBody;
+  const shouldShowBody = () => editorTab === "body";
   const shouldShowInputs = () => editorTab === "inout";
   const shouldShowResponse = () => editorTab === "body";
   const shouldShowResponseHeaders = () => editorTab === "headers";
