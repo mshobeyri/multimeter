@@ -15,24 +15,12 @@ interface APIsProps {
 }
 
 const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
-  const [api, setAPI] = useState<APIData>(yamlToAPI(content));
-
-  // Parse YAML to api when content changes (but not if we just updated content from UI)
-  useEffect(() => {
-    const newApi = yamlToAPI(content);
-    if (newApi === api || newApi === {} as APIData) return;
-    setAPI(newApi);
-  }, [content]);
-
-  // Update YAML when api change (but not if we just updated api from YAML)
-  useEffect(() => {
-    const newYaml = apiToYaml(api);
-    if (newYaml === content || newYaml === "") {
-      return;
-    }
+  const api = yamlToAPI(content);
+  let setAPI = (newApi: APIData) => {
+    const newYaml = apiToYaml(newApi);
     setContent(newYaml);
-  }, [api]);
-
+  };
+  
   const [tab, setTab] = useState<"overview" | "interface" | "examples" | "test">(
     () => (localStorage.getItem(LAST_API_TAB_KEY) as "overview" | "interface" | "examples" | "test") || "test"
   );
@@ -67,37 +55,30 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
 
   // Helper to update top-level fields
   const update = (patch: Partial<APIData>) => {
-    setAPI(prev => ({ ...prev, ...patch }));
+    setAPI({ ...api, ...patch });
   };
 
   // Helper to update a specific interface
   const updateInterface = (patch: Partial<APIData>) => {
-    setAPI(prev => ({ ...prev, ...patch }));
+    setAPI({ ...api, ...patch });
   };
 
   const updateExample = (idx: number, patch: Partial<ExampleData>) => {
-    setAPI(prev => {
-      const examples = safeListCopy(prev.examples);
-      examples[idx] = { ...examples[idx], ...patch };
-      return { ...prev, examples };
-    });
+    setAPI({ ...api, examples: safeListCopy(api.examples).map((example, i) => i === idx ? { ...example, ...patch } : example) });
   };
 
   const removeExample = (idx: number) => {
-    setAPI(prev => {
-      const examples = safeList(prev.examples).filter((_, i) => i !== idx);
-      return { ...prev, examples };
-    });
+
+    const examples = safeList(api.examples).filter((_, i) => i !== idx);
+    setAPI({ ...api, examples });
   };
 
   const addExample = () => {
-    setAPI(prev => {
-      const examples = safeListCopy(prev.examples);
-      examples.push({ name: "" });
-      return { ...prev, examples };
-    });
-  };
 
+    const examples = safeListCopy(api.examples);
+    examples.push({ name: "" });
+    setAPI({ ...api, examples });
+  };
 
   const isTestTab = tab === "test";
 

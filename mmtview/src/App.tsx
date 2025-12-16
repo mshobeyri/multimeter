@@ -178,9 +178,6 @@ const App: React.FC = () => {
             {docType === "env" && (
               <EnvironmentPanel content={validContent} setContent={uiSetContent} />
             )}
-            {docType === "var" && (
-              <VariablesPanel content={validContent} setContent={uiSetContent} />
-            )}
             {docType === "api" && (
               <APIPanel content={validContent} setContent={uiSetContent} />
             )}

@@ -1,5 +1,5 @@
 import parseYaml, {packYaml} from './markupConvertor';
-import {isNonEmptyList} from './safer';
+import {isNonEmptyList, isNonEmptyObject} from './safer';
 import {FlowType, TestData, TestFlowStep} from './TestData';
 
 export function yamlToTest(yamlContent: string): TestData {
@@ -40,16 +40,16 @@ export function testToYaml(test: TestData): string {
   if (isNonEmptyList(test.tags)) {
     yamlObj.tags = test.tags;
   };
-  if (test.import) {
+  if (isNonEmptyObject(test.import)) {
     yamlObj.import = test.import;
   }
-  if (test.inputs) {
+  if (isNonEmptyObject(test.inputs)) {
     yamlObj.inputs = test.inputs;
   }
-  if (test.outputs) {
+  if (isNonEmptyObject(test.outputs)) {
     yamlObj.outputs = test.outputs;
   }
-  if (test.metrics) {
+  if (isNonEmptyObject(test.metrics)) {
     yamlObj.metrics = test.metrics;
   }
   if (test.steps) {

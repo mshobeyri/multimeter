@@ -14,7 +14,28 @@ interface TestPanelProps {
 const LAST_TAB_KEY = "mmtview:lastTab";
 
 const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
-  const [test, setTest] = useState<TestData>(yamlToTest(content));
+  const test = React.useMemo(() => yamlToTest(content), [content]);
+  const testRef = React.useRef<TestData>(test);
+  const contentRef = React.useRef(content);
+
+  useEffect(() => {
+    testRef.current = test;
+  }, [test]);
+
+  useEffect(() => {
+    contentRef.current = content;
+  }, [content]);
+
+  const setTest = React.useCallback((next: TestData | ((prev: TestData) => TestData)) => {
+    const resolved = typeof next === "function" ? (next as (prev: TestData) => TestData)(testRef.current) : next;
+    testRef.current = resolved;
+    const newYaml = testToYaml(resolved);
+    if (newYaml === contentRef.current) {
+      return;
+    }
+    contentRef.current = newYaml;
+    setContent(newYaml);
+  }, [setContent]);
 
   const importsMap = React.useMemo(() => {
     const raw = test?.import;
@@ -29,27 +50,12 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
     }
     return sanitized;
   }, [test]);
+
   const { missingImports, inputsByAlias } = useImportValidation(importsMap);
 
-  // Parse YAML to test when content changes (but not if we just updated content from UI)
-  useEffect(() => {
-    const newTest = yamlToTest(content);
-    if (newTest === test || newTest === {} as TestData) return;
-    setTest(newTest);
-  }, [content]);
-
-  // Update YAML when test changes (but not if we just updated test from YAML)
-  useEffect(() => {
-    const newYaml = testToYaml(test);
-    if (newYaml === content || newYaml === "") {
-      return;
-    }
-    setContent(newYaml);
-  }, [test]);
-
   // Restore last selected tab from localStorage, default to "overview"
-  const [tab, setTab] = useState<"overview" | "flow" | "examples" | "test">(
-    () => (localStorage.getItem(LAST_TAB_KEY) as "overview" | "flow" | "examples" | "test") || "overview"
+  const [tab, setTab] = useState<"overview" | "flow" | "test">(
+    () => (localStorage.getItem(LAST_TAB_KEY) as "overview" | "flow" | "test") || "overview"
   );
   const [showIconsOnly, setShowIconsOnly] = useState(false);
   const tabContainerRef = useRef<HTMLDivElement>(null);
@@ -105,14 +111,6 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
             {!showIconsOnly && "Flow"}
           </button>
           <button
-            onClick={() => setTab("examples")}
-            className={`tab-button ${tab === "examples" ? "active" : ""}`}
-            title={showIconsOnly ? "Examples" : undefined}
-          >
-            <span className="codicon codicon-lightbulb tab-button-icon"></span>
-            {!showIconsOnly && "Examples"}
-          </button>
-          <button
             onClick={() => setTab("test")}
             className={`tab-button ${tab === "test" ? "active" : ""}`}
             title={showIconsOnly ? "Test" : undefined}
@@ -135,30 +133,18 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
             importValidation={{ missingImports, inputsByAlias }}
             update={(patch) => {
               setTest(prev => {
-                // If stages provided, prefer stages and clear steps
+                const next = { ...prev } as any;
                 if (patch.stages) {
-                  const next = { ...prev } as any;
                   next.stages = patch.stages;
                   delete next.steps;
-                  return next;
-                }
-                // If steps provided, prefer steps and clear stages
-                if (patch.steps) {
-                  const next = { ...prev } as any;
+                } else if (patch.steps) {
                   next.steps = patch.steps;
                   delete next.stages;
-                  return next;
                 }
-                return prev;
+                return next;
               });
             }}
           />
-        )}
-        {tab === "examples" && (
-          <div>
-            <h2>Examples</h2>
-            {/* <pre>{JSON.stringify(test.examples, null, 2)}</pre> */}
-          </div>
         )}
         {tab === "test" && (
           <TestCode

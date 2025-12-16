@@ -65,7 +65,6 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update, missingImport
       }}
       keyPlaceholder="name"
       valuePlaceholder="value"
-      options={jsonTypes}
     />
     <KSVEditor
       label="Outputs"
@@ -75,7 +74,6 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update, missingImport
       }}
       keyPlaceholder="name"
       valuePlaceholder="value"
-      options={jsonTypes}
     />
     {/* <hr style={{ border: 0, borderTop: "1px solid #444", margin: "16px 0" }} />
     <VEditor

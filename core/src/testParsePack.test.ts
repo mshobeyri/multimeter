@@ -34,6 +34,21 @@ flow:
     expect(y).not.toContain('stages:');
   });
 
+  it('testToYaml drops empty maps', () => {
+    const td: TestData = {
+      type: 'test',
+      title: 'T3',
+      import: {},
+      inputs: {},
+      outputs: {},
+      metrics: {},
+    } as any;
+    const y = testToYaml(td);
+    expect(y).toContain('type: test');
+    expect(y).not.toContain('import:');
+    expect(y).not.toContain('inputs:');
+  });
+
   it('getTestFlowStepType detects each known type including data', () => {
     const samples: Array<[TestFlowStep, string]> = [
       [{ stage: { id: 's', steps: [] } } as any, 'stage'],
