@@ -6,6 +6,50 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Certificates</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.35/dist/codicon.css">
+    <style>
+        /* Layout tweaks for client certificate items so long addresses can wrap
+           and don't push the actions column (checkbox/buttons) out of view. */
+        .item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 8px 0;
+            box-sizing: border-box;
+        }
+
+        .item-info {
+            flex: 1 1 auto;
+            min-width: 0;
+            /* allow it to shrink and let contents wrap */
+            margin-right: 12px;
+        }
+
+        .item-title {
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .item-details {
+            color: #999;
+            /* allow long host/path strings to break anywhere rather than forcing overflow */
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            white-space: normal;
+        }
+
+        .item-actions {
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+    </style>
 </head>
 
 <body>
