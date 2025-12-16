@@ -452,6 +452,49 @@ button:focus {
   margin-bottom: 16px;
 }
 
+.panel-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.panel-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+}
+
+.panel-form-row input,
+.panel-form-row textarea {
+  width: 100%;
+}
+
+
+.doc-services {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  min-width: 0;
+}
+
+.doc-service-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.doc-services > button {
+  align-self: flex-start;
+}
+
 .environment-table-wrapper {
   border: 1px solid var(--vscode-editorWidget-border, #333);
   border-radius: 4px;
