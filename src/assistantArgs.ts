@@ -1,5 +1,6 @@
 import {mergeEnv, resolvePresetEnv, RunFileOptions} from 'mmt-core/runConfig';
 import * as path from 'path';
+import * as fs from 'fs';
 import * as vscode from 'vscode';
 import YAML from 'yaml';
 
@@ -160,16 +161,24 @@ export async function parseAssistantRunArgs(
   const preset = findOpt('preset');
   let envvar: Record<string, any>|undefined = undefined;
   if (envFile) {
-    const p = path.isAbsolute(envFile) ? envFile : path.join(dir, envFile);
+    let p = path.isAbsolute(envFile) ? envFile : path.join(projectRoot, envFile);
+    if (!fs.existsSync(p)) {
+      const alt = path.isAbsolute(envFile) ? envFile : path.join(dir, envFile);
+      if (fs.existsSync(alt)) {
+        p = alt;
+      }
+    }
     try {
       const envData = await vscode.workspace.fs.readFile(vscode.Uri.file(p));
       const doc = YAML.parse(Buffer.from(envData).toString('utf8')) as any;
       const variables = doc?.variables || {};
       const presets = doc?.presets || {};
       const presetEnv = resolvePresetEnv({variables, presets}, preset);
-      envvar = mergeEnv({envvar: presetEnv});
+      envvar = mergeEnv({envvar: presetEnv, manualEnvvars});
     } catch {
     }
+  } else {
+    envvar = mergeEnv({envvar: undefined, manualEnvvars});
   }
 
   const vscodeEnvState =

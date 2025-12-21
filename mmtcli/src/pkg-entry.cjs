@@ -106,6 +106,7 @@ function printRunHelp() {
 		'  --preset <name>         Preset name from env file (e.g. runner.dev)',
 		'  --example <name|#n>     Run a named example or index (#1 is first)',
 		'  --print-js              Print generated JS before executing',
+		'  --debug-env             Print resolved env vars (debug)',
 		'  --log-level <level>    Set log level (error|warn|info|debug|trace)',
 	].join('\n');
 	process.stdout.write(out + '\n');
@@ -208,12 +209,17 @@ function parseRunArgv(argv) {
 		preset: undefined,
 		example: undefined,
 		printJs: false,
+		debugEnv: false,
 		quiet: false,
 		out: undefined,
 		logLevel: parseLogLevel(argv),
 	};
-	let filePath;
+	const consumed = new Set();
+	const consume = (i) => { consumed.add(i); };
 	for (let i = 1; i < argv.length; i++) {
+		if (consumed.has(i)) {
+			continue;
+		}
 		const a = argv[i];
 		if (!a) {
 			continue;
@@ -222,6 +228,7 @@ function parseRunArgv(argv) {
 			continue;
 		}
 		if (a === '--log-level') {
+			consume(i + 1);
 			i += 1;
 			continue;
 		}
@@ -230,6 +237,7 @@ function parseRunArgv(argv) {
 			continue;
 		}
 		if (a === '-o' || a === '--out') {
+			consume(i + 1);
 			opts.out = argv[++i];
 			continue;
 		}
@@ -237,36 +245,47 @@ function parseRunArgv(argv) {
 			opts.printJs = true;
 			continue;
 		}
+		if (a === '--debug-env') {
+			opts.debugEnv = true;
+			continue;
+		}
 		if (a === '-i' || a === '--input') {
 			// Collect one or two tokens (key=val OR key val). Repeatable.
+			consume(i + 1);
 			const first = argv[++i];
 			if (first != null) {
 				opts.input.push(first);
 				if (!String(first).includes('=') && i + 1 < argv.length && !String(argv[i + 1]).startsWith('-')) {
+					consume(i + 1);
 					opts.input.push(argv[++i]);
 				}
 			}
 			continue;
 		}
 		if (a === '-e' || a === '--env') {
+			consume(i + 1);
 			const first = argv[++i];
 			if (first != null) {
 				opts.env.push(first);
 				if (!String(first).includes('=') && i + 1 < argv.length && !String(argv[i + 1]).startsWith('-')) {
+					consume(i + 1);
 					opts.env.push(argv[++i]);
 				}
 			}
 			continue;
 		}
 		if (a === '--env-file') {
+			consume(i + 1);
 			opts.envFile = argv[++i];
 			continue;
 		}
 		if (a === '--preset') {
+			consume(i + 1);
 			opts.preset = argv[++i];
 			continue;
 		}
 		if (a === '--example') {
+			consume(i + 1);
 			opts.example = argv[++i];
 			continue;
 		}
@@ -274,9 +293,21 @@ function parseRunArgv(argv) {
 			// Unknown flag; ignore for now.
 			continue;
 		}
-		if (!filePath) {
-			filePath = a;
+	}
+	let filePath;
+	for (let i = 1; i < argv.length; i++) {
+		if (consumed.has(i)) {
+			continue;
 		}
+		const a = argv[i];
+		if (!a) {
+			continue;
+		}
+		if (String(a).startsWith('-')) {
+			continue;
+		}
+		filePath = a;
+		break;
 	}
 	return { filePath, opts };
 }
@@ -457,18 +488,50 @@ async function main() {
 	const { exampleIndex, exampleName } = parseExampleFlag(parsed.opts.example);
 	let envvar = undefined;
 	try {
-		if (parsed.opts.envFile) {
-			const envFileRaw = String(parsed.opts.envFile);
-			const p = pathMod.isAbsolute(envFileRaw) ? envFileRaw : pathMod.join(baseDir, envFileRaw);
-			const doc = loadEnvDoc(p);
-			const runConfig = require('mmt-core').runConfig;
-			if (runConfig && typeof runConfig.resolvePresetEnv === 'function' && typeof runConfig.mergeEnv === 'function') {
-				const presetEnv = runConfig.resolvePresetEnv(doc, parsed.opts.preset);
-				envvar = runConfig.mergeEnv({ envvar: presetEnv });
+		const runConfig = require('mmt-core').runConfig;
+		if (runConfig && typeof runConfig.mergeEnv === 'function') {
+			if (parsed.opts.envFile) {
+				const envFileRaw = String(parsed.opts.envFile);
+				let p = pathMod.isAbsolute(envFileRaw) ? envFileRaw : pathMod.resolve(process.cwd(), envFileRaw);
+				if (!fs.existsSync(p)) {
+					const alt = pathMod.isAbsolute(envFileRaw) ? envFileRaw : pathMod.join(baseDir, envFileRaw);
+					if (fs.existsSync(alt)) {
+						p = alt;
+					}
+				}
+				const doc = loadEnvDoc(p);
+				let baseEnv = undefined;
+				if (runConfig && typeof runConfig.resolvePresetEnv === 'function') {
+					baseEnv = runConfig.resolvePresetEnv(doc, parsed.opts.preset);
+				} else if (doc && doc.variables) {
+					baseEnv = doc.variables;
+				}
+				envvar = runConfig.mergeEnv({ envvar: baseEnv, manualEnvvars });
+				if (command === 'run' && parsed.opts.debugEnv) {
+					try {
+						process.stdout.write(`debug envFile raw: ${envFileRaw}\n`);
+						process.stdout.write(`debug envFile resolved: ${p}\n`);
+						process.stdout.write(`debug preset: ${parsed.opts.preset || '(none)'}\n`);
+						process.stdout.write(`debug envDoc variables keys: ${doc && doc.variables ? Object.keys(doc.variables).join(',') : '(none)'}\n`);
+						process.stdout.write(`debug envDoc presets keys: ${doc && doc.presets ? Object.keys(doc.presets).join(',') : '(none)'}\n`);
+						process.stdout.write(`debug baseEnv keys: ${baseEnv ? Object.keys(baseEnv).join(',') : '(none)'}\n`);
+					} catch {
+						// ignore
+					}
+				}
+			} else {
+				envvar = runConfig.mergeEnv({ envvar: undefined, manualEnvvars });
 			}
 		}
 	} catch {
-		envvar = undefined;
+		envvar = manualEnvvars && Object.keys(manualEnvvars).length ? manualEnvvars : undefined;
+	}
+	if (command === 'run' && parsed.opts.debugEnv) {
+		try {
+			process.stdout.write(`debug envvar keys: ${envvar ? Object.keys(envvar).join(',') : '(none)'}\n`);
+		} catch {
+			process.stdout.write('debug envvar keys: (error)\n');
+		}
 	}
 	// (Keep docType debug off by default; use `debug-resolve` for pkg debugging.)
 	if (command === 'print-js') {
@@ -502,6 +565,13 @@ async function main() {
 	} catch (e) {
 		process.stderr.write(`runner.runFile threw: ${String(e && e.message ? e.message : e)}\n`);
 		throw e;
+	}
+	if (parsed.opts.debugEnv) {
+		try {
+			process.stdout.write(`debug envVarsUsed: ${JSON.stringify(res.envVarsUsed || {})}\n`);
+		} catch {
+			process.stdout.write('debug envVarsUsed: (error)\n');
+		}
 	}
 
 	if (parsed.opts.printJs && res && typeof res.js === 'string' && res.js.trim()) {

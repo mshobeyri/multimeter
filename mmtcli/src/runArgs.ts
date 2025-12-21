@@ -113,7 +113,9 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
     }
     const doc = loadEnvDoc(p);
     const presetEnv = resolvePresetEnv(doc, presetName);
-    envvar = mergeEnv({envvar: presetEnv});
+    envvar = mergeEnv({envvar: presetEnv, manualEnvvars});
+  } else {
+    envvar = mergeEnv({envvar: undefined, manualEnvvars});
   }
   const runFileOptions: RunFileOptions&{
     fileLoader: (path: string) => Promise<string>;

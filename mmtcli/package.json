@@ -18,7 +18,8 @@
   "pkg": {
     "scripts": [
       "dist-cjs/**/*.js",
-      "node_modules/mmt-core/dist/**/*.js"
+      "node_modules/mmt-core/dist/**/*.js",
+      "../core/dist/**/*.js"
     ],
     "assets": [
       "node_modules/axios/dist/**",
@@ -26,7 +27,8 @@
       "node_modules/axios/dist/node/axios.cjs",
       "node_modules/ws/**/*.js",
       "node_modules/mmt-core/dist/**",
-      "node_modules/mmt-core/package.json"
+      "node_modules/mmt-core/package.json",
+      "../core/dist/**"
     ]
   },
   "dependencies": {

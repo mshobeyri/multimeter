@@ -107,13 +107,16 @@ export function resolvePresetEnv(
   const presets = doc.presets || {};
   const variables = doc.variables || {};
   let mapping: Record<string, any>|undefined;
-  if (presets.runner && presets.runner[presetName]) {
-    mapping = presets.runner[presetName];
-  } else if (presetName.includes('.')) {
+  // Support both forms:
+  // - "cd" (implicitly under presets.runner.cd)
+  // - "runner.cd" (explicit group)
+  if (presetName.includes('.')) {
     const [group, name] = presetName.split('.', 2);
-    if (presets[group] && presets[group][name]) {
-      mapping = presets[group][name];
+    if ((presets as any)[group] && (presets as any)[group][name]) {
+      mapping = (presets as any)[group][name];
     }
+  } else if ((presets as any).runner && (presets as any).runner[presetName]) {
+    mapping = (presets as any).runner[presetName];
   }
   if (!mapping) {
     return out;
