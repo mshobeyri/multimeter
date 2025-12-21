@@ -1,4 +1,7 @@
-import axios from 'axios';
+// `pkg` struggles with Axios's package exports in some environments.
+// Require the concrete CJS build that Axios provides.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const axios = require('axios/dist/node/axios.cjs');
 import * as https from 'https';
 import WebSocket from 'ws';
 

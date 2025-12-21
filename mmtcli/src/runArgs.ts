@@ -1,7 +1,11 @@
 import fs from 'fs';
 import yaml from 'js-yaml';
-import {mergeEnv, resolvePresetEnv, RunFileOptions} from 'mmt-core/runConfig';
+import * as mmtcore from 'mmt-core';
+import type {RunFileOptions} from 'mmt-core/runConfig';
 import path from 'path';
+
+const {mergeEnv, resolvePresetEnv} =
+  ((mmtcore as any).runConfig || {}) as any;
 
 type AnyOpts = Record<string, any>;
 
@@ -78,6 +82,22 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
   const manualInputs = parsePairs(opts.input);
   const manualEnvvars = parsePairs(opts.env);
 
+  const exampleOptRaw =
+      typeof (opts as any).example === 'string' ? String((opts as any).example) :
+      undefined;
+  let exampleIndexOpt: number|undefined = undefined;
+  let exampleNameOpt: string|undefined = undefined;
+  if (exampleOptRaw && exampleOptRaw.trim()) {
+    const trimmed = exampleOptRaw.trim();
+    const numeric = trimmed.match(/^#?(\d+)$/);
+    if (numeric) {
+      const parsed = Number(numeric[1]);
+      exampleIndexOpt = parsed > 0 ? parsed - 1 : 0;
+    } else {
+      exampleNameOpt = trimmed;
+    }
+  }
+
   let envvar: Record<string, any>|undefined = undefined;
   const envFileOpt = opts.envFile as string | undefined;
   const presetName = opts.preset as string | undefined;
@@ -105,6 +125,8 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
     file: rawText,
     fileType: 'raw',
     filePath: full,
+    exampleIndex: exampleIndexOpt,
+    exampleName: exampleNameOpt,
     manualInputs,
     envvar,
     manualEnvvars,

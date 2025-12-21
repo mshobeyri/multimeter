@@ -18,8 +18,20 @@ export interface GenerateJsOptions {
 }
 
 export interface RunFileOptions {
+  /**
+   * Primary file input.
+   * - If `fileType === 'raw'`: this is the YAML/JSON text content.
+   * - If `fileType === 'path'`: this is the filesystem path to load.
+   */
   file: string;
+  /**
+   * Optional absolute path used for display names and relative import resolution.
+   * When `fileType === 'path'`, this can be omitted (it will default to `file`).
+   */
   filePath?: string;
+  /**
+   * Specifies whether `file` contains raw content or a filesystem path.
+   */
   fileType: 'raw'|'path';
   exampleIndex?: number;
   exampleName?: string;

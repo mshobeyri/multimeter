@@ -124,7 +124,8 @@ async function handleChatRequest(
         const rawText = runFileOptions.file;
         const inputPairs = runFileOptions.manualInputs || {};
         const envVars = runFileOptions.envvar || {};
-        const name = path.basename('file').replace(/[^a-zA-Z0-9_]/g, '_');
+        const name = path.basename(runFileOptions.filePath || 'mmt_print_js')
+                         .replace(/[^a-zA-Z0-9_]/g, '_');
         const js = await runner.generateTestJs({
           rawText,
           name,

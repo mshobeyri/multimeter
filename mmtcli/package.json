@@ -12,19 +12,18 @@
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "dev": "tsx src/cli.ts --help",
     "clean": "rimraf dist",
-    "pkg": "rimraf dist-cjs && npm run build:cjs && pkg dist-cjs/cli.js --targets node18-macos-x64,node18-linux-x64,node18-win-x64 --output dist/bin/testlight",
+    "pkg": "rimraf dist-cjs && npm run build:cjs && pkg src/pkg-entry.cjs --targets node18-macos-x64,node18-linux-x64,node18-win-x64 --output dist/bin/testlight",
     "test": "echo \"(no tests yet)\""
   },
   "pkg": {
     "scripts": [
       "dist-cjs/**/*.js",
-  "node_modules/axios/dist/node/axios.cjs",
       "node_modules/mmt-core/dist/**/*.js"
     ],
     "assets": [
-  "node_modules/axios/dist/**",
-  "node_modules/axios/lib/**",
-  "node_modules/axios/dist/node/axios.cjs",
+      "node_modules/axios/dist/**",
+      "node_modules/axios/lib/**",
+      "node_modules/axios/dist/node/axios.cjs",
       "node_modules/ws/**/*.js",
       "node_modules/mmt-core/dist/**",
       "node_modules/mmt-core/package.json"

@@ -5,7 +5,30 @@ import * as mmtcore from 'mmt-core';
 // Import from mmt-core root exports to avoid subpath resolution issues under
 // pkg
 import {apiParsePack, docHtml, docParsePack, runner} from 'mmt-core';
-import {runJSCode} from 'mmt-core/jsRunner';
+const resolveRunJSCode = (): any => {
+  try {
+    // When packaged with pkg, node resolves from a /snapshot path.
+    // mmt-core is included as an asset in node_modules/mmt-core/dist/**.
+    // Use a relative require that survives snapshot layout.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const jsRunner = require('mmt-core/dist/jsRunner.js');
+    if (jsRunner && typeof jsRunner.runJSCode === 'function') {
+      return jsRunner.runJSCode;
+    }
+  } catch {
+  }
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const jsRunner = require('mmt-core/jsRunner');
+    if (jsRunner && typeof jsRunner.runJSCode === 'function') {
+      return jsRunner.runJSCode;
+    }
+  } catch {
+  }
+  return (mmtcore as any)?.jsRunner?.runJSCode;
+};
+
+const runJSCode = resolveRunJSCode();
 import path from 'path';
 
 import {summarize} from './loadTest.js';
@@ -41,6 +64,11 @@ program.name('multimeter')
     .description('Multimeter CLI runner')
     .version(CLI_VERSION, '-v, --version', 'output the version number');
 
+program.option(
+  '--log-level <level>',
+  'Set log level (error|warn|info|debug|trace)',
+  'info');
+
 program.command('run')
     .argument('<file>', 'Test file (.yaml/.yml/.json/.mmt)')
     .option('-q, --quiet', 'Minimal output', false)
@@ -57,9 +85,15 @@ program.command('run')
     .option(
         '--preset <name>',
         'Preset name from env file (e.g., runner.dev) or just name under runner')
-    .option('--print-js', 'Print generated JS before executing', false)
+    .option(
+      '--example <name|#n>',
+      'Run a named example (matches name) or numeric index (#1 = first)')
+    .option('-p, --print-js', 'Print generated JS before executing', false)
     .action(async (file: string, opts: {quiet?: boolean; out?: string}) => {
       try {
+        if (typeof runJSCode !== 'function') {
+          throw new Error('Internal error: runJSCode is not available (packaging issue)');
+        }
         const full = path.resolve(process.cwd(), file);
         const rawText = fs.readFileSync(full, 'utf8');
         const raw =
@@ -68,8 +102,8 @@ program.command('run')
         if (!opts.quiet) {
           console.log(`Loaded: ${path.resolve(file)} (${summary})`);
         }
-        const {runFileOptions, quiet, outFile, printJs} =
-            buildCliRunArgs(file, opts as any);
+        const {runFileOptions, outFile, printJs} =
+          buildCliRunArgs(file, {...(opts as any), logLevel: (program.opts() as any).logLevel});
         const runOpts: any = runFileOptions;
         runOpts.runCode = (code: string, title: string, lg: any) =>
             runJSCode(code, title, lg as any);
@@ -121,23 +155,23 @@ program.command('print-js')
     .option(
         '--preset <name>',
         'Preset name from env file (e.g., runner.dev) or just name under runner')
+    .option(
+      '--example <name|#n>',
+      'Select a named example (matches name) or numeric index (#1 = first)')
     .action(async (file: string, opts: {stages?: boolean}) => {
       try {
-        const full = path.resolve(process.cwd(), file);
-        const dir = path.dirname(full);
-        const rawText = fs.readFileSync(full, 'utf8');
-        const inputs = (opts as any).input || [];
-        const envVars = {};
+        const {runFileOptions} = buildCliRunArgs(
+          file, {...(opts as any), logLevel: (program.opts() as any).logLevel});
+        const rawText = runFileOptions.file;
+        const envVars = (runFileOptions.envvar || {}) as any;
+        const inputs = (runFileOptions.manualInputs || {}) as any;
+        const fullPath = runFileOptions.filePath || path.resolve(process.cwd(), file);
         const js = await mmtcore.runner.generateTestJs({
           rawText,
-          name: path.basename(full).replace(/[^a-zA-Z0-9_]/g, '_'),
+          name: path.basename(fullPath).replace(/[^a-zA-Z0-9_]/g, '_'),
           inputs,
           envVars,
-          fileLoader: async (p: string) => {
-            const rel = path.isAbsolute(p) ? p : path.join(dir, p);
-            if (!fs.existsSync(rel)) return '';
-            return fs.readFileSync(rel, 'utf8');
-          }
+          fileLoader: runFileOptions.fileLoader as any,
         });
         if (!js.trim()) {
           console.error('No JS could be generated (empty flow).');
@@ -266,58 +300,3 @@ program.command('doc')
     });
 
 program.parseAsync(process.argv);
-
-// Helpers
-type EnvLike = Record<string, any>;
-
-function loadEnvFile(envPath: string):
-    {variables?: EnvLike; presets?: EnvLike} {
-  try {
-    const txt = fs.readFileSync(envPath, 'utf8');
-    const data = yaml.load(txt) as any;
-    if (!data || typeof data !== 'object') {
-      return {};
-    }
-    if (data.type && String(data.type) !== 'env') {
-      return {};
-    }
-    return {variables: data.variables || {}, presets: data.presets || {}};
-  } catch {
-    return {};
-  }
-}
-
-function selectFromVariables(
-    variables: EnvLike, key: string, choiceOrValue: any): any {
-  const def = variables?.[key];
-  if (def && typeof def === 'object' && !Array.isArray(def)) {
-    // Named choices map
-    if (Object.prototype.hasOwnProperty.call(def, choiceOrValue)) {
-      return def[choiceOrValue];
-    }
-    return choiceOrValue;  // direct value override
-  }
-  if (Array.isArray(def)) {
-    // List of allowed values
-    return choiceOrValue;
-  }
-  // Scalar or missing
-  return choiceOrValue;
-}
-
-function parseKeyValList(list: string[]|undefined): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const item of list || []) {
-    const idx = item.indexOf('=');
-    if (idx === -1) {
-      continue;
-    }
-    const k = item.slice(0, idx).trim();
-    const v = item.slice(idx + 1).trim();
-    if (!k) {
-      continue;
-    }
-    out[k] = v;
-  }
-  return out;
-}

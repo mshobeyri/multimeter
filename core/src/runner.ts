@@ -115,7 +115,14 @@ export async function prepareRunFromOptions(
   const filePath = typeof optFilePath === 'string' && optFilePath ?
       optFilePath :
       (fileType === 'path' ? file : '');
-  const rawText = file;
+  let rawText = file;
+  if (fileType === 'path') {
+    try {
+      rawText = await options.fileLoader(filePath || file);
+    } catch {
+      rawText = '';
+    }
+  }
   const docType = detectDocType(filePath, rawText);
   const envVarsUsed = mergeEnv({
     envvar: options.envvar,
