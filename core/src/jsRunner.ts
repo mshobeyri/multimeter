@@ -1,6 +1,6 @@
 import {LogLevel} from './CommonData';
 // Import your send function from the network core
-import {send, setRunnerNetworkConfig} from './networkCore';  // Adjust the path as needed
+import {send, setRunnerNetworkConfig} from './networkCoreNode';
 import {extractOutputs} from './outputExtractor';
 import * as Random from './Random';
 import * as mmtHelper from './testHelper';

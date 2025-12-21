@@ -1,5 +1,5 @@
 import WebSocket = require('ws');
-import {addWsConnection, createWebSocket, deleteWsConnection, sendHttpRequest, wsConnections} from './networkCore';
+import {addWsConnection, createWebSocket, deleteWsConnection, sendHttpRequest, wsConnections} from './networkCoreNode';
 import {HttpRequest, NetworkConfig} from './NetworkData';
 
 // --- Types ---

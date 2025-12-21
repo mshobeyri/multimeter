@@ -10,7 +10,9 @@ export * as markupConvertor from "./markupConvertor";
 export * as variableReplacer from "./variableReplacer";
 export * as outputExtractor from "./outputExtractor";
 export * as testHelper from "./testHelper";
-export * as networkCore from "./networkCore";
+// Note: `networkCore` is Node-only (imports `https`, `ws`, node axios build).
+// It must not be exported from the default entry to keep web bundlers (mmtview)
+// from pulling node built-ins.
 export * as docHtml from "./docHtml";
 export * as docMarkdown from "./docMarkdown";
 export * as postmanConvertor from "./postmanConvertor";

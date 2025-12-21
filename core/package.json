@@ -73,6 +73,11 @@
       "types": "./dist/runConfig.d.ts",
       "require": "./dist/runConfig.js",
       "default": "./dist/runConfig.js"
+    },
+    "./networkCoreNode": {
+      "types": "./dist/networkCoreNode.d.ts",
+      "require": "./dist/networkCoreNode.js",
+      "default": "./dist/networkCoreNode.js"
     }
   },
   "scripts": {

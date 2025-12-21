@@ -1,3 +1,4 @@
+// Node-only implementation. This module must not be imported by web bundles.
 // `pkg` struggles with Axios's package exports in some environments.
 // Require the concrete CJS build that Axios provides.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
