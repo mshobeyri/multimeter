@@ -4,7 +4,7 @@ import * as mmtcore from 'mmt-core';
 import type {RunFileOptions} from 'mmt-core/runConfig';
 import path from 'path';
 
-const {mergeEnv, resolvePresetEnv} =
+const {mergeEnv, resolvePresetEnv, resolveEnvFromDoc} =
   ((mmtcore as any).runConfig || {}) as any;
 
 type AnyOpts = Record<string, any>;
@@ -112,8 +112,12 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
       }
     }
     const doc = loadEnvDoc(p);
-    const presetEnv = resolvePresetEnv(doc, presetName);
-    envvar = mergeEnv({envvar: presetEnv, manualEnvvars});
+    if (typeof resolveEnvFromDoc === 'function') {
+      envvar = resolveEnvFromDoc({doc, presetName, manualEnvvars});
+    } else {
+      const presetEnv = resolvePresetEnv(doc, presetName);
+      envvar = mergeEnv({envvar: presetEnv, manualEnvvars});
+    }
   } else {
     envvar = mergeEnv({envvar: undefined, manualEnvvars});
   }

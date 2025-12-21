@@ -1,4 +1,5 @@
-import {mergeEnv, resolvePresetEnv, RunFileOptions} from 'mmt-core/runConfig';
+import * as runConfig from 'mmt-core/runConfig';
+import type {RunFileOptions} from 'mmt-core/runConfig';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as vscode from 'vscode';
@@ -173,12 +174,16 @@ export async function parseAssistantRunArgs(
       const doc = YAML.parse(Buffer.from(envData).toString('utf8')) as any;
       const variables = doc?.variables || {};
       const presets = doc?.presets || {};
-      const presetEnv = resolvePresetEnv({variables, presets}, preset);
-      envvar = mergeEnv({envvar: presetEnv, manualEnvvars});
+      if (typeof (runConfig as any).resolveEnvFromDoc === 'function') {
+        envvar = (runConfig as any).resolveEnvFromDoc({doc: {variables, presets}, presetName: preset, manualEnvvars});
+      } else {
+        const presetEnv = (runConfig as any).resolvePresetEnv({variables, presets}, preset);
+        envvar = (runConfig as any).mergeEnv({envvar: presetEnv, manualEnvvars});
+      }
     } catch {
     }
   } else {
-    envvar = mergeEnv({envvar: undefined, manualEnvvars});
+    envvar = (runConfig as any).mergeEnv({envvar: undefined, manualEnvvars});
   }
 
   const vscodeEnvState =
@@ -196,7 +201,7 @@ export async function parseAssistantRunArgs(
     }
   }
 
-  const mergedBaseEnv = mergeEnv({baseEnv: vscodeEnv, envvar});
+  const mergedBaseEnv = (runConfig as any).mergeEnv({baseEnv: vscodeEnv, envvar});
 
   const runFileOptions: ParsedAssistantRun['runFileOptions'] = {
     file: rawText,

@@ -5,11 +5,13 @@ import * as mmtcore from 'mmt-core';
 // Import from mmt-core root exports to avoid subpath resolution issues under
 // pkg
 import {apiParsePack, docHtml, docParsePack, runner} from 'mmt-core';
+
 const resolveRunJSCode = (): any => {
   try {
     // When packaged with pkg, node resolves from a /snapshot path.
     // mmt-core is included as an asset in node_modules/mmt-core/dist/**.
     // Use a relative require that survives snapshot layout.
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const jsRunner = require('mmt-core/dist/jsRunner.js');
     if (jsRunner && typeof jsRunner.runJSCode === 'function') {
@@ -28,7 +30,24 @@ const resolveRunJSCode = (): any => {
   return (mmtcore as any)?.jsRunner?.runJSCode;
 };
 
-const runJSCode = resolveRunJSCode();
+function getRunJSCode(): any {
+  return resolveRunJSCode();
+}
+
+async function loadRunJSCode(): Promise<any> {
+  // When running as ESM (dist/cli.js), `require` isn't available.
+  // Use dynamic imports for the normal (non-pkg) dev/CI path.
+  try {
+    const jsRunner: any = await import('mmt-core/jsRunner');
+    if (jsRunner && typeof jsRunner.runJSCode === 'function') {
+      return jsRunner.runJSCode;
+    }
+  } catch {
+  }
+
+  // Fallback for pkg/CJS scenarios.
+  return getRunJSCode();
+}
 import path from 'path';
 
 import {summarize} from './loadTest.js';
@@ -91,8 +110,9 @@ program.command('run')
     .option('-p, --print-js', 'Print generated JS before executing', false)
     .action(async (file: string, opts: {quiet?: boolean; out?: string}) => {
       try {
+        const runJSCode = await loadRunJSCode();
         if (typeof runJSCode !== 'function') {
-          throw new Error('Internal error: runJSCode is not available (packaging issue)');
+          throw new Error('Internal error: runJSCode is not available');
         }
         const full = path.resolve(process.cwd(), file);
         const rawText = fs.readFileSync(full, 'utf8');
@@ -104,10 +124,10 @@ program.command('run')
         }
         const {runFileOptions, outFile, printJs} =
           buildCliRunArgs(file, {...(opts as any), logLevel: (program.opts() as any).logLevel});
-        const runOpts: any = runFileOptions;
+        const runOpts: any = {...(runFileOptions as any)};
         runOpts.runCode = (code: string, title: string, lg: any) =>
             runJSCode(code, title, lg as any);
-        const runOutcome = await runner.runFile(runFileOptions as any);
+        const runOutcome = await runner.runFile(runOpts as any);
         const {js, result} = runOutcome;
         if (printJs) {
           console.log(js.trim());

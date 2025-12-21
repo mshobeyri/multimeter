@@ -13,6 +13,17 @@ async function handleChatRequest(
   const userText = request.message ?? '';
   const userTextLower = userText.toLowerCase();
 
+  // Allow `@mmt run ...` (without a leading slash) in addition to `/run ...`.
+  // VS Code structured chat commands populate `request.command`, but plain messages do not.
+  if ((!request.command || typeof request.command !== 'string') && typeof userText === 'string') {
+    const trimmed = userText.trim();
+    const m = trimmed.match(/^(run|print-js|doc|help)\b\s*(.*)$/i);
+    if (m) {
+      request.command = m[1].toLowerCase();
+      request.prompt = (m[2] || '').trim();
+    }
+  }
+
   // Provide help mirroring CLI when asked
   const showHelp =
       request.command === 'help' || /(^|\s)\/help(\s|$)/.test(userTextLower);

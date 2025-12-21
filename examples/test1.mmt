@@ -1,32 +1,11 @@
 type: test
 title: ""
 tags: []
-flow:
-  - call: i_generate_session
-    interface: httpjson
-    inputs:
-      username: mehrdad
-      password: 123
-      traceId: g:random
-    outputs:
-      csession: session
-      cerrors: error
-  - check: session === random
-  - check: errors !== null
-  - call: null
-    type: http
-    url: e:url
-    headers:
-      traceId: random
-      content-type: application/json
-    body: |
-      {
-        "username": "mehrdad",
-        "password": "123"
-      }
-    outputs:
-      session:
-        json: body.session
-      errors: body.errors[0]
-  - export:
-      absession: null
+inputs:
+  name: hassan
+steps:
+  - print: hi
+  # - check: 1 == 2
+  - if: 1 == 1
+    steps:
+      - print: e:test_type

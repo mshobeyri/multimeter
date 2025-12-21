@@ -1,8 +1,8 @@
-import {mergeEnv, mergeInputs, resolvePresetEnv, selectFromVariables} from './runConfig';
+import * as runConfig from './runConfig';
 
 describe('runConfig helpers', () => {
   it('merges inputs with correct priority', () => {
-    const merged = mergeInputs({
+    const merged = runConfig.mergeInputs({
       defaultInputs: {a: 1, shared: 'def'},
       exampleInputs: {b: 2, shared: 'ex'},
       manualInputs: {c: 3, shared: 'man'},
@@ -11,7 +11,7 @@ describe('runConfig helpers', () => {
   });
 
   it('merges env with correct priority', () => {
-    const merged = mergeEnv({
+    const merged = runConfig.mergeEnv({
       baseEnv: {a: 1, shared: 'base'},
       envvar: {b: 2, shared: 'env'},
       presetEnv: {c: 3, shared: 'preset'},
@@ -26,12 +26,12 @@ describe('runConfig helpers', () => {
       mode: ['debug', 'release'],
       scalar: 'x',
     };
-    expect(selectFromVariables(variables, 'region', 'dev')).toBe('us-dev');
-    expect(selectFromVariables(variables, 'region', 'custom')).toBe('us-dev');
-    expect(selectFromVariables(variables, 'mode', 'debug')).toBe('debug');
-    expect(selectFromVariables(variables, 'mode', 'invalid')).toBe('debug');
-    expect(selectFromVariables(variables, 'scalar', 'y')).toBe('y');
-    expect(selectFromVariables(variables, 'missing', 'z')).toBe('z');
+    expect(runConfig.selectFromVariables(variables, 'region', 'dev')).toBe('us-dev');
+    expect(runConfig.selectFromVariables(variables, 'region', 'custom')).toBe('us-dev');
+    expect(runConfig.selectFromVariables(variables, 'mode', 'debug')).toBe('debug');
+    expect(runConfig.selectFromVariables(variables, 'mode', 'invalid')).toBe('debug');
+    expect(runConfig.selectFromVariables(variables, 'scalar', 'y')).toBe('y');
+    expect(runConfig.selectFromVariables(variables, 'missing', 'z')).toBe('z');
   });
 
   it('resolvePresetEnv resolves runner and group.name presets', () => {
@@ -42,9 +42,11 @@ describe('runConfig helpers', () => {
         custom: {prod: {region: 'prod'}},
       },
     };
-    expect(resolvePresetEnv(doc, undefined)).toEqual({});
-    expect(resolvePresetEnv(doc, 'missing')).toEqual({});
-    expect(resolvePresetEnv(doc, 'dev')).toEqual({region: 'us-dev'});
-    expect(resolvePresetEnv(doc, 'custom.prod')).toEqual({region: 'us-prod'});
+    expect(runConfig.resolvePresetEnv(doc, undefined)).toEqual({});
+    expect(runConfig.resolvePresetEnv(doc, 'missing')).toEqual({});
+    expect(runConfig.resolvePresetEnv(doc, 'dev')).toEqual({region: 'us-dev'});
+    expect(runConfig.resolvePresetEnv(doc, 'custom.prod')).toEqual({region: 'us-prod'});
   });
+
+  // Note: resolveEnvFromDoc is covered by CLI/assistant integration tests.
 });

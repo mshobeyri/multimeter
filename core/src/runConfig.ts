@@ -76,6 +76,25 @@ export interface EnvFileDoc {
   presets?: EnvLike;
 }
 
+export interface ResolveEnvFromDocParams {
+  /** Parsed env file document ({ variables, presets }). */
+  doc: EnvFileDoc;
+  /** Preset name, e.g. "runner.cd" or "cd". */
+  presetName?: string;
+  /** Manual env vars from CLI/assistant flags (highest priority). */
+  manualEnvvars?: Record<string, any>;
+}
+
+/**
+ * Resolves env vars from an env-file document + optional preset, then merges
+ * manual env vars on top.
+ */
+export function resolveEnvFromDoc(params: ResolveEnvFromDocParams): Record<string, any> {
+  const {doc, presetName, manualEnvvars} = params;
+  const presetEnv = presetName ? resolvePresetEnv(doc, presetName) : {};
+  return mergeEnv({envvar: presetEnv, manualEnvvars});
+}
+
 export function selectFromVariables(
     variables: EnvLike|undefined, key: string, choiceOrValue: any): any {
   const def = variables?.[key];
