@@ -22,7 +22,9 @@ declare global {
 
 const App: React.FC = () => {
   // Pane size defaults to half the window width and remains in-memory only
-  const [paneSize, setPaneSize] = useState(() => window.innerWidth / 2);
+  const [panelSize, setPanelSize] = useState(() => window.innerWidth / 2);
+  const [panelMode, setPanelMode] = useState<"full" | "yaml" | "ui">("full");
+
   const [content, setContent] = useState("");
   const [validContent, setValidContent] = useState("");
   const [docType, setDocType] = useState<string | null>(null);
@@ -78,20 +80,23 @@ const App: React.FC = () => {
         if (message.uri) setFilePath(message.uri);
         if (message.mode) {
           if (message.mode === "compare") {
-            setPaneSize(window.innerWidth);
+            setPanelSize(window.innerWidth);
           } else {
-            setPaneSize(window.innerWidth / 2);
+            setPanelSize(window.innerWidth / 2);
           }
         }
       }
 
       if (message.command === "multimeter.mmt.show.panel") {
         if (message.panelId === "full") {
-          setPaneSize(window.innerWidth / 2);
+          setPanelMode("full");
+          setPanelSize(window.innerWidth / 2);
         } else if (message.panelId === "yaml") {
-          setPaneSize(window.innerWidth);
+          setPanelMode("yaml");
+          setPanelSize(window.innerWidth);
         } else if (message.panelId === "ui") {
-          setPaneSize(0);
+          setPanelMode("ui");
+          setPanelSize(0);
         }
       }
     };
@@ -127,33 +132,39 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      const newWidth = window.innerWidth;
-      const min = 300;
-      const max = Math.max(newWidth - 300, min);
-      setPaneSize(prevSize => {
-        const prevWidth = lastWindowWidthRef.current || newWidth;
-        if (prevWidth === 0) {
-          const fallback = Math.round(newWidth / 2);
-          return Math.min(Math.max(fallback, min), max);
-        }
-        const ratio = prevSize / prevWidth;
-        const desired = Math.round(ratio * newWidth);
-        const clamped = Math.min(Math.max(desired, min), max);
-        return clamped;
-      });
-      lastWindowWidthRef.current = newWidth;
+      if (panelMode === "full") {
+        const newWidth = window.innerWidth;
+        const min = 300;
+        const max = Math.max(newWidth - 300, min);
+        setPanelSize(prevSize => {
+          const prevWidth = lastWindowWidthRef.current || newWidth;
+          if (prevWidth === 0) {
+            const fallback = Math.round(newWidth / 2);
+            return Math.min(Math.max(fallback, min), max);
+          }
+          const ratio = prevSize / prevWidth;
+          const desired = Math.round(ratio * newWidth);
+          const clamped = Math.min(Math.max(desired, min), max);
+          return clamped;
+        });
+        lastWindowWidthRef.current = newWidth;
+      } else if (panelMode === "yaml") {
+        setPanelSize(window.innerWidth);
+      } else if (panelMode === "ui") {
+        setPanelSize(0);
+      }
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  }, [panelMode]);
 
   return (
     <FileContext.Provider value={{ filePath }}>
       <SplitPane
         split="vertical"
-        size={paneSize}
+        size={panelSize}
         onChange={(size) => {
-          setPaneSize(size);
+          setPanelSize(size);
         }}
         minSize={300}
         maxSize={window.innerWidth - 300}
