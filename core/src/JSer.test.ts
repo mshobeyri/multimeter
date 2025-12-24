@@ -199,6 +199,39 @@ describe('CSV import parsing', () => {
       {name: 'john', comment: 'said, "hello"'}, {name: 'doe', comment: 'plain'}
     ]);
   });
+
+  it('detects circular imports and logs error (graceful handling)', async () => {
+    const errorLogs: any[] = [];
+    const originalError = console.error;
+    console.error = (...args: any[]) => {
+      errorLogs.push(args);
+    };
+
+    try {
+      setFileLoader(async (p: string) => {
+        if (p === 'a.mmt') {
+          return 'type: test\nimport:\n  b: b.mmt\n';
+        }
+        if (p === 'b.mmt') {
+          return 'type: test\nimport:\n  a: a.mmt\n';
+        }
+        return '';
+      });
+      
+      // Circular import: a -> b -> a
+      const result = await importsToJsfunc({a: 'a.mmt'});
+      // Result should still contain generated code (error is caught and logged)
+      expect(result).toBeTruthy();
+      // But we should see a circular import error logged
+      const circularErrors = errorLogs.filter((log: any) => 
+        log[0]?.includes('Failed to import') && 
+        log[1]?.message?.includes('Circular import detected')
+      );
+      expect(circularErrors.length).toBeGreaterThan(0);
+    } finally {
+      console.error = originalError;
+    }
+  });
 });
 
 describe('env token replacements in generated JS', () => {

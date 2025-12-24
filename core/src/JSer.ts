@@ -256,14 +256,23 @@ export const csvToJSObj =
 };
 
 export const importsToJsfunc =
-    async(imports: Record<string, string>): Promise<string> => {
+    async(imports: Record<string, string>, visitedPaths: Set<string> = new Set()): Promise<string> => {
   try {
     const results: string[] = [];
 
     for (const [name, path] of Object.entries(imports)) {
       try {
+        // Check for circular imports
+        if (visitedPaths.has(path)) {
+          throw new Error(`Circular import detected: ${Array.from(visitedPaths).join(' -> ')} -> ${path}`);
+        }
+
         const content = await readFile(path);
         const type = fileType(path, content);
+
+        // Add current path to visited set for nested imports
+        const newVisitedPaths = new Set(visitedPaths);
+        newVisitedPaths.add(path);
 
         if (type === 'test') {
           const res = await testToJsfunc(
@@ -273,7 +282,8 @@ export const importsToJsfunc =
                 inputs: {},
                 envVars: {},
               },
-              false);
+              false,
+              newVisitedPaths);
           results.push(res);
         } else if (type === 'api') {
           const res = await apiToJSfunc({
@@ -650,12 +660,12 @@ export interface TestContext {
 }
 
 export const testToJsfunc =
-    async(ctx: TestContext, root: boolean): Promise<string> => {
+    async(ctx: TestContext, root: boolean, visitedPaths: Set<string> = new Set()): Promise<string> => {
   if (ctx.test.stages && ctx.test.stages.length > 0 && ctx.test.steps &&
       ctx.test.steps.length > 0) {
     throw new Error(`${ctx.name}: Test cannot have both stages and steps`);
   }
-  let importedFuncs = await importsToJsfunc(ctx.test.import ?? {});
+  let importedFuncs = await importsToJsfunc(ctx.test.import ?? {}, visitedPaths);
   const paramsAsObj: Record<string, string> = Object.fromEntries(
       Object.keys(ctx.test.inputs ?? {}).map(key => [key, `\${${key}}`]));
 
