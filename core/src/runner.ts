@@ -313,11 +313,10 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
     }
 
     let overallSuccess = true;
-    let hardStop = false;
 
     const suiteStatuses: Record<string, SuiteStepStatus> = {};
 
-    for (let gi = 0; gi < groups.length && !hardStop; gi++) {
+    for (let gi = 0; gi < groups.length; gi++) {
       const group = groups[gi];
       suiteLogger('info', `SUITE GROUP ${gi + 1}/${groups.length}`);
 
@@ -364,15 +363,11 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
       if (groupHadAnyFailure) {
         overallSuccess = false;
       }
-      if (groupHadHardFailure) {
-        hardStop = true;
-        suiteLogger('error', `Suite stopped due to assertion failure in group ${gi + 1}.`);
-      }
     }
 
     const durationMs = Date.now() - suiteStart;
     const result: RunResult = {
-      success: overallSuccess && !hardStop,
+      success: overallSuccess,
       durationMs,
       errors: allErrors,
       logs: allLogs,
