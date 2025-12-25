@@ -55,7 +55,11 @@ export function logToOutput(level: LogLevel, message: string) {
 
 export async function readRelativeFileContent(
     openFilePath: string, relativePath: string): Promise<string> {
-  const absolutePath = path.resolve(path.dirname(openFilePath), relativePath);
+  // Some webview callers can accidentally send null/undefined here. Fall back
+  // to the current document path to avoid path.resolve(...) throwing.
+  const safeRelativePath =
+      typeof relativePath === 'string' ? relativePath : openFilePath;
+  const absolutePath = path.resolve(path.dirname(openFilePath), safeRelativePath);
   return await readFileContent(absolutePath);
 }
 

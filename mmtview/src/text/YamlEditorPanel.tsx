@@ -385,16 +385,17 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   }, [content, editorReady]);
 
   const handleRunClick = () => {
-    if (docType !== "test" && docType !== "api") {
+    if (docType !== "test" && docType !== "api" && docType !== "suite") {
       return;
     }
     try {
-      window.vscode?.postMessage({
-        command: "runCurrentDocument",
-        inputs: {
+      const message: any = { command: "runCurrentDocument" };
+      if (docType === "api") {
+        message.inputs = {
           exampleIndex: -1,
-        },
-      });
+        };
+      }
+      window.vscode?.postMessage(message);
     } catch (err: any) {
       showVSCodeMessage("error", err?.message || "Failed to run document.");
     }

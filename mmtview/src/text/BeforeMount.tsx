@@ -151,6 +151,32 @@ export const handleBeforeMount = (monaco: any) => {
         return deduplicateSuggestions(suggestions);
     };
 
+    const importValueFoldersCache = new Map<string, string[]>();
+    const getImportValueSuggestions = async (indent: number): Promise<any[]> => {
+        if (!window?.vscode) {
+            return [];
+        }
+        const folder = '.';
+        const cached = importValueFoldersCache.get(folder);
+        const files = cached ?? await listFiles(folder, true);
+        if (!cached) {
+            importValueFoldersCache.set(folder, files);
+        }
+        const mkRangePrefix = ' '.repeat(indent);
+        return deduplicateSuggestions(
+            files
+                .filter((p) => typeof p === 'string' && p.toLowerCase().endsWith('.mmt'))
+                .sort((a, b) => a.localeCompare(b))
+                .map((p) => ({
+                    label: p,
+                    kind: monaco.languages.CompletionItemKind.File,
+                    insertText: `${mkRangePrefix}${p}`,
+                    detail: 'MMT file',
+                    documentation: `Import from ${p}`,
+                }))
+        );
+    };
+
     // Get suggestions for a specific key's value
     const getValueSuggestions = (key: string): any[] => {
         const suggestions: any[] = [];
@@ -222,6 +248,25 @@ export const handleBeforeMount = (monaco: any) => {
                 const colonPosition = lineContent.indexOf(':');
                 const valueStartColumn = colonPosition + 2;
 
+                // Import map values: suggest .mmt files for `import:` / `imports:` entries
+                // Example:
+                // import:
+                //   x: <here>
+                if ((key === 'import') && position.column >= valueStartColumn) {
+                    const suggestionList = await getImportValueSuggestions(valueStartColumn - 1);
+                    return {
+                        suggestions: suggestionList.map(item => ({
+                            ...item,
+                            range: {
+                                startLineNumber: position.lineNumber,
+                                startColumn: valueStartColumn,
+                                endLineNumber: position.lineNumber,
+                                endColumn: lineContent.length + 1
+                            }
+                        }))
+                    };
+                }
+
                 // Only suggest values if cursor is after the colon
                 if (position.column >= valueStartColumn) {
                     const suggestionList = getValueSuggestions(key);
@@ -249,6 +294,22 @@ export const handleBeforeMount = (monaco: any) => {
                 const key = listItemMatch[2];
                 const colonPosition = lineContent.lastIndexOf(':');
                 const valueStartColumn = colonPosition + 2;
+
+                // Allow imports inside list items too (rare but harmless)
+                if ((key === 'import' || key === 'imports') && position.column >= valueStartColumn) {
+                    const suggestionList = await getImportValueSuggestions(valueStartColumn - 1);
+                    return {
+                        suggestions: suggestionList.map(item => ({
+                            ...item,
+                            range: {
+                                startLineNumber: position.lineNumber,
+                                startColumn: valueStartColumn,
+                                endLineNumber: position.lineNumber,
+                                endColumn: lineContent.length + 1
+                            }
+                        }))
+                    };
+                }
 
                 if (position.column >= valueStartColumn) {
                     const suggestionList = getValueSuggestions(key);

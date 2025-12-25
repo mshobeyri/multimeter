@@ -264,6 +264,10 @@ export const importsToJsfunc =
     const results: string[] = [];
 
     for (const [name, path] of Object.entries(imports)) {
+      if (typeof path !== 'string' || !path.trim()) {
+        console.warn(`Skipping import ${name}: invalid path`);
+        continue;
+      }
       try {
         // Check for circular imports
         if (visitedPaths.has(path)) {
