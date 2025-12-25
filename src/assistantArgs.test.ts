@@ -78,6 +78,7 @@ describe('parseAssistantRunArgs', () => {
     expect(runFileOptions.envvar).toEqual({
       LOCAL_ONLY: 'from-context',
       UNUSED: 'value',
+      debug: true,
       API_URL: 'http://dev.example.com',
       AUTH_TOKEN: 'authToken',
     });

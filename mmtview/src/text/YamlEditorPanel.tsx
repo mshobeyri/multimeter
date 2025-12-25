@@ -8,6 +8,7 @@ import { handleBeforeMount } from "./BeforeMount";
 import { safeList } from "mmt-core/safer";
 import { openRelativeFile, showVSCodeMessage } from "../vsAPI";
 import { useImportValidation } from "./useImportValidation";
+import { useSuiteTestsValidation } from "./useSuiteTestsValidation";
 import {
   computeMissingImportMarkers,
   computeOrderingMarkers,
@@ -53,6 +54,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const [importsMapState, setImportsMapState] = useState<Record<string, string>>({});
   const lastImportsSignatureRef = useRef<string>("");
   const { missingImports, inputsByAlias: apiInputsByAlias } = useImportValidation(importsMapState);
+  const { missingSuiteFiles } = useSuiteTestsValidation(docType, content);
   const [yamlProblems, setYamlProblems] = useState<ProblemEntry[]>([]);
   const [orderingProblems, setOrderingProblems] = useState<ProblemEntry[]>([]);
   const [missingImportProblems, setMissingImportProblems] = useState<ProblemEntry[]>([]);
@@ -599,12 +601,29 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     if (!window?.vscode) {
       return;
     }
-    const problems = [...yamlProblems, ...orderingProblems, ...missingImportProblems, ...callAliasProblems, ...callInputsProblems];
+
+    const suiteProblems: ProblemEntry[] = (docType === "suite")
+      ? missingSuiteFiles.map((entry) => ({
+        line: entry.line,
+        column: entry.column,
+        message: `Missing suite test file: ${entry.path}`,
+        severity: "warning",
+      }))
+      : [];
+
+    const problems = [
+      ...yamlProblems,
+      ...orderingProblems,
+      ...missingImportProblems,
+      ...callAliasProblems,
+      ...callInputsProblems,
+      ...suiteProblems,
+    ];
     window.vscode.postMessage({
       command: "updateDocumentProblems",
       problems,
     });
-  }, [yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems]);
+  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFiles]);
 
   return (
     <div style={{ height: "100%" }}>

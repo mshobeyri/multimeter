@@ -318,6 +318,31 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           break;
         }
 
+        case 'validateFilesExist': {
+          const files = Array.isArray(message?.files) ? message.files : [];
+          const existing: string[] = [];
+          const missing: string[] = [];
+          for (const relativePath of files) {
+            if (typeof relativePath !== 'string' || !relativePath.trim()) {
+              continue;
+            }
+            const absolutePath =
+                path.resolve(path.dirname(document.uri.fsPath), relativePath);
+            if (fs.existsSync(absolutePath)) {
+              existing.push(relativePath);
+            } else {
+              missing.push(relativePath);
+            }
+          }
+          webviewPanel.webview.postMessage({
+            command: 'validateFilesExistResult',
+            requestId: message?.requestId,
+            existing,
+            missing,
+          });
+          break;
+        }
+
         case 'openRelativeFile': {
           const absolutePath =
               path.resolve(path.dirname(document.uri.fsPath), message.filename);

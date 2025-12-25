@@ -2,9 +2,30 @@ export const GeneralSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
     properties: {
-        type: { type: 'string', enum: ['api', 'env', 'var', 'test', 'doc'] },
+        type: { type: 'string', enum: ['api', 'env', 'var', 'test', 'suite', 'doc'] },
     }
 }
+
+export const SuiteSchema = {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    type: 'object',
+    required: ['type', 'tests'],
+    properties: {
+        type: { type: 'string', enum: ['suite'] },
+        title: { type: 'string' },
+        description: { type: 'string' },
+        tags: { type: 'array', items: { type: 'string' } },
+        tests: {
+            type: 'array',
+            items: {
+                anyOf: [
+                    { type: 'string' }
+                ]
+            }
+        }
+    },
+    additionalProperties: false
+};
 
 export const APISchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
