@@ -396,6 +396,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
             const {docType, displayName, result} = runOutcome;
             const label = docType === 'api' ? 'API' :
                 docType === 'test'          ? 'Test' :
+              docType === 'suite'         ? 'Suite' :
                                               'Document';
             if (result.success) {
               vscode.window.showInformationMessage(`${label} ${

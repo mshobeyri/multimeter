@@ -44,8 +44,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
             label: "type",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "type: ",
-            detail: 'Type of mmt file [api, env, doc, test]',
-            documentation: 'Type of mmt file, must be one of: api, env, doc, test\n\t- api: Define an API\n\t- env: Define environment variables\n\t- doc: Define a documentation page (title/description/sources/theme)\n\t- test: Define a test suite (steps/stages)\nExample: type: test',
+            detail: 'Type of mmt file [api, env, doc, test, suite]',
+            documentation: 'Type of mmt file, must be one of: api, env, doc, test, suite\n\t- api: Define an API\n\t- env: Define environment variables\n\t- doc: Define a documentation page (title/description/sources/theme)\n\t- test: Define a test suite (steps/stages)\n\t- suite: Orchestrate multiple .mmt files in groups split by "then"\nExample: type: suite',
         }];
 
     const typeSuggestions = [
@@ -76,6 +76,13 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: " test",
             detail: 'Define a test suite',
             documentation: 'Test definition using steps or stages. Supports steps like call, data, check, assert, if/for/repeat, delay, js, print, set, var, const, let.',
+        },
+        {
+            label: "Suite",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " suite",
+            detail: 'Define a suite runner',
+            documentation: 'Suite definition that runs referenced .mmt files. Uses tests: [path | then | path], runs items in a group in parallel and groups sequentially.',
         },
     ]
     const testSuggestions = [
@@ -134,6 +141,37 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: "stages:\n\t",
             detail: 'Stage-based steps [array]',
             documentation: 'Define named stages with their own steps and optional dependencies.'
+        },
+    ];
+
+    const suiteSuggestions = [
+        {
+            label: "title",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "title: ",
+            detail: 'Suite title [string]',
+            documentation: 'A descriptive title for the suite.',
+        },
+        {
+            label: "description",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "description: ",
+            detail: 'Suite description [string]',
+            documentation: 'Optional description shown under the title.',
+        },
+        {
+            label: "tags",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "tags:\n\t- ",
+            detail: 'Suite tags [array of strings]',
+            documentation: 'Tags for categorizing suites.',
+        },
+        {
+            label: "tests",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "tests:\n\t- ",
+            detail: 'Suite items [array]',
+            documentation: 'List of .mmt paths and the literal "then" barrier. Items in a group run in parallel; groups run sequentially.',
         },
     ];
     const stepsSuggestions = [
@@ -749,6 +787,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         general: variablesSuggestions,
         api: apiSuggestions,
         test: testSuggestions,
+        suite: suiteSuggestions,
         doc: docSuggestions,
         services: servicesSuggestions,
         env: envSuggestions,

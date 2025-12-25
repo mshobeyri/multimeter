@@ -59,7 +59,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const [callAliasProblems, setCallAliasProblems] = useState<ProblemEntry[]>([]);
   const [callInputsProblems, setCallInputsProblems] = useState<ProblemEntry[]>([]);
   // Keep track of whether the editor has detected a canonical key-order issue via markers.
-  const shouldShowRunControls = (docType === "test" || docType === "api");
+  const shouldShowRunControls = (docType === "test" || docType === "api" || docType === "suite");
 
   const reorderDocument = useCallback(() => {
     if (!docType) {
@@ -688,6 +688,9 @@ function buildCanonicalYaml(content: string, docType: string | null): string | n
           return null;
         }
         return docToYaml(docData);
+      case "suite":
+        showVSCodeMessage("warn", "Suite reordering is not supported yet.");
+        return null;
       default:
         return null;
     }

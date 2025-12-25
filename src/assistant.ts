@@ -92,6 +92,7 @@ async function handleChatRequest(
         const nameOnly = displayName || 'run';
         const kindLabel = docType === 'api' ? 'API' :
             docType === 'test'              ? 'test' :
+          docType === 'suite'             ? 'suite' :
                                               'Document';
         const exampleLabelParts: string[] = [];
         if (typeof exampleIndex === 'number') {

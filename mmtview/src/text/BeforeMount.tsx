@@ -69,6 +69,7 @@ export const handleBeforeMount = (monaco: any) => {
             if (firstLine === "type: env") return "env";
             if (firstLine === "type: doc") return "doc";
             if (firstLine === "type: test") return "test";
+            if (firstLine === "type: suite") return "suite";
         }
 
         // Look for parent context by indentation

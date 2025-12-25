@@ -8,6 +8,7 @@ import { LogLevel } from "./CommonData";
 import {FileLoader, GenerateJsOptions, mergeEnv, mergeInputs, RunFileOptions, RunResult} from './runConfig';
 import * as testParsePack from './testParsePack';
 import { replaceAllRefs } from './variableReplacer';
+import {yamlToSuite, splitSuiteGroups} from './suiteParsePack';
 
 
 export async function generateTestJs(opts: GenerateJsOptions): Promise<string> {
@@ -283,7 +284,129 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
     };
   }
 
+  if (docType === 'suite') {
+    const suite = yamlToSuite(rawText);
+    const mergedInputsUsed = {...(options.manualInputs || {})};
+
+    const groups = splitSuiteGroups(suite.tests);
+    const suiteBaseName = baseName;
+    const identifier = sanitizeIdentifier(suiteBaseName);
+
+    const allLogs: string[] = [];
+    const allErrors: string[] = [];
+    const suiteStart = Date.now();
+
+    const suiteLogger = (level: LogLevel, msg: string) => {
+      allLogs.push(String(msg));
+      if (level === 'error') {
+        allErrors.push(String(msg));
+      }
+      sinkLogger(level, msg);
+    };
+
+    suiteLogger('info', `Running suite ${suiteBaseName}...`);
+    if (suite.title) {
+      suiteLogger('info', `SUITE: ${suite.title}`);
+    }
+
+    let overallSuccess = true;
+    let hardStop = false;
+
+    for (let gi = 0; gi < groups.length && !hardStop; gi++) {
+      const group = groups[gi];
+      suiteLogger('info', `SUITE GROUP ${gi + 1}/${groups.length}`);
+
+      const results = await Promise.all(
+          group.map(async (entry) => {
+            const childFilePath = resolveRelativeTo(entry, prepared.filePath);
+            const childRawText = await fileLoader(childFilePath);
+            const childDocType = detectDocType(childFilePath, childRawText);
+            const display = basename(childFilePath || entry);
+            suiteLogger('info', `Running suite item: ${display}`);
+
+            const childRun = await runFile({
+              ...options,
+              file: childRawText,
+              fileType: 'raw',
+              filePath: childFilePath,
+              manualInputs: mergedInputsUsed,
+              logger: suiteLogger,
+            } as any);
+            return {
+              entry,
+              filePath: childFilePath,
+              docType: childDocType,
+              success: !!childRun.result?.success,
+              errors: childRun.result?.errors ?? [],
+              logs: childRun.result?.logs ?? [],
+            };
+          }));
+
+      // Determine hard-stop vs soft-fail based on assert vs check.
+      // Current test semantics: assert => throws => logged as error with "Assertion ...".
+      const groupHadHardFailure = results.some(r =>
+        (r.errors || []).some(e => String(e).includes('Assertion ')) ||
+        (r.logs || []).some(l => String(l).includes('Assertion ')));
+      const groupHadAnyFailure = results.some(r => !r.success);
+
+      if (groupHadAnyFailure) {
+        overallSuccess = false;
+      }
+      if (groupHadHardFailure) {
+        hardStop = true;
+        suiteLogger('error', `Suite stopped due to assertion failure in group ${gi + 1}.`);
+      }
+    }
+
+    const durationMs = Date.now() - suiteStart;
+    const result: RunResult = {
+      success: overallSuccess && !hardStop,
+      durationMs,
+      errors: allErrors,
+      logs: allLogs,
+    };
+    if (preLogs.length) {
+      result.logs = [...preLogs.map(l => l.message), ...(result.logs ?? [])];
+    }
+    return {
+      js: '',
+      result,
+      identifier,
+      displayName: suiteBaseName,
+      docType,
+      inputsUsed: mergedInputsUsed,
+      envVarsUsed: envVars,
+    };
+  }
+
   throw new Error('Run is currently supported for test or api documents only.');
+}
+
+function resolveRelativeTo(targetPath: string, baseFilePath: string): string {
+  if (!targetPath) {
+    return targetPath;
+  }
+  // Similar behavior to "import": resolve relative paths against base file folder.
+  if (targetPath.startsWith('/') || /^[A-Za-z]:[\\/]/.test(targetPath)) {
+    return targetPath;
+  }
+  const base = baseFilePath || '';
+  const parts = base.split(/[/\\]/);
+  parts.pop();
+  const baseDir = parts.join('/');
+  const combined = (baseDir ? baseDir + '/' : '') + targetPath;
+  const outParts: string[] = [];
+  for (const p of combined.split('/')) {
+    if (!p || p === '.') {
+      continue;
+    }
+    if (p === '..') {
+      outParts.pop();
+      continue;
+    }
+    outParts.push(p);
+  }
+  return (baseDir.startsWith('/') ? '/' : '') + outParts.join('/');
 }
 
 function basename(filePath: string): string {

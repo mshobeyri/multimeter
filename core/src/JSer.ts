@@ -37,6 +37,9 @@ export const fileType = (path: string, content: string): Type => {
   if (content.includes('type: test')) {
     return 'test';
   }
+  if (content.includes('type: suite')) {
+    return 'suite';
+  }
   if (content.includes('type: var')) {
     return 'var';
   }

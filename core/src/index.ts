@@ -3,6 +3,8 @@ export * as CommonData from "./CommonData";
 export * as TestData from "./TestData";
 export * as DocData from "./DocData";
 export * as JSer from "./JSer";
+export * as SuiteData from "./SuiteData";
+export * as suiteParsePack from "./suiteParsePack";
 export * as apiParsePack from "./apiParsePack";
 export * as testParsePack from "./testParsePack";
 export * as docParsePack from "./docParsePack";
