@@ -321,11 +321,12 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
       suiteLogger('info', `SUITE GROUP ${gi + 1}/${groups.length}`);
 
       const results = await Promise.all(
-          group.map(async (entry) => {
-            const childFilePath = resolveRelativeTo(entry, prepared.filePath);
+        group.map(async (entry) => {
+          const childFilePath = resolveRelativeTo(entry, prepared.filePath);
+          const display = basename(childFilePath || entry);
+          try {
             const childRawText = await fileLoader(childFilePath);
             const childDocType = detectDocType(childFilePath, childRawText);
-            const display = basename(childFilePath || entry);
             suiteLogger('info', `Running suite item: ${display}`);
 
             const childRun = await runFile({
@@ -344,7 +345,20 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
               errors: childRun.result?.errors ?? [],
               logs: childRun.result?.logs ?? [],
             };
-          }));
+          } catch (e: any) {
+            const errorMessage = e?.message || String(e);
+            suiteLogger('error', `Failed to run suite item: ${display} - ${errorMessage}`);
+            return {
+              entry,
+              filePath: childFilePath,
+              docType: null,
+              success: false,
+              errors: [errorMessage],
+              logs: [],
+            };
+          }
+        })
+      );
 
       results.forEach(r => {
         const entryKey = (r.entry || '').trim();
@@ -353,11 +367,6 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
         }
       });
 
-      // Determine hard-stop vs soft-fail based on assert vs check.
-      // Current test semantics: assert => throws => logged as error with "Assertion ...".
-      const groupHadHardFailure = results.some(r =>
-        (r.errors || []).some(e => String(e).includes('Assertion ')) ||
-        (r.logs || []).some(l => String(l).includes('Assertion ')));
       const groupHadAnyFailure = results.some(r => !r.success);
 
       if (groupHadAnyFailure) {
