@@ -3,6 +3,20 @@ import { KeySuggestionsByParent } from './AutoComplete';
 import { loadEnvVariables } from '../workspaceStorage';
 import { JSONValue } from 'mmt-core/CommonData';
 
+async function listFiles(folder: string, recursive = true): Promise<string[]> {
+    return new Promise((resolve) => {
+        const handler = (event: MessageEvent) => {
+            const msg = event.data;
+            if (msg && msg.command === 'listFilesResult' && msg.folder === folder) {
+                window.removeEventListener('message', handler);
+                resolve(Array.isArray(msg.files) ? msg.files : []);
+            }
+        };
+        window.addEventListener('message', handler);
+        window.vscode?.postMessage({ command: 'listFiles', folder, recursive });
+    });
+}
+
 export const handleBeforeMount = (monaco: any) => {
     const keySuggestionsByParent = KeySuggestionsByParent(monaco);
 
@@ -101,6 +115,42 @@ export const handleBeforeMount = (monaco: any) => {
         return "root";
     };
 
+    const suiteTestsItemFoldersCache = new Map<string, string[]>();
+    const getSuiteTestsItemSuggestions = async (indent: number): Promise<any[]> => {
+        if (!window?.vscode) {
+            return [];
+        }
+        const folder = '.';
+        const cached = suiteTestsItemFoldersCache.get(folder);
+        const files = cached ?? await listFiles(folder, true);
+        if (!cached) {
+            suiteTestsItemFoldersCache.set(folder, files);
+        }
+
+        const mkRangePrefix = ' '.repeat(indent);
+        const makeInsert = (value: string) => `${mkRangePrefix}- ${value}`;
+        const suggestions = [
+            {
+                label: 'then',
+                kind: monaco.languages.CompletionItemKind.Keyword,
+                insertText: makeInsert('then'),
+                detail: 'Suite barrier',
+                documentation: 'Barrier token. Splits suite tests into sequential groups.'
+            },
+            ...files
+                .filter((p) => typeof p === 'string' && p.toLowerCase().endsWith('.mmt'))
+                .sort((a, b) => a.localeCompare(b))
+                .map((p) => ({
+                    label: p,
+                    kind: monaco.languages.CompletionItemKind.File,
+                    insertText: makeInsert(p),
+                    detail: 'MMT file',
+                    documentation: `Run ${p} as part of the suite`,
+                })),
+        ];
+        return deduplicateSuggestions(suggestions);
+    };
+
     // Get suggestions for a specific key's value
     const getValueSuggestions = (key: string): any[] => {
         const suggestions: any[] = [];
@@ -125,7 +175,7 @@ export const handleBeforeMount = (monaco: any) => {
     };
 
     monaco.languages.registerCompletionItemProvider("yaml", {
-        provideCompletionItems: (model: any, position: any) => {
+        provideCompletionItems: async (model: any, position: any) => {
             // Only provide completions for YAML language
             if (model.getLanguageId() !== "yaml") {
                 return { suggestions: [] };
@@ -134,6 +184,36 @@ export const handleBeforeMount = (monaco: any) => {
             const lineNumber = position.lineNumber;
             const lineContent = model.getLineContent(lineNumber);
             const lines = model.getLinesContent().slice(0, lineNumber - 1);
+
+            const firstLine = model.getLineContent(1).trim();
+            const currentIndent = lineContent.search(/\S|$/);
+
+            // Suite: suggest list items under tests:
+            //   tests:
+            //     - <here>
+            const trimmed = lineContent.trim();
+            const listPrefixLength = getListPrefixLength(lineContent, (model.getWordUntilPosition(position)?.startColumn ?? position.column));
+            const inListItemLine = trimmed.startsWith('-') || trimmed === '';
+            if (firstLine === 'type: suite' && inListItemLine) {
+                const parent = getParentContext(lines, currentIndent, firstLine);
+                if (parent === 'tests') {
+                    const suggestionList = await getSuiteTestsItemSuggestions(currentIndent);
+                    const wordInfo = model.getWordUntilPosition(position);
+                    const baseStartColumn = wordInfo?.startColumn ?? position.column;
+                    const baseEndColumn = wordInfo?.endColumn ?? position.column;
+                    return {
+                        suggestions: suggestionList.map((item) => ({
+                            ...item,
+                            range: {
+                                startLineNumber: position.lineNumber,
+                                startColumn: Math.max(1, baseStartColumn - listPrefixLength),
+                                endLineNumber: position.lineNumber,
+                                endColumn: baseEndColumn,
+                            }
+                        }))
+                    };
+                }
+            }
 
             // Handle value suggestions (after "key: ")
             const keyValueMatch = lineContent.match(/^(\s*)(\w+):\s*(.*)$/);
@@ -191,8 +271,6 @@ export const handleBeforeMount = (monaco: any) => {
             }
 
             // Handle key suggestions (for new lines or mid-line insertion)
-            const currentIndent = lineContent.search(/\S|$/);
-            const firstLine = model.getLineContent(1).trim();
             const parent = getParentContext(lines, currentIndent, firstLine);
 
             // Get parent-specific suggestions and deduplicate
@@ -202,13 +280,13 @@ export const handleBeforeMount = (monaco: any) => {
             const wordInfo = model.getWordUntilPosition(position);
             const baseStartColumn = wordInfo?.startColumn ?? position.column;
             const baseEndColumn = wordInfo?.endColumn ?? position.column;
-            const listPrefixLength = getListPrefixLength(lineContent, baseStartColumn);
+            const listPrefixLength2 = getListPrefixLength(lineContent, baseStartColumn);
 
             const suggestions = baseSuggestions.map(item => {
                 const insertText = typeof item.insertText === 'string' ? item.insertText.trimStart() : '';
                 const needsListPrefix = insertText.startsWith('-');
                 const startColumn = needsListPrefix
-                    ? Math.max(1, baseStartColumn - listPrefixLength)
+                    ? Math.max(1, baseStartColumn - listPrefixLength2)
                     : baseStartColumn;
 
                 return {
