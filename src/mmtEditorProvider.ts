@@ -59,7 +59,8 @@ export async function readRelativeFileContent(
   // to the current document path to avoid path.resolve(...) throwing.
   const safeRelativePath =
       typeof relativePath === 'string' ? relativePath : openFilePath;
-  const absolutePath = path.resolve(path.dirname(openFilePath), safeRelativePath);
+  const absolutePath =
+      path.resolve(path.dirname(openFilePath), safeRelativePath);
   return await readFileContent(absolutePath);
 }
 
@@ -425,7 +426,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
             const {docType, displayName, result} = runOutcome;
             const label = docType === 'api' ? 'API' :
                 docType === 'test'          ? 'Test' :
-              docType === 'suite'         ? 'Suite' :
+                docType === 'suite'         ? 'Suite' :
                                               'Document';
             if (result.success) {
               vscode.window.showInformationMessage(`${label} ${
@@ -456,12 +457,13 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
                   if (recursive) {
                     walk(full);
                   }
-                } else if (it.isFile() && full.toLowerCase().endsWith('.mmt')) {
-                  // convert to relative to the doc file for consistent
-                  // openRelativeFile
-                  const rel =
-                      path.relative(path.dirname(document.uri.fsPath), full);
-                  results.push(rel);
+                } else if (it.isFile()) {
+                  const lower = full.toLowerCase();
+                  if (lower.endsWith('.mmt') || lower.endsWith('.csv')) {
+                    const rel =
+                        path.relative(path.dirname(document.uri.fsPath), full);
+                    results.push(rel);
+                  }
                 }
               }
             } catch {
