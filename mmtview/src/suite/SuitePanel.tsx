@@ -163,6 +163,7 @@ const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
   }, [groups]);
 
   const [stepStatuses, setStepStatuses] = useState<Record<string, StepStatus>>({});
+  const [missingFiles, setMissingFiles] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setStepStatuses(prev => {
@@ -188,18 +189,32 @@ const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
       if (!message || typeof message !== 'object') {
         return;
       }
-      if (message.command !== 'suiteStatusUpdate') {
+      if (message.command === 'suiteStatusUpdate') {
+        const statuses = message.statuses;
+        if (statuses && typeof statuses === 'object') {
+          setStepStatuses(prev => ({...prev, ...statuses}));
+        }
         return;
       }
-      const statuses = message.statuses;
-      if (!statuses || typeof statuses !== 'object') {
+      if (message.command === 'validateFilesExistResult') {
+        setMissingFiles(new Set(message.missing || []));
         return;
       }
-      setStepStatuses(prev => ({...prev, ...statuses}));
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
   }, []);
+
+  useEffect(() => {
+    if (allPaths.length > 0) {
+      window.vscode?.postMessage({
+        command: 'validateFilesExist',
+        files: allPaths,
+      });
+    } else {
+      setMissingFiles(new Set());
+    }
+  }, [allPaths]);
 
   useEffect(() => {
     setExpandedItems(prev => {
@@ -211,12 +226,24 @@ const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
 
   const statusIconFor = useCallback((status: StepStatus) => {
     if (status === 'passed') {
-      return {icon: 'codicon-check', color: 'var(--vscode-badge-background, #0e7f6c)'};
+      return {
+        icon: 'codicon-check',
+        color: 'var(--vscode-testing-iconPassed, #23d18b)',
+        title: 'Passed',
+      };
     }
     if (status === 'failed') {
-      return {icon: 'codicon-close', color: 'var(--vscode-editorError-foreground, #f85149)'};
+      return {
+        icon: 'codicon-close',
+        color: 'var(--vscode-editorError-foreground, #f85149)',
+        title: 'Failed',
+      };
     }
-    return {icon: 'codicon-circle-outline', color: 'var(--vscode-editor-foreground, #c5c5c5)'};
+    return {
+      icon: 'codicon-circle-outline',
+      color: 'var(--vscode-editor-foreground, #c5c5c5)',
+      title: 'Pending',
+    };
   }, []);
 
   const getStatusForPath = useCallback(
@@ -235,6 +262,9 @@ const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
       const statuses = childIds.map(childId => {
         const child = items[childId];
         if (child?.data?.type === 'file') {
+          if (missingFiles.has(child.data.path)) {
+            return 'failed';
+          }
           return getStatusForPath(child.data.path);
         }
         return 'pending';
@@ -247,7 +277,7 @@ const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
       }
       return 'pending';
     },
-    [getStatusForPath, items]
+    [getStatusForPath, items, missingFiles]
   );
 
   const handleExpand = useCallback(
@@ -339,14 +369,16 @@ const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
   const renderItem = ({item, context, arrow, children}: any) => {
     const data = item.data as SuiteTreeItemData;
     if (data.type === 'group' || data.type === 'root') {
-      const statusIcon = data.type === 'group'
-        ? statusIconFor(getGroupStatus(item.index))
-        : {icon: 'codicon-folders', color: 'var(--vscode-editor-foreground, #c5c5c5)'};
+      const isRoot = data.type === 'root';
+      const statusIcon = isRoot
+        ? {icon: 'codicon-files', color: 'var(--vscode-editor-foreground, #c5c5c5)'}
+        : statusIconFor(getGroupStatus(item.index));
+
       return (
         <div {...context.itemContainerWithChildrenProps}>
-          <div className="tree-view-box" {...context.itemContainerWithoutChildrenProps}>
+          <div className="tree-view-box" {...context.itemContainerWithoutChildrenProps} style={{alignItems: 'flex-start'}}>
             {arrow}
-            <div style={{display: 'flex', alignItems: 'center', gap: 8}}>
+            <div style={{display: 'flex', alignItems: 'center', gap: 8, paddingTop: 8}}>
               <span
                 className={`codicon ${statusIcon.icon}`}
                 aria-hidden
@@ -360,7 +392,16 @@ const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
       );
     }
 
-    const statusIcon = statusIconFor(getStatusForPath(data.path));
+    const isMissing = missingFiles.has(data.path);
+    const status = getStatusForPath(data.path);
+    const statusIcon = isMissing
+      ? {
+          icon: 'codicon-warning',
+          color: 'var(--vscode-editorWarning-foreground, #f8b449)',
+          title: 'File not found',
+        }
+      : statusIconFor(status);
+
     const stopTreeEvent = (event: React.SyntheticEvent) => event.stopPropagation();
     const NoTreeInterference: React.FC<{children: React.ReactNode}> = ({children}) => (
       <div
@@ -396,21 +437,23 @@ const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
       <div {...context.itemContainerWithChildrenProps}>
         <div className="tree-view-box" {...context.itemContainerWithoutChildrenProps}>
           {arrow}
-            <div style={{flex: 1, display: 'flex', alignItems: 'center', gap: 8, minWidth: 0}}>
-              <span
-                className={`codicon ${statusIcon.icon}`}
-                aria-hidden
-                style={{color: statusIcon.color}}
+          <div style={{flex: 1, display: 'flex', alignItems: 'center', gap: 8, minWidth: 0}}>
+            <span
+              className={`codicon ${statusIcon.icon}`}
+              aria-hidden
+              title={statusIcon.title}
+              style={{color: statusIcon.color}}
+            />
+            <NoTreeInterference>
+              <input
+                className="suite-entry-input"
+                value={data.path}
+                onChange={e => onChange(e.target.value)}
+                onKeyDown={onKeyDown}
+                style={{opacity: isMissing ? 0.7 : 1}}
               />
-              <NoTreeInterference>
-                <input
-                  className="suite-entry-input"
-                  value={data.path}
-                  onChange={e => onChange(e.target.value)}
-                  onKeyDown={onKeyDown}
-                />
-              </NoTreeInterference>
-            </div>
+            </NoTreeInterference>
+          </div>
           <span
             {...context.interactiveElementProps}
             title="Drag to reorder"
@@ -445,13 +488,18 @@ const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
         <div style={{fontWeight: 700}}>Suite</div>
         <button
           type="button"
-          className="action-button"
           disabled={allPaths.length === 0}
           onClick={handleRunSuite}
           title={allPaths.length === 0 ? 'No suite files to run' : 'Run suite'}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 4,
+            padding: '4px 12px',
+          }}
         >
-          <span className="codicon codicon-play" aria-hidden></span>
-          <span style={{marginLeft: 4}}>Run suite</span>
+          <span className="codicon codicon-run" style={{fontSize: 18}} aria-hidden></span>
+          Run suite
         </button>
       </div>
       {noItems ? (
@@ -482,14 +530,16 @@ const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
                   <span className="codicon codicon-chevron-right" style={{fontSize: 16}} />
                 )}
               </span>
-            ) : null
+            ) : (
+              <span style={{display: 'inline-block', width: 24, height: 24}} />
+            )
           }
           renderItem={renderItem}
           renderTreeContainer={({children, containerProps}) => <div {...containerProps}>{children}</div>}
           renderItemsContainer={({children, containerProps}) => (
             <ul
               {...containerProps}
-              style={{...(containerProps.style || {}), margin: 0, listStyle: 'none', paddingLeft: 0}}
+              style={{...(containerProps.style || {}), margin: 0, listStyle: 'none'}}
             >
               {children}
             </ul>
