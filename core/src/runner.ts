@@ -84,6 +84,8 @@ export function buildDocFromApis(apis: any[], opts: BuildDocOptions): string {
   }
   return docHtml.buildDocHtml(apis, rest);
 }
+export type SuiteStepStatus = 'passed'|'failed';
+
 export interface RunFileResult {
   js: string;
   result: RunResult;
@@ -94,6 +96,7 @@ export interface RunFileResult {
   envVarsUsed: Record<string, any>;
   exampleName?: string;
   exampleIndex?: number;
+  suiteStatuses?: Record<string, SuiteStepStatus>;
 }
 
 export interface PreparedRun {
@@ -312,6 +315,8 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
     let overallSuccess = true;
     let hardStop = false;
 
+    const suiteStatuses: Record<string, SuiteStepStatus> = {};
+
     for (let gi = 0; gi < groups.length && !hardStop; gi++) {
       const group = groups[gi];
       suiteLogger('info', `SUITE GROUP ${gi + 1}/${groups.length}`);
@@ -341,6 +346,13 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
               logs: childRun.result?.logs ?? [],
             };
           }));
+
+      results.forEach(r => {
+        const entryKey = (r.entry || '').trim();
+        if (entryKey) {
+          suiteStatuses[entryKey] = r.success ? 'passed' : 'failed';
+        }
+      });
 
       // Determine hard-stop vs soft-fail based on assert vs check.
       // Current test semantics: assert => throws => logged as error with "Assertion ...".
@@ -376,6 +388,7 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
       docType,
       inputsUsed: mergedInputsUsed,
       envVarsUsed: envVars,
+      suiteStatuses,
     };
   }
 

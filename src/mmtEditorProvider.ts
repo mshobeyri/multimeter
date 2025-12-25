@@ -436,6 +436,12 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
               vscode.window.showErrorMessage(`${label} ${displayName} failed: ${
                   firstError}. Check the Multimeter output channel for logs.`);
             }
+            if (runOutcome.docType === 'suite' && runOutcome.suiteStatuses) {
+              webviewPanel.webview.postMessage({
+                command: 'suiteStatusUpdate',
+                statuses: runOutcome.suiteStatuses,
+              });
+            }
           } catch (err: any) {
             vscode.window.showErrorMessage(
                 `Failed to run ${fileName}: ${err?.message || String(err)}`);
