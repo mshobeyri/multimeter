@@ -213,6 +213,7 @@ export const handleBeforeMount = (monaco: any) => {
 
             const firstLine = model.getLineContent(1).trim();
             const currentIndent = lineContent.search(/\S|$/);
+            const parentContext = getParentContext(lines, currentIndent, firstLine);
 
             // Suite: suggest list items under tests:
             //   tests:
@@ -221,8 +222,7 @@ export const handleBeforeMount = (monaco: any) => {
             const listPrefixLength = getListPrefixLength(lineContent, (model.getWordUntilPosition(position)?.startColumn ?? position.column));
             const inListItemLine = trimmed.startsWith('-') || trimmed === '';
             if (firstLine === 'type: suite' && inListItemLine) {
-                const parent = getParentContext(lines, currentIndent, firstLine);
-                if (parent === 'tests') {
+                if (parentContext === 'tests') {
                     const suggestionList = await getSuiteTestsItemSuggestions(currentIndent);
                     const wordInfo = model.getWordUntilPosition(position);
                     const baseStartColumn = wordInfo?.startColumn ?? position.column;
@@ -252,7 +252,7 @@ export const handleBeforeMount = (monaco: any) => {
                 // Example:
                 // import:
                 //   x: <here>
-                if ((key === 'import') && position.column >= valueStartColumn) {
+                if (parentContext === 'import' && position.column >= valueStartColumn) {
                     const suggestionList = await getImportValueSuggestions(valueStartColumn - 1);
                     return {
                         suggestions: suggestionList.map(item => ({
@@ -331,11 +331,8 @@ export const handleBeforeMount = (monaco: any) => {
                 }
             }
 
-            // Handle key suggestions (for new lines or mid-line insertion)
-            const parent = getParentContext(lines, currentIndent, firstLine);
-
             // Get parent-specific suggestions and deduplicate
-            const parentSuggestions = keySuggestionsByParent[parent] || [];
+            const parentSuggestions = keySuggestionsByParent[parentContext] || [];
             const baseSuggestions = deduplicateSuggestions(parentSuggestions);
 
             const wordInfo = model.getWordUntilPosition(position);
