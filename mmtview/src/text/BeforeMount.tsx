@@ -116,7 +116,7 @@ export const handleBeforeMount = (monaco: any) => {
     };
 
     const suiteTestsItemFoldersCache = new Map<string, string[]>();
-    const getSuiteTestsItemSuggestions = async (indent: number): Promise<any[]> => {
+    const getSuiteTestsItemSuggestions = async (): Promise<any[]> => {
         if (!window?.vscode) {
             return [];
         }
@@ -127,13 +127,11 @@ export const handleBeforeMount = (monaco: any) => {
             suiteTestsItemFoldersCache.set(folder, files);
         }
 
-        const mkRangePrefix = ' '.repeat(indent);
-        const makeInsert = (value: string) => `${mkRangePrefix}- ${value}`;
         const suggestions = [
             {
                 label: 'then',
                 kind: monaco.languages.CompletionItemKind.Keyword,
-                insertText: makeInsert('then'),
+                insertText: `- then`,
                 detail: 'Suite barrier',
                 documentation: 'Barrier token. Splits suite tests into sequential groups.'
             },
@@ -143,7 +141,7 @@ export const handleBeforeMount = (monaco: any) => {
                 .map((p) => ({
                     label: p,
                     kind: monaco.languages.CompletionItemKind.File,
-                    insertText: makeInsert(p),
+                    insertText: `- ${p}`,
                     detail: 'MMT file',
                     documentation: `Run ${p} as part of the suite`,
                 })),
@@ -152,7 +150,7 @@ export const handleBeforeMount = (monaco: any) => {
     };
 
     const importValueFoldersCache = new Map<string, string[]>();
-    const getImportValueSuggestions = async (indent: number): Promise<any[]> => {
+    const getImportValueSuggestions = async (): Promise<any[]> => {
         if (!window?.vscode) {
             return [];
         }
@@ -162,16 +160,15 @@ export const handleBeforeMount = (monaco: any) => {
         if (!cached) {
             importValueFoldersCache.set(folder, files);
         }
-        const mkRangePrefix = ' '.repeat(indent);
         return deduplicateSuggestions(
             files
-                .filter((p) => typeof p === 'string' && p.toLowerCase().endsWith('.mmt'))
+                .filter((p) => typeof p === 'string' && (p.toLowerCase().endsWith('.mmt') || p.toLowerCase().endsWith('.csv')))
                 .sort((a, b) => a.localeCompare(b))
                 .map((p) => ({
                     label: p,
                     kind: monaco.languages.CompletionItemKind.File,
-                    insertText: `${mkRangePrefix}${p}`,
-                    detail: 'MMT file',
+                    insertText: ` ${p}`,
+                    detail: 'MMT or CSV file',
                     documentation: `Import from ${p}`,
                 }))
         );
@@ -223,7 +220,7 @@ export const handleBeforeMount = (monaco: any) => {
             const inListItemLine = trimmed.startsWith('-') || trimmed === '';
             if (firstLine === 'type: suite' && inListItemLine) {
                 if (parentContext === 'tests') {
-                    const suggestionList = await getSuiteTestsItemSuggestions(currentIndent);
+                    const suggestionList = await getSuiteTestsItemSuggestions();
                     const wordInfo = model.getWordUntilPosition(position);
                     const baseStartColumn = wordInfo?.startColumn ?? position.column;
                     const baseEndColumn = wordInfo?.endColumn ?? position.column;
@@ -253,7 +250,7 @@ export const handleBeforeMount = (monaco: any) => {
                 // import:
                 //   x: <here>
                 if (parentContext === 'import' && position.column >= valueStartColumn) {
-                    const suggestionList = await getImportValueSuggestions(valueStartColumn - 1);
+                    const suggestionList = await getImportValueSuggestions();
                     return {
                         suggestions: suggestionList.map(item => ({
                             ...item,
@@ -297,7 +294,7 @@ export const handleBeforeMount = (monaco: any) => {
 
                 // Allow imports inside list items too (rare but harmless)
                 if ((key === 'import' || key === 'imports') && position.column >= valueStartColumn) {
-                    const suggestionList = await getImportValueSuggestions(valueStartColumn - 1);
+                    const suggestionList = await getImportValueSuggestions();
                     return {
                         suggestions: suggestionList.map(item => ({
                             ...item,
