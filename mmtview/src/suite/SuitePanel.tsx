@@ -227,20 +227,20 @@ const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
   const statusIconFor = useCallback((status: StepStatus) => {
     if (status === 'passed') {
       return {
-        icon: 'codicon-check',
+        icon: 'codicon-pass',
         color: 'var(--vscode-testing-iconPassed, #23d18b)',
         title: 'Passed',
       };
     }
     if (status === 'failed') {
       return {
-        icon: 'codicon-close',
+        icon: 'codicon-error',
         color: 'var(--vscode-editorError-foreground, #f85149)',
         title: 'Failed',
       };
     }
     return {
-      icon: 'codicon-circle-outline',
+      icon: 'codicon-circle-large',
       color: 'var(--vscode-editor-foreground, #c5c5c5)',
       title: 'Pending',
     };

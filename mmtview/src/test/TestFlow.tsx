@@ -367,7 +367,9 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                     onPointerDown={(e) => e.stopPropagation()}
                     onPointerUp={(e) => { e.stopPropagation(); setAddMenuOpen(v => { const next = !v; if (!v) openAddMenuAtButton(); return next; }); }}
                     title="Add flow item"
+                    style={{display: 'flex', alignItems: 'center', gap: 4}}
                 >
+                    <span className="codicon codicon-add" aria-hidden></span>
                     Add item
                 </button>
                 {addMenuOpen && addMenuPos && (
