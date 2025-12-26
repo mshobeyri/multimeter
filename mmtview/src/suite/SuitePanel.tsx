@@ -155,26 +155,12 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
     return map;
   }, [groups]);
 
-  const [stepStatuses, setStepStatuses] = useState<Record<string, StepStatus>>({});
+  const [stepStatuses, setStepStatuses] = useState<Record<string, StepStatus | 'running'>>({});
   const [missingFiles, setMissingFiles] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    setStepStatuses(prev => {
-      const next: Record<string, StepStatus> = {};
-      const pathSet = new Set(allPaths);
-      Object.keys(prev).forEach(path => {
-        if (pathSet.has(path)) {
-          next[path] = prev[path];
-        }
-      });
-      allPaths.forEach(path => {
-        if (!next[path]) {
-          next[path] = 'default';
-        }
-      });
-      return next;
-    });
-  }, [allPaths]);
+    setStepStatuses({});
+  }, [groups]);
 
   useEffect(() => {
     const handler = (event: MessageEvent) => {
@@ -182,10 +168,19 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
       if (!message || typeof message !== 'object') {
         return;
       }
-      if (message.command === 'suiteStatusUpdate') {
-        const statuses = message.statuses;
-        if (statuses && typeof statuses === 'object') {
-          setStepStatuses(prev => ({ ...prev, ...statuses }));
+      if (message.command === 'runFileReport') {
+        const { groupIndex, groupItemIndex, success, status } = message;
+        if (typeof groupIndex === 'number' && typeof groupItemIndex === 'number') {
+          const group = groups[groupIndex];
+          if (group) {
+            const entry = group.entries[groupItemIndex];
+            if (entry) {
+              setStepStatuses(prev => ({
+                ...prev,
+                [entry.id]: status || (success ? 'passed' : 'failed'),
+              }));
+            }
+          }
         }
         return;
       }
@@ -196,7 +191,7 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, []);
+  }, [groups]);
 
   useEffect(() => {
     if (allPaths.length > 0) {
@@ -217,41 +212,41 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
     });
   }, [groupIds]);
 
-  const statusIconFor = useCallback((status: StepStatus) => {
+  const statusIconFor = useCallback((status: StepStatus | 'running') => {
+    if (status === 'running') {
+      return {
+        icon: 'codicon-play-circle',
+        color: '#BA8E23',
+        title: 'Running',
+      };
+    }
     if (status === 'passed') {
       return {
         icon: 'codicon-pass',
-        color: 'var(--vscode-testing-iconPassed, #23d18b)',
+        color: '#23d18b',
         title: 'Passed',
       };
     }
     if (status === 'failed') {
       return {
         icon: 'codicon-error',
-        color: 'var(--vscode-editorError-foreground, #f85149)',
+        color: '#f85149',
         title: 'Failed',
       };
     }
     if (status === 'pending') {
       return {
         icon: 'codicon-compass',
-        color: 'var(--vscode-editorInfo-foreground, #3794ff)',
+        color: '#3794ff',
         title: 'Pending',
       };
     }
     return {
       icon: 'codicon-circle-large',
-      color: 'var(--vscode-editor-foreground, #c5c5c5)',
+      color: '#c5c5c5',
       title: 'Default',
     };
   }, []);
-
-  const getStatusForPath = useCallback(
-    (path: string): StepStatus => {
-      return stepStatuses[path] ?? 'default';
-    },
-    [stepStatuses]
-  );
 
   const getGroupStatus = useCallback(
     (itemId: string): StepStatus => {
@@ -265,10 +260,13 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
           if (missingFiles.has(child.data.path)) {
             return 'failed';
           }
-          return getStatusForPath(child.data.path);
+          return stepStatuses[childId] ?? 'default';
         }
         return 'default';
       });
+      if (statuses.includes('running')) {
+        return 'running' as StepStatus;
+      }
       if (statuses.includes('failed')) {
         return 'failed';
       }
@@ -280,7 +278,7 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
       }
       return 'default';
     },
-    [getStatusForPath, items, missingFiles]
+    [items, missingFiles, stepStatuses]
   );
 
   const handleExpand = useCallback(
@@ -298,9 +296,11 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
   );
 
   const handleRunSuite = () => {
-    const next: Record<string, StepStatus> = {};
-    allPaths.forEach(path => {
-      next[path] = 'pending';
+    const next: Record<string, StepStatus | 'running'> = {};
+    Object.values(items).forEach(item => {
+      if (item.data.type === 'file') {
+        next[item.index as string] = 'pending';
+      }
     });
     setStepStatuses(next);
     window.vscode?.postMessage({ command: 'runCurrentDocument' });
@@ -392,10 +392,10 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
         arrow={arrow}
         children={children}
         missingFiles={missingFiles}
-        getStatusForPath={getStatusForPath}
         statusIconFor={statusIconFor}
         groups={groups}
         persistGroups={persistGroups}
+        status={stepStatuses[item.index] ?? 'default'}
       />
     );
   };

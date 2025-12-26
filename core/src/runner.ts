@@ -1,14 +1,15 @@
+import {stat} from 'fs';
+
 import {APIData} from './APIData';
 import {yamlToAPI} from './apiParsePack';
-import {Type} from './CommonData';
+import {LogLevel, Type} from './CommonData';
 import docHtml from './docHtml';
 import docMarkdown from './docMarkdown';
 import * as JSer from './JSer';
-import { LogLevel } from "./CommonData";
 import {FileLoader, GenerateJsOptions, mergeEnv, mergeInputs, RunFileOptions, RunResult} from './runConfig';
+import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
 import * as testParsePack from './testParsePack';
-import { replaceAllRefs } from './variableReplacer';
-import {yamlToSuite, splitSuiteGroups} from './suiteParsePack';
+import {replaceAllRefs} from './variableReplacer';
 
 
 export async function generateTestJs(opts: GenerateJsOptions): Promise<string> {
@@ -96,7 +97,6 @@ export interface RunFileResult {
   envVarsUsed: Record<string, any>;
   exampleName?: string;
   exampleIndex?: number;
-  suiteStatuses?: Record<string, SuiteStepStatus>;
 }
 
 export interface PreparedRun {
@@ -139,7 +139,7 @@ export async function prepareRunFromOptions(
       typeof options.exampleIndex === 'number' && options.exampleIndex >= 0 ?
       options.exampleIndex :
       undefined;
-    const requestedExampleName =
+  const requestedExampleName =
       typeof options.exampleName === 'string' && options.exampleName.trim() ?
       options.exampleName.trim() :
       undefined;
@@ -150,8 +150,8 @@ export async function prepareRunFromOptions(
         isPlainObject(apiDoc.inputs) ? apiDoc.inputs as Record<string, any>: {};
     const manualInputsForMerge = {...manualInputs};
     const {exampleInputs, resolvedExampleName, resolvedExampleIndex} =
-      resolveApiExample(
-        apiDoc, requestedExampleIndex, requestedExampleName, log);
+        resolveApiExample(
+            apiDoc, requestedExampleIndex, requestedExampleName, log);
     const inputsUsed = mergeInputs({
       defaultInputs,
       exampleInputs,
@@ -330,59 +330,76 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
 
     let overallSuccess = true;
 
-    const suiteStatuses: Record<string, SuiteStepStatus> = {};
-
     for (let gi = 0; gi < groups.length; gi++) {
       const group = groups[gi];
       suiteLogger('info', `Running group: ${gi + 1}/${groups.length}`);
 
-      const results = await Promise.all(
-        group.map(async (entry) => {
-          const childFilePath = resolveRelativeTo(entry, prepared.filePath);
-          const display = basename(childFilePath || entry);
-          try {
-            const childRawText = await fileLoader(childFilePath);
-            const childDocType = detectDocType(childFilePath, childRawText);
-            suiteLogger('info', `Running suite item: ${display}`);
-            const childRun = await runFile({
-              ...options,
-              file: childRawText,
-              fileType: 'raw',
-              filePath: childFilePath,
-              manualInputs: mergedInputsUsed,
-              logger: suiteLogger,
-            } as any);
-            return {
-              entry,
-              filePath: childFilePath,
-              docType: childDocType,
-              success: !!childRun.result?.success,
-              errors: childRun.result?.errors ?? [],
-              logs: childRun.result?.logs ?? [],
-            };
-          } catch (e: any) {
-            const errorMessage = e?.message || String(e);
-            suiteLogger('error', `Failed to run suite item: ${display} - ${errorMessage}`);
-            return {
-              entry,
-              filePath: childFilePath,
-              docType: null,
-              success: false,
-              errors: [errorMessage],
-              logs: [],
-            };
-          }
-        })
-      );
+      const results = await Promise.all(group.map(async (entry, entryIndex) => {
+        const childFilePath = resolveRelativeTo(entry, prepared.filePath);
+        const display = basename(childFilePath || entry);
+        try {
+          const childRawText = await fileLoader(childFilePath);
+          const childDocType = detectDocType(childFilePath, childRawText);
 
-      results.forEach(r => {
-        const entryKey = (r.entry || '').trim();
-        if (entryKey) {
-          suiteStatuses[entryKey] = r.success ? 'passed' : 'failed';
+          options.reporter && options.reporter({
+            status: 'running',
+            groupIndex: gi,
+            groupItemIndex: entryIndex,
+          });
+
+          suiteLogger('info', `Running suite item: ${display}`);
+          const childRun = await runFile({
+            ...options,
+            file: childRawText,
+            fileType: 'raw',
+            filePath: childFilePath,
+            manualInputs: mergedInputsUsed,
+            logger: suiteLogger
+          } as any);
+
+          const result = {
+            entry,
+            filePath: childFilePath,
+            docType: childDocType,
+            success: !!childRun.result?.success,
+            status: !!childRun.result?.success ? 'passed' : 'failed',
+            errors: childRun.result?.errors ?? [],
+            logs: childRun.result?.logs ?? []
+          };
+
+          options.reporter && options.reporter({
+            groupIndex: gi,
+            groupItemIndex: entryIndex,
+            status: result.status,
+          });
+
+          return result;
+        } catch (e: any) {
+          const errorMessage = e?.message || String(e);
+          suiteLogger(
+              'error',
+              `Failed to run suite item: ${display} - ${errorMessage}`);
+
+          const result = {
+            entry,
+            filePath: childFilePath,
+            docType: null,
+            success: false,
+            status: 'failed',
+            errors: [errorMessage],
+            logs: [],
+            groupIndex: gi,
+            groupItemIndex: entryIndex,
+          };
+          options.reporter && options.reporter({
+            groupIndex: gi,
+            groupItemIndex: entryIndex,
+            status: result.status,
+          });
         }
-      });
+      }));
 
-      const groupHadAnyFailure = results.some(r => !r.success);
+      const groupHadAnyFailure = results.some(r => !r || !r.success);
 
       if (groupHadAnyFailure) {
         overallSuccess = false;
@@ -406,8 +423,7 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
       displayName: suiteDisplayName,
       docType,
       inputsUsed: mergedInputsUsed,
-      envVarsUsed: envVars,
-      suiteStatuses,
+      envVarsUsed: envVars
     };
   }
 
@@ -418,7 +434,8 @@ function resolveRelativeTo(targetPath: string, baseFilePath: string): string {
   if (!targetPath) {
     return targetPath;
   }
-  // Similar behavior to "import": resolve relative paths against base file folder.
+  // Similar behavior to "import": resolve relative paths against base file
+  // folder.
   if (targetPath.startsWith('/') || /^[A-Za-z]:[\\/]/.test(targetPath)) {
     return targetPath;
   }

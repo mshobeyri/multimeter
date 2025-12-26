@@ -1,6 +1,6 @@
 import { TreeItem } from 'react-complex-tree';
 
-export type StepStatus = 'default' | 'pending' | 'passed' | 'failed';
+export type StepStatus = 'default' | 'pending' | 'passed' | 'failed' | 'running';
 
 export type SuiteTreeItemData =
   | {type: 'root'; label: string}

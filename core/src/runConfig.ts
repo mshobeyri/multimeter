@@ -1,4 +1,4 @@
-import { LogLevel } from "./CommonData";
+import {LogLevel} from './CommonData';
 
 export type FileLoader = (path: string) => Promise<string>;
 
@@ -25,8 +25,9 @@ export interface RunFileOptions {
    */
   file: string;
   /**
-   * Optional absolute path used for display names and relative import resolution.
-   * When `fileType === 'path'`, this can be omitted (it will default to `file`).
+   * Optional absolute path used for display names and relative import
+   * resolution. When `fileType === 'path'`, this can be omitted (it will
+   * default to `file`).
    */
   filePath?: string;
   /**
@@ -43,6 +44,7 @@ export interface RunFileOptions {
       (code: string, title: string,
        logger: (level: LogLevel, msg: string) => void) => Promise<void>;
   logger?: (level: LogLevel, msg: string) => void;
+  reporter?: (message: any) => void;
 }
 
 export interface MergeInputsParams {
@@ -89,7 +91,8 @@ export interface ResolveEnvFromDocParams {
  * Resolves env vars from an env-file document + optional preset, then merges
  * manual env vars on top.
  */
-export function resolveEnvFromDoc(params: ResolveEnvFromDocParams): Record<string, any> {
+export function resolveEnvFromDoc(params: ResolveEnvFromDocParams):
+    Record<string, any> {
   const {doc, presetName, manualEnvvars} = params;
   const presetEnv = presetName ? resolvePresetEnv(doc, presetName) : {};
   return mergeEnv({envvar: presetEnv, manualEnvvars});

@@ -421,6 +421,10 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
               },
               runCode: runJSCode,
               logger: forwardLog,
+              reporter: (msg: any) => {
+                webviewPanel.webview.postMessage(
+                    {command: 'runFileReport', ...msg});
+              },
             });
 
             const {docType, displayName, result} = runOutcome;
@@ -435,12 +439,6 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
               const firstError = result.errors[0] || 'Unknown error';
               vscode.window.showErrorMessage(`${label} ${displayName} failed: ${
                   firstError}. Check the Multimeter output channel for logs.`);
-            }
-            if (runOutcome.docType === 'suite' && runOutcome.suiteStatuses) {
-              webviewPanel.webview.postMessage({
-                command: 'suiteStatusUpdate',
-                statuses: runOutcome.suiteStatuses,
-              });
             }
           } catch (err: any) {
             vscode.window.showErrorMessage(

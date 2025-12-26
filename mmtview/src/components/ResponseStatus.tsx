@@ -25,7 +25,7 @@ const ResponseStatus: React.FC<ResponseStatusProps> = ({ status, errorMessage, e
       <div
         className={`response-badge ${className || ''}`.trim()}
         style={{
-          backgroundColor: '#4caf50',
+          backgroundColor: '#23d18b',
           color: 'white',
         }}
         title="Request successful"
@@ -52,7 +52,7 @@ const ResponseStatus: React.FC<ResponseStatusProps> = ({ status, errorMessage, e
       <div
         className={`response-badge ${className || ''}`.trim()}
         style={{
-          backgroundColor: '#f2f82cff',
+          backgroundColor: '#f2f82c',
           color: 'black',
         }}
         title={`${errorMessage}${status ? ` (Status: ${status})` : ''}${errorCode ? ` (Code: ${errorCode})` : ''}`}

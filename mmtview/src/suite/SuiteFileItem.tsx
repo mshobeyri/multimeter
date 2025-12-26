@@ -8,18 +8,17 @@ interface SuiteFileItemProps {
     arrow: React.ReactNode;
     children: React.ReactNode;
     missingFiles: Set<string>;
-    getStatusForPath: (path: string) => StepStatus;
     statusIconFor: (status: StepStatus) => { icon: string; color: string; title: string };
     groups: SuiteGroup[];
     persistGroups: (groups: SuiteGroup[]) => void;
+    status: StepStatus;
 }
 
 export const SuiteFileItem: React.FC<SuiteFileItemProps> = ({
-    item, context, arrow, children, missingFiles, getStatusForPath, statusIconFor, groups, persistGroups
+    item, context, arrow, children, missingFiles, statusIconFor, groups, persistGroups, status
 }) => {
     const data = item.data as { type: 'file', path: string };
     const isMissing = missingFiles.has(data.path);
-    const status = getStatusForPath(data.path);
     const statusIcon = isMissing
         ? {
             icon: 'codicon-warning',
@@ -61,7 +60,7 @@ export const SuiteFileItem: React.FC<SuiteFileItemProps> = ({
 
     return (
         <div {...context.itemContainerWithChildrenProps}>
-            <div className="tree-view-box" {...context.itemContainerWithoutChildrenProps} style={{ paddingTop: 10, display: 'flex'}}>
+            <div className="tree-view-box" {...context.itemContainerWithoutChildrenProps} style={{ paddingTop: 10, display: 'flex' }}>
                 {arrow}
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                     <span
