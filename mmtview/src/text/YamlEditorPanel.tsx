@@ -410,7 +410,6 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         showVSCodeMessage("warn", "Selected example was not found in this document.");
         return;
       }
-      const exampleName = typeof example?.name === "string" && example.name.trim() ? example.name : undefined;
       window.vscode?.postMessage({
         command: "runCurrentDocument",
         inputs: { exampleIndex },

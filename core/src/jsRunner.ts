@@ -8,7 +8,7 @@ import * as mmtHelper from './testHelper';
 export async function runJSCode(
     code: string, title: string,
     lg: (level: LogLevel, message: string) => void): Promise<any> {
-  lg('info', `Running test ${title}...`);
+  lg('info', `Running test: ${title}...`);
   const startTime = Date.now();
 
   const customConsole = {

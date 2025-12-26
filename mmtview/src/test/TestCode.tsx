@@ -1,15 +1,17 @@
-import React from "react";
+import React, { useContext } from "react";
 import TextEditor from "../text/TextEditor";
 import { rootTestToJsfunc, setFileLoader } from "mmt-core/JSer";
 import { logToOutput, readFile, runJSCode, showVSCodeMessage } from "../vsAPI";
 import { TestData } from "mmt-core/TestData";
 import { loadEnvVariables } from "../workspaceStorage";
+import { FileContext } from "../fileContext";
 
 interface TestCodeProps {
     testData: TestData;
 }
 
 const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
+    const { filePath } = useContext(FileContext);
     const [jsCode, setJsCode] = React.useState<string>("");
     const [error, setError] = React.useState<string | null>(null);
     const [envVars, setEnvVars] = React.useState<Record<string, any>>({});
@@ -80,7 +82,9 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
             logToOutput("warn", args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' '));
         };
         try {
-            runJSCode(jsCode, testData?.title || "");
+            const fileName = filePath ? filePath.split(/[/\\]/).pop() : '';
+            const runTitle = testData?.title || fileName || 'test';
+            runJSCode(jsCode, runTitle);
         } catch (e: any) {
             showVSCodeMessage("error", "Error: " + (e?.message || String(e)));
         }

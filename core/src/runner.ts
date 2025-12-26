@@ -107,6 +107,7 @@ export interface PreparedRun {
   envVarsUsed: Record<string, any>;
   inputsUsed: Record<string, any>;
   apiDoc?: APIData;
+  title?: string;
   exampleName?: string;
   exampleIndex?: number;
 }
@@ -161,6 +162,7 @@ export async function prepareRunFromOptions(
       filePath,
       baseName,
       docType,
+      title: apiDoc.title,
       envVarsUsed,
       inputsUsed,
       apiDoc,
@@ -185,8 +187,22 @@ export async function prepareRunFromOptions(
       filePath,
       baseName,
       docType,
+      title: testDoc.title,
       envVarsUsed,
       inputsUsed,
+    };
+  }
+
+  if (docType === 'suite') {
+    const suite = yamlToSuite(rawText);
+    return {
+      rawText,
+      filePath,
+      baseName,
+      docType,
+      title: suite.title,
+      envVarsUsed,
+      inputsUsed: manualInputs,
     };
   }
 
@@ -214,6 +230,7 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
     docType,
     baseName,
     rawText,
+    title,
     envVarsUsed: envVars,
     inputsUsed,
     apiDoc,
@@ -231,8 +248,9 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
     }
     const exampleLabel =
         exampleLabelParts.length > 0 ? exampleLabelParts.join(' ') : undefined;
+    const fileDisplayName = title || baseName;
     const displayName =
-        exampleLabel ? `${baseName} (${exampleLabel})` : baseName;
+        exampleLabel ? `${fileDisplayName} (${exampleLabel})` : fileDisplayName;
     const identifier = sanitizeIdentifier(
         exampleLabel ? `${baseName}_${exampleLabel}` : baseName);
     const js = await generateApiJs({
@@ -262,7 +280,8 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
   }
 
   if (docType === 'test') {
-    const identifier = sanitizeIdentifier(baseName);
+    const displayName = title || baseName;
+    const identifier = sanitizeIdentifier(displayName);
     const js = await generateTestJs({
       rawText,
       name: identifier,
@@ -270,7 +289,7 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
       envVars,
       fileLoader,
     });
-    const result = await runGeneratedJs(js, baseName, sinkLogger, runCode);
+    const result = await runGeneratedJs(js, displayName, sinkLogger, runCode);
     if (preLogs.length) {
       result.logs = [...preLogs.map(l => l.message), ...(result.logs ?? [])];
     }
@@ -278,7 +297,7 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
       js,
       result,
       identifier,
-      displayName: baseName,
+      displayName,
       docType,
       inputsUsed,
       envVarsUsed: envVars,
@@ -292,8 +311,8 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
     const mergedInputsUsed = {...(options.manualInputs || {})};
 
     const groups = splitSuiteGroups(suite.tests);
-    const suiteBaseName = baseName;
-    const identifier = sanitizeIdentifier(suiteBaseName);
+    const suiteDisplayName = title || baseName;
+    const identifier = sanitizeIdentifier(suiteDisplayName);
 
     const allLogs: string[] = [];
     const allErrors: string[] = [];
@@ -307,10 +326,7 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
       sinkLogger(level, msg);
     };
 
-    suiteLogger('info', `Running suite ${suiteBaseName}...`);
-    if (suite.title) {
-      suiteLogger('info', `SUITE: ${suite.title}`);
-    }
+    suiteLogger('info', `Running suite: ${suiteDisplayName}`);
 
     let overallSuccess = true;
 
@@ -318,7 +334,7 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
 
     for (let gi = 0; gi < groups.length; gi++) {
       const group = groups[gi];
-      suiteLogger('info', `SUITE GROUP ${gi + 1}/${groups.length}`);
+      suiteLogger('info', `Running group: ${gi + 1}/${groups.length}`);
 
       const results = await Promise.all(
         group.map(async (entry) => {
@@ -328,7 +344,6 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
             const childRawText = await fileLoader(childFilePath);
             const childDocType = detectDocType(childFilePath, childRawText);
             suiteLogger('info', `Running suite item: ${display}`);
-
             const childRun = await runFile({
               ...options,
               file: childRawText,
@@ -388,7 +403,7 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
       js: '',
       result,
       identifier,
-      displayName: suiteBaseName,
+      displayName: suiteDisplayName,
       docType,
       inputsUsed: mergedInputsUsed,
       envVarsUsed: envVars,
@@ -553,14 +568,14 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
   const envJson = JSON.stringify(opts.envVars ?? {}, null, 2);
   const inputsJson = JSON.stringify(opts.inputs ?? {}, null, 2);
   const exampleLabelParts: string[] = [];
-  if (typeof opts.exampleIndex === 'number' && opts.exampleIndex >= 0) {
-    exampleLabelParts.push(`#${opts.exampleIndex + 1}`);
-  }
   if (opts.exampleName) {
-    exampleLabelParts.push(opts.exampleName);
+    exampleLabelParts.push(`${opts.exampleName}`);
+  }
+  if (typeof opts.exampleIndex === 'number' && opts.exampleIndex >= 0) {
+    exampleLabelParts.push(`(#${opts.exampleIndex + 1})`);
   }
   const exampleLabel =
-      exampleLabelParts.length ? `Example ${exampleLabelParts.join(' ')}` : '';
+      exampleLabelParts.length ? `example: ${exampleLabelParts.join('')}` : '';
   const helperFactorySource =
       indentMultiline(createApiLogHelpers.toString(), '    ');
   const helperDestructure = `  const {\n` +
