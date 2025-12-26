@@ -55,7 +55,7 @@
 - All HTTP/WS traffic flows through `core/src/networkCore.ts` + `core/src/network.ts` using `NetworkConfig` from `NetworkData.ts`.
 - HTTP helpers always return a structured `HttpResponse`; network-level failures are normalized (e.g. `status = -1`, descriptive `statusText`) so callers can distinguish unreachable hosts from HTTP errors.
 - API runs use `buildApiRunnerWrapper` in `runner.ts`:
-  - Log `REQUEST`, `RESPONSE`, `ENVIRONMENT`, and `INPUTS` sections with consistent key/value formatting.
+  - Log `Request`, `Response`, `Environment`, and `Inputs` sections with consistent key/value formatting.
   - If `status < 0`, the wrapper throws after logging so `RunResult.success` is `false`.
 - When extending logs, reuse helpers from `createApiLogHelpers` instead of ad-hoc `console.log`, and treat logs as append-only (especially in the extension output channel).
 

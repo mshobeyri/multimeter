@@ -612,7 +612,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `      cookies: __req.cookies || {},\n` +
       `      body: __mmt_formatBodyValue(__req.body)\n` +
       `    };\n` +
-      `    console.debug(__mmt_formatSection('REQUEST', __reqLog));\n` +
+      `    console.debug(__mmt_formatSection('Request:', __reqLog));\n` +
       `    try {\n` +
       `      const __res = await __mmt_originalSend(req);\n` +
       `      const __status = __res && typeof __res.status === 'number' ? __res.status : '';\n` +
@@ -627,7 +627,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `        headers: __headers,\n` +
       `        body: __mmt_formatBodyValue(__body)\n` +
       `      };\n` +
-      `      console.log(__mmt_formatSection('RESPONSE', __resLog));\n` +
+      `      console.log(__mmt_formatSection('Response:', __resLog));\n` +
       `      if (typeof __status === 'number' && __status < 0) {\n` +
       `        let err = new Error(__statusText || 'Network error');\n` +
       `        err.status = __status;\n` +
@@ -647,7 +647,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `          __errorLog.headers = err.headers;\n` +
       `        }\n` +
       `      }\n` +
-      `      console.log(__mmt_formatSection('RESPONSE', __errorLog));\n` +
+      `      console.log(__mmt_formatSection('Response:', __errorLog));\n` +
       `      throw err;\n` +
       `    }\n` +
       `  };\n\n` +
@@ -659,9 +659,9 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `    if (__mmt_hasEnv || __mmt_exampleLabel) {\n` +
       `    }\n` +
       `    if (__mmt_hasEnv) {\n` +
-      `      console.debug(__mmt_formatSection('ENVIRONMENT', __mmt_envVars));\n` +
+      `      console.debug(__mmt_formatSection('Environment:', __mmt_envVars));\n` +
       `    }\n` +
-      `    console.debug(__mmt_formatSection('INPUTS', __mmt_inputs));\n` +
+      `    console.debug(__mmt_formatSection('Inputs:', __mmt_inputs));\n` +
       `    const result = await ${opts.name}({ ...__mmt_inputs });\n` +
       `    const __outputLog = (() => {\n` +
       `      if (result === undefined) {\n` +
@@ -679,7 +679,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `      }\n` +
       `      return copy;\n` +
       `    })();\n` +
-      `    console.log(__mmt_formatSection('OUTPUTS', __outputLog));\n` +
+      `    console.log(__mmt_formatSection('Outputs:', __outputLog));\n` +
       `    return result;\n` +
       `  } finally {\n` +
       `    send = __mmt_originalSend;\n` +
