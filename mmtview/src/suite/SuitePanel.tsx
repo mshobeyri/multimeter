@@ -15,7 +15,7 @@ interface SuitePanelProps {
   setContent: (value: string) => void;
 }
 
-type StepStatus = 'pending' | 'passed' | 'failed';
+type StepStatus = 'default' | 'pending' | 'passed' | 'failed';
 
 type SuiteTreeItemData =
   | {type: 'root'; label: string}
@@ -176,7 +176,7 @@ const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
       });
       allPaths.forEach(path => {
         if (!next[path]) {
-          next[path] = 'pending';
+          next[path] = 'default';
         }
       });
       return next;
@@ -239,16 +239,23 @@ const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
         title: 'Failed',
       };
     }
+    if (status === 'pending') {
+      return {
+        icon: 'codicon-compass',
+        color: 'var(--vscode-editorInfo-foreground, #3794ff)',
+        title: 'Pending',
+      };
+    }
     return {
       icon: 'codicon-circle-large',
       color: 'var(--vscode-editor-foreground, #c5c5c5)',
-      title: 'Pending',
+      title: 'Default',
     };
   }, []);
 
   const getStatusForPath = useCallback(
     (path: string): StepStatus => {
-      return stepStatuses[path] ?? 'pending';
+      return stepStatuses[path] ?? 'default';
     },
     [stepStatuses]
   );
@@ -257,7 +264,7 @@ const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
     (itemId: string): StepStatus => {
       const childIds = items[itemId]?.children || [];
       if (!childIds.length) {
-        return 'pending';
+        return 'default';
       }
       const statuses = childIds.map(childId => {
         const child = items[childId];
@@ -267,15 +274,18 @@ const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
           }
           return getStatusForPath(child.data.path);
         }
-        return 'pending';
+        return 'default';
       });
       if (statuses.includes('failed')) {
         return 'failed';
       }
+      if (statuses.includes('pending')) {
+        return 'pending';
+      }
       if (statuses.every(status => status === 'passed')) {
         return 'passed';
       }
-      return 'pending';
+      return 'default';
     },
     [getStatusForPath, items, missingFiles]
   );
