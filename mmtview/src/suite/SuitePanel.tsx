@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ControlledTreeEnvironment,
   DraggingPosition,
@@ -8,22 +8,15 @@ import {
   TreeItem,
 } from 'react-complex-tree';
 import 'react-complex-tree/lib/style.css';
-import {parseYaml, parseYamlDoc} from 'mmt-core/markupConvertor';
+import { parseYaml, parseYamlDoc } from 'mmt-core/markupConvertor';
+import { SuiteFileItem } from './SuiteFileItem';
+import { SuiteGroupItem } from './SuiteGroupItem';
+import { StepStatus, SuiteEntry, SuiteGroup, SuiteTreeItemData } from './types';
 
 interface SuitePanelProps {
   content: string;
   setContent: (value: string) => void;
 }
-
-type StepStatus = 'default' | 'pending' | 'passed' | 'failed';
-
-type SuiteTreeItemData =
-  | {type: 'root'; label: string}
-  | {type: 'group'; label: string}
-  | {type: 'file'; path: string};
-
-type SuiteEntry = {id: string; path: string};
-type SuiteGroup = {label: string; entries: SuiteEntry[]};
 
 let suiteEntrySuffix = 0;
 const nextSuiteEntryId = () => `suite-entry-${suiteEntrySuffix++}`;
@@ -36,7 +29,7 @@ const buildSuiteGroupsFromContent = (content: string): SuiteGroup[] => {
 
   const pushGroup = () => {
     if (currentEntries.length) {
-      groups.push({label: `Group ${groups.length + 1}`, entries: currentEntries});
+      groups.push({ label: `Group ${groups.length + 1}`, entries: currentEntries });
       currentEntries = [];
     }
   };
@@ -53,7 +46,7 @@ const buildSuiteGroupsFromContent = (content: string): SuiteGroup[] => {
       pushGroup();
       continue;
     }
-    currentEntries.push({id: nextSuiteEntryId(), path: trimmed});
+    currentEntries.push({ id: nextSuiteEntryId(), path: trimmed });
   }
   pushGroup();
   return groups;
@@ -72,7 +65,7 @@ const flattenSuiteGroups = (groups: SuiteGroup[]): string[] => {
 
 const normalizeSuiteGroups = (groups: SuiteGroup[]): SuiteGroup[] => {
   const filtered = groups.filter(group => group.entries.length > 0);
-  return filtered.map((group, idx) => ({...group, label: `Group ${idx + 1}`}));
+  return filtered.map((group, idx) => ({ ...group, label: `Group ${idx + 1}` }));
 };
 
 const updateSuiteContentWithGroups = (content: string, groups: SuiteGroup[]): string | null => {
@@ -100,14 +93,14 @@ const buildSuiteTree = (groups: SuiteGroup[]) => {
         index: entry.id,
         isFolder: false,
         children: [],
-        data: {type: 'file', path: entry.path},
+        data: { type: 'file', path: entry.path },
       };
     });
     items[groupId] = {
       index: groupId,
       isFolder: true,
       children: childIds,
-      data: {type: 'group', label: group.label},
+      data: { type: 'group', label: group.label },
     };
     groupIds.push(groupId);
   });
@@ -116,13 +109,13 @@ const buildSuiteTree = (groups: SuiteGroup[]) => {
     index: 'suite-root',
     isFolder: true,
     children: groupIds,
-    data: {type: 'root', label: 'Suite'},
+    data: { type: 'root', label: 'Suite' },
   };
 
-  return {items, allPaths, groupIds};
+  return { items, allPaths, groupIds };
 };
 
-const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
+const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
   const [groups, setGroups] = useState<SuiteGroup[]>(() => buildSuiteGroupsFromContent(content));
   const [expandedItems, setExpandedItems] = useState<string[]>(['suite-root']);
 
@@ -143,7 +136,7 @@ const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
   );
 
   const treeData = useMemo(() => buildSuiteTree(groups), [groups]);
-  const {items, allPaths, groupIds} = treeData;
+  const { items, allPaths, groupIds } = treeData;
   const groupIdToIndex = useMemo(() => {
     const map = new Map<string, number>();
     groupIds.forEach((gid, idx) => map.set(gid, idx));
@@ -155,9 +148,9 @@ const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
     return map;
   }, [groups]);
   const entryPositions = useMemo(() => {
-    const map = new Map<string, {group: number; idx: number}>();
+    const map = new Map<string, { group: number; idx: number }>();
     groups.forEach((group, groupIdx) => {
-      group.entries.forEach((entry, idx) => map.set(entry.id, {group: groupIdx, idx}));
+      group.entries.forEach((entry, idx) => map.set(entry.id, { group: groupIdx, idx }));
     });
     return map;
   }, [groups]);
@@ -192,7 +185,7 @@ const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
       if (message.command === 'suiteStatusUpdate') {
         const statuses = message.statuses;
         if (statuses && typeof statuses === 'object') {
-          setStepStatuses(prev => ({...prev, ...statuses}));
+          setStepStatuses(prev => ({ ...prev, ...statuses }));
         }
         return;
       }
@@ -310,7 +303,7 @@ const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
       next[path] = 'pending';
     });
     setStepStatuses(next);
-    window.vscode?.postMessage({command: 'runCurrentDocument'});
+    window.vscode?.postMessage({ command: 'runCurrentDocument' });
   };
 
   const handleDrop = useCallback(
@@ -354,7 +347,7 @@ const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
       }
 
       if (!nextGroups[targetGroupIdx]) {
-        nextGroups[targetGroupIdx] = {label: `Group ${targetGroupIdx + 1}`, entries: []};
+        nextGroups[targetGroupIdx] = { label: `Group ${targetGroupIdx + 1}`, entries: [] };
       }
 
       const removedBefore = entriesToMove.reduce((count, entry) => {
@@ -376,194 +369,115 @@ const SuitePanel: React.FC<SuitePanelProps> = ({content, setContent}) => {
     [persistGroups, entryById, entryPositions, groupIdToIndex, groups]
   );
 
-  const renderItem = ({item, context, arrow, children}: any) => {
+  const renderItem = ({ item, context, arrow, children }: any) => {
     const data = item.data as SuiteTreeItemData;
-    if (data.type === 'group' || data.type === 'root') {
-      const isRoot = data.type === 'root';
-      const statusIcon = isRoot
-        ? {icon: 'codicon-files', color: 'var(--vscode-editor-foreground, #c5c5c5)'}
-        : statusIconFor(getGroupStatus(item.index));
 
+    if (data.type === 'group' || data.type === 'root') {
       return (
-        <div {...context.itemContainerWithChildrenProps}>
-          <div className="tree-view-box" {...context.itemContainerWithoutChildrenProps} style={{alignItems: 'flex-start'}}>
-            {arrow}
-            <div style={{display: 'flex', alignItems: 'center', gap: 8, paddingTop: 8}}>
-              <span
-                className={`codicon ${statusIcon.icon}`}
-                aria-hidden
-                style={{color: statusIcon.color}}
-              />
-              <span style={{fontFamily: 'var(--vscode-editor-font-family)'}}>{data.label}</span>
-            </div>
-          </div>
-          {children}
-        </div>
+        <SuiteGroupItem
+          item={item}
+          context={context}
+          arrow={arrow}
+          children={children}
+          getGroupStatus={getGroupStatus}
+          statusIconFor={statusIconFor}
+        />
       );
     }
 
-    const isMissing = missingFiles.has(data.path);
-    const status = getStatusForPath(data.path);
-    const statusIcon = isMissing
-      ? {
-          icon: 'codicon-warning',
-          color: 'var(--vscode-editorWarning-foreground, #f8b449)',
-          title: 'File not found',
-        }
-      : statusIconFor(status);
-
-    const stopTreeEvent = (event: React.SyntheticEvent) => event.stopPropagation();
-    const NoTreeInterference: React.FC<{children: React.ReactNode}> = ({children}) => (
-      <div
-        onMouseDownCapture={stopTreeEvent}
-        onFocusCapture={stopTreeEvent}
-        onKeyDown={stopTreeEvent}
-        onKeyUp={stopTreeEvent}
-        onInputCapture={stopTreeEvent}
-        style={{flex: 1, minWidth: 0}}
-      >
-        {children}
-      </div>
-    );
-
-    const onChange = (value: string) => {
-      const nextGroups = groups.map(group => ({
-        ...group,
-        entries: group.entries.map(entry =>
-          entry.id === item.index ? {...entry, path: value} : entry
-        ),
-      }));
-      persistGroups(nextGroups);
-    };
-
-    const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        (e.target as HTMLInputElement).blur();
-      }
-    };
-
     return (
-      <div {...context.itemContainerWithChildrenProps}>
-        <div className="tree-view-box" {...context.itemContainerWithoutChildrenProps}>
-          {arrow}
-          <div style={{flex: 1, display: 'flex', alignItems: 'center', gap: 8, minWidth: 0}}>
-            <span
-              className={`codicon ${statusIcon.icon}`}
-              aria-hidden
-              title={statusIcon.title}
-              style={{color: statusIcon.color}}
-            />
-            <NoTreeInterference>
-              <input
-                className="suite-entry-input"
-                value={data.path}
-                onChange={e => onChange(e.target.value)}
-                onKeyDown={onKeyDown}
-                style={{opacity: isMissing ? 0.7 : 1}}
-              />
-            </NoTreeInterference>
-          </div>
-          <span
-            {...context.interactiveElementProps}
-            title="Drag to reorder"
-            onMouseDownCapture={e => e.stopPropagation()}
-            onPointerDownCapture={e => e.stopPropagation()}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 24,
-              minWidth: 24,
-              height: 24,
-              marginTop: 4,
-              opacity: 0.7,
-              cursor: 'grab',
-              userSelect: 'none',
-            }}
-          >
-            <span className="codicon codicon-gripper" aria-hidden />
-          </span>
-        </div>
-        {children}
-      </div>
+      <SuiteFileItem
+        item={item}
+        context={context}
+        arrow={arrow}
+        children={children}
+        missingFiles={missingFiles}
+        getStatusForPath={getStatusForPath}
+        statusIconFor={statusIconFor}
+        groups={groups}
+        persistGroups={persistGroups}
+      />
     );
   };
 
   const noItems = groups.every(group => group.entries.length === 0);
 
   return (
-    <div className="test-flow-tree" style={{paddingTop: 4}}>
-      <div style={{display: 'flex', justifyContent: 'space-between', marginBottom: 8, alignItems: 'center'}}>
-        <div style={{fontWeight: 700}}>Suite</div>
-        <button
-          type="button"
-          disabled={allPaths.length === 0}
-          onClick={handleRunSuite}
-          title={allPaths.length === 0 ? 'No suite files to run' : 'Run suite'}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 4,
-            padding: '4px 12px',
-          }}
-        >
-          <span className="codicon codicon-run" style={{fontSize: 18}} aria-hidden></span>
-          Run suite
-        </button>
-      </div>
-      {noItems ? (
-        <div style={{opacity: 0.8}}>No suite items found under `tests:`</div>
-      ) : (
-        <ControlledTreeEnvironment
-          items={items}
-          getItemTitle={item => (item.data?.type === 'file' ? item.data.path : item.data?.label ?? '')}
-          canDragAndDrop={true}
-          canDropOnFolder={true}
-          canReorderItems={true}
-          canSearch={false}
-          canSearchByStartingTyping={false}
-          viewState={{'suite-tree': {expandedItems}}}
-          onExpandItem={handleExpand}
-          onCollapseItem={handleCollapse}
-          onDrop={handleDrop}
-          onSelectItems={() => {}}
-          renderItemArrow={({item, context}) =>
-            item.isFolder ? (
-              <span
-                {...context.arrowProps}
-                style={{display: 'inline-flex', paddingTop: 8, lineHeight: 0, alignSelf: 'flex-start'}}
-              >
-                {context.isExpanded ? (
-                  <span className="codicon codicon-chevron-down" style={{fontSize: 16}} />
-                ) : (
-                  <span className="codicon codicon-chevron-right" style={{fontSize: 16}} />
-                )}
-              </span>
-            ) : (
-              <span style={{display: 'inline-block', width: 24, height: 24}} />
-            )
-          }
-          renderItem={renderItem}
-          renderTreeContainer={({children, containerProps}) => <div {...containerProps}>{children}</div>}
-          renderItemsContainer={({children, containerProps}) => (
-            <ul
-              {...containerProps}
-              style={{...(containerProps.style || {}), margin: 0, listStyle: 'none'}}
+    <div className="panel">
+      <div className="panel-box">
+        <div className="test-flow-tree" style={{ paddingTop: 4 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, alignItems: 'center' }}>
+            <div style={{ fontWeight: 700 }}>Suite</div>
+            <button
+              type="button"
+              disabled={allPaths.length === 0}
+              onClick={handleRunSuite}
+              title={allPaths.length === 0 ? 'No suite files to run' : 'Run suite'}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                padding: '4px 12px',
+              }}
             >
-              {children}
-            </ul>
+              <span className="codicon codicon-run" style={{ fontSize: 18 }} aria-hidden></span>
+              Run suite
+            </button>
+          </div>
+          {noItems ? (
+            <div style={{ opacity: 0.8 }}>No suite items found under `tests:`</div>
+          ) : (
+            <ControlledTreeEnvironment
+              items={items}
+              getItemTitle={item => (item.data?.type === 'file' ? item.data.path : item.data?.label ?? '')}
+              canDragAndDrop={true}
+              canDropOnFolder={true}
+              canReorderItems={true}
+              canSearch={false}
+              canSearchByStartingTyping={false}
+              viewState={{ 'suite-tree': { expandedItems } }}
+              onExpandItem={handleExpand}
+              onCollapseItem={handleCollapse}
+              onDrop={handleDrop}
+              onSelectItems={() => { }}
+              renderItemArrow={({ item, context }) =>
+                item.isFolder ? (
+                  <span
+                    {...context.arrowProps}
+                    style={{ display: 'inline-flex', paddingTop: 8, lineHeight: 0, alignSelf: 'flex-start' }}
+                  >
+                    {context.isExpanded ? (
+                      <span className="codicon codicon-chevron-down" style={{ fontSize: 16 }} />
+                    ) : (
+                      <span className="codicon codicon-chevron-right" style={{ fontSize: 16 }} />
+                    )}
+                  </span>
+                ) : (
+                  <span style={{ display: 'inline-block', width: 24, height: 24 }} />
+                )
+              }
+              renderItem={renderItem}
+              renderTreeContainer={({ children, containerProps }) => <div {...containerProps}>{children}</div>}
+              renderItemsContainer={({ children, containerProps }) => (
+                <ul
+                  {...containerProps}
+                  style={{ ...(containerProps.style || {}), margin: 0, listStyle: 'none' }}
+                >
+                  {children}
+                </ul>
+              )}
+              renderDragBetweenLine={({ lineProps }) => (
+                <div
+                  {...lineProps}
+                  style={{ background: 'var(--vscode-focusBorder, #264f78)', height: '1px' }}
+                />
+              )}
+            >
+              <Tree treeId="suite-tree" rootItem="suite-root" treeLabel="Suite structure" />
+            </ControlledTreeEnvironment>
           )}
-          renderDragBetweenLine={({lineProps}) => (
-            <div
-              {...lineProps}
-              style={{background: 'var(--vscode-focusBorder, #264f78)', height: '1px'}}
-            />
-          )}
-        >
-          <Tree treeId="suite-tree" rootItem="suite-root" treeLabel="Suite structure" />
-        </ControlledTreeEnvironment>
-      )}
+        </div>
+      </div>
     </div>
   );
 };
