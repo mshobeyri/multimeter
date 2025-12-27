@@ -7,7 +7,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import {LogLevel} from 'mmt-core/CommonData';
-import {handleNetworkMessage, getPreparedConfig} from './vscodeNetwork';
+import {handleNetworkMessage, getPreparedConfig} from './network';
 
 // Reusable terminal for running curl commands
 let curlTerminal: vscode.Terminal|null = null;

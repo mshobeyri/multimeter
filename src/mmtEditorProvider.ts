@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
-import {messageRecieved} from './mmtAPI';
+import {messageRecieved} from './mmtAPI/mmtAPI';
 
 const LAST_VIEW_MODE = 'mmtview:view:selectedViewMode';
 
