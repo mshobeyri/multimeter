@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 
-import {setupChatParticipants} from './assistant';
+import {setupChatParticipants} from './assistant/assistant';
 import {MmtEditorProvider} from './mmtEditorProvider';
 import CertificatesPanel from './panels/CertificatesPanel';
 import ConvertorPanel from './panels/ConvertorPanel';
