@@ -428,3 +428,128 @@ export function computeTestCallInputsMarkers(
 
   return { markers, problems };
 }
+
+export type SuiteTestLineInfo = {
+  path: string;
+  line: number;
+};
+
+export function extractSuiteTestLineInfo(doc: any, content: string): SuiteTestLineInfo[] {
+  const items: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
+  const testsPair = items.find((entry) => entry?.key?.value === "tests");
+  if (!testsPair || !testsPair.value) {
+    return [];
+  }
+  const seqItems: any[] = Array.isArray(testsPair.value.items) ? testsPair.value.items : [];
+  return seqItems
+    .map((item) => {
+      const path = typeof item?.value === "string" ? item.value : undefined;
+      if (!path || path === 'then') {
+        return null;
+      }
+      const offset =
+        Array.isArray(item?.range) && typeof item.range[0] === "number"
+          ? item.range[0]
+          : undefined;
+      const line = typeof offset === "number" ? offsetToLineNumber(content, offset) : 1;
+      return { path, line } as SuiteTestLineInfo;
+    })
+    .filter(Boolean) as SuiteTestLineInfo[];
+}
+
+
+export function computeMissingSuiteFileMarkers(
+  monaco: any,
+  model: any,
+  content: string,
+  yamlDoc: any,
+  missingSuiteFiles: { path: string }[]
+): { markers: any[]; problems: ProblemEntry[] } {
+  if (!model || !yamlDoc || !missingSuiteFiles.length) {
+    return { markers: [], problems: [] };
+  }
+
+  const lineInfo = extractSuiteTestLineInfo(yamlDoc, content);
+  const markers = missingSuiteFiles.map(({ path }) => {
+    const info = lineInfo.find((entry) => entry.path === path);
+    const targetLine = info?.line || 1;
+    const lineNumber = Math.min(Math.max(targetLine, 1), model.getLineCount());
+    return {
+      startLineNumber: lineNumber,
+      startColumn: 1,
+      endLineNumber: lineNumber,
+      endColumn: model.getLineMaxColumn(lineNumber),
+      message: `Suite file "${path}" was not found.`,
+      severity: monaco.MarkerSeverity.Warning,
+    };
+  });
+
+  return {
+    markers,
+    problems: markers.map((marker) => ({
+      message: marker.message,
+      severity: "warning" as const,
+      line: marker.startLineNumber,
+      column: marker.startColumn,
+    })),
+  };
+}
+
+export type DocFileLineInfo = {
+  path: string;
+  line: number;
+  column: number;
+};
+
+// This function is no longer needed in validator.ts, as its logic is now part of useDocFileValidation
+// export function extractDocFileLineInfo(doc: any, content: string): DocFileLineInfo | null {
+//   const items: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
+//   const logoPair = items.find((entry) => entry?.key?.value === "logo");
+//   if (!logoPair || !logoPair.value) {
+//     return null;
+//   }
+//   const path = typeof logoPair.value.value === "string" ? logoPair.value.value : undefined;
+//   if (!path) {
+//     return null;
+//   }
+//   const offset =
+//     Array.isArray(logoPair.value?.range) && typeof logoPair.value.range[0] === "number"
+//       ? logoPair.value.range[0]
+//       : undefined;
+//   const line = typeof offset === "number" ? offsetToLineNumber(content, offset) : 1;
+//   return { path, line };
+// }
+
+export function computeMissingDocFileMarkers(
+  monaco: any,
+  model: any,
+  missingDocFiles: { path: string, line: number, column: number, message: string }[]
+): { markers: any[]; problems: ProblemEntry[] } {
+  if (!model || !missingDocFiles.length) {
+    return { markers: [], problems: [] };
+  }
+
+  const markers = missingDocFiles.map((missingFile) => {
+    const lineNumber = Math.min(Math.max(missingFile.line ?? 1, 1), model.getLineCount());
+    const column = missingFile.column ?? 1;
+    return {
+      startLineNumber: lineNumber,
+      startColumn: column,
+      endLineNumber: lineNumber,
+      endColumn: model.getLineMaxColumn(lineNumber),
+      message: missingFile.message,
+      severity: monaco.MarkerSeverity.Warning,
+    };
+  });
+
+  return {
+    markers,
+    problems: markers.map((marker) => ({
+      message: marker.message,
+      severity: "warning" as const,
+      line: marker.startLineNumber,
+      column: marker.startColumn,
+    })),
+  };
+}
+

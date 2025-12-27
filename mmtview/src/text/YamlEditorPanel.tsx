@@ -8,9 +8,12 @@ import { handleBeforeMount } from "./BeforeMount";
 import { safeList } from "mmt-core/safer";
 import { openRelativeFile, showVSCodeMessage } from "../vsAPI";
 import { useImportValidation } from "./useImportValidation";
+import { useDocFileValidation } from "./useDocFileValidation";
 import { useSuiteTestsValidation } from "./useSuiteTestsValidation";
 import {
   computeMissingImportMarkers,
+  computeMissingDocFileMarkers, // Updated from computeMissingLogoFileMarkers
+  computeMissingSuiteFileMarkers,
   computeOrderingMarkers,
   computeTestCallAliasMarkers,
   computeTestCallInputsMarkers,
@@ -55,9 +58,12 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const lastImportsSignatureRef = useRef<string>("");
   const { missingImports, inputsByAlias: apiInputsByAlias } = useImportValidation(importsMapState);
   const { missingSuiteFiles } = useSuiteTestsValidation(docType, content);
+  const { missingDocFiles } = useDocFileValidation(docType, content); // Changed from missingLogoFile
   const [yamlProblems, setYamlProblems] = useState<ProblemEntry[]>([]);
   const [orderingProblems, setOrderingProblems] = useState<ProblemEntry[]>([]);
   const [missingImportProblems, setMissingImportProblems] = useState<ProblemEntry[]>([]);
+  const [missingSuiteFileProblems, setMissingSuiteFileProblems] = useState<ProblemEntry[]>([]);
+  const [missingDocFileProblems, setMissingDocFileProblems] = useState<ProblemEntry[]>([]); // Changed from missingLogoFileProblems
   const [callAliasProblems, setCallAliasProblems] = useState<ProblemEntry[]>([]);
   const [callInputsProblems, setCallInputsProblems] = useState<ProblemEntry[]>([]);
   // Keep track of whether the editor has detected a canonical key-order issue via markers.
@@ -208,6 +214,58 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     monaco.editor.setModelMarkers(model, "mmt-imports", markers);
     setMissingImportProblems(problems);
   }, [missingImports, content, editorReady]);
+
+  useEffect(() => {
+    if (!editorReady || !monacoRef.current || !editorRef.current) {
+      return;
+    }
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) {
+      return;
+    }
+
+    let doc: any = null;
+    try {
+      doc = parseYamlDoc(content);
+    } catch {
+      monaco.editor.setModelMarkers(model, "mmt-suite-files", []);
+      setMissingSuiteFileProblems([]);
+      return;
+    }
+
+    const { markers, problems } = computeMissingSuiteFileMarkers(monaco, model, content, doc, missingSuiteFiles);
+    monaco.editor.setModelMarkers(model, "mmt-suite-files", markers);
+    setMissingSuiteFileProblems(problems);
+  }, [missingSuiteFiles, content, editorReady]);
+
+  useEffect(() => {
+    if (!editorReady || !monacoRef.current || !editorRef.current) {
+      return;
+    }
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) {
+      return;
+    }
+
+    let doc: any = null;
+    try {
+      doc = parseYamlDoc(content);
+    } catch {
+      monaco.editor.setModelMarkers(model, "mmt-logo-file", []);
+      setMissingDocFileProblems([]); // Changed from setMissingLogoFileProblems
+      return;
+    }
+
+    const { markers, problems } = computeMissingDocFileMarkers(monaco, model, missingDocFiles); // Changed from missingLogoFile
+    monaco.editor.setModelMarkers(model, "mmt-logo-file", markers);
+    setMissingDocFileProblems(problems); // Changed from setMissingLogoFileProblems
+  }, [missingDocFiles, editorReady]); // Changed from missingLogoFile
+
+
 
   useEffect(() => {
     if (!editorReady || !monacoRef.current || !editorRef.current) {
@@ -602,28 +660,19 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       return;
     }
 
-    const suiteProblems: ProblemEntry[] = (docType === "suite")
-      ? missingSuiteFiles.map((entry) => ({
-        line: entry.line,
-        column: entry.column,
-        message: `Missing suite test file: ${entry.path}`,
-        severity: "warning",
-      }))
-      : [];
-
     const problems = [
       ...yamlProblems,
       ...orderingProblems,
       ...missingImportProblems,
       ...callAliasProblems,
       ...callInputsProblems,
-      ...suiteProblems,
+      ...missingSuiteFileProblems,
     ];
     window.vscode.postMessage({
       command: "updateDocumentProblems",
       problems,
     });
-  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFiles]);
+  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, missingDocFileProblems]);
 
   return (
     <div style={{ height: "100%" }}>
