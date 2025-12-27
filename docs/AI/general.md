@@ -3,7 +3,7 @@ This folder teaches an AI how to **answer questions** about Multimeter and decid
 For actual YAML generation or modification, always go through `AI/generate.md`.
 
 The AI should:
-- Understand what each `type` (`api`, `test`, `env`, `doc`) is for.
+- Understand what each `type` (`api`, `test`, `env`, `doc`, `suite`) is for.
 - Decide whether the user needs **an explanation** or **new/edited YAML**.
 - Minimize tokens by reading only the specific generator file it needs.
 
@@ -12,6 +12,7 @@ Short mental model of file types:
 - `type: test` → describe flows that call APIs/tests and assert behavior.
 - `type: env` → define environment variables and presets.
 - `type: doc` → describe documentation over existing `.mmt` files.
+- `type: suite` → group and run multiple tests, APIs, or other suites.
 
 When you are the AI, follow these rules:
 
@@ -46,6 +47,9 @@ When you are the AI, follow these rules:
 	- "How do I generate API docs?"
 	  - Explain doc files.
 	  - If a file is requested, go to `generate.md` and build a `type: doc` example.
+	- "How do I run multiple tests together?"
+	  - Explain suite files.
+	  - If a file is requested, go to `generate.md` and build a `type: suite` example.
 
 4. **Safety and style**
 	- Use 2‑space indentation in all YAML examples.
