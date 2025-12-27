@@ -1,47 +1,4 @@
-import {ApiLogRawValue, createApiLogHelpers, prepareRunFromOptions} from './runner';
-import {RunFileOptions} from './runConfig';
-import path from 'path';
-
-const baseOptions = (overrides: Partial<RunFileOptions> = {}): RunFileOptions => ({
-  file: '',
-  fileType: 'raw',
-  filePath: overrides.filePath || path.join(process.cwd(), 'temp.mmt'),
-  manualInputs: {},
-  envvar: {},
-  manualEnvvars: {},
-  fileLoader: async () => '',
-  runCode: async () => {},
-  ...overrides,
-});
-
-const API_DOC = `
-type: api
-title: Example API
-url: http://example.com/api
-method: get
-protocol: http
-inputs:
-  username: defaultUser
-  password: defaultPass
-examples:
-  - name: primary
-    inputs:
-      username: firstUser
-      password: firstPass
-  - name: override
-    inputs:
-      username: secondUser
-      password: secondPass
-`;
-
-const TEST_DOC = `
-type: test
-title: Demo Test
-inputs:
-  region: us-east
-steps:
-  - print: "done"
-`;
+import {ApiLogRawValue, createApiLogHelpers} from './runApi';
 
 describe('createApiLogHelpers', () => {
   it('wraps raw values and detects them correctly', () => {
@@ -63,17 +20,16 @@ describe('createApiLogHelpers', () => {
     });
 
     expect(section).toBe(
-`REQUEST\n  method:    GET\n  headers:\n    {\n      Accept:  "json"\n    }\n  duration:  125 ms`
-    );
+        `REQUEST\n  method:    GET\n  headers:\n    {\n      Accept:  "json"\n    }\n  duration:  125 ms`);
   });
 
   it('formats nested values with indentation', () => {
     const helpers = createApiLogHelpers();
 
-    const value = helpers.formatValue({alpha: 'beta', nested: [1, {two: 2}]}, 2);
+    const value =
+        helpers.formatValue({alpha: 'beta', nested: [1, {two: 2}]}, 2);
     expect(value).toBe(
-`  {\n    alpha:   "beta"\n    nested:\n      [\n        1\n        {\n          two:  2\n        }\n      ]\n  }`
-    );
+        `  {\n    alpha:   "beta"\n    nested:\n      [\n        1\n        {\n          two:  2\n        }\n      ]\n  }`);
   });
 
   it('normalises body values intelligently', () => {
