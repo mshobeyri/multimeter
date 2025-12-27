@@ -13,6 +13,7 @@ The only file types are:
 - `type: test` – describe a test flow that calls APIs/tests.
 - `type: env` – define environment variables and presets.
 - `type: doc` – describe API documentation over a set of `.mmt` files.
+- `type: suite` – group and run multiple tests, APIs, or other suites.
 
 When the user asks you to **create or change** a `.mmt` file, follow this order:
 
@@ -21,12 +22,14 @@ When the user asks you to **create or change** a `.mmt` file, follow this order:
 	- If the user talks about scenarios, flows, assertions, retries, loops, or "tests" → use `type: test`.
 	- If the user talks about base URLs, credentials, modes, feature flags, presets → use `type: env`.
 	- If the user talks about documentation, catalogs, grouping APIs → use `type: doc`.
+	- If the user talks about running multiple tests, orchestration, collections of tests → use `type: suite`.
 
 2. **Jump to the detailed generator**
 	- For `type: api`, use **`AI/generate-api.md`** to shape fields and examples.
 	- For `type: test`, use **`AI/generate-test.md`**.
 	- For `type: env`, use **`AI/generate-env.md`**.
 	- For `type: doc`, use **`AI/generate-doc.md`**.
+	- For `type: suite`, use **`AI/generate-suite.md`**.
 
 3. **Token syntax (always snake_case)**
 	- Environment variables: `e:api_url`, `e:auth_token`, etc.
