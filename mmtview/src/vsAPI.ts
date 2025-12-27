@@ -109,5 +109,5 @@ export function openRelativeFile(filename: string) {
 }
 
 export function showHistoryPanel() {
-  window.vscode?.postMessage({ command: 'multimeter.history.show' });
+  window.vscode?.postMessage({ command: 'openHistoryPanel' });
 }

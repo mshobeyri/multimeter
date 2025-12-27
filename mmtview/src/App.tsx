@@ -62,7 +62,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       const message = event.data;
-      if (message.command === "loadDocument") {
+      if (message.command === "viewDocumentContent") {
         isInitLoad.current = true;
         setContent(message.content);
 
@@ -124,11 +124,11 @@ const App: React.FC = () => {
       isInitLoad.current = false;
       return;
     }
-    window.vscode?.postMessage({ command: "updateDocument", text: content });
+    window.vscode?.postMessage({ command: "updateDocumentContent", text: content });
   }, [content]);
 
   useEffect(() => {
-    window.vscode?.postMessage({ command: "ready" });
+    window.vscode?.postMessage({ command: "loadDocumentContent" });
   }, []);
 
   useEffect(() => {

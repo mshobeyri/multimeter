@@ -67,13 +67,13 @@ export const messageRecieved = async (
     message: any, webviewPanel: vscode.WebviewPanel,
     document: vscode.TextDocument, mmtProvider: any) => {
   switch (message.command) {
-    case 'ready':
+    case 'loadDocumentContent':
       // Get the last saved view mode
       const lastViewMode = mmtProvider.getLastViewMode();
 
       // Send document data to the current panel
       webviewPanel.webview.postMessage({
-        command: 'loadDocument',
+        command: 'viewDocumentContent',
         uri: document.uri.toString(),
         content: document.getText(),
         mode: vscode.window.tabGroups.activeTabGroup.activeTab?.input ?
@@ -89,7 +89,7 @@ export const messageRecieved = async (
       }
       break;
 
-    case 'updateDocument':
+    case 'updateDocumentContent':
       mmtProvider.updateTextDocument(document, message.text);
       break;
 
@@ -436,14 +436,12 @@ export const messageRecieved = async (
       break;
     }
 
-    case 'multimeter.history.show': {
+    case 'openHistoryPanel': {
       await vscode.commands.executeCommand('multimeter.history.show');
       break;
     }
 
     case 'updateConfig': {
-      // Allow either explicit section/key or a fullKey for future
-      // extensibility
       try {
         const {section, key, fullKey, value} = message as {
           section?: string;
@@ -522,7 +520,7 @@ export const messageRecieved = async (
       break;
     }
 
-    case 'runCurl': {
+    case 'runCurlCommand': {
       try {
         const cmd = String(message.curl || '').trim();
         if (!cmd) {

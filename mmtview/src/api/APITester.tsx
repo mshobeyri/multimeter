@@ -326,7 +326,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
               onClick={() => {
                 const curl = buildCurl();
                 window.vscode?.postMessage({
-                  command: "runCurl",
+                  command: "runCurlCommand",
                   curl
                 });
               }}
