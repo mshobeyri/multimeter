@@ -6,6 +6,8 @@ For full details, see the references:
 - [API](./api-mmt.md)
 - [Test](./test-mmt.md)
 - [Environment](./environment-mmt.md)
+- [Doc](./doc-mmt.md)
+- [Suite](./suite-mmt.md)
 
 ## API (type: api)
 Purpose: Define a single HTTP/WS request with inputs, headers, body, and extraction rules.
@@ -83,6 +85,37 @@ Here we defined two urls 'dev' and 'prod' to switch target machines easily. Also
 variables are accessible in the whole yamls by ```e:NAME``` and ```<<e:NAME>>```.
 
 Deep dive: see [Environment](./environment-mmt.md).
+
+## Doc (type: doc)
+Purpose: Create aggregated, browsable documentation from your `.mmt` API files.
+
+Minimal example
+```yaml
+type: doc
+title: My APIs
+sources:
+  - ./apis
+```
+UI: Renders a searchable HTML page of all referenced APIs in the editor.
+
+Deep dive: see [Doc](./doc-mmt.md).
+
+## Suite (type: suite)
+Purpose: Group and run multiple tests, APIs, or other suites, with control over sequential and parallel execution.
+
+Minimal example
+```yaml
+type: suite
+title: Smoke Tests
+tests:
+  - ./tests/login.mmt
+  - ./tests/get_user.mmt
+  - then
+  - ./tests/logout.mmt
+```
+Run: Executes the items in stages. All items before a `then` run in parallel. The stages are run sequentially.
+
+Deep dive: see [Suite](./suite-mmt.md).
 
 ## How they fit together
 - Tests import APIs and data; Environments supply variables consumed by both.
