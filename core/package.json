@@ -78,6 +78,11 @@
       "types": "./dist/networkCoreNode.d.ts",
       "require": "./dist/networkCoreNode.js",
       "default": "./dist/networkCoreNode.js"
+    },
+    "./fileHelper": {
+      "types": "./dist/fileHelper.d.ts",
+      "require": "./dist/fileHelper.js",
+      "default": "./dist/fileHelper.js"
     }
   },
   "scripts": {
