@@ -300,6 +300,38 @@ button:focus {
   background: transparent;
 }
 
+/* Field/inline small icon button used next to inputs */
+.field-button {
+  width: 28px;
+  height: 24px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  z-index: 1;
+  opacity: 0.9;
+}
+
+.field-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.field-button:hover {
+  background: transparent !important;
+  border-color: transparent !important;
+  opacity: 1;
+}
+
+.field-button:focus {
+  outline: none;
+  box-shadow: none;
+}
+
 .tab-bar {
   display: flex;
   border-bottom: 1px solid var(--vscode-editorWidget-border);

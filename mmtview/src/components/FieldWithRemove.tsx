@@ -26,6 +26,7 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
         width: "100%",
         verticalAlign: "top",
         cursor: disabled ? "not-allowed" : undefined,
+        paddingRight: 36,
       }}
       onChange={e => onChange(e.target.value)}
       disabled={disabled}
@@ -34,23 +35,8 @@ const FieldWithRemove: React.FC<FieldWithRemoveProps> = ({
       onClick={onRemovePressed}
       title="Remove field"
       disabled={disabled}
-      style={{
-        position: "absolute",
-        top: 1,
-        right: 0,
-        width: 28,
-        height: 24,
-        background: "transparent",
-        border: "none",
-        cursor: disabled ? "not-allowed" : "pointer",
-        fontSize: "14px",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 0,
-        zIndex: 1,
-        opacity: disabled ? 0.5 : 1,
-      }}
+      style={{ position: 'absolute', right: 4, top: '50%', transform: 'translateY(-50%)' }}
+      className="field-button"
     >
       <span className="action-button codicon codicon-close" style={{ fontSize: "16px" }}></span>
     </button>}

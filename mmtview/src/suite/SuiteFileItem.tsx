@@ -70,6 +70,7 @@ export const SuiteFileItem: React.FC<SuiteFileItemProps> = ({
                             onChange={(rel) => onChange(rel)}
                             basePath={useContext(FileContext).mmtFilePath}
                             filters={[{ name: 'MMT files', extensions: ['mmt'] }]}
+                            onRemovePressed={() => onChange('')}
                         />
                     </NoTreeInterference>
                 </div>

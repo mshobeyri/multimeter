@@ -55,6 +55,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         }}
         keyPlaceholder="name"
         valuePlaceholder="path"
+        filePicker={true}
       />
       <KVEditor
         label="Inputs"

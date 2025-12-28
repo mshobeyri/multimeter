@@ -47,6 +47,7 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update, missingImport
       }}
       keyPlaceholder="name"
       valuePlaceholder="path"
+      filePicker={true}
     />
     {missingImports.length > 0 && (
       <div style={{ padding: "4px 5px", color: "var(--vscode-errorForeground, #f14c4c)", fontSize: 12 }}>

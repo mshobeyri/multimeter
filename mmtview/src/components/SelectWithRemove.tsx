@@ -64,9 +64,7 @@ const SelectWithRemove: React.FC<SelectWithRemoveProps> = ({
           opacity: disabled ? 0.5 : 1,
         }}
       >
-        <span style={{ fontSize: "14.4px", lineHeight: 1 }}>
-          <span className="codicon codicon-trash action-button" style={{ fontSize: "16px", }}></span>
-        </span>
+        <span className="codicon codicon-close action-button" style={{ fontSize: "16px", }}></span>
       </button>
     )}
   </div>

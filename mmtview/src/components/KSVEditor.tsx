@@ -1,8 +1,10 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useContext } from "react";
 import FieldWithRemove from "./FieldWithRemove";
 import SelectWithRemove from "./SelectWithRemove";
 import { safeList } from "mmt-core/safer";
 import { JSONRecord } from "mmt-core/CommonData";
+import FilePickerInput from "./FilePickerInput";
+import { FileContext } from '../fileContext';
 
 interface KSVEditorProps {
   label: string;
@@ -16,6 +18,7 @@ interface KSVEditorProps {
   keysDisabled?: boolean;
   deletable?: boolean;
   expandable?: boolean;
+  filePicker?: boolean;
 }
 
 // Utility to ensure an empty key is always at the end
@@ -24,7 +27,7 @@ function withTrailingEmptyKey(obj?: string | Record<string, string> | JSONRecord
     return addEmpty ? [["", ""]] : [];
   }
 
-  if(typeof obj === "string") {
+  if (typeof obj === "string") {
     return addEmpty ? [["", ""]] : [];
   }
 
@@ -40,7 +43,7 @@ function withTrailingEmptyKey(obj?: string | Record<string, string> | JSONRecord
   }
   return entries;
 }
-
+// Key Select Value
 const KSVEditor: React.FC<KSVEditorProps> = ({
   label,
   value,
@@ -52,13 +55,17 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   deactivated = false,
   keysDisabled = false,
   deletable = true,
-  expandable = true
+  expandable = true,
+  filePicker = false
 }) => {
   // Use an array of entries to preserve order and handle the object format
   const entries = useMemo(() => withTrailingEmptyKey(value, expandable), [value, expandable]);
 
   // Ensure options is always an array - safety check
   const safeOptions = Array.isArray(options) ? options : [];
+
+  // File context (avoid calling hooks inside callbacks)
+  const fileCtx = useContext(FileContext);
 
   // Helper to convert entries array back to object
   const toObject = (arr: Array<[string, string]>): Record<string, string> =>
@@ -122,7 +129,15 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                 </td>
                 <td style={{ width: "50%", padding: "5px", verticalAlign: "top" }}>
                   {k.trim() !== "" && (
-                    safeOptions.length > 0 ? (
+                    filePicker ? (
+                      <FilePickerInput
+                        value={v}
+                        onChange={newVal => handleValueChange(i, newVal)}
+                        onRemovePressed={() => handleRemove(i)}
+                        basePath={fileCtx?.mmtFilePath}
+                        filters={[{ name: 'MMT files, CSV files', extensions: ['mmt', 'csv'] }]}
+                      />
+                    ) : safeOptions.length > 0 ? (
                       <SelectWithRemove
                         value={v}
                         onChange={newVal => handleValueChange(i, newVal)}
