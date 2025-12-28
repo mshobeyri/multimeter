@@ -332,6 +332,15 @@ button:focus {
   box-shadow: none;
 }
 
+.field-button:active,
+.field-button:focus,
+.field-button:focus-visible {
+  background: transparent !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
 .tab-bar {
   display: flex;
   border-bottom: 1px solid var(--vscode-editorWidget-border);

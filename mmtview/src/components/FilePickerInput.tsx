@@ -5,11 +5,14 @@ import fileHelper from 'mmt-core/fileHelper';
 type FileFilter = { name?: string; extensions?: string[] };
 
 interface FilePickerInputProps {
+  ref?: any;
   value?: string;
   basePath?: string; // absolute base folder to open picker at and to compute relative paths from
   filters?: FileFilter[]; // file type filters (extensions without dot, e.g. ['mmt','yaml'])
   onChange?: (file: string) => void;
-  onRemovePressed: () => void;
+  onEnterPressed?: (file: string) => void;
+  onRemovePressed?: () => void;
+  allowFolders?: boolean;
 }
 
 const ensureTrailingSep = (p?: string) => {
@@ -18,11 +21,14 @@ const ensureTrailingSep = (p?: string) => {
 };
 
 const FilePickerInput: React.FC<FilePickerInputProps> = ({
+  ref,
   value = '',
   basePath,
   filters = [],
   onChange,
+  onEnterPressed,
   onRemovePressed,
+  allowFolders = false,
 }) => {
   const filterPayload = useMemo(() => {
     if (!filters || filters.length === 0) return undefined;
@@ -39,7 +45,7 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
 
   const handleOpenPicker = async () => {
     try {
-      const res = await openOsFilePicker({ filters: filterPayload, defaultPath: basePath, canSelectMany: false });
+      const res = await openOsFilePicker({ filters: filterPayload, defaultPath: basePath, canSelectMany: false, canSelectFolders: !!allowFolders });
       if (!res) return;
       if (res.cancelled) return;
       if (res.error) {
@@ -50,6 +56,7 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
       if (!abs) return;
       const rel = (fileHelper as any).computeRelative(basePath, abs);
       onChange && onChange(rel);
+      onEnterPressed && onEnterPressed(rel);
     } catch (err) {
       console.warn('Failed to open OS file picker', err);
     }
@@ -59,6 +66,7 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
     <div style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%' }}>
       <div style={{ position: 'relative', flex: 1 }}>
         <input
+          ref={ref}
           type="text"
           value={value}
           onChange={e => {
@@ -68,6 +76,7 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
             if (e.key === 'Enter') {
               e.preventDefault();
               (e.target as HTMLInputElement).blur();
+              onEnterPressed && onEnterPressed(value);
             }
           }}
           style={{
@@ -83,7 +92,7 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
           title={filters && filters.length ? `Open file picker (${filters.map(f => f.name || f.extensions?.join(',')).join(';')})` : 'Open file picker'}
           aria-label="Open file picker"
           className="field-button"
-          style={{ position: 'absolute', right: 36, top: '50%', transform: 'translateY(-50%)' }}
+          style={{ position: 'absolute', right: onRemovePressed ? 36 : 4, top: '50%', transform: 'translateY(-50%)' }}
         >
           <span className="action-button codicon codicon-folder-opened" style={{ fontSize: "16px" }} />
         </button>

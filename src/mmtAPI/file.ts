@@ -353,6 +353,7 @@ export async function handleOpenOsFilePicker(
   try {
     const requestId = message?.requestId;
     const canSelectMany = !!message?.canSelectMany;
+    const canSelectFolders = !!message?.canSelectFolders;
     const openLabel =
         typeof message?.openLabel === 'string' ? message.openLabel : undefined;
     const filters = normalizeFilters(message?.filters);
@@ -376,9 +377,10 @@ export async function handleOpenOsFilePicker(
     }
 
     const uri = await vscode.window.showOpenDialog({
+      // Allow selecting files always; optionally allow folders as well
       canSelectFiles: true,
       canSelectMany,
-      canSelectFolders: false,
+      canSelectFolders,
       openLabel,
       defaultUri,
       filters,

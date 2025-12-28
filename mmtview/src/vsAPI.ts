@@ -103,6 +103,7 @@ export function openOsFilePicker(opts: {
   filters?: any;
   defaultPath?: string;
   canSelectMany?: boolean;
+  canSelectFolders?: boolean;
   openLabel?: string;
 }): Promise<OsPickerResult> {
   const requestId =
@@ -116,6 +117,7 @@ export function openOsFilePicker(opts: {
       filters: opts?.filters,
       defaultPath: opts?.defaultPath,
       canSelectMany: !!opts?.canSelectMany,
+      canSelectFolders: !!opts?.canSelectFolders,
       openLabel: opts?.openLabel,
     });
     // Add a timeout to avoid leaked promises (optional: 2 minutes)

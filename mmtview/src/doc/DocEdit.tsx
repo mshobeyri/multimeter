@@ -1,5 +1,5 @@
 import React, { useContext } from "react";
-import LEditor from "../components/LEditor";
+import FLEditor from "../components/FLEditor";
 import { DocData } from "mmt-core/DocData";
 import DescriptionEditor from "../components/DescriptionEditor";
 import FieldWithRemove from "../components/FieldWithRemove";
@@ -48,7 +48,7 @@ const DocEdit: React.FC<DocEditProps> = ({ doc, update }) => {
       </div>
 
       <div className="panel-form-row">
-        <LEditor
+        <FLEditor
           label="Sources"
           value={doc.sources || []}
           onChange={kv => {
@@ -85,7 +85,7 @@ const DocEdit: React.FC<DocEditProps> = ({ doc, update }) => {
                 update({ services: next });
               }}
             />
-            <LEditor
+            <FLEditor
               label="Sources"
               value={(svc?.sources || []) as string[]}
               onChange={list => {
