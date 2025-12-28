@@ -41,7 +41,7 @@ function cloneInputs(source?: JSONRecord): JSONRecord {
 }
 
 const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
-  const { filePath } = useContext(FileContext);
+  const { mmtFilePath } = useContext(FileContext);
   const {
     requestData,
     responseData,
@@ -64,7 +64,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
     buildCurl,
     network,
     examples
-  } = useAPITesterLogic({ api, onUpdateApi, filePath });
+  } = useAPITesterLogic({ api, onUpdateApi, filePath: mmtFilePath });
 
   const [editorTab, setEditorTabInternal] = useState<EditorTab>(() => {
     const saved = localStorage.getItem("apitest-editor-tab");

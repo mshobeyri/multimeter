@@ -1,8 +1,7 @@
 import { createContext } from "react";
 
 export interface FileContextValue {
-  filePath?: string;
-  fileName?: string;
+  mmtFilePath?: string;
 }
 
 export const FileContext = createContext<FileContextValue>({});

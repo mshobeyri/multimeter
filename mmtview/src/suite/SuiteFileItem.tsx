@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useContext } from 'react';
 import { TreeItem } from 'react-complex-tree';
 import { SuiteTreeItemData, StepStatus, SuiteGroup } from './types';
+import FilePickerInput from '../components/FilePickerInput';
+import { FileContext } from '../fileContext';
 
 interface SuiteFileItemProps {
     item: TreeItem<SuiteTreeItemData>;
@@ -51,13 +53,6 @@ export const SuiteFileItem: React.FC<SuiteFileItemProps> = ({
         persistGroups(nextGroups);
     };
 
-    const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            (e.target as HTMLInputElement).blur();
-        }
-    };
-
     return (
         <div {...context.itemContainerWithChildrenProps}>
             <div className="tree-view-box" {...context.itemContainerWithoutChildrenProps} style={{ paddingTop: 10, display: 'flex' }}>
@@ -70,12 +65,11 @@ export const SuiteFileItem: React.FC<SuiteFileItemProps> = ({
                         style={{ color: statusIcon.color }}
                     />
                     <NoTreeInterference>
-                        <input
-                            className="suite-entry-input"
+                        <FilePickerInput
                             value={data.path}
-                            onChange={e => onChange(e.target.value)}
-                            onKeyDown={onKeyDown}
-                            style={{ opacity: isMissing ? 0.7 : 1 }}
+                            onChange={(rel) => onChange(rel)}
+                            basePath={useContext(FileContext).mmtFilePath}
+                            filters={[{ name: 'MMT files', extensions: ['mmt'] }]}
                         />
                     </NoTreeInterference>
                 </div>

@@ -29,7 +29,7 @@ const App: React.FC = () => {
   const [content, setContent] = useState("");
   const [validContent, setValidContent] = useState("");
   const [docType, setDocType] = useState<string | null>(null);
-  const [filePath, setFilePath] = useState<string | undefined>(undefined);
+  const [mmtFilePath, setMmtFilePath] = useState<string | undefined>(undefined);
 
   const isInitLoad = useRef(true);
   const [yamlEditorFocused, setYamlEditorFocused] = useState(false);
@@ -78,7 +78,7 @@ const App: React.FC = () => {
           // parsing failed: keep previous validContent
         }
 
-        if (message.uri) setFilePath(message.uri);
+        if (message.uri) setMmtFilePath(message.uri);
         if (message.mode) {
           if (message.mode === "compare") {
             setPanelSize(window.innerWidth);
@@ -160,7 +160,7 @@ const App: React.FC = () => {
   }, [panelMode]);
 
   return (
-    <FileContext.Provider value={{ filePath }}>
+    <FileContext.Provider value={{ mmtFilePath }}>
       <SplitPane
         split="vertical"
         size={panelSize}

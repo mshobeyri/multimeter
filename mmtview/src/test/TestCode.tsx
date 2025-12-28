@@ -11,7 +11,7 @@ interface TestCodeProps {
 }
 
 const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
-    const { filePath } = useContext(FileContext);
+    const { mmtFilePath } = useContext(FileContext);
     const [jsCode, setJsCode] = React.useState<string>("");
     const [error, setError] = React.useState<string | null>(null);
     const [envVars, setEnvVars] = React.useState<Record<string, any>>({});
@@ -82,7 +82,7 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
             logToOutput("warn", args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' '));
         };
         try {
-            const fileName = filePath ? filePath.split(/[/\\]/).pop() : '';
+            const fileName = mmtFilePath ? mmtFilePath.split(/[/\\]/).pop() : '';
             const runTitle = testData?.title || fileName || 'test';
             runJSCode(jsCode, runTitle);
         } catch (e: any) {
