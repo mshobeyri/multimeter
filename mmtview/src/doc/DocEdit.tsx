@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useContext } from "react";
 import LEditor from "../components/LEditor";
 import { DocData } from "mmt-core/DocData";
 import DescriptionEditor from "../components/DescriptionEditor";
 import FieldWithRemove from "../components/FieldWithRemove";
+import FilePickerInput from "../components/FilePickerInput";
+import { FileContext } from '../fileContext';
 
 interface DocEditProps {
   doc: DocData;
@@ -11,6 +13,7 @@ interface DocEditProps {
 
 const DocEdit: React.FC<DocEditProps> = ({ doc, update }) => {
   const services = doc.services || [];
+  const fileCtx = useContext(FileContext);
 
   return (
     <div className="panel-form">
@@ -29,6 +32,19 @@ const DocEdit: React.FC<DocEditProps> = ({ doc, update }) => {
           value={doc.description || ""}
           onChange={value => update({ description: value })}
         />
+      </div>
+
+      <div className="panel-form-row">
+        <div className="label">Logo</div>
+        <div style={{ width: '100%' }}>
+          <FilePickerInput
+            value={doc.logo || ''}
+            onChange={val => update({ logo: val })}
+            onRemovePressed={() => update({ logo: '' })}
+            basePath={fileCtx?.mmtFilePath}
+            filters={[{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'svg', 'webp', 'gif'] }]}
+          />
+        </div>
       </div>
 
       <div className="panel-form-row">
