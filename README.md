@@ -105,6 +105,7 @@ Here is a how you can run the test in VSCode <a href="https://marketplace.visual
   - [API](docs/api-mmt.md)
   - [Test](docs/test-mmt.md)
   - [Environment](docs/environment-mmt.md)
+  - [Suite](docs/suite-mmt.md)
   - [Doc](docs/doc-mmt.md)
 - [Testlight (CLI)](docs/testlight.md)
 - [Convertor](docs/convertor.md)
