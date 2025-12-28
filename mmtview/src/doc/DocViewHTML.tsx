@@ -36,6 +36,13 @@ const DocViewHTML: React.FC<DocViewProps> = ({ doc }) => {
     return list;
   }, [doc]);
 
+  // Extract simple doc properties to avoid complex expressions in effect deps
+  const docTitle = doc.title;
+  const docDescription = (doc as any).description;
+  const docLogo = doc.logo;
+  const docServices = (doc as any).services;
+  const docSources = Array.isArray((doc as any).sources) ? (doc as any).sources : undefined;
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -48,8 +55,7 @@ const DocViewHTML: React.FC<DocViewProps> = ({ doc }) => {
           try { (await listFiles(entry, true)).forEach(p => fileSet.add(p)); } catch { }
         }
       }
-      const anyDoc: any = doc as any;
-      const services = Array.isArray(anyDoc.services) ? anyDoc.services as Array<{ sources?: string[] }> : [];
+      const services = Array.isArray(docServices) ? docServices as Array<{ sources?: string[] }> : [];
       for (const svc of services) {
         const svcSources = Array.isArray(svc.sources) ? svc.sources : [];
         for (const entry of svcSources) {
@@ -74,8 +80,8 @@ const DocViewHTML: React.FC<DocViewProps> = ({ doc }) => {
         } catch { }
       }
       let logoDataUrl: string | undefined = undefined;
-      if (doc.logo && typeof doc.logo === 'string') {
-        const logoStr = doc.logo as string;
+      if (docLogo && typeof docLogo === 'string') {
+        const logoStr = docLogo as string;
         const isData = logoStr.startsWith('data:');
         const isHttp = /^https?:\/\//i.test(logoStr);
         if (!isData && !isHttp) {
@@ -85,15 +91,15 @@ const DocViewHTML: React.FC<DocViewProps> = ({ doc }) => {
         }
       }
       if (!cancelled) setHtml(docHtml.buildDocHtml(apis, {
-        title: doc.title,
-        description: (doc as any).description,
-        logo: logoDataUrl || doc.logo,
-        sources: Array.isArray(doc.sources) ? doc.sources : undefined,
-        services: Array.isArray((doc as any).services) ? (doc as any).services : undefined,
+        title: docTitle,
+        description: docDescription,
+        logo: logoDataUrl || docLogo,
+        sources: docSources,
+        services: Array.isArray(docServices) ? docServices : undefined,
       }));
     })();
     return () => { cancelled = true; };
-  }, [sources, doc.title, (doc as any).description, doc.logo, (doc as any).services]);
+  }, [sources, docTitle, docDescription, docLogo, docServices, docSources]);
 
   useEffect(() => {
     if (!iframeRef.current) return;

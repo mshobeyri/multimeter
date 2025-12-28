@@ -81,7 +81,6 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
     const [expandedItems, setExpandedItems] = React.useState<string[]>(
         () => collectFolderIds(shortTree.items)
     );
-    const [selectedItems, setSelectedItems] = React.useState<string[]>([]);
     // Toggle "active" mode per item for inline editors of expandable types
     const [openEditors, setOpenEditors] = React.useState<Record<string, boolean>>({});
 
@@ -289,7 +288,6 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
 
     const addItemOfType = (type: FlowType) => {
         const itemsCopy = { ...shortTree.items } as Record<string, any>;
-        const selectedKey = selectedItems.length === 1 ? selectedItems[0] : undefined;
 
         const makeNode = (key: string, stepObj: any) => ({
             index: key,
@@ -322,24 +320,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
             }
             itemsCopy[parentKey] = { ...parent, children };
         };
-
-        const findParentOf = (childKey: string | undefined): string | undefined => {
-            if (!childKey) return undefined;
-            return Object.keys(itemsCopy).find(pk => Array.isArray(itemsCopy[pk].children) && itemsCopy[pk].children.includes(childKey));
-        };
-
-        if (selectedKey) {
-            const sel = itemsCopy[selectedKey];
-            if (sel?.isFolder) {
-                insertUnder(selectedKey);
-            } else {
-                const parentKey = findParentOf(selectedKey) || 'flow';
-                insertUnder(parentKey, selectedKey);
-            }
-        } else {
-            insertUnder('flow');
-        }
-
+        insertUnder('flow');
         setShortTree({ items: itemsCopy });
         try {
             const flow = treeItemsToFlow(itemsCopy, 'flow');
@@ -367,7 +348,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                     onPointerDown={(e) => e.stopPropagation()}
                     onPointerUp={(e) => { e.stopPropagation(); setAddMenuOpen(v => { const next = !v; if (!v) openAddMenuAtButton(); return next; }); }}
                     title="Add flow item"
-                    style={{display: 'flex', alignItems: 'center', gap: 4}}
+                    style={{ display: 'flex', alignItems: 'center', gap: 4 }}
                 >
                     <span className="codicon codicon-add" aria-hidden></span>
                     Add item
@@ -399,10 +380,9 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                 canSearch={false}
                 canSearchByStartingTyping={false}
                 viewState={{
-                    ['tree-1']: {
-                        expandedItems,
-                        selectedItems,
-                    },
+                    'tree-1': {
+                        expandedItems
+                    }
                 }}
                 onExpandItem={handleExpand}
                 onCollapseItem={handleCollapse}

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { openOsFilePicker } from '../vsAPI';
 import fileHelper from 'mmt-core/fileHelper';
 
@@ -14,11 +14,6 @@ interface FilePickerInputProps {
   onRemovePressed?: () => void;
   allowFolders?: boolean;
 }
-
-const ensureTrailingSep = (p?: string) => {
-  if (!p) return '';
-  return p.endsWith('/') || p.endsWith('\\') ? p : p + '/';
-};
 
 const FilePickerInput: React.FC<FilePickerInputProps> = ({
   ref,

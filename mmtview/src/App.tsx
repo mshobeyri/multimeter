@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from "react";
 import EnvironmentPanel from "./environment/EnvironmentPanel";
 import { SplitPane } from '@rexxars/react-split-pane';
 import './App.css';
-import VariablesPanel from "./variable/VariablesPanel";
 import APIPanel from "./api/APIPanel";
 import NotypePanel from "./NotypePanel";
 import TestPanel from "./test/TestPanel";
@@ -11,7 +10,6 @@ import DocPanel from "./doc/DocPanel";
 import parseYaml from "mmt-core/markupConvertor";
 import YamlEditorPanel from "./text/YamlEditorPanel";
 import { FileContext } from "./fileContext";
-import { validateYamlContent } from "./text/Validate";
 
 declare global {
   interface Window {

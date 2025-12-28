@@ -257,7 +257,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 'Example:',
                 '- for: const user of users',
                 '  steps:',
-                '    - print: `Processing ${user.id}`'
+                '    - print: Hi'
             ].join('\n')
         },
         {
@@ -310,7 +310,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 'Logs a message for debugging.',
                 'Template strings supported.',
                 'Example:',
-                '- print: `User id: ${user.id}`'
+                '- print: Hi'
             ].join('\n')
         },
         {
@@ -399,7 +399,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 'Example:',
                 '- if: total > 0',
                 '  steps:',
-                '    - print: `Total: ${total}`'
+                '    - print: Hi'
             ].join('\n')
         },
     ];
@@ -544,7 +544,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "outputs:\n\t",
             detail: 'Output parameters [object of key: value]',
-            documentation: 'Define how to extract values from API responses as output parameters. These extracted values can be used in subsequent requests or stored as environment variables.\nExample:\extract:\n\tuserId: "$.data.user.id"\n\ttoken: "$.data.access_token"',
+            documentation: 'Define how to extract values from API responses as output parameters. These extracted values can be used in subsequent requests or stored as environment variables.\nExample:\nextract:\n\tuserId: "$.data.user.id"\n\ttoken: "$.data.access_token"',
         },
         {
             label: "setenv",

@@ -17,7 +17,6 @@ export type BodyViewProps = {
 const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "appliable", onInspectPosition, refreshKey }) => {
     const [localValue, setLocalValue] = useState(value);
     const [isValid, setIsValid] = useState(true);
-    const [isFocused, setIsFocused] = useState(false);
     const [canApply, setCanApply] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -96,7 +95,6 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                 language={format}
                 showNumbers={false}
                 fontSize={11}
-                onFocusChange={setIsFocused}
                 onInspectPosition={onInspectPosition}
             />
             <div className="bodyview-toolbar">

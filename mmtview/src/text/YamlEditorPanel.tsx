@@ -251,21 +251,10 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       return;
     }
 
-    let doc: any = null;
-    try {
-      doc = parseYamlDoc(content);
-    } catch {
-      monaco.editor.setModelMarkers(model, "mmt-logo-file", []);
-      setMissingDocFileProblems([]); // Changed from setMissingLogoFileProblems
-      return;
-    }
-
     const { markers, problems } = computeMissingDocFileMarkers(monaco, model, missingDocFiles); // Changed from missingLogoFile
     monaco.editor.setModelMarkers(model, "mmt-logo-file", markers);
     setMissingDocFileProblems(problems); // Changed from setMissingLogoFileProblems
   }, [missingDocFiles, editorReady]); // Changed from missingLogoFile
-
-
 
   useEffect(() => {
     if (!editorReady || !monacoRef.current || !editorRef.current) {

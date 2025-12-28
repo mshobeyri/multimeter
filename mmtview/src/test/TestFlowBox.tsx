@@ -23,12 +23,12 @@ interface TestFlowBoxProps {
 
 const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, onRemove, showExpand, expanded, onToggleExpand, importValidation }) => {
   const { type, stepData, testData } = data;
-  const [openMenu, setOpenMenu] = React.useState(false);
 
   const Actions = () => {
     const btnRef = React.useRef<HTMLButtonElement | null>(null);
     const menuRef = React.useRef<HTMLDivElement | null>(null);
     const [menuPos, setMenuPos] = React.useState<{ left: number; top: number } | null>(null);
+    const [openMenu, setOpenMenu] = React.useState(false);
 
     const openAtButton = () => {
       const el = btnRef.current;

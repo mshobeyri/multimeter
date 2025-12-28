@@ -23,6 +23,8 @@ const TestCall: React.FC<TestCallProps> = ({
   // Local model to avoid excessive parent re-renders while editing
   const [local, setLocal] = React.useState<any>(typeof value === 'object' && value ? value : null);
   const emitTimerRef = React.useRef<number | null>(null);
+  const localRef = React.useRef<any>(local);
+  React.useEffect(() => { localRef.current = local; }, [local]);
   const scheduleEmit = (next: any) => {
     if (emitTimerRef.current) window.clearTimeout(emitTimerRef.current);
     // Avoid redundant parent updates if nothing actually changed
@@ -75,9 +77,8 @@ const TestCall: React.FC<TestCallProps> = ({
     : (value && typeof value === 'object' && typeof (value as any).id === 'string' ? (value as any).id : '');
 
   // Keep local in sync if parent changes externally (avoid stomping during our own edits by shallow check)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   React.useEffect(() => {
-    if (value && typeof value === 'object' && value !== local) {
+    if (value && typeof value === 'object' && value !== localRef.current) {
       setLocal(value);
     }
   }, [value]);
