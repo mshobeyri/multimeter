@@ -83,7 +83,8 @@ export async function executeSuite(
           success: !!childRun.result?.success,
           status: !!childRun.result?.success ? 'passed' : 'failed',
           errors: childRun.result?.errors ?? [],
-          logs: childRun.result?.logs ?? []
+          logs: childRun.result?.logs ?? [],
+          threw: childRun.result?.threw === true,
         };
 
         options.reporter && options.reporter({
@@ -108,19 +109,27 @@ export async function executeSuite(
           logs: [],
           groupIndex: gi,
           groupItemIndex: entryIndex,
+          threw: true,
         };
         options.reporter && options.reporter({
           groupIndex: gi,
           groupItemIndex: entryIndex,
           status: result.status,
         });
+        return result;
       }
     }));
 
     const groupHadAnyFailure = results.some(r => !r || !r.success);
+    const groupThrew = results.some(r => !!r && r.threw === true);
 
     if (groupHadAnyFailure) {
       overallSuccess = false;
+    }
+
+    if (groupThrew) {
+      // Stop executing further groups when an item threw (assert-like failure).
+      break;
     }
   }
 

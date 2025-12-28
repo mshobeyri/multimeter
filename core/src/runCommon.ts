@@ -58,7 +58,13 @@ export async function runGeneratedJs(
     };
   } catch (e: any) {
     errors.push(e?.message || String(e));
-    return {success: false, durationMs: Date.now() - start, errors, logs};
+    return {
+      success: false,
+      durationMs: Date.now() - start,
+      errors,
+      logs,
+      threw: true,
+    };
   }
 }
 

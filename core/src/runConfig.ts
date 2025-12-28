@@ -7,6 +7,7 @@ export interface RunResult {
   durationMs: number;
   errors: string[];
   logs?: string[];
+  threw?: boolean;
 }
 
 export interface GenerateJsOptions {
