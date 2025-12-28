@@ -17,7 +17,7 @@
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
-    "@craco/craco": "^7.1.0",
+    "@craco/craco": "^5.9.0",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
