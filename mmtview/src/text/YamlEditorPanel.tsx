@@ -1,12 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
-import { apiToYaml, yamlToAPI } from "mmt-core/apiParsePack";
-import { yamlToTest, testToYaml } from "mmt-core/testParsePack";
-import { yamlToDoc, docToYaml } from "mmt-core/docParsePack";
 import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./BeforeMount";
 import { safeList } from "mmt-core/safer";
-import { openRelativeFile, showVSCodeMessage } from "../vsAPI";
+import { openRelativeFile } from "../vsAPI";
 import { useImportValidation } from "./useImportValidation";
 import { useDocFileValidation } from "./useDocFileValidation";
 import { useSuiteTestsValidation } from "./useSuiteTestsValidation";
@@ -17,13 +14,11 @@ import {
   computeOrderingMarkers,
   computeTestCallAliasMarkers,
   computeTestCallInputsMarkers,
-  extractRootKeyInfo,
-  offsetToLineNumber,
   type ProblemEntry,
 } from "./validator";
-import { APIData } from "mmt-core/APIData";
-import { TestData } from "mmt-core/TestData";
-import { DocData } from "mmt-core/DocData";
+import { useRunGlyphs } from './useRunGlyphs';
+import { useFormatAndOrder } from './useFormatAndOrder';
+// formatting and ordering helper moved to `useFormatAndOrder`
 
 interface YamlEditorPanelProps {
   content: string;
@@ -45,10 +40,6 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const editorRef = useRef<any>(null);
   const decorationsRef = useRef<string[]>([]);
   const linkDecorationsRef = useRef<string[]>([]);
-  const runGlyphDecorationsRef = useRef<string[]>([]);
-  const exampleRunDecorationsRef = useRef<string[]>([]);
-  const exampleRunInfoRef = useRef<{ line: number; index: number; name?: string }[]>([]);
-  const runGlyphLineRef = useRef<number>(1);
   const contentRef = useRef(content);
   const [editorReady, setEditorReady] = useState(false);
   const importsMapRef = useRef<Record<string, string>>({});
@@ -69,23 +60,18 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   // Keep track of whether the editor has detected a canonical key-order issue via markers.
   const shouldShowRunControls = (docType === "test" || docType === "api" || docType === "suite");
 
-  const reorderDocument = useCallback(() => {
-    if (!docType) {
-      showVSCodeMessage("warn", "Unknown document type. Cannot reorder items.");
-      return;
-    }
-    const currentContent = contentRef.current ?? "";
-    const reordered = buildCanonicalYaml(currentContent, docType);
-    if (!reordered) {
-      showVSCodeMessage("warn", "Unable to reorder items for this document.");
-      return;
-    }
-    if (reordered === currentContent) {
-      showVSCodeMessage("info", "Document is already formatted.");
-      return;
-    }
-    setContent(reordered);
-  }, [docType, setContent]);
+  const { handleRunClick } = useRunGlyphs({
+    monacoRef,
+    editorRef,
+    content,
+    editorReady,
+    docType,
+    shouldShowRunControls,
+  });
+
+  const { reorderDocument } = useFormatAndOrder({ contentRef, docType, setContent });
+
+  
 
   useEffect(() => {
     contentRef.current = content;
@@ -431,185 +417,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     };
   }, [content, editorReady]);
 
-  const handleRunClick = () => {
-    if (docType !== "test" && docType !== "api" && docType !== "suite") {
-      return;
-    }
-    try {
-      const message: any = { command: "runCurrentDocument" };
-      if (docType === "api") {
-        message.inputs = {
-          exampleIndex: -1,
-        };
-      }
-      window.vscode?.postMessage(message);
-    } catch (err: any) {
-      showVSCodeMessage("error", err?.message || "Failed to run document.");
-    }
-  };
-
-  const handleRunExample = (exampleIndex: number) => {
-    try {
-      const apiData = yamlToAPI(content);
-      const examplesList = safeList(apiData?.examples);
-      const example = examplesList[exampleIndex];
-      if (!example) {
-        showVSCodeMessage("warn", "Selected example was not found in this document.");
-        return;
-      }
-      window.vscode?.postMessage({
-        command: "runCurrentDocument",
-        inputs: { exampleIndex },
-      });
-    } catch (err: any) {
-      showVSCodeMessage("error", err?.message || "Failed to run example.");
-    }
-  };
-
-  useEffect(() => {
-    if (!monacoRef.current || !editorRef.current) return;
-    const editor = editorRef.current;
-    if (!shouldShowRunControls || !editorReady) {
-      runGlyphDecorationsRef.current = editor.deltaDecorations(
-        runGlyphDecorationsRef.current,
-        []
-      );
-    }
-    // compute line of 'type' key or default to 1
-    const doc = parseYamlDoc(content);
-    const rootKeys = extractRootKeyInfo(doc, content);
-    const typeKey = rootKeys.find(k => k.key === 'type');
-    const runLine = (typeKey && typeKey.line) || 1;
-    runGlyphLineRef.current = runLine;
-  }, [shouldShowRunControls, editorReady, content]);
-
-  useEffect(() => {
-    if (!monacoRef.current || !editorRef.current) return;
-    const editor = editorRef.current;
-
-    if (!shouldShowRunControls || !editorReady) {
-      runGlyphDecorationsRef.current = editor.deltaDecorations(
-        runGlyphDecorationsRef.current,
-        []
-      );
-      return;
-    }
-
-    const monaco = monacoRef.current;
-    runGlyphDecorationsRef.current = editor.deltaDecorations(
-      runGlyphDecorationsRef.current,
-      [
-        {
-          range: new monaco.Range(runGlyphLineRef.current, 1, runGlyphLineRef.current, 1),
-          options: {
-            isWholeLine: true,
-            glyphMarginClassName: "mmt-run-glyph codicon codicon-run",
-            glyphMarginHoverMessage: { value: "Run this MMT file" },
-            stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
-          },
-        },
-      ]
-    );
-
-    return () => {
-      runGlyphDecorationsRef.current = editor.deltaDecorations(
-        runGlyphDecorationsRef.current,
-        []
-      );
-    };
-  }, [editorReady, shouldShowRunControls, content]);
-
-  useEffect(() => {
-    if (!monacoRef.current || !editorRef.current) return;
-    const editor = editorRef.current;
-
-    if (!shouldShowRunControls || !editorReady || docType !== "api") {
-      exampleRunInfoRef.current = [];
-      exampleRunDecorationsRef.current = editor.deltaDecorations(
-        exampleRunDecorationsRef.current,
-        []
-      );
-      return;
-    }
-
-    const monaco = monacoRef.current;
-    const doc = parseYamlDoc(content);
-    const apiData = yamlToAPI(content);
-    const examplesList = safeList(apiData?.examples);
-    const positions = extractExampleLineInfo(doc, content).filter(info => info.line > 0);
-
-    // Filter out examples with empty or missing names
-    const filteredPositions = positions.filter(info => {
-      const name = examplesList[info.index]?.name;
-      return name && typeof name === 'string' && name.trim() !== '';
-    });
-
-    exampleRunInfoRef.current = filteredPositions.map(info => ({
-      line: info.line,
-      index: info.index,
-      name: examplesList[info.index]?.name,
-    }));
-
-    exampleRunDecorationsRef.current = editor.deltaDecorations(
-      exampleRunDecorationsRef.current,
-      filteredPositions.map(info => {
-        const example = examplesList[info.index];
-        if (!example) { return; }
-        const name = example?.name;
-        const label = name ? `Run example: ${name}` : `Run example ${info.index + 1}`;
-        return {
-          range: new monaco.Range(info.line, 1, info.line, 1),
-          options: {
-            isWholeLine: true,
-            glyphMarginClassName: "mmt-run-glyph codicon codicon-run",
-            glyphMarginHoverMessage: { value: label },
-            stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
-          },
-        };
-      })
-    );
-
-    return () => {
-      exampleRunInfoRef.current = [];
-      exampleRunDecorationsRef.current = editor.deltaDecorations(
-        exampleRunDecorationsRef.current,
-        []
-      );
-    };
-  }, [content, docType, editorReady, shouldShowRunControls]);
-
-  useEffect(() => {
-    if (!monacoRef.current || !editorRef.current) return;
-    const monaco = monacoRef.current;
-    const editor = editorRef.current;
-
-    const mouseDownDisposable = editor.onMouseDown((e: any) => {
-      if (e.target?.type !== monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN) {
-        return;
-      }
-
-      const lineNumber = e.target?.position?.lineNumber;
-      if (!lineNumber) {
-        return;
-      }
-
-      if (lineNumber === runGlyphLineRef.current) {
-        e.event?.preventDefault?.();
-        handleRunClick();
-        return;
-      }
-
-      if (docType === "api") {
-        const exampleInfo = exampleRunInfoRef.current.find(info => info.line === lineNumber);
-        if (exampleInfo) {
-          e.event?.preventDefault?.();
-          void handleRunExample(exampleInfo.index);
-        }
-      }
-    });
-
-    return () => mouseDownDisposable.dispose();
-  }, [handleRunClick, handleRunExample, docType]);
+  // run glyphs and example-run decorations handled in `useRunGlyphs` hook
 
   // Effect to handle custom decorations
   useEffect(() => {
@@ -682,80 +490,6 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
 };
 
 export default YamlEditorPanel;
-
-
-type ExampleLineInfo = { line: number; index: number };
-
-function extractExampleLineInfo(doc: any, content: string): ExampleLineInfo[] {
-  if (!doc || !doc.contents) {
-    return [];
-  }
-
-  const root: any = doc.contents;
-  const rootItems: any[] = Array.isArray(root?.items) ? root.items : [];
-  const examplesPair = rootItems.find(item => item?.key?.value === "examples");
-  if (!examplesPair || !examplesPair.value) {
-    return [];
-  }
-
-  const seqItems: any[] = Array.isArray(examplesPair.value?.items) ? examplesPair.value.items : [];
-  const positions: ExampleLineInfo[] = [];
-
-  seqItems.forEach((exampleNode, idx) => {
-    let offset: number | undefined;
-    if (Array.isArray(exampleNode?.range) && typeof exampleNode.range[0] === "number") {
-      offset = exampleNode.range[0];
-    } else if (exampleNode?.key && Array.isArray(exampleNode.key.range) && typeof exampleNode.key.range[0] === "number") {
-      offset = exampleNode.key.range[0];
-    }
-
-    if (typeof offset === "number") {
-      positions.push({
-        line: offsetToLineNumber(content, offset),
-        index: idx,
-      });
-    }
-  });
-
-  return positions;
-}
-
-
-function buildCanonicalYaml(content: string, docType: string | null): string | null {
-  try {
-    switch (docType) {
-      case "api":
-        const apiData = yamlToAPI(content);
-        if (!apiData || typeof apiData !== 'object' || apiData === {} as APIData) {
-          showVSCodeMessage("error", "Document is not a valid YAML.");
-          return null;
-        }
-        return apiToYaml(apiData);
-      case "test":
-        const testData = yamlToTest(content);
-        if (!testData || typeof testData !== 'object' || testData === {} as TestData) {
-          showVSCodeMessage("error", "Document is not a valid YAML.");
-          return null;
-        }
-        return testToYaml(testData);
-      case "doc":
-        const docData = yamlToDoc(content);
-        if (!docData || typeof docData !== 'object' || docData === {} as DocData) {
-          showVSCodeMessage("error", "Document is not a valid YAML.");
-          return null;
-        }
-        return docToYaml(docData);
-      case "suite":
-        showVSCodeMessage("warn", "Suite reordering is not supported yet.");
-        return null;
-      default:
-        return null;
-    }
-  } catch {
-    return null;
-  }
-}
-
 function setEditorErrorMarker(
   monaco: any,
   editor: any,

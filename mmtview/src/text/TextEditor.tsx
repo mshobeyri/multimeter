@@ -57,7 +57,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
     };
     window.addEventListener("vscode:changeColorTheme", handler);
     return () => window.removeEventListener("vscode:changeColorTheme", handler);
-  }, []);
+  }, [monacoRefToUse]);
 
   // Add CSS for the decoration
   useEffect(() => {
