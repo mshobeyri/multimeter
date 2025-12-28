@@ -294,3 +294,151 @@ export async function handleExportMarkdown(message: any) {
         uri, Buffer.from(markdown ?? '', 'utf8'));
   }
 }
+
+function normalizeFilters(filters: any): Record<string, string[]>|undefined {
+  if (!filters) {
+    return undefined;
+  }
+  // Already in vscode shape
+  if (typeof filters === 'object' && !Array.isArray(filters)) {
+    // ensure all values are arrays of strings
+    const out: Record<string, string[]> = {};
+    for (const [k, v] of Object.entries(filters)) {
+      if (typeof v === 'string') {
+        out[k] = [v];
+      } else if (Array.isArray(v)) {
+        out[k] = v.map(String);
+      }
+    }
+    return Object.keys(out).length ? out : undefined;
+  }
+
+  // Array shapes: either ['.mmt', 'json'] or [{name, extensions: []}]
+  if (Array.isArray(filters)) {
+    if (filters.length === 0) {
+      return undefined;
+    }
+    // array of strings
+    if (filters.every(f => typeof f === 'string')) {
+      return {'Files': (filters as string[]).map(s => s.replace(/^\./, ''))};
+    }
+    // array of objects {name, extensions}
+    const out: Record<string, string[]> = {};
+    for (const item of filters) {
+      if (!item) {
+        continue;
+      }
+      const name = String(item.name || item.label || 'Files');
+      const exts =
+          Array.isArray(item.extensions) ? item.extensions.map(String) : [];
+      if (!out[name]) {
+        out[name] = [];
+      }
+      out[name].push(...exts.map((ex: string) => ex.replace(/^\./, '')));
+    }
+    return Object.keys(out).length ? out : undefined;
+  }
+
+  return undefined;
+}
+
+/**
+ * Opens an OS file picker and returns the selected paths back to the webview.
+ * message: { requestId?, filters?, defaultPath?, canSelectMany?, openLabel?,
+ * callbackCommand? }
+ */
+export async function handleOpenOsFilePicker(
+    message: any, webviewPanel?: vscode.WebviewPanel,
+    document?: vscode.TextDocument, mmtProvider?: any) {
+  try {
+    const requestId = message?.requestId;
+    const canSelectMany = !!message?.canSelectMany;
+    const openLabel =
+        typeof message?.openLabel === 'string' ? message.openLabel : undefined;
+    const filters = normalizeFilters(message?.filters);
+
+    let defaultUri: vscode.Uri|undefined;
+    if (typeof message?.defaultPath === 'string' && message.defaultPath) {
+      try {
+        // Accept file:// URIs or plain paths
+        const p = String(message.defaultPath);
+        if (/^file:\/\//i.test(p)) {
+          const fp = p.replace(/^file:\/\/+/, '/');
+          defaultUri = vscode.Uri.file(fp);
+        } else {
+          defaultUri = vscode.Uri.file(p);
+        }
+      } catch {
+        defaultUri = undefined;
+      }
+    } else if (document && document.uri && document.uri.fsPath) {
+      defaultUri = vscode.Uri.file(path.dirname(document.uri.fsPath));
+    }
+
+    const uri = await vscode.window.showOpenDialog({
+      canSelectFiles: true,
+      canSelectMany,
+      canSelectFolders: false,
+      openLabel,
+      defaultUri,
+      filters,
+    });
+
+    if (!webviewPanel) {
+      // No webview to return to — if a callback command is provided, call it
+      if (!uri || uri.length === 0) {
+        if (message?.callbackCommand) {
+          await vscode.commands.executeCommand(
+              message.callbackCommand, {requestId, cancelled: true});
+          return;
+        }
+        return;
+      }
+      if (message?.callbackCommand) {
+        const paths = uri.map(u => u.fsPath);
+        await vscode.commands.executeCommand(message.callbackCommand, {
+          requestId,
+          paths,
+          path: paths.length === 1 ? paths[0] : undefined,
+        });
+      }
+      return;
+    }
+
+    if (!uri || uri.length === 0) {
+      webviewPanel.webview.postMessage({
+        command: 'osFilePickerResult',
+        requestId,
+        cancelled: true,
+      });
+      return;
+    }
+
+    const paths = uri.map(u => u.fsPath);
+    webviewPanel.webview.postMessage({
+      command: 'osFilePickerResult',
+      requestId,
+      filePath: paths.length === 1 ? paths[0] : undefined,
+      filePaths: paths,
+    });
+  } catch (err) {
+    const requestId = message?.requestId;
+    if (message?.callbackCommand) {
+      try {
+        await vscode.commands.executeCommand(message.callbackCommand, {
+          requestId,
+          error: String(err),
+        });
+        return;
+      } catch {
+      }
+    }
+    if (webviewPanel) {
+      webviewPanel.webview.postMessage({
+        command: 'osFilePickerResult',
+        requestId,
+        error: String(err),
+      });
+    }
+  }
+}

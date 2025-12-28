@@ -4,6 +4,8 @@ let lastFileContentResolver: ((content: string) => void)|null = null;
 let lastFileContentRejecter: ((error: any) => void)|null = null;
 let lastFileDataUrlResolver: ((dataUrl: string) => void)|null = null;
 let lastFileDataUrlRejecter: ((error: any) => void)|null = null;
+const osFilePickerResolvers: Map<string, (value: any) => void> = new Map();
+const osFilePickerRejecters: Map<string, (err: any) => void> = new Map();
 
 // Add the event listener only once
 if (typeof window !== 'undefined' &&
@@ -26,6 +28,25 @@ if (typeof window !== 'undefined' &&
       }
       lastFileDataUrlResolver = null;
       lastFileDataUrlRejecter = null;
+    } else if (message.command === 'osFilePickerResult') {
+      const id = message?.requestId;
+      if (id && osFilePickerResolvers.has(id)) {
+        const resolve = osFilePickerResolvers.get(id)!;
+        const reject = osFilePickerRejecters.get(id);
+        osFilePickerResolvers.delete(id);
+        osFilePickerRejecters.delete(id);
+        if (message.error) {
+          if (reject) {
+            reject(message.error);
+          } else {
+            resolve({error: message.error});
+          }
+        } else if (message.cancelled) {
+          resolve({cancelled: true});
+        } else {
+          resolve({filePath: message.filePath, filePaths: message.filePaths});
+        }
+      }
     }
   });
   (window as any).__fileContentListenerAdded = true;
@@ -43,7 +64,7 @@ export function readFileAsDataUrl(filename: string): Promise<string> {
   return new Promise((resolve, reject) => {
     lastFileDataUrlResolver = resolve;
     lastFileDataUrlRejecter = reject;
-    window.vscode?.postMessage({ command: 'getFileAsDataUrl', filename });
+    window.vscode?.postMessage({command: 'getFileAsDataUrl', filename});
   });
 }
 
@@ -68,6 +89,43 @@ export function runJSCode(code: string, title: string) {
     command: 'runJSCode',
     code,
     title,
+  });
+}
+
+export type OsPickerResult = {
+  filePath?: string;
+  filePaths?: string[];
+  cancelled?: boolean;
+  error?: string
+};
+
+export function openOsFilePicker(opts: {
+  filters?: any;
+  defaultPath?: string;
+  canSelectMany?: boolean;
+  openLabel?: string;
+}): Promise<OsPickerResult> {
+  const requestId =
+      `ospicker-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  return new Promise((resolve, reject) => {
+    osFilePickerResolvers.set(requestId, resolve);
+    osFilePickerRejecters.set(requestId, reject);
+    window.vscode?.postMessage({
+      command: 'openOsFilePicker',
+      requestId,
+      filters: opts?.filters,
+      defaultPath: opts?.defaultPath,
+      canSelectMany: !!opts?.canSelectMany,
+      openLabel: opts?.openLabel,
+    });
+    // Add a timeout to avoid leaked promises (optional: 2 minutes)
+    setTimeout(() => {
+      if (osFilePickerResolvers.has(requestId)) {
+        osFilePickerResolvers.delete(requestId);
+        osFilePickerRejecters.delete(requestId);
+        resolve({cancelled: true});
+      }
+    }, 2 * 60 * 1000);
   });
 }
 
@@ -104,10 +162,10 @@ duration?: number
     return results.join('\n');
   };
 
-export function openRelativeFile(filename: string) {
-  window.vscode?.postMessage({ command: 'openRelativeFile', filename });
-}
+  export function openRelativeFile(filename: string) {
+    window.vscode?.postMessage({command: 'openRelativeFile', filename});
+  }
 
-export function showHistoryPanel() {
-  window.vscode?.postMessage({ command: 'openHistoryPanel' });
-}
+  export function showHistoryPanel() {
+    window.vscode?.postMessage({command: 'openHistoryPanel'});
+  }

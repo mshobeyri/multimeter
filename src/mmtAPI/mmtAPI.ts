@@ -173,6 +173,9 @@ export const messageRecieved = async (
     case 'openRelativeFile':
       await file.handleOpenRelativeFile(message, document);
       break;
+    case 'openOsFilePicker':
+      await file.handleOpenOsFilePicker(message, webviewPanel, document);
+      break;
 
     case 'runCurrentDocument':
       await run.handleRunCurrentDocument(
