@@ -84,9 +84,8 @@ async function handleChatRequest(
             runOutcome as any;
 
         if (printJs && js && typeof js === 'string' && js.trim()) {
-          response.markdown('```js');
-          response.markdown(js.trim());
-          response.markdown('```');
+          const safeJs = js.replace(/```/g, '`\u200b``');
+          response.markdown('```js\n' + safeJs.trim() + '\n```');
         }
 
         const nameOnly = displayName || 'run';
@@ -136,8 +135,8 @@ async function handleChatRequest(
         const rawText = runFileOptions.file;
         const inputPairs = runFileOptions.manualInputs || {};
         const envVars = runFileOptions.envvar || {};
-        const name = path.basename(runFileOptions.filePath || 'mmt_print_js')
-                         .replace(/[^a-zA-Z0-9_]/g, '_');
+        // Use a stable main function name for printed JS
+        const name = 'testflow';
         const js = await runner.generateTestJs({
           rawText,
           name,
@@ -149,9 +148,8 @@ async function handleChatRequest(
           response.markdown('No JS could be generated (empty flow).');
           return;
         }
-        response.markdown('```js');
-        response.markdown(js.trim());
-        response.markdown('```');
+        const safeJs = js.replace(/```/g, '`\u200b``');
+        response.markdown('```js\n' + safeJs.trim() + '\n```');
         return;
       }
 
@@ -444,7 +442,7 @@ export function setupChatParticipants(context: vscode.ExtensionContext) {
   });
 
   const printJsCmd =
-      vscode.commands.registerCommand('multimeter.printJs', async () => {
+      vscode.commands.registerCommand('multimeter.print-js', async () => {
         const filePick = await vscode.window.showInputBox({
           title: 'Print JS from Test',
           prompt: 'Enter relative path to .mmt/.yaml file',

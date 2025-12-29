@@ -56,8 +56,8 @@
             "description": "Run a test or api @mmt /run <test path or api .mmt file path>"
           },
           {
-            "name": "printJs",
-            "description": "Print the generated JS code from a test @mmt /printJs <test path>"
+            "name": "print-js",
+            "description": "Print the generated JS code from a test @mmt /print-js <test path>"
           },
           {
             "name": "doc",
@@ -81,8 +81,8 @@
             "description": "Run a test or api @mmt /run <test path or api .mmt file path>"
           },
           {
-            "name": "printJs",
-            "description": "Print the generated JS code from a test @mmt /printJs <test path>"
+            "name": "print-js",
+            "description": "Print the generated JS code from a test @mmt /print-js <test path>"
           },
           {
             "name": "doc",
