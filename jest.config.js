@@ -14,11 +14,15 @@ module.exports = {
   transform: {
     ...tsJestTransformCfg,
   },
+  testMatch: [
+    '<rootDir>/core/src/**/?(*.)+(test).[tj]s?(x)',
+    '<rootDir>/src/**/?(*.)+(test).[tj]s?(x)',
+    '<rootDir>/mmtview/src/**/?(*.)+(test).[tj]s?(x)',
+  ],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+  ],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
-  testPathIgnorePatterns: [
-    '<rootDir>/out/mmtcli/src/runArgs\.test\.js',
-    '<rootDir>/mmtcli/dist/runArgs\.test\.js',
-  ],
 };

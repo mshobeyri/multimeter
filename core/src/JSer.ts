@@ -5,6 +5,26 @@ import {formatBody} from './markupConvertor';
 import {TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowStage, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
 import {getTestFlowStepType, yamlToTest} from './testParsePack';
 import {replaceAllRefs} from './variableReplacer';
+import {createFileImporter} from './fileImporter';
+
+const extractImportsFromMmt = (content: string): Record<string, string> => {
+  try {
+    const obj: any = yamlToTest(content) as any;
+    const imp = obj?.import;
+    if (!imp || typeof imp !== 'object' || Array.isArray(imp)) {
+      return {};
+    }
+    const out: Record<string, string> = {};
+    for (const [k, v] of Object.entries(imp)) {
+      if (typeof v === 'string' && v.trim()) {
+        out[k] = v;
+      }
+    }
+    return out;
+  } catch {
+    return {};
+  }
+};
 
 export function indentLines(str: string): string {
   return str.split('\n').map(line => '  ' + line).join('\n').slice(2);
@@ -259,64 +279,49 @@ export const csvToJSObj =
 };
 
 export const importsToJsfunc =
-    async(imports: Record<string, string>, visitedPaths: Set<string> = new Set()): Promise<string> => {
-  try {
-    const results: string[] = [];
-
-    for (const [name, path] of Object.entries(imports)) {
-      if (typeof path !== 'string' || !path.trim()) {
-        console.warn(`Skipping import ${name}: invalid path`);
-        continue;
-      }
+    async(imports: Record<string, string>, _visitedPaths: Set<string> = new Set()): Promise<string> => {
       try {
-        // Check for circular imports
-        if (visitedPaths.has(path)) {
-          throw new Error(`Circular import detected: ${Array.from(visitedPaths).join(' -> ')} -> ${path}`);
+        const results: string[] = [];
+        const importer = createFileImporter({
+          fileLoader: readFile,
+          getImportsFromContent: (content: string) => extractImportsFromMmt(content),
+        });
+        const resolved = await importer.resolveAll(imports || {});
+        for (const imp of resolved) {
+          const {importName, resolvedPath, content} = imp;
+          const type = fileType(resolvedPath, content);
+          if (type === 'test') {
+            const res = await testToJsfunc(
+                {
+                  test: yamlToTest(content),
+                  name: importName,
+                  inputs: {},
+                  envVars: {},
+                },
+                false,
+                new Set());
+            results.push(res);
+          } else if (type === 'api') {
+            const res = await apiToJSfunc({
+              api: yamlToAPI(content),
+              name: importName,
+              inputs: {},
+              envVars: {},
+            });
+            results.push(res);
+          } else if (type === 'csv') {
+            const res = await csvToJSObj(content, importName);
+            results.push(res);
+          } else {
+            console.warn(`Skipping ${resolvedPath}: unknown type "${type}"`);
+          }
         }
-
-        const content = await readFile(path);
-        const type = fileType(path, content);
-
-        // Add current path to visited set for nested imports
-        const newVisitedPaths = new Set(visitedPaths);
-        newVisitedPaths.add(path);
-
-        if (type === 'test') {
-          const res = await testToJsfunc(
-              {
-                test: yamlToTest(content),
-                name,
-                inputs: {},
-                envVars: {},
-              },
-              false,
-              newVisitedPaths);
-          results.push(res);
-        } else if (type === 'api') {
-          const res = await apiToJSfunc({
-            api: yamlToAPI(content),
-            name,
-            inputs: {},
-            envVars: {},
-          });
-          results.push(res);
-        } else if (type === 'csv') {
-          const res = await csvToJSObj(content, name);
-          results.push(res);
-        } else {
-          console.warn(`Skipping ${path}: unknown type "${type}"`);
-        }
-      } catch (innerErr) {
-        console.error(`Failed to import ${path}:`, innerErr);
+        return results.join('\n');
+      } catch (error) {
+        console.error('Error importing functions:', error);
+        return '';
       }
-    }
-
-    return results.join('\n');
-  } catch (error) {
-    console.error('Error importing functions:', error);
-    return '';
-  }
-};
+    };
 
 const replaceEnvTokens = (s: string): string =>
     s.replace(/\be:([A-Za-z_][A-Za-z0-9_]*)\b/g, 'envVariables.$1');
