@@ -46,8 +46,9 @@ export const testToJsfunc = async(
             return `  ${key}: ${toLowerUnderscore(key)}`;
           })
           .join(',\n');
-  const importsObj = `const imports = {${
-      importsObjEntries ? `\n${importsObjEntries}\n` : ''}};`;
+
+  const importsObj =
+      importsObjEntries ? `const imports = {\n${importsObjEntries}\n};` : '';
 
   const paramsAsObj: Record<string, string> = Object.fromEntries(
       Object.keys(ctx.test.inputs ?? {}).map(key => [key, `\${${key}}`]));
