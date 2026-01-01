@@ -1,6 +1,9 @@
 import {yamlToAPI} from './apiParsePack';
-import {APIContext, apiToJSfunc, importsToJsfunc, rootTestToJsfunc, TestContext, testToJsfunc, variableReplacer} from './JSer';
+import {apiToJSfunc, rootTestToJsfunc, testToJsfunc,} from './JSer';
+import {APIContext} from './JSerAPI';
 import {setFileLoader} from './JSerFileLoader';
+import {importsToJsfunc} from './JSerImports';
+import {TestContext, variableReplacer} from './JSerTest';
 import {flowStagesToJsfunc} from './JSerTestFlow';
 import {createTestFileLoaderMock} from './testFileLoaderMock';
 
