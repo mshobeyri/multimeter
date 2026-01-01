@@ -44,7 +44,7 @@ export async function runJSCode(
         `${helperDecls}\n${randomDecls}\n${code}`);
     await fn(mmtHelper, customConsole, send, extractOutputs, Random);
   } catch (e: any) {
-    lg('error', (e?.message || String(e)));
+    lg('error', "Error running test: " + (e?.message || String(e)));
   } finally {
     const elapsed = Date.now() - startTime;
     lg('info', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
