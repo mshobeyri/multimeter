@@ -43,7 +43,7 @@ export const testToJsfunc = async(
               return `  ${key}: ${fnFromRequested}`;
             }
 
-            return `  ${key}: ${toLowerUnderscore(key)}`;
+            return `  ${key}: ???`;
           })
           .join(',\n');
 

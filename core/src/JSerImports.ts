@@ -1,12 +1,12 @@
 import {yamlToAPI} from './apiParsePack';
 import {csvToJSObj} from './csvConvertor';
 import {createFileImporter} from './fileImporter';
-import { apiToJSfunc } from './JSerAPI';
+import {ImportTracker} from './importTracker';
+import {apiToJSfunc} from './JSerAPI';
 import {readFile} from './JSerFileLoader';
 import {fileType, indentLines, toLowerUnderscore} from './JSerHelper';
-import { testToJsfunc } from './JSerTest';
+import {testToJsfunc} from './JSerTest';
 import {yamlToTest} from './testParsePack';
-import {ImportTracker} from './importTracker';
 
 const fileUriToPath = (p: string): string => {
   const s = String(p ?? '');
@@ -112,8 +112,8 @@ export interface ImportGenerationResult {
   functionNameByResolvedPath: Record<string, string>;
 }
 
-const resolveImports = async(
-    imports: Record<string, string>, rootPath?: string) => {
+const resolveImports =
+    async (imports: Record<string, string>, rootPath?: string) => {
   const importer = createFileImporter({
     fileLoader: readFile,
     rootPath: rootPath,
@@ -138,7 +138,8 @@ const choosePublicNameBuilder = () => {
         return candidate;
       }
     }
-    throw new Error(`Too many name collisions for imported name: ${normalized}`);
+    throw new Error(
+        `Too many name collisions for imported name: ${normalized}`);
   };
 };
 
@@ -168,33 +169,36 @@ const computePublicNames = (resolved: any[]): Map<string, string> => {
   return publicNameForPath;
 };
 
-const buildAliasMaps = (
-    resolved: any[], publicNameForPath: Map<string, string>,
-    tracker: ImportTracker) => {
-  for (const imp of resolved) {
-    const {resolvedPath, content} = imp;
-    const type = fileType(resolvedPath, content);
-    if (type !== 'test') {
-      continue;
-    }
+const buildAliasMaps =
+    (resolved: any[], publicNameForPath: Map<string, string>,
+     tracker: ImportTracker) => {
+      for (const imp of resolved) {
+        const {resolvedPath, content} = imp;
+        const type = fileType(resolvedPath, content);
+        if (type !== 'test') {
+          continue;
+        }
 
-    const test = yamlToTest(content) as any;
-    const importMap = (test?.import ?? {}) as Record<string, string>;
-    const aliasMap: Record<string, string> = {};
-    for (const [key, requestedPathRaw] of Object.entries(importMap || {})) {
-      if (!isValidJsIdentifier(key)) {
-        throw new Error(
-            `Invalid import key "${key}": must be a valid JS identifier`);
+        const test = yamlToTest(content) as any;
+        const importMap = (test?.import ?? {}) as Record<string, string>;
+        const aliasMap: Record<string, string> = {};
+        for (const [key, requestedPathRaw] of Object.entries(importMap || {})) {
+          if (!isValidJsIdentifier(key)) {
+            throw new Error(
+                `Invalid import key "${key}": must be a valid JS identifier`);
+          }
+          const requestedPath =
+              normalizeRequestedPathForMatch(requestedPathRaw);
+          const match = resolved.find(
+              r => r.importName === key && r.requestedPath === requestedPath);
+          const fn =
+              match ? publicNameForPath.get(match.resolvedPath) : undefined;
+          aliasMap[key] =
+              fn || defaultFunctionNameForRequestedPath(requestedPath);
+        }
+        tracker.setAliasesForImporter(resolvedPath, aliasMap);
       }
-      const requestedPath = normalizeRequestedPathForMatch(requestedPathRaw);
-      const match = resolved.find(
-          r => r.importName === key && r.requestedPath === requestedPath);
-      const fn = match ? publicNameForPath.get(match.resolvedPath) : undefined;
-      aliasMap[key] = fn || defaultFunctionNameForRequestedPath(requestedPath);
-    }
-    tracker.setAliasesForImporter(resolvedPath, aliasMap);
-  }
-};
+    };
 
 const emitResolved = async(
     resolved: any[], publicNameForPath: Map<string, string>,
@@ -209,12 +213,11 @@ const emitResolved = async(
       continue;
     }
     tracker.markVisited(resolvedPath);
+    const publicName = publicNameForPath.get(resolvedPath) as string;
+    tracker.setTestFuncName(resolvedPath, publicName);
 
     if (type === 'test') {
-      const publicName = publicNameForPath.get(resolvedPath) as string;
       const test = yamlToTest(content) as any;
-
-      tracker.setTestFuncName(resolvedPath, publicName);
 
       const flowJs = await testToJsfunc(
           {
@@ -229,7 +232,6 @@ const emitResolved = async(
 
       results.push(flowJs);
     } else if (type === 'api') {
-      const publicName = publicNameForPath.get(resolvedPath) as string;
       const api = yamlToAPI(content);
       results.push(await apiToJSfunc({
         api,
@@ -238,7 +240,6 @@ const emitResolved = async(
         envVars: {},
       }));
     } else if (type === 'csv') {
-      const publicName = publicNameForPath.get(resolvedPath) as string;
       results.push(await csvToJSObj(content, publicName));
     }
   }
@@ -246,17 +247,19 @@ const emitResolved = async(
   return results;
 };
 
-const toFunctionNameMap = (publicNameForPath: Map<string, string>): Record<string, string> => {
-  const out: Record<string, string> = {};
-  for (const [k, v] of publicNameForPath.entries()) {
-    out[k] = v;
-  }
-  return out;
-};
+const toFunctionNameMap =
+    (publicNameForPath: Map<string, string>): Record<string, string> => {
+      const out: Record<string, string> = {};
+      for (const [k, v] of publicNameForPath.entries()) {
+        out[k] = v;
+      }
+      return out;
+    };
 
 export const importsToJsfuncDetailed = async(
-  imports: Record<string, string>, tracker: ImportTracker = new ImportTracker(),
-  rootPath?: string): Promise<ImportGenerationResult> => {
+    imports: Record<string, string>,
+    tracker: ImportTracker = new ImportTracker(),
+    rootPath?: string): Promise<ImportGenerationResult> => {
   try {
     if (!imports || Object.keys(imports).length === 0) {
       return {js: '', functionNameByResolvedPath: {}};
@@ -276,9 +279,9 @@ export const importsToJsfuncDetailed = async(
 };
 
 export const importsToJsfunc = async(
-    imports: Record<string, string>, tracker: ImportTracker = new ImportTracker(),
+    imports: Record<string, string>,
+    tracker: ImportTracker = new ImportTracker(),
     rootPath?: string): Promise<string> => {
-  const detailed =
-      await importsToJsfuncDetailed(imports, tracker, rootPath);
+  const detailed = await importsToJsfuncDetailed(imports, tracker, rootPath);
   return detailed.js;
 };
