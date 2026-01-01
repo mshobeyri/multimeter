@@ -1,8 +1,7 @@
-import type {FileLoader} from './JSer';
+import type {FileLoader} from './JSerFileLoader';
 
 export class FileImportError extends Error {
-  readonly kind:
-      'missing-file'|'circular-import'|'invalid-path'|'load-failed';
+  readonly kind: 'missing-file'|'circular-import'|'invalid-path'|'load-failed';
   readonly chain: string[];
   readonly path?: string;
 
@@ -104,8 +103,8 @@ export interface CreateFileImporterOptions {
   /** Used to resolve the *first* layer of imports (from the root file). */
   rootPath?: string;
   /** Extract nested imports from file content. */
-  getImportsFromContent?: (content: string, path: string) =>
-      Record<string, string>;
+  getImportsFromContent?:
+      (content: string, path: string) => Record<string, string>;
 }
 
 export function createFileImporter(options: CreateFileImporterOptions):
@@ -130,30 +129,29 @@ export function createFileImporter(options: CreateFileImporterOptions):
     }
     if (!content) {
       throw new FileImportError(
-          'missing-file',
-          `Imported file not found or empty: ${resolvedPath}`,
+          'missing-file', `Imported file not found or empty: ${resolvedPath}`,
           {chain: [...stack, resolvedPath], path: resolvedPath});
     }
     cache.set(resolvedPath, content);
     return content;
   };
 
-  const resolveAgainst = (baseFilePath: string|undefined, req: string):
-      string => {
-      const requestedPath = fileUriToPath(String(req ?? '').trim());
-    if (!requestedPath) {
-      throw new FileImportError(
-          'invalid-path', 'Import path is empty',
-          {chain: [...stack]});
-    }
-    if (isAbsPath(requestedPath)) {
-      return resolveDotSegments(requestedPath);
-    }
-      const baseDir = baseFilePath ? dirnamePath(fileUriToPath(baseFilePath)) : '.';
-    return resolveDotSegments(joinPath(baseDir, requestedPath));
-  };
+  const resolveAgainst =
+      (baseFilePath: string|undefined, req: string): string => {
+        const requestedPath = fileUriToPath(String(req ?? '').trim());
+        if (!requestedPath) {
+          throw new FileImportError(
+              'invalid-path', 'Import path is empty', {chain: [...stack]});
+        }
+        if (isAbsPath(requestedPath)) {
+          return resolveDotSegments(requestedPath);
+        }
+        const baseDir =
+            baseFilePath ? dirnamePath(fileUriToPath(baseFilePath)) : '.';
+        return resolveDotSegments(joinPath(baseDir, requestedPath));
+      };
 
-  const visitImports = async(
+  const visitImports = async (
       imports: Record<string, string>, baseFilePath: string|undefined,
       out: ResolvedImport[]) => {
     for (const [importName, requestedPathRaw] of Object.entries(imports)) {
@@ -163,7 +161,8 @@ export function createFileImporter(options: CreateFileImporterOptions):
       if (inStack.has(resolvedPath)) {
         throw new FileImportError(
             'circular-import',
-            `Circular import detected: ${[...stack, resolvedPath].join(' -> ')}`,
+            `Circular import detected: ${
+                    [...stack, resolvedPath].join(' -> ')}`,
             {chain: [...stack, resolvedPath], path: resolvedPath});
       }
 
@@ -185,7 +184,7 @@ export function createFileImporter(options: CreateFileImporterOptions):
   };
 
   return {
-    resolveAll: async(rootImports: Record<string, string>) => {
+    resolveAll: async (rootImports: Record<string, string>) => {
       const out: ResolvedImport[] = [];
       await visitImports(rootImports || {}, rootPath, out);
       return out;

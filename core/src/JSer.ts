@@ -1,8 +1,10 @@
 import {APIData} from './APIData';
 import {yamlToAPI} from './apiParsePack';
-import {JSONRecord, Type} from './CommonData';
+import {JSONRecord} from './CommonData';
+import {csvToJSObj} from './csvConvertor';
 import {createFileImporter} from './fileImporter';
-import {indentLines, toInputsParams} from './JSerHelper';
+import {readFile, setFileLoader} from './JSerFileLoader';
+import {fileType, indentLines, toInputsParams, toLowerUnderscore} from './JSerHelper';
 import {flowToJsFunc} from './JSerTestFlow';
 import {formatBody} from './markupConvertor';
 import {TestData} from './TestData';
@@ -28,14 +30,6 @@ const extractImportsFromMmt = (content: string): Record<string, string> => {
   }
 };
 
-// Convert a string to lowercase and replace spaces with underscores
-export function toLowerUnderscore(input: string): string {
-  if (input === undefined || input === null) {
-    return '';
-  }
-  return String(input).replace(/ /g, '_').toLowerCase();
-}
-
 export interface ImportGenerationResult {
   js: string;
   functionNameByResolvedPath: Record<string, string>;
@@ -43,55 +37,6 @@ export interface ImportGenerationResult {
 
 export interface APIContext {
   api: APIData, name: string, inputs: JSONRecord, envVars: JSONRecord
-}
-
-export const fileType = (path: string, content: string): Type => {
-  if (path.endsWith('.csv')) {
-    return 'csv';
-  }
-
-  if (!path.endsWith('.mmt')) {
-    return null;
-  }
-
-  if (content.includes('type: api')) {
-    return 'api';
-  }
-  if (content.includes('type: test')) {
-    return 'test';
-  }
-  if (content.includes('type: suite')) {
-    return 'suite';
-  }
-  if (content.includes('type: var')) {
-    return 'var';
-  }
-  if (content.includes('type: env')) {
-    return 'env';
-  }
-  return null;
-};
-
-export type FileLoader = (path: string) => Promise<string>;
-
-declare let window: any;
-export let readFile: FileLoader = async (path: string) => {
-  if (typeof window === 'undefined' && typeof require !== 'undefined') {
-    try {
-      // Use an indirect require so bundlers (webpack 5) don't try to resolve
-      // 'fs' for the browser build
-      const req = Function('return require')();
-      const fs = req('fs');
-      return fs.readFileSync(path, 'utf8');
-    } catch (e) {
-      return '';
-    }
-  }
-  return '';
-};
-
-export function setFileLoader(loader: FileLoader) {
-  readFile = loader;
 }
 
 export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
@@ -211,74 +156,6 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   output.status_code = res?.status || 0;
   return output;
 };`;
-};
-
-export const parseCsv = (content: string): Array<Record<string, any>> => {
-  let text = (content || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
-  // Strip BOM if present
-  text = text.replace(/^\uFEFF/, '');
-  if (!text) {
-    return [];
-  }
-  const lines = text.split('\n').filter(l => l.trim().length > 0);
-  if (lines.length === 0) {
-    return [];
-  }
-  if (!lines[0].includes(',') && /:\s*/.test(lines[0])) {
-    return [];
-  }
-  const parseCsvLine = (line: string): string[] => {
-    const result: string[] = [];
-    let current = '';
-    let inQuotes = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (ch === '"') {
-        if (inQuotes && line[i + 1] === '"') {
-          current += '"';
-          i++;
-        } else {
-          inQuotes = !inQuotes;
-        }
-      } else if (ch === ',' && !inQuotes) {
-        result.push(current);
-        current = '';
-      } else {
-        current += ch;
-      }
-    }
-    result.push(current);
-    return result;
-  };
-  const coerce = (v: string): any => {
-    const t = (v ?? '').trim();
-    if (t === '') {
-      return '';
-    }
-    if (/^\d+(?:\.\d+)?$/.test(t)) {
-      return Number(t);
-    }
-    if (/^(true|false)$/i.test(t)) {
-      return t.toLowerCase() === 'true';
-    }
-    return t;
-  };
-  const headers = parseCsvLine(lines[0]).map(h => h.trim());
-  const rows = lines.slice(1).map(parseCsvLine);
-  return rows.filter(r => r.some(c => (c ?? '').trim() !== ''))
-      .map(
-          cols => Object.fromEntries(
-              headers.map((h, i) => [h, coerce(cols[i] ?? '')])));
-};
-
-export const csvToJSObj =
-    async(content: string, name: string): Promise<string> => {
-  const arr = parseCsv(content);
-  if (arr.length === 0 && (content || '').trim()) {
-    console.warn(`CSV import for ${
-        name} looks invalid (no commas in header). Skipping.`);
-  }
-  return `const ${name} = ${JSON.stringify(arr)};`;
 };
 
 export const importsToJsfunc = async(
@@ -534,3 +411,5 @@ export const variableReplacer = (full: string): string => {
   }
   return out;
 };
+
+export { setFileLoader, fileType };

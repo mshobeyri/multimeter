@@ -1,5 +1,6 @@
 import {yamlToAPI} from './apiParsePack';
-import {APIContext, apiToJSfunc, csvToJSObj, importsToJsfunc, rootTestToJsfunc, setFileLoader, TestContext, testToJsfunc, variableReplacer} from './JSer';
+import {APIContext, apiToJSfunc, importsToJsfunc, rootTestToJsfunc, TestContext, testToJsfunc, variableReplacer} from './JSer';
+import {setFileLoader} from './JSerFileLoader';
 import {flowStagesToJsfunc} from './JSerTestFlow';
 import {createTestFileLoaderMock} from './testFileLoaderMock';
 
@@ -161,24 +162,6 @@ describe('testToJsfunc (multi-stage)', () => {
 });
 
 describe('CSV import parsing', () => {
-  it('parses simple CSV into array of objects with number coercion',
-     async () => {
-       const csv = `name,family,age\nmehrdad,shobeyri,35\nsahar,ghazeydi,34\n`;
-       const code = await csvToJSObj(csv, 'users');
-       const users = new Function(code + '\nreturn users;')();
-       expect(Array.isArray(users)).toBe(true);
-       expect(users).toHaveLength(2);
-       expect(users[0]).toEqual({name: 'mehrdad', family: 'shobeyri', age: 35});
-       expect(users[1]).toEqual({name: 'sahar', family: 'ghazeydi', age: 34});
-     });
-
-  it('returns empty array when content looks like YAML not CSV', async () => {
-    const yamlLike = `type: api\nprotocol: http\n`;
-    const code = await csvToJSObj(yamlLike, 'users');
-    const users = new Function(code + '\nreturn users;')();
-    expect(users).toEqual([]);
-  });
-
   it('wires through importsToJsfunc with a loader', async () => {
     const csv = `name,family,age\nmehrdad,shobeyri,35\n`;
     setFileLoader(async (p: string) => {
@@ -192,45 +175,37 @@ describe('CSV import parsing', () => {
     expect(users).toEqual([{name: 'mehrdad', family: 'shobeyri', age: 35}]);
   });
 
-  it('parses CSV with BOM and CRLF and quoted commas/quotes', async () => {
-    const csv =
-        '\uFEFFname,comment\r\n"john","said, ""hello"""\r\n"doe","plain"\n';
-    const code = await csvToJSObj(csv, 'rows');
-    const rows = new Function(code + '\nreturn rows;')();
-    expect(rows).toEqual([
-      {name: 'john', comment: 'said, "hello"'}, {name: 'doe', comment: 'plain'}
-    ]);
-  });
 
-  it('detects circular imports and logs error (graceful handling)', async () => {
-    const errorLogs: any[] = [];
-    const originalError = console.error;
-    console.error = (...args: any[]) => {
-      errorLogs.push(args);
-    };
+  it('detects circular imports and logs error (graceful handling)',
+     async () => {
+       const errorLogs: any[] = [];
+       const originalError = console.error;
+       console.error = (...args: any[]) => {
+         errorLogs.push(args);
+       };
 
-    try {
-      setFileLoader(async (p: string) => {
-        if (p === 'a.mmt') {
-          return 'type: test\nimport:\n  b: b.mmt\n';
-        }
-        if (p === 'b.mmt') {
-          return 'type: test\nimport:\n  a: a.mmt\n';
-        }
-        return '';
-      });
-      
-      // Circular import: a -> b -> a
-      const result = await importsToJsfunc({a: 'a.mmt'});
-      expect(result).toBe('');
-      const hasCircular = errorLogs.some(
-          (log: any) => log[0]?.includes('Error importing functions:') &&
-              log[1]?.message?.includes('Circular import detected'));
-      expect(hasCircular).toBe(true);
-    } finally {
-      console.error = originalError;
-    }
-  });
+       try {
+         setFileLoader(async (p: string) => {
+           if (p === 'a.mmt') {
+             return 'type: test\nimport:\n  b: b.mmt\n';
+           }
+           if (p === 'b.mmt') {
+             return 'type: test\nimport:\n  a: a.mmt\n';
+           }
+           return '';
+         });
+
+         // Circular import: a -> b -> a
+         const result = await importsToJsfunc({a: 'a.mmt'});
+         expect(result).toBe('');
+         const hasCircular = errorLogs.some(
+             (log: any) => log[0]?.includes('Error importing functions:') &&
+                 log[1]?.message?.includes('Circular import detected'));
+         expect(hasCircular).toBe(true);
+       } finally {
+         console.error = originalError;
+       }
+     });
 
   it('resolves nested import paths relative to each file', async () => {
     const seen: string[] = [];
@@ -251,7 +226,8 @@ describe('CSV import parsing', () => {
     const bundle = await importsToJsfunc({a: '/root/a.mmt'});
     expect(bundle).toContain('const a = async');
     expect(bundle).toContain('const c = async');
-    expect(seen).toEqual(expect.arrayContaining(['/root/a.mmt', '/b.mmt', '/c.mmt']));
+    expect(seen).toEqual(
+        expect.arrayContaining(['/root/a.mmt', '/b.mmt', '/c.mmt']));
   });
 
   it('logs missing-file error when import content is empty', async () => {
@@ -281,37 +257,44 @@ describe('CSV import parsing', () => {
     }
   });
 
-  it('names imported test functions by title and emits in reverse order', async () => {
-    const mock = createTestFileLoaderMock({
-      '/root/main.mmt': 'type: test\nimport:\n  first: /root/first.mmt\n  second: /root/second.mmt\nsteps: []\n',
-      '/root/first.mmt': 'type: test\ntitle: First Title\nsteps:\n  - print: one\n',
-      '/root/second.mmt': 'type: test\ntitle: Second Title\nsteps:\n  - print: two\n',
-    });
-    setFileLoader(mock.fileLoader);
+  it('names imported test functions by title and emits in reverse order',
+     async () => {
+       const mock = createTestFileLoaderMock({
+         '/root/main.mmt':
+             'type: test\nimport:\n  first: /root/first.mmt\n  second: /root/second.mmt\nsteps: []\n',
+         '/root/first.mmt':
+             'type: test\ntitle: First Title\nsteps:\n  - print: one\n',
+         '/root/second.mmt':
+             'type: test\ntitle: Second Title\nsteps:\n  - print: two\n',
+       });
+       setFileLoader(mock.fileLoader);
 
-    const bundle = await importsToJsfunc({main: '/root/main.mmt'});
-    // reverse emission => second_* comes before first_*
-    const idxSecond = bundle.indexOf('const second_title = async');
-    const idxFirst = bundle.indexOf('const first_title = async');
-    expect(idxSecond).toBeGreaterThanOrEqual(0);
-    expect(idxFirst).toBeGreaterThanOrEqual(0);
-    expect(idxSecond).toBeLessThan(idxFirst);
-  });
+       const bundle = await importsToJsfunc({main: '/root/main.mmt'});
+       // reverse emission => second_* comes before first_*
+       const idxSecond = bundle.indexOf('const second_title = async');
+       const idxFirst = bundle.indexOf('const first_title = async');
+       expect(idxSecond).toBeGreaterThanOrEqual(0);
+       expect(idxFirst).toBeGreaterThanOrEqual(0);
+       expect(idxSecond).toBeLessThan(idxFirst);
+     });
 
-  it('falls back to filename when title is missing and resolves conflicts with suffix', async () => {
-    const mock = createTestFileLoaderMock({
-      '/root/a1.mmt': 'type: test\nsteps: []\n',
-      '/other/a1.mmt': 'type: test\nsteps: []\n',
-    });
-    setFileLoader(mock.fileLoader);
-    const bundle = await importsToJsfunc({x: '/root/a1.mmt', y: '/other/a1.mmt'});
-    expect(bundle).toContain('const a1 = async');
-    expect(bundle).toMatch(/const a1_\d+ = async/);
-  });
+  it('falls back to filename when title is missing and resolves conflicts with suffix',
+     async () => {
+       const mock = createTestFileLoaderMock({
+         '/root/a1.mmt': 'type: test\nsteps: []\n',
+         '/other/a1.mmt': 'type: test\nsteps: []\n',
+       });
+       setFileLoader(mock.fileLoader);
+       const bundle =
+           await importsToJsfunc({x: '/root/a1.mmt', y: '/other/a1.mmt'});
+       expect(bundle).toContain('const a1 = async');
+       expect(bundle).toMatch(/const a1_\d+ = async/);
+     });
 
   it('injects `imports` alias object in generated test functions', async () => {
     const mock = createTestFileLoaderMock({
-      '/root/main.mmt': 'type: test\nimport:\n  m: /root/my file.mmt\nsteps:\n  - call: m\n',
+      '/root/main.mmt':
+          'type: test\nimport:\n  m: /root/my file.mmt\nsteps:\n  - call: m\n',
       '/root/my file.mmt': 'type: test\nsteps:\n  - print: hi\n',
     });
     setFileLoader(mock.fileLoader);
