@@ -6,11 +6,78 @@ import {readFile} from './JSerFileLoader';
 import {fileType, indentLines, toLowerUnderscore} from './JSerHelper';
 import { testToJsfunc } from './JSerTest';
 import {yamlToTest} from './testParsePack';
+import {ImportTracker} from './importTracker';
+
+const fileUriToPath = (p: string): string => {
+  const s = String(p ?? '');
+  if (s.startsWith('file://')) {
+    try {
+      return decodeURIComponent(s.slice('file://'.length));
+    } catch {
+      return s.slice('file://'.length);
+    }
+  }
+  return s;
+};
+
+const isAbsPath = (p: string): boolean => {
+  const s = String(p ?? '').replace(/\\/g, '/');
+  return s.startsWith('/') || /^[A-Za-z]:\//.test(s);
+};
+
+const dirnamePath = (p: string): string => {
+  const s = String(p ?? '').replace(/\\/g, '/');
+  const idx = s.lastIndexOf('/');
+  return idx <= 0 ? (s.startsWith('/') ? '/' : '.') : s.slice(0, idx);
+};
+
+const joinPath = (a: string, b: string): string => {
+  const left = String(a ?? '').replace(/\\/g, '/');
+  const right = String(b ?? '').replace(/\\/g, '/');
+  if (!left || left === '.') {
+    return right;
+  }
+  if (!right) {
+    return left;
+  }
+  if (left.endsWith('/')) {
+    return left + right;
+  }
+  return left + '/' + right;
+};
+
+const resolveDotSegments = (p: string): string => {
+  const s = String(p ?? '').replace(/\\/g, '/');
+  const abs = s.startsWith('/') || /^[A-Za-z]:\//.test(s);
+  const parts = s.split('/');
+  const out: string[] = [];
+  for (const part of parts) {
+    if (part === '' || part === '.') {
+      continue;
+    }
+    if (part === '..') {
+      if (out.length > 0 && out[out.length - 1] !== '..') {
+        out.pop();
+      } else if (!abs) {
+        out.push('..');
+      }
+      continue;
+    }
+    out.push(part);
+  }
+  const prefix = abs && s.startsWith('/') ? '/' : '';
+  return prefix + out.join('/');
+};
 
 const basenameNoExt = (p: string): string => {
   const s = String(p ?? '').replace(/\\/g, '/');
   const base = s.split('/').pop() || s;
   return base.replace(/\.[^.]+$/, '');
+};
+
+const defaultFunctionNameForRequestedPath = (requestedPath: string): string => {
+  const base = basenameNoExt(String(requestedPath ?? ''));
+  return toLowerUnderscore(base || 'imported');
 };
 
 const isValidJsIdentifier = (name: string): boolean => {
@@ -36,14 +103,18 @@ const extractImportsFromMmt = (content: string): Record<string, string> => {
   }
 };
 
+const normalizeRequestedPathForMatch = (p: string): string => {
+  return String(p ?? '');
+};
+
 export interface ImportGenerationResult {
   js: string;
   functionNameByResolvedPath: Record<string, string>;
 }
 
 export const importsToJsfuncDetailed = async(
-    imports: Record<string, string>, _visitedPaths: Set<string> = new Set(),
-    rootPath?: string): Promise<ImportGenerationResult> => {
+  imports: Record<string, string>, tracker: ImportTracker = new ImportTracker(),
+  rootPath?: string): Promise<ImportGenerationResult> => {
   try {
     if (!imports || Object.keys(imports).length === 0) {
       return {js: '', functionNameByResolvedPath: {}};
@@ -56,6 +127,18 @@ export const importsToJsfuncDetailed = async(
           extractImportsFromMmt(content),
     });
     const resolved = await importer.resolveAll(imports);
+
+    const resolveAgainst = (baseFilePath: string|undefined, req: string): string => {
+      const requestedPath = fileUriToPath(String(req ?? '').trim());
+      if (!requestedPath) {
+        return '';
+      }
+      if (isAbsPath(requestedPath)) {
+        return resolveDotSegments(requestedPath);
+      }
+      const baseDir = baseFilePath ? dirnamePath(fileUriToPath(baseFilePath)) : '.';
+      return resolveDotSegments(joinPath(baseDir, requestedPath));
+    };
 
     // Choose public function names based on file title, falling back to
     // filename.
@@ -102,63 +185,57 @@ export const importsToJsfuncDetailed = async(
 
     const results: string[] = [];
 
-    const toImportObject =
-        (importMap: Record<string, string>,
-         baseFilePath: string|undefined): string => {
-          const entries: string[] = [];
-          for (const [key, requestedPathRaw] of Object.entries(
-                   importMap || {})) {
-            if (!isValidJsIdentifier(key)) {
-              throw new Error(
-                  `Invalid import key "${key}": must be a valid JS identifier`);
-            }
-            const requestedPath = String(requestedPathRaw ?? '');
-            const match = resolved.find(
-                r => r.importName === key && r.requestedPath === requestedPath);
-            const resolvedPath = match?.resolvedPath;
-            if (!resolvedPath) {
-              continue;
-            }
-            const fn = publicNameForPath.get(resolvedPath);
-            if (!fn) {
-              continue;
-            }
-            entries.push(`${key}: ${fn}`);
-          }
-          return `const imports = {${
-              entries.length ? '\n' + entries.join(',\n') + '\n' : ''}};`;
-        };
+    // Precompute alias maps for test files (so testToJsfunc can emit imports obj).
+    for (const imp of resolved) {
+      const {resolvedPath, content} = imp;
+      const type = fileType(resolvedPath, content);
+      if (type !== 'test') {
+        continue;
+      }
+
+      const test = yamlToTest(content) as any;
+      const importMap = (test?.import ?? {}) as Record<string, string>;
+      const aliasMap: Record<string, string> = {};
+      for (const [key, requestedPathRaw] of Object.entries(importMap || {})) {
+        if (!isValidJsIdentifier(key)) {
+          throw new Error(
+              `Invalid import key "${key}": must be a valid JS identifier`);
+        }
+        const requestedPath = normalizeRequestedPathForMatch(requestedPathRaw);
+        const match = resolved.find(
+            r => r.importName === key && r.requestedPath === requestedPath);
+        const fn = match ? publicNameForPath.get(match.resolvedPath) : undefined;
+        aliasMap[key] = fn || defaultFunctionNameForRequestedPath(requestedPath);
+      }
+      tracker.setAliasesForImporter(resolvedPath, aliasMap);
+    }
 
     // Emit in reverse order (latest resolved first).
     for (const imp of [...resolved].reverse()) {
       const {resolvedPath, content} = imp;
       const type = fileType(resolvedPath, content);
 
-      if (_visitedPaths.has(resolvedPath)) {
+      if (tracker.wasVisited(resolvedPath)) {
         continue;
       }
-      _visitedPaths.add(resolvedPath);
+      tracker.markVisited(resolvedPath);
 
       if (type === 'test') {
         const publicName = publicNameForPath.get(resolvedPath) as string;
         const test = yamlToTest(content) as any;
-        const importMap = (test?.import ?? {}) as Record<string, string>;
 
-        const {import: _ignored, ...testWithoutImports} = test as any;
         const flowJs = await testToJsfunc(
             {
-              test: testWithoutImports,
+              test: test,
               name: publicName,
               inputs: {},
               envVars: {},
               filePath: resolvedPath,
+              importTracker: tracker,
             },
-            false, new Set());
+            false, tracker);
 
-        const importObj = toImportObject(importMap, resolvedPath);
-        const injected =
-            flowJs.replace(/\{\n/, (m) => `${m}${indentLines(importObj)}\n`);
-        results.push(injected);
+        results.push(flowJs);
       } else if (type === 'api') {
         const publicName = publicNameForPath.get(resolvedPath) as string;
         const api = yamlToAPI(content);
@@ -187,9 +264,9 @@ export const importsToJsfuncDetailed = async(
 };
 
 export const importsToJsfunc = async(
-    imports: Record<string, string>, _visitedPaths: Set<string> = new Set(),
+    imports: Record<string, string>, tracker: ImportTracker = new ImportTracker(),
     rootPath?: string): Promise<string> => {
   const detailed =
-      await importsToJsfuncDetailed(imports, _visitedPaths, rootPath);
+      await importsToJsfuncDetailed(imports, tracker, rootPath);
   return detailed.js;
 };

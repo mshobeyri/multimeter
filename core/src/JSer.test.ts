@@ -304,9 +304,19 @@ describe('CSV import parsing', () => {
     const bundle = await importsToJsfunc({main: '/root/main.mmt'});
     // function name should be from filename "my file" => "my_file"
     expect(bundle).toContain('const my_file = async');
-    // and an imports object mapping key -> function name
+    // and an imports object mapping key -> function name for the importing test
+    expect(bundle).toContain('const main = async');
+    expect(bundle).toMatch(/const main[\s\S]*const imports = \{[\s\S]*m: my_file[\s\S]*\};/);
+  });
+
+  it('does not error when a test has no imports', async () => {
+    const mock = createTestFileLoaderMock({
+      '/root/noimp.mmt': 'type: test\nsteps:\n  - print: hi\n',
+    });
+    setFileLoader(mock.fileLoader);
+    const bundle = await importsToJsfunc({main: '/root/noimp.mmt'});
+    expect(bundle).toContain('const noimp = async');
     expect(bundle).toContain('const imports = {');
-    expect(bundle).toContain('m: my_file');
   });
 });
 

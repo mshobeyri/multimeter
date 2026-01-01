@@ -4,25 +4,36 @@ import {importsToJsfunc} from './JSerImports';
 import {flowToJsFunc} from './JSerTestFlow';
 import {TestData} from './TestData';
 import {replaceAllRefs} from './variableReplacer';
+import {ImportTracker} from './importTracker';
 
 export interface TestContext {
   test: TestData, name: string, inputs: JSONRecord, envVars: JSONRecord,
       /** Optional original file path for resolving imports */
-      filePath?: string
+  filePath?: string,
+  importTracker?: ImportTracker
 }
 
 
 export const testToJsfunc = async(
     ctx: TestContext, root: boolean,
-    visitedPaths: Set<string> = new Set()): Promise<string> => {
+  importTracker: ImportTracker = new ImportTracker()): Promise<string> => {
   if (ctx.test.stages && ctx.test.stages.length > 0 && ctx.test.steps &&
       ctx.test.steps.length > 0) {
     throw new Error(`${ctx.name}: Test cannot have both stages and steps`);
   }
 
+  const aliasMap = ctx.importTracker?.getAliasesForImporter(ctx.filePath || '') || {};
   const importAliases = Object.keys(ctx.test.import ?? {})
                             .map(key => `${key}: imports.${key}`)
                             .join(', ');
+
+  const importsObjEntries = Object.keys(ctx.test.import ?? {})
+                                .map(key => {
+                                  const mapped = aliasMap[key] || toLowerUnderscore(key);
+                                  return `  ${key}: ${mapped}`;
+                                })
+                                .join(',\n');
+  const importsObj = `const imports = {${importsObjEntries ? `\n${importsObjEntries}\n` : ''}};`;
 
   const paramsAsObj: Record<string, string> = Object.fromEntries(
       Object.keys(ctx.test.inputs ?? {}).map(key => [key, `\${${key}}`]));
@@ -44,6 +55,7 @@ export const testToJsfunc = async(
 
   return `const ${toLowerUnderscore(ctx.name)} = async ({ ${
       inputParams}} = {}) => {
+  ${importsObj}
   let outputs = {${outputParams}};
   ${indentLines(flow)}
   return outputs;
@@ -87,10 +99,10 @@ export const variableReplacer = (full: string): string => {
 };
 
 export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
-  let importedFuncs =
-      await importsToJsfunc(ctx.test.import ?? {}, new Set(), ctx.filePath);
+  const tracker = new ImportTracker();
+  let importedFuncs = await importsToJsfunc(ctx.test.import ?? {}, tracker, ctx.filePath);
 
-  const test = await testToJsfunc(ctx, true, new Set());
+  const test = await testToJsfunc({...ctx, importTracker: tracker}, true, tracker);
   const envPretty = JSON.stringify(ctx.envVars || {}, null, 2);
 
   const full = `const envVariables = ${envPretty};\n${importedFuncs}\n${
