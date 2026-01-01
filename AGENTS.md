@@ -69,6 +69,7 @@
 ## Conventions and change strategy
 - Style:
   - 2-space indentation, no tabs; always use braces even for single-line `if`/loops.
+  - Always use curly braces for all control structures (e.g. `if`, `else`, `for`, `while`, `do`, `switch`, etc.), even when the body is a single line. This avoids ambiguous or hard-to-read one-line constructs.
   - Keep `core` free of editor/FS/UI dependencies; put VS Code, `fs`, browser, and React code in `src/` or `mmtview/` instead.
   - Commit message style: short, imperative (`Add test auto complete`, `Improve UI of doc view`).
 - Change flow:
