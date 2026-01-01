@@ -59,6 +59,10 @@
   - If `status < 0`, the wrapper throws after logging so `RunResult.success` is `false`.
 - When extending logs, reuse helpers from `createApiLogHelpers` instead of ad-hoc `console.log`, and treat logs as append-only (especially in the extension output channel).
 
+## Workflow / agent rules
+
+- Do **not** create git commits unless the user explicitly asks to commit.
+
 ## Build, test, and packaging
 - From repo root:
   - `npm run compile --silent` – build all apps (core, extension, webview, CLI) via the shared pipeline.
