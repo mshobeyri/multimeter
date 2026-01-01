@@ -369,6 +369,33 @@ describe('env token replacements in generated JS', () => {
      });
 });
 
+describe('rootTestToJsfunc + import tracker', () => {
+  it('keeps top-level imports mapping as key->key when tracker lacks alias', async () => {
+    const mock = createTestFileLoaderMock({
+      '/root/testflow.mmt':
+          'type: test\nimport:\n  kxxx: /root/txxx.mmt\nsteps:\n  - call: kxxx\n',
+      '/root/txxx.mmt': 'type: test\nsteps:\n  - print: hi\n',
+    });
+    setFileLoader(mock.fileLoader);
+
+    const js = await rootTestToJsfunc({
+      name: 'testflow',
+      test: {
+        import: {kxxx: '/root/txxx.mmt'},
+        steps: [{call: 'kxxx'} as any],
+      } as any,
+      inputs: {},
+      envVars: {url: 'http://localhost:8080'},
+      filePath: '/root/testflow.mmt',
+    });
+
+    // Root imports object is emitted in the root test function.
+    expect(js).toContain('const envVariables =');
+    expect(js).toContain('const testflow = async');
+    expect(js).toContain('kxxx: txxx');
+  });
+});
+
 describe('empty test items are valid', () => {
   it('handles empty assert without throwing and generates no code',
      async () => {

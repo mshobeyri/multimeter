@@ -29,8 +29,19 @@ export const testToJsfunc = async(
 
   const importsObjEntries = Object.keys(ctx.test.import ?? {})
                                 .map(key => {
-                                  const mapped = aliasMap[key] || toLowerUnderscore(key);
-                                  return `  ${key}: ${mapped}`;
+                                  const fromAliasMap = aliasMap[key];
+                                  if (fromAliasMap) {
+                                    return `  ${key}: ${fromAliasMap}`;
+                                  }
+
+                                  const requested = (ctx.test.import as any)?.[key];
+                                  const fnFromRequested =
+                                      typeof requested === 'string' ? ctx.importTracker?.getTestFuncName(requested) : undefined;
+                                  if (fnFromRequested) {
+                                    return `  ${key}: ${fnFromRequested}`;
+                                  }
+
+                                  return `  ${key}: ${toLowerUnderscore(key)}`;
                                 })
                                 .join(',\n');
   const importsObj = `const imports = {${importsObjEntries ? `\n${importsObjEntries}\n` : ''}};`;
@@ -100,7 +111,8 @@ export const variableReplacer = (full: string): string => {
 
 export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
   const tracker = new ImportTracker();
-  let importedFuncs = await importsToJsfunc(ctx.test.import ?? {}, tracker, ctx.filePath);
+  let importedFuncs =
+      await importsToJsfunc(ctx.test.import ?? {}, tracker, ctx.filePath);
 
   const test = await testToJsfunc({...ctx, importTracker: tracker}, true, tracker);
   const envPretty = JSON.stringify(ctx.envVars || {}, null, 2);

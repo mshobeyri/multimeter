@@ -21,4 +21,14 @@ describe('ImportTracker', () => {
     t.setAliasesForImporter('/root/main.mmt', {m: 'my_file'});
     expect(t.getAliasesForImporter('/root/main.mmt')).toEqual({m: 'my_file'});
   });
+
+  it('stores test function name by resolved path', () => {
+    const t = new ImportTracker();
+    expect(t.getTestFuncName('/abs/test.mmt')).toBeUndefined();
+    t.setTestFuncName('/abs/test.mmt', 'testflow');
+    expect(t.getTestFuncName('/abs/test.mmt')).toBe('testflow');
+    // first write wins
+    t.setTestFuncName('/abs/test.mmt', 'other');
+    expect(t.getTestFuncName('/abs/test.mmt')).toBe('testflow');
+  });
 });

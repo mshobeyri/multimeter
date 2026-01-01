@@ -4,6 +4,7 @@ export interface ImportTrackerSnapshot {
   visited: string[];
   importPathByResolvedPath: Record<string, string[]>;
   aliasByImportingResolvedPath: Record<string, ImportAliasMap>;
+  testFuncNameByResolvedPath: Record<string, string>;
 }
 
 /**
@@ -14,6 +15,7 @@ export class ImportTracker {
   private visitedPaths = new Set<string>();
   private importPathByResolvedPath = new Map<string, string[]>();
   private aliasByImportingResolvedPath = new Map<string, ImportAliasMap>();
+  private testFuncNameByResolvedPath = new Map<string, string>();
 
   wasVisited(resolvedPath: string): boolean {
     return this.visitedPaths.has(resolvedPath);
@@ -49,6 +51,16 @@ export class ImportTracker {
     return this.aliasByImportingResolvedPath.get(importingResolvedPath) || {};
   }
 
+  setTestFuncName(resolvedPath: string, funcName: string): void {
+    if (!this.testFuncNameByResolvedPath.has(resolvedPath)) {
+      this.testFuncNameByResolvedPath.set(resolvedPath, funcName);
+    }
+  }
+
+  getTestFuncName(resolvedPath: string): string|undefined {
+    return this.testFuncNameByResolvedPath.get(resolvedPath);
+  }
+
   snapshot(): ImportTrackerSnapshot {
     const importPathByResolvedPath: Record<string, string[]> = {};
     for (const [k, v] of this.importPathByResolvedPath.entries()) {
@@ -60,10 +72,16 @@ export class ImportTracker {
       aliasByImportingResolvedPath[k] = {...v};
     }
 
+    const testFuncNameByResolvedPath: Record<string, string> = {};
+    for (const [k, v] of this.testFuncNameByResolvedPath.entries()) {
+      testFuncNameByResolvedPath[k] = v;
+    }
+
     return {
       visited: [...this.visitedPaths.values()],
       importPathByResolvedPath,
       aliasByImportingResolvedPath,
+      testFuncNameByResolvedPath,
     };
   }
 }

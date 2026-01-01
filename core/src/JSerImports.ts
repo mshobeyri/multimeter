@@ -224,6 +224,8 @@ export const importsToJsfuncDetailed = async(
         const publicName = publicNameForPath.get(resolvedPath) as string;
         const test = yamlToTest(content) as any;
 
+        tracker.setTestFuncName(resolvedPath, publicName);
+
         const flowJs = await testToJsfunc(
             {
               test: test,
