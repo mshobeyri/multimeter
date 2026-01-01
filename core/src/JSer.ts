@@ -281,41 +281,84 @@ export const csvToJSObj =
 export const importsToJsfunc =
     async(imports: Record<string, string>, _visitedPaths: Set<string> = new Set()): Promise<string> => {
       try {
-        const results: string[] = [];
+        if (!imports || Object.keys(imports).length === 0) {
+          return '';
+        }
+
         const importer = createFileImporter({
           fileLoader: readFile,
           getImportsFromContent: (content: string) => extractImportsFromMmt(content),
         });
-        const resolved = await importer.resolveAll(imports || {});
+        const resolved = await importer.resolveAll(imports);
+
+        const results: string[] = [];
+        const usedNames = new Set<string>();
+        const publicNameForPath = new Map<string, string>();
+
+        const choosePublicName = (baseName: string): string => {
+          if (!usedNames.has(baseName)) {
+            usedNames.add(baseName);
+            return baseName;
+          }
+          for (let i = 1; i < 10_000; i++) {
+            const candidate = `${baseName}_${i}`;
+            if (!usedNames.has(candidate)) {
+              usedNames.add(candidate);
+              return candidate;
+            }
+          }
+          throw new Error(`Too many name collisions for import key: ${baseName}`);
+        };
+
         for (const imp of resolved) {
           const {importName, resolvedPath, content} = imp;
           const type = fileType(resolvedPath, content);
+
           if (type === 'test') {
-            const res = await testToJsfunc(
+            const publicName = choosePublicName(toLowerUnderscore(importName));
+            publicNameForPath.set(resolvedPath, publicName);
+
+            const test = yamlToTest(content);
+            const childImports = test.import ?? {};
+            const nested = await importsToJsfunc(childImports, _visitedPaths);
+            const nestedIndented = nested ? `\n${indentLines(nested)}\n` : '';
+            const {import: _ignored, ...testWithoutImports} = test as any;
+            const flowJs = await testToJsfunc(
                 {
-                  test: yamlToTest(content),
-                  name: importName,
+                  test: testWithoutImports,
+                  name: publicName,
                   inputs: {},
                   envVars: {},
                 },
                 false,
                 new Set());
-            results.push(res);
+            const inside = flowJs.replace(
+                new RegExp(`\\bconst ${publicName} = async`),
+                `const ${publicName} = async`);
+            // Inject nested imports at top of this function body.
+            const injected = inside.replace(
+                /\{\n/, (m) => `${m}${nestedIndented ? indentLines(nestedIndented).trimEnd() + "\n" : ''}`);
+            results.push(injected);
           } else if (type === 'api') {
-            const res = await apiToJSfunc({
-              api: yamlToAPI(content),
-              name: importName,
+            const publicName = choosePublicName(toLowerUnderscore(importName));
+            publicNameForPath.set(resolvedPath, publicName);
+            const api = yamlToAPI(content);
+            const apiTest = apiToJSfunc({
+              api,
+              name: publicName,
               inputs: {},
               envVars: {},
             });
-            results.push(res);
+            results.push(await apiTest);
           } else if (type === 'csv') {
-            const res = await csvToJSObj(content, importName);
-            results.push(res);
+            const publicName = choosePublicName(toLowerUnderscore(importName));
+            publicNameForPath.set(resolvedPath, publicName);
+            results.push(await csvToJSObj(content, publicName));
           } else {
             console.warn(`Skipping ${resolvedPath}: unknown type "${type}"`);
           }
         }
+
         return results.join('\n');
       } catch (error) {
         console.error('Error importing functions:', error);
