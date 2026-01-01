@@ -36,17 +36,3 @@ export function summarize(obj: any): string {
   const { steps, stages } = extractFlow(obj);
   return stages ? `stages: ${stages.length}` : `steps: ${steps.length}`;
 }
-
-export function maybeGenerateJs(obj: any): string | undefined {
-  const { steps, stages } = extractFlow(obj);
-  if (stages) {
-    return stages.map(s =>
-      `// stage: ${s.stage || s.name || 'unnamed'}\n` +
-      (Array.isArray(s.steps) ? (JSer.flowStepsToJsfunc?.(s.steps as any, true) || '') : '')
-    ).join('\n');
-  }
-  if (steps) {
-    return JSer.flowStepsToJsfunc?.(steps as any, true);
-  }
-  return;
-}

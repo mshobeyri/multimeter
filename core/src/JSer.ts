@@ -1,10 +1,12 @@
 import {APIData} from './APIData';
 import {yamlToAPI} from './apiParsePack';
-import {JSONRecord, JSONValue, Type} from './CommonData';
+import {JSONRecord, Type} from './CommonData';
 import {createFileImporter} from './fileImporter';
+import {indentLines, toInputsParams} from './JSerHelper';
+import {flowToJsFunc} from './JSerTestFlow';
 import {formatBody} from './markupConvertor';
-import {TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowStage, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
-import {getTestFlowStepType, yamlToTest} from './testParsePack';
+import {TestData} from './TestData';
+import {yamlToTest} from './testParsePack';
 import {replaceAllRefs} from './variableReplacer';
 
 const extractImportsFromMmt = (content: string): Record<string, string> => {
@@ -25,10 +27,6 @@ const extractImportsFromMmt = (content: string): Record<string, string> => {
     return {};
   }
 };
-
-export function indentLines(str: string): string {
-  return str.split('\n').map(line => '  ' + line).join('\n').slice(2);
-}
 
 // Convert a string to lowercase and replace spaces with underscores
 export function toLowerUnderscore(input: string): string {
@@ -436,350 +434,6 @@ export const importsToJsfuncDetailed = async(
   }
 };
 
-const replaceEnvTokens = (s: string): string =>
-    s.replace(/\be:([A-Za-z_][A-Za-z0-9_]*)\b/g, 'envVariables.$1');
-
-export const conditionalStatementToJSfunc = (check: string): string => {
-  // Replace env tokens like e:FOO -> envVariables.FOO
-  const normalized = replaceEnvTokens(check);
-  const checkParts = normalized.split(' ');
-  if (checkParts.length !== 3) {
-    return 'true';
-  }
-  const [left, operator, right] = checkParts;
-  switch (operator) {
-    case '<':
-      return `less(${left}, ${right})`;
-    case '>':
-      return `greater(${left}, ${right})`;
-    case '<=':
-      return `lessOrEqual(${left}, ${right})`;
-    case '>=':
-      return `greaterOrEqual(${left}, ${right})`;
-    case '==':
-      return `equals(${left}, ${right})`;
-    case '!=':
-      return `notEquals(${left}, ${right})`;
-    case '=@':
-      return `isAt(${left}, ${right})`;
-    case '!@':
-      return `isNotAt(${left}, ${right})`;
-    case '=~':
-      return `matches(${left}, ${right})`;
-    case '!~':
-      return `notMatches(${left}, ${right})`;
-    case '=^':
-      return `startsWith(${left}, ${right})`;
-    case '!^':
-      return `notStartsWith(${left}, ${right})`;
-    case '=$':
-      return `endsWith(${left}, ${right})`;
-    case '!$':
-      return `notEndsWith(${left}, ${right})`;
-    default:
-      throw new Error(`${check}: Unknown operator: ${operator}`);
-  }
-};
-
-export const ifToJSfunc = (condition: TestFlowCondition): string => {
-  const conditionStatement = conditionalStatementToJSfunc(condition.if);
-  const thenBlock = flowStepsToJsfunc(condition.steps, true);
-  const elseBlock =
-      condition.else ? flowStepsToJsfunc(condition.else, true) : undefined;
-
-  if (!elseBlock) {
-    return `if (${conditionStatement}) {
-  ${indentLines(thenBlock)}
-}`;
-  } else {
-    return `if (${conditionStatement}) {
-  ${indentLines(thenBlock)}
-} else {
-  ${indentLines(elseBlock)}
-}`;
-  }
-};
-
-export const repeatToJSfunc = (loop: TestFlowRepeat): string => {
-  const loopCondition = typeof loop.repeat === 'string' ? loop.repeat.trim() :
-                                                          String(loop.repeat);
-  const loopBody = flowStepsToJsfunc(loop.steps, true);
-
-  // Check for time-based repeat
-  const timeMatch = loopCondition.match(/^(\d+(?:\.\d+)?)(ns|ms|s|m|h)$/);
-  if (timeMatch) {
-    const value = parseFloat(timeMatch[1]);
-    const unit = timeMatch[2];
-    let durationMs = 0;
-    switch (unit) {
-      case 'ns':
-        durationMs = value / 1e6;
-        break;
-      case 'ms':
-        durationMs = value;
-        break;
-      case 's':
-        durationMs = value * 1000;
-        break;
-      case 'm':
-        durationMs = value * 60 * 1000;
-        break;
-      case 'h':
-        durationMs = value * 60 * 60 * 1000;
-        break;
-    }
-    return `for (const start = Date.now(); Date.now() < start + ${
-        durationMs}; ) {
-  ${indentLines(loopBody)}
-}`;
-  }
-
-  // Default: count-based repeat
-  return `for (let i = 0; i < ${loopCondition}; i++) {
-  ${indentLines(loopBody)}
-}`;
-};
-
-export function delayToJSfunc(d: string|number): string {
-  const val = typeof d === 'number' ? String(d) : String(d).trim();
-  let msExpr = '0';
-  const m = val.match(/^(\d+(?:\.\d+)?)(ns|ms|s|m|h)?$/);
-  if (m) {
-    const num = parseFloat(m[1]);
-    const unit = m[2] || 'ms';
-    switch (unit) {
-      case 'ns':
-        msExpr = String(num / 1e6);
-        break;
-      case 'ms':
-        msExpr = String(num);
-        break;
-      case 's':
-        msExpr = String(num * 1000);
-        break;
-      case 'm':
-        msExpr = String(num * 60 * 1000);
-        break;
-      case 'h':
-        msExpr = String(num * 60 * 60 * 1000);
-        break;
-      default:
-        msExpr = String(num);
-    }
-  } else {
-    msExpr = `(function(x){
-      const s = String(x).trim();
-      const mm = s.match(/^(\\d+(?:\\.\\d+)?)(ns|ms|s|m|h)?$/);
-      if(!mm) return Number(s)||0;
-      const n = parseFloat(mm[1]);
-      const u = mm[2]||'ms';
-      return u==='ns'? n/1e6 : u==='ms'? n : u==='s'? n*1000 : u==='m'? n*60000 : n*3600000;
-    })(${val})`;
-  }
-  return `await new Promise(r => setTimeout(r, ${msExpr}));`;
-}
-
-export const forToJSfunc = (loop: TestFlowLoop): string => {
-  const loopBody = flowStepsToJsfunc(loop.steps, true);
-  return `
-for (${loop.for}) {
-  ${indentLines(loopBody)}
-}`;
-};
-
-export const setToJSfunc = (set: Record<string, any>): string => {
-  return `${set} = ${set.value};`;
-};
-
-
-export const checkToJSfunc = (check: string): string => {
-  if (!check || typeof check !== 'string' || check.trim() === '') {
-    return '';
-  }
-  const conditionStatement = conditionalStatementToJSfunc(check);
-  const checkParts = check.split(' ');
-  if (checkParts.length !== 3) {
-    throw new Error(`Invalid check format: ${check}`);
-  }
-  const [left, operator, right] = checkParts;
-
-  return `if (!${conditionStatement}) {
-  console.error("Check ${check} failed, as " + JSON.stringify(${left}) + " ${
-      operator} " + ${right} + " is false");
-}`;
-};
-
-export const assertToJSfunc = (assert: string): string => {
-  if (!assert || typeof assert !== 'string' || assert.trim() === '') {
-    return '';
-  }
-  const conditionStatement = conditionalStatementToJSfunc(assert);
-  const assertParts = assert.split(' ');
-  if (assertParts.length !== 3) {
-    throw new Error(`Invalid assert format: ${assert}`);
-  }
-  const [left, operator, right] = assertParts;
-
-  return `if (!${conditionStatement}) {
-  throw new Error("Assertion ${assert} failed, as " + JSON.stringify(${
-      left}) + " ${operator} " + ${right}+ " is false");
-}`;
-};
-
-const toInputsParams =
-    (inputs: Record<string, JSONValue>, operator: string) => {
-      const formattedInputs =
-          Object.entries(inputs ?? {})
-              .map(
-                  ([key, value]) => `${key}${operator}${
-                      typeof value === 'string'     ? '`' + value + '`' :
-                          typeof value === 'object' ? JSON.stringify(value) :
-                                                      value}`)
-              .join(', ');
-      return formattedInputs;
-    };
-
-export const callToJSfunc = (step: TestFlowCall): string => {
-  let inputParams = toInputsParams(step.inputs || {}, ': ');
-  if (inputParams.length > 0) {
-    inputParams = ' ' + inputParams + ' ';
-  }
-
-  let call = `await ${step.call}({${inputParams}});`;
-  if (step.id) {
-    call = `const ${step.id} = ` + call;
-  }
-
-  return call;
-};
-
-export const varToJSfunc = (key: string, step: any): string => {
-  return Object.entries(step)
-      .map(([varName, value]) => {
-        if (typeof value === 'string') {
-          return `${key}${varName} = \`${value}\`;`;
-        } else {
-          return `${key}${varName} = ${value};`;
-        }
-      })
-      .join('\n');
-};
-
-export const flowStepsToJsfunc =
-    (flow: TestFlowSteps, root: boolean): string => {
-      return (flow ?? [])
-          .map((step: TestFlowStep) => {
-            switch (getTestFlowStepType(step)) {
-              case 'call':
-                return callToJSfunc(step as TestFlowCall);
-              case 'check':
-                return checkToJSfunc((step as TestFlowCheck).check);
-              case 'assert':
-                return assertToJSfunc((step as TestFlowAssert).assert);
-              case 'if':
-                return ifToJSfunc(step as TestFlowCondition);
-              case 'repeat':
-                return repeatToJSfunc(step as TestFlowRepeat);
-              case 'delay':
-                return delayToJSfunc((step as any).delay);
-              case 'for':
-                return forToJSfunc(step as TestFlowLoop);
-              case 'js':
-                return (step as any).js;
-              case 'print':
-                if (root) {
-                  return `console.log(\`${(step as any).print}\`);`;
-                }
-                return `console.debug(\`${(step as any).print}\`);`;
-              case 'set':
-                return varToJSfunc('', (step as any).set);
-              case 'var':
-                return varToJSfunc('var ', (step as any).var);
-              case 'const':
-                return varToJSfunc('const ', (step as any).const);
-              case 'let':
-                return varToJSfunc('let ', (step as any).let);
-              case 'data': {
-                const alias = (step as any).data;
-                return '';
-              }
-              default:
-                return '';
-            }
-          })
-          .join('\n');
-    };
-
-export const flowStagesToJsfunc =
-    (flow: TestFlowStages, root: boolean): string => {
-      if (!flow || flow.length === 0) {
-        return '';
-      };
-
-      // Map stage name to its code and dependencies
-      const stageMap = new Map < string, {
-        code: string;
-        dependsOn?: string[]
-      }
-      > ();
-
-      for (const stage of flow) {
-        const stageName = stage.id || randomName();
-        const dependsOn = Array.isArray(stage.depends_on) ? stage.depends_on :
-            stage.depends_on                              ? [stage.depends_on] :
-                                                            [];
-        // Build stage code with optional early-return condition
-        let code = '';
-        if (stage.condition && String(stage.condition).trim().length > 0) {
-          const cond = conditionalStatementToJSfunc(String(stage.condition));
-          code += `if (!(${cond})) {\n  return;\n}\n`;
-        }
-        code += flowStepsToJsfunc(stage.steps ?? [], root);
-        stageMap.set(stageName, {code, dependsOn});
-      }
-
-      // Helper to generate code for each stage with dependency handling
-      const generated: string[] = [];
-      const launched = new Set<string>();
-      const processed = new Set<string>();
-
-      function genStage(stageName: string) {
-        if (processed.has(stageName)) {
-          return;
-        }
-        const stage = stageMap.get(stageName);
-        if (!stage) {
-          return;
-        }
-        // Ensure dependencies are processed first
-        if (stage.dependsOn && stage.dependsOn.length > 0) {
-          for (const dep of stage.dependsOn) {
-            genStage(dep);
-          }
-          // Wait for dependencies before launching this stage
-          generated.push(`await Promise.all([${
-              stage.dependsOn.map(dep => `${dep}Promise`).join(', ')}]);`);
-        }
-        // Launch this stage as a promise
-        generated.push(`const ${stageName}Promise = (async () => {
-${indentLines(stage.code)}
-})();`);
-        launched.add(stageName);
-        processed.add(stageName);
-      }
-
-      // Launch all stages
-      for (const stageName of stageMap.keys()) {
-        genStage(stageName);
-      }
-
-      // Wait for all launched stages to finish
-      generated.push(`await Promise.all([${
-          Array.from(launched).map(name => `${name}Promise`).join(', ')}]);`);
-
-      return generated.join('\n');
-    };
-
 export interface TestContext {
   test: TestData, name: string, inputs: JSONRecord, envVars: JSONRecord,
       /** Optional original file path for resolving imports */
@@ -805,6 +459,11 @@ export const testToJsfunc = async(
   }
   let importedFuncs =
       await importsToJsfunc(ctx.test.import ?? {}, visitedPaths, ctx.filePath);
+
+  const importAliases = Object.keys(ctx.test.import ?? {})
+                            .map(key => `${key}: imports.${key}`)
+                            .join(', ');
+
   const paramsAsObj: Record<string, string> = Object.fromEntries(
       Object.keys(ctx.test.inputs ?? {}).map(key => [key, `\${${key}}`]));
 
@@ -821,20 +480,14 @@ export const testToJsfunc = async(
     outputParams = ' ' + outputParams + ' ';
   }
 
-  if (replaced.stages && replaced.stages.length > 0) {
-    flow += flowStagesToJsfunc(replaced.stages, root);
-  } else if (replaced.steps && replaced.steps.length > 0) {
-    flow += flowStepsToJsfunc(replaced.steps, root);
-  }
+  flow += flowToJsFunc(replaced, root);
 
   return `const ${toLowerUnderscore(ctx.name)} = async ({ ${
       inputParams}} = {}) => {
   ${indentLines(importedFuncs)}
-
+  const imports = {${importAliases}};
   let outputs = {${outputParams}};
-
   ${indentLines(flow)}
-
   return outputs;
 };`;
 };
@@ -881,8 +534,3 @@ export const variableReplacer = (full: string): string => {
   }
   return out;
 };
-
-function randomName(): string {
-  // Generate a random stage name like "stage_xxxxx"
-  return 'stage_' + Math.random().toString(36).substr(2, 8);
-}
