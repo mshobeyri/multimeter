@@ -73,8 +73,7 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
                     name: testData?.title || "testFlow",
                     test: testData,
                     inputs: testData?.inputs || {},
-                    envVars: envVars,
-                    filePath: normalizeToFsPath(mmtFilePath),
+                    envVars: envVars
                 });
                 setJsCode(code);
                 setError(null);
