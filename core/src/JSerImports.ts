@@ -7,67 +7,14 @@ import {readFile} from './JSerFileLoader';
 import {fileType, indentLines, toLowerUnderscore} from './JSerHelper';
 import {testToJsfunc} from './JSerTest';
 import {yamlToTest} from './testParsePack';
-
-const fileUriToPath = (p: string): string => {
-  const s = String(p ?? '');
-  if (s.startsWith('file://')) {
-    try {
-      return decodeURIComponent(s.slice('file://'.length));
-    } catch {
-      return s.slice('file://'.length);
-    }
-  }
-  return s;
-};
-
-const isAbsPath = (p: string): boolean => {
-  const s = String(p ?? '').replace(/\\/g, '/');
-  return s.startsWith('/') || /^[A-Za-z]:\//.test(s);
-};
-
-const dirnamePath = (p: string): string => {
-  const s = String(p ?? '').replace(/\\/g, '/');
-  const idx = s.lastIndexOf('/');
-  return idx <= 0 ? (s.startsWith('/') ? '/' : '.') : s.slice(0, idx);
-};
-
-const joinPath = (a: string, b: string): string => {
-  const left = String(a ?? '').replace(/\\/g, '/');
-  const right = String(b ?? '').replace(/\\/g, '/');
-  if (!left || left === '.') {
-    return right;
-  }
-  if (!right) {
-    return left;
-  }
-  if (left.endsWith('/')) {
-    return left + right;
-  }
-  return left + '/' + right;
-};
-
-const resolveDotSegments = (p: string): string => {
-  const s = String(p ?? '').replace(/\\/g, '/');
-  const abs = s.startsWith('/') || /^[A-Za-z]:\//.test(s);
-  const parts = s.split('/');
-  const out: string[] = [];
-  for (const part of parts) {
-    if (part === '' || part === '.') {
-      continue;
-    }
-    if (part === '..') {
-      if (out.length > 0 && out[out.length - 1] !== '..') {
-        out.pop();
-      } else if (!abs) {
-        out.push('..');
-      }
-      continue;
-    }
-    out.push(part);
-  }
-  const prefix = abs && s.startsWith('/') ? '/' : '';
-  return prefix + out.join('/');
-};
+import {
+  fileUriToPath,
+  isAbsPath,
+  dirnamePath,
+  joinPath,
+  resolveDotSegments,
+  resolveRequestedAgainst,
+} from './fileHelper';
 
 const basenameNoExt = (p: string): string => {
   const s = String(p ?? '').replace(/\\/g, '/');
@@ -101,10 +48,6 @@ const extractImportsFromMmt = (content: string): Record<string, string> => {
   } catch {
     return {};
   }
-};
-
-const normalizeRequestedPathForMatch = (p: string): string => {
-  return String(p ?? '');
 };
 
 export interface ImportGenerationResult {
@@ -188,7 +131,7 @@ const buildAliasMaps =
                 `Invalid import key "${key}": must be a valid JS identifier`);
           }
           const requestedPath =
-              normalizeRequestedPathForMatch(requestedPathRaw);
+            resolveRequestedAgainst(resolvedPath, requestedPathRaw);
           const match = resolved.find(
               r => r.importName === key && r.requestedPath === requestedPath);
           const fn =

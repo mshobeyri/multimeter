@@ -178,6 +178,53 @@ describe('CSV import parsing', () => {
     expect(users).toEqual([{name: 'mehrdad', family: 'shobeyri', age: 35}]);
   });
 
+  it('maps csv import keys to generated names in root imports', async () => {
+    const csv = `name,age\nmehrdad,35\n`;
+    setFileLoader(async (p: string) => {
+      if (p === '/root/users.csv') {
+        return csv;
+      }
+      return '';
+    });
+
+    const js = await rootTestToJsfunc({
+      name: 'csvRunner',
+      test: {
+        import: {users: '/root/users.csv'},
+        steps: [{print: 'hello'} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/testflow.mmt',
+    });
+
+    expect(js).toContain('const users = [');
+    expect(js).toMatch(/const imports = \{[^}]*users: users[^}]*\}/);
+  });
+
+  it('maps relative csv imports to canonical names', async () => {
+    const csv = `name\nmehrdad\n`;
+    setFileLoader(async (p: string) => {
+      if (p === '/root/data/users.csv') {
+        return csv;
+      }
+      return '';
+    });
+
+    const js = await rootTestToJsfunc({
+      name: 'csvRunner',
+      test: {
+        import: {users: '../data/users.csv'},
+        steps: [{print: 'hello'} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/tests/main.mmt',
+    });
+
+    expect(js).toMatch(/const imports = \{[^}]*users: users[^}]*\}/);
+  });
+
 
   it('detects circular imports and logs error (graceful handling)',
      async () => {
@@ -391,6 +438,28 @@ describe('rootTestToJsfunc + import tracker', () => {
     // Root imports object is emitted in the root test function.
     expect(js).toContain('const envVariables =');
     expect(js).toContain('const testflow = async');
+    expect(js).toContain('kxxx: txxx');
+  });
+
+  it('resolves relative paths when building root aliases', async () => {
+    const mock = createTestFileLoaderMock({
+      '/root/testflow.mmt':
+          'type: test\nimport:\n  kxxx: ./txxx.mmt\nsteps:\n  - call: kxxx\n',
+      '/root/txxx.mmt': 'type: test\nsteps:\n  - print: hi\n',
+    });
+    setFileLoader(mock.fileLoader);
+
+    const js = await rootTestToJsfunc({
+      name: 'testflow',
+      test: {
+        import: {kxxx: './txxx.mmt'},
+        steps: [{call: 'kxxx'} as any],
+      } as any,
+      inputs: {},
+      envVars: {url: 'http://localhost:8080'},
+      filePath: '/root/testflow.mmt',
+    });
+
     expect(js).toContain('kxxx: txxx');
   });
 });

@@ -1,6 +1,7 @@
 import {JSONRecord} from './CommonData';
 import {ImportTracker} from './importTracker';
 import {indentLines, toInputsParams, toLowerUnderscore} from './JSerHelper';
+import {resolveRequestedAgainst} from './fileHelper';
 import {importsToJsfunc} from './JSerImports';
 import {flowToJsFunc} from './JSerTestFlow';
 import {TestData} from './TestData';
@@ -36,9 +37,12 @@ export const testToJsfunc = async(
             }
 
             const requested = (ctx.test.import as any)?.[key];
-            const fnFromRequested = typeof requested === 'string' ?
-                ctx.importTracker?.getTestFuncName(requested) :
-                undefined;
+            const normalizedRequested = typeof requested === 'string' ?
+              resolveRequestedAgainst(ctx.filePath, requested) :
+              undefined;
+            const fnFromRequested = normalizedRequested ?
+              ctx.importTracker?.getTestFuncName(normalizedRequested) :
+              undefined;
             if (fnFromRequested) {
               return `  ${key}: ${fnFromRequested}`;
             }

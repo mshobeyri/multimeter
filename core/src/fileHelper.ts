@@ -16,6 +16,87 @@ const stripFileUri = (p: string) => {
   return p;
 };
 
+export const fileUriToPath = (p: string): string => {
+  const s = String(p ?? '');
+  if (!s) {
+    return '';
+  }
+  if (/^file:\/\//i.test(s)) {
+    try {
+      return decodeURIComponent(s.replace(/^file:\/\/+/, '/'));
+    } catch {
+      return s.replace(/^file:\/\/+/, '/');
+    }
+  }
+  return s;
+};
+
+export const isAbsPath = (p: string): boolean => {
+  const s = String(p ?? '').replace(/\\/g, '/');
+  return s.startsWith('/') || /^[A-Za-z]:\//.test(s);
+};
+
+export const dirnamePath = (p: string): string => {
+  const s = String(p ?? '').replace(/\\/g, '/');
+  const idx = s.lastIndexOf('/');
+  return idx <= 0 ? (s.startsWith('/') ? '/' : '.') : s.slice(0, idx);
+};
+
+export const joinPath = (a: string, b: string): string => {
+  const left = String(a ?? '').replace(/\\/g, '/');
+  const right = String(b ?? '').replace(/\\/g, '/');
+  if (!left || left === '.') {
+    return right;
+  }
+  if (!right) {
+    return left;
+  }
+  if (left.endsWith('/')) {
+    return left + right;
+  }
+  return left + '/' + right;
+};
+
+export const resolveDotSegments = (p: string): string => {
+  const s = String(p ?? '').replace(/\\/g, '/');
+  const abs = s.startsWith('/') || /^[A-Za-z]:\//.test(s);
+  const parts = s.split('/');
+  const out: string[] = [];
+  for (const part of parts) {
+    if (part === '' || part === '.') {
+      continue;
+    }
+    if (part === '..') {
+      if (out.length > 0 && out[out.length - 1] !== '..') {
+        out.pop();
+      } else if (!abs) {
+        out.push('..');
+      }
+      continue;
+    }
+    out.push(part);
+  }
+  const prefix = abs && s.startsWith('/') ? '/' : '';
+  return prefix + out.join('/');
+};
+
+export const resolveRequestedAgainst = (
+    baseFilePath: string|undefined, requested: string): string => {
+  const reqRaw = String(requested ?? '').trim();
+  if (!reqRaw) {
+    return '';
+  }
+  const requestedPath = fileUriToPath(reqRaw);
+  if (!requestedPath) {
+    return '';
+  }
+  if (isAbsPath(requestedPath)) {
+    return resolveDotSegments(requestedPath);
+  }
+  const baseDir = baseFilePath ? dirnamePath(fileUriToPath(baseFilePath)) : '.';
+  return resolveDotSegments(joinPath(baseDir, requestedPath));
+};
+
 /**
  * Compute a concise path for display relative to `base` when possible.
  * - Accepts `base` in the form of a filesystem path or a `file://` URI.
@@ -82,4 +163,4 @@ export const computeRelative = (base?: string, full?: string): string => {
   return (up ? up + '/' : '') + (remainder || '.');
 };
 
-export default {computeRelative};
+export default {computeRelative, resolveRequestedAgainst};
