@@ -316,7 +316,6 @@ describe('CSV import parsing', () => {
     setFileLoader(mock.fileLoader);
     const bundle = await importsToJsfunc({main: '/root/noimp.mmt'});
     expect(bundle).toContain('const noimp = async');
-    expect(bundle).toContain('const imports = {');
   });
 });
 

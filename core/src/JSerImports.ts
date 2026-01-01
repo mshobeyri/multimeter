@@ -112,6 +112,148 @@ export interface ImportGenerationResult {
   functionNameByResolvedPath: Record<string, string>;
 }
 
+const resolveImports = async(
+    imports: Record<string, string>, rootPath?: string) => {
+  const importer = createFileImporter({
+    fileLoader: readFile,
+    rootPath: rootPath,
+    getImportsFromContent: (content: string) => extractImportsFromMmt(content),
+  });
+  return await importer.resolveAll(imports);
+};
+
+const choosePublicNameBuilder = () => {
+  const usedNames = new Set<string>();
+  return (baseName: string): string => {
+    const base = toLowerUnderscore(baseName || '').trim();
+    const normalized = base || 'imported';
+    if (!usedNames.has(normalized)) {
+      usedNames.add(normalized);
+      return normalized;
+    }
+    for (let i = 1; i < 10_000; i++) {
+      const candidate = `${normalized}_${i}`;
+      if (!usedNames.has(candidate)) {
+        usedNames.add(candidate);
+        return candidate;
+      }
+    }
+    throw new Error(`Too many name collisions for imported name: ${normalized}`);
+  };
+};
+
+const computePublicNames = (resolved: any[]): Map<string, string> => {
+  const publicNameForPath = new Map<string, string>();
+  const choosePublicName = choosePublicNameBuilder();
+
+  for (const imp of resolved) {
+    const {resolvedPath, content} = imp;
+    if (publicNameForPath.has(resolvedPath)) {
+      continue;
+    }
+    let baseTitle = '';
+    try {
+      const parsed: any = yamlToTest(content) as any;
+      if (parsed && typeof parsed.title === 'string' && parsed.title.trim()) {
+        baseTitle = parsed.title.trim();
+      }
+    } catch {
+    }
+    if (!baseTitle) {
+      baseTitle = basenameNoExt(resolvedPath);
+    }
+    publicNameForPath.set(resolvedPath, choosePublicName(baseTitle));
+  }
+
+  return publicNameForPath;
+};
+
+const buildAliasMaps = (
+    resolved: any[], publicNameForPath: Map<string, string>,
+    tracker: ImportTracker) => {
+  for (const imp of resolved) {
+    const {resolvedPath, content} = imp;
+    const type = fileType(resolvedPath, content);
+    if (type !== 'test') {
+      continue;
+    }
+
+    const test = yamlToTest(content) as any;
+    const importMap = (test?.import ?? {}) as Record<string, string>;
+    const aliasMap: Record<string, string> = {};
+    for (const [key, requestedPathRaw] of Object.entries(importMap || {})) {
+      if (!isValidJsIdentifier(key)) {
+        throw new Error(
+            `Invalid import key "${key}": must be a valid JS identifier`);
+      }
+      const requestedPath = normalizeRequestedPathForMatch(requestedPathRaw);
+      const match = resolved.find(
+          r => r.importName === key && r.requestedPath === requestedPath);
+      const fn = match ? publicNameForPath.get(match.resolvedPath) : undefined;
+      aliasMap[key] = fn || defaultFunctionNameForRequestedPath(requestedPath);
+    }
+    tracker.setAliasesForImporter(resolvedPath, aliasMap);
+  }
+};
+
+const emitResolved = async(
+    resolved: any[], publicNameForPath: Map<string, string>,
+    tracker: ImportTracker): Promise<string[]> => {
+  const results: string[] = [];
+
+  for (const imp of [...resolved].reverse()) {
+    const {resolvedPath, content} = imp;
+    const type = fileType(resolvedPath, content);
+
+    if (tracker.wasVisited(resolvedPath)) {
+      continue;
+    }
+    tracker.markVisited(resolvedPath);
+
+    if (type === 'test') {
+      const publicName = publicNameForPath.get(resolvedPath) as string;
+      const test = yamlToTest(content) as any;
+
+      tracker.setTestFuncName(resolvedPath, publicName);
+
+      const flowJs = await testToJsfunc(
+          {
+            test: test,
+            name: publicName,
+            inputs: {},
+            envVars: {},
+            filePath: resolvedPath,
+            importTracker: tracker,
+          },
+          false, tracker);
+
+      results.push(flowJs);
+    } else if (type === 'api') {
+      const publicName = publicNameForPath.get(resolvedPath) as string;
+      const api = yamlToAPI(content);
+      results.push(await apiToJSfunc({
+        api,
+        name: publicName,
+        inputs: {},
+        envVars: {},
+      }));
+    } else if (type === 'csv') {
+      const publicName = publicNameForPath.get(resolvedPath) as string;
+      results.push(await csvToJSObj(content, publicName));
+    }
+  }
+
+  return results;
+};
+
+const toFunctionNameMap = (publicNameForPath: Map<string, string>): Record<string, string> => {
+  const out: Record<string, string> = {};
+  for (const [k, v] of publicNameForPath.entries()) {
+    out[k] = v;
+  }
+  return out;
+};
+
 export const importsToJsfuncDetailed = async(
   imports: Record<string, string>, tracker: ImportTracker = new ImportTracker(),
   rootPath?: string): Promise<ImportGenerationResult> => {
@@ -120,143 +262,11 @@ export const importsToJsfuncDetailed = async(
       return {js: '', functionNameByResolvedPath: {}};
     }
 
-    const importer = createFileImporter({
-      fileLoader: readFile,
-      rootPath: rootPath,
-      getImportsFromContent: (content: string) =>
-          extractImportsFromMmt(content),
-    });
-    const resolved = await importer.resolveAll(imports);
-
-    const resolveAgainst = (baseFilePath: string|undefined, req: string): string => {
-      const requestedPath = fileUriToPath(String(req ?? '').trim());
-      if (!requestedPath) {
-        return '';
-      }
-      if (isAbsPath(requestedPath)) {
-        return resolveDotSegments(requestedPath);
-      }
-      const baseDir = baseFilePath ? dirnamePath(fileUriToPath(baseFilePath)) : '.';
-      return resolveDotSegments(joinPath(baseDir, requestedPath));
-    };
-
-    // Choose public function names based on file title, falling back to
-    // filename.
-    const usedNames = new Set<string>();
-    const publicNameForPath = new Map<string, string>();
-
-    const choosePublicName = (baseName: string): string => {
-      const base = toLowerUnderscore(baseName || '').trim();
-      const normalized = base || 'imported';
-      if (!usedNames.has(normalized)) {
-        usedNames.add(normalized);
-        return normalized;
-      }
-      for (let i = 1; i < 10_000; i++) {
-        const candidate = `${normalized}_${i}`;
-        if (!usedNames.has(candidate)) {
-          usedNames.add(candidate);
-          return candidate;
-        }
-      }
-      throw new Error(
-          `Too many name collisions for imported name: ${normalized}`);
-    };
-
-    // First pass: compute names for all resolved paths.
-    for (const imp of resolved) {
-      const {resolvedPath, content} = imp;
-      if (publicNameForPath.has(resolvedPath)) {
-        continue;
-      }
-      let baseTitle = '';
-      try {
-        const parsed: any = yamlToTest(content) as any;
-        if (parsed && typeof parsed.title === 'string' && parsed.title.trim()) {
-          baseTitle = parsed.title.trim();
-        }
-      } catch {
-      }
-      if (!baseTitle) {
-        baseTitle = basenameNoExt(resolvedPath);
-      }
-      publicNameForPath.set(resolvedPath, choosePublicName(baseTitle));
-    }
-
-    const results: string[] = [];
-
-    // Precompute alias maps for test files (so testToJsfunc can emit imports obj).
-    for (const imp of resolved) {
-      const {resolvedPath, content} = imp;
-      const type = fileType(resolvedPath, content);
-      if (type !== 'test') {
-        continue;
-      }
-
-      const test = yamlToTest(content) as any;
-      const importMap = (test?.import ?? {}) as Record<string, string>;
-      const aliasMap: Record<string, string> = {};
-      for (const [key, requestedPathRaw] of Object.entries(importMap || {})) {
-        if (!isValidJsIdentifier(key)) {
-          throw new Error(
-              `Invalid import key "${key}": must be a valid JS identifier`);
-        }
-        const requestedPath = normalizeRequestedPathForMatch(requestedPathRaw);
-        const match = resolved.find(
-            r => r.importName === key && r.requestedPath === requestedPath);
-        const fn = match ? publicNameForPath.get(match.resolvedPath) : undefined;
-        aliasMap[key] = fn || defaultFunctionNameForRequestedPath(requestedPath);
-      }
-      tracker.setAliasesForImporter(resolvedPath, aliasMap);
-    }
-
-    // Emit in reverse order (latest resolved first).
-    for (const imp of [...resolved].reverse()) {
-      const {resolvedPath, content} = imp;
-      const type = fileType(resolvedPath, content);
-
-      if (tracker.wasVisited(resolvedPath)) {
-        continue;
-      }
-      tracker.markVisited(resolvedPath);
-
-      if (type === 'test') {
-        const publicName = publicNameForPath.get(resolvedPath) as string;
-        const test = yamlToTest(content) as any;
-
-        tracker.setTestFuncName(resolvedPath, publicName);
-
-        const flowJs = await testToJsfunc(
-            {
-              test: test,
-              name: publicName,
-              inputs: {},
-              envVars: {},
-              filePath: resolvedPath,
-              importTracker: tracker,
-            },
-            false, tracker);
-
-        results.push(flowJs);
-      } else if (type === 'api') {
-        const publicName = publicNameForPath.get(resolvedPath) as string;
-        const api = yamlToAPI(content);
-        results.push(await apiToJSfunc({
-          api,
-          name: publicName,
-          inputs: {},
-          envVars: {},
-        }));
-      } else if (type === 'csv') {
-        const publicName = publicNameForPath.get(resolvedPath) as string;
-        results.push(await csvToJSObj(content, publicName));
-      }
-    }
-
-    const functionNameByResolvedPath: Record<string, string> = {};
-    for (const [k, v] of publicNameForPath.entries()) {
-      functionNameByResolvedPath[k] = v;
-    }
+    const resolved = await resolveImports(imports, rootPath);
+    const publicNameForPath = computePublicNames(resolved);
+    buildAliasMaps(resolved, publicNameForPath, tracker);
+    const results = await emitResolved(resolved, publicNameForPath, tracker);
+    const functionNameByResolvedPath = toFunctionNameMap(publicNameForPath);
 
     return {js: results.join('\n'), functionNameByResolvedPath};
   } catch (error) {
