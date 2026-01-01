@@ -91,21 +91,11 @@ const computePublicNames = (resolved: any[]): Map<string, string> => {
   const choosePublicName = choosePublicNameBuilder();
 
   for (const imp of resolved) {
-    const {resolvedPath, content} = imp;
+    const {resolvedPath} = imp;
     if (publicNameForPath.has(resolvedPath)) {
       continue;
     }
-    let baseTitle = '';
-    try {
-      const parsed: any = yamlToTest(content) as any;
-      if (parsed && typeof parsed.title === 'string' && parsed.title.trim()) {
-        baseTitle = parsed.title.trim();
-      }
-    } catch {
-    }
-    if (!baseTitle) {
-      baseTitle = basenameNoExt(resolvedPath);
-    }
+    const baseTitle = basenameNoExt(resolvedPath);
     publicNameForPath.set(resolvedPath, choosePublicName(baseTitle));
   }
 

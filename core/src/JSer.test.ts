@@ -321,8 +321,8 @@ describe('CSV import parsing', () => {
 
        const bundle = await importsToJsfunc({main: '/root/main.mmt'});
        // reverse emission => second_* comes before first_*
-       const idxSecond = bundle.indexOf('const second_title = async');
-       const idxFirst = bundle.indexOf('const first_title = async');
+      const idxSecond = bundle.indexOf('const second = async');
+      const idxFirst = bundle.indexOf('const first = async');
        expect(idxSecond).toBeGreaterThanOrEqual(0);
        expect(idxFirst).toBeGreaterThanOrEqual(0);
        expect(idxSecond).toBeLessThan(idxFirst);
