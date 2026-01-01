@@ -60,6 +60,7 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
                     test: testData,
                     inputs: testData?.inputs || {},
                     envVars: envVars,
+                    filePath: mmtFilePath,
                 });
                 setJsCode(code);
                 setError(null);
@@ -69,7 +70,7 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
             }
         };
         generateCode();
-    }, [testData, envVars]);
+    }, [testData, envVars, mmtFilePath]);
 
     const handleRun = async () => {
         console.log = (...args: any[]) => {

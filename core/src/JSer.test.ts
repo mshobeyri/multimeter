@@ -1,5 +1,6 @@
 import {yamlToAPI} from './apiParsePack';
 import {APIContext, apiToJSfunc, csvToJSObj, flowStagesToJsfunc, importsToJsfunc, rootTestToJsfunc, setFileLoader, TestContext, testToJsfunc, variableReplacer} from './JSer';
+import {createTestFileLoaderMock} from './testFileLoaderMock';
 
 describe('flowStagesToJsfunc', () => {
   it('generates parallel execution for independent stages', () => {
@@ -277,6 +278,48 @@ describe('CSV import parsing', () => {
     } finally {
       console.error = originalError;
     }
+  });
+
+  it('names imported test functions by title and emits in reverse order', async () => {
+    const mock = createTestFileLoaderMock({
+      '/root/main.mmt': 'type: test\nimport:\n  first: /root/first.mmt\n  second: /root/second.mmt\nsteps: []\n',
+      '/root/first.mmt': 'type: test\ntitle: First Title\nsteps:\n  - print: one\n',
+      '/root/second.mmt': 'type: test\ntitle: Second Title\nsteps:\n  - print: two\n',
+    });
+    setFileLoader(mock.fileLoader);
+
+    const bundle = await importsToJsfunc({main: '/root/main.mmt'});
+    // reverse emission => second_* comes before first_*
+    const idxSecond = bundle.indexOf('const second_title = async');
+    const idxFirst = bundle.indexOf('const first_title = async');
+    expect(idxSecond).toBeGreaterThanOrEqual(0);
+    expect(idxFirst).toBeGreaterThanOrEqual(0);
+    expect(idxSecond).toBeLessThan(idxFirst);
+  });
+
+  it('falls back to filename when title is missing and resolves conflicts with suffix', async () => {
+    const mock = createTestFileLoaderMock({
+      '/root/a1.mmt': 'type: test\nsteps: []\n',
+      '/other/a1.mmt': 'type: test\nsteps: []\n',
+    });
+    setFileLoader(mock.fileLoader);
+    const bundle = await importsToJsfunc({x: '/root/a1.mmt', y: '/other/a1.mmt'});
+    expect(bundle).toContain('const a1 = async');
+    expect(bundle).toMatch(/const a1_\d+ = async/);
+  });
+
+  it('injects `imports` alias object in generated test functions', async () => {
+    const mock = createTestFileLoaderMock({
+      '/root/main.mmt': 'type: test\nimport:\n  m: /root/my file.mmt\nsteps:\n  - call: m\n',
+      '/root/my file.mmt': 'type: test\nsteps:\n  - print: hi\n',
+    });
+    setFileLoader(mock.fileLoader);
+    const bundle = await importsToJsfunc({main: '/root/main.mmt'});
+    // function name should be from filename "my file" => "my_file"
+    expect(bundle).toContain('const my_file = async');
+    // and an imports object mapping key -> function name
+    expect(bundle).toContain('const imports = {');
+    expect(bundle).toContain('m: my_file');
   });
 });
 
