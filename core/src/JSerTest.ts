@@ -19,8 +19,6 @@ export const testToJsfunc = async(
       ctx.test.steps.length > 0) {
     throw new Error(`${ctx.name}: Test cannot have both stages and steps`);
   }
-  let importedFuncs =
-      await importsToJsfunc(ctx.test.import ?? {}, visitedPaths, ctx.filePath);
 
   const importAliases = Object.keys(ctx.test.import ?? {})
                             .map(key => `${key}: imports.${key}`)
@@ -46,21 +44,12 @@ export const testToJsfunc = async(
 
   return `const ${toLowerUnderscore(ctx.name)} = async ({ ${
       inputParams}} = {}) => {
-  ${indentLines(importedFuncs)}
-  const imports = {${importAliases}};
   let outputs = {${outputParams}};
   ${indentLines(flow)}
   return outputs;
 };`;
 };
 
-export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
-  const test = await testToJsfunc(ctx, true);
-  const envPretty = JSON.stringify(ctx.envVars || {}, null, 2);
-  const full = `const envVariables = ${envPretty};\n\n${test}\n\nreturn ${
-      toLowerUnderscore(ctx.name)}({});`;
-  return variableReplacer(full);
-};
 
 export const variableReplacer = (full: string): string => {
   const replaceOutside = (s: string) =>
@@ -95,4 +84,16 @@ export const variableReplacer = (full: string): string => {
     i = end + 1;
   }
   return out;
+};
+
+export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
+  let importedFuncs =
+      await importsToJsfunc(ctx.test.import ?? {}, new Set(), ctx.filePath);
+
+  const test = await testToJsfunc(ctx, true, new Set());
+  const envPretty = JSON.stringify(ctx.envVars || {}, null, 2);
+
+  const full = `const envVariables = ${envPretty};\n${importedFuncs}\n${
+      test}\nreturn ${toLowerUnderscore(ctx.name)}({});`;
+  return variableReplacer(full);
 };
