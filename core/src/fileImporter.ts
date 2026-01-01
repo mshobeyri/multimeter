@@ -32,6 +32,22 @@ const normalizePath = (p: string): string => {
   return String(p ?? '').replace(/\\/g, '/');
 };
 
+const fileUriToPath = (p: string): string => {
+  const s = String(p ?? '').trim();
+  if (!s.toLowerCase().startsWith('file:')) {
+    return s;
+  }
+  // Handle file URIs like file:/Users/... or file:///Users/...
+  try {
+    // URL is available in both browser and Node.
+    const u = new URL(s);
+    return u.pathname;
+  } catch {
+    // Fallback: strip scheme and extra slashes.
+    return s.replace(/^file:\/*/i, '/');
+  }
+};
+
 const trimSlashEnd = (p: string): string => p.replace(/\/+$/, '');
 
 const dirnamePath = (p: string): string => {
@@ -44,7 +60,7 @@ const dirnamePath = (p: string): string => {
 };
 
 const isAbsPath = (p: string): boolean => {
-  const s = normalizePath(p);
+  const s = normalizePath(fileUriToPath(p));
   return s.startsWith('/') || /^[A-Za-z]:\//.test(s);
 };
 
@@ -124,7 +140,7 @@ export function createFileImporter(options: CreateFileImporterOptions):
 
   const resolveAgainst = (baseFilePath: string|undefined, req: string):
       string => {
-    const requestedPath = String(req ?? '').trim();
+      const requestedPath = fileUriToPath(String(req ?? '').trim());
     if (!requestedPath) {
       throw new FileImportError(
           'invalid-path', 'Import path is empty',
@@ -133,7 +149,7 @@ export function createFileImporter(options: CreateFileImporterOptions):
     if (isAbsPath(requestedPath)) {
       return resolveDotSegments(requestedPath);
     }
-    const baseDir = baseFilePath ? dirnamePath(baseFilePath) : '.';
+      const baseDir = baseFilePath ? dirnamePath(fileUriToPath(baseFilePath)) : '.';
     return resolveDotSegments(joinPath(baseDir, requestedPath));
   };
 

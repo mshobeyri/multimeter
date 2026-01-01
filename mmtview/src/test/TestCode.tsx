@@ -16,6 +16,20 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
     const [error, setError] = React.useState<string | null>(null);
     const [envVars, setEnvVars] = React.useState<Record<string, any>>({});
 
+    const normalizeToFsPath = React.useCallback((p?: string | null): string | undefined => {
+        const s = (p ?? "").trim();
+        if (!s) return undefined;
+        if (s.startsWith('file:')) {
+            try {
+                const u = new URL(s);
+                return u.pathname;
+            } catch {
+                return s.replace(/^file:\/*/i, '/');
+            }
+        }
+        return s;
+    }, []);
+
     setFileLoader(readFile);
 
     // Load env variables from VS Code workspace storage
@@ -60,7 +74,7 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
                     test: testData,
                     inputs: testData?.inputs || {},
                     envVars: envVars,
-                    filePath: mmtFilePath,
+                    filePath: normalizeToFsPath(mmtFilePath),
                 });
                 setJsCode(code);
                 setError(null);
@@ -70,7 +84,7 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
             }
         };
         generateCode();
-    }, [testData, envVars, mmtFilePath]);
+    }, [testData, envVars, mmtFilePath, normalizeToFsPath]);
 
     const handleRun = async () => {
         console.log = (...args: any[]) => {
