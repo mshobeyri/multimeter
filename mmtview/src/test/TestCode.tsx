@@ -9,10 +9,15 @@ import { FileContext } from "../fileContext";
 interface TestCodeProps {
     testData: TestData;
 }
-
-setFileLoader(readFile);
+let loaded = false;
+const load = () => {
+    setFileLoader(readFile);
+    loaded = true;
+};
+load();
 
 const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
+    const [ready, setReady] = React.useState(false);
     const { mmtFilePath } = useContext(FileContext);
     const [jsCode, setJsCode] = React.useState<string>("");
     const [error, setError] = React.useState<string | null>(null);
@@ -52,29 +57,39 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
         return () => window.removeEventListener('message', handleMessage);
     }, [refreshWorkspaceVars]);
 
+    const generateCode = async () => {
+        try {
+            const code = await rootTestToJsfunc({
+                name: testData?.title || "testFlow",
+                test: testData,
+                inputs: testData?.inputs || {},
+                envVars: envVars
+            });
+            setJsCode(code);
+            setError(null);
+        } catch (e: any) {
+            setError(e?.message || String(e));
+            setJsCode("");
+        }
+    };
+
     React.useEffect(() => {
-        const generateCode = async () => {
-            try {
-                const code = await rootTestToJsfunc({
-                    name: testData?.title || "testFlow",
-                    test: testData,
-                    inputs: testData?.inputs || {},
-                    envVars: envVars
-                });
-                setJsCode(code);
-                setError(null);
-            } catch (e: any) {
-                setError(e?.message || String(e));
-                setJsCode("");
-            }
-        };
+        if (!loaded) {
+            load();
+        }
+    }, []);
+
+    React.useEffect(() => {
+        if (!loaded) {
+            return;
+        }
         const timeout = setTimeout(() => {
             generateCode();
         }, 1);
         return () => {
             clearTimeout(timeout);
         };
-    }, [testData, envVars]);
+    }, [testData, envVars, loaded]);
 
     const handleRun = async () => {
         console.log = (...args: any[]) => {
