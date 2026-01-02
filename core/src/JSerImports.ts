@@ -1,5 +1,6 @@
 import {yamlToAPI} from './apiParsePack';
 import {csvToJSObj} from './csvConvertor';
+import {dirnamePath, fileUriToPath, isAbsPath, joinPath, resolveDotSegments, resolveRequestedAgainst,} from './fileHelper';
 import {createFileImporter} from './fileImporter';
 import {ImportTracker} from './importTracker';
 import {apiToJSfunc} from './JSerAPI';
@@ -7,14 +8,6 @@ import {readFile} from './JSerFileLoader';
 import {fileType, indentLines, toLowerUnderscore} from './JSerHelper';
 import {testToJsfunc} from './JSerTest';
 import {yamlToTest} from './testParsePack';
-import {
-  fileUriToPath,
-  isAbsPath,
-  dirnamePath,
-  joinPath,
-  resolveDotSegments,
-  resolveRequestedAgainst,
-} from './fileHelper';
 
 const basenameNoExt = (p: string): string => {
   const s = String(p ?? '').replace(/\\/g, '/');
@@ -121,7 +114,7 @@ const buildAliasMaps =
                 `Invalid import key "${key}": must be a valid JS identifier`);
           }
           const requestedPath =
-            resolveRequestedAgainst(resolvedPath, requestedPathRaw);
+              resolveRequestedAgainst(resolvedPath, requestedPathRaw);
           const match = resolved.find(
               r => r.importName === key && r.requestedPath === requestedPath);
           const fn =
@@ -163,17 +156,19 @@ const emitResolved = async(
           },
           false, tracker);
 
-      results.push(flowJs);
+      results.push(flowJs + '\n');
     } else if (type === 'api') {
       const api = yamlToAPI(content);
-      results.push(await apiToJSfunc({
-        api,
-        name: publicName,
-        inputs: {},
-        envVars: {},
-      }));
+      results.push(
+          await apiToJSfunc({
+            api,
+            name: publicName,
+            inputs: {},
+            envVars: {},
+          }) +
+          '\n');
     } else if (type === 'csv') {
-      results.push(await csvToJSObj(content, publicName));
+      results.push(await csvToJSObj(content, publicName) + '\n');
     }
   }
 

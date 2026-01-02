@@ -81,7 +81,6 @@ export const testToJsfunc = async(
 };\n`;
 };
 
-
 export const variableReplacer = (full: string): string => {
   const replaceOutside = (s: string) =>
       s.replace(/<<\s*e:([A-Za-z0-9_]+)\s*>>/g, 'envVariables.$1')
