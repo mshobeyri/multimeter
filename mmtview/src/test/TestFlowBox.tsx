@@ -206,7 +206,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       case 'delay':
         return (
           <input
-            placeholder={type === 'for' ? '100, 10s, 5-10, i:data' : (type === 'repeat' ? 'repeat count or duration' : 'delay (e.g., 500, 2s, 1m)')}
+            placeholder={type === 'for' ? '(i = 0; i < 5; i++ | key in obj | item of list)' : (type === 'delay' ? '(1ms | 2s | 3m | 4h)' : '(100 | 2ms | 3m | 4h)')}
             value={stepData[type] || ''}
             onChange={e => onChange({ [type]: e.target.value })}
             style={{ width: '100%' }}
