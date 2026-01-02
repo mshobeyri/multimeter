@@ -84,7 +84,7 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
         }
         const timeout = setTimeout(() => {
             generateCode();
-        }, 1);
+        }, 100);
         return () => {
             clearTimeout(timeout);
         };
