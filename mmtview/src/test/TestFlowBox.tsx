@@ -6,6 +6,7 @@ import TestCall from "./TestCall";
 import TestFlowVar from "./TestFlowVar";
 import TestFlowCSV from "./TestFlowCSV";
 import { type MissingImportEntry } from "../text/validator";
+import TestIf from "./TestIf";
 
 interface TestFlowBoxProps {
   data: any,
@@ -156,9 +157,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             onChange={(v) => onChange(v)}
           />
         );
-      case 'check':
-      case 'if':
-      case 'assert': {
+      case 'if': {
         let left = '', op: CheckOps = '==' as CheckOps, right = '';
         const raw = (stepData && typeof stepData[type] === 'string') ? (stepData[type] as string) : '';
         const match = raw.trim().length ? raw.trim().split(/\s+/) : [] as string[];
@@ -166,11 +165,39 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
         op = (match[1] as CheckOps) ?? '==';
         right = match[2] ?? '';
         return (
-          <TestCheck
+          <TestIf
             left={left}
             op={op}
             right={right}
             onChange={({ left, op, right }) => onChange({ [type]: `${left} ${op} ${right}` })}
+          />
+        );
+      }
+      case 'check':
+      case 'assert': {
+        let left = '', op: CheckOps = '==' as CheckOps, right = '', message = '';
+        const rawVal = stepData && stepData[type];
+        if (typeof rawVal === 'string') {
+          const match = rawVal.trim().length ? rawVal.trim().split(/\s+/) : [] as string[];
+          left = match[0] ?? '';
+          op = (match[1] as CheckOps) ?? '==';
+          right = match[2] ?? '';
+        } else if (rawVal && typeof rawVal === 'object') {
+          left = (rawVal as any).actual ?? '';
+          right = (rawVal as any).expected ?? '';
+          op = ((rawVal as any).operator || '==') as CheckOps;
+          message = (rawVal as any).message || '';
+        }
+        return (
+          <TestCheck
+            value={{ left, op, right, message }}
+            onChange={({ left, op, right, message }) => {
+              const obj: any = { actual: left, expected: right, operator: op || '==', };
+              if (message.trim().length > 0) {
+                obj.message = message.trim();
+              }
+              onChange({ [type]: obj });
+            }}
           />
         );
       }

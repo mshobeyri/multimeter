@@ -93,10 +93,27 @@ Use check to log a failure and continue; use assert to stop the flow on failure.
 Supported operators
 - `<`, `>`, `<=`, `>=`, `==`, `!=`, `=@` (contains), `!@` (not contains), `=^` (starts with), `!^` (not starts with), `=$` (ends with), `!$` (not ends with), `=~` (regex), `!~` (not regex)
 
-Examples
+You can write checks and asserts in a concise inline form or in a structured object form with explicit `actual`, `expected`, `operator`, and an optional `message`.
+
+Inline examples
 ```yaml
 - assert: doLogin.status == 200
 - check: profile.name =~ /John/i
+```
+
+Object-form examples
+```yaml
+- check:
+  actual: profile.name
+  expected: "John"
+  operator: "=="
+  message: "Profile name must be John"
+
+- assert:
+  actual: doLogin.status
+  expected: 200
+  operator: "=="
+  message: "Login must succeed"
 ```
 
 Checks, assertions, prints, and errors appear in the Log panel while the flow runs.
