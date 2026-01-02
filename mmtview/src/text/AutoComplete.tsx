@@ -215,8 +215,15 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 'Evaluates a boolean condition and logs an error if false.',
                 'Supported operators: <, >, <=, >=, ==, !=, =@, !@, =~, !~, =^, !^, =$ , !$',
                 'Env tokens: use e:NAME or <<e:NAME>> which resolve to envVariables.NAME',
-                'Example:',
-                '- check: response.status_code == 200'
+                'Examples:',
+                '- check: response.status_code == 200',
+                '',
+                '# Object form:',
+                '- check:',
+                '    actual: response.status_code',
+                '    expected: 200',
+                '    operator: "=="',
+                '    message: "Unexpected status"'
             ].join('\n')
         },
         {
@@ -227,8 +234,15 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: [
                 'Evaluates a boolean condition and throws if false (fails the test).',
                 'Same operators as check.',
-                'Example:',
-                '- assert: total_users >= 1'
+                'Examples:',
+                '- assert: total_users >= 1',
+                '',
+                '# Object form:',
+                '- assert:',
+                '    actual: total_users',
+                '    expected: 1',
+                '    operator: ">="',
+                '    message: "User count too low"'
             ].join('\n')
         },
         {

@@ -701,7 +701,7 @@ const isTypeFolder = (type: FlowType | unknown): boolean => {
 }
 
 const isExpandable = (type: FlowType | unknown): boolean => {
-    return type === "print" || type === "js" || type === "call";
+    return type === "print" || type === "js" || type === "call" || type === "check" || type === "assert";
 }
 
 export default TestFlow;

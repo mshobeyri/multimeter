@@ -1,5 +1,5 @@
 import {indentLines, toInputsParams} from './JSerHelper';
-import {TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
+import {Comparison, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
 import {getTestFlowStepType} from './testParsePack';
 
 function randomName(): string {
@@ -8,7 +8,7 @@ function randomName(): string {
 }
 
 const replaceEnvTokens = (s: string): string =>
-    s.replace(/\be:([A-Za-z_][A-Za-z0-9_]*)\b/g, 'envVariables.$1');
+  s.replace(/\be:([A-Za-z_][A-Za-z0-9_]*)\b/g, 'envVariables.$1');
 
 export const conditionalStatementToJSfunc = (check: string): string => {
   // Replace env tokens like e:FOO -> envVariables.FOO
@@ -52,8 +52,44 @@ export const conditionalStatementToJSfunc = (check: string): string => {
   }
 };
 
+interface NormalizedComparison {
+  left: string;
+  operator: string;
+  right: string;
+  message?: string;
+  raw: string;
+}
+
+const normalizeComparison = (comp: Comparison, kind: 'check'|'assert'): NormalizedComparison | null => {
+  if (!comp || (typeof comp === 'string' && comp.trim() === '')) {
+    return null;
+  }
+  if (typeof comp === 'string') {
+    const raw = comp;
+    const parts = comp.split(' ');
+    if (parts.length !== 3) {
+      throw new Error(`Invalid ${kind} format: ${comp}`);
+    }
+    const [left, operator, right] = parts;
+    return {left, operator, right, raw};
+  }
+
+  const actual: unknown = (comp as any).actual;
+  const expected: unknown = (comp as any).expected;
+  if (typeof (comp as any) !== 'object' || actual === undefined || expected === undefined) {
+    throw new Error(`Invalid ${kind} object: "actual" and "expected" are required`);
+  }
+  const operator = (comp as any).operator || '==';
+  const left = typeof actual === 'string' ? actual : JSON.stringify(actual);
+  const right = typeof expected === 'string' ? expected : JSON.stringify(expected);
+  const raw = `${left} ${operator} ${right}`;
+  const message = typeof (comp as any).message === 'string' ? (comp as any).message : undefined;
+  return {left, operator, right, raw, message};
+};
+
 export const ifToJSfunc = (condition: TestFlowCondition): string => {
-  const conditionStatement = conditionalStatementToJSfunc(condition.if);
+  const cond = typeof condition.if === 'string' ? condition.if : '';
+  const conditionStatement = conditionalStatementToJSfunc(cond);
   const thenBlock = flowStepsToJsfunc(condition.steps, true);
   const elseBlock =
       condition.else ? flowStepsToJsfunc(condition.else, true) : undefined;
@@ -163,37 +199,31 @@ export const setToJSfunc = (set: Record<string, any>): string => {
 };
 
 
-export const checkToJSfunc = (check: string): string => {
-  if (!check || typeof check !== 'string' || check.trim() === '') {
+export const checkToJSfunc = (check: Comparison): string => {
+  const normalized = normalizeComparison(check, 'check');
+  if (!normalized) {
     return '';
   }
-  const conditionStatement = conditionalStatementToJSfunc(check);
-  const checkParts = check.split(' ');
-  if (checkParts.length !== 3) {
-    throw new Error(`Invalid check format: ${check}`);
-  }
-  const [left, operator, right] = checkParts;
-
+  const {left, operator, right, raw, message} = normalized;
+  const conditionStatement = conditionalStatementToJSfunc(raw);
+  const autoMsg = `Check ${raw} failed, as " + JSON.stringify(${left}) + " ${operator} " + ${right} + " is false`;
+  const finalMsg = message ? `${message} - ${autoMsg}` : autoMsg;
   return `if (!${conditionStatement}) {
-  console.error("Check ${check} failed, as " + JSON.stringify(${left}) + " ${
-      operator} " + ${right} + " is false");
+  console.error("${finalMsg}");
 }`;
 };
 
-export const assertToJSfunc = (assert: string): string => {
-  if (!assert || typeof assert !== 'string' || assert.trim() === '') {
+export const assertToJSfunc = (assert: Comparison): string => {
+  const normalized = normalizeComparison(assert, 'assert');
+  if (!normalized) {
     return '';
   }
-  const conditionStatement = conditionalStatementToJSfunc(assert);
-  const assertParts = assert.split(' ');
-  if (assertParts.length !== 3) {
-    throw new Error(`Invalid assert format: ${assert}`);
-  }
-  const [left, operator, right] = assertParts;
-
+  const {left, operator, right, raw, message} = normalized;
+  const conditionStatement = conditionalStatementToJSfunc(raw);
+  const autoMsg = `Assertion ${raw} failed, as " + JSON.stringify(${left}) + " ${operator} " + ${right} + " is false`;
+  const finalMsg = message ? `${message} - ${autoMsg}` : autoMsg;
   return `if (!${conditionStatement}) {
-  throw new Error("Assertion ${assert} failed, as " + JSON.stringify(${
-      left}) + " ${operator} " + ${right}+ " is false");
+  throw new Error("${finalMsg}");
 }`;
 };
 

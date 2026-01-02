@@ -488,6 +488,23 @@ describe('empty test items are valid', () => {
     expect(js).toContain('let outputs');
   });
 
+  it('supports object-form check and assert with message', async () => {
+    const ctx: TestContext = {
+      name: 'objectCheckAssert',
+      test: {
+        steps: [
+          {check: {actual: 1, expected: 2, operator: '==', message: 'm1'}},
+          {assert: {actual: 'x', expected: 3, operator: '>=', message: 'm2'}},
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('m1');
+    expect(js).toContain('m2');
+  });
+
   it('handles empty if gracefully (treated as true) and nests steps',
      async () => {
        const ctx: TestContext = {

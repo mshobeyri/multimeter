@@ -7,7 +7,14 @@ export type Repeat = `${number}`|'inf';
 export type Parameter = {
   [key: string]: string
 };
-export type Comparison = string;
+export interface ComparisonObject {
+  actual: unknown;
+  expected: unknown;
+  operator?: string;
+  message?: string;
+}
+
+export type Comparison = string | ComparisonObject;
 
 export interface TestImportItem {
   [key: string]: string;

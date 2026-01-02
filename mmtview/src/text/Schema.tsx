@@ -281,7 +281,25 @@ export const TestSchema = {
                         type: 'object',
                         required: ['check'],
                         properties: {
-                            check: { type: 'string' }
+                            check: {
+                                oneOf: [
+                                    { type: 'string' },
+                                    {
+                                        type: 'object',
+                                        required: ['actual', 'expected'],
+                                        properties: {
+                                            actual: {},
+                                            expected: {},
+                                            operator: {
+                                                type: 'string',
+                                                enum: ['<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=~', '!~', '=^', '!^', '=$', '!$']
+                                            },
+                                            message: { type: 'string' }
+                                        },
+                                        additionalProperties: false
+                                    }
+                                ]
+                            }
                         },
                         additionalProperties: false
                     },
@@ -290,7 +308,25 @@ export const TestSchema = {
                         type: 'object',
                         required: ['assert'],
                         properties: {
-                            assert: { type: 'string' }
+                            assert: {
+                                oneOf: [
+                                    { type: 'string' },
+                                    {
+                                        type: 'object',
+                                        required: ['actual', 'expected'],
+                                        properties: {
+                                            actual: {},
+                                            expected: {},
+                                            operator: {
+                                                type: 'string',
+                                                enum: ['<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=~', '!~', '=^', '!^', '=$', '!$']
+                                            },
+                                            message: { type: 'string' }
+                                        },
+                                        additionalProperties: false
+                                    }
+                                ]
+                            }
                         },
                         additionalProperties: false
                     },
