@@ -17,7 +17,6 @@ const load = () => {
 load();
 
 const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
-    const [ready, setReady] = React.useState(false);
     const { mmtFilePath } = useContext(FileContext);
     const [jsCode, setJsCode] = React.useState<string>("");
     const [error, setError] = React.useState<string | null>(null);
