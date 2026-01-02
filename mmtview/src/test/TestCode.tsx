@@ -10,27 +10,13 @@ interface TestCodeProps {
     testData: TestData;
 }
 
+setFileLoader(readFile);
+
 const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
     const { mmtFilePath } = useContext(FileContext);
     const [jsCode, setJsCode] = React.useState<string>("");
     const [error, setError] = React.useState<string | null>(null);
     const [envVars, setEnvVars] = React.useState<Record<string, any>>({});
-
-    const normalizeToFsPath = React.useCallback((p?: string | null): string | undefined => {
-        const s = (p ?? "").trim();
-        if (!s) return undefined;
-        if (s.startsWith('file:')) {
-            try {
-                const u = new URL(s);
-                return u.pathname;
-            } catch {
-                return s.replace(/^file:\/*/i, '/');
-            }
-        }
-        return s;
-    }, []);
-
-    setFileLoader(readFile);
 
     // Load env variables from VS Code workspace storage
     React.useEffect(() => {
@@ -82,8 +68,13 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
                 setJsCode("");
             }
         };
-        generateCode();
-    }, [testData, envVars, mmtFilePath, normalizeToFsPath]);
+        const timeout = setTimeout(() => {
+            generateCode();
+        }, 1);
+        return () => {
+            clearTimeout(timeout);
+        };
+    }, [testData, envVars]);
 
     const handleRun = async () => {
         console.log = (...args: any[]) => {

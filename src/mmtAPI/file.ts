@@ -74,7 +74,7 @@ export async function handleGetFileContent(
     // Delay only the error
     const timeout = setTimeout(() => {
       vscode.window.showErrorMessage(
-          `Failed to read file ${message.filename}: ${err}`);
+          `Failed to read file ${message.filename}`);
       mmtProvider.fileReadTimeouts.delete(webviewPanel);
     }, 1000);
 
