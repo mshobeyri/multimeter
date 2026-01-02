@@ -34,16 +34,18 @@ Notes
  
 ## Usage
 Supported token forms in tests and APIs:
-- `e:VAR`
 - `<<e:VAR>>`
+- `e:VAR` when used as a value after `: ` (colon + space), for example `value: e:VAR`.
 
 What to use when
-- Use `e:VAR` when the value is just the variable by itself (a standalone YAML value). Types are preserved (numbers, booleans, strings).
-- Use `<<e:VAR>>` to force substitution inside quoted/template strings in generated JS; it’s the safest choice when you’re unsure.
+- Use `<<e:VAR>>` when you want substitution anywhere in a string (inside URLs, headers, or other text).
+- Use `e:VAR` only when it appears as the entire value after `: `; types are preserved (numbers, booleans, strings).
 
-Note: `e:{VAR}` and `{{VAR}}` are not supported.
+Notes
+- `e:VAR` is not replaced inside plain text like `hi:e:VAR there`; it must follow `: `.
+- `e:{VAR}` and `{{VAR}}` are not supported.
 
-Example:
+Examples:
 ```yaml
 url: <<e:API_URL>>/login
 headers:

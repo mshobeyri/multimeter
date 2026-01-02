@@ -121,8 +121,8 @@ function replaceRefs(
   if (typeof obj === 'string') {
     // Build anchored (non-global) pattern for full-string variable match based
     const anchored = mode === ReplacementMode.BRACE ?
-        /^<<([a-zA-Z0-9_]+:[a-zA-Z0-9_]+)>>$/ :
-        /^([a-zA-Z0-9_]+:[a-zA-Z0-9_]+)$/;
+      /^<<([a-zA-Z0-9_]+:[a-zA-Z0-9_]+)>>$/ :
+      /^([a-zA-Z0-9_]+:[a-zA-Z0-9_]+)$/;
 
     const full = anchored.exec(obj);
     if (full && full[1]) {
@@ -139,8 +139,23 @@ function replaceRefs(
       return key;
     }
 
-    // For partial replacements or multiple matches, convert to string
-    return obj.replace(pattern, (match, key) => {
+    // For partial replacements or multiple matches, convert to string.
+    if (mode === ReplacementMode.NONE) {
+      // Pattern is `(:\s*)(key)` – only replace values after a colon+space.
+      return obj.replace(pattern, (match, prefix: string, key: string) => {
+        let found = inputs[key];
+        if (found === undefined && resolver) {
+          found = resolver(key);
+        }
+        if (found === undefined) {
+          return prefix + key;
+        }
+        return prefix + String(found);
+      });
+    }
+
+    // BRACE mode keeps the previous behavior (no prefix group).
+    return obj.replace(pattern, (match, key: string) => {
       let found = inputs[key];
       if (found === undefined && resolver) {
         found = resolver(key);
@@ -176,8 +191,12 @@ export function replaceInputRefsWithBrace(obj: any, inputs: any, resolver?: Dyna
 }
 
 export function replaceInputRefsWithNone(obj: any, inputs: any, resolver?: DynamicResolver): any {
+  // Only replace plain tokens when they occur as values after a literal
+  // colon+space (" : "), e.g. "key: i:foo". This ensures patterns like
+  // "hi:i:foo" are not touched.
   return replaceRefs(
-      obj, /([a-zA-Z0-9_]+:[a-zA-Z0-9_]+)/g, ReplacementMode.NONE, inputs, resolver);
+      obj, /(:\s)([a-zA-Z0-9_]+:[a-zA-Z0-9_]+)/g, ReplacementMode.NONE,
+      inputs, resolver);
 }
 
 // Replaces all references (inputs first, then environment vars)

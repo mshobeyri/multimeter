@@ -82,7 +82,7 @@ presets:
       test_type: regression
 ```
 Here we defined two urls 'dev' and 'prod' to switch target machines easily. Also a variable called test type to filter some of tests for example. In the presets section also we defined two presets as environmets that can modify both variables with just one click.
-variables are accessible in the whole yamls by ```e:NAME``` and ```<<e:NAME>>```.
+variables are accessible in the whole yamls by ```<<e:NAME>>``` and, when used as a value after ```: ``` (colon + space), by ```e:NAME```.
 
 Deep dive: see [Environment](./environment-mmt.md).
 

@@ -71,7 +71,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
 
   const { reorderDocument } = useFormatAndOrder({ contentRef, docType, setContent });
 
-  
+
 
   useEffect(() => {
     contentRef.current = content;
@@ -427,25 +427,48 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     const model = editor.getModel();
     if (!model) return;
 
-    const regex = [/[ieorc]:[a-zA-Z0-9_/-]+/g, /<<[ieorc]:[a-zA-Z0-9_/-]+>>/g];
-    const value = model.getValue();
     const matches: any[] = [];
-    let match;
-    for (const re of regex) {
-      while ((match = re.exec(value)) !== null) {
-        const start = model.getPositionAt(match.index);
-        const end = model.getPositionAt(match.index + match[0].length);
-        matches.push({
-          range: new monaco.Range(
-            start.lineNumber,
-            start.column,
-            end.lineNumber,
-            end.column
-          ),
-          options: { inlineClassName: I_PREFIX_CLASS }
-        });
+    {
+      const regex = [/<<[ieorc]:[a-zA-Z0-9_/-]+>>/g];
+      const value = model.getValue();
+      let match;
+      for (const re of regex) {
+        while ((match = re.exec(value)) !== null) {
+          const start = model.getPositionAt(match.index);
+          const end = model.getPositionAt(match.index + match[0].length);
+          matches.push({
+            range: new monaco.Range(
+              start.lineNumber,
+              start.column,
+              end.lineNumber,
+              end.column
+            ),
+            options: { inlineClassName: I_PREFIX_CLASS }
+          });
+        }
       }
     }
+    {
+      const regex = [/:\s[ieorc]:[a-zA-Z0-9_/-]+/g];
+      const value = model.getValue();
+      let match;
+      for (const re of regex) {
+        while ((match = re.exec(value)) !== null) {
+          const start = model.getPositionAt(match.index);
+          const end = model.getPositionAt(match.index + match[0].length);
+          matches.push({
+            range: new monaco.Range(
+              start.lineNumber,
+              start.column+2,
+              end.lineNumber,
+              end.column
+            ),
+            options: { inlineClassName: I_PREFIX_CLASS }
+          });
+        }
+      }
+    }
+
     decorationsRef.current = editor.deltaDecorations(
       decorationsRef.current,
       matches

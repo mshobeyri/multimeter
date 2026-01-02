@@ -17,14 +17,19 @@ describe('variableReplacer', () => {
     expect(out).toEqual({ a: 'mehrdad', b: ['X', 'mehrdad', 1], c: { n: 35 } });
   });
 
-  it('replaceInputRefsWithNone replaces plain tokens', () => {
+  it('replaceInputRefsWithNone replaces plain tokens only after colon-space', () => {
     const inputs = { 'i:key': 'VAL', 'e:HOST': 'api.local' } as any;
-    expect(replaceInputRefsWithNone('url=i:key host=e:HOST', inputs)).toBe('url=VAL host=api.local');
+    expect(replaceInputRefsWithNone('url: i:key host: e:HOST', inputs))
+        .toBe('url: VAL host: api.local');
+    // Should not touch plain tokens that are not values after colon-space,
+    // but allow replacing when prefixed with a colon and space in mid-string.
+    expect(replaceInputRefsWithNone('hi:i:key there e:HOST', inputs))
+		.toBe('hi:i:key there e:HOST');
   });
 
   it('replaceAllRefs merges defaults, inputs and envs with prefixes', () => {
     const iface = {
-      url: 'http://e:HOST/users',
+      url: 'http://<<e:HOST>>/users',
       body: { name: '<<i:name>>', age: 'i:age', admin: false },
       tags: ['i:tag1', 'x', '<<i:tag2>>']
     } as any;
@@ -48,7 +53,7 @@ describe('variableReplacer', () => {
       id: 'i:alt'
     } as any;
     const out = replaceAllRefs(iface, defaults, inputs, envs);
-    expect(out.url).toBe('http://api.local/users');
+    expect(out.url).toBe('http://i:host/users');
     expect(out.meta).toMatch(/User .*@.* at api\.local/);
     expect(out.meta).not.toMatch(/r:email|e:HOST/);
     expect(out.id).toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/);
