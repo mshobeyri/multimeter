@@ -1,8 +1,13 @@
 import {LogLevel} from './CommonData';
 import * as JSer from './JSer';
 import {isPlainObject, PreparedRun, RunFileResult, runGeneratedJs, sanitizeIdentifier} from './runCommon';
-import {GenerateJsOptions, mergeInputs, RunFileOptions} from './runConfig';
+import {GenerateJsOptions, mergeInputs, RunFileOptions, TestRunSummaryEvent, TestStepReporterEvent} from './runConfig';
 import * as testParsePack from './testParsePack';
+
+const createRunId = (): string => {
+  return `${Date.now().toString(36)}-${
+      Math.random().toString(36).slice(2, 10)}`;
+};
 
 export function prepareTestRun(
     rawText: string, manualInputs: Record<string, any>): Partial<PreparedRun> {
@@ -54,10 +59,19 @@ export async function executeTest(
     envVarsUsed: envVars,
     inputsUsed,
   } = prepared;
-  const {fileLoader, runCode} = options;
+  const {fileLoader, jsRunner} = options;
 
   const displayName = title || baseName;
   const identifier = sanitizeIdentifier(displayName);
+  const runId = createRunId();
+  const forwardReporter = options.reporter;
+  const stepReporter = forwardReporter ? (event: TestStepReporterEvent) => {
+    const payload: TestStepReporterEvent = {
+      ...event,
+      runId: event.runId || runId,
+    };
+    forwardReporter(payload);
+  } : undefined;
   const js = await generateTestJs({
     rawText,
     name: identifier,
@@ -65,7 +79,16 @@ export async function executeTest(
     envVars,
     fileLoader,
   });
-  const result = await runGeneratedJs(js, displayName, sinkLogger, runCode);
+  const result = await runGeneratedJs(
+      runId, js, displayName, sinkLogger, jsRunner, stepReporter);
+  if (forwardReporter) {
+    const summary: TestRunSummaryEvent = {
+      scope: 'test-step-run',
+      runId,
+      result: result.success ? 'passed' : 'failed',
+    };
+    forwardReporter(summary);
+  }
   if (preLogs.length) {
     result.logs = [...preLogs.map(l => l.message), ...(result.logs ?? [])];
   }

@@ -1,6 +1,6 @@
 import {LogLevel} from './CommonData';
 import {basename, detectDocType, PreparedRun, resolveRelativeTo, RunFileResult, sanitizeIdentifier} from './runCommon';
-import {RunFileOptions, RunResult} from './runConfig';
+import {RunFileOptions, RunResult, SuiteStepStatus} from './runConfig';
 import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
 
 export function prepareSuiteRun(
@@ -61,6 +61,7 @@ export async function executeSuite(
         const childDocType = detectDocType(childFilePath, childRawText);
 
         options.reporter && options.reporter({
+          scope: 'suite-item',
           status: 'running',
           groupIndex: gi,
           groupItemIndex: entryIndex,
@@ -76,21 +77,23 @@ export async function executeSuite(
           logger: suiteLogger
         } as any);
 
+        const status: SuiteStepStatus = childRun.result?.success ? 'passed' : 'failed';
         const result = {
           entry,
           filePath: childFilePath,
           docType: childDocType,
           success: !!childRun.result?.success,
-          status: !!childRun.result?.success ? 'passed' : 'failed',
+          status,
           errors: childRun.result?.errors ?? [],
           logs: childRun.result?.logs ?? [],
           threw: childRun.result?.threw === true,
         };
 
         options.reporter && options.reporter({
+          scope: 'suite-item',
           groupIndex: gi,
           groupItemIndex: entryIndex,
-          status: result.status,
+          status,
         });
 
         return result;
@@ -99,12 +102,13 @@ export async function executeSuite(
         suiteLogger(
             'error', `Failed to run suite item: ${display} - ${errorMessage}`);
 
+        const status: SuiteStepStatus = 'failed';
         const result = {
           entry,
           filePath: childFilePath,
           docType: null,
           success: false,
-          status: 'failed',
+          status,
           errors: [errorMessage],
           logs: [],
           groupIndex: gi,
@@ -112,9 +116,10 @@ export async function executeSuite(
           threw: true,
         };
         options.reporter && options.reporter({
+          scope: 'suite-item',
           groupIndex: gi,
           groupItemIndex: entryIndex,
-          status: result.status,
+          status,
         });
         return result;
       }

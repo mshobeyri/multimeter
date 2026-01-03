@@ -7,13 +7,13 @@
   - `mmtcli/`: CLI app; binary is `testlight`, used for CI and local runs.
   - Root `src/`: VS Code extension host code (activation, editor provider, assistant, network bridge).
 - **Single source of truth** for running `.mmt` files is `core/src/runner.ts`:
-  - Use `runner.runFile({ rawFile, filePath, inputs, envvar, fileLoader, runCode, logger })`.
+  - Use `runner.runFile({ rawFile, filePath, inputs, envvar, fileLoader, jsRunner, logger })`.
   - Do **not** reimplement parsing or execution pipelines in the extension or CLI – always go through `runner`.
 
 ## Core library (`core/`) patterns
 - Keep `core` platform-neutral:
   - No imports from `vscode`, `fs`, `path`, browser APIs, or Node globals that assume a specific runtime.
-  - All file access, code execution, logging, and network plumbing come in via injected functions (`fileLoader`, `runCode`, `logger`, etc.).
+  - All file access, code execution, logging, and network plumbing come in via injected functions (`fileLoader`, `jsRunner`, `logger`, etc.).
 - Key modules to know:
   - `runner.ts`: orchestrates `.mmt` execution, builds API/test runners, and formats logs/docs.
   - `JSer.ts`, `testParsePack.ts`, `apiParsePack.ts`: turn YAML `.mmt` into executable JS flows.
@@ -28,7 +28,7 @@
   - `extension.ts`: entrypoint; registers the `.mmt` custom editor, side panels (history, mock server, environment, certificates), and chat participants from `src/assistant.ts`.
   - `mmtEditorProvider.ts`: glue between webview messages and `runner.runFile`. It:
     - Receives `command` messages like `runCurrentDocument`, `runCurlCommand`, etc.
-    - Calls `runner.runFile({ rawFile: document.getText(), filePath: document.uri.fsPath, inputs, envvar, fileLoader, runCode, logger })`.
+    - Calls `runner.runFile({ rawFile: document.getText(), filePath: document.uri.fsPath, inputs, envvar, fileLoader, jsRunner, logger })`.
   - `vscodeNetwork.ts`: adapts VS Code configuration and environment to `NetworkConfig` and bridges webview/network messages into `core`.
 - Webview React app (`mmtview/src/`):
   - Uses `window.vscode.postMessage` via helpers in `vsAPI.ts` instead of importing `core` directly.

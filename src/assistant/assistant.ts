@@ -78,7 +78,7 @@ async function handleChatRequest(
       if (request.command === 'run') {
         const {runFileOptions, outFile, printJs} =
             await parseAssistantRunArgs(projectRoot, request.prompt || '', context);
-        runFileOptions.runCode = runJSCode;
+        runFileOptions.jsRunner = runJSCode;
         const runOutcome = await runner.runFile(runFileOptions as any);
         const {js, result, displayName, docType, exampleName, exampleIndex} =
             runOutcome as any;

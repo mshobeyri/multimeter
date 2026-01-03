@@ -559,7 +559,7 @@ async function main() {
 			exampleIndex,
 			exampleName,
 			fileLoader: async (p) => fs.promises.readFile(p, 'utf8'),
-			runCode: (code, title, lg) => jsRunner.runJSCode({ code, title, logger: lg }),
+			jsRunner: (code, title, lg) => jsRunner.runJSCode({ code, title, logger: lg }),
 			logger: (lvl, msg) => levelLogger(lvl, msg),
 		});
 	} catch (e) {

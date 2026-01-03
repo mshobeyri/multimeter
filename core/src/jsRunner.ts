@@ -5,11 +5,22 @@ import {extractOutputs} from './outputExtractor';
 import * as Random from './Random';
 import * as mmtHelper from './testHelper';
 
-export async function runJSCode(
-    code: string, title: string,
-    lg: (level: LogLevel, message: string) => void): Promise<any> {
+export interface RunJSCodeContext {
+  runId: string;
+  code: string;
+  title: string;
+  logger: (level: LogLevel, message: string) => void;
+  reporter: (message: any) => void;
+}
+
+
+export async function runJSCode(context: RunJSCodeContext): Promise<any> {
+  const {code, title, logger: lg, reporter} = context;
   lg('info', `Running test: ${title}...`);
   const startTime = Date.now();
+  undefined;
+  const reportStep = reporter ?? (() => {});
+  const runId = typeof context?.runId === 'string' ? context.runId : '';
 
   const customConsole = {
     trace: (...args: any[]) => lg(
@@ -41,10 +52,13 @@ export async function runJSCode(
             .join('\n');
     const fn = new Function(
         'mmtHelper', 'console', 'send', 'extractOutputs', 'Random',
+        '__mmtReportStep', '__mmtRunId',
         `${helperDecls}\n${randomDecls}\n${code}`);
-    await fn(mmtHelper, customConsole, send, extractOutputs, Random);
+    await fn(
+        mmtHelper, customConsole, send, extractOutputs, Random, reportStep,
+        runId);
   } catch (e: any) {
-    lg('error', "Error running test: " + (e?.message || String(e)));
+    lg('error', 'Error running test: ' + (e?.message || String(e)));
   } finally {
     const elapsed = Date.now() - startTime;
     lg('info', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);

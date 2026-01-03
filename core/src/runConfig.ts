@@ -1,6 +1,38 @@
 import {LogLevel} from './CommonData';
+import {RunJSCodeContext} from './jsRunner';
 
 export type FileLoader = (path: string) => Promise<string>;
+
+export type TestStepStatus = 'passed'|'failed';
+export type SuiteStepStatus = 'running'|'passed'|'failed'|'pending';
+
+export interface TestStepReporterEvent {
+  scope: 'test-step';
+  runId: string;
+  stepIndex: number;
+  stepType: 'check'|'assert';
+  status: TestStepStatus;
+  comparison: string;
+  message?: string;
+  timestamp: number;
+}
+
+export interface TestRunSummaryEvent {
+  scope: 'test-step-run';
+  runId: string;
+  result: TestStepStatus;
+}
+
+export interface SuiteReporterMessage {
+  scope?: 'suite-item';
+  groupIndex: number;
+  groupItemIndex: number;
+  status?: SuiteStepStatus;
+  success?: boolean;
+}
+
+export type RunReporterMessage =
+    SuiteReporterMessage|TestStepReporterEvent|TestRunSummaryEvent;
 
 export interface RunResult {
   success: boolean;
@@ -41,11 +73,9 @@ export interface RunFileOptions {
   envvar?: Record<string, any>;
   manualEnvvars?: Record<string, any>;
   fileLoader: FileLoader;
-  runCode:
-      (code: string, title: string,
-       logger: (level: LogLevel, msg: string) => void) => Promise<void>;
+  jsRunner: (context: RunJSCodeContext) => Promise<void>;
   logger?: (level: LogLevel, msg: string) => void;
-  reporter?: (message: any) => void;
+  reporter?: (message: RunReporterMessage) => void;
 }
 
 export interface MergeInputsParams {

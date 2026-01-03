@@ -2,7 +2,7 @@ import fs from 'fs';
 import { runner } from 'mmt-core';
 
 // Minimal bridge that runs inside pkg but uses ESM.
-// Keep this tiny: it adapts to core runner with a correct runCode signature.
+// Keep this tiny: it adapts to core runner with a correct jsRunner signature.
 
 export async function runFromPkg({ filePath, stdout, stderr }) {
   const rawFile = fs.readFileSync(filePath, 'utf8');
@@ -13,7 +13,7 @@ export async function runFromPkg({ filePath, stdout, stderr }) {
     inputs: { type: 'defaults' },
     envvar: {},
     fileLoader: async (p) => fs.promises.readFile(p, 'utf8'),
-    runCode: async (code, title, lg) => {
+    jsRunner: async (code, title, lg) => {
       const mod = await import('mmt-core');
       const jsRunner = mod.jsRunner;
       if (!jsRunner || typeof jsRunner.runJSCode !== 'function') {

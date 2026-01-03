@@ -1,6 +1,7 @@
 import {APIData} from './APIData';
 import {LogLevel, Type} from './CommonData';
 import * as JSer from './JSer';
+import {RunJSCodeContext} from './jsRunner';
 import {RunResult} from './runConfig';
 
 export interface RunFileResult {
@@ -29,11 +30,10 @@ export interface PreparedRun {
 }
 
 export async function runGeneratedJs(
-    js: string, title: string, logger: (level: LogLevel, msg: string) => void,
-    runCode:
-        (code: string, title: string,
-         lg: (lvl: LogLevel, msg: string) => void) =>
-            Promise<void>): Promise<RunResult> {
+    runId: string, js: string, title: string,
+    logger: (level: LogLevel, msg: string) => void,
+    jsRunner: (context: RunJSCodeContext) => Promise<void>,
+    reporter?: any): Promise<RunResult> {
   const start = Date.now();
   const errors: string[] = [];
   const logs: string[] = [];
@@ -49,7 +49,14 @@ export async function runGeneratedJs(
       errors.push('Empty JS input');
       return {success: false, durationMs: Date.now() - start, errors, logs};
     }
-    await runCode(js, title, forward);
+    await jsRunner({
+      code: js,
+      title,
+      logger: forward,
+      runId: 'run-generated-js',
+      reporter: reporter ? reporter : () => {},
+    });
+
     return {
       success: errors.length === 0,
       durationMs: Date.now() - start,

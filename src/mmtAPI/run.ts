@@ -79,7 +79,7 @@ export async function handleRunCurrentDocument(
           return '';
         }
       },
-      runCode: runJSCode,
+      jsRunner: runJSCode,
       logger: forwardLog,
       reporter: (msg: any) => {
         webviewPanel.webview.postMessage({command: 'runFileReport', ...msg});
@@ -91,14 +91,6 @@ export async function handleRunCurrentDocument(
         docType === 'test'          ? 'Test' :
         docType === 'suite'         ? 'Suite' :
                                       'Document';
-    if (result.success) {
-      vscode.window.showInformationMessage(`${label} ${
-          displayName} finished. Check the Multimeter output channel for logs.`);
-    } else {
-      const firstError = result.errors[0] || 'Unknown error';
-      vscode.window.showErrorMessage(`${label} ${displayName} failed: ${
-          firstError}. Check the Multimeter output channel for logs.`);
-    }
   } catch (err: any) {
     vscode.window.showErrorMessage(
         `Failed to run ${fileName}: ${err?.message || String(err)}`);
@@ -106,5 +98,11 @@ export async function handleRunCurrentDocument(
 }
 
 export async function handleRunJSCode(message: any) {
-  await runJSCode(message.code, message.title, logToOutput);
+  await runJSCode({
+    code: message.code,
+    title: message.title,
+    logger: logToOutput,
+    runId: message.runId ?? 'vscode-js-run',
+    reporter: message.reporter ?? (() => {}),
+  });
 };

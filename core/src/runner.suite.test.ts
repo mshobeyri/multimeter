@@ -20,7 +20,7 @@ describe('runner suite', () => {
       return '';
     };
 
-    const runCode = async (code: string, title: string, lg: any) => {
+    const jsRunner = async (code: string, title: string, lg: any) => {
       events.push(`start:${title}`);
       if (title.includes('a.mmt')) {
         await new Promise(r => setTimeout(r, 50));
@@ -37,7 +37,7 @@ describe('runner suite', () => {
       file: 'suite.mmt',
       filePath: '/tmp/suite.mmt',
       fileLoader,
-      runCode,
+      jsRunner,
       logger: () => {},
     } as any);
 
@@ -75,7 +75,7 @@ describe('runner suite', () => {
     };
 
     const titles: string[] = [];
-    const runCode = async (_code: string, title: string, lg: any) => {
+    const jsRunner = async (_code: string, title: string, lg: any) => {
       titles.push(title);
       // This mimics generated JS behavior: check => console.error, assert => throw
       if (title.includes('checkfail')) {
@@ -94,7 +94,7 @@ describe('runner suite', () => {
       file: 'suite.mmt',
       filePath: '/tmp/suite.mmt',
       fileLoader,
-      runCode,
+      jsRunner,
       logger: () => {},
     } as any);
 

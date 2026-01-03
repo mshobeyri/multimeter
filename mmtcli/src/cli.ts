@@ -125,7 +125,7 @@ program.command('run')
         const {runFileOptions, outFile, printJs} =
           buildCliRunArgs(file, {...(opts as any), logLevel: (program.opts() as any).logLevel});
         const runOpts: any = {...(runFileOptions as any)};
-        runOpts.runCode = (code: string, title: string, lg: any) =>
+        runOpts.jsRunner = (code: string, title: string, lg: any) =>
             runJSCode(code, title, lg as any);
         const runOutcome = await runner.runFile(runOpts as any);
         const {js, result} = runOutcome;

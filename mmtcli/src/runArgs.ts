@@ -123,7 +123,7 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
   }
   const runFileOptions: RunFileOptions&{
     fileLoader: (path: string) => Promise<string>;
-    runCode: (
+    jsRunner: (
         code: string, title: string,
         logger: (level: any, msg: string) => void) => Promise<void>;
   }
@@ -143,7 +143,7 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
       }
       return fs.readFileSync(rel, 'utf8');
     },
-    runCode: async () => {},
+    jsRunner: async () => {},
   };
 
   return {

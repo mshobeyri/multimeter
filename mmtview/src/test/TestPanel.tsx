@@ -5,6 +5,7 @@ import TestFlow from "./TestFlow";
 import { yamlToTest, testToYaml } from "mmt-core/testParsePack";
 import TestCode from "./TestCode";
 import { useImportValidation } from "../text/useImportValidation";
+import TestTest from "./TestTest";
 
 interface TestPanelProps {
   content: string;
@@ -54,8 +55,8 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
   const { missingImports, inputsByAlias } = useImportValidation(importsMap);
 
   // Restore last selected tab from localStorage, default to "overview"
-  const [tab, setTab] = useState<"overview" | "flow" | "test">(
-    () => (localStorage.getItem(LAST_TAB_KEY) as "overview" | "flow" | "test") || "overview"
+  const [tab, setTab] = useState<"overview" | "flow" | "code" | "test">(
+    () => (localStorage.getItem(LAST_TAB_KEY) as "overview" | "flow" | "code" | "test") || "overview"
   );
   const [showIconsOnly, setShowIconsOnly] = useState(false);
   const tabContainerRef = useRef<HTMLDivElement>(null);
@@ -111,6 +112,14 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
             {!showIconsOnly && "Flow"}
           </button>
           <button
+            onClick={() => setTab("code")}
+            className={`tab-button ${tab === "code" ? "active" : ""}`}
+            title={showIconsOnly ? "Code" : undefined}
+          >
+            <span className="codicon codicon-code tab-button-icon"></span>
+            {!showIconsOnly && "Code"}
+          </button>
+          <button
             onClick={() => setTab("test")}
             className={`tab-button ${tab === "test" ? "active" : ""}`}
             title={showIconsOnly ? "Test" : undefined}
@@ -146,8 +155,13 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
             }}
           />
         )}
-        {tab === "test" && (
+        {tab === "code" && (
           <TestCode
+            testData={test}
+          />
+        )}
+        {tab === "test" && (
+          <TestTest
             testData={test}
           />
         )}

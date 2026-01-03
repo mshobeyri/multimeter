@@ -125,7 +125,60 @@ export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
       await testToJsfunc({...ctx, importTracker: tracker}, true, tracker);
   const envPretty = JSON.stringify(ctx.envVars || {}, null, 2);
 
-  const full = `const envVariables = ${envPretty};\n\n${importedFuncs}\n${
+  const reporterPrelude = `const __mmtReportStepHandler = typeof __mmtReportStep === 'function' ? __mmtReportStep : () => {};
+const __mmtEmitStep = (event) => {
+  if (!event || typeof event !== 'object') {
+    return;
+  }
+  try {
+    const payload = {...event};
+    if (typeof payload.timestamp !== 'number') {
+      payload.timestamp = Date.now();
+    }
+    if (!payload.runId) {
+      payload.runId = typeof __mmtRunId === 'string' ? __mmtRunId : '';
+    }
+    __mmtReportStepHandler(payload);
+  } catch {
+  }
+};
+const __mmtNextTestStepId = (() => {
+  let idx = 0;
+  return () => ++idx;
+})();
+const __mmtReportComparison = (stepType, comparison, message, passed, onFail, onPass) => {
+  const stepIndex = __mmtNextTestStepId();
+  const basePayload = {
+    scope: 'test-step',
+    stepType,
+    comparison,
+    message,
+    stepIndex
+  };
+  if (passed) {
+    __mmtEmitStep({...basePayload, status: 'passed'});
+    if (typeof onPass === 'function') {
+      try {
+        onPass();
+      } catch {
+      }
+    }
+    return true;
+  }
+  __mmtEmitStep({...basePayload, status: 'failed'});
+  if (typeof onFail === 'function') {
+    onFail();
+  }
+  return false;
+};
+const __mmtReportCheck = (comparison, message, passed, onFail, onPass) => {
+  return __mmtReportComparison('check', comparison, message, passed, onFail, onPass);
+};
+const __mmtReportAssert = (comparison, message, passed, onFail, onPass) => {
+  return __mmtReportComparison('assert', comparison, message, passed, onFail, onPass);
+};`;
+
+  const full = `${reporterPrelude}\n\nconst envVariables = ${envPretty};\n\n${importedFuncs}\n${
       test}\nreturn ${toLowerUnderscore(ctx.name)}({});`;
   return variableReplacer(full);
 };

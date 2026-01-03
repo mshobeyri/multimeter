@@ -437,7 +437,7 @@ export async function executeApi(
     exampleName,
     exampleIndex,
   } = prepared;
-  const {fileLoader, runCode} = options;
+  const {fileLoader, jsRunner} = options;
 
   if (!apiDoc) {
     throw new Error('API document not found in prepared run');
@@ -466,7 +466,8 @@ export async function executeApi(
     exampleName,
     exampleIndex,
   });
-  const result = await runGeneratedJs(js, displayName, sinkLogger, runCode);
+  const result =
+      await runGeneratedJs('run-api', js, displayName, sinkLogger, jsRunner);
   if (preLogs.length) {
     result.logs = [...preLogs.map(l => l.message), ...(result.logs ?? [])];
   }

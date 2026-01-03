@@ -208,8 +208,12 @@ export const checkToJSfunc = (check: Comparison): string => {
   const conditionStatement = conditionalStatementToJSfunc(raw);
   const autoMsg = `Check ${raw} failed, as " + JSON.stringify(${left}) + " ${operator} " + ${right} + " is false`;
   const finalMsg = message ? `${message} - ${autoMsg}` : autoMsg;
-  return `if (!${conditionStatement}) {
-  console.error("${finalMsg}");
+  const messageLiteral = message ? JSON.stringify(message) : 'undefined';
+  return `{
+  const __mmtConditionResult = ${conditionStatement};
+  __mmtReportCheck(${JSON.stringify(raw)}, ${messageLiteral}, __mmtConditionResult, () => {
+    console.error("${finalMsg}");
+  });
 }`;
 };
 
@@ -222,8 +226,12 @@ export const assertToJSfunc = (assert: Comparison): string => {
   const conditionStatement = conditionalStatementToJSfunc(raw);
   const autoMsg = `Assertion ${raw} failed, as " + JSON.stringify(${left}) + " ${operator} " + ${right} + " is false`;
   const finalMsg = message ? `${message} - ${autoMsg}` : autoMsg;
-  return `if (!${conditionStatement}) {
-  throw new Error("${finalMsg}");
+  const messageLiteral = message ? JSON.stringify(message) : 'undefined';
+  return `{
+  const __mmtConditionResult = ${conditionStatement};
+  __mmtReportAssert(${JSON.stringify(raw)}, ${messageLiteral}, __mmtConditionResult, () => {
+    throw new Error("${finalMsg}");
+  });
 }`;
 };
 

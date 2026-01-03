@@ -129,7 +129,7 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
                     }}
                 >
                     <span className="codicon codicon-run" style={{ fontSize: 18 }} />
-                    Run test
+                    Run code
                 </button>
             </div>
             {error ? (

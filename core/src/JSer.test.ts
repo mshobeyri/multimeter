@@ -4,7 +4,7 @@ import {APIContext} from './JSerAPI';
 import {setFileLoader} from './JSerFileLoader';
 import {importsToJsfunc} from './JSerImports';
 import {TestContext, variableReplacer} from './JSerTest';
-import {flowStagesToJsfunc} from './JSerTestFlow';
+import {assertToJSfunc, checkToJSfunc, flowStagesToJsfunc} from './JSerTestFlow';
 import {createTestFileLoaderMock} from './testFileLoaderMock';
 
 describe('flowStagesToJsfunc', () => {
@@ -413,6 +413,33 @@ describe('env token replacements in generated JS', () => {
        expect(out).toContain(
            '`X=${envVariables.FOO} Y=${envVariables.BAR} Z=${envVariables.BAZ} W=${envVariables.QUX}`');
      });
+});
+
+describe('step reporter instrumentation', () => {
+  it('injects reporter helpers into root test output', async () => {
+    const ctx: TestContext = {
+      name: 'reporterTest',
+      test: {steps: [{check: 'a == b'} as any]} as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await rootTestToJsfunc(ctx);
+    expect(js).toContain('const __mmtReportStepHandler');
+    expect(js).toContain('const __mmtEmitStep');
+    expect(js).toContain('const __mmtNextTestStepId');
+    expect(js).toContain('const __mmtReportCheck');
+    expect(js).toContain('const __mmtReportAssert');
+  });
+
+  it('wraps checks and asserts with emit calls', () => {
+    const checkJs = checkToJSfunc('foo == bar');
+    expect(checkJs).toContain('__mmtReportCheck');
+    expect(checkJs).toContain('foo == bar');
+
+    const assertJs = assertToJSfunc('foo != bar');
+    expect(assertJs).toContain('__mmtReportAssert');
+    expect(assertJs).toContain('foo != bar');
+  });
 });
 
 describe('rootTestToJsfunc + import tracker', () => {
