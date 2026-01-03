@@ -73,8 +73,7 @@ export async function handleGetFileContent(
   } catch (err) {
     // Delay only the error
     const timeout = setTimeout(() => {
-      vscode.window.showErrorMessage(
-          `Failed to read file ${message.filename}`);
+      vscode.window.showErrorMessage(`Failed to read file ${message.filename}`);
       mmtProvider.fileReadTimeouts.delete(webviewPanel);
     }, 1000);
 
@@ -194,16 +193,17 @@ export async function handleOpenRelativeFile(
   const absolutePath =
       path.resolve(path.dirname(document.uri.fsPath), message.filename);
   const uri = vscode.Uri.file(absolutePath);
+  const pathLower: string = absolutePath.toLowerCase();
   try {
     // Prefer opening with our custom MMT editor when the file is an
     // .mmt
-    if (absolutePath.toLowerCase().endsWith('.mmt')) {
+    if (pathLower.endsWith('.mmt')) {
       await vscode.commands.executeCommand(
           'vscode.openWith', uri, 'mmt.editor', {preview: false});
     } else {
-      const doc = await vscode.workspace.openTextDocument(uri);
-      await vscode.window.showTextDocument(doc, {preview: false});
+      await vscode.commands.executeCommand('vscode.open', uri);
     }
+
   } catch (err) {
     // Fallback to default text editor if custom opening fails
     try {

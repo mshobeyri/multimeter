@@ -7,6 +7,7 @@ import { openRelativeFile } from "../vsAPI";
 import { useImportValidation } from "./useImportValidation";
 import { useDocFileValidation } from "./useDocFileValidation";
 import { useSuiteTestsValidation } from "./useSuiteTestsValidation";
+import { getFileLinkTargetAtPosition } from "./yamlLinks";
 import {
   computeMissingImportMarkers,
   computeMissingDocFileMarkers, // Updated from computeMissingLogoFileMarkers
@@ -326,43 +327,10 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     const isMac = navigator.platform.toLowerCase().includes('mac');
     const modifier = isMac ? 'metaKey' : 'ctrlKey';
 
-    const getImportTargetAtPosition = (pos: any): { path: string; range: any } | null => {
-      if (!pos) return null;
-
-      const lineContent = model.getLineContent(pos.lineNumber);
-      const aliasMatch = lineContent.match(/^[\s\t-]*['"]?([^'"\s:]+)['"]?\s*:/);
-      if (!aliasMatch) return null;
-
-      const alias = aliasMatch[1];
-      const path = importsMapRef.current[alias];
-      if (!path) return null;
-
-      const colonIndex = lineContent.indexOf(':');
-      if (colonIndex === -1) return null;
-
-      const pathStartIdx = lineContent.indexOf(path, colonIndex + 1);
-      if (pathStartIdx !== -1) {
-        const startColumn = pathStartIdx + 1;
-        const endColumn = startColumn + path.length;
-        if (pos.column >= startColumn && pos.column <= endColumn) {
-          return {
-            path,
-            range: new monaco.Range(pos.lineNumber, startColumn, pos.lineNumber, endColumn),
-          };
-        }
-      }
-
-      const word = model.getWordAtPosition(pos);
-      if (!word) return null;
-      if (word.word !== alias) return null;
-      return {
-        path,
-        range: new monaco.Range(pos.lineNumber, word.startColumn, pos.lineNumber, word.endColumn),
-      };
-    };
-
     const updateUnderline = (pos: any, withModifier: boolean) => {
-      const target = withModifier ? getImportTargetAtPosition(pos) : null;
+      const target = withModifier
+        ? getFileLinkTargetAtPosition(monaco, model, content, pos)
+        : null;
       linkDecorationsRef.current = editor.deltaDecorations(linkDecorationsRef.current, []);
       if (!target) return;
       linkDecorationsRef.current = editor.deltaDecorations(linkDecorationsRef.current, [{
@@ -380,7 +348,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       if (!evt || !pos) return;
       const withMod = (evt as any)[modifier];
       updateUnderline(pos, withMod);
-      const target = withMod ? getImportTargetAtPosition(pos) : null;
+      const target = withMod ? getFileLinkTargetAtPosition(monaco, model, content, pos) : null;
       editor.updateOptions({ mouseStyle: target ? 'pointer' : 'text' });
     });
 
@@ -401,7 +369,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       if (!evt || !pos) return;
       const withMod = (evt as any)[modifier];
       if (!withMod) return;
-      const target = getImportTargetAtPosition(pos);
+      const target = getFileLinkTargetAtPosition(monaco, model, content, pos);
       if (target) {
         openRelativeFile(target.path);
       }
