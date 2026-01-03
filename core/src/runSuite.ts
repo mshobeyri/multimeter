@@ -7,13 +7,13 @@ export function prepareSuiteRun(
     rawText: string, manualInputs: Record<string, any>): Partial<PreparedRun> {
   const suite = yamlToSuite(rawText);
   return {
-    title: suite.title, inputsUsed: manualInputs,
+    title: suite.title,
+    inputsUsed: manualInputs,
   };
 }
 
 export async function executeSuite(
     prepared: PreparedRun, options: RunFileOptions,
-    sinkLogger: (level: LogLevel, msg: string) => void,
     preLogs: {level: LogLevel; message: string}[],
     runFile: (options: RunFileOptions) =>
         Promise<RunFileResult>): Promise<RunFileResult> {
@@ -42,7 +42,7 @@ export async function executeSuite(
     if (level === 'error') {
       allErrors.push(String(msg));
     }
-    sinkLogger(level, msg);
+    options.logger(level, msg);
   };
 
   suiteLogger('info', `Running suite: ${suiteDisplayName}`);
@@ -77,7 +77,8 @@ export async function executeSuite(
           logger: suiteLogger
         } as any);
 
-        const status: SuiteStepStatus = childRun.result?.success ? 'passed' : 'failed';
+        const status: SuiteStepStatus =
+            childRun.result?.success ? 'passed' : 'failed';
         const result = {
           entry,
           filePath: childFilePath,

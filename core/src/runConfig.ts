@@ -74,8 +74,8 @@ export interface RunFileOptions {
   manualEnvvars?: Record<string, any>;
   fileLoader: FileLoader;
   jsRunner: (context: RunJSCodeContext) => Promise<void>;
-  logger?: (level: LogLevel, msg: string) => void;
-  reporter?: (message: RunReporterMessage) => void;
+  logger: (level: LogLevel, msg: string) => void;
+  reporter: (message: RunReporterMessage) => void;
 }
 
 export interface MergeInputsParams {

@@ -425,7 +425,6 @@ function escapeForJsString(value: string): string {
 
 export async function executeApi(
     prepared: PreparedRun, options: RunFileOptions,
-    sinkLogger: (level: LogLevel, msg: string) => void,
     preLogs: {level: LogLevel; message: string}[]): Promise<RunFileResult> {
   const {
     docType,
@@ -467,7 +466,7 @@ export async function executeApi(
     exampleIndex,
   });
   const result =
-      await runGeneratedJs('run-api', js, displayName, sinkLogger, jsRunner);
+      await runGeneratedJs('run-api', js, displayName, options.logger, jsRunner);
   if (preLogs.length) {
     result.logs = [...preLogs.map(l => l.message), ...(result.logs ?? [])];
   }

@@ -3,7 +3,7 @@ import docHtml from './docHtml';
 import docMarkdown from './docMarkdown';
 import {executeApi, prepareApiRun} from './runApi';
 import {basename, detectDocType, PreparedRun, RunFileResult, runGeneratedJs} from './runCommon';
-import {mergeEnv, RunFileOptions} from './runConfig';
+import {mergeEnv, RunFileOptions, RunReporterMessage} from './runConfig';
 import {executeSuite, prepareSuiteRun} from './runSuite';
 import {executeTest, generateTestJs, prepareTestRun} from './runTest';
 
@@ -76,27 +76,25 @@ export async function prepareRunFromOptions(
 }
 
 export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
-  const {logger} = options;
-  const sinkLogger: (level: LogLevel, msg: string) => void =
-      logger ?? (() => {});
+  
   const preLogs: Array<{level: LogLevel; message: string}> = [];
   const note = (level: LogLevel, message: string) => {
     preLogs.push({level, message});
-    sinkLogger(level, message);
   };
+  
   const prepared = await prepareRunFromOptions(options, note);
   const {docType} = prepared;
 
   if (docType === 'api') {
-    return executeApi(prepared, options, sinkLogger, preLogs);
+    return executeApi(prepared, options, preLogs);
   }
 
   if (docType === 'test') {
-    return executeTest(prepared, options, sinkLogger, preLogs);
+    return executeTest(prepared, options, preLogs);
   }
 
   if (docType === 'suite') {
-    return executeSuite(prepared, options, sinkLogger, preLogs, runFile);
+    return executeSuite(prepared, options, preLogs, runFile);
   }
 
   throw new Error('Run is currently supported for test or api documents only.');

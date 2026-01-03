@@ -6,6 +6,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as vscode from 'vscode';
 import YAML from 'yaml';
+import { logToOutput } from '../mmtAPI/run';
 
 type AnyOpts = Record<string, any>;
 
@@ -230,6 +231,8 @@ export async function parseAssistantRunArgs(
       }
     },
     jsRunner: async () => {},
+    logger: logToOutput,
+    reporter: (...args: any[]) => {},
   };
 
   return {

@@ -1,11 +1,11 @@
 import fs from 'fs';
 import yaml from 'js-yaml';
 import * as mmtcore from 'mmt-core';
-import type {RunFileOptions} from 'mmt-core/runConfig';
+import type {RunFileOptions, RunReporterMessage} from 'mmt-core/runConfig';
 import path from 'path';
 
 const {mergeEnv, resolvePresetEnv, resolveEnvFromDoc} =
-  ((mmtcore as any).runConfig || {}) as any;
+    ((mmtcore as any).runConfig || {}) as any;
 
 type AnyOpts = Record<string, any>;
 
@@ -82,8 +82,8 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
   const manualInputs = parsePairs(opts.input);
   const manualEnvvars = parsePairs(opts.env);
 
-  const exampleOptRaw =
-      typeof (opts as any).example === 'string' ? String((opts as any).example) :
+  const exampleOptRaw = typeof (opts as any).example === 'string' ?
+      String((opts as any).example) :
       undefined;
   let exampleIndexOpt: number|undefined = undefined;
   let exampleNameOpt: string|undefined = undefined;
@@ -126,6 +126,8 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
     jsRunner: (
         code: string, title: string,
         logger: (level: any, msg: string) => void) => Promise<void>;
+    logger: (level: any, msg: string) => void;
+    reporter: (message: RunReporterMessage) => void;
   }
   = {
     file: rawText,
@@ -144,6 +146,10 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
       return fs.readFileSync(rel, 'utf8');
     },
     jsRunner: async () => {},
+    logger: (level: any, msg: string) => {
+        console.log(`[${level}] ${msg}`);
+    },
+    reporter: (_message: RunReporterMessage) => {},
   };
 
   return {

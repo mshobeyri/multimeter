@@ -49,7 +49,6 @@ export async function generateTestJs(opts: GenerateJsOptions): Promise<string> {
 
 export async function executeTest(
     prepared: PreparedRun, options: RunFileOptions,
-    sinkLogger: (level: LogLevel, msg: string) => void,
     preLogs: {level: LogLevel; message: string}[]): Promise<RunFileResult> {
   const {
     docType,
@@ -78,7 +77,7 @@ export async function executeTest(
     fileLoader: options.fileLoader,
   });
   const result = await runGeneratedJs(
-      runId, js, displayName, sinkLogger, options.jsRunner, stepReporter);
+      runId, js, displayName, options.logger, options.jsRunner, stepReporter);
   if (forwardReporter) {
     const summary: TestRunSummaryEvent = {
       scope: 'test-step-run',

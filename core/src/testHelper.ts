@@ -117,6 +117,7 @@ const nextStepIndex = (): number => {
 const emitStep = (event: Record<string, any>) => {
   const reporter = resolveReporter();
   if (!reporter) {
+    console.log('No reporter available to emit step:', event);
     return;
   }
   try {

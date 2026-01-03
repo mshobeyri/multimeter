@@ -83,7 +83,9 @@ export function useRunGlyphs(params: {
   // compute run line when content/editorReady changes
   useEffect(
       () => {
-        if (!monacoRef.current || !editorRef.current) return;
+        if (!monacoRef.current || !editorRef.current) {
+          return;
+        }
         if (!shouldShowRunControls || !editorReady) {
           const editor = editorRef.current;
           runGlyphDecorationsRef.current =
