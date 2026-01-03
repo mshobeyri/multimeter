@@ -59,8 +59,6 @@ export async function executeTest(
     envVarsUsed: envVars,
     inputsUsed,
   } = prepared;
-  const {fileLoader, jsRunner} = options;
-
   const displayName = title || baseName;
   const identifier = sanitizeIdentifier(displayName);
   const runId = createRunId();
@@ -77,10 +75,10 @@ export async function executeTest(
     name: identifier,
     inputs: inputsUsed,
     envVars,
-    fileLoader,
+    fileLoader: options.fileLoader,
   });
   const result = await runGeneratedJs(
-      runId, js, displayName, sinkLogger, jsRunner, stepReporter);
+      runId, js, displayName, sinkLogger, options.jsRunner, stepReporter);
   if (forwardReporter) {
     const summary: TestRunSummaryEvent = {
       scope: 'test-step-run',

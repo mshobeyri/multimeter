@@ -83,3 +83,65 @@ export function notEndsWith(a: any, b: any) {
   }
   return true;
 }
+declare const __mmtReportStep:|((event: Record<string, any>) => void)|undefined;
+declare const __mmtRunId: string|undefined;
+
+type StepType = 'check'|'assert';
+
+const resolveReporter = () =>
+    (typeof __mmtReportStep === 'function' ? __mmtReportStep : undefined);
+
+const ensurePayload = (event: Record<string, any>): Record<string, any> => {
+  const payload = {...event};
+  if (typeof payload.timestamp !== 'number') {
+    payload.timestamp = Date.now();
+  }
+  if (!payload.runId) {
+    payload.runId = typeof __mmtRunId === 'string' ? __mmtRunId : '';
+  }
+  return payload;
+};
+
+let lastRunId: string|undefined;
+let stepIndex = 0;
+const nextStepIndex = (): number => {
+  const currentRunId = typeof __mmtRunId === 'string' ? __mmtRunId : '';
+  if (currentRunId !== lastRunId) {
+    lastRunId = currentRunId;
+    stepIndex = 0;
+  }
+  stepIndex += 1;
+  return stepIndex;
+};
+
+const emitStep = (event: Record<string, any>) => {
+  const reporter = resolveReporter();
+  if (!reporter) {
+    return;
+  }
+  try {
+    reporter(ensurePayload(event));
+  } catch {
+    // Ignore reporter errors so tests keep running
+  }
+};
+
+const report_check_assert_ =
+    (stepType: StepType, message: string, passed: boolean) => {
+      const payload = {
+        scope: 'test-step',
+        stepType,
+        message,
+        stepIndex: nextStepIndex(),
+        status: passed ? 'passed' : 'failed',
+      };
+      emitStep(payload);
+    };
+
+export function report_check_(passed: boolean, message: string) {
+  report_check_assert_('check', message, passed);
+}
+
+export function report_assert_(passed: boolean, message: string) {
+  report_check_assert_('assert', message, passed);
+}

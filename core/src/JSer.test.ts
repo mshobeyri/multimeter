@@ -416,7 +416,7 @@ describe('env token replacements in generated JS', () => {
 });
 
 describe('step reporter instrumentation', () => {
-  it('injects reporter helpers into root test output', async () => {
+  it('relies on shared _report helper instead of inlining reporter code', async () => {
     const ctx: TestContext = {
       name: 'reporterTest',
       test: {steps: [{check: 'a == b'} as any]} as any,
@@ -424,20 +424,17 @@ describe('step reporter instrumentation', () => {
       envVars: {},
     };
     const js = await rootTestToJsfunc(ctx);
-    expect(js).toContain('const __mmtReportStepHandler');
-    expect(js).toContain('const __mmtEmitStep');
-    expect(js).toContain('const __mmtNextTestStepId');
-    expect(js).toContain('const __mmtReportCheck');
-    expect(js).toContain('const __mmtReportAssert');
+    expect(js).not.toContain('__mmtReportStepHandler');
+    expect(js).toContain("_report('check'");
   });
 
   it('wraps checks and asserts with emit calls', () => {
     const checkJs = checkToJSfunc('foo == bar');
-    expect(checkJs).toContain('__mmtReportCheck');
+    expect(checkJs).toContain("_report('check'");
     expect(checkJs).toContain('foo == bar');
 
     const assertJs = assertToJSfunc('foo != bar');
-    expect(assertJs).toContain('__mmtReportAssert');
+    expect(assertJs).toContain("_report('assert'");
     expect(assertJs).toContain('foo != bar');
   });
 });

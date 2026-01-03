@@ -8,7 +8,7 @@ function randomName(): string {
 }
 
 const replaceEnvTokens = (s: string): string =>
-  s.replace(/\be:([A-Za-z_][A-Za-z0-9_]*)\b/g, 'envVariables.$1');
+    s.replace(/\be:([A-Za-z_][A-Za-z0-9_]*)\b/g, 'envVariables.$1');
 
 export const conditionalStatementToJSfunc = (check: string): string => {
   // Replace env tokens like e:FOO -> envVariables.FOO
@@ -60,32 +60,38 @@ interface NormalizedComparison {
   raw: string;
 }
 
-const normalizeComparison = (comp: Comparison, kind: 'check'|'assert'): NormalizedComparison | null => {
-  if (!comp || (typeof comp === 'string' && comp.trim() === '')) {
-    return null;
-  }
-  if (typeof comp === 'string') {
-    const raw = comp;
-    const parts = comp.split(' ');
-    if (parts.length !== 3) {
-      throw new Error(`Invalid ${kind} format: ${comp}`);
-    }
-    const [left, operator, right] = parts;
-    return {left, operator, right, raw};
-  }
+const normalizeComparison =
+    (comp: Comparison, kind: 'check'|'assert'): NormalizedComparison|null => {
+      if (!comp || (typeof comp === 'string' && comp.trim() === '')) {
+        return null;
+      }
+      if (typeof comp === 'string') {
+        const raw = comp;
+        const parts = comp.split(' ');
+        if (parts.length !== 3) {
+          throw new Error(`Invalid ${kind} format: ${comp}`);
+        }
+        const [left, operator, right] = parts;
+        return {left, operator, right, raw};
+      }
 
-  const actual: unknown = (comp as any).actual;
-  const expected: unknown = (comp as any).expected;
-  if (typeof (comp as any) !== 'object' || actual === undefined || expected === undefined) {
-    throw new Error(`Invalid ${kind} object: "actual" and "expected" are required`);
-  }
-  const operator = (comp as any).operator || '==';
-  const left = typeof actual === 'string' ? actual : JSON.stringify(actual);
-  const right = typeof expected === 'string' ? expected : JSON.stringify(expected);
-  const raw = `${left} ${operator} ${right}`;
-  const message = typeof (comp as any).message === 'string' ? (comp as any).message : undefined;
-  return {left, operator, right, raw, message};
-};
+      const actual: unknown = (comp as any).actual;
+      const expected: unknown = (comp as any).expected;
+      if (typeof (comp as any) !== 'object' || actual === undefined ||
+          expected === undefined) {
+        throw new Error(
+            `Invalid ${kind} object: "actual" and "expected" are required`);
+      }
+      const operator = (comp as any).operator || '==';
+      const left = typeof actual === 'string' ? actual : JSON.stringify(actual);
+      const right =
+          typeof expected === 'string' ? expected : JSON.stringify(expected);
+      const raw = `${left} ${operator} ${right}`;
+      const message = typeof (comp as any).message === 'string' ?
+          (comp as any).message :
+          undefined;
+      return {left, operator, right, raw, message};
+    };
 
 export const ifToJSfunc = (condition: TestFlowCondition): string => {
   const cond = typeof condition.if === 'string' ? condition.if : '';
@@ -206,14 +212,16 @@ export const checkToJSfunc = (check: Comparison): string => {
   }
   const {left, operator, right, raw, message} = normalized;
   const conditionStatement = conditionalStatementToJSfunc(raw);
-  const autoMsg = `Check ${raw} failed, as " + JSON.stringify(${left}) + " ${operator} " + ${right} + " is false`;
+  const autoMsg = `Check ${raw} failed, as " + JSON.stringify(${left}) + " ${
+      operator} " + ${right} + " is false`;
   const finalMsg = message ? `${message} - ${autoMsg}` : autoMsg;
   const messageLiteral = message ? JSON.stringify(message) : 'undefined';
   return `{
-  const __mmtConditionResult = ${conditionStatement};
-  __mmtReportCheck(${JSON.stringify(raw)}, ${messageLiteral}, __mmtConditionResult, () => {
+  const result = ${conditionStatement};
+  report_check_(${JSON.stringify(raw)}, ${messageLiteral}, result);
+  if(!result){
     console.error("${finalMsg}");
-  });
+  }
 }`;
 };
 
@@ -224,14 +232,17 @@ export const assertToJSfunc = (assert: Comparison): string => {
   }
   const {left, operator, right, raw, message} = normalized;
   const conditionStatement = conditionalStatementToJSfunc(raw);
-  const autoMsg = `Assertion ${raw} failed, as " + JSON.stringify(${left}) + " ${operator} " + ${right} + " is false`;
+  const autoMsg = `Assertion ${raw} failed, as " + JSON.stringify(${
+      left}) + " ${operator} " + ${right} + " is false`;
   const finalMsg = message ? `${message} - ${autoMsg}` : autoMsg;
   const messageLiteral = message ? JSON.stringify(message) : 'undefined';
   return `{
-  const __mmtConditionResult = ${conditionStatement};
-  __mmtReportAssert(${JSON.stringify(raw)}, ${messageLiteral}, __mmtConditionResult, () => {
-    throw new Error("${finalMsg}");
-  });
+  const result = ${conditionStatement};
+  report_assert_(${JSON.stringify(raw)}, ${messageLiteral}, result);
+  if(!result){
+    console.error("${finalMsg}");
+    throw new Error("Assertion failed");
+  }
 }`;
 };
 
