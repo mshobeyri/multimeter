@@ -121,14 +121,9 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
                 <button
                     onClick={handleRun}
                     disabled={!jsCode || !!error}
-                    style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 4,
-                        padding: "4px 12px"
-                    }}
+                    className="button-icon"
                 >
-                    <span className="codicon codicon-run" style={{ fontSize: 18 }} />
+                    <span className="codicon codicon-run" />
                     Run code
                 </button>
             </div>

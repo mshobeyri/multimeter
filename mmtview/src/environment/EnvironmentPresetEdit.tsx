@@ -142,12 +142,14 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
                             <hr style={{ border: 0, borderTop: "1px solid #444", margin: "12px 0" }} />
                         </div>
                     ))}
-                    <button onClick={() => handleAddEnv(boardIdx)} className="add-button" >
+                    <button onClick={() => handleAddEnv(boardIdx)} className="button-icon" >
+                        <span className="codicon codicon-add" aria-hidden />
                         Add Label
                     </button>
                 </div>
             ))}
-            <button onClick={handleAddBoard} className="add-button" >
+            <button onClick={handleAddBoard} className="button-icon" >
+                <span className="codicon codicon-add" aria-hidden />
                 Add Preset
             </button>
         </div>

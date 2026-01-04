@@ -158,14 +158,10 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
                 }}>
                 <div>{summary}</div>
                 <button
-                    type="button"
                     onClick={handleRun}
+                    className='button-icon'
                     disabled={runState === 'running'}
                     style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        padding: '4px 12px',
                         opacity: runState === 'running' ? 0.7 : 1,
                     }}
                 >

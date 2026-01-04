@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ControlledTreeEnvironment,
   DraggingPosition,
@@ -20,6 +20,7 @@ interface SuitePanelProps {
 
 let suiteEntrySuffix = 0;
 const nextSuiteEntryId = () => `suite-entry-${suiteEntrySuffix++}`;
+const createPlaceholderEntry = (): SuiteEntry => ({ id: nextSuiteEntryId(), path: 'test path' });
 
 const buildSuiteGroupsFromContent = (content: string): SuiteGroup[] => {
   const parsed = parseYaml(content);
@@ -118,6 +119,9 @@ const buildSuiteTree = (groups: SuiteGroup[]) => {
 const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
   const [groups, setGroups] = useState<SuiteGroup[]>(() => buildSuiteGroupsFromContent(content));
   const [expandedItems, setExpandedItems] = useState<string[]>(['suite-root']);
+  const addButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [addMenuPos, setAddMenuPos] = useState<{ left: number; top: number } | null>(null);
 
   useEffect(() => {
     setGroups(buildSuiteGroupsFromContent(content));
@@ -134,6 +138,80 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
     },
     [content, setContent]
   );
+
+  const openAddMenuAtButton = useCallback(() => {
+    const btn = addButtonRef.current;
+    if (!btn) {
+      setAddMenuPos(null);
+      return;
+    }
+    const rect = btn.getBoundingClientRect();
+    const menuWidth = 220;
+    const margin = 8;
+    const maxLeft = typeof window !== 'undefined' ? window.innerWidth - menuWidth - margin : margin;
+    const preferred = rect.right - menuWidth;
+    const left = Math.max(margin, Math.min(maxLeft, preferred));
+    const top = rect.bottom + 6;
+    setAddMenuPos({ left, top });
+  }, []);
+
+  useEffect(() => {
+    if (!addMenuOpen) {
+      setAddMenuPos(null);
+      return;
+    }
+    if (typeof document === 'undefined' || typeof window === 'undefined') {
+      return;
+    }
+    openAddMenuAtButton();
+    const handlePointerDown = (event: MouseEvent) => {
+      if (addButtonRef.current?.contains(event.target as Node)) {
+        return;
+      }
+      setAddMenuOpen(false);
+    };
+    const handleResize = () => setAddMenuOpen(false);
+    document.addEventListener('mousedown', handlePointerDown, true);
+    window.addEventListener('resize', handleResize);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown, true);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [addMenuOpen, openAddMenuAtButton]);
+
+  const toggleAddMenu = useCallback(() => {
+    setAddMenuOpen(prev => {
+      const next = !prev;
+      if (next) {
+        openAddMenuAtButton();
+      } else {
+        setAddMenuPos(null);
+      }
+      return next;
+    });
+  }, [openAddMenuAtButton]);
+
+  const handleAddGroup = useCallback(() => {
+    const placeholder = createPlaceholderEntry();
+    const nextGroups = [...groups, { label: `Group ${groups.length + 1}`, entries: [placeholder] }];
+    persistGroups(nextGroups);
+    setAddMenuOpen(false);
+  }, [groups, persistGroups]);
+
+  const handleAddTestFile = useCallback(() => {
+    const placeholder = createPlaceholderEntry();
+    let nextGroups: SuiteGroup[];
+    if (!groups.length) {
+      nextGroups = [{ label: 'Group 1', entries: [placeholder] }];
+    } else {
+      const targetIdx = groups.length - 1;
+      nextGroups = groups.map((group, idx) =>
+        idx === targetIdx ? { ...group, entries: [...group.entries, placeholder] } : group
+      );
+    }
+    persistGroups(nextGroups);
+    setAddMenuOpen(false);
+  }, [groups, persistGroups]);
 
   const treeData = useMemo(() => buildSuiteTree(groups), [groups]);
   const { items, allPaths, groupIds } = treeData;
@@ -406,23 +484,91 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
     <div className="panel">
       <div className="panel-box">
         <div className="test-flow-tree" style={{ paddingTop: 4 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, alignItems: 'center' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginBottom: 8,
+              alignItems: 'center',
+              position: 'relative',
+              gap: 8,
+            }}
+          >
             <div style={{ fontWeight: 700 }}>Suite</div>
-            <button
-              type="button"
-              disabled={allPaths.length === 0}
-              onClick={handleRunSuite}
-              title={allPaths.length === 0 ? 'No suite files to run' : 'Run suite'}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                padding: '4px 12px',
-              }}
-            >
-              <span className="codicon codicon-run" style={{ fontSize: 18 }} aria-hidden></span>
-              Run suite
-            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                ref={addButtonRef}
+                className='button-icon'
+                onPointerDown={event => event.stopPropagation()}
+                onPointerUp={event => {
+                  event.stopPropagation();
+                  toggleAddMenu();
+                }}
+                title="Add suite item"
+              >
+                <span className="codicon codicon-add" aria-hidden />
+                Add item
+              </button>
+              <button
+                className='button-icon'
+                disabled={allPaths.length === 0}
+                onClick={handleRunSuite}
+                title={allPaths.length === 0 ? 'No suite files to run' : 'Run suite'}
+              >
+                <span className="codicon codicon-run" aria-hidden />
+                Run suite
+              </button>
+            </div>
+            {addMenuOpen && addMenuPos && (
+              <div
+                style={{
+                  position: 'fixed',
+                  left: addMenuPos.left,
+                  top: addMenuPos.top,
+                  zIndex: 1000,
+                  background: 'var(--vscode-editorWidget-background,#232323)',
+                  border: '1px solid var(--vscode-editorWidget-border,#333)',
+                  borderRadius: 4,
+                  boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+                  minWidth: 220,
+                  padding: 4,
+                }}
+                onPointerDown={event => event.stopPropagation()}
+                onMouseDown={event => event.stopPropagation()}
+                onClick={event => event.stopPropagation()}
+              >
+                <button
+                  className="action-button"
+                  style={{
+                    width: '100%',
+                    justifyContent: 'flex-start',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                  onPointerUp={() => handleAddGroup()}
+                  title="Insert a group separator (then)"
+                >
+                  <span className="codicon codicon-list-tree" style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
+                  <span>Add group (then)</span>
+                </button>
+                <button
+                  className="action-button"
+                  style={{
+                    width: '100%',
+                    justifyContent: 'flex-start',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                  onPointerUp={() => handleAddTestFile()}
+                  title="Add a test file entry"
+                >
+                  <span className="codicon codicon-symbol-file" style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
+                  <span>Add test file</span>
+                </button>
+              </div>
+            )}
           </div>
           {noItems ? (
             <div style={{ opacity: 0.8 }}>No suite items found under `tests:`</div>

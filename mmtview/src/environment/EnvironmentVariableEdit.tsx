@@ -125,7 +125,8 @@ const EnvironmentVariableEdit: React.FC<EnvironmentVariableEditProps> = ({ varia
                     )}
                 </div>
             ))}
-            <button onClick={handleAdd} className="add-button" >
+            <button onClick={handleAdd} className="button-icon" >
+                <span className="codicon codicon-add" aria-hidden />
                 Add Variable
             </button>
         </div>

@@ -56,7 +56,8 @@ const VariablesEditor: React.FC<VariablesEditorProps> = ({ variablesData, setVar
           />
         </div>
       ))}
-      <button onClick={addVariable} className="add-button" >
+      <button onClick={addVariable} className="button-icon" >
+        <span className="codicon codicon-add" aria-hidden />
         Add Variable
       </button>
     </div>

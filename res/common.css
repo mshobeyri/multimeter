@@ -28,7 +28,7 @@
   --input-height: 28px;
   --input-padding-vertical: 4px;
   --input-padding-horizontal: 8px;
-  
+
   /* Spacing */
   --spacing-xs: 2px;
   --spacing-sm: 4px;
@@ -90,7 +90,7 @@ body {
 }
 
 /* Form Elements - All use same background */
-.input, 
+.input,
 input[type="text"],
 input[type="number"],
 input[type="email"],
@@ -168,10 +168,15 @@ textarea:focus {
   border-color: var(--vscode-focusBorder);
 }
 
-/* Button Styles */
+.button-icon {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+}
+
 .button {
   height: var(--input-height);
-  padding: var(--input-padding-vertical) 12px;
   font-size: 12px;
   font-family: var(--font-family);
   background-color: var(--button-background);
@@ -180,12 +185,13 @@ textarea:focus {
   border-radius: 2px;
   cursor: pointer;
   outline: none;
-  display: inline-flex;
-  align-items: center;
   justify-content: center;
   gap: 4px;
+  align-items: center;
+  display: flex;
   box-sizing: border-box;
   white-space: nowrap;
+  padding: 4px 12px;
 }
 
 .button:hover {
@@ -492,6 +498,7 @@ textarea:focus {
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }

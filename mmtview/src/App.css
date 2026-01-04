@@ -116,6 +116,13 @@ button,
   position: absolute !important;
 }
 
+.button-icon {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+}
+
 .bodyview {
   border: 1px solid var(--vscode-input-border, #3c3c3c);
   overflow: hidden;
@@ -732,22 +739,6 @@ button:focus {
 
 .test-flow-tree li {
   list-style: none;
-}
-
-.add-button {
-  background: var(--vscode-button-background, #0e639c);
-  color: var(--vscode-button-foreground, #fff);
-  border: none;
-  border-radius: 2px;
-  padding: 8px 16px;
-  cursor: pointer;
-  font-size: var(--vscode-font-size, 13px);
-  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
-  height: 1.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
 }
 
 /* Update error panel */

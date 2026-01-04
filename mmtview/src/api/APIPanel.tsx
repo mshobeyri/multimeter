@@ -20,7 +20,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     const newYaml = apiToYaml(newApi);
     setContent(newYaml);
   };
-  
+
   const [tab, setTab] = useState<"overview" | "interface" | "examples" | "test">(
     () => (localStorage.getItem(LAST_API_TAB_KEY) as "overview" | "interface" | "examples" | "test") || "test"
   );
@@ -156,7 +156,8 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
                       />
                     </div>
                   ))}
-                  <button onClick={addExample} className="add-button">
+                  <button onClick={addExample} className="button-icon">
+                    <span className="codicon codicon-add" aria-hidden />
                     Add Example
                   </button>
                 </td>
