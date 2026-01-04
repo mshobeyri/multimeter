@@ -13,14 +13,43 @@ export interface RunJSCodeContext {
   reporter: (message: any) => void;
 }
 
+const REPORTER_KEY = '__mmtReportStep';
+const RUN_ID_KEY = '__mmtRunId';
+
+const applyReporterGlobals = (
+    reporter: ((message: any) => void)|undefined, runId: string): (() => void) => {
+  const scope = globalThis as Record<string, any>;
+  const hadReporter = Object.prototype.hasOwnProperty.call(scope, REPORTER_KEY);
+  const hadRunId = Object.prototype.hasOwnProperty.call(scope, RUN_ID_KEY);
+  const previousReporter = scope[REPORTER_KEY];
+  const previousRunId = scope[RUN_ID_KEY];
+  if (reporter) {
+    scope[REPORTER_KEY] = reporter;
+  } else {
+    delete scope[REPORTER_KEY];
+  }
+  scope[RUN_ID_KEY] = runId;
+  return () => {
+    if (hadReporter) {
+      scope[REPORTER_KEY] = previousReporter;
+    } else {
+      delete scope[REPORTER_KEY];
+    }
+    if (hadRunId) {
+      scope[RUN_ID_KEY] = previousRunId;
+    } else if (Object.prototype.hasOwnProperty.call(scope, RUN_ID_KEY)) {
+      delete scope[RUN_ID_KEY];
+    }
+  };
+};
 
 export async function runJSCode(context: RunJSCodeContext): Promise<any> {
   const {code, title, logger: lg, reporter} = context;
   lg('info', `Running test: ${title}...`);
   const startTime = Date.now();
-  undefined;
-  const reportStep = reporter ?? (() => {});
   const runId = typeof context?.runId === 'string' ? context.runId : '';
+  const reporterFn = typeof reporter === 'function' ? reporter : undefined;
+  const restoreReporterGlobals = applyReporterGlobals(reporterFn, runId);
 
   const customConsole = {
     trace: (...args: any[]) => lg(
@@ -52,14 +81,12 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
             .join('\n');
     const fn = new Function(
         'mmtHelper', 'console', 'send', 'extractOutputs', 'Random',
-        '__mmtReportStep', '__mmtRunId',
         `${helperDecls}\n${randomDecls}\n${code}`);
-    await fn(
-        mmtHelper, customConsole, send, extractOutputs, Random, reportStep,
-        runId);
+    await fn(mmtHelper, customConsole, send, extractOutputs, Random);
   } catch (e: any) {
     lg('error', 'Error running test: ' + (e?.message || String(e)));
   } finally {
+    restoreReporterGlobals();
     const elapsed = Date.now() - startTime;
     lg('info', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
   }

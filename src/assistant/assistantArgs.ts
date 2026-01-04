@@ -6,7 +6,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import * as vscode from 'vscode';
 import YAML from 'yaml';
-import { logToOutput } from '../mmtAPI/run';
+import {logToOutput} from '../mmtAPI/run';
 
 type AnyOpts = Record<string, any>;
 

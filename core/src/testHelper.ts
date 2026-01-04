@@ -114,6 +114,27 @@ const nextStepIndex = (): number => {
   return stepIndex;
 };
 
+const normalizeComparison = (value: unknown): string => {
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (value === null || value === undefined) {
+    return '';
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+};
+
+const normalizeMessage = (value: unknown): string|undefined => {
+  if (typeof value === 'string') {
+    return value;
+  }
+  return undefined;
+};
+
 const emitStep = (event: Record<string, any>) => {
   const reporter = resolveReporter();
   if (!reporter) {
@@ -127,22 +148,29 @@ const emitStep = (event: Record<string, any>) => {
   }
 };
 
-const report_check_assert_ =
-    (stepType: StepType, message: string, passed: boolean) => {
-      const payload = {
-        scope: 'test-step',
-        stepType,
-        message,
-        stepIndex: nextStepIndex(),
-        status: passed ? 'passed' : 'failed',
-      };
-      emitStep(payload);
-    };
+const report_check_assert_ = (
+    stepType: StepType, comparison: unknown, message: unknown,
+    passed: boolean) => {
+  const payload: Record<string, any> = {
+    scope: 'test-step',
+    stepType,
+    comparison: normalizeComparison(comparison),
+    stepIndex: nextStepIndex(),
+    status: passed ? 'passed' : 'failed',
+  };
+  const normalizedMessage = normalizeMessage(message);
+  if (typeof normalizedMessage === 'string') {
+    payload.message = normalizedMessage;
+  }
+  emitStep(payload);
+};
 
-export function report_check_(passed: boolean, message: string) {
-  report_check_assert_('check', message, passed);
+export function report_check_(
+    comparison: unknown, message: unknown, passed: boolean) {
+  report_check_assert_('check', comparison, message, !!passed);
 }
 
-export function report_assert_(passed: boolean, message: string) {
-  report_check_assert_('assert', message, passed);
+export function report_assert_(
+    comparison: unknown, message: unknown, passed: boolean) {
+  report_check_assert_('assert', comparison, message, !!passed);
 }

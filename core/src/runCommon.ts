@@ -53,7 +53,7 @@ export async function runGeneratedJs(
       code: js,
       title,
       logger: forward,
-      runId: 'run-generated-js',
+      runId,
       reporter: reporter ? reporter : () => {},
     });
 
