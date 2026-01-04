@@ -1,33 +1,35 @@
-import React, {useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
-import {TestData} from 'mmt-core/TestData';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { TestData } from 'mmt-core/TestData';
 
-import {FileContext} from '../fileContext';
+import { FileContext } from '../fileContext';
 
 interface TestTestProps {
     testData: TestData;
 }
 
-export type StepStatus = 'passed'|'failed';
+export type StepStatus = 'passed' | 'failed';
 
 interface StepReportItem {
     stepIndex: number;
-    stepType: 'check'|'assert';
+    stepType: 'check' | 'assert';
     status: StepStatus;
     comparison: string;
     message?: string;
+    left?: any;
+    right?: any;
     timestamp: number;
 }
 
-const STATUS_META: Record<StepStatus, {icon: string; color: string; label: string}> = {
-    passed: {icon: 'codicon-pass', color: '#23d18b', label: 'Passed'},
-    failed: {icon: 'codicon-error', color: '#f85149', label: 'Failed'},
+const STATUS_META: Record<StepStatus, { icon: string; color: string; label: string }> = {
+    passed: { icon: 'codicon-pass', color: '#23d18b', label: 'Passed' },
+    failed: { icon: 'codicon-error', color: '#f85149', label: 'Failed' },
 };
 
 const TestTest: React.FC<TestTestProps> = (_props) => {
-    const {mmtFilePath} = useContext(FileContext);
+    const { mmtFilePath } = useContext(FileContext);
     const [stepReports, setStepReports] = useState<StepReportItem[]>([]);
-    const [runState, setRunState] = useState<'idle'|'running'|'passed'|'failed'>('idle');
-    const latestRunIdRef = useRef<string|null>(null);
+    const [runState, setRunState] = useState<'idle' | 'running' | 'passed' | 'failed'>('idle');
+    const latestRunIdRef = useRef<string | null>(null);
     const ignoredRunIdsRef = useRef<Set<string>>(new Set());
     const stepCountRef = useRef(0);
 
@@ -53,11 +55,10 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
         latestRunIdRef.current = null;
         setStepReports([]);
         setRunState('running');
-        window.vscode?.postMessage({command: 'runCurrentDocument'});
+        window.vscode?.postMessage({ command: 'runCurrentDocument' });
     }, [trimIgnoredRuns]);
 
     const appendReport = useCallback((report: StepReportItem) => {
-        console.log('Appending test report:', report);
         setStepReports(prev => [...prev, report]);
     }, []);
 
@@ -90,7 +91,6 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
             if (scope !== 'test-step' && scope !== 'test-step-run' && scope !== 'test-finished') {
                 return;
             }
-
             const runId = typeof message.runId === 'string' ? message.runId : null;
             if (runId && !acceptRunEvent(runId)) {
                 return;
@@ -106,6 +106,8 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
                     status: message.status === 'failed' ? 'failed' : 'passed',
                     comparison: typeof message.comparison === 'string' ? message.comparison : '',
                     message: typeof message.message === 'string' ? message.message : undefined,
+                    left: message.left,
+                    right: message.right,
                     timestamp: typeof message.timestamp === 'number' ? message.timestamp : Date.now(),
                 };
                 appendReport(normalized);
@@ -144,7 +146,7 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
     }, [runState]);
 
     return (
-        <div style={{width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed'}}>
+        <div style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <div
                 style={{
                     marginBottom: 8,
@@ -152,8 +154,9 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     gap: 8,
+                    backgroundColor: "transparent"
                 }}>
-                <div style={{fontWeight: 600}}>{summary}</div>
+                <div>{summary}</div>
                 <button
                     type="button"
                     onClick={handleRun}
@@ -166,7 +169,7 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
                         opacity: runState === 'running' ? 0.7 : 1,
                     }}
                 >
-                    <span className="codicon codicon-run" style={{fontSize: 18}} />
+                    <span className="codicon codicon-run" />
                     {runState === 'running' ? 'Running…' : 'Run test'}
                 </button>
             </div>
@@ -176,16 +179,16 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
                     border: '1px solid var(--vscode-editorWidget-border, #2a2a2a)',
                     borderRadius: 6,
                     padding: 12,
-                    background: 'var(--vscode-editorWidget-background, #1e1e1e)',
+                    background: 'transparent',
                 }}>
                 {stepReports.length === 0 ? (
-                    <div style={{opacity: 0.7}}>
+                    <div style={{ opacity: 0.7 }}>
                         {runState === 'running'
                             ? 'Waiting for checks and asserts to report…'
                             : 'Run the test to see check/assert results.'}
                     </div>
                 ) : (
-                    <div style={{display: 'flex', flexDirection: 'column', gap: 8}}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {stepReports.map(report => {
                             const meta = STATUS_META[report.status];
                             return (
@@ -193,6 +196,7 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
                                     key={`${report.stepType}-${report.stepIndex}-${report.timestamp}`}
                                     style={{
                                         border: '1px solid var(--vscode-editorWidget-border, #2a2a2a)',
+                                        backgroundColor: 'transparent',
                                         borderRadius: 6,
                                         padding: '8px 12px',
                                         display: 'flex',
@@ -202,21 +206,26 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
                                 >
                                     <span
                                         className={`codicon ${meta.icon}`}
-                                        style={{color: meta.color, fontSize: 18, marginTop: 2}}
+                                        style={{ color: meta.color, marginTop: 2 }}
                                         aria-label={meta.label}
                                     ></span>
-                                    <div style={{flex: 1}}>
-                                        <div style={{fontWeight: 600, marginBottom: 2}}>
-                                            #{report.stepIndex} · {report.stepType.toUpperCase()} · {meta.label}
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ marginBottom: 2 }}>
+                                            {report.stepIndex} {report.stepType === "check" ? "Check" : "Assert"} {meta.label}
                                         </div>
-                                        <div style={{fontFamily: 'var(--vscode-editor-font-family, monospace)', wordBreak: 'break-word'}}>
+                                        <div>
                                             {report.comparison}
                                         </div>
+                                        {report.left !== undefined && report.right !== undefined && (
+                                            <div style={{ marginTop: 4, opacity: 0.8 }}>
+                                                Left: {String(report.left)}, Right: {String(report.right)}
+                                            </div>
+                                        )}
                                         {report.message && (
-                                            <div style={{marginTop: 4, opacity: 0.8}}>{report.message}</div>
+                                            <div style={{ marginTop: 4, opacity: 0.8 }}>{report.message}</div>
                                         )}
                                     </div>
-                                    <div style={{fontSize: 12, opacity: 0.7, textAlign: 'right'}}>
+                                    <div style={{ opacity: 0.7, textAlign: 'right' }}>
                                         {new Date(report.timestamp).toLocaleTimeString()}
                                     </div>
                                 </div>

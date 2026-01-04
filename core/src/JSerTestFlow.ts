@@ -205,6 +205,26 @@ export const setToJSfunc = (set: Record<string, any>): string => {
 };
 
 
+// export const checkToJSfunc = (check: Comparison): string => {
+//   const normalized = normalizeComparison(check, 'check');
+//   if (!normalized) {
+//     return '';
+//   }
+//   const {left, operator, right, raw, message} = normalized;
+//   const conditionStatement = conditionalStatementToJSfunc(raw);
+//   const autoMsg = `Check ${raw} failed, as " + ${left} + " ${operator} " + ${
+//       right} + " is false`;
+//   const finalMsg = message ? `${autoMsg} - ${message}` : autoMsg;
+//   const messageLiteral = message ? JSON.stringify(message) : 'undefined';
+//   return `{
+//   const result = ${conditionStatement};
+//   report_check_(${JSON.stringify(raw)}, ${messageLiteral}, result);
+//   if(!result){
+//     console.error("${finalMsg}");
+//   }
+// }`;
+// };
+
 export const checkToJSfunc = (check: Comparison): string => {
   const normalized = normalizeComparison(check, 'check');
   if (!normalized) {
@@ -212,17 +232,22 @@ export const checkToJSfunc = (check: Comparison): string => {
   }
   const {left, operator, right, raw, message} = normalized;
   const conditionStatement = conditionalStatementToJSfunc(raw);
-  const autoMsg = `Check ${raw} failed, as " + JSON.stringify(${left}) + " ${
+  const failMessage = `Check ${raw} failed, as " + ${left} + " ${
       operator} " + ${right} + " is false`;
-  const finalMsg = message ? `${message} - ${autoMsg}` : autoMsg;
-  const messageLiteral = message ? JSON.stringify(message) : 'undefined';
-  return `{
-  const result = ${conditionStatement};
-  report_check_(${JSON.stringify(raw)}, ${messageLiteral}, result);
-  if(!result){
-    console.error("${finalMsg}");
-  }
-}`;
+  const successMessage = `Check ${raw} passed`;
+
+  const finaFaillMsg = message ? `${failMessage} - ${message}` : failMessage;
+  const finaSuccessMsg =
+      message ? `${successMessage} - ${message}` : successMessage;
+  const finalMessage = message ? JSON.stringify(message) : undefined;
+  return `if(${conditionStatement}){
+  console.log("${finaSuccessMsg}");
+  report_('check', ${JSON.stringify(raw)}, ${finalMessage}, true);
+} else {
+  console.error("${finaFaillMsg}");
+  report_('check', ${JSON.stringify(raw)}, ${finalMessage}, false, ${left}, ${
+      right});
+}\n`;
 };
 
 export const assertToJSfunc = (assert: Comparison): string => {
@@ -232,18 +257,23 @@ export const assertToJSfunc = (assert: Comparison): string => {
   }
   const {left, operator, right, raw, message} = normalized;
   const conditionStatement = conditionalStatementToJSfunc(raw);
-  const autoMsg = `Assertion ${raw} failed, as " + JSON.stringify(${
-      left}) + " ${operator} " + ${right} + " is false`;
-  const finalMsg = message ? `${message} - ${autoMsg}` : autoMsg;
-  const messageLiteral = message ? JSON.stringify(message) : 'undefined';
-  return `{
-  const result = ${conditionStatement};
-  report_assert_(${JSON.stringify(raw)}, ${messageLiteral}, result);
-  if(!result){
-    console.error("${finalMsg}");
-    throw new Error("Assertion failed");
-  }
-}`;
+  const failMessage = `Assert ${raw} failed, as " + ${left} + " ${
+      operator} " + ${right} + " is false`;
+  const successMessage = `Assert ${raw} passed`;
+
+  const finaFaillMsg = message ? `${failMessage} - ${message}` : failMessage;
+  const finaSuccessMsg =
+      message ? `${successMessage} - ${message}` : successMessage;
+  const finalMessage = message ? JSON.stringify(message) : undefined;
+  return `if(${conditionStatement}){
+  console.log("${finaSuccessMsg}");
+  report_('assert', ${JSON.stringify(raw)}, ${finalMessage}, true);
+} else {
+  console.error("${finaFaillMsg}");
+  report_('assert', ${JSON.stringify(raw)}, ${finalMessage}, false, ${left}, ${
+      right});
+  throw new Error("Assertion failed");
+}\n`;
 };
 
 const callToJSfunc = (step: TestFlowCall): string => {

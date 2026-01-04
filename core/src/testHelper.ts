@@ -148,15 +148,17 @@ const emitStep = (event: Record<string, any>) => {
   }
 };
 
-const report_check_assert_ = (
+export const report_ = (
     stepType: StepType, comparison: unknown, message: unknown,
-    passed: boolean) => {
+    passed: boolean, left?: any, right?: any) => {
   const payload: Record<string, any> = {
     scope: 'test-step',
     stepType,
     comparison: normalizeComparison(comparison),
     stepIndex: nextStepIndex(),
     status: passed ? 'passed' : 'failed',
+    left,
+    right
   };
   const normalizedMessage = normalizeMessage(message);
   if (typeof normalizedMessage === 'string') {
@@ -164,13 +166,3 @@ const report_check_assert_ = (
   }
   emitStep(payload);
 };
-
-export function report_check_(
-    comparison: unknown, message: unknown, passed: boolean) {
-  report_check_assert_('check', comparison, message, !!passed);
-}
-
-export function report_assert_(
-    comparison: unknown, message: unknown, passed: boolean) {
-  report_check_assert_('assert', comparison, message, !!passed);
-}

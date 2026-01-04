@@ -15,6 +15,8 @@ export interface TestStepReporterEvent {
   comparison: string;
   message?: string;
   timestamp: number;
+  left?: any;
+  right?: any;
 }
 
 export interface TestRunSummaryEvent {
