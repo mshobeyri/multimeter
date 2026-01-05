@@ -425,17 +425,32 @@ describe('step reporter instrumentation', () => {
     };
     const js = await rootTestToJsfunc(ctx);
     expect(js).not.toContain('__mmtReportStepHandler');
-    expect(js).toContain("_report('check'");
+    expect(js).toContain("report_('check'");
   });
 
   it('wraps checks and asserts with emit calls', () => {
     const checkJs = checkToJSfunc('foo == bar');
-    expect(checkJs).toContain("_report('check'");
+    expect(checkJs).toContain("report_('check'");
     expect(checkJs).toContain('foo == bar');
 
     const assertJs = assertToJSfunc('foo != bar');
-    expect(assertJs).toContain("_report('assert'");
+    expect(assertJs).toContain("report_('assert'");
     expect(assertJs).toContain('foo != bar');
+  });
+});
+
+describe('check/assert message templating', () => {
+  it('preserves ${...} expressions in message (call result vars)', () => {
+    const js = checkToJSfunc({
+      actual: 'a',
+      operator: '==',
+      expected: 'b',
+      message: 'result code is ${myCall.result_code}',
+    } as any);
+
+    // Message is emitted as a template literal so ${...} resolves at runtime.
+    expect(js).toContain('`result code is ${myCall.result_code}`');
+    expect(js).toContain("report_('check'");
   });
 });
 

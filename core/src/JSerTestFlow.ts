@@ -10,6 +10,41 @@ function randomName(): string {
 const replaceEnvTokens = (s: string): string =>
     s.replace(/\be:([A-Za-z_][A-Za-z0-9_]*)\b/g, 'envVariables.$1');
 
+// Build a JS template literal that resolves env tokens at runtime.
+// Examples:
+// - "hello e:NAME" -> `hello ${envVariables.NAME}`
+// - "<e:NAME>" -> `${envVariables.NAME}`
+const escapeBackticks = (s: string): string =>
+    String(s ?? '').replace(/`/g, '\\`');
+const toTemplateWithVars = (s: string): string => {
+  const src = String(s ?? '');
+  // Normalize env tokens to envVariables.NAME first
+  let withEnv =
+      src.replace(/<<\s*e:([A-Za-z_][A-Za-z0-9_]*)\s*>>/g, 'envVariables.$1')
+          .replace(/<\s*e:([A-Za-z_][A-Za-z0-9_]*)\s*>/g, 'envVariables.$1')
+          .replace(/\be:\{([A-Za-z_][A-Za-z0-9_]*)\}/g, 'envVariables.$1')
+          .replace(
+              /\be:([A-Za-z_][A-Za-z0-9_]*)(?![A-Za-z0-9_])/g,
+              'envVariables.$1');
+  // Inject ${envVariables.NAME}, avoiding double-wrapping
+  withEnv = withEnv.replace(
+      /envVariables\.([A-Za-z_][A-Za-z0-9_]*)/g, (m, name, offset, str) => {
+        if (offset >= 2 && str[offset - 2] === '$' && str[offset - 1] === '{') {
+          return m;
+        }
+        return '${envVariables.' + name + '}';
+      });
+  // Collapse nested patterns if any
+  withEnv = withEnv.replace(
+      /\$\{\s*\$\{\s*envVariables\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\s*\}/g,
+      '${envVariables.$1}');
+
+  // Preserve existing ${...} expressions (e.g. ${callId.result_code}) by
+  // default. Nothing to do here; we just need to ensure we emit a template
+  // literal.
+  return '`' + escapeBackticks(withEnv) + '`';
+};
+
 export const conditionalStatementToJSfunc = (check: string): string => {
   // Replace env tokens like e:FOO -> envVariables.FOO
   const normalized = replaceEnvTokens(check);
@@ -232,19 +267,20 @@ export const checkToJSfunc = (check: Comparison): string => {
   }
   const {left, operator, right, raw, message} = normalized;
   const conditionStatement = conditionalStatementToJSfunc(raw);
-  const failMessage = `Check ${raw} failed, as " + ${left} + " ${
-      operator} " + ${right} + " is false`;
+  const failMessage =
+      `Check ${raw} failed, as ${left} ${operator} ${right} is false`;
   const successMessage = `Check ${raw} passed`;
 
   const finaFaillMsg = message ? `${failMessage} - ${message}` : failMessage;
   const finaSuccessMsg =
       message ? `${successMessage} - ${message}` : successMessage;
-  const finalMessage = message ? JSON.stringify(message) : undefined;
+  const finalMessage =
+      typeof message === 'string' ? toTemplateWithVars(message) : undefined;
   return `if(${conditionStatement}){
-  console.log("${finaSuccessMsg}");
+    console.log(${toTemplateWithVars(finaSuccessMsg)});
   report_('check', ${JSON.stringify(raw)}, ${finalMessage}, true);
 } else {
-  console.error("${finaFaillMsg}");
+    console.error(${toTemplateWithVars(finaFaillMsg)});
   report_('check', ${JSON.stringify(raw)}, ${finalMessage}, false, ${left}, ${
       right});
 }\n`;
@@ -257,19 +293,20 @@ export const assertToJSfunc = (assert: Comparison): string => {
   }
   const {left, operator, right, raw, message} = normalized;
   const conditionStatement = conditionalStatementToJSfunc(raw);
-  const failMessage = `Assert ${raw} failed, as " + ${left} + " ${
-      operator} " + ${right} + " is false`;
+  const failMessage =
+      `Assert ${raw} failed, as ${left} ${operator} ${right} is false`;
   const successMessage = `Assert ${raw} passed`;
 
   const finaFaillMsg = message ? `${failMessage} - ${message}` : failMessage;
   const finaSuccessMsg =
       message ? `${successMessage} - ${message}` : successMessage;
-  const finalMessage = message ? JSON.stringify(message) : undefined;
+  const finalMessage =
+      typeof message === 'string' ? toTemplateWithVars(message) : undefined;
   return `if(${conditionStatement}){
-  console.log("${finaSuccessMsg}");
+  console.log(${toTemplateWithVars(finaSuccessMsg)});
   report_('assert', ${JSON.stringify(raw)}, ${finalMessage}, true);
 } else {
-  console.error("${finaFaillMsg}");
+  console.error(${toTemplateWithVars(finaFaillMsg)});
   report_('assert', ${JSON.stringify(raw)}, ${finalMessage}, false, ${left}, ${
       right});
   throw new Error("Assertion failed");

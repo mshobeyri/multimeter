@@ -20,15 +20,19 @@ describe('runner suite', () => {
       return '';
     };
 
-    const jsRunner = async (code: string, title: string, lg: any) => {
-      events.push(`start:${title}`);
-      if (title.includes('a.mmt')) {
+    const testJsRunner = async (_code: string, title: string, lg: any) => {
+      const t = String(title);
+      events.push(`start:${t}`);
+      // Useful when this test fails locally
+      // eslint-disable-next-line no-console
+      // console.log('jsRunner title:', t);
+      if (t.includes('a')) {
         await new Promise(r => setTimeout(r, 50));
       }
-      if (title.includes('b.mmt')) {
+      if (t.includes('b')) {
         await new Promise(r => setTimeout(r, 50));
       }
-      events.push(`end:${title}`);
+      events.push(`end:${t}`);
       lg('info', 'ok');
     };
 
@@ -37,19 +41,23 @@ describe('runner suite', () => {
       file: 'suite.mmt',
       filePath: '/tmp/suite.mmt',
       fileLoader,
-      jsRunner,
+      jsRunner: async (ctx: any) => {
+        return testJsRunner(ctx?.code, ctx?.title, ctx?.logger);
+      },
       logger: () => {},
     } as any);
 
     expect(res.docType).toBe('suite');
 
-    const startA = events.findIndex(e => e.startsWith('start:') && e.includes('a.mmt'));
-    const startB = events.findIndex(e => e.startsWith('start:') && e.includes('b.mmt'));
-    const endA = events.findIndex(e => e.startsWith('end:') && e.includes('a.mmt'));
-    const endB = events.findIndex(e => e.startsWith('end:') && e.includes('b.mmt'));
-    const startC = events.findIndex(e => e.startsWith('start:') && e.includes('c.mmt'));
+    // Titles come from `prepared.title` first, then basename(filePath).
+    const startA = events.findIndex(e => e.startsWith('start:') && e.includes('a'));
+    const startB = events.findIndex(e => e.startsWith('start:') && e.includes('b'));
+    const endA = events.findIndex(e => e.startsWith('end:') && e.includes('a'));
+    const endB = events.findIndex(e => e.startsWith('end:') && e.includes('b'));
+    const startC = events.findIndex(e => e.startsWith('start:') && e.includes('c'));
 
     // Group1 starts both before either finishes
+    // The suite runner uses each child's `title` if present (a/b/c here).
     expect(startA).toBeGreaterThanOrEqual(0);
     expect(startB).toBeGreaterThanOrEqual(0);
     expect(startC).toBeGreaterThanOrEqual(0);
@@ -75,14 +83,15 @@ describe('runner suite', () => {
     };
 
     const titles: string[] = [];
-    const jsRunner = async (_code: string, title: string, lg: any) => {
-      titles.push(title);
+    const testJsRunner = async (_code: string, title: string, lg: any) => {
+      const t = String(title);
+      titles.push(t);
       // This mimics generated JS behavior: check => console.error, assert => throw
-      if (title.includes('checkfail')) {
+      if (t.includes('checkfail')) {
         lg('error', 'Check 1 == 2 failed');
         return;
       }
-      if (title.includes('assertfail')) {
+      if (t.includes('assertfail')) {
         lg('error', 'Assertion 1 == 2 failed');
         throw new Error('Assertion 1 == 2 failed');
       }
@@ -94,14 +103,18 @@ describe('runner suite', () => {
       file: 'suite.mmt',
       filePath: '/tmp/suite.mmt',
       fileLoader,
-      jsRunner,
+      jsRunner: async (ctx: any) => {
+        return testJsRunner(ctx?.code, ctx?.title, ctx?.logger);
+      },
       logger: () => {},
     } as any);
 
     // check group runs, assert group runs, after group should NOT start
+    // check group runs, assert group runs, after group should NOT start
+    // Titles are basenames of the suite entries.
     expect(titles.some(t => t.includes('checkfail'))).toBe(true);
     expect(titles.some(t => t.includes('assertfail'))).toBe(true);
-    expect(titles.some(t => t.includes('after.mmt'))).toBe(false);
+    expect(titles.some(t => t.includes('after'))).toBe(false);
 
     expect(res.result.success).toBe(false);
   });
