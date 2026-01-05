@@ -168,13 +168,6 @@ textarea:focus {
   border-color: var(--vscode-focusBorder);
 }
 
-.button-icon {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 12px;
-}
-
 .button {
   height: var(--input-height);
   font-size: 12px;

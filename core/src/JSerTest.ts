@@ -24,35 +24,25 @@ export const testToJsfunc = async(
 
   const aliasMap =
       ctx.importTracker?.getAliasesForImporter(ctx.filePath || '') || {};
-  const importAliases = Object.keys(ctx.test.import ?? {})
-                            .map(key => `${key}: imports.${key}`)
-                            .join(', ');
-
-  const importsObjEntries =
-      Object.keys(ctx.test.import ?? {})
-          .map(key => {
-            const fromAliasMap = aliasMap[key];
-            if (fromAliasMap) {
-              return `  ${key}: ${fromAliasMap}`;
-            }
-
-            const requested = (ctx.test.import as any)?.[key];
-            const normalizedRequested = typeof requested === 'string' ?
-              resolveRequestedAgainst(ctx.filePath, requested) :
-              undefined;
-            const fnFromRequested = normalizedRequested ?
-              ctx.importTracker?.getTestFuncName(normalizedRequested) :
-              undefined;
-            if (fnFromRequested) {
-              return `  ${key}: ${fnFromRequested}`;
-            }
-
-            return `  ${key}: ???`;
-          })
-          .join(',\n');
-
-  const importsObj =
-      importsObjEntries ? `const imports = {\n${importsObjEntries}\n};` : '';
+  // Emit direct const bindings for imported items, e.g. `const api1 = api1_;`
+  const aliasMapForThis = ctx.importTracker?.getAliasesForImporter(ctx.filePath || '') || {};
+  const importsAssignments = Object.entries(ctx.test.import ?? {})
+      .map(([key, requested]) => {
+        const fromAliasMap = aliasMapForThis[key];
+        if (fromAliasMap) {
+          return `const ${key} = ${fromAliasMap};`;
+        }
+        const requestedPathRaw = typeof requested === 'string' ? requested : '';
+        const normalizedRequested = resolveRequestedAgainst(ctx.filePath || '', requestedPathRaw);
+        const fnFromRequested = ctx.importTracker?.getTestFuncName(normalizedRequested);
+        if (fnFromRequested) {
+          return `const ${key} = ${fnFromRequested};`;
+        }
+        const base = (requestedPathRaw.split('/').pop() || '').replace(/\.[^.]+$/, '');
+        const fnFallback = toLowerUnderscore(base || 'imported') + '_';
+        return `const ${key} = ${fnFallback};`;
+      })
+      .join('\n');
 
   const paramsAsObj: Record<string, string> = Object.fromEntries(
       Object.keys(ctx.test.inputs ?? {}).map(key => [key, `\${${key}}`]));
@@ -74,7 +64,7 @@ export const testToJsfunc = async(
 
   return `const ${toLowerUnderscore(ctx.name)} = async ({ ${
       inputParams}} = {}) => {
-  ${indentLines(importsObj)}
+  ${indentLines(importsAssignments)}\n
   let outputs = {${outputParams}};
   ${indentLines(flow)}
   return outputs;

@@ -319,7 +319,7 @@ const callToJSfunc = (step: TestFlowCall): string => {
     inputParams = ' ' + inputParams + ' ';
   }
 
-  let call = `await imports.${step.call}({${inputParams}});`;
+  let call = `await ${step.call}({${inputParams}});`;
   if (step.id) {
     call = `const ${step.id} = ` + call;
   }

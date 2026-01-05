@@ -174,7 +174,7 @@ describe('CSV import parsing', () => {
       return '';
     });
     const bundle = await importsToJsfunc({users: 'users.csv'});
-    const users = new Function(bundle + '\nreturn users;')();
+    const users = new Function(bundle + '\nreturn users_;')();
     expect(users).toEqual([{name: 'mehrdad', family: 'shobeyri', age: 35}]);
   });
 
@@ -198,8 +198,9 @@ describe('CSV import parsing', () => {
       filePath: '/root/testflow.mmt',
     });
 
-    expect(js).toContain('const users = [');
-    expect(js).toMatch(/const imports = \{[^}]*users: users[^}]*\}/);
+    expect(js).toContain('const users_ = [');
+    expect(js).toContain('const users = users_;');
+    expect(js).not.toMatch(/const imports =/);
   });
 
   it('maps relative csv imports to canonical names', async () => {
@@ -222,7 +223,9 @@ describe('CSV import parsing', () => {
       filePath: '/root/tests/main.mmt',
     });
 
-    expect(js).toMatch(/const imports = \{[^}]*users: users[^}]*\}/);
+    expect(js).not.toMatch(/const imports =/);
+    expect(js).toContain('const users_ = [');
+    expect(js).toContain('const users = users_;');
   });
 
 
@@ -274,8 +277,8 @@ describe('CSV import parsing', () => {
     });
 
     const bundle = await importsToJsfunc({a: '/root/a.mmt'});
-    expect(bundle).toContain('const a = async');
-    expect(bundle).toContain('const c = async');
+    expect(bundle).toContain('const a_ = async');
+    expect(bundle).toContain('const c_ = async');
     expect(seen).toEqual(
         expect.arrayContaining(['/root/a.mmt', '/b.mmt', '/c.mmt']));
   });
@@ -321,11 +324,11 @@ describe('CSV import parsing', () => {
 
        const bundle = await importsToJsfunc({main: '/root/main.mmt'});
        // reverse emission => second_* comes before first_*
-      const idxSecond = bundle.indexOf('const second = async');
-      const idxFirst = bundle.indexOf('const first = async');
-       expect(idxSecond).toBeGreaterThanOrEqual(0);
-       expect(idxFirst).toBeGreaterThanOrEqual(0);
-       expect(idxSecond).toBeLessThan(idxFirst);
+      const idxSecond = bundle.indexOf('const second_ = async');
+      const idxFirst = bundle.indexOf('const first_ = async');
+      expect(idxSecond).toBeGreaterThanOrEqual(0);
+      expect(idxFirst).toBeGreaterThanOrEqual(0);
+      expect(idxSecond).toBeLessThan(idxFirst);
      });
 
   it('falls back to filename when title is missing and resolves conflicts with suffix',
@@ -337,8 +340,8 @@ describe('CSV import parsing', () => {
        setFileLoader(mock.fileLoader);
        const bundle =
            await importsToJsfunc({x: '/root/a1.mmt', y: '/other/a1.mmt'});
-       expect(bundle).toContain('const a1 = async');
-       expect(bundle).toMatch(/const a1_\d+ = async/);
+      expect(bundle).toContain('const a1__1 = async');
+      expect(bundle).toMatch(/const a1_\d+ = async/);
      });
 
   it('injects `imports` alias object in generated test functions', async () => {
@@ -350,10 +353,10 @@ describe('CSV import parsing', () => {
     setFileLoader(mock.fileLoader);
     const bundle = await importsToJsfunc({main: '/root/main.mmt'});
     // function name should be from filename "my file" => "my_file"
-    expect(bundle).toContain('const my_file = async');
-    // and an imports object mapping key -> function name for the importing test
-    expect(bundle).toContain('const main = async');
-    expect(bundle).toMatch(/const main[\s\S]*const imports = \{[\s\S]*m: my_file[\s\S]*\};/);
+    expect(bundle).toContain('const my_file_ = async');
+    // and an imports alias assignment inside the importing test (const m = my_file_)
+    expect(bundle).toContain('const main_ = async');
+    expect(bundle).toContain('const m = my_file_');
   });
 
   it('does not error when a test has no imports', async () => {
@@ -362,7 +365,7 @@ describe('CSV import parsing', () => {
     });
     setFileLoader(mock.fileLoader);
     const bundle = await importsToJsfunc({main: '/root/noimp.mmt'});
-    expect(bundle).toContain('const noimp = async');
+    expect(bundle).toContain('const noimp_ = async');
   });
 });
 

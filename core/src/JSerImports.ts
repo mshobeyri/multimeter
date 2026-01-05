@@ -62,7 +62,7 @@ const choosePublicNameBuilder = () => {
   const usedNames = new Set<string>();
   return (baseName: string): string => {
     const base = toLowerUnderscore(baseName || '').trim();
-    const normalized = base || 'imported';
+    const normalized = (base || 'imported') + '_';
     if (!usedNames.has(normalized)) {
       usedNames.add(normalized);
       return normalized;
