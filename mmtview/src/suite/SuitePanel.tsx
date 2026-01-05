@@ -502,7 +502,13 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
                 onPointerDown={event => event.stopPropagation()}
                 onPointerUp={event => {
                   event.stopPropagation();
-                  toggleAddMenu();
+                  setAddMenuOpen(prev => {
+                    const next = !prev;
+                    if (next) {
+                      openAddMenuAtButton();
+                    }
+                    return next;
+                  });
                 }}
                 title="Add suite item"
               >
