@@ -12,6 +12,7 @@ export const typeOptions = [
   { value: "api", label: "API" },
   { value: "env", label: "Environment" },
   { value: "test", label: "Test" },
+  { value: "suite", label: "Suite" },
   { value: "doc", label: "Documentation" }
 ];
 
