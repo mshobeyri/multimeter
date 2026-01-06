@@ -145,6 +145,14 @@ export const computeRelative = (base?: string, full?: string): string => {
     i++;
   }
 
+  // Windows: if paths are on different drives, there is no meaningful
+  // relative-with-.. representation. Return the normalized absolute `full`.
+  const baseDrive = /^[A-Za-z]:$/.test(a[0] || '') ? (a[0] as string) : '';
+  const fullDrive = /^[A-Za-z]:$/.test(b[0] || '') ? (b[0] as string) : '';
+  if (baseDrive && fullDrive && baseDrive.toLowerCase() !== fullDrive.toLowerCase()) {
+    return fullStr;
+  }
+
   // If the full path is directly under the base (already handled above), or
   // they are identical prefixes, handle those cases
   if (i === a.length && i === b.length) {

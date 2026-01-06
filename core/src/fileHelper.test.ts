@@ -49,6 +49,30 @@ describe('computeRelative', () => {
     const full = '/other/path/file.mmt';
     expect(computeRelative(base, full)).toBe('../../other/path/file.mmt');
   });
+
+  test('windows: handles drive base directory', () => {
+    const base = 'C:\\Users\\Mehrdad\\projects\\mmt';
+    const full = 'C:\\Users\\Mehrdad\\projects\\mmt\\api1.mmt';
+    expect(computeRelative(base, full)).toBe('api1.mmt');
+  });
+
+  test('windows: handles base pointing to a file', () => {
+    const base = 'C:\\Users\\Mehrdad\\projects\\mmt\\suite.mmt';
+    const full = 'C:\\Users\\Mehrdad\\projects\\mmt\\suite1.mmt';
+    expect(computeRelative(base, full)).toBe('suite1.mmt');
+  });
+
+  test('windows: handles different drives by returning full', () => {
+    const base = 'C:\\Users\\Mehrdad\\projects\\mmt';
+    const full = 'D:\\data\\file.mmt';
+    expect(computeRelative(base, full)).toBe('D:/data/file.mmt');
+  });
+
+  test('windows: handles sibling folders on same drive', () => {
+    const base = 'C:\\Users\\Mehrdad\\projects\\foo\\projectA';
+    const full = 'C:\\Users\\Mehrdad\\projects\\foo\\projectB\\file.mmt';
+    expect(computeRelative(base, full)).toBe('../projectB/file.mmt');
+  });
 });
 
 describe('path helpers', () => {
@@ -58,9 +82,21 @@ describe('path helpers', () => {
     expect(fileUriToPath('/already/path')).toBe('/already/path');
   });
 
+  test('fileUriToPath decodes Windows file URIs', () => {
+    expect(fileUriToPath('file:///C:/Users/foo/bar.mmt'))
+        .toBe('/C:/Users/foo/bar.mmt');
+    expect(fileUriToPath('file:///c:/Users/foo/bar.mmt'))
+        .toBe('/c:/Users/foo/bar.mmt');
+  });
+
   test('resolveDotSegments collapses dot segments', () => {
     expect(resolveDotSegments('/a/./b/../c')).toBe('/a/c');
     expect(resolveDotSegments('x/./y/../z')).toBe('x/z');
+  });
+
+  test('resolveDotSegments supports Windows drive prefixes', () => {
+    expect(resolveDotSegments('C:/a/./b/../c')).toBe('C:/a/c');
+    expect(resolveDotSegments('C:\\a\\.\\b\\..\\c')).toBe('C:/a/c');
   });
 
   test('resolveRequestedAgainst handles relative paths', () => {
@@ -69,6 +105,20 @@ describe('path helpers', () => {
         .toBe('/root/tests/foo.mmt');
     expect(resolveRequestedAgainst(base, '../common/bar.mmt'))
         .toBe('/root/common/bar.mmt');
+  });
+
+  test('resolveRequestedAgainst handles Windows base paths', () => {
+    const base = 'C:\\root\\tests\\main.mmt';
+    expect(resolveRequestedAgainst(base, '.\\foo.mmt'))
+        .toBe('C:/root/tests/foo.mmt');
+    expect(resolveRequestedAgainst(base, '..\\common\\bar.mmt'))
+        .toBe('C:/root/common/bar.mmt');
+  });
+
+  test('resolveRequestedAgainst preserves absolute Windows requested', () => {
+    const base = 'C:\\root\\tests\\main.mmt';
+    expect(resolveRequestedAgainst(base, 'C:\\root\\tests\\child.mmt'))
+        .toBe('C:/root/tests/child.mmt');
   });
 
   test('resolveRequestedAgainst handles dot segments in request itself', () => {
@@ -81,5 +131,11 @@ describe('path helpers', () => {
     const base = '/root/tests/main.mmt';
     expect(resolveRequestedAgainst(base, 'file:///root/tests/./child.mmt'))
         .toBe('/root/tests/child.mmt');
+  });
+
+  test('resolveRequestedAgainst normalizes Windows file URI requested', () => {
+    const base = 'C:\\root\\tests\\main.mmt';
+    expect(resolveRequestedAgainst(base, 'file:///C:/root/tests/./child.mmt'))
+        .toBe('/C:/root/tests/child.mmt');
   });
 });
