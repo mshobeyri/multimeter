@@ -103,7 +103,7 @@ export function useRunGlyphs(params: {
 
   // place run glyph decoration
   useEffect(() => {
-    if (!monacoRef.current || !editorRef.current) {
+    if (!monacoRef.current || !editorRef.current || !editorReady) {
       return;
     }
     const editor = editorRef.current;
@@ -137,7 +137,7 @@ export function useRunGlyphs(params: {
   // place example run decorations
   useEffect(
       () => {
-        if (!monacoRef.current || !editorRef.current) {
+        if (!monacoRef.current || !editorRef.current || !editorReady) {
           return;
         }
         const editor = editorRef.current;
@@ -206,7 +206,7 @@ export function useRunGlyphs(params: {
 
   // handle mouse clicks on glyphs
   useEffect(() => {
-    if (!monacoRef.current || !editorRef.current) {
+    if (!monacoRef.current || !editorRef.current || !editorReady) {
       return;
     }
     const monaco = monacoRef.current;
@@ -237,7 +237,7 @@ export function useRunGlyphs(params: {
     });
 
     return () => mouseDownDisposable.dispose();
-  }, [handleRunClick, handleRunExample, docType, monacoRef, editorRef]);
+  }, [handleRunClick, handleRunExample, docType, monacoRef, editorRef, editorReady]);
 
   return {handleRunClick, handleRunExample};
 }
