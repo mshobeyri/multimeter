@@ -101,9 +101,11 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
             logToOutput("warn", args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' '));
         };
         try {
+            window.vscode?.postMessage({ command: 'showLogOutputChannel' });
             const fileName = mmtFilePath ? mmtFilePath.split(/[/\\]/).pop() : '';
             const runTitle = testData?.title || fileName || 'test';
             runJSCode(jsCode, runTitle);
+
         } catch (e: any) {
             showVSCodeMessage("error", "Error: " + (e?.message || String(e)));
         }

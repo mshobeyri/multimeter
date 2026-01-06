@@ -32,6 +32,8 @@ export function logToOutput(level: LogLevel, message: string) {
       logOutputChannel.info(message);
       break;
   }
+}
+export function showLogOutputChannel() {
   logOutputChannel.show(true);
 }
 

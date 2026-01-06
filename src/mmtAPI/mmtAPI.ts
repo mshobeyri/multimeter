@@ -182,6 +182,10 @@ export const messageRecieved = async (
           message, webviewPanel, document, mmtProvider);
       break;
 
+    case 'showLogOutputChannel':
+      run.showLogOutputChannel();
+      break;
+
     case 'listFiles':
       file.handleListFiles(message, webviewPanel, document);
       break;

@@ -58,6 +58,7 @@ export function useRunGlyphs(params: {
         message.inputs = {exampleIndex: -1};
       }
       window.vscode?.postMessage(message);
+      window.vscode?.postMessage({command: 'showLogOutputChannel'});
     } catch (err: any) {
       showVSCodeMessage('error', err?.message || 'Failed to run document.');
     }
@@ -75,6 +76,7 @@ export function useRunGlyphs(params: {
       }
       window.vscode?.postMessage(
           {command: 'runCurrentDocument', inputs: {exampleIndex}});
+      window.vscode?.postMessage({command: 'showLogOutputChannel'});
     } catch (err: any) {
       showVSCodeMessage('error', err?.message || 'Failed to run example.');
     }
