@@ -1,7 +1,7 @@
 import {JSONRecord} from './CommonData';
+import {resolveRequestedAgainst} from './fileHelper';
 import {ImportTracker} from './importTracker';
 import {indentLines, toInputsParams, toLowerUnderscore} from './JSerHelper';
-import {resolveRequestedAgainst} from './fileHelper';
 import {importsToJsfunc} from './JSerImports';
 import {flowToJsFunc} from './JSerTestFlow';
 import {TestData} from './TestData';
@@ -22,27 +22,30 @@ export const testToJsfunc = async(
     throw new Error(`${ctx.name}: Test cannot have both stages and steps`);
   }
 
-  const aliasMap =
+  const aliasMapForThis =
       ctx.importTracker?.getAliasesForImporter(ctx.filePath || '') || {};
-  // Emit direct const bindings for imported items, e.g. `const api1 = api1_;`
-  const aliasMapForThis = ctx.importTracker?.getAliasesForImporter(ctx.filePath || '') || {};
-  const importsAssignments = Object.entries(ctx.test.import ?? {})
-      .map(([key, requested]) => {
-        const fromAliasMap = aliasMapForThis[key];
-        if (fromAliasMap) {
-          return `const ${key} = ${fromAliasMap};`;
-        }
-        const requestedPathRaw = typeof requested === 'string' ? requested : '';
-        const normalizedRequested = resolveRequestedAgainst(ctx.filePath || '', requestedPathRaw);
-        const fnFromRequested = ctx.importTracker?.getTestFuncName(normalizedRequested);
-        if (fnFromRequested) {
-          return `const ${key} = ${fnFromRequested};`;
-        }
-        const base = (requestedPathRaw.split('/').pop() || '').replace(/\.[^.]+$/, '');
-        const fnFallback = toLowerUnderscore(base || 'imported') + '_';
-        return `const ${key} = ${fnFallback};`;
-      })
-      .join('\n');
+  const importsAssignments =
+      Object.entries(ctx.test.import ?? {})
+          .map(([key, requested]) => {
+            const fromAliasMap = aliasMapForThis[key];
+            if (fromAliasMap) {
+              return `const ${key} = ${fromAliasMap};`;
+            }
+            const requestedPathRaw =
+                typeof requested === 'string' ? requested : '';
+            const normalizedRequested =
+                resolveRequestedAgainst(ctx.filePath || '', requestedPathRaw);
+            const fnFromRequested =
+                ctx.importTracker?.getTestFuncName(normalizedRequested);
+            if (fnFromRequested) {
+              return `const ${key} = ${fnFromRequested};`;
+            }
+            const base = (requestedPathRaw.split('/').pop() ||
+                          '').replace(/\.[^.]+$/, '');
+            const fnFallback = toLowerUnderscore(base || 'imported');
+            return `const ${key} = ${fnFallback};`;
+          })
+          .join('\n');
 
   const paramsAsObj: Record<string, string> = Object.fromEntries(
       Object.keys(ctx.test.inputs ?? {}).map(key => [key, `\${${key}}`]));
@@ -62,7 +65,7 @@ export const testToJsfunc = async(
 
   flow += flowToJsFunc(replaced, root);
 
-  return `const ${toLowerUnderscore(ctx.name)} = async ({ ${
+  return `const ${toLowerUnderscore(ctx.name)}${root ? '_' : ''} = async ({ ${
       inputParams}} = {}) => {
   ${indentLines(importsAssignments)}\n
   let outputs = {${outputParams}};
@@ -114,8 +117,8 @@ export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
   const test =
       await testToJsfunc({...ctx, importTracker: tracker}, true, tracker);
   const envPretty = JSON.stringify(ctx.envVars || {}, null, 2);
-  
+
   const full = `const envVariables = ${envPretty};\n\n${importedFuncs}\n${
-      test}\nreturn ${toLowerUnderscore(ctx.name)}({});`;
+      test}\nreturn ${toLowerUnderscore(ctx.name)}_({});`;
   return variableReplacer(full);
 };

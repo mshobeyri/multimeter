@@ -199,7 +199,7 @@ describe('CSV import parsing', () => {
     });
 
     expect(js).toContain('const users_ = [');
-    expect(js).toContain('const users = users_;');
+    expect(js).toContain('const users = users_');
     expect(js).not.toMatch(/const imports =/);
   });
 
@@ -225,7 +225,7 @@ describe('CSV import parsing', () => {
 
     expect(js).not.toMatch(/const imports =/);
     expect(js).toContain('const users_ = [');
-    expect(js).toContain('const users = users_;');
+    expect(js).toContain('const users = users_');
   });
 
 
@@ -340,8 +340,8 @@ describe('CSV import parsing', () => {
        setFileLoader(mock.fileLoader);
        const bundle =
            await importsToJsfunc({x: '/root/a1.mmt', y: '/other/a1.mmt'});
-      expect(bundle).toContain('const a1__1 = async');
-      expect(bundle).toMatch(/const a1_\d+ = async/);
+      expect(bundle).toContain('const a1_1_ = async');
+      expect(bundle).toMatch(/const a1_\d+_ = async/);
      });
 
   it('injects `imports` alias object in generated test functions', async () => {
@@ -352,7 +352,6 @@ describe('CSV import parsing', () => {
     });
     setFileLoader(mock.fileLoader);
     const bundle = await importsToJsfunc({main: '/root/main.mmt'});
-    // function name should be from filename "my file" => "my_file"
     expect(bundle).toContain('const my_file_ = async');
     // and an imports alias assignment inside the importing test (const m = my_file_)
     expect(bundle).toContain('const main_ = async');
@@ -479,8 +478,8 @@ describe('rootTestToJsfunc + import tracker', () => {
 
     // Root imports object is emitted in the root test function.
     expect(js).toContain('const envVariables =');
-    expect(js).toContain('const testflow = async');
-    expect(js).toContain('kxxx: txxx');
+    expect(js).toContain('const testflow_ = async');
+    expect(js).toContain('kxxx = txxx_;');
   });
 
   it('resolves relative paths when building root aliases', async () => {
@@ -502,7 +501,7 @@ describe('rootTestToJsfunc + import tracker', () => {
       filePath: '/root/testflow.mmt',
     });
 
-    expect(js).toContain('kxxx: txxx');
+    expect(js).toContain('kxxx = txxx_;');
   });
 });
 

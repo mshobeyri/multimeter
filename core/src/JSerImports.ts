@@ -17,7 +17,7 @@ const basenameNoExt = (p: string): string => {
 
 const defaultFunctionNameForRequestedPath = (requestedPath: string): string => {
   const base = basenameNoExt(String(requestedPath ?? ''));
-  return toLowerUnderscore(base || 'imported');
+  return `${toLowerUnderscore(base || 'imported')}_`;
 };
 
 const isValidJsIdentifier = (name: string): boolean => {
@@ -68,7 +68,7 @@ const choosePublicNameBuilder = () => {
       return normalized;
     }
     for (let i = 1; i < 10_000; i++) {
-      const candidate = `${normalized}_${i}`;
+      const candidate = `${normalized}${i}_`;
       if (!usedNames.has(candidate)) {
         usedNames.add(candidate);
         return candidate;
