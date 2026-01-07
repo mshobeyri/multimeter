@@ -149,6 +149,22 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
         return 'Ready to run';
     }, [runState]);
 
+    const toDisplayText = useCallback((value: unknown): string => {
+        if (value === null) return 'null';
+        if (value === undefined) return '';
+        if (typeof value === 'string') return value;
+        try {
+            return JSON.stringify(value, null, 2);
+        } catch {
+            return String(value);
+        }
+    }, []);
+
+    const unescapeCommon = useCallback((s: string): string => {
+        if (!s) return s;
+        return s.replace(/\\r\\n/g, '\r\n').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+    }, []);
+
     return (
         <div style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <div
@@ -221,7 +237,17 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
                                             {report.title ? `: ${report.title}` : ''}
                                         </div>
                                         <div>
-                                            {report.comparison}
+                                            <pre
+                                                style={{
+                                                    margin: 0,
+                                                    whiteSpace: 'pre-wrap',
+                                                    wordBreak: 'break-word',
+                                                    fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                                                    fontSize: 'var(--vscode-editor-font-size, 12px)',
+                                                }}
+                                            >
+                                                {unescapeCommon(toDisplayText(report.comparison))}
+                                            </pre>
                                         </div>
                                         {hasDetails && (
                                             <div style={{ marginTop: 6 }}>
@@ -249,7 +275,18 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
                                                             </div>
                                                         )}
                                                         {report.details && report.details.trim().length > 0 && (
-                                                            <div style={{ marginTop: 4, opacity: 0.85 }}>{report.details}</div>
+                                                            <pre
+                                                                style={{
+                                                                    margin: '6px 0 0 0',
+                                                                    opacity: 0.85,
+                                                                    whiteSpace: 'pre-wrap',
+                                                                    wordBreak: 'break-word',
+                                                                    fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                                                                    fontSize: 'var(--vscode-editor-font-size, 12px)',
+                                                                }}
+                                                            >
+                                                                {unescapeCommon(String(report.details))}
+                                                            </pre>
                                                         )}
                                                         <div style={{ marginTop: 6 }}>
                                                             <button

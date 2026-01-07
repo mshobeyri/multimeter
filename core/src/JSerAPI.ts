@@ -124,10 +124,10 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   );
 
   output_.status_code_ = res_?.status || 0;
-  output_.details_ = {
+  output_.details_ = JSON.stringify({
     request: req_,
     response: res_
-  };
+  }, null, 2);
   return output_;
 };`;
 };

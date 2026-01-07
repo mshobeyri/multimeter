@@ -119,8 +119,8 @@ const normalizeComparison =
             `Invalid ${kind} object: "actual" and "expected" are required`);
       }
       const operator = (comp as any).operator || '==';
-      const actualStr = typeof actual === 'string' ? actual : String(actual ?? '');
-      const expectedStr = typeof expected === 'string' ? expected : String(expected ?? '');
+      const actualStr = typeof actual === 'string' ? actual : JSON.stringify(actual, null, 2);
+      const expectedStr = typeof expected === 'string' ? expected : JSON.stringify(expected, null, 2);
       const raw = `${actualStr} ${operator} ${expectedStr}`;
       const title = typeof (comp as any).title === 'string' ? (comp as any).title : undefined;
       const details = typeof (comp as any).details === 'string' ? (comp as any).details : undefined;
@@ -246,23 +246,22 @@ export const checkToJSfunc = (check: Comparison): string => {
   }
   const {actual, operator, expected, raw, title, details} = normalized;
   const conditionStatement = conditionalStatementToJSfunc(raw);
+  const titlePart = title ? `"${title}" - ` : '';
   const failMessage =
-      `Check ${raw} failed, as ${actual} ${operator} ${expected} is false`;
-  const successMessage = `Check ${raw} passed`;
-
-  const titlePart = title ? ` - ${title}` : '';
-  const detailsPart = details ? ` - ${details}` : '';
-  const finaFaillMsg = `${failMessage}${titlePart}${detailsPart}`;
-  const finaSuccessMsg = `${successMessage}${titlePart}${detailsPart}`;
+      `Check ${titlePart}"${raw}" failed, as ${actual} ${operator} ${expected} is false`;
+  const successMessage = `Check ${titlePart}"${raw}" passed`;
+  const detailsPart = details ? `\n${details}` : '';
+  const finaFaillMsg = `${failMessage}${detailsPart}`;
+  const finaSuccessMsg = `${successMessage}`;
   const finalTitle = typeof title === 'string' ? toTemplateWithVars(title) : undefined;
   const finalDetails = typeof details === 'string' ? toTemplateWithVars(details) : undefined;
   const finalActual = typeof actual === 'string' ? toTemplateWithVars(actual) : undefined;
   const finalExpected = typeof expected === 'string' ? toTemplateWithVars(expected) : undefined;
-  return `if(${conditionStatement}) {
-    console.log(${toTemplateWithVars(finaSuccessMsg)});
+  return `if (${conditionStatement}) {
+  console.log(${toTemplateWithVars(finaSuccessMsg)});
   report_('check', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, true);
 } else {
-    console.error(${toTemplateWithVars(finaFaillMsg)});
+  console.error(${toTemplateWithVars(finaFaillMsg)});
   report_('check', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, false, ${finalActual}, ${finalExpected});
 }\n`;
 };
@@ -274,19 +273,18 @@ export const assertToJSfunc = (assert: Comparison): string => {
   }
   const {actual, operator, expected, raw, title, details} = normalized;
   const conditionStatement = conditionalStatementToJSfunc(raw);
+    const titlePart = title ? `"${title}" - ` : '';
   const failMessage =
-      `Assert ${raw} failed, as ${actual} ${operator} ${expected} is false`;
-  const successMessage = `Assert ${raw} passed`;
-
-  const titlePart = title ? ` - ${title}` : '';
-  const detailsPart = details ? ` - ${details}` : '';
-  const finaFaillMsg = `${failMessage}${titlePart}${detailsPart}`;
-  const finaSuccessMsg = `${successMessage}${titlePart}${detailsPart}`;
+      `Assert ${titlePart}"${raw}" failed, as ${actual} ${operator} ${expected} is false`;
+  const successMessage = `Assert ${titlePart}"${raw}" passed`;
+  const detailsPart = details ? `\n${details}` : '';
+  const finaFaillMsg = `${failMessage}${detailsPart}`;
+  const finaSuccessMsg = `${successMessage}`;
   const finalTitle = typeof title === 'string' ? toTemplateWithVars(title) : undefined;
   const finalDetails = typeof details === 'string' ? toTemplateWithVars(details) : undefined;
   const finalActual = typeof actual === 'string' ? toTemplateWithVars(actual) : undefined;
   const finalExpected = typeof expected === 'string' ? toTemplateWithVars(expected) : undefined;
-  return `if(${conditionStatement}) {
+  return `if (${conditionStatement}) {
   console.log(${toTemplateWithVars(finaSuccessMsg)});
   report_('assert', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, true);
 } else {
