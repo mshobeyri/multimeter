@@ -68,12 +68,17 @@ export async function executeSuite(
         });
 
         suiteLogger('info', `Running suite item: ${display}`);
+        const childFileLoader = async (requestedPath: string) => {
+          const resolved = resolveRelativeTo(requestedPath, childFilePath);
+          return await fileLoader(resolved);
+        };
         const childRun = await runFile({
           ...options,
           file: childRawText,
           fileType: 'raw',
           filePath: childFilePath,
           manualInputs: mergedInputsUsed,
+          fileLoader: childFileLoader,
           logger: suiteLogger
         } as any);
 
