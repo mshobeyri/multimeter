@@ -1,6 +1,5 @@
 import { validateYamlContent } from './Validate';
 import { KeySuggestionsByParent } from './AutoComplete';
-import { loadEnvVariables } from '../workspaceStorage';
 import { JSONValue } from 'mmt-core/CommonData';
 
 async function listFiles(folder: string, recursive = true): Promise<string[]> {
@@ -19,25 +18,6 @@ async function listFiles(folder: string, recursive = true): Promise<string[]> {
 
 export const handleBeforeMount = (monaco: any) => {
     const keySuggestionsByParent = KeySuggestionsByParent(monaco);
-
-    // Store loaded environment variables
-    let envVariables: { name: string; label: string; value: JSONValue }[] = [];
-
-    // Load environment variables from workspace storage
-    loadEnvVariables((variables) => {
-        envVariables = variables;
-    });
-
-    // Function to get environment variables as suggestions
-    const getEnvironmentVariableSuggestions = () => {
-        return envVariables.map(envVar => ({
-            label: envVar.name,
-            kind: monaco.languages.CompletionItemKind.Variable,
-            insertText: envVar.name,
-            documentation: envVar.label || `Environment variable: ${envVar.name}`,
-            detail: `Value: ${envVar.value || 'undefined'}`
-        }));
-    };
 
     // Helper function to deduplicate suggestions by label
     const deduplicateSuggestions = (suggestions: any[]): any[] => {
@@ -177,11 +157,6 @@ export const handleBeforeMount = (monaco: any) => {
     // Get suggestions for a specific key's value
     const getValueSuggestions = (key: string): any[] => {
         const suggestions: any[] = [];
-
-        // Environment variable keys
-        if (key === 'key' || key === 'name' || key === 'variable' || key === 'env') {
-            suggestions.push(...getEnvironmentVariableSuggestions());
-        }
 
         // Specific key suggestions
         if (key in keySuggestionsByParent) {
@@ -325,6 +300,47 @@ export const handleBeforeMount = (monaco: any) => {
                         };
                     }
                     return { suggestions: [] };
+                }
+            }
+
+            // Handle object-form check/assert under list items:
+            // - check:
+            //     <here>
+            // In this case, the YAML parentContext will likely be "steps" (or similar),
+            // but we want to offer the check/assert object keys.
+            if (parentContext === 'steps' || parentContext === 'stages') {
+                for (let i = lines.length - 1; i >= 0; i--) {
+                    const l = lines[i];
+                    if (!l.trim()) {
+                        continue;
+                    }
+                    const indent = l.search(/\S|$/);
+                    if (indent >= currentIndent) {
+                        continue;
+                    }
+                    const m = l.trim().match(/^\-\s*(check|assert):\s*$/);
+                    if (m) {
+                        const containerKey = m[1];
+                        const suggestionList = keySuggestionsByParent[containerKey] || [];
+                        if (suggestionList.length > 0) {
+                            const wordInfo = model.getWordUntilPosition(position);
+                            const baseStartColumn = wordInfo?.startColumn ?? position.column;
+                            const baseEndColumn = wordInfo?.endColumn ?? position.column;
+                            return {
+                                suggestions: suggestionList.map((item: any) => ({
+                                    ...item,
+                                    range: {
+                                        startLineNumber: position.lineNumber,
+                                        startColumn: baseStartColumn,
+                                        endLineNumber: position.lineNumber,
+                                        endColumn: baseEndColumn,
+                                    }
+                                }))
+                            };
+                        }
+                    }
+
+                    break;
                 }
             }
 

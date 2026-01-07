@@ -767,6 +767,54 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'Extracts data from the response headers using header name.',
         }
     ];
+
+    const checkAssertObjectKeySuggestions = [
+        {
+            label: 'actual',
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: 'actual: ',
+            detail: 'Actual value [expr]',
+            documentation: 'Expression/value to compare.'
+        },
+        {
+            label: 'expected',
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: 'expected: ',
+            detail: 'Expected value [expr]',
+            documentation: 'Expected value for comparison.'
+        },
+        {
+            label: 'operator',
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: 'operator: "=="',
+            detail: 'Comparison operator [string]',
+            documentation: 'Operator used to compare actual and expected.'
+        },
+        {
+            label: 'message',
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: 'message: ',
+            detail: 'Failure message [string]',
+            documentation: 'Optional message shown when check/assert fails.'
+        },
+    ];
+
+    const operatorValueSuggestions = [
+        { label: '==', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: ' "=="', detail: 'Equal', documentation: 'Checks equality.' },
+        { label: '!=', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: ' "!="', detail: 'Not equal', documentation: 'Checks inequality.' },
+        { label: '>', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: ' ">"', detail: 'Greater than', documentation: 'Checks actual > expected.' },
+        { label: '>=', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: ' ">="', detail: 'Greater than or equal', documentation: 'Checks actual >= expected.' },
+        { label: '<', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: ' "<"', detail: 'Less than', documentation: 'Checks actual < expected.' },
+        { label: '<=', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: ' "<="', detail: 'Less than or equal', documentation: 'Checks actual <= expected.' },
+        { label: '=@', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: ' "=@"', detail: 'Contains', documentation: 'Checks actual contains expected.' },
+        { label: '!@', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: ' "!@"', detail: 'Not contains', documentation: 'Checks actual does not contain expected.' },
+        { label: '=~', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: ' "=~"', detail: 'Regex match', documentation: 'Checks actual matches regex expected.' },
+        { label: '!~', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: ' "!~"', detail: 'Regex not match', documentation: 'Checks actual does not match regex expected.' },
+        { label: '=^', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: ' "=^"', detail: 'Starts with', documentation: 'Checks actual starts with expected.' },
+        { label: '!^', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: ' "!^"', detail: 'Not starts with', documentation: 'Checks actual does not start with expected.' },
+        { label: '=$', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: ' "=$"', detail: 'Ends with', documentation: 'Checks actual ends with expected.' },
+        { label: '!$', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: ' "!$"', detail: 'Not ends with', documentation: 'Checks actual does not end with expected.' },
+    ];
     const exampleSuggestions = [
         {
             label: "name",
@@ -812,7 +860,10 @@ export const KeySuggestionsByParent = (monaco: any) => {
         protocol: protocolSuggestion,
         method: methodSuggestions,
         format: formatSuggestion,
-        outputs: outputsSuggestions
+        outputs: outputsSuggestions,
+        check: checkAssertObjectKeySuggestions,
+        assert: checkAssertObjectKeySuggestions,
+        operator: operatorValueSuggestions
     };
 
     return keySuggestionsByParent;
