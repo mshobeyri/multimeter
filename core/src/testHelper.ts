@@ -135,6 +135,18 @@ const normalizeMessage = (value: unknown): string|undefined => {
   return undefined;
 };
 
+const normalizeTitleDetails = (title: unknown, details: unknown): {
+  title?: string;
+  details?: string;
+} => {
+  const t = normalizeMessage(title);
+  const d = normalizeMessage(details);
+  return {
+    title: t,
+    details: d,
+  };
+};
+
 const emitStep = (event: Record<string, any>) => {
   const reporter = resolveReporter();
   if (!reporter) {
@@ -149,20 +161,24 @@ const emitStep = (event: Record<string, any>) => {
 };
 
 export const report_ = (
-    stepType: StepType, comparison: unknown, message: unknown,
-    passed: boolean, left?: any, right?: any) => {
+    stepType: StepType, comparison: unknown, title: unknown,
+    details: unknown, passed: boolean, actual?: any, expected?: any) => {
   const payload: Record<string, any> = {
     scope: 'test-step',
     stepType,
     comparison: normalizeComparison(comparison),
     stepIndex: nextStepIndex(),
     status: passed ? 'passed' : 'failed',
-    left,
-    right
+    actual,
+    expected
   };
-  const normalizedMessage = normalizeMessage(message);
-  if (typeof normalizedMessage === 'string') {
-    payload.message = normalizedMessage;
+
+  const normalized = normalizeTitleDetails(title, details);
+  if (typeof normalized.title === 'string') {
+    payload.title = normalized.title;
+  }
+  if (typeof normalized.details === 'string') {
+    payload.details = normalized.details;
   }
   emitStep(payload);
 };

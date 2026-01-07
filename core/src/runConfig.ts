@@ -13,10 +13,11 @@ export interface TestStepReporterEvent {
   stepType: 'check'|'assert';
   status: TestStepStatus;
   comparison: string;
-  message?: string;
+  title?: string;
+  details?: string;
   timestamp: number;
-  left?: any;
-  right?: any;
+  actual?: any;
+  expected?: any;
 }
 
 export interface TestRunSummaryEvent {

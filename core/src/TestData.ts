@@ -11,7 +11,8 @@ export interface ComparisonObject {
   actual: unknown;
   expected: unknown;
   operator?: string;
-  message?: string;
+  title?: string;
+  details?: string;
 }
 
 export type Comparison = string | ComparisonObject;

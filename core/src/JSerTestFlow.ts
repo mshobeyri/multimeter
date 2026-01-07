@@ -52,46 +52,47 @@ export const conditionalStatementToJSfunc = (check: string): string => {
   if (checkParts.length !== 3) {
     return 'true';
   }
-  const [left, operator, right] = checkParts;
+  const [actual, operator, expected] = checkParts;
   switch (operator) {
     case '<':
-      return `less(${left}, ${right})`;
+      return `less(${actual}, ${expected})`;
     case '>':
-      return `greater(${left}, ${right})`;
+      return `greater(${actual}, ${expected})`;
     case '<=':
-      return `lessOrEqual(${left}, ${right})`;
+      return `lessOrEqual(${actual}, ${expected})`;
     case '>=':
-      return `greaterOrEqual(${left}, ${right})`;
+      return `greaterOrEqual(${actual}, ${expected})`;
     case '==':
-      return `equals(${left}, ${right})`;
+      return `equals(${actual}, ${expected})`;
     case '!=':
-      return `notEquals(${left}, ${right})`;
+      return `notEquals(${actual}, ${expected})`;
     case '=@':
-      return `isAt(${left}, ${right})`;
+      return `isAt(${actual}, ${expected})`;
     case '!@':
-      return `isNotAt(${left}, ${right})`;
+      return `isNotAt(${actual}, ${expected})`;
     case '=~':
-      return `matches(${left}, ${right})`;
+      return `matches(${actual}, ${expected})`;
     case '!~':
-      return `notMatches(${left}, ${right})`;
+      return `notMatches(${actual}, ${expected})`;
     case '=^':
-      return `startsWith(${left}, ${right})`;
+      return `startsWith(${actual}, ${expected})`;
     case '!^':
-      return `notStartsWith(${left}, ${right})`;
+      return `notStartsWith(${actual}, ${expected})`;
     case '=$':
-      return `endsWith(${left}, ${right})`;
+      return `endsWith(${actual}, ${expected})`;
     case '!$':
-      return `notEndsWith(${left}, ${right})`;
+      return `notEndsWith(${actual}, ${expected})`;
     default:
       throw new Error(`${check}: Unknown operator: ${operator}`);
   }
 };
 
 interface NormalizedComparison {
-  left: string;
+  actual: string;
   operator: string;
-  right: string;
-  message?: string;
+  expected: string;
+  title?: string;
+  details?: string;
   raw: string;
 }
 
@@ -106,8 +107,8 @@ const normalizeComparison =
         if (parts.length !== 3) {
           throw new Error(`Invalid ${kind} format: ${comp}`);
         }
-        const [left, operator, right] = parts;
-        return {left, operator, right, raw};
+        const [actual, operator, expected] = parts;
+        return {actual, operator, expected, raw};
       }
 
       const actual: unknown = (comp as any).actual;
@@ -118,14 +119,13 @@ const normalizeComparison =
             `Invalid ${kind} object: "actual" and "expected" are required`);
       }
       const operator = (comp as any).operator || '==';
-      const left = typeof actual === 'string' ? actual : JSON.stringify(actual);
-      const right =
+      const actualStr = typeof actual === 'string' ? actual : JSON.stringify(actual);
+      const expectedStr =
           typeof expected === 'string' ? expected : JSON.stringify(expected);
-      const raw = `${left} ${operator} ${right}`;
-      const message = typeof (comp as any).message === 'string' ?
-          (comp as any).message :
-          undefined;
-      return {left, operator, right, raw, message};
+      const raw = `${actualStr} ${operator} ${expectedStr}`;
+      const title = typeof (comp as any).title === 'string' ? (comp as any).title : undefined;
+      const details = typeof (comp as any).details === 'string' ? (comp as any).details : undefined;
+      return {actual: actualStr, operator, expected: expectedStr, raw, title, details};
     };
 
 export const ifToJSfunc = (condition: TestFlowCondition): string => {
@@ -240,49 +240,30 @@ export const setToJSfunc = (set: Record<string, any>): string => {
 };
 
 
-// export const checkToJSfunc = (check: Comparison): string => {
-//   const normalized = normalizeComparison(check, 'check');
-//   if (!normalized) {
-//     return '';
-//   }
-//   const {left, operator, right, raw, message} = normalized;
-//   const conditionStatement = conditionalStatementToJSfunc(raw);
-//   const autoMsg = `Check ${raw} failed, as " + ${left} + " ${operator} " + ${
-//       right} + " is false`;
-//   const finalMsg = message ? `${autoMsg} - ${message}` : autoMsg;
-//   const messageLiteral = message ? JSON.stringify(message) : 'undefined';
-//   return `{
-//   const result = ${conditionStatement};
-//   report_check_(${JSON.stringify(raw)}, ${messageLiteral}, result);
-//   if(!result){
-//     console.error("${finalMsg}");
-//   }
-// }`;
-// };
-
 export const checkToJSfunc = (check: Comparison): string => {
   const normalized = normalizeComparison(check, 'check');
   if (!normalized) {
     return '';
   }
-  const {left, operator, right, raw, message} = normalized;
+  const {actual, operator, expected, raw, title, details} = normalized;
   const conditionStatement = conditionalStatementToJSfunc(raw);
   const failMessage =
-      `Check ${raw} failed, as ${left} ${operator} ${right} is false`;
+      `Check ${raw} failed, as ${actual} ${operator} ${expected} is false`;
   const successMessage = `Check ${raw} passed`;
 
-  const finaFaillMsg = message ? `${failMessage} - ${message}` : failMessage;
-  const finaSuccessMsg =
-      message ? `${successMessage} - ${message}` : successMessage;
-  const finalMessage =
-      typeof message === 'string' ? toTemplateWithVars(message) : undefined;
+  const titlePart = title ? ` - ${title}` : '';
+  const detailsPart = details ? ` - ${details}` : '';
+  const finaFaillMsg = `${failMessage}${titlePart}${detailsPart}`;
+  const finaSuccessMsg = `${successMessage}${titlePart}${detailsPart}`;
+  const finalTitle = typeof title === 'string' ? toTemplateWithVars(title) : undefined;
+  const finalDetails = typeof details === 'string' ? toTemplateWithVars(details) : undefined;
   return `if(${conditionStatement}){
     console.log(${toTemplateWithVars(finaSuccessMsg)});
-  report_('check', ${JSON.stringify(raw)}, ${finalMessage}, true);
+  report_('check', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, true);
 } else {
     console.error(${toTemplateWithVars(finaFaillMsg)});
-  report_('check', ${JSON.stringify(raw)}, ${finalMessage}, false, ${left}, ${
-      right});
+  report_('check', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, false, ${actual}, ${
+      expected});
 }\n`;
 };
 
@@ -291,24 +272,25 @@ export const assertToJSfunc = (assert: Comparison): string => {
   if (!normalized) {
     return '';
   }
-  const {left, operator, right, raw, message} = normalized;
+  const {actual, operator, expected, raw, title, details} = normalized;
   const conditionStatement = conditionalStatementToJSfunc(raw);
   const failMessage =
-      `Assert ${raw} failed, as ${left} ${operator} ${right} is false`;
+      `Assert ${raw} failed, as ${actual} ${operator} ${expected} is false`;
   const successMessage = `Assert ${raw} passed`;
 
-  const finaFaillMsg = message ? `${failMessage} - ${message}` : failMessage;
-  const finaSuccessMsg =
-      message ? `${successMessage} - ${message}` : successMessage;
-  const finalMessage =
-      typeof message === 'string' ? toTemplateWithVars(message) : undefined;
+  const titlePart = title ? ` - ${title}` : '';
+  const detailsPart = details ? ` - ${details}` : '';
+  const finaFaillMsg = `${failMessage}${titlePart}${detailsPart}`;
+  const finaSuccessMsg = `${successMessage}${titlePart}${detailsPart}`;
+  const finalTitle = typeof title === 'string' ? toTemplateWithVars(title) : undefined;
+  const finalDetails = typeof details === 'string' ? toTemplateWithVars(details) : undefined;
   return `if(${conditionStatement}){
   console.log(${toTemplateWithVars(finaSuccessMsg)});
-  report_('assert', ${JSON.stringify(raw)}, ${finalMessage}, true);
+  report_('assert', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, true);
 } else {
   console.error(${toTemplateWithVars(finaFaillMsg)});
-  report_('assert', ${JSON.stringify(raw)}, ${finalMessage}, false, ${left}, ${
-      right});
+  report_('assert', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, false, ${actual}, ${
+      expected});
   throw new Error("Assertion failed");
 }\n`;
 };

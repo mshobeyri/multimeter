@@ -3,27 +3,27 @@ import { CheckOps, opsList, opsNames } from "mmt-core/TestData";
 import { safeList } from "mmt-core/safer";
 
 interface TestIfProps {
-  left: string;
+  actual: string;
   op: CheckOps;
-  right: string;
-  onChange: (val: { left: string; op: CheckOps; right: string }) => void;
+  expected: string;
+  onChange: (val: { actual: string; op: CheckOps; expected: string }) => void;
 }
 
 const TestIf: React.FC<TestIfProps> = ({
-  left,
+  actual,
   op,
-  right,
+  expected,
   onChange,
 }) => (
   <div style={{ display: "flex", verticalAlign: "center", gap: 0, width: '100%' }}>
     <input
-      value={left}
+      value={actual}
       style={{ width: '100%' }}
-      onChange={v => onChange({ left: v.target.value, op, right })}
+      onChange={v => onChange({ actual: v.target.value, op, expected })}
     />
     <select
       value={op}
-      onChange={e => onChange({ left, op: e.target.value as CheckOps, right })}
+      onChange={e => onChange({ actual, op: e.target.value as CheckOps, expected })}
       style={{ width: 80, flex: '0 0 auto' }}
     >
       {safeList(opsList).map((relation, idx) => (
@@ -33,9 +33,9 @@ const TestIf: React.FC<TestIfProps> = ({
       ))}
     </select>
     <input
-      value={right}
+      value={expected}
       style={{ width: '100%' }}
-      onChange={e => onChange({ left, op, right: e.target.value })}
+      onChange={e => onChange({ actual, op, expected: e.target.value })}
     />
   </div>
 );

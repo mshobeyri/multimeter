@@ -14,8 +14,8 @@ describe('jsRunner reporter propagation', () => {
     const events: Record<string, any>[] = [];
     await runJSCode({
       code: `
-        report_('check', "foo > 1", undefined, false, 123, 456);
-        report_('assert', "bar === 2", "custom", true);
+        report_('check', "foo > 1", undefined, undefined, false, 123, 456);
+        report_('assert', "bar === 2", "t", "custom", true);
       `,
       title: 'reporter-test',
       logger,
@@ -32,14 +32,14 @@ describe('jsRunner reporter propagation', () => {
       comparison: 'foo > 1',
       status: 'failed',
       runId: 'run-jsrunner-test',
-      left: 123,
-      right: 456,
+      actual: 123,
+      expected: 456,
     });
     expect(events[1]).toMatchObject({
       scope: 'test-step',
       stepType: 'assert',
       comparison: 'bar === 2',
-      message: 'custom',
+      details: 'custom',
       status: 'passed',
     });
     expect(events[1].stepIndex).toBeGreaterThan(events[0].stepIndex);
@@ -52,7 +52,7 @@ describe('jsRunner reporter propagation', () => {
     scope.__mmtRunId = 'persisted-run';
 
     await runJSCode({
-      code: 'report_(\'check\', "noop", undefined, true);',
+      code: 'report_(\'check\', "noop", undefined, undefined, true);',
       title: 'restore-test',
       logger,
       runId: 'temporary-run',

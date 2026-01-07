@@ -223,7 +223,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 '    actual: response.status_code',
                 '    expected: 200',
                 '    operator: "=="',
-                '    message: "Unexpected status"'
+                '    title: "Unexpected status"',
+                '    details: "Status code should be 200"'
             ].join('\n')
         },
         {
@@ -242,7 +243,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 '    actual: total_users',
                 '    expected: 1',
                 '    operator: ">="',
-                '    message: "User count too low"'
+                '    title: "User count too low"',
+                '    details: "Expected at least one user"'
             ].join('\n')
         },
         {
@@ -791,11 +793,18 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'Operator used to compare actual and expected.'
         },
         {
-            label: 'message',
+            label: 'title',
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: 'message: ',
-            detail: 'Failure message [string]',
-            documentation: 'Optional message shown when check/assert fails.'
+            insertText: 'title: ',
+            detail: 'Short title [string]',
+            documentation: 'Short summary shown inline in reports/UI.'
+        },
+        {
+            label: 'details',
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: 'details: ',
+            detail: 'Details [string]',
+            documentation: 'Long description shown in the details panel.'
         },
     ];
 

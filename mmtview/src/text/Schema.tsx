@@ -294,7 +294,8 @@ export const TestSchema = {
                                                 type: 'string',
                                                 enum: ['<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=~', '!~', '=^', '!^', '=$', '!$']
                                             },
-                                            message: { type: 'string' }
+                                            title: { type: 'string' },
+                                            details: { type: 'string' },
                                         },
                                         additionalProperties: false
                                     }
@@ -321,7 +322,8 @@ export const TestSchema = {
                                                 type: 'string',
                                                 enum: ['<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=~', '!~', '=^', '!^', '=$', '!$']
                                             },
-                                            message: { type: 'string' }
+                                            title: { type: 'string' },
+                                            details: { type: 'string' },
                                         },
                                         additionalProperties: false
                                     }

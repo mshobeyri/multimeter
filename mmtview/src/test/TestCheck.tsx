@@ -3,10 +3,11 @@ import { CheckOps, opsList, opsNames } from "mmt-core/TestData";
 import { safeList } from "mmt-core/safer";
 
 export interface TestCheckValue {
-  left: string;
+  actual: string;
   op: CheckOps;
-  right: string;
-  message: string;
+  expected: string;
+  title: string;
+  details: string;
 }
 
 interface TestCheckProps {
@@ -15,20 +16,20 @@ interface TestCheckProps {
 }
 
 const TestCheck: React.FC<TestCheckProps> = ({ value, onChange }) => {
-  const { left, op, right, message } = value;
+  const { actual, op, expected, title, details } = value;
 
   const update = (patch: Partial<TestCheckValue>) => {
-    onChange({ left, op, right, message, ...patch });
+    onChange({ actual, op, expected, title, details, ...patch });
   };
 
   return (
     <div style={{ width: '100%' }}>
       <div style={{ display: "flex", verticalAlign: "center", gap: 4, width: '100%' }}>
         <input
-          value={left}
+          value={actual}
           placeholder="actual"
           style={{ width: '100%' }}
-          onChange={e => update({ left: e.target.value })}
+          onChange={e => update({ actual: e.target.value })}
         />
         <select
           value={op}
@@ -42,18 +43,26 @@ const TestCheck: React.FC<TestCheckProps> = ({ value, onChange }) => {
           ))}
         </select>
         <input
-          value={right}
+          value={expected}
           placeholder="expected"
           style={{ width: '100%' }}
-          onChange={e => update({ right: e.target.value })}
+          onChange={e => update({ expected: e.target.value })}
         />
       </div>
       <div style={{ marginTop: 14 }}>
         <input
-          value={message}
-          placeholder="Optional message shown when condition fails"
+          value={title}
+          placeholder="Title (shown inline)"
           style={{ width: '100%' }}
-          onChange={e => update({ message: e.target.value })}
+          onChange={e => update({ title: e.target.value })}
+        />
+      </div>
+      <div style={{ marginTop: 8 }}>
+        <textarea
+          value={details}
+          placeholder="Details (shown in the details panel)"
+          style={{ width: '100%', height: 60, resize: 'vertical' }}
+          onChange={e => update({ details: e.target.value })}
         />
       </div>
     </div>

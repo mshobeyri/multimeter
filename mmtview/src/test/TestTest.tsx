@@ -14,9 +14,10 @@ interface StepReportItem {
     stepType: 'check' | 'assert';
     status: StepStatus;
     comparison: string;
-    message?: string;
-    left?: any;
-    right?: any;
+    title?: string;
+    details?: string;
+    actual?: any;
+    expected?: any;
     timestamp: number;
 }
 
@@ -105,9 +106,10 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
                     stepType: message.stepType === 'assert' ? 'assert' : 'check',
                     status: message.status === 'failed' ? 'failed' : 'passed',
                     comparison: typeof message.comparison === 'string' ? message.comparison : '',
-                    message: typeof message.message === 'string' ? message.message : undefined,
-                    left: message.left,
-                    right: message.right,
+                    title: typeof (message as any).title === 'string' ? (message as any).title : undefined,
+                    details: typeof (message as any).details === 'string' ? (message as any).details : undefined,
+                    actual: (message as any).actual,
+                    expected: (message as any).expected,
                     timestamp: typeof message.timestamp === 'number' ? message.timestamp : Date.now(),
                 };
                 appendReport(normalized);
@@ -207,18 +209,18 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
                                     ></span>
                                     <div style={{ flex: 1 }}>
                                         <div style={{ marginBottom: 2 }}>
-                                            {report.stepIndex} {report.stepType === "check" ? "Check" : "Assert"} {meta.label}
+                                            {report.stepIndex} {report.stepType === "check" ? "Check" : "Assert"} {meta.label}{report.title ? `: ${report.title}` : ''}
                                         </div>
                                         <div>
                                             {report.comparison}
                                         </div>
-                                        {report.left !== undefined && report.right !== undefined && (
+                                        {report.actual !== undefined && report.expected !== undefined && (
                                             <div style={{ marginTop: 4, opacity: 0.8 }}>
-                                                Left: {String(report.left)}, Right: {String(report.right)}
+                                                Actual: {String(report.actual)}, Expected: {String(report.expected)}
                                             </div>
                                         )}
-                                        {report.message && (
-                                            <div style={{ marginTop: 4, opacity: 0.8 }}>{report.message}</div>
+                                        {report.details && (
+                                            <div style={{ marginTop: 4, opacity: 0.8 }}>{report.details}</div>
                                         )}
                                     </div>
                                     <div style={{ opacity: 0.7, textAlign: 'right' }}>

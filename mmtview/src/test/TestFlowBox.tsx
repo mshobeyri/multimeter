@@ -35,26 +35,24 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       const el = btnRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
-      // place menu below button, right-aligned assuming ~160px width
-      const left = Math.max(8, rect.right - 160);
-      const top = rect.bottom + 4;
-      setMenuPos({ left, top });
+      setMenuPos({ left: Math.max(8, rect.right - 160), top: rect.bottom + 4 });
     };
 
     React.useEffect(() => {
       if (!openMenu) return;
-      openAtButton();
 
-      const handleClickOutside = (e: MouseEvent) => {
-        const target = e.target as Node | null;
+      const handleClickOutside = (event: MouseEvent) => {
+        const target = event.target;
+        if (!target) return;
         if (menuRef.current?.contains(target as Node)) return;
         if (btnRef.current?.contains(target as Node)) return;
         setOpenMenu(false);
       };
+
       const handleScrollOrResize = () => {
-        // close to avoid stale position on large moves; could also recompute
         setOpenMenu(false);
       };
+
       document.addEventListener('mousedown', handleClickOutside, true);
       window.addEventListener('scroll', handleScrollOrResize, true);
       window.addEventListener('resize', handleScrollOrResize, true);
@@ -68,9 +66,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
     const menu = openMenu && menuPos ? (
       <div
         ref={menuRef}
-        role="menu"
-        style={{ position: 'fixed', left: menuPos.left, top: menuPos.top, zIndex: 1000, background: 'var(--vscode-editorWidget-background,#232323)', border: '1px solid var(--vscode-editorWidget-border,#333)', borderRadius: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.4)', minWidth: 140, pointerEvents: 'auto' }}
-        onPointerDown={(e) => e.stopPropagation()}
+        style={{ position: 'fixed', left: menuPos.left, top: menuPos.top, zIndex: 1000, background: 'var(--vscode-editorWidget-background,#232323)', border: '1px solid var(--vscode-editorWidget-border,#333)', borderRadius: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.4)', minWidth: 200 }}
         onClick={(e) => e.stopPropagation()}
       >
         <button
@@ -158,43 +154,47 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
           />
         );
       case 'if': {
-        let left = '', op: CheckOps = '==' as CheckOps, right = '';
+        let actual = '', op: CheckOps = '==' as CheckOps, expected = '';
         const raw = (stepData && typeof stepData[type] === 'string') ? (stepData[type] as string) : '';
         const match = raw.trim().length ? raw.trim().split(/\s+/) : [] as string[];
-        left = match[0] ?? '';
+        actual = match[0] ?? '';
         op = (match[1] as CheckOps) ?? '==';
-        right = match[2] ?? '';
+        expected = match[2] ?? '';
         return (
           <TestIf
-            left={left}
+            actual={actual}
             op={op}
-            right={right}
-            onChange={({ left, op, right }) => onChange({ [type]: `${left} ${op} ${right}` })}
+            expected={expected}
+            onChange={({ actual, op, expected }) => onChange({ [type]: `${actual} ${op} ${expected}` })}
           />
         );
       }
       case 'check':
       case 'assert': {
-        let left = '', op: CheckOps = '==' as CheckOps, right = '', message = '';
+        let actual = '', op: CheckOps = '==' as CheckOps, expected = '', title = '', details = '';
         const rawVal = stepData && stepData[type];
         if (typeof rawVal === 'string') {
           const match = rawVal.trim().length ? rawVal.trim().split(/\s+/) : [] as string[];
-          left = match[0] ?? '';
+          actual = match[0] ?? '';
           op = (match[1] as CheckOps) ?? '==';
-          right = match[2] ?? '';
+          expected = match[2] ?? '';
         } else if (rawVal && typeof rawVal === 'object') {
-          left = (rawVal as any).actual ?? '';
-          right = (rawVal as any).expected ?? '';
+          actual = (rawVal as any).actual ?? '';
+          expected = (rawVal as any).expected ?? '';
           op = ((rawVal as any).operator || '==') as CheckOps;
-          message = (rawVal as any).message || '';
+          title = (rawVal as any).title || '';
+          details = (rawVal as any).details || '';
         }
         return (
           <TestCheck
-            value={{ left, op, right, message }}
-            onChange={({ left, op, right, message }) => {
-              const obj: any = { actual: left, expected: right, operator: op || '==', };
-              if (message.trim().length > 0) {
-                obj.message = message.trim();
+              value={{ actual, op, expected, title, details }}
+              onChange={({ actual, op, expected, title, details }) => {
+                const obj: any = { actual, expected, operator: op || '==', };
+              if (title.trim().length > 0) {
+                obj.title = title.trim();
+              }
+              if (details.trim().length > 0) {
+                obj.details = details.trim();
               }
               onChange({ [type]: obj });
             }}

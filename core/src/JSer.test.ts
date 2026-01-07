@@ -441,16 +441,16 @@ describe('step reporter instrumentation', () => {
   });
 });
 
-describe('check/assert message templating', () => {
-  it('preserves ${...} expressions in message (call result vars)', () => {
+describe('check/assert details templating', () => {
+  it('preserves ${...} expressions in details (call result vars)', () => {
     const js = checkToJSfunc({
       actual: 'a',
       operator: '==',
       expected: 'b',
-      message: 'result code is ${myCall.result_code}',
+      details: 'result code is ${myCall.result_code}',
     } as any);
 
-    // Message is emitted as a template literal so ${...} resolves at runtime.
+    // Details is emitted as a template literal so ${...} resolves at runtime.
     expect(js).toContain('`result code is ${myCall.result_code}`');
     expect(js).toContain("report_('check'");
   });
@@ -529,21 +529,23 @@ describe('empty test items are valid', () => {
     expect(js).toContain('let outputs');
   });
 
-  it('supports object-form check and assert with message', async () => {
+  it('supports object-form check and assert with title/details', async () => {
     const ctx: TestContext = {
       name: 'objectCheckAssert',
       test: {
         steps: [
-          {check: {actual: 1, expected: 2, operator: '==', message: 'm1'}},
-          {assert: {actual: 'x', expected: 3, operator: '>=', message: 'm2'}},
+          {check: {actual: 1, expected: 2, operator: '==', title: 't1', details: 'd1'}},
+          {assert: {actual: 'x', expected: 3, operator: '>=', title: 't2', details: 'd2'}},
         ],
       } as any,
       inputs: {},
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('m1');
-    expect(js).toContain('m2');
+    expect(js).toContain('t1');
+    expect(js).toContain('d1');
+    expect(js).toContain('t2');
+    expect(js).toContain('d2');
   });
 
   it('handles empty if gracefully (treated as true) and nests steps',
