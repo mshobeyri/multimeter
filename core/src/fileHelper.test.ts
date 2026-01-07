@@ -68,10 +68,28 @@ describe('computeRelative', () => {
     expect(computeRelative(base, full)).toBe('D:/data/file.mmt');
   });
 
+  test('windows: base from file URI does not produce ../../..../c:/ style', () => {
+    const base = 'file:///C:/Users/x/docs/suite.mmt';
+    const full = 'C:/Users/x/docs/smoke/test.mmt';
+    expect(computeRelative(base, full)).toBe('smoke/test.mmt');
+  });
+
+  test('windows: full from file URI does not produce ../../..../c:/ style', () => {
+    const base = 'C:/Users/x/docs/suite.mmt';
+    const full = 'file:///C:/Users/x/docs/smoke/test.mmt';
+    expect(computeRelative(base, full)).toBe('smoke/test.mmt');
+  });
+
   test('windows: handles sibling folders on same drive', () => {
     const base = 'C:\\Users\\Mehrdad\\projects\\foo\\projectA';
     const full = 'C:\\Users\\Mehrdad\\projects\\foo\\projectB\\file.mmt';
     expect(computeRelative(base, full)).toBe('../projectB/file.mmt');
+  });
+
+  test('windows: mixed slashes still computes correct relative', () => {
+    const base = 'C:\\Users\\x\\docs\\suite.mmt';
+    const full = 'C:\\Users\\x\\docs\\smoke\\test.mmt';
+    expect(computeRelative(base, full)).toBe('smoke/test.mmt');
   });
 });
 

@@ -16,6 +16,16 @@ const stripFileUri = (p: string) => {
   return p;
 };
 
+const normalizeWindowsDriveSlashes = (p: string): string => {
+  const s = String(p ?? '').replace(/\\/g, '/');
+  // vscode / file URIs can yield "/C:/..."; normalize to "C:/..." so helpers
+  // treat it as a real drive path.
+  if (/^\/[A-Za-z]:\//.test(s)) {
+    return s.slice(1);
+  }
+  return s;
+};
+
 export const fileUriToPath = (p: string): string => {
   const s = String(p ?? '');
   if (!s) {
@@ -111,13 +121,13 @@ export const computeRelative = (base?: string, full?: string): string => {
     return '';
   }
 
-  const fullStr = stripFileUri(full).replace(/\\/g, '/');
+  const fullStr = normalizeWindowsDriveSlashes(stripFileUri(full));
 
   if (!base) {
     return fullStr;
   }
 
-  let baseStr = stripFileUri(base).replace(/\\/g, '/');
+  let baseStr = normalizeWindowsDriveSlashes(stripFileUri(base));
 
   // If base is a file (heuristic: has a dot after the last slash), use its
   // directory
