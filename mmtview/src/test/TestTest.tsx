@@ -30,6 +30,7 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
     const { mmtFilePath } = useContext(FileContext);
     const [stepReports, setStepReports] = useState<StepReportItem[]>([]);
     const [runState, setRunState] = useState<'idle' | 'running' | 'passed' | 'failed'>('idle');
+    const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
     const latestRunIdRef = useRef<string | null>(null);
     const ignoredRunIdsRef = useRef<Set<string>>(new Set());
     const stepCountRef = useRef(0);
@@ -55,6 +56,7 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
         }
         latestRunIdRef.current = null;
         setStepReports([]);
+        setExpandedDetails({});
         setRunState('running');
         window.vscode?.postMessage({ command: 'runCurrentDocument' });
     }, [trimIgnoredRuns]);
@@ -189,9 +191,15 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                         {stepReports.map(report => {
                             const meta = STATUS_META[report.status];
+                            const reportKey = `${report.stepType}-${report.stepIndex}-${report.timestamp}`;
+                            const hasDetails = Boolean(
+                                (report.details && report.details.trim().length > 0) ||
+                                (report.actual !== undefined && report.expected !== undefined)
+                            );
+                            const isExpanded = Boolean(expandedDetails[reportKey]);
                             return (
                                 <div
-                                    key={`${report.stepType}-${report.stepIndex}-${report.timestamp}`}
+                                    key={reportKey}
                                     style={{
                                         border: '1px solid var(--vscode-editorWidget-border, #2a2a2a)',
                                         backgroundColor: 'transparent',
@@ -209,18 +217,60 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
                                     ></span>
                                     <div style={{ flex: 1 }}>
                                         <div style={{ marginBottom: 2 }}>
-                                            {report.stepIndex} {report.stepType === "check" ? "Check" : "Assert"} {meta.label}{report.title ? `: ${report.title}` : ''}
+                                            {report.stepIndex} {report.stepType === 'check' ? 'Check' : 'Assert'}
+                                            {report.title ? `: ${report.title}` : ''}
                                         </div>
                                         <div>
                                             {report.comparison}
                                         </div>
-                                        {report.actual !== undefined && report.expected !== undefined && (
-                                            <div style={{ marginTop: 4, opacity: 0.8 }}>
-                                                Actual: {String(report.actual)}, Expected: {String(report.expected)}
+                                        {hasDetails && (
+                                            <div style={{ marginTop: 6 }}>
+                                                {!isExpanded ? (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setExpandedDetails(prev => ({ ...prev, [reportKey]: true }))}
+                                                        style={{
+                                                            padding: 0,
+                                                            border: 'none',
+                                                            background: 'transparent',
+                                                            opacity: 0.7,
+                                                            textDecoration: 'underline',
+                                                            cursor: 'pointer',
+                                                            font: 'inherit',
+                                                        }}
+                                                    >
+                                                        show details
+                                                    </button>
+                                                ) : (
+                                                    <div style={{ marginTop: 4 }}>
+                                                        {report.actual !== undefined && report.expected !== undefined && (
+                                                            <div style={{ opacity: 0.85 }}>
+                                                                Actual: {String(report.actual)}, Expected: {String(report.expected)}
+                                                            </div>
+                                                        )}
+                                                        {report.details && report.details.trim().length > 0 && (
+                                                            <div style={{ marginTop: 4, opacity: 0.85 }}>{report.details}</div>
+                                                        )}
+                                                        <div style={{ marginTop: 6 }}>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => setExpandedDetails(prev => ({ ...prev, [reportKey]: false }))}
+                                                                style={{
+                                                                    padding: 0,
+                                                                    border: 'none',
+                                                                    background: 'transparent',
+                                                                    opacity: 0.7,
+                                                                    textDecoration: 'underline',
+                                                                    cursor: 'pointer',
+                                                                    font: 'inherit',
+                                                                }}
+                                                            >
+                                                                hide details
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
-                                        )}
-                                        {report.details && (
-                                            <div style={{ marginTop: 4, opacity: 0.8 }}>{report.details}</div>
                                         )}
                                     </div>
                                     <div style={{ opacity: 0.7, textAlign: 'right' }}>
