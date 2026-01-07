@@ -55,33 +55,33 @@ export const conditionalStatementToJSfunc = (check: string): string => {
   const [actual, operator, expected] = checkParts;
   switch (operator) {
     case '<':
-      return `less(${actual}, ${expected})`;
+      return `less(\`${actual}\`, \`${expected}\`)`;
     case '>':
-      return `greater(${actual}, ${expected})`;
+      return `greater(\`${actual}\`, \`${expected}\`)`;
     case '<=':
-      return `lessOrEqual(${actual}, ${expected})`;
+      return `lessOrEqual(\`${actual}\`, \`${expected}\`)`;
     case '>=':
-      return `greaterOrEqual(${actual}, ${expected})`;
+      return `greaterOrEqual(\`${actual}\`, \`${expected}\`)`;
     case '==':
-      return `equals(${actual}, ${expected})`;
+      return `equals(\`${actual}\`, \`${expected}\`)`;
     case '!=':
-      return `notEquals(${actual}, ${expected})`;
+      return `notEquals(\`${actual}\`, \`${expected}\`)`;
     case '=@':
-      return `isAt(${actual}, ${expected})`;
+      return `isAt(\`${actual}\`, \`${expected}\`)`;
     case '!@':
-      return `isNotAt(${actual}, ${expected})`;
+      return `isNotAt(\`${actual}\`, \`${expected}\`)`;
     case '=~':
-      return `matches(${actual}, ${expected})`;
+      return `matches(\`${actual}\`, \`${expected}\`)`;
     case '!~':
-      return `notMatches(${actual}, ${expected})`;
+      return `notMatches(\`${actual}\`, \`${expected}\`)`;
     case '=^':
-      return `startsWith(${actual}, ${expected})`;
+      return `startsWith(\`${actual}\`, \`${expected}\`)`;
     case '!^':
-      return `notStartsWith(${actual}, ${expected})`;
+      return `notStartsWith(\`${actual}\`, \`${expected}\`)`;
     case '=$':
-      return `endsWith(${actual}, ${expected})`;
+      return `endsWith(\`${actual}\`, \`${expected}\`)`;
     case '!$':
-      return `notEndsWith(${actual}, ${expected})`;
+      return `notEndsWith(\`${actual}\`, \`${expected}\`)`;
     default:
       throw new Error(`${check}: Unknown operator: ${operator}`);
   }
@@ -119,9 +119,8 @@ const normalizeComparison =
             `Invalid ${kind} object: "actual" and "expected" are required`);
       }
       const operator = (comp as any).operator || '==';
-      const actualStr = typeof actual === 'string' ? actual : JSON.stringify(actual);
-      const expectedStr =
-          typeof expected === 'string' ? expected : JSON.stringify(expected);
+      const actualStr = typeof actual === 'string' ? actual : String(actual ?? '');
+      const expectedStr = typeof expected === 'string' ? expected : String(expected ?? '');
       const raw = `${actualStr} ${operator} ${expectedStr}`;
       const title = typeof (comp as any).title === 'string' ? (comp as any).title : undefined;
       const details = typeof (comp as any).details === 'string' ? (comp as any).details : undefined;
@@ -257,13 +256,14 @@ export const checkToJSfunc = (check: Comparison): string => {
   const finaSuccessMsg = `${successMessage}${titlePart}${detailsPart}`;
   const finalTitle = typeof title === 'string' ? toTemplateWithVars(title) : undefined;
   const finalDetails = typeof details === 'string' ? toTemplateWithVars(details) : undefined;
-  return `if(${conditionStatement}){
+  const finalActual = typeof actual === 'string' ? toTemplateWithVars(actual) : undefined;
+  const finalExpected = typeof expected === 'string' ? toTemplateWithVars(expected) : undefined;
+  return `if(${conditionStatement}) {
     console.log(${toTemplateWithVars(finaSuccessMsg)});
   report_('check', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, true);
 } else {
     console.error(${toTemplateWithVars(finaFaillMsg)});
-  report_('check', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, false, ${actual}, ${
-      expected});
+  report_('check', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, false, ${finalActual}, ${finalExpected});
 }\n`;
 };
 
@@ -284,13 +284,14 @@ export const assertToJSfunc = (assert: Comparison): string => {
   const finaSuccessMsg = `${successMessage}${titlePart}${detailsPart}`;
   const finalTitle = typeof title === 'string' ? toTemplateWithVars(title) : undefined;
   const finalDetails = typeof details === 'string' ? toTemplateWithVars(details) : undefined;
-  return `if(${conditionStatement}){
+  const finalActual = typeof actual === 'string' ? toTemplateWithVars(actual) : undefined;
+  const finalExpected = typeof expected === 'string' ? toTemplateWithVars(expected) : undefined;
+  return `if(${conditionStatement}) {
   console.log(${toTemplateWithVars(finaSuccessMsg)});
   report_('assert', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, true);
 } else {
   console.error(${toTemplateWithVars(finaFaillMsg)});
-  report_('assert', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, false, ${actual}, ${
-      expected});
+  report_('assert', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, false, ${finalActual}, ${finalExpected});
   throw new Error("Assertion failed");
 }\n`;
 };

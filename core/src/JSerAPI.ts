@@ -102,7 +102,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
                           .join(', ');
 
   return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
-  const req = {
+  const req_ = {
     url: ${toTemplateWithEnvs(String(replaced.url || ''))},
     protocol: '${ctx.api.protocol}',
     method: '${replaced.method}',
@@ -110,19 +110,24 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
     headers: ${headers ? '{ ' + headers + ' }' : '{}'},
     body: ${toTemplateWithEnvs(formattedBody)}
   };
-  const res = await send(req);
 
-  const output = extractOutputs(
+  const res_ = await send_(req_);
+
+  const output_ = extract_outputs_(
     {
       type: 'auto',
-      body: res?.body,
-      headers: res?.headers || {},
-      cookies: res?.cookies || {}
+      body: res_?.body,
+      headers: res_?.headers || {},
+      cookies: res_?.cookies || {}
     },
     ${indentLines(indentLines(JSON.stringify(extractRules, null, 2)))}
   );
-  output.response_time = res?.duration || 0;
-  output.status_code = res?.status || 0;
-  return output;
+
+  output_.status_code_ = res_?.status || 0;
+  output_.details_ = {
+    request: req_,
+    response: res_
+  };
+  return output_;
 };`;
 };
