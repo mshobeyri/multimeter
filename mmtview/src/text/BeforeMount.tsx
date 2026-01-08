@@ -1,6 +1,5 @@
 import { validateYamlContent } from './Validate';
 import { KeySuggestionsByParent } from './AutoComplete';
-import { JSONValue } from 'mmt-core/CommonData';
 
 async function listFiles(folder: string, recursive = true): Promise<string[]> {
     return new Promise((resolve) => {
@@ -18,6 +17,64 @@ async function listFiles(folder: string, recursive = true): Promise<string[]> {
 
 export const handleBeforeMount = (monaco: any) => {
     const keySuggestionsByParent = KeySuggestionsByParent(monaco);
+
+    const getInputsKeysFromModel = (model: any): string[] => {
+        try {
+            const value = String(model?.getValue?.() ?? '');
+            const lines = value.split(/\r?\n/);
+            let inInputs = false;
+            let inputsIndent = 0;
+            let childIndent: number | null = null;
+            const keys: string[] = [];
+            for (const line of lines) {
+                if (!line.trim()) {
+                    continue;
+                }
+                const indent = line.search(/\S|$/);
+                const trimmed = line.trim();
+                if (!inInputs) {
+                    if (/^inputs:\s*$/.test(trimmed)) {
+                        inInputs = true;
+                        inputsIndent = indent;
+                        childIndent = null;
+                    }
+                    continue;
+                }
+
+                if (indent <= inputsIndent) {
+                    break;
+                }
+
+                if (childIndent === null) {
+                    childIndent = indent;
+                }
+
+                if (indent !== childIndent) {
+                    continue;
+                }
+
+                const keyMatch = trimmed.match(/^([A-Za-z_][A-Za-z0-9_-]*)\s*:/);
+                if (keyMatch) {
+                    keys.push(keyMatch[1]);
+                }
+            }
+            return Array.from(new Set(keys)).sort((a, b) => a.localeCompare(b));
+        } catch {
+            return [];
+        }
+    };
+
+    const getInputTokenSuggestions = (model: any, prefixWithSpace: boolean): any[] => {
+        const names = getInputsKeysFromModel(model);
+        const lead = prefixWithSpace ? ' ' : '';
+        return names.map((name) => ({
+            label: 'i:' + name,
+            kind: monaco.languages.CompletionItemKind.Variable,
+            insertText: lead + 'i:' + name,
+            documentation: `Input token i:${name} (from this file's inputs:)`,
+            detail: `Input: ${name}`,
+        }));
+    };
 
     // Helper function to deduplicate suggestions by label
     const deduplicateSuggestions = (suggestions: any[]): any[] => {
@@ -183,6 +240,27 @@ export const handleBeforeMount = (monaco: any) => {
             const lineContent = model.getLineContent(lineNumber);
             const lines = model.getLinesContent().slice(0, lineNumber - 1);
 
+            // Token suggestions: i:<name> for current file inputs:
+            // Mirror e:/r: behavior from general suggestions but scoped to this document.
+            const tokenSource = lineContent.slice(0, Math.max(0, position.column - 1));
+            const tokenMatch = tokenSource.match(/(^|\s)(i:)([\w-]*)$/);
+            if (tokenMatch) {
+                const prefixWithSpace = tokenMatch[1] === ' ';
+                const suggestionList = getInputTokenSuggestions(model, prefixWithSpace);
+                const replaceStartColumn = Math.max(1, position.column - tokenMatch[2].length - tokenMatch[3].length);
+                return {
+                    suggestions: suggestionList.map((item) => ({
+                        ...item,
+                        range: {
+                            startLineNumber: position.lineNumber,
+                            startColumn: replaceStartColumn,
+                            endLineNumber: position.lineNumber,
+                            endColumn: position.column,
+                        }
+                    }))
+                };
+            }
+
             const firstLine = model.getLineContent(1).trim();
             const currentIndent = lineContent.search(/\S|$/);
             const parentContext = getParentContext(lines, currentIndent, firstLine);
@@ -318,7 +396,7 @@ export const handleBeforeMount = (monaco: any) => {
                     if (indent >= currentIndent) {
                         continue;
                     }
-                    const m = l.trim().match(/^\-\s*(check|assert):\s*$/);
+                    const m = l.trim().match(/^-\s*(check|assert):\s*$/);
                     if (m) {
                         const containerKey = m[1];
                         const suggestionList = keySuggestionsByParent[containerKey] || [];
