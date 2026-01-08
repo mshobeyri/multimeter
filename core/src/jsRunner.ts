@@ -80,7 +80,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
             .map(name => `const ${name} = Random["${name}"];`)
             .join('\n');
     const fn = new Function(
-        'mmtHelper', 'console', 'send_', 'extract_outputs_', 'Random',
+        'mmtHelper', 'console', 'send_', 'extractOutputs_', 'Random',
         `${helperDecls}\n${randomDecls}\n${code}`);
     await fn(mmtHelper, customConsole, send, extractOutputs, Random);
   } catch (e: any) {

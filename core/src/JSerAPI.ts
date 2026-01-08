@@ -113,7 +113,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
 
   const res_ = await send_(req_);
 
-  const output_ = extract_outputs_(
+  const output_ = extractOutputs_(
     {
       type: 'auto',
       body: res_?.body,
@@ -123,7 +123,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
     ${indentLines(indentLines(JSON.stringify(extractRules, null, 2)))}
   );
 
-  output_.status_code_ = res_?.status || 0;
+  output_.statusCode_ = res_?.status || 0;
   output_.details_ = JSON.stringify({
     request: req_,
     response: res_
