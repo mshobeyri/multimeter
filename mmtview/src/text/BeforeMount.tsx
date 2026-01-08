@@ -265,6 +265,51 @@ export const handleBeforeMount = (monaco: any) => {
             const currentIndent = lineContent.search(/\S|$/);
             const parentContext = getParentContext(lines, currentIndent, firstLine);
 
+            // Test: suggest list items under steps:/stages: when editing a dash line.
+            // Example:
+            // steps:
+            //   - <here>
+            // Works even if user already typed "- ".
+            if (firstLine === 'type: test') {
+                const trimmedLine = lineContent.trim();
+                const isDashLine = trimmedLine === '-' || trimmedLine.startsWith('- ') || trimmedLine === '';
+                if ((parentContext === 'steps' || parentContext === 'stages') && isDashLine) {
+                    const suggestionList = (keySuggestionsByParent.steps || []).map((item: any) => {
+                        const insertText = typeof item.insertText === 'string' ? item.insertText : '';
+                        if (trimmedLine.startsWith('-')) {
+                            // User already has '-' on the line; avoid inserting it twice.
+                            if (insertText.startsWith('- ')) {
+                                return { ...item, insertText: insertText.slice(2) };
+                            }
+                            if (insertText.startsWith('-')) {
+                                return { ...item, insertText: insertText.slice(1) };
+                            }
+                        }
+                        return item;
+                    });
+
+                    const wordInfo = model.getWordUntilPosition(position);
+                    const baseStartColumn = wordInfo?.startColumn ?? position.column;
+                    const baseEndColumn = wordInfo?.endColumn ?? position.column;
+                    // If line starts with "- ", replace from after the dash+space.
+                    const dashOffset = trimmedLine.startsWith('-')
+                        ? Math.min(lineContent.length, lineContent.indexOf('-') + 2)
+                        : (baseStartColumn - 1);
+
+                    return {
+                        suggestions: suggestionList.map((item: any) => ({
+                            ...item,
+                            range: {
+                                startLineNumber: position.lineNumber,
+                                startColumn: Math.max(1, dashOffset + 1),
+                                endLineNumber: position.lineNumber,
+                                endColumn: Math.max(baseEndColumn, dashOffset + 1),
+                            }
+                        }))
+                    };
+                }
+            }
+
             // Suite: suggest list items under tests:
             //   tests:
             //     - <here>
