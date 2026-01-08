@@ -18,6 +18,19 @@ async function listFiles(folder: string, recursive = true): Promise<string[]> {
 export const handleBeforeMount = (monaco: any) => {
     const keySuggestionsByParent = KeySuggestionsByParent(monaco);
 
+    const splitPathPrefix = (raw: string): { folder: string; partial: string } => {
+        const v = String(raw ?? '');
+        // trim leading spaces and optional opening quote
+        const trimmed = v.replace(/^\s+/, '').replace(/^["']/, '');
+        const lastSlash = trimmed.lastIndexOf('/');
+        if (lastSlash < 0) {
+            return { folder: '.', partial: trimmed };
+        }
+        const folder = trimmed.slice(0, lastSlash + 1);
+        const partial = trimmed.slice(lastSlash + 1);
+        return { folder: folder || '.', partial };
+    };
+
     const getInputsKeysFromModel = (model: any): string[] => {
         try {
             const value = String(model?.getValue?.() ?? '');
@@ -187,19 +200,24 @@ export const handleBeforeMount = (monaco: any) => {
     };
 
     const importValueFoldersCache = new Map<string, string[]>();
-    const getImportValueSuggestions = async (): Promise<any[]> => {
+    const getImportValueSuggestions = async (typedValue: string): Promise<any[]> => {
         if (!window?.vscode) {
             return [];
         }
-        const folder = '.';
-        const cached = importValueFoldersCache.get(folder);
-        const files = cached ?? await listFiles(folder, true);
+        const { folder, partial } = splitPathPrefix(typedValue);
+        const cacheKey = folder;
+        const cached = importValueFoldersCache.get(cacheKey);
+        const files = cached ?? await listFiles(folder || '.', true);
         if (!cached) {
-            importValueFoldersCache.set(folder, files);
+            importValueFoldersCache.set(cacheKey, files);
         }
         return deduplicateSuggestions(
             files
                 .filter((p) => typeof p === 'string' && (p.toLowerCase().endsWith('.mmt') || p.toLowerCase().endsWith('.csv')))
+                .filter((p) => {
+                    const fileName = String(p).split('/').pop() ?? '';
+                    return !partial || fileName.toLowerCase().startsWith(partial.toLowerCase());
+                })
                 .sort((a, b) => a.localeCompare(b))
                 .map((p) => ({
                     label: p,
@@ -342,13 +360,14 @@ export const handleBeforeMount = (monaco: any) => {
                 const key = keyValueMatch[2];
                 const colonPosition = lineContent.indexOf(':');
                 const valueStartColumn = colonPosition + 2;
+                const typedValue = keyValueMatch[3] ?? '';
 
                 // Import map values: suggest .mmt files for `import:` / `imports:` entries
                 // Example:
                 // import:
                 //   x: <here>
                 if (parentContext === 'import' && position.column >= valueStartColumn) {
-                    const suggestionList = await getImportValueSuggestions();
+                    const suggestionList = await getImportValueSuggestions(typedValue);
                     return {
                         suggestions: suggestionList.map(item => ({
                             ...item,
@@ -389,10 +408,11 @@ export const handleBeforeMount = (monaco: any) => {
                 const key = listItemMatch[2];
                 const colonPosition = lineContent.lastIndexOf(':');
                 const valueStartColumn = colonPosition + 2;
+                const typedValue = listItemMatch[3] ?? '';
 
                 // Allow imports inside list items too (rare but harmless)
                 if ((key === 'import' || key === 'imports') && position.column >= valueStartColumn) {
-                    const suggestionList = await getImportValueSuggestions();
+                    const suggestionList = await getImportValueSuggestions(typedValue);
                     return {
                         suggestions: suggestionList.map(item => ({
                             ...item,
