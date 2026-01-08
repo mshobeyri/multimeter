@@ -162,6 +162,84 @@ export async function handleValidateImports(
   });
 }
 
+type SuiteTreeNodeInfo = {
+  path: string;
+  absPath?: string;
+  docType: 'suite' | 'test' | 'api' | 'env' | 'doc' | 'unknown' | 'missing';
+  tests?: string[];
+  cycle?: boolean;
+  error?: string;
+};
+
+export async function handleGetSuiteImportTree(
+    message: any, webviewPanel: vscode.WebviewPanel,
+    document: vscode.TextDocument) {
+  const entries = Array.isArray(message?.entries) ? message.entries : [];
+  const maxDepth = typeof message?.maxDepth === 'number' ? message.maxDepth : 10;
+  const rootAbs = document.uri.fsPath;
+
+  const visited = new Set<string>();
+
+  const resolveAbs = (rel: string): string => {
+    return path.resolve(path.dirname(rootAbs), rel);
+  };
+
+  const detectType = (text: string): SuiteTreeNodeInfo['docType'] => {
+    try {
+      const js: any = parseYaml(text);
+      const t = js?.type;
+      if (t === 'suite' || t === 'test' || t === 'api' || t === 'env' || t === 'doc') {
+        return t;
+      }
+      return 'unknown';
+    } catch {
+      return 'unknown';
+    }
+  };
+
+  const readAndExtract = async (relPath: string, depth: number): Promise<SuiteTreeNodeInfo> => {
+    const abs = resolveAbs(relPath);
+    if (!fs.existsSync(abs)) {
+      return { path: relPath, absPath: abs, docType: 'missing' };
+    }
+    if (visited.has(abs)) {
+      return { path: relPath, absPath: abs, docType: 'unknown', cycle: true };
+    }
+    if (depth > maxDepth) {
+      return { path: relPath, absPath: abs, docType: 'unknown', error: 'maxDepth' };
+    }
+    visited.add(abs);
+    try {
+      const raw = await vscode.workspace.fs.readFile(vscode.Uri.file(abs));
+      const text = Buffer.from(raw).toString('utf8');
+      const docType = detectType(text);
+      if (docType === 'suite') {
+        const js: any = parseYaml(text);
+        const tests: any[] = Array.isArray(js?.tests) ? js.tests : [];
+        const strings = tests.filter(t => typeof t === 'string').map(t => String(t));
+        return { path: relPath, absPath: abs, docType, tests: strings };
+      }
+      return { path: relPath, absPath: abs, docType };
+    } catch (err: any) {
+      return { path: relPath, absPath: abs, docType: 'unknown', error: err?.message || String(err) };
+    }
+  };
+
+  const results: Record<string, SuiteTreeNodeInfo> = {};
+  for (const rel of entries) {
+    if (typeof rel !== 'string' || !rel.trim()) {
+      continue;
+    }
+    results[rel] = await readAndExtract(rel, 0);
+  }
+
+  webviewPanel.webview.postMessage({
+    command: 'suiteImportTreeResult',
+    requestId: message?.requestId,
+    results,
+  });
+}
+
 export function handleValidateFilesExist(
     message: any, webviewPanel: vscode.WebviewPanel,
     document: vscode.TextDocument) {

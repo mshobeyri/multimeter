@@ -56,6 +56,7 @@ export async function executeSuite(
     const results = await Promise.all(group.map(async (entry, entryIndex) => {
       const childFilePath = resolveRelativeTo(entry, prepared.filePath);
       const display = basename(childFilePath || entry);
+      const runId = `suite:${sanitizeIdentifier(prepared.filePath)}:${gi}:${entryIndex}:${sanitizeIdentifier(childFilePath || entry)}`;
       try {
         const childRawText = await fileLoader(childFilePath);
         const childDocType = detectDocType(childFilePath, childRawText);
@@ -65,6 +66,10 @@ export async function executeSuite(
           status: 'running',
           groupIndex: gi,
           groupItemIndex: entryIndex,
+          runId,
+          filePath: childFilePath,
+          entry,
+          docType: childDocType ?? undefined,
         });
 
         suiteLogger('info', `Running suite item: ${display}`);
@@ -87,7 +92,7 @@ export async function executeSuite(
         const result = {
           entry,
           filePath: childFilePath,
-          docType: childDocType,
+          docType: childDocType ?? undefined,
           success: !!childRun.result?.success,
           status,
           errors: childRun.result?.errors ?? [],
@@ -100,6 +105,10 @@ export async function executeSuite(
           groupIndex: gi,
           groupItemIndex: entryIndex,
           status,
+          runId,
+          filePath: childFilePath,
+          entry,
+          docType: childDocType ?? undefined,
         });
 
         return result;
@@ -126,6 +135,9 @@ export async function executeSuite(
           groupIndex: gi,
           groupItemIndex: entryIndex,
           status,
+          runId,
+          filePath: childFilePath,
+          entry,
         });
         return result;
       }

@@ -170,6 +170,10 @@ export const messageRecieved = async (
       file.handleValidateFilesExist(message, webviewPanel, document);
       break;
 
+    case 'getSuiteImportTree':
+      await file.handleGetSuiteImportTree(message, webviewPanel, document);
+      break;
+
     case 'openRelativeFile':
       await file.handleOpenRelativeFile(message, document);
       break;

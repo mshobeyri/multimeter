@@ -14,12 +14,23 @@ interface SuiteFileItemProps {
     groups: SuiteGroup[];
     persistGroups: (groups: SuiteGroup[]) => void;
     status: StepStatus;
+    canEdit?: boolean;
 }
 
 export const SuiteFileItem: React.FC<SuiteFileItemProps> = ({
-    item, context, arrow, children, missingFiles, statusIconFor, groups, persistGroups, status
+    item,
+    context,
+    arrow,
+    children,
+    missingFiles,
+    statusIconFor,
+    groups,
+    persistGroups,
+    status,
+    canEdit = true,
 }) => {
     const data = item.data as { type: 'file', path: string };
+    const fileContext = useContext(FileContext);
     const isMissing = missingFiles.has(data.path);
     const statusIcon = isMissing
         ? {
@@ -44,6 +55,9 @@ export const SuiteFileItem: React.FC<SuiteFileItemProps> = ({
     );
 
     const onChange = (value: string) => {
+        if (!canEdit) {
+            return;
+        }
         const nextGroups = groups.map(group => ({
             ...group,
             entries: group.entries.map(entry =>
@@ -65,34 +79,51 @@ export const SuiteFileItem: React.FC<SuiteFileItemProps> = ({
                         style={{ color: statusIcon.color }}
                     />
                     <NoTreeInterference>
-                        <FilePickerInput
-                            value={data.path}
-                            onChange={(rel) => onChange(rel)}
-                            basePath={useContext(FileContext).mmtFilePath}
-                            filters={[{ name: 'MMT files', extensions: ['mmt'] }]}
-                            onRemovePressed={() => onChange('')}
-                        />
+                        {canEdit ? (
+                            <FilePickerInput
+                                value={data.path}
+                                onChange={(rel) => onChange(rel)}
+                                basePath={fileContext.mmtFilePath}
+                                filters={[{ name: 'MMT files', extensions: ['mmt'] }]}
+                                onRemovePressed={() => onChange('')}
+                            />
+                        ) : (
+                            <div
+                                style={{
+                                    fontFamily: 'var(--vscode-editor-font-family)',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    width: '100%',
+                                }}
+                                title={data.path}
+                            >
+                                {data.path}
+                            </div>
+                        )}
                     </NoTreeInterference>
                 </div>
-                <span
-                    {...context.interactiveElementProps}
-                    title="Drag to reorder"
-                    onMouseDownCapture={e => e.stopPropagation()}
-                    onPointerDownCapture={e => e.stopPropagation()}
-                    style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: 24,
-                        minWidth: 24,
-                        height: 24,
-                        opacity: 0.7,
-                        cursor: 'grab',
-                        userSelect: 'none',
-                    }}
-                >
-                    <span className="codicon codicon-gripper" aria-hidden />
-                </span>
+                {canEdit && (
+                    <span
+                        {...context.interactiveElementProps}
+                        title="Drag to reorder"
+                        onMouseDownCapture={e => e.stopPropagation()}
+                        onPointerDownCapture={e => e.stopPropagation()}
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 24,
+                            minWidth: 24,
+                            height: 24,
+                            opacity: 0.7,
+                            cursor: 'grab',
+                            userSelect: 'none',
+                        }}
+                    >
+                        <span className="codicon codicon-gripper" aria-hidden />
+                    </span>
+                )}
             </div>
             {children}
         </div>

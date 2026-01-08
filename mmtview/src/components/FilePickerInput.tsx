@@ -13,6 +13,7 @@ interface FilePickerInputProps {
   onEnterPressed?: (file: string) => void;
   onRemovePressed?: () => void;
   allowFolders?: boolean;
+  disabled?: boolean;
 }
 
 const FilePickerInput: React.FC<FilePickerInputProps> = ({
@@ -24,6 +25,7 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
   onEnterPressed,
   onRemovePressed,
   allowFolders = false,
+  disabled = false,
 }) => {
   const filterPayload = useMemo(() => {
     if (!filters || filters.length === 0) return undefined;
@@ -64,6 +66,7 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
           ref={ref}
           type="text"
           value={value}
+          disabled={disabled}
           onChange={e => {
             onChange && onChange(e.target.value);
           }}
@@ -84,6 +87,7 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
         />
         <button
           onClick={handleOpenPicker}
+          disabled={disabled}
           title={filters && filters.length ? `Open file picker (${filters.map(f => f.name || f.extensions?.join(',')).join(';')})` : 'Open file picker'}
           aria-label="Open file picker"
           className="field-button"
@@ -99,6 +103,7 @@ const FilePickerInput: React.FC<FilePickerInputProps> = ({
               } catch (e) {
               }
             }}
+            disabled={disabled}
             title="Clear"
             aria-label="Clear file"
             className="field-button"

@@ -12,6 +12,8 @@ import { parseYaml, parseYamlDoc } from 'mmt-core/markupConvertor';
 import { SuiteFileItem } from './SuiteFileItem';
 import { SuiteGroupItem } from './SuiteGroupItem';
 import { StepStatus, SuiteEntry, SuiteGroup, SuiteTreeItemData } from './types';
+import SuiteEdit from './SuiteEdit';
+import SuiteTest from './SuiteTest';
 
 interface SuitePanelProps {
   content: string;
@@ -122,6 +124,28 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [addMenuPos, setAddMenuPos] = useState<{ left: number; top: number } | null>(null);
+  const [tab, setTab] = useState<'edit' | 'test'>('edit');
+  const [showIconsOnly, setShowIconsOnly] = useState(false);
+  const tabContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const checkTabWidth = () => {
+      if (!tabContainerRef.current) {
+        return;
+      }
+      const containerWidth = tabContainerRef.current.clientWidth;
+      const fullTextWidth = 2 * 100;
+      setShowIconsOnly(containerWidth < fullTextWidth);
+    };
+
+    checkTabWidth();
+
+    const resizeObserver = new ResizeObserver(checkTabWidth);
+    if (tabContainerRef.current) {
+      resizeObserver.observe(tabContainerRef.current);
+    }
+    return () => resizeObserver.disconnect();
+  }, []);
 
   useEffect(() => {
     setGroups(buildSuiteGroupsFromContent(content));
@@ -459,6 +483,7 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
           children={children}
           getGroupStatus={getGroupStatus}
           statusIconFor={statusIconFor}
+          canShowStatusIcon={tab === 'test'}
         />
       );
     }
@@ -474,161 +499,109 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
         groups={groups}
         persistGroups={persistGroups}
         status={stepStatuses[item.index] ?? 'default'}
+        canEdit={canEdit}
       />
     );
   };
 
   const noItems = groups.every(group => group.entries.length === 0);
 
+  const canEdit = tab === 'edit';
+  const renderTree = () => (
+    <ControlledTreeEnvironment
+      items={items}
+      getItemTitle={item => (item.data?.type === 'file' ? item.data.path : item.data?.label ?? '')}
+      canDragAndDrop={canEdit}
+      canDropOnFolder={canEdit}
+      canReorderItems={canEdit}
+      canSearch={false}
+      canSearchByStartingTyping={false}
+      viewState={{ 'suite-tree': { expandedItems } }}
+      onExpandItem={handleExpand}
+      onCollapseItem={handleCollapse}
+      onDrop={canEdit ? handleDrop : undefined}
+      onSelectItems={() => { }}
+      renderItemArrow={({ item, context }) =>
+        item.isFolder ? (
+          <span
+            {...context.arrowProps}
+            style={{ display: 'inline-flex', paddingTop: 8, lineHeight: 0, alignSelf: 'flex-start' }}
+          >
+            {context.isExpanded ? (
+              <span className="codicon codicon-chevron-down" style={{ fontSize: 16 }} />
+            ) : (
+              <span className="codicon codicon-chevron-right" style={{ fontSize: 16 }} />
+            )}
+          </span>
+        ) : (
+          <span style={{ display: 'inline-block', width: 24, height: 24 }} />
+        )
+      }
+      renderItem={renderItem}
+      renderTreeContainer={({ children, containerProps }) => <div {...containerProps}>{children}</div>}
+      renderItemsContainer={({ children, containerProps }) => (
+        <ul
+          {...containerProps}
+          style={{ ...(containerProps.style || {}), margin: 0, listStyle: 'none' }}
+        >
+          {children}
+        </ul>
+      )}
+      renderDragBetweenLine={({ lineProps }) => (
+        <div
+          {...lineProps}
+          style={{ background: 'var(--vscode-focusBorder, #264f78)', height: '1px' }}
+        />
+      )}
+    >
+      <Tree treeId="suite-tree" rootItem="suite-root" treeLabel="Suite structure" />
+    </ControlledTreeEnvironment>
+  );
+
   return (
     <div className="panel">
       <div className="panel-box">
-        <div className="test-flow-tree" style={{ paddingTop: 4 }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              marginBottom: 8,
-              alignItems: 'center',
-              position: 'relative',
-              gap: 8,
-            }}
+        <div ref={tabContainerRef} className="tab-bar">
+          <button
+            onClick={() => setTab('edit')}
+            className={`tab-button ${tab === 'edit' ? 'active' : ''}`}
+            title={showIconsOnly ? 'Edit' : undefined}
           >
-            <div style={{ fontWeight: 700 }}>Suite</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                ref={addButtonRef}
-                className='button-icon'
-                onPointerDown={event => event.stopPropagation()}
-                onPointerUp={event => {
-                  event.stopPropagation();
-                  setAddMenuOpen(prev => {
-                    const next = !prev;
-                    if (next) {
-                      openAddMenuAtButton();
-                    }
-                    return next;
-                  });
-                }}
-                title="Add suite item"
-              >
-                <span className="codicon codicon-add" aria-hidden />
-                Add item
-              </button>
-              <button
-                className='button-icon'
-                disabled={allPaths.length === 0}
-                onClick={handleRunSuite}
-                title={allPaths.length === 0 ? 'No suite files to run' : 'Run suite'}
-              >
-                <span className="codicon codicon-run" aria-hidden />
-                Run suite
-              </button>
-            </div>
-            {addMenuOpen && addMenuPos && (
-              <div
-                style={{
-                  position: 'fixed',
-                  left: addMenuPos.left,
-                  top: addMenuPos.top,
-                  zIndex: 1000,
-                  background: 'var(--vscode-editorWidget-background,#232323)',
-                  border: '1px solid var(--vscode-editorWidget-border,#333)',
-                  borderRadius: 4,
-                  boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-                  minWidth: 220,
-                  padding: 4,
-                }}
-                onPointerDown={event => event.stopPropagation()}
-                onMouseDown={event => event.stopPropagation()}
-                onClick={event => event.stopPropagation()}
-              >
-                <button
-                  className="action-button"
-                  style={{
-                    width: '100%',
-                    justifyContent: 'flex-start',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                  }}
-                  onPointerUp={() => handleAddGroup()}
-                  title="Insert a group separator (then)"
-                >
-                  <span className="codicon codicon-list-tree" style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
-                  <span>Add group (then)</span>
-                </button>
-                <button
-                  className="action-button"
-                  style={{
-                    width: '100%',
-                    justifyContent: 'flex-start',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                  }}
-                  onPointerUp={() => handleAddTestFile()}
-                  title="Add a test file entry"
-                >
-                  <span className="codicon codicon-symbol-file" style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
-                  <span>Add test file</span>
-                </button>
-              </div>
-            )}
-          </div>
-          {noItems ? (
-            <div style={{ opacity: 0.8 }}>No suite items found under `tests:`</div>
-          ) : (
-            <ControlledTreeEnvironment
-              items={items}
-              getItemTitle={item => (item.data?.type === 'file' ? item.data.path : item.data?.label ?? '')}
-              canDragAndDrop={true}
-              canDropOnFolder={true}
-              canReorderItems={true}
-              canSearch={false}
-              canSearchByStartingTyping={false}
-              viewState={{ 'suite-tree': { expandedItems } }}
-              onExpandItem={handleExpand}
-              onCollapseItem={handleCollapse}
-              onDrop={handleDrop}
-              onSelectItems={() => { }}
-              renderItemArrow={({ item, context }) =>
-                item.isFolder ? (
-                  <span
-                    {...context.arrowProps}
-                    style={{ display: 'inline-flex', paddingTop: 8, lineHeight: 0, alignSelf: 'flex-start' }}
-                  >
-                    {context.isExpanded ? (
-                      <span className="codicon codicon-chevron-down" style={{ fontSize: 16 }} />
-                    ) : (
-                      <span className="codicon codicon-chevron-right" style={{ fontSize: 16 }} />
-                    )}
-                  </span>
-                ) : (
-                  <span style={{ display: 'inline-block', width: 24, height: 24 }} />
-                )
-              }
-              renderItem={renderItem}
-              renderTreeContainer={({ children, containerProps }) => <div {...containerProps}>{children}</div>}
-              renderItemsContainer={({ children, containerProps }) => (
-                <ul
-                  {...containerProps}
-                  style={{ ...(containerProps.style || {}), margin: 0, listStyle: 'none' }}
-                >
-                  {children}
-                </ul>
-              )}
-              renderDragBetweenLine={({ lineProps }) => (
-                <div
-                  {...lineProps}
-                  style={{ background: 'var(--vscode-focusBorder, #264f78)', height: '1px' }}
-                />
-              )}
-            >
-              <Tree treeId="suite-tree" rootItem="suite-root" treeLabel="Suite structure" />
-            </ControlledTreeEnvironment>
-          )}
+            <span className="codicon codicon-edit tab-button-icon" />
+            {!showIconsOnly && 'Edit'}
+          </button>
+          <button
+            onClick={() => setTab('test')}
+            className={`tab-button ${tab === 'test' ? 'active' : ''}`}
+            title={showIconsOnly ? 'Test' : undefined}
+          >
+            <span className="codicon codicon-play tab-button-icon" />
+            {!showIconsOnly && 'Test'}
+          </button>
         </div>
+
+        {tab === 'edit' && (
+          <SuiteEdit
+            groups={groups}
+            addButtonRef={addButtonRef}
+            addMenuOpen={addMenuOpen}
+            addMenuPos={addMenuPos}
+            onAddMenuOpenChange={setAddMenuOpen}
+            onOpenAddMenuAtButton={openAddMenuAtButton}
+            onAddGroup={handleAddGroup}
+            onAddTestFile={handleAddTestFile}
+            renderTree={renderTree}
+            noItems={noItems}
+          />
+        )}
+        {tab === 'test' && (
+          <SuiteTest
+            canRun={allPaths.length > 0}
+            onRunSuite={handleRunSuite}
+            renderTree={renderTree}
+            noItems={noItems}
+          />
+        )}
       </div>
     </div>
   );

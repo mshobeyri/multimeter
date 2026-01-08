@@ -32,6 +32,10 @@ export interface SuiteReporterMessage {
   groupItemIndex: number;
   status?: SuiteStepStatus;
   success?: boolean;
+  runId?: string;
+  filePath?: string;
+  entry?: string;
+  docType?: string;
 }
 
 export type RunReporterMessage =
