@@ -55,33 +55,33 @@ export const conditionalStatementToJSfunc = (check: string): string => {
   const [actual, operator, expected] = checkParts;
   switch (operator) {
     case '<':
-      return `less(\`${actual}\`, \`${expected}\`)`;
+      return `less_(\`${actual}\`, \`${expected}\`)`;
     case '>':
-      return `greater(\`${actual}\`, \`${expected}\`)`;
+      return `greater_(\`${actual}\`, \`${expected}\`)`;
     case '<=':
-      return `lessOrEqual(\`${actual}\`, \`${expected}\`)`;
+      return `lessOrEqual_(\`${actual}\`, \`${expected}\`)`;
     case '>=':
-      return `greaterOrEqual(\`${actual}\`, \`${expected}\`)`;
+      return `greaterOrEqual_(\`${actual}\`, \`${expected}\`)`;
     case '==':
-      return `equals(\`${actual}\`, \`${expected}\`)`;
+      return `equals_(\`${actual}\`, \`${expected}\`)`;
     case '!=':
-      return `notEquals(\`${actual}\`, \`${expected}\`)`;
+      return `notEquals_(\`${actual}\`, \`${expected}\`)`;
     case '=@':
-      return `isAt(\`${actual}\`, \`${expected}\`)`;
+      return `isAt_(\`${actual}\`, \`${expected}\`)`;
     case '!@':
-      return `isNotAt(\`${actual}\`, \`${expected}\`)`;
+      return `isNotAt_(\`${actual}\`, \`${expected}\`)`;
     case '=~':
-      return `matches(\`${actual}\`, \`${expected}\`)`;
+      return `matches_(\`${actual}\`, \`${expected}\`)`;
     case '!~':
-      return `notMatches(\`${actual}\`, \`${expected}\`)`;
+      return `notMatches_(\`${actual}\`, \`${expected}\`)`;
     case '=^':
-      return `startsWith(\`${actual}\`, \`${expected}\`)`;
+      return `startsWith_(\`${actual}\`, \`${expected}\`)`;
     case '!^':
-      return `notStartsWith(\`${actual}\`, \`${expected}\`)`;
+      return `notStartsWith_(\`${actual}\`, \`${expected}\`)`;
     case '=$':
-      return `endsWith(\`${actual}\`, \`${expected}\`)`;
+      return `endsWith_(\`${actual}\`, \`${expected}\`)`;
     case '!$':
-      return `notEndsWith(\`${actual}\`, \`${expected}\`)`;
+      return `notEndsWith_(\`${actual}\`, \`${expected}\`)`;
     default:
       throw new Error(`${check}: Unknown operator: ${operator}`);
   }

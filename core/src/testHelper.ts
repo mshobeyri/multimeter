@@ -1,28 +1,28 @@
-export function less(a: any, b: any) {
+export function less_(a: any, b: any) {
   return a < b;
 }
 
-export function greater(a: any, b: any) {
+export function greater_(a: any, b: any) {
   return a > b;
 }
 
-export function lessOrEqual(a: any, b: any) {
+export function lessOrEqual_(a: any, b: any) {
   return a <= b;
 }
 
-export function greaterOrEqual(a: any, b: any) {
+export function greaterOrEqual_(a: any, b: any) {
   return a >= b;
 }
 
-export function equals(a: any, b: any) {
+export function equals_(a: any, b: any) {
   return a === b;
 }
 
-export function notEquals(a: any, b: any) {
+export function notEquals_(a: any, b: any) {
   return a !== b;
 }
 
-export function isAt(a: any, b: any) {
+export function isAt_(a: any, b: any) {
   // Checks if a is in b (for strings or arrays)
   if (typeof b === 'string' || Array.isArray(b)) {
     return b.includes(a);
@@ -30,14 +30,14 @@ export function isAt(a: any, b: any) {
   return false;
 }
 
-export function isNotAt(a: any, b: any) {
+export function isNotAt_(a: any, b: any) {
   if (typeof b === 'string' || Array.isArray(b)) {
     return !b.includes(a);
   }
   return true;
 }
 
-export function matches(a: any, b: any) {
+export function matches_(a: any, b: any) {
   // b is a regex string, e.g. "^foo.*"
   try {
     const re = new RegExp(b);
@@ -47,7 +47,7 @@ export function matches(a: any, b: any) {
   }
 }
 
-export function notMatches(a: any, b: any) {
+export function notMatches_(a: any, b: any) {
   try {
     const re = new RegExp(b);
     return !re.test(a);
@@ -56,28 +56,28 @@ export function notMatches(a: any, b: any) {
   }
 }
 
-export function startsWith(a: any, b: any) {
+export function startsWith_(a: any, b: any) {
   if (typeof a === 'string' && typeof b === 'string') {
     return a.startsWith(b);
   }
   return false;
 }
 
-export function notStartsWith(a: any, b: any) {
+export function notStartsWith_(a: any, b: any) {
   if (typeof a === 'string' && typeof b === 'string') {
     return !a.startsWith(b);
   }
   return true;
 }
 
-export function endsWith(a: any, b: any) {
+export function endsWith_(a: any, b: any) {
   if (typeof a === 'string' && typeof b === 'string') {
     return a.endsWith(b);
   }
   return false;
 }
 
-export function notEndsWith(a: any, b: any) {
+export function notEndsWith_(a: any, b: any) {
   if (typeof a === 'string' && typeof b === 'string') {
     return !a.endsWith(b);
   }
