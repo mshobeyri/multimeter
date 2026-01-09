@@ -70,7 +70,9 @@ export const SuiteFileItem: React.FC<SuiteFileItemProps> = ({
     return (
         <div {...context.itemContainerWithChildrenProps}>
             <div className="tree-view-box" {...context.itemContainerWithoutChildrenProps} style={{ paddingTop: 10, display: 'flex' }}>
-                {arrow}
+                <div style={{ width: 24, minWidth: 24, display: 'inline-flex', alignItems: 'flex-start' }}>
+                    {arrow}
+                </div>
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                     <span
                         className={`codicon ${statusIcon.icon}`}

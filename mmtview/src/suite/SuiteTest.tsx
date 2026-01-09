@@ -3,11 +3,11 @@ import React from 'react';
 interface SuiteTestProps {
   canRun: boolean;
   onRunSuite: () => void;
-  renderTree: () => React.ReactNode;
+  tree: React.ReactNode;
   noItems: boolean;
 }
 
-const SuiteTest: React.FC<SuiteTestProps> = ({ canRun, onRunSuite, renderTree, noItems }) => {
+const SuiteTest: React.FC<SuiteTestProps> = ({ canRun, onRunSuite, tree, noItems }) => {
   return (
     <div className="panel-box">
       <div className="test-flow-tree" style={{ paddingTop: 4 }}>
@@ -34,7 +34,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ canRun, onRunSuite, renderTree, n
             </button>
           </div>
         </div>
-        {noItems ? <div style={{ opacity: 0.8 }}>No suite items found under `tests:`</div> : renderTree()}
+        {noItems ? <div style={{ opacity: 0.8 }}>No suite items found under `tests:`</div> : tree}
       </div>
     </div>
   );

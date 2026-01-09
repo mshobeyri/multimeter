@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { SuiteImportDocType, SuiteImportTreeNode, SuiteImportTreeResult, createNode } from './suiteImportTree';
+import {
+  SuiteImportDocType,
+  SuiteImportTreeNode,
+  SuiteImportTreeResult,
+  buildSuiteInfoChildren,
+  createNode,
+  splitSuiteGroups,
+} from './suiteImportTree';
 
 type SuiteImportTreeRequest = {
   command: 'getSuiteImportTree';
@@ -14,29 +21,6 @@ type SuiteImportTreeResponse = {
   results?: Record<string, { path: string; docType: SuiteImportDocType; tests?: string[]; cycle?: boolean; error?: string }>;
 };
 
-const splitSuiteGroups = (tests: string[]): string[][] => {
-  const groups: string[][] = [];
-  let current: string[] = [];
-  const push = () => {
-    if (current.length) {
-      groups.push(current);
-      current = [];
-    }
-  };
-  for (const raw of tests) {
-    const trimmed = String(raw ?? '').trim();
-    if (!trimmed) {
-      continue;
-    }
-    if (trimmed === 'then') {
-      push();
-      continue;
-    }
-    current.push(trimmed);
-  }
-  push();
-  return groups;
-};
 
 export const useSuiteImportTree = (rootEntries: string[], enabled: boolean) => {
   const [rootNodes, setRootNodes] = useState<SuiteImportTreeNode[]>([]);
@@ -64,34 +48,63 @@ export const useSuiteImportTree = (rootEntries: string[], enabled: boolean) => {
     });
   }, []);
 
-  const buildChildNodes = useCallback(async (parent: SuiteImportTreeNode): Promise<SuiteImportTreeNode[]> => {
-    const cached = cacheRef.current.get(parent.path);
-    const docType = cached?.docType ?? parent.docType;
+  const getCachedInfo = useCallback((path: string) => cacheRef.current.get(path), []);
 
-    if (docType !== 'suite') {
-      return [];
-    }
+  const cacheEntry = useCallback(
+    (path: string, info: { docType: SuiteImportDocType; tests?: string[]; cycle?: boolean; error?: string }) => {
+      cacheRef.current.set(path, info);
+    },
+    []
+  );
 
-    const tests = cached?.tests ?? parent.tests ?? [];
-    const groups = splitSuiteGroups(tests);
+  const buildChildrenForSuiteNode = useCallback(
+    async (suiteNode: SuiteImportTreeNode): Promise<SuiteImportTreeNode[]> => {
+      const cached = getCachedInfo(suiteNode.path);
+      const docType = cached?.docType ?? suiteNode.docType;
+      const cycle = cached?.cycle ?? suiteNode.cycle;
 
-    const nodes: SuiteImportTreeNode[] = [];
-    for (let gi = 0; gi < groups.length; gi++) {
-      const groupNode = createNode(`group:${parent.path}:${gi}`, 'unknown');
-      groupNode.children = [];
-      nodes.push({ ...groupNode, path: `Group ${gi + 1}`, docType: 'unknown' });
+      if (docType !== 'suite' || cycle) {
+        return [];
+      }
 
-      const entries = groups[gi];
+      const tests = cached?.tests ?? suiteNode.tests ?? [];
+      const groups = splitSuiteGroups(tests);
+      suiteNode.groups = groups;
+      return buildSuiteInfoChildren(suiteNode.path, groups);
+    },
+    [getCachedInfo]
+  );
+
+  const buildChildrenForGroupNode = useCallback(
+    async (groupNode: SuiteImportTreeNode): Promise<SuiteImportTreeNode[]> => {
+      // groupNode.id format: suite-import-node:group:<parentPath>#<index>
+      const raw = groupNode.id;
+      const idx = raw.lastIndexOf('#');
+      const parentKey = raw.startsWith('suite-import-node:group:') ? raw.slice('suite-import-node:group:'.length) : '';
+      const parentPath = idx >= 0 ? parentKey.slice(0, idx) : '';
+      const groupIndex = idx >= 0 ? Number(parentKey.slice(idx + 1)) : NaN;
+      if (!parentPath || Number.isNaN(groupIndex)) {
+        return [];
+      }
+
+      const cached = getCachedInfo(parentPath);
+      if (!cached || cached.docType !== 'suite' || cached.cycle) {
+        return [];
+      }
+
+      const groups = splitSuiteGroups(cached.tests ?? []);
+      const entries = groups[groupIndex] ?? [];
       if (!entries.length) {
-        continue;
+        return [];
       }
 
       const res = await request(entries);
-      for (const entryPath of entries) {
+      return entries.map((entryPath) => {
         const info = res.results[entryPath];
-        const childDocType = info?.docType ?? 'unknown';
-        cacheRef.current.set(entryPath, { docType: childDocType, tests: info?.tests, cycle: info?.cycle, error: info?.error });
-        const child = createNode(entryPath, childDocType);
+        const docType = info?.docType ?? 'unknown';
+        cacheEntry(entryPath, { docType, tests: info?.tests, cycle: info?.cycle, error: info?.error });
+
+        const child = createNode(entryPath, docType);
         if (info?.tests) {
           child.tests = info.tests;
         }
@@ -101,12 +114,11 @@ export const useSuiteImportTree = (rootEntries: string[], enabled: boolean) => {
         if (info?.error) {
           child.error = info.error;
         }
-        (nodes[nodes.length - 1].children as SuiteImportTreeNode[]).push(child);
-      }
-    }
-
-    return nodes;
-  }, [request]);
+        return child;
+      });
+    },
+    [cacheEntry, getCachedInfo, request]
+  );
 
   const expandNode = useCallback(async (node: SuiteImportTreeNode) => {
     setExpandedIds((prev) => {
@@ -119,7 +131,12 @@ export const useSuiteImportTree = (rootEntries: string[], enabled: boolean) => {
       return;
     }
 
-    const children = await buildChildNodes(node);
+    let children: SuiteImportTreeNode[] = [];
+    if (node.id.startsWith('suite-import-node:group:')) {
+      children = await buildChildrenForGroupNode(node);
+    } else {
+      children = await buildChildrenForSuiteNode(node);
+    }
     if (!children.length) {
       return;
     }
@@ -137,7 +154,7 @@ export const useSuiteImportTree = (rootEntries: string[], enabled: boolean) => {
     };
 
     setRootNodes((prev) => patch(prev));
-  }, [buildChildNodes]);
+  }, [buildChildrenForGroupNode, buildChildrenForSuiteNode]);
 
   const collapseNode = useCallback((node: SuiteImportTreeNode) => {
     setExpandedIds((prev) => {
@@ -165,7 +182,7 @@ export const useSuiteImportTree = (rootEntries: string[], enabled: boolean) => {
         .map((p) => {
           const info = res.results[p];
           const docType = info?.docType ?? 'unknown';
-          cacheRef.current.set(p, { docType, tests: info?.tests, cycle: info?.cycle, error: info?.error });
+          cacheEntry(p, { docType, tests: info?.tests, cycle: info?.cycle, error: info?.error });
           const n = createNode(p, docType);
           if (info?.tests) {
             n.tests = info.tests;
@@ -181,7 +198,7 @@ export const useSuiteImportTree = (rootEntries: string[], enabled: boolean) => {
       setRootNodes(nodes);
     };
     init();
-  }, [enabled, request, rootEntries]);
+  }, [cacheEntry, enabled, request, rootEntries]);
 
   return useMemo(() => ({ rootNodes, expandedIds, expandNode, collapseNode }), [collapseNode, expandNode, expandedIds, rootNodes]);
 };

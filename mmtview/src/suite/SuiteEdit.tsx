@@ -10,7 +10,7 @@ interface SuiteEditProps {
   onOpenAddMenuAtButton: () => void;
   onAddGroup: () => void;
   onAddTestFile: () => void;
-  renderTree: () => React.ReactNode;
+  tree: React.ReactNode;
   noItems: boolean;
 }
 
@@ -22,7 +22,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({
   onOpenAddMenuAtButton,
   onAddGroup,
   onAddTestFile,
-  renderTree,
+  tree,
   noItems,
 }) => {
   return (
@@ -111,7 +111,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({
         {noItems ? (
           <div style={{ opacity: 0.8 }}>No suite items found under `tests:`</div>
         ) : (
-          renderTree()
+          tree
         )}
       </div>
     </div>

@@ -1,19 +1,17 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ControlledTreeEnvironment,
   DraggingPosition,
   DraggingPositionBetweenItems,
   DraggingPositionItem,
-  Tree,
-  TreeItem,
 } from 'react-complex-tree';
 import 'react-complex-tree/lib/style.css';
 import { parseYaml, parseYamlDoc } from 'mmt-core/markupConvertor';
-import { SuiteFileItem } from './SuiteFileItem';
-import { SuiteGroupItem } from './SuiteGroupItem';
-import { StepStatus, SuiteEntry, SuiteGroup, SuiteTreeItemData } from './types';
+import { StepStatus, SuiteEntry, SuiteGroup } from './types';
+import { FileContext } from '../fileContext';
 import SuiteEdit from './SuiteEdit';
 import SuiteTest from './SuiteTest';
+import SuiteEditTree from './SuiteEditTree';
+import SuiteTestTree from './SuiteTestTree';
 
 interface SuitePanelProps {
   content: string;
@@ -81,44 +79,14 @@ const updateSuiteContentWithGroups = (content: string, groups: SuiteGroup[]): st
   }
 };
 
-const buildSuiteTree = (groups: SuiteGroup[]) => {
-  const items: Record<string, TreeItem<SuiteTreeItemData>> = {};
+const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
   const allPaths: string[] = [];
-  const groupIds: string[] = [];
-
-  groups.forEach((group, idx) => {
-    const groupId = `group-${idx + 1}`;
-    const childIds: string[] = [];
-    group.entries.forEach(entry => {
-      childIds.push(entry.id);
-      allPaths.push(entry.path);
-      items[entry.id] = {
-        index: entry.id,
-        isFolder: false,
-        children: [],
-        data: { type: 'file', path: entry.path },
-      };
-    });
-    items[groupId] = {
-      index: groupId,
-      isFolder: true,
-      children: childIds,
-      data: { type: 'group', label: group.label },
-    };
-    groupIds.push(groupId);
-  });
-
-  items['suite-root'] = {
-    index: 'suite-root',
-    isFolder: true,
-    children: groupIds,
-    data: { type: 'root', label: 'Suite' },
-  };
-
-  return { items, allPaths, groupIds };
+  groups.forEach((group) => group.entries.forEach((entry) => allPaths.push(entry.path)));
+  return allPaths;
 };
 
 const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
+  const { mmtFilePath } = useContext(FileContext);
   const [groups, setGroups] = useState<SuiteGroup[]>(() => buildSuiteGroupsFromContent(content));
   const [expandedItems, setExpandedItems] = useState<string[]>(['suite-root']);
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -237,8 +205,16 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
     setAddMenuOpen(false);
   }, [groups, persistGroups]);
 
-  const treeData = useMemo(() => buildSuiteTree(groups), [groups]);
-  const { items, allPaths, groupIds } = treeData;
+  const allPaths = useMemo(() => collectSuitePaths(groups), [groups]);
+  const baseExpandedTreeState = useState<string[]>(['suite-root']);
+
+  const groupIds = useMemo(() => {
+    const ids: string[] = [];
+    groups.forEach((_, idx) => ids.push(`group-${idx + 1}`));
+    return ids;
+  }, [groups]);
+
+  // Drag/drop helpers remain in SuitePanel (edit tree consumes them).
   const groupIdToIndex = useMemo(() => {
     const map = new Map<string, number>();
     groupIds.forEach((gid, idx) => map.set(gid, idx));
@@ -258,6 +234,7 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
   }, [groups]);
 
   const [stepStatuses, setStepStatuses] = useState<Record<string, StepStatus | 'running'>>({});
+  const [lastRunIdByEntryId, setLastRunIdByEntryId] = useState<Record<string, string>>({});
   const [missingFiles, setMissingFiles] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -271,7 +248,23 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
         return;
       }
       if (message.command === 'runFileReport') {
-        const { groupIndex, groupItemIndex, success, status } = message;
+        const runId = typeof (message as any).runId === 'string' ? (message as any).runId : null;
+        const { groupIndex, groupItemIndex, success, status } = message as any;
+        const nextStatus: StepStatus | 'running' = status || (success ? 'passed' : 'failed');
+
+        if (runId && typeof groupIndex === 'number' && typeof groupItemIndex === 'number') {
+          const group = groups[groupIndex];
+          const entry = group?.entries?.[groupItemIndex];
+          if (entry?.id) {
+            setLastRunIdByEntryId(prev => ({ ...prev, [entry.id]: runId }));
+          }
+        }
+
+        if (runId) {
+          setStepStatuses(prev => ({ ...prev, [runId]: nextStatus }));
+          return;
+        }
+
         if (typeof groupIndex === 'number' && typeof groupItemIndex === 'number') {
           const group = groups[groupIndex];
           if (group) {
@@ -279,7 +272,7 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
             if (entry) {
               setStepStatuses(prev => ({
                 ...prev,
-                [entry.id]: status || (success ? 'passed' : 'failed'),
+                [entry.id]: nextStatus,
               }));
             }
           }
@@ -350,60 +343,11 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
     };
   }, []);
 
-  const getGroupStatus = useCallback(
-    (itemId: string): StepStatus => {
-      const childIds = items[itemId]?.children || [];
-      if (!childIds.length) {
-        return 'default';
-      }
-      const statuses = childIds.map(childId => {
-        const child = items[childId];
-        if (child?.data?.type === 'file') {
-          if (missingFiles.has(child.data.path)) {
-            return 'failed';
-          }
-          return stepStatuses[childId] ?? 'default';
-        }
-        return 'default';
-      });
-      if (statuses.includes('running')) {
-        return 'running' as StepStatus;
-      }
-      if (statuses.includes('failed')) {
-        return 'failed';
-      }
-      if (statuses.includes('pending')) {
-        return 'pending';
-      }
-      if (statuses.every(status => status === 'passed')) {
-        return 'passed';
-      }
-      return 'default';
-    },
-    [items, missingFiles, stepStatuses]
-  );
-
-  const handleExpand = useCallback(
-    (item: TreeItem<SuiteTreeItemData>) => {
-      setExpandedItems(prev => (prev.includes(String(item.index)) ? prev : [...prev, String(item.index)]));
-    },
-    []
-  );
-
-  const handleCollapse = useCallback(
-    (item: TreeItem<SuiteTreeItemData>) => {
-      setExpandedItems(prev => prev.filter(id => id !== String(item.index)));
-    },
-    []
-  );
-
   const handleRunSuite = () => {
     const next: Record<string, StepStatus | 'running'> = {};
-    Object.values(items).forEach(item => {
-      if (item.data.type === 'file') {
-        next[item.index as string] = 'pending';
-      }
-    });
+    // Initialize file rows as pending; specific runIds will fill as events arrive.
+    // Only base suite entry ids are guaranteed here; initialize from Suite groups.
+    groups.forEach((group) => group.entries.forEach((entry) => (next[entry.id] = 'pending')));
     setStepStatuses(next);
     window.vscode?.postMessage({ command: 'runCurrentDocument' });
   };
@@ -471,92 +415,9 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
     [persistGroups, entryById, entryPositions, groupIdToIndex, groups]
   );
 
-  const renderItem = ({ item, context, arrow, children }: any) => {
-    const data = item.data as SuiteTreeItemData;
-
-    if (data.type === 'group' || data.type === 'root') {
-      return (
-        <SuiteGroupItem
-          item={item}
-          context={context}
-          arrow={arrow}
-          children={children}
-          getGroupStatus={getGroupStatus}
-          statusIconFor={statusIconFor}
-          canShowStatusIcon={tab === 'test'}
-        />
-      );
-    }
-
-    return (
-      <SuiteFileItem
-        item={item}
-        context={context}
-        arrow={arrow}
-        children={children}
-        missingFiles={missingFiles}
-        statusIconFor={statusIconFor}
-        groups={groups}
-        persistGroups={persistGroups}
-        status={stepStatuses[item.index] ?? 'default'}
-        canEdit={canEdit}
-      />
-    );
-  };
-
   const noItems = groups.every(group => group.entries.length === 0);
 
   const canEdit = tab === 'edit';
-  const renderTree = () => (
-    <ControlledTreeEnvironment
-      items={items}
-      getItemTitle={item => (item.data?.type === 'file' ? item.data.path : item.data?.label ?? '')}
-      canDragAndDrop={canEdit}
-      canDropOnFolder={canEdit}
-      canReorderItems={canEdit}
-      canSearch={false}
-      canSearchByStartingTyping={false}
-      viewState={{ 'suite-tree': { expandedItems } }}
-      onExpandItem={handleExpand}
-      onCollapseItem={handleCollapse}
-      onDrop={canEdit ? handleDrop : undefined}
-      onSelectItems={() => { }}
-      renderItemArrow={({ item, context }) =>
-        item.isFolder ? (
-          <span
-            {...context.arrowProps}
-            style={{ display: 'inline-flex', paddingTop: 8, lineHeight: 0, alignSelf: 'flex-start' }}
-          >
-            {context.isExpanded ? (
-              <span className="codicon codicon-chevron-down" style={{ fontSize: 16 }} />
-            ) : (
-              <span className="codicon codicon-chevron-right" style={{ fontSize: 16 }} />
-            )}
-          </span>
-        ) : (
-          <span style={{ display: 'inline-block', width: 24, height: 24 }} />
-        )
-      }
-      renderItem={renderItem}
-      renderTreeContainer={({ children, containerProps }) => <div {...containerProps}>{children}</div>}
-      renderItemsContainer={({ children, containerProps }) => (
-        <ul
-          {...containerProps}
-          style={{ ...(containerProps.style || {}), margin: 0, listStyle: 'none' }}
-        >
-          {children}
-        </ul>
-      )}
-      renderDragBetweenLine={({ lineProps }) => (
-        <div
-          {...lineProps}
-          style={{ background: 'var(--vscode-focusBorder, #264f78)', height: '1px' }}
-        />
-      )}
-    >
-      <Tree treeId="suite-tree" rootItem="suite-root" treeLabel="Suite structure" />
-    </ControlledTreeEnvironment>
-  );
 
   return (
     <div className="panel">
@@ -590,7 +451,19 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
             onOpenAddMenuAtButton={openAddMenuAtButton}
             onAddGroup={handleAddGroup}
             onAddTestFile={handleAddTestFile}
-            renderTree={renderTree}
+            tree={(
+              <SuiteEditTree
+                groups={groups}
+                expandedItems={baseExpandedTreeState[0]}
+                setExpandedItems={baseExpandedTreeState[1]}
+                missingFiles={missingFiles}
+                statusIconFor={statusIconFor}
+                groupsModel={groups}
+                persistGroups={persistGroups}
+                canEdit={true}
+                handleDrop={handleDrop}
+              />
+            )}
             noItems={noItems}
           />
         )}
@@ -598,7 +471,17 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
           <SuiteTest
             canRun={allPaths.length > 0}
             onRunSuite={handleRunSuite}
-            renderTree={renderTree}
+            tree={(
+              <SuiteTestTree
+                groups={groups}
+                missingFiles={missingFiles}
+                stepStatuses={stepStatuses}
+                lastRunIdByEntryId={lastRunIdByEntryId}
+                statusIconFor={statusIconFor}
+                canEdit={false}
+                persistGroups={persistGroups}
+              />
+            )}
             noItems={noItems}
           />
         )}
