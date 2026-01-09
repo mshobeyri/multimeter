@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import 'react-complex-tree/lib/style.css';
-import SuiteEdit from './SuiteEdit';
-import SuiteTest from './SuiteTest';
+import SuiteEdit from './edit/SuiteEdit';
+import SuiteTest from './test/SuiteTest';
 
 interface SuitePanelProps {
   content: string;

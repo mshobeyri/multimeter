@@ -1,9 +1,9 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { ControlledTreeEnvironment, DraggingPosition, DraggingPositionBetweenItems, DraggingPositionItem, Tree, TreeItem } from 'react-complex-tree';
-import { SuiteEntry } from './types';
-import { SuiteGroup, StepStatus } from './types';
-import { SuiteFileItem } from './SuiteFileItem';
-import { SuiteGroupItem } from './SuiteGroupItem';
+import { SuiteEntry } from '../types';
+import { SuiteGroup, StepStatus } from '../types';
+import SuiteEditFileItem from './SuiteEditFileItem';
+import SuiteEditGroupItem from './SuiteEditGroupItem';
 
 export type SuiteEditTreeItemData =
     | { type: 'root'; label: string }
@@ -103,14 +103,7 @@ const SuiteEditTree: React.FC<SuiteEditTreeProps> = ({
         []
     );
 
-    // Expand all group nodes by default.
-    React.useEffect(() => {
-        const next = new Set(expandedItems);
-        groupIds.forEach((id) => next.add(id));
-        if (next.size !== expandedItems.length) {
-            setExpandedItems(Array.from(next));
-        }
-    }, [expandedItems, groupIds, setExpandedItems]);
+    // Intentionally do not auto-expand groups; user controls expansion.
 
     // Local maps used for drag/drop calculations.
     const groupIdToIndex = useMemo(() => {
@@ -189,7 +182,7 @@ const SuiteEditTree: React.FC<SuiteEditTreeProps> = ({
         const data = item.data as SuiteEditTreeItemData;
         if (data.type === 'group' || data.type === 'root') {
             return (
-                <SuiteGroupItem
+                <SuiteEditGroupItem
                     item={item}
                     context={context}
                     arrow={arrow}
@@ -202,7 +195,7 @@ const SuiteEditTree: React.FC<SuiteEditTreeProps> = ({
         }
 
         return (
-            <SuiteFileItem
+            <SuiteEditFileItem
                 item={item as any}
                 context={context}
                 arrow={arrow}

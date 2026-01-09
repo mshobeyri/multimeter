@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ControlledTreeEnvironment, Tree, TreeItem } from 'react-complex-tree';
-import { SuiteGroupItem } from './SuiteGroupItem';
-import { SuiteFileItem } from './SuiteFileItem';
-import { StepStatus, SuiteGroup } from './types';
-import { SuiteImportTreeNode } from './suiteImportTree';
-import { useSuiteImportTree } from './useSuiteImportTree';
+import SuiteTestGroupItem from './SuiteTestGroupItem';
+import SuiteTestFileItem from './SuiteTestFileItem';
+import { StepStatus, SuiteGroup } from '../types';
+import { SuiteImportTreeNode } from '../suiteImportTree';
+import { useSuiteImportTree } from '../useSuiteImportTree';
 
 export type SuiteTestTreeItemData =
   | { type: 'root'; label: string }
@@ -20,8 +20,6 @@ interface SuiteTestTreeProps {
   stepStatuses: Record<string, StepStatus | 'running'>;
   lastRunIdByEntryId: Record<string, string>;
   statusIconFor: (status: StepStatus | 'running') => { icon: string; color: string; title: string };
-  canEdit: boolean;
-  persistGroups: (groups: SuiteGroup[]) => void;
 }
 
 const buildBaseTestTree = (groups: SuiteGroup[]) => {
@@ -71,15 +69,13 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
   stepStatuses,
   lastRunIdByEntryId,
   statusIconFor,
-  canEdit,
-  persistGroups,
 }) => {
   const base = useMemo(() => buildBaseTestTree(groups), [groups]);
   const [expandedItems, setExpandedItems] = useState<string[]>(['suite-root']);
 
   const importTree = useSuiteImportTree(base.allPaths, true);
 
-  // Expand base group nodes by default.
+  // Expand base group nodes by default — one-time on mount.
   useEffect(() => {
     setExpandedItems((prev) => {
       const next = new Set(prev);
@@ -219,7 +215,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
 
     if (data.type === 'group' || data.type === 'root' || data.type === 'import-group') {
       return (
-        <SuiteGroupItem
+        <SuiteTestGroupItem
           item={item}
           context={context}
           arrow={arrow}
@@ -257,17 +253,14 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
       );
     }
 
-    // Reuse SuiteFileItem for base file rows in test mode, but disable edit.
     return (
-      <SuiteFileItem
+      <SuiteTestFileItem
         item={item as any}
         context={context}
         arrow={arrow}
         children={children}
         missingFiles={missingFiles}
         statusIconFor={statusIconFor as any}
-        groups={groups}
-        persistGroups={persistGroups}
         status={(() => {
           const entryId = String(item.index);
           const runId = lastRunIdByEntryId[entryId];
@@ -276,7 +269,6 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
           }
           return (stepStatuses[entryId] ?? 'default') as StepStatus;
         })()}
-        canEdit={false}
       />
     );
   };

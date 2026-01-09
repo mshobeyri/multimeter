@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { parseYaml, parseYamlDoc } from 'mmt-core/markupConvertor';
-import { SuiteEntry, SuiteGroup, StepStatus } from './types';
+import { SuiteEntry, SuiteGroup, StepStatus } from '../types';
 import SuiteEditTree from './SuiteEditTree';
 
 interface SuiteEditProps {

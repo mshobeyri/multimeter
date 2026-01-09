@@ -1,4 +1,4 @@
-import { SuiteImportDocType } from './suiteImportTree';
+import { SuiteImportDocType } from '../suiteImportTree';
 
 export type SuiteHierarchyNode =
   | { kind: 'group'; label: string; children: SuiteHierarchyNode[] }

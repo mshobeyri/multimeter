@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { parseYaml } from 'mmt-core/markupConvertor';
-import { StepStatus, SuiteEntry, SuiteGroup } from './types';
+import { StepStatus, SuiteEntry, SuiteGroup } from '../types';
 import SuiteTestTree from './SuiteTestTree';
 
 interface SuiteTestProps {
@@ -143,8 +143,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
       stepStatuses={stepStatuses}
       lastRunIdByEntryId={lastRunIdByEntryId}
       statusIconFor={statusIconFor}
-      canEdit={false}
-      persistGroups={() => {}}
     />
   );
 
