@@ -157,16 +157,11 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         const suiteInfoNode = root.children?.find((c) => c.kind === 'suite-info' || c.id.startsWith('suite-import-node:suite-info:'));
         const groupNodes = root.children?.filter((c) => c.kind === 'group' || c.id.startsWith('suite-import-node:group:')) || [];
         if (suiteInfoNode) {
-          const suiteInfoItemId = buildImportItems(entry.id, { ...suiteInfoNode, children: [] }, items);
-          const groupChildIds: string[] = [];
+          // Instead of inserting a separate "Suite info" box, attach group nodes
+          // directly under the file entry so users see groups immediately.
           for (const groupNode of groupNodes) {
-            groupChildIds.push(buildImportItems(suiteInfoItemId, groupNode, items));
+            childIds.push(buildImportItems(entry.id, groupNode, items));
           }
-          const suiteInfoItem = items[suiteInfoItemId];
-          if (suiteInfoItem) {
-            items[suiteInfoItemId] = { ...suiteInfoItem, isFolder: groupChildIds.length > 0, children: groupChildIds };
-          }
-          childIds.push(suiteInfoItemId);
         } else if (root.children && root.children.length) {
           for (const child of root.children) {
             childIds.push(buildImportItems(entry.id, child, items));
