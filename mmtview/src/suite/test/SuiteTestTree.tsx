@@ -5,6 +5,7 @@ import SuiteTestFileItem from './SuiteTestFileItem';
 import { StepStatus, SuiteGroup } from '../types';
 import { SuiteImportTreeNode } from './suiteImportTree';
 import { useSuiteImportTree } from './useSuiteImportTree';
+import { buildSuiteHierarchy } from './suiteHierarchy';
 
 export type SuiteTestTreeItemData =
   | { type: 'root'; label: string }
@@ -154,13 +155,34 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         }
 
         const childIds: string[] = [];
+
+        // Build a lookup from the importTree for hierarchy flattening rules.
+        const lookup = importTree.rootNodes.reduce<Record<string, any>>((acc, n) => {
+          acc[n.path] = { docType: n.docType, tests: n.tests, cycle: n.cycle, error: n.error };
+          return acc;
+        }, {});
+
         const suiteInfoNode = root.children?.find((c) => c.kind === 'suite-info' || c.id.startsWith('suite-import-node:suite-info:'));
-        const groupNodes = root.children?.filter((c) => c.kind === 'group' || c.id.startsWith('suite-import-node:group:')) || [];
         if (suiteInfoNode) {
-          // Instead of inserting a separate "Suite info" box, attach group nodes
-          // directly under the file entry so users see groups immediately.
-          for (const groupNode of groupNodes) {
-            childIds.push(buildImportItems(entry.id, groupNode, items));
+          // Use hierarchy as the single source of truth for whether to show group wrappers.
+          const hierarchy = buildSuiteHierarchy({ rootEntries: (root.tests ?? []) as any, lookup });
+
+          // If hierarchy contains groups, it means multi-group: show group wrappers.
+          // If not, it's effectively a single group: skip the group wrapper and use
+          // the importTree's first group children directly.
+          const hasGroups = hierarchy.some((h: any) => h.kind === 'group');
+          if (hasGroups) {
+            const groupNodes = root.children?.filter((c) => c.kind === 'group' || c.id.startsWith('suite-import-node:group:')) || [];
+            for (const groupNode of groupNodes) {
+              childIds.push(buildImportItems(entry.id, groupNode, items));
+            }
+          } else {
+            const onlyGroup = (root.children?.find((c) => c.kind === 'group' || c.id.startsWith('suite-import-node:group:')) as SuiteImportTreeNode | undefined);
+            if (onlyGroup?.children && onlyGroup.children.length) {
+              for (const child of onlyGroup.children) {
+                childIds.push(buildImportItems(entry.id, child, items));
+              }
+            }
           }
         } else if (root.children && root.children.length) {
           for (const child of root.children) {

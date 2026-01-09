@@ -45,6 +45,14 @@ export function buildSuiteHierarchy(params: {
   const { rootEntries, lookup } = params;
 
   const rootGroups = splitSuiteGroups(rootEntries);
+
+  // Rule: if a suite has only one group, don't return a group wrapper.
+  if (rootGroups.length === 1) {
+    return rootGroups[0]
+      .filter((p) => typeof p === 'string' && p.trim())
+      .map((p) => buildEntryNode(p, lookup));
+  }
+
   return rootGroups.map((entries, gi) => {
     const children: SuiteHierarchyNode[] = entries
       .filter((p) => typeof p === 'string' && p.trim())
@@ -75,10 +83,15 @@ function buildEntryNode(path: string, lookup: SuiteImportLookup): SuiteHierarchy
   }
 
   const groups = splitSuiteGroups(info.tests ?? []);
-  const groupNodes: SuiteHierarchyNode[] = groups.map((entries, gi) => {
-    const children = entries.map((p) => buildEntryNode(p, lookup));
-    return { kind: 'group', label: `Group ${gi + 1}`, children };
-  });
+
+  // Rule: if the imported suite has only one group, don't wrap in group nodes.
+  const groupNodes: SuiteHierarchyNode[] =
+    groups.length === 1
+      ? groups[0].map((p) => buildEntryNode(p, lookup))
+      : groups.map((entries, gi) => {
+          const children = entries.map((p) => buildEntryNode(p, lookup));
+          return { kind: 'group', label: `Group ${gi + 1}`, children };
+        });
 
   return { kind: 'suite', path, groups: groupNodes };
 }
