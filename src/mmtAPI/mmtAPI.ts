@@ -186,6 +186,14 @@ export const messageRecieved = async (
           message, webviewPanel, document, mmtProvider);
       break;
 
+    case 'runSuite':
+      await run.handleRunSuite(message, webviewPanel, document, mmtProvider);
+      break;
+
+    case 'stopSuiteRun':
+      run.handleStopSuiteRun(message, webviewPanel, document, mmtProvider);
+      break;
+
     case 'showLogOutputChannel':
       run.showLogOutputChannel();
       break;

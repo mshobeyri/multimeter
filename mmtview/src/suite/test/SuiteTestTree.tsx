@@ -6,6 +6,7 @@ import { StepStatus, SuiteGroup } from '../types';
 import { SuiteImportTreeNode } from './suiteImportTree';
 import { useSuiteImportTree } from './useSuiteImportTree';
 import { buildSuiteHierarchy } from './suiteHierarchy';
+import TestStepReportPanel, { StepReportItem } from '../../shared/TestStepReportPanel';
 
 export type SuiteTestTreeItemData =
   | { type: 'root'; label: string }
@@ -21,6 +22,11 @@ interface SuiteTestTreeProps {
   stepStatuses: Record<string, StepStatus | 'running'>;
   lastRunIdByEntryId: Record<string, string>;
   statusIconFor: (status: StepStatus | 'running') => { icon: string; color: string; title: string };
+
+  leafReportsByLeafId: Record<string, StepReportItem[]>;
+  leafRunStateByLeafId: Record<string, 'idle' | 'running' | 'passed' | 'failed'>;
+  expandedLeafReports: Record<string, boolean>;
+  onToggleLeafReport: (leafId: string, next: boolean) => void;
 }
 
 const buildBaseTestTree = (groups: SuiteGroup[]) => {
@@ -70,6 +76,10 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
   stepStatuses,
   lastRunIdByEntryId,
   statusIconFor,
+  leafReportsByLeafId,
+  leafRunStateByLeafId,
+  expandedLeafReports,
+  onToggleLeafReport,
 }) => {
   const base = useMemo(() => buildBaseTestTree(groups), [groups]);
   const [expandedItems, setExpandedItems] = useState<string[]>(['suite-root']);
@@ -270,31 +280,83 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
       );
     }
 
+    const entryId = String(item.index);
+    const computedStatus = (() => {
+      const data = item.data as SuiteTestTreeItemData;
+
+      // Imported suite leaves currently don't participate in run status tracking.
+      // Render them using the same box UI with a default status.
+      if (data?.type === 'import-file') {
+        return 'default' as StepStatus;
+      }
+
+      const runId = lastRunIdByEntryId[entryId];
+      if (runId && stepStatuses[runId]) {
+        return stepStatuses[runId] as StepStatus;
+      }
+      return (stepStatuses[entryId] ?? 'default') as StepStatus;
+    })();
+
+    // LeafId is derived from entry ordering in the suite document.
+    // We compute it from the groups passed to SuiteTestTree and use it
+    // to attach the correct report panel under each file leaf.
+    let leafId: string | null = null;
+    if (data.type === 'file') {
+      for (let gi = 0; gi < groups.length; gi++) {
+        const group = groups[gi];
+        for (let ei = 0; ei < group.entries.length; ei++) {
+          const entry = group.entries[ei];
+          if (entry.id === entryId) {
+            leafId = `${gi}:${ei}`;
+            break;
+          }
+        }
+        if (leafId) {
+          break;
+        }
+      }
+    }
+
     return (
-      <SuiteTestFileItem
-        item={item as any}
-        context={context}
-        arrow={arrow}
-        children={children}
-        missingFiles={missingFiles}
-        statusIconFor={statusIconFor as any}
-        status={(() => {
-          const entryId = String(item.index);
-          const data = item.data as SuiteTestTreeItemData;
-
-          // Imported suite leaves currently don't participate in run status tracking.
-          // Render them using the same box UI with a default status.
-          if (data?.type === 'import-file') {
-            return 'default' as StepStatus;
-          }
-
-          const runId = lastRunIdByEntryId[entryId];
-          if (runId && stepStatuses[runId]) {
-            return stepStatuses[runId] as StepStatus;
-          }
-          return (stepStatuses[entryId] ?? 'default') as StepStatus;
-        })()}
-      />
+      <div>
+        <SuiteTestFileItem
+          item={item as any}
+          context={context}
+          arrow={arrow}
+          children={children}
+          missingFiles={missingFiles}
+          statusIconFor={statusIconFor as any}
+          status={computedStatus}
+        />
+        {leafId && (
+          <div style={{ paddingLeft: 24 + 12 }}>
+            <div style={{ marginLeft: 12 }}>
+              <button
+                type="button"
+                onClick={() => onToggleLeafReport(leafId as string, !Boolean(expandedLeafReports[leafId as string]))}
+                style={{
+                  padding: 0,
+                  border: 'none',
+                  background: 'transparent',
+                  opacity: 0.7,
+                  textDecoration: 'underline',
+                  cursor: 'pointer',
+                  font: 'inherit',
+                  marginTop: 6,
+                }}
+              >
+                {expandedLeafReports[leafId] ? 'hide report' : 'show report'}
+              </button>
+            </div>
+            <TestStepReportPanel
+              isExpanded={Boolean(expandedLeafReports[leafId])}
+              onToggleExpanded={(next) => onToggleLeafReport(leafId as string, next)}
+              stepReports={leafReportsByLeafId[leafId] || []}
+              runState={leafRunStateByLeafId[leafId] || 'idle'}
+            />
+          </div>
+        )}
+      </div>
     );
   };
 

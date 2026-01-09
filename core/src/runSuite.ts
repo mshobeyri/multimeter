@@ -50,10 +50,29 @@ export async function executeSuite(
   let overallSuccess = true;
 
   for (let gi = 0; gi < groups.length; gi++) {
+    if (options.abortSignal?.aborted) {
+      suiteLogger('warn', 'Suite run cancelled.');
+      overallSuccess = false;
+      break;
+    }
     const group = groups[gi];
     suiteLogger('info', `Running group: ${gi + 1}/${groups.length}`);
 
     const results = await Promise.all(group.map(async (entry, entryIndex) => {
+      if (options.abortSignal?.aborted) {
+        return {
+          entry,
+          filePath: resolveRelativeTo(entry, prepared.filePath),
+          docType: null,
+          success: false,
+          status: 'failed' as SuiteStepStatus,
+          errors: ['Suite run cancelled'],
+          logs: [],
+          groupIndex: gi,
+          groupItemIndex: entryIndex,
+          threw: false,
+        };
+      }
       const childFilePath = resolveRelativeTo(entry, prepared.filePath);
       const display = basename(childFilePath || entry);
       const runId = `suite:${sanitizeIdentifier(prepared.filePath)}:${gi}:${entryIndex}:${sanitizeIdentifier(childFilePath || entry)}`;

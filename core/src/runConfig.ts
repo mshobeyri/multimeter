@@ -83,6 +83,9 @@ export interface RunFileOptions {
   jsRunner: (context: RunJSCodeContext) => Promise<void>;
   logger: (level: LogLevel, msg: string) => void;
   reporter: (message: RunReporterMessage) => void;
+
+  /** Optional signal for cooperative cancellation (suite/test/api runs). */
+  abortSignal?: AbortSignal;
 }
 
 export interface MergeInputsParams {

@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { parseYaml } from 'mmt-core/markupConvertor';
 import { StepStatus, SuiteEntry, SuiteGroup } from '../types';
-import SuiteTestTree from './SuiteTestTree';
+import { SuiteTestTree } from './';
+import { StepReportItem } from '../../shared/TestStepReportPanel';
 
 interface SuiteTestProps {
   content: string;
@@ -73,8 +74,19 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
   const [lastRunIdByEntryId, setLastRunIdByEntryId] = useState<Record<string, string>>({});
   const [missingFiles, setMissingFiles] = useState<Set<string>>(new Set());
 
+  const [suiteRunId, setSuiteRunId] = useState<string | null>(null);
+  const [suiteRunState, setSuiteRunState] = useState<'idle' | 'running' | 'cancelled'>('idle');
+  const [leafReportsByLeafId, setLeafReportsByLeafId] = useState<Record<string, StepReportItem[]>>({});
+  const [leafRunStateByLeafId, setLeafRunStateByLeafId] = useState<Record<string, 'idle' | 'running' | 'passed' | 'failed'>>({});
+  const [expandedLeafReports, setExpandedLeafReports] = useState<Record<string, boolean>>({});
+
   useEffect(() => {
     setStepStatuses({});
+    setSuiteRunId(null);
+    setSuiteRunState('idle');
+    setLeafReportsByLeafId({});
+    setLeafRunStateByLeafId({});
+    setExpandedLeafReports({});
   }, [content]);
 
   useEffect(() => {
@@ -83,7 +95,45 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
       if (!message || typeof message !== 'object') {
         return;
       }
+
+      if (message.command === 'suiteRunStart') {
+        const nextSuiteRunId = typeof message.suiteRunId === 'string' ? message.suiteRunId : null;
+        if (!nextSuiteRunId) {
+          return;
+        }
+        setSuiteRunId(nextSuiteRunId);
+        setSuiteRunState('running');
+        setLeafReportsByLeafId({});
+        setLeafRunStateByLeafId({});
+        setExpandedLeafReports({});
+        return;
+      }
+
+      if (message.command === 'suiteRunEnd') {
+        const endedId = typeof message.suiteRunId === 'string' ? message.suiteRunId : null;
+        if (endedId && suiteRunId && endedId !== suiteRunId) {
+          return;
+        }
+        const cancelled = Boolean((message as any).cancelled);
+        setSuiteRunState(cancelled ? 'cancelled' : 'idle');
+        return;
+      }
+
+      if (message.command === 'suiteRunStopped') {
+        const stoppedId = typeof message.suiteRunId === 'string' ? message.suiteRunId : null;
+        if (stoppedId && suiteRunId && stoppedId !== suiteRunId) {
+          return;
+        }
+        setSuiteRunState('cancelled');
+        return;
+      }
+
       if (message.command === 'runFileReport') {
+        const incomingSuiteRunId = typeof (message as any).suiteRunId === 'string' ? (message as any).suiteRunId : null;
+        if (suiteRunId && incomingSuiteRunId && incomingSuiteRunId !== suiteRunId) {
+          return;
+        }
+
         const runId = typeof (message as any).runId === 'string' ? (message as any).runId : null;
         const { groupIndex, groupItemIndex, success, status } = message as any;
         const nextStatus: StepStatus | 'running' = status || (success ? 'passed' : 'failed');
@@ -98,6 +148,46 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
 
         if (runId) {
           setStepStatuses(prev => ({ ...prev, [runId]: nextStatus }));
+        }
+
+        // Leaf report routing for suite runs.
+        const leafId = typeof (message as any).leafId === 'string' ? (message as any).leafId : null;
+        const scope = typeof (message as any).scope === 'string' ? (message as any).scope : '';
+        if (leafId) {
+          if (scope === 'suite-item' && nextStatus === 'running') {
+            setLeafRunStateByLeafId(prev => ({ ...prev, [leafId]: 'running' }));
+          }
+          if (scope === 'suite-item' && (nextStatus === 'passed' || nextStatus === 'failed')) {
+            setLeafRunStateByLeafId(prev => ({ ...prev, [leafId]: nextStatus }));
+            if (nextStatus === 'failed') {
+              setExpandedLeafReports(prev => ({ ...prev, [leafId]: true }));
+            }
+          }
+
+          if (scope === 'test-step') {
+            const normalized: StepReportItem = {
+              stepIndex: Number((message as any).stepIndex) || 1,
+              stepType: (message as any).stepType === 'assert' ? 'assert' : 'check',
+              status: (message as any).status === 'failed' ? 'failed' : 'passed',
+              comparison: typeof (message as any).comparison === 'string' ? (message as any).comparison : '',
+              title: typeof (message as any).title === 'string' ? (message as any).title : undefined,
+              details: typeof (message as any).details === 'string' ? (message as any).details : undefined,
+              actual: (message as any).actual,
+              expected: (message as any).expected,
+              timestamp: typeof (message as any).timestamp === 'number' ? (message as any).timestamp : Date.now(),
+            };
+            setLeafReportsByLeafId(prev => ({
+              ...prev,
+              [leafId]: [...(prev[leafId] || []), normalized],
+            }));
+            if (normalized.status === 'failed') {
+              setLeafRunStateByLeafId(prev => ({ ...prev, [leafId]: 'failed' }));
+              setExpandedLeafReports(prev => ({ ...prev, [leafId]: true }));
+            }
+          }
+        }
+
+        if (runId) {
           return;
         }
 
@@ -119,7 +209,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, [groups]);
+  }, [groups, suiteRunId]);
 
   useEffect(() => {
     if (allPaths.length > 0) {
@@ -133,8 +223,21 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
     const next: Record<string, StepStatus | 'running'> = {};
     groups.forEach((group) => group.entries.forEach((entry) => (next[entry.id] = 'pending')));
     setStepStatuses(next);
-    window.vscode?.postMessage({ command: 'runCurrentDocument' });
+    const nextSuiteRunId = `suite-ui:${Date.now()}`;
+    setSuiteRunId(nextSuiteRunId);
+    setSuiteRunState('running');
+    setLeafReportsByLeafId({});
+    setLeafRunStateByLeafId({});
+    setExpandedLeafReports({});
+    window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId });
   }, [groups]);
+
+  const onStopSuite = useCallback(() => {
+    if (!suiteRunId) {
+      return;
+    }
+    window.vscode?.postMessage({ command: 'stopSuiteRun', suiteRunId });
+  }, [suiteRunId]);
 
   const tree = (
     <SuiteTestTree
@@ -143,6 +246,12 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
       stepStatuses={stepStatuses}
       lastRunIdByEntryId={lastRunIdByEntryId}
       statusIconFor={statusIconFor}
+      leafReportsByLeafId={leafReportsByLeafId}
+      leafRunStateByLeafId={leafRunStateByLeafId}
+      expandedLeafReports={expandedLeafReports}
+      onToggleLeafReport={(leafId: string, next: boolean) =>
+        setExpandedLeafReports(prev => ({ ...prev, [leafId]: next }))
+      }
     />
   );
 
@@ -169,6 +278,15 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
             >
               <span className="codicon codicon-run" aria-hidden />
               Run suite
+            </button>
+            <button
+              className="button-icon"
+              disabled={suiteRunState !== 'running'}
+              onClick={onStopSuite}
+              title={suiteRunState !== 'running' ? 'Suite is not running' : 'Stop suite'}
+            >
+              <span className="codicon codicon-debug-stop" aria-hidden />
+              Stop
             </button>
           </div>
         </div>

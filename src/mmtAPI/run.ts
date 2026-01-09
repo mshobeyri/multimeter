@@ -10,6 +10,19 @@ import {getPreparedConfig} from './network';
 const logOutputChannel =
     vscode.window.createOutputChannel('Multimeter', {log: true});
 
+let activeSuiteRun:
+    {suiteRunId: string; controller: AbortController; panelId: string;}|null =
+        null;
+
+function createSuiteRunId(document: vscode.TextDocument) {
+  return `suite:${document.uri.fsPath}:${Date.now()}`;
+}
+
+function getPanelId(panel: vscode.WebviewPanel): string {
+  // WebviewPanel doesn't expose a stable ID; use extension viewType + title.
+  return `${panel.viewType}:${panel.title}`;
+}
+
 export function logToOutput(level: LogLevel, message: string) {
   switch (level) {
     case 'trace':
@@ -97,6 +110,151 @@ export async function handleRunCurrentDocument(
     vscode.window.showErrorMessage(
         `Failed to run ${fileName}: ${err?.message || String(err)}`);
   }
+}
+
+export async function handleRunSuite(
+    message: any, webviewPanel: vscode.WebviewPanel,
+    document: vscode.TextDocument, mmtProvider: any) {
+  const fileName = path.basename(document.uri.fsPath);
+  const forwardLog = (level: LogLevel, message: string) => {
+    logToOutput(level, message);
+  };
+
+  let netConfigApplied = false;
+  try {
+    const netConfig = getPreparedConfig();
+    setRunnerNetworkConfig(netConfig);
+    netConfigApplied = true;
+  } catch (err: any) {
+    logToOutput(
+        'warn', `Unable to apply certificate settings: ${err?.message || err}`);
+  }
+
+  const suiteRunId =
+      typeof message?.suiteRunId === 'string' && message.suiteRunId ?
+      message.suiteRunId :
+      createSuiteRunId(document);
+
+  const controller = new AbortController();
+  activeSuiteRun = {
+    suiteRunId,
+    controller,
+    panelId: getPanelId(webviewPanel),
+  };
+
+  webviewPanel.webview.postMessage({
+    command: 'suiteRunStart',
+    suiteRunId,
+    filePath: document.uri.fsPath,
+  });
+
+  try {
+    const envStorage = mmtProvider.context.workspaceState.get(
+        'multimeter.environment.storage', []);
+    const vscodeEnv: Record<string, any> = {};
+    if (Array.isArray(envStorage)) {
+      for (const item of envStorage) {
+        if (!item || typeof item !== 'object') {
+          continue;
+        }
+        const name = (item as any).name;
+        if (typeof name === 'string' && name) {
+          vscodeEnv[name] = (item as any).value;
+        }
+      }
+    }
+
+    // NOTE: core currently doesn't support cancellation; we only stop forwarding
+    // and we can follow up by adding abort checks in core/runSuite.ts.
+    await runner.runFile({
+      file: document.getText(),
+      fileType: 'raw' as any,
+      filePath: document.uri.fsPath,
+      exampleIndex: message?.inputs?.exampleIndex,
+      manualInputs: {},
+      envvar: vscodeEnv,
+      manualEnvvars: {},
+      fileLoader: async (relPath: string) => {
+        try {
+          return await readRelativeFileContent(document.uri.fsPath, relPath);
+        } catch {
+          return '';
+        }
+      },
+      jsRunner: runJSCode,
+      logger: forwardLog,
+      abortSignal: controller.signal as any,
+      reporter: (msg: any) => {
+        const current = activeSuiteRun;
+        if (!current || current.suiteRunId !== suiteRunId) {
+          return;
+        }
+        if (current.controller.signal.aborted) {
+          return;
+        }
+        // Provide a stable leafId for suite-item scopes; the webview will map
+        // this later to its leaf nodes.
+        const leafId =
+            msg?.scope === 'suite-item' &&
+                Number.isInteger(msg?.groupIndex) &&
+                Number.isInteger(msg?.groupItemIndex) ?
+            `${msg.groupIndex}:${msg.groupItemIndex}` :
+            undefined;
+
+        webviewPanel.webview.postMessage({
+          command: 'runFileReport',
+          suiteRunId,
+          leafId,
+          ...msg,
+        });
+      },
+    });
+
+    webviewPanel.webview.postMessage({
+      command: 'suiteRunEnd',
+      suiteRunId,
+      filePath: document.uri.fsPath,
+      netConfigApplied,
+      cancelled: controller.signal.aborted,
+    });
+  } catch (err: any) {
+    webviewPanel.webview.postMessage({
+      command: 'suiteRunEnd',
+      suiteRunId,
+      filePath: document.uri.fsPath,
+      netConfigApplied,
+      cancelled: controller.signal.aborted,
+      error: err?.message || String(err),
+    });
+    vscode.window.showErrorMessage(
+        `Failed to run ${fileName}: ${err?.message || String(err)}`);
+  } finally {
+    if (activeSuiteRun && activeSuiteRun.suiteRunId === suiteRunId) {
+      activeSuiteRun = null;
+    }
+  }
+}
+
+export function handleStopSuiteRun(
+    message: any, webviewPanel: vscode.WebviewPanel,
+    _document: vscode.TextDocument, _mmtProvider: any) {
+  const suiteRunId =
+      typeof message?.suiteRunId === 'string' ? message.suiteRunId : '';
+  const current = activeSuiteRun;
+  if (!current) {
+    return;
+  }
+  if (suiteRunId && current.suiteRunId !== suiteRunId) {
+    return;
+  }
+  if (current.panelId !== getPanelId(webviewPanel)) {
+    return;
+  }
+  current.controller.abort();
+  webviewPanel.webview.postMessage({
+    command: 'suiteRunStopped',
+    suiteRunId: current.suiteRunId,
+  });
 }
 
 export async function handleRunJSCode(message: any) {
