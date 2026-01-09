@@ -26,8 +26,6 @@ interface SuiteTestTreeProps {
 
   leafReportsByLeafId: Record<string, StepReportItem[]>;
   leafRunStateByLeafId: Record<string, 'idle' | 'running' | 'passed' | 'failed' | 'cancelled'>;
-  expandedLeafReports: Record<string, boolean>;
-  onToggleLeafReport: (leafId: string, next: boolean) => void;
 }
 
 const buildBaseTestTree = (groups: SuiteGroup[]) => {
@@ -86,8 +84,6 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
   statusIconFor,
   leafReportsByLeafId,
   leafRunStateByLeafId,
-  expandedLeafReports,
-  onToggleLeafReport,
 }) => {
   const base = useMemo(() => buildBaseTestTree(groups), [groups]);
   const [expandedItems, setExpandedItems] = useState<string[]>(['suite-root']);
@@ -308,54 +304,18 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
 
     if (data.type === 'file-report') {
       const leafId = data.leafId;
-      const isExpanded = Boolean(expandedLeafReports[leafId]);
+      const isExpanded = true;
       const runState = leafRunStateByLeafId[leafId] || 'idle';
 
       return (
         <div {...context.itemContainerWithChildrenProps}>
-          <div
-            className="tree-view-box"
-            {...context.itemContainerWithoutChildrenProps}
-            style={{ paddingTop: 10, display: 'flex', opacity: 0.95 }}
-          >
-            <div style={{ width: 24, minWidth: 24, display: 'inline-flex', alignItems: 'flex-start' }}>
-              <span style={{ display: 'inline-block', width: 24, height: 24 }} />
-            </div>
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span className="codicon codicon-note" aria-hidden style={{ opacity: 0.75 }} />
-                <div style={{ fontFamily: 'var(--vscode-editor-font-family)' }}>Report</div>
-              </div>
-              <button
-                type="button"
-                onClick={() => onToggleLeafReport(leafId, !isExpanded)}
-                style={{
-                  padding: 0,
-                  border: 'none',
-                  background: 'transparent',
-                  opacity: 0.7,
-                  textDecoration: 'underline',
-                  cursor: 'pointer',
-                  font: 'inherit',
-                }}
-              >
-                {isExpanded ? 'hide' : 'show'}
-              </button>
-            </div>
-          </div>
-
-          <div style={{ paddingLeft: 24 + 12 }}>
+          <div style={{ paddingLeft: 8, paddingBottom: isExpanded ? 8 : 0 }}>
             <TestStepReportPanel
               isExpanded={isExpanded}
-              onToggleExpanded={(next) => onToggleLeafReport(leafId, next)}
               stepReports={leafReportsByLeafId[leafId] || []}
               runState={runState === 'cancelled' ? 'failed' : runState}
+              showHeader={false}
             />
-            {runState === 'cancelled' && (
-              <div style={{ opacity: 0.7, marginTop: 6 }}>
-                Cancelled
-              </div>
-            )}
           </div>
         </div>
       );
@@ -439,7 +399,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
       onExpandItem={handleExpand}
       onCollapseItem={handleCollapse}
       onDrop={undefined}
-      onSelectItems={() => {}}
+      onSelectItems={() => { }}
       renderItemArrow={({ item, context }) =>
         item.isFolder ? (
           <span {...context.arrowProps} style={{ display: 'inline-flex', paddingTop: 8, lineHeight: 0, alignSelf: 'flex-start' }}>

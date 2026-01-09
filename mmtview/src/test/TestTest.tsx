@@ -157,7 +157,6 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
             </div>
             <TestStepReportPanel
                 isExpanded={true}
-                onToggleExpanded={() => { }}
                 stepReports={stepReports}
                 runState={runState}
                 onRun={handleRun}

@@ -81,7 +81,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
   const [suiteRunState, setSuiteRunState] = useState<'idle' | 'running' | 'cancelled'>('idle');
   const [leafReportsByLeafId, setLeafReportsByLeafId] = useState<Record<string, StepReportItem[]>>({});
   const [leafRunStateByLeafId, setLeafRunStateByLeafId] = useState<Record<string, 'idle' | 'running' | 'passed' | 'failed' | 'cancelled'>>({});
-  const [expandedLeafReports, setExpandedLeafReports] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     setStepStatuses({});
@@ -89,7 +88,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
     setSuiteRunState('idle');
     setLeafReportsByLeafId({});
     setLeafRunStateByLeafId({});
-    setExpandedLeafReports({});
   }, [content]);
 
   useEffect(() => {
@@ -108,7 +106,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
         setSuiteRunState('running');
         setLeafReportsByLeafId({});
         setLeafRunStateByLeafId({});
-        setExpandedLeafReports({});
         return;
       }
 
@@ -173,9 +170,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
           }
           if (scope === 'suite-item' && (nextStatus === 'passed' || nextStatus === 'failed')) {
             setLeafRunStateByLeafId(prev => ({ ...prev, [leafId]: nextStatus }));
-            if (nextStatus === 'failed') {
-              setExpandedLeafReports(prev => ({ ...prev, [leafId]: true }));
-            }
           }
 
           if (scope === 'test-step') {
@@ -196,7 +190,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
             }));
             if (normalized.status === 'failed') {
               setLeafRunStateByLeafId(prev => ({ ...prev, [leafId]: 'failed' }));
-              setExpandedLeafReports(prev => ({ ...prev, [leafId]: true }));
             }
           }
         }
@@ -242,7 +235,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
     setSuiteRunState('running');
     setLeafReportsByLeafId({});
     setLeafRunStateByLeafId({});
-    setExpandedLeafReports({});
     window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId });
   }, [groups]);
 
@@ -262,10 +254,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
       statusIconFor={statusIconFor}
       leafReportsByLeafId={leafReportsByLeafId}
       leafRunStateByLeafId={leafRunStateByLeafId}
-      expandedLeafReports={expandedLeafReports}
-      onToggleLeafReport={(leafId: string, next: boolean) =>
-        setExpandedLeafReports(prev => ({ ...prev, [leafId]: next }))
-      }
     />
   );
 

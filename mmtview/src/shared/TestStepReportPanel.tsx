@@ -21,16 +21,17 @@ const STATUS_META: Record<StepStatus, { icon: string; color: string; label: stri
 
 interface TestStepReportPanelProps {
   isExpanded: boolean;
-  onToggleExpanded: (next: boolean) => void;
+  onToggleExpanded?: (next: boolean) => void;
   stepReports: StepReportItem[];
   runState: 'idle' | 'running' | 'passed' | 'failed';
   onRun?: () => void;
   runButtonLabel?: string;
   disabledRun?: boolean;
+  showHeader?: boolean;
 }
 
 const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
-  const { isExpanded, onToggleExpanded, stepReports, runState, onRun, runButtonLabel, disabledRun } = props;
+  const { isExpanded, stepReports, runState, onRun, runButtonLabel, disabledRun, showHeader = true } = props;
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
   const stepCountRef = useRef(0);
 
@@ -87,29 +88,31 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
 
   return (
     <div style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', marginTop: 8 }}>
-      <div
-        style={{
-          marginBottom: 8,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 8,
-          backgroundColor: 'transparent',
-        }}
-      >
-        <div>{summary}</div>
-        {onRun && (
-          <button
-            onClick={onRun}
-            className="button-icon"
-            disabled={disabledRun || runState === 'running'}
-            style={{ opacity: runState === 'running' ? 0.7 : 1 }}
-          >
-            <span className="codicon codicon-run" />
-            {runState === 'running' ? 'Running…' : runButtonLabel || 'Run test'}
-          </button>
-        )}
-      </div>
+      {showHeader && (
+        <div
+          style={{
+            marginBottom: 8,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+            backgroundColor: 'transparent',
+          }}
+        >
+          <div>{summary}</div>
+          {onRun && (
+            <button
+              onClick={onRun}
+              className="button-icon"
+              disabled={disabledRun || runState === 'running'}
+              style={{ opacity: runState === 'running' ? 0.7 : 1 }}
+            >
+              <span className="codicon codicon-run" />
+              {runState === 'running' ? 'Running…' : runButtonLabel || 'Run test'}
+            </button>
+          )}
+        </div>
+      )}
 
       <div
         style={{
@@ -239,24 +242,6 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
             })}
           </div>
         )}
-      </div>
-
-      <div style={{ marginTop: 6 }}>
-        <button
-          type="button"
-          onClick={() => onToggleExpanded(false)}
-          style={{
-            padding: 0,
-            border: 'none',
-            background: 'transparent',
-            opacity: 0.7,
-            textDecoration: 'underline',
-            cursor: 'pointer',
-            font: 'inherit',
-          }}
-        >
-          hide report
-        </button>
       </div>
     </div>
   );
