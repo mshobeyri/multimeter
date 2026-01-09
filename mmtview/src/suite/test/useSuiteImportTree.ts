@@ -70,9 +70,37 @@ export const useSuiteImportTree = (rootEntries: string[], enabled: boolean) => {
       const tests = cached?.tests ?? suiteNode.tests ?? [];
       const groups = splitSuiteGroups(tests);
       suiteNode.groups = groups;
+
+      // If the suite has immediate tests (no `then` splits), show them directly
+      // under the suite node as boxes, and also include group nodes if present.
+      if (groups.length === 1) {
+        const entries = groups[0] ?? [];
+        if (!entries.length) {
+          return [];
+        }
+        const res = await request(entries);
+        return entries.map((entryPath) => {
+          const info = res.results[entryPath];
+          const docType = info?.docType ?? 'unknown';
+          cacheEntry(entryPath, { docType, tests: info?.tests, cycle: info?.cycle, error: info?.error });
+
+          const child = createNode(entryPath, docType);
+          if (info?.tests) {
+            child.tests = info.tests;
+          }
+          if (info?.cycle) {
+            child.cycle = true;
+          }
+          if (info?.error) {
+            child.error = info.error;
+          }
+          return child;
+        });
+      }
+
       return buildSuiteInfoChildren(suiteNode.path, groups);
     },
-    [getCachedInfo]
+    [cacheEntry, getCachedInfo, request]
   );
 
   const buildChildrenForGroupNode = useCallback(

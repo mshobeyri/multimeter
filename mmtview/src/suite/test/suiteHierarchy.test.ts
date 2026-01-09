@@ -63,32 +63,22 @@ describe('suiteHierarchy', () => {
 
     const tree = buildSuiteHierarchy({ rootEntries, lookup });
 
+    // Root has a single group (no `then`) so it is flattened.
+    // Imported suite also has a single group, so its groups are flattened too.
     expect(tree).toEqual([
       {
-        kind: 'group',
-        label: 'Group 1',
-        children: [
-          {
-            kind: 'suite',
-            path: 'suite1.mmt',
-            groups: [
-              {
-                kind: 'group',
-                label: 'Group 1',
-                children: [
-                  {
-                    kind: 'test',
-                    path: 'test.mmt',
-                  },
-                ],
-              },
-            ],
-          },
+        kind: 'suite',
+        path: 'suite1.mmt',
+        groups: [
           {
             kind: 'test',
-            path: './test/createSession.mmt',
+            path: 'test.mmt',
           },
         ],
+      },
+      {
+        kind: 'test',
+        path: './test/createSession.mmt',
       },
     ]);
   });

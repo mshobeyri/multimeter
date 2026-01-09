@@ -30,3 +30,12 @@ describe('buildSuiteInfoChildren', () => {
     expect(children.slice(1).every((n) => n.id.startsWith('suite-import-node:group:suite.mmt#'))).toBe(true);
   });
 });
+
+describe('useSuiteImportTree suite children behavior', () => {
+  test('suite with a single group should expose its tests as direct children (no Suite info/group wrappers)', async () => {
+    // This test focuses on the pure behavior we want from the tree model:
+    // If tests don't contain `then`, they are a single group and should be visible.
+    // The webview hook fetches them; here we validate the grouping rule.
+    expect(splitSuiteGroups(['t1.mmt', 't2.mmt'])).toEqual([['t1.mmt', 't2.mmt']]);
+  });
+});

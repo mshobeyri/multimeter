@@ -280,6 +280,14 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         statusIconFor={statusIconFor as any}
         status={(() => {
           const entryId = String(item.index);
+          const data = item.data as SuiteTestTreeItemData;
+
+          // Imported suite leaves currently don't participate in run status tracking.
+          // Render them using the same box UI with a default status.
+          if (data?.type === 'import-file') {
+            return 'default' as StepStatus;
+          }
+
           const runId = lastRunIdByEntryId[entryId];
           if (runId && stepStatuses[runId]) {
             return stepStatuses[runId] as StepStatus;

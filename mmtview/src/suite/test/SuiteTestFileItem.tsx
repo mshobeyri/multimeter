@@ -2,7 +2,9 @@ import React from 'react';
 import { TreeItem } from 'react-complex-tree';
 import { StepStatus } from '../types';
 
-export type SuiteTestFileItemData = { type: 'file'; path: string };
+export type SuiteTestFileItemData =
+  | { type: 'file'; path: string }
+  | { type: 'import-file'; path: string };
 
 interface SuiteTestFileItemProps {
   item: TreeItem<any>;
