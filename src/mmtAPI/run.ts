@@ -14,6 +14,8 @@ let activeSuiteRun:
     {suiteRunId: string; controller: AbortController; panelId: string;}|null =
         null;
 
+const suiteRunLeafByChildRunId = new Map<string, string>();
+
 function createSuiteRunId(document: vscode.TextDocument) {
   return `suite:${document.uri.fsPath}:${Date.now()}`;
 }
@@ -141,6 +143,7 @@ export async function handleRunSuite(
     controller,
     panelId: getPanelId(webviewPanel),
   };
+  suiteRunLeafByChildRunId.clear();
 
   webviewPanel.webview.postMessage({
     command: 'suiteRunStart',
@@ -192,14 +195,22 @@ export async function handleRunSuite(
         if (current.controller.signal.aborted) {
           return;
         }
-        // Provide a stable leafId for suite-item scopes; the webview will map
-        // this later to its leaf nodes.
-        const leafId =
-            msg?.scope === 'suite-item' &&
-                Number.isInteger(msg?.groupIndex) &&
-                Number.isInteger(msg?.groupItemIndex) ?
-            `${msg.groupIndex}:${msg.groupItemIndex}` :
-            undefined;
+
+        // Provide a stable leafId:
+        // - For suite-item events: derive from groupIndex/groupItemIndex
+        // - For test-step/test-step-run events emitted by nested test runs: map by runId
+        let leafId: string|undefined;
+        if (msg?.scope === 'suite-item' &&
+            Number.isInteger(msg?.groupIndex) &&
+            Number.isInteger(msg?.groupItemIndex)) {
+          leafId = `${msg.groupIndex}:${msg.groupItemIndex}`;
+          if (typeof msg?.runId === 'string' && msg.runId) {
+            suiteRunLeafByChildRunId.set(msg.runId, leafId);
+          }
+        } else if ((msg?.scope === 'test-step' || msg?.scope === 'test-step-run') &&
+                   typeof msg?.runId === 'string' && msg.runId) {
+          leafId = suiteRunLeafByChildRunId.get(msg.runId);
+        }
 
         webviewPanel.webview.postMessage({
           command: 'runFileReport',

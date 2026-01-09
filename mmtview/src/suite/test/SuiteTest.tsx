@@ -48,9 +48,12 @@ const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
   return allPaths;
 };
 
-const statusIconFor = (status: StepStatus | 'running') => {
+const statusIconFor = (status: StepStatus | 'running' | 'cancelled') => {
   if (status === 'running') {
     return { icon: 'codicon-play-circle', color: '#BA8E23', title: 'Running' };
+  }
+  if (status === 'cancelled') {
+    return { icon: 'codicon-stop-circle', color: 'var(--vscode-descriptionForeground, #c5c5c5)', title: 'Cancelled' };
   }
   if (status === 'passed') {
     return { icon: 'codicon-pass', color: '#23d18b', title: 'Passed' };
@@ -77,7 +80,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
   const [suiteRunId, setSuiteRunId] = useState<string | null>(null);
   const [suiteRunState, setSuiteRunState] = useState<'idle' | 'running' | 'cancelled'>('idle');
   const [leafReportsByLeafId, setLeafReportsByLeafId] = useState<Record<string, StepReportItem[]>>({});
-  const [leafRunStateByLeafId, setLeafRunStateByLeafId] = useState<Record<string, 'idle' | 'running' | 'passed' | 'failed'>>({});
+  const [leafRunStateByLeafId, setLeafRunStateByLeafId] = useState<Record<string, 'idle' | 'running' | 'passed' | 'failed' | 'cancelled'>>({});
   const [expandedLeafReports, setExpandedLeafReports] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -125,6 +128,17 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
           return;
         }
         setSuiteRunState('cancelled');
+
+        // Mark currently running leaves as cancelled
+        setLeafRunStateByLeafId((prev) => {
+          const next: typeof prev = { ...prev };
+          Object.keys(next).forEach((k) => {
+            if (next[k] === 'running') {
+              next[k] = 'cancelled';
+            }
+          });
+          return next;
+        });
         return;
       }
 
