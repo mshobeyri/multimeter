@@ -103,7 +103,15 @@ const SuiteEditTree: React.FC<SuiteEditTreeProps> = ({
         []
     );
 
-    // Intentionally do not auto-expand groups; user controls expansion.
+    // Expand all group nodes by default when the group list changes.
+    React.useEffect(() => {
+        setExpandedItems((prev) => {
+            const next = new Set(prev);
+            next.add('suite-root');
+            groupIds.forEach((id) => next.add(id));
+            return Array.from(next);
+        });
+    }, [groupIds]);
 
     // Local maps used for drag/drop calculations.
     const groupIdToIndex = useMemo(() => {
@@ -201,11 +209,9 @@ const SuiteEditTree: React.FC<SuiteEditTreeProps> = ({
                 arrow={arrow}
                 children={children}
                 missingFiles={missingFiles}
-                statusIconFor={statusIconFor as any}
                 groups={groupsModel}
                 persistGroups={persistGroups}
                 status={'default'}
-                canEdit={canEdit}
             />
         );
     };

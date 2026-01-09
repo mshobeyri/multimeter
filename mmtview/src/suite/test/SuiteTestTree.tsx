@@ -3,8 +3,8 @@ import { ControlledTreeEnvironment, Tree, TreeItem } from 'react-complex-tree';
 import SuiteTestGroupItem from './SuiteTestGroupItem';
 import SuiteTestFileItem from './SuiteTestFileItem';
 import { StepStatus, SuiteGroup } from '../types';
-import { SuiteImportTreeNode } from '../suiteImportTree';
-import { useSuiteImportTree } from '../useSuiteImportTree';
+import { SuiteImportTreeNode } from './suiteImportTree';
+import { useSuiteImportTree } from './useSuiteImportTree';
 
 export type SuiteTestTreeItemData =
   | { type: 'root'; label: string }
