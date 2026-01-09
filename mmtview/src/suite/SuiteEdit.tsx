@@ -1,30 +1,226 @@
-import React from 'react';
-import { SuiteGroup } from './types';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { parseYaml, parseYamlDoc } from 'mmt-core/markupConvertor';
+import { SuiteEntry, SuiteGroup, StepStatus } from './types';
+import SuiteEditTree from './SuiteEditTree';
 
 interface SuiteEditProps {
-  groups: SuiteGroup[];
-  onAddMenuOpenChange: (open: boolean) => void;
-  addButtonRef: React.RefObject<HTMLButtonElement | null>;
-  addMenuOpen: boolean;
-  addMenuPos: { left: number; top: number } | null;
-  onOpenAddMenuAtButton: () => void;
-  onAddGroup: () => void;
-  onAddTestFile: () => void;
-  tree: React.ReactNode;
-  noItems: boolean;
+  content: string;
+  setContent: (value: string) => void;
 }
 
-const SuiteEdit: React.FC<SuiteEditProps> = ({
-  addButtonRef,
-  addMenuOpen,
-  addMenuPos,
-  onAddMenuOpenChange,
-  onOpenAddMenuAtButton,
-  onAddGroup,
-  onAddTestFile,
-  tree,
-  noItems,
-}) => {
+let suiteEntrySuffix = 0;
+const nextSuiteEntryId = () => `suite-entry-${suiteEntrySuffix++}`;
+const createPlaceholderEntry = (): SuiteEntry => ({ id: nextSuiteEntryId(), path: 'test path' });
+
+const buildSuiteGroupsFromContent = (content: string): SuiteGroup[] => {
+  const parsed = parseYaml(content);
+  const tests: any[] = Array.isArray(parsed?.tests) ? parsed.tests : [];
+  const groups: SuiteGroup[] = [];
+  let currentEntries: SuiteEntry[] = [];
+
+  const pushGroup = () => {
+    if (currentEntries.length) {
+      groups.push({ label: `Group ${groups.length + 1}`, entries: currentEntries });
+      currentEntries = [];
+    }
+  };
+
+  for (const raw of tests) {
+    if (typeof raw !== 'string') {
+      continue;
+    }
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      continue;
+    }
+    if (trimmed === 'then') {
+      pushGroup();
+      continue;
+    }
+    currentEntries.push({ id: nextSuiteEntryId(), path: trimmed });
+  }
+  pushGroup();
+  return groups;
+};
+
+const flattenSuiteGroups = (groups: SuiteGroup[]): string[] => {
+  const flattened: string[] = [];
+  groups.forEach((group, idx) => {
+    group.entries.forEach(entry => flattened.push(entry.path));
+    if (idx < groups.length - 1) {
+      flattened.push('then');
+    }
+  });
+  return flattened;
+};
+
+const normalizeSuiteGroups = (groups: SuiteGroup[]): SuiteGroup[] => {
+  const filtered = groups.filter(group => group.entries.length > 0);
+  return filtered.map((group, idx) => ({ ...group, label: `Group ${idx + 1}` }));
+};
+
+const updateSuiteContentWithGroups = (content: string, groups: SuiteGroup[]): string | null => {
+  try {
+    const doc = parseYamlDoc(content);
+    doc.set('tests', flattenSuiteGroups(groups));
+    return doc.toString();
+  } catch {
+    return null;
+  }
+};
+
+const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
+  const allPaths: string[] = [];
+  groups.forEach((group) => group.entries.forEach((entry) => allPaths.push(entry.path)));
+  return allPaths;
+};
+
+const statusIconFor = (status: StepStatus | 'running') => {
+  if (status === 'running') {
+    return { icon: 'codicon-play-circle', color: '#BA8E23', title: 'Running' };
+  }
+  if (status === 'passed') {
+    return { icon: 'codicon-pass', color: '#23d18b', title: 'Passed' };
+  }
+  if (status === 'failed') {
+    return { icon: 'codicon-error', color: '#f85149', title: 'Failed' };
+  }
+  if (status === 'pending') {
+    return { icon: 'codicon-compass', color: '#3794ff', title: 'Pending' };
+  }
+  return { icon: 'codicon-circle-large', color: '#c5c5c5', title: 'Default' };
+};
+
+const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
+  const [groups, setGroups] = useState<SuiteGroup[]>(() => buildSuiteGroupsFromContent(content));
+  const [missingFiles, setMissingFiles] = useState<Set<string>>(new Set());
+
+  const addButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const [addMenuPos, setAddMenuPos] = useState<{ left: number; top: number } | null>(null);
+
+  useEffect(() => {
+    setGroups(buildSuiteGroupsFromContent(content));
+  }, [content]);
+
+  const persistGroups = useCallback(
+    (nextGroups: SuiteGroup[]) => {
+      const normalized = normalizeSuiteGroups(nextGroups);
+      setGroups(normalized);
+      const updated = updateSuiteContentWithGroups(content, normalized);
+      if (updated) {
+        setContent(updated);
+      }
+    },
+    [content, setContent]
+  );
+
+  const openAddMenuAtButton = useCallback(() => {
+    const btn = addButtonRef.current;
+    if (!btn) {
+      setAddMenuPos(null);
+      return;
+    }
+    const rect = btn.getBoundingClientRect();
+    const menuWidth = 220;
+    const margin = 8;
+    const maxLeft = typeof window !== 'undefined' ? window.innerWidth - menuWidth - margin : margin;
+    const preferred = rect.right - menuWidth;
+    const left = Math.max(margin, Math.min(maxLeft, preferred));
+    const top = rect.bottom + 6;
+    setAddMenuPos({ left, top });
+  }, []);
+
+  useEffect(() => {
+    if (!addMenuOpen) {
+      setAddMenuPos(null);
+      return;
+    }
+    if (typeof document === 'undefined' || typeof window === 'undefined') {
+      return;
+    }
+    openAddMenuAtButton();
+    const handlePointerDown = (event: MouseEvent) => {
+      if (addButtonRef.current?.contains(event.target as Node)) {
+        return;
+      }
+      setAddMenuOpen(false);
+    };
+    const handleResize = () => setAddMenuOpen(false);
+    document.addEventListener('mousedown', handlePointerDown, true);
+    window.addEventListener('resize', handleResize);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown, true);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [addMenuOpen, openAddMenuAtButton]);
+
+  const toggleAddMenu = useCallback(() => {
+    setAddMenuOpen(prev => {
+      const next = !prev;
+      if (next) {
+        openAddMenuAtButton();
+      } else {
+        setAddMenuPos(null);
+      }
+      return next;
+    });
+  }, [openAddMenuAtButton]);
+
+  const handleAddGroup = useCallback(() => {
+    const placeholder = createPlaceholderEntry();
+    const nextGroups = [...groups, { label: `Group ${groups.length + 1}`, entries: [placeholder] }];
+    persistGroups(nextGroups);
+    setAddMenuOpen(false);
+  }, [groups, persistGroups]);
+
+  const handleAddTestFile = useCallback(() => {
+    const placeholder = createPlaceholderEntry();
+    let nextGroups: SuiteGroup[];
+    if (!groups.length) {
+      nextGroups = [{ label: 'Group 1', entries: [placeholder] }];
+    } else {
+      const targetIdx = groups.length - 1;
+      nextGroups = groups.map((group, idx) => idx === targetIdx ? { ...group, entries: [...group.entries, placeholder] } : group);
+    }
+    persistGroups(nextGroups);
+    setAddMenuOpen(false);
+  }, [groups, persistGroups]);
+
+  const allPaths = useMemo(() => collectSuitePaths(groups), [groups]);
+  useEffect(() => {
+    if (allPaths.length > 0) {
+      window.vscode?.postMessage({ command: 'validateFilesExist', files: allPaths });
+    } else {
+      setMissingFiles(new Set());
+    }
+  }, [allPaths]);
+
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      const message = event.data;
+      if (!message || typeof message !== 'object') {
+        return;
+      }
+      if (message.command === 'validateFilesExistResult') {
+        setMissingFiles(new Set(message.missing || []));
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
+  const noItems = groups.every(group => group.entries.length === 0);
+  const tree = (
+    <SuiteEditTree
+      groups={groups}
+      missingFiles={missingFiles}
+      statusIconFor={statusIconFor}
+      groupsModel={groups}
+      persistGroups={persistGroups}
+      canEdit={true}
+    />
+  );
   return (
     <div className="panel-box">
       <div className="test-flow-tree" style={{ paddingTop: 4 }}>
@@ -46,10 +242,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({
               onPointerDown={(event) => event.stopPropagation()}
               onPointerUp={(event) => {
                 event.stopPropagation();
-                onAddMenuOpenChange(!addMenuOpen);
-                if (!addMenuOpen) {
-                  onOpenAddMenuAtButton();
-                }
+                toggleAddMenu();
               }}
               title="Add suite item"
             >
@@ -84,7 +277,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({
                   alignItems: 'center',
                   gap: 8,
                 }}
-                onPointerUp={() => onAddGroup()}
+                onPointerUp={() => handleAddGroup()}
                 title="Insert a group separator (then)"
               >
                 <span className="codicon codicon-list-tree" style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
@@ -99,7 +292,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({
                   alignItems: 'center',
                   gap: 8,
                 }}
-                onPointerUp={() => onAddTestFile()}
+                onPointerUp={() => handleAddTestFile()}
                 title="Add a test file entry"
               >
                 <span className="codicon codicon-symbol-file" style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />

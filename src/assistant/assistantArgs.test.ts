@@ -1,9 +1,23 @@
 jest.mock('vscode', () => {
   const fs = require('fs');
   const path = require('path');
+  const createOutputChannel = () => ({
+    trace: jest.fn(),
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    show: jest.fn(),
+  });
   return {
     Uri: {
       file: (p: string) => ({fsPath: path.resolve(p)}),
+    },
+    window: {
+      createOutputChannel,
+      showErrorMessage: jest.fn(),
+      showWarningMessage: jest.fn(),
+      showInformationMessage: jest.fn(),
     },
     workspace: {
       fs: {
