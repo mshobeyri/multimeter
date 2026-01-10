@@ -22,9 +22,9 @@ describe('runner suite import base', () => {
       return '';
     };
 
-    const jsRuns: Array<{title: string; code: string}> = [];
+    const jsRuns: Array<{title: string; js: string}> = [];
     const jsRunner = async (ctx: any) => {
-      jsRuns.push({title: String(ctx?.title ?? ''), code: String(ctx?.code ?? '')});
+      jsRuns.push({title: String(ctx?.title ?? ''), js: String(ctx?.js ?? '')});
     };
 
     const res = await runFile({
@@ -42,6 +42,6 @@ describe('runner suite import base', () => {
     expect(testRun).toBeTruthy();
 
     // The generated JS should include the imported dependency function.
-    expect(testRun?.code.includes('dep_')).toBe(true);
+    expect(testRun?.js.includes('dep_')).toBe(true);
   });
 });

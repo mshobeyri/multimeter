@@ -7,11 +7,12 @@ import * as mmtHelper from './testHelper';
 
 export interface RunJSCodeContext {
   runId: string;
-  code: string;
+  js: string;
   title: string;
   logger: (level: LogLevel, message: string) => void;
-  reporter: (message: any) => void;
+  reporter?: (message: any) => void;
   testId?: string;
+  nodeId?: string;
 }
 
 const REPORTER_KEY = '__mmtReportStep';
@@ -59,7 +60,9 @@ const applyReporterGlobals = (
 };
 
 export async function runJSCode(context: RunJSCodeContext): Promise<any> {
-  const {code, title, logger: lg, reporter} = context;
+  const {js: code, title, logger: lg, reporter} = context;
+  const oldNodeId = (globalThis as any).__mmtNodeId;
+  (globalThis as any).__mmtNodeId = context.nodeId;
   lg('info', `Running test: ${title}...`);
   const startTime = Date.now();
   const runId = typeof context?.runId === 'string' ? context.runId : '';
@@ -103,6 +106,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     lg('error', 'Error running test: ' + (e?.message || String(e)));
   } finally {
     restoreReporterGlobals();
+    (globalThis as any).__mmtNodeId = oldNodeId;
     const elapsed = Date.now() - startTime;
     lg('info', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
   }

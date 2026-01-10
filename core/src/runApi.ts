@@ -465,9 +465,9 @@ export async function executeApi(
     exampleName,
     exampleIndex,
   });
-    const result = await runGeneratedJs(
-      'run-api', js, displayName, options.logger, jsRunner, undefined,
-      options.testId);
+      const result = await runGeneratedJs(
+        'run-api', js, displayName, options.logger, jsRunner, undefined,
+        options.testId, options.nodeId);
   if (preLogs.length) {
     result.logs = [...preLogs.map(l => l.message), ...(result.logs ?? [])];
   }

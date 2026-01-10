@@ -19,6 +19,7 @@ export interface TestStepReporterEvent {
   actual?: any;
   expected?: any;
   testId?: string;
+  nodeId?: string;
 }
 
 export interface TestRunSummaryEvent {
@@ -26,6 +27,7 @@ export interface TestRunSummaryEvent {
   runId: string;
   result: TestStepStatus;
   testId?: string;
+  nodeId?: string;
 }
 
 export interface SuiteReporterMessage {
@@ -39,10 +41,30 @@ export interface SuiteReporterMessage {
   entry?: string;
   docType?: string;
   testId?: string;
+  nodeId?: string;
+}
+
+export interface SuiteRunStartEvent {
+  scope: 'suite-run-start';
+  runId: string;
+  suitePath?: string;
+  startedAt: number;
+  totalRunnable: number;
+}
+
+export interface SuiteRunFinishedEvent {
+  scope: 'suite-run-finished';
+  runId: string;
+  suitePath?: string;
+  finishedAt: number;
+  success: boolean;
+  durationMs: number;
+  cancelled?: boolean;
 }
 
 export type RunReporterMessage =
-    SuiteReporterMessage|TestStepReporterEvent|TestRunSummaryEvent;
+  SuiteReporterMessage|TestStepReporterEvent|TestRunSummaryEvent|
+  SuiteRunStartEvent|SuiteRunFinishedEvent;
 
 export interface RunResult {
   success: boolean;
@@ -92,6 +114,9 @@ export interface RunFileOptions {
 
   /** Optional identifier passed through reporter events (e.g., suite testId). */
   testId?: string;
+
+  /** Optional identifier for suite bundle node routing (preferred over testId). */
+  nodeId?: string;
 }
 
 export interface MergeInputsParams {

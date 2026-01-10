@@ -67,7 +67,10 @@ export async function executeTest(
       ...event,
       runId: event.runId || runId,
       testId: event.testId || options.testId,
-    };
+        };
+        if (options.nodeId && !payload.nodeId) {
+          payload.nodeId = options.nodeId;
+        }
     forwardReporter(payload);
   } : undefined;
   const js = await generateTestJs({
@@ -77,16 +80,17 @@ export async function executeTest(
     envVars,
     fileLoader: options.fileLoader,
   });
-  const result = await runGeneratedJs(
+    const result = await runGeneratedJs(
       runId, js, displayName, options.logger, options.jsRunner, stepReporter,
-      options.testId);
+      options.testId, options.nodeId);
   if (forwardReporter) {
-    const summary: TestRunSummaryEvent = {
-      scope: 'test-step-run',
-      runId,
-      result: result.success ? 'passed' : 'failed',
-      testId: options.testId,
-    };
+      const summary: TestRunSummaryEvent = {
+        scope: 'test-step-run',
+        runId,
+        result: result.success ? 'passed' : 'failed',
+        testId: options.testId,
+        nodeId: options.nodeId,
+      };
     forwardReporter(summary);
   }
   if (preLogs.length) {

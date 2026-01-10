@@ -133,12 +133,14 @@ flowchart TD
   C --> D["core runner (runner.runFile)"]
   D --> E["JSer.fileType"]
   E -->|suite| F["runSuite (iterate entries)"]
+  F --> S0["Reporter: suite-run-start"]
   F --> G["Emit suite-item"]
   F --> H["For each entry: resolve file then runner.runFile(child) with testId"]
   H --> D
   D --> I["Child events (test-step / api logs) include testId"]
   G --> J["Extension forwards runFileReport"]
   I --> J
+  F --> S1["Reporter: suite-run-finished"]
   J --> K["Webview routes reports by testId (fallback leafId)"]
 ```
 
@@ -161,3 +163,10 @@ flowchart TD
 Notes:
 - Filtering/bundling currently happens in the extension (not `core`).
 - `testId` currently uses the suite-entry index scheme (e.g. `0:3`) and is propagated into child runs so step events can be routed back.
+
+## Suite bundle (planned)
+
+For recursive suite imports and “solid” per-node reporting, the intended direction is a core-native **suite bundle** runner that uses `nodeId` (stable per bundle node) and emits explicit suite lifecycle events.
+
+- `nodeId`: preferred routing id for bundled suite nodes; propagates into `test-step` and `test-step-run` events.
+- `suite-run-start` / `suite-run-finished`: suite lifecycle reporter events emitted by core suite execution.

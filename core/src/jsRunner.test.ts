@@ -13,7 +13,7 @@ describe('jsRunner reporter propagation', () => {
   it('emits reporter events for helper checks and asserts', async () => {
     const events: Record<string, any>[] = [];
     await runJSCode({
-      code: `
+      js: `
         report_('check', "foo > 1", undefined, undefined, false, 123, 456);
         report_('assert', "bar === 2", "t", "custom", true);
       `,
@@ -52,7 +52,7 @@ describe('jsRunner reporter propagation', () => {
     scope.__mmtRunId = 'persisted-run';
 
     await runJSCode({
-      code: 'report_(\'check\', "noop", undefined, undefined, true);',
+      js: 'report_(\'check\', "noop", undefined, undefined, true);',
       title: 'restore-test',
       logger,
       runId: 'temporary-run',

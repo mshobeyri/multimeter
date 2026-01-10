@@ -278,7 +278,7 @@ export function handleStopSuiteRun(
 
 export async function handleRunJSCode(message: any) {
   await runJSCode({
-    code: message.code,
+    js: message.code,
     title: message.title,
     logger: logToOutput,
     runId: message.runId ?? 'vscode-js-run',

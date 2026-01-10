@@ -45,6 +45,14 @@ export async function executeSuite(
     options.logger(level, msg);
   };
 
+  options.reporter && options.reporter({
+    scope: 'suite-run-start',
+    runId: `suite:${sanitizeIdentifier(prepared.filePath)}`,
+    suitePath: prepared.filePath,
+    startedAt: suiteStart,
+    totalRunnable: (suite.tests ?? []).filter((t) => String(t ?? '').trim() && String(t ?? '').trim() !== 'then').length,
+  } as any);
+
   suiteLogger('info', `Running suite: ${suiteDisplayName}`);
 
   let overallSuccess = true;
@@ -188,6 +196,15 @@ export async function executeSuite(
     errors: allErrors,
     logs: allLogs,
   };
+  options.reporter && options.reporter({
+    scope: 'suite-run-finished',
+    runId: `suite:${sanitizeIdentifier(prepared.filePath)}`,
+    suitePath: prepared.filePath,
+    finishedAt: Date.now(),
+    success: overallSuccess,
+    durationMs,
+    cancelled: options.abortSignal?.aborted === true,
+  } as any);
   if (preLogs.length) {
     result.logs = [...preLogs.map(l => l.message), ...(result.logs ?? [])];
   }
