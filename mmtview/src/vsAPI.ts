@@ -7,6 +7,9 @@ let lastFileDataUrlRejecter: ((error: any) => void)|null = null;
 const osFilePickerResolvers: Map<string, (value: any) => void> = new Map();
 const osFilePickerRejecters: Map<string, (err: any) => void> = new Map();
 
+const suiteHierarchyResolvers: Map<string, (value: any) => void> = new Map();
+const suiteHierarchyRejecters: Map<string, (err: any) => void> = new Map();
+
 // Add the event listener only once
 if (typeof window !== 'undefined' &&
     !(window as any).__fileContentListenerAdded) {
@@ -45,6 +48,23 @@ if (typeof window !== 'undefined' &&
           resolve({cancelled: true});
         } else {
           resolve({filePath: message.filePath, filePaths: message.filePaths});
+        }
+      }
+    } else if (message.command === 'suiteHierarchyResult') {
+      const id = message?.requestId;
+      if (id && suiteHierarchyResolvers.has(id)) {
+        const resolve = suiteHierarchyResolvers.get(id)!;
+        const reject = suiteHierarchyRejecters.get(id);
+        suiteHierarchyResolvers.delete(id);
+        suiteHierarchyRejecters.delete(id);
+        if (message.error) {
+          if (reject) {
+            reject(message.error);
+          } else {
+            resolve({error: message.error});
+          }
+        } else {
+          resolve(message);
         }
       }
     }
@@ -126,6 +146,31 @@ export function openOsFilePicker(opts: {
         osFilePickerResolvers.delete(requestId);
         osFilePickerRejecters.delete(requestId);
         resolve({cancelled: true});
+      }
+    }, 2 * 60 * 1000);
+  });
+}
+
+export type SuiteHierarchyResult = {
+  command: 'suiteHierarchyResult';
+  requestId?: string;
+  filename?: string;
+  suiteFilePath?: string;
+  tree?: any;
+  error?: string;
+};
+
+export function getSuiteHierarchy(filename: string): Promise<SuiteHierarchyResult> {
+  const requestId = `suite-hierarchy-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  return new Promise((resolve, reject) => {
+    suiteHierarchyResolvers.set(requestId, resolve);
+    suiteHierarchyRejecters.set(requestId, reject);
+    window.vscode?.postMessage({command: 'getSuiteHierarchy', requestId, filename});
+    setTimeout(() => {
+      if (suiteHierarchyResolvers.has(requestId)) {
+        suiteHierarchyResolvers.delete(requestId);
+        suiteHierarchyRejecters.delete(requestId);
+        resolve({command: 'suiteHierarchyResult', requestId, filename, error: 'timeout'});
       }
     }, 2 * 60 * 1000);
   });

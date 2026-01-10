@@ -5,7 +5,7 @@ import SuiteTestFileItem from './SuiteTestFileItem';
 import SuiteSuiteFileItem from './SuiteSuiteFileItem';
 import { StepStatus, SuiteGroup } from '../types';
 import { StepReportItem } from '../../shared/TestStepReportPanel';
-import { SuiteHierarchyNode } from './suiteHierarchy';
+import { SuiteTreeNode } from './suiteHierarchy';
 
 export type SuiteTestTreeItemData =
   | { type: 'root'; label: string }
@@ -15,7 +15,7 @@ export type SuiteTestTreeItemData =
 
 interface SuiteTestTreeProps {
   groups: SuiteGroup[];
-  hierarchyByEntryPath: Record<string, SuiteHierarchyNode[]>;
+  hierarchyByEntryPath: Record<string, SuiteTreeNode[]>;
   missingFiles: Set<string>;
   stepStatuses: Record<string, StepStatus | 'running'>;
   lastRunIdByEntryId: Record<string, string>;
@@ -111,14 +111,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
           continue;
         }
 
-        if (isSuite) {
-          items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'test', path: entry.path, leafId } };
-          items[entry.id] = { ...items[entry.id], data: { type: 'suite', path: entry.path } };
-          continue;
-        }
-
-        // Ignore non-test/non-suite entries in the Suite Test view.
-        delete items[entry.id];
+        items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'suite', path: entry.path } };
       }
     }
 
@@ -142,7 +135,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         const effectiveHierarchy = hierarchy ?? [];
 
         const hierarchyChildren: string[] = [];
-        const pushHierarchy = (parent: string, nodes: SuiteHierarchyNode[]) => {
+        const pushHierarchy = (parent: string, nodes: SuiteTreeNode[]) => {
           nodes.forEach((n, idx) => {
             if (n.kind === 'group') {
               const gid = `import:${parent}:group:${idx}:${n.label}`;
@@ -167,8 +160,8 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
               const nodeId = `import:${parent}:path:${path}`;
               items[nodeId] = { index: nodeId, isFolder: true, children: [], data: { type: 'suite', path } };
               hierarchyChildren.push(nodeId);
-              if (Array.isArray(n.groups) && n.groups.length) {
-                pushHierarchy(nodeId, n.groups as any);
+              if (Array.isArray(n.children) && n.children.length) {
+                pushHierarchy(nodeId, n.children);
               }
               return;
             }
@@ -184,12 +177,6 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
             if (n.kind === 'cycle') {
               return;
             }
-
-            if (n.kind === 'error') {
-              return;
-            }
-
-            // Ignore other nodes.
           });
         };
 
@@ -299,7 +286,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
       />
     );
   };
-
+  console.log('Rendering SuiteTestTree with treeData:', treeData);
   return (
     <ControlledTreeEnvironment
       items={treeData.items}

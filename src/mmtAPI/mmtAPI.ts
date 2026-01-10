@@ -1,8 +1,11 @@
 import * as vscode from 'vscode';
 
+import * as path from 'path';
+
 import * as file from './file';
 import {handleNetworkMessage} from './network';
 import * as run from './run';
+import {suiteHierarchy} from 'mmt-core';
 
 let curlTerminal: vscode.Terminal|null = null;
 
@@ -173,6 +176,51 @@ export const messageRecieved = async (
     case 'getSuiteImportTree':
       await file.handleGetSuiteImportTree(message, webviewPanel, document);
       break;
+
+    case 'getSuiteHierarchy': {
+      const filename = typeof message?.filename === 'string' ? message.filename : '';
+      if (!filename) {
+        webviewPanel.webview.postMessage({
+          command: 'suiteHierarchyResult',
+          requestId: message?.requestId,
+          error: 'Missing filename',
+        });
+        break;
+      }
+      try {
+        const suiteRawText = await file.readRelativeFileContent(document.uri.fsPath, filename);
+        // Make it absolute for proper relative resolution.
+        const suiteFilePath = path.resolve(path.dirname(document.uri.fsPath), filename);
+
+        const tree = await suiteHierarchy.buildSuiteHierarchyFromSuiteFile({
+          suiteFilePath,
+          suiteRawText,
+          fileLoader: async (requestedPath: string) => {
+            try {
+              return await file.readFileContent(requestedPath);
+            } catch {
+              return '';
+            }
+          },
+        });
+
+        webviewPanel.webview.postMessage({
+          command: 'suiteHierarchyResult',
+          requestId: message?.requestId,
+          filename,
+          suiteFilePath,
+          tree,
+        });
+      } catch (err: any) {
+        webviewPanel.webview.postMessage({
+          command: 'suiteHierarchyResult',
+          requestId: message?.requestId,
+          filename,
+          error: err?.message || String(err),
+        });
+      }
+      break;
+    }
 
     case 'openRelativeFile':
       await file.handleOpenRelativeFile(message, document);

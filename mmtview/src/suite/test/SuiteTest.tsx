@@ -4,7 +4,8 @@ import { StepStatus, SuiteEntry, SuiteGroup } from '../types';
 import { SuiteTestTree } from './';
 import { StepReportItem } from '../../shared/TestStepReportPanel';
 import { useSuiteImportTree } from './useSuiteImportTree';
-import { buildSuiteHierarchyFromYaml, SuiteHierarchyNode, SuiteFileReader } from './suiteHierarchy';
+import { SuiteTreeNode } from './suiteHierarchy';
+import { getSuiteHierarchy } from '../../vsAPI';
 
 interface SuiteTestProps {
     content: string;
@@ -75,7 +76,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
     const canRun = allPaths.length > 0;
     const noItems = groups.every(group => group.entries.length === 0);
 
-    const importTree = useSuiteImportTree(allPaths, true);
+    useSuiteImportTree(allPaths, true);
 
     const [stepStatuses, setStepStatuses] = useState<Record<string, StepStatus | 'running'>>({});
     const [lastRunIdByEntryId, setLastRunIdByEntryId] = useState<Record<string, string>>({});
@@ -86,30 +87,34 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
     const [leafReportsByLeafId, setLeafReportsByLeafId] = useState<Record<string, StepReportItem[]>>({});
     const [leafRunStateByLeafId, setLeafRunStateByLeafId] = useState<Record<string, 'idle' | 'running' | 'passed' | 'failed' | 'cancelled'>>({});
 
-    const hierarchyByEntryPath = useMemo(() => {
-        const result: Record<string, SuiteHierarchyNode[]> = {};
+    const [hierarchyByEntryPath, setHierarchyByEntryPath] = useState<Record<string, SuiteTreeNode[]>>({});
 
-        const readFile: SuiteFileReader = (path: string) => {
-            const n = importTree.rootNodes.find((x) => x.path === path);
-            return typeof (n as any)?.raw === 'string' ? (n as any).raw : undefined;
-        };
-
-        groups.forEach((group) => {
-            group.entries.forEach((entry) => {
-                const suiteYaml = readFile(entry.path);
-                if (suiteYaml == null) {
-                    return;
+    useEffect(() => {
+        let cancelled = false;
+        const run = async () => {
+            const result: Record<string, SuiteTreeNode[]> = {};
+            for (const group of groups) {
+                for (const entry of group.entries) {
+                    try {
+                        const res = await getSuiteHierarchy(entry.path);
+                        const tree = (res as any)?.tree as any[] | undefined;
+                        if (Array.isArray(tree)) {
+                            result[entry.path] = tree as any;
+                        }
+                    } catch {
+                        // Ignore; tree will treat it as non-suite.
+                    }
                 }
-                result[entry.path] = buildSuiteHierarchyFromYaml({
-                    suitePath: entry.path,
-                    suiteYaml,
-                    readFile,
-                });
-            });
-            console.log('hierarchyByEntryPath:', result);
-        });
-        return result;
-    }, [groups, importTree.rootNodes]);
+            }
+            if (!cancelled) {
+                setHierarchyByEntryPath(result);
+            }
+        };
+        run();
+        return () => {
+            cancelled = true;
+        };
+    }, [groups]);
 
     useEffect(() => {
         setStepStatuses({});
