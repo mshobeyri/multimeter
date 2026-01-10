@@ -81,3 +81,83 @@
   - Before refactoring shared APIs like `runner.runFile` or network helpers, search call sites in:
     - `core/src/runner.ts`, `src/mmtEditorProvider.ts`, `src/assistant.ts`, `src/vscodeNetwork.ts`, `mmtcli/src/cli.ts`, `mmtview/src/**`.
   - For new user-facing features (commands, panels, assistant behaviors), keep CLI and VS Code behavior aligned when reasonable and document any intentional differences.
+
+## Real execution flows (current code)
+
+This section captures the current runtime flow through the webview → extension host → `core` runner, including how `testId` flows into reporter events.
+
+### Run an API `.mmt` file (`type: api`)
+
+```mermaid
+flowchart TD
+  A["Webview UI - Run API"] --> B["postMessage (runCurrentDocument)"]
+  B --> C["Extension host (mmtEditorProvider/run)"]
+  C --> D["core runner (runner.runFile)"]
+  D --> E["JSer.fileType"]
+  E -->|api| F["runApi"]
+  F --> G["runCommon.runGeneratedJs"]
+  G --> H["jsRunner exec (sets globals)"]
+  F --> I["networkCore/network"]
+  I --> F
+  F --> J["Reporter events (runId + optional testId)"]
+  J --> K["Extension forwards runFileReport"]
+  K --> L["Webview renders output"]
+```
+
+Notes:
+- `testId` is typically injected by suites/tests; plain API runs generally don’t originate a `testId`.
+
+### Run a Test `.mmt` file (`type: test`)
+
+```mermaid
+flowchart TD
+  A["Webview UI - Run Test"] --> B["postMessage (runCurrentDocument)"]
+  B --> C["Extension host (mmtEditorProvider/run)"]
+  C --> D["core runner (runner.runFile)"]
+  D --> E["JSer.fileType"]
+  E -->|test| F["runTest (JSer -> JS)"]
+  F --> G["runCommon.runGeneratedJs"]
+  G --> H["jsRunner exec (with globals)"]
+  H --> I["testHelper emits test-step/test-step-run (includes testId)"]
+  I --> J["Reporter callback (extension)"]
+  J --> K["Extension forwards runFileReport"]
+  K --> L["Webview shows steps/asserts"]
+```
+
+### Run a Suite `.mmt` file (`type: suite`) - full suite run
+
+```mermaid
+flowchart TD
+  A["Suite webview - Run Suite"] --> B["postMessage (runSuite)"]
+  B --> C["Extension host (mmtAPI/run)"]
+  C --> D["core runner (runner.runFile)"]
+  D --> E["JSer.fileType"]
+  E -->|suite| F["runSuite (iterate entries)"]
+  F --> G["Emit suite-item"]
+  F --> H["For each entry: resolve file then runner.runFile(child) with testId"]
+  H --> D
+  D --> I["Child events (test-step / api logs) include testId"]
+  G --> J["Extension forwards runFileReport"]
+  I --> J
+  J --> K["Webview routes reports by testId (fallback leafId)"]
+```
+
+### Run a “node” in the suite tree - current implementation (targets filtering)
+
+Per-item Run buttons implement “run selected top-level suite entries”, by sending `targets: string[]` (a list of `testId`s) and filtering suite YAML in the extension.
+
+```mermaid
+flowchart TD
+  A["Click Run on node"] --> B["Suite webview computes targets (testId[])"]
+  B --> C["postMessage (runSuite + targets)"]
+  C --> D["Extension host (mmtAPI/run)"]
+  D --> E["Filter suite YAML (suiteTargets.buildFilteredSuiteYaml)"]
+  E --> F["core runner.runFile on filtered suite YAML"]
+  F --> G["runSuite runs remaining entries"]
+  G --> H["Extension forwards reports"]
+  H --> I["Webview displays reports for target nodes"]
+```
+
+Notes:
+- Filtering/bundling currently happens in the extension (not `core`).
+- `testId` currently uses the suite-entry index scheme (e.g. `0:3`) and is propagated into child runs so step events can be routed back.
