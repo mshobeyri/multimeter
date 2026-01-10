@@ -6,6 +6,7 @@ import * as vscode from 'vscode';
 
 import {readRelativeFileContent} from './file';
 import {getPreparedConfig} from './network';
+import {buildFilteredSuiteYaml} from './suiteTargets';
 
 const logOutputChannel =
     vscode.window.createOutputChannel('Multimeter', {log: true});
@@ -169,8 +170,12 @@ export async function handleRunSuite(
 
     // NOTE: core currently doesn't support cancellation; we only stop forwarding
     // and we can follow up by adding abort checks in core/runSuite.ts.
+    const targets = Array.isArray(message?.targets) ? message.targets : null;
+    const rawSuite = document.getText();
+    const filtered = targets ? buildFilteredSuiteYaml(rawSuite, targets) : rawSuite;
+
     await runner.runFile({
-      file: document.getText(),
+      file: filtered,
       fileType: 'raw' as any,
       filePath: document.uri.fsPath,
       exampleIndex: message?.inputs?.exampleIndex,
@@ -196,26 +201,29 @@ export async function handleRunSuite(
           return;
         }
 
-        // Provide a stable leafId:
-        // - For suite-item events: derive from groupIndex/groupItemIndex
-        // - For test-step/test-step-run events emitted by nested test runs: map by runId
-        let leafId: string|undefined;
+        // Prefer core-provided testId; fall back to derived `${groupIndex}:${groupItemIndex}`.
+        const incomingTestId = typeof msg?.testId === 'string' ? msg.testId : undefined;
+        let leafId = incomingTestId;
         if (msg?.scope === 'suite-item' &&
             Number.isInteger(msg?.groupIndex) &&
             Number.isInteger(msg?.groupItemIndex)) {
-          leafId = `${msg.groupIndex}:${msg.groupItemIndex}`;
-          if (typeof msg?.runId === 'string' && msg.runId) {
+          const derived = `${msg.groupIndex}:${msg.groupItemIndex}`;
+          if (!leafId) {
+            leafId = derived;
+          }
+          if (typeof msg?.runId === 'string' && msg.runId && leafId) {
             suiteRunLeafByChildRunId.set(msg.runId, leafId);
           }
-        } else if ((msg?.scope === 'test-step' || msg?.scope === 'test-step-run') &&
-                   typeof msg?.runId === 'string' && msg.runId) {
-          leafId = suiteRunLeafByChildRunId.get(msg.runId);
+        } else if (typeof msg?.runId === 'string' && msg.runId) {
+          leafId = leafId || suiteRunLeafByChildRunId.get(msg.runId);
         }
+        const testId = incomingTestId || leafId;
 
         webviewPanel.webview.postMessage({
           command: 'runFileReport',
           suiteRunId,
           leafId,
+          testId,
           ...msg,
         });
       },

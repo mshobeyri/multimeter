@@ -16,6 +16,10 @@ interface SuiteTestFileItemProps {
 
     leafReportsByLeafId: Record<string, StepReportItem[]>;
     leafRunStateByLeafId: Record<string, 'idle' | 'running' | 'passed' | 'failed' | 'cancelled'>;
+
+    onRun?: () => void;
+    runButtonTitle?: string;
+    runDisabled?: boolean;
 }
 
 const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
@@ -28,6 +32,9 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     status,
     leafReportsByLeafId,
     leafRunStateByLeafId,
+    onRun,
+    runButtonTitle = 'Run',
+    runDisabled = false,
 }) => {
     const data = item.data as SuiteTestFileItemData;
     const isMissing = missingFiles.has(data.path);
@@ -51,7 +58,8 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                 style={{ paddingTop: 10, display: 'flex' }}
             >
                 <div style={{ width: 24, minWidth: 24, display: 'inline-flex', alignItems: 'flex-start' }}>{arrow}</div>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minWidth: 0 }}>
+                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                     <span
                         className={`codicon ${statusIcon.icon}`}
                         aria-hidden
@@ -70,6 +78,23 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                     >
                         {data.path} - {data.type}
                     </div>
+                    </div>
+                    {onRun && !isMissing && (
+                        <button
+                            className="button-icon"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onRun();
+                            }}
+                            title={runButtonTitle}
+                            disabled={runDisabled}
+                            style={{ marginTop: -2 }}
+                        >
+                            <span className="codicon codicon-run" aria-hidden />
+                            <span>Run</span>
+                        </button>
+                    )}
                 </div>
             </div>
             {context?.isExpanded && (

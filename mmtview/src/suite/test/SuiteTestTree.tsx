@@ -23,6 +23,8 @@ interface SuiteTestTreeProps {
 
   leafReportsByLeafId: Record<string, StepReportItem[]>;
   leafRunStateByLeafId: Record<string, 'idle' | 'running' | 'passed' | 'failed' | 'cancelled'>;
+
+  onRunTargets: (targets: string[]) => void;
 }
 
 const buildBaseTestTree = (groups: SuiteGroup[]) => {
@@ -77,6 +79,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
   statusIconFor,
   leafReportsByLeafId,
   leafRunStateByLeafId,
+  onRunTargets,
 }) => {
   const base = useMemo(() => buildBaseTestTree(groups), [groups]);
   const [expandedItems, setExpandedItems] = useState<string[]>(['suite-root']);
@@ -208,10 +211,26 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
 
   const getGroupStatus = useCallback((): StepStatus => 'default', []);
 
+  const getGroupTargets = useCallback((groupItemId: string): string[] => {
+    const match = /^group-(\d+)$/.exec(groupItemId);
+    if (!match) {
+      return [];
+    }
+    const groupIndex = Number(match[1]) - 1;
+    const group = groups[groupIndex];
+    if (!group) {
+      return [];
+    }
+    return group.entries.map((_, ei) => `${groupIndex}:${ei}`);
+  }, [groups]);
+
   const renderItem = ({ item, context, arrow, children }: any) => {
     const data = item.data as SuiteTestTreeItemData;
 
     if (data.type === 'group' || data.type === 'root') {
+      const itemId = String(item.index);
+      const groupTargets = data.type === 'group' ? getGroupTargets(itemId) : [];
+      const hasTargets = groupTargets.length > 0;
       return (
         <SuiteTestGroupItem
           item={item}
@@ -221,6 +240,10 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
           getGroupStatus={getGroupStatus}
           statusIconFor={statusIconFor}
           canShowStatusIcon={data.type === 'group' || data.type === 'root'}
+          showRunButton={data.type === 'group'}
+          runButtonTitle="Run group"
+          runDisabled={!hasTargets}
+          onRun={() => hasTargets && onRunTargets(groupTargets)}
         />
       );
     }
@@ -274,6 +297,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         }
         return '';
       })();
+      const suiteRunHandler = suiteLeafId ? () => onRunTargets([suiteLeafId]) : undefined;
       return (
         <SuiteSuiteFileItem
           item={item as any}
@@ -285,9 +309,16 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
           status={suiteStatus}
           leafId={suiteLeafId}
           leafRunStateByLeafId={leafRunStateByLeafId}
+          onRun={suiteRunHandler}
+          runButtonTitle="Run suite"
+          runDisabled={!suiteLeafId}
         />
       );
     }
+
+    const testLeafId = (data as any)?.leafId as string | undefined;
+    const isTopLevelLeaf = typeof testLeafId === 'string' && /^\d+:\d+$/.test(testLeafId);
+    const handleRun = isTopLevelLeaf ? () => onRunTargets([testLeafId!]) : undefined;
 
     return (
       <SuiteTestFileItem
@@ -300,6 +331,9 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         status={computedStatus}
         leafReportsByLeafId={leafReportsByLeafId}
         leafRunStateByLeafId={leafRunStateByLeafId}
+        onRun={handleRun}
+        runButtonTitle="Run test"
+        runDisabled={!isTopLevelLeaf}
       />
     );
   };

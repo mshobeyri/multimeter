@@ -66,6 +66,7 @@ export async function executeTest(
     const payload: TestStepReporterEvent = {
       ...event,
       runId: event.runId || runId,
+      testId: event.testId || options.testId,
     };
     forwardReporter(payload);
   } : undefined;
@@ -77,12 +78,14 @@ export async function executeTest(
     fileLoader: options.fileLoader,
   });
   const result = await runGeneratedJs(
-      runId, js, displayName, options.logger, options.jsRunner, stepReporter);
+      runId, js, displayName, options.logger, options.jsRunner, stepReporter,
+      options.testId);
   if (forwardReporter) {
     const summary: TestRunSummaryEvent = {
       scope: 'test-step-run',
       runId,
       result: result.success ? 'passed' : 'failed',
+      testId: options.testId,
     };
     forwardReporter(summary);
   }

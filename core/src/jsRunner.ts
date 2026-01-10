@@ -11,24 +11,34 @@ export interface RunJSCodeContext {
   title: string;
   logger: (level: LogLevel, message: string) => void;
   reporter: (message: any) => void;
+  testId?: string;
 }
 
 const REPORTER_KEY = '__mmtReportStep';
 const RUN_ID_KEY = '__mmtRunId';
+const TEST_ID_KEY = '__mmtTestId';
 
 const applyReporterGlobals = (
-    reporter: ((message: any) => void)|undefined, runId: string): (() => void) => {
+    reporter: ((message: any) => void)|undefined, runId: string,
+    testId?: string): (() => void) => {
   const scope = globalThis as Record<string, any>;
   const hadReporter = Object.prototype.hasOwnProperty.call(scope, REPORTER_KEY);
   const hadRunId = Object.prototype.hasOwnProperty.call(scope, RUN_ID_KEY);
+  const hadTestId = Object.prototype.hasOwnProperty.call(scope, TEST_ID_KEY);
   const previousReporter = scope[REPORTER_KEY];
   const previousRunId = scope[RUN_ID_KEY];
+  const previousTestId = scope[TEST_ID_KEY];
   if (reporter) {
     scope[REPORTER_KEY] = reporter;
   } else {
     delete scope[REPORTER_KEY];
   }
   scope[RUN_ID_KEY] = runId;
+  if (typeof testId === 'string' && testId) {
+    scope[TEST_ID_KEY] = testId;
+  } else {
+    delete scope[TEST_ID_KEY];
+  }
   return () => {
     if (hadReporter) {
       scope[REPORTER_KEY] = previousReporter;
@@ -40,6 +50,11 @@ const applyReporterGlobals = (
     } else if (Object.prototype.hasOwnProperty.call(scope, RUN_ID_KEY)) {
       delete scope[RUN_ID_KEY];
     }
+    if (hadTestId) {
+      scope[TEST_ID_KEY] = previousTestId;
+    } else if (Object.prototype.hasOwnProperty.call(scope, TEST_ID_KEY)) {
+      delete scope[TEST_ID_KEY];
+    }
   };
 };
 
@@ -49,7 +64,8 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
   const startTime = Date.now();
   const runId = typeof context?.runId === 'string' ? context.runId : '';
   const reporterFn = typeof reporter === 'function' ? reporter : undefined;
-  const restoreReporterGlobals = applyReporterGlobals(reporterFn, runId);
+  const restoreReporterGlobals = applyReporterGlobals(
+      reporterFn, runId, context.testId);
 
   const customConsole = {
     trace: (...args: any[]) => lg(

@@ -18,12 +18,14 @@ export interface TestStepReporterEvent {
   timestamp: number;
   actual?: any;
   expected?: any;
+  testId?: string;
 }
 
 export interface TestRunSummaryEvent {
   scope: 'test-step-run';
   runId: string;
   result: TestStepStatus;
+  testId?: string;
 }
 
 export interface SuiteReporterMessage {
@@ -36,6 +38,7 @@ export interface SuiteReporterMessage {
   filePath?: string;
   entry?: string;
   docType?: string;
+  testId?: string;
 }
 
 export type RunReporterMessage =
@@ -86,6 +89,9 @@ export interface RunFileOptions {
 
   /** Optional signal for cooperative cancellation (suite/test/api runs). */
   abortSignal?: AbortSignal;
+
+  /** Optional identifier passed through reporter events (e.g., suite testId). */
+  testId?: string;
 }
 
 export interface MergeInputsParams {

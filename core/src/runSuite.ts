@@ -80,6 +80,7 @@ export async function executeSuite(
         const childRawText = await fileLoader(childFilePath);
         const childDocType = detectDocType(childFilePath, childRawText);
 
+        const testId = `${gi}:${entryIndex}`;
         options.reporter && options.reporter({
           scope: 'suite-item',
           status: 'running',
@@ -89,6 +90,7 @@ export async function executeSuite(
           filePath: childFilePath,
           entry,
           docType: childDocType ?? undefined,
+          testId,
         });
 
         suiteLogger('info', `Running suite item: ${display}`);
@@ -103,7 +105,8 @@ export async function executeSuite(
           filePath: childFilePath,
           manualInputs: mergedInputsUsed,
           fileLoader: childFileLoader,
-          logger: suiteLogger
+          logger: suiteLogger,
+          testId,
         } as any);
 
         const status: SuiteStepStatus =
@@ -128,6 +131,7 @@ export async function executeSuite(
           filePath: childFilePath,
           entry,
           docType: childDocType ?? undefined,
+          testId,
         });
 
         return result;
@@ -149,6 +153,7 @@ export async function executeSuite(
           groupItemIndex: entryIndex,
           threw: true,
         };
+        const testId = `${gi}:${entryIndex}`;
         options.reporter && options.reporter({
           scope: 'suite-item',
           groupIndex: gi,
@@ -157,6 +162,7 @@ export async function executeSuite(
           runId,
           filePath: childFilePath,
           entry,
+          testId,
         });
         return result;
       }
