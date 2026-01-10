@@ -1,10 +1,90 @@
-import { buildSuiteHierarchy } from './suiteHierarchy';
+import { buildSuiteHierarchy, buildSuiteHierarchyFromYaml } from './suiteHierarchy';
 
 describe('suiteHierarchy', () => {
+  test('buildSuiteHierarchyFromYaml eagerly expands suites using readFile', () => {
+    const files: Record<string, string> = {
+      'root-suite.mmt': ['type: suite', 'tests:', '  - child-suite.mmt', '  - then', '  - leaf-test.mmt'].join('\n'),
+      'child-suite.mmt': ['type: suite', 'tests:', '  - deep-test.mmt'].join('\n'),
+      'leaf-test.mmt': ['type: test'].join('\n'),
+      'deep-test.mmt': ['type: test'].join('\n'),
+    };
+
+    const tree = buildSuiteHierarchyFromYaml({
+      suitePath: 'root-suite.mmt',
+      suiteYaml: files['root-suite.mmt'],
+      readFile: (p) => files[p],
+    });
+
+    expect(tree).toEqual([
+      {
+        kind: 'group',
+        label: 'Group 1',
+        children: [
+          {
+            kind: 'suite',
+            path: 'child-suite.mmt',
+            groups: [{ kind: 'test', path: 'deep-test.mmt' }],
+          },
+        ],
+      },
+      { kind: 'group', label: 'Group 2', children: [{ kind: 'test', path: 'leaf-test.mmt' }] },
+    ]);
+  });
+
+  test('buildSuiteHierarchyFromYaml marks missing files as missing', () => {
+    const rootYaml = ['type: suite', 'tests:', '  - missing-test.mmt'].join('\n');
+
+    const tree = buildSuiteHierarchyFromYaml({
+      suitePath: 'root-suite.mmt',
+      suiteYaml: rootYaml,
+      readFile: () => undefined,
+    });
+
+    expect(tree).toEqual([{ kind: 'missing', path: 'missing-test.mmt' }]);
+  });
+
+  test('buildSuiteHierarchyFromYaml ignores non-suite/test doc types', () => {
+    const files: Record<string, string> = {
+      'root-suite.mmt': ['type: suite', 'tests:', '  - api1.mmt', '  - test1.mmt', '  - env1.mmt'].join('\n'),
+      'api1.mmt': ['type: api'].join('\n'),
+      'test1.mmt': ['type: test'].join('\n'),
+      'env1.mmt': ['type: env'].join('\n'),
+    };
+
+    const tree = buildSuiteHierarchyFromYaml({
+      suitePath: 'root-suite.mmt',
+      suiteYaml: files['root-suite.mmt'],
+      readFile: (p) => files[p],
+    });
+
+    expect(tree).toEqual([{ kind: 'test', path: 'test1.mmt' }]);
+  });
+
+  test('buildSuiteHierarchyFromYaml detects cycles (A -> B -> A)', () => {
+    const files: Record<string, string> = {
+      'a.mmt': ['type: suite', 'tests:', '  - b.mmt'].join('\n'),
+      'b.mmt': ['type: suite', 'tests:', '  - a.mmt'].join('\n'),
+    };
+
+    const tree = buildSuiteHierarchyFromYaml({
+      suitePath: 'a.mmt',
+      suiteYaml: files['a.mmt'],
+      readFile: (p) => files[p],
+    });
+
+    expect(tree).toEqual([
+      {
+        kind: 'suite',
+        path: 'b.mmt',
+        groups: [{ kind: 'cycle', path: 'a.mmt' }],
+      },
+    ]);
+  });
+
   test('flattens imported suite with a single group (no group wrapper)', () => {
     const lookup = {
-      'suite1.mmt': { docType: 'suite', tests: ['test1.mmt'] },
-      'test1.mmt': { docType: 'test' },
+      'suite1.mmt': { type: 'suite', tests: ['test1.mmt'] },
+      'test1.mmt': { type: 'test' },
     } as any;
 
     const { rootEntries, lookup: lk } = { rootEntries: ['suite1.mmt'], lookup };
@@ -21,9 +101,9 @@ describe('suiteHierarchy', () => {
 
   test('keeps group wrappers when imported suite has multiple groups', () => {
     const lookup = {
-      'suite1.mmt': { docType: 'suite', tests: ['test1.mmt', 'then', 'test2.mmt'] },
-      'test1.mmt': { docType: 'test' },
-      'test2.mmt': { docType: 'test' },
+      'suite1.mmt': { type: 'suite', tests: ['test1.mmt', 'then', 'test2.mmt'] },
+      'test1.mmt': { type: 'test' },
+      'test2.mmt': { type: 'test' },
     } as any;
 
     const hierarchy = buildSuiteHierarchy({ rootEntries: ['suite1.mmt'], lookup });
@@ -37,8 +117,8 @@ describe('suiteHierarchy', () => {
 
   test('flattens root when only one group', () => {
     const lookup = {
-      'test1.mmt': { docType: 'test' },
-      'test2.mmt': { docType: 'test' },
+      'test1.mmt': { type: 'test' },
+      'test2.mmt': { type: 'test' },
     } as any;
 
     const hierarchy = buildSuiteHierarchy({ rootEntries: ['test1.mmt', 'test2.mmt'], lookup });
@@ -50,14 +130,14 @@ describe('suiteHierarchy', () => {
     const rootEntries = ['suite1.mmt', './test/createSession.mmt'];
     const lookup = {
       'suite1.mmt': {
-        docType: 'suite',
+        type: 'suite',
         tests: ['test.mmt'],
       },
       'test.mmt': {
-        docType: 'test',
+        type: 'test',
       },
       './test/createSession.mmt': {
-        docType: 'test',
+        type: 'test',
       },
     } as const;
 
@@ -86,13 +166,100 @@ describe('suiteHierarchy', () => {
   it('splits root entries by then into groups', () => {
     const rootEntries = ['a.mmt', 'then', 'b.mmt'];
     const lookup = {
-      'a.mmt': { docType: 'test' },
-      'b.mmt': { docType: 'test' },
+      'a.mmt': { type: 'test' },
+      'b.mmt': { type: 'test' },
     } as const;
 
     expect(buildSuiteHierarchy({ rootEntries, lookup })).toEqual([
       { kind: 'group', label: 'Group 1', children: [{ kind: 'test', path: 'a.mmt' }] },
       { kind: 'group', label: 'Group 2', children: [{ kind: 'test', path: 'b.mmt' }] },
+    ]);
+  });
+
+  it('recursively expands nested suites to tests', () => {
+    const rootEntries = ['suiteA.mmt'];
+    const lookup = {
+      'suiteA.mmt': { type: 'suite', tests: ['suiteB.mmt'] },
+      // Note: suiteB not present in lookup on purpose.
+    } as const;
+
+    const resolve = (path: string) => {
+      if (path === 'suiteB.mmt') {
+        return { type: 'suite' as const, tests: ['deepTest.mmt'] };
+      }
+      if (path === 'deepTest.mmt') {
+        return { type: 'test' as const };
+      }
+      return (lookup as any)[path];
+    };
+
+    expect(buildSuiteHierarchy({ rootEntries, lookup: lookup as any, resolve })).toEqual([
+      {
+        kind: 'suite',
+        path: 'suiteA.mmt',
+        groups: [
+          {
+            kind: 'suite',
+            path: 'suiteB.mmt',
+            groups: [{ kind: 'test', path: 'deepTest.mmt' }],
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('ignores non-suite/test types when resolving', () => {
+    const rootEntries = ['suite1.mmt'];
+    const lookup = {
+      'suite1.mmt': { type: 'suite', tests: ['api1.mmt', 'test1.mmt', 'env1.mmt'] },
+      'api1.mmt': { type: 'api' },
+      'test1.mmt': { type: 'test' },
+      'env1.mmt': { type: 'env' },
+    } as const;
+
+    expect(buildSuiteHierarchy({ rootEntries, lookup: lookup as any })).toEqual([
+      {
+        kind: 'suite',
+        path: 'suite1.mmt',
+        groups: [{ kind: 'test', path: 'test1.mmt' }],
+      },
+    ]);
+  });
+
+  it('detects cycles across suites (A -> B -> A)', () => {
+    const rootEntries = ['suiteA.mmt'];
+    const lookup = {
+      'suiteA.mmt': { type: 'suite', tests: ['suiteB.mmt'] },
+      'suiteB.mmt': { type: 'suite', tests: ['suiteA.mmt'] },
+    } as const;
+
+    const tree = buildSuiteHierarchy({ rootEntries, lookup: lookup as any });
+    expect(tree[0]).toEqual({
+      kind: 'suite',
+      path: 'suiteA.mmt',
+      groups: [
+        {
+          kind: 'suite',
+          path: 'suiteB.mmt',
+          groups: [{ kind: 'cycle', path: 'suiteA.mmt' }],
+        },
+      ],
+    });
+  });
+
+  it('detects self-cycle suite (A -> A)', () => {
+    const rootEntries = ['suiteA.mmt'];
+    const lookup = {
+      'suiteA.mmt': { type: 'suite', tests: ['suiteA.mmt'] },
+    } as const;
+
+    const tree = buildSuiteHierarchy({ rootEntries, lookup: lookup as any });
+    expect(tree).toEqual([
+      {
+        kind: 'suite',
+        path: 'suiteA.mmt',
+        groups: [{ kind: 'cycle', path: 'suiteA.mmt' }],
+      },
     ]);
   });
 });

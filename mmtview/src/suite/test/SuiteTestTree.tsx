@@ -2,23 +2,20 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ControlledTreeEnvironment, Tree, TreeItem } from 'react-complex-tree';
 import SuiteTestGroupItem from './SuiteTestGroupItem';
 import SuiteTestFileItem from './SuiteTestFileItem';
+import SuiteSuiteFileItem from './SuiteSuiteFileItem';
 import { StepStatus, SuiteGroup } from '../types';
-import { SuiteImportTreeNode } from './suiteImportTree';
-import { useSuiteImportTree } from './useSuiteImportTree';
-import { buildSuiteHierarchy } from './suiteHierarchy';
-import TestStepReportPanel, { StepReportItem } from '../../shared/TestStepReportPanel';
+import { StepReportItem } from '../../shared/TestStepReportPanel';
+import { SuiteHierarchyNode } from './suiteHierarchy';
 
 export type SuiteTestTreeItemData =
   | { type: 'root'; label: string }
   | { type: 'group'; label: string }
-  | { type: 'file'; path: string }
-  | { type: 'file-report'; leafId: string }
-  | { type: 'import-suite-info'; label: string }
-  | { type: 'import-group'; label: string }
-  | { type: 'import-file'; path: string; docType?: string; cycle?: boolean; error?: string };
+  | { type: 'test'; path: string; leafId: string }
+  | { type: 'suite'; path: string };
 
 interface SuiteTestTreeProps {
   groups: SuiteGroup[];
+  hierarchyByEntryPath: Record<string, SuiteHierarchyNode[]>;
   missingFiles: Set<string>;
   stepStatuses: Record<string, StepStatus | 'running'>;
   lastRunIdByEntryId: Record<string, string>;
@@ -46,15 +43,10 @@ const buildBaseTestTree = (groups: SuiteGroup[]) => {
       items[id] = {
         index: id,
         isFolder: true,
-        children: [`${id}::report`],
-        data: { type: 'file', path: entry.path },
-      };
-
-      items[`${id}::report`] = {
-        index: `${id}::report`,
-        isFolder: false,
         children: [],
-        data: { type: 'file-report', leafId: '' },
+        // Top-level suite entries are unknown until importTree resolves docType.
+        // They can later become either a suite or a test.
+        data: { type: 'suite', path: entry.path },
       };
     });
     items[groupId] = {
@@ -78,6 +70,7 @@ const buildBaseTestTree = (groups: SuiteGroup[]) => {
 
 const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
   groups,
+  hierarchyByEntryPath,
   missingFiles,
   stepStatuses,
   lastRunIdByEntryId,
@@ -88,8 +81,6 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
   const base = useMemo(() => buildBaseTestTree(groups), [groups]);
   const [expandedItems, setExpandedItems] = useState<string[]>(['suite-root']);
 
-  const importTree = useSuiteImportTree(base.allPaths, true);
-
   // Expand base group nodes by default — one-time on mount.
   useEffect(() => {
     setExpandedItems((prev) => {
@@ -99,69 +90,37 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     });
   }, [base.groupIds]);
 
-  const buildImportItems = useCallback(
-    (parentId: string, node: SuiteImportTreeNode, itemsAcc: Record<string, TreeItem<SuiteTestTreeItemData>>): string => {
-      const nodeId = `import:${parentId}:${node.id}`;
-      const isSuiteInfo = node.kind === 'suite-info' || node.id.startsWith('suite-import-node:suite-info:');
-      const isGroup = node.kind === 'group' || node.id.startsWith('suite-import-node:group:');
-
-      const childIds: string[] = [];
-      if (node.children && node.children.length) {
-        for (const child of node.children) {
-          childIds.push(buildImportItems(nodeId, child, itemsAcc));
-        }
-      }
-
-      if (isSuiteInfo) {
-        itemsAcc[nodeId] = {
-          index: nodeId,
-          isFolder: childIds.length > 0,
-          children: childIds,
-          data: { type: 'import-suite-info', label: node.path },
-        };
-        return nodeId;
-      }
-
-      if (isGroup) {
-        itemsAcc[nodeId] = {
-          index: nodeId,
-          isFolder: true,
-          children: childIds,
-          data: { type: 'import-group', label: node.path },
-        };
-        return nodeId;
-      }
-
-      itemsAcc[nodeId] = {
-        index: nodeId,
-        isFolder: true,
-        children: childIds,
-        data: { type: 'import-file', path: node.path, docType: node.docType, cycle: node.cycle, error: node.error },
-      };
-      return nodeId;
-    },
-    []
-  );
-
   const treeData = useMemo(() => {
     const items: Record<string, TreeItem<SuiteTestTreeItemData>> = { ...base.items };
 
-    // Fill leafId for report nodes (stable mapping groupIndex:entryIndex).
+    // Resolve each top-level suite entry to either a suite or a test.
     for (let gi = 0; gi < groups.length; gi++) {
       const group = groups[gi];
       for (let ei = 0; ei < group.entries.length; ei++) {
         const entry = group.entries[ei];
-        const reportNodeId = `${entry.id}::report`;
-        if (items[reportNodeId]) {
-          items[reportNodeId] = {
-            ...items[reportNodeId],
-            data: { type: 'file-report', leafId: `${gi}:${ei}` },
-          };
+        const entryItem = items[entry.id];
+        if (!entryItem) {
+          continue;
         }
+        const leafId = `${gi}:${ei}`;
+        const hierarchy = hierarchyByEntryPath[entry.path];
+        const isSuite = Array.isArray(hierarchy);
+
+        if (!isSuite) {
+          items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'test', path: entry.path, leafId } };
+          continue;
+        }
+
+        if (isSuite) {
+          items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'test', path: entry.path, leafId } };
+          items[entry.id] = { ...items[entry.id], data: { type: 'suite', path: entry.path } };
+          continue;
+        }
+
+        // Ignore non-test/non-suite entries in the Suite Test view.
+        delete items[entry.id];
       }
     }
-
-    const importedRootsByPath = new Map(importTree.rootNodes.map((n) => [n.path, n]));
 
     groups.forEach((group) => {
       group.entries.forEach((entry) => {
@@ -169,13 +128,10 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         if (!item) {
           return;
         }
-        const root = importedRootsByPath.get(entry.path);
-        if (!root) {
-          return;
-        }
 
-        if (root.docType === 'suite' && !root.cycle) {
-          items[entry.id] = { ...item, isFolder: true };
+        const hierarchy = hierarchyByEntryPath[entry.path];
+        if (!Array.isArray(hierarchy)) {
+          return;
         }
 
         const isExpanded = expandedItems.includes(entry.id);
@@ -183,78 +139,84 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
           return;
         }
 
-        const childIds: string[] = [];
+        const effectiveHierarchy = hierarchy ?? [];
 
-        // Build a lookup from the importTree for hierarchy flattening rules.
-        const lookup = importTree.rootNodes.reduce<Record<string, any>>((acc, n) => {
-          acc[n.path] = { docType: n.docType, tests: n.tests, cycle: n.cycle, error: n.error };
-          return acc;
-        }, {});
-
-        const suiteInfoNode = root.children?.find((c) => c.kind === 'suite-info' || c.id.startsWith('suite-import-node:suite-info:'));
-        if (suiteInfoNode) {
-          // Use hierarchy as the single source of truth for whether to show group wrappers.
-          const hierarchy = buildSuiteHierarchy({ rootEntries: (root.tests ?? []) as any, lookup });
-
-          // If hierarchy contains groups, it means multi-group: show group wrappers.
-          // If not, it's effectively a single group: skip the group wrapper and use
-          // the importTree's first group children directly.
-          const hasGroups = hierarchy.some((h: any) => h.kind === 'group');
-          if (hasGroups) {
-            const groupNodes = root.children?.filter((c) => c.kind === 'group' || c.id.startsWith('suite-import-node:group:')) || [];
-            for (const groupNode of groupNodes) {
-              childIds.push(buildImportItems(entry.id, groupNode, items));
+        const hierarchyChildren: string[] = [];
+        const pushHierarchy = (parent: string, nodes: SuiteHierarchyNode[]) => {
+          nodes.forEach((n, idx) => {
+            if (n.kind === 'group') {
+              const gid = `import:${parent}:group:${idx}:${n.label}`;
+              const childIds2: string[] = [];
+              items[gid] = { index: gid, isFolder: true, children: childIds2, data: { type: 'group', label: n.label } };
+              pushHierarchy(gid, n.children);
+              hierarchyChildren.push(gid);
+              return;
             }
-          } else {
-            const onlyGroup = (root.children?.find((c) => c.kind === 'group' || c.id.startsWith('suite-import-node:group:')) as SuiteImportTreeNode | undefined);
-            if (onlyGroup?.children && onlyGroup.children.length) {
-              for (const child of onlyGroup.children) {
-                childIds.push(buildImportItems(entry.id, child, items));
+
+            if (n.kind === 'test') {
+              const path = n.path;
+              const nodeId = `import:${parent}:path:${path}`;
+              const leafId = nodeId;
+              items[nodeId] = { index: nodeId, isFolder: true, children: [], data: { type: 'test', path, leafId } };
+              hierarchyChildren.push(nodeId);
+              return;
+            }
+
+            if (n.kind === 'suite') {
+              const path = n.path;
+              const nodeId = `import:${parent}:path:${path}`;
+              items[nodeId] = { index: nodeId, isFolder: true, children: [], data: { type: 'suite', path } };
+              hierarchyChildren.push(nodeId);
+              if (Array.isArray(n.groups) && n.groups.length) {
+                pushHierarchy(nodeId, n.groups as any);
               }
+              return;
             }
-          }
-        } else if (root.children && root.children.length) {
-          for (const child of root.children) {
-            childIds.push(buildImportItems(entry.id, child, items));
-          }
-        }
 
-        // Preserve report child as the first child, then imported children.
-        const reportChild = `${entry.id}::report`;
-        const mergedChildren = items[reportChild] ? [reportChild, ...childIds] : childIds;
-        items[entry.id] = { ...items[entry.id], children: mergedChildren, isFolder: true };
+            if (n.kind === 'missing') {
+              const path = n.path;
+              const nodeId = `import:${parent}:path:${path}`;
+              items[nodeId] = { index: nodeId, isFolder: false, children: [], data: { type: 'test', path, leafId: nodeId } };
+              hierarchyChildren.push(nodeId);
+              return;
+            }
+
+            if (n.kind === 'cycle') {
+              return;
+            }
+
+            if (n.kind === 'error') {
+              return;
+            }
+
+            // Ignore other nodes.
+          });
+        };
+
+        pushHierarchy(entry.id, effectiveHierarchy);
+
+        // Only show imported children when expanded.
+        if (hierarchyChildren.length) {
+          items[entry.id] = { ...items[entry.id], children: [...(items[entry.id].children || []), ...hierarchyChildren], isFolder: true };
+        }
       });
     });
 
     return { items };
-  }, [base.items, buildImportItems, expandedItems, groups, importTree.rootNodes]);
+  }, [base.items, expandedItems, groups, hierarchyByEntryPath]);
 
   const handleExpand = useCallback(
     (item: TreeItem<SuiteTestTreeItemData>) => {
       setExpandedItems((prev) => (prev.includes(String(item.index)) ? prev : [...prev, String(item.index)]));
-      if (item.data?.type === 'file') {
-        const path = (item.data as any).path as string;
-        const root = importTree.rootNodes.find((n) => n.path === path);
-        if (root) {
-          importTree.expandNode(root);
-        }
-      }
     },
-    [importTree]
+    []
   );
 
   const handleCollapse = useCallback(
     (item: TreeItem<SuiteTestTreeItemData>) => {
       setExpandedItems((prev) => prev.filter((id) => id !== String(item.index)));
-      if (item.data?.type === 'file') {
-        const path = (item.data as any).path as string;
-        const root = importTree.rootNodes.find((n) => n.path === path);
-        if (root) {
-          importTree.collapseNode(root);
-        }
-      }
     },
-    [importTree]
+    []
   );
 
   const getGroupStatus = useCallback((): StepStatus => 'default', []);
@@ -262,7 +224,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
   const renderItem = ({ item, context, arrow, children }: any) => {
     const data = item.data as SuiteTestTreeItemData;
 
-    if (data.type === 'group' || data.type === 'root' || data.type === 'import-group') {
+    if (data.type === 'group' || data.type === 'root') {
       return (
         <SuiteTestGroupItem
           item={item}
@@ -276,60 +238,10 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
       );
     }
 
-    if (data.type === 'import-suite-info') {
-      return (
-        <div {...context.itemContainerWithChildrenProps}>
-          <div className="tree-view-box" {...context.itemContainerWithoutChildrenProps} style={{ paddingTop: 10, display: 'flex' }}>
-            {arrow}
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, opacity: 0.9 }}>
-              <span className="codicon codicon-info" aria-hidden style={{ opacity: 0.75 }} />
-              <div
-                style={{
-                  fontFamily: 'var(--vscode-editor-font-family)',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  width: '100%',
-                }}
-                title={data.label}
-              >
-                {data.label}
-              </div>
-            </div>
-          </div>
-          {children}
-        </div>
-      );
-    }
-
-    if (data.type === 'file-report') {
-      const leafId = data.leafId;
-      const isExpanded = true;
-      const runState = leafRunStateByLeafId[leafId] || 'idle';
-
-      return (
-        <div {...context.itemContainerWithChildrenProps}>
-          <div style={{ paddingLeft: 8, paddingBottom: isExpanded ? 8 : 0 }}>
-            <TestStepReportPanel
-              isExpanded={isExpanded}
-              stepReports={leafReportsByLeafId[leafId] || []}
-              runState={runState === 'cancelled' ? 'failed' : runState}
-              showHeader={false}
-            />
-          </div>
-        </div>
-      );
-    }
-
     const entryId = String(item.index);
     const computedStatus = (() => {
-      const data = item.data as SuiteTestTreeItemData;
-
-      // Imported suite leaves currently don't participate in run status tracking.
-      // Render them using the same box UI with a default status.
-      if (data?.type === 'import-file') {
-        return 'default' as StepStatus;
-      }
+      // Imported nodes use the same UI; they may not participate in run status.
+      // For now, non-root tests show default status unless they are leafId tracked.
 
       const runId = lastRunIdByEntryId[entryId];
       if (runId && stepStatuses[runId]) {
@@ -361,6 +273,18 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
       return (stepStatuses[entryId] ?? 'default') as StepStatus;
     })();
 
+    if (data.type === 'suite') {
+      return (
+        <SuiteSuiteFileItem
+          item={item as any}
+          context={context}
+          arrow={arrow}
+          children={children}
+          missingFiles={missingFiles}
+        />
+      );
+    }
+
     return (
       <SuiteTestFileItem
         item={item as any}
@@ -370,6 +294,8 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         missingFiles={missingFiles}
         statusIconFor={statusIconFor as any}
         status={computedStatus}
+        leafReportsByLeafId={leafReportsByLeafId}
+        leafRunStateByLeafId={leafRunStateByLeafId}
       />
     );
   };
@@ -379,13 +305,10 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
       items={treeData.items}
       getItemTitle={(item) => {
         const data = item.data as SuiteTestTreeItemData;
-        if (data?.type === 'file') {
+        if (data?.type === 'test' || data?.type === 'suite') {
           return data.path;
         }
-        if (data?.type === 'import-file') {
-          return data.path;
-        }
-        if (data?.type === 'root' || data?.type === 'group' || data?.type === 'import-group' || data?.type === 'import-suite-info') {
+        if (data?.type === 'root' || data?.type === 'group') {
           return (data as any).label;
         }
         return '';
