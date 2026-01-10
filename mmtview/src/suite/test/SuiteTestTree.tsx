@@ -261,6 +261,19 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     })();
 
     if (data.type === 'suite') {
+      const suiteStatus = computedStatus as any;
+      const suiteLeafId = (() => {
+        for (let gi = 0; gi < groups.length; gi++) {
+          const group = groups[gi];
+          for (let ei = 0; ei < group.entries.length; ei++) {
+            const entry = group.entries[ei];
+            if (entry.id === entryId) {
+              return `${gi}:${ei}`;
+            }
+          }
+        }
+        return '';
+      })();
       return (
         <SuiteSuiteFileItem
           item={item as any}
@@ -268,6 +281,10 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
           arrow={arrow}
           children={children}
           missingFiles={missingFiles}
+          statusIconFor={statusIconFor as any}
+          status={suiteStatus}
+          leafId={suiteLeafId}
+          leafRunStateByLeafId={leafRunStateByLeafId}
         />
       );
     }
