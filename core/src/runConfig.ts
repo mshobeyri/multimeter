@@ -18,14 +18,14 @@ export interface TestStepReporterEvent {
   timestamp: number;
   actual?: any;
   expected?: any;
-  leafId?: string;
+  id?: string;
 }
 
 export interface TestRunSummaryEvent {
   scope: 'test-step-run';
   runId: string;
   result: TestStepStatus;
-  leafId?: string;
+  id?: string;
 }
 
 export interface SuiteReporterMessage {
@@ -38,7 +38,7 @@ export interface SuiteReporterMessage {
   filePath?: string;
   entry?: string;
   docType?: string;
-  leafId?: string;
+  id?: string;
 }
 
 export interface SuiteRunStartEvent {
@@ -110,20 +110,13 @@ export interface RunFileOptions {
   abortSignal?: AbortSignal;
 
   /** Optional identifier passed through reporter events and JS globals. */
-  leafId?: string;
+  id?: string;
   /** Optional externally-provided run id used for reporter/routing (overrides generated run id). */
   runId?: string;
 
   /**
-   * Optional suite targets for partial suite runs.
-   * When provided for `type: suite`, only suite items whose `leafId` matches one of
-   * these targets should execute.
-   */
-  suiteTargets?: string[];
-
-  /**
    * Optional suite bundle for bundle-based suite runs.
-   * When provided, the suite execution should use the bundle's `leafId`s for targeting/report routing.
+   * When provided, suite execution uses bundle node ids for targeting/report routing.
    */
   suiteBundle?: import('./suiteBundle').SuiteBundle;
 }

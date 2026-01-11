@@ -3,8 +3,8 @@ import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
 
 export type SuiteHierarchyNode =
   | {kind: 'group'; label: string; children: SuiteHierarchyNode[]}
-  | {kind: 'suite'; path: string; leafId?: string; children: SuiteHierarchyNode[]}
-  | {kind: 'test'; path: string; leafId?: string}
+  | {kind: 'suite'; path: string; children: SuiteHierarchyNode[]}
+  | {kind: 'test'; path: string}
   | {kind: 'missing'; path: string}
   | {kind: 'cycle'; path: string};
 
@@ -14,9 +14,8 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
   suiteFilePath: string;
   suiteRawText: string;
   fileLoader: SuiteHierarchyFileLoader;
-  leafPrefix?: string;
 }): Promise<SuiteHierarchyNode[]> {
-  const {suiteFilePath, suiteRawText, fileLoader, leafPrefix = 'root'} = params;
+  const {suiteFilePath, suiteRawText, fileLoader} = params;
 
   const suiteStack = new Set<string>();
   suiteStack.add(suiteFilePath);
@@ -24,11 +23,10 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
   const buildNodesFromEntries = async (
     entries: readonly string[],
     ownerFilePath: string,
-    leafPrefix: string
   ): Promise<SuiteHierarchyNode[]> => {
     const groups = splitSuiteGroups([...entries]);
     if (groups.length === 1) {
-      const nodes = await Promise.all(groups[0].map(async (p, idx) => await buildNodeFromEntry(p, ownerFilePath, `${leafPrefix}/${idx}`)));
+      const nodes = await Promise.all(groups[0].map(async (p) => await buildNodeFromEntry(p, ownerFilePath)));
       return nodes.filter((n): n is SuiteHierarchyNode => n !== null);
     }
 
@@ -36,7 +34,7 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
       groups.map(async (g, gi) => {
         const children =
             (await Promise.all(
-                 g.map(async (p, idx) => await buildNodeFromEntry(p, ownerFilePath, `${leafPrefix}/g${gi}/${idx}`))))
+                 g.map(async (p) => await buildNodeFromEntry(p, ownerFilePath))))
                 .filter((n): n is SuiteHierarchyNode => n !== null);
         if (!children.length) {
           return null;
@@ -48,7 +46,7 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
     return groupNodes.filter((n): n is SuiteHierarchyNode => n !== null);
   };
 
-  const buildNodeFromEntry = async (entry: string, ownerFilePath: string, leafId: string): Promise<SuiteHierarchyNode | null> => {
+  const buildNodeFromEntry = async (entry: string, ownerFilePath: string): Promise<SuiteHierarchyNode | null> => {
     const trimmed = String(entry ?? '').trim();
     if (!trimmed || trimmed === 'then') {
       return null;
@@ -69,7 +67,7 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
 
     const type = detectDocType(resolvedPath, raw);
     if (type === 'test') {
-      return {kind: 'test', path: resolvedPath, leafId};
+      return {kind: 'test', path: resolvedPath};
     }
 
     if (type !== 'suite') {
@@ -82,12 +80,12 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
 
     suiteStack.add(resolvedPath);
     const childSuite = yamlToSuite(raw);
-    const children = await buildNodesFromEntries(childSuite.tests ?? [], resolvedPath, `${leafId}/s`);
+    const children = await buildNodesFromEntries(childSuite.tests ?? [], resolvedPath);
     suiteStack.delete(resolvedPath);
 
-    return {kind: 'suite', path: resolvedPath, leafId, children};
+    return {kind: 'suite', path: resolvedPath, children};
   };
 
   const rootSuite = yamlToSuite(suiteRawText);
-  return await buildNodesFromEntries(rootSuite.tests ?? [], suiteFilePath, leafPrefix);
+  return await buildNodesFromEntries(rootSuite.tests ?? [], suiteFilePath);
 }

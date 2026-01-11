@@ -9,14 +9,14 @@ export function resetLeafStateMap<T>(state: Record<string, T>, reset: LeafStateR
     }
 
     let next: Record<string, T> | null = null;
-    for (const leafId of reset) {
-        if (!leafId || !Object.prototype.hasOwnProperty.call(state, leafId)) {
+    for (const id of reset) {
+        if (!id || !Object.prototype.hasOwnProperty.call(state, id)) {
             continue;
         }
         if (!next) {
             next = { ...state };
         }
-        delete next[leafId];
+        delete next[id];
     }
 
     return next || state;

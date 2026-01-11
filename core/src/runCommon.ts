@@ -34,7 +34,7 @@ export async function runGeneratedJs(
     logger: (level: LogLevel, msg: string) => void,
     jsRunner: (context: RunJSCodeContext) => Promise<void>,
     stepReporter?: (event: TestStepReporterEvent) => void,
-  leafId?: string): Promise<RunResult> {
+    id?: string): Promise<RunResult> {
   const start = Date.now();
   const errors: string[] = [];
   const logs: string[] = [];
@@ -56,7 +56,7 @@ export async function runGeneratedJs(
       title: name,
       logger: forward,
       reporter: stepReporter,
-      leafId,
+        id,
     });
 
     return {

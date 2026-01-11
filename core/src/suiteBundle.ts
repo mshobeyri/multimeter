@@ -2,104 +2,84 @@ import {SuiteHierarchyNode} from './suiteHierarchy';
 
 export type SuiteBundleNodeKind = 'group'|'suite'|'test'|'missing'|'cycle';
 
-const randomLeafId = (): string => {
-  try {
-    const anyCrypto = (globalThis as any)?.crypto;
-    if (anyCrypto && typeof anyCrypto.randomUUID === 'function') {
-      return anyCrypto.randomUUID();
-    }
-  } catch {
-    // ignore
+function createNodeId(): string {
+  // Keep core platform-neutral: prefer global crypto when available.
+  const anyCrypto = (globalThis as any)?.crypto;
+  if (anyCrypto && typeof anyCrypto.randomUUID === 'function') {
+    return anyCrypto.randomUUID();
   }
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-};
+  // Fallback: UUID v4-ish generator without node/browser deps.
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 export type SuiteBundleNode =
-  | {kind: 'group'; leafId: string; label: string; children: SuiteBundleNode[]}
-  | {kind: 'suite'; leafId: string; path: string; children: SuiteBundleNode[]}
-  | {kind: 'test'; leafId: string; path: string}
-  | {kind: 'missing'; leafId: string; path: string}
-  | {kind: 'cycle'; leafId: string; path: string};
+  | {kind: 'group'; id: string; label: string; children: SuiteBundleNode[]}
+  | {kind: 'suite'; id: string; path: string; children: SuiteBundleNode[]}
+  | {kind: 'test'; id: string; path: string}
+  | {kind: 'missing'; id: string; path: string}
+  | {kind: 'cycle'; id: string; path: string};
 
 export interface SuiteBundle {
   rootSuitePath: string;
-  nodes: SuiteBundleNode[];
-  runnableLeafIds: string[];
+  bundle: SuiteBundleNode[];
+  target?: string;
 }
 
-function isRunnableLeaf(node: SuiteBundleNode): boolean {
-  return node.kind === 'test' || node.kind === 'suite';
-}
-
-function collectRunnableLeafIds(nodes: readonly SuiteBundleNode[]): string[] {
-  const out: string[] = [];
-  const walk = (n: SuiteBundleNode) => {
-    if (isRunnableLeaf(n)) {
-      out.push(n.leafId);
-      return;
-    }
-    if (n.kind === 'group' || n.kind === 'suite') {
-      for (const c of n.children) {
-        walk(c);
-      }
-    }
-  };
-  for (const n of nodes) {
-    walk(n);
-  }
-  return out;
-}
-
-export function buildSuiteBundleFromHierarchy(params: {
+export function createSuiteBundle(params: {
   rootSuitePath: string;
   hierarchy: SuiteHierarchyNode[];
+  target?: string;
 }): SuiteBundle {
-  const {rootSuitePath, hierarchy} = params;
+  const {rootSuitePath, hierarchy, target} = params;
 
-  const build = (nodes: readonly SuiteHierarchyNode[]): SuiteBundleNode[] => {
+  const build = (nodes: readonly SuiteHierarchyNode[], indexPath: number[]): SuiteBundleNode[] => {
     const out: SuiteBundleNode[] = [];
 
-    for (const node of nodes) {
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i];
+      const nextIndexPath = [...indexPath, i];
+
       if (node.kind === 'group') {
-        const leafId = randomLeafId();
+        const id = createNodeId();
         out.push({
           kind: 'group',
-          leafId,
+          id,
           label: node.label,
-          children: build(node.children),
+          children: build(node.children, nextIndexPath),
         });
         continue;
       }
 
-
-      const leafIdForRunnable =
-        (node.kind === 'suite' || node.kind === 'test') && node.leafId && typeof node.leafId === 'string'
-          ? node.leafId
-          : undefined;
-      const leafId = leafIdForRunnable || randomLeafId();
-
       if (node.kind === 'suite') {
+        const id = createNodeId();
         out.push({
           kind: 'suite',
-          leafId,
+          id,
           path: node.path,
-          children: build(node.children),
+          children: build(node.children, nextIndexPath),
         });
         continue;
       }
 
       if (node.kind === 'test') {
-        out.push({kind: 'test', leafId, path: node.path});
+        const id = createNodeId();
+        out.push({kind: 'test', id, path: node.path});
         continue;
       }
 
       if (node.kind === 'missing') {
-        out.push({kind: 'missing', leafId, path: node.path});
+        const id = createNodeId();
+        out.push({kind: 'missing', id, path: node.path});
         continue;
       }
 
       if (node.kind === 'cycle') {
-        out.push({kind: 'cycle', leafId, path: node.path});
+        const id = createNodeId();
+        out.push({kind: 'cycle', id, path: node.path});
         continue;
       }
     }
@@ -107,10 +87,9 @@ export function buildSuiteBundleFromHierarchy(params: {
     return out;
   };
 
-  const nodes = build(hierarchy);
   return {
     rootSuitePath,
-    nodes,
-    runnableLeafIds: collectRunnableLeafIds(nodes),
+    bundle: build(hierarchy, []),
+    target: typeof target === 'string' && target ? target : undefined,
   };
 }

@@ -11,10 +11,10 @@ const logOutputChannel =
     vscode.window.createOutputChannel('Multimeter', {log: true});
 
 let activeSuiteRun:
-    {suiteRunId: string; controller: AbortController; panelId: string;}|null =
-        null;
+  {suiteRunId: string; controller: AbortController; panelId: string;}|null =
+    null;
 
-const suiteRunLeafByChildRunId = new Map<string, string>();
+const suiteRunIdByChildRunId = new Map<string, string>();
 
 function createSuiteRunId(document: vscode.TextDocument) {
   return `suite:${document.uri.fsPath}:${Date.now()}`;
@@ -143,7 +143,7 @@ export async function handleRunSuite(
     controller,
     panelId: getPanelId(webviewPanel),
   };
-  suiteRunLeafByChildRunId.clear();
+  suiteRunIdByChildRunId.clear();
 
   webviewPanel.webview.postMessage({
     command: 'suiteRunStart',
@@ -167,11 +167,11 @@ export async function handleRunSuite(
       }
     }
 
-    const targets = Array.isArray(message?.targets) ? message.targets : null;
+    const target = typeof message?.target === 'string' ? message.target : undefined;
     const rawSuite = document.getText();
     const runFilePath = document.uri.fsPath;
 
-    const bundleTargets = Array.isArray(targets) ? targets.filter((t: any) => typeof t === 'string' && t) : undefined;
+    const bundleTarget = typeof target === 'string' && target ? target : undefined;
     const tree = await suiteHierarchy.buildSuiteHierarchyFromSuiteFile({
       suiteFilePath: runFilePath,
       suiteRawText: rawSuite,
@@ -183,11 +183,13 @@ export async function handleRunSuite(
         }
       },
     });
-    const bundle = suiteBundle.buildSuiteBundleFromHierarchy({
+    const bundle = suiteBundle.createSuiteBundle({
       rootSuitePath: runFilePath,
       hierarchy: tree,
+      target: bundleTarget,
     });
 
+    console.log('bundle created', bundle);
     await runner.runFile({
       file: rawSuite,
       fileType: 'raw' as any,
@@ -206,9 +208,8 @@ export async function handleRunSuite(
       jsRunner: runJSCode,
       logger: forwardLog,
       abortSignal: controller.signal as any,
-      // Bundle-based suite run: core uses bundle leafIds for targeting + routing.
+      // Bundle-based suite run: core uses bundle ids for targeting + routing.
       suiteBundle: bundle,
-      suiteTargets: bundleTargets && bundleTargets.length ? bundleTargets : undefined,
       reporter: (msg: any) => {
         const current = activeSuiteRun;
         if (!current || current.suiteRunId !== suiteRunId) {
@@ -218,18 +219,18 @@ export async function handleRunSuite(
           return;
         }
 
-        let leafId = typeof msg?.leafId === 'string' ? msg.leafId : undefined;
-        if (!leafId && typeof msg?.runId === 'string' && msg.runId) {
-          leafId = suiteRunLeafByChildRunId.get(msg.runId);
+        let id = typeof msg?.id === 'string' ? msg.id : undefined;
+        if (!id && typeof msg?.runId === 'string' && msg.runId) {
+          id = suiteRunIdByChildRunId.get(msg.runId);
         }
-        if (msg?.scope === 'suite-item' && typeof msg?.runId === 'string' && msg.runId && leafId) {
-          suiteRunLeafByChildRunId.set(msg.runId, leafId);
+        if (msg?.scope === 'suite-item' && typeof msg?.runId === 'string' && msg.runId && id) {
+          suiteRunIdByChildRunId.set(msg.runId, id);
         }
 
         webviewPanel.webview.postMessage({
           command: 'runFileReport',
           suiteRunId,
-          leafId,
+          id,
           ...msg,
         });
       },

@@ -22,8 +22,8 @@ const randomId = () => {
 export type SuiteTestTreeItemData =
   | { type: 'root'; label: string }
   | { type: 'group'; label: string }
-  | { type: 'test'; path: string; leafId: string }
-  | { type: 'suite'; path: string; leafId?: string };
+  | { type: 'test'; path: string; id: string }
+  | { type: 'suite'; path: string; id: string };
 
 interface SuiteTestTreeProps {
   groups: SuiteGroup[];
@@ -33,10 +33,10 @@ interface SuiteTestTreeProps {
   lastRunIdByEntryId: Record<string, string>;
   statusIconFor: (status: StepStatus | 'running') => { icon: string; color: string; title: string };
 
-  leafReportsByLeafId: Record<string, StepReportItem[]>;
-  leafRunStateByLeafId: Record<string, 'idle' | 'running' | 'passed' | 'failed' | 'cancelled'>;
+  reportsById: Record<string, StepReportItem[]>;
+  runStateById: Record<string, 'idle' | 'running' | 'passed' | 'failed' | 'cancelled'>;
 
-  onRunTargets: (targets: string[]) => void;
+  onRunTargets: (target: string) => void;
 }
 
 const buildBaseTestTree = (groups: SuiteGroup[]) => {
@@ -60,7 +60,7 @@ const buildBaseTestTree = (groups: SuiteGroup[]) => {
         children: [],
         // Top-level suite entries are unknown until importTree resolves docType.
         // They can later become either a suite or a test.
-        data: { type: 'suite', path: entry.path },
+        data: { type: 'suite', path: entry.path, id },
       };
     });
     items[groupId] = {
@@ -89,8 +89,8 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
   stepStatuses,
   lastRunIdByEntryId,
   statusIconFor,
-  leafReportsByLeafId,
-  leafRunStateByLeafId,
+  reportsById,
+  runStateById,
   onRunTargets,
 }) => {
   const base = useMemo(() => buildBaseTestTree(groups), [groups]);
@@ -120,14 +120,14 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         }
         const hierarchy = hierarchyByEntryPath[entry.path];
         const isSuite = Array.isArray(hierarchy);
-        const entryLeafId = entry.leafId || entry.id;
+        const entryId = entry.id;
 
         if (!isSuite) {
-          items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'test', path: entry.path, leafId: entryLeafId } };
+          items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'test', path: entry.path, id: entryId } };
           continue;
         }
 
-        items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'suite', path: entry.path, leafId: entryLeafId } };
+        items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'suite', path: entry.path, id: entryId } };
       }
     }
 
@@ -173,8 +173,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
             if (n.kind === 'test') {
               const path = n.path;
               const itemId = `${baseId}:test:${path}`;
-              const leafId = typeof (n as any).leafId === 'string' ? String((n as any).leafId) : itemId;
-              items[itemId] = { index: itemId, isFolder: true, children: [], data: { type: 'test', path, leafId } };
+              items[itemId] = { index: itemId, isFolder: true, children: [], data: { type: 'test', path, id: itemId } };
               hierarchyChildren.push(itemId);
               return;
             }
@@ -182,8 +181,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
             if (n.kind === 'suite') {
               const path = n.path;
               const itemId = `${baseId}:suite:${path}`;
-              const leafId = typeof (n as any).leafId === 'string' ? String((n as any).leafId) : itemId;
-              items[itemId] = { index: itemId, isFolder: true, children: [], data: { type: 'suite', path, leafId } as any };
+              items[itemId] = { index: itemId, isFolder: true, children: [], data: { type: 'suite', path, id: itemId } };
               hierarchyChildren.push(itemId);
               if (Array.isArray(n.children) && n.children.length) {
                 pushHierarchy(itemId, n.children);
@@ -194,8 +192,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
             if (n.kind === 'missing') {
               const path = n.path;
               const itemId = `${baseId}:missing:${path}`;
-              const leafId = typeof (n as any).leafId === 'string' ? String((n as any).leafId) : itemId;
-              items[itemId] = { index: itemId, isFolder: false, children: [], data: { type: 'test', path, leafId } };
+              items[itemId] = { index: itemId, isFolder: false, children: [], data: { type: 'test', path, id: itemId } };
               hierarchyChildren.push(itemId);
               return;
             }
@@ -243,8 +240,8 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
       return 'default';
     }
     // Determine visible status per entry. Prefer explicit stepStatuses (from last run)
-    // then fall back to leafRunStateByLeafId. Map internal states to StepStatus values
-    // and aggregate with priority: failed > cancelled > running > pending > passed > default
+    // then fall back to runStateById. Map internal states to StepStatus values
+      // and aggregate with priority: failed > cancelled > running > pending > passed > default.
     let anyFailed = false;
     let anyCancelled = false;
     let anyRunning = false;
@@ -253,7 +250,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     let anySeen = false;
 
     for (const entry of group.entries) {
-      const leafId = entry.leafId || entry.id;
+      const id = entry.id;
 
       // Prefer stepStatuses for the last run if available. Also accept UI-updates
       // that may have placed a pending status keyed by the entry id itself.
@@ -269,7 +266,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         visible = explicitStatus as any;
       } else {
         // Either no explicit status or it's a UI 'pending' marker.
-        const state = leafRunStateByLeafId && leafRunStateByLeafId[leafId];
+        const state = runStateById && runStateById[id];
         if (state === 'running') {
           visible = 'running';
         } else if (state === 'passed') {
@@ -324,7 +321,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     }
     // If no visible states were observed (all entries are default/idle/unknown), keep 'default'.
     return 'default';
-  }, [groups, leafRunStateByLeafId, stepStatuses, lastRunIdByEntryId]);
+  }, [groups, runStateById, stepStatuses, lastRunIdByEntryId]);
 
   const getGroupTargets = useCallback((groupItemId: string): string[] => {
     const match = /^group-(\d+)$/.exec(groupItemId);
@@ -336,10 +333,8 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     if (!group) {
       return [];
     }
-    // Group targeting uses deterministic leafIds.
-    return group.entries
-      .map((e) => e.leafId || e.id)
-      .filter((id): id is string => typeof id === 'string' && !!id);
+    // Group targeting uses entry ids.
+    return group.entries.map((e) => e.id).filter((id): id is string => typeof id === 'string' && !!id);
   }, [groups]);
 
   const renderItem = ({ item, context, arrow, children }: any) => {
@@ -361,7 +356,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
           showRunButton={data.type === 'group'}
           runButtonTitle="Run group"
           runDisabled={!hasTargets}
-          onRun={() => hasTargets && onRunTargets(groupTargets)}
+          onRun={() => hasTargets && onRunTargets(groupTargets[0])}
         />
       );
     }
@@ -369,22 +364,22 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     const entryId = String(item.index);
     const computedStatus = (() => {
       // Imported nodes use the same UI; they may not participate in run status.
-      // For now, non-root tests show default status unless they are leafId tracked.
+      // For now, non-root tests show default status unless tracked.
 
       const runId = lastRunIdByEntryId[entryId];
       if (runId && stepStatuses[runId]) {
         return stepStatuses[runId] as StepStatus;
       }
 
-      // If we have a leafId-derived run state, prefer it for the visible icon.
+      // If we have an id-derived run state, prefer it for the visible icon.
       // (Only applies to root suite entries, not imported leaves.)
       for (let gi = 0; gi < groups.length; gi++) {
         const group = groups[gi];
         for (let ei = 0; ei < group.entries.length; ei++) {
           const entry = group.entries[ei];
           if (entry.id === entryId) {
-            const leafId = entry.leafId;
-            const leafState = leafId ? leafRunStateByLeafId[leafId] : undefined;
+            const id = entry.id;
+            const leafState = id ? runStateById[id] : undefined;
             if (leafState === 'cancelled') {
               return 'cancelled' as any;
             }
@@ -403,8 +398,8 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
 
     if (data.type === 'suite') {
       const suiteStatus = computedStatus as any;
-      const effectiveTarget = (data as any).leafId || entryId;
-      const effectiveRunHandler = effectiveTarget ? () => onRunTargets([effectiveTarget]) : undefined;
+      const effectiveTarget = (data as any).id || entryId;
+      const effectiveRunHandler = effectiveTarget ? () => onRunTargets(effectiveTarget) : undefined;
       return (
         <SuiteSuiteFileItem
           item={item as any}
@@ -414,8 +409,8 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
           missingFiles={missingFiles}
           statusIconFor={statusIconFor as any}
           status={suiteStatus}
-          leafId={(data as any).leafId || ''}
-          leafRunStateByLeafId={leafRunStateByLeafId}
+          id={(data as any).id || ''}
+          runStateById={runStateById}
           onRun={effectiveRunHandler}
           runButtonTitle="Run suite"
           runDisabled={!effectiveTarget}
@@ -423,9 +418,9 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
       );
     }
 
-    const testLeafId = (data as any)?.leafId as string | undefined;
+    const testLeafId = (data as any)?.id as string | undefined;
     const canRunLeaf = typeof testLeafId === 'string' && !!testLeafId;
-    const handleRun = canRunLeaf ? () => onRunTargets([testLeafId!]) : undefined;
+      const handleRun = canRunLeaf ? () => onRunTargets(testLeafId!) : undefined;
 
     return (
       <SuiteTestFileItem
@@ -436,8 +431,8 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         missingFiles={missingFiles}
         statusIconFor={statusIconFor as any}
         status={computedStatus}
-        leafReportsByLeafId={leafReportsByLeafId}
-        leafRunStateByLeafId={leafRunStateByLeafId}
+        reportsById={reportsById}
+        runStateById={runStateById}
         onRun={handleRun}
         runButtonTitle="Run test"
         runDisabled={!canRunLeaf}

@@ -17,16 +17,15 @@ describe('suiteHierarchy (core)', () => {
       fileLoader,
     });
 
-    expect(tree).toEqual([
-      {
-        kind: 'suite',
-        path: '/root/suite1.mmt',
-        leafId: 'root/0',
-        children: [
-          {kind: 'test', path: '/root/test.mmt', leafId: 'root/0/s/0'},
-          {kind: 'test', path: '/root/test1.mmt', leafId: 'root/0/s/1'},
-        ],
-      },
-    ]);
+        expect(tree).toEqual([
+          {
+            kind: 'suite',
+            path: '/root/suite1.mmt',
+            children: [
+              {kind: 'test', path: '/root/test.mmt'},
+              {kind: 'test', path: '/root/test1.mmt'},
+            ],
+          },
+        ]);
   });
 });

@@ -3,7 +3,7 @@ import { TreeItem } from 'react-complex-tree';
 import { StepStatus } from '../types';
 import TestStepReportPanel, { StepReportItem } from '../../shared/TestStepReportPanel';
 
-export type SuiteTestFileItemData = { type: 'test'; path: string; leafId: string }
+export type SuiteTestFileItemData = { type: 'test'; path: string; id: string }
 
 interface SuiteTestFileItemProps {
     item: TreeItem<any>;
@@ -14,8 +14,8 @@ interface SuiteTestFileItemProps {
     statusIconFor: (status: StepStatus | 'running') => { icon: string; color: string; title: string };
     status: StepStatus;
 
-    leafReportsByLeafId: Record<string, StepReportItem[]>;
-    leafRunStateByLeafId: Record<string, 'idle' | 'running' | 'passed' | 'failed' | 'cancelled'>;
+    reportsById: Record<string, StepReportItem[]>;
+    runStateById: Record<string, 'idle' | 'running' | 'passed' | 'failed' | 'cancelled'>;
 
     onRun?: () => void;
     runButtonTitle?: string;
@@ -30,8 +30,8 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     missingFiles,
     statusIconFor,
     status,
-    leafReportsByLeafId,
-    leafRunStateByLeafId,
+    reportsById,
+    runStateById,
     onRun,
     runButtonTitle = 'Run',
     runDisabled = false,
@@ -46,9 +46,9 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
         }
         : statusIconFor(status);
 
-    const leafId = data.leafId;
-    const runState = leafId ? (leafRunStateByLeafId[leafId] || 'idle') : 'idle';
-    const stepReports = leafId ? (leafReportsByLeafId[leafId] || []) : [];
+    const id = data.id;
+    const runState = id ? (runStateById[id] || 'idle') : 'idle';
+    const stepReports = id ? (reportsById[id] || []) : [];
 
     return (
         <div {...context.itemContainerWithChildrenProps}>

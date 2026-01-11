@@ -11,33 +11,33 @@ export interface RunJSCodeContext {
   title: string;
   logger: (level: LogLevel, message: string) => void;
   reporter?: (message: any) => void;
-  leafId?: string;
+  id?: string;
 }
 
 const REPORTER_KEY = '__mmtReportStep';
 const RUN_ID_KEY = '__mmtRunId';
-const LEAF_ID_KEY = '__mmtLeafId';
+const ID_KEY = '__mmtId';
 
 const applyReporterGlobals = (
     reporter: ((message: any) => void)|undefined, runId: string,
-    leafId?: string): (() => void) => {
+    id?: string): (() => void) => {
   const scope = globalThis as Record<string, any>;
   const hadReporter = Object.prototype.hasOwnProperty.call(scope, REPORTER_KEY);
   const hadRunId = Object.prototype.hasOwnProperty.call(scope, RUN_ID_KEY);
-  const hadLeafId = Object.prototype.hasOwnProperty.call(scope, LEAF_ID_KEY);
+  const hadId = Object.prototype.hasOwnProperty.call(scope, ID_KEY);
   const previousReporter = scope[REPORTER_KEY];
   const previousRunId = scope[RUN_ID_KEY];
-  const previousLeafId = scope[LEAF_ID_KEY];
+  const previousId = scope[ID_KEY];
   if (reporter) {
     scope[REPORTER_KEY] = reporter;
   } else {
     delete scope[REPORTER_KEY];
   }
   scope[RUN_ID_KEY] = runId;
-  if (typeof leafId === 'string' && leafId) {
-    scope[LEAF_ID_KEY] = leafId;
+  if (typeof id === 'string' && id) {
+    scope[ID_KEY] = id;
   } else {
-    delete scope[LEAF_ID_KEY];
+    delete scope[ID_KEY];
   }
   return () => {
     if (hadReporter) {
@@ -50,10 +50,10 @@ const applyReporterGlobals = (
     } else if (Object.prototype.hasOwnProperty.call(scope, RUN_ID_KEY)) {
       delete scope[RUN_ID_KEY];
     }
-    if (hadLeafId) {
-      scope[LEAF_ID_KEY] = previousLeafId;
-    } else if (Object.prototype.hasOwnProperty.call(scope, LEAF_ID_KEY)) {
-      delete scope[LEAF_ID_KEY];
+    if (hadId) {
+      scope[ID_KEY] = previousId;
+    } else if (Object.prototype.hasOwnProperty.call(scope, ID_KEY)) {
+      delete scope[ID_KEY];
     }
   };
 };
@@ -65,7 +65,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
   const runId = typeof context?.runId === 'string' ? context.runId : '';
   const reporterFn = typeof reporter === 'function' ? reporter : undefined;
   const restoreReporterGlobals = applyReporterGlobals(
-  reporterFn, runId, context.leafId);
+  reporterFn, runId, context.id);
 
   const customConsole = {
     trace: (...args: any[]) => lg(

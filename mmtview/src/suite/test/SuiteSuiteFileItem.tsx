@@ -2,7 +2,7 @@ import React from 'react';
 import { TreeItem } from 'react-complex-tree';
 import { StepStatus } from '../types';
 
-export type SuiteSuiteFileItemData = { type: 'suite'; path: string; leafId?: string };
+export type SuiteSuiteFileItemData = { type: 'suite'; path: string; id: string };
 
 interface SuiteSuiteFileItemProps {
     item: TreeItem<any>;
@@ -13,8 +13,8 @@ interface SuiteSuiteFileItemProps {
 
     statusIconFor: (status: StepStatus | 'running') => { icon: string; color: string; title: string };
     status: StepStatus | 'running' | 'cancelled';
-    leafId: string;
-    leafRunStateByLeafId: Record<string, 'idle' | 'running' | 'passed' | 'failed' | 'cancelled'>;
+    id: string;
+    runStateById: Record<string, 'idle' | 'running' | 'passed' | 'failed' | 'cancelled'>;
 
     onRun?: () => void;
     runButtonTitle?: string;
@@ -29,8 +29,8 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
     missingFiles,
     statusIconFor,
     status,
-    leafId,
-    leafRunStateByLeafId,
+    id,
+    runStateById,
     onRun,
     runButtonTitle = 'Run',
     runDisabled = false,
@@ -38,7 +38,7 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
     const data = item.data as SuiteSuiteFileItemData;
     const isMissing = missingFiles.has(data.path);
 
-    const leafRunState = leafId ? (leafRunStateByLeafId[leafId] || 'idle') : 'idle';
+    const leafRunState = id ? (runStateById[id] || 'idle') : 'idle';
     const effectiveStatus: StepStatus | 'running' | 'cancelled' = (() => {
         if (leafRunState === 'running') {
             return 'running';

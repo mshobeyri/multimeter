@@ -6,7 +6,7 @@ import { StepReportItem } from '../../shared/TestStepReportPanel';
 import { useSuiteImportTree } from './useSuiteImportTree';
 import { SuiteTreeNode } from './suiteHierarchy';
 import { getSuiteHierarchy } from '../../vsAPI';
-import { childSuiteLeafPrefix } from './leafIdHelpers';
+// Suite hierarchy prefixes removed; targeting is now bundle id.
 import { resetLeafStateMap } from './leafStateReset';
 
 interface SuiteTestProps {
@@ -49,14 +49,8 @@ const buildSuiteGroupsFromContent = (content: string): SuiteGroup[] => {
         return [];
     }
 
-    const singleGroup = rawGroups.length === 1;
-
     return rawGroups.map((entries, groupIndex) => {
-        const entriesWithLeaf = entries.map((entry, entryIndex) => {
-            const leafId = singleGroup ? `root/${entryIndex}` : `root/g${groupIndex}/${entryIndex}`;
-            return { ...entry, leafId };
-        });
-        return { label: `Group ${groupIndex + 1}`, entries: entriesWithLeaf };
+        return { label: `Group ${groupIndex + 1}`, entries };
     });
 };
 
@@ -99,23 +93,23 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
 
     const [suiteRunId, setSuiteRunId] = useState<string | null>(null);
     const [suiteRunState, setSuiteRunState] = useState<'idle' | 'running' | 'cancelled'>('idle');
-    const [leafReportsByLeafId, setLeafReportsByLeafId] = useState<Record<string, StepReportItem[]>>({});
-    const [leafRunStateByLeafId, setLeafRunStateByLeafId] = useState<Record<string, 'idle' | 'running' | 'passed' | 'failed' | 'cancelled'>>({});
+    const [leafReportsById, setLeafReportsById] = useState<Record<string, StepReportItem[]>>({});
+    const [leafRunStateById, setLeafRunStateById] = useState<Record<string, 'idle' | 'running' | 'passed' | 'failed' | 'cancelled'>>({});
     const pendingLeafResetRef = useRef<'all' | string[] | null>(null);
     const pendingEntriesToCancelRef = useRef<string[] | null>(null);
 
     const resetLeafState = useCallback((mode: 'all' | readonly string[]) => {
         if (mode === 'all') {
-            setLeafReportsByLeafId({});
-            setLeafRunStateByLeafId({});
+            setLeafReportsById({});
+            setLeafRunStateById({});
             return;
         }
         if (!Array.isArray(mode) || mode.length === 0) {
             return;
         }
-        setLeafReportsByLeafId(prev => resetLeafStateMap(prev, mode));
-        setLeafRunStateByLeafId(prev => resetLeafStateMap(prev, mode));
-    }, [setLeafReportsByLeafId, setLeafRunStateByLeafId]);
+        setLeafReportsById(prev => resetLeafStateMap(prev, mode));
+        setLeafRunStateById(prev => resetLeafStateMap(prev, mode));
+    }, [setLeafReportsById, setLeafRunStateById]);
 
     const [hierarchyByEntryPath, setHierarchyByEntryPath] = useState<Record<string, SuiteTreeNode[]>>({});
 
@@ -126,7 +120,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
             for (const group of groups) {
                 for (const entry of group.entries) {
                     try {
-                        const res = await getSuiteHierarchy(entry.path, childSuiteLeafPrefix(entry.leafId));
+                        const res = await getSuiteHierarchy(entry.path);
                         const tree = (res as any)?.tree as any[] | undefined;
                         if (Array.isArray(tree)) {
                             result[entry.path] = tree as any;
@@ -198,7 +192,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 setSuiteRunState('cancelled');
 
                 // Mark currently running leaves as cancelled
-                setLeafRunStateByLeafId((prev) => {
+                setLeafRunStateById((prev) => {
                     const next: typeof prev = { ...prev };
                     Object.keys(next).forEach((k) => {
                         if (next[k] === 'running') {
@@ -222,13 +216,13 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                     return next;
                 });
 
-                setLeafRunStateByLeafId((prev) => {
+                setLeafRunStateById((prev) => {
                     const next: typeof prev = { ...prev };
                     const pendingIds = pendingEntriesToCancelRef.current;
                     if (Array.isArray(pendingIds) && pendingIds.length) {
                         groups.forEach((g) => g.entries.forEach((e) => {
                             if (pendingIds.includes(e.id)) {
-                                const lid = e.leafId || e.id;
+                                const lid = e.id;
                                 next[lid] = 'cancelled';
                             }
                         }));
@@ -263,14 +257,14 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 }
 
                 // Leaf report routing for suite runs.
-                const leafId = typeof (message as any).leafId === 'string' ? (message as any).leafId : null;
+                const id = typeof (message as any).id === 'string' ? (message as any).id : null;
                 const scope = typeof (message as any).scope === 'string' ? (message as any).scope : '';
-                if (leafId) {
+                if (id) {
                     if (scope === 'suite-item' && nextStatus === 'running') {
-                        setLeafRunStateByLeafId(prev => ({ ...prev, [leafId]: 'running' }));
+                        setLeafRunStateById(prev => ({ ...prev, [id]: 'running' }));
                     }
                     if (scope === 'suite-item' && (nextStatus === 'passed' || nextStatus === 'failed')) {
-                        setLeafRunStateByLeafId(prev => ({ ...prev, [leafId]: nextStatus }));
+                        setLeafRunStateById(prev => ({ ...prev, [id]: nextStatus }));
                     }
 
                     if (scope === 'test-step') {
@@ -285,19 +279,19 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                             expected: (message as any).expected,
                             timestamp: typeof (message as any).timestamp === 'number' ? (message as any).timestamp : Date.now(),
                         };
-                        setLeafReportsByLeafId(prev => ({
+                        setLeafReportsById(prev => ({
                             ...prev,
-                            [leafId]: [...(prev[leafId] || []), normalized],
+                            [id]: [...(prev[id] || []), normalized],
                         }));
                         if (normalized.status === 'failed') {
-                            setLeafRunStateByLeafId(prev => ({ ...prev, [leafId]: 'failed' }));
+                            setLeafRunStateById(prev => ({ ...prev, [id]: 'failed' }));
                         }
                     }
 
                     // Ensure final run summaries win: a failed summary must mark the leaf failed.
                     // This prevents "passed" states when a failing check was reported.
                     if (scope === 'test-step-run' && success === false) {
-                        setLeafRunStateByLeafId(prev => ({ ...prev, [leafId]: 'failed' }));
+                        setLeafRunStateById(prev => ({ ...prev, [id]: 'failed' }));
                     }
                 }
 
@@ -345,22 +339,22 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId });
     }, [groups, resetLeafState]);
 
-    const onRunTargets = useCallback((targets: string[]) => {
-        const unique = Array.from(new Set((targets || []).filter(Boolean)));
-        if (!unique.length) {
+    const onRunTargets = useCallback((target: string) => {
+        const effectiveTarget = typeof target === 'string' ? target : '';
+        if (!effectiveTarget) {
             return;
         }
 
-        // For leafId-based (bundle) runs we can't pre-mark by gi/ei.
+        // For bundle runs we can't pre-mark by gi/ei.
         setStepStatuses((prev) => ({ ...prev }));
 
-        pendingLeafResetRef.current = unique;
-        resetLeafState(unique);
+        pendingLeafResetRef.current = [effectiveTarget];
+        resetLeafState([effectiveTarget]);
 
         const nextSuiteRunId = `suite-ui:${Date.now()}`;
         setSuiteRunId(nextSuiteRunId);
         setSuiteRunState('running');
-        window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId, targets: unique });
+        window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId, target: effectiveTarget });
     }, [resetLeafState]);
 
     const onStopSuite = useCallback(() => {
@@ -378,8 +372,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
             stepStatuses={stepStatuses}
             lastRunIdByEntryId={lastRunIdByEntryId}
             statusIconFor={statusIconFor}
-            leafReportsByLeafId={leafReportsByLeafId}
-            leafRunStateByLeafId={leafRunStateByLeafId}
+            reportsById={leafReportsById}
+            runStateById={leafRunStateById}
             onRunTargets={onRunTargets}
         />
     );

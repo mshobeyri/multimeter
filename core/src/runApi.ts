@@ -467,7 +467,7 @@ export async function executeApi(
   });
   const result = await runGeneratedJs(
       'run-api', js, displayName, options.logger, jsRunner, undefined,
-      options.leafId);
+      (options as any).id);
   if (preLogs.length) {
     result.logs = [...preLogs.map(l => l.message), ...(result.logs ?? [])];
   }

@@ -7,7 +7,23 @@ type RunnableSuiteBundleNode =
   | Extract<SuiteBundleNode, {kind: 'suite'}>
   | Extract<SuiteBundleNode, {kind: 'test'}>;
 
-function collectRunnableLeafNodes(nodes: readonly SuiteBundleNode[]): RunnableSuiteBundleNode[] {
+function findNodeById(nodes: readonly SuiteBundleNode[], targetId: string): SuiteBundleNode|undefined {
+  const stack: SuiteBundleNode[] = [...nodes];
+  while (stack.length) {
+    const n = stack.pop()!;
+    if ((n as any).id === targetId) {
+      return n;
+    }
+    if (n.kind === 'group' || n.kind === 'suite') {
+      for (const c of n.children) {
+        stack.push(c);
+      }
+    }
+  }
+  return undefined;
+}
+
+function collectRunnableNodesFromRoot(root: SuiteBundleNode | readonly SuiteBundleNode[]): RunnableSuiteBundleNode[] {
   const out: RunnableSuiteBundleNode[] = [];
   const walk = (n: SuiteBundleNode) => {
     if (n.kind === 'test' || n.kind === 'suite') {
@@ -19,8 +35,12 @@ function collectRunnableLeafNodes(nodes: readonly SuiteBundleNode[]): RunnableSu
       }
     }
   };
-  for (const n of nodes) {
-    walk(n);
+  if (Array.isArray(root)) {
+    for (const n of root) {
+      walk(n);
+    }
+  } else {
+    walk(root as SuiteBundleNode);
   }
   return out;
 }
@@ -48,9 +68,14 @@ export async function executeSuiteBundle(params: {
     options.logger(level, msg);
   };
 
-  const runnable = collectRunnableLeafNodes(bundle.nodes);
-  const targets = Array.isArray(options.suiteTargets) && options.suiteTargets.length ? new Set(options.suiteTargets) : null;
-  const selected = targets ? runnable.filter((n) => targets.has(n.leafId)) : runnable;
+  const target = typeof bundle.target === 'string' && bundle.target ? bundle.target : undefined;
+  const root = target ? findNodeById(bundle.bundle, target) : undefined;
+  if (target && !root) {
+    throw new Error(`Suite target not found in bundle: ${target}`);
+  }
+
+  const runnable = collectRunnableNodesFromRoot(root ? root : bundle.bundle);
+  const selected = runnable;
 
   options.reporter && options.reporter({
     scope: 'suite-run-start',
@@ -73,6 +98,7 @@ export async function executeSuiteBundle(params: {
     const childFilePath = resolveRelativeTo(node.path, bundle.rootSuitePath);
     const display = basename(childFilePath || node.path);
     const runId = `suite:${sanitizeIdentifier(bundle.rootSuitePath)}:${i}:${sanitizeIdentifier(childFilePath || node.path)}`;
+    const id = (node as any).id as string | undefined;
 
     try {
       const childRawText = await options.fileLoader(childFilePath);
@@ -80,7 +106,7 @@ export async function executeSuiteBundle(params: {
 
       // For bundle runs we avoid emitting positional group indexes because
       // selected[] is a filtered list and its indices do not match the original
-      // suite group's item indexes. UI should rely on `leafId` for routing.
+      // suite group's item indexes. UI should rely on `id` for routing.
       options.reporter && options.reporter({
         scope: 'suite-item',
         status: 'running',
@@ -88,7 +114,7 @@ export async function executeSuiteBundle(params: {
         filePath: childFilePath,
         entry: node.path,
         docType: childDocType ?? undefined,
-        leafId: node.leafId,
+        id,
       } as any);
 
       suiteLogger('info', `Running suite item: ${display}`);
@@ -104,8 +130,8 @@ export async function executeSuiteBundle(params: {
         filePath: childFilePath,
         fileLoader: childFileLoader,
         logger: suiteLogger,
-        leafId: node.leafId,
         runId,
+        id,
       } as any);
 
       const status: SuiteStepStatus = childRun.result?.success ? 'passed' : 'failed';
@@ -120,7 +146,7 @@ export async function executeSuiteBundle(params: {
         filePath: childFilePath,
         entry: node.path,
         docType: childDocType ?? undefined,
-        leafId: node.leafId,
+        id,
       } as any);
     } catch (e: any) {
       overallSuccess = false;
@@ -133,7 +159,7 @@ export async function executeSuiteBundle(params: {
         runId,
         filePath: childFilePath,
         entry: node.path,
-        leafId: node.leafId,
+        id,
       } as any);
     }
   }

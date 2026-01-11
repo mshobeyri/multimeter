@@ -3,7 +3,7 @@ import {basename, detectDocType, PreparedRun, resolveRelativeTo, RunFileResult, 
 import {RunFileOptions, RunResult, SuiteStepStatus} from './runConfig';
 import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
 
-const stableLeafIdForSuiteItem = (params: {
+const stableIdForSuiteItem = (params: {
   suitePath: string;
   groupIndex: number;
   groupItemIndex: number;
@@ -57,25 +57,13 @@ export async function executeSuite(
     options.logger(level, msg);
   };
 
-  options.reporter && options.reporter({
-    scope: 'suite-run-start',
-    runId: `suite:${sanitizeIdentifier(prepared.filePath)}`,
-    suitePath: prepared.filePath,
-    startedAt: suiteStart,
-    totalRunnable: (suite.tests ?? []).filter((t) => String(t ?? '').trim() && String(t ?? '').trim() !== 'then').length,
-  } as any);
+  const shouldRunItem = (_id: string): boolean => {
+    return true;
+  };
 
   suiteLogger('info', `Running suite: ${suiteDisplayName}`);
 
   let overallSuccess = true;
-
-  const suiteTargets = Array.isArray(options.suiteTargets) ? options.suiteTargets : undefined;
-  const shouldRunItem = (leafId: string): boolean => {
-    if (!suiteTargets || suiteTargets.length === 0) {
-      return true;
-    }
-    return suiteTargets.includes(leafId);
-  };
 
   for (let gi = 0; gi < groups.length; gi++) {
     if (options.abortSignal?.aborted) {
@@ -108,7 +96,7 @@ export async function executeSuite(
         const childRawText = await fileLoader(childFilePath);
         const childDocType = detectDocType(childFilePath, childRawText);
 
-        const leafId = stableLeafIdForSuiteItem({
+        const id = stableIdForSuiteItem({
           suitePath: prepared.filePath,
           groupIndex: gi,
           groupItemIndex: entryIndex,
@@ -116,8 +104,7 @@ export async function executeSuite(
           filePath: childFilePath,
         });
 
-        // Partial suite runs: skip items not selected.
-        if (!shouldRunItem(leafId)) {
+        if (!shouldRunItem(id)) {
           return {
             entry,
             filePath: childFilePath,
@@ -140,14 +127,16 @@ export async function executeSuite(
           filePath: childFilePath,
           entry,
           docType: childDocType ?? undefined,
-          leafId,
+          id,
         });
 
         suiteLogger('info', `Running suite item: ${display}`);
+
         const childFileLoader = async (requestedPath: string) => {
           const resolved = resolveRelativeTo(requestedPath, childFilePath);
           return await fileLoader(resolved);
         };
+
         const childRun = await runFile({
           ...options,
           file: childRawText,
@@ -156,12 +145,11 @@ export async function executeSuite(
           manualInputs: mergedInputsUsed,
           fileLoader: childFileLoader,
           logger: suiteLogger,
-          leafId,
+          id,
           runId,
         } as any);
 
-        const status: SuiteStepStatus =
-            childRun.result?.success ? 'passed' : 'failed';
+        const status: SuiteStepStatus = childRun.result?.success ? 'passed' : 'failed';
         const result = {
           entry,
           filePath: childFilePath,
@@ -182,14 +170,13 @@ export async function executeSuite(
           filePath: childFilePath,
           entry,
           docType: childDocType ?? undefined,
-          leafId,
+          id,
         });
 
         return result;
       } catch (e: any) {
         const errorMessage = e?.message || String(e);
-        suiteLogger(
-            'error', `Failed to run suite item: ${display} - ${errorMessage}`);
+        suiteLogger('error', `Failed to run suite item: ${display} - ${errorMessage}`);
 
         const status: SuiteStepStatus = 'failed';
         const result = {
@@ -204,13 +191,15 @@ export async function executeSuite(
           groupItemIndex: entryIndex,
           threw: true,
         };
-        const leafId = stableLeafIdForSuiteItem({
+
+        const id = stableIdForSuiteItem({
           suitePath: prepared.filePath,
           groupIndex: gi,
           groupItemIndex: entryIndex,
           entry,
           filePath: childFilePath,
         });
+
         options.reporter && options.reporter({
           scope: 'suite-item',
           groupIndex: gi,
@@ -219,8 +208,9 @@ export async function executeSuite(
           runId,
           filePath: childFilePath,
           entry,
-          leafId,
+          id,
         });
+
         return result;
       }
     }));

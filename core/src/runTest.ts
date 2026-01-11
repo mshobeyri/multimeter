@@ -66,7 +66,7 @@ export async function executeTest(
     const payload: TestStepReporterEvent = {
       ...event,
       runId: event.runId || runId,
-      leafId: event.leafId || options.leafId,
+      id: (event as any).id || (options as any).id,
         };
     forwardReporter(payload);
   } : undefined;
@@ -79,13 +79,13 @@ export async function executeTest(
   });
     const result = await runGeneratedJs(
       runId, js, displayName, options.logger, options.jsRunner, stepReporter,
-      options.leafId);
+      (options as any).id);
   if (forwardReporter) {
       const summary: TestRunSummaryEvent = {
         scope: 'test-step-run',
         runId,
         result: result.success ? 'passed' : 'failed',
-        leafId: options.leafId,
+        id: (options as any).id,
       };
     forwardReporter(summary);
   }

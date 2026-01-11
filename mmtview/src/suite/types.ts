@@ -10,5 +10,5 @@ export type SuiteTreeItemData =
   | {type: 'import-file'; path: string; docType?: string; cycle?: boolean; error?: string}
   | {type: 'import-suite-info'; label: string};
 
-export type SuiteEntry = {id: string; path: string; leafId?: string};
+export type SuiteEntry = {id: string; path: string};
 export type SuiteGroup = {label: string; entries: SuiteEntry[]};
