@@ -54,7 +54,7 @@ export async function runGeneratedJs(
       runId,
       js,
       title: name,
-      logger,
+      logger: forward,
       reporter: stepReporter,
       leafId,
     });
