@@ -117,6 +117,13 @@ export interface RunFileOptions {
 
   /** Optional identifier for suite bundle node routing (preferred over testId). */
   nodeId?: string;
+
+  /**
+   * Optional suite targets for partial suite runs.
+   * When provided for `type: suite`, only suite items whose `testId`/`nodeId` matches
+   * one of these targets should execute.
+   */
+  suiteTargets?: string[];
 }
 
 export interface MergeInputsParams {

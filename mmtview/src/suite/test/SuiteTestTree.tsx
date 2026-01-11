@@ -7,6 +7,18 @@ import { StepStatus, SuiteGroup } from '../types';
 import { StepReportItem } from '../../shared/TestStepReportPanel';
 import { SuiteTreeNode } from './suiteHierarchy';
 
+const randomId = () => {
+  try {
+    const anyCrypto = (globalThis as any)?.crypto;
+    if (anyCrypto && typeof anyCrypto.randomUUID === 'function') {
+      return anyCrypto.randomUUID();
+    }
+  } catch {
+    // ignore
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
+
 export type SuiteTestTreeItemData =
   | { type: 'root'; label: string }
   | { type: 'group'; label: string }
@@ -83,6 +95,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
 }) => {
   const base = useMemo(() => buildBaseTestTree(groups), [groups]);
   const [expandedItems, setExpandedItems] = useState<string[]>(['suite-root']);
+  const importedIdMap = useMemo(() => new Map<string, string>(), []);
 
   // Expand base group nodes by default — one-time on mount.
   useEffect(() => {
@@ -140,8 +153,16 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         const hierarchyChildren: string[] = [];
         const pushHierarchy = (parent: string, nodes: SuiteTreeNode[]) => {
           nodes.forEach((n, idx) => {
+            // Use a random id per imported node instance to prevent collisions.
+            // Key is structural (parent + idx + kind + path) so it is stable across renders.
+            const key = `${parent}|${idx}|${n.kind}|${(n as any).path ?? ''}|${(n as any).label ?? ''}`;
+            let baseId = importedIdMap.get(key);
+            if (!baseId) {
+              baseId = `import:${randomId()}`;
+              importedIdMap.set(key, baseId);
+            }
             if (n.kind === 'group') {
-              const gid = `import:${parent}:group:${idx}:${n.label}`;
+              const gid = `${baseId}:group:${n.label}`;
               const childIds2: string[] = [];
               items[gid] = { index: gid, isFolder: true, children: childIds2, data: { type: 'group', label: n.label } };
               pushHierarchy(gid, n.children);
@@ -151,16 +172,15 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
 
             if (n.kind === 'test') {
               const path = n.path;
-              const nodeId = `import:${parent}:path:${path}`;
-              const leafId = nodeId;
-              items[nodeId] = { index: nodeId, isFolder: true, children: [], data: { type: 'test', path, leafId } };
+              const nodeId = `${baseId}:test:${path}`;
+              items[nodeId] = { index: nodeId, isFolder: true, children: [], data: { type: 'test', path, leafId: nodeId } };
               hierarchyChildren.push(nodeId);
               return;
             }
 
             if (n.kind === 'suite') {
               const path = n.path;
-              const nodeId = `import:${parent}:path:${path}`;
+              const nodeId = `${baseId}:suite:${path}`;
               items[nodeId] = { index: nodeId, isFolder: true, children: [], data: { type: 'suite', path } };
               hierarchyChildren.push(nodeId);
               if (Array.isArray(n.children) && n.children.length) {
@@ -171,7 +191,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
 
             if (n.kind === 'missing') {
               const path = n.path;
-              const nodeId = `import:${parent}:path:${path}`;
+              const nodeId = `${baseId}:missing:${path}`;
               items[nodeId] = { index: nodeId, isFolder: false, children: [], data: { type: 'test', path, leafId: nodeId } };
               hierarchyChildren.push(nodeId);
               return;
@@ -193,7 +213,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     });
 
     return { items };
-  }, [base.items, expandedItems, groups, hierarchyByEntryPath]);
+  }, [base.items, expandedItems, groups, hierarchyByEntryPath, importedIdMap]);
 
   const handleExpand = useCallback(
     (item: TreeItem<SuiteTestTreeItemData>) => {
@@ -297,7 +317,11 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         }
         return '';
       })();
-      const suiteRunHandler = suiteLeafId ? () => onRunTargets([suiteLeafId]) : undefined;
+      // Imported suites are runnable too; use their tree id as the target.
+      const isImportedSuite = !suiteLeafId && entryId.startsWith('import:');
+      const suiteImportedTarget = isImportedSuite ? entryId : '';
+      const effectiveTarget = suiteLeafId || suiteImportedTarget;
+      const effectiveRunHandler = effectiveTarget ? () => onRunTargets([effectiveTarget]) : undefined;
       return (
         <SuiteSuiteFileItem
           item={item as any}
@@ -309,16 +333,18 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
           status={suiteStatus}
           leafId={suiteLeafId}
           leafRunStateByLeafId={leafRunStateByLeafId}
-          onRun={suiteRunHandler}
+          onRun={effectiveRunHandler}
           runButtonTitle="Run suite"
-          runDisabled={!suiteLeafId}
+          runDisabled={!effectiveTarget}
         />
       );
     }
 
     const testLeafId = (data as any)?.leafId as string | undefined;
     const isTopLevelLeaf = typeof testLeafId === 'string' && /^\d+:\d+$/.test(testLeafId);
-    const handleRun = isTopLevelLeaf ? () => onRunTargets([testLeafId!]) : undefined;
+    const isImportedLeaf = typeof testLeafId === 'string' && testLeafId.startsWith('import:');
+    const canRunLeaf = isTopLevelLeaf || isImportedLeaf;
+    const handleRun = canRunLeaf ? () => onRunTargets([testLeafId!]) : undefined;
 
     return (
       <SuiteTestFileItem
@@ -333,7 +359,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         leafRunStateByLeafId={leafRunStateByLeafId}
         onRun={handleRun}
         runButtonTitle="Run test"
-        runDisabled={!isTopLevelLeaf}
+        runDisabled={!canRunLeaf}
       />
     );
   };

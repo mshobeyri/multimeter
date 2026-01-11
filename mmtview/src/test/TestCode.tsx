@@ -56,7 +56,7 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
         return () => window.removeEventListener('message', handleMessage);
     }, [refreshWorkspaceVars]);
 
-    const generateCode = async () => {
+    const generateCode = React.useCallback(async () => {
         try {
             const code = await rootTestToJsfunc({
                 name: testData?.title || "testFlow",
@@ -70,7 +70,7 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
             setError(e?.message || String(e));
             setJsCode("");
         }
-    };
+    }, [testData, envVars]);
 
     React.useEffect(() => {
         if (!loaded) {
@@ -88,7 +88,7 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
         return () => {
             clearTimeout(timeout);
         };
-    }, [testData, envVars, loaded]);
+    }, [generateCode]);
 
     const handleRun = async () => {
         console.log = (...args: any[]) => {

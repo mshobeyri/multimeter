@@ -57,6 +57,14 @@ export async function executeSuite(
 
   let overallSuccess = true;
 
+  const suiteTargets = Array.isArray(options.suiteTargets) ? options.suiteTargets : undefined;
+  const shouldRunItem = (testId: string): boolean => {
+    if (!suiteTargets || suiteTargets.length === 0) {
+      return true;
+    }
+    return suiteTargets.includes(testId);
+  };
+
   for (let gi = 0; gi < groups.length; gi++) {
     if (options.abortSignal?.aborted) {
       suiteLogger('warn', 'Suite run cancelled.');
@@ -89,6 +97,22 @@ export async function executeSuite(
         const childDocType = detectDocType(childFilePath, childRawText);
 
         const testId = `${gi}:${entryIndex}`;
+
+        // Partial suite runs: skip items not selected.
+        if (!shouldRunItem(testId)) {
+          return {
+            entry,
+            filePath: childFilePath,
+            docType: childDocType ?? undefined,
+            success: true,
+            status: 'passed' as SuiteStepStatus,
+            errors: [],
+            logs: [],
+            threw: false,
+            skipped: true,
+          } as any;
+        }
+
         options.reporter && options.reporter({
           scope: 'suite-item',
           status: 'running',

@@ -235,6 +235,12 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                             setLeafRunStateByLeafId(prev => ({ ...prev, [leafId]: 'failed' }));
                         }
                     }
+
+                    // Ensure final run summaries win: a failed summary must mark the leaf failed.
+                    // This prevents "passed" states when a failing check was reported.
+                    if (scope === 'test-step-run' && success === false) {
+                        setLeafRunStateByLeafId(prev => ({ ...prev, [leafId]: 'failed' }));
+                    }
                 }
 
                 if (runId) {

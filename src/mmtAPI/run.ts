@@ -207,7 +207,9 @@ export async function handleRunSuite(
 
         const normalizePath = (p: string) => {
           try {
-            if (path.isAbsolute(p)) return path.normalize(p);
+            if (path.isAbsolute(p)) {
+              return path.normalize(p);
+            }
             return path.normalize(path.resolve(path.dirname(document.uri.fsPath), p));
           } catch {
             return p;
@@ -215,18 +217,26 @@ export async function handleRunSuite(
         };
 
         const subtreeContainsPath = (node: any, targetPath: string): boolean => {
-          if (!node) return false;
-          if ((node.path && normalizePath(node.path) === targetPath)) return true;
+          if (!node) {
+            return false;
+          }
+          if ((node.path && normalizePath(node.path) === targetPath)) {
+            return true;
+          }
           if (Array.isArray(node.children)) {
             for (const c of node.children) {
-              if (subtreeContainsPath(c, targetPath)) return true;
+              if (subtreeContainsPath(c, targetPath)) {
+                return true;
+              }
             }
           }
           return false;
         };
 
         for (const rawTarget of nonLegacyTargets) {
-          if (typeof rawTarget !== 'string') continue;
+          if (typeof rawTarget !== 'string') {
+            continue;
+          }
           // Try to extract a trailing path from import ids like `import:<uuid>:test:<path>`
           const m = /(?:^|:)\b(?:test|suite|missing)\b:(.+)$/.exec(rawTarget);
           const targetPath = m ? normalizePath(m[1]) : normalizePath(rawTarget);

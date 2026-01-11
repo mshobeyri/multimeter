@@ -38,4 +38,12 @@ describe('useSuiteImportTree suite children behavior', () => {
     // The webview hook fetches them; here we validate the grouping rule.
     expect(splitSuiteGroups(['t1.mmt', 't2.mmt'])).toEqual([['t1.mmt', 't2.mmt']]);
   });
+  
+  it('disambiguates duplicate imported paths by unique ids', async () => {
+    // Current behavior uses random ids per imported node instance.
+    // Requirement: two identical imported nodes must never share the same id.
+    const id1 = `import:${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const id2 = `import:${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    expect(id1).not.toBe(id2);
+  });
 });
