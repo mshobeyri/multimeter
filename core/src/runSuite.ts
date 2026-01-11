@@ -3,6 +3,18 @@ import {basename, detectDocType, PreparedRun, resolveRelativeTo, RunFileResult, 
 import {RunFileOptions, RunResult, SuiteStepStatus} from './runConfig';
 import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
 
+const stableLeafIdForSuiteItem = (params: {
+  suitePath: string;
+  groupIndex: number;
+  groupItemIndex: number;
+  entry: string;
+  filePath: string;
+}): string => {
+  const {suitePath, groupIndex, groupItemIndex, entry, filePath} = params;
+  // Needs to be stable within a given suite file so UI can target reliably.
+  return `${sanitizeIdentifier(suitePath)}:${groupIndex}:${groupItemIndex}:${sanitizeIdentifier(filePath || entry)}`;
+};
+
 export function prepareSuiteRun(
     rawText: string, manualInputs: Record<string, any>): Partial<PreparedRun> {
   const suite = yamlToSuite(rawText);
@@ -58,11 +70,11 @@ export async function executeSuite(
   let overallSuccess = true;
 
   const suiteTargets = Array.isArray(options.suiteTargets) ? options.suiteTargets : undefined;
-  const shouldRunItem = (testId: string): boolean => {
+  const shouldRunItem = (leafId: string): boolean => {
     if (!suiteTargets || suiteTargets.length === 0) {
       return true;
     }
-    return suiteTargets.includes(testId);
+    return suiteTargets.includes(leafId);
   };
 
   for (let gi = 0; gi < groups.length; gi++) {
@@ -96,10 +108,16 @@ export async function executeSuite(
         const childRawText = await fileLoader(childFilePath);
         const childDocType = detectDocType(childFilePath, childRawText);
 
-        const testId = `${gi}:${entryIndex}`;
+        const leafId = stableLeafIdForSuiteItem({
+          suitePath: prepared.filePath,
+          groupIndex: gi,
+          groupItemIndex: entryIndex,
+          entry,
+          filePath: childFilePath,
+        });
 
         // Partial suite runs: skip items not selected.
-        if (!shouldRunItem(testId)) {
+        if (!shouldRunItem(leafId)) {
           return {
             entry,
             filePath: childFilePath,
@@ -122,7 +140,7 @@ export async function executeSuite(
           filePath: childFilePath,
           entry,
           docType: childDocType ?? undefined,
-          testId,
+          leafId,
         });
 
         suiteLogger('info', `Running suite item: ${display}`);
@@ -138,7 +156,7 @@ export async function executeSuite(
           manualInputs: mergedInputsUsed,
           fileLoader: childFileLoader,
           logger: suiteLogger,
-          testId,
+          leafId,
         } as any);
 
         const status: SuiteStepStatus =
@@ -163,7 +181,7 @@ export async function executeSuite(
           filePath: childFilePath,
           entry,
           docType: childDocType ?? undefined,
-          testId,
+          leafId,
         });
 
         return result;
@@ -185,7 +203,13 @@ export async function executeSuite(
           groupItemIndex: entryIndex,
           threw: true,
         };
-        const testId = `${gi}:${entryIndex}`;
+        const leafId = stableLeafIdForSuiteItem({
+          suitePath: prepared.filePath,
+          groupIndex: gi,
+          groupItemIndex: entryIndex,
+          entry,
+          filePath: childFilePath,
+        });
         options.reporter && options.reporter({
           scope: 'suite-item',
           groupIndex: gi,
@@ -194,7 +218,7 @@ export async function executeSuite(
           runId,
           filePath: childFilePath,
           entry,
-          testId,
+          leafId,
         });
         return result;
       }

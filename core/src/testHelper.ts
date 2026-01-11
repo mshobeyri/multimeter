@@ -85,8 +85,7 @@ export function notEndsWith_(a: any, b: any) {
 }
 declare const __mmtReportStep:|((event: Record<string, any>) => void)|undefined;
 declare const __mmtRunId: string|undefined;
-declare const __mmtTestId: string|undefined;
-declare const __mmtNodeId: string|undefined;
+declare const __mmtLeafId: string|undefined;
 
 type StepType = 'check'|'assert';
 
@@ -101,11 +100,8 @@ const ensurePayload = (event: Record<string, any>): Record<string, any> => {
   if (!payload.runId) {
     payload.runId = typeof __mmtRunId === 'string' ? __mmtRunId : '';
   }
-  if (!payload.testId && typeof __mmtTestId === 'string') {
-    payload.testId = __mmtTestId;
-  }
-  if (!payload.nodeId && typeof __mmtNodeId === 'string') {
-    payload.nodeId = __mmtNodeId;
+  if (!payload.leafId && typeof __mmtLeafId === 'string') {
+    payload.leafId = __mmtLeafId;
   }
   return payload;
 };

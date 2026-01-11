@@ -2,8 +2,8 @@ import {executeSuite} from './runSuite';
 import {PreparedRun, RunFileResult} from './runCommon';
 import {RunFileOptions, RunReporterMessage} from './runConfig';
 
-describe('executeSuite reporter testId propagation', () => {
-  it('adds testId to suite and child reporter events', async () => {
+describe('executeSuite reporter leafId propagation', () => {
+  it('adds leafId to suite and child reporter events', async () => {
     const prepared: PreparedRun = {
       rawText: `type: suite\ntests:\n  - child-a.mmt\n`,
       filePath: '/tmp/suite.mmt',
@@ -25,7 +25,7 @@ describe('executeSuite reporter testId propagation', () => {
         status: 'passed',
         comparison: '1 == 1',
         timestamp: Date.now(),
-        testId: opts.testId,
+        leafId: opts.leafId,
       });
       return {
         js: '',
@@ -55,8 +55,14 @@ describe('executeSuite reporter testId propagation', () => {
         [],
         runFileMock as any);
 
-    expect(runFileMock).toHaveBeenCalledWith(expect.objectContaining({testId: '0:0'}));
-    expect(reporterEvents.some(event => (event as any).scope === 'suite-item' && (event as any).testId === '0:0')).toBe(true);
-    expect(reporterEvents.some(event => (event as any).scope === 'test-step' && (event as any).testId === '0:0')).toBe(true);
+    const suiteItemLeafIds = reporterEvents
+      .filter((e) => (e as any).scope === 'suite-item')
+      .map((e) => (e as any).leafId)
+      .filter(Boolean);
+    expect(suiteItemLeafIds.length).toBeGreaterThan(0);
+    const leafId = suiteItemLeafIds[0];
+    expect(runFileMock).toHaveBeenCalledWith(expect.objectContaining({leafId}));
+    expect(reporterEvents.some(event => (event as any).scope === 'suite-item' && (event as any).leafId === leafId)).toBe(true);
+    expect(reporterEvents.some(event => (event as any).scope === 'test-step' && (event as any).leafId === leafId)).toBe(true);
   });
 });

@@ -11,34 +11,33 @@ export interface RunJSCodeContext {
   title: string;
   logger: (level: LogLevel, message: string) => void;
   reporter?: (message: any) => void;
-  testId?: string;
-  nodeId?: string;
+  leafId?: string;
 }
 
 const REPORTER_KEY = '__mmtReportStep';
 const RUN_ID_KEY = '__mmtRunId';
-const TEST_ID_KEY = '__mmtTestId';
+const LEAF_ID_KEY = '__mmtLeafId';
 
 const applyReporterGlobals = (
     reporter: ((message: any) => void)|undefined, runId: string,
-    testId?: string): (() => void) => {
+    leafId?: string): (() => void) => {
   const scope = globalThis as Record<string, any>;
   const hadReporter = Object.prototype.hasOwnProperty.call(scope, REPORTER_KEY);
   const hadRunId = Object.prototype.hasOwnProperty.call(scope, RUN_ID_KEY);
-  const hadTestId = Object.prototype.hasOwnProperty.call(scope, TEST_ID_KEY);
+  const hadLeafId = Object.prototype.hasOwnProperty.call(scope, LEAF_ID_KEY);
   const previousReporter = scope[REPORTER_KEY];
   const previousRunId = scope[RUN_ID_KEY];
-  const previousTestId = scope[TEST_ID_KEY];
+  const previousLeafId = scope[LEAF_ID_KEY];
   if (reporter) {
     scope[REPORTER_KEY] = reporter;
   } else {
     delete scope[REPORTER_KEY];
   }
   scope[RUN_ID_KEY] = runId;
-  if (typeof testId === 'string' && testId) {
-    scope[TEST_ID_KEY] = testId;
+  if (typeof leafId === 'string' && leafId) {
+    scope[LEAF_ID_KEY] = leafId;
   } else {
-    delete scope[TEST_ID_KEY];
+    delete scope[LEAF_ID_KEY];
   }
   return () => {
     if (hadReporter) {
@@ -51,24 +50,22 @@ const applyReporterGlobals = (
     } else if (Object.prototype.hasOwnProperty.call(scope, RUN_ID_KEY)) {
       delete scope[RUN_ID_KEY];
     }
-    if (hadTestId) {
-      scope[TEST_ID_KEY] = previousTestId;
-    } else if (Object.prototype.hasOwnProperty.call(scope, TEST_ID_KEY)) {
-      delete scope[TEST_ID_KEY];
+    if (hadLeafId) {
+      scope[LEAF_ID_KEY] = previousLeafId;
+    } else if (Object.prototype.hasOwnProperty.call(scope, LEAF_ID_KEY)) {
+      delete scope[LEAF_ID_KEY];
     }
   };
 };
 
 export async function runJSCode(context: RunJSCodeContext): Promise<any> {
   const {js: code, title, logger: lg, reporter} = context;
-  const oldNodeId = (globalThis as any).__mmtNodeId;
-  (globalThis as any).__mmtNodeId = context.nodeId;
   lg('info', `Running test: ${title}...`);
   const startTime = Date.now();
   const runId = typeof context?.runId === 'string' ? context.runId : '';
   const reporterFn = typeof reporter === 'function' ? reporter : undefined;
   const restoreReporterGlobals = applyReporterGlobals(
-      reporterFn, runId, context.testId);
+  reporterFn, runId, context.leafId);
 
   const customConsole = {
     trace: (...args: any[]) => lg(
@@ -106,7 +103,6 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     lg('error', 'Error running test: ' + (e?.message || String(e)));
   } finally {
     restoreReporterGlobals();
-    (globalThis as any).__mmtNodeId = oldNodeId;
     const elapsed = Date.now() - startTime;
     lg('info', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
   }

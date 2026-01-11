@@ -20,9 +20,35 @@ describe('runSuite partial targets', () => {
     };
 
     const ranTitles: string[] = [];
+    const suiteItemLeafIds: string[] = [];
     const jsRunner = async (ctx: any) => {
       ranTitles.push(String(ctx?.title ?? ''));
     };
+
+    const reporter = (msg: any) => {
+      if (msg && msg.scope === 'suite-item' && msg.status === 'running') {
+        suiteItemLeafIds.push(String(msg.leafId));
+      }
+    };
+
+    const discoverRun = await runFile({
+      fileType: 'path',
+      file: '/root/suite.mmt',
+      filePath: '/root/suite.mmt',
+      fileLoader,
+      jsRunner,
+      logger: () => {},
+      reporter,
+    } as any);
+
+    expect(discoverRun.docType).toBe('suite');
+    expect(suiteItemLeafIds.length).toBe(2);
+
+    // Target the second suite item (./b.test.mmt).
+    const targetLeafId = suiteItemLeafIds[1];
+
+    ranTitles.length = 0;
+    suiteItemLeafIds.length = 0;
 
     const res = await runFile({
       fileType: 'path',
@@ -31,8 +57,8 @@ describe('runSuite partial targets', () => {
       fileLoader,
       jsRunner,
       logger: () => {},
-      reporter: () => {},
-      suiteTargets: ['0:1'],
+      reporter,
+      suiteTargets: [targetLeafId],
     } as any);
 
     expect(res.docType).toBe('suite');

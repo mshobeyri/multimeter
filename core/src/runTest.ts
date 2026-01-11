@@ -66,11 +66,8 @@ export async function executeTest(
     const payload: TestStepReporterEvent = {
       ...event,
       runId: event.runId || runId,
-      testId: event.testId || options.testId,
+      leafId: event.leafId || options.leafId,
         };
-        if (options.nodeId && !payload.nodeId) {
-          payload.nodeId = options.nodeId;
-        }
     forwardReporter(payload);
   } : undefined;
   const js = await generateTestJs({
@@ -82,14 +79,13 @@ export async function executeTest(
   });
     const result = await runGeneratedJs(
       runId, js, displayName, options.logger, options.jsRunner, stepReporter,
-      options.testId, options.nodeId);
+      options.leafId);
   if (forwardReporter) {
       const summary: TestRunSummaryEvent = {
         scope: 'test-step-run',
         runId,
         result: result.success ? 'passed' : 'failed',
-        testId: options.testId,
-        nodeId: options.nodeId,
+        leafId: options.leafId,
       };
     forwardReporter(summary);
   }

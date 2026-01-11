@@ -18,16 +18,14 @@ export interface TestStepReporterEvent {
   timestamp: number;
   actual?: any;
   expected?: any;
-  testId?: string;
-  nodeId?: string;
+  leafId?: string;
 }
 
 export interface TestRunSummaryEvent {
   scope: 'test-step-run';
   runId: string;
   result: TestStepStatus;
-  testId?: string;
-  nodeId?: string;
+  leafId?: string;
 }
 
 export interface SuiteReporterMessage {
@@ -40,8 +38,7 @@ export interface SuiteReporterMessage {
   filePath?: string;
   entry?: string;
   docType?: string;
-  testId?: string;
-  nodeId?: string;
+  leafId?: string;
 }
 
 export interface SuiteRunStartEvent {
@@ -112,18 +109,21 @@ export interface RunFileOptions {
   /** Optional signal for cooperative cancellation (suite/test/api runs). */
   abortSignal?: AbortSignal;
 
-  /** Optional identifier passed through reporter events (e.g., suite testId). */
-  testId?: string;
-
-  /** Optional identifier for suite bundle node routing (preferred over testId). */
-  nodeId?: string;
+  /** Optional identifier passed through reporter events and JS globals. */
+  leafId?: string;
 
   /**
    * Optional suite targets for partial suite runs.
-   * When provided for `type: suite`, only suite items whose `testId`/`nodeId` matches
-   * one of these targets should execute.
+   * When provided for `type: suite`, only suite items whose `leafId` matches one of
+   * these targets should execute.
    */
   suiteTargets?: string[];
+
+  /**
+   * Optional suite bundle for bundle-based suite runs.
+   * When provided, the suite execution should use the bundle's `leafId`s for targeting/report routing.
+   */
+  suiteBundle?: import('./suiteBundle').SuiteBundle;
 }
 
 export interface MergeInputsParams {

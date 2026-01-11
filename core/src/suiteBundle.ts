@@ -2,12 +2,24 @@ import {SuiteHierarchyNode} from './suiteHierarchy';
 
 export type SuiteBundleNodeKind = 'group'|'suite'|'test'|'missing'|'cycle';
 
+const randomLeafId = (): string => {
+  try {
+    const anyCrypto = (globalThis as any)?.crypto;
+    if (anyCrypto && typeof anyCrypto.randomUUID === 'function') {
+      return anyCrypto.randomUUID();
+    }
+  } catch {
+    // ignore
+  }
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
+
 export type SuiteBundleNode =
-  | {kind: 'group'; nodeId: string; label: string; children: SuiteBundleNode[]}
-  | {kind: 'suite'; nodeId: string; path: string; children: SuiteBundleNode[]}
-  | {kind: 'test'; nodeId: string; path: string}
-  | {kind: 'missing'; nodeId: string; path: string}
-  | {kind: 'cycle'; nodeId: string; path: string};
+  | {kind: 'group'; leafId: string; label: string; children: SuiteBundleNode[]}
+  | {kind: 'suite'; leafId: string; path: string; children: SuiteBundleNode[]}
+  | {kind: 'test'; leafId: string; path: string}
+  | {kind: 'missing'; leafId: string; path: string}
+  | {kind: 'cycle'; leafId: string; path: string};
 
 export interface SuiteBundle {
   rootSuitePath: string;
@@ -23,7 +35,7 @@ function collectRunnableLeafIds(nodes: readonly SuiteBundleNode[]): string[] {
   const out: string[] = [];
   const walk = (n: SuiteBundleNode) => {
     if (isRunnableLeaf(n)) {
-      out.push(n.nodeId);
+      out.push(n.leafId);
       return;
     }
     if (n.kind === 'group' || n.kind === 'suite') {
@@ -44,49 +56,45 @@ export function buildSuiteBundleFromHierarchy(params: {
 }): SuiteBundle {
   const {rootSuitePath, hierarchy} = params;
 
-  const build = (
-      nodes: readonly SuiteHierarchyNode[], prefix: string): SuiteBundleNode[] => {
+  const build = (nodes: readonly SuiteHierarchyNode[]): SuiteBundleNode[] => {
     const out: SuiteBundleNode[] = [];
-    let itemIndex = 0;
 
     for (const node of nodes) {
       if (node.kind === 'group') {
-        const groupIndex = out.filter((n) => n.kind === 'group').length;
-        const nodeId = `${prefix}g:${groupIndex}`;
+        const leafId = randomLeafId();
         out.push({
           kind: 'group',
-          nodeId,
+          leafId,
           label: node.label,
-          children: build(node.children, `${nodeId}/`),
+          children: build(node.children),
         });
         continue;
       }
 
-      const nodeId = `${prefix}i:${itemIndex}`;
-      itemIndex++;
+      const leafId = randomLeafId();
 
       if (node.kind === 'suite') {
         out.push({
           kind: 'suite',
-          nodeId,
+          leafId,
           path: node.path,
-          children: build(node.children, `${nodeId}/`),
+          children: build(node.children),
         });
         continue;
       }
 
       if (node.kind === 'test') {
-        out.push({kind: 'test', nodeId, path: node.path});
+        out.push({kind: 'test', leafId, path: node.path});
         continue;
       }
 
       if (node.kind === 'missing') {
-        out.push({kind: 'missing', nodeId, path: node.path});
+        out.push({kind: 'missing', leafId, path: node.path});
         continue;
       }
 
       if (node.kind === 'cycle') {
-        out.push({kind: 'cycle', nodeId, path: node.path});
+        out.push({kind: 'cycle', leafId, path: node.path});
         continue;
       }
     }
@@ -94,7 +102,7 @@ export function buildSuiteBundleFromHierarchy(params: {
     return out;
   };
 
-  const nodes = build(hierarchy, '');
+  const nodes = build(hierarchy);
   return {
     rootSuitePath,
     nodes,

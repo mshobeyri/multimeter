@@ -197,15 +197,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 }
 
                 // Leaf report routing for suite runs.
-                // Prefer `testId` (new name); fall back to legacy `leafId`.
-                const leafId = (() => {
-                    const testId = typeof (message as any).testId === 'string' ? (message as any).testId : null;
-                    if (testId) {
-                        return testId;
-                    }
-                    const legacy = typeof (message as any).leafId === 'string' ? (message as any).leafId : null;
-                    return legacy;
-                })();
+                const leafId = typeof (message as any).leafId === 'string' ? (message as any).leafId : null;
                 const scope = typeof (message as any).scope === 'string' ? (message as any).scope : '';
                 if (leafId) {
                     if (scope === 'suite-item' && nextStatus === 'running') {
@@ -293,16 +285,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
             return;
         }
 
-        const next: Record<string, StepStatus | 'running'> = {};
-        groups.forEach((group, gi) => {
-            group.entries.forEach((entry, ei) => {
-                const testId = `${gi}:${ei}`;
-                if (unique.includes(testId)) {
-                    next[entry.id] = 'pending';
-                }
-            });
-        });
-        setStepStatuses((prev) => ({ ...prev, ...next }));
+        // For leafId-based (bundle) runs we can't pre-mark by gi/ei.
+        setStepStatuses((prev) => ({ ...prev }));
 
         const nextSuiteRunId = `suite-ui:${Date.now()}`;
         setSuiteRunId(nextSuiteRunId);
@@ -310,7 +294,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
         setLeafReportsByLeafId({});
         setLeafRunStateByLeafId({});
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId, targets: unique });
-    }, [groups]);
+    }, []);
 
     const onStopSuite = useCallback(() => {
         if (!suiteRunId) {

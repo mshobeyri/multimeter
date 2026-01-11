@@ -118,12 +118,11 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         if (!entryItem) {
           continue;
         }
-        const leafId = `${gi}:${ei}`;
         const hierarchy = hierarchyByEntryPath[entry.path];
         const isSuite = Array.isArray(hierarchy);
 
         if (!isSuite) {
-          items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'test', path: entry.path, leafId } };
+          items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'test', path: entry.path, leafId: entry.id } };
           continue;
         }
 
@@ -172,28 +171,31 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
 
             if (n.kind === 'test') {
               const path = n.path;
-              const nodeId = `${baseId}:test:${path}`;
-              items[nodeId] = { index: nodeId, isFolder: true, children: [], data: { type: 'test', path, leafId: nodeId } };
-              hierarchyChildren.push(nodeId);
+              const itemId = `${baseId}:test:${path}`;
+              const leafId = typeof (n as any).leafId === 'string' ? String((n as any).leafId) : itemId;
+              items[itemId] = { index: itemId, isFolder: true, children: [], data: { type: 'test', path, leafId } };
+              hierarchyChildren.push(itemId);
               return;
             }
 
             if (n.kind === 'suite') {
               const path = n.path;
-              const nodeId = `${baseId}:suite:${path}`;
-              items[nodeId] = { index: nodeId, isFolder: true, children: [], data: { type: 'suite', path } };
-              hierarchyChildren.push(nodeId);
+              const itemId = `${baseId}:suite:${path}`;
+              const leafId = typeof (n as any).leafId === 'string' ? String((n as any).leafId) : itemId;
+              items[itemId] = { index: itemId, isFolder: true, children: [], data: { type: 'suite', path, leafId } as any };
+              hierarchyChildren.push(itemId);
               if (Array.isArray(n.children) && n.children.length) {
-                pushHierarchy(nodeId, n.children);
+                pushHierarchy(itemId, n.children);
               }
               return;
             }
 
             if (n.kind === 'missing') {
               const path = n.path;
-              const nodeId = `${baseId}:missing:${path}`;
-              items[nodeId] = { index: nodeId, isFolder: false, children: [], data: { type: 'test', path, leafId: nodeId } };
-              hierarchyChildren.push(nodeId);
+              const itemId = `${baseId}:missing:${path}`;
+              const leafId = typeof (n as any).leafId === 'string' ? String((n as any).leafId) : itemId;
+              items[itemId] = { index: itemId, isFolder: false, children: [], data: { type: 'test', path, leafId } };
+              hierarchyChildren.push(itemId);
               return;
             }
 
@@ -241,7 +243,8 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     if (!group) {
       return [];
     }
-    return group.entries.map((_, ei) => `${groupIndex}:${ei}`);
+    // Group targeting will be computed using leafIds from the hierarchy (when available).
+    return group.entries.map((e) => e.id);
   }, [groups]);
 
   const renderItem = ({ item, context, arrow, children }: any) => {
@@ -305,22 +308,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
 
     if (data.type === 'suite') {
       const suiteStatus = computedStatus as any;
-      const suiteLeafId = (() => {
-        for (let gi = 0; gi < groups.length; gi++) {
-          const group = groups[gi];
-          for (let ei = 0; ei < group.entries.length; ei++) {
-            const entry = group.entries[ei];
-            if (entry.id === entryId) {
-              return `${gi}:${ei}`;
-            }
-          }
-        }
-        return '';
-      })();
-      // Imported suites are runnable too; use their tree id as the target.
-      const isImportedSuite = !suiteLeafId && entryId.startsWith('import:');
-      const suiteImportedTarget = isImportedSuite ? entryId : '';
-      const effectiveTarget = suiteLeafId || suiteImportedTarget;
+      const effectiveTarget = (data as any).leafId || entryId;
       const effectiveRunHandler = effectiveTarget ? () => onRunTargets([effectiveTarget]) : undefined;
       return (
         <SuiteSuiteFileItem
@@ -331,7 +319,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
           missingFiles={missingFiles}
           statusIconFor={statusIconFor as any}
           status={suiteStatus}
-          leafId={suiteLeafId}
+          leafId={(data as any).leafId || ''}
           leafRunStateByLeafId={leafRunStateByLeafId}
           onRun={effectiveRunHandler}
           runButtonTitle="Run suite"
@@ -341,9 +329,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     }
 
     const testLeafId = (data as any)?.leafId as string | undefined;
-    const isTopLevelLeaf = typeof testLeafId === 'string' && /^\d+:\d+$/.test(testLeafId);
-    const isImportedLeaf = typeof testLeafId === 'string' && testLeafId.startsWith('import:');
-    const canRunLeaf = isTopLevelLeaf || isImportedLeaf;
+    const canRunLeaf = typeof testLeafId === 'string' && !!testLeafId;
     const handleRun = canRunLeaf ? () => onRunTargets([testLeafId!]) : undefined;
 
     return (

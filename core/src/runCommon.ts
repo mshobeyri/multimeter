@@ -34,8 +34,7 @@ export async function runGeneratedJs(
     logger: (level: LogLevel, msg: string) => void,
     jsRunner: (context: RunJSCodeContext) => Promise<void>,
     stepReporter?: (event: TestStepReporterEvent) => void,
-    testId?: string,
-    nodeId?: string): Promise<RunResult> {
+  leafId?: string): Promise<RunResult> {
   const start = Date.now();
   const errors: string[] = [];
   const logs: string[] = [];
@@ -51,15 +50,14 @@ export async function runGeneratedJs(
       errors.push('Empty JS input');
       return {success: false, durationMs: Date.now() - start, errors, logs};
     }
-      await jsRunner({
-        runId,
-        js,
-        title: name,
-        logger,
-        reporter: stepReporter,
-        testId,
-        nodeId,
-      });
+    await jsRunner({
+      runId,
+      js,
+      title: name,
+      logger,
+      reporter: stepReporter,
+      leafId,
+    });
 
     return {
       success: errors.length === 0,

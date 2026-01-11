@@ -5,6 +5,7 @@ import {executeApi, prepareApiRun} from './runApi';
 import {basename, detectDocType, PreparedRun, RunFileResult, runGeneratedJs} from './runCommon';
 import {mergeEnv, RunFileOptions, RunReporterMessage} from './runConfig';
 import {executeSuite, prepareSuiteRun} from './runSuite';
+import {executeSuiteBundle} from './suiteBundleRunner';
 import {executeTest, generateTestJs, prepareTestRun} from './runTest';
 
 export {generateTestJs, runGeneratedJs};
@@ -94,6 +95,14 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
   }
 
   if (docType === 'suite') {
+    if ((options as any).suiteBundle) {
+      return executeSuiteBundle({
+        bundle: (options as any).suiteBundle,
+        options,
+        preLogs,
+        runFile,
+      });
+    }
     return executeSuite(prepared, options, preLogs, runFile);
   }
 
