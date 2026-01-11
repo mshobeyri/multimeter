@@ -102,6 +102,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
     const [leafReportsByLeafId, setLeafReportsByLeafId] = useState<Record<string, StepReportItem[]>>({});
     const [leafRunStateByLeafId, setLeafRunStateByLeafId] = useState<Record<string, 'idle' | 'running' | 'passed' | 'failed' | 'cancelled'>>({});
     const pendingLeafResetRef = useRef<'all' | string[] | null>(null);
+    const pendingEntriesToCancelRef = useRef<string[] | null>(null);
 
     const resetLeafState = useCallback((mode: 'all' | readonly string[]) => {
         if (mode === 'all') {
@@ -204,6 +205,35 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                             next[k] = 'cancelled';
                         }
                     });
+                    return next;
+                });
+                // Also mark pending step statuses (UI-created) as cancelled and
+                // mark their corresponding leaf states cancelled so the UI updates.
+                setStepStatuses((prev) => {
+                    const next: Record<string, StepStatus | 'running'> = { ...prev };
+                    const pendingIds: string[] = [];
+                    Object.keys(next).forEach((k) => {
+                        if (next[k] === 'pending') {
+                            next[k] = 'cancelled';
+                            pendingIds.push(k);
+                        }
+                    });
+                    pendingEntriesToCancelRef.current = pendingIds;
+                    return next;
+                });
+
+                setLeafRunStateByLeafId((prev) => {
+                    const next: typeof prev = { ...prev };
+                    const pendingIds = pendingEntriesToCancelRef.current;
+                    if (Array.isArray(pendingIds) && pendingIds.length) {
+                        groups.forEach((g) => g.entries.forEach((e) => {
+                            if (pendingIds.includes(e.id)) {
+                                const lid = e.leafId || e.id;
+                                next[lid] = 'cancelled';
+                            }
+                        }));
+                    }
+                    pendingEntriesToCancelRef.current = null;
                     return next;
                 });
                 return;
