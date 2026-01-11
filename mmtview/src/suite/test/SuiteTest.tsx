@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { parseYaml } from 'mmt-core/markupConvertor';
 import { StepStatus, SuiteEntry, SuiteGroup } from '../types';
 import { SuiteTestTree } from './';
@@ -6,6 +6,8 @@ import { StepReportItem } from '../../shared/TestStepReportPanel';
 import { useSuiteImportTree } from './useSuiteImportTree';
 import { SuiteTreeNode } from './suiteHierarchy';
 import { getSuiteHierarchy } from '../../vsAPI';
+import { childSuiteLeafPrefix } from './leafIdHelpers';
+import { resetLeafStateMap } from './leafStateReset';
 
 interface SuiteTestProps {
     content: string;
@@ -99,6 +101,20 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
     const [suiteRunState, setSuiteRunState] = useState<'idle' | 'running' | 'cancelled'>('idle');
     const [leafReportsByLeafId, setLeafReportsByLeafId] = useState<Record<string, StepReportItem[]>>({});
     const [leafRunStateByLeafId, setLeafRunStateByLeafId] = useState<Record<string, 'idle' | 'running' | 'passed' | 'failed' | 'cancelled'>>({});
+    const pendingLeafResetRef = useRef<'all' | string[] | null>(null);
+
+    const resetLeafState = useCallback((mode: 'all' | readonly string[]) => {
+        if (mode === 'all') {
+            setLeafReportsByLeafId({});
+            setLeafRunStateByLeafId({});
+            return;
+        }
+        if (!Array.isArray(mode) || mode.length === 0) {
+            return;
+        }
+        setLeafReportsByLeafId(prev => resetLeafStateMap(prev, mode));
+        setLeafRunStateByLeafId(prev => resetLeafStateMap(prev, mode));
+    }, [setLeafReportsByLeafId, setLeafRunStateByLeafId]);
 
     const [hierarchyByEntryPath, setHierarchyByEntryPath] = useState<Record<string, SuiteTreeNode[]>>({});
 
@@ -109,7 +125,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
             for (const group of groups) {
                 for (const entry of group.entries) {
                     try {
-                        const res = await getSuiteHierarchy(entry.path, entry.leafId);
+                        const res = await getSuiteHierarchy(entry.path, childSuiteLeafPrefix(entry.leafId));
                         const tree = (res as any)?.tree as any[] | undefined;
                         if (Array.isArray(tree)) {
                             result[entry.path] = tree as any;
@@ -133,9 +149,9 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
         setStepStatuses({});
         setSuiteRunId(null);
         setSuiteRunState('idle');
-        setLeafReportsByLeafId({});
-        setLeafRunStateByLeafId({});
-    }, [content]);
+        pendingLeafResetRef.current = null;
+        resetLeafState('all');
+    }, [content, resetLeafState]);
 
     useEffect(() => {
         const handler = (event: MessageEvent) => {
@@ -151,8 +167,15 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 }
                 setSuiteRunId(nextSuiteRunId);
                 setSuiteRunState('running');
-                setLeafReportsByLeafId({});
-                setLeafRunStateByLeafId({});
+                const hint = pendingLeafResetRef.current;
+                pendingLeafResetRef.current = null;
+                if (hint === 'all') {
+                    resetLeafState('all');
+                } else if (Array.isArray(hint) && hint.length) {
+                    resetLeafState(hint);
+                } else {
+                    resetLeafState('all');
+                }
                 return;
             }
 
@@ -270,7 +293,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
         };
         window.addEventListener('message', handler);
         return () => window.removeEventListener('message', handler);
-    }, [groups, suiteRunId]);
+    }, [groups, suiteRunId, resetLeafState]);
 
     useEffect(() => {
         if (allPaths.length > 0) {
@@ -287,10 +310,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
         const nextSuiteRunId = `suite-ui:${Date.now()}`;
         setSuiteRunId(nextSuiteRunId);
         setSuiteRunState('running');
-        setLeafReportsByLeafId({});
-        setLeafRunStateByLeafId({});
+        pendingLeafResetRef.current = 'all';
+        resetLeafState('all');
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId });
-    }, [groups]);
+    }, [groups, resetLeafState]);
 
     const onRunTargets = useCallback((targets: string[]) => {
         const unique = Array.from(new Set((targets || []).filter(Boolean)));
@@ -301,13 +324,14 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
         // For leafId-based (bundle) runs we can't pre-mark by gi/ei.
         setStepStatuses((prev) => ({ ...prev }));
 
+        pendingLeafResetRef.current = unique;
+        resetLeafState(unique);
+
         const nextSuiteRunId = `suite-ui:${Date.now()}`;
         setSuiteRunId(nextSuiteRunId);
         setSuiteRunState('running');
-        setLeafReportsByLeafId({});
-        setLeafRunStateByLeafId({});
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId, targets: unique });
-    }, []);
+    }, [resetLeafState]);
 
     const onStopSuite = useCallback(() => {
         if (!suiteRunId) {

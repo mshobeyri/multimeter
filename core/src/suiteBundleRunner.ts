@@ -78,11 +78,12 @@ export async function executeSuiteBundle(params: {
       const childRawText = await options.fileLoader(childFilePath);
       const childDocType = detectDocType(childFilePath, childRawText);
 
+      // For bundle runs we avoid emitting positional group indexes because
+      // selected[] is a filtered list and its indices do not match the original
+      // suite group's item indexes. UI should rely on `leafId` for routing.
       options.reporter && options.reporter({
         scope: 'suite-item',
         status: 'running',
-        groupIndex: 0,
-        groupItemIndex: i,
         runId,
         filePath: childFilePath,
         entry: node.path,
@@ -115,8 +116,6 @@ export async function executeSuiteBundle(params: {
       options.reporter && options.reporter({
         scope: 'suite-item',
         status,
-        groupIndex: 0,
-        groupItemIndex: i,
         runId,
         filePath: childFilePath,
         entry: node.path,
@@ -131,8 +130,6 @@ export async function executeSuiteBundle(params: {
       options.reporter && options.reporter({
         scope: 'suite-item',
         status: 'failed',
-        groupIndex: 0,
-        groupItemIndex: i,
         runId,
         filePath: childFilePath,
         entry: node.path,
