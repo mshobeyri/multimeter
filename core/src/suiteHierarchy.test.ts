@@ -20,10 +20,11 @@ describe('suiteHierarchy (core)', () => {
         expect(tree).toEqual([
           {
             kind: 'suite',
+            id: 'suite-node:0',
             path: '/root/suite1.mmt',
             children: [
-              {kind: 'test', path: '/root/test.mmt'},
-              {kind: 'test', path: '/root/test1.mmt'},
+              {kind: 'test', id: 'suite-node:0.0', path: '/root/test.mmt'},
+              {kind: 'test', id: 'suite-node:0.1', path: '/root/test1.mmt'},
             ],
           },
         ]);

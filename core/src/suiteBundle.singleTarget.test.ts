@@ -29,24 +29,21 @@ describe('createSuiteBundle (single target)', () => {
 
     const root = bundle.bundle[0] as any;
     expect(root.kind).toBe('suite');
-    expect(typeof root.id).toBe('string');
-    expect(root.id.length).toBeGreaterThan(0);
+    expect(root.id).toBe('suite-node:0');
     expect(Array.isArray(root.children)).toBe(true);
     expect(root.children.length).toBe(2);
 
     const c0 = root.children[0] as any;
     const c1 = root.children[1] as any;
     expect(c0.kind).toBe('test');
-    expect(typeof c0.id).toBe('string');
-    expect(c0.id).not.toBe(root.id);
+    expect(c0.id).toBe('suite-node:0.0');
 
     expect(c1.kind).toBe('suite');
-    expect(typeof c1.id).toBe('string');
-    expect(c1.id).not.toBe(root.id);
+    expect(c1.id).toBe('suite-node:0.1');
     expect(Array.isArray(c1.children)).toBe(true);
     expect(c1.children.length).toBe(1);
     expect(c1.children[0].kind).toBe('test');
-    expect(typeof c1.children[0].id).toBe('string');
+    expect(c1.children[0].id).toBe('suite-node:0.1.0');
   });
 
   it('stores target when provided', () => {

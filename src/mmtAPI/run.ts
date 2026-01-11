@@ -189,7 +189,6 @@ export async function handleRunSuite(
       target: bundleTarget,
     });
 
-    console.log('bundle created', bundle);
     await runner.runFile({
       file: rawSuite,
       fileType: 'raw' as any,

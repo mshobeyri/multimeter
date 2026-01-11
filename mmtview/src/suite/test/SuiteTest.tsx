@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { parseYaml } from 'mmt-core/markupConvertor';
+import { splitSuiteGroups } from 'mmt-core/suiteParsePack';
+import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
 import { StepStatus, SuiteEntry, SuiteGroup } from '../types';
 import { SuiteTestTree } from './';
 import { StepReportItem } from '../../shared/TestStepReportPanel';
@@ -13,44 +15,54 @@ interface SuiteTestProps {
     content: string;
 }
 
-let suiteEntrySuffix = 0;
-const nextSuiteEntryId = () => `suite-entry-test-${suiteEntrySuffix++}`;
-
 const buildSuiteGroupsFromContent = (content: string): SuiteGroup[] => {
     const parsed = parseYaml(content);
-    const tests: any[] = Array.isArray(parsed?.tests) ? parsed.tests : [];
-    const rawGroups: SuiteEntry[][] = [];
-    let currentEntries: SuiteEntry[] = [];
+    const tests: string[] = Array.isArray(parsed?.tests)
+        ? parsed.tests.map((value: any) => (typeof value === 'string' ? value.trim() : '').trim()).filter(Boolean)
+        : [];
 
-    const pushGroup = () => {
-        if (currentEntries.length) {
-            rawGroups.push(currentEntries);
-            currentEntries = [];
-        }
-    };
-
-    for (const raw of tests) {
-        if (typeof raw !== 'string') {
-            continue;
-        }
-        const trimmed = raw.trim();
-        if (!trimmed) {
-            continue;
-        }
-        if (trimmed === 'then') {
-            pushGroup();
-            continue;
-        }
-        currentEntries.push({ id: nextSuiteEntryId(), path: trimmed });
-    }
-    pushGroup();
-
-    if (!rawGroups.length) {
+    if (!tests.length) {
         return [];
     }
 
-    return rawGroups.map((entries, groupIndex) => {
-        return { label: `Group ${groupIndex + 1}`, entries };
+    let grouped: string[][] = [];
+    try {
+        grouped = splitSuiteGroups([...tests]);
+    } catch {
+        const fallbackGroups: string[][] = [];
+        let current: string[] = [];
+        const flush = () => {
+            if (current.length) {
+                fallbackGroups.push(current);
+                current = [];
+            }
+        };
+        tests.forEach((entry) => {
+            if (entry === 'then') {
+                flush();
+                return;
+            }
+            current.push(entry);
+        });
+        flush();
+        grouped = fallbackGroups;
+    }
+
+    if (!grouped.length) {
+        return [];
+    }
+
+    const hasMultipleGroups = grouped.length > 1;
+
+    return grouped.map((entries, groupIndex) => {
+        const mappedEntries: SuiteEntry[] = entries.map((path, entryIndex) => {
+            const indexPath = hasMultipleGroups ? [groupIndex, entryIndex] : [entryIndex];
+            return {
+                id: createSuiteNodeId(indexPath),
+                path,
+            };
+        });
+        return { label: `Group ${groupIndex + 1}`, entries: mappedEntries };
     });
 };
 
@@ -120,7 +132,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
             for (const group of groups) {
                 for (const entry of group.entries) {
                     try {
-                        const res = await getSuiteHierarchy(entry.path);
+                        const res = await getSuiteHierarchy(entry.path, entry.id);
                         const tree = (res as any)?.tree as any[] | undefined;
                         if (Array.isArray(tree)) {
                             result[entry.path] = tree as any;
@@ -234,7 +246,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
             }
 
             if (message.command === 'runFileReport') {
-                console.log('Received runFileReport message in SuiteTest:', message);
                 const incomingSuiteRunId = typeof (message as any).suiteRunId === 'string' ? (message as any).suiteRunId : null;
                 if (suiteRunId && incomingSuiteRunId && incomingSuiteRunId !== suiteRunId) {
                     return;
@@ -256,15 +267,15 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                     setStepStatuses(prev => ({ ...prev, [runId]: nextStatus }));
                 }
 
-                // Leaf report routing for suite runs.
-                const id = typeof (message as any).id === 'string' ? (message as any).id : null;
+                const reportedId = typeof (message as any).id === 'string' ? (message as any).id : null;
                 const scope = typeof (message as any).scope === 'string' ? (message as any).scope : '';
-                if (id) {
+
+                if (reportedId) {
                     if (scope === 'suite-item' && nextStatus === 'running') {
-                        setLeafRunStateById(prev => ({ ...prev, [id]: 'running' }));
+                        setLeafRunStateById(prev => ({ ...prev, [reportedId]: 'running' }));
                     }
                     if (scope === 'suite-item' && (nextStatus === 'passed' || nextStatus === 'failed')) {
-                        setLeafRunStateById(prev => ({ ...prev, [id]: nextStatus }));
+                        setLeafRunStateById(prev => ({ ...prev, [reportedId]: nextStatus }));
                     }
 
                     if (scope === 'test-step') {
@@ -281,17 +292,15 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                         };
                         setLeafReportsById(prev => ({
                             ...prev,
-                            [id]: [...(prev[id] || []), normalized],
+                            [reportedId]: [...(prev[reportedId] || []), normalized],
                         }));
                         if (normalized.status === 'failed') {
-                            setLeafRunStateById(prev => ({ ...prev, [id]: 'failed' }));
+                            setLeafRunStateById(prev => ({ ...prev, [reportedId]: 'failed' }));
                         }
                     }
 
-                    // Ensure final run summaries win: a failed summary must mark the leaf failed.
-                    // This prevents "passed" states when a failing check was reported.
                     if (scope === 'test-step-run' && success === false) {
-                        setLeafRunStateById(prev => ({ ...prev, [id]: 'failed' }));
+                        setLeafRunStateById(prev => ({ ...prev, [reportedId]: 'failed' }));
                     }
                 }
 

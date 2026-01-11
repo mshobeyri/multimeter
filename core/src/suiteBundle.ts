@@ -1,19 +1,14 @@
 import {SuiteHierarchyNode} from './suiteHierarchy';
+import {createSuiteNodeId} from './suiteNodeId';
 
 export type SuiteBundleNodeKind = 'group'|'suite'|'test'|'missing'|'cycle';
 
-function createNodeId(): string {
-  // Keep core platform-neutral: prefer global crypto when available.
-  const anyCrypto = (globalThis as any)?.crypto;
-  if (anyCrypto && typeof anyCrypto.randomUUID === 'function') {
-    return anyCrypto.randomUUID();
+function resolveNodeId(node: SuiteHierarchyNode, indexPath: number[]): string {
+  const existing = (node as any)?.id;
+  if (typeof existing === 'string' && existing) {
+    return existing;
   }
-  // Fallback: UUID v4-ish generator without node/browser deps.
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
+  return createSuiteNodeId(indexPath);
 }
 
 export type SuiteBundleNode =
@@ -44,7 +39,7 @@ export function createSuiteBundle(params: {
       const nextIndexPath = [...indexPath, i];
 
       if (node.kind === 'group') {
-        const id = createNodeId();
+        const id = resolveNodeId(node, nextIndexPath);
         out.push({
           kind: 'group',
           id,
@@ -55,7 +50,7 @@ export function createSuiteBundle(params: {
       }
 
       if (node.kind === 'suite') {
-        const id = createNodeId();
+        const id = resolveNodeId(node, nextIndexPath);
         out.push({
           kind: 'suite',
           id,
@@ -66,19 +61,19 @@ export function createSuiteBundle(params: {
       }
 
       if (node.kind === 'test') {
-        const id = createNodeId();
+        const id = resolveNodeId(node, nextIndexPath);
         out.push({kind: 'test', id, path: node.path});
         continue;
       }
 
       if (node.kind === 'missing') {
-        const id = createNodeId();
+        const id = resolveNodeId(node, nextIndexPath);
         out.push({kind: 'missing', id, path: node.path});
         continue;
       }
 
       if (node.kind === 'cycle') {
-        const id = createNodeId();
+        const id = resolveNodeId(node, nextIndexPath);
         out.push({kind: 'cycle', id, path: node.path});
         continue;
       }

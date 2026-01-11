@@ -7,18 +7,6 @@ import { StepStatus, SuiteGroup } from '../types';
 import { StepReportItem } from '../../shared/TestStepReportPanel';
 import { SuiteTreeNode } from './suiteHierarchy';
 
-const randomId = () => {
-  try {
-    const anyCrypto = (globalThis as any)?.crypto;
-    if (anyCrypto && typeof anyCrypto.randomUUID === 'function') {
-      return anyCrypto.randomUUID();
-    }
-  } catch {
-    // ignore
-  }
-  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-};
-
 export type SuiteTestTreeItemData =
   | { type: 'root'; label: string }
   | { type: 'group'; label: string }
@@ -95,7 +83,6 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
 }) => {
   const base = useMemo(() => buildBaseTestTree(groups), [groups]);
   const [expandedItems, setExpandedItems] = useState<string[]>(['suite-root']);
-  const importedIdMap = useMemo(() => new Map<string, string>(), []);
 
   // Expand base group nodes by default — one-time on mount.
   useEffect(() => {
@@ -153,16 +140,9 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         const hierarchyChildren: string[] = [];
         const pushHierarchy = (parent: string, nodes: SuiteTreeNode[]) => {
           nodes.forEach((n, idx) => {
-            // Use a random id per imported node instance to prevent collisions.
-            // Key is structural (parent + idx + kind + path) so it is stable across renders.
-            const key = `${parent}|${idx}|${n.kind}|${(n as any).path ?? ''}|${(n as any).label ?? ''}`;
-            let baseId = importedIdMap.get(key);
-            if (!baseId) {
-              baseId = `import:${randomId()}`;
-              importedIdMap.set(key, baseId);
-            }
+            const nodeId = typeof (n as any).id === 'string' && (n as any).id ? (n as any).id : `${parent}|${idx}|${n.kind}`;
             if (n.kind === 'group') {
-              const gid = `${baseId}:group:${n.label}`;
+              const gid = nodeId;
               const childIds2: string[] = [];
               items[gid] = { index: gid, isFolder: true, children: childIds2, data: { type: 'group', label: n.label } };
               pushHierarchy(gid, n.children);
@@ -172,7 +152,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
 
             if (n.kind === 'test') {
               const path = n.path;
-              const itemId = `${baseId}:test:${path}`;
+              const itemId = nodeId;
               items[itemId] = { index: itemId, isFolder: true, children: [], data: { type: 'test', path, id: itemId } };
               hierarchyChildren.push(itemId);
               return;
@@ -180,7 +160,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
 
             if (n.kind === 'suite') {
               const path = n.path;
-              const itemId = `${baseId}:suite:${path}`;
+              const itemId = nodeId;
               items[itemId] = { index: itemId, isFolder: true, children: [], data: { type: 'suite', path, id: itemId } };
               hierarchyChildren.push(itemId);
               if (Array.isArray(n.children) && n.children.length) {
@@ -191,7 +171,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
 
             if (n.kind === 'missing') {
               const path = n.path;
-              const itemId = `${baseId}:missing:${path}`;
+              const itemId = nodeId;
               items[itemId] = { index: itemId, isFolder: false, children: [], data: { type: 'test', path, id: itemId } };
               hierarchyChildren.push(itemId);
               return;
@@ -213,7 +193,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     });
 
     return { items };
-  }, [base.items, expandedItems, groups, hierarchyByEntryPath, importedIdMap]);
+  }, [base.items, expandedItems, groups, hierarchyByEntryPath]);
 
   const handleExpand = useCallback(
     (item: TreeItem<SuiteTestTreeItemData>) => {
@@ -439,7 +419,6 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
       />
     );
   };
-  console.log('Rendering SuiteTestTree with treeData:', treeData);
   return (
     <ControlledTreeEnvironment
       items={treeData.items}
