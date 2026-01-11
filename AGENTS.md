@@ -84,7 +84,7 @@
 
 ## Real execution flows (current code)
 
-This section captures the current runtime flow through the webview → extension host → `core` runner, including how `testId` flows into reporter events.
+This section captures the current runtime flow through the webview → extension host → `core` runner, including how `leafId` is used end-to-end for suite targeting and report routing.
 
 ### Run an API `.mmt` file (`type: api`)
 
@@ -99,13 +99,13 @@ flowchart TD
   G --> H["jsRunner exec (sets globals)"]
   F --> I["networkCore/network"]
   I --> F
-  F --> J["Reporter events (runId + optional testId)"]
+  F --> J["Reporter events (runId + optional leafId)"]
   J --> K["Extension forwards runFileReport"]
   K --> L["Webview renders output"]
 ```
 
 Notes:
-- `testId` is typically injected by suites/tests; plain API runs generally don’t originate a `testId`.
+- Plain API runs generally don’t originate a `leafId`.
 
 ### Run a Test `.mmt` file (`type: test`)
 
@@ -118,55 +118,65 @@ flowchart TD
   E -->|test| F["runTest (JSer -> JS)"]
   F --> G["runCommon.runGeneratedJs"]
   G --> H["jsRunner exec (with globals)"]
-  H --> I["testHelper emits test-step/test-step-run (includes testId)"]
+  H --> I["testHelper emits test-step/test-step-run (includes leafId when set)"]
   I --> J["Reporter callback (extension)"]
   J --> K["Extension forwards runFileReport"]
   K --> L["Webview shows steps/asserts"]
 ```
 
-### Run a Suite `.mmt` file (`type: suite`) - full suite run
+### Run a Suite `.mmt` file (`type: suite`) - suite bundle run (default)
 
 ```mermaid
 flowchart TD
   A["Suite webview - Run Suite"] --> B["postMessage (runSuite)"]
-  B --> C["Extension host (mmtAPI/run)"]
-  C --> D["core runner (runner.runFile)"]
-  D --> E["JSer.fileType"]
-  E -->|suite| F["runSuite (iterate entries)"]
-  F --> S0["Reporter: suite-run-start"]
-  F --> G["Emit suite-item"]
-  F --> H["For each entry: resolve file then runner.runFile(child) with testId"]
+  B --> C["Extension host (src/mmtAPI/run.ts)"]
+  C --> C0["Build suite hierarchy (core/suiteHierarchy)"]
+  C0 --> C1["Build suite bundle (core/suiteBundle)"]
+  C1 --> D["core runner (runner.runFile + suiteBundle + suiteTargets)"]
+  D --> E["executeSuiteBundle"]
+  E --> S0["Reporter: scope=suite-run-start"]
+  E --> G["Reporter: scope=suite-item + leafId (running/passed/failed)"]
+  E --> H["For each selected leaf: runner.runFile(child) with leafId"]
   H --> D
-  D --> I["Child events (test-step / api logs) include testId"]
-  G --> J["Extension forwards runFileReport"]
-  I --> J
-  F --> S1["Reporter: suite-run-finished"]
-  J --> K["Webview routes reports by testId (fallback leafId)"]
+  D --> I["Child events (test-step/test-step-run/api logs) include leafId"]
+  S0 --> J0["Extension maps to command=suiteRunStart"]
+  G --> J1["Extension forwards command=runFileReport"]
+  I --> J1
+  E --> S1["Reporter: scope=suite-run-finished"]
+  S1 --> J2["Extension maps to command=suiteRunEnd"]
+  J0 --> K["Webview updates UI"]
+  J1 --> K
+  J2 --> K
+
+Notes:
+- A suite entry can resolve to a `type: test` file or another `type: suite` file. The bundle runner treats both as runnable leaves.
+- Targeting is always by `leafId`.
 ```
 
-### Run a “node” in the suite tree - current implementation (targets filtering)
+### Run a subtree / leaf in the suite tree (partial run)
 
-Per-item Run buttons implement “run selected top-level suite entries”, by sending `targets: string[]` (a list of `testId`s) and filtering suite YAML in the extension.
+Per-item Run buttons send `targets: string[]` as `leafId[]`. The extension passes these into `runner.runFile({ suiteBundle, suiteTargets })`, and core filters runnable leaves by `leafId`.
 
 ```mermaid
 flowchart TD
-  A["Click Run on node"] --> B["Suite webview computes targets (testId[])"]
+  A["Click Run on node"] --> B["Suite webview computes targets (leafId[])"]
   B --> C["postMessage (runSuite + targets)"]
-  C --> D["Extension host (mmtAPI/run)"]
-  D --> E["Filter suite YAML (suiteTargets.buildFilteredSuiteYaml)"]
-  E --> F["core runner.runFile on filtered suite YAML"]
-  F --> G["runSuite runs remaining entries"]
-  G --> H["Extension forwards reports"]
-  H --> I["Webview displays reports for target nodes"]
+  C --> D["Extension host (src/mmtAPI/run.ts)"]
+  D --> E["core runner.runFile (suiteBundle + suiteTargets)"]
+  E --> F["executeSuiteBundle filters runnable leaves"]
+  F --> G["Reporter events include leafId"]
+  G --> H["Webview routes output by leafId"]
 ```
 
 Notes:
-- Filtering/bundling currently happens in the extension (not `core`).
-- `testId` currently uses the suite-entry index scheme (e.g. `0:3`) and is propagated into child runs so step events can be routed back.
+- The bundle is built in the extension using `core` helpers, but execution + filtering happens in `core`.
+- The UI must never invent ids for targeting; only deterministic `leafId`s from suite hierarchy/bundle are valid targets.
 
-## Suite bundle (planned)
+## Suite bundle (current)
 
-For recursive suite imports and “solid” per-node reporting, the intended direction is a core-native **suite bundle** runner that uses `nodeId` (stable per bundle node) and emits explicit suite lifecycle events.
+Suite runs are executed via a core-native **suite bundle** runner.
 
-- `nodeId`: preferred routing id for bundled suite nodes; propagates into `test-step` and `test-step-run` events.
-- `suite-run-start` / `suite-run-finished`: suite lifecycle reporter events emitted by core suite execution.
+- **Leaf identity**: `leafId` is the single end-to-end identifier for runnable nodes.
+- **Lifecycle**: core emits `scope: 'suite-run-start'` / `scope: 'suite-run-finished'` reporter events.
+- **Per-item**: core emits `scope: 'suite-item'` with `status: 'running' | 'passed' | 'failed'` and the related `leafId`.
+- **Step routing**: test-step events and summaries (`scope: 'test-step'` / `scope: 'test-step-run'`) include `leafId` so the webview can attach output to the correct leaf.
