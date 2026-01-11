@@ -157,6 +157,7 @@ export async function executeSuite(
           fileLoader: childFileLoader,
           logger: suiteLogger,
           leafId,
+          runId,
         } as any);
 
         const status: SuiteStepStatus =

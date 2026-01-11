@@ -184,5 +184,8 @@ export const report_ = (
   if (typeof normalized.details === 'string') {
     payload.details = normalized.details;
   }
+  if (typeof __mmtLeafId === 'string' && __mmtLeafId) {
+    payload.leafId = __mmtLeafId;
+  }
   emitStep(payload);
 };

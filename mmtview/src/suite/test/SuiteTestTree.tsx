@@ -23,7 +23,7 @@ export type SuiteTestTreeItemData =
   | { type: 'root'; label: string }
   | { type: 'group'; label: string }
   | { type: 'test'; path: string; leafId: string }
-  | { type: 'suite'; path: string };
+  | { type: 'suite'; path: string; leafId?: string };
 
 interface SuiteTestTreeProps {
   groups: SuiteGroup[];
@@ -120,13 +120,14 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         }
         const hierarchy = hierarchyByEntryPath[entry.path];
         const isSuite = Array.isArray(hierarchy);
+        const entryLeafId = entry.leafId || entry.id;
 
         if (!isSuite) {
-          items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'test', path: entry.path, leafId: entry.id } };
+          items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'test', path: entry.path, leafId: entryLeafId } };
           continue;
         }
 
-        items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'suite', path: entry.path } };
+        items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'suite', path: entry.path, leafId: entryLeafId } };
       }
     }
 
@@ -243,8 +244,10 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     if (!group) {
       return [];
     }
-    // Group targeting will be computed using leafIds from the hierarchy (when available).
-    return group.entries.map((e) => e.id);
+    // Group targeting uses deterministic leafIds.
+    return group.entries
+      .map((e) => e.leafId || e.id)
+      .filter((id): id is string => typeof id === 'string' && !!id);
   }, [groups]);
 
   const renderItem = ({ item, context, arrow, children }: any) => {
@@ -288,8 +291,8 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         for (let ei = 0; ei < group.entries.length; ei++) {
           const entry = group.entries[ei];
           if (entry.id === entryId) {
-            const leafId = `${gi}:${ei}`;
-            const leafState = leafRunStateByLeafId[leafId];
+            const leafId = entry.leafId;
+            const leafState = leafId ? leafRunStateByLeafId[leafId] : undefined;
             if (leafState === 'cancelled') {
               return 'cancelled' as any;
             }

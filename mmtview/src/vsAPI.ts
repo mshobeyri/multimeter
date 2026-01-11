@@ -160,12 +160,12 @@ export type SuiteHierarchyResult = {
   error?: string;
 };
 
-export function getSuiteHierarchy(filename: string): Promise<SuiteHierarchyResult> {
+export function getSuiteHierarchy(filename: string, leafPrefix?: string): Promise<SuiteHierarchyResult> {
   const requestId = `suite-hierarchy-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
   return new Promise((resolve, reject) => {
     suiteHierarchyResolvers.set(requestId, resolve);
     suiteHierarchyRejecters.set(requestId, reject);
-    window.vscode?.postMessage({command: 'getSuiteHierarchy', requestId, filename});
+    window.vscode?.postMessage({command: 'getSuiteHierarchy', requestId, filename, leafPrefix});
     setTimeout(() => {
       if (suiteHierarchyResolvers.has(requestId)) {
         suiteHierarchyResolvers.delete(requestId);

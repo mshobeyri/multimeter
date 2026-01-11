@@ -71,7 +71,12 @@ export function buildSuiteBundleFromHierarchy(params: {
         continue;
       }
 
-      const leafId = randomLeafId();
+
+      const leafIdForRunnable =
+        (node.kind === 'suite' || node.kind === 'test') && node.leafId && typeof node.leafId === 'string'
+          ? node.leafId
+          : undefined;
+      const leafId = leafIdForRunnable || randomLeafId();
 
       if (node.kind === 'suite') {
         out.push({

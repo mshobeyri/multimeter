@@ -179,6 +179,7 @@ export const messageRecieved = async (
 
     case 'getSuiteHierarchy': {
       const filename = typeof message?.filename === 'string' ? message.filename : '';
+      const leafPrefix = typeof message?.leafPrefix === 'string' && message.leafPrefix ? message.leafPrefix : undefined;
       if (!filename) {
         webviewPanel.webview.postMessage({
           command: 'suiteHierarchyResult',
@@ -195,6 +196,7 @@ export const messageRecieved = async (
         const tree = await suiteHierarchy.buildSuiteHierarchyFromSuiteFile({
           suiteFilePath,
           suiteRawText,
+          leafPrefix,
           fileLoader: async (requestedPath: string) => {
             try {
               return await file.readFileContent(requestedPath);
@@ -202,7 +204,7 @@ export const messageRecieved = async (
               return '';
             }
           },
-        });
+        } as any);
 
         webviewPanel.webview.postMessage({
           command: 'suiteHierarchyResult',

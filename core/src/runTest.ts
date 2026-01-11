@@ -60,7 +60,7 @@ export async function executeTest(
   } = prepared;
   const displayName = title || baseName;
   const identifier = sanitizeIdentifier(displayName);
-  const runId = createRunId();
+  const runId = (options as any)?.runId || createRunId();
   const forwardReporter = options.reporter;
   const stepReporter = forwardReporter ? (event: TestStepReporterEvent) => {
     const payload: TestStepReporterEvent = {

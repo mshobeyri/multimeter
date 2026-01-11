@@ -104,6 +104,7 @@ export async function executeSuiteBundle(params: {
         fileLoader: childFileLoader,
         logger: suiteLogger,
         leafId: node.leafId,
+        runId,
       } as any);
 
       const status: SuiteStepStatus = childRun.result?.success ? 'passed' : 'failed';

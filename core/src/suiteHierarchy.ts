@@ -14,8 +14,9 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
   suiteFilePath: string;
   suiteRawText: string;
   fileLoader: SuiteHierarchyFileLoader;
+  leafPrefix?: string;
 }): Promise<SuiteHierarchyNode[]> {
-  const {suiteFilePath, suiteRawText, fileLoader} = params;
+  const {suiteFilePath, suiteRawText, fileLoader, leafPrefix = 'root'} = params;
 
   const suiteStack = new Set<string>();
   suiteStack.add(suiteFilePath);
@@ -88,5 +89,5 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
   };
 
   const rootSuite = yamlToSuite(suiteRawText);
-  return await buildNodesFromEntries(rootSuite.tests ?? [], suiteFilePath, 'root');
+  return await buildNodesFromEntries(rootSuite.tests ?? [], suiteFilePath, leafPrefix);
 }

@@ -111,6 +111,8 @@ export interface RunFileOptions {
 
   /** Optional identifier passed through reporter events and JS globals. */
   leafId?: string;
+  /** Optional externally-provided run id used for reporter/routing (overrides generated run id). */
+  runId?: string;
 
   /**
    * Optional suite targets for partial suite runs.

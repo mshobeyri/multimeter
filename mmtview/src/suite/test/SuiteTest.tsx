@@ -17,12 +17,12 @@ const nextSuiteEntryId = () => `suite-entry-test-${suiteEntrySuffix++}`;
 const buildSuiteGroupsFromContent = (content: string): SuiteGroup[] => {
     const parsed = parseYaml(content);
     const tests: any[] = Array.isArray(parsed?.tests) ? parsed.tests : [];
-    const groups: SuiteGroup[] = [];
+    const rawGroups: SuiteEntry[][] = [];
     let currentEntries: SuiteEntry[] = [];
 
     const pushGroup = () => {
         if (currentEntries.length) {
-            groups.push({ label: `Group ${groups.length + 1}`, entries: currentEntries });
+            rawGroups.push(currentEntries);
             currentEntries = [];
         }
     };
@@ -42,7 +42,20 @@ const buildSuiteGroupsFromContent = (content: string): SuiteGroup[] => {
         currentEntries.push({ id: nextSuiteEntryId(), path: trimmed });
     }
     pushGroup();
-    return groups;
+
+    if (!rawGroups.length) {
+        return [];
+    }
+
+    const singleGroup = rawGroups.length === 1;
+
+    return rawGroups.map((entries, groupIndex) => {
+        const entriesWithLeaf = entries.map((entry, entryIndex) => {
+            const leafId = singleGroup ? `root/${entryIndex}` : `root/g${groupIndex}/${entryIndex}`;
+            return { ...entry, leafId };
+        });
+        return { label: `Group ${groupIndex + 1}`, entries: entriesWithLeaf };
+    });
 };
 
 const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
@@ -96,7 +109,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
             for (const group of groups) {
                 for (const entry of group.entries) {
                     try {
-                        const res = await getSuiteHierarchy(entry.path);
+                        const res = await getSuiteHierarchy(entry.path, entry.leafId);
                         const tree = (res as any)?.tree as any[] | undefined;
                         if (Array.isArray(tree)) {
                             result[entry.path] = tree as any;
