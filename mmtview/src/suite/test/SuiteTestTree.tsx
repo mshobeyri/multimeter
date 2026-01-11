@@ -232,7 +232,99 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     []
   );
 
-  const getGroupStatus = useCallback((): StepStatus => 'default', []);
+  const getGroupStatus = useCallback((groupItemId: string): StepStatus => {
+    const match = /^group-(\d+)$/.exec(groupItemId);
+    if (!match) {
+      return 'default';
+    }
+    const groupIndex = Number(match[1]) - 1;
+    const group = groups[groupIndex];
+    if (!group) {
+      return 'default';
+    }
+    // Determine visible status per entry. Prefer explicit stepStatuses (from last run)
+    // then fall back to leafRunStateByLeafId. Map internal states to StepStatus values
+    // and aggregate with priority: failed > cancelled > running > pending > passed > default
+    let anyFailed = false;
+    let anyCancelled = false;
+    let anyRunning = false;
+    let anyPending = false;
+    let allPassed = group.entries.length > 0;
+    let anySeen = false;
+
+    for (const entry of group.entries) {
+      const leafId = entry.leafId || entry.id;
+
+      // Prefer stepStatuses for the last run if available. Also accept UI-updates
+      // that may have placed a pending status keyed by the entry id itself.
+      const runId = lastRunIdByEntryId && lastRunIdByEntryId[entry.id];
+      let explicitStatus = runId ? (stepStatuses && stepStatuses[runId]) : undefined;
+      if (!explicitStatus && stepStatuses && stepStatuses[entry.id]) {
+        explicitStatus = stepStatuses[entry.id];
+      }
+
+      let visible: StepStatus | 'running' | undefined = undefined;
+      if (explicitStatus && explicitStatus !== 'pending') {
+        // If explicit status exists and is not a transient 'pending', use it.
+        visible = explicitStatus as any;
+      } else {
+        // Either no explicit status or it's a UI 'pending' marker.
+        const state = leafRunStateByLeafId && leafRunStateByLeafId[leafId];
+        if (state === 'running') {
+          visible = 'running';
+        } else if (state === 'passed') {
+          visible = 'passed';
+        } else if (state === 'failed') {
+          visible = 'failed';
+        } else if (state === 'cancelled') {
+          visible = 'cancelled';
+        } else if (explicitStatus === 'pending') {
+          // No concrete leaf state yet, but UI explicitly marked pending.
+          visible = 'pending';
+        } else {
+          visible = undefined;
+        }
+      }
+
+      if (typeof visible === 'string') {
+        anySeen = true;
+      }
+
+      if (visible === 'failed') {
+        anyFailed = true;
+      }
+      if (visible === 'cancelled') {
+        anyCancelled = true;
+      }
+      if (visible === 'running') {
+        anyRunning = true;
+      }
+      if (visible === 'pending') {
+        anyPending = true;
+      }
+      if (visible !== 'passed') {
+        allPassed = false;
+      }
+    }
+
+    if (anyFailed) {
+      return 'failed';
+    }
+    if (anyCancelled) {
+      return 'cancelled';
+    }
+    if (anyRunning) {
+      return 'running';
+    }
+    if (anyPending) {
+      return 'pending';
+    }
+    if (allPassed && anySeen) {
+      return 'passed';
+    }
+    // If no visible states were observed (all entries are default/idle/unknown), keep 'default'.
+    return 'default';
+  }, [groups, leafRunStateByLeafId, stepStatuses, lastRunIdByEntryId]);
 
   const getGroupTargets = useCallback((groupItemId: string): string[] => {
     const match = /^group-(\d+)$/.exec(groupItemId);
