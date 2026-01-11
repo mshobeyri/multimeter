@@ -279,7 +279,7 @@ export async function handleRunSuite(
       logger: forwardLog,
       abortSignal: controller.signal as any,
       // Support partial runs for suite nodes by letting core filter by leafId.
-      suiteTargets: Array.isArray(targets) && targets.length ? targets : undefined,
+      suiteTargets: finalTargets.length ? finalTargets : undefined,
       reporter: (msg: any) => {
         const current = activeSuiteRun;
         if (!current || current.suiteRunId !== suiteRunId) {
