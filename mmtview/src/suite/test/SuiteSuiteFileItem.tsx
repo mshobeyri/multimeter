@@ -99,7 +99,7 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
                     </div>
                     {onRun && !isMissing && (
                         <button
-                            className="button-icon"
+                            className="tab-button"
                             onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
@@ -107,10 +107,9 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
                             }}
                             title={runButtonTitle}
                             disabled={runDisabled}
-                            style={{ marginTop: -2 }}
+                            style={{ marginTop: -2, padding: 6 }}
                         >
-                            <span className="codicon codicon-run" aria-hidden />
-                            <span>Run</span>
+                            <span className="codicon codicon-run tab-button-icon" aria-hidden />
                         </button>
                     )}
                 </div>
