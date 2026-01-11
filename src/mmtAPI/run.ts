@@ -1,4 +1,4 @@
-import {runner} from 'mmt-core';
+import {runner, suiteHierarchy} from 'mmt-core';
 import {LogLevel} from 'mmt-core/CommonData';
 import {runJSCode, setRunnerNetworkConfig} from 'mmt-core/jsRunner';
 import * as path from 'path';
@@ -172,19 +172,105 @@ export async function handleRunSuite(
     // and we can follow up by adding abort checks in core/runSuite.ts.
     const targets = Array.isArray(message?.targets) ? message.targets : null;
     const rawSuite = document.getText();
-    const filtered = targets ? buildFilteredSuiteYaml(rawSuite, targets) : rawSuite;
+
+    // Map UI targets (which may include `import:...:test:<path>` ids) to core
+    // legacy testIds `${groupIndex}:${entryIndex}` that `runSuite` understands.
+    const mappedTargetsSet = new Set<string>();
+    const legacyTargets: string[] = [];
+    if (Array.isArray(targets)) {
+      for (const t of targets) {
+        if (typeof t === 'string' && /^\d+:\d+$/.test(t)) {
+          legacyTargets.push(t);
+          mappedTargetsSet.add(t);
+        }
+      }
+    }
+
+    // If there are non-legacy targets, try to resolve them to underlying testIds
+    // by building the suite hierarchy and locating file paths referenced by the
+    // import node ids (they include the path as the last segment `:test:<path>`).
+    const nonLegacyTargets = Array.isArray(targets) ? targets.filter((tt: any) => typeof tt === 'string' && !/^\d+:\d+$/.test(tt)) : [];
+    if (nonLegacyTargets.length > 0) {
+      try {
+        const suiteFilePath = document.uri.fsPath;
+        const tree = await suiteHierarchy.buildSuiteHierarchyFromSuiteFile({
+          suiteFilePath,
+          suiteRawText: rawSuite,
+          fileLoader: async (requestedPath: string) => {
+            try {
+              return await readRelativeFileContent(suiteFilePath, requestedPath);
+            } catch {
+              return '';
+            }
+          },
+        });
+
+        const normalizePath = (p: string) => {
+          try {
+            if (path.isAbsolute(p)) return path.normalize(p);
+            return path.normalize(path.resolve(path.dirname(document.uri.fsPath), p));
+          } catch {
+            return p;
+          }
+        };
+
+        const subtreeContainsPath = (node: any, targetPath: string): boolean => {
+          if (!node) return false;
+          if ((node.path && normalizePath(node.path) === targetPath)) return true;
+          if (Array.isArray(node.children)) {
+            for (const c of node.children) {
+              if (subtreeContainsPath(c, targetPath)) return true;
+            }
+          }
+          return false;
+        };
+
+        for (const rawTarget of nonLegacyTargets) {
+          if (typeof rawTarget !== 'string') continue;
+          // Try to extract a trailing path from import ids like `import:<uuid>:test:<path>`
+          const m = /(?:^|:)\b(?:test|suite|missing)\b:(.+)$/.exec(rawTarget);
+          const targetPath = m ? normalizePath(m[1]) : normalizePath(rawTarget);
+
+          // Walk root-level nodes. If the node is a `group`, its index is the group index.
+          for (let i = 0; i < tree.length; i++) {
+            const node = tree[i] as any;
+            if (node.kind === 'group') {
+              for (let j = 0; j < (node.children || []).length; j++) {
+                const child = node.children[j];
+                if (subtreeContainsPath(child, targetPath)) {
+                  mappedTargetsSet.add(`${i}:${j}`);
+                }
+              }
+            } else {
+              // Single-group case (group index 0)
+              if (subtreeContainsPath(node, targetPath)) {
+                mappedTargetsSet.add(`0:${i}`);
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // If mapping fails for any reason, fall back to legacyTargets only.
+        logToOutput('debug', `Failed to map non-legacy suite targets: ${String(e)}`);
+      }
+    }
+
+    const finalTargets = Array.from(mappedTargetsSet);
+    const hasOnlyLegacyTargets = finalTargets.length > 0 && finalTargets.every((t) => /^\d+:\d+$/.test(t));
+    const filtered = finalTargets.length && hasOnlyLegacyTargets ? buildFilteredSuiteYaml(rawSuite, finalTargets) : rawSuite;
+    const runFilePath = document.uri.fsPath;
 
     await runner.runFile({
       file: filtered,
       fileType: 'raw' as any,
-      filePath: document.uri.fsPath,
+      filePath: runFilePath,
       exampleIndex: message?.inputs?.exampleIndex,
       manualInputs: {},
       envvar: vscodeEnv,
       manualEnvvars: {},
       fileLoader: async (relPath: string) => {
         try {
-          return await readRelativeFileContent(document.uri.fsPath, relPath);
+          return await readRelativeFileContent(runFilePath, relPath);
         } catch {
           return '';
         }
@@ -192,6 +278,8 @@ export async function handleRunSuite(
       jsRunner: runJSCode,
       logger: forwardLog,
       abortSignal: controller.signal as any,
+      // Support partial runs for suite nodes by letting core filter by leafId.
+      suiteTargets: Array.isArray(targets) && targets.length ? targets : undefined,
       reporter: (msg: any) => {
         const current = activeSuiteRun;
         if (!current || current.suiteRunId !== suiteRunId) {
@@ -201,9 +289,9 @@ export async function handleRunSuite(
           return;
         }
 
-        // Prefer core-provided testId; fall back to derived `${groupIndex}:${groupItemIndex}`.
+        const incomingNodeId = typeof msg?.nodeId === 'string' ? msg.nodeId : undefined;
         const incomingTestId = typeof msg?.testId === 'string' ? msg.testId : undefined;
-        let leafId = incomingTestId;
+        let leafId = incomingNodeId || incomingTestId;
         if (msg?.scope === 'suite-item' &&
             Number.isInteger(msg?.groupIndex) &&
             Number.isInteger(msg?.groupItemIndex)) {
