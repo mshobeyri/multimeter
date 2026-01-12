@@ -22,6 +22,23 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
   const suiteStack = new Set<string>();
   suiteStack.add(suiteFilePath);
 
+  type SuiteNode = Extract<SuiteHierarchyNode, {kind: 'suite'}>;
+
+  const convertSuiteToHierarchy = async (
+    targetFilePath: string,
+    rawText: string,
+    indexPath: number[],
+  ): Promise<SuiteNode> => {
+    const suiteDoc = yamlToSuite(rawText);
+    const children = await buildNodesFromEntries(suiteDoc.tests ?? [], targetFilePath, indexPath);
+    return {
+      kind: 'suite',
+      id: createSuiteNodeId(indexPath, {prefix: leafPrefix}),
+      path: targetFilePath,
+      children,
+    };
+  };
+
   const buildNodesFromEntries = async (
     entries: readonly string[],
     ownerFilePath: string,
@@ -88,18 +105,12 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
     }
 
     suiteStack.add(resolvedPath);
-    const childSuite = yamlToSuite(raw);
-    const children = await buildNodesFromEntries(childSuite.tests ?? [], resolvedPath, indexPath);
+    const suiteNode = await convertSuiteToHierarchy(resolvedPath, raw, indexPath);
     suiteStack.delete(resolvedPath);
 
-    return {
-      kind: 'suite',
-      id: createSuiteNodeId(indexPath, {prefix: leafPrefix}),
-      path: resolvedPath,
-      children,
-    };
+    return suiteNode;
   };
 
-  const rootSuite = yamlToSuite(suiteRawText);
-  return await buildNodesFromEntries(rootSuite.tests ?? [], suiteFilePath, []);
+  const rootNode = await convertSuiteToHierarchy(suiteFilePath, suiteRawText, []);
+  return rootNode.children;
 }
