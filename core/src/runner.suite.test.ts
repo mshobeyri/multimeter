@@ -119,3 +119,55 @@ describe('runner suite', () => {
     expect(res.result.success).toBe(false);
   });
 });
+
+describe('suite bundle runner nested suite', () => {
+  it('runs nested suite as nested bundle without extra suite-run-start', async () => {
+    const runner = await import('./runner.js');
+    const {buildSuiteHierarchyFromSuiteFile} = await import('./suiteHierarchy.js');
+    const {createSuiteBundle} = await import('./suiteBundle.js');
+
+    const files: Record<string, string> = {
+      '/root/suite.mmt': ['type: suite', 'tests:', '  - ./suite1.mmt'].join('\n'),
+      '/root/suite1.mmt': ['type: suite', 'tests:', '  - ./test.mmt'].join('\n'),
+      '/root/test.mmt': ['type: test', 'steps:', '  - print: ok'].join('\n'),
+    };
+
+    const testFileLoader = async (p: string) => {
+      const normalized = p.startsWith('/') ? p : `/root/${p.replace(/^\.\//, '')}`;
+      return files[normalized] ?? '';
+    };
+
+    const tree = await buildSuiteHierarchyFromSuiteFile({
+      suiteFilePath: '/root/suite.mmt',
+      suiteRawText: files['/root/suite.mmt'],
+      fileLoader: testFileLoader,
+    });
+    const bundle = createSuiteBundle({
+      rootSuitePath: '/root/suite.mmt',
+      hierarchy: tree,
+    });
+
+    const scopes: string[] = [];
+    await runner.runFile({
+      file: files['/root/suite.mmt'],
+      fileType: 'raw' as any,
+      filePath: '/root/suite.mmt',
+      manualInputs: {},
+      envvar: {},
+      manualEnvvars: {},
+      fileLoader: testFileLoader,
+      jsRunner: async () => ({success: true, logs: [], errors: []} as any),
+      logger: () => {},
+      suiteBundle: bundle,
+      reporter: (msg: any) => {
+        if (msg && typeof msg.scope === 'string') {
+          scopes.push(msg.scope);
+        }
+      },
+    } as any);
+
+    // Only the outer suite bundle should emit suite-run-start.
+    expect(scopes.filter(s => s === 'suite-run-start').length).toBe(1);
+    expect(scopes.filter(s => s === 'suite-run-finished').length).toBe(1);
+  });
+});

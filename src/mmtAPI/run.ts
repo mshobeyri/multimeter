@@ -150,6 +150,7 @@ export async function handleRunSuite(
     suiteRunId,
     filePath: document.uri.fsPath,
   });
+  forwardLog('debug', `handleRunSuite: started suiteRunId=${suiteRunId} file=${document.uri.fsPath} target=${String(message?.target)}`);
 
   try {
     const envStorage = mmtProvider.context.workspaceState.get(
@@ -183,11 +184,20 @@ export async function handleRunSuite(
         }
       },
     });
+    forwardLog('debug', `handleRunSuite: built hierarchy for ${runFilePath}`);
     const bundle = suiteBundle.createSuiteBundle({
       rootSuitePath: runFilePath,
       hierarchy: tree,
       target: bundleTarget,
     });
+    forwardLog('debug', `handleRunSuite: created bundle root=${runFilePath} target=${String(bundleTarget)}`);
+
+    // Forward the bundle to the webview for debugging/logging so the UI can print it
+    try {
+      webviewPanel.webview.postMessage({ command: 'suiteBundle', suiteRunId, bundle });
+    } catch (e) {
+      console.warn('Unable to post suiteBundle to webview', e);
+    }
 
     await runner.runFile({
       file: rawSuite,

@@ -53,6 +53,9 @@ export async function executeSuiteBundle(params: {
 }): Promise<RunFileResult> {
   const {bundle, options, preLogs, runFile} = params;
 
+  // Prevent nested suite bundle executions from emitting suite-run lifecycle.
+  const shouldEmitSuiteRunEvents = !((options as any).__mmtIsSuiteBundleChildRun);
+
   const suiteDisplayName = basename(bundle.rootSuitePath);
   const identifier = sanitizeIdentifier(suiteDisplayName);
 
@@ -77,15 +80,22 @@ export async function executeSuiteBundle(params: {
   const runnable = collectRunnableNodesFromRoot(root ? root : bundle.bundle);
   const selected = runnable;
 
-  options.reporter && options.reporter({
-    scope: 'suite-run-start',
-    runId: `suite:${sanitizeIdentifier(bundle.rootSuitePath)}`,
-    suitePath: bundle.rootSuitePath,
-    startedAt: suiteStart,
-    totalRunnable: selected.length,
-  } as any);
+  
+
+  if (shouldEmitSuiteRunEvents) {
+    options.reporter && options.reporter({
+      scope: 'suite-run-start',
+      runId: `suite:${sanitizeIdentifier(bundle.rootSuitePath)}`,
+      suitePath: bundle.rootSuitePath,
+      startedAt: suiteStart,
+      totalRunnable: selected.length,
+    } as any);
+  }
 
   let overallSuccess = true;
+
+  // Capture the original loader so child loaders never recurse through an overridden loader.
+  const baseFileLoader = options.fileLoader;
 
   for (let i = 0; i < selected.length; i++) {
     if (options.abortSignal?.aborted) {
@@ -101,53 +111,75 @@ export async function executeSuiteBundle(params: {
     const id = (node as any).id as string | undefined;
 
     try {
-      const childRawText = await options.fileLoader(childFilePath);
+      const childRawText = await baseFileLoader(childFilePath);
       const childDocType = detectDocType(childFilePath, childRawText);
-
-      // For bundle runs we avoid emitting positional group indexes because
-      // selected[] is a filtered list and its indices do not match the original
-      // suite group's item indexes. UI should rely on `id` for routing.
-      options.reporter && options.reporter({
-        scope: 'suite-item',
-        status: 'running',
-        runId,
-        filePath: childFilePath,
-        entry: node.path,
-        docType: childDocType ?? undefined,
-        id,
-      } as any);
 
       suiteLogger('info', `Running suite item: ${display}`);
       const childFileLoader = async (requestedPath: string) => {
         const resolved = resolveRelativeTo(requestedPath, childFilePath);
-        return await options.fileLoader(resolved);
+        return await baseFileLoader(resolved);
       };
 
-      const childRun = await runFile({
+      // For bundle runs we avoid emitting positional group indexes because
+      // selected[] is a filtered list and its indices do not match the original
+      // suite group's item indexes. UI should rely on `id` for routing.
+      //
+      // If the selected node is itself a suite, we execute its existing bundle
+      // subtree (node.children) as a nested bundle instead of re-running the
+      // suite file via runFile. This keeps ids/items stable.
+      if (childDocType !== 'suite') {
+        options.reporter && options.reporter({
+          scope: 'suite-item',
+          status: 'running',
+          runId,
+          filePath: childFilePath,
+          entry: node.path,
+          docType: childDocType ?? undefined,
+          id,
+        } as any);
+      }
+
+      const childRunOptions: RunFileOptions = {
         ...options,
         file: childRawText,
-        fileType: 'raw',
+        fileType: 'raw' as any,
         filePath: childFilePath,
         fileLoader: childFileLoader,
         logger: suiteLogger,
         runId,
         id,
-      } as any);
+        __mmtIsSuiteBundleChildRun: true,
+      } as any;
+
+      const childRun = node.kind === 'suite' ?
+        await executeSuiteBundle({
+          bundle: {
+            rootSuitePath: childFilePath,
+            bundle: node.children,
+            target: undefined,
+          },
+          options: childRunOptions,
+          preLogs: [],
+          runFile,
+        }) :
+        await runFile(childRunOptions);
 
       const status: SuiteStepStatus = childRun.result?.success ? 'passed' : 'failed';
       if (status === 'failed') {
         overallSuccess = false;
       }
 
-      options.reporter && options.reporter({
-        scope: 'suite-item',
-        status,
-        runId,
-        filePath: childFilePath,
-        entry: node.path,
-        docType: childDocType ?? undefined,
-        id,
-      } as any);
+      if (childDocType !== 'suite') {
+        options.reporter && options.reporter({
+          scope: 'suite-item',
+          status,
+          runId,
+          filePath: childFilePath,
+          entry: node.path,
+          docType: childDocType ?? undefined,
+          id,
+        } as any);
+      }
     } catch (e: any) {
       overallSuccess = false;
       const errorMessage = e?.message || String(e);
@@ -172,15 +204,17 @@ export async function executeSuiteBundle(params: {
     logs: allLogs,
   };
 
-  options.reporter && options.reporter({
-    scope: 'suite-run-finished',
-    runId: `suite:${sanitizeIdentifier(bundle.rootSuitePath)}`,
-    suitePath: bundle.rootSuitePath,
-    finishedAt: Date.now(),
-    success: overallSuccess,
-    durationMs,
-    cancelled: options.abortSignal?.aborted === true,
-  } as any);
+  if (shouldEmitSuiteRunEvents) {
+    options.reporter && options.reporter({
+      scope: 'suite-run-finished',
+      runId: `suite:${sanitizeIdentifier(bundle.rootSuitePath)}`,
+      suitePath: bundle.rootSuitePath,
+      finishedAt: Date.now(),
+      success: overallSuccess,
+      durationMs,
+      cancelled: options.abortSignal?.aborted === true,
+    } as any);
+  }
 
   if (preLogs.length) {
     result.logs = [...preLogs.map((l) => l.message), ...(result.logs ?? [])];
