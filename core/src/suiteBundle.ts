@@ -84,7 +84,16 @@ export function createSuiteBundle(params: {
 
   return {
     rootSuitePath,
-    bundle: build(hierarchy, []),
+    bundle: (() => {
+      const built = build(hierarchy, []);
+      const hasAnyGroup = built.some((n) => n.kind === 'group');
+      if (hasAnyGroup || built.length === 0) {
+        return built;
+      }
+      // Match suiteHierarchy semantics: if there is no explicit group,
+      // treat all root entries as being in a single group.
+      return [{kind: 'group', id: createSuiteNodeId([0]), label: 'Group 1', children: built}];
+    })(),
     target: typeof target === 'string' && target ? target : undefined,
   };
 }

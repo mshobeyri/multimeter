@@ -171,3 +171,25 @@ describe('suite bundle runner nested suite', () => {
     expect(scopes.filter(s => s === 'suite-run-finished').length).toBe(1);
   });
 });
+
+describe('suite bundle grouping', () => {
+  it('wraps root nodes into a single group when no groups exist', async () => {
+    const {createSuiteBundle} = await import('./suiteBundle.js');
+
+    const hierarchy = [
+      {kind: 'test', id: 't1', path: '/root/a.mmt'},
+      {kind: 'suite', id: 's1', path: '/root/suite1.mmt', children: []},
+      {kind: 'missing', id: 'm1', path: '/root/missing.mmt'},
+    ] as any;
+
+    const bundle = createSuiteBundle({
+      rootSuitePath: '/root/suite.mmt',
+      hierarchy,
+    });
+
+    expect(bundle.bundle.length).toBe(1);
+    expect(bundle.bundle[0].kind).toBe('group');
+    expect((bundle.bundle[0] as any).children.length).toBe(3);
+    expect((bundle.bundle[0] as any).children.map((c: any) => c.kind)).toEqual(['test', 'suite', 'missing']);
+  });
+});
