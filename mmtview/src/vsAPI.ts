@@ -1,4 +1,5 @@
 import {LogLevel} from 'mmt-core/CommonData';
+import {SuiteTreeNode} from './suite/test/suiteHierarchy';
 
 let lastFileContentResolver: ((content: string) => void)|null = null;
 let lastFileContentRejecter: ((error: any) => void)|null = null;
@@ -156,7 +157,7 @@ export type SuiteHierarchyResult = {
   requestId?: string;
   filename?: string;
   suiteFilePath?: string;
-  tree?: any;
+  tree?: SuiteTreeNode;
   error?: string;
 };
 

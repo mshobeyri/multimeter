@@ -133,9 +133,9 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 for (const entry of group.entries) {
                     try {
                         const res = await getSuiteHierarchy(entry.path, entry.id);
-                        const tree = (res as any)?.tree as any | undefined;
+                        const tree = res?.tree;
                         if (tree && typeof tree === 'object') {
-                            result[entry.path] = tree as any;
+                            result[entry.path] = tree;
                         }
                     } catch {
                         // Ignore; tree will treat it as non-suite.
