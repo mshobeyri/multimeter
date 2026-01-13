@@ -335,7 +335,36 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
 
     const onRunSuite = useCallback(() => {
         const next: Record<string, StepStatus | 'running'> = {};
-        groups.forEach((group) => group.entries.forEach((entry) => (next[entry.id] = 'pending')));
+        const collectDescendantIds = (root: any, out: string[]) => {
+            if (!root) return;
+            const stack = [root];
+            while (stack.length) {
+                const node = stack.pop();
+                if (!node || typeof node !== 'object') continue;
+                if (typeof node.id === 'string' && node.id) {
+                    out.push(node.id);
+                }
+                if (Array.isArray(node.children) && node.children.length) {
+                    for (let i = 0; i < node.children.length; i++) stack.push(node.children[i]);
+                }
+            }
+        };
+        groups.forEach((group) =>
+            group.entries.forEach((entry) => {
+                // mark the top-level entry id
+                next[entry.id] = 'pending';
+                const root = hierarchyByEntryPath[entry.path] as any;
+                if (root && typeof root === 'object') {
+                    const ids: string[] = [];
+                    // children under root are the imported nodes
+                    collectDescendantIds(root, ids);
+                    ids.forEach((id) => {
+                        // avoid overwriting stronger existing markers
+                        next[id] = 'pending';
+                    });
+                }
+            })
+        );
         setStepStatuses(next);
         const nextSuiteRunId = `suite-ui:${Date.now()}`;
         setSuiteRunId(nextSuiteRunId);
@@ -343,7 +372,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
         pendingLeafResetRef.current = 'all';
         resetLeafState('all');
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId });
-    }, [groups, resetLeafState]);
+    }, [groups, resetLeafState, hierarchyByEntryPath]);
 
     const onRunTargets = useCallback((target: string) => {
         const effectiveTarget = typeof target === 'string' ? target : '';
@@ -352,7 +381,46 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
         }
 
         // For bundle runs we can't pre-mark by gi/ei.
-        setStepStatuses((prev) => ({ ...prev }));
+        // Mark the target and any descendant bundle ids as pending so the UI shows progress.
+        const pendingMap: Record<string, StepStatus | 'running'> = {};
+        const collectDescendantIds = (node: any, out: string[]) => {
+            if (!node) return;
+            const stack = [node];
+            while (stack.length) {
+                const n = stack.pop();
+                if (!n || typeof n !== 'object') continue;
+                if (typeof n.id === 'string' && n.id) out.push(n.id);
+                if (Array.isArray(n.children) && n.children.length) stack.push(...n.children);
+            }
+        };
+
+        // Try to find the node matching effectiveTarget inside each hierarchy tree.
+        let found = false;
+        for (const p of Object.keys(hierarchyByEntryPath)) {
+            const root = (hierarchyByEntryPath as any)[p];
+            if (!root) continue;
+            const stack = [root];
+            while (stack.length) {
+                const n = stack.pop();
+                if (!n || typeof n !== 'object') continue;
+                if (n.id === effectiveTarget) {
+                    found = true;
+                    const ids: string[] = [];
+                    collectDescendantIds(n, ids);
+                    ids.forEach((id) => (pendingMap[id] = 'pending'));
+                    break;
+                }
+                if (Array.isArray(n.children) && n.children.length) stack.push(...n.children);
+            }
+            if (found) break;
+        }
+
+        // If not found in hierarchies, still mark the effectiveTarget itself
+        if (!found) {
+            pendingMap[effectiveTarget] = 'pending';
+        }
+
+        setStepStatuses((prev) => ({ ...prev, ...pendingMap }));
 
         pendingLeafResetRef.current = [effectiveTarget];
         resetLeafState([effectiveTarget]);
@@ -361,7 +429,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
         setSuiteRunId(nextSuiteRunId);
         setSuiteRunState('running');
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId, target: effectiveTarget });
-    }, [resetLeafState]);
+    }, [resetLeafState, hierarchyByEntryPath]);
 
     const onStopSuite = useCallback(() => {
         if (!suiteRunId) {

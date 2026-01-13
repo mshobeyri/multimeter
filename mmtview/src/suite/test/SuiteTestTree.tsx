@@ -7,11 +7,34 @@ import { StepStatus, SuiteGroup } from '../types';
 import { StepReportItem } from '../../shared/TestStepReportPanel';
 import { SuiteTreeNode } from './suiteHierarchy';
 
+const relativeToParentDir = (childPath: string, parentPath: string): string => {
+  if (!childPath || !parentPath) {
+    return childPath;
+  }
+  const normalize = (p: string) => p.replace(/\\/g, '/');
+  const child = normalize(childPath);
+  const parent = normalize(parentPath);
+
+  const parentDir = parent.includes('/') ? parent.slice(0, parent.lastIndexOf('/') + 1) : '';
+  if (parentDir && child.startsWith(parentDir)) {
+    return child.slice(parentDir.length);
+  }
+
+  // If we can't compute a clean relative label, fall back.
+  return childPath;
+};
+
+const basename = (p: string): string => {
+  const s = (p || '').replace(/\\/g, '/');
+  const idx = s.lastIndexOf('/');
+  return idx >= 0 ? s.slice(idx + 1) : s;
+};
+
 export type SuiteTestTreeItemData =
   | { type: 'root'; label: string }
   | { type: 'group'; label: string; id?: string }
-  | { type: 'test'; path: string; id: string }
-  | { type: 'suite'; path: string; id: string };
+  | { type: 'test'; path: string; id: string; parentPath?: string }
+  | { type: 'suite'; path: string; id: string; parentPath?: string };
 
 interface SuiteTestTreeProps {
   groups: SuiteGroup[];
@@ -153,11 +176,13 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         const entryId = entry.id;
 
         if (!isSuite) {
-          items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'test', path: entry.path, id: entryId } };
+          // Top-level entries are relative to the suite file itself (this file).
+          items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'test', path: entry.path, id: entryId, parentPath: '' } };
           continue;
         }
 
-        items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'suite', path: entry.path, id: entryId } };
+        // Top-level imported suite entry. Its children should be displayed relative to this suite file.
+        items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'suite', path: entry.path, id: entryId, parentPath: '' } };
       }
     }
 
@@ -203,7 +228,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
               const path = n.path;
               const itemId = uiId;
               // Make imported test nodes expandable so users can toggle the report panel.
-              items[itemId] = { index: itemId, isFolder: true, children: [], data: { type: 'test', path, id: baseId } };
+              items[itemId] = { index: itemId, isFolder: true, children: [], data: { type: 'test', path, id: baseId, parentPath: parent } };
               outChildren.push(itemId);
               continue;
             }
@@ -212,7 +237,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
               const path = n.path;
               const itemId = uiId;
               const childIdsForSuite: string[] = [];
-              items[itemId] = { index: itemId, isFolder: true, children: childIdsForSuite, data: { type: 'suite', path, id: baseId } };
+              items[itemId] = { index: itemId, isFolder: true, children: childIdsForSuite, data: { type: 'suite', path, id: baseId, parentPath: parent } };
               // recurse to populate childIdsForSuite
               pushHierarchy(itemId, n.children, childIdsForSuite);
               outChildren.push(itemId);
@@ -222,7 +247,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
             if (n.kind === 'missing') {
               const path = n.path;
               const itemId = uiId;
-              items[itemId] = { index: itemId, isFolder: false, children: [], data: { type: 'test', path, id: baseId } };
+              items[itemId] = { index: itemId, isFolder: false, children: [], data: { type: 'test', path, id: baseId, parentPath: parent } };
               outChildren.push(itemId);
               continue;
             }
@@ -388,6 +413,27 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
   const renderItem = ({ item, context, arrow, children }: any) => {
     const data = item.data as SuiteTestTreeItemData;
 
+    // Prefer the explicit parentPath recorded in the tree node data.
+    // This keeps relative label behavior stable even when the UI id doesn't
+    // map 1:1 to a suite path (e.g. top-level suite entries).
+    const parentPath = (data && (data.type === 'test' || data.type === 'suite')) ? (data as any).parentPath : undefined;
+    const rawPath = (data && (data.type === 'test' || data.type === 'suite')) ? (data as any).path : undefined;
+    const displayPath = (() => {
+      if (!rawPath || typeof rawPath !== 'string') {
+        return undefined;
+      }
+
+      // Imported items: show the exact string as written in the parent suite list.
+      // If we cannot compute a friendly label, fall back to just the filename.
+      if (typeof parentPath === 'string' && parentPath) {
+        const rel = relativeToParentDir(rawPath, parentPath);
+        return rel && rel !== rawPath ? rel : basename(rawPath);
+      }
+
+      // Top-level suite entries: show filename only (avoids long noisy paths).
+      return basename(rawPath);
+    })();
+
     if (data.type === 'group' || data.type === 'root') {
       const itemId = String(item.index);
       const groupTargets = data.type === 'group' ? getGroupTargets(itemId) : [];
@@ -464,6 +510,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
           onRun={effectiveRunHandler}
           runButtonTitle="Run suite"
           runDisabled={!effectiveTarget}
+          displayPath={displayPath}
         />
       );
     }
@@ -501,6 +548,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         onRun={handleRun}
         runButtonTitle="Run test"
         runDisabled={!canRunLeaf}
+        displayPath={displayPath}
       />
     );
   };

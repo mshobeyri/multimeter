@@ -1,6 +1,7 @@
 import React from 'react';
 import { TreeItem } from 'react-complex-tree';
 import { StepStatus } from '../types';
+import { openRelativeFile } from '../../vsAPI';
 
 export type SuiteSuiteFileItemData = { type: 'suite'; path: string; id: string };
 
@@ -19,6 +20,8 @@ interface SuiteSuiteFileItemProps {
     onRun?: () => void;
     runButtonTitle?: string;
     runDisabled?: boolean;
+
+    displayPath?: string;
 }
 
 const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
@@ -34,6 +37,7 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
     onRun,
     runButtonTitle = 'Run',
     runDisabled = false,
+    displayPath,
 }) => {
     const data = item.data as SuiteSuiteFileItemData;
     const isMissing = missingFiles.has(data.path);
@@ -72,6 +76,8 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
         }
         : statusIconFor(effectiveStatus as any);
 
+    const labelPath = (displayPath && displayPath.trim()) ? displayPath : data.path;
+
     return (
         <div {...context.itemContainerWithChildrenProps}>
             <div className="tree-view-box" {...context.itemContainerWithoutChildrenProps} style={{ paddingTop: 10, display: 'flex' }}>
@@ -91,10 +97,48 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
                             width: '100%',
+                            minWidth: 0,
+                            cursor: isMissing ? 'default' : 'pointer',
+                            opacity: isMissing ? 1 : undefined,
                         }}
                         title={data.path}
+                        role={isMissing ? undefined : 'link'}
+                        tabIndex={isMissing ? undefined : 0}
+                        onMouseEnter={(e) => {
+                            if (isMissing) {
+                                return;
+                            }
+                            (e.currentTarget as any).style.opacity = '0.8';
+                        }}
+                        onMouseLeave={(e) => {
+                            if (isMissing) {
+                                return;
+                            }
+                            (e.currentTarget as any).style.opacity = '1';
+                        }}
+                        onClick={(e) => {
+                            if (isMissing) {
+                                return;
+                            }
+                            // Open on plain click. Prevent propagation so the tree
+                            // doesn't also treat the click as selection/expand.
+                            e.preventDefault();
+                            e.stopPropagation();
+                            openRelativeFile(data.path);
+                        }}
+                        onKeyDown={(e) => {
+                            if (isMissing) {
+                                return;
+                            }
+                            // Keyboard fallback: Enter opens regardless of ctrl.
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                openRelativeFile(data.path);
+                            }
+                        }}
                     >
-                        {data.path} - {data.type}
+                        {labelPath} - {data.type}
                     </div>
                     </div>
                     {onRun && !isMissing && (

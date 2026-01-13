@@ -2,6 +2,7 @@ import React from 'react';
 import { TreeItem } from 'react-complex-tree';
 import { StepStatus } from '../types';
 import TestStepReportPanel, { StepReportItem } from '../../shared/TestStepReportPanel';
+import { openRelativeFile } from '../../vsAPI';
 
 export type SuiteTestFileItemData = { type: 'test'; path: string; id: string }
 
@@ -20,6 +21,8 @@ interface SuiteTestFileItemProps {
     onRun?: () => void;
     runButtonTitle?: string;
     runDisabled?: boolean;
+
+    displayPath?: string;
 }
 
 const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
@@ -35,6 +38,7 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     onRun,
     runButtonTitle = 'Run',
     runDisabled = false,
+    displayPath,
 }) => {
     const data = item.data as SuiteTestFileItemData;
     const isMissing = missingFiles.has(data.path);
@@ -49,6 +53,8 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     const id = data.id;
     const runState = id ? (runStateById[id] || 'idle') : 'idle';
     const stepReports = id ? (reportsById[id] || []) : [];
+
+    const labelPath = (displayPath && displayPath.trim()) ? displayPath : data.path;
 
     // Show reports when the node is expanded or when the test is actively running.
     // This lets users collapse the report after a run completes.
@@ -77,10 +83,47 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
                             width: '100%',
+                            minWidth: 0,
+                            cursor: isMissing ? 'default' : 'pointer',
+                            opacity: isMissing ? 1 : undefined,
                         }}
                         title={data.path}
+                        role={isMissing ? undefined : 'link'}
+                        tabIndex={isMissing ? undefined : 0}
+                        onMouseEnter={(e) => {
+                            if (isMissing) {
+                                return;
+                            }
+                            (e.currentTarget as any).style.opacity = '0.8';
+                        }}
+                        onMouseLeave={(e) => {
+                            if (isMissing) {
+                                return;
+                            }
+                            (e.currentTarget as any).style.opacity = '1';
+                        }}
+                        onClick={(e) => {
+                            if (isMissing) {
+                                return;
+                            }
+                            // Open on plain click. Prevent propagation so the tree
+                            // doesn't also treat the click as selection/expand.
+                            e.preventDefault();
+                            e.stopPropagation();
+                            openRelativeFile(data.path);
+                        }}
+                        onKeyDown={(e) => {
+                            if (isMissing) {
+                                return;
+                            }
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                openRelativeFile(data.path);
+                            }
+                        }}
                     >
-                        {data.path} - {data.type}
+                        {labelPath} - {data.type}
                     </div>
                     </div>
                     {onRun && !isMissing && (
