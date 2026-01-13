@@ -123,18 +123,18 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
         setLeafRunStateById(prev => resetLeafStateMap(prev, mode));
     }, [setLeafReportsById, setLeafRunStateById]);
 
-    const [hierarchyByEntryPath, setHierarchyByEntryPath] = useState<Record<string, SuiteTreeNode[]>>({});
+    const [hierarchyByEntryPath, setHierarchyByEntryPath] = useState<Record<string, SuiteTreeNode>>({});
 
     useEffect(() => {
         let cancelled = false;
         const run = async () => {
-            const result: Record<string, SuiteTreeNode[]> = {};
+            const result: Record<string, SuiteTreeNode> = {};
             for (const group of groups) {
                 for (const entry of group.entries) {
                     try {
                         const res = await getSuiteHierarchy(entry.path, entry.id);
-                        const tree = (res as any)?.tree as any[] | undefined;
-                        if (Array.isArray(tree)) {
+                        const tree = (res as any)?.tree as any | undefined;
+                        if (tree && typeof tree === 'object') {
                             result[entry.path] = tree as any;
                         }
                     } catch {
@@ -143,7 +143,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 }
             }
             if (!cancelled) {
-                setHierarchyByEntryPath(result);
+                setHierarchyByEntryPath(result as any);
             }
         };
         run();

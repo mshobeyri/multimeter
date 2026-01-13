@@ -15,7 +15,7 @@ export type SuiteTestTreeItemData =
 
 interface SuiteTestTreeProps {
   groups: SuiteGroup[];
-  hierarchyByEntryPath: Record<string, SuiteTreeNode[]>;
+  hierarchyByEntryPath: Record<string, SuiteTreeNode>;
   missingFiles: Set<string>;
   stepStatuses: Record<string, StepStatus | 'running'>;
   lastRunIdByEntryId: Record<string, string>;
@@ -105,8 +105,8 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         if (!entryItem) {
           continue;
         }
-        const hierarchy = hierarchyByEntryPath[entry.path];
-        const isSuite = Array.isArray(hierarchy);
+        const hierarchy = hierarchyByEntryPath[entry.path] as any;
+        const isSuite = !!hierarchy && typeof hierarchy === 'object' && hierarchy.kind === 'suite';
         const entryId = entry.id;
 
         if (!isSuite) {
@@ -126,7 +126,8 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         }
 
         const hierarchy = hierarchyByEntryPath[entry.path];
-        if (!Array.isArray(hierarchy)) {
+        const root = hierarchy as any;
+        if (!root || typeof root !== 'object' || root.kind !== 'suite') {
           return;
         }
 
@@ -134,8 +135,6 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         if (!isExpanded) {
           return;
         }
-
-        const effectiveHierarchy = hierarchy ?? [];
 
         const hierarchyChildren: string[] = [];
         const pushHierarchy = (parent: string, nodes: SuiteTreeNode[]) => {
@@ -183,7 +182,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
           });
         };
 
-        pushHierarchy(entry.id, effectiveHierarchy);
+        pushHierarchy(entry.id, Array.isArray(root.children) ? root.children : []);
 
         // Only show imported children when expanded.
         if (hierarchyChildren.length) {

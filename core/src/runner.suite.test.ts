@@ -176,11 +176,16 @@ describe('suite bundle grouping', () => {
   it('wraps root nodes into a single group when no groups exist', async () => {
     const {createSuiteBundle} = await import('./suiteBundle.js');
 
-    const hierarchy = [
-      {kind: 'test', id: 't1', path: '/root/a.mmt'},
-      {kind: 'suite', id: 's1', path: '/root/suite1.mmt', children: []},
-      {kind: 'missing', id: 'm1', path: '/root/missing.mmt'},
-    ] as any;
+    const hierarchy = {
+      kind: 'suite',
+      id: 'root',
+      path: '/root/suite.mmt',
+      children: [
+        {kind: 'test', id: 't1', path: '/root/a.mmt'},
+        {kind: 'suite', id: 's1', path: '/root/suite1.mmt', children: []},
+        {kind: 'missing', id: 'm1', path: '/root/missing.mmt'},
+      ],
+    } as any;
 
     const bundle = createSuiteBundle({
       rootSuitePath: '/root/suite.mmt',

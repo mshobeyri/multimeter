@@ -17,17 +17,36 @@ describe('suiteHierarchy (core)', () => {
       fileLoader,
     });
 
-        expect(tree).toEqual([
+      expect(tree).toEqual({
+        kind: 'suite',
+        id: 'suite-node:root',
+        path: '/root/root.mmt',
+        children: [
           {
-            kind: 'suite',
+            kind: 'group',
             id: 'suite-node:0',
-            path: '/root/suite1.mmt',
+            label: 'Group 1',
             children: [
-              {kind: 'test', id: 'suite-node:0.0', path: '/root/test.mmt'},
-              {kind: 'test', id: 'suite-node:0.1', path: '/root/test1.mmt'},
+              {
+                kind: 'suite',
+                id: 'suite-node:0.0',
+                path: '/root/suite1.mmt',
+                children: [
+                  {
+                    kind: 'group',
+                    id: 'suite-node:0.0.0',
+                    label: 'Group 1',
+                    children: [
+                      {kind: 'test', id: 'suite-node:0.0.0.0', path: '/root/test.mmt'},
+                      {kind: 'test', id: 'suite-node:0.0.0.1', path: '/root/test1.mmt'},
+                    ],
+                  },
+                ],
+              },
             ],
           },
-        ]);
+        ],
+      });
   });
   
   test('nested suites with groups keep tests under group nodes', async () => {
@@ -45,31 +64,43 @@ describe('suiteHierarchy (core)', () => {
       fileLoader,
     });
 
-    expect(tree).toEqual([
-      {
+      expect(tree).toEqual({
         kind: 'suite',
-        id: 'suite-node:0',
-        path: '/repo/child.suite.mmt',
+        id: 'suite-node:root',
+        path: '/repo/root.suite.mmt',
         children: [
           {
             kind: 'group',
-            id: 'suite-node:0.0',
+            id: 'suite-node:0',
             label: 'Group 1',
             children: [
-              {kind: 'test', id: 'suite-node:0.0.0', path: '/repo/first.test.mmt'},
-            ],
-          },
-          {
-            kind: 'group',
-            id: 'suite-node:0.1',
-            label: 'Group 2',
-            children: [
-              {kind: 'test', id: 'suite-node:0.1.0', path: '/repo/second.test.mmt'},
+              {
+                kind: 'suite',
+                id: 'suite-node:0.0',
+                path: '/repo/child.suite.mmt',
+                children: [
+                  {
+                    kind: 'group',
+                    id: 'suite-node:0.0.0',
+                    label: 'Group 1',
+                    children: [
+                      {kind: 'test', id: 'suite-node:0.0.0.0', path: '/repo/first.test.mmt'},
+                    ],
+                  },
+                  {
+                    kind: 'group',
+                    id: 'suite-node:0.0.1',
+                    label: 'Group 2',
+                    children: [
+                      {kind: 'test', id: 'suite-node:0.0.1.0', path: '/repo/second.test.mmt'},
+                    ],
+                  },
+                ],
+              },
             ],
           },
         ],
-      },
-    ]);
+      });
   });
 
   test('suite hierarchy preserves groups and duplicate tests in nested suites', async () => {
@@ -87,31 +118,43 @@ describe('suiteHierarchy (core)', () => {
       fileLoader,
     });
 
-    expect(tree).toEqual([
-      {
+      expect(tree).toEqual({
         kind: 'suite',
-        id: 'suite-node:0',
-        path: '/repo/suite1.mmt',
+        id: 'suite-node:root',
+        path: '/repo/suite.mmt',
         children: [
           {
             kind: 'group',
-            id: 'suite-node:0.0',
+            id: 'suite-node:0',
             label: 'Group 1',
             children: [
-              {kind: 'test', id: 'suite-node:0.0.0', path: '/repo/test.mmt'},
-              {kind: 'test', id: 'suite-node:0.0.1', path: '/repo/test.mmt'},
-            ],
-          },
-          {
-            kind: 'group',
-            id: 'suite-node:0.1',
-            label: 'Group 2',
-            children: [
-              {kind: 'test', id: 'suite-node:0.1.0', path: '/repo/test1.mmt'},
+              {
+                kind: 'suite',
+                id: 'suite-node:0.0',
+                path: '/repo/suite1.mmt',
+                children: [
+                  {
+                    kind: 'group',
+                    id: 'suite-node:0.0.0',
+                    label: 'Group 1',
+                    children: [
+                      {kind: 'test', id: 'suite-node:0.0.0.0', path: '/repo/test.mmt'},
+                      {kind: 'test', id: 'suite-node:0.0.0.1', path: '/repo/test.mmt'},
+                    ],
+                  },
+                  {
+                    kind: 'group',
+                    id: 'suite-node:0.0.1',
+                    label: 'Group 2',
+                    children: [
+                      {kind: 'test', id: 'suite-node:0.0.1.0', path: '/repo/test1.mmt'},
+                    ],
+                  },
+                ],
+              },
             ],
           },
         ],
-      },
-    ]);
+      });
   });
 });

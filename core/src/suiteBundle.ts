@@ -1,4 +1,4 @@
-import {SuiteHierarchyNode} from './suiteHierarchy';
+import {SuiteHierarchyNode, SuiteHierarchyRootNode} from './suiteHierarchy';
 import {createSuiteNodeId} from './suiteNodeId';
 
 export type SuiteBundleNodeKind = 'group'|'suite'|'test'|'missing'|'cycle';
@@ -26,7 +26,7 @@ export interface SuiteBundle {
 
 export function createSuiteBundle(params: {
   rootSuitePath: string;
-  hierarchy: SuiteHierarchyNode[];
+  hierarchy: SuiteHierarchyRootNode;
   target?: string;
 }): SuiteBundle {
   const {rootSuitePath, hierarchy, target} = params;
@@ -85,7 +85,7 @@ export function createSuiteBundle(params: {
   return {
     rootSuitePath,
     bundle: (() => {
-      const built = build(hierarchy, []);
+      const built = build(hierarchy.children, []);
       const hasAnyGroup = built.some((n) => n.kind === 'group');
       if (hasAnyGroup || built.length === 0) {
         return built;
