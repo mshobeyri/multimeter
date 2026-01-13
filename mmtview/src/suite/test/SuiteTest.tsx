@@ -52,13 +52,10 @@ const buildSuiteGroupsFromContent = (content: string): SuiteGroup[] => {
         return [];
     }
 
-    const hasMultipleGroups = grouped.length > 1;
-
     return grouped.map((entries, groupIndex) => {
         const mappedEntries: SuiteEntry[] = entries.map((path, entryIndex) => {
-            const indexPath = hasMultipleGroups ? [groupIndex, entryIndex] : [entryIndex];
             return {
-                id: createSuiteNodeId(indexPath),
+                id: createSuiteNodeId([groupIndex, entryIndex]),
                 path,
             };
         });

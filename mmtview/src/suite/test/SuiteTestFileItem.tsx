@@ -50,6 +50,10 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     const runState = id ? (runStateById[id] || 'idle') : 'idle';
     const stepReports = id ? (reportsById[id] || []) : [];
 
+    // Show reports when the node is expanded or when the test is actively running.
+    // This lets users collapse the report after a run completes.
+    const shouldShowReports = context?.isExpanded;
+
     return (
         <div {...context.itemContainerWithChildrenProps}>
             <div
@@ -96,7 +100,7 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                     )}
                 </div>
             </div>
-            {context?.isExpanded && (
+            {shouldShowReports && (
                 <div style={{ paddingBottom: 8 }}>
                     <TestStepReportPanel
                         isExpanded={true}

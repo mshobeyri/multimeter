@@ -9,7 +9,7 @@ import { SuiteTreeNode } from './suiteHierarchy';
 
 export type SuiteTestTreeItemData =
   | { type: 'root'; label: string }
-  | { type: 'group'; label: string }
+  | { type: 'group'; label: string; id?: string }
   | { type: 'test'; path: string; id: string }
   | { type: 'suite'; path: string; id: string };
 
@@ -93,6 +93,49 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     });
   }, [base.groupIds]);
 
+  // Auto-expand imported suite entries and their nested group/suite nodes
+  // when a hierarchy is attached for an entry path.
+  useEffect(() => {
+    const idsToAdd = new Set<string>();
+    for (const group of groups) {
+      for (const entry of group.entries) {
+        const root = (hierarchyByEntryPath as any)?.[entry.path];
+        if (!root || typeof root !== 'object' || root.kind !== 'suite') {
+          continue;
+        }
+        // ensure the entry itself is expanded so imported children are visible
+        idsToAdd.add(entry.id);
+
+        // recursively collect UI ids (parent::child) for suite/group nodes
+        // so auto-expand works with UI-scoped ids rather than core bundle ids.
+        const collect = (parentId: string, nodes: any[]) => {
+          for (let idx = 0; idx < (nodes || []).length; idx++) {
+            const n = nodes[idx];
+            if (!n || typeof n !== 'object') {
+              continue;
+            }
+            const baseId = typeof n.id === 'string' && n.id ? n.id : `${idx}|${n.kind}`;
+            const uiId = `${parentId}::${baseId}`;
+            if (n.kind === 'group' || n.kind === 'suite') {
+              idsToAdd.add(uiId);
+              if (Array.isArray(n.children) && n.children.length) {
+                collect(uiId, n.children);
+              }
+            }
+          }
+        };
+        collect(entry.id, Array.isArray(root.children) ? root.children : []);
+      }
+    }
+    if (idsToAdd.size) {
+      setExpandedItems((prev) => {
+        const next = new Set(prev);
+        idsToAdd.forEach((id) => next.add(id));
+        return Array.from(next);
+      });
+    }
+  }, [hierarchyByEntryPath, groups]);
+
   const treeData = useMemo(() => {
     const items: Record<string, TreeItem<SuiteTestTreeItemData>> = { ...base.items };
 
@@ -137,52 +180,61 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         }
 
         const hierarchyChildren: string[] = [];
-        const pushHierarchy = (parent: string, nodes: SuiteTreeNode[]) => {
-          nodes.forEach((n, idx) => {
-            const nodeId = typeof (n as any).id === 'string' && (n as any).id ? (n as any).id : `${parent}|${idx}|${n.kind}`;
+
+        const pushHierarchy = (parent: string, nodes: SuiteTreeNode[], outChildren: string[]) => {
+          for (let idx = 0; idx < (nodes || []).length; idx++) {
+            const n = (nodes as any)[idx];
+            if (!n) continue;
+
+            const baseId = typeof n.id === 'string' && n.id ? n.id : `${idx}|${n.kind}`;
+            const uiId = `${parent}::${baseId}`;
+
             if (n.kind === 'group') {
-              const gid = nodeId;
+              const gid = uiId;
               const childIds2: string[] = [];
-              items[gid] = { index: gid, isFolder: true, children: childIds2, data: { type: 'group', label: n.label } };
-              pushHierarchy(gid, n.children);
-              hierarchyChildren.push(gid);
-              return;
+              items[gid] = { index: gid, isFolder: true, children: childIds2, data: { type: 'group', label: n.label, id: baseId } };
+              // recurse and populate childIds2
+              pushHierarchy(gid, n.children, childIds2);
+              outChildren.push(gid);
+              continue;
             }
 
             if (n.kind === 'test') {
               const path = n.path;
-              const itemId = nodeId;
-              items[itemId] = { index: itemId, isFolder: true, children: [], data: { type: 'test', path, id: itemId } };
-              hierarchyChildren.push(itemId);
-              return;
+              const itemId = uiId;
+              // Make imported test nodes expandable so users can toggle the report panel.
+              items[itemId] = { index: itemId, isFolder: true, children: [], data: { type: 'test', path, id: baseId } };
+              outChildren.push(itemId);
+              continue;
             }
 
             if (n.kind === 'suite') {
               const path = n.path;
-              const itemId = nodeId;
-              items[itemId] = { index: itemId, isFolder: true, children: [], data: { type: 'suite', path, id: itemId } };
-              hierarchyChildren.push(itemId);
-              if (Array.isArray(n.children) && n.children.length) {
-                pushHierarchy(itemId, n.children);
-              }
-              return;
+              const itemId = uiId;
+              const childIdsForSuite: string[] = [];
+              items[itemId] = { index: itemId, isFolder: true, children: childIdsForSuite, data: { type: 'suite', path, id: baseId } };
+              // recurse to populate childIdsForSuite
+              pushHierarchy(itemId, n.children, childIdsForSuite);
+              outChildren.push(itemId);
+              continue;
             }
 
             if (n.kind === 'missing') {
               const path = n.path;
-              const itemId = nodeId;
-              items[itemId] = { index: itemId, isFolder: false, children: [], data: { type: 'test', path, id: itemId } };
-              hierarchyChildren.push(itemId);
-              return;
+              const itemId = uiId;
+              items[itemId] = { index: itemId, isFolder: false, children: [], data: { type: 'test', path, id: baseId } };
+              outChildren.push(itemId);
+              continue;
             }
 
             if (n.kind === 'cycle') {
-              return;
+              // ignore cycles in UI
+              continue;
             }
-          });
+          }
         };
 
-        pushHierarchy(entry.id, Array.isArray(root.children) ? root.children : []);
+        pushHierarchy(entry.id, Array.isArray(root.children) ? root.children : [], hierarchyChildren);
 
         // Only show imported children when expanded.
         if (hierarchyChildren.length) {
@@ -210,96 +262,113 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
 
   const getGroupStatus = useCallback((groupItemId: string): StepStatus => {
     const match = /^group-(\d+)$/.exec(groupItemId);
-    if (!match) {
-      return 'default';
-    }
-    const groupIndex = Number(match[1]) - 1;
-    const group = groups[groupIndex];
-    if (!group) {
-      return 'default';
-    }
-    // Determine visible status per entry. Prefer explicit stepStatuses (from last run)
-    // then fall back to runStateById. Map internal states to StepStatus values
-      // and aggregate with priority: failed > cancelled > running > pending > passed > default.
-    let anyFailed = false;
-    let anyCancelled = false;
-    let anyRunning = false;
-    let anyPending = false;
-    let allPassed = group.entries.length > 0;
-    let anySeen = false;
+    const isTopLevel = !!match;
 
-    for (const entry of group.entries) {
-      const id = entry.id;
-
-      // Prefer stepStatuses for the last run if available. Also accept UI-updates
-      // that may have placed a pending status keyed by the entry id itself.
-      const runId = lastRunIdByEntryId && lastRunIdByEntryId[entry.id];
-      let explicitStatus = runId ? (stepStatuses && stepStatuses[runId]) : undefined;
-      if (!explicitStatus && stepStatuses && stepStatuses[entry.id]) {
-        explicitStatus = stepStatuses[entry.id];
+    const getLeafVisible = (leafId: string): StepStatus | 'running' | 'cancelled' | undefined => {
+      const runId = lastRunIdByEntryId && lastRunIdByEntryId[leafId];
+      const explicitStatus = runId ? (stepStatuses && stepStatuses[runId]) : undefined;
+      if (explicitStatus && explicitStatus !== 'pending') {
+        return explicitStatus as any;
       }
 
-      let visible: StepStatus | 'running' | undefined = undefined;
-      if (explicitStatus && explicitStatus !== 'pending') {
-        // If explicit status exists and is not a transient 'pending', use it.
-        visible = explicitStatus as any;
-      } else {
-        // Either no explicit status or it's a UI 'pending' marker.
-        const state = runStateById && runStateById[id];
-        if (state === 'running') {
-          visible = 'running';
-        } else if (state === 'passed') {
-          visible = 'passed';
-        } else if (state === 'failed') {
-          visible = 'failed';
-        } else if (state === 'cancelled') {
-          visible = 'cancelled';
-        } else if (explicitStatus === 'pending') {
-          // No concrete leaf state yet, but UI explicitly marked pending.
-          visible = 'pending';
-        } else {
-          visible = undefined;
+      const state = runStateById && runStateById[leafId];
+      if (state === 'running') {
+        return 'running';
+      }
+      if (state === 'passed') {
+        return 'passed';
+      }
+      if (state === 'failed') {
+        return 'failed';
+      }
+      if (state === 'cancelled') {
+        return 'cancelled';
+      }
+      if (stepStatuses && stepStatuses[leafId] === 'pending') {
+        return 'pending';
+      }
+      return undefined;
+    };
+
+    const aggregate = (leafIds: string[]): StepStatus => {
+      let anyFailed = false;
+      let anyCancelled = false;
+      let anyRunning = false;
+      let anyPending = false;
+      let allPassed = leafIds.length > 0;
+      let anySeen = false;
+
+      for (const leafId of leafIds) {
+        const visible = getLeafVisible(leafId);
+        if (typeof visible === 'string') {
+          anySeen = true;
+        }
+        if (visible === 'failed') {
+          anyFailed = true;
+        }
+        if (visible === 'cancelled') {
+          anyCancelled = true;
+        }
+        if (visible === 'running') {
+          anyRunning = true;
+        }
+        if (visible === 'pending') {
+          anyPending = true;
+        }
+        if (visible !== 'passed') {
+          allPassed = false;
         }
       }
 
-      if (typeof visible === 'string') {
-        anySeen = true;
+      if (anyFailed) {
+        return 'failed';
       }
+      if (anyCancelled) {
+        return 'cancelled';
+      }
+      if (anyRunning) {
+        return 'running';
+      }
+      if (anyPending) {
+        return 'pending';
+      }
+      if (allPassed && anySeen) {
+        return 'passed';
+      }
+      return 'default';
+    };
 
-      if (visible === 'failed') {
-        anyFailed = true;
+    if (isTopLevel) {
+      const groupIndex = Number(match![1]) - 1;
+      const group = groups[groupIndex];
+      if (!group) {
+        return 'default';
       }
-      if (visible === 'cancelled') {
-        anyCancelled = true;
-      }
-      if (visible === 'running') {
-        anyRunning = true;
-      }
-      if (visible === 'pending') {
-        anyPending = true;
-      }
-      if (visible !== 'passed') {
-        allPassed = false;
-      }
+      return aggregate(group.entries.map((e) => e.id).filter(Boolean));
     }
 
-    if (anyFailed) {
-      return 'failed';
+    // Imported group: compute based on its subtree leaves (bundle ids).
+    const item = treeData.items[groupItemId];
+    const children = item?.children || [];
+    const leafIds: string[] = [];
+    const stack = [...children];
+    while (stack.length) {
+      const cid = String(stack.pop());
+      const child = treeData.items[cid];
+      const data = child?.data as any;
+      if (!child || !data) {
+        continue;
+      }
+      if (data.type === 'test' || data.type === 'suite') {
+        if (typeof data.id === 'string' && data.id) {
+          leafIds.push(data.id);
+        }
+      }
+      if (Array.isArray(child.children) && child.children.length) {
+        stack.push(...child.children);
+      }
     }
-    if (anyCancelled) {
-      return 'cancelled';
-    }
-    if (anyRunning) {
-      return 'running';
-    }
-    if (anyPending) {
-      return 'pending';
-    }
-    if (allPassed && anySeen) {
-      return 'passed';
-    }
-    // If no visible states were observed (all entries are default/idle/unknown), keep 'default'.
-    return 'default';
+    return aggregate(leafIds);
   }, [groups, runStateById, stepStatuses, lastRunIdByEntryId]);
 
   const getGroupTargets = useCallback((groupItemId: string): string[] => {
@@ -341,11 +410,13 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     }
 
     const entryId = String(item.index);
+    const itemBundleId = (data as any)?.id as string | undefined;
     const computedStatus = (() => {
       // Imported nodes use the same UI; they may not participate in run status.
       // For now, non-root tests show default status unless tracked.
 
-      const runId = lastRunIdByEntryId[entryId];
+      const statusKey = itemBundleId || entryId;
+      const runId = lastRunIdByEntryId[statusKey];
       if (runId && stepStatuses[runId]) {
         return stepStatuses[runId] as StepStatus;
       }
@@ -372,7 +443,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         }
       }
 
-      return (stepStatuses[entryId] ?? 'default') as StepStatus;
+      return (stepStatuses[statusKey] ?? 'default') as StepStatus;
     })();
 
     if (data.type === 'suite') {
@@ -401,6 +472,21 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     const canRunLeaf = typeof testLeafId === 'string' && !!testLeafId;
       const handleRun = canRunLeaf ? () => onRunTargets(testLeafId!) : undefined;
 
+    // Ensure test leaf status reflects bundle-id keyed runState when available.
+    const effectiveTestStatus = (() => {
+      const leafState = testLeafId ? runStateById[testLeafId] : undefined;
+      if (leafState === 'running') {
+        return 'running' as any;
+      }
+      if (leafState === 'cancelled') {
+        return 'cancelled' as any;
+      }
+      if (leafState === 'passed' || leafState === 'failed') {
+        return leafState as any;
+      }
+      return computedStatus;
+    })();
+
     return (
       <SuiteTestFileItem
         item={item as any}
@@ -409,7 +495,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         children={children}
         missingFiles={missingFiles}
         statusIconFor={statusIconFor as any}
-        status={computedStatus}
+        status={effectiveTestStatus}
         reportsById={reportsById}
         runStateById={runStateById}
         onRun={handleRun}
@@ -423,11 +509,14 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
       items={treeData.items}
       getItemTitle={(item) => {
         const data = item.data as SuiteTestTreeItemData;
+        // Show the id in the accessible/title string for all node kinds.
         if (data?.type === 'test' || data?.type === 'suite') {
-          return data.path;
+          const id = (data as any).id || String(item.index);
+          return `${data.path} [${id}]`;
         }
         if (data?.type === 'root' || data?.type === 'group') {
-          return (data as any).label;
+          const id = String(item.index);
+          return `${(data as any).label} [${id}]`;
         }
         return '';
       }}
