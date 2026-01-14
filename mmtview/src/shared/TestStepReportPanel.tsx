@@ -99,18 +99,6 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
             backgroundColor: 'transparent',
           }}
         >
-          <div>{summary}</div>
-          {onRun && (
-            <button
-              onClick={onRun}
-              className="button-icon"
-              disabled={disabledRun || runState === 'running'}
-              style={{ opacity: runState === 'running' ? 0.7 : 1 }}
-            >
-              <span className="codicon codicon-run" />
-              {runState === 'running' ? 'Running…' : runButtonLabel || 'Run test'}
-            </button>
-          )}
         </div>
       )}
 
