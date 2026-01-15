@@ -339,9 +339,9 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         if (String(visible) === 'pending') anyPending = true;
         if (visible !== 'passed') allPassed = false;
       }
+      if (anyRunning) return 'running';
       if (anyFailed) return 'failed';
       if (anyCancelled) return 'cancelled';
-      if (anyRunning) return 'running';
       if (anyPending) return 'pending';
       if (allPassed && anySeen) return 'passed';
       return 'default';
@@ -396,9 +396,9 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         if (String(visible) === 'pending') anyPending = true;
         if (visible !== 'passed') allPassed = false;
       }
+      if (anyRunning) return 'running';
       if (anyFailed) return 'failed';
       if (anyCancelled) return 'cancelled';
-      if (anyRunning) return 'running';
       if (anyPending) return 'pending';
       if (allPassed && anySeen) return 'passed';
       return 'default';
