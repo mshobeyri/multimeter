@@ -74,19 +74,28 @@ const buildBaseTestTree = (groups: SuiteGroup[]) => {
         data: { type: 'suite', path: entry.path, id },
       };
     });
-    items[groupId] = {
-      index: groupId,
-      isFolder: true,
-      children: childIds,
-      data: { type: 'group', label: group.label },
-    };
-    groupIds.push(groupId);
+    // If there is only one group in the suite, show its entries directly
+    // under the root to avoid an unnecessary intermediate group level in the UI.
+    if (groups.length === 1) {
+      // don't create a group node; entries will be direct children of root
+    } else {
+      items[groupId] = {
+        index: groupId,
+        isFolder: true,
+        children: childIds,
+        data: { type: 'group', label: group.label },
+      };
+      groupIds.push(groupId);
+    }
   });
 
+  // If there's only one group, place its entry ids directly under the root;
+  // otherwise the root contains group nodes.
+  const rootChildren = groups.length === 1 ? groups[0].entries.map((e) => e.id || ensureEntryId(e.path)) : groupIds;
   items['suite-root'] = {
     index: 'suite-root',
     isFolder: true,
-    children: groupIds,
+    children: rootChildren,
     data: { type: 'root', label: 'Suite' },
   };
 
@@ -215,7 +224,16 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
             const uiId = `${parent}::${baseId}`;
 
             if (n.kind === 'group') {
-              const gid = uiId;
+                // If the suite's children array contains exactly one group, flatten
+                // that group into the parent UI node so the UI doesn't show an
+                // unnecessary single group level for imported suites.
+                if (Array.isArray(nodes) && nodes.length === 1) {
+                  // recurse into the single group's children directly under parent
+                  pushHierarchy(parent, n.children, outChildren);
+                  continue;
+                }
+
+                const gid = uiId;
               const childIds2: string[] = [];
               items[gid] = { index: gid, isFolder: true, children: childIds2, data: { type: 'group', label: n.label, id: baseId } };
               // recurse and populate childIds2
@@ -285,9 +303,10 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     []
   );
 
-  const getGroupStatus = useCallback((groupItemId: string): StepStatus => {
-    const match = /^group-(\d+)$/.exec(groupItemId);
-    const isTopLevel = !!match;
+  // Precompute imported-group statuses based on the current tree items and run state.
+  const importedGroupStatusMap = useMemo(() => {
+    const map: Record<string, StepStatus> = {};
+    const items = treeData.items;
 
     const getLeafVisible = (leafId: string): StepStatus | 'running' | 'cancelled' | undefined => {
       const runId = lastRunIdByEntryId && lastRunIdByEntryId[leafId];
@@ -295,23 +314,12 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
       if (explicitStatus && explicitStatus !== 'pending') {
         return explicitStatus as any;
       }
-
       const state = runStateById && runStateById[leafId];
-      if (state === 'running') {
-        return 'running';
-      }
-      if (state === 'passed') {
-        return 'passed';
-      }
-      if (state === 'failed') {
-        return 'failed';
-      }
-      if (state === 'cancelled') {
-        return 'cancelled';
-      }
-      if (stepStatuses && stepStatuses[leafId] === 'pending') {
-        return 'pending';
-      }
+      if (state === 'running') return 'running';
+      if (state === 'passed') return 'passed';
+      if (state === 'failed') return 'failed';
+      if (state === 'cancelled') return 'cancelled';
+      if (stepStatuses && stepStatuses[leafId] === 'pending') return 'pending';
       return undefined;
     };
 
@@ -322,79 +330,81 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
       let anyPending = false;
       let allPassed = leafIds.length > 0;
       let anySeen = false;
-
       for (const leafId of leafIds) {
         const visible = getLeafVisible(leafId);
-        if (typeof visible === 'string') {
-          anySeen = true;
-        }
-        if (visible === 'failed') {
-          anyFailed = true;
-        }
-        if (visible === 'cancelled') {
-          anyCancelled = true;
-        }
-        if (visible === 'running') {
-          anyRunning = true;
-        }
-        if (visible === 'pending') {
-          anyPending = true;
-        }
-        if (visible !== 'passed') {
-          allPassed = false;
-        }
+        if (typeof visible === 'string') anySeen = true;
+        if (visible === 'failed') anyFailed = true;
+        if (visible === 'cancelled') anyCancelled = true;
+        if (visible === 'running') anyRunning = true;
+        if (String(visible) === 'pending') anyPending = true;
+        if (visible !== 'passed') allPassed = false;
       }
-
-      if (anyFailed) {
-        return 'failed';
-      }
-      if (anyCancelled) {
-        return 'cancelled';
-      }
-      if (anyRunning) {
-        return 'running';
-      }
-      if (anyPending) {
-        return 'pending';
-      }
-      if (allPassed && anySeen) {
-        return 'passed';
-      }
+      if (anyFailed) return 'failed';
+      if (anyCancelled) return 'cancelled';
+      if (anyRunning) return 'running';
+      if (anyPending) return 'pending';
+      if (allPassed && anySeen) return 'passed';
       return 'default';
     };
 
+    for (const id of Object.keys(items)) {
+      const item = items[id];
+      const data = item?.data as any;
+      if (!data || data.type !== 'group') continue;
+      // skip top-level group-N entries
+      if (/^group-(\d+)$/.test(String(id))) continue;
+      // collect descendant leaf ids
+      const leafIds: string[] = [];
+      const stack = [...(item.children || [])];
+      while (stack.length) {
+        const cid = String(stack.pop());
+        const child = items[cid];
+        const cdata = child?.data as any;
+        if (!child || !cdata) continue;
+        if (cdata.type === 'test' || cdata.type === 'suite') {
+          if (typeof cdata.id === 'string' && cdata.id) leafIds.push(cdata.id);
+        }
+        if (Array.isArray(child.children) && child.children.length) stack.push(...child.children);
+      }
+      map[id] = aggregate(leafIds);
+    }
+    return map;
+  }, [treeData.items, runStateById, stepStatuses, lastRunIdByEntryId]);
+
+  const getGroupStatus = (groupItemId: string): StepStatus => {
+    const match = /^group-(\d+)$/.exec(groupItemId);
+    const isTopLevel = !!match;
     if (isTopLevel) {
       const groupIndex = Number(match![1]) - 1;
       const group = groups[groupIndex];
-      if (!group) {
-        return 'default';
+      if (!group) return 'default';
+      const leafIds = group.entries.map((e) => e.id).filter(Boolean);
+      let anyFailed = false;
+      let anyCancelled = false;
+      let anyRunning = false;
+      let anyPending = false;
+      let allPassed = leafIds.length > 0;
+      let anySeen = false;
+      for (const leafId of leafIds) {
+        const runId = lastRunIdByEntryId && lastRunIdByEntryId[leafId];
+        const explicitStatus = runId ? (stepStatuses && stepStatuses[runId]) : undefined;
+        const visible = explicitStatus && explicitStatus !== 'pending' ? explicitStatus : (runStateById && runStateById[leafId]) || (stepStatuses && stepStatuses[leafId] === 'pending' ? 'pending' : undefined);
+        if (typeof visible === 'string') anySeen = true;
+        if (visible === 'failed') anyFailed = true;
+        if (visible === 'cancelled') anyCancelled = true;
+        if (visible === 'running') anyRunning = true;
+        if (String(visible) === 'pending') anyPending = true;
+        if (visible !== 'passed') allPassed = false;
       }
-      return aggregate(group.entries.map((e) => e.id).filter(Boolean));
+      if (anyFailed) return 'failed';
+      if (anyCancelled) return 'cancelled';
+      if (anyRunning) return 'running';
+      if (anyPending) return 'pending';
+      if (allPassed && anySeen) return 'passed';
+      return 'default';
     }
-
-    // Imported group: compute based on its subtree leaves (bundle ids).
-    const item = treeData.items[groupItemId];
-    const children = item?.children || [];
-    const leafIds: string[] = [];
-    const stack = [...children];
-    while (stack.length) {
-      const cid = String(stack.pop());
-      const child = treeData.items[cid];
-      const data = child?.data as any;
-      if (!child || !data) {
-        continue;
-      }
-      if (data.type === 'test' || data.type === 'suite') {
-        if (typeof data.id === 'string' && data.id) {
-          leafIds.push(data.id);
-        }
-      }
-      if (Array.isArray(child.children) && child.children.length) {
-        stack.push(...child.children);
-      }
-    }
-    return aggregate(leafIds);
-  }, [groups, runStateById, stepStatuses, lastRunIdByEntryId]);
+    return importedGroupStatusMap[groupItemId] || 'default';
+  };
 
   const getGroupTargets = useCallback((groupItemId: string): string[] => {
     const match = /^group-(\d+)$/.exec(groupItemId);
