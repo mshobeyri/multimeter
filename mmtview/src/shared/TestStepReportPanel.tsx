@@ -122,7 +122,7 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
               const reportKey = `${report.stepType}-${report.stepIndex}-${report.timestamp}`;
               const hasDetails = Boolean(
                 (report.details && report.details.trim().length > 0) ||
-                  (report.actual !== undefined && report.expected !== undefined)
+                (report.actual !== undefined && report.expected !== undefined)
               );
               const isDetailsExpanded = Boolean(expandedDetails[reportKey]);
               return (
@@ -184,7 +184,7 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                           <div style={{ marginTop: 4 }}>
                             {report.actual !== undefined && report.expected !== undefined && (
                               <div style={{ opacity: 0.85 }}>
-                                Actual: {String(report.actual)}, Expected: {String(report.expected)}
+                                Left: {String(report.actual)}, Right: {String(report.expected)}
                               </div>
                             )}
                             {report.details && report.details.trim().length > 0 && (
