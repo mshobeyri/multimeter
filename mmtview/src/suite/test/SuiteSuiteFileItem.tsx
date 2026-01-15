@@ -100,6 +100,9 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
                             minWidth: 0,
                             cursor: isMissing ? 'default' : 'pointer',
                             opacity: isMissing ? 1 : undefined,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 6,
                         }}
                         title={data.path}
                         role={isMissing ? undefined : 'link'}
@@ -138,7 +141,9 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
                             }
                         }}
                     >
-                        {labelPath} - {data.type}
+                        {/* Type icon for suite */}
+                        <span className="codicon codicon-package" aria-hidden title="Suite" style={{ marginRight: 6, color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
+                        {labelPath}
                     </div>
                     </div>
                     {onRun && !isMissing && (

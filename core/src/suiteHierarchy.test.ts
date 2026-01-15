@@ -21,6 +21,7 @@ describe('suiteHierarchy (core)', () => {
         kind: 'suite',
         id: 'suite-node:root',
         path: '/root/root.mmt',
+        title: undefined,
         children: [
           {
             kind: 'group',
@@ -31,14 +32,15 @@ describe('suiteHierarchy (core)', () => {
                 kind: 'suite',
                 id: 'suite-node:0.0',
                 path: '/root/suite1.mmt',
+                title: 'suite 1',
                 children: [
                   {
                     kind: 'group',
                     id: 'suite-node:0.0.0',
                     label: 'Group 1',
                     children: [
-                      {kind: 'test', id: 'suite-node:0.0.0.0', path: '/root/test.mmt'},
-                      {kind: 'test', id: 'suite-node:0.0.0.1', path: '/root/test1.mmt'},
+                      {kind: 'test', id: 'suite-node:0.0.0.0', path: '/root/test.mmt', title: undefined},
+                      {kind: 'test', id: 'suite-node:0.0.0.1', path: '/root/test1.mmt', title: undefined},
                     ],
                   },
                 ],

@@ -33,8 +33,8 @@ const basename = (p: string): string => {
 export type SuiteTestTreeItemData =
   | { type: 'root'; label: string }
   | { type: 'group'; label: string; id?: string }
-  | { type: 'test'; path: string; id: string; parentPath?: string }
-  | { type: 'suite'; path: string; id: string; parentPath?: string };
+  | { type: 'test'; path: string; id: string; title?: string; parentPath?: string }
+  | { type: 'suite'; path: string; id: string; title?: string; parentPath?: string };
 
 interface SuiteTestTreeProps {
   groups: SuiteGroup[];
@@ -186,12 +186,12 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
 
         if (!isSuite) {
           // Top-level entries are relative to the suite file itself (this file).
-          items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'test', path: entry.path, id: entryId, parentPath: '' } };
+          items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'test', path: entry.path, id: entryId, title: (hierarchy as any)?.title, parentPath: '' } };
           continue;
         }
 
         // Top-level imported suite entry. Its children should be displayed relative to this suite file.
-        items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'suite', path: entry.path, id: entryId, parentPath: '' } };
+        items[entry.id] = { ...entryItem, isFolder: true, children: [], data: { type: 'suite', path: entry.path, id: entryId, title: (hierarchy as any)?.title, parentPath: '' } };
       }
     }
 
@@ -246,7 +246,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
               const path = n.path;
               const itemId = uiId;
               // Make imported test nodes expandable so users can toggle the report panel.
-              items[itemId] = { index: itemId, isFolder: true, children: [], data: { type: 'test', path, id: baseId, parentPath: parent } };
+              items[itemId] = { index: itemId, isFolder: true, children: [], data: { type: 'test', path, id: baseId, title: (n as any).title, parentPath: parent } };
               outChildren.push(itemId);
               continue;
             }
@@ -255,7 +255,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
               const path = n.path;
               const itemId = uiId;
               const childIdsForSuite: string[] = [];
-              items[itemId] = { index: itemId, isFolder: true, children: childIdsForSuite, data: { type: 'suite', path, id: baseId, parentPath: parent } };
+              items[itemId] = { index: itemId, isFolder: true, children: childIdsForSuite, data: { type: 'suite', path, id: baseId, title: (n as any).title, parentPath: parent } };
               // recurse to populate childIdsForSuite
               pushHierarchy(itemId, n.children, childIdsForSuite);
               outChildren.push(itemId);
@@ -431,6 +431,12 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     const displayPath = (() => {
       if (!rawPath || typeof rawPath !== 'string') {
         return undefined;
+      }
+
+      // Prefer YAML title when present.
+      const title = (data && (data.type === 'test' || data.type === 'suite')) ? (data as any).title : undefined;
+      if (typeof title === 'string' && title.trim()) {
+        return title.trim();
       }
 
       // Imported items: show the exact string as written in the parent suite list.

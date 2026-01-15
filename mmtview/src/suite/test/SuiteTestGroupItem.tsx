@@ -56,6 +56,12 @@ const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
           {statusIcon && (
             <span className={`codicon ${statusIcon.icon}`} aria-hidden style={{ color: statusIcon.color }} />
           )}
+          {/* Type icon: group/root/import-group */}
+          {data.type === 'group' || data.type === 'import-group' ? (
+            <span className="codicon codicon-layers" aria-hidden title="Group" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
+          ) : (
+            <span className="codicon codicon-package" aria-hidden title="Suite" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
+          )}
           <span style={{ fontFamily: 'var(--vscode-editor-font-family)' }}>{data.label}</span>
           </div>
           {showRunButton && (

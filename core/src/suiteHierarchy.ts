@@ -1,11 +1,12 @@
 import {detectDocType, resolveRelativeTo} from './runCommon';
 import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
 import {createSuiteNodeId} from './suiteNodeId';
+import {yamlToTest} from './testParsePack';
 
 export type SuiteHierarchyNode =
   | {kind: 'group'; id: string; label: string; children: SuiteHierarchyNode[]}
-  | {kind: 'suite'; id: string; path: string; children: SuiteHierarchyNode[]}
-  | {kind: 'test'; id: string; path: string}
+  | {kind: 'suite'; id: string; path: string; title?: string; children: SuiteHierarchyNode[]}
+  | {kind: 'test'; id: string; path: string; title?: string}
   | {kind: 'missing'; id: string; path: string}
   | {kind: 'cycle'; id: string; path: string};
 
@@ -35,6 +36,7 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
       kind: 'suite',
       id: createSuiteNodeId(indexPath, {prefix: leafPrefix}),
       path: targetFilePath,
+      title: suiteDoc.title,
       children,
     };
   };
@@ -88,7 +90,16 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
 
     const type = detectDocType(resolvedPath, raw);
     if (type === 'test') {
-      return {kind: 'test', id: createSuiteNodeId(indexPath, {prefix: leafPrefix}), path: resolvedPath};
+      let title: string | undefined;
+      try {
+        const testDoc = yamlToTest(raw);
+        if (typeof testDoc?.title === 'string' && testDoc.title.trim()) {
+          title = testDoc.title.trim();
+        }
+      } catch {
+        // ignore
+      }
+      return {kind: 'test', id: createSuiteNodeId(indexPath, {prefix: leafPrefix}), path: resolvedPath, title};
     }
 
     if (type !== 'suite') {
