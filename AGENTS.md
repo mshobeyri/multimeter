@@ -124,7 +124,7 @@ flowchart TD
   K --> L["Webview shows steps/asserts"]
 ```
 
-### Run a Suite `.mmt` file (`type: suite`) - suite bundle run (default)
+### Run a Suite `.mmt` file (`type: suite`) - suite bundle run (current)
 
 ```mermaid
 flowchart TD
@@ -135,10 +135,10 @@ flowchart TD
   C1 --> D["core runner (runner.runFile + suiteBundle + suiteTargets)"]
   D --> E["executeSuiteBundle"]
   E --> S0["Reporter: scope=suite-run-start"]
-  E --> G["Reporter: scope=suite-item + leafId (running/passed/failed)"]
-  E --> H["For each selected leaf: runner.runFile(child) with leafId"]
+  E --> G["Reporter: scope=suite-item + id (running/passed/failed)"]
+  E --> H["For each runnable node: run as child with runId + id"]
   H --> D
-  D --> I["Child events (test-step/test-step-run/api logs) include leafId"]
+  D --> I["Child events (test-step/test-step-run/api logs) include id"]
   S0 --> J0["Extension maps to command=suiteRunStart"]
   G --> J1["Extension forwards command=runFileReport"]
   I --> J1
@@ -149,34 +149,36 @@ flowchart TD
   J2 --> K
 
 Notes:
-- A suite entry can resolve to a `type: test` file or another `type: suite` file. The bundle runner treats both as runnable leaves.
-- Targeting is always by `leafId`.
+- A suite entry can resolve to a `type: test` file or another `type: suite` file. Both are runnable bundle node kinds.
+- Targeting is by a single `target` **node id** (webview sends `target: string`), not a `leafId[]`.
+- Execution semantics: bundle is traversed sequentially at the top-level, but `group` children run in parallel (mirrors `then` stage behavior).
+- Child `runId` values are generated per runnable node and are stable enough for routing within a run.
 ```
 
-### Run a subtree / leaf in the suite tree (partial run)
+### Run a subtree / node in the suite tree (partial run)
 
-Per-item Run buttons send `targets: string[]` as `leafId[]`. The extension passes these into `runner.runFile({ suiteBundle, suiteTargets })`, and core filters runnable leaves by `leafId`.
+Per-item Run buttons send a single `target: string` (the bundle node `id`). The extension passes this into `suiteBundle.createSuiteBundle({ target })`, and core executes the subtree rooted at `target`.
 
 ```mermaid
 flowchart TD
   A["Click Run on node"] --> B["Suite webview computes targets (leafId[])"]
-  B --> C["postMessage (runSuite + targets)"]
+  B --> C["postMessage (runSuite + target)"]
   C --> D["Extension host (src/mmtAPI/run.ts)"]
-  D --> E["core runner.runFile (suiteBundle + suiteTargets)"]
-  E --> F["executeSuiteBundle filters runnable leaves"]
-  F --> G["Reporter events include leafId"]
-  G --> H["Webview routes output by leafId"]
+  D --> E["core runner.runFile (suiteBundle)"]
+  E --> F["executeSuiteBundle selects root by id"]
+  F --> G["Reporter events include id"]
+  G --> H["Webview routes output by id"]
 ```
 
 Notes:
-- The bundle is built in the extension using `core` helpers, but execution + filtering happens in `core`.
-- The UI must never invent ids for targeting; only deterministic `leafId`s from suite hierarchy/bundle are valid targets.
+- The bundle is built in the extension using `core` helpers, but execution happens in `core`.
+- The UI must never invent ids for targeting; only deterministic bundle node `id`s are valid targets.
 
 ## Suite bundle (current)
 
 Suite runs are executed via a core-native **suite bundle** runner.
 
-- **Leaf identity**: `leafId` is the single end-to-end identifier for runnable nodes.
+- **Node identity**: `id` is the single end-to-end identifier for runnable nodes.
 - **Lifecycle**: core emits `scope: 'suite-run-start'` / `scope: 'suite-run-finished'` reporter events.
-- **Per-item**: core emits `scope: 'suite-item'` with `status: 'running' | 'passed' | 'failed'` and the related `leafId`.
-- **Step routing**: test-step events and summaries (`scope: 'test-step'` / `scope: 'test-step-run'`) include `leafId` so the webview can attach output to the correct leaf.
+- **Per-item**: core emits `scope: 'suite-item'` with `status: 'running' | 'passed' | 'failed'` and the related `id`.
+- **Step routing**: child runs receive `id`, and downstream test-step events should be routed by `id` (extension currently backfills `id` using `runId` mapping when needed).

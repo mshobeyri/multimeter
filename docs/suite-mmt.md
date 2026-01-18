@@ -67,5 +67,15 @@ When you open a suite file, the Multimeter panel displays the items in the suite
 
 This visual representation helps you understand the structure of your suite at a glance. You can run the entire suite from this panel.
 
+### Partial runs (Run on an item)
+The Suite panel also supports running a single item (or a subtree) from within the suite tree.
+
+- Suite runs are executed via a **suite bundle**.
+- Each runnable node in the bundle has an `id`.
+- Clicking **Run** on a node sends that node `id` as `target` to the extension host.
+- Core executes the subtree rooted at `target` and emits reports tagged with the same `id` so the UI routes output to the correct item.
+
+If you see output appear under the wrong item, it usually means report events are being routed without using `id` (or a per-run `runId`).
+
 Here is a sample of the UI for running a suite:
 ![Suite panel](../screenshots/suite.png)
