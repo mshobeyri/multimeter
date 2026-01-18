@@ -23,6 +23,7 @@ interface UseAPITesterLogicParams {
 
 export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLogicParams) {
   const network = useNetwork();
+  const apiRef = useRef<APIData>(api);
   const [requestData, setRequestData] = useState<Request>();
   const [responseData, setResponseData] = useState<Response>();
   const [responseRevision, setResponseRevision] = useState<number>(0);
@@ -34,6 +35,10 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
   const [outputs, setOutputs] = useState<JSONRecord>({});
 
   const examples = useMemo(() => safeList(api.examples), [api.examples]);
+
+  useEffect(() => {
+    apiRef.current = api;
+  }, [api]);
 
   useEffect(() => {
     currentInputsRef.current = currentInputs;
@@ -178,7 +183,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
       }
     }
 
-    const existing = { ...(api.outputs || {}) };
+    const existing = { ...(apiRef.current.outputs || {}) };
     let key = suggestedKey;
     let counter = 1;
     while (Object.prototype.hasOwnProperty.call(existing, key)) {
@@ -187,8 +192,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
 
     existing[key] = expr;
     onUpdateApi?.({ outputs: existing });
-    api.outputs = existing;
-  }, [api, onUpdateApi, requestData?.format]);
+  }, [onUpdateApi, requestData?.format]);
 
   const handleSend = useCallback(async () => {
     const res = await network.send(requestData);
