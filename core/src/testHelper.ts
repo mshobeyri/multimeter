@@ -108,6 +108,7 @@ const ensurePayload = (event: Record<string, any>): Record<string, any> => {
 
 let lastRunId: string|undefined;
 let stepIndex = 0;
+const stepIndexByRunId = new Map<string, number>();
 const nextStepIndex = (): number => {
   const currentRunId = typeof __mmtRunId === 'string' ? __mmtRunId : '';
   if (currentRunId !== lastRunId) {
@@ -116,6 +117,16 @@ const nextStepIndex = (): number => {
   }
   stepIndex += 1;
   return stepIndex;
+};
+
+const nextStepIndexFor = (runId: string): number => {
+  if (!runId) {
+    return nextStepIndex();
+  }
+  const current = stepIndexByRunId.get(runId) || 0;
+  const next = current + 1;
+  stepIndexByRunId.set(runId, next);
+  return next;
 };
 
 const normalizeComparison = (value: unknown): string => {
@@ -187,5 +198,46 @@ export const report_ = (
   if (typeof __mmtId === 'string' && __mmtId) {
     payload.id = __mmtId;
   }
+  emitStep(payload);
+};
+
+export const reportWithContext_ = (
+    reporter: ((event: Record<string, any>) => void)|undefined,
+    runId: string|undefined,
+    id: string|undefined,
+    stepType: StepType, comparison: unknown, title: unknown,
+    details: unknown, passed: boolean, actual?: any, expected?: any) => {
+  const resolvedRunId = typeof runId === 'string' ? runId : '';
+  const payload: Record<string, any> = {
+    scope: 'test-step',
+    stepType,
+    comparison: normalizeComparison(comparison),
+    stepIndex: nextStepIndexFor(resolvedRunId),
+    status: passed ? 'passed' : 'failed',
+    actual,
+    expected,
+    runId: resolvedRunId,
+  };
+
+  const normalized = normalizeTitleDetails(title, details);
+  if (typeof normalized.title === 'string') {
+    payload.title = normalized.title;
+  }
+  if (typeof normalized.details === 'string') {
+    payload.details = normalized.details;
+  }
+  if (typeof id === 'string' && id) {
+    payload.id = id;
+  }
+
+  if (typeof reporter === 'function') {
+    try {
+      reporter(ensurePayload(payload));
+    } catch {
+      // Ignore reporter errors so tests keep running
+    }
+    return;
+  }
+
   emitStep(payload);
 };

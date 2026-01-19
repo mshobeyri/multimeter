@@ -87,18 +87,22 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
 
   try {
     const helperDecls =
-        Object.keys(mmtHelper)
-            .map(name => `const ${name} = mmtHelper["${name}"];`)
-            .join('\n');
+          Object.keys(mmtHelper)
+              .filter(name => name !== 'report_')
+              .map(name => `const ${name} = mmtHelper["${name}"];`)
+              .join('\n');
     const randomDecls =
         Object.keys(Random)
             .filter(name => typeof (Random as any)[name] === 'function')
             .map(name => `const ${name} = Random["${name}"];`)
             .join('\n');
     const fn = new Function(
-        'mmtHelper', 'console', 'send_', 'extractOutputs_', 'Random',
-        `${helperDecls}\n${randomDecls}\n${code}`);
-    await fn(mmtHelper, customConsole, send, extractOutputs, Random);
+      'mmtHelper', 'console', 'send_', 'extractOutputs_', 'Random',
+      '__reporter', '__runId', '__id',
+      `${helperDecls}\n${randomDecls}\n` +
+      `const report_ = (...args) => mmtHelper.reportWithContext_(__reporter, __runId, __id, ...args);\n` +
+      `${code}`);
+    await fn(mmtHelper, customConsole, send, extractOutputs, Random, reporterFn, runId, context.id);
   } catch (e: any) {
     lg('error', 'Error running test: ' + (e?.message || String(e)));
   } finally {

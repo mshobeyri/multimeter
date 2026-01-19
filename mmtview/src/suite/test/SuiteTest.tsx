@@ -98,6 +98,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
 
     const [stepStatuses, setStepStatuses] = useState<Record<string, StepStatus | 'running'>>({});
     const [lastRunIdByEntryId, setLastRunIdByEntryId] = useState<Record<string, string>>({});
+    const lastRunIdByEntryIdRef = useRef<Record<string, string>>({});
     const [missingFiles, setMissingFiles] = useState<Set<string>>(new Set());
 
     const [suiteRunId, setSuiteRunId] = useState<string | null>(null);
@@ -106,6 +107,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
     const [leafRunStateById, setLeafRunStateById] = useState<Record<string, 'idle' | 'running' | 'passed' | 'failed' | 'cancelled'>>({});
     const pendingLeafResetRef = useRef<'all' | string[] | null>(null);
     const pendingEntriesToCancelRef = useRef<string[] | null>(null);
+    const reportQueueRef = useRef<any[]>([]);
+    const reportFlushTimerRef = useRef<number | null>(null);
 
     const resetLeafState = useCallback((mode: 'all' | readonly string[]) => {
         if (mode === 'all') {
@@ -119,6 +122,137 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
         setLeafReportsById(prev => resetLeafStateMap(prev, mode));
         setLeafRunStateById(prev => resetLeafStateMap(prev, mode));
     }, [setLeafReportsById, setLeafRunStateById]);
+
+    useEffect(() => {
+        lastRunIdByEntryIdRef.current = lastRunIdByEntryId;
+    }, [lastRunIdByEntryId]);
+
+    const flushReportQueue = useCallback(() => {
+        const queued = reportQueueRef.current;
+        if (!queued.length) {
+            return;
+        }
+        reportQueueRef.current = [];
+
+        const queuedReports = [...queued];
+        const runIdToEntryId: Record<string, string> = {};
+
+        Object.entries(lastRunIdByEntryIdRef.current).forEach(([entryId, runId]) => {
+            if (runId) {
+                runIdToEntryId[runId] = entryId;
+            }
+        });
+
+        queuedReports.forEach((message: any) => {
+            const runId = typeof message.runId === 'string' ? message.runId : null;
+            const groupIndex = message.groupIndex;
+            const groupItemIndex = message.groupItemIndex;
+            if (runId && typeof groupIndex === 'number' && typeof groupItemIndex === 'number') {
+                const group = groups[groupIndex];
+                const entry = group?.entries?.[groupItemIndex];
+                if (entry?.id) {
+                    runIdToEntryId[runId] = entry.id;
+                }
+            }
+        });
+
+        setLastRunIdByEntryId(prev => {
+            const next = { ...prev };
+            queuedReports.forEach((message: any) => {
+                const runId = typeof message.runId === 'string' ? message.runId : null;
+                const groupIndex = message.groupIndex;
+                const groupItemIndex = message.groupItemIndex;
+                if (runId && typeof groupIndex === 'number' && typeof groupItemIndex === 'number') {
+                    const group = groups[groupIndex];
+                    const entry = group?.entries?.[groupItemIndex];
+                    if (entry?.id) {
+                        next[entry.id] = runId;
+                    }
+                }
+            });
+            return next;
+        });
+
+        setStepStatuses(prev => {
+            const next = { ...prev };
+            queuedReports.forEach((message: any) => {
+                const runId = typeof message.runId === 'string' ? message.runId : null;
+                const groupIndex = message.groupIndex;
+                const groupItemIndex = message.groupItemIndex;
+                const nextStatus: StepStatus | 'running' = message.status || (message.success ? 'passed' : 'failed');
+
+                if (runId) {
+                    next[runId] = nextStatus;
+                    return;
+                }
+
+                if (typeof groupIndex === 'number' && typeof groupItemIndex === 'number') {
+                    const group = groups[groupIndex];
+                    const entry = group?.entries?.[groupItemIndex];
+                    if (entry?.id) {
+                        next[entry.id] = nextStatus;
+                    }
+                }
+            });
+            return next;
+        });
+
+        setLeafRunStateById(prev => {
+            const next = { ...prev };
+            queuedReports.forEach((message: any) => {
+                const runId = typeof message.runId === 'string' ? message.runId : null;
+                const reportedId = typeof message.id === 'string' ? message.id : null;
+                const targetId = reportedId || (runId ? runIdToEntryId[runId] : null);
+                if (!targetId) {
+                    return;
+                }
+                const scope = typeof message.scope === 'string' ? message.scope : '';
+                const nextStatus: StepStatus | 'running' = message.status || (message.success ? 'passed' : 'failed');
+
+                if (scope === 'suite-item' && nextStatus === 'running') {
+                    next[targetId] = 'running';
+                }
+                if (scope === 'suite-item' && (nextStatus === 'passed' || nextStatus === 'failed')) {
+                    next[targetId] = nextStatus;
+                }
+                if (scope === 'test-step-run' && message.success === false) {
+                    next[targetId] = 'failed';
+                }
+            });
+            return next;
+        });
+
+        setLeafReportsById(prev => {
+            const next = { ...prev };
+            queuedReports.forEach((message: any) => {
+                const runId = typeof message.runId === 'string' ? message.runId : null;
+                const reportedId = typeof message.id === 'string' ? message.id : null;
+                const targetId = reportedId || (runId ? runIdToEntryId[runId] : null);
+                const scope = typeof message.scope === 'string' ? message.scope : '';
+                if (!targetId || scope !== 'test-step') {
+                    return;
+                }
+                const normalized: StepReportItem = {
+                    stepIndex: Number(message.stepIndex) || 1,
+                    stepType: message.stepType === 'assert' ? 'assert' : 'check',
+                    status: message.status === 'failed' ? 'failed' : 'passed',
+                    comparison: typeof message.comparison === 'string' ? message.comparison : '',
+                    title: typeof message.title === 'string' ? message.title : undefined,
+                    details: typeof message.details === 'string' ? message.details : undefined,
+                    actual: message.actual,
+                    expected: message.expected,
+                    timestamp: typeof message.timestamp === 'number' ? message.timestamp : Date.now(),
+                };
+                const existing = next[targetId] || [];
+                next[targetId] = [...existing, normalized];
+
+                if (normalized.status === 'failed') {
+                    setLeafRunStateById(state => ({ ...state, [targetId]: 'failed' }));
+                }
+            });
+            return next;
+        });
+    }, [groups]);
 
     const [hierarchyByEntryPath, setHierarchyByEntryPath] = useState<Record<string, SuiteTreeNode>>({});
 
@@ -154,8 +288,24 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
         setSuiteRunId(null);
         setSuiteRunState('idle');
         pendingLeafResetRef.current = null;
+        reportQueueRef.current = [];
         resetLeafState('all');
     }, [content, resetLeafState]);
+
+    useEffect(() => {
+        if (reportFlushTimerRef.current !== null) {
+            window.clearInterval(reportFlushTimerRef.current);
+        }
+        reportFlushTimerRef.current = window.setInterval(() => {
+            flushReportQueue();
+        }, 500);
+        return () => {
+            if (reportFlushTimerRef.current !== null) {
+                window.clearInterval(reportFlushTimerRef.current);
+                reportFlushTimerRef.current = null;
+            }
+        };
+    }, [flushReportQueue]);
 
     useEffect(() => {
         const handler = (event: MessageEvent) => {
@@ -169,6 +319,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 if (!nextSuiteRunId) {
                     return;
                 }
+                reportQueueRef.current = [];
                 setSuiteRunId(nextSuiteRunId);
                 setSuiteRunState('running');
                 const hint = pendingLeafResetRef.current;
@@ -190,6 +341,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 }
                 const cancelled = Boolean((message as any).cancelled);
                 setSuiteRunState(cancelled ? 'cancelled' : 'idle');
+                flushReportQueue();
                 return;
             }
 
@@ -239,6 +391,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                     pendingEntriesToCancelRef.current = null;
                     return next;
                 });
+                flushReportQueue();
                 return;
             }
 
@@ -247,73 +400,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 if (suiteRunId && incomingSuiteRunId && incomingSuiteRunId !== suiteRunId) {
                     return;
                 }
-
-                const runId = typeof (message as any).runId === 'string' ? (message as any).runId : null;
-                const { groupIndex, groupItemIndex, success, status } = message as any;
-                const nextStatus: StepStatus | 'running' = status || (success ? 'passed' : 'failed');
-
-                if (runId && typeof groupIndex === 'number' && typeof groupItemIndex === 'number') {
-                    const group = groups[groupIndex];
-                    const entry = group?.entries?.[groupItemIndex];
-                    if (entry?.id) {
-                        setLastRunIdByEntryId(prev => ({ ...prev, [entry.id]: runId }));
-                    }
-                }
-
-                if (runId) {
-                    setStepStatuses(prev => ({ ...prev, [runId]: nextStatus }));
-                }
-
-                const reportedId = typeof (message as any).id === 'string' ? (message as any).id : null;
-                const scope = typeof (message as any).scope === 'string' ? (message as any).scope : '';
-
-                if (reportedId) {
-                    if (scope === 'suite-item' && nextStatus === 'running') {
-                        setLeafRunStateById(prev => ({ ...prev, [reportedId]: 'running' }));
-                    }
-                    if (scope === 'suite-item' && (nextStatus === 'passed' || nextStatus === 'failed')) {
-                        setLeafRunStateById(prev => ({ ...prev, [reportedId]: nextStatus }));
-                    }
-
-                    if (scope === 'test-step') {
-                        const normalized: StepReportItem = {
-                            stepIndex: Number((message as any).stepIndex) || 1,
-                            stepType: (message as any).stepType === 'assert' ? 'assert' : 'check',
-                            status: (message as any).status === 'failed' ? 'failed' : 'passed',
-                            comparison: typeof (message as any).comparison === 'string' ? (message as any).comparison : '',
-                            title: typeof (message as any).title === 'string' ? (message as any).title : undefined,
-                            details: typeof (message as any).details === 'string' ? (message as any).details : undefined,
-                            actual: (message as any).actual,
-                            expected: (message as any).expected,
-                            timestamp: typeof (message as any).timestamp === 'number' ? (message as any).timestamp : Date.now(),
-                        };
-                        setLeafReportsById(prev => ({
-                            ...prev,
-                            [reportedId]: [...(prev[reportedId] || []), normalized],
-                        }));
-                        if (normalized.status === 'failed') {
-                            setLeafRunStateById(prev => ({ ...prev, [reportedId]: 'failed' }));
-                        }
-                    }
-
-                    if (scope === 'test-step-run' && success === false) {
-                        setLeafRunStateById(prev => ({ ...prev, [reportedId]: 'failed' }));
-                    }
-                }
-
-                if (runId) {
-                    return;
-                }
-
-                if (typeof groupIndex === 'number' && typeof groupItemIndex === 'number') {
-                    const group = groups[groupIndex];
-                    if (group) {
-                        const entry = group.entries[groupItemIndex];
-                        if (entry) {
-                            setStepStatuses(prev => ({ ...prev, [entry.id]: nextStatus }));
-                        }
-                    }
-                }
+                reportQueueRef.current.push(message);
                 return;
             }
             if (message.command === 'validateFilesExistResult') {
@@ -323,7 +410,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
         };
         window.addEventListener('message', handler);
         return () => window.removeEventListener('message', handler);
-    }, [groups, suiteRunId, resetLeafState]);
+    }, [groups, suiteRunId, resetLeafState, flushReportQueue]);
 
     useEffect(() => {
         if (allPaths.length > 0) {
