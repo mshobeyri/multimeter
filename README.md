@@ -84,5 +84,7 @@ Here is a how you can run the test in VSCode;
 - [History](docs/history.md)
 - [Test Generation Profile(cheat sheet)](docs/testgen-profile.md)
 
----
-**Special thanks to: Dear Ashkan Palganeh.**
+## 💬 Communcations
+- [Trello](https://trello.com/invite/b/696e9c5c2f58a795c49a2f09/ATTI82216d5bd7d640679502ecc972eeea7a169DFB32/multimeter)
+- [Teams](https://teams.live.com/l/community/FEAfSabmdjSjkKgCAI)
+- [Contanct](mehrdad.shobeyri@gmail.com)
