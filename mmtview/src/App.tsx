@@ -28,6 +28,7 @@ const App: React.FC = () => {
   const [validContent, setValidContent] = useState("");
   const [docType, setDocType] = useState<string | null>(null);
   const [mmtFilePath, setMmtFilePath] = useState<string | undefined>(undefined);
+  const [yamlFontSize, setYamlFontSize] = useState<number>(12);
 
   const isInitLoad = useRef(true);
   const [yamlEditorFocused, setYamlEditorFocused] = useState(false);
@@ -96,6 +97,15 @@ const App: React.FC = () => {
         } else if (message.panelId === "ui") {
           setPanelMode("ui");
           setPanelSize(0);
+        }
+      }
+
+      if (message.command === "config") {
+        const size = Number(message.editorFontSize);
+        if (Number.isFinite(size) && size > 0) {
+          setYamlFontSize(size);
+        } else {
+          setYamlFontSize(12);
         }
       }
     };
@@ -181,6 +191,7 @@ const App: React.FC = () => {
             content={content}
             setContent={yamlSetContent}
             onFocusChange={setYamlEditorFocused}
+            fontSize={yamlFontSize}
           />
         </div>
         <div style={{ height: "100vh", minHeight: 0, display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>

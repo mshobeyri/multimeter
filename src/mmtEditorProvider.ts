@@ -37,9 +37,10 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     try {
       const config = vscode.workspace.getConfiguration('multimeter');
       const bodyAutoFormat = !!config.get<boolean>('body.auto.format');
-      return {command: 'config', bodyAutoFormat};
+      const editorFontSize = config.get<number>('editor.fontSize');
+      return {command: 'config', bodyAutoFormat, editorFontSize};
     } catch {
-      return {command: 'config', bodyAutoFormat: false};
+      return {command: 'config', bodyAutoFormat: false, editorFontSize: 12};
     }
   }
 

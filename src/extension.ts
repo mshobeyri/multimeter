@@ -17,7 +17,8 @@ export function activate(context: vscode.ExtensionContext) {
 
   context.subscriptions.push(
       vscode.workspace.onDidChangeConfiguration(event => {
-        if (event.affectsConfiguration('multimeter.body.auto.format')) {
+        if (event.affectsConfiguration('multimeter.body.auto.format') ||
+            event.affectsConfiguration('multimeter.editor.fontSize')) {
           mmtviewPanel.broadcastConfig();
         }
       }));

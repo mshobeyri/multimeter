@@ -182,6 +182,13 @@
           "type": "boolean",
           "default": false,
           "description": "Automatically format the body of the responses"
+        },
+        "multimeter.editor.fontSize": {
+          "type": "number",
+          "default": 12,
+          "description": "Font size for the MMT YAML editor",
+          "minimum": 8,
+          "maximum": 40
         }
       }
     },

@@ -35,7 +35,8 @@ const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
 const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   content,
   setContent,
-  onFocusChange // <-- receive it as a prop
+  onFocusChange, // <-- receive it as a prop
+  fontSize
 }) => {
   const monacoRef = useRef<any>(null);
   const editorRef = useRef<any>(null);
@@ -475,6 +476,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         onFocusChange={onFocusChange}
         onToggleRunButton={handleRunClick}
         showGlyphMargin={true}
+        fontSize={fontSize}
       />
     </div>
   );
