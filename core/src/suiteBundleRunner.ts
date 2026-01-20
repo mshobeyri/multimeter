@@ -49,7 +49,9 @@ async function runSuiteTest(params: {
   const currentIndex = nextIndex();
   const childFilePath = resolveRelativeTo(node.path, bundle.rootSuitePath);
   const display = basename(childFilePath || node.path);
-  const runId = `suite:${sanitizeIdentifier(bundle.rootSuitePath)}:${currentIndex}:${sanitizeIdentifier(childFilePath || node.path)}`;
+  // Include a suite-run nonce so repeating the suite reuses no runIds.
+  const suiteRunNonce = typeof (options as any)?.suiteRunId === 'string' ? (options as any).suiteRunId : '';
+  const runId = `suite:${sanitizeIdentifier(bundle.rootSuitePath)}:${suiteRunNonce}:${currentIndex}:${sanitizeIdentifier(childFilePath || node.path)}`;
   const id = node.id;
 
   try {
@@ -129,7 +131,9 @@ async function runSuiteSuite(params: {
   const currentIndex = nextIndex();
   const childFilePath = resolveRelativeTo(node.path, bundle.rootSuitePath);
   const display = basename(childFilePath || node.path);
-  const runId = `suite:${sanitizeIdentifier(bundle.rootSuitePath)}:${currentIndex}:${sanitizeIdentifier(childFilePath || node.path)}`;
+  // Include a suite-run nonce so repeating the suite reuses no runIds.
+  const suiteRunNonce = typeof (options as any)?.suiteRunId === 'string' ? (options as any).suiteRunId : '';
+  const runId = `suite:${sanitizeIdentifier(bundle.rootSuitePath)}:${suiteRunNonce}:${currentIndex}:${sanitizeIdentifier(childFilePath || node.path)}`;
   const id = node.id;
 
   try {

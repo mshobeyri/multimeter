@@ -21,9 +21,19 @@ function createSuiteRunId(document: vscode.TextDocument) {
 }
 
 function getPanelId(panel: vscode.WebviewPanel): string {
-  // WebviewPanel doesn't expose a stable ID; use extension viewType + title.
-  return `${panel.viewType}:${panel.title}`;
+  // WebviewPanel doesn't expose a stable ID; use a process-unique identity.
+  // Title can collide across tabs (and is less reliable on Windows), so we
+  // prefer the panel object's identity via a WeakMap allocation.
+  let id = panelIds.get(panel);
+  if (!id) {
+    id = `panel:${++panelIdSeq}`;
+    panelIds.set(panel, id);
+  }
+  return id;
 }
+
+const panelIds = new WeakMap<vscode.WebviewPanel, string>();
+let panelIdSeq = 0;
 
 export function logToOutput(level: LogLevel, message: string) {
   switch (level) {
@@ -99,7 +109,11 @@ export async function handleRunCurrentDocument(
       jsRunner: runJSCode,
       logger: forwardLog,
       reporter: (msg: any) => {
-        webviewPanel.webview.postMessage({command: 'runFileReport', ...msg});
+        webviewPanel.webview.postMessage({
+          command: 'runFileReport',
+          filePath: document.uri.toString(),
+          ...msg,
+        });
       },
     });
 
@@ -219,6 +233,8 @@ export async function handleRunSuite(
       abortSignal: controller.signal as any,
       // Bundle-based suite run: core uses bundle ids for targeting + routing.
       suiteBundle: bundle,
+      // Provide a per-suite-run nonce for unique child runIds.
+      suiteRunId: suiteRunId,
       reporter: (msg: any) => {
         const current = activeSuiteRun;
         if (!current || current.suiteRunId !== suiteRunId) {
@@ -243,7 +259,7 @@ export async function handleRunSuite(
           ...msg,
         });
       },
-    });
+    } as any);
 
     webviewPanel.webview.postMessage({
       command: 'suiteRunEnd',

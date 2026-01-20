@@ -9,6 +9,8 @@ const createRunId = (): string => {
       Math.random().toString(36).slice(2, 10)}`;
 };
 
+export const __testOnlyCreateRunId = createRunId;
+
 export function prepareTestRun(
     rawText: string, manualInputs: Record<string, any>): Partial<PreparedRun> {
   const testDoc =
@@ -60,7 +62,12 @@ export async function executeTest(
   } = prepared;
   const displayName = title || baseName;
   const identifier = sanitizeIdentifier(displayName);
-  const runId = (options as any)?.runId || createRunId();
+  // Always generate a fresh runId per execution unless the caller explicitly
+  // provides one (used by suite bundle routing). This ensures step numbering
+  // restarts at 1 for each run.
+  const runId = typeof (options as any)?.runId === 'string' && (options as any).runId ?
+      (options as any).runId :
+      createRunId();
   const forwardReporter = options.reporter;
   const stepReporter = forwardReporter ? (event: TestStepReporterEvent) => {
     const payload: TestStepReporterEvent = {

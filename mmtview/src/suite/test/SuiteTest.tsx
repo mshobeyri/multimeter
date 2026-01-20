@@ -320,6 +320,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                     return;
                 }
                 reportQueueRef.current = [];
+                // New suite run: clear per-run mappings so old runIds can't
+                // influence routing or step sequences.
+                setLastRunIdByEntryId({});
+                lastRunIdByEntryIdRef.current = {};
                 setSuiteRunId(nextSuiteRunId);
                 setSuiteRunState('running');
                 const hint = pendingLeafResetRef.current;
@@ -397,8 +401,17 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
 
             if (message.command === 'runFileReport') {
                 const incomingSuiteRunId = typeof (message as any).suiteRunId === 'string' ? (message as any).suiteRunId : null;
-                if (suiteRunId && incomingSuiteRunId && incomingSuiteRunId !== suiteRunId) {
-                    return;
+                if (suiteRunId) {
+                    // When the UI thinks we have an active suite run, only accept
+                    // reports explicitly tagged with the same suiteRunId.
+                    if (!incomingSuiteRunId || incomingSuiteRunId !== suiteRunId) {
+                        return;
+                    }
+                } else {
+                    // When idle, drop suite-tagged events from other panels/runs.
+                    if (incomingSuiteRunId) {
+                        return;
+                    }
                 }
                 reportQueueRef.current.push(message);
                 return;

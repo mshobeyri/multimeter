@@ -114,6 +114,7 @@ const nextStepIndex = (): number => {
   if (currentRunId !== lastRunId) {
     lastRunId = currentRunId;
     stepIndex = 0;
+    stepIndexByRunId.clear();
   }
   stepIndex += 1;
   return stepIndex;
