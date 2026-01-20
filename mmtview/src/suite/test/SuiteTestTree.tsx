@@ -5,7 +5,7 @@ import SuiteTestFileItem from './SuiteTestFileItem';
 import SuiteSuiteFileItem from './SuiteSuiteFileItem';
 import { SuiteGroup } from '../types';
 import { StepStatus } from '../../shared/types';
-import { aggregateStatuses } from '../../shared/Common';
+import { aggregateLeafIds, aggregateStatuses, leafVisibleStatus } from '../../shared/Common';
 import { StepReportItem } from '../../shared/TestStepReportPanel';
 import { SuiteTreeNode } from './suiteHierarchy';
 
@@ -77,6 +77,30 @@ const collectDescendantLeafIds = (
     }
   }
   return leafIds;
+};
+
+const collectImportedGroupLeafIds = (items: Record<string, TreeItem<SuiteTestTreeItemData>>, groupItemId: string): string[] => {
+  const importedItem = items[groupItemId];
+  if (!importedItem) {
+    return [];
+  }
+  return collectDescendantLeafIds(items, groupItemId);
+};
+
+const buildLeafVisibleGetter = (args: {
+  runStateById: Record<string, StepStatus>;
+  lastRunIdByEntryId: Record<string, string>;
+  stepStatuses: Record<string, StepStatus | 'running'>;
+}) => {
+  return (leafId: string): StepStatus | undefined => {
+    const runId = args.lastRunIdByEntryId && args.lastRunIdByEntryId[leafId];
+    const explicitStatus = runId ? (args.stepStatuses && args.stepStatuses[runId]) : undefined;
+    return leafVisibleStatus({
+      leafState: args.runStateById && args.runStateById[leafId],
+      explicitRunStatus: (explicitStatus as any) as StepStatus | undefined,
+      isPending: Boolean(args.stepStatuses && args.stepStatuses[leafId] === 'pending'),
+    });
+  };
 };
 
 const buildBaseTestTree = (groups: SuiteGroup[]) => {
@@ -337,25 +361,10 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     const map: Record<string, StepStatus> = {};
     const items = treeData.items;
 
-    const getLeafVisible = (leafId: string): StepStatus | undefined => {
-      const leafState = runStateById && runStateById[leafId];
-      if (leafState) {
-        return leafState;
-      }
-
-      const runId = lastRunIdByEntryId && lastRunIdByEntryId[leafId];
-      const explicitStatus = runId ? (stepStatuses && stepStatuses[runId]) : undefined;
-      if (explicitStatus && explicitStatus !== 'pending') {
-        return explicitStatus as StepStatus;
-      }
-      if (stepStatuses && stepStatuses[leafId] === 'pending') {
-        return 'pending';
-      }
-      return undefined;
-    };
+    const getLeafVisible = buildLeafVisibleGetter({ runStateById, lastRunIdByEntryId, stepStatuses });
 
     const aggregate = (leafIds: string[]): StepStatus => {
-      return aggregateStatuses(leafIds.map((leafId) => getLeafVisible(leafId)));
+      return aggregateLeafIds({ leafIds, getVisible: getLeafVisible });
     };
 
     for (const id of Object.keys(items)) {
@@ -394,43 +403,23 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
       for (const leafId of leafIds) {
         const runId = lastRunIdByEntryId && lastRunIdByEntryId[leafId];
         const explicitStatus = runId ? (stepStatuses && stepStatuses[runId]) : undefined;
-        const leafState = runStateById && runStateById[leafId];
-        const visible: StepStatus | undefined = leafState
-          ? leafState
-          : (explicitStatus && explicitStatus !== 'pending'
-            ? (explicitStatus as StepStatus)
-            : (stepStatuses && stepStatuses[leafId] === 'pending' ? 'pending' : undefined));
-
-        statuses.push(visible);
+        statuses.push(
+          leafVisibleStatus({
+            leafState: runStateById && runStateById[leafId],
+            explicitRunStatus: (explicitStatus as any) as StepStatus | undefined,
+            isPending: Boolean(stepStatuses && stepStatuses[leafId] === 'pending'),
+          })
+        );
       }
       return aggregateStatuses(statuses);
     }
 
     // Imported group nodes (nested suite groups): compute status from descendants
     // using the full tree data so we can show cancelled when stopping a run.
-    const importedItem = treeData.items[groupItemId];
-    if (importedItem) {
-      const leafIds = collectDescendantLeafIds(treeData.items, groupItemId);
-      if (leafIds.length) {
-        const statuses: Array<StepStatus | undefined> = leafIds.map((leafId) => {
-          const leafState = runStateById && runStateById[leafId];
-          if (leafState) {
-            return leafState;
-          }
-
-          const runId = lastRunIdByEntryId && lastRunIdByEntryId[leafId];
-          const explicitStatus = runId ? (stepStatuses && stepStatuses[runId]) : undefined;
-          if (explicitStatus && explicitStatus !== 'pending') {
-            return explicitStatus as StepStatus;
-          }
-          if (stepStatuses && stepStatuses[leafId] === 'pending') {
-            return 'pending';
-          }
-          return undefined;
-        });
-
-        return aggregateStatuses(statuses);
-      }
+    const importedLeafIds = collectImportedGroupLeafIds(treeData.items, groupItemId);
+    if (importedLeafIds.length) {
+      const getLeafVisible = buildLeafVisibleGetter({ runStateById, lastRunIdByEntryId, stepStatuses });
+      return aggregateLeafIds({ leafIds: importedLeafIds, getVisible: getLeafVisible });
     }
 
     return importedGroupStatusMap[groupItemId] || 'default';

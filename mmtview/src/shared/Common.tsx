@@ -67,3 +67,31 @@ export const aggregateStatuses = (statuses: Array<StepStatus | undefined | null>
     }
     return 'default';
 };
+
+export type LeafVisibilityInputs = {
+    leafState?: StepStatus;
+    explicitRunStatus?: StepStatus;
+    isPending?: boolean;
+};
+
+export const leafVisibleStatus = (inputs: LeafVisibilityInputs): StepStatus | undefined => {
+    const { leafState, explicitRunStatus, isPending } = inputs;
+    if (leafState) {
+        return leafState;
+    }
+    if (explicitRunStatus && explicitRunStatus !== 'pending') {
+        return explicitRunStatus;
+    }
+    if (isPending) {
+        return 'pending';
+    }
+    return undefined;
+};
+
+export const aggregateLeafIds = (opts: {
+    leafIds: string[];
+    getVisible: (leafId: string) => StepStatus | undefined;
+}): StepStatus => {
+    const statuses = opts.leafIds.map((id) => opts.getVisible(id));
+    return aggregateStatuses(statuses);
+};
