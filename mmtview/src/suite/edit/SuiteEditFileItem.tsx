@@ -2,7 +2,8 @@ import React, { useContext } from 'react';
 import { TreeItem } from 'react-complex-tree';
 import FilePickerInput from '../../components/FilePickerInput';
 import { FileContext } from '../../fileContext';
-import { StepStatus, SuiteGroup } from '../types';
+import { SuiteGroup } from '../types';
+import { StepStatus } from '../../shared/types';
 
 export type SuiteEditFileItemData = { type: 'file'; path: string };
 

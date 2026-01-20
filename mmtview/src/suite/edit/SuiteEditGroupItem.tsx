@@ -1,6 +1,6 @@
 import React from 'react';
 import { TreeItem } from 'react-complex-tree';
-import { StepStatus } from '../types';
+import { StepStatus } from '../../shared/types';
 
 export type SuiteEditGroupItemData = { type: 'group' | 'root'; label: string };
 
@@ -10,7 +10,7 @@ interface SuiteEditGroupItemProps {
   arrow: React.ReactNode;
   children: React.ReactNode;
   getGroupStatus: (itemId: string) => StepStatus;
-  statusIconFor: (status: StepStatus | 'running') => { icon: string; color: string; title: string };
+  statusIconFor: (status: StepStatus) => { icon: string; color: string; title: string };
   canShowStatusIcon?: boolean;
 }
 

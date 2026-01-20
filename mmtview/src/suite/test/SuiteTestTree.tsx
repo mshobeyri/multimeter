@@ -3,7 +3,9 @@ import { ControlledTreeEnvironment, Tree, TreeItem } from 'react-complex-tree';
 import SuiteTestGroupItem from './SuiteTestGroupItem';
 import SuiteTestFileItem from './SuiteTestFileItem';
 import SuiteSuiteFileItem from './SuiteSuiteFileItem';
-import { StepStatus, SuiteGroup } from '../types';
+import { SuiteGroup } from '../types';
+import { StepStatus } from '../../shared/types';
+import { aggregateStatuses } from '../../shared/Common';
 import { StepReportItem } from '../../shared/TestStepReportPanel';
 import { SuiteTreeNode } from './suiteHierarchy';
 
@@ -45,7 +47,7 @@ interface SuiteTestTreeProps {
   statusIconFor: (status: StepStatus | 'running') => { icon: string; color: string; title: string };
 
   reportsById: Record<string, StepReportItem[]>;
-  runStateById: Record<string, 'idle' | 'running' | 'passed' | 'failed' | 'cancelled'>;
+  runStateById: Record<string, StepStatus>;
 
   onRunTargets: (target: string) => void;
 }
@@ -251,16 +253,16 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
             const uiId = `${parent}::${baseId}`;
 
             if (n.kind === 'group') {
-                // If the suite's children array contains exactly one group, flatten
-                // that group into the parent UI node so the UI doesn't show an
-                // unnecessary single group level for imported suites.
-                if (Array.isArray(nodes) && nodes.length === 1) {
-                  // recurse into the single group's children directly under parent
-                  pushHierarchy(parent, n.children, outChildren);
-                  continue;
-                }
+              // If the suite's children array contains exactly one group, flatten
+              // that group into the parent UI node so the UI doesn't show an
+              // unnecessary single group level for imported suites.
+              if (Array.isArray(nodes) && nodes.length === 1) {
+                // recurse into the single group's children directly under parent
+                pushHierarchy(parent, n.children, outChildren);
+                continue;
+              }
 
-                const gid = uiId;
+              const gid = uiId;
               const childIds2: string[] = [];
               items[gid] = { index: gid, isFolder: true, children: childIds2, data: { type: 'group', label: n.label, id: baseId } };
               // recurse and populate childIds2
@@ -335,43 +337,25 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     const map: Record<string, StepStatus> = {};
     const items = treeData.items;
 
-    const getLeafVisible = (leafId: string): StepStatus | 'running' | 'cancelled' | undefined => {
+    const getLeafVisible = (leafId: string): StepStatus | undefined => {
+      const leafState = runStateById && runStateById[leafId];
+      if (leafState) {
+        return leafState;
+      }
+
       const runId = lastRunIdByEntryId && lastRunIdByEntryId[leafId];
       const explicitStatus = runId ? (stepStatuses && stepStatuses[runId]) : undefined;
       if (explicitStatus && explicitStatus !== 'pending') {
-        return explicitStatus as any;
+        return explicitStatus as StepStatus;
       }
-      const state = runStateById && runStateById[leafId];
-      if (state === 'running') return 'running';
-      if (state === 'passed') return 'passed';
-      if (state === 'failed') return 'failed';
-      if (state === 'cancelled') return 'cancelled';
-      if (stepStatuses && stepStatuses[leafId] === 'pending') return 'pending';
+      if (stepStatuses && stepStatuses[leafId] === 'pending') {
+        return 'pending';
+      }
       return undefined;
     };
 
     const aggregate = (leafIds: string[]): StepStatus => {
-      let anyFailed = false;
-      let anyCancelled = false;
-      let anyRunning = false;
-      let anyPending = false;
-      let allPassed = leafIds.length > 0;
-      let anySeen = false;
-      for (const leafId of leafIds) {
-        const visible = getLeafVisible(leafId);
-        if (typeof visible === 'string') anySeen = true;
-        if (visible === 'failed') anyFailed = true;
-        if (visible === 'cancelled') anyCancelled = true;
-        if (visible === 'running') anyRunning = true;
-        if (String(visible) === 'pending') anyPending = true;
-        if (visible !== 'passed') allPassed = false;
-      }
-      if (anyRunning) return 'running';
-      if (anyFailed) return 'failed';
-      if (anyCancelled) return 'cancelled';
-      if (anyPending) return 'pending';
-      if (allPassed && anySeen) return 'passed';
-      return 'default';
+      return aggregateStatuses(leafIds.map((leafId) => getLeafVisible(leafId)));
     };
 
     for (const id of Object.keys(items)) {
@@ -406,29 +390,20 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
       const group = groups[groupIndex];
       if (!group) return 'default';
       const leafIds = group.entries.map((e) => e.id).filter(Boolean);
-      let anyFailed = false;
-      let anyCancelled = false;
-      let anyRunning = false;
-      let anyPending = false;
-      let allPassed = leafIds.length > 0;
-      let anySeen = false;
+      const statuses: Array<StepStatus | undefined> = [];
       for (const leafId of leafIds) {
         const runId = lastRunIdByEntryId && lastRunIdByEntryId[leafId];
         const explicitStatus = runId ? (stepStatuses && stepStatuses[runId]) : undefined;
-        const visible = explicitStatus && explicitStatus !== 'pending' ? explicitStatus : (runStateById && runStateById[leafId]) || (stepStatuses && stepStatuses[leafId] === 'pending' ? 'pending' : undefined);
-        if (typeof visible === 'string') anySeen = true;
-        if (visible === 'failed') anyFailed = true;
-        if (visible === 'cancelled') anyCancelled = true;
-        if (visible === 'running') anyRunning = true;
-        if (String(visible) === 'pending') anyPending = true;
-        if (visible !== 'passed') allPassed = false;
+        const leafState = runStateById && runStateById[leafId];
+        const visible: StepStatus | undefined = leafState
+          ? leafState
+          : (explicitStatus && explicitStatus !== 'pending'
+            ? (explicitStatus as StepStatus)
+            : (stepStatuses && stepStatuses[leafId] === 'pending' ? 'pending' : undefined));
+
+        statuses.push(visible);
       }
-      if (anyRunning) return 'running';
-      if (anyFailed) return 'failed';
-      if (anyCancelled) return 'cancelled';
-      if (anyPending) return 'pending';
-      if (allPassed && anySeen) return 'passed';
-      return 'default';
+      return aggregateStatuses(statuses);
     }
 
     // Imported group nodes (nested suite groups): compute status from descendants
@@ -437,56 +412,24 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     if (importedItem) {
       const leafIds = collectDescendantLeafIds(treeData.items, groupItemId);
       if (leafIds.length) {
-        let anyFailed = false;
-        let anyCancelled = false;
-        let anyRunning = false;
-        let anyPending = false;
-        let allPassed = true;
-        let anySeen = false;
+        const statuses: Array<StepStatus | undefined> = leafIds.map((leafId) => {
+          const leafState = runStateById && runStateById[leafId];
+          if (leafState) {
+            return leafState;
+          }
 
-        for (const leafId of leafIds) {
           const runId = lastRunIdByEntryId && lastRunIdByEntryId[leafId];
           const explicitStatus = runId ? (stepStatuses && stepStatuses[runId]) : undefined;
-          const visible = explicitStatus && explicitStatus !== 'pending'
-            ? explicitStatus
-            : (runStateById && runStateById[leafId])
-              || (stepStatuses && stepStatuses[leafId] === 'pending' ? 'pending' : undefined);
+          if (explicitStatus && explicitStatus !== 'pending') {
+            return explicitStatus as StepStatus;
+          }
+          if (stepStatuses && stepStatuses[leafId] === 'pending') {
+            return 'pending';
+          }
+          return undefined;
+        });
 
-          if (typeof visible === 'string') {
-            anySeen = true;
-          }
-          if (visible === 'failed') {
-            anyFailed = true;
-          }
-          if (visible === 'cancelled') {
-            anyCancelled = true;
-          }
-          if (visible === 'running') {
-            anyRunning = true;
-          }
-          if (String(visible) === 'pending') {
-            anyPending = true;
-          }
-          if (visible !== 'passed') {
-            allPassed = false;
-          }
-        }
-
-        if (anyRunning) {
-          return 'running';
-        }
-        if (anyFailed) {
-          return 'failed';
-        }
-        if (anyCancelled) {
-          return 'cancelled';
-        }
-        if (anyPending) {
-          return 'pending';
-        }
-        if (allPassed && anySeen) {
-          return 'passed';
-        }
+        return aggregateStatuses(statuses);
       }
     }
 
@@ -620,7 +563,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
 
     const testLeafId = (data as any)?.id as string | undefined;
     const canRunLeaf = typeof testLeafId === 'string' && !!testLeafId;
-      const handleRun = canRunLeaf ? () => onRunTargets(testLeafId!) : undefined;
+    const handleRun = canRunLeaf ? () => onRunTargets(testLeafId!) : undefined;
 
     // Ensure test leaf status reflects bundle-id keyed runState when available.
     const effectiveTestStatus = (() => {

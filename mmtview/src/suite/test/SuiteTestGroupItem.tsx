@@ -1,6 +1,6 @@
 import React from 'react';
 import { TreeItem } from 'react-complex-tree';
-import { StepStatus } from '../types';
+import { StepStatus } from '../../shared/types';
 
 export type SuiteTestGroupItemData = { type: 'group' | 'root' | 'import-group'; label: string };
 
@@ -53,16 +53,16 @@ const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
         <div style={{ width: 24, minWidth: 24, display: 'inline-flex', alignItems: 'flex-start' }}>{arrow}</div>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          {statusIcon && (
-            <span className={`codicon ${statusIcon.icon}`} aria-hidden style={{ color: statusIcon.color }} />
-          )}
-          {/* Type icon: group/root/import-group */}
-          {data.type === 'group' || data.type === 'import-group' ? (
-            <span className="codicon codicon-layers" aria-hidden title="Group" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
-          ) : (
-            <span className="codicon codicon-package" aria-hidden title="Suite" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
-          )}
-          <span style={{ fontFamily: 'var(--vscode-editor-font-family)' }}>{data.label}</span>
+            {statusIcon && (
+              <span className={`codicon ${statusIcon.icon}`} aria-hidden style={{ color: statusIcon.color }} />
+            )}
+            {/* Type icon: group/root/import-group */}
+            {data.type === 'group' || data.type === 'import-group' ? (
+              <span className="codicon codicon-layers" aria-hidden title="Group" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
+            ) : (
+              <span className="codicon codicon-package" aria-hidden title="Suite" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
+            )}
+            <span style={{ fontFamily: 'var(--vscode-editor-font-family)' }}>{data.label}</span>
           </div>
           {showRunButton && (
             <button

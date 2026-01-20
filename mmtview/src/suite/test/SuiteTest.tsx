@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { parseYaml } from 'mmt-core/markupConvertor';
 import { splitSuiteGroups } from 'mmt-core/suiteParsePack';
 import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
-import { StepStatus, SuiteEntry, SuiteGroup } from '../types';
+import { StepStatus } from '../../shared/types';
+import { SuiteEntry, SuiteGroup } from '../types';
 import { SuiteTestTree } from './';
 import { StepReportItem } from '../../shared/TestStepReportPanel';
 import { useSuiteImportTree } from './useSuiteImportTree';
@@ -10,6 +11,7 @@ import { SuiteTreeNode } from './suiteHierarchy';
 import { getSuiteHierarchy } from '../../vsAPI';
 // Suite hierarchy prefixes removed; targeting is now bundle id.
 import { resetLeafStateMap } from './leafStateReset';
+import { statusIconFor } from '../../shared/Common';
 
 interface SuiteTestProps {
     content: string;
@@ -69,25 +71,6 @@ const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
     return allPaths;
 };
 
-const statusIconFor = (status: StepStatus | 'running' | 'cancelled') => {
-    if (status === 'running') {
-        return { icon: 'codicon-play-circle', color: '#BA8E23', title: 'Running' };
-    }
-    if (status === 'cancelled') {
-        return { icon: 'codicon-stop-circle', color: ' #f88349', title: 'Cancelled' };
-    }
-    if (status === 'passed') {
-        return { icon: 'codicon-pass', color: '#23d18b', title: 'Passed' };
-    }
-    if (status === 'failed') {
-        return { icon: 'codicon-error', color: '#f85149', title: 'Failed' };
-    }
-    if (status === 'pending') {
-        return { icon: 'codicon-compass', color: '#3794ff', title: 'Pending' };
-    }
-    return { icon: 'codicon-circle-large', color: '#c5c5c5', title: 'Default' };
-};
-
 const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
     const groups = useMemo(() => buildSuiteGroupsFromContent(content), [content]);
     const allPaths = useMemo(() => collectSuitePaths(groups), [groups]);
@@ -102,9 +85,9 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
     const [missingFiles, setMissingFiles] = useState<Set<string>>(new Set());
 
     const [suiteRunId, setSuiteRunId] = useState<string | null>(null);
-    const [suiteRunState, setSuiteRunState] = useState<'idle' | 'running' | 'cancelled'>('idle');
+    const [suiteRunState, setSuiteRunState] = useState<StepStatus>('default');
     const [leafReportsById, setLeafReportsById] = useState<Record<string, StepReportItem[]>>({});
-    const [leafRunStateById, setLeafRunStateById] = useState<Record<string, 'idle' | 'running' | 'passed' | 'failed' | 'cancelled'>>({});
+    const [leafRunStateById, setLeafRunStateById] = useState<Record<string, StepStatus>>({});
     const pendingLeafResetRef = useRef<'all' | string[] | null>(null);
     const pendingEntriesToCancelRef = useRef<string[] | null>(null);
     const reportQueueRef = useRef<any[]>([]);
@@ -286,7 +269,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
     useEffect(() => {
         setStepStatuses({});
         setSuiteRunId(null);
-        setSuiteRunState('idle');
+        setSuiteRunState('default');
         pendingLeafResetRef.current = null;
         reportQueueRef.current = [];
         resetLeafState('all');
@@ -344,7 +327,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                     return;
                 }
                 const cancelled = Boolean((message as any).cancelled);
-                setSuiteRunState(cancelled ? 'cancelled' : 'idle');
+                setSuiteRunState(cancelled ? 'cancelled' : 'default');
                 flushReportQueue();
                 return;
             }
@@ -435,7 +418,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
     }, [allPaths]);
 
     const onRunSuite = useCallback(() => {
-        const next: Record<string, StepStatus | 'running'> = {};
+        const next: Record<string, StepStatus> = {};
         const collectDescendantIds = (root: any, out: string[]) => {
             if (!root) return;
             const stack = [root];
@@ -483,7 +466,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
 
         // For bundle runs we can't pre-mark by gi/ei.
         // Mark the target and any descendant bundle ids as pending so the UI shows progress.
-        const pendingMap: Record<string, StepStatus | 'running'> = {};
+        const pendingMap: Record<string, StepStatus> = {};
         const collectDescendantIds = (node: any, out: string[]) => {
             if (!node) return;
             const stack = [node];

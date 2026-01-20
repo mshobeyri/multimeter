@@ -3,17 +3,16 @@ import { TestData } from 'mmt-core/TestData';
 
 import { FileContext } from '../fileContext';
 import TestStepReportPanel, { StepReportItem } from '../shared/TestStepReportPanel';
+import { StepStatus } from '../shared/types';
 
 interface TestTestProps {
     testData: TestData;
 }
 
-export type StepStatus = 'passed' | 'failed';
-
 const TestTest: React.FC<TestTestProps> = (_props) => {
     const { mmtFilePath } = useContext(FileContext);
     const [stepReports, setStepReports] = useState<StepReportItem[]>([]);
-    const [runState, setRunState] = useState<'idle' | 'running' | 'passed' | 'failed'>('idle');
+    const [runState, setRunState] = useState<StepStatus>('default');
     const latestRunIdRef = useRef<string | null>(null);
     const ignoredRunIdsRef = useRef<Set<string>>(new Set());
     const stepCountRef = useRef(0);
@@ -158,7 +157,7 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
             <TestStepReportPanel
                 isExpanded={true}
                 stepReports={stepReports}
-                runState={runState}
+                runState={runState === 'running' ? 'running' : runState === 'passed' ? 'passed' : runState === 'failed' ? 'failed' : 'default'}
                 onRun={handleRun}
                 runButtonLabel="Run test"
             />

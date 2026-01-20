@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { parseYaml, parseYamlDoc } from 'mmt-core/markupConvertor';
-import { SuiteEntry, SuiteGroup, StepStatus } from '../types';
+import { SuiteEntry, SuiteGroup } from '../types';
 import SuiteEditTree from './SuiteEditTree';
+import { statusIconFor } from '../../shared/Common';
 
 interface SuiteEditProps {
   content: string;
@@ -73,22 +74,6 @@ const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
   const allPaths: string[] = [];
   groups.forEach((group) => group.entries.forEach((entry) => allPaths.push(entry.path)));
   return allPaths;
-};
-
-const statusIconFor = (status: StepStatus | 'running') => {
-  if (status === 'running') {
-    return { icon: 'codicon-play-circle', color: '#BA8E23', title: 'Running' };
-  }
-  if (status === 'passed') {
-    return { icon: 'codicon-pass', color: '#23d18b', title: 'Passed' };
-  }
-  if (status === 'failed') {
-    return { icon: 'codicon-error', color: '#f85149', title: 'Failed' };
-  }
-  if (status === 'pending') {
-    return { icon: 'codicon-compass', color: '#3794ff', title: 'Pending' };
-  }
-  return { icon: 'codicon-circle-large', color: '#c5c5c5', title: 'Default' };
 };
 
 const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {

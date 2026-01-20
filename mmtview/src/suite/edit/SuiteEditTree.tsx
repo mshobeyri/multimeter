@@ -1,9 +1,11 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { ControlledTreeEnvironment, DraggingPosition, DraggingPositionBetweenItems, DraggingPositionItem, Tree, TreeItem } from 'react-complex-tree';
 import { SuiteEntry } from '../types';
-import { SuiteGroup, StepStatus } from '../types';
+import { SuiteGroup } from '../types';
+import { StepStatus } from '../../shared/types';
 import SuiteEditFileItem from './SuiteEditFileItem';
 import SuiteEditGroupItem from './SuiteEditGroupItem';
+import { aggregateStatuses } from '../../shared/Common';
 
 export type SuiteEditTreeItemData =
     | { type: 'root'; label: string }
@@ -13,7 +15,7 @@ export type SuiteEditTreeItemData =
 interface SuiteEditTreeProps {
     groups: SuiteGroup[];
     missingFiles: Set<string>;
-    statusIconFor: (status: StepStatus | 'running') => { icon: string; color: string; title: string };
+    statusIconFor: (status: StepStatus) => { icon: string; color: string; title: string };
     groupsModel: SuiteGroup[];
     persistGroups: (groups: SuiteGroup[]) => void;
     canEdit: boolean;
@@ -71,7 +73,7 @@ const SuiteEditTree: React.FC<SuiteEditTreeProps> = ({
             if (!childIds.length) {
                 return 'default';
             }
-            const statuses = childIds.map((childId) => {
+            const statuses: Array<StepStatus | undefined> = childIds.map((childId) => {
                 const child = items[childId];
                 if (child?.data?.type === 'file') {
                     if (missingFiles.has((child.data as any).path)) {
@@ -81,10 +83,7 @@ const SuiteEditTree: React.FC<SuiteEditTreeProps> = ({
                 }
                 return 'default';
             });
-            if (statuses.includes('failed')) {
-                return 'failed';
-            }
-            return 'default';
+            return aggregateStatuses(statuses);
         },
         [items, missingFiles]
     );

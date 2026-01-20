@@ -1,6 +1,6 @@
 import React from 'react';
 import { TreeItem } from 'react-complex-tree';
-import { StepStatus } from '../types';
+import { StepStatus } from '../../shared/types';
 import TestStepReportPanel, { StepReportItem } from '../../shared/TestStepReportPanel';
 import { openRelativeFile } from '../../vsAPI';
 
@@ -12,11 +12,11 @@ interface SuiteTestFileItemProps {
     arrow: React.ReactNode;
     children: React.ReactNode;
     missingFiles: Set<string>;
-    statusIconFor: (status: StepStatus | 'running') => { icon: string; color: string; title: string };
+    statusIconFor: (status: StepStatus) => { icon: string; color: string; title: string };
     status: StepStatus;
 
     reportsById: Record<string, StepReportItem[]>;
-    runStateById: Record<string, 'idle' | 'running' | 'passed' | 'failed' | 'cancelled'>;
+    runStateById: Record<string, StepStatus>;
 
     onRun?: () => void;
     runButtonTitle?: string;
@@ -51,7 +51,7 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
         : statusIconFor(status);
 
     const id = data.id;
-    const runState = id ? (runStateById[id] || 'idle') : 'idle';
+    const runState = id ? (runStateById[id] || 'default') : 'default';
     const stepReports = id ? (reportsById[id] || []) : [];
 
     const labelPath = (displayPath && displayPath.trim()) ? displayPath : data.path;
@@ -153,7 +153,7 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                     <TestStepReportPanel
                         isExpanded={true}
                         stepReports={stepReports}
-                        runState={runState === 'cancelled' ? 'failed' : runState}
+                        runState={runState === 'running' ? 'running' : runState === 'passed' ? 'passed' : 'failed'}
                         showHeader={false}
                     />
                 </div>

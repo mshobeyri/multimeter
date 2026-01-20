@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
-export type StepStatus = 'passed' | 'failed';
-
+import { StepStatus } from './types';
+import { statusIconFor } from './Common';
 export interface StepReportItem {
   stepIndex: number;
   stepType: 'check' | 'assert';
@@ -14,16 +13,11 @@ export interface StepReportItem {
   timestamp: number;
 }
 
-const STATUS_META: Record<StepStatus, { icon: string; color: string; label: string }> = {
-  passed: { icon: 'codicon-pass', color: '#23d18b', label: 'Passed' },
-  failed: { icon: 'codicon-error', color: '#f85149', label: 'Failed' },
-};
-
 interface TestStepReportPanelProps {
   isExpanded: boolean;
   onToggleExpanded?: (next: boolean) => void;
   stepReports: StepReportItem[];
-  runState: 'idle' | 'running' | 'passed' | 'failed';
+  runState: 'default' | 'running' | 'passed' | 'failed';
   onRun?: () => void;
   runButtonLabel?: string;
   disabledRun?: boolean;
@@ -118,7 +112,7 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {stepReports.map((report) => {
-              const meta = STATUS_META[report.status];
+              const meta = statusIconFor(report.status);
               const reportKey = `${report.stepType}-${report.stepIndex}-${report.timestamp}`;
               const hasDetails = Boolean(
                 (report.details && report.details.trim().length > 0) ||
@@ -141,7 +135,7 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                   <span
                     className={`codicon ${meta.icon}`}
                     style={{ color: meta.color, marginTop: 2 }}
-                    aria-label={meta.label}
+                    aria-label={meta.title}
                   ></span>
                   <div style={{ flex: 1 }}>
                     <div style={{ marginBottom: 2 }}>
