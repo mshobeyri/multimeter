@@ -50,6 +50,33 @@ interface SuiteTestTreeProps {
   onRunTargets: (target: string) => void;
 }
 
+const collectDescendantLeafIds = (
+  items: Record<string, TreeItem<SuiteTestTreeItemData>>,
+  rootItemId: string
+): string[] => {
+  const leafIds: string[] = [];
+  const stack = [rootItemId];
+  while (stack.length) {
+    const currentId = String(stack.pop());
+    const node = items[currentId];
+    if (!node) {
+      continue;
+    }
+    const data = node.data as any;
+    if (data && (data.type === 'test' || data.type === 'suite')) {
+      if (typeof data.id === 'string' && data.id) {
+        leafIds.push(data.id);
+      }
+    }
+    if (Array.isArray(node.children) && node.children.length) {
+      for (const childId of node.children) {
+        stack.push(String(childId));
+      }
+    }
+  }
+  return leafIds;
+};
+
 const buildBaseTestTree = (groups: SuiteGroup[]) => {
   const items: Record<string, TreeItem<SuiteTestTreeItemData>> = {};
   const allPaths: string[] = [];
@@ -403,6 +430,66 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
       if (allPassed && anySeen) return 'passed';
       return 'default';
     }
+
+    // Imported group nodes (nested suite groups): compute status from descendants
+    // using the full tree data so we can show cancelled when stopping a run.
+    const importedItem = treeData.items[groupItemId];
+    if (importedItem) {
+      const leafIds = collectDescendantLeafIds(treeData.items, groupItemId);
+      if (leafIds.length) {
+        let anyFailed = false;
+        let anyCancelled = false;
+        let anyRunning = false;
+        let anyPending = false;
+        let allPassed = true;
+        let anySeen = false;
+
+        for (const leafId of leafIds) {
+          const runId = lastRunIdByEntryId && lastRunIdByEntryId[leafId];
+          const explicitStatus = runId ? (stepStatuses && stepStatuses[runId]) : undefined;
+          const visible = explicitStatus && explicitStatus !== 'pending'
+            ? explicitStatus
+            : (runStateById && runStateById[leafId])
+              || (stepStatuses && stepStatuses[leafId] === 'pending' ? 'pending' : undefined);
+
+          if (typeof visible === 'string') {
+            anySeen = true;
+          }
+          if (visible === 'failed') {
+            anyFailed = true;
+          }
+          if (visible === 'cancelled') {
+            anyCancelled = true;
+          }
+          if (visible === 'running') {
+            anyRunning = true;
+          }
+          if (String(visible) === 'pending') {
+            anyPending = true;
+          }
+          if (visible !== 'passed') {
+            allPassed = false;
+          }
+        }
+
+        if (anyRunning) {
+          return 'running';
+        }
+        if (anyFailed) {
+          return 'failed';
+        }
+        if (anyCancelled) {
+          return 'cancelled';
+        }
+        if (anyPending) {
+          return 'pending';
+        }
+        if (allPassed && anySeen) {
+          return 'passed';
+        }
+      }
+    }
+
     return importedGroupStatusMap[groupItemId] || 'default';
   };
 

@@ -385,12 +385,13 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                     const next: typeof prev = { ...prev };
                     const pendingIds = pendingEntriesToCancelRef.current;
                     if (Array.isArray(pendingIds) && pendingIds.length) {
-                        groups.forEach((g) => g.entries.forEach((e) => {
-                            if (pendingIds.includes(e.id)) {
-                                const lid = e.id;
-                                next[lid] = 'cancelled';
+                        // Pending ids can be both top-level entry ids and imported
+                        // suite/test ids. Mark them directly.
+                        pendingIds.forEach((id) => {
+                            if (typeof id === 'string' && id) {
+                                next[id] = 'cancelled';
                             }
-                        }));
+                        });
                     }
                     pendingEntriesToCancelRef.current = null;
                     return next;
