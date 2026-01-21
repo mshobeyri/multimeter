@@ -296,6 +296,7 @@ export const TestSchema = {
                                             },
                                             title: { type: 'string' },
                                             details: { type: 'string' },
+                                            report_success: { type: 'boolean' },
                                         },
                                         additionalProperties: false
                                     }
@@ -324,6 +325,7 @@ export const TestSchema = {
                                             },
                                             title: { type: 'string' },
                                             details: { type: 'string' },
+                                            report_success: { type: 'boolean' },
                                         },
                                         additionalProperties: false
                                     }

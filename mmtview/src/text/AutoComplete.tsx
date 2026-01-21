@@ -224,7 +224,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 '    expected: 200',
                 '    operator: "=="',
                 '    title: "Unexpected status"',
-                '    details: "Status code should be 200"'
+                '    details: "Status code should be 200"',
+                '    report_success: true'
             ].join('\n')
         },
         {
@@ -244,7 +245,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 '    expected: 1',
                 '    operator: ">="',
                 '    title: "User count too low"',
-                '    details: "Expected at least one user"'
+                '    details: "Expected at least one user"',
+                '    report_success: true'
             ].join('\n')
         },
         {
@@ -805,6 +807,13 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: 'details: ',
             detail: 'Details [string]',
             documentation: 'Long description shown in the details panel.'
+        },
+        {
+            label: 'report_success',
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: 'report_success: true',
+            detail: 'Report success [boolean]',
+            documentation: 'When true, emits a report event even when the check/assert passes.'
         },
     ];
 

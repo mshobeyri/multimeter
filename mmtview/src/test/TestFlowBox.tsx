@@ -171,7 +171,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       }
       case 'check':
       case 'assert': {
-        let actual = '', op: CheckOps = '==' as CheckOps, expected = '', title = '', details = '';
+        let actual = '', op: CheckOps = '==' as CheckOps, expected = '', title = '', details = '', report_success = false;
         const rawVal = stepData && stepData[type];
         if (typeof rawVal === 'string') {
           const match = rawVal.trim().length ? rawVal.trim().split(/\s+/) : [] as string[];
@@ -184,17 +184,21 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
           op = ((rawVal as any).operator || '==') as CheckOps;
           title = (rawVal as any).title || '';
           details = (rawVal as any).details || '';
+          report_success = Boolean((rawVal as any).report_success);
         }
         return (
           <TestCheck
-              value={{ actual, op, expected, title, details }}
-              onChange={({ actual, op, expected, title, details }) => {
+              value={{ actual, op, expected, title, details, report_success }}
+              onChange={({ actual, op, expected, title, details, report_success }) => {
                 const obj: any = { actual, expected, operator: op || '==', };
               if (title.trim().length > 0) {
                 obj.title = title.trim();
               }
               if (details.trim().length > 0) {
                 obj.details = details.trim();
+              }
+              if (report_success) {
+                obj.report_success = true;
               }
               onChange({ [type]: obj });
             }}

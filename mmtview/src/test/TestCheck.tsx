@@ -8,6 +8,7 @@ export interface TestCheckValue {
   expected: string;
   title: string;
   details: string;
+  report_success?: boolean;
 }
 
 interface TestCheckProps {
@@ -16,10 +17,10 @@ interface TestCheckProps {
 }
 
 const TestCheck: React.FC<TestCheckProps> = ({ value, onChange }) => {
-  const { actual, op, expected, title, details } = value;
+  const { actual, op, expected, title, details, report_success } = value;
 
   const update = (patch: Partial<TestCheckValue>) => {
-    onChange({ actual, op, expected, title, details, ...patch });
+    onChange({ actual, op, expected, title, details, report_success, ...patch });
   };
 
   return (
@@ -64,6 +65,21 @@ const TestCheck: React.FC<TestCheckProps> = ({ value, onChange }) => {
           style={{ width: '100%', height: 60, resize: 'vertical' }}
           onChange={e => update({ details: e.target.value })}
         />
+      </div>
+      <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <input
+          type="checkbox"
+          checked={!!report_success}
+          onChange={e => update({ report_success: e.target.checked })}
+          id="mmt-report-success"
+        />
+        <label
+          htmlFor="mmt-report-success"
+          title="When enabled, emits a report event even when the check/assert passes."
+          style={{ userSelect: 'none' }}
+        >
+          Report success
+        </label>
       </div>
     </div>
   );

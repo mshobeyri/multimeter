@@ -430,7 +430,7 @@ describe('step reporter instrumentation', () => {
     expect(js).toContain("report_('check'");
   });
 
-  it('wraps checks and asserts with emit calls', () => {
+  it('reports failed checks and asserts (default)', () => {
     const checkJs = checkToJSfunc('foo == bar');
     expect(checkJs).toContain("report_('check'");
     expect(checkJs).toContain('foo == bar');
@@ -438,6 +438,13 @@ describe('step reporter instrumentation', () => {
     const assertJs = assertToJSfunc('foo != bar');
     expect(assertJs).toContain("report_('assert'");
     expect(assertJs).toContain('foo != bar');
+  });
+
+  it('reports success only when report_success is true', () => {
+    const checkJs = checkToJSfunc({ actual: 'foo', operator: '==', expected: 'bar', report_success: true } as any);
+    expect(checkJs).toContain("report_('check'");
+    const assertJs = assertToJSfunc({ actual: 'foo', operator: '!=', expected: 'bar', report_success: true } as any);
+    expect(assertJs).toContain("report_('assert'");
   });
 });
 

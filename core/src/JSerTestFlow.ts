@@ -245,6 +245,7 @@ export const checkToJSfunc = (check: Comparison): string => {
     return '';
   }
   const {actual, operator, expected, raw, title, details} = normalized;
+  const reportSuccess = (check && typeof check === 'object') ? (check as any).report_success === true : false;
   const conditionStatement = conditionalStatementToJSfunc(raw);
   const titlePart = title ? `"${title}" - ` : '';
   const failMessage =
@@ -259,7 +260,7 @@ export const checkToJSfunc = (check: Comparison): string => {
   const finalExpected = typeof expected === 'string' ? toTemplateWithVars(expected) : undefined;
   return `if (${conditionStatement}) {
   console.log(${toTemplateWithVars(finaSuccessMsg)});
-  report_('check', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, true);
+  ${reportSuccess ? `report_('check', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, true);` : ''}
 } else {
   console.error(${toTemplateWithVars(finaFaillMsg)});
   report_('check', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, false, ${finalActual}, ${finalExpected});
@@ -272,6 +273,7 @@ export const assertToJSfunc = (assert: Comparison): string => {
     return '';
   }
   const {actual, operator, expected, raw, title, details} = normalized;
+  const reportSuccess = (assert && typeof assert === 'object') ? (assert as any).report_success === true : false;
   const conditionStatement = conditionalStatementToJSfunc(raw);
     const titlePart = title ? `"${title}" - ` : '';
   const failMessage =
@@ -286,7 +288,7 @@ export const assertToJSfunc = (assert: Comparison): string => {
   const finalExpected = typeof expected === 'string' ? toTemplateWithVars(expected) : undefined;
   return `if (${conditionStatement}) {
   console.log(${toTemplateWithVars(finaSuccessMsg)});
-  report_('assert', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, true);
+  ${reportSuccess ? `report_('assert', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, true);` : ''}
 } else {
   console.error(${toTemplateWithVars(finaFaillMsg)});
   report_('assert', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, false, ${finalActual}, ${finalExpected});

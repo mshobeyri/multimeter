@@ -2,7 +2,7 @@ import {describe, expect, it} from '@jest/globals';
 
 function keySuggestionLabelsFor(parent: 'check'|'assert'|'operator'): string[] {
   if (parent === 'check' || parent === 'assert') {
-    return ['actual', 'expected', 'operator', 'title', 'details'];
+    return ['actual', 'expected', 'operator', 'title', 'details', 'report_success'];
   }
   return ['==', '!=', '>', '>=', '<', '<=', '=@', '!@', '=~', '!~', '=^', '!^', '=$', '!$'];
 }
