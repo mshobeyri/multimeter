@@ -245,6 +245,9 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `        return { value: result };\n` +
       `      }\n` +
       `      const copy = { ...result };\n` +
+      `      if (Object.prototype.hasOwnProperty.call(copy, 'details_')) {\n` +
+      `        copy.details_ = __mmt_raw('{...}');\n` +
+      `      }\n` +
       `      if (typeof copy.response_time === 'number' && Number.isFinite(copy.response_time)) {\n` +
       `        copy.response_time = __mmt_raw(copy.response_time + ' ms');\n` +
       `      }\n` +
