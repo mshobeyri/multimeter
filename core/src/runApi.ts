@@ -171,8 +171,8 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `  const __mmt_inputs = ${inputsJson};\n` +
       `  const __mmt_exampleLabel = ${exampleLiteral};\n` + helperDestructure +
       '\n' +
-      `  const __mmt_originalSend = send;\n` +
-      `  send = async function(req) {\n` +
+      `  const __mmt_originalSend = send_;\n` +
+      `  send_ = async function(req) {\n` +
       `    const __req = req || {};\n` +
       `    const __reqLog = {\n` +
       `      url: __mmt_raw(__req.url || ''),\n` +
@@ -253,7 +253,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `    console.log(__mmt_formatSection('Outputs:', __outputLog));\n` +
       `    return result;\n` +
       `  } finally {\n` +
-      `    send = __mmt_originalSend;\n` +
+      `    send_ = __mmt_originalSend;\n` +
       `  }\n})();`;
 }
 
