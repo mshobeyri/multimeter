@@ -7,9 +7,10 @@ import { StepStatus } from '../shared/types';
 
 interface TestTestProps {
     testData: TestData;
+    rightOfRunButton?: React.ReactNode;
 }
 
-const TestTest: React.FC<TestTestProps> = (_props) => {
+const TestTest: React.FC<TestTestProps> = (props) => {
     const { mmtFilePath } = useContext(FileContext);
     const [stepReports, setStepReports] = useState<StepReportItem[]>([]);
     const [runState, setRunState] = useState<StepStatus>('default');
@@ -142,17 +143,20 @@ const TestTest: React.FC<TestTestProps> = (_props) => {
                     backgroundColor: "transparent"
                 }}>
                 <div>{summary}</div>
-                <button
-                    onClick={handleRun}
-                    className='button-icon'
-                    disabled={runState === 'running'}
-                    style={{
-                        opacity: runState === 'running' ? 0.7 : 1,
-                    }}
-                >
-                    <span className="codicon codicon-run" />
-                    {runState === 'running' ? 'Running…' : 'Run test'}
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <button
+                        onClick={handleRun}
+                        className='button-icon'
+                        disabled={runState === 'running'}
+                        style={{
+                            opacity: runState === 'running' ? 0.7 : 1,
+                        }}
+                    >
+                        <span className="codicon codicon-run" />
+                        {runState === 'running' ? 'Running…' : 'Run test'}
+                    </button>
+                    {props.rightOfRunButton}
+                </div>
             </div>
             <TestStepReportPanel
                 isExpanded={true}

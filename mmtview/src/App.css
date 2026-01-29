@@ -683,17 +683,17 @@ button:focus {
   font-size: calc(var(--vscode-font-size, 13px) * 2);
 }
 
-/* Underline the Edit API launcher (icon + text) */
+/* Edit launcher: use default styling (no underline, inherit color) */
 .api-edit-launcher .api-edit-launcher-text,
 .api-edit-launcher .codicon {
-  /* use border-bottom so underline shows reliably on flex items */
-  border-bottom: 1.6px solid #007acc;
-  padding-bottom: 2px;
+  border-bottom: none;
+  padding-bottom: 0;
 }
 
 .api-edit-launcher .api-edit-launcher-text {
-  color: #007acc;
+  color: inherit;
 }
+
 
 .apitest-root {
   display: flex;

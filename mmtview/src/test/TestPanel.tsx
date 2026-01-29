@@ -13,6 +13,7 @@ interface TestPanelProps {
 }
 
 const LAST_TAB_KEY = "mmtview:lastTab";
+const LAST_TEST_PAGE_KEY = "mmtview:test:lastPage";
 
 const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
   const test = React.useMemo(() => yamlToTest(content), [content]);
@@ -55,8 +56,11 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
   const { missingImports, inputsByAlias } = useImportValidation(importsMap);
 
   // Restore last selected tab from localStorage, default to "overview"
-  const [tab, setTab] = useState<"overview" | "flow" | "code" | "test">(
-    () => (localStorage.getItem(LAST_TAB_KEY) as "overview" | "flow" | "code" | "test") || "overview"
+  const [page, setPage] = useState<"test" | "edit">(
+    () => (localStorage.getItem(LAST_TEST_PAGE_KEY) as "test" | "edit") || "test"
+  );
+  const [tab, setTab] = useState<"overview" | "flow" | "code">(
+    () => (localStorage.getItem(LAST_TAB_KEY) as "overview" | "flow" | "code") || "overview"
   );
   const [showIconsOnly, setShowIconsOnly] = useState(false);
   const tabContainerRef = useRef<HTMLDivElement>(null);
@@ -65,6 +69,10 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
   useEffect(() => {
     localStorage.setItem(LAST_TAB_KEY, tab);
   }, [tab]);
+
+  useEffect(() => {
+    localStorage.setItem(LAST_TEST_PAGE_KEY, page);
+  }, [page]);
 
   useEffect(() => {
     const checkTabWidth = () => {
@@ -90,81 +98,106 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
 
   return (
     <div className="panel">
-      <div className="panel-box">
-        <div
-          ref={tabContainerRef}
-          className="tab-bar"
-        >
-          <button
-            onClick={() => setTab("overview")}
-            className={`tab-button ${tab === "overview" ? "active" : ""}`}
-            title={showIconsOnly ? "Overview" : undefined}
+      <div className="panel-box" style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
+        <div className="api-swipe-root" style={{ flex: 1, minHeight: 0 }}>
+          <div
+            className="api-swipe-track"
+            style={{ transform: page === 'test' ? 'translateX(0%)' : 'translateX(-50%)' }}
           >
-            <span className="codicon codicon-search tab-button-icon"></span>
-            {!showIconsOnly && "Overview"}
-          </button>
-          <button
-            onClick={() => setTab("flow")}
-            className={`tab-button ${tab === "flow" ? "active" : ""}`}
-            title={showIconsOnly ? "Flow" : undefined}
-          >
-            <span className="codicon codicon-list-tree tab-button-icon"></span>
-            {!showIconsOnly && "Flow"}
-          </button>
-          <button
-            onClick={() => setTab("code")}
-            className={`tab-button ${tab === "code" ? "active" : ""}`}
-            title={showIconsOnly ? "Code" : undefined}
-          >
-            <span className="codicon codicon-code tab-button-icon"></span>
-            {!showIconsOnly && "Code"}
-          </button>
-          <button
-            onClick={() => setTab("test")}
-            className={`tab-button ${tab === "test" ? "active" : ""}`}
-            title={showIconsOnly ? "Test" : undefined}
-          >
-            <span className="codicon codicon-play tab-button-icon"></span>
-            {!showIconsOnly && "Test"}
-          </button>
-        </div>
+            <div className="api-swipe-page api-swipe-page--test">
+              <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
+                <TestTest
+                  testData={test}
+                  rightOfRunButton={(
+                    <button
+                      className="action-button api-edit-launcher"
+                      onClick={() => setPage('edit')}
+                      title="Edit Test"
+                      type="button"
+                    >
+                      <span className="codicon codicon-edit" aria-hidden />
+                      <span className="api-edit-launcher-text">Edit Test</span>
+                    </button>
+                  )}
+                />
+              </div>
+            </div>
 
-        {tab === "overview" && (
-          <TestOverview
-            test={test}
-            update={(patch) => setTest(prev => ({ ...prev, ...patch }))}
-            missingImports={missingImports}
-          />
-        )}
-        {tab === "flow" && (
-          <TestFlow
-            testData={test}
-            importValidation={{ missingImports, inputsByAlias }}
-            update={(patch) => {
-              setTest(prev => {
-                const next = { ...prev } as any;
-                if (patch.stages) {
-                  next.stages = patch.stages;
-                  delete next.steps;
-                } else if (patch.steps) {
-                  next.steps = patch.steps;
-                  delete next.stages;
-                }
-                return next;
-              });
-            }}
-          />
-        )}
-        {tab === "code" && (
-          <TestCode
-            testData={test}
-          />
-        )}
-        {tab === "test" && (
-          <TestTest
-            testData={test}
-          />
-        )}
+            <div className="api-swipe-page api-swipe-page--edit">
+              <div className="api-edit-header">
+                <div className="api-edit-header-row">
+                  <button
+                    className="action-button"
+                    onClick={() => setPage('test')}
+                    title="Back to Test"
+                    type="button"
+                  >
+                    <span className="codicon codicon-arrow-left" aria-hidden />
+                  </button>
+                  <div className="api-edit-title">Edit Test</div>
+                </div>
+
+                <div className="tab-bar">
+                  <button
+                    onClick={() => setTab("overview")}
+                    className={`tab-button ${tab === "overview" ? "active" : ""}`}
+                    title={showIconsOnly ? "Overview" : undefined}
+                    type="button"
+                  >
+                    <span className="codicon codicon-search tab-button-icon"></span>
+                    {!showIconsOnly && "Overview"}
+                  </button>
+                  <button
+                    onClick={() => setTab("flow")}
+                    className={`tab-button ${tab === "flow" ? "active" : ""}`}
+                    title={showIconsOnly ? "Flow" : undefined}
+                    type="button"
+                  >
+                    <span className="codicon codicon-list-tree tab-button-icon"></span>
+                    {!showIconsOnly && "Flow"}
+                  </button>
+                  <button
+                    onClick={() => setTab("code")}
+                    className={`tab-button ${tab === "code" ? "active" : ""}`}
+                    title={showIconsOnly ? "Code" : undefined}
+                    type="button"
+                  >
+                    <span className="codicon codicon-code tab-button-icon"></span>
+                    {!showIconsOnly && "Code"}
+                  </button>
+                </div>
+              </div>
+
+              {tab === "overview" && (
+                <TestOverview
+                  test={test}
+                  update={(patch) => setTest(prev => ({ ...prev, ...patch }))}
+                  missingImports={missingImports}
+                />
+              )}
+              {tab === "flow" && (
+                <TestFlow
+                  testData={test}
+                  importValidation={{ missingImports, inputsByAlias }}
+                  update={(patch) => {
+                    setTest(prev => {
+                      const next = { ...prev } as any;
+                      if (patch.stages) {
+                        next.stages = patch.stages;
+                        delete next.steps;
+                      } else if (patch.steps) {
+                        next.steps = patch.steps;
+                        delete next.stages;
+                      }
+                      return next;
+                    });
+                  }}
+                />
+              )}
+              {tab === "code" && <TestCode testData={test} />}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
