@@ -8,6 +8,7 @@ import { APIData, ExampleData } from "mmt-core/APIData";
 import { safeList, safeListCopy } from "mmt-core/safer";
 
 const LAST_API_TAB_KEY = "mmtview:api:lastTab";
+const LAST_API_PAGE_KEY = "mmtview:api:lastPage";
 
 interface APIsProps {
   content: string;
@@ -21,11 +22,18 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     setContent(newYaml);
   };
 
-  const [tab, setTab] = useState<"overview" | "interface" | "examples" | "test">(
-    () => (localStorage.getItem(LAST_API_TAB_KEY) as "overview" | "interface" | "examples" | "test") || "test"
+  const [page, setPage] = useState<"test" | "edit">(
+    () => (localStorage.getItem(LAST_API_PAGE_KEY) as "test" | "edit") || "test"
+  );
+  const [tab, setTab] = useState<"overview" | "interface" | "examples">(
+    () => (localStorage.getItem(LAST_API_TAB_KEY) as "overview" | "interface" | "examples") || "overview"
   );
   const [showIconsOnly, setShowIconsOnly] = useState(false);
   const tabContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem(LAST_API_PAGE_KEY, page);
+  }, [page]);
 
   useEffect(() => {
     localStorage.setItem(LAST_API_TAB_KEY, tab);
@@ -80,97 +88,125 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     setAPI({ ...api, examples });
   };
 
-  const isTestTab = tab === "test";
+  const isTestPage = page === "test";
 
   return (
     <div className="panel">
       <div
         className="panel-box"
-        style={isTestTab ? { display: "flex", flexDirection: "column", height: "100%", minHeight: 0 } : undefined}
+        style={isTestPage ? { display: "flex", flexDirection: "column", height: "100%", minHeight: 0 } : undefined}
       >
-        <div
-          ref={tabContainerRef}
-          className="tab-bar"
-        >
-          <button
-            onClick={() => setTab("overview")}
-            className={`tab-button ${tab === "overview" ? "active" : ""}`}
-            title={showIconsOnly ? "Overview" : undefined}
+        <div className="api-swipe-root" style={{ flex: 1, minHeight: 0 }}>
+          <div
+            className="api-swipe-track"
+            style={{ transform: page === 'test' ? 'translateX(0%)' : 'translateX(-50%)' }}
           >
-            <span className="codicon codicon-search tab-button-icon"></span>
-            {!showIconsOnly && "Overview"}
-          </button>
-          <button
-            onClick={() => setTab("interface")}
-            className={`tab-button ${tab === "interface" ? "active" : ""}`}
-            title={showIconsOnly ? "Interface" : undefined}
-          >
-            <span className="codicon codicon-symbol-interface tab-button-icon"></span>
-            {!showIconsOnly && "Interface"}
-          </button>
-          <button
-            onClick={() => setTab("examples")}
-            className={`tab-button ${tab === "examples" ? "active" : ""}`}
-            title={showIconsOnly ? "Examples" : undefined}
-          >
-            <span className="codicon codicon-lightbulb tab-button-icon"></span>
-            {!showIconsOnly && "Examples"}
-          </button>
-          <button
-            onClick={() => setTab("test")}
-            className={`tab-button ${tab === "test" ? "active" : ""}`}
-            title={showIconsOnly ? "Test" : undefined}
-          >
-            <span className="codicon codicon-play tab-button-icon"></span>
-            {!showIconsOnly && "Test"}
-          </button>
-        </div>
+            <div className="api-swipe-page api-swipe-page--test">
+              <div className="apitest-panel-wrapper">
+                <APITest
+                  api={api}
+                  onUpdateApi={update}
+                  rightOfUrlButton={
+                    <button
+                      className="action-button"
+                      onClick={() => setPage('edit')}
+                      title="Edit API"
+                      type="button"
+                    >
+                      <span className="codicon codicon-edit" aria-hidden />
+                        <span className="api-edit-launcher-text">Edit API</span>
+                    </button>
+                  }
+                />
+              </div>
+            </div>
 
-        {tab === "overview" && (
-          <APIOverview api={api} update={update} />
-        )}
-
-        {tab === "interface" && (
-          <InterfaceEditor
-            data={api}
-            onChange={updated => updateInterface(updated)}
-          />
-        )}
-
-        {tab === "examples" && (
-          <table
-            className="APIEditor"
-            style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed", marginTop: 0 }}
-          >
-            <tbody>
-              <tr>
-                <td colSpan={2} style={{ padding: 0 }}>
-                  {safeList(api.examples).filter(ex => ex != null).map((example, idx) => (
-                    <div key={idx} className="inner-box">
-                      <APIExample
-                        data={example}
-                        apiInputs={api.inputs}
-                        apiOutputs={api.outputs}
-                        onChange={updated => updateExample(idx, updated)}
-                        onRemove={() => removeExample(idx)}
-                      />
-                    </div>
-                  ))}
-                  <button onClick={addExample} className="button-icon">
-                    <span className="codicon codicon-add" aria-hidden />
-                    Add Example
+            <div className="api-swipe-page api-swipe-page--edit">
+              <div className="api-edit-header">
+                <div className="api-edit-header-row">
+                  <button
+                    className="action-button"
+                    onClick={() => setPage('test')}
+                    title="Back to Test"
+                    type="button"
+                  >
+                    <span className="codicon codicon-arrow-left" aria-hidden />
                   </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        )}
+                  <div className="api-edit-title">Edit API</div>
+                </div>
+                <div ref={tabContainerRef} className="tab-bar">
+                  <button
+                    onClick={() => setTab('overview')}
+                    className={`tab-button ${tab === 'overview' ? 'active' : ''}`}
+                    title={showIconsOnly ? 'Overview' : undefined}
+                    type="button"
+                  >
+                    <span className="codicon codicon-search tab-button-icon"></span>
+                    {!showIconsOnly && 'Overview'}
+                  </button>
+                  <button
+                    onClick={() => setTab('interface')}
+                    className={`tab-button ${tab === 'interface' ? 'active' : ''}`}
+                    title={showIconsOnly ? 'Interface' : undefined}
+                    type="button"
+                  >
+                    <span className="codicon codicon-symbol-interface tab-button-icon"></span>
+                    {!showIconsOnly && 'Interface'}
+                  </button>
+                  <button
+                    onClick={() => setTab('examples')}
+                    className={`tab-button ${tab === 'examples' ? 'active' : ''}`}
+                    title={showIconsOnly ? 'Examples' : undefined}
+                    type="button"
+                  >
+                    <span className="codicon codicon-lightbulb tab-button-icon"></span>
+                    {!showIconsOnly && 'Examples'}
+                  </button>
+                </div>
+              </div>
 
-        {tab === "test" && (
-          <div className="apitest-panel-wrapper">
-            <APITest api={api} onUpdateApi={update} />
+              {tab === 'overview' && <APIOverview api={api} update={update} />}
+
+              {tab === 'interface' && (
+                <InterfaceEditor
+                  data={api}
+                  onChange={(updated) => updateInterface(updated)}
+                />
+              )}
+
+              {tab === 'examples' && (
+                <table
+                  className="APIEditor"
+                  style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', marginTop: 0 }}
+                >
+                  <tbody>
+                    <tr>
+                      <td colSpan={2} style={{ padding: 0 }}>
+                        {safeList(api.examples)
+                          .filter((ex) => ex != null)
+                          .map((example, idx) => (
+                            <div key={idx} className="inner-box">
+                              <APIExample
+                                data={example}
+                                apiInputs={api.inputs}
+                                apiOutputs={api.outputs}
+                                onChange={(updated) => updateExample(idx, updated)}
+                                onRemove={() => removeExample(idx)}
+                              />
+                            </div>
+                          ))}
+                        <button onClick={addExample} className="button-icon" type="button">
+                          <span className="codicon codicon-add" aria-hidden />
+                          Add Example
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

@@ -602,6 +602,99 @@ button:focus {
   display: flex;
 }
 
+/* API panel: two-page swipe layout (Test <-> Edit) */
+.api-swipe-root {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.api-swipe-track {
+  width: 200%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  transition: transform 180ms ease;
+}
+
+.api-swipe-page {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.api-swipe-page--test {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.api-swipe-page--edit {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.apitest-panel-wrapper {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.api-edit-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.api-edit-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.api-edit-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding-bottom: 16px;
+}
+
+.api-edit-title {
+  /* Use same font as tab items */
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  font-size: calc(var(--vscode-font-size, 13px) * 2);
+  font-weight: 600;
+  color: var(--vscode-foreground, #d4d4d4);
+  line-height: 1;
+}
+
+.api-edit-header-row .action-button {
+  font-size: calc(var(--vscode-font-size, 13px) * 2);
+  line-height: 1;
+  padding: 6px 10px;
+}
+
+.api-edit-header-row .action-button .codicon {
+  font-size: calc(var(--vscode-font-size, 13px) * 2);
+}
+
+/* Underline the Edit API launcher (icon + text) */
+.api-edit-launcher .api-edit-launcher-text,
+.api-edit-launcher .codicon {
+  /* use border-bottom so underline shows reliably on flex items */
+  border-bottom: 1.6px solid #007acc;
+  padding-bottom: 2px;
+}
+
+.api-edit-launcher .api-edit-launcher-text {
+  color: #007acc;
+}
+
 .apitest-root {
   display: flex;
   flex-direction: column;

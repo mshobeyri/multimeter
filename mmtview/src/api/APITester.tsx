@@ -17,6 +17,7 @@ import { useAPITesterLogic } from "./useAPITesterLogic";
 interface APITestProps {
   api: APIData;
   onUpdateApi?: (patch: Partial<APIData>) => void;
+  rightOfUrlButton?: React.ReactNode;
 }
 
 type EditorTab = "inout" | "body" | "params" | "headers" | "cookies";
@@ -40,7 +41,7 @@ function cloneInputs(source?: JSONRecord): JSONRecord {
   }
 }
 
-const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
+const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton }) => {
   const { mmtFilePath } = useContext(FileContext);
   const {
     requestData,
@@ -101,13 +102,20 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi }) => {
 
   return (
     <div className="apitest-root">
-      <div style={{ padding: "8px" }}>
-        <UrlInput
-          url={requestData?.url ?? ""}
-          query={requestData?.query || {}}
-          onUrlChange={handleUrlChange}
-          onQueryChange={handleQueryChange}
-        />
+      <div style={{ padding: "8px", display: "flex", alignItems: "stretch", gap: 8 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <UrlInput
+            url={requestData?.url ?? ""}
+            query={requestData?.query || {}}
+            onUrlChange={handleUrlChange}
+            onQueryChange={handleQueryChange}
+          />
+        </div>
+        {rightOfUrlButton && (
+          <div style={{ display: "flex", alignItems: "flex-start", paddingTop: 2 }}>
+            {rightOfUrlButton}
+          </div>
+        )}
       </div>
 
       <div style={{ padding: "0 8px 8px" }}>
