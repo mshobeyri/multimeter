@@ -12,6 +12,7 @@ interface EnvironmentEnvProps {
     handlePresetsChange: (presetName: string, envName: string) => void;
     onClearCache?: () => void;
     onSaveToCache?: () => void;
+    onEdit?: () => void;
 }
 
 const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
@@ -22,6 +23,7 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
     handlePresetsChange,
     onClearCache,
     onSaveToCache,
+    onEdit,
 }) => {
     const currentMap = useMemo(() => {
         const map = new Map<string, EnvVariable>();
@@ -79,13 +81,19 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                     {onSaveToCache && (
                         <button onClick={onSaveToCache} className="action-button">
                             <span className="codicon codicon-checklist" style={{ fontSize: "16px" }}></span>
-                            Set To Workspace
+                            Reset
                         </button>
                     )}
                     {onClearCache && (
                         <button onClick={onClearCache} className="action-button">
                             <span className="codicon codicon-clear-all" style={{ fontSize: "16px" }}></span>
-                            Clear Workspace
+                            Clear
+                        </button>
+                    )}
+                    {onEdit && (
+                        <button onClick={onEdit} className="action-button api-edit-launcher" type="button">
+                            <span className="codicon codicon-edit" aria-hidden />
+                            <span className="api-edit-launcher-text">Edit Environment</span>
                         </button>
                     )}
                 </div>

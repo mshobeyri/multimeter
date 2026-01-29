@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import parseYaml from "mmt-core/markupConvertor";
 import EnvironmentEnv from "./EnvironmentEnv";
 import EnvironmentEdit from "./EnvironmentEdit";
@@ -10,7 +10,7 @@ import { EnvVariable } from "./EnvironmentData";
 import { saveEnvPresets } from "../workspaceStorage";
 import { selectFromVariables } from "mmt-core/runConfig";
 
-const LAST_ENV_TAB_KEY = "mmtview:env:lastTab";
+const LAST_ENV_PAGE_KEY = "mmtview:env:lastPage";
 
 interface EnvironmentPanelProps {
   content: string;
@@ -18,16 +18,10 @@ interface EnvironmentPanelProps {
 }
 
 const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent }) => {
-  // Restore last selected tab from localStorage, default to "environment"
-  const [tab, setTab] = useState<"environment" | "edit">(() => {
-    const stored = localStorage.getItem(LAST_ENV_TAB_KEY);
-    if (stored === "edit") {
-      return "edit";
-    }
-    return "environment";
-  });
+  const [page, setPage] = useState<'environment' | 'edit'>(
+    () => (localStorage.getItem(LAST_ENV_PAGE_KEY) as 'environment' | 'edit') || 'environment'
+  );
   const [showIconsOnly, setShowIconsOnly] = useState(false);
-  const tabContainerRef = useRef<HTMLDivElement>(null);
   const [variables, setVariables] = useState<ComboTablePair[]>([]);
   const [presets, setPresets] = useState<ComboTablePair[]>([]);
   const [presetData, setPresetData] = useState<any>({});
@@ -44,34 +38,11 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     }
   }, []);
 
-  // Save tab selection to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem(LAST_ENV_TAB_KEY, tab);
-  }, [tab]);
+    localStorage.setItem(LAST_ENV_PAGE_KEY, page);
+  }, [page]);
 
-  useEffect(() => {
-    const checkTabWidth = () => {
-      if (!tabContainerRef.current) return;
-
-      const container = tabContainerRef.current;
-      const containerWidth = container.clientWidth;
-
-      // Calculate approximate width needed for full text tabs
-      // Rough estimate: 140px per tab for text + icon
-      const fullTextWidth = 2 * 140;
-
-      setShowIconsOnly(containerWidth < fullTextWidth);
-    };
-
-    checkTabWidth();
-
-    const resizeObserver = new ResizeObserver(checkTabWidth);
-    if (tabContainerRef.current) {
-      resizeObserver.observe(tabContainerRef.current);
-    }
-
-    return () => resizeObserver.disconnect();
-  }, []);
+  // (no tab-bar on first page; leave showIconsOnly unused for now)
 
   // Add event listener for environment variable refresh messages
   useEffect(() => {
@@ -326,42 +297,49 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
 
   return (
     <div className="panel">
-      <div className="panel-box">
-        <div
-          ref={tabContainerRef}
-          className="tab-bar"
-        >
-          <button
-            onClick={() => setTab("environment")}
-            className={`tab-button ${tab === "environment" ? "active" : ""}`}
-            title={showIconsOnly ? "Environment" : undefined}
+      <div className="panel-box" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, minWidth: 0 }}>
+        <div className="api-swipe-root" style={{ flex: 1, minHeight: 0 }}>
+          <div
+            className="api-swipe-track"
+            style={{ transform: page === 'environment' ? 'translateX(0%)' : 'translateX(-50%)' }}
           >
-            <span className="codicon codicon-globe tab-button-icon"></span>
-            {!showIconsOnly && "Environment"}
-          </button>
-          <button
-            onClick={() => setTab("edit")}
-            className={`tab-button ${tab === "edit" ? "active" : ""}`}
-            title={showIconsOnly ? "Edit" : undefined}
-          >
-            <span className="codicon codicon-edit tab-button-icon"></span>
-            {!showIconsOnly && "Edit"}
-          </button>
+            <div className="api-swipe-page api-swipe-page--test">
+              <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+                  <EnvironmentEnv
+                    variables={variables}
+                    currentVariables={workspaceVars}
+                    presets={presets}
+                    handleVariablesChange={handleVariablesChange}
+                    handlePresetsChange={handlePresetsChange}
+                    onClearCache={handleClearCache}
+                    onSaveToCache={handleSaveToCache}
+                    onEdit={() => setPage('edit')}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="api-swipe-page api-swipe-page--edit">
+              <div className="api-edit-header">
+                <div className="api-edit-header-row">
+                  <button
+                    className="action-button"
+                    onClick={() => setPage('environment')}
+                    title="Back to Environment"
+                    type="button"
+                  >
+                    <span className="codicon codicon-arrow-left" aria-hidden />
+                  </button>
+                  <div className="api-edit-title">Edit Environment</div>
+                </div>
+              </div>
+              <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+                <EnvironmentEdit content={content} setContent={setContent} />
+              </div>
+            </div>
+          </div>
         </div>
-        {tab === "environment" && (
-          <EnvironmentEnv
-            variables={variables}
-            currentVariables={workspaceVars}
-            presets={presets}
-            handleVariablesChange={handleVariablesChange}
-            handlePresetsChange={handlePresetsChange}
-            onClearCache={handleClearCache}
-            onSaveToCache={handleSaveToCache}
-          />
-        )}
-        {tab === "edit" && (
-          <EnvironmentEdit content={content} setContent={setContent} />
-        )}
       </div>
     </div>
   );
