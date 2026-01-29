@@ -212,14 +212,13 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
         <div
           style={{
             display: 'flex',
-            justifyContent: 'space-between',
+            justifyContent: 'flex-end',
             marginBottom: 8,
             alignItems: 'center',
             position: 'relative',
             gap: 8,
           }}
         >
-          <div style={{ fontWeight: 700 }}>Suite</div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
               ref={addButtonRef as any}
@@ -292,7 +291,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
           tree
         )}
       </div>
-    </div>
+    </div >
   );
 };
 

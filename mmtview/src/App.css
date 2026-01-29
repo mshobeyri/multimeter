@@ -498,6 +498,8 @@ button:focus {
   padding: 16px;
   min-width: 200px;
   margin-bottom: 16px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .panel-form {
@@ -613,13 +615,12 @@ button:focus {
 .api-swipe-track {
   width: 200%;
   height: 100%;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   transition: transform 180ms ease;
 }
 
 .api-swipe-page {
-  width: 100%;
+  flex: 0 0 50%;
   height: 100%;
   min-height: 0;
   overflow: hidden;

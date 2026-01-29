@@ -15,6 +15,7 @@ import { statusIconFor } from '../../shared/Common';
 
 interface SuiteTestProps {
     content: string;
+    rightOfRunButton?: React.ReactNode;
 }
 
 const buildSuiteGroupsFromContent = (content: string): SuiteGroup[] => {
@@ -71,7 +72,7 @@ const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
     return allPaths;
 };
 
-const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
+const SuiteTest: React.FC<SuiteTestProps> = ({ content, rightOfRunButton }) => {
     const groups = useMemo(() => buildSuiteGroupsFromContent(content), [content]);
     const allPaths = useMemo(() => collectSuitePaths(groups), [groups]);
     const canRun = allPaths.length > 0;
@@ -542,15 +543,14 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 <div
                     style={{
                         display: 'flex',
-                        justifyContent: 'space-between',
+                        justifyContent: 'flex-end',
                         marginBottom: 8,
                         alignItems: 'center',
                         position: 'relative',
                         gap: 8,
                     }}
                 >
-                    <div style={{ fontWeight: 700 }}>Suite Test</div>
-                    <div style={{ display: 'flex', gap: 8 }}>
+                    <div style={{ display: 'flex', gap: 8}}>
                         <button
                             className="button-icon"
                             disabled={!canRun}
@@ -569,6 +569,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                             <span className="codicon codicon-debug-stop" aria-hidden />
                             Stop
                         </button>
+                        {rightOfRunButton}
                     </div>
                 </div>
                 {noItems ? <div style={{ opacity: 0.8 }}>No suite items found under `tests:`</div> : tree}
