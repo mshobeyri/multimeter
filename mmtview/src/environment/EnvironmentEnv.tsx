@@ -1,8 +1,9 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useState } from "react";
 import ComboTable, { ComboTablePair } from "../components/ComboTable";
-import { EnvVariable } from "./EnvironmentData";
+import { EnvClientCertificate, EnvVariable, CertificateSettings } from "./EnvironmentData";
 import { safeList } from "mmt-core/safer";
 import { JSONValue } from "mmt-core/CommonData";
+import { loadCertificateSettings, saveCertificateSettings } from "../workspaceStorage";
 
 interface EnvironmentEnvProps {
     variables: ComboTablePair[];
@@ -13,6 +14,8 @@ interface EnvironmentEnvProps {
     onClearCache?: () => void;
     onSaveToCache?: () => void;
     onEdit?: () => void;
+    // Client certificates from YAML (read-only names for enable/disable toggles)
+    clients?: EnvClientCertificate[];
 }
 
 const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
@@ -24,6 +27,7 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
     onClearCache,
     onSaveToCache,
     onEdit,
+    clients,
 }) => {
     const currentMap = useMemo(() => {
         const map = new Map<string, EnvVariable>();
@@ -34,6 +38,53 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
         });
         return map;
     }, [currentVariables]);
+
+    // Certificate settings from localStorage
+    const [certSettings, setCertSettings] = useState<CertificateSettings>({
+        sslValidation: true,
+        allowSelfSigned: false,
+        caEnabled: false,
+        clientsEnabled: {},
+    });
+
+    useEffect(() => {
+        const cleanup = loadCertificateSettings((loaded) => {
+            const safeLoaded: CertificateSettings = {
+                sslValidation: loaded?.sslValidation !== false,
+                allowSelfSigned: loaded?.allowSelfSigned === true,
+                caEnabled: loaded?.caEnabled === true,
+                clientsEnabled:
+                    loaded && typeof loaded.clientsEnabled === 'object' && loaded.clientsEnabled
+                        ? loaded.clientsEnabled
+                        : {},
+            };
+            setCertSettings(safeLoaded);
+        });
+        return cleanup;
+    }, []);
+
+    const updateCertSettings = (patch: Partial<CertificateSettings>) => {
+        const updated = { ...certSettings, ...patch };
+        setCertSettings(updated);
+        saveCertificateSettings(updated);
+    };
+
+    // Client certificate key for enable/disable map
+    const clientKey = (client: EnvClientCertificate): string =>
+        `${client.name || ""}:${client.host || ""}`;
+
+    const isClientEnabled = (client: EnvClientCertificate): boolean => {
+        const key = clientKey(client);
+        const map = certSettings.clientsEnabled || {};
+        return map[key] !== false;
+    };
+
+    const setClientEnabled = (client: EnvClientCertificate, enabled: boolean) => {
+        const key = clientKey(client);
+        updateCertSettings({
+            clientsEnabled: { ...certSettings.clientsEnabled, [key]: enabled },
+        });
+    };
 
     const formatValue = (value: JSONValue | undefined): string => {
         if (value === null || typeof value === "undefined") {
@@ -153,6 +204,65 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
 
             <div className="label">Presets</div>
             <ComboTable pairs={presets} onChange={handlePresetsChange} showPlaceholder />
+
+            {/* Certificates section */}
+            <div className="label" style={{ marginTop: "12px" }}>Certificates</div>
+            <div className="environment-table-wrapper">
+                <table className="environment-table">
+                    <thead>
+                        <tr>
+                            <th style={{ width: "50%" }}>Setting</th>
+                            <th style={{ width: "50%" }}>Enabled</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td className="environment-table-name">Verify SSL Certificates</td>
+                            <td>
+                                <input
+                                    type="checkbox"
+                                    checked={certSettings.sslValidation}
+                                    onChange={e => updateCertSettings({ sslValidation: e.target.checked })}
+                                />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td className="environment-table-name">Allow Self-Signed Certificates</td>
+                            <td>
+                                <input
+                                    type="checkbox"
+                                    checked={certSettings.allowSelfSigned}
+                                    onChange={e => updateCertSettings({ allowSelfSigned: e.target.checked })}
+                                />
+                            </td>
+                        </tr>
+                        <tr>
+                            <td className="environment-table-name">Custom CA Certificates</td>
+                            <td>
+                                <input
+                                    type="checkbox"
+                                    checked={certSettings.caEnabled}
+                                    onChange={e => updateCertSettings({ caEnabled: e.target.checked })}
+                                />
+                            </td>
+                        </tr>
+                        {safeList(clients).map((client, idx) => (
+                            <tr key={idx}>
+                                <td className="environment-table-name">
+                                    Client: {client.name || "Unnamed"} ({client.host || "*"})
+                                </td>
+                                <td>
+                                    <input
+                                        type="checkbox"
+                                        checked={isClientEnabled(client)}
+                                        onChange={e => setClientEnabled(client, e.target.checked)}
+                                    />
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 };

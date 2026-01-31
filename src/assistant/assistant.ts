@@ -1,11 +1,12 @@
 import * as mmtcore from 'mmt-core';
 import {apiParsePack, docHtml, docParsePack, runner} from 'mmt-core';
-import {runJSCode} from 'mmt-core/jsRunner';
+import {runJSCode, setRunnerNetworkConfig} from 'mmt-core/jsRunner';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import YAML from 'yaml';
 
 import {parseAssistantRunArgs} from './assistantArgs';
+import {getPreparedConfigFromStorage} from '../mmtAPI/network';
 
 async function handleChatRequest(
   request: any, _chatContext: any, response: any,
@@ -79,6 +80,16 @@ async function handleChatRequest(
         const {runFileOptions, outFile, printJs} =
             await parseAssistantRunArgs(projectRoot, request.prompt || '', context);
         runFileOptions.jsRunner = runJSCode;
+        
+        // Apply certificate settings from workspace storage
+        try {
+          const envVars = runFileOptions.envvar || {};
+          const netConfig = getPreparedConfigFromStorage(context, envVars);
+          setRunnerNetworkConfig(netConfig);
+        } catch (e) {
+          // Continue without certificates if loading fails
+        }
+        
         const runOutcome = await runner.runFile(runFileOptions as any);
         const {js, result, displayName, docType, exampleName, exampleIndex} =
             runOutcome as any;

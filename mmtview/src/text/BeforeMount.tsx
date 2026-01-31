@@ -234,8 +234,9 @@ export const handleBeforeMount = (monaco: any) => {
         const suggestions: any[] = [];
 
         // Specific key suggestions
-        if (key in keySuggestionsByParent) {
-            suggestions.push(...keySuggestionsByParent[key]);
+        const byKey = (keySuggestionsByParent as any)?.[key];
+        if (Array.isArray(byKey)) {
+            suggestions.push(...byKey);
         }
 
         // If no specific suggestions found, add general suggestions

@@ -55,6 +55,38 @@ import {buildCliRunArgs} from './runArgs.js';
 
 // Defer importing runTest until needed to avoid pulling axios for to-js
 
+// Resolve setRunnerNetworkConfig dynamically
+const resolveSetRunnerNetworkConfig = (): ((config: any) => void)|null => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const jsRunner = require('mmt-core/dist/jsRunner.js');
+    if (jsRunner && typeof jsRunner.setRunnerNetworkConfig === 'function') {
+      return jsRunner.setRunnerNetworkConfig;
+    }
+  } catch {
+  }
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const jsRunner = require('mmt-core/jsRunner');
+    if (jsRunner && typeof jsRunner.setRunnerNetworkConfig === 'function') {
+      return jsRunner.setRunnerNetworkConfig;
+    }
+  } catch {
+  }
+  return (mmtcore as any)?.jsRunner?.setRunnerNetworkConfig || null;
+};
+
+async function loadSetRunnerNetworkConfig(): Promise<((config: any) => void)|null> {
+  try {
+    const jsRunner: any = await import('mmt-core/jsRunner');
+    if (jsRunner && typeof jsRunner.setRunnerNetworkConfig === 'function') {
+      return jsRunner.setRunnerNetworkConfig;
+    }
+  } catch {
+  }
+  return resolveSetRunnerNetworkConfig();
+}
+
 const program = new Command();
 
 // Resolve version from package.json when available; fallback to a single const
@@ -122,8 +154,21 @@ program.command('run')
         if (!opts.quiet) {
           console.log(`Loaded: ${path.resolve(file)} (${summary})`);
         }
-        const {runFileOptions, outFile, printJs} =
+        const {runFileOptions, networkConfig, outFile, printJs} =
           buildCliRunArgs(file, {...(opts as any), logLevel: (program.opts() as any).logLevel});
+        
+        // Apply network config if certificates are configured
+        if (networkConfig) {
+          try {
+            const setRunnerNetworkConfig = await loadSetRunnerNetworkConfig();
+            if (setRunnerNetworkConfig) {
+              setRunnerNetworkConfig(networkConfig);
+            }
+          } catch (e) {
+            console.warn(`Unable to apply certificate settings: ${e}`);
+          }
+        }
+        
         const runOpts: any = {...(runFileOptions as any)};
         runOpts.jsRunner = (code: string, title: string, lg: any) =>
             runJSCode(code, title, lg as any);

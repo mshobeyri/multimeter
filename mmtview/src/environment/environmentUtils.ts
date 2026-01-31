@@ -1,6 +1,6 @@
 import {JSONValue} from 'mmt-core/CommonData';
-import {EnvVariable} from './EnvironmentData';
-import {clearEnvPresets, loadEnvVariables, saveEnvVariablesFromObject} from '../workspaceStorage';
+import {EnvVariable, EnvCertificates, CertificateSettings} from './EnvironmentData';
+import {clearEnvPresets, loadEnvVariables, saveEnvVariablesFromObject, saveCertificatesFromObject, loadCertificates, clearCertificates, saveCertificateSettings, loadCertificateSettings, clearCertificateSettings as clearCertSettingsStorage} from '../workspaceStorage';
 
 /**
  * Reads environment variables from storage
@@ -66,4 +66,56 @@ export const getEnvironmentVariable = (name: string): Promise<JSONValue> => {
 export const clearEnvironmentVariables = (): void => {
   saveEnvVariablesFromObject([]);
   clearEnvPresets();
+};
+
+/**
+ * Reads certificate file paths from storage (YAML data only)
+ * @param callback Function to call with the loaded certificates
+ * @returns Cleanup function to unsubscribe from updates
+ */
+export const readCertificates =
+    (callback: (certs: EnvCertificates|null) => void): (() => void) => {
+      return loadCertificates(callback);
+    };
+
+/**
+ * Writes certificate file paths to storage (YAML data only)
+ * @param certificates Certificate settings to save
+ */
+export const writeCertificates =
+    (certificates: EnvCertificates): void => {
+      saveCertificatesFromObject(certificates);
+    };
+
+/**
+ * Clears all certificate file paths from storage
+ */
+export const clearCertificatesData = (): void => {
+  clearCertificates();
+};
+
+/**
+ * Reads certificate boolean settings from storage
+ * @param callback Function to call with the loaded settings
+ * @returns Cleanup function to unsubscribe from updates
+ */
+export const readCertificateSettings =
+    (callback: (settings: CertificateSettings) => void): (() => void) => {
+      return loadCertificateSettings(callback);
+    };
+
+/**
+ * Writes certificate boolean settings to storage
+ * @param settings Certificate boolean settings to save
+ */
+export const writeCertificateSettings =
+    (settings: CertificateSettings): void => {
+      saveCertificateSettings(settings);
+    };
+
+/**
+ * Clears all certificate boolean settings from storage
+ */
+export const clearCertificateSettings = (): void => {
+  clearCertSettingsStorage();
 };

@@ -95,7 +95,13 @@ setenv:
   TOKEN: body[token]
 ```
 
+## Certificates
+
+SSL/TLS certificate settings can be configured in the `certificates` section of the env file. See [Certificates documentation](./certificates-mmt.md) for details on configuring CA certificates, client certificates (mTLS), and SSL validation settings.
+
 ## Reference (types)
 - type: `env`
 - variables: record<string, string | object (choices) | array (allowed values)>
 - presets: record<string, record<string, record<string, string|number|boolean|null>>>
+- certificates: { ca?, clients?, sslValidation?, allowSelfSigned? }
+

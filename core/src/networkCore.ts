@@ -13,8 +13,13 @@ export function createHttpsAgentWithCertificates(
     opts?: {skipCertificateValidation?: boolean}) {
   const rejectUnauthorized = opts?.skipCertificateValidation ? false : config.sslValidation;
   const agentOptions: https.AgentOptions = {rejectUnauthorized};
+  // Handle CA certificates (can be array or single Buffer for backward compat)
   if (config.ca.enabled && config.ca.certData) {
-    agentOptions.ca = [config.ca.certData];
+    if (Array.isArray(config.ca.certData)) {
+      agentOptions.ca = config.ca.certData;
+    } else {
+      agentOptions.ca = [config.ca.certData];
+    }
   }
   const matchingClientCert = config.clients.find(
       cert => cert.enabled &&
@@ -24,6 +29,9 @@ export function createHttpsAgentWithCertificates(
       matchingClientCert.keyData) {
     agentOptions.cert = matchingClientCert.certData;
     agentOptions.key = matchingClientCert.keyData;
+    if (matchingClientCert.passphrase_plain) {
+      agentOptions.passphrase = matchingClientCert.passphrase_plain;
+    }
   }
   return new https.Agent(agentOptions);
 }

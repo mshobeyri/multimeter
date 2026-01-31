@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import parseYaml, { packYaml } from "mmt-core/markupConvertor";
 import EnvironmentVariableEdit from "./EnvironmentVariableEdit";
 import EnvironmentPresetEdit from "./EnvironmentPresetEdit";
-import { EnvironmentData } from "./EnvironmentData";
+import EnvironmentCertificatesEdit from "./EnvironmentCertificatesEdit";
+import { EnvironmentData, EnvCertificates } from "./EnvironmentData";
 
 interface EnvironmentEditProps {
   content: string;
@@ -10,7 +11,7 @@ interface EnvironmentEditProps {
 }
 
 const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent }) => {
-  const [tab, setTab] = useState<"variables" | "presets">("variables");
+  const [tab, setTab] = useState<"variables" | "presets" | "certificates">("variables");
 
   let envData: EnvironmentData | null = null;
   try {
@@ -29,6 +30,15 @@ const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent }
   const handlePresetsChange = (presets: EnvironmentData["presets"]) => {
     if (!envData) return;
     const newEnvData = { ...envData, presets };
+    const yamlString = packYaml ? packYaml(newEnvData) : content;
+    setContent(yamlString);
+  };
+
+  const handleCertificatesChange = (certificates: EnvCertificates) => {
+    if (!envData) {
+      return;
+    }
+    const newEnvData = { ...envData, certificates };
     const yamlString = packYaml ? packYaml(newEnvData) : content;
     setContent(yamlString);
   };
@@ -56,6 +66,12 @@ const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent }
         >
           Presets
         </button>
+        <button
+          onClick={() => setTab("certificates")}
+          className={`tab-button-small ${tab === "certificates" ? "active" : ""}`}
+        >
+          Certificates
+        </button>
       </div>
       {tab === "variables" && (
         <EnvironmentVariableEdit
@@ -67,6 +83,12 @@ const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent }
         <EnvironmentPresetEdit
           presets={envData.presets || {}}
           onChange={handlePresetsChange}
+        />
+      )}
+      {tab === "certificates" && (
+        <EnvironmentCertificatesEdit
+          certificates={envData.certificates}
+          onChange={handleCertificatesChange}
         />
       )}
     </div>

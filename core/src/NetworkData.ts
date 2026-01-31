@@ -37,16 +37,38 @@ export interface NetworkAPI {
 
 export interface CaCertificate {
   enabled: boolean;
-  certData?: Buffer;
+  certPaths?: string[];  // Multiple paths
+  certData?: Buffer[];   // Multiple loaded certificates
 }
 
 export interface ClientCertificate {
   id: string;
   name: string;
   host: string;
+  cert_path?: string;
+  key_path?: string;
+  passphrase_plain?: string;
+  passphrase_env?: string;
   certData?: Buffer;
   keyData?: Buffer;
   enabled: boolean;
+}
+
+// Certificate settings stored in env file (YAML format)
+// Note: Boolean settings (ssl_validation, allow_self_signed, enabled flags) are NOT stored in YAML
+// They are stored in localStorage/workspaceState with sensible defaults
+export interface EnvCertificateSettings {
+  ca?: {
+    paths?: string[];  // Multiple CA cert file paths
+  };
+  clients?: Array<{
+    name?: string;
+    host?: string;
+    cert_path?: string;
+    key_path?: string;
+    passphrase_plain?: string;
+    passphrase_env?: string;
+  }>;
 }
 
 export interface NetworkConfig {

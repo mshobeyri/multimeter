@@ -108,68 +108,14 @@
         "multimeter.enableCertificateValidation": {
           "type": "boolean",
           "default": true,
-          "description": "Enable SSL certificate validation for HTTPS requests"
+          "description": "[Deprecated - use certificates section in env file] Enable SSL certificate validation for HTTPS requests",
+          "deprecationMessage": "Use the certificates section in your env file instead"
         },
         "multimeter.allowSelfSignedCertificates": {
           "type": "boolean",
           "default": false,
-          "description": "Trust self-signed certificates without disabling validation globally"
-        },
-        "multimeter.certificates.ca": {
-          "type": "object",
-          "default": {
-            "enabled": false,
-            "certPath": ""
-          },
-          "description": "CA Certificate configuration",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "description": "Enable CA certificate"
-            },
-            "certPath": {
-              "type": "string",
-              "description": "Path to CA certificate file"
-            }
-          }
-        },
-        "multimeter.certificates.clients": {
-          "type": "array",
-          "default": [],
-          "description": "Client certificates configuration",
-          "items": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "Unique identifier"
-              },
-              "name": {
-                "type": "string",
-                "description": "Certificate name/label"
-              },
-              "host": {
-                "type": "string",
-                "description": "Host pattern (e.g., *.example.com)"
-              },
-              "certPath": {
-                "type": "string",
-                "description": "Path to certificate file"
-              },
-              "keyPath": {
-                "type": "string",
-                "description": "Path to private key file"
-              },
-              "passphrase": {
-                "type": "string",
-                "description": "Private key passphrase"
-              },
-              "enabled": {
-                "type": "boolean",
-                "description": "Enable this certificate"
-              }
-            }
-          }
+          "description": "[Deprecated - use certificates section in env file] Trust self-signed certificates",
+          "deprecationMessage": "Use the certificates section in your env file instead"
         },
         "multimeter.network.timeout": {
           "type": "number",
@@ -291,12 +237,6 @@
         {
           "id": "multimeter.mock.server",
           "name": "Mock Server",
-          "icon": "res/activity.png",
-          "type": "webview"
-        },
-        {
-          "id": "multimeter.certificates",
-          "name": "Certificates",
           "icon": "res/activity.png",
           "type": "webview"
         },

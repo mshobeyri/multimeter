@@ -196,6 +196,38 @@ export const EnvSchema = {
                     }
                 }
             }
+        },
+        certificates: {
+            type: 'object',
+            properties: {
+                ca: {
+                    type: 'object',
+                    properties: {
+                        paths: {
+                            type: 'array',
+                            items: { type: 'string' },
+                            description: 'Paths to CA certificate files'
+                        }
+                    },
+                    additionalProperties: false
+                },
+                clients: {
+                    type: 'array',
+                    items: {
+                        type: 'object',
+                        properties: {
+                            name: { type: 'string', description: 'Certificate name' },
+                            host: { type: 'string', description: 'Host pattern (e.g., *.example.com)' },
+                            cert_path: { type: 'string', description: 'Path to client certificate' },
+                            key_path: { type: 'string', description: 'Path to private key' },
+                            passphrase_plain: { type: 'string', description: 'Plain text passphrase' },
+                            passphrase_env: { type: 'string', description: 'Environment variable for passphrase' }
+                        },
+                        additionalProperties: false
+                    }
+                }
+            },
+            additionalProperties: false
         }
     },
     additionalProperties: false

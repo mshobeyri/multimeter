@@ -5,7 +5,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 
 import {readRelativeFileContent} from './file';
-import {getPreparedConfig} from './network';
+import {getPreparedConfigFromStorage} from './network';
 
 const logOutputChannel =
     vscode.window.createOutputChannel('Multimeter', {log: true});
@@ -69,28 +69,29 @@ export async function handleRunCurrentDocument(
   const forwardLog = (level: LogLevel, message: string) => {
     logToOutput(level, message);
   };
+  // Build env vars first so we can use them for passphrase resolution
+  const envStorage = mmtProvider.context.workspaceState.get(
+      'multimeter.environment.storage', []);
+  const vscodeEnv: Record<string, any> = {};
+  if (Array.isArray(envStorage)) {
+    for (const item of envStorage) {
+      if (!item || typeof item !== 'object') {
+        continue;
+      }
+      const name = (item as any).name;
+      if (typeof name === 'string' && name) {
+        vscodeEnv[name] = (item as any).value;
+      }
+    }
+  }
   try {
-    const netConfig = getPreparedConfig();
+    const netConfig = getPreparedConfigFromStorage(mmtProvider.context, vscodeEnv);
     setRunnerNetworkConfig(netConfig);
   } catch (err: any) {
     logToOutput(
         'warn', `Unable to apply certificate settings: ${err?.message || err}`);
   }
   try {
-    const envStorage = mmtProvider.context.workspaceState.get(
-        'multimeter.environment.storage', []);
-    const vscodeEnv: Record<string, any> = {};
-    if (Array.isArray(envStorage)) {
-      for (const item of envStorage) {
-        if (!item || typeof item !== 'object') {
-          continue;
-        }
-        const name = (item as any).name;
-        if (typeof name === 'string' && name) {
-          vscodeEnv[name] = (item as any).value;
-        }
-      }
-    }
     const runOutcome = await runner.runFile({
       file: document.getText(),
       fileType: 'raw' as any,
@@ -136,9 +137,25 @@ export async function handleRunSuite(
     logToOutput(level, message);
   };
 
+  // Build env vars first so we can use them for passphrase resolution
+  const envStorage = mmtProvider.context.workspaceState.get(
+      'multimeter.environment.storage', []);
+  const vscodeEnv: Record<string, any> = {};
+  if (Array.isArray(envStorage)) {
+    for (const item of envStorage) {
+      if (!item || typeof item !== 'object') {
+        continue;
+      }
+      const name = (item as any).name;
+      if (typeof name === 'string' && name) {
+        vscodeEnv[name] = (item as any).value;
+      }
+    }
+  }
+
   let netConfigApplied = false;
   try {
-    const netConfig = getPreparedConfig();
+    const netConfig = getPreparedConfigFromStorage(mmtProvider.context, vscodeEnv);
     setRunnerNetworkConfig(netConfig);
     netConfigApplied = true;
   } catch (err: any) {
@@ -167,21 +184,6 @@ export async function handleRunSuite(
   forwardLog('debug', `handleRunSuite: started suiteRunId=${suiteRunId} file=${document.uri.fsPath} target=${String(message?.target)}`);
 
   try {
-    const envStorage = mmtProvider.context.workspaceState.get(
-        'multimeter.environment.storage', []);
-    const vscodeEnv: Record<string, any> = {};
-    if (Array.isArray(envStorage)) {
-      for (const item of envStorage) {
-        if (!item || typeof item !== 'object') {
-          continue;
-        }
-        const name = (item as any).name;
-        if (typeof name === 'string' && name) {
-          vscodeEnv[name] = (item as any).value;
-        }
-      }
-    }
-
     const target = typeof message?.target === 'string' ? message.target : undefined;
     const rawSuite = document.getText();
     const runFilePath = document.uri.fsPath;

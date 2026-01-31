@@ -2,7 +2,6 @@ import * as vscode from 'vscode';
 
 import {setupChatParticipants} from './assistant/assistant';
 import {MmtEditorProvider} from './mmtEditorProvider';
-import CertificatesPanel from './panels/CertificatesPanel';
 import ConvertorPanel from './panels/ConvertorPanel';
 import EnvironmentPanel from './panels/EnvironmentPanel';
 import HistoryPanel from './panels/HistoryPanel';
@@ -66,11 +65,6 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.commands.registerCommand('multimeter.history.refresh', () => {
         historyPanel.refreshHistory();
       }));
-
-  const certificatesPanel = new CertificatesPanel(context);
-  context.subscriptions.push(vscode.window.registerWebviewViewProvider(
-      'multimeter.certificates', certificatesPanel,
-      {webviewOptions: {retainContextWhenHidden: true}}));
 
   const openSettingsCommand =
       vscode.commands.registerCommand('multimeter.setting.open', () => {

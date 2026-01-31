@@ -6,7 +6,7 @@ import { readEnvironmentVariables, writeEnvironmentVariables, clearEnvironmentVa
 import { ComboTablePair } from "../components/ComboTable";
 import { isList, safeList } from "mmt-core/safer";
 import { JSONValue } from "mmt-core/CommonData";
-import { EnvVariable } from "./EnvironmentData";
+import { EnvCertificates, EnvVariable } from "./EnvironmentData";
 import { saveEnvPresets } from "../workspaceStorage";
 import { selectFromVariables } from "mmt-core/runConfig";
 
@@ -27,6 +27,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   const [presetData, setPresetData] = useState<any>({});
   const [variableDefinitions, setVariableDefinitions] = useState<Record<string, any>>({});
   const [workspaceVars, setWorkspaceVars] = useState<EnvVariable[]>([]);
+  const [certificates, setCertificates] = useState<EnvCertificates | undefined>(undefined);
   const loadedVarsRef = React.useRef<{ name: string; value: JSONValue, options: JSONValue[] }[]>([]);
 
   const refreshWorkspaceVars = useCallback(() => {
@@ -68,6 +69,8 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   useEffect(() => {
     const yaml = parseYaml(content);
     if (!yaml) return;
+
+    setCertificates(yaml.certificates as EnvCertificates | undefined);
 
     const variablePairs: ComboTablePair[] = [];
     const variablesObj = (yaml.variables && typeof yaml.variables === "object") ? yaml.variables : {};
@@ -315,6 +318,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
                     onClearCache={handleClearCache}
                     onSaveToCache={handleSaveToCache}
                     onEdit={() => setPage('edit')}
+                    clients={certificates?.clients}
                   />
                 </div>
               </div>

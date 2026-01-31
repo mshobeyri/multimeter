@@ -650,6 +650,73 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'API presets [object of key: value]',
             documentation: 'Presets for commonly used environment variable values. Helps with reusability and consistency.\nExample:\npresets:\n\t- name: "production"\n\t  value: "prod"\n\t- name: "staging"\n\t  value: "staging"\n\t- name: "development"\n\t  value: "dev"',
         },
+        {
+            label: "certificates",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "certificates:\n\t",
+            detail: 'Certificate settings [object]',
+            documentation: 'Configure SSL/TLS certificates for secure API connections.\nExample:\ncertificates:\n\tca:\n\t\tpaths:\n\t\t\t- ./certs/ca.pem\n\tclients:\n\t\t- name: api-cert\n\t\t\thost: "*.api.example.com"\n\t\t\tcert_path: ./certs/client.pem\n\t\t\tkey_path: ./certs/client.key',
+        },
+    ];
+    const envCertificatesSuggestions = [
+        {
+            label: "ca",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "ca:\n\t\tpaths:\n\t\t\t- ",
+            detail: 'CA certificates [object]',
+            documentation: 'Configure custom Certificate Authority certificates.\nExample:\nca:\n\tpaths:\n\t\t- ./certs/ca.pem\n\t\t- ./certs/intermediate.pem',
+        },
+        {
+            label: "clients",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "clients:\n\t\t- name: \n\t\t\thost: \"*\"\n\t\t\tcert_path: \n\t\t\tkey_path: ",
+            detail: 'Client certificates [array]',
+            documentation: 'Configure client certificates for mutual TLS.\nExample:\nclients:\n\t- name: api-cert\n\t\thost: "*.api.example.com"\n\t\tcert_path: ./certs/client.pem\n\t\tkey_path: ./certs/client.key',
+        },
+    ];
+    const envCaClientSuggestions = [
+        {
+            label: "name",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "name: ",
+            detail: 'Certificate name [string]',
+            documentation: 'A descriptive name for this client certificate.',
+        },
+        {
+            label: "host",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "host: ",
+            detail: 'Host pattern [string]',
+            documentation: 'Host pattern to match for this certificate. Use * for wildcard.\nExample: *.api.example.com',
+        },
+        {
+            label: "cert_path",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "cert_path: ",
+            detail: 'Certificate path [string]',
+            documentation: 'Path to the client certificate file (PEM format).',
+        },
+        {
+            label: "key_path",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "key_path: ",
+            detail: 'Key path [string]',
+            documentation: 'Path to the private key file (PEM format).',
+        },
+        {
+            label: "passphrase_plain",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "passphrase_plain: ",
+            detail: 'Passphrase (plain text) [string]',
+            documentation: 'Plain text passphrase for encrypted private key. Avoid committing to version control.',
+        },
+        {
+            label: "passphrase_env",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "passphrase_env: ",
+            detail: 'Passphrase env var [string]',
+            documentation: 'Name of environment variable containing the passphrase.\nExample: passphrase_env: MY_CERT_PASS',
+        },
     ];
     const protocolSuggestion = [
         {
@@ -871,6 +938,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
         doc: docSuggestions,
         services: servicesSuggestions,
         env: envSuggestions,
+        certificates: envCertificatesSuggestions,
+        clients: envCaClientSuggestions,
         type: typeSuggestions,
         examples: exampleSuggestions,
         steps: stepsSuggestions,

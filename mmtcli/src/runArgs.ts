@@ -2,6 +2,7 @@ import fs from 'fs';
 import yaml from 'js-yaml';
 import * as mmtcore from 'mmt-core';
 import type {RunFileOptions, RunReporterMessage} from 'mmt-core/runConfig';
+import type {NetworkConfig, EnvCertificateSettings} from 'mmt-core/NetworkData';
 import path from 'path';
 
 const {mergeEnv, resolvePresetEnv, resolveEnvFromDoc} =
@@ -50,8 +51,13 @@ function parsePairs(list: string[]|undefined): Record<string, any> {
   return out;
 }
 
-function loadEnvDoc(envPath: string):
-    {variables?: Record<string, any>; presets?: Record<string, any>} {
+interface EnvDocResult {
+  variables?: Record<string, any>;
+  presets?: Record<string, any>;
+  certificates?: EnvCertificateSettings;
+}
+
+function loadEnvDoc(envPath: string): EnvDocResult {
   try {
     const txt = fs.readFileSync(envPath, 'utf8');
     const data = yaml.load(txt) as any;
@@ -61,14 +67,128 @@ function loadEnvDoc(envPath: string):
     if (data.type && String(data.type) !== 'env') {
       return {};
     }
-    return {variables: data.variables || {}, presets: data.presets || {}};
+    return {
+      variables: data.variables || {},
+      presets: data.presets || {},
+      certificates: data.certificates || undefined,
+    };
   } catch {
     return {};
   }
 }
 
+// Resolve certificate path relative to env file directory
+function resolveCertPath(certPath: string, envFileDir: string): string {
+  if (!certPath) {
+    return '';
+  }
+  if (path.isAbsolute(certPath)) {
+    return certPath;
+  }
+  return path.resolve(envFileDir, certPath);
+}
+
+// Resolve passphrase from plain text or environment variable
+function resolvePassphrase(
+    passphrasePlain?: string, passphraseEnv?: string,
+    envVars?: Record<string, any>): string|undefined {
+  if (passphrasePlain) {
+    return passphrasePlain;
+  }
+  if (passphraseEnv) {
+    // First check passed envVars, then process.env
+    if (envVars && passphraseEnv in envVars) {
+      return String(envVars[passphraseEnv]);
+    }
+    if (process.env[passphraseEnv]) {
+      return process.env[passphraseEnv];
+    }
+  }
+  return undefined;
+}
+
+// Build NetworkConfig from certificate settings in env file
+// Note: Boolean settings (sslValidation, allowSelfSigned, enabled) default to sensible values
+// since they are not stored in YAML
+export function buildNetworkConfigFromEnv(
+    certSettings: EnvCertificateSettings | undefined,
+    envFileDir: string,
+    envVars?: Record<string, any>): NetworkConfig {
+  const defaultConfig: NetworkConfig = {
+    ca: {enabled: false},
+    clients: [],
+    sslValidation: true,
+    allowSelfSigned: false,
+    timeout: 30000,
+    autoFormat: false,
+  };
+
+  if (!certSettings) {
+    return defaultConfig;
+  }
+
+  // Load CA certs (multiple paths)
+  const caCertDataList: Buffer[] = [];
+  const caPaths = certSettings.ca?.paths || [];
+  // CA is enabled if there are paths defined
+  const caEnabled = caPaths.length > 0;
+  for (const caPath of caPaths) {
+    if (caPath) {
+      try {
+        const resolvedPath = resolveCertPath(caPath, envFileDir);
+        caCertDataList.push(fs.readFileSync(resolvedPath));
+      } catch (e) {
+        console.warn(`Failed to load CA certificate from ${caPath}: ${e}`);
+      }
+    }
+  }
+
+  // Load client certs (use snake_case fields from YAML)
+  const clients = (certSettings.clients || []).map((client, idx) => {
+    let certData: Buffer | undefined = undefined;
+    let keyData: Buffer | undefined = undefined;
+    // Client is enabled by default (boolean not in YAML)
+    const clientEnabled = true;
+    const certPath = client.cert_path || '';
+    const keyPath = client.key_path || '';
+    if (certPath && keyPath) {
+      try {
+        const certResolvedPath = resolveCertPath(certPath, envFileDir);
+        const keyResolvedPath = resolveCertPath(keyPath, envFileDir);
+        certData = fs.readFileSync(certResolvedPath);
+        keyData = fs.readFileSync(keyResolvedPath);
+      } catch (e) {
+        console.warn(`Failed to load client certificate for ${client.host || 'unknown'}: ${e}`);
+      }
+    }
+    const passphrase = resolvePassphrase(
+        client.passphrase_plain, client.passphrase_env, envVars);
+    return {
+      id: `client-${idx}`,
+      name: client.name || '',
+      host: client.host || '*',
+      cert_path: certPath,
+      key_path: keyPath,
+      passphrase_plain: passphrase,
+      certData,
+      keyData,
+      enabled: clientEnabled,
+    };
+  });
+
+  return {
+    ca: {enabled: caEnabled, certPaths: caPaths, certData: caCertDataList.length > 0 ? caCertDataList : undefined},
+    clients,
+    sslValidation: true,  // Default true (not stored in YAML)
+    allowSelfSigned: false,  // Default false (not stored in YAML)
+    timeout: 30000,
+    autoFormat: false,
+  };
+}
+
 export interface ParsedCliRunArgs {
   runFileOptions: RunFileOptions;
+  networkConfig?: NetworkConfig;
   quiet: boolean;
   outFile?: string;
   printJs: boolean;
@@ -99,8 +219,10 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
   }
 
   let envvar: Record<string, any>|undefined = undefined;
+  let networkConfig: NetworkConfig|undefined = undefined;
   const envFileOpt = opts.envFile as string | undefined;
   const presetName = opts.preset as string | undefined;
+  let envFileDir = dir;
   if (envFileOpt) {
     let p = String(envFileOpt);
     if (!path.isAbsolute(p)) {
@@ -111,12 +233,17 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
         p = path.resolve(dir, p);
       }
     }
+    envFileDir = path.dirname(p);
     const doc = loadEnvDoc(p);
     if (typeof resolveEnvFromDoc === 'function') {
       envvar = resolveEnvFromDoc({doc, presetName, manualEnvvars});
     } else {
       const presetEnv = resolvePresetEnv(doc, presetName);
       envvar = mergeEnv({envvar: presetEnv, manualEnvvars});
+    }
+    // Build network config from certificates in env file
+    if (doc.certificates) {
+      networkConfig = buildNetworkConfigFromEnv(doc.certificates, envFileDir, envvar);
     }
   } else {
     envvar = mergeEnv({envvar: undefined, manualEnvvars});
@@ -154,6 +281,7 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
 
   return {
     runFileOptions,
+    networkConfig,
     quiet: !!opts.quiet,
     outFile: opts.out ? String(opts.out) : undefined,
     printJs: !!opts.printJs,
