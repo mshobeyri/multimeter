@@ -1,6 +1,7 @@
 import React from "react";
 import { EnvCertificates, EnvClientCertificate, EnvCaCertificate } from "./EnvironmentData";
 import { safeList } from "mmt-core/safer";
+import FieldWithRemove from "../components/FieldWithRemove";
 
 interface EnvironmentCertificatesEditProps {
   certificates: EnvCertificates | undefined;
@@ -58,31 +59,20 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
   };
 
   return (
-    <div style={{ padding: "10px 0" }}>
-      {/* CA Certificate Paths Section */}
+    <div>
       <div className="inner-box">
         <div className="label">CA Certificate Paths</div>
         <div style={{ padding: "5px" }}>
           {safeList(ca.paths || []).map((p, idx) => (
-            <div key={idx} style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
-              <input
-                type="text"
-                className="input-field"
-                value={p}
-                onChange={(e) => handleCaPathChange(idx, e.target.value)}
-                placeholder="Path to CA certificate file (e.g., ./certs/ca.pem)"
-                style={{ flex: 1, boxSizing: "border-box" }}
-              />
-              <button
-                className="button-icon"
-                onClick={() => handleRemoveCaPath(idx)}
-                title="Remove"
-              >
-                <span className="codicon codicon-trash" aria-hidden />
-              </button>
-            </div>
+            <FieldWithRemove
+              key={idx}
+              value={p}
+              onChange={(v) => handleCaPathChange(idx, v)}
+              onRemovePressed={() => handleRemoveCaPath(idx)}
+              placeholder="Path to CA certificate file (e.g., ./certs/ca.pem)"
+            />
           ))}
-          <button onClick={handleAddCaPath} className="button-icon" style={{ marginTop: "4px" }}>
+          <button onClick={handleAddCaPath} className="button-icon" style={{ marginTop: "12px" }}>
             <span className="codicon codicon-add" aria-hidden />
             Add CA Path
           </button>
@@ -94,29 +84,15 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
         <div className="label">Client Certificates</div>
         {safeList(clients).map((client, idx) => (
           <div key={idx} className="inner-box" style={{ margin: "5px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
-              <span style={{ fontWeight: "bold" }}>{client.name || "Unnamed Certificate"}</span>
-              <button
-                className="button-icon"
-                onClick={() => handleRemoveClient(idx)}
-                title="Remove"
-              >
-                <span className="codicon codicon-trash" aria-hidden />
-              </button>
-            </div>
+            <div className="label" style={{ marginBottom: "8px" }}>Client</div>
+            <FieldWithRemove
+              value={client.name}
+              onChange={(v) => handleClientChange(idx, { name: v })}
+              onRemovePressed={() => handleRemoveClient(idx)}
+              placeholder="Certificate name"
+            />
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-              <div>
-                <div className="label" style={{ fontSize: "12px" }}>Name</div>
-                <input
-                  type="text"
-                  className="input-field"
-                  value={client.name}
-                  onChange={(e) => handleClientChange(idx, { name: e.target.value })}
-                  placeholder="Certificate name"
-                  style={{ width: "100%", boxSizing: "border-box" }}
-                />
-              </div>
               <div>
                 <div className="label" style={{ fontSize: "12px" }}>Host Pattern</div>
                 <input
@@ -181,7 +157,7 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
           </div>
         ))}
 
-        <button onClick={handleAddClient} className="button-icon" style={{ margin: "5px" }}>
+        <button onClick={handleAddClient} className="button-icon" style={{ margin: "12px 5px 5px" }}>
           <span className="codicon codicon-add" aria-hidden />
           Add Client Certificate
         </button>

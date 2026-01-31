@@ -98,18 +98,7 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
     return (
         <div>
             {safeList(boards).map((board, boardIdx) => (
-                <div
-                    key={boardIdx}
-                    style={{
-                        position: "relative",
-                        background: "var(--vscode-editorWidget-background, #232323)",
-                        border: "1px solid var(--vscode-editorWidget-border, #333)",
-                        borderRadius: "6px",
-                        padding: "16px",
-                        minWidth: 200,
-                        marginBottom: "16px"
-                    }}
-                >
+                <div key={boardIdx} className="inner-box" style={{ paddingTop: "30px" }}>
                     <span className="label">Preset</span>
                     <div style={{ padding: "5px" }}>
                         <FieldWithRemove
@@ -138,8 +127,6 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
                                 keyPlaceholder="key"
                                 valuePlaceholder="value"
                             />
-
-                            <hr style={{ border: 0, borderTop: "1px solid #444", margin: "12px 0" }} />
                         </div>
                     ))}
                     <button onClick={() => handleAddEnv(boardIdx)} className="button-icon" >

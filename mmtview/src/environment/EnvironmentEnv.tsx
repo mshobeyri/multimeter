@@ -206,8 +206,9 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
             <ComboTable pairs={presets} onChange={handlePresetsChange} showPlaceholder />
 
             {/* Certificates section */}
-            <div className="label" style={{ marginTop: "12px" }}>Certificates</div>
-            <div className="environment-table-wrapper">
+            <div style={{ marginTop: "12px" }}>
+                <div className="label" style={{ marginBottom: "12px" }}>Certificates</div>
+                <div className="environment-table-wrapper">
                 <table className="environment-table">
                     <thead>
                         <tr>
@@ -262,6 +263,7 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                         ))}
                     </tbody>
                 </table>
+                </div>
             </div>
         </div>
     );

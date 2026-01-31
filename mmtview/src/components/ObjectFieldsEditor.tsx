@@ -56,7 +56,7 @@ const ObjectFieldsEditor: React.FC<ObjectFieldsEditorProps> = ({ fields, setFiel
 
     return (
         <div>
-            <div style={{ marginBottom: 8, fontWeight: 500 }}>fields</div>
+            <div style={{ marginBottom: 8, fontWeight: 500 }}>Fields</div>
             {safeList(orderedFields).map(([name, type]) => (
                 <div
                     key={name}
