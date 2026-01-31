@@ -186,6 +186,33 @@ export function buildNetworkConfigFromEnv(
   };
 }
 
+/**
+ * Find the project root by walking up from startPath looking for multimeter.mmt.
+ * Returns the directory containing multimeter.mmt, or undefined if not found.
+ */
+function findProjectRootSync(startPath: string): string | undefined {
+  let currentDir = path.dirname(startPath);
+  const visited = new Set<string>();
+
+  while (currentDir && !visited.has(currentDir)) {
+    visited.add(currentDir);
+    const markerPath = path.join(currentDir, 'multimeter.mmt');
+    
+    if (fs.existsSync(markerPath)) {
+      return currentDir;
+    }
+
+    const parentDir = path.dirname(currentDir);
+    // Stop if we've reached the root (parent is same as current)
+    if (parentDir === currentDir) {
+      break;
+    }
+    currentDir = parentDir;
+  }
+
+  return undefined;
+}
+
 export interface ParsedCliRunArgs {
   runFileOptions: RunFileOptions;
   networkConfig?: NetworkConfig;
@@ -277,6 +304,7 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
         console.log(`[${level}] ${msg}`);
     },
     reporter: (_message: RunReporterMessage) => {},
+    projectRoot: findProjectRootSync(full),
   };
 
   return {

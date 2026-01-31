@@ -10,7 +10,9 @@ import {replaceAllRefs} from './variableReplacer';
 export interface TestContext {
   test: TestData, name: string, inputs: JSONRecord, envVars: JSONRecord,
       /** Optional original file path for resolving imports */
-      filePath?: string, importTracker?: ImportTracker
+      filePath?: string, importTracker?: ImportTracker,
+      /** Project root directory (where multimeter.mmt lives) for +/ imports */
+      projectRoot?: string
 }
 
 
@@ -34,7 +36,7 @@ export const testToJsfunc = async(
             const requestedPathRaw =
                 typeof requested === 'string' ? requested : '';
             const normalizedRequested =
-                resolveRequestedAgainst(ctx.filePath || '', requestedPathRaw);
+                resolveRequestedAgainst(ctx.filePath || '', requestedPathRaw, ctx.projectRoot);
             const fnFromRequested =
                 ctx.importTracker?.getTestFuncName(normalizedRequested);
             if (fnFromRequested) {
@@ -112,7 +114,7 @@ export const variableReplacer = (full: string): string => {
 export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
   const tracker = new ImportTracker();
   let importedFuncs =
-      await importsToJsfunc(ctx.test.import ?? {}, tracker, ctx.filePath);
+      await importsToJsfunc(ctx.test.import ?? {}, tracker, ctx.filePath, ctx.projectRoot);
 
   const test =
       await testToJsfunc({...ctx, importTracker: tracker}, true, tracker);

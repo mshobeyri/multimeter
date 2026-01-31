@@ -1,6 +1,7 @@
 import {runner, suiteHierarchy, suiteBundle} from 'mmt-core';
 import {LogLevel} from 'mmt-core/CommonData';
 import {runJSCode, setRunnerNetworkConfig} from 'mmt-core/jsRunner';
+import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
@@ -9,6 +10,33 @@ import {getPreparedConfigFromStorage} from './network';
 
 const logOutputChannel =
     vscode.window.createOutputChannel('Multimeter', {log: true});
+
+/**
+ * Find the project root by walking up from startPath looking for multimeter.mmt.
+ * Returns the directory containing multimeter.mmt, or undefined if not found.
+ */
+function findProjectRoot(startPath: string): string | undefined {
+  let currentDir = path.dirname(startPath);
+  const visited = new Set<string>();
+
+  while (currentDir && !visited.has(currentDir)) {
+    visited.add(currentDir);
+    const markerPath = path.join(currentDir, 'multimeter.mmt');
+
+    if (fs.existsSync(markerPath)) {
+      return currentDir;
+    }
+
+    const parentDir = path.dirname(currentDir);
+    // Stop if we've reached the root (parent is same as current)
+    if (parentDir === currentDir) {
+      break;
+    }
+    currentDir = parentDir;
+  }
+
+  return undefined;
+}
 
 let activeSuiteRun:
   {suiteRunId: string; controller: AbortController; panelId: string;}|null =
@@ -92,6 +120,7 @@ export async function handleRunCurrentDocument(
         'warn', `Unable to apply certificate settings: ${err?.message || err}`);
   }
   try {
+    const projectRoot = findProjectRoot(document.uri.fsPath);
     const runOutcome = await runner.runFile({
       file: document.getText(),
       fileType: 'raw' as any,
@@ -116,6 +145,7 @@ export async function handleRunCurrentDocument(
           ...msg,
         });
       },
+      projectRoot,
     });
 
     const {docType, displayName, result} = runOutcome;
@@ -124,8 +154,14 @@ export async function handleRunCurrentDocument(
         docType === 'suite'         ? 'Suite' :
                                       'Document';
   } catch (err: any) {
+    const msg = err?.message || String(err);
+    if (typeof msg === 'string' && msg.includes('Cannot resolve "+/" import')) {
+      vscode.window.showErrorMessage(
+          `Failed to run ${fileName}: ${msg}. Add a multimeter.mmt file in your project root (or a parent folder) to enable +/ imports.`);
+      return;
+    }
     vscode.window.showErrorMessage(
-        `Failed to run ${fileName}: ${err?.message || String(err)}`);
+        `Failed to run ${fileName}: ${msg}`);
   }
 }
 
@@ -215,6 +251,7 @@ export async function handleRunSuite(
       console.warn('Unable to post suiteBundle to webview', e);
     }
 
+    const projectRoot = findProjectRoot(runFilePath);
     await runner.runFile({
       file: rawSuite,
       fileType: 'raw' as any,
@@ -237,6 +274,7 @@ export async function handleRunSuite(
       suiteBundle: bundle,
       // Provide a per-suite-run nonce for unique child runIds.
       suiteRunId: suiteRunId,
+      projectRoot,
       reporter: (msg: any) => {
         const current = activeSuiteRun;
         if (!current || current.suiteRunId !== suiteRunId) {

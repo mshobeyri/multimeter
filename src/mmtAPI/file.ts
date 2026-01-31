@@ -4,6 +4,58 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 
+/**
+ * Find the project root by walking up from startPath looking for multimeter.mmt.
+ * Returns the directory containing multimeter.mmt, or undefined if not found.
+ */
+function findProjectRoot(startPath: string): string | undefined {
+  let currentDir = path.dirname(startPath);
+  const visited = new Set<string>();
+
+  while (currentDir && !visited.has(currentDir)) {
+    visited.add(currentDir);
+    const markerPath = path.join(currentDir, 'multimeter.mmt');
+
+    if (fs.existsSync(markerPath)) {
+      return currentDir;
+    }
+
+    const parentDir = path.dirname(currentDir);
+    // Stop if we've reached the root (parent is same as current)
+    if (parentDir === currentDir) {
+      break;
+    }
+    currentDir = parentDir;
+  }
+
+  return undefined;
+}
+
+/**
+ * Resolve an import path that may be relative or use +/ project root prefix.
+ * @param basePath The path of the file containing the import
+ * @param importPath The import path (e.g., "./foo.mmt" or "+/apis/bar.mmt")
+ * @param projectRoot Optional project root for +/ imports (will be auto-detected if not provided)
+ * @returns Absolute path to the imported file
+ */
+function resolveImportPath(basePath: string, importPath: string, projectRoot?: string): string {
+  const trimmed = (importPath || '').trim();
+  
+  // Handle +/ project root imports
+  if (trimmed.startsWith('+/')) {
+    const root = projectRoot ?? findProjectRoot(basePath);
+    if (!root) {
+      throw new Error(
+          `Cannot resolve "+/" import (${trimmed}): multimeter.mmt not found while walking up from ${basePath}`);
+    }
+    const relativePart = trimmed.slice(2); // Remove '+/'
+    return path.join(root, relativePart);
+  }
+  
+  // Regular relative path
+  return path.resolve(path.dirname(basePath), trimmed);
+}
+
 export function handleUpdateDocumentContent(
     message: any, document: vscode.TextDocument, mmtProvider: any) {
   mmtProvider.updateTextDocument(document, message.text);
@@ -27,8 +79,7 @@ export async function readRelativeFileContent(
   // to the current document path to avoid path.resolve(...) throwing.
   const safeRelativePath =
       typeof relativePath === 'string' ? relativePath : openFilePath;
-  const absolutePath =
-      path.resolve(path.dirname(openFilePath), safeRelativePath);
+  const absolutePath = resolveImportPath(openFilePath, safeRelativePath);
   return await readFileContent(absolutePath);
 }
 
@@ -73,7 +124,16 @@ export async function handleGetFileContent(
   } catch (err) {
     // Delay only the error
     const timeout = setTimeout(() => {
-      vscode.window.showErrorMessage(`Failed to read file ${message.filename}`);
+      const rawMsg = (err as any)?.message || String(err);
+      if (typeof message?.filename === 'string' && message.filename.trim().startsWith('+/')) {
+        vscode.window.showErrorMessage(
+            `Failed to read file ${message.filename}: multimeter.mmt not found. Add multimeter.mmt in your project root (or a parent folder) to enable +/ imports.`);
+      } else if (typeof rawMsg === 'string' && rawMsg.includes('Cannot resolve "+/" import')) {
+        vscode.window.showErrorMessage(
+            `Failed to read file ${message.filename}: ${rawMsg}`);
+      } else {
+        vscode.window.showErrorMessage(`Failed to read file ${message.filename}`);
+      }
       mmtProvider.fileReadTimeouts.delete(webviewPanel);
     }, 1000);
 
@@ -86,8 +146,7 @@ export async function handleGetFileAsDataUrl(
     message: any, webviewPanel: vscode.WebviewPanel,
     document: vscode.TextDocument) {
   try {
-    const absolutePath =
-        path.resolve(path.dirname(document.uri.fsPath), message.filename);
+    const absolutePath = resolveImportPath(document.uri.fsPath, message.filename);
     const data =
         await vscode.workspace.fs.readFile(vscode.Uri.file(absolutePath));
     // naive mime detection by extension
@@ -122,6 +181,7 @@ export async function handleValidateImports(
   const missing: Array<{alias: string; path: string}> = [];
   const apiInputsByAlias: Record<string, string[]> = {};
   const includeInputs = !!message?.includeInputs;
+  const projectRoot = findProjectRoot(document.uri.fsPath);
   for (const [alias, relativePath] of Object.entries(importEntries)) {
     if (typeof alias !== 'string') {
       continue;
@@ -129,8 +189,7 @@ export async function handleValidateImports(
     if (typeof relativePath !== 'string' || !relativePath.trim()) {
       continue;
     }
-    const absolutePath =
-        path.resolve(path.dirname(document.uri.fsPath), relativePath);
+    const absolutePath = resolveImportPath(document.uri.fsPath, relativePath, projectRoot);
     if (!fs.existsSync(absolutePath)) {
       missing.push({alias, path: relativePath});
       continue;
@@ -177,11 +236,12 @@ export async function handleGetSuiteImportTree(
   const entries = Array.isArray(message?.entries) ? message.entries : [];
   const maxDepth = typeof message?.maxDepth === 'number' ? message.maxDepth : 10;
   const rootAbs = document.uri.fsPath;
+  const projectRoot = findProjectRoot(rootAbs);
 
   const visited = new Set<string>();
 
   const resolveAbs = (rel: string): string => {
-    return path.resolve(path.dirname(rootAbs), rel);
+    return resolveImportPath(rootAbs, rel, projectRoot);
   };
 
   const detectType = (text: string): SuiteTreeNodeInfo['docType'] => {
@@ -246,12 +306,12 @@ export function handleValidateFilesExist(
   const files = Array.isArray(message?.files) ? message.files : [];
   const existing: string[] = [];
   const missing: string[] = [];
+  const projectRoot = findProjectRoot(document.uri.fsPath);
   for (const relativePath of files) {
     if (typeof relativePath !== 'string' || !relativePath.trim()) {
       continue;
     }
-    const absolutePath =
-        path.resolve(path.dirname(document.uri.fsPath), relativePath);
+    const absolutePath = resolveImportPath(document.uri.fsPath, relativePath, projectRoot);
     if (fs.existsSync(absolutePath)) {
       existing.push(relativePath);
     } else {
@@ -268,8 +328,8 @@ export function handleValidateFilesExist(
 
 export async function handleOpenRelativeFile(
     message: any, document: vscode.TextDocument) {
-  const absolutePath =
-      path.resolve(path.dirname(document.uri.fsPath), message.filename);
+  const projectRoot = findProjectRoot(document.uri.fsPath);
+  const absolutePath = resolveImportPath(document.uri.fsPath, message.filename, projectRoot);
   const uri = vscode.Uri.file(absolutePath);
   const pathLower: string = absolutePath.toLowerCase();
   try {

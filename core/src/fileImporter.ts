@@ -102,6 +102,8 @@ export interface CreateFileImporterOptions {
   fileLoader: FileLoader;
   /** Used to resolve the *first* layer of imports (from the root file). */
   rootPath?: string;
+  /** Project root directory (where multimeter.mmt lives) for +/ imports. */
+  projectRoot?: string;
   /** Extract nested imports from file content. */
   getImportsFromContent?:
       (content: string, path: string) => Record<string, string>;
@@ -109,7 +111,7 @@ export interface CreateFileImporterOptions {
 
 export function createFileImporter(options: CreateFileImporterOptions):
     FileImporter {
-  const {fileLoader, rootPath, getImportsFromContent} = options;
+  const {fileLoader, rootPath, projectRoot, getImportsFromContent} = options;
   const cache = new Map<string, string>();
   const inStack = new Set<string>();
   const stack: string[] = [];
@@ -142,6 +144,18 @@ export function createFileImporter(options: CreateFileImporterOptions):
         if (!requestedPath) {
           throw new FileImportError(
               'invalid-path', 'Import path is empty', {chain: [...stack]});
+        }
+        // Handle +/ project root imports
+        if (requestedPath.startsWith('+/')) {
+          if (!projectRoot) {
+            const base = baseFilePath ? fileUriToPath(baseFilePath) : '(unknown base file)';
+            throw new FileImportError(
+                'invalid-path',
+                `Cannot resolve "+/" import (${requestedPath}): multimeter.mmt not found while walking up from ${base}`,
+                {chain: [...stack]});
+          }
+          const relativePart = requestedPath.slice(2); // Remove '+/'
+          return resolveDotSegments(joinPath(projectRoot, relativePart));
         }
         if (isAbsPath(requestedPath)) {
           return resolveDotSegments(requestedPath);

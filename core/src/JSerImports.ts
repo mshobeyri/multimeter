@@ -49,10 +49,11 @@ export interface ImportGenerationResult {
 }
 
 const resolveImports =
-    async (imports: Record<string, string>, rootPath?: string) => {
+    async (imports: Record<string, string>, rootPath?: string, projectRoot?: string) => {
   const importer = createFileImporter({
     fileLoader: readFile,
     rootPath: rootPath,
+    projectRoot: projectRoot,
     getImportsFromContent: (content: string) => extractImportsFromMmt(content),
   });
   return await importer.resolveAll(imports);
@@ -97,7 +98,7 @@ const computePublicNames = (resolved: any[]): Map<string, string> => {
 
 const buildAliasMaps =
     (resolved: any[], publicNameForPath: Map<string, string>,
-     tracker: ImportTracker) => {
+     tracker: ImportTracker, projectRoot?: string) => {
       for (const imp of resolved) {
         const {resolvedPath, content} = imp;
         const type = fileType(resolvedPath, content);
@@ -114,7 +115,7 @@ const buildAliasMaps =
                 `Invalid import key "${key}": must be a valid JS identifier`);
           }
           const requestedPath =
-              resolveRequestedAgainst(resolvedPath, requestedPathRaw);
+              resolveRequestedAgainst(resolvedPath, requestedPathRaw, projectRoot);
           const match = resolved.find(
               r => r.importName === key && r.requestedPath === requestedPath);
           const fn =
@@ -187,15 +188,16 @@ const toFunctionNameMap =
 export const importsToJsfuncDetailed = async(
     imports: Record<string, string>,
     tracker: ImportTracker = new ImportTracker(),
-    rootPath?: string): Promise<ImportGenerationResult> => {
+    rootPath?: string,
+    projectRoot?: string): Promise<ImportGenerationResult> => {
   try {
     if (!imports || Object.keys(imports).length === 0) {
       return {js: '', functionNameByResolvedPath: {}};
     }
 
-    const resolved = await resolveImports(imports, rootPath);
+    const resolved = await resolveImports(imports, rootPath, projectRoot);
     const publicNameForPath = computePublicNames(resolved);
-    buildAliasMaps(resolved, publicNameForPath, tracker);
+    buildAliasMaps(resolved, publicNameForPath, tracker, projectRoot);
     const results = await emitResolved(resolved, publicNameForPath, tracker);
     const functionNameByResolvedPath = toFunctionNameMap(publicNameForPath);
 
@@ -209,7 +211,8 @@ export const importsToJsfuncDetailed = async(
 export const importsToJsfunc = async(
     imports: Record<string, string>,
     tracker: ImportTracker = new ImportTracker(),
-    rootPath?: string): Promise<string> => {
-  const detailed = await importsToJsfuncDetailed(imports, tracker, rootPath);
+    rootPath?: string,
+    projectRoot?: string): Promise<string> => {
+  const detailed = await importsToJsfuncDetailed(imports, tracker, rootPath, projectRoot);
   return detailed.js;
 };

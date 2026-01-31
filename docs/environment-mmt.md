@@ -105,3 +105,31 @@ SSL/TLS certificate settings can be configured in the `certificates` section of 
 - presets: record<string, record<string, record<string, string|number|boolean|null>>>
 - certificates: { ca?, clients?, sslValidation?, allowSelfSigned? }
 
+## Project Root Marker
+
+A file named `multimeter.mmt` (with `type: env`) placed at the root of your project serves as the **project root marker**. This enables:
+
+1. **Workspace environment loading**: When configured, VS Code will automatically load variables, presets, and certificates from `multimeter.mmt` into workspace storage on project open. Configure the path using `multimeter.workspaceEnvFile` setting (default: `multimeter.mmt` at project root).
+
+2. **Project root imports**: In test and API files, you can use `+/` prefix to import files relative to the project root (where `multimeter.mmt` exists) instead of relative to the current file.
+
+Example project structure:
+```
+project/
+├── multimeter.mmt          # Project root marker
+├── apis/
+│   ├── auth.mmt
+│   └── users.mmt
+└── tests/
+    └── auth/
+        └── login_test.mmt  # Can use +/apis/auth.mmt
+```
+
+In `tests/auth/login_test.mmt`:
+```yaml
+import:
+  auth: +/apis/auth.mmt     # Resolves to project/apis/auth.mmt
+```
+
+See [Test documentation](./test-mmt.md#import) for more details on import paths.
+

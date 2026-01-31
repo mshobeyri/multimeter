@@ -29,7 +29,7 @@ export function prepareTestRun(
 }
 
 export async function generateTestJs(opts: GenerateJsOptions): Promise<string> {
-  const {rawText, name, inputs, envVars, fileLoader} = opts;
+  const {rawText, name, inputs, envVars, fileLoader, filePath, projectRoot} = opts;
   JSer.setFileLoader(async (p: string) => {
     try {
       const t = await fileLoader(p);
@@ -40,7 +40,7 @@ export async function generateTestJs(opts: GenerateJsOptions): Promise<string> {
   });
   const test =
       testParsePack.yamlToTest ? testParsePack.yamlToTest(rawText) : {} as any;
-  let js = await JSer.rootTestToJsfunc({test, name, inputs, envVars});
+  let js = await JSer.rootTestToJsfunc({test, name, inputs, envVars, filePath, projectRoot});
   const anyJSer: any = JSer as any;
   if (anyJSer.variableReplacer &&
       typeof anyJSer.variableReplacer === 'function') {
@@ -83,6 +83,8 @@ export async function executeTest(
     inputs: inputsUsed,
     envVars,
     fileLoader: options.fileLoader,
+    filePath: prepared.filePath,
+    projectRoot: options.projectRoot,
   });
     const result = await runGeneratedJs(
       runId, js, displayName, options.logger, options.jsRunner, stepReporter,

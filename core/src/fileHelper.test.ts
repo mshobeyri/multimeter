@@ -156,4 +156,26 @@ describe('path helpers', () => {
     expect(resolveRequestedAgainst(base, 'file:///C:/root/tests/./child.mmt'))
         .toBe('/C:/root/tests/child.mmt');
   });
+
+  test('resolveRequestedAgainst handles +/ project root imports', () => {
+    const base = '/project/tests/deep/main.mmt';
+    const projectRoot = '/project';
+    expect(resolveRequestedAgainst(base, '+/apis/user.mmt', projectRoot))
+        .toBe('/project/apis/user.mmt');
+    expect(resolveRequestedAgainst(base, '+/data/users.csv', projectRoot))
+        .toBe('/project/data/users.csv');
+  });
+
+  test('resolveRequestedAgainst throws for +/ without projectRoot', () => {
+    const base = '/project/tests/main.mmt';
+    expect(() => resolveRequestedAgainst(base, '+/apis/user.mmt'))
+      .toThrow('multimeter.mmt not found');
+  });
+
+  test('resolveRequestedAgainst handles +/ with Windows paths', () => {
+    const base = 'C:\\project\\tests\\main.mmt';
+    const projectRoot = 'C:/project';
+    expect(resolveRequestedAgainst(base, '+/apis/user.mmt', projectRoot))
+        .toBe('C:/project/apis/user.mmt');
+  });
 });

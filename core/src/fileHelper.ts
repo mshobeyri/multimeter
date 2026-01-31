@@ -91,11 +91,23 @@ export const resolveDotSegments = (p: string): string => {
 };
 
 export const resolveRequestedAgainst = (
-    baseFilePath: string|undefined, requested: string): string => {
+    baseFilePath: string|undefined,
+    requested: string,
+    projectRoot?: string
+): string => {
   const reqRaw = String(requested ?? '').trim();
   if (!reqRaw) {
     return '';
   }
+
+  // Handle +/ project root imports
+  if (isProjectRootImport(reqRaw)) {
+    if (!projectRoot) {
+      throw new Error('multimeter.mmt not found');
+    }
+    return resolveProjectRootImport(reqRaw, projectRoot);
+  }
+
   const requestedPath = fileUriToPath(reqRaw);
   if (!requestedPath) {
     return '';
@@ -181,4 +193,59 @@ export const computeRelative = (base?: string, full?: string): string => {
   return (up ? up + '/' : '') + (remainder || '.');
 };
 
-export default {computeRelative, resolveRequestedAgainst};
+/**
+ * Check if an import path uses the +/ project root prefix.
+ */
+export const isProjectRootImport = (path: string): boolean => {
+  const s = String(path ?? '').trim();
+  return s.startsWith('+/');
+};
+
+/**
+ * Resolve a +/ import path against the project root.
+ * Strips the +/ prefix and joins with project root.
+ */
+export const resolveProjectRootImport = (importPath: string, projectRoot: string): string => {
+  const s = String(importPath ?? '').trim();
+  if (!s.startsWith('+/')) {
+    return s;
+  }
+  const relativePart = s.slice(2); // Remove '+/'
+  return resolveDotSegments(joinPath(projectRoot, relativePart));
+};
+
+/**
+ * Find the project root by walking up from startPath looking for multimeter.mmt.
+ * Returns the directory containing multimeter.mmt, or null if not found.
+ */
+export const findProjectRoot = async (
+  startPath: string,
+  fileExists: (path: string) => Promise<boolean>
+): Promise<string | null> => {
+  let currentDir = dirnamePath(fileUriToPath(startPath));
+  const visited = new Set<string>();
+
+  while (currentDir && !visited.has(currentDir)) {
+    visited.add(currentDir);
+    const markerPath = joinPath(currentDir, 'multimeter.mmt');
+    
+    try {
+      if (await fileExists(markerPath)) {
+        return currentDir;
+      }
+    } catch {
+      // File doesn't exist or can't be read, continue
+    }
+
+    const parentDir = dirnamePath(currentDir);
+    // Stop if we've reached the root (parent is same as current or empty)
+    if (parentDir === currentDir || !parentDir || parentDir === '.') {
+      break;
+    }
+    currentDir = parentDir;
+  }
+
+  return null;
+};
+
+export default {computeRelative, resolveRequestedAgainst, isProjectRootImport, resolveProjectRootImport, findProjectRoot};

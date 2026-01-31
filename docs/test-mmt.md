@@ -43,6 +43,32 @@ For the provided MMT, the Test panel shows the generated JavaScript. Click Run t
 ## Elements
 The `test` type also supports documentation fields (title, tags, description) and reuse/compose elements (import, inputs, outputs). See the API doc for details. The sections below cover flow elements.
 
+### import
+The `import` section lets you bring in other `.mmt` files (APIs, tests, or CSVs) to use in your test. Each import has an alias (the key) and a file path (the value).
+
+```yaml
+import:
+  login: login.mmt           # relative to current file
+  users: ../data/users.csv   # relative path
+  api: +/apis/userApi.mmt    # project root path
+```
+
+**Path resolution:**
+- **Relative paths** (e.g., `./login.mmt`, `../apis/users.mmt`) resolve relative to the current file's directory.
+- **Project root paths** start with `+/` and resolve relative to the directory containing `multimeter.mmt`. This is useful for importing shared APIs or data from a central location without worrying about relative path depth.
+
+Example with project root imports:
+```yaml
+# File: tests/auth/login_test.mmt
+type: test
+import:
+  auth_api: +/apis/auth.mmt      # resolves to <project>/apis/auth.mmt
+  test_data: +/data/users.csv    # resolves to <project>/data/users.csv
+  helper: ./helper.mmt           # resolves to tests/auth/helper.mmt
+```
+
+The project root is detected by walking up directories from the current file until `multimeter.mmt` is found. If no `multimeter.mmt` exists, `+/` paths will fail to resolve.
+
 ### Stages
 Stages let you run groups of steps in parallel. All stages start concurrently; use depends_on to control order. If you have a single linear flow, you can skip stages and place steps at the test root.
 

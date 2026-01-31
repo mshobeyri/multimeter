@@ -77,6 +77,8 @@ export interface GenerateJsOptions {
   inputs: Record<string, any>;
   envVars: Record<string, any>;
   fileLoader: FileLoader;  // Responsible for resolving relative imports
+  filePath?: string;  // File path for resolving relative imports
+  projectRoot?: string;  // Project root directory (where multimeter.mmt lives) for +/ imports
 }
 
 export interface RunFileOptions {
@@ -119,6 +121,12 @@ export interface RunFileOptions {
    * When provided, suite execution uses bundle node ids for targeting/report routing.
    */
   suiteBundle?: import('./suiteBundle').SuiteBundle;
+
+  /**
+   * Project root directory (where multimeter.mmt lives) for +/ imports.
+   * If not provided, will be auto-detected by walking up from filePath.
+   */
+  projectRoot?: string;
 }
 
 export interface MergeInputsParams {
