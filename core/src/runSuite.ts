@@ -2,6 +2,7 @@ import {LogLevel} from './CommonData';
 import {basename, detectDocType, PreparedRun, resolveRelativeTo, RunFileResult, sanitizeIdentifier} from './runCommon';
 import {RunFileOptions, RunResult, SuiteStepStatus} from './runConfig';
 import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
+import {isProjectRootImport, resolveProjectRootImport} from './fileHelper';
 
 const stableIdForSuiteItem = (params: {
   suitePath: string;
@@ -89,7 +90,9 @@ export async function executeSuite(
           threw: false,
         };
       }
-      const childFilePath = resolveRelativeTo(entry, prepared.filePath);
+      const childFilePath = isProjectRootImport(entry) && options.projectRoot
+        ? resolveProjectRootImport(entry, options.projectRoot)
+        : resolveRelativeTo(entry, prepared.filePath);
       const display = basename(childFilePath || entry);
       const runId = `suite:${sanitizeIdentifier(prepared.filePath)}:${gi}:${entryIndex}:${sanitizeIdentifier(childFilePath || entry)}`;
       try {
@@ -133,7 +136,9 @@ export async function executeSuite(
         suiteLogger('info', `Running suite item: ${display}`);
 
         const childFileLoader = async (requestedPath: string) => {
-          const resolved = resolveRelativeTo(requestedPath, childFilePath);
+          const resolved = isProjectRootImport(requestedPath) && options.projectRoot
+            ? resolveProjectRootImport(requestedPath, options.projectRoot)
+            : resolveRelativeTo(requestedPath, childFilePath);
           return await fileLoader(resolved);
         };
 
