@@ -135,6 +135,11 @@
           "description": "Font size for the MMT YAML editor",
           "minimum": 8,
           "maximum": 40
+        },
+        "multimeter.workspaceEnvFile": {
+          "type": "string",
+          "default": "multimeter.mmt",
+          "description": "Path to the workspace environment file (type: env) relative to the workspace root. This file is loaded on workspace open and sets environment variables, presets, and certificates."
         }
       }
     },
@@ -208,6 +213,12 @@
         "command": "multimeter.environment.refresh",
         "title": "Refresh Environment Variables",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "multimeter.environment.loadFromFile",
+        "title": "Load Environment from Workspace File",
+        "category": "Multimeter",
+        "icon": "$(cloud-download)"
       }
     ],
     "viewsContainers": {

@@ -6,6 +6,7 @@ import ConvertorPanel from './panels/ConvertorPanel';
 import EnvironmentPanel from './panels/EnvironmentPanel';
 import HistoryPanel from './panels/HistoryPanel';
 import MockServerPanel from './panels/MockServerPanel';
+import {loadWorkspaceEnvFile} from './workspaceEnvLoader';
 
 export function activate(context: vscode.ExtensionContext) {
   const mmtviewPanel = new MmtEditorProvider(context);
@@ -84,6 +85,13 @@ export function activate(context: vscode.ExtensionContext) {
         mmtviewPanel.refreshEnvironmentVars();
       }));
 
+  // Load workspace environment file on activation (after panels are registered)
+  loadWorkspaceEnvFile(context).then(() => {
+    // Trigger refresh after loading to update panels
+    environmentPanel.refreshEnvironmentVars();
+    mmtviewPanel.refreshEnvironmentVars();
+  });
+
   context.subscriptions.push(vscode.commands.registerCommand(
       'multimeter.mmt.show.as.text', async (uri?: vscode.Uri) => {
         const targetUri = uri || vscode.window.activeTextEditor?.document.uri;
@@ -114,6 +122,15 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.commands.registerCommand('multimeter.history.show', async () => {
         await vscode.commands.executeCommand('multimeter.history.focus');
       }));
+
+  context.subscriptions.push(
+      vscode.commands.registerCommand(
+          'multimeter.environment.loadFromFile', async () => {
+            // Force reload when manually triggered (overwrites existing values)
+            await loadWorkspaceEnvFile(context, true);
+            environmentPanel.refreshEnvironmentVars();
+            mmtviewPanel.refreshEnvironmentVars();
+          }));
 
   setupChatParticipants(context);
 }
