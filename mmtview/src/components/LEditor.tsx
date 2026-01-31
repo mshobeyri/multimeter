@@ -1,33 +1,35 @@
-import React, { useRef, useEffect, useState } from "react";
-import FieldWithRemove from "./FieldWithRemove";
+import React, { useRef, useState } from "react";
 import { safeList } from "mmt-core/safer";
+import FilePickerInput from "./FilePickerInput";
+import { FileContext } from "../fileContext";
+
+type LEditorFileFilter = {
+    name: string;
+    extensions: string[];
+};
 
 interface LEditorProps {
-    label: string,
+    label: string;
     value: string[];
     onChange: (v: string[]) => void;
     placeholder?: string;
     disabled?: boolean;
+    filePicker?: boolean;
+    filePickerFilters?: LEditorFileFilter[];
 }
-
-// Note: We use an explicit "new item" input row instead of a trailing empty field.
 
 const LEditor: React.FC<LEditorProps> = ({
     label,
     value,
     onChange,
     placeholder,
-    disabled
+    disabled,
+    filePicker,
+    filePickerFilters
 }) => {
     const [newValue, setNewValue] = useState("");
     const inputRef = useRef<HTMLInputElement | null>(null);
-
-    // Focus the new input when a new item is added
-    useEffect(() => {
-        if (inputRef.current && document.activeElement !== inputRef.current) {
-            inputRef.current.value = "";
-        }
-    }, [value.length]);
+    const fileCtx = React.useContext(FileContext);
 
     const handleChange = (idx: number, newVal: string) => {
         const updated = safeList(value).map((v, i) => (i === idx ? newVal : v));
@@ -43,42 +45,48 @@ const LEditor: React.FC<LEditorProps> = ({
         if (newValue.trim() !== "") {
             onChange([...value, newValue]);
             setNewValue("");
-            // Focus will be handled by useEffect
         }
     };
+
+    const effectiveFilters: LEditorFileFilter[] = filePickerFilters || [{
+        name: "Files",
+        extensions: ["*"]
+    }];
 
     return (<>
         <div className={disabled ? "label label-disabled" : "label"}>{label}</div>
         <div style={{ padding: "0", marginRight: "10px" }}>
             {safeList(value).map((val, idx) => (
-                <div key={idx} style={{ width: "100%", padding: "5px"}}>
-                    <FieldWithRemove
+                <div key={idx} style={{ width: "100%", padding: "5px" }}>
+                    <FilePickerInput
                         value={val}
-                        onChange={v => handleChange(idx, v)}
+                        onChange={(v) => handleChange(idx, v)}
+                        onEnterPressed={(v) => handleChange(idx, v)}
                         onRemovePressed={() => handleRemove(idx)}
-                        placeholder={placeholder || "Value"}
+                        basePath={fileCtx?.mmtFilePath}
+                        filters={effectiveFilters}
                         disabled={disabled}
+                        showFilePicker={!!filePicker}
+                        removable
+                        placeholder={placeholder || "Value"}
                     />
                 </div>
             ))}
-            <div style={{ width: "100%", padding: "5px"}}>
-                <input
+            <div style={{ width: "100%", padding: "5px" }}>
+                <FilePickerInput
                     ref={inputRef}
                     value={newValue}
-                    onChange={e => setNewValue(e.target.value)}
-                    onKeyDown={e => {
-                        if (e.key === "Enter") handleAdd();
-                    }}
-                    placeholder={placeholder || "Value"}
+                    onChange={(v) => setNewValue(v)}
+                    onEnterPressed={() => handleAdd()}
+                    basePath={fileCtx?.mmtFilePath}
+                    filters={effectiveFilters}
                     disabled={disabled}
-                    style={{
-                        width: "100%"
-                    }}
+                    showFilePicker={!!filePicker}
+                    placeholder={placeholder || "Add new..."}
                 />
             </div>
         </div>
-    </>
-    );
+    </>);
 };
 
 export default LEditor;

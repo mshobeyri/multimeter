@@ -2,6 +2,9 @@ import React from "react";
 import { EnvCertificates, EnvClientCertificate, EnvCaCertificate } from "./EnvironmentData";
 import { safeList } from "mmt-core/safer";
 import FieldWithRemove from "../components/FieldWithRemove";
+import FilePickerInput from "../components/FilePickerInput";
+import { FileContext } from "../fileContext";
+import LEditor from "../components/LEditor";
 
 interface EnvironmentCertificatesEditProps {
   certificates: EnvCertificates | undefined;
@@ -12,6 +15,7 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
   certificates,
   onChange,
 }) => {
+  const fileCtx = React.useContext(FileContext);
   const safeCerts: EnvCertificates = certificates || {};
   const clients = safeList(safeCerts.clients || []);
   const ca: EnvCaCertificate = safeCerts.ca || { paths: [] };
@@ -23,21 +27,6 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
     });
   };
 
-  const handleAddCaPath = () => {
-    const paths = [...(ca.paths || []), ""];
-    handleCaPathsChange(paths);
-  };
-
-  const handleRemoveCaPath = (idx: number) => {
-    const paths = (ca.paths || []).filter((_, i) => i !== idx);
-    handleCaPathsChange(paths);
-  };
-
-  const handleCaPathChange = (idx: number, value: string) => {
-    const paths = (ca.paths || []).map((p, i) => (i === idx ? value : p));
-    handleCaPathsChange(paths);
-  };
-
   const handleClientChange = (idx: number, patch: Partial<EnvClientCertificate>) => {
     const updated = clients.map((c, i) => (i === idx ? { ...c, ...patch } : c));
     onChange({ ...safeCerts, clients: updated });
@@ -47,7 +36,6 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
     const updated = clients.filter((_, i) => i !== idx);
     onChange({ ...safeCerts, clients: updated });
   };
-
   const handleAddClient = () => {
     const newClient: EnvClientCertificate = {
       name: "",
@@ -63,19 +51,14 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
       <div className="inner-box">
         <div className="label">CA Certificate Paths</div>
         <div style={{ padding: "5px" }}>
-          {safeList(ca.paths || []).map((p, idx) => (
-            <FieldWithRemove
-              key={idx}
-              value={p}
-              onChange={(v) => handleCaPathChange(idx, v)}
-              onRemovePressed={() => handleRemoveCaPath(idx)}
-              placeholder="Path to CA certificate file (e.g., ./certs/ca.pem)"
-            />
-          ))}
-          <button onClick={handleAddCaPath} className="button-icon" style={{ marginTop: "12px" }}>
-            <span className="codicon codicon-add" aria-hidden />
-            Add CA Path
-          </button>
+          <LEditor
+            label=""
+            value={safeList(ca.paths || [])}
+            onChange={(paths) => handleCaPathsChange(paths)}
+            placeholder="CA cert path"
+            filePicker
+            filePickerFilters={[{ name: "Certificate files", extensions: ["pem", "crt", "cer", "p12", "pfx"] }]}
+          />
         </div>
       </div>
 
@@ -87,7 +70,7 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
             <div className="label" style={{ marginBottom: "8px" }}>Client</div>
             <FieldWithRemove
               value={client.name}
-              onChange={(v) => handleClientChange(idx, { name: v })}
+              onChange={(v: string) => handleClientChange(idx, { name: v })}
               onRemovePressed={() => handleRemoveClient(idx)}
               placeholder="Certificate name"
             />
@@ -107,32 +90,30 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
             </div>
 
             <div style={{ marginTop: "8px" }}>
-              <div className="label" style={{ fontSize: "12px" }}>Certificate Path (cert_path)</div>
-              <input
-                type="text"
-                className="input-field"
+              <div className="label" style={{ fontSize: "12px" }}>Certificate Path</div>
+              <FilePickerInput
                 value={client.cert_path}
-                onChange={(e) => handleClientChange(idx, { cert_path: e.target.value })}
-                placeholder="Path to client certificate (e.g., ./certs/client.pem)"
-                style={{ width: "100%", boxSizing: "border-box" }}
+                onChange={(v) => handleClientChange(idx, { cert_path: v })}
+                onEnterPressed={(v) => handleClientChange(idx, { cert_path: v })}
+                basePath={fileCtx?.mmtFilePath}
+                filters={[{ name: 'Certificate files', extensions: ['pem', 'crt', 'cer', 'p12', 'pfx', 'key'] }]}
               />
             </div>
 
             <div style={{ marginTop: "8px" }}>
-              <div className="label" style={{ fontSize: "12px" }}>Key Path (key_path)</div>
-              <input
-                type="text"
-                className="input-field"
+              <div className="label" style={{ fontSize: "12px" }}>Key Path</div>
+              <FilePickerInput
                 value={client.key_path}
-                onChange={(e) => handleClientChange(idx, { key_path: e.target.value })}
-                placeholder="Path to private key (e.g., ./certs/client.key)"
-                style={{ width: "100%", boxSizing: "border-box" }}
+                onChange={(v) => handleClientChange(idx, { key_path: v })}
+                onEnterPressed={(v) => handleClientChange(idx, { key_path: v })}
+                basePath={fileCtx?.mmtFilePath}
+                filters={[{ name: 'Key files', extensions: ['key', 'pem'] }]}
               />
             </div>
 
             <div style={{ marginTop: "8px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
               <div>
-                <div className="label" style={{ fontSize: "12px" }}>Passphrase (passphrase_plain)</div>
+                <div className="label" style={{ fontSize: "12px" }}>Passphrase plain</div>
                 <input
                   type="password"
                   className="input-field"
@@ -143,7 +124,7 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
                 />
               </div>
               <div>
-                <div className="label" style={{ fontSize: "12px" }}>Passphrase Env (passphrase_env)</div>
+                <div className="label" style={{ fontSize: "12px" }}>Passphrase Env</div>
                 <input
                   type="text"
                   className="input-field"

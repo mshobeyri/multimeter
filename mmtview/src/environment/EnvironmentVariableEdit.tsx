@@ -109,14 +109,14 @@ const EnvironmentVariableEdit: React.FC<EnvironmentVariableEditProps> = ({ varia
                     </div>
                     {board.type === "list" ? (
                         <LEditor
-                            label="values"
+                            label="Values"
                             value={Array.isArray(board.value) ? board.value : []}
                             onChange={v => handleBoardChange(idx, { value: v })}
                             placeholder="Value"
                         />
                     ) : (
                         <KSVEditor
-                            label="fields"
+                            label="Fields"
                             value={typeof board.value === "object" && !Array.isArray(board.value) ? board.value : {}}
                             onChange={v => handleBoardChange(idx, { value: v })}
                             keyPlaceholder="Field"

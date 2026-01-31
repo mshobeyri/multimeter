@@ -56,20 +56,29 @@ const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent }
       <div className="tab-bar">
         <button
           onClick={() => setTab("variables")}
-          className={`tab-button-small ${tab === "variables" ? "active" : ""}`}
+          className={`tab-button ${tab === "variables" ? "active" : ""}`}
+          title="Variables"
+          type="button"
         >
+          <span className="codicon codicon-symbol-variable tab-button-icon"></span>
           Variables
         </button>
         <button
           onClick={() => setTab("presets")}
-          className={`tab-button-small ${tab === "presets" ? "active" : ""}`}
+          className={`tab-button ${tab === "presets" ? "active" : ""}`}
+          title="Presets"
+          type="button"
         >
+          <span className="codicon codicon-tasklist tab-button-icon"></span>
           Presets
         </button>
         <button
           onClick={() => setTab("certificates")}
-          className={`tab-button-small ${tab === "certificates" ? "active" : ""}`}
+          className={`tab-button ${tab === "certificates" ? "active" : ""}`}
+          title="Certificates"
+          type="button"
         >
+          <span className="codicon codicon-shield tab-button-icon"></span>
           Certificates
         </button>
       </div>
