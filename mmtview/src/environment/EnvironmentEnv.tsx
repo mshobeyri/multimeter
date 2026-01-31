@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useState } from "react";
-import ComboTable, { ComboTablePair } from "../components/ComboTable";
+import { ComboTablePair } from "../components/ComboTable";
 import { EnvClientCertificate, EnvVariable, CertificateSettings } from "./EnvironmentData";
 import { safeList } from "mmt-core/safer";
 import { JSONValue } from "mmt-core/CommonData";
@@ -202,67 +202,106 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                 <div className="environment-table-empty">No variables defined.</div>
             )}
 
-            <div className="label">Presets</div>
-            <ComboTable pairs={presets} onChange={handlePresetsChange} showPlaceholder />
+            <div className="label" style={{ marginTop: "16px", marginBottom: "12px" }}>Presets</div>
+            {safeList(presets).length > 0 ? (
+                <div className="environment-table-wrapper">
+                    <table className="environment-table">
+                        <thead>
+                            <tr>
+                                <th style={{ width: "50%" }}>Preset</th>
+                                <th style={{ width: "50%" }}>Value</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {safeList(presets).map(pair => {
+                                const options = safeList(pair.options);
+                                const selectValue = pair.value?.label ?? "";
+                                return (
+                                    <tr key={pair.name}>
+                                        <td className="environment-table-name">{pair.name}</td>
+                                        <td>
+                                            <select
+                                                className="flat-select"
+                                                style={{ width: "100%" }}
+                                                value={selectValue}
+                                                onChange={e => handlePresetsChange(pair.name, e.target.value)}
+                                            >
+                                                <option value="">Select...</option>
+                                                {options.map(option => (
+                                                    <option key={option.label} value={option.label}>
+                                                        {option.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            ) : (
+                <div className="environment-table-empty">No presets defined.</div>
+            )}
 
             {/* Certificates section */}
             <div style={{ marginTop: "12px" }}>
                 <div className="label" style={{ marginBottom: "12px" }}>Certificates</div>
                 <div className="environment-table-wrapper">
-                <table className="environment-table">
-                    <thead>
-                        <tr>
-                            <th style={{ width: "50%" }}>Setting</th>
-                            <th style={{ width: "50%" }}>Enabled</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td className="environment-table-name">Verify SSL Certificates</td>
-                            <td>
-                                <input
-                                    type="checkbox"
-                                    checked={certSettings.sslValidation}
-                                    onChange={e => updateCertSettings({ sslValidation: e.target.checked })}
-                                />
-                            </td>
-                        </tr>
-                        <tr>
-                            <td className="environment-table-name">Allow Self-Signed Certificates</td>
-                            <td>
-                                <input
-                                    type="checkbox"
-                                    checked={certSettings.allowSelfSigned}
-                                    onChange={e => updateCertSettings({ allowSelfSigned: e.target.checked })}
-                                />
-                            </td>
-                        </tr>
-                        <tr>
-                            <td className="environment-table-name">Custom CA Certificates</td>
-                            <td>
-                                <input
-                                    type="checkbox"
-                                    checked={certSettings.caEnabled}
-                                    onChange={e => updateCertSettings({ caEnabled: e.target.checked })}
-                                />
-                            </td>
-                        </tr>
-                        {safeList(clients).map((client, idx) => (
-                            <tr key={idx}>
-                                <td className="environment-table-name">
-                                    Client: {client.name || "Unnamed"} ({client.host || "*"})
-                                </td>
+                    <table className="environment-table">
+                        <thead>
+                            <tr>
+                                <th style={{ width: "50%" }}>Setting</th>
+                                <th style={{ width: "50%" }}>Enabled</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td className="environment-table-name">Verify SSL Certificates</td>
                                 <td>
                                     <input
                                         type="checkbox"
-                                        checked={isClientEnabled(client)}
-                                        onChange={e => setClientEnabled(client, e.target.checked)}
+                                        checked={certSettings.sslValidation}
+                                        onChange={e => updateCertSettings({ sslValidation: e.target.checked })}
                                     />
                                 </td>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                            <tr>
+                                <td className="environment-table-name">Allow Self-Signed Certificates</td>
+                                <td>
+                                    <input
+                                        type="checkbox"
+                                        checked={certSettings.allowSelfSigned}
+                                        onChange={e => updateCertSettings({ allowSelfSigned: e.target.checked })}
+                                    />
+                                </td>
+                            </tr>
+                            <tr>
+                                <td className="environment-table-name">Custom CA Certificates</td>
+                                <td>
+                                    <input
+                                        type="checkbox"
+                                        checked={certSettings.caEnabled}
+                                        onChange={e => updateCertSettings({ caEnabled: e.target.checked })}
+                                    />
+                                </td>
+                            </tr>
+                            {safeList(clients).map((client, idx) => (
+                                <tr key={idx}>
+                                    <td className="environment-table-name">
+                                        Client: {client.name || "Unnamed"} ({client.host || "*"})
+                                    </td>
+                                    <td>
+                                        <input
+                                            type="checkbox"
+                                            checked={isClientEnabled(client)}
+                                            onChange={e => setClientEnabled(client, e.target.checked)}
+                                        />
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
