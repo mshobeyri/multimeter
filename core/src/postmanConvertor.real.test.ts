@@ -106,7 +106,8 @@ describe('postmanConvertor.postmanToAPI real collection features', () => {
   const staticStatus = apis.find(a => a.title === 'Static Status');
   expect(staticStatus).toBeTruthy();
   expect(staticStatus!.url).toBe('https://api.example.com/status');
-  expect(staticStatus!.protocol).toBe('http');
+  // Protocol is undefined for http URLs (inferred from URL)
+  expect(staticStatus!.protocol).toBeUndefined();
   expect(staticStatus!.method).toBe('get');
 
     const ping = apis.find(a => a.title?.startsWith('Ping Example'));

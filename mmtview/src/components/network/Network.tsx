@@ -3,6 +3,7 @@ import { NetworkAPI, Request, Response } from "mmt-core/NetworkData";
 import { NetworkNodeApi, Error } from "./NetworkNodeApi";
 import { pushHistory } from "../../vsAPI";
 import { beautifyWithContentType } from "mmt-core/markupConvertor";
+import { getEffectiveProtocol } from "mmt-core/protocolResolver";
 
 export function useNetwork(): NetworkAPI {
   const [connected, setConnected] = useState(false);
@@ -47,14 +48,16 @@ export function useNetwork(): NetworkAPI {
       };
     }
 
-    if (requestData.protocol === "http") {
+    const effectiveProtocol = getEffectiveProtocol(requestData.protocol as any, requestData.url);
+
+    if (effectiveProtocol === "http") {
       return new Promise<Response | undefined>((resolve) => {
         const {
           url = requestData.url,
           method = requestData.method || "get",
           headers = requestData.headers,
           body = requestData.body,
-          protocol = requestData.protocol || "http",
+          protocol = effectiveProtocol,
           cookies = requestData.cookies,
           query = requestData.query,
         } = requestData;
@@ -129,14 +132,25 @@ export function useNetwork(): NetworkAPI {
           }
         });
       });
-    } else if (requestData.protocol === "ws") {
+    } else {
       return new Promise<Response | undefined>((resolve) => {
         const opts = requestData;
         const {
           url = requestData.url,
           body = requestData.body,
-          protocol = requestData.protocol || "http",
+          protocol = effectiveProtocol,
         } = opts;
+
+        if (!url) {
+          setLoading(false);
+          resolve({
+            errorMessage: "WebSocket URL is missing",
+            status: 400,
+            errorCode: "WS_URL_MISSING",
+            duration: -1
+          });
+          return;
+        }
 
         if (!connected) {
           setLoading(false);
@@ -166,8 +180,8 @@ export function useNetwork(): NetworkAPI {
             resolve({
               body: res,
               errorMessage: "",
-              status: -1,
-              errorCode: "",
+              status: 204,
+              errorCode: "WS_MESSAGE",
               duration: -1
             });
           },
@@ -175,21 +189,11 @@ export function useNetwork(): NetworkAPI {
             setLoading(false);
             resolve({
               errorMessage: error.message || "",
-              status: error.status || 500,
+              status: -1,
               errorCode: error.code || "UNKNOWN_ERROR",
               duration: error.duration || -1
             });
           }
-        });
-      });
-    } else {
-      return new Promise<Response | undefined>((resolve) => {
-        setLoading(false);
-        resolve({
-          errorMessage: "Protocol not specified",
-          status: 400,
-          errorCode: "PROTOCOL_NOT_SPECIFIED",
-          duration: -1
         });
       });
     }
@@ -227,7 +231,7 @@ export function useNetwork(): NetworkAPI {
 
           resolve({
             errorMessage: "",
-            status: 200,
+            status: 101,
             errorCode: "",
             duration: -1
           });
@@ -246,14 +250,17 @@ export function useNetwork(): NetworkAPI {
           resolve({
             body: data,
             errorMessage: "",
-            status: -1,
-            errorCode: "",
+            status: 204,
+            errorCode: "WS_MESSAGE",
             duration: -1
           });
         },
-        onClose: () => {
+        onClose: (info) => {
           setConnected(false);
           setLoading(false);
+
+          const closeCode = typeof info?.code === 'number' ? info.code : 1000;
+          const closeReason = info?.reason || '';
 
           // Save WS close to history
           pushHistory({
@@ -261,7 +268,14 @@ export function useNetwork(): NetworkAPI {
             method: "closed",
             protocol: "ws",
             title: `closed ${url}`,
-            content: url
+            content: closeReason ? `${closeCode} ${closeReason}` : `${closeCode}`
+          });
+
+          resolve({
+            errorMessage: closeReason,
+            status: closeCode,
+            errorCode: "WS_CLOSED",
+            duration: -1
           });
         },
         onError: (err: any) => {
@@ -272,12 +286,12 @@ export function useNetwork(): NetworkAPI {
             method: "error",
             protocol: "ws",
             title: `error ${url}`,
-            content: err?.message
+            content: err?.message || err?.error || String(err)
           });
           resolve({
-            errorMessage: "WebSocket cannot connect",
-            status: 400,
-            errorCode: "WS_NOT_CONNECTED",
+            errorMessage: err?.message || String(err),
+            status: -1,
+            errorCode: err?.code || "WS_ERROR",
             duration: -1
           });
         }
@@ -296,8 +310,8 @@ export function useNetwork(): NetworkAPI {
     NetworkNodeApi.disconnectWs({
       wsId: wsId || "",
     });
-    setConnected(true);
-    setLoading(true);
+    setConnected(false);
+    setLoading(false);
   };
 
   return {

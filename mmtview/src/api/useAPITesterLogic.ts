@@ -12,6 +12,7 @@ import { useNetwork } from "../components/network/Network";
 import { NetworkNodeApi, Error as NetworkError } from "../components/network/NetworkNodeApi";
 import { pushHistory, showVSCodeMessage } from "../vsAPI";
 import { beautifyWithContentType } from "mmt-core/markupConvertor";
+import { protocolResolver } from "mmt-core";
 
 type OutputPosition = { text?: string; line: number; column: number };
 
@@ -368,7 +369,7 @@ type RunApiDocumentOptions = {
 
 export async function runApiDocument({ api, inputs, filePath }: RunApiDocumentOptions): Promise<Response | undefined> {
   const request = await buildRequestFromApi(api, inputs);
-  const protocol = request.protocol || "http";
+  const protocol = protocolResolver.getEffectiveProtocol(request.protocol as any, request.url);
 
   if (protocol !== "http") {
     showVSCodeMessage("warn", "Run from editor currently supports HTTP APIs only.");

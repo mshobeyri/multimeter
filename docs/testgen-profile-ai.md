@@ -33,9 +33,9 @@ Require `API_URL`; optional `TOKEN`/`API_KEY`. Default headers: User-Agent, Acce
 ## Generated Artifacts
 
 ### APIs
-- Structure: `type: api`, title, protocol (http|ws), method (HTTP only), url, inputs, body, examples.
+- Structure: `type: api`, title, method (HTTP only), url, inputs, body, examples. Protocol is optional (inferred from URL).
 - Inputs: Use primitives or tokens (e.g., `name: r:firstName`). Place after title/description.
-- WebSocket: `protocol: ws`, body as sent message.
+- WebSocket: `protocol: ws` (or use ws:// URL), body as sent message.
 
 ### Tests
 - Structure: `type: test`, title, steps (call, assert, check).

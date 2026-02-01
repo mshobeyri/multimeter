@@ -23,8 +23,8 @@ type WsOptions = {
     url: string;
     onOpen?: () => void;
     onMessage?: (data: string) => void;
-    onClose?: () => void;
-    onError?: (error: Error) => void;
+    onClose?: (info?: { code?: number; reason?: string }) => void;
+    onError?: (error: { message: string; code?: string }) => void;
 };
 
 type SendWsOptions = {
@@ -57,8 +57,8 @@ const openWebsockets: Record<
     {
         onOpen?: () => void;
         onMessage?: (data: string) => void;
-        onClose?: () => void;
-        onError?: (error: Error) => void;
+        onClose?: (info?: { code?: number; reason?: string }) => void;
+        onError?: (error: { message: string; code?: string }) => void;
     }
 > = {};
 
@@ -159,7 +159,11 @@ window.addEventListener("message", (event: MessageEvent) => {
                 wsListener.onMessage(msg.data);
             }
         }
-        if (msg.action === "ws-close" && wsListener.onClose) wsListener.onClose();
-        if (msg.action === "ws-error" && wsListener.onError) wsListener.onError(msg.error);
+        if (msg.action === "ws-close" && wsListener.onClose) {
+            wsListener.onClose({ code: msg.code, reason: msg.reason });
+        }
+        if (msg.action === "ws-error" && wsListener.onError) {
+            wsListener.onError({ message: msg.error, code: msg.code });
+        }
     }
 });

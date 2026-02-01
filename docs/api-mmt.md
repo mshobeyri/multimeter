@@ -14,10 +14,9 @@ Supported:
 ### HTTP GET
 ```yaml
  type: api
- protocol: http
  format: json   # affects default Content-Type and body handling
  method: get
- url: <<e:API_URL>>/users
+ url: <<e:API_URL>>/users   # protocol inferred as http from URL
  headers:
    Session: e:TOKEN
  query:
@@ -27,6 +26,7 @@ Supported:
 Notes
 - `format` sets how the body is encoded/decoded
 - `query` merges with any query string in `url`
+- `protocol` is optional - inferred from URL (ws:// or wss:// → ws, otherwise http)
 
 Tip: You can use dynamic tokens anywhere in url/headers/body/query/cookies.
 - Random: `r:<name>` (e.g., `r:uuid`, `r:int`)
@@ -112,7 +112,9 @@ tags:
 ```
 
 ## Request
-- protocol: `http` or `ws`
+- protocol: `http` or `ws` (optional - inferred from URL if not specified)
+  - URLs starting with `ws://` or `wss://` default to `ws`
+  - All other URLs default to `http`
 - method: HTTP method `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
 - format: body format `json` | `xml` | `text`
 - url: server URL

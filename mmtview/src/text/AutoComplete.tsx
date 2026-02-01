@@ -575,8 +575,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
             label: "protocol",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "protocol: ",
-            detail: 'Communication protocol [http, ws]',
-            documentation: 'The protocol used for communication. Supports HTTP for REST APIs and WebSocket for real-time communication.\nOptions:\n\t- http: Standard HTTP/HTTPS requests\n\t- ws: WebSocket connections\nExample: protocol: http',
+            detail: 'Communication protocol [http, ws] (optional)',
+            documentation: 'The protocol used for communication (optional - inferred from URL if not specified).\nOptions:\n\t- http: Standard HTTP/HTTPS requests (default)\n\t- ws: WebSocket connections\nNote: If URL starts with ws:// or wss://, protocol defaults to ws.\nExample: protocol: http',
         },
         {
             label: "method",

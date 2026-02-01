@@ -19,7 +19,7 @@ export function yamlToAPI(yamlContent: string): APIData {
       inputs: doc.inputs,
       outputs: doc.outputs,
       setenv: doc.setenv,
-      protocol: doc.protocol || '',
+      protocol: doc.protocol || undefined,
       format: doc.format || '',
       url: doc.url || '',
       method: doc.method || '',

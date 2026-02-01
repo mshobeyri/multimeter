@@ -101,10 +101,18 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
                           .map(([k, v]) => `"${k}": ${toJsValue(v)}`)
                           .join(', ');
 
+  // Generate protocol resolution: use explicit protocol if provided,
+  // otherwise infer from the resolved URL at runtime
+  const explicitProtocol = ctx.api.protocol;
+  const protocolExpr = explicitProtocol ?
+      `'${explicitProtocol}'` :
+      `((__url) => { const __t = (__url || '').trim().toLowerCase(); return __t.startsWith('ws://') || __t.startsWith('wss://') ? 'ws' : 'http'; })(__resolvedUrl)`;
+
   return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
+  const __resolvedUrl = ${toTemplateWithEnvs(String(replaced.url || ''))};
   const req_ = {
-    url: ${toTemplateWithEnvs(String(replaced.url || ''))},
-    protocol: '${ctx.api.protocol}',
+    url: __resolvedUrl,
+    protocol: ${protocolExpr},
     method: '${replaced.method}',
     query: ${queryParams ? '{ ' + queryParams + ' }' : '{}'},
     headers: ${headers ? '{ ' + headers + ' }' : '{}'},

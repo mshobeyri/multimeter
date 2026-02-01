@@ -37,7 +37,8 @@ setenv:                        # Optional. Promote outputs into environment vari
 url: string                    # REQUIRED. Full or relative URL; may include env/input tokens like <<e:api_url>>.
 query:                         # Optional. Query parameters appended to url; merged with any inline query string.
 	<name>: string               # Value is always a string expression (can contain tokens).
-protocol: http | ws            # REQUIRED. "http" for HTTP(S); "ws" for WebSocket.
+protocol: http | ws            # Optional. "http" for HTTP(S); "ws" for WebSocket.
+                               # Inferred from URL if omitted: ws:// or wss:// → ws, otherwise http.
 format: json | text | xml      # REQUIRED. Controls how body is encoded/decoded (JSON object vs raw text/XML).
 method:                        # HTTP method (REQUIRED when protocol is http).
 	get | post | put | delete | patch | head | options | trace
@@ -68,11 +69,11 @@ Notes for the AI:
 - Use **`inputs`** when the user expects to change parameters between runs (username, pagination, filters, ids, etc.).
 - Use **`outputs`** + **`setenv`** when the user wants to **capture response data** for later steps (e.g. tokens, IDs).
 - Use **`examples`** when the user asks for **examples, smoke tests, or sample calls**.
-- Use **`protocol: ws`** when the user asks for **websocket api** and  **`protocol: http`** when the user asks for **REST or SOAP api** .
+- Use **`protocol: ws`** when the user asks for **websocket api**. For **REST or SOAP api**, protocol can be omitted (defaults to http based on URL).
 
 
 If the user gives:
-- **Only URL + method** → make a minimal file: `type`, `title`, `protocol`, `format`, `method`, `url`.
+- **Only URL + method** → make a minimal file: `type`, `title`, `format`, `method`, `url` (protocol is inferred).
 - **Request + response contract** → also add `inputs`, `outputs`, maybe `setenv`.
 - **Multiple usage scenarios** → use `examples` to capture them.
 

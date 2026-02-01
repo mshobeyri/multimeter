@@ -13,6 +13,7 @@ export * as variableReplacer from "./variableReplacer";
 export * as outputExtractor from "./outputExtractor";
 export * as testHelper from "./testHelper";
 export * as testFileLoaderMock from './testFileLoaderMock';
+export * as protocolResolver from "./protocolResolver";
 // Note: `networkCore` is Node-only (imports `https`, `ws`, node axios build).
 // It must not be exported from the default entry to keep web bundlers (mmtview)
 // from pulling node built-ins.

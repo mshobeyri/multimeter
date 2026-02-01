@@ -27,7 +27,8 @@ describe('postmanConvertor.postmanToAPI', () => {
     expect(api.url).toBe('https://api.example.com/users');
     expect(api.format).toBe('json');
     expect(api.body).toBe('{"hello":"world"}');
-    expect(api.protocol).toBe('http');
+    // Protocol is undefined for http URLs (inferred from URL)
+    expect(api.protocol).toBeUndefined();
   });
 
   it('flattens nested folders and converts urlencoded/formdata and ws protocol', () => {
@@ -66,6 +67,9 @@ describe('postmanConvertor.postmanToAPI', () => {
     const socket = apis.find(a => a.title?.includes('Socket'))!;
     expect(login.method).toBe('post');
     expect(login.body).toEqual({ user: 'alice', pass: 'secret' });
+    // HTTP URLs don't have explicit protocol
+    expect(login.protocol).toBeUndefined();
+    // WebSocket URLs get explicit protocol
     expect(socket.protocol).toBe('ws');
     expect(socket.format).toBe('text');
     expect(socket.body).toEqual({ meta: 'x' });

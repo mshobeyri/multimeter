@@ -584,8 +584,9 @@ describe('body inputs numeric/boolean templating', () => {
         {api: yamlToAPI(apiYaml), name: 'login_api', inputs: {}, envVars: {}} as
         any;
     const js = await apiToJSfunc(ctx);
-    // url should interpolate env without double wrapping
-    expect(js).toContain('url: `http://${envVariables.HOST}/login`');
+    // url should interpolate env without double wrapping (now uses __resolvedUrl)
+    expect(js).toContain('__resolvedUrl = `http://${envVariables.HOST}/login`');
+    expect(js).toContain('url: __resolvedUrl');
     // numbers and booleans should be passed via var)
     expect(js).toContain('"pass":${password}');
     expect(js).toContain('"pi":${pi}');

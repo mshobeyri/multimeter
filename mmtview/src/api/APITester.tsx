@@ -13,6 +13,7 @@ import VEditor from "../components/VEditor";
 import { FileContext } from "../fileContext";
 import { showHistoryPanel } from "../vsAPI";
 import { useAPITesterLogic } from "./useAPITesterLogic";
+import { protocolResolver } from "mmt-core";
 
 interface APITestProps {
   api: APIData;
@@ -66,6 +67,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
     network,
     examples
   } = useAPITesterLogic({ api, onUpdateApi, filePath: mmtFilePath });
+
+  // Based on the displayed URL (not resolved inputs/env)
+  const isDisplayedUrlWebSocket = (url: string | undefined): boolean => {
+    return protocolResolver.getEffectiveProtocol(undefined, url) === "ws";
+  };
 
   const [editorTab, setEditorTabInternal] = useState<EditorTab>(() => {
     const saved = localStorage.getItem("apitest-editor-tab");
@@ -208,7 +214,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
 
       <div className="apitest-send-row">
         <div className="apitest-send-controls">
-          {requestData?.protocol === "ws" && (
+          {isDisplayedUrlWebSocket(requestData?.url) && (
             <ConnectButton
               connected={network.connected}
               onClick={handleConnect}
@@ -217,7 +223,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
           <SendButton
             onClick={handleSend}
             onCancel={handleCancel}
-            disabled={requestData?.protocol === "ws" && !network.connected}
+            disabled={isDisplayedUrlWebSocket(requestData?.url) && !network.connected}
             loading={network.loading}
           />
         </div>
@@ -278,9 +284,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
       <div className="apitest-toolbar">
         <div className="horizontal-line horizontal-line--above" />
         <div className="apitest-toolbar-inner">
-          {(responseData?.status) && <ResponseDuration duration={responseData.duration} />}
-          {(responseData?.status) && (
+          {(responseData?.duration) && <ResponseDuration duration={responseData.duration} />}
+          {(responseData) && (
             <ResponseStatus
+              protocol={requestData?.protocol}
               status={responseData.status}
               errorMessage={responseData.errorMessage}
               errorCode={responseData.errorCode}

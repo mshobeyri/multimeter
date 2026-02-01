@@ -7,6 +7,7 @@ import BodyView from "../components/BodyView";
 import { safeList, isNonEmptyObject } from "mmt-core/safer";
 import { JSONRecord } from "mmt-core/CommonData";
 import { APIData } from "mmt-core/APIData";
+import { protocolResolver } from "mmt-core";
 
 interface InterfaceEditorProps {
   data: APIData;
@@ -80,22 +81,23 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
     }
   }, [data.body]);
 
+  const effectiveProtocol = protocolResolver.getEffectiveProtocol(data.protocol as any, data.url);
+
   return (
     <div style={{ width: "100%" }}>
       <div className="label">Protocol</div>
       <div style={{ padding: "5px" }}>
         <select
-          value={data.protocol}
-          onChange={e => onChange({ ...data, protocol: e.target.value as Protocol })}
+          value={data.protocol || ""}
+          onChange={e => onChange({ ...data, protocol: e.target.value as Protocol || undefined })}
           style={{ width: "100%" }}
         >
-          <option key="" value="" disabled>Select protocol...</option>
+          <option key="" value="">(auto - inferred from URL)</option>
           {safeList(protocolOptions).map(opt => (
             <option key={opt} value={opt}>{opt}</option>
           ))}
         </select>
       </div>
-
 
       <div className="label">Format</div>
       <div style={{ padding: "5px" }}>
@@ -111,7 +113,6 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
         </select>
       </div>
 
-
       <div className="label">URL</div>
       <div style={{ padding: "5px" }}>
         <UrlInput
@@ -122,15 +123,15 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
         />
       </div>
 
-      {data.protocol === "http" || data.method ? (
+      {effectiveProtocol === "http" || data.method ? (
         <>
-          <div className={data.protocol && data.protocol !== "http" ? "label label-disabled" : "label"}>Method</div>
+          <div className={effectiveProtocol !== "http" ? "label label-disabled" : "label"}>Method</div>
           <div style={{ padding: "5px" }}>
             <select
               value={data.method || ""}
               onChange={e => onChange({ ...data, method: e.target.value as Method })}
               style={{ width: "100%" }}
-              disabled={data.protocol && data.protocol !== "http"}
+              disabled={effectiveProtocol !== "http"}
             >
               <option value="" disabled>Select method...</option>
               {safeList(methodOptions).map(opt => (
@@ -140,15 +141,15 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
           </div>
         </>
       ) : null}
-      {data.protocol === "http" || isNonEmptyObject(data.query) ? (
+      {effectiveProtocol === "http" || isNonEmptyObject(data.query) ? (
         <KSVEditor
           label="Query"
           value={data.query || {}}
           onChange={handleQueryChange}
-          disabled={data.protocol !== "http"}
+          disabled={effectiveProtocol !== "http"}
         />
       ) : null}
-      {data.protocol === "http" || isNonEmptyObject(data.headers) ? (
+      {effectiveProtocol === "http" || isNonEmptyObject(data.headers) ? (
         <KSVEditor
           label="Headers"
           value={data.headers || {}}
@@ -159,10 +160,10 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
             });
             onChange({ ...data, headers: stringHeaders });
           }}
-          disabled={data.protocol !== "http"}
+          disabled={effectiveProtocol !== "http"}
         />
       ) : null}
-      {data.protocol === "http" || isNonEmptyObject(data.cookies) ? (
+      {effectiveProtocol === "http" || isNonEmptyObject(data.cookies) ? (
         <KSVEditor
           label="Cookies"
           value={data.cookies || {}}
@@ -173,11 +174,11 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
             });
             onChange({ ...data, cookies: stringCookies });
           }}
-          disabled={data.protocol !== "http"}
+          disabled={effectiveProtocol !== "http"}
         />
       ) : null}
       {/* Only show body editor if method is not get */}
-      {(data.protocol === "ws" || !data.method || data.method.toLowerCase() !== "get") && (
+      {(effectiveProtocol === "ws" || !data.method || data.method.toLowerCase() !== "get") && (
         <>
           <div className="label">Body</div>
           <div style={{ padding: "5px", position: "relative" }}>

@@ -96,8 +96,9 @@ export function postmanToAPI(postmanJson: any): APIData[] {
       }
     }
 
-    // Determine protocol
-    let protocol: 'http' | 'ws' = 'http';
+    // Determine protocol - only set explicitly for ws, http is the default
+    // and can be inferred from URL
+    let protocol: 'http'|'ws'|undefined = undefined;
     if (typeof url === 'string' && url.toLowerCase().startsWith('ws')) {
       protocol = 'ws';
     }
@@ -118,6 +119,9 @@ export function postmanToAPI(postmanJson: any): APIData[] {
     // Remove undefined/empty fields to keep the YAML clean
     if (!apiData.description) {
       delete (apiData as any).description;
+    }
+    if (!apiData.protocol) {
+      delete (apiData as any).protocol;
     }
     if (!apiData.headers || Object.keys(apiData.headers).length === 0) {
       delete (apiData as any).headers;

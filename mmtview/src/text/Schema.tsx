@@ -30,7 +30,7 @@ export const SuiteSchema = {
 export const APISchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
-    required: ['type', 'protocol', 'url'],
+    required: ['type', 'url'],
     properties: {
         type: { type: 'string', enum: ['api'] },
         title: { type: 'string' },

@@ -103,6 +103,7 @@ export function handleNetworkMessage(
           action: 'ws-error',
           wsId,
           error: error?.message || String(error),
+          code: 'WS_ERROR',
         });
       });
       ws.on('message', (data: WebSocket.RawData) => {
@@ -128,6 +129,7 @@ export function handleNetworkMessage(
           action: 'ws-error',
           wsId,
           error: 'WebSocket not open',
+          code: 'WS_NOT_OPEN',
         });
       }
       break;
