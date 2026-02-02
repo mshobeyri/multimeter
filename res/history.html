@@ -156,14 +156,25 @@
         const history = __HISTORY_DATA__;
         let openIdx = null;
 
-        function getTypeIcon(type, status) {
+        function getTypeIcon(type, status, protocol) {
+            // Mock server entries show server icon instead of send/recv arrows
+            if (protocol === 'mock') {
+                const color = type === 'error' || status >= 400 ? '#ff5555' : '#66bb6a';
+                return '<span class="codicon codicon-server" style="color:' + color + '"></span>';
+            }
             return type === 'send'
                 ? '<span class="codicon codicon-arrow-up" style="color:#3399ff"></span>'
                 : type === 'recv' && status < 400
                     ? '<span class="codicon codicon-arrow-down" style="color:#66bb6a"></span>'
                     : '<span class="codicon codicon-chrome-close" style="color:#ff5555"></span>';
         }
-        function getProtocolIcon(protocol) {
+        function getProtocolIcon(protocol, serverType) {
+            if (protocol === 'mock') {
+                // For mock entries, show the underlying server protocol icon
+                if (serverType === 'ws') return '<img src="__WS_ICON__" class="history-icon" />';
+                // Default to HTTP icon for http/https mock servers
+                return '<img src="__HTTP_ICON__" class="history-icon" />';
+            }
             if (protocol === 'ws') return '<img src="__WS_ICON__" class="history-icon" />';
             if (protocol === 'grpc') return '<img src="__GRPC_ICON__" class="history-icon" />';
             return '<img src="__HTTP_ICON__" class="history-icon" />';
@@ -180,6 +191,24 @@
 
         function renderHistory() {
             const list = document.getElementById('history-list');
+
+            function escapeHtml(s) {
+                return String(s)
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/\"/g, "&quot;")
+                    .replace(/'/g, "&#39;");
+            }
+
+            function renderCodicons(text) {
+                // Supports VS Code codicon string syntax: $(icon-name)
+                // Example: $(server) $(arrow-up)
+                return escapeHtml(String(text || '')).replace(/\$\(([a-z0-9-]+)\)/gi, function (_m, icon) {
+                    return '<span class="codicon codicon-' + icon + '" style="margin-right:4px"></span>';
+                });
+            }
+
             list.innerHTML =
                 '<ul class="history-list">' +
                 history.map(function (item, idx) {
@@ -187,9 +216,9 @@
                     return '<li>' +
                         '<div class="history-row" onclick="toggleDrawer(' + idx + ')">' +
                         '<span class="drawer-arrow' + (openIdx === idx ? ' open' : '') + '">&#9654;</span>' +
-                        getTypeIcon(item.type, item.status) +
-                        getProtocolIcon(item.protocol) +
-                        '<span class="history-title"' + (isError || item.status >= 400 ? ' style="color:#ff5555;"' : '') + '>' + item.title + '</span>' +
+                        getTypeIcon(item.type, item.status, item.protocol) +
+                        getProtocolIcon(item.protocol, item.serverType) +
+                        '<span class="history-title"' + (isError || item.status >= 400 ? ' style="color:#ff5555;"' : '') + '>' + escapeHtml(item.title) + '</span>' +
                         '<span class="history-time">' +
                         (item.duration >= 0
                             ? '<span style="color:' + (isError || item.status >= 400 ? '#ff5555' : '#66bb6a') + ';">(' + item.duration + 'ms)</span> '
@@ -224,7 +253,7 @@
                             (item.query && Object.keys(item.query).length
                                 ? '<div class="drawer-section"><span class="drawer-label">Query:</span>' + renderVerticalTable(item.query) + '</div>' : '') +
                             (item.content
-                                ? '<div class="drawer-section"><span class="drawer-label">Content:</span><pre>' + item.content.replace(/</g, "&lt;").replace(/>/g, "&gt;") + '</pre></div>' : '') +
+                                ? '<div class="drawer-section"><span class="drawer-label">Content:</span><pre>' + escapeHtml(item.content) + '</pre></div>' : '') +
                             '</div>'
                             : '') +
                         '</li>';

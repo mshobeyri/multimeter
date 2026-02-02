@@ -149,17 +149,73 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
     };
     if (this.serverType === 'http' || this.serverType === 'https') {
       const createHandler = () => (req: http.IncomingMessage, res: http.ServerResponse) => {
-        if (this.reflect) {
-          let body = '';
-          req.on('data', chunk => (body += chunk));
-          req.on('end', () => {
-            res.statusCode = this.statusCode;
-            res.end(body || JSON.stringify({ headers: req.headers, url: req.url }));
+        const method = String(req.method || 'GET').toLowerCase();
+        const scheme = this.serverType === 'https' ? 'https' : 'http';
+        const url = `${scheme}://127.0.0.1:${this.port}${req.url || ''}`;
+
+        const persistHistory = async (item: any) => {
+          const historyFile =
+              vscode.Uri.joinPath(this.context.globalStorageUri, 'history.json');
+          let history: any[] = [];
+          try {
+            const data = await vscode.workspace.fs.readFile(historyFile);
+            history = JSON.parse(Buffer.from(data).toString('utf8'));
+          } catch {
+            history = [];
+          }
+          history.unshift({
+            ...item,
+            time: item.time ||
+                new Date().toISOString().replace('T', ' ').substring(0, 19),
           });
-        } else {
+          await vscode.workspace.fs.writeFile(
+              historyFile, Buffer.from(JSON.stringify(history, null, 2), 'utf8'));
+          await vscode.commands.executeCommand('multimeter.history.refresh');
+        };
+
+        const titleBase = `${method} ${url}`;
+
+        // Collect request body, then log incoming request
+        let requestBody = '';
+        req.on('data', chunk => (requestBody += chunk));
+        req.on('end', () => {
+          void persistHistory({
+            type: 'recv',
+            method,
+            protocol: 'mock',
+            serverType: this.serverType,
+            title: titleBase,
+            headers: req.headers as any,
+            query: {},
+            cookies: {},
+            content: requestBody,
+          });
+
+          // Send response
           res.statusCode = this.statusCode;
-          res.end(this.response);
-        }
+          let responseBody: string;
+          if (this.reflect) {
+            responseBody = requestBody || JSON.stringify({ headers: req.headers, url: req.url });
+          } else {
+            responseBody = this.response;
+          }
+          res.end(responseBody);
+
+          void persistHistory({
+            type: this.statusCode >= 400 ? 'error' : 'send',
+            method,
+            protocol: 'mock',
+            serverType: this.serverType,
+            title: titleBase,
+            headers: {
+              'content-type': String(res.getHeader('content-type') || ''),
+            },
+            cookies: {},
+            content: String(responseBody || ''),
+            status: this.statusCode,
+            duration: -1,
+          });
+        });
       };
 
       if (this.serverType === 'http') {
