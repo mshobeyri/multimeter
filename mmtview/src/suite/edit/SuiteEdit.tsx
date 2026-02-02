@@ -81,6 +81,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   const [missingFiles, setMissingFiles] = useState<Set<string>>(new Set());
 
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
+  const addMenuRef = useRef<HTMLDivElement | null>(null);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [addMenuPos, setAddMenuPos] = useState<{ left: number; top: number } | null>(null);
 
@@ -95,6 +96,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
       const updated = updateSuiteContentWithGroups(content, normalized);
       if (updated) {
         setContent(updated);
+      } else {
       }
     },
     [content, setContent]
@@ -127,6 +129,9 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
     openAddMenuAtButton();
     const handlePointerDown = (event: MouseEvent) => {
       if (addButtonRef.current?.contains(event.target as Node)) {
+        return;
+      }
+      if (addMenuRef.current?.contains(event.target as Node)) {
         return;
       }
       setAddMenuOpen(false);
@@ -236,6 +241,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
           </div>
           {addMenuOpen && addMenuPos && (
             <div
+              ref={addMenuRef}
               style={{
                 position: 'fixed',
                 left: addMenuPos.left,
@@ -261,7 +267,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
                   alignItems: 'center',
                   gap: 8,
                 }}
-                onPointerUp={() => handleAddGroup()}
+                onClick={() => handleAddGroup()}
                 title="Insert a group separator (then)"
               >
                 <span className="codicon codicon-list-tree" style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
@@ -276,7 +282,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
                   alignItems: 'center',
                   gap: 8,
                 }}
-                onPointerUp={() => handleAddTestFile()}
+                onClick={() => handleAddTestFile()}
                 title="Add a test file entry"
               >
                 <span className="codicon codicon-symbol-file" style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
