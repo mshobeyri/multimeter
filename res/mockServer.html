@@ -5,6 +5,59 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@vscode/codicons@0.0.35/dist/codicon.css">
+  <style>
+    :root {
+      --mmt-gap-6: 6px;
+      --mmt-gap-8: 8px;
+      --mmt-gap-12: 12px;
+      --mmt-gap-16: 16px;
+      --mmt-gap-20: 20px;
+    }
+
+    .section {
+      padding: var(--mmt-gap-12);
+    }
+
+    .label {
+      display: block;
+      margin-bottom: var(--mmt-gap-6);
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: var(--mmt-gap-8);
+    }
+
+    .mb-12 {
+      margin-bottom: var(--mmt-gap-20);
+    }
+
+    .mt-8 {
+      margin-top: var(--mmt-gap-12);
+    }
+
+    .mt-12 {
+      margin-top: var(--mmt-gap-16);
+    }
+
+    .mb-8 {
+      margin-bottom: var(--mmt-gap-12);
+    }
+
+    .gap-8 {
+      gap: var(--mmt-gap-12);
+    }
+
+    .input,
+    .textarea {
+      margin-bottom: 0;
+    }
+
+    #runBtn {
+      margin-top: var(--mmt-gap-16);
+    }
+  </style>
 </head>
 
 <body>
@@ -22,13 +75,17 @@
       <label class="label">Server certificate</label>
       <div class="flex gap-8">
         <input id="httpsCertPath" class="input flex-1" type="text" value="${httpsCertPath}" readonly />
-        <button id="pickHttpsCert" class="button" ${disabled}>Choose cert…</button>
+        <button id="pickHttpsCert" class="button" ${disabled} title="Choose certificate">
+          <span class="codicon codicon-folder-opened"></span>
+        </button>
       </div>
 
       <label class="label mt-8">Server key</label>
       <div class="flex gap-8">
         <input id="httpsKeyPath" class="input flex-1" type="text" value="${httpsKeyPath}" readonly />
-        <button id="pickHttpsKey" class="button" ${disabled}>Choose key…</button>
+        <button id="pickHttpsKey" class="button" ${disabled} title="Choose key">
+          <span class="codicon codicon-folder-opened"></span>
+        </button>
       </div>
 
       <label class="mb-8 mt-12 checkbox-label">
@@ -39,9 +96,10 @@
       <label class="label mt-8">Client CA (for mTLS)</label>
       <div class="flex gap-8">
         <input id="httpsClientCaPath" class="input flex-1" type="text" value="${httpsClientCaPath}" readonly />
-        <button id="pickHttpsClientCa" class="button" ${disabled}>Choose CA…</button>
+        <button id="pickHttpsClientCa" class="button" ${disabled} title="Choose Client CA">
+          <span class="codicon codicon-folder-opened"></span>
+        </button>
       </div>
-      <div class="hint">Starts on https://127.0.0.1:&lt;port&gt;. When mTLS is enabled, clients must present a valid certificate signed by the Client CA.</div>
     </div>
 
     <div class="flex gap-8 mb-12">
