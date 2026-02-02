@@ -60,9 +60,9 @@ export function handleNetworkMessage(
   switch (message.action) {
     case 'http-send':
       (async () => {
+        const {url, method, headers, body, query, cookies, requestId} =
+            message;
         try {
-          const {url, method, headers, body, query, cookies, requestId} =
-              message;
           const req: HttpRequest = {url, method, headers, body, query, cookies};
           const response = await sendHttpRequest(req, config);
           postMessage({
@@ -72,6 +72,20 @@ export function handleNetworkMessage(
             requestId,
           });
         } catch (err: any) {
+          // Send error back to the webview so it can be displayed
+          postMessage({
+            command: 'network',
+            action: 'http-error',
+            data: {
+              body: null,
+              headers: null,
+              status: -1,
+              message: err?.message || String(err),
+              code: err?.code || 'NETWORK_ERROR',
+              duration: null,
+            },
+            requestId,
+          });
         }
       })();
       break;

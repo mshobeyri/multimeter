@@ -270,7 +270,7 @@ export const messageRecieved = async (
       break;
 
     case 'network':
-      handleNetworkMessage(message, webviewPanel);
+      handleNetworkMessage(message, webviewPanel, mmtProvider.context);
       break;
 
     case 'addHistory':

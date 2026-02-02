@@ -81,13 +81,15 @@ function tryParseEnvCertificatesFromFile(filePath: string): StoredCertificates|u
 
 export function resolveWorkspaceEnvFilePath(baseFilePath?: string): string|undefined {
   const config = vscode.workspace.getConfiguration('multimeter');
-  const envRelPath = config.get<string>('workspaceEnvFile', 'multimeter.mmt');
-  if (!envRelPath) {
-    return undefined;
-  }
+  const envRelPath = config.get<string>('workspaceEnvFile', '');
+  
+  // Default filename to search for if no config is set
+  const defaultEnvFile = 'multimeter.mmt';
+  
+  
 
-  // If no base file is provided, try workspace root(s) first.
-  if (!baseFilePath) {
+  // If config specifies a path, use it directly
+  if (envRelPath) {
     for (const folder of vscode.workspace.workspaceFolders || []) {
       const candidate = path.join(folder.uri.fsPath, envRelPath);
       if (fs.existsSync(candidate)) {
@@ -96,14 +98,22 @@ export function resolveWorkspaceEnvFilePath(baseFilePath?: string): string|undef
     }
   }
 
-  // Use project root of the current document when possible.
-  const baseDir = baseFilePath ? path.dirname(baseFilePath) : undefined;
-  if (baseDir) {
-    let currentDir = baseDir;
+  // No config set - search for default file in workspace roots
+  for (const folder of vscode.workspace.workspaceFolders || []) {
+    const candidate = path.join(folder.uri.fsPath, defaultEnvFile);
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+
+  // If baseFilePath provided, walk up directory tree looking for the env file
+  if (baseFilePath) {
+    const searchName = envRelPath || defaultEnvFile;
+    let currentDir = path.dirname(baseFilePath);
     const visited = new Set<string>();
     while (currentDir && !visited.has(currentDir)) {
       visited.add(currentDir);
-      const candidate = path.join(currentDir, envRelPath);
+      const candidate = path.join(currentDir, searchName);
       if (fs.existsSync(candidate)) {
         return candidate;
       }
@@ -115,16 +125,8 @@ export function resolveWorkspaceEnvFilePath(baseFilePath?: string): string|undef
     }
   }
 
-  // Fallback: workspace folder(s)
-  for (const folder of vscode.workspace.workspaceFolders || []) {
-    const candidate = path.join(folder.uri.fsPath, envRelPath);
-    if (fs.existsSync(candidate)) {
-      return candidate;
-    }
-  }
   return undefined;
 }
-
 function tryParseEnvFile(filePath: string): ParsedEnvFile|undefined {
   try {
     if (!filePath || !fs.existsSync(filePath)) {
@@ -451,10 +453,13 @@ export function getPreparedConfig(): NetworkConfig {
 export function handleNetworkMessage(
     message: NetworkMessage, webviewPanel: vscode.WebviewPanel,
     context?: vscode.ExtensionContext, envVars?: Record<string, any>) {
-  const baseFilePath = vscode.window.activeTextEditor?.document?.uri?.fsPath;
+  const envFilePath = resolveWorkspaceEnvFilePath();
   const config = context ?
-    getPreparedConfigFromStorage(context, envVars, baseFilePath) :
+    getPreparedConfigFromStorage(context, envVars) :
     getPreparedConfig();
+
+  
+
   const postMessage: PostMessage = (msg: any) =>
       webviewPanel.webview.postMessage(msg);
 
