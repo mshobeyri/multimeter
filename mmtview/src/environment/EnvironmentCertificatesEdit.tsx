@@ -96,7 +96,8 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
                 onChange={(v) => handleClientChange(idx, { cert_path: v })}
                 onEnterPressed={(v) => handleClientChange(idx, { cert_path: v })}
                 basePath={fileCtx?.mmtFilePath}
-                filters={[{ name: 'Certificate files', extensions: ['pem', 'crt', 'cer', 'p12', 'pfx', 'key'] }]}
+                showFilePicker
+                filters={[{ name: 'Certificate files', extensions: ['pem', 'crt', 'cer', 'p12', 'pfx'] }]}
               />
             </div>
 
@@ -107,6 +108,7 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
                 onChange={(v) => handleClientChange(idx, { key_path: v })}
                 onEnterPressed={(v) => handleClientChange(idx, { key_path: v })}
                 basePath={fileCtx?.mmtFilePath}
+                showFilePicker
                 filters={[{ name: 'Key files', extensions: ['key', 'pem'] }]}
               />
             </div>

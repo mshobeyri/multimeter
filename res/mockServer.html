@@ -13,8 +13,35 @@
       <label class="label" for="serverType">Server Type</label>
       <select id="serverType" class="input" ${disabled}>
         <option value="http" ${httpSelected}>HTTP</option>
+        <option value="https" ${httpsSelected}>HTTPS</option>
         <option value="ws" ${wsSelected}>WebSocket</option>
       </select>
+    </div>
+
+    <div class="mb-12" id="httpsSection" ${httpsSectionHidden}>
+      <label class="label">Server certificate</label>
+      <div class="flex gap-8">
+        <input id="httpsCertPath" class="input flex-1" type="text" value="${httpsCertPath}" readonly />
+        <button id="pickHttpsCert" class="button" ${disabled}>Choose cert…</button>
+      </div>
+
+      <label class="label mt-8">Server key</label>
+      <div class="flex gap-8">
+        <input id="httpsKeyPath" class="input flex-1" type="text" value="${httpsKeyPath}" readonly />
+        <button id="pickHttpsKey" class="button" ${disabled}>Choose key…</button>
+      </div>
+
+      <label class="mb-8 mt-12 checkbox-label">
+        <input id="httpsRequestCert" type="checkbox" ${httpsRequestCertChecked} ${disabled}>
+        Require client certificate (mTLS)
+      </label>
+
+      <label class="label mt-8">Client CA (for mTLS)</label>
+      <div class="flex gap-8">
+        <input id="httpsClientCaPath" class="input flex-1" type="text" value="${httpsClientCaPath}" readonly />
+        <button id="pickHttpsClientCa" class="button" ${disabled}>Choose CA…</button>
+      </div>
+      <div class="hint">Starts on https://127.0.0.1:&lt;port&gt;. When mTLS is enabled, clients must present a valid certificate signed by the Client CA.</div>
     </div>
 
     <div class="flex gap-8 mb-12">
@@ -49,6 +76,22 @@
 
     document.querySelector('#serverType').onchange = e => {
       vscode.postMessage({ type: 'setType', value: e.target.value });
+    };
+
+    document.querySelector('#pickHttpsCert').onclick = () => {
+      vscode.postMessage({ type: 'pickHttpsCert' });
+    };
+
+    document.querySelector('#pickHttpsKey').onclick = () => {
+      vscode.postMessage({ type: 'pickHttpsKey' });
+    };
+
+    document.querySelector('#pickHttpsClientCa').onclick = () => {
+      vscode.postMessage({ type: 'pickHttpsClientCa' });
+    };
+
+    document.querySelector('#httpsRequestCert').onchange = e => {
+      vscode.postMessage({ type: 'setHttpsRequestCert', value: e.target.checked });
     };
 
     document.querySelector('#port').onchange = e => {

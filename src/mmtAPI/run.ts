@@ -6,7 +6,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 
 import {readRelativeFileContent} from './file';
-import {getPreparedConfigFromStorage} from './network';
+import {prepareNetworkConfigForFile, parseEnvFileForRun, resolveWorkspaceEnvFilePath} from './network';
 
 const logOutputChannel =
     vscode.window.createOutputChannel('Multimeter', {log: true});
@@ -97,37 +97,28 @@ export async function handleRunCurrentDocument(
   const forwardLog = (level: LogLevel, message: string) => {
     logToOutput(level, message);
   };
-  // Build env vars first so we can use them for passphrase resolution
-  const envStorage = mmtProvider.context.workspaceState.get(
-      'multimeter.environment.storage', []);
-  const vscodeEnv: Record<string, any> = {};
-  if (Array.isArray(envStorage)) {
-    for (const item of envStorage) {
-      if (!item || typeof item !== 'object') {
-        continue;
-      }
-      const name = (item as any).name;
-      if (typeof name === 'string' && name) {
-        vscodeEnv[name] = (item as any).value;
-      }
-    }
-  }
+
+  // Read env file path from VS Code config and parse env data at run start
+  const envFilePath = resolveWorkspaceEnvFilePath(document.uri.fsPath);
+  const parsedEnv = envFilePath ? parseEnvFileForRun(envFilePath) : undefined;
+  const envVars = parsedEnv?.envVars || {};
+  const projectRoot = findProjectRoot(document.uri.fsPath);
+
   try {
-    const netConfig = getPreparedConfigFromStorage(mmtProvider.context, vscodeEnv);
+    const netConfig = prepareNetworkConfigForFile(document.uri.fsPath, envVars);
     setRunnerNetworkConfig(netConfig);
   } catch (err: any) {
     logToOutput(
         'warn', `Unable to apply certificate settings: ${err?.message || err}`);
   }
   try {
-    const projectRoot = findProjectRoot(document.uri.fsPath);
     const runOutcome = await runner.runFile({
       file: document.getText(),
       fileType: 'raw' as any,
       filePath: document.uri.fsPath,
       exampleIndex: message?.inputs?.exampleIndex,
       manualInputs: {},
-      envvar: vscodeEnv,
+      envvar: envVars,
       manualEnvvars: {},
       fileLoader: async (relPath: string) => {
         try {
@@ -173,25 +164,15 @@ export async function handleRunSuite(
     logToOutput(level, message);
   };
 
-  // Build env vars first so we can use them for passphrase resolution
-  const envStorage = mmtProvider.context.workspaceState.get(
-      'multimeter.environment.storage', []);
-  const vscodeEnv: Record<string, any> = {};
-  if (Array.isArray(envStorage)) {
-    for (const item of envStorage) {
-      if (!item || typeof item !== 'object') {
-        continue;
-      }
-      const name = (item as any).name;
-      if (typeof name === 'string' && name) {
-        vscodeEnv[name] = (item as any).value;
-      }
-    }
-  }
+  // Read env file path from VS Code config and parse env data at run start
+  const envFilePath = resolveWorkspaceEnvFilePath(document.uri.fsPath);
+  const parsedEnv = envFilePath ? parseEnvFileForRun(envFilePath) : undefined;
+  const envVars = parsedEnv?.envVars || {};
+  const projectRoot = findProjectRoot(document.uri.fsPath);
 
   let netConfigApplied = false;
   try {
-    const netConfig = getPreparedConfigFromStorage(mmtProvider.context, vscodeEnv);
+    const netConfig = prepareNetworkConfigForFile(document.uri.fsPath, envVars);
     setRunnerNetworkConfig(netConfig);
     netConfigApplied = true;
   } catch (err: any) {
@@ -251,14 +232,14 @@ export async function handleRunSuite(
       console.warn('Unable to post suiteBundle to webview', e);
     }
 
-    const projectRoot = findProjectRoot(runFilePath);
+    const projectRootSuite = findProjectRoot(runFilePath);
     await runner.runFile({
       file: rawSuite,
       fileType: 'raw' as any,
       filePath: runFilePath,
       exampleIndex: message?.inputs?.exampleIndex,
       manualInputs: {},
-      envvar: vscodeEnv,
+      envvar: envVars,
       manualEnvvars: {},
       fileLoader: async (relPath: string) => {
         try {
@@ -274,7 +255,7 @@ export async function handleRunSuite(
       suiteBundle: bundle,
       // Provide a per-suite-run nonce for unique child runIds.
       suiteRunId: suiteRunId,
-      projectRoot,
+      projectRoot: projectRootSuite,
       reporter: (msg: any) => {
         const current = activeSuiteRun;
         if (!current || current.suiteRunId !== suiteRunId) {

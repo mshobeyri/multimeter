@@ -1,10 +1,11 @@
 import * as fs from 'fs';
 import * as http from 'http';
+import * as https from 'https';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import WebSocket = require('ws');
 
-type ServerType = 'http' | 'ws';
+type ServerType = 'http' | 'https' | 'ws';
 
 export default class MockServerPanel implements vscode.WebviewViewProvider,
                                                 vscode.Disposable {
@@ -17,9 +18,14 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
 }`;
   private running = false;
   private httpServer?: http.Server;
+  private httpsServer?: https.Server;
   private wsServer?: WebSocket.Server;
   private statusCode = 200;
   private reflect = false;
+  private httpsCertPath: string = '';
+  private httpsKeyPath: string = '';
+  private httpsClientCaPath: string = '';
+  private httpsRequestCert: boolean = false;
   private disposables: vscode.Disposable[] = [];
 
   constructor(private readonly context: vscode.ExtensionContext) {}
@@ -40,8 +46,31 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
     const { type, value } = msg;
     switch (type) {
       case 'setType':
-        if (!this.running && (value === 'http' || value === 'ws')) {
+        if (!this.running && (value === 'http' || value === 'https' || value === 'ws')) {
           this.serverType = value;
+          this.updateViewHtml();
+        }
+        break;
+      case 'pickHttpsCert':
+        if (!this.running) {
+          void this.pickHttpsFile('cert');
+        }
+        break;
+      case 'pickHttpsKey':
+        if (!this.running) {
+          void this.pickHttpsFile('key');
+        }
+        break;
+      case 'pickHttpsClientCa':
+        if (!this.running) {
+          void this.pickHttpsFile('clientCa');
+        }
+        break;
+      case 'setHttpsRequestCert':
+        if (!this.running) {
+          this.httpsRequestCert = !!value;
+          void this.context.workspaceState.update(
+              'multimeter.mockServer.httpsRequestCert', this.httpsRequestCert);
           this.updateViewHtml();
         }
         break;
@@ -98,6 +127,11 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
         this.httpServer = undefined;
         finalizeStart();
       });
+    } else if (this.httpsServer) {
+      this.httpsServer.close(() => {
+        this.httpsServer = undefined;
+        finalizeStart();
+      });
     } else if (this.wsServer) {
       this.wsServer.close(() => {
         this.wsServer = undefined;
@@ -113,8 +147,8 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
       this.running = true;
       this.updateViewHtml();
     };
-    if (this.serverType === 'http') {
-      this.httpServer = http.createServer((req, res) => {
+    if (this.serverType === 'http' || this.serverType === 'https') {
+      const createHandler = () => (req: http.IncomingMessage, res: http.ServerResponse) => {
         if (this.reflect) {
           let body = '';
           req.on('data', chunk => (body += chunk));
@@ -126,6 +160,11 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
           res.statusCode = this.statusCode;
           res.end(this.response);
         }
+      };
+
+      if (this.serverType === 'http') {
+      this.httpServer = http.createServer((req, res) => {
+        createHandler()(req, res);
       });
       this.httpServer.on('listening', updateAndNotify);
       this.httpServer.on('close', () => {
@@ -133,6 +172,41 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
         this.updateViewHtml();
       });
       this.httpServer.listen(this.port, '127.0.0.1');
+        return;
+      }
+
+      const certPath = this.resolvePathMaybeRelative(this.httpsCertPath);
+      const keyPath = this.resolvePathMaybeRelative(this.httpsKeyPath);
+      if (!certPath || !keyPath) {
+        vscode.window.showErrorMessage(
+            'HTTPS requires a server certificate and key. Use "Choose cert…" and "Choose key…" in the panel.');
+        return;
+      }
+      try {
+        const {cert, key, passphrase} = this.loadServerCertificate({certPath, keyPath});
+        const httpsOptions: https.ServerOptions = {cert, key, passphrase};
+        if (this.httpsRequestCert) {
+          const clientCaPath = this.resolvePathMaybeRelative(this.httpsClientCaPath);
+          if (!clientCaPath) {
+            vscode.window.showErrorMessage(
+                'mTLS requires a Client CA certificate. Use "Choose Client CA…" in the panel.');
+            return;
+          }
+          httpsOptions.ca = fs.readFileSync(clientCaPath);
+          httpsOptions.requestCert = true;
+          httpsOptions.rejectUnauthorized = true;
+        }
+        this.httpsServer = https.createServer(httpsOptions, createHandler());
+        this.httpsServer.on('listening', updateAndNotify);
+        this.httpsServer.on('close', () => {
+          this.running = false;
+          this.updateViewHtml();
+        });
+        this.httpsServer.listen(this.port, '127.0.0.1');
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        vscode.window.showErrorMessage('HTTPS server could not be started: ' + message);
+      }
     } else {
       try {
         this.wsServer = new WebSocket.Server({ port: this.port });
@@ -166,6 +240,11 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
         this.httpServer = undefined;
         finalize();
       });
+    } else if (this.httpsServer) {
+      this.httpsServer.close(() => {
+        this.httpsServer = undefined;
+        finalize();
+      });
     } else if (this.wsServer) {
       const server = this.wsServer;
       try {
@@ -197,7 +276,11 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
     statusCode: number,
     response: string,
     isRunning: boolean,
-    reflect: boolean
+    reflect: boolean,
+    httpsCertPath: string,
+    httpsKeyPath: string,
+    httpsClientCaPath: string,
+    httpsRequestCert: boolean
   ): string {
     const htmlPath = path.join(this.context.extensionPath, 'res', 'mockServer.html');
     const cssPath = path.join(this.context.extensionPath, 'res', 'common.css');
@@ -208,9 +291,11 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
   const buttonText = isRunning ? `Stop localhost:${port}` : 'Run Mock Server';
   const buttonIcon = isRunning ? 'codicon codicon-debug-stop' : 'codicon codicon-play';
     const httpSelected = serverType === 'http' ? 'selected' : '';
+    const httpsSelected = serverType === 'https' ? 'selected' : '';
     const wsSelected = serverType === 'ws' ? 'selected' : '';
     const reflectChecked = reflect ? 'checked' : '';
     const responseDisabled = reflect ? 'disabled' : '';
+    const httpsSectionHidden = serverType === 'https' ? '' : 'hidden';
     return html
       .replace(/\${serverType}/g, serverType)
       .replace(/\${port}/g, port.toString())
@@ -220,21 +305,121 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
       .replace(/\${buttonText}/g, buttonText)
   .replace(/\${buttonIcon}/g, buttonIcon)
       .replace(/\${httpSelected}/g, httpSelected)
+      .replace(/\${httpsSelected}/g, httpsSelected)
       .replace(/\${wsSelected}/g, wsSelected)
       .replace(/\${reflectChecked}/g, reflectChecked)
       .replace(/\${responseDisabled}/g, responseDisabled)
-      .replace(/\${isRunning}/g, String(isRunning));
+      .replace(/\${isRunning}/g, String(isRunning))
+      .replace(/\${httpsSectionHidden}/g, httpsSectionHidden)
+        .replace(/\${httpsCertPath}/g, httpsCertPath)
+        .replace(/\${httpsKeyPath}/g, httpsKeyPath)
+        .replace(/\${httpsClientCaPath}/g, httpsClientCaPath)
+        .replace(/\${httpsRequestCertChecked}/g, httpsRequestCert ? 'checked' : '');
   }
 
   private getHtmlContent(): string {
+    // Hydrate from workspaceState so restart doesn't reset selections.
+    const storedCertPath = this.context.workspaceState.get<string>(
+        'multimeter.mockServer.httpsCertPath', '');
+    const storedKeyPath = this.context.workspaceState.get<string>(
+        'multimeter.mockServer.httpsKeyPath', '');
+    const storedClientCaPath = this.context.workspaceState.get<string>(
+        'multimeter.mockServer.httpsClientCaPath', '');
+    const storedRequestCert = this.context.workspaceState.get<boolean>(
+        'multimeter.mockServer.httpsRequestCert', false);
+    if (!this.running) {
+      this.httpsCertPath = storedCertPath;
+      this.httpsKeyPath = storedKeyPath;
+      this.httpsClientCaPath = storedClientCaPath;
+      this.httpsRequestCert = storedRequestCert;
+    }
+
     return this.getHtmlForWebview(
       this.serverType,
       this.port,
       this.statusCode,
       this.response,
       this.running,
-      this.reflect
+      this.reflect,
+      this.escapeHtml(this.httpsCertPath),
+      this.escapeHtml(this.httpsKeyPath),
+      this.escapeHtml(this.httpsClientCaPath),
+      this.httpsRequestCert
     );
+  }
+
+  private async pickHttpsFile(kind: 'cert'|'key'|'clientCa') {
+    const titles: Record<typeof kind, string> = {
+      cert: 'Select HTTPS server certificate',
+      key: 'Select HTTPS server key',
+      clientCa: 'Select Client CA certificate (for mTLS)'
+    };
+    const uris = await vscode.window.showOpenDialog({
+      title: titles[kind],
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      filters: {
+        'Certificates': ['pem', 'crt', 'cer', 'key'],
+        'All files': ['*']
+      }
+    });
+    const uri = uris?.[0];
+    if (!uri) {
+      return;
+    }
+
+    if (kind === 'cert') {
+      this.httpsCertPath = uri.fsPath;
+      await this.context.workspaceState.update(
+          'multimeter.mockServer.httpsCertPath', this.httpsCertPath);
+    } else if (kind === 'key') {
+      this.httpsKeyPath = uri.fsPath;
+      await this.context.workspaceState.update(
+          'multimeter.mockServer.httpsKeyPath', this.httpsKeyPath);
+    } else {
+      this.httpsClientCaPath = uri.fsPath;
+      await this.context.workspaceState.update(
+          'multimeter.mockServer.httpsClientCaPath', this.httpsClientCaPath);
+    }
+
+    this.updateViewHtml();
+  }
+
+  private resolvePathMaybeRelative(pth: string): string {
+    if (!pth) {
+      return '';
+    }
+    if (path.isAbsolute(pth)) {
+      return pth;
+    }
+    const ws = vscode.workspace.workspaceFolders?.[0];
+    if (ws) {
+      return path.resolve(ws.uri.fsPath, pth);
+    }
+    return pth;
+  }
+
+  private loadServerCertificate(selected: {certPath: string; keyPath: string}): {cert: Buffer; key: Buffer; passphrase?: string} {
+    const certPath = this.resolvePathMaybeRelative(selected.certPath);
+    const keyPath = this.resolvePathMaybeRelative(selected.keyPath);
+    const cert = fs.readFileSync(certPath);
+    const key = fs.readFileSync(keyPath);
+    const passphrase = undefined;
+    return {cert, key, passphrase};
+  }
+
+  private escapeHtml(input: string): string {
+    return String(input)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+  }
+
+  private escapeHtmlAttr(input: string): string {
+    return this.escapeHtml(input);
   }
 
   dispose() {

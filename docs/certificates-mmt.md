@@ -6,6 +6,23 @@ SSL/TLS certificate configuration in MMT has two parts:
 
 This separation allows certificate file paths to be version-controlled while keeping enable/disable toggles as local preferences.
 
+## Supported certificate formats
+
+Multimeter supports **PEM format only** for all certificate types:
+- CA certificates: `.pem`, `.crt`, `.cer`
+- Client certificates: `.pem`, `.crt`
+- Private keys: `.pem`, `.key`
+
+PKCS#12 (`.pfx`, `.p12`) bundles are not currently supported. Convert them to PEM format before use:
+
+```sh
+# Extract certificate from PFX
+openssl pkcs12 -in bundle.pfx -clcerts -nokeys -out client.crt
+
+# Extract key from PFX
+openssl pkcs12 -in bundle.pfx -nocerts -out client.key
+```
+
 ## Example certificate configuration
 
 ```yaml

@@ -142,6 +142,51 @@ export async function loadWorkspaceEnvFile(
   }
 }
 
+/**
+ * Refresh certificate *paths* from the workspace env file.
+ *
+ * This updates only `multimeter.certificates.storage` (CA+client entries) so that
+ * editing `multimeter.mmt` immediately affects future runs.
+ *
+ * It intentionally does NOT modify `multimeter.certificates.settings` because
+ * those are user toggles (CA enabled, per-client enabled, sslValidation).
+ */
+export async function refreshWorkspaceCertificatesFromEnvFile(
+    context: vscode.ExtensionContext,
+): Promise<void> {
+  const workspaceFolders = vscode.workspace.workspaceFolders;
+  if (!workspaceFolders || workspaceFolders.length === 0) {
+    return;
+  }
+
+  const config = vscode.workspace.getConfiguration('multimeter');
+  const envFilePath = config.get<string>('workspaceEnvFile', 'multimeter.mmt');
+
+  for (const folder of workspaceFolders) {
+    const fullPath = path.join(folder.uri.fsPath, envFilePath);
+    const fileUri = vscode.Uri.file(fullPath);
+
+    try {
+      const fileContent = await vscode.workspace.fs.readFile(fileUri);
+      const content = Buffer.from(fileContent).toString('utf8');
+      if (!content.includes('type: env')) {
+        continue;
+      }
+
+      const yaml = parseYaml(content);
+      if (!yaml || !yaml.certificates || typeof yaml.certificates !== 'object') {
+        return;
+      }
+
+      const certs = parseCertificates(yaml.certificates);
+      await context.workspaceState.update('multimeter.certificates.storage', certs);
+      return;
+    } catch {
+      continue;
+    }
+  }
+}
+
 function parseYaml(yamlString: string): any {
   try {
     return YAML.parse(yamlString);

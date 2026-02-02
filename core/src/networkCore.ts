@@ -354,8 +354,13 @@ export function createWebSocketOptionsWithCertificates(
   const rejectUnauthorized = opts?.skipCertificateValidation ? false :
       (config.allowSelfSigned ? false : config.sslValidation);
   const wsOptions: any = {rejectUnauthorized};
+  // Handle CA certificates (can be array or single Buffer for backward compat)
   if (config.ca.enabled && config.ca.certData) {
-    wsOptions.ca = [config.ca.certData];
+    if (Array.isArray(config.ca.certData)) {
+      wsOptions.ca = config.ca.certData;
+    } else {
+      wsOptions.ca = [config.ca.certData];
+    }
   }
   const matchingClientCert = config.clients.find(
       cert => cert.enabled &&
@@ -365,6 +370,9 @@ export function createWebSocketOptionsWithCertificates(
       matchingClientCert.keyData) {
     wsOptions.cert = matchingClientCert.certData;
     wsOptions.key = matchingClientCert.keyData;
+    if (matchingClientCert.passphrase_plain) {
+      wsOptions.passphrase = matchingClientCert.passphrase_plain;
+    }
   }
   return wsOptions;
 }
