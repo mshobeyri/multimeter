@@ -20,7 +20,7 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
             style={{ transform: page === 'test' ? 'translateX(0%)' : 'translateX(-50%)' }}
           >
             <div className="api-swipe-page api-swipe-page--test">
-              <div style={{ flex: 1, minHeight: 0, display: 'flex', minWidth: 0 }}>
+              <div style={{ flex: 1, minHeight: 0, display: 'flex', minWidth: 0, overflow: 'hidden' }}>
                 <SuiteTest
                   content={content}
                   rightOfRunButton={(

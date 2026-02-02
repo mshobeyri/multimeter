@@ -105,7 +105,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
             style={{ transform: page === 'test' ? 'translateX(0%)' : 'translateX(-50%)' }}
           >
             <div className="api-swipe-page api-swipe-page--test">
-              <div style={{ flex: 1, minHeight: 0, display: "flex" }}>
+              <div style={{ flex: 1, minHeight: 0, display: "flex", overflow: "auto" }}>
                 <TestTest
                   testData={test}
                   rightOfRunButton={(
@@ -168,11 +168,12 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
                 </div>
               </div>
 
-              {tab === "overview" && (
-                <TestOverview
-                  test={test}
-                  update={(patch) => setTest(prev => ({ ...prev, ...patch }))}
-                  missingImports={missingImports}
+              <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+                {tab === "overview" && (
+                  <TestOverview
+                    test={test}
+                    update={(patch) => setTest(prev => ({ ...prev, ...patch }))}
+                    missingImports={missingImports}
                 />
               )}
               {tab === "flow" && (
@@ -194,7 +195,8 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
                   }}
                 />
               )}
-              {tab === "code" && <TestCode testData={test} />}
+                {tab === "code" && <TestCode testData={test} />}
+              </div>
             </div>
           </div>
         </div>

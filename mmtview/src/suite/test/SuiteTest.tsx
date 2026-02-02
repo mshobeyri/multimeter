@@ -538,7 +538,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, rightOfRunButton }) => {
     );
 
     return (
-        <div className="panel-box">
+        <div className="panel-box" style={{ overflow: 'auto', flex: 1 }}>
             <div className="test-flow-tree" style={{ paddingTop: 4 }}>
                 <div
                     style={{
