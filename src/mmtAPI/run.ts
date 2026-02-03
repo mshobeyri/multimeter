@@ -98,10 +98,22 @@ export async function handleRunCurrentDocument(
     logToOutput(level, message);
   };
 
-  // Read env file path from VS Code config and parse env data at run start
-  const envFilePath = resolveWorkspaceEnvFilePath(document.uri.fsPath);
-  const parsedEnv = envFilePath ? parseEnvFileForRun(envFilePath) : undefined;
-  const envVars = parsedEnv?.envVars || {};
+  // Env vars should come from the UI-selected workspace state.
+  // Certificates should come from the env file (handled via prepareNetworkConfigForFile).
+  const envStorage = mmtProvider.context.workspaceState.get(
+      'multimeter.environment.storage', []);
+  const envVars: Record<string, any> = {};
+  if (Array.isArray(envStorage)) {
+    for (const item of envStorage) {
+      if (!item || typeof item !== 'object') {
+        continue;
+      }
+      const name = (item as any).name;
+      if (typeof name === 'string' && name) {
+        envVars[name] = (item as any).value;
+      }
+    }
+  }
   const projectRoot = findProjectRoot(document.uri.fsPath);
 
   try {
@@ -164,10 +176,22 @@ export async function handleRunSuite(
     logToOutput(level, message);
   };
 
-  // Read env file path from VS Code config and parse env data at run start
-  const envFilePath = resolveWorkspaceEnvFilePath(document.uri.fsPath);
-  const parsedEnv = envFilePath ? parseEnvFileForRun(envFilePath) : undefined;
-  const envVars = parsedEnv?.envVars || {};
+  // Env vars should come from the UI-selected workspace state.
+  // Certificates should come from the env file (handled via prepareNetworkConfigForFile).
+  const envStorage = mmtProvider.context.workspaceState.get(
+      'multimeter.environment.storage', []);
+  const envVars: Record<string, any> = {};
+  if (Array.isArray(envStorage)) {
+    for (const item of envStorage) {
+      if (!item || typeof item !== 'object') {
+        continue;
+      }
+      const name = (item as any).name;
+      if (typeof name === 'string' && name) {
+        envVars[name] = (item as any).value;
+      }
+    }
+  }
   const projectRoot = findProjectRoot(document.uri.fsPath);
 
   let netConfigApplied = false;
