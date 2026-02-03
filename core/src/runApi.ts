@@ -470,7 +470,7 @@ export async function executeApi(
   });
   const result = await runGeneratedJs(
       'run-api', js, displayName, options.logger, jsRunner, undefined,
-      (options as any).id);
+      (options as any).id, fileLoader);
   if (preLogs.length) {
     result.logs = [...preLogs.map(l => l.message), ...(result.logs ?? [])];
   }

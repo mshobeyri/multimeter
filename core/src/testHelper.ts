@@ -83,6 +83,60 @@ export function notEndsWith_(a: any, b: any) {
   }
   return true;
 }
+
+type FileLoader = (path: string) => Promise<string>;
+
+let __mmtFileLoader: FileLoader|undefined;
+const __mmtJsModuleCache = new Map<string, any>();
+
+export const setFileLoader_ = (loader: FileLoader|undefined) => {
+  __mmtFileLoader = loader;
+};
+
+export const importJsModule_ = async(
+    resolvedPath: string,
+    options?: {
+      moduleId?: string;
+      forceReload?: boolean;
+    }): Promise<any> => {
+  const path = String(resolvedPath ?? '');
+  if (!path) {
+    throw new Error('importJsModule_: empty path');
+  }
+  const forceReload = options?.forceReload === true;
+  if (!forceReload && __mmtJsModuleCache.has(path)) {
+    return __mmtJsModuleCache.get(path);
+  }
+  if (typeof __mmtFileLoader !== 'function') {
+    throw new Error(
+        'importJsModule_: fileLoader is not available in this runtime');
+  }
+  const source = await __mmtFileLoader(path);
+  const sourceText = String(source ?? '');
+  if (!sourceText.trim()) {
+    throw new Error(`importJsModule_: empty module source for ${path}`);
+  }
+  const moduleObj: {exports: any} = {exports: {}};
+  const moduleId = options?.moduleId || path;
+
+  // Evaluate as CommonJS-like module.
+  // Note: This intentionally does not expose Node's require/process.
+    // Evaluate as CommonJS-like module.
+    // We keep exports in sync with module.exports even if reassigned.
+    const wrapped =
+      `"use strict";\n` +
+      `let exports = module.exports;\n` +
+      `${sourceText}\n` +
+      `return module.exports;\n`;
+    const fn = new Function('module', '__filename', '__dirname', wrapped);
+    const exported = fn(moduleObj, moduleId, '');
+
+    // If the module reassigned module.exports, ensure our stored reference matches.
+    moduleObj.exports = exported;
+
+  __mmtJsModuleCache.set(path, exported);
+  return exported;
+};
 declare const __mmtReportStep:|((event: Record<string, any>) => void)|undefined;
 declare const __mmtRunId: string|undefined;
 declare const __mmtId: string|undefined;

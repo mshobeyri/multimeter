@@ -34,7 +34,8 @@ export async function runGeneratedJs(
     logger: (level: LogLevel, msg: string) => void,
     jsRunner: (context: RunJSCodeContext) => Promise<void>,
     stepReporter?: (event: TestStepReporterEvent) => void,
-    id?: string): Promise<RunResult> {
+  id?: string,
+  fileLoader?: (path: string) => Promise<string>): Promise<RunResult> {
   const start = Date.now();
   const errors: string[] = [];
   const logs: string[] = [];
@@ -55,6 +56,7 @@ export async function runGeneratedJs(
       js,
       title: name,
       logger: forward,
+      fileLoader,
       reporter: stepReporter,
         id,
     });

@@ -26,28 +26,63 @@ export const testToJsfunc = async(
 
   const aliasMapForThis =
       ctx.importTracker?.getAliasesForImporter(ctx.filePath || '') || {};
-  const importsAssignments =
-      Object.entries(ctx.test.import ?? {})
-          .map(([key, requested]) => {
-            const fromAliasMap = aliasMapForThis[key];
-            if (fromAliasMap) {
-              return `const ${key} = ${fromAliasMap};`;
-            }
-            const requestedPathRaw =
-                typeof requested === 'string' ? requested : '';
-            const normalizedRequested =
-                resolveRequestedAgainst(ctx.filePath || '', requestedPathRaw, ctx.projectRoot);
-            const fnFromRequested =
-                ctx.importTracker?.getTestFuncName(normalizedRequested);
-            if (fnFromRequested) {
-              return `const ${key} = ${fnFromRequested};`;
-            }
-            const base = (requestedPathRaw.split('/').pop() ||
-                          '').replace(/\.[^.]+$/, '');
-            const fnFallback = toLowerUnderscore(base || 'imported');
-            return `const ${key} = ${fnFallback};`;
+  const importsEntries = Object.entries(ctx.test.import ?? {});
+  const jsImports = importsEntries
+      .map(([key, requested]) => {
+        const fromAliasMap = aliasMapForThis[key];
+        if (fromAliasMap) {
+          return null;
+        }
+        const requestedPathRaw = typeof requested === 'string' ? requested : '';
+        const normalizedRequested = resolveRequestedAgainst(
+            ctx.filePath || '', requestedPathRaw, ctx.projectRoot);
+        const lower = normalizedRequested.toLowerCase();
+        if (lower.endsWith('.js') || lower.endsWith('.cjs') || lower.endsWith('.mjs')) {
+          return {
+            alias: key,
+            resolvedPath: normalizedRequested,
+            hoistedName: `${key}_`,
+          };
+        }
+        return null;
+      })
+      .filter(Boolean) as Array<{alias: string; resolvedPath: string; hoistedName: string}>;
+
+  const jsImportsHoisted = jsImports
+      .map(
+          x => {
+            const p = JSON.stringify(x.resolvedPath);
+            return `const ${x.hoistedName} = importJsModule_(
+  ${p},
+  {
+    moduleId: ${p}
+  }
+);`;
           })
-          .join('\n');
+      .join('\n');
+
+  const importsAssignments = importsEntries
+      .map(([key, requested]) => {
+        const jsImport = jsImports.find(x => x.alias === key);
+        if (jsImport) {
+          return `const ${key} = await ${jsImport.hoistedName};`;
+        }
+        const fromAliasMap = aliasMapForThis[key];
+        if (fromAliasMap) {
+          return `const ${key} = ${fromAliasMap};`;
+        }
+        const requestedPathRaw = typeof requested === 'string' ? requested : '';
+        const normalizedRequested = resolveRequestedAgainst(
+            ctx.filePath || '', requestedPathRaw, ctx.projectRoot);
+        const fnFromRequested = ctx.importTracker?.getTestFuncName(normalizedRequested);
+        if (fnFromRequested) {
+          return `const ${key} = ${fnFromRequested};`;
+        }
+        const base = (requestedPathRaw.split('/').pop() || '').replace(/\.[^.]+$/, '');
+        const fnFallback = toLowerUnderscore(base || 'imported');
+        return `const ${key} = ${fnFallback};`;
+      })
+      .join('\n');
 
   const paramsAsObj: Record<string, string> = Object.fromEntries(
       Object.keys(ctx.test.inputs ?? {}).map(key => [key, `\${${key}}`]));
@@ -67,7 +102,7 @@ export const testToJsfunc = async(
 
   flow += flowToJsFunc(replaced, root);
 
-  return `const ${toLowerUnderscore(ctx.name)}${root ? '_' : ''} = async ({ ${
+  return `${jsImportsHoisted ? jsImportsHoisted + '\n\n' : ''}const ${toLowerUnderscore(ctx.name)}${root ? '_' : ''} = async ({ ${
       inputParams}} = {}) => {
   ${indentLines(importsAssignments)}\n
   let outputs = {${outputParams}};

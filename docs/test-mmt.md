@@ -51,6 +51,33 @@ import:
   login: login.mmt           # relative to current file
   users: ../data/users.csv   # relative path
   api: +/apis/userApi.mmt    # project root path
+  helpers: ./helpers/xxx.js  # JS helper module (CommonJS)
+```
+
+**JS helper modules**
+- Files ending in `.js`, `.cjs`, or `.mjs` are treated as JavaScript helper modules.
+- They are loaded via the runner's `fileLoader` and evaluated once per run, then cached.
+- Use CommonJS exports (recommended):
+
+```js
+// xxx.js
+module.exports = {
+  add(a, b) {
+    return a + b;
+  }
+};
+```
+
+Then in your test steps:
+
+```yaml
+type: test
+import:
+  helpers: ./helpers/xxx.js
+steps:
+  - js: |
+      const sum = helpers.add(1, 2)
+      console.log('sum', sum)
 ```
 
 **Path resolution:**
@@ -204,6 +231,19 @@ Create or change variables for later steps. set mutates existing (or creates new
 - set:
   token: doLogin.token   # mutable
 - var:
+
+### setenv
+Set environment variables during a run. This is mainly useful when you run a test directly (not as an imported sub-test), because it updates the runtime environment for subsequent calls.
+
+```yaml
+- setenv:
+    TOKEN: "${doLogin.token}"
+    USER_ID: "${me.id}"
+```
+
+Notes:
+- Values can be strings (template strings supported) or non-string literals.
+- When running a suite, setenv events are still emitted but may be scoped to the top-level run behavior.
   attempt: 1
 - const:
   role: "admin"

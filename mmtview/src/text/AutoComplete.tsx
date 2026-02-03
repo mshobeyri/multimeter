@@ -75,7 +75,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.EnumMember,
             insertText: " test",
             detail: 'Define a test suite',
-            documentation: 'Test definition using steps or stages. Supports steps like call, data, check, assert, if/for/repeat, delay, js, print, set, var, const, let, setenv.',
+            documentation: 'Test definition using steps or stages. Supports steps like call, data, check, assert, if/for/repeat, delay, js, print, set, var, const, let, setenv. The top-level import section supports importing other .mmt tests/APIs/CSV; it can also import .js/.cjs/.mjs helper modules and bind them to an alias.',
         },
         {
             label: "Suite",
@@ -112,7 +112,16 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "import:\n\t",
             detail: 'Import external parameters [object of key: value]',
-            documentation: 'Import parameters or data paths used in tests.'
+            documentation: [
+                'Import map used in this test (alias -> path).',
+                'Supports importing other .mmt files (test/api/csv) and also JS helper modules by extension (.js/.cjs/.mjs).',
+                'Examples:',
+                'import:',
+                '  common: ./common.test.mmt',
+                '  helpers: ./helpers/myHelpers.js',
+                '',
+                'Then in steps JS you can call: helpers.someFn()',
+            ].join('\n')
         },
         {
             label: "inputs",

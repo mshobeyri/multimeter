@@ -88,7 +88,7 @@ export async function executeTest(
   });
     const result = await runGeneratedJs(
       runId, js, displayName, options.logger, options.jsRunner, stepReporter,
-      (options as any).id);
+      (options as any).id, options.fileLoader);
   if (forwardReporter) {
       const summary: TestRunSummaryEvent = {
         scope: 'test-step-run',

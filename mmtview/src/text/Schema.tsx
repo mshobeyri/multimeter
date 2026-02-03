@@ -244,6 +244,7 @@ export const TestSchema = {
         tags: { type: 'array', items: { type: 'string' } },
         import: {
             type: 'object',
+            description: 'Alias -> import path. Supports .mmt (test/api/csv) and JS helper modules (.js/.cjs/.mjs).',
             additionalProperties: { type: 'string' }
         },
         inputs: {

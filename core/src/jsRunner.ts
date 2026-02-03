@@ -10,6 +10,7 @@ export interface RunJSCodeContext {
   js: string;
   title: string;
   logger: (level: LogLevel, message: string) => void;
+  fileLoader?: (path: string) => Promise<string>;
   reporter?: (message: any) => void;
   id?: string;
 }
@@ -84,6 +85,12 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
         'error',
         args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')),
   };
+
+  // Set the file loader BEFORE we build the Function; otherwise hoisted
+  // importJsModule_() calls at module scope will run before loader is ready.
+  if ('setFileLoader_' in mmtHelper && typeof (mmtHelper as any).setFileLoader_ === 'function') {
+    (mmtHelper as any).setFileLoader_(typeof context.fileLoader === 'function' ? context.fileLoader : undefined);
+  }
 
   try {
     const helperDecls =

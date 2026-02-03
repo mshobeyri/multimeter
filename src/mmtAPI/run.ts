@@ -137,6 +137,13 @@ export async function handleRunCurrentDocument(
         'warn', `Unable to apply certificate settings: ${err?.message || err}`);
   }
   try {
+    const fileLoader = async (relPath: string) => {
+      try {
+        return await readRelativeFileContent(document.uri.fsPath, relPath);
+      } catch {
+        return '';
+      }
+    };
     const runOutcome = await runner.runFile({
       file: document.getText(),
       fileType: 'raw' as any,
@@ -145,14 +152,11 @@ export async function handleRunCurrentDocument(
       manualInputs: {},
       envvar: envVars,
       manualEnvvars: {},
-      fileLoader: async (relPath: string) => {
-        try {
-          return await readRelativeFileContent(document.uri.fsPath, relPath);
-        } catch {
-          return '';
-        }
-      },
-      jsRunner: runJSCode,
+      fileLoader,
+      jsRunner: (ctx: any) => runJSCode({
+        ...ctx,
+        fileLoader,
+      }),
       logger: forwardLog,
       reporter: (msg: any) => {
         webviewPanel.webview.postMessage({
@@ -367,11 +371,13 @@ export function handleStopSuiteRun(
 }
 
 export async function handleRunJSCode(message: any) {
+  const fileLoader = typeof message?.fileLoader === 'function' ? message.fileLoader : undefined;
   await runJSCode({
     js: message.code,
     title: message.title,
     logger: logToOutput,
     runId: message.runId ?? 'vscode-js-run',
     reporter: message.reporter ?? (() => {}),
+    fileLoader,
   });
 };
