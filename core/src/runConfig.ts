@@ -59,9 +59,18 @@ export interface SuiteRunFinishedEvent {
   cancelled?: boolean;
 }
 
+export interface SetEnvReporterEvent {
+  scope: 'setenv';
+  name: string;
+  value: any;
+  runId?: string;
+  id?: string;
+  timestamp?: number;
+}
+
 export type RunReporterMessage =
   SuiteReporterMessage|TestStepReporterEvent|TestRunSummaryEvent|
-  SuiteRunStartEvent|SuiteRunFinishedEvent;
+  SuiteRunStartEvent|SuiteRunFinishedEvent|SetEnvReporterEvent;
 
 export interface RunResult {
   success: boolean;

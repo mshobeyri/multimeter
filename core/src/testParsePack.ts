@@ -101,6 +101,9 @@ export function getTestFlowStepType(step: TestFlowStep): FlowType|'unknown' {
   if ('data' in step) {
     return 'data' as FlowType;
   }
+  if ('setenv' in step) {
+    return 'setenv' as FlowType;
+  }
   if ('set' in step) {
     return 'set';
   }

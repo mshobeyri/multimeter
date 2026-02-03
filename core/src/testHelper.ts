@@ -242,3 +242,43 @@ export const reportWithContext_ = (
 
   emitStep(payload);
 };
+
+export const setenv_ = (name: string, value: any) => {
+  const payload: Record<string, any> = {
+    scope: 'setenv',
+    name,
+    value,
+  };
+  if (typeof __mmtId === 'string' && __mmtId) {
+    payload.id = __mmtId;
+  }
+  emitStep(payload);
+};
+
+export const setenvWithContext_ = (
+    reporter: ((event: Record<string, any>) => void)|undefined,
+    runId: string|undefined,
+    id: string|undefined,
+    name: string, value: any) => {
+  const resolvedRunId = typeof runId === 'string' ? runId : '';
+  const payload: Record<string, any> = {
+    scope: 'setenv',
+    name,
+    value,
+    runId: resolvedRunId,
+  };
+  if (typeof id === 'string' && id) {
+    payload.id = id;
+  }
+
+  if (typeof reporter === 'function') {
+    try {
+      reporter(ensurePayload(payload));
+    } catch {
+      // Ignore reporter errors so tests keep running
+    }
+    return;
+  }
+
+  emitStep(payload);
+};

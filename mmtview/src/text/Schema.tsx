@@ -510,6 +510,26 @@ export const TestSchema = {
                             }
                         },
                         additionalProperties: false
+                    },
+                    {
+                        type: 'object',
+                        required: ['setenv'],
+                        properties: {
+                            setenv: {
+                                type: 'object',
+                                additionalProperties: {
+                                    anyOf: [
+                                        { type: 'string' },
+                                        { type: 'number' },
+                                        { type: 'boolean' },
+                                        { type: 'object' },
+                                        { type: 'array' },
+                                        { type: 'null' }
+                                    ]
+                                }
+                            }
+                        },
+                        additionalProperties: false
                     }
                 ]
             }

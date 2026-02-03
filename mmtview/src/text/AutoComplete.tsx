@@ -75,7 +75,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.EnumMember,
             insertText: " test",
             detail: 'Define a test suite',
-            documentation: 'Test definition using steps or stages. Supports steps like call, data, check, assert, if/for/repeat, delay, js, print, set, var, const, let.',
+            documentation: 'Test definition using steps or stages. Supports steps like call, data, check, assert, if/for/repeat, delay, js, print, set, var, const, let, setenv.',
         },
         {
             label: "Suite",
@@ -133,7 +133,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "steps:\n\t",
             detail: 'Linear steps [array]',
-            documentation: 'Define a sequence of steps (call, data, check, assert, if, for, repeat, delay, js, print, set, var, const, let).'
+            documentation: 'Define a sequence of steps (call, data, check, assert, if, for, repeat, delay, js, print, set, var, const, let, setenv).'
         },
         {
             label: "stages",
@@ -378,6 +378,20 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 'Example:',
                 '- let:',
                 '    counter: 0'
+            ].join('\n')
+        },
+        {
+            label: "setenv",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "- setenv:\n\t",
+            detail: 'Set environment variables',
+            documentation: [
+                'Promotes values to environment variables at runtime.',
+                'Only takes effect when running the test directly (not when imported).',
+                'Example:',
+                '- setenv:',
+                '    TOKEN: ${login.token}',
+                '    USER_ID: ${user.id}'
             ].join('\n')
         },
         {

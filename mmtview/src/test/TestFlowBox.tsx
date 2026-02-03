@@ -7,6 +7,7 @@ import TestFlowVar from "./TestFlowVar";
 import TestFlowCSV from "./TestFlowCSV";
 import { type MissingImportEntry } from "../text/validator";
 import TestIf from "./TestIf";
+import KSVEditor from "../components/KSVEditor";
 
 interface TestFlowBoxProps {
   data: any,
@@ -255,6 +256,30 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             onChange={onChange}
           />
         );
+      case 'setenv': {
+        const current = (stepData && typeof stepData === 'object') ? (stepData as any).setenv : undefined;
+        return (
+          <div style={{ width: '100%' }}>
+            {expanded && (
+              <KSVEditor
+                label=""
+                value={current}
+                onChange={(kv) => {
+                  onChange({ setenv: kv });
+                }}
+                keyPlaceholder="name"
+                valuePlaceholder="value"
+                expandable={true}
+              />
+            )}
+            {!expanded && (
+              <div style={{ fontSize: 12, opacity: 0.8, padding: '6px 0 0 0' }}>
+                {(current && typeof current === 'object') ? `${Object.keys(current).length} item(s)` : '0 item(s)'}
+              </div>
+            )}
+          </div>
+        );
+      }
       case 'steps':
       case 'stages':
         return null;

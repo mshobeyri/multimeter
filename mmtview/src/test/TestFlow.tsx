@@ -62,6 +62,8 @@ const codiconForType = (t?: string): string => {
             return 'codicon-sync';
         case 'repeat':
             return 'codicon-debug-restart';
+        case 'setenv':
+            return 'codicon-globe';
         case 'stage':
             return 'codicon-layers';
         default:
@@ -275,6 +277,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
             case 'var': return { var: {} };
             case 'const': return { const: {} };
             case 'let': return { let: {} };
+            case 'setenv': return { setenv: {} };
             case 'check': return { check: '1 == 1' };
             case 'assert': return { assert: '1 == 1' };
             case 'if': return { if: '1 != 1', steps: [] };
@@ -700,7 +703,7 @@ const isTypeFolder = (type: FlowType | unknown): boolean => {
 }
 
 const isExpandable = (type: FlowType | unknown): boolean => {
-    return type === "print" || type === "js" || type === "call" || type === "check" || type === "assert";
+    return type === "print" || type === "js" || type === "call" || type === "check" || type === "assert" || type === 'setenv';
 }
 
 export default TestFlow;

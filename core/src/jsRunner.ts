@@ -88,7 +88,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
   try {
     const helperDecls =
           Object.keys(mmtHelper)
-              .filter(name => name !== 'report_')
+              .filter(name => name !== 'report_' && name !== 'setenv_')
               .map(name => `const ${name} = mmtHelper["${name}"];`)
               .join('\n');
     const randomDecls =
@@ -101,6 +101,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       '__reporter', '__runId', '__id',
       `${helperDecls}\n${randomDecls}\n` +
       `const report_ = (...args) => mmtHelper.reportWithContext_(__reporter, __runId, __id, ...args);\n` +
+      `const setenv_ = (name, value) => mmtHelper.setenvWithContext_(__reporter, __runId, __id, name, value);\n` +
       `${code}`);
     await fn(mmtHelper, customConsole, send, extractOutputs, Random, reporterFn, runId, context.id);
   } catch (e: any) {

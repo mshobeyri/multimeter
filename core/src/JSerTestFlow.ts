@@ -322,6 +322,26 @@ const varToJSfunc = (key: string, step: any): string => {
       .join('\n');
 };
 
+export const setenvToJSfunc = (setenv: Record<string, any>, root: boolean): string => {
+  // setenv only takes effect when running the test directly (root=true),
+  // not when imported into another test or suite
+  if (!root) {
+    return '';
+  }
+  const entries = Object.entries(setenv || {});
+  if (entries.length === 0) {
+    return '';
+  }
+  return entries
+      .map(([envKey, outputKeyOrValue]) => {
+        const valueExpr = typeof outputKeyOrValue === 'string' ?
+            toTemplateWithVars(outputKeyOrValue) :
+            JSON.stringify(outputKeyOrValue);
+        return `setenv_(${JSON.stringify(envKey)}, ${valueExpr});`;
+      })
+      .join('\n');
+};
+
 export const flowStepsToJsfunc =
     (flow: TestFlowSteps, root: boolean): string => {
       return (flow ?? [])
@@ -360,6 +380,8 @@ export const flowStepsToJsfunc =
                 const alias = (step as any).data;
                 return '';
               }
+              case 'setenv':
+                return setenvToJSfunc((step as any).setenv, root);
               default:
                 return '';
             }

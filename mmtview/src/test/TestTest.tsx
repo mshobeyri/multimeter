@@ -2,6 +2,7 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 import { TestData } from 'mmt-core/TestData';
 
 import { FileContext } from '../fileContext';
+import { setEnvironmentVariable } from '../environment/environmentUtils';
 import TestStepReportPanel, { StepReportItem } from '../shared/TestStepReportPanel';
 import { StepStatus } from '../shared/types';
 
@@ -73,14 +74,23 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                 return;
             }
             const scope = typeof message.scope === 'string' ? message.scope : undefined;
-            if (scope !== 'test-step' && scope !== 'test-step-run' && scope !== 'test-finished') {
+            if (scope !== 'test-step' && scope !== 'test-step-run' && scope !== 'test-finished' && scope !== 'setenv') {
                 return;
             }
             const runId = typeof message.runId === 'string' ? message.runId : null;
             if (runId && !acceptRunEvent(runId)) {
                 return;
             }
-            if (!runId && scope !== 'test-finished' && latestRunIdRef.current) {
+            if (!runId && scope !== 'test-finished' && scope !== 'setenv' && latestRunIdRef.current) {
+                return;
+            }
+
+            if (scope === 'setenv') {
+                const name = typeof message.name === 'string' ? message.name : '';
+                const value = message.value;
+                if (name) {
+                    setEnvironmentVariable(name, value, `test - ${name}`);
+                }
                 return;
             }
 

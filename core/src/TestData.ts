@@ -30,7 +30,7 @@ export interface TestMetric {
 
 export type FlowType =
     'stages'|'steps'|'stage'|'step'|'call'|'check'|'assert'|'if'|'for'|'repeat'|
-    'delay'|'js'|'print'|'end'|'set'|'var'|'const'|'let'|'data';
+    'delay'|'js'|'print'|'end'|'set'|'var'|'const'|'let'|'data'|'setenv';
 
 export interface TestFlowBase {
   type?: FlowType;
@@ -102,10 +102,13 @@ export interface TestFlowLet extends TestFlowBase {
 export interface TestFlowData extends TestFlowBase {
   data: string;  // alias of an imported CSV file
 }
+export interface TestFlowSetEnv extends TestFlowBase {
+  setenv: Record<string, any>;  // Maps env var names to output keys or literal values
+}
 export type TestFlowStep = TestFlowCallTest|TestFlowCallAPI|TestFlowCheck|
     TestFlowAssert|TestFlowCondition|TestFlowRepeat|TestFlowLoop|TestFlowJS|
     TestFlowPrint|TestFlowDelay|TestFlowSet|TestFlowVar|TestFlowConst|
-    TestFlowLet|TestFlowData;
+    TestFlowLet|TestFlowData|TestFlowSetEnv;
 
 export type TestFlowSteps = TestFlowStep[];
 
@@ -144,13 +147,13 @@ export type TestData = TestDataSteps|TestDataStages;
 
 export const flowTypeOptions = [
   'call', 'check', 'assert', 'if', 'for', 'repeat', 'delay', 'end', 'js',
-  'print', 'data', 'set', 'var', 'const', 'let'
+  'print', 'data', 'set', 'var', 'const', 'let', 'setenv'
 ] as FlowType[];
 
 // Flow types that the UI can add as individual steps/folders
 export const addableFlowTypes = [
   'print', 'call', 'js', 'set', 'var', 'const', 'let', 'assert', 'check', 'if',
-  'for', 'repeat', 'delay', 'stage'
+  'for', 'repeat', 'delay', 'setenv', 'stage'
 ] as FlowType[];
 export type CheckOps =
     '<'|'>'|'<='|'>='|'=='|'!='|'=@'|'!@'|'=^'|'!^'|'=$'|'!$'|'=~'|'!~';
