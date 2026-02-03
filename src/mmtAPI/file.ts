@@ -4,6 +4,30 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 
+import {resolveWorkspaceEnvFilePath} from './network';
+
+function findConfiguredProjectRoot(baseFilePath?: string): string|undefined {
+  const envFile = resolveWorkspaceEnvFilePath(baseFilePath);
+  if (envFile) {
+    return path.dirname(envFile);
+  }
+  return undefined;
+}
+
+function findWorkspaceProjectRoot(): string|undefined {
+  const folders = vscode.workspace.workspaceFolders;
+  if (!folders || folders.length === 0) {
+    return undefined;
+  }
+  // Prefer the first workspace folder; multi-root support could be added later.
+  const wsRoot = folders[0].uri.fsPath;
+  const markerPath = path.join(wsRoot, 'multimeter.mmt');
+  if (fs.existsSync(markerPath)) {
+    return wsRoot;
+  }
+  return undefined;
+}
+
 /**
  * Find the project root by walking up from startPath looking for multimeter.mmt.
  * Returns the directory containing multimeter.mmt, or undefined if not found.
@@ -28,7 +52,8 @@ function findProjectRoot(startPath: string): string | undefined {
     currentDir = parentDir;
   }
 
-  return undefined;
+  // Prefer configured workspace env file location, then workspace root.
+  return findConfiguredProjectRoot(startPath) ?? findWorkspaceProjectRoot();
 }
 
 /**
@@ -90,6 +115,9 @@ export async function handleLoadDocumentContent(
   // Get the last saved view mode
   const lastViewMode = mmtProvider.getLastViewMode();
 
+  // Resolve project root for +/ imports (same logic used by run)
+  const projectRoot = findProjectRoot(document.uri.fsPath);
+
   // Send document data to the current panel
   webviewPanel.webview.postMessage({
     command: 'viewDocumentContent',
@@ -97,7 +125,8 @@ export async function handleLoadDocumentContent(
     content: document.getText(),
     mode: vscode.window.tabGroups.activeTabGroup.activeTab?.input ? 'normal' :
                                                                     'compare',
-    viewMode: lastViewMode
+    viewMode: lastViewMode,
+    projectRoot
   });
 
   // Send initial configuration values (e.g., body auto format)

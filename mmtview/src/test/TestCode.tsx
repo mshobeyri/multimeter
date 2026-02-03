@@ -17,7 +17,7 @@ const load = () => {
 load();
 
 const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
-    const { mmtFilePath } = useContext(FileContext);
+    const { mmtFilePath, projectRoot } = useContext(FileContext);
     const [jsCode, setJsCode] = React.useState<string>("");
     const [error, setError] = React.useState<string | null>(null);
     const [envVars, setEnvVars] = React.useState<Record<string, any>>({});
@@ -62,7 +62,9 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
                 name: testData?.title || "testFlow",
                 test: testData,
                 inputs: testData?.inputs || {},
-                envVars: envVars
+                envVars: envVars,
+                filePath: mmtFilePath,
+                projectRoot: projectRoot
             });
             setJsCode(code);
             setError(null);
@@ -70,7 +72,7 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
             setError(e?.message || String(e));
             setJsCode("");
         }
-    }, [testData, envVars]);
+    }, [testData, envVars, mmtFilePath, projectRoot]);
 
     React.useEffect(() => {
         if (!loaded) {

@@ -11,6 +11,19 @@ import {prepareNetworkConfigForFile, parseEnvFileForRun, resolveWorkspaceEnvFile
 const logOutputChannel =
     vscode.window.createOutputChannel('Multimeter', {log: true});
 
+function findWorkspaceProjectRoot(): string|undefined {
+  const folders = vscode.workspace.workspaceFolders;
+  if (!folders || folders.length === 0) {
+    return undefined;
+  }
+  const wsRoot = folders[0].uri.fsPath;
+  const markerPath = path.join(wsRoot, 'multimeter.mmt');
+  if (fs.existsSync(markerPath)) {
+    return wsRoot;
+  }
+  return undefined;
+}
+
 /**
  * Find the project root by walking up from startPath looking for multimeter.mmt.
  * Returns the directory containing multimeter.mmt, or undefined if not found.
@@ -35,7 +48,7 @@ function findProjectRoot(startPath: string): string | undefined {
     currentDir = parentDir;
   }
 
-  return undefined;
+  return findWorkspaceProjectRoot();
 }
 
 let activeSuiteRun:

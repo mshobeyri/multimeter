@@ -28,6 +28,7 @@ const App: React.FC = () => {
   const [validContent, setValidContent] = useState("");
   const [docType, setDocType] = useState<string | null>(null);
   const [mmtFilePath, setMmtFilePath] = useState<string | undefined>(undefined);
+  const [projectRoot, setProjectRoot] = useState<string | undefined>(undefined);
   const [yamlFontSize, setYamlFontSize] = useState<number>(12);
 
   const isInitLoad = useRef(true);
@@ -78,6 +79,7 @@ const App: React.FC = () => {
         }
 
         if (message.uri) setMmtFilePath(message.uri);
+        if (message.projectRoot) setProjectRoot(message.projectRoot);
         if (message.mode) {
           if (message.mode === "compare") {
             setPanelSize(window.innerWidth);
@@ -168,7 +170,7 @@ const App: React.FC = () => {
   }, [panelMode]);
 
   return (
-    <FileContext.Provider value={{ mmtFilePath }}>
+    <FileContext.Provider value={{ mmtFilePath, projectRoot }}>
       <SplitPane
         split="vertical"
         size={panelSize}
