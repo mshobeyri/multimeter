@@ -77,6 +77,19 @@ export async function executeTest(
         };
     forwardReporter(payload);
   } : undefined;
+
+  const setenvReporter = forwardReporter ? (event: Record<string, any>) => {
+    if (event && event.scope === 'setenv') {
+      forwardReporter({
+        ...event,
+        runId: event.runId || runId,
+        id: (event as any).id || (options as any).id,
+        testTitle: title,
+      } as any);
+      return;
+    }
+    forwardReporter(event as any);
+  } : undefined;
   const js = await generateTestJs({
     rawText,
     name: identifier,
@@ -88,7 +101,7 @@ export async function executeTest(
   });
     const result = await runGeneratedJs(
       runId, js, displayName, options.logger, options.jsRunner, stepReporter,
-      (options as any).id, options.fileLoader);
+      (options as any).id, options.fileLoader, setenvReporter);
   if (forwardReporter) {
       const summary: TestRunSummaryEvent = {
         scope: 'test-step-run',

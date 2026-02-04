@@ -88,8 +88,10 @@ const TestTest: React.FC<TestTestProps> = (props) => {
             if (scope === 'setenv') {
                 const name = typeof message.name === 'string' ? message.name : '';
                 const value = message.value;
+                const testTitle = typeof (message as any).testTitle === 'string' ? (message as any).testTitle : undefined;
+                const label = testTitle ? `test - ${testTitle}` : 'test';
                 if (name) {
-                    setEnvironmentVariable(name, value, `test - ${name}`);
+                    setEnvironmentVariable(name, value, label);
                 }
                 return;
             }

@@ -569,7 +569,7 @@ async function handleSetEnvVariables(
     Object.entries(api.setenv).map(async ([envKey, outputKey]) => {
       if (envKey && outputKey) {
         let value = "";
-        let label = api.title ? `api(${api.title}) - ${outputKey}` : envKey;
+        let label = api.title ? `api - ${api.title}` : 'api';
 
         if (Object.prototype.hasOwnProperty.call(finalOutputs, String(outputKey))) {
           const outputValue = finalOutputs[String(outputKey)];
@@ -578,7 +578,7 @@ async function handleSetEnvVariables(
           }
         } else {
           value = String(outputKey);
-          label = api.title ? `api(${api.title})` : envKey;
+          label = api.title ? `api - ${api.title}` : 'api';
         }
 
         const currentValue = await getEnvironmentVariable(envKey);
