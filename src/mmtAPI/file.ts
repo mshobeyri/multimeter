@@ -81,6 +81,41 @@ function resolveImportPath(basePath: string, importPath: string, projectRoot?: s
   return path.resolve(path.dirname(basePath), trimmed);
 }
 
+function normalizeWebviewPath(inputPath: string): string {
+  const raw = (inputPath || '').trim();
+  if (!raw) {
+    return raw;
+  }
+
+  // Webview can send percent-encoded Windows drive paths like `/c%3A/foo/bar.mmt`.
+  // Decode (best-effort) before other handling.
+  let decoded = raw;
+  try {
+    decoded = decodeURIComponent(raw);
+  } catch {
+  }
+
+  // Allow file URIs coming from webview links.
+  // `vscode.Uri.parse(...).fsPath` is the most reliable way to get a platform path.
+  if (/^file:/i.test(decoded)) {
+    try {
+      return vscode.Uri.parse(decoded).fsPath;
+    } catch {
+      return decoded;
+    }
+  }
+
+  // Treat `/C:/...` (or `/c:/...`) as `C:/...` on Windows.
+  if (process.platform === 'win32') {
+    const m = decoded.match(/^\/([a-zA-Z]):[\\/]/);
+    if (m) {
+      return decoded.slice(1);
+    }
+  }
+
+  return decoded;
+}
+
 export function handleUpdateDocumentContent(
     message: any, document: vscode.TextDocument, mmtProvider: any) {
   mmtProvider.updateTextDocument(document, message.text);
@@ -104,7 +139,8 @@ export async function readRelativeFileContent(
   // to the current document path to avoid path.resolve(...) throwing.
   const safeRelativePath =
       typeof relativePath === 'string' ? relativePath : openFilePath;
-  const absolutePath = resolveImportPath(openFilePath, safeRelativePath);
+  const normalized = normalizeWebviewPath(safeRelativePath);
+  const absolutePath = resolveImportPath(openFilePath, normalized);
   return await readFileContent(absolutePath);
 }
 
