@@ -640,3 +640,84 @@ describe('delay step generation', () => {
     expect(js2).toContain('setTimeout(r, 2000)');
   });
 });
+
+describe('input defaults with e: references', () => {
+  it('resolves e: refs in API input defaults to envVariables at runtime', async () => {
+    // User scenario: input default is 'e:test', body uses i:xxx
+    // The generated code should resolve e:test to envVariables.test
+    const apiYaml = [
+      'type: api',
+      'protocol: http',
+      'method: post',
+      'format: json',
+      'url: http://localhost:8080',
+      'inputs:',
+      '  xxx: e:test',
+      'body:',
+      '  username: i:xxx',
+    ].join('\n');
+    const ctx: APIContext =
+        {api: yamlToAPI(apiYaml), name: 'test_api', inputs: {}, envVars: {}} as any;
+    const js = await apiToJSfunc(ctx);
+    // The default value for xxx should reference envVariables.test, not literal 'e:test'
+    expect(js).toContain('envVariables.test');
+    // Should NOT contain literal 'e:test' as a default value
+    expect(js).not.toMatch(/xxx\s*=\s*`e:test`/);
+  });
+
+  it('resolves e: refs in test input defaults', async () => {
+    const ctx: TestContext = {
+      name: 'envRefTest',
+      test: {
+        inputs: { user: 'e:USERNAME' },
+        steps: [{ log: 'i:user' } as any]
+      } as any,
+      inputs: {},
+      envVars: {}
+    };
+    const js = await testToJsfunc(ctx, true);
+    // The default should use envVariables.USERNAME
+    expect(js).toContain('envVariables.USERNAME');
+    expect(js).not.toMatch(/user\s*=\s*`e:USERNAME`/);
+  });
+
+  it('resolves r: refs in API input defaults to __mmt_random call', async () => {
+    const apiYaml = [
+      'type: api',
+      'protocol: http',
+      'method: post',
+      'format: json',
+      'url: http://localhost:8080',
+      'inputs:',
+      '  userId: r:uuid',
+      'body:',
+      '  id: i:userId',
+    ].join('\n');
+    const ctx: APIContext =
+        {api: yamlToAPI(apiYaml), name: 'test_api', inputs: {}, envVars: {}} as any;
+    const js = await apiToJSfunc(ctx);
+    // The default value should call __mmt_random('uuid')
+    expect(js).toContain("__mmt_random('uuid')");
+    // Should NOT contain literal 'r:uuid'
+    expect(js).not.toMatch(/userId\s*=\s*`r:uuid`/);
+  });
+
+  it('resolves c: refs in input defaults to __mmt_current call', async () => {
+    const apiYaml = [
+      'type: api',
+      'protocol: http',
+      'method: get',
+      'url: http://localhost:8080',
+      'inputs:',
+      '  timestamp: c:epoch',
+      'query:',
+      '  ts: i:timestamp',
+    ].join('\n');
+    const ctx: APIContext =
+        {api: yamlToAPI(apiYaml), name: 'test_api', inputs: {}, envVars: {}} as any;
+    const js = await apiToJSfunc(ctx);
+    // The default value should call __mmt_current('epoch')
+    expect(js).toContain("__mmt_current('epoch')");
+    expect(js).not.toMatch(/timestamp\s*=\s*`c:epoch`/);
+  });
+});

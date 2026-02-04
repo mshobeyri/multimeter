@@ -3,6 +3,7 @@ import {LogLevel} from './CommonData';
 import {send, setRunnerNetworkConfig} from './networkCoreNode';
 import {extractOutputs} from './outputExtractor';
 import * as Random from './Random';
+import * as Current from './Current';
 import * as mmtHelper from './testHelper';
 
 export interface RunJSCodeContext {
@@ -18,6 +19,34 @@ export interface RunJSCodeContext {
 const REPORTER_KEY = '__mmtReportStep';
 const RUN_ID_KEY = '__mmtRunId';
 const ID_KEY = '__mmtId';
+
+// Helper to normalize token names (e.g., firstName -> first_name)
+function normalizeTokenName(name: string): string {
+  return name
+      .replace(/([a-z])([A-Z])/g, '$1_$2')
+      .replace(/[-\s]+/g, '_')
+      .toLowerCase();
+}
+
+// Runtime helper to get random value by token name
+function mmtRandom(name: string): any {
+  const normalized = normalizeTokenName(name);
+  const fn = Random.RANDOM_TOKEN_MAP[normalized] || Random.RANDOM_TOKEN_MAP[name];
+  if (!fn) {
+    return `r:${name}`;  // Return original token if not found
+  }
+  return fn();
+}
+
+// Runtime helper to get current value by token name
+function mmtCurrent(name: string): any {
+  const normalized = normalizeTokenName(name);
+  const fn = Current.CURRENT_TOKEN_MAP[normalized] || Current.CURRENT_TOKEN_MAP[name];
+  if (!fn) {
+    return `c:${name}`;  // Return original token if not found
+  }
+  return fn();
+}
 
 const applyReporterGlobals = (
     reporter: ((message: any) => void)|undefined, runId: string,
@@ -105,12 +134,12 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
             .join('\n');
     const fn = new Function(
       'mmtHelper', 'console', 'send_', 'extractOutputs_', 'Random',
-      '__reporter', '__runId', '__id',
+      '__reporter', '__runId', '__id', '__mmt_random', '__mmt_current',
       `${helperDecls}\n${randomDecls}\n` +
       `const report_ = (...args) => mmtHelper.reportWithContext_(__reporter, __runId, __id, ...args);\n` +
       `const setenv_ = (name, value) => mmtHelper.setenvWithContext_(__reporter, __runId, __id, name, value);\n` +
       `${code}`);
-    await fn(mmtHelper, customConsole, send, extractOutputs, Random, reporterFn, runId, context.id);
+    await fn(mmtHelper, customConsole, send, extractOutputs, Random, reporterFn, runId, context.id, mmtRandom, mmtCurrent);
   } catch (e: any) {
     lg('error', 'Error running test: ' + (e?.message || String(e)));
   } finally {

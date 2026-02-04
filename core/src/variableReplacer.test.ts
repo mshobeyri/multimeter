@@ -58,4 +58,47 @@ describe('variableReplacer', () => {
     expect(out.meta).not.toMatch(/r:email|e:HOST/);
     expect(out.id).toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/);
   });
+
+  it('resolves chained i: -> e: references (input default pointing to env)', () => {
+    // User scenario: inputs.xxx = 'e:test', body.username = 'i:xxx'
+    // When i:xxx is resolved, it should get 'e:test' from defaults,
+    // and then 'e:test' should be resolved to the environment value.
+    const defaults = { xxx: 'e:test' } as any;
+    const inputs = {} as any;
+    const envs = { test: 'actualValue' } as any;
+    const iface = {
+      body: { username: '<<i:xxx>>' }
+    } as any;
+    const out = replaceAllRefs(iface, defaults, inputs, envs);
+    expect(out.body.username).toBe('actualValue');
+  });
+
+  it('resolves chained i: -> e: references with plain token syntax', () => {
+    // Same scenario but using plain i:xxx syntax (after colon-space)
+    const defaults = { xxx: 'e:test' } as any;
+    const inputs = {} as any;
+    const envs = { test: 'envValue' } as any;
+    const iface = {
+      body: 'username: i:xxx'
+    } as any;
+    const out = replaceAllRefs(iface, defaults, inputs, envs);
+    expect(out.body).toBe('username: envValue');
+  });
+
+  it('resolves chained i: -> e: in nested objects', () => {
+    const defaults = { user: 'e:USER', pass: 'e:PASS' } as any;
+    const inputs = {} as any;
+    const envs = { USER: 'admin', PASS: 'secret123' } as any;
+    const iface = {
+      body: {
+        credentials: {
+          username: '<<i:user>>',
+          password: '<<i:pass>>'
+        }
+      }
+    } as any;
+    const out = replaceAllRefs(iface, defaults, inputs, envs);
+    expect(out.body.credentials.username).toBe('admin');
+    expect(out.body.credentials.password).toBe('secret123');
+  });
 });
