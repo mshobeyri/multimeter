@@ -79,7 +79,7 @@ class ConnectionsPanel implements vscode.WebviewViewProvider {
   private closeConnection(id: string) {
     const conn = connectionTracker.get(id);
     if (conn) {
-      connectionTracker.close(id, 'client');
+      connectionTracker.requestClose(id);
     }
   }
 

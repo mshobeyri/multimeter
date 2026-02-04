@@ -126,6 +126,17 @@ export function handleNetworkMessage(
 
       const {ws} = createWebSocket(url, wsId, config);
       addWsConnection(wsId, ws);
+
+      // Register close handler so user can close this WebSocket from the panel
+      connectionTracker.setCloseHandler(connId, () => {
+        try {
+          ws.close();
+          deleteWsConnection(wsId);
+        } catch {
+          // Ignore errors when closing WebSocket
+        }
+      });
+
       ws.on('open', () => {
         connectionTracker.connected(connId);
         postMessage({command: 'network', action: 'ws-open', wsId});

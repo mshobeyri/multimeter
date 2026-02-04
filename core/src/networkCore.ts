@@ -46,6 +46,15 @@ function trackSocketForAgent(socket: any, host: string, protocol: 'http' | 'http
     protocol,
   });
 
+  // Register close handler so user can close this socket
+  connectionTracker.setCloseHandler(connId, () => {
+    try {
+      socket.destroy();
+    } catch {
+      // Ignore errors when destroying socket
+    }
+  });
+
   socket.once('connect', () => {
     connectionTracker.connected(connId);
   });

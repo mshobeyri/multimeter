@@ -19,9 +19,11 @@ export type ConnectionEvent =
   | { type: 'close'; id: string; closedBy: 'client' | 'server' | 'timeout' };
 
 export type ConnectionEventListener = (event: ConnectionEvent) => void;
+export type CloseHandler = () => void;
 
 class ConnectionTrackerImpl {
   private connections: Map<string, ActiveConnection> = new Map();
+  private closeHandlers: Map<string, CloseHandler> = new Map();
   private listeners: Set<ConnectionEventListener> = new Set();
   private idCounter = 0;
 
@@ -53,6 +55,14 @@ class ConnectionTrackerImpl {
     this.connections.set(params.id, connection);
     this.emit({ type: 'open', connection });
     return connection;
+  }
+
+  /**
+   * Register a close handler for a connection
+   * This handler will be called when the user requests to close the connection
+   */
+  setCloseHandler(id: string, handler: CloseHandler): void {
+    this.closeHandlers.set(id, handler);
   }
 
   /**
@@ -111,11 +121,32 @@ class ConnectionTrackerImpl {
   }
 
   /**
-   * Close and remove a connection
+   * Request to close a connection - calls the close handler if registered
+   * This is used when the user clicks the close button
+   */
+  requestClose(id: string): void {
+    const handler = this.closeHandlers.get(id);
+    if (handler) {
+      try {
+        handler();
+      } catch {
+        // Ignore errors from close handler
+      }
+    }
+    // The actual close() will be called by the socket's close event
+    // But if there's no handler, we just remove from tracking
+    if (!handler && this.connections.has(id)) {
+      this.close(id, 'client');
+    }
+  }
+
+  /**
+   * Close and remove a connection (called when socket actually closes)
    */
   close(id: string, closedBy: 'client' | 'server' | 'timeout' = 'client'): void {
     if (this.connections.has(id)) {
       this.connections.delete(id);
+      this.closeHandlers.delete(id);
       this.emit({ type: 'close', id, closedBy });
     }
   }
@@ -147,12 +178,12 @@ class ConnectionTrackerImpl {
   }
 
   /**
-   * Close all connections
+   * Close all connections - calls close handlers for each
    */
   closeAll(): void {
     const ids = Array.from(this.connections.keys());
     for (const id of ids) {
-      this.close(id, 'client');
+      this.requestClose(id);
     }
   }
 
