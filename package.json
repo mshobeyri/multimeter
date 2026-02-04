@@ -219,6 +219,16 @@
         "title": "Load Environment from Workspace File",
         "category": "Multimeter",
         "icon": "$(cloud-download)"
+      },
+      {
+        "command": "multimeter.connections.refresh",
+        "title": "Refresh Connections",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "multimeter.connections.closeAll",
+        "title": "Close All Connections",
+        "icon": "$(trash)"
       }
     ],
     "viewsContainers": {
@@ -256,6 +266,12 @@
           "name": "Environment Variables",
           "icon": "res/activity.png",
           "type": "webview"
+        },
+        {
+          "id": "multimeter.connections",
+          "name": "Connections",
+          "icon": "res/activity.png",
+          "type": "webview"
         }
       ],
       "multimeter-panel": [
@@ -282,6 +298,16 @@
         {
           "command": "multimeter.environment.clear",
           "when": "view == multimeter.environment",
+          "group": "navigation"
+        },
+        {
+          "command": "multimeter.connections.refresh",
+          "when": "view == multimeter.connections",
+          "group": "navigation"
+        },
+        {
+          "command": "multimeter.connections.closeAll",
+          "when": "view == multimeter.connections",
           "group": "navigation"
         }
       ],

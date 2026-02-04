@@ -1,7 +1,10 @@
 import * as vscode from 'vscode';
 
+import {connectionTracker} from 'mmt-core/networkCoreNode';
+
 import {setupChatParticipants} from './assistant/assistant';
 import {MmtEditorProvider} from './mmtEditorProvider';
+import ConnectionsPanel from './panels/ConnectionsPanel';
 import ConvertorPanel from './panels/ConvertorPanel';
 import EnvironmentPanel from './panels/EnvironmentPanel';
 import HistoryPanel from './panels/HistoryPanel';
@@ -53,6 +56,21 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(
       'multimeter.environment', environmentPanel,
       {webviewOptions: {retainContextWhenHidden: true}}));
+
+  const connectionsPanel = new ConnectionsPanel(context);
+  context.subscriptions.push(vscode.window.registerWebviewViewProvider(
+      'multimeter.connections', connectionsPanel,
+      {webviewOptions: {retainContextWhenHidden: true}}));
+
+  context.subscriptions.push(
+      vscode.commands.registerCommand('multimeter.connections.refresh', () => {
+        connectionsPanel.refresh();
+      }));
+
+  context.subscriptions.push(
+      vscode.commands.registerCommand('multimeter.connections.closeAll', () => {
+        connectionTracker.closeAll();
+      }));
 
   context.subscriptions.push(
       vscode.commands.registerCommand('multimeter.history.clear', async () => {

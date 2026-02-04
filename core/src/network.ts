@@ -1,6 +1,10 @@
 import WebSocket = require('ws');
+import {connectionTracker} from './connectionTracker';
 import {addWsConnection, createWebSocket, deleteWsConnection, sendHttpRequest, wsConnections} from './networkCoreNode';
 import {HttpRequest, NetworkConfig} from './NetworkData';
+
+// Map wsId to connection tracker ID
+const wsConnectionTrackerIds: Map<string, string> = new Map();
 
 // --- Types ---
 
@@ -93,25 +97,58 @@ export function handleNetworkMessage(
     case 'ws-connect': {
       const {url, wsId} = message;
       if (wsConnections(wsId)) {
+        // Close existing connection and clean up tracker
+        const existingConnId = wsConnectionTrackerIds.get(wsId);
+        if (existingConnId) {
+          connectionTracker.close(existingConnId, 'client');
+          wsConnectionTrackerIds.delete(wsId);
+        }
         wsConnections(wsId).close();
         deleteWsConnection(wsId);
       }
+
+      // Parse URL to get host info
+      let host = 'unknown';
+      let protocol: 'ws' | 'wss' = 'ws';
+      try {
+        const parsedUrl = new URL(url);
+        host = `${parsedUrl.hostname}:${parsedUrl.port || (parsedUrl.protocol === 'wss:' ? 443 : 80)}`;
+        protocol = parsedUrl.protocol === 'wss:' ? 'wss' : 'ws';
+      } catch {
+        // Use URL as-is if parsing fails
+        host = url;
+      }
+
+      // Track connection in connectionTracker
+      const connId = connectionTracker.generateId();
+      wsConnectionTrackerIds.set(wsId, connId);
+      connectionTracker.open({id: connId, host, protocol});
+
       const {ws} = createWebSocket(url, wsId, config);
       addWsConnection(wsId, ws);
-      ws.on(
-          'open',
-          () => postMessage({command: 'network', action: 'ws-open', wsId}));
+      ws.on('open', () => {
+        connectionTracker.connected(connId);
+        postMessage({command: 'network', action: 'ws-open', wsId});
+      });
       ws.on('close', (code: number, reason: Buffer) => {
+        // Determine if server or client closed
+        // code 1000 = normal closure (usually client), 1001+ = server/abnormal
+        const closedBy = code === 1000 ? 'client' : 'server';
+        connectionTracker.close(connId, closedBy);
+        wsConnectionTrackerIds.delete(wsId);
         postMessage({
           command: 'network',
           action: 'ws-close',
           wsId,
           code,
           reason: reason?.toString(),
+          closedBy,
         });
         deleteWsConnection(wsId);
       });
       ws.on('error', (error: Error) => {
+        connectionTracker.close(connId, 'server');
+        wsConnectionTrackerIds.delete(wsId);
         postMessage({
           command: 'network',
           action: 'ws-error',
@@ -121,6 +158,7 @@ export function handleNetworkMessage(
         });
       });
       ws.on('message', (data: WebSocket.RawData) => {
+        connectionTracker.activity(connId, {incrementRequests: true});
         postMessage({
           command: 'network',
           action: 'ws-message',
@@ -153,9 +191,15 @@ export function handleNetworkMessage(
       const {wsId} = message;
       const ws = wsConnections(wsId);
       if (ws) {
+        // Track client-initiated close
+        const connId = wsConnectionTrackerIds.get(wsId);
+        if (connId) {
+          connectionTracker.close(connId, 'client');
+          wsConnectionTrackerIds.delete(wsId);
+        }
         ws.close();
         deleteWsConnection(wsId);
-        postMessage({command: 'network', action: 'ws-close', wsId});
+        postMessage({command: 'network', action: 'ws-close', wsId, closedBy: 'client'});
       }
       break;
     }

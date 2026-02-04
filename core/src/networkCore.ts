@@ -3,16 +3,94 @@
 // Require the concrete CJS build that Axios provides.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const axios = require('axios/dist/node/axios.cjs');
+import * as http from 'http';
 import * as https from 'https';
 import WebSocket from 'ws';
 
+import {connectionTracker} from './connectionTracker';
 import {HttpRequest, HttpResponse, NetworkConfig, Request, Response} from './NetworkData';
+
+// Re-export connectionTracker for use by extension
+export {connectionTracker} from './connectionTracker';
+export type {ActiveConnection, ConnectionEvent, ConnectionEventListener} from './connectionTracker';
+
+// Shared agent pools for connection reuse and tracking
+const httpAgentPool: Map<string, http.Agent> = new Map();
+const httpsAgentPool: Map<string, https.Agent> = new Map();
+
+// Track socket -> connection ID mapping
+const socketConnectionIds = new WeakMap<any, string>();
+const trackedSockets = new WeakSet<any>();
+
+function getAgentKey(hostname: string, config: NetworkConfig, skipValidation: boolean): string {
+  // Create a key that uniquely identifies the agent configuration
+  const clientCertHost = config.clients.find(
+    cert => cert.enabled &&
+      (cert.host === hostname || hostname.includes(cert.host) || cert.host === '*')
+  )?.host || '';
+  return `${hostname}:${config.sslValidation}:${skipValidation}:${config.ca.enabled}:${clientCertHost}`;
+}
+
+function trackSocketForAgent(socket: any, host: string, protocol: 'http' | 'https'): void {
+  if (trackedSockets.has(socket)) {
+    return;
+  }
+  trackedSockets.add(socket);
+
+  const connId = connectionTracker.generateId();
+  socketConnectionIds.set(socket, connId);
+
+  connectionTracker.open({
+    id: connId,
+    host,
+    protocol,
+  });
+
+  socket.once('connect', () => {
+    connectionTracker.connected(connId);
+  });
+
+  if (protocol === 'https') {
+    socket.once('secureConnect', () => {
+      connectionTracker.connected(connId);
+    });
+  }
+
+  socket.once('close', (hadError: boolean) => {
+    connectionTracker.close(connId, hadError ? 'server' : 'client');
+  });
+
+  socket.once('error', () => {
+    connectionTracker.close(connId, 'server');
+  });
+
+  socket.once('timeout', () => {
+    connectionTracker.close(connId, 'timeout');
+  });
+
+  socket.once('end', () => {
+    connectionTracker.close(connId, 'server');
+  });
+}
 
 export function createHttpsAgentWithCertificates(
     hostname: string, config: NetworkConfig,
-    opts?: {skipCertificateValidation?: boolean}) {
-  const rejectUnauthorized = opts?.skipCertificateValidation ? false : config.sslValidation;
-  const agentOptions: https.AgentOptions = {rejectUnauthorized};
+    opts?: {skipCertificateValidation?: boolean}): https.Agent {
+  const skipValidation = opts?.skipCertificateValidation ?? false;
+  const agentKey = getAgentKey(hostname, config, skipValidation);
+
+  // Check for existing agent in pool
+  const existingAgent = httpsAgentPool.get(agentKey);
+  if (existingAgent) {
+    return existingAgent;
+  }
+
+  const rejectUnauthorized = skipValidation ? false : config.sslValidation;
+  const agentOptions: https.AgentOptions = {
+    rejectUnauthorized,
+    keepAlive: true,
+    keepAliveMsecs: 30000,
+  };
   // Handle CA certificates (can be array or single Buffer for backward compat)
   if (config.ca.enabled && config.ca.certData) {
     if (Array.isArray(config.ca.certData)) {
@@ -33,7 +111,83 @@ export function createHttpsAgentWithCertificates(
       agentOptions.passphrase = matchingClientCert.passphrase_plain;
     }
   }
-  return new https.Agent(agentOptions);
+
+  const agent = new https.Agent(agentOptions);
+
+  // Hook into agent to track socket creation
+  // Note: createConnection exists on Agent but isn't in the type definitions
+  const originalCreateConnection = (agent as any).createConnection.bind(agent);
+  (agent as any).createConnection = function(options: any, callback: any) {
+    const socket = originalCreateConnection(options, callback);
+    const port = options.port || 443;
+    const host = `${options.hostname || options.host || hostname}:${port}`;
+    trackSocketForAgent(socket, host, 'https');
+    return socket;
+  };
+
+  httpsAgentPool.set(agentKey, agent);
+  return agent;
+}
+
+export function createHttpAgentWithTracking(hostname: string): http.Agent {
+  const agentKey = `http:${hostname}`;
+
+  const existingAgent = httpAgentPool.get(agentKey);
+  if (existingAgent) {
+    return existingAgent;
+  }
+
+  const agent = new http.Agent({
+    keepAlive: true,
+    keepAliveMsecs: 30000,
+  });
+
+  // Note: createConnection exists on Agent but isn't in the type definitions
+  const originalCreateConnection = (agent as any).createConnection.bind(agent);
+  (agent as any).createConnection = function(options: any, callback: any) {
+    const socket = originalCreateConnection(options, callback);
+    const port = options.port || 80;
+    const host = `${options.hostname || options.host || hostname}:${port}`;
+    trackSocketForAgent(socket, host, 'http');
+    return socket;
+  };
+
+  httpAgentPool.set(agentKey, agent);
+  return agent;
+}
+
+/**
+ * Record activity on a connection by socket
+ */
+export function recordConnectionActivity(socket: any): void {
+  const connId = socketConnectionIds.get(socket);
+  if (connId) {
+    connectionTracker.activity(connId, { incrementRequests: true });
+  }
+}
+
+/**
+ * Mark a connection as idle by socket
+ */
+export function markConnectionIdle(socket: any): void {
+  const connId = socketConnectionIds.get(socket);
+  if (connId) {
+    connectionTracker.idle(connId);
+  }
+}
+
+/**
+ * Close all HTTP/HTTPS agents and their connections
+ */
+export function closeAllHttpConnections(): void {
+  for (const agent of httpsAgentPool.values()) {
+    agent.destroy();
+  }
+  for (const agent of httpAgentPool.values()) {
+    agent.destroy();
+  }
+  httpsAgentPool.clear();
+  httpAgentPool.clear();
 }
 
 export async function sendHttpRequest(
@@ -119,12 +273,14 @@ export async function sendHttpRequest(
     transformResponse: [(data: string) => data],
   };
   const executeRequest = (skipValidation = false) => {
-    const httpsAgent = parsedUrl.protocol === 'https:' ?
+    const isHttps = parsedUrl.protocol === 'https:';
+    const httpsAgent = isHttps ?
         createHttpsAgentWithCertificates(
             hostname, config,
             {skipCertificateValidation: skipValidation}) :
         undefined;
-    return axios.request({...baseRequestConfig, httpsAgent});
+    const httpAgent = !isHttps ? createHttpAgentWithTracking(hostname) : undefined;
+    return axios.request({...baseRequestConfig, httpsAgent, httpAgent});
   };
   const start = Date.now();
   const toSuccess = (response: any): HttpResponse => {

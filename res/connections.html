@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <link rel="stylesheet" href="https://microsoft.github.io/vscode-codicons/dist/codicon.css">
+</head>
+
+<body>
+    <div id="connections-panel">
+        <div id="connections-list"></div>
+    </div>
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, sans-serif);
+            font-size: 12px;
+            color: var(--vscode-foreground, #ccc);
+        }
+
+        #connections-panel {
+            padding: 8px;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 0 12px 0;
+            border-bottom: 1px solid var(--vscode-panel-border, #444);
+            margin-bottom: 8px;
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--vscode-foreground, #ccc);
+        }
+
+        .panel-actions {
+            display: flex;
+            gap: 4px;
+        }
+
+        .icon-button {
+            background: none;
+            border: none;
+            color: var(--vscode-foreground, #ccc);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-button:hover {
+            background: var(--vscode-toolbar-hoverBackground, #333);
+        }
+
+        #connections-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--vscode-descriptionForeground, #888);
+        }
+
+        .empty-state .codicon {
+            font-size: 32px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+
+        .connection-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            background: var(--vscode-editor-background, #1e1e1e);
+            border: 1px solid var(--vscode-panel-border, #333);
+            border-radius: 4px;
+            gap: 8px;
+        }
+
+        .connection-row:hover {
+            background: var(--vscode-list-hoverBackground, #2a2d2e);
+        }
+
+        .connection-state {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .connection-state.connecting {
+            background: #3399ff;
+            animation: pulse 1s infinite;
+        }
+
+        .connection-state.open {
+            background: #66bb6a;
+        }
+
+        .connection-state.idle {
+            background: #ffaa00;
+        }
+
+        .connection-state.closing {
+            background: #ff5555;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .connection-icon {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .connection-info {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .connection-host {
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .connection-details {
+            font-size: 11px;
+            color: var(--vscode-descriptionForeground, #888);
+            display: flex;
+            gap: 8px;
+            margin-top: 2px;
+        }
+
+        .connection-detail {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        .connection-close {
+            background: none;
+            border: none;
+            color: var(--vscode-foreground, #ccc);
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            opacity: 0.6;
+            flex-shrink: 0;
+        }
+
+        .connection-close:hover {
+            background: var(--vscode-toolbar-hoverBackground, #333);
+            opacity: 1;
+            color: #ff5555;
+        }
+
+        .protocol-badge {
+            font-size: 10px;
+            font-weight: 600;
+            padding: 1px 4px;
+            border-radius: 3px;
+            text-transform: uppercase;
+        }
+
+        .protocol-badge.http {
+            background: rgba(51, 153, 255, 0.2);
+            color: #3399ff;
+        }
+
+        .protocol-badge.https {
+            background: rgba(102, 187, 106, 0.2);
+            color: #66bb6a;
+        }
+
+        .protocol-badge.ws {
+            background: rgba(255, 170, 0, 0.2);
+            color: #ffaa00;
+        }
+
+        .protocol-badge.wss {
+            background: rgba(186, 104, 200, 0.2);
+            color: #ba68c8;
+        }
+    </style>
+
+    <script>
+        const vscode = acquireVsCodeApi();
+        let connections = {};
+
+        function formatDuration(ms) {
+            const seconds = Math.floor(ms / 1000);
+            if (seconds < 60) return seconds + 's';
+            const minutes = Math.floor(seconds / 60);
+            if (minutes < 60) return minutes + 'm ' + (seconds % 60) + 's';
+            const hours = Math.floor(minutes / 60);
+            return hours + 'h ' + (minutes % 60) + 'm';
+        }
+
+        function formatTimeAgo(timestamp) {
+            const ms = Date.now() - timestamp;
+            return formatDuration(ms) + ' ago';
+        }
+
+        function getStateLabel(state) {
+            switch (state) {
+                case 'connecting': return 'connecting...';
+                case 'open': return 'open';
+                case 'idle': return 'idle';
+                case 'closing': return 'closing...';
+                default: return state;
+            }
+        }
+
+        function getProtocolIcon(protocol) {
+            if (protocol === 'ws' || protocol === 'wss') {
+                return '<img src="__WS_ICON__" class="connection-icon" />';
+            }
+            return '<img src="__HTTP_ICON__" class="connection-icon" />';
+        }
+
+        function renderConnections() {
+            const list = document.getElementById('connections-list');
+            const connArray = Object.values(connections);
+
+            if (connArray.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="codicon codicon-plug"></div>
+                        <div>No active connections</div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Sort by most recent activity
+            connArray.sort((a, b) => b.lastActivityAt - a.lastActivityAt);
+
+            list.innerHTML = connArray.map(conn => {
+                const duration = formatDuration(Date.now() - conn.connectedAt);
+                const lastActivity = conn.state === 'idle' 
+                    ? 'last: ' + formatTimeAgo(conn.lastActivityAt)
+                    : '';
+                const requestInfo = conn.requestCount > 0 
+                    ? conn.requestCount + ' req' + (conn.requestCount > 1 ? 's' : '')
+                    : '';
+
+                return `
+                    <div class="connection-row" data-id="${conn.id}">
+                        <div class="connection-state ${conn.state}" title="${getStateLabel(conn.state)}"></div>
+                        ${getProtocolIcon(conn.protocol)}
+                        <div class="connection-info">
+                            <div class="connection-host" title="${conn.host}">${conn.host}</div>
+                            <div class="connection-details">
+                                <span class="protocol-badge ${conn.protocol}">${conn.protocol}</span>
+                                <span class="connection-detail">${getStateLabel(conn.state)}</span>
+                                ${requestInfo ? `<span class="connection-detail">${requestInfo}</span>` : ''}
+                                <span class="connection-detail">${duration}</span>
+                                ${lastActivity ? `<span class="connection-detail">${lastActivity}</span>` : ''}
+                            </div>
+                        </div>
+                        <button class="connection-close" onclick="closeConnection('${conn.id}')" title="Close connection">
+                            <span class="codicon codicon-close"></span>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function closeConnection(id) {
+            vscode.postMessage({ command: 'closeConnection', id });
+        }
+
+        function closeAll() {
+            vscode.postMessage({ command: 'closeAllConnections' });
+        }
+
+        function refresh() {
+            vscode.postMessage({ command: 'refresh' });
+        }
+
+        window.addEventListener('message', (event) => {
+            const msg = event.data;
+            switch (msg.command) {
+                case 'setConnections':
+                    connections = {};
+                    msg.connections.forEach(conn => {
+                        connections[conn.id] = conn;
+                    });
+                    renderConnections();
+                    break;
+                case 'updateConnection':
+                    connections[msg.connection.id] = msg.connection;
+                    renderConnections();
+                    break;
+                case 'removeConnection':
+                    delete connections[msg.id];
+                    renderConnections();
+                    break;
+                case 'tick':
+                    // Just re-render to update times
+                    renderConnections();
+                    break;
+            }
+        });
+
+        // Initial render
+        renderConnections();
+    </script>
+</body>
+
+</html>
