@@ -138,87 +138,68 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                     aria-label={meta.title}
                   ></span>
                   <div style={{ flex: 1 }}>
-                    <div style={{ marginBottom: 2 }}>
+                    <div style={{ marginTop: 2 }}>
                       {report.stepIndex} {report.stepType === 'check' ? 'Check' : 'Assert'}
                       {report.title ? `: ${report.title}` : ''}
                     </div>
-                    <div>
-                      <pre
-                        style={{
-                          margin: 0,
-                          whiteSpace: 'pre-wrap',
-                          wordBreak: 'break-word',
-                          fontFamily: 'var(--vscode-editor-font-family, monospace)',
-                          fontSize: 'var(--vscode-editor-font-size, 12px)',
-                        }}
-                      >
-                        {unescapeCommon(toDisplayText(report.comparison))}
-                      </pre>
-                    </div>
 
-                    {hasDetails && (
-                      <div style={{ marginTop: 6 }}>
-                        {!isDetailsExpanded ? (
-                          <button
-                            type="button"
-                            onClick={() => setExpandedDetails((prev) => ({ ...prev, [reportKey]: true }))}
+                    {isDetailsExpanded && (
+                      <div style={{ marginTop: 4 }}>
+                        <div>
+                          <pre
                             style={{
-                              padding: 0,
-                              border: 'none',
-                              background: 'transparent',
-                              opacity: 0.7,
-                              textDecoration: 'underline',
-                              cursor: 'pointer',
-                              font: 'inherit',
+                              margin: 0,
+                              whiteSpace: 'pre-wrap',
+                              wordBreak: 'break-word',
+                              fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                              fontSize: 'var(--vscode-editor-font-size, 12px)',
                             }}
                           >
-                            show details
-                          </button>
-                        ) : (
-                          <div style={{ marginTop: 4 }}>
-                            {report.actual !== undefined && report.expected !== undefined && (
-                              <div style={{ opacity: 0.85 }}>
-                                Left: {String(report.actual)}, Right: {String(report.expected)}
-                              </div>
-                            )}
-                            {report.details && report.details.trim().length > 0 && (
-                              <pre
-                                style={{
-                                  margin: '6px 0 0 0',
-                                  opacity: 0.85,
-                                  whiteSpace: 'pre-wrap',
-                                  wordBreak: 'break-word',
-                                  fontFamily: 'var(--vscode-editor-font-family, monospace)',
-                                  fontSize: 'var(--vscode-editor-font-size, 12px)',
-                                }}
-                              >
-                                {unescapeCommon(String(report.details))}
-                              </pre>
-                            )}
-                            <div style={{ marginTop: 6 }}>
-                              <button
-                                type="button"
-                                onClick={() => setExpandedDetails((prev) => ({ ...prev, [reportKey]: false }))}
-                                style={{
-                                  padding: 0,
-                                  border: 'none',
-                                  background: 'transparent',
-                                  opacity: 0.7,
-                                  textDecoration: 'underline',
-                                  cursor: 'pointer',
-                                  font: 'inherit',
-                                }}
-                              >
-                                hide details
-                              </button>
-                            </div>
+                            {unescapeCommon(toDisplayText(report.comparison))}
+                          </pre>
+                        </div>
+                        {report.actual !== undefined && report.expected !== undefined && (
+                          <div style={{ opacity: 0.85, marginTop: 6 }}>
+                            Left: {String(report.actual)}, Right: {String(report.expected)}
                           </div>
+                        )}
+                        {report.details && report.details.trim().length > 0 && (
+                          <pre
+                            style={{
+                              margin: '6px 0 0 0',
+                              opacity: 0.85,
+                              whiteSpace: 'pre-wrap',
+                              wordBreak: 'break-word',
+                              fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                              fontSize: 'var(--vscode-editor-font-size, 12px)',
+                            }}
+                          >
+                            {unescapeCommon(String(report.details))}
+                          </pre>
                         )}
                       </div>
                     )}
                   </div>
 
-                  <div style={{ opacity: 0.7, textAlign: 'right' }}>{new Date(report.timestamp).toLocaleTimeString()}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {hasDetails && (
+                      <button
+                        className="action-button"
+                        type="button"
+                        onClick={() => setExpandedDetails((prev) => ({ ...prev, [reportKey]: !isDetailsExpanded }))}
+                        style={{
+                          padding: 0,
+                          border: 'none',
+                          background: 'transparent',
+                          cursor: 'pointer',
+                        }}
+                        title={isDetailsExpanded ? 'Hide details' : 'Show details'}
+                      >
+                        <span className={`codicon ${isDetailsExpanded ? 'codicon-circle-filled' : 'codicon-circle-outline'}`} />
+                      </button>
+                    )}
+                    <div style={{ opacity: 0.7, textAlign: 'right' }}>{new Date(report.timestamp).toLocaleTimeString()}</div>
+                  </div>
                 </div>
               );
             })}
