@@ -7,12 +7,48 @@ export type Repeat = `${number}`|'inf';
 export type Parameter = {
   [key: string]: string
 };
+/** Report level for check/assert: 'all' (report pass+fail), 'fails' (fail only), 'none' (silent) */
+export type ReportLevel = 'all' | 'fails' | 'none';
+
+/** 
+ * Report configuration for check/assert.
+ * - internal: when running the test directly
+ * - external: when the test is imported into another test file or added to a suite
+ */
+export interface ReportConfig {
+  internal?: ReportLevel;
+  external?: ReportLevel;
+}
+
+/**
+ * Normalize report field from various formats:
+ * - undefined → defaults
+ * - string shorthand ('all'|'fails'|'none') → both internal and external same value
+ * - object with internal/external
+ */
+export function normalizeReportConfig(
+  report: ReportLevel | ReportConfig | undefined
+): { internal: ReportLevel; external: ReportLevel } {
+  const defaults = { internal: 'all' as ReportLevel, external: 'fails' as ReportLevel };
+  if (!report) {
+    return defaults;
+  }
+  if (typeof report === 'string') {
+    return { internal: report, external: report };
+  }
+  return {
+    internal: report.internal ?? defaults.internal,
+    external: report.external ?? defaults.external,
+  };
+}
+
 export interface ComparisonObject {
   actual: unknown;
   expected: unknown;
   operator?: string;
   title?: string;
   details?: string;
+  report?: ReportLevel | ReportConfig;
 }
 
 export type Comparison = string | ComparisonObject;

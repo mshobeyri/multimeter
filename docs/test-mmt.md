@@ -146,7 +146,7 @@ Use check to log a failure and continue; use assert to stop the flow on failure.
 Supported operators
 - `<`, `>`, `<=`, `>=`, `==`, `!=`, `=@` (contains), `!@` (not contains), `=^` (starts with), `!^` (not starts with), `=$` (ends with), `!$` (not ends with), `=~` (regex), `!~` (not regex)
 
-You can write checks and asserts in a concise inline form or in a structured object form with explicit `actual`, `expected`, `operator`, and an optional `message`.
+You can write checks and asserts in a concise inline form or in a structured object form with explicit `actual`, `expected`, `operator`, and an optional `title` or `details`.
 
 Inline examples
 ```yaml
@@ -157,17 +157,49 @@ Inline examples
 Object-form examples
 ```yaml
 - check:
-  actual: profile.name
-  expected: "John"
-  operator: "=="
-  message: "Profile name must be John"
+    actual: profile.name
+    expected: "John"
+    operator: "=="
+    title: "Profile name check"
+    details: "Profile name must be John"
 
 - assert:
-  actual: doLogin.status
-  expected: 200
-  operator: "=="
-  message: "Login must succeed"
+    actual: doLogin.status
+    expected: 200
+    operator: "=="
+    title: "Login status"
+    details: "Login must succeed"
 ```
+
+#### Report configuration
+The `report` field controls when check/assert results are emitted. This is useful when tests are imported or added to suites.
+
+Values:
+- `all` — report both passes and failures
+- `fails` — report only failures (default for external)
+- `none` — silent, no reporting
+
+Shorthand (applies to both internal and external runs):
+```yaml
+- check:
+    actual: status
+    expected: 200
+    report: all
+```
+
+Object form (different levels for direct vs imported/suite runs):
+```yaml
+- check:
+    actual: status
+    expected: 200
+    report:
+      internal: all   # when running this test directly
+      external: fails # when imported or added to a suite
+```
+
+Default behavior (if `report` is omitted):
+- `internal: all` — report all results when running directly
+- `external: fails` — report only failures when imported or in a suite
 
 Checks, assertions, prints, and errors appear in the Log panel while the flow runs.
 

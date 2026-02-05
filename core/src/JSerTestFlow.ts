@@ -1,5 +1,5 @@
 import {indentLines, toInputsParams} from './JSerHelper';
-import {Comparison, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
+import {Comparison, normalizeReportConfig, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
 import {getTestFlowStepType} from './testParsePack';
 
 function randomName(): string {
@@ -239,13 +239,17 @@ export const setToJSfunc = (set: Record<string, any>): string => {
 };
 
 
-export const checkToJSfunc = (check: Comparison): string => {
+export const checkToJSfunc = (check: Comparison, useExternalReport: boolean): string => {
   const normalized = normalizeComparison(check, 'check');
   if (!normalized) {
     return '';
   }
   const {actual, operator, expected, raw, title, details} = normalized;
-  const reportSuccess = (check && typeof check === 'object') ? (check as any).report_success === true : false;
+  // Determine report level: internal (useExternalReport=false, direct run) vs external (useExternalReport=true, imported or in suite)
+  const reportCfg = normalizeReportConfig(
+    (check && typeof check === 'object') ? (check as any).report : undefined
+  );
+  const reportLevel = useExternalReport ? reportCfg.external : reportCfg.internal;
   const conditionStatement = conditionalStatementToJSfunc(raw);
   const titlePart = title ? `"${title}" - ` : '';
   const failMessage =
@@ -258,24 +262,32 @@ export const checkToJSfunc = (check: Comparison): string => {
   const finalDetails = typeof details === 'string' ? toTemplateWithVars(details) : undefined;
   const finalActual = typeof actual === 'string' ? toTemplateWithVars(actual) : undefined;
   const finalExpected = typeof expected === 'string' ? toTemplateWithVars(expected) : undefined;
+  // Report on success only if level is 'all'
+  const reportOnSuccess = reportLevel === 'all';
+  // Report on fail unless level is 'none'
+  const reportOnFail = reportLevel !== 'none';
   return `if (${conditionStatement}) {
   console.log(${toTemplateWithVars(finaSuccessMsg)});
-  ${reportSuccess ? `report_('check', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, true);` : ''}
+  ${reportOnSuccess ? `report_('check', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, true);` : ''}
 } else {
   console.error(${toTemplateWithVars(finaFaillMsg)});
-  report_('check', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, false, ${finalActual}, ${finalExpected});
+  ${reportOnFail ? `report_('check', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, false, ${finalActual}, ${finalExpected});` : ''}
 }\n`;
 };
 
-export const assertToJSfunc = (assert: Comparison): string => {
+export const assertToJSfunc = (assert: Comparison, useExternalReport: boolean): string => {
   const normalized = normalizeComparison(assert, 'assert');
   if (!normalized) {
     return '';
   }
   const {actual, operator, expected, raw, title, details} = normalized;
-  const reportSuccess = (assert && typeof assert === 'object') ? (assert as any).report_success === true : false;
+  // Determine report level: internal (useExternalReport=false, direct run) vs external (useExternalReport=true, imported or in suite)
+  const reportCfg = normalizeReportConfig(
+    (assert && typeof assert === 'object') ? (assert as any).report : undefined
+  );
+  const reportLevel = useExternalReport ? reportCfg.external : reportCfg.internal;
   const conditionStatement = conditionalStatementToJSfunc(raw);
-    const titlePart = title ? `"${title}" - ` : '';
+  const titlePart = title ? `"${title}" - ` : '';
   const failMessage =
       `Assert ${titlePart}"${raw}" failed, as ${actual} ${operator} ${expected} is false`;
   const successMessage = `Assert ${titlePart}"${raw}" passed`;
@@ -286,12 +298,16 @@ export const assertToJSfunc = (assert: Comparison): string => {
   const finalDetails = typeof details === 'string' ? toTemplateWithVars(details) : undefined;
   const finalActual = typeof actual === 'string' ? toTemplateWithVars(actual) : undefined;
   const finalExpected = typeof expected === 'string' ? toTemplateWithVars(expected) : undefined;
+  // Report on success only if level is 'all'
+  const reportOnSuccess = reportLevel === 'all';
+  // Report on fail unless level is 'none'
+  const reportOnFail = reportLevel !== 'none';
   return `if (${conditionStatement}) {
   console.log(${toTemplateWithVars(finaSuccessMsg)});
-  ${reportSuccess ? `report_('assert', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, true);` : ''}
+  ${reportOnSuccess ? `report_('assert', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, true);` : ''}
 } else {
   console.error(${toTemplateWithVars(finaFaillMsg)});
-  report_('assert', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, false, ${finalActual}, ${finalExpected});
+  ${reportOnFail ? `report_('assert', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, false, ${finalActual}, ${finalExpected});` : ''}
   throw new Error("Assertion failed");
 }\n`;
 };
@@ -343,16 +359,16 @@ export const setenvToJSfunc = (setenv: Record<string, any>, root: boolean): stri
 };
 
 export const flowStepsToJsfunc =
-    (flow: TestFlowSteps, root: boolean): string => {
+    (flow: TestFlowSteps, root: boolean, useExternalReport: boolean = !root): string => {
       return (flow ?? [])
           .map((step: TestFlowStep) => {
             switch (getTestFlowStepType(step)) {
               case 'call':
                 return callToJSfunc(step as TestFlowCall);
               case 'check':
-                return checkToJSfunc((step as TestFlowCheck).check);
+                return checkToJSfunc((step as TestFlowCheck).check, useExternalReport);
               case 'assert':
-                return assertToJSfunc((step as TestFlowAssert).assert);
+                return assertToJSfunc((step as TestFlowAssert).assert, useExternalReport);
               case 'if':
                 return ifToJSfunc(step as TestFlowCondition);
               case 'repeat':
@@ -390,7 +406,7 @@ export const flowStepsToJsfunc =
     };
 
 export const flowStagesToJsfunc =
-    (flow: TestFlowStages, root: boolean): string => {
+    (flow: TestFlowStages, root: boolean, useExternalReport: boolean = !root): string => {
       if (!flow || flow.length === 0) {
         return '';
       };
@@ -413,7 +429,7 @@ export const flowStagesToJsfunc =
           const cond = conditionalStatementToJSfunc(String(stage.condition));
           code += `if (!(${cond})) {\n  return;\n}\n`;
         }
-        code += flowStepsToJsfunc(stage.steps ?? [], root);
+        code += flowStepsToJsfunc(stage.steps ?? [], root, useExternalReport);
         stageMap.set(stageName, {code, dependsOn});
       }
 
@@ -458,12 +474,12 @@ export const flowStagesToJsfunc =
       return generated.join('\n');
     };
 
-export const flowToJsFunc = (testData: TestData, root: boolean): string => {
+export const flowToJsFunc = (testData: TestData, root: boolean, useExternalReport: boolean = !root): string => {
   let flow = '';
   if (testData.stages && testData.stages.length > 0) {
-    flow += flowStagesToJsfunc(testData.stages, root);
+    flow += flowStagesToJsfunc(testData.stages, root, useExternalReport);
   } else if (testData.steps && testData.steps.length > 0) {
-    flow += flowStepsToJsfunc(testData.steps, root);
+    flow += flowStepsToJsfunc(testData.steps, root, useExternalReport);
   }
   return flow;
 };

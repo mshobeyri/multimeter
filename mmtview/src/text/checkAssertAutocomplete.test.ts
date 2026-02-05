@@ -2,18 +2,19 @@ import {describe, expect, it} from '@jest/globals';
 
 function keySuggestionLabelsFor(parent: 'check'|'assert'|'operator'): string[] {
   if (parent === 'check' || parent === 'assert') {
-    return ['actual', 'expected', 'operator', 'title', 'details', 'report_success'];
+    return ['actual', 'expected', 'operator', 'title', 'details', 'report'];
   }
   return ['==', '!=', '>', '>=', '<', '<=', '=@', '!@', '=~', '!~', '=^', '!^', '=$', '!$'];
 }
 
 describe('check/assert object-form autocomplete', () => {
-  it('offers actual/expected/operator/title/details under check/assert', () => {
+  it('offers actual/expected/operator/title/details/report under check/assert', () => {
     expect(new Set(keySuggestionLabelsFor('check')).has('actual')).toBe(true);
     expect(new Set(keySuggestionLabelsFor('check')).has('expected')).toBe(true);
     expect(new Set(keySuggestionLabelsFor('assert')).has('operator')).toBe(true);
     expect(new Set(keySuggestionLabelsFor('assert')).has('title')).toBe(true);
     expect(new Set(keySuggestionLabelsFor('assert')).has('details')).toBe(true);
+    expect(new Set(keySuggestionLabelsFor('assert')).has('report')).toBe(true);
   });
 
   it('offers known operators', () => {

@@ -1,6 +1,8 @@
 import React from "react";
-import { CheckOps, opsList, opsNames } from "mmt-core/TestData";
+import { CheckOps, opsList, opsNames, ReportLevel, ReportConfig } from "mmt-core/TestData";
 import { safeList } from "mmt-core/safer";
+
+export type ReportValue = ReportLevel | ReportConfig | undefined;
 
 export interface TestCheckValue {
   actual: string;
@@ -8,8 +10,10 @@ export interface TestCheckValue {
   expected: string;
   title: string;
   details: string;
-  report_success?: boolean;
+  report?: ReportValue;
 }
+
+const reportLevelOptions: ReportLevel[] = ['all', 'fails', 'none'];
 
 interface TestCheckProps {
   value: TestCheckValue;
@@ -17,10 +21,31 @@ interface TestCheckProps {
 }
 
 const TestCheck: React.FC<TestCheckProps> = ({ value, onChange }) => {
-  const { actual, op, expected, title, details, report_success } = value;
+  const { actual, op, expected, title, details, report } = value;
 
   const update = (patch: Partial<TestCheckValue>) => {
-    onChange({ actual, op, expected, title, details, report_success, ...patch });
+    onChange({ actual, op, expected, title, details, report, ...patch });
+  };
+
+  // Parse current report value
+  const isObjectForm = report && typeof report === 'object';
+  const internalValue: ReportLevel = isObjectForm 
+    ? (report as ReportConfig).internal ?? 'all' 
+    : (typeof report === 'string' ? report : 'all');
+  const externalValue: ReportLevel = isObjectForm 
+    ? (report as ReportConfig).external ?? 'fails' 
+    : (typeof report === 'string' ? report : 'fails');
+
+  const updateReport = (internal: ReportLevel, external: ReportLevel) => {
+    // If both are defaults, set to undefined
+    if (internal === 'all' && external === 'fails') {
+      update({ report: undefined });
+    } else if (internal === external) {
+      // Shorthand if both are the same
+      update({ report: internal });
+    } else {
+      update({ report: { internal, external } });
+    }
   };
 
   return (
@@ -66,20 +91,45 @@ const TestCheck: React.FC<TestCheckProps> = ({ value, onChange }) => {
           onChange={e => update({ details: e.target.value })}
         />
       </div>
-      <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <input
-          type="checkbox"
-          checked={!!report_success}
-          onChange={e => update({ report_success: e.target.checked })}
-          id="mmt-report-success"
-        />
-        <label
-          htmlFor="mmt-report-success"
-          title="When enabled, emits a report event even when the check/assert passes."
-          style={{ userSelect: 'none' }}
-        >
-          Report success
-        </label>
+      <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <label 
+            htmlFor="mmt-report-internal"
+            title="Report level when running this test directly"
+            style={{ userSelect: 'none', fontSize: 12 }}
+          >
+            Internal:
+          </label>
+          <select
+            id="mmt-report-internal"
+            value={internalValue}
+            onChange={e => updateReport(e.target.value as ReportLevel, externalValue)}
+            style={{ fontSize: 12 }}
+          >
+            {reportLevelOptions.map(opt => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <label 
+            htmlFor="mmt-report-external"
+            title="Report level when this test is imported or added to a suite"
+            style={{ userSelect: 'none', fontSize: 12 }}
+          >
+            External:
+          </label>
+          <select
+            id="mmt-report-external"
+            value={externalValue}
+            onChange={e => updateReport(internalValue, e.target.value as ReportLevel)}
+            style={{ fontSize: 12 }}
+          >
+            {reportLevelOptions.map(opt => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </select>
+        </div>
       </div>
     </div>
   );

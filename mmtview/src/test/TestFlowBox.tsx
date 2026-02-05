@@ -1,7 +1,7 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import { FlowType, CheckOps } from "mmt-core/TestData";
-import TestCheck from "./TestCheck";
+import TestCheck, { ReportValue } from "./TestCheck";
 import TestCall from "./TestCall";
 import TestFlowVar from "./TestFlowVar";
 import TestFlowCSV from "./TestFlowCSV";
@@ -172,7 +172,8 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       }
       case 'check':
       case 'assert': {
-        let actual = '', op: CheckOps = '==' as CheckOps, expected = '', title = '', details = '', report_success = false;
+        let actual = '', op: CheckOps = '==' as CheckOps, expected = '', title = '', details = '';
+        let report: ReportValue = undefined;
         const rawVal = stepData && stepData[type];
         if (typeof rawVal === 'string') {
           const match = rawVal.trim().length ? rawVal.trim().split(/\s+/) : [] as string[];
@@ -185,12 +186,12 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
           op = ((rawVal as any).operator || '==') as CheckOps;
           title = (rawVal as any).title || '';
           details = (rawVal as any).details || '';
-          report_success = Boolean((rawVal as any).report_success);
+          report = (rawVal as any).report;
         }
         return (
           <TestCheck
-              value={{ actual, op, expected, title, details, report_success }}
-              onChange={({ actual, op, expected, title, details, report_success }) => {
+              value={{ actual, op, expected, title, details, report }}
+              onChange={({ actual, op, expected, title, details, report }) => {
                 const obj: any = { actual, expected, operator: op || '==', };
               if (title.trim().length > 0) {
                 obj.title = title.trim();
@@ -198,8 +199,8 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
               if (details.trim().length > 0) {
                 obj.details = details.trim();
               }
-              if (report_success) {
-                obj.report_success = true;
+              if (report !== undefined) {
+                obj.report = report;
               }
               onChange({ [type]: obj });
             }}

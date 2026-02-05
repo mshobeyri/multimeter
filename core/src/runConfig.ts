@@ -88,6 +88,8 @@ export interface GenerateJsOptions {
   fileLoader: FileLoader;  // Responsible for resolving relative imports
   filePath?: string;  // File path for resolving relative imports
   projectRoot?: string;  // Project root directory (where multimeter.mmt lives) for +/ imports
+  /** When true, use external report settings for checks/asserts (e.g., suite or import context). */
+  isExternal?: boolean;
 }
 
 export interface RunFileOptions {

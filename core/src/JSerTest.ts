@@ -12,7 +12,12 @@ export interface TestContext {
       /** Optional original file path for resolving imports */
       filePath?: string, importTracker?: ImportTracker,
       /** Project root directory (where multimeter.mmt lives) for +/ imports */
-      projectRoot?: string
+      projectRoot?: string,
+      /** 
+       * When true, use external report settings for checks/asserts.
+       * Set when running from a suite or imported into another test.
+       */
+      isExternal?: boolean
 }
 
 
@@ -100,7 +105,9 @@ export const testToJsfunc = async(
     outputParams = ' ' + outputParams + ' ';
   }
 
-  flow += flowToJsFunc(replaced, root);
+  // For report settings: use external if not root OR if explicitly marked as external (suite run)
+  const useExternalReport = !root || ctx.isExternal === true;
+  flow += flowToJsFunc(replaced, root, useExternalReport);
 
   return `${jsImportsHoisted ? jsImportsHoisted + '\n\n' : ''}const ${toLowerUnderscore(ctx.name)}${root ? '_' : ''} = async ({ ${
       inputParams}} = {}) => {

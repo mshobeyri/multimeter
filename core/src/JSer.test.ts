@@ -6,6 +6,26 @@ import {importsToJsfunc} from './JSerImports';
 import {TestContext, variableReplacer} from './JSerTest';
 import {assertToJSfunc, checkToJSfunc, flowStagesToJsfunc} from './JSerTestFlow';
 import {createTestFileLoaderMock} from './testFileLoaderMock';
+import {normalizeReportConfig} from './TestData';
+
+describe('normalizeReportConfig', () => {
+  it('returns defaults when undefined', () => {
+    const result = normalizeReportConfig(undefined);
+    expect(result).toEqual({ internal: 'all', external: 'fails' });
+  });
+
+  it('applies string shorthand to both internal and external', () => {
+    expect(normalizeReportConfig('all')).toEqual({ internal: 'all', external: 'all' });
+    expect(normalizeReportConfig('fails')).toEqual({ internal: 'fails', external: 'fails' });
+    expect(normalizeReportConfig('none')).toEqual({ internal: 'none', external: 'none' });
+  });
+
+  it('uses object values with defaults for missing fields', () => {
+    expect(normalizeReportConfig({ internal: 'none' })).toEqual({ internal: 'none', external: 'fails' });
+    expect(normalizeReportConfig({ external: 'all' })).toEqual({ internal: 'all', external: 'all' });
+    expect(normalizeReportConfig({ internal: 'fails', external: 'none' })).toEqual({ internal: 'fails', external: 'none' });
+  });
+});
 
 describe('flowStagesToJsfunc', () => {
   it('generates parallel execution for independent stages', () => {
@@ -431,31 +451,71 @@ describe('step reporter instrumentation', () => {
   });
 
   it('reports failed checks and asserts (default)', () => {
-    const checkJs = checkToJSfunc('foo == bar');
+    // useExternalReport=false means internal run (direct)
+    const checkJs = checkToJSfunc('foo == bar', false);
     expect(checkJs).toContain("report_('check'");
     expect(checkJs).toContain('foo == bar');
 
-    const assertJs = assertToJSfunc('foo != bar');
+    const assertJs = assertToJSfunc('foo != bar', false);
     expect(assertJs).toContain("report_('assert'");
     expect(assertJs).toContain('foo != bar');
   });
 
-  it('reports success only when report_success is true', () => {
-    const checkJs = checkToJSfunc({ actual: 'foo', operator: '==', expected: 'bar', report_success: true } as any);
+  it('reports success when report: all (internal run)', () => {
+    // useExternalReport=false means internal run
+    const checkJs = checkToJSfunc({ actual: 'foo', operator: '==', expected: 'bar', report: 'all' } as any, false);
+    // success branch should have report_ call
+    expect(checkJs).toContain("console.log");
     expect(checkJs).toContain("report_('check'");
-    const assertJs = assertToJSfunc({ actual: 'foo', operator: '!=', expected: 'bar', report_success: true } as any);
-    expect(assertJs).toContain("report_('assert'");
+    // Verify the success path has the report call
+    const successBlock = checkJs.split('} else')[0];
+    expect(successBlock).toContain("report_('check'");
+    
+    const assertJs = assertToJSfunc({ actual: 'foo', operator: '!=', expected: 'bar', report: 'all' } as any, false);
+    const assertSuccessBlock = assertJs.split('} else')[0];
+    expect(assertSuccessBlock).toContain("report_('assert'");
+  });
+
+  it('reports only failures with report: fails (default external)', () => {
+    // useExternalReport=true means external run (suite or import)
+    const checkJs = checkToJSfunc({ actual: 'foo', operator: '==', expected: 'bar' } as any, true);
+    // success branch should NOT have report_ call
+    const successBlock = checkJs.split('} else')[0];
+    expect(successBlock).not.toContain("report_('check'");
+    // failure branch should have report_ call
+    expect(checkJs).toContain("report_('check'");
+  });
+
+  it('suppresses all reports with report: none', () => {
+    // useExternalReport=false means internal run, but report: none overrides
+    const checkJs = checkToJSfunc({ actual: 'foo', operator: '==', expected: 'bar', report: 'none' } as any, false);
+    // No report_ calls at all
+    expect(checkJs).not.toContain("report_('check'");
+  });
+
+  it('supports object form report with internal/external', () => {
+    // useExternalReport=false means use internal config
+    const checkJs = checkToJSfunc({ actual: 'foo', operator: '==', expected: 'bar', report: { internal: 'all', external: 'none' } } as any, false);
+    // Internal run with report.internal='all' should report success
+    const successBlock = checkJs.split('} else')[0];
+    expect(successBlock).toContain("report_('check'");
+    
+    // useExternalReport=true means use external config
+    const checkJsExt = checkToJSfunc({ actual: 'foo', operator: '==', expected: 'bar', report: { internal: 'all', external: 'none' } } as any, true);
+    // External run with report.external='none' should not report anything
+    expect(checkJsExt).not.toContain("report_('check'");
   });
 });
 
 describe('check/assert details templating', () => {
   it('preserves ${...} expressions in details (call result vars)', () => {
+    // useExternalReport=false means internal run
     const js = checkToJSfunc({
       actual: 'a',
       operator: '==',
       expected: 'b',
       details: 'result code is ${myCall.result_code}',
-    } as any);
+    } as any, false);
 
     // Details is emitted as a template literal so ${...} resolves at runtime.
     expect(js).toContain('`result code is ${myCall.result_code}`');

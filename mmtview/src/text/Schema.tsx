@@ -329,7 +329,19 @@ export const TestSchema = {
                                             },
                                             title: { type: 'string' },
                                             details: { type: 'string' },
-                                            report_success: { type: 'boolean' },
+                                            report: {
+                                                oneOf: [
+                                                    { type: 'string', enum: ['all', 'fails', 'none'] },
+                                                    {
+                                                        type: 'object',
+                                                        properties: {
+                                                            internal: { type: 'string', enum: ['all', 'fails', 'none'] },
+                                                            external: { type: 'string', enum: ['all', 'fails', 'none'] }
+                                                        },
+                                                        additionalProperties: false
+                                                    }
+                                                ]
+                                            },
                                         },
                                         additionalProperties: false
                                     }
@@ -358,7 +370,19 @@ export const TestSchema = {
                                             },
                                             title: { type: 'string' },
                                             details: { type: 'string' },
-                                            report_success: { type: 'boolean' },
+                                            report: {
+                                                oneOf: [
+                                                    { type: 'string', enum: ['all', 'fails', 'none'] },
+                                                    {
+                                                        type: 'object',
+                                                        properties: {
+                                                            internal: { type: 'string', enum: ['all', 'fails', 'none'] },
+                                                            external: { type: 'string', enum: ['all', 'fails', 'none'] }
+                                                        },
+                                                        additionalProperties: false
+                                                    }
+                                                ]
+                                            },
                                         },
                                         additionalProperties: false
                                     }

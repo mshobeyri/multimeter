@@ -234,7 +234,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 '    operator: "=="',
                 '    title: "Unexpected status"',
                 '    details: "Status code should be 200"',
-                '    report_success: true'
+                '    report: all  # or: fails, none, or object with internal/external'
             ].join('\n')
         },
         {
@@ -255,7 +255,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 '    operator: ">="',
                 '    title: "User count too low"',
                 '    details: "Expected at least one user"',
-                '    report_success: true'
+                '    report: all  # or: fails, none, or object with internal/external'
             ].join('\n')
         },
         {
@@ -899,11 +899,25 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'Long description shown in the details panel.'
         },
         {
-            label: 'report_success',
+            label: 'report',
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: 'report_success: true',
-            detail: 'Report success [boolean]',
-            documentation: 'When true, emits a report event even when the check/assert passes.'
+            insertText: 'report: ',
+            detail: 'Report level [string | object]',
+            documentation: [
+                'Controls when check/assert results are reported.',
+                '',
+                'Values: all, fails, none',
+                '  - all: report both passes and failures',
+                '  - fails: report only failures (default for external)',
+                '  - none: silent, no reporting',
+                '',
+                'Shorthand: report: all',
+                '',
+                'Object form (different levels for direct vs imported/suite):',
+                '  report:',
+                '    internal: all   # when running directly',
+                '    external: fails # when imported or in a suite'
+            ].join('\n')
         },
     ];
 
