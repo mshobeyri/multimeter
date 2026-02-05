@@ -1,6 +1,6 @@
 import React, { useState, useContext } from "react";
 import { APIData } from "mmt-core/APIData";
-import { JSONRecord } from "mmt-core/CommonData";
+import { JSONRecord, Protocol } from "mmt-core/CommonData";
 import KSVEditor from "../components/KSVEditor";
 import BodyView from "../components/BodyView";
 import { formatBody } from "mmt-core/markupConvertor";
@@ -69,8 +69,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
   } = useAPITesterLogic({ api, onUpdateApi, filePath: mmtFilePath });
 
   // Based on the displayed URL (not resolved inputs/env)
-  const isDisplayedUrlWebSocket = (url: string | undefined): boolean => {
-    return protocolResolver.getEffectiveProtocol(undefined, url) === "ws";
+  const isDisplayedUrlWebSocket = (protocol: Protocol | undefined, url: string | undefined
+  ): boolean => {
+    return protocolResolver.getEffectiveProtocol(protocol, url) === "ws";
   };
 
   const [editorTab, setEditorTabInternal] = useState<EditorTab>(() => {
@@ -214,7 +215,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
 
       <div className="apitest-send-row">
         <div className="apitest-send-controls">
-          {isDisplayedUrlWebSocket(requestData?.url) && (
+          {isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url) && (
             <ConnectButton
               connected={network.connected}
               onClick={handleConnect}
@@ -223,7 +224,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
           <SendButton
             onClick={handleSend}
             onCancel={handleCancel}
-            disabled={isDisplayedUrlWebSocket(requestData?.url) && !network.connected}
+            disabled={isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url) && !network.connected}
             loading={network.loading}
           />
         </div>
