@@ -7,6 +7,7 @@ export interface EnvironmentVar {
   label: string;
   value: string|number|boolean;
   options: {label: string; value: string | number | boolean}[];
+  isManual?: boolean;
 }
 
 export default class EnvironmentPanel implements vscode.WebviewViewProvider {
@@ -54,6 +55,7 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
           if (idx !== -1) {
             environmentVars[idx].value = message.value;
             environmentVars[idx].label = message.label;
+            environmentVars[idx].isManual = message.isManual === true;
             await this.context.workspaceState.update(
                 'multimeter.environment.storage', environmentVars);
             await vscode.commands.executeCommand('multimeter.environment.refresh');
@@ -72,6 +74,48 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
         case 'multimeter.environment.clear': {
           await this.clearEnvironments();
           await vscode.commands.executeCommand('multimeter.environment.refresh');
+          break;
+        }
+        case 'multimeter.environment.add': {
+          const name = typeof message.name === 'string' ? message.name.trim() : '';
+          if (!name) {
+            break;
+          }
+          const environmentVars = this.getWorkspaceEnvironmentVars();
+          const existing = environmentVars.find(v => v.name === name);
+          if (existing) {
+            vscode.window.showWarningMessage(
+                `Environment variable "${name}" already exists.`);
+            break;
+          }
+          const newVar: EnvironmentVar = {
+            name,
+            label: 'Manual',
+            value: message.value ?? '',
+            options: [],
+            isManual: true
+          };
+          environmentVars.push(newVar);
+          await this.context.workspaceState.update(
+              'multimeter.environment.storage', environmentVars);
+          await vscode.commands.executeCommand('multimeter.environment.refresh');
+          this.refreshEnvironmentVars();
+          break;
+        }
+        case 'multimeter.environment.delete': {
+          const name = typeof message.name === 'string' ? message.name : '';
+          if (!name) {
+            break;
+          }
+          const environmentVars = this.getWorkspaceEnvironmentVars();
+          const idx = environmentVars.findIndex(v => v.name === name);
+          if (idx !== -1) {
+            environmentVars.splice(idx, 1);
+            await this.context.workspaceState.update(
+                'multimeter.environment.storage', environmentVars);
+            await vscode.commands.executeCommand('multimeter.environment.refresh');
+            this.refreshEnvironmentVars();
+          }
           break;
         }
       }

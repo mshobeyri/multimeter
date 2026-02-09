@@ -156,9 +156,125 @@
             margin-top: 12px;
         }
 
+        .value-input {
+            border: 1px solid transparent;
+            background: transparent;
+            color: var(--vscode-symbolIcon-stringForeground, var(--foreground));
+            font-family: var(--vscode-editor-fontFamily, monospace);
+            font-size: var(--table-font-size);
+            padding: 4px 8px;
+            border-radius: 2px;
+            width: 100%;
+            height: var(--cell-height);
+            box-sizing: border-box;
+        }
+
+        .value-input:hover {
+            border-color: var(--input-border);
+        }
+
+        .value-input:focus {
+            outline: 1px solid var(--vscode-focusBorder);
+            border-color: var(--input-border);
+            background: var(--input-background);
+        }
+
         .actions {
             display: flex;
             justify-content: flex-end;
+        }
+
+        .icon-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            padding: 0;
+            border: none;
+            background: transparent;
+            color: var(--foreground);
+            cursor: pointer;
+            border-radius: 4px;
+            opacity: 0.7;
+        }
+
+        .icon-button:hover {
+            background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
+            opacity: 1;
+        }
+
+        .delete-btn {
+            opacity: 0.5;
+        }
+
+        .delete-btn:hover {
+            opacity: 1;
+            color: var(--vscode-errorForeground, #f48771);
+        }
+
+        .env-actions {
+            width: 32px;
+            min-width: 32px;
+            max-width: 32px;
+            text-align: center;
+            padding: 0 8px 0 0!important;
+        }
+
+        .add-env-row {
+            display: none;
+            padding: 8px;
+            border: 1px solid var(--panel-border);
+            border-radius: 4px;
+            margin-bottom: 12px;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .add-env-input {
+            border: 1px solid var(--input-border);
+            background: var(--input-background);
+            color: var(--input-foreground);
+            font: inherit;
+            padding: 4px 8px;
+            border-radius: 2px;
+            height: var(--cell-height);
+            box-sizing: border-box;
+            flex: 1;
+        }
+
+        .add-env-input:focus {
+            outline: 1px solid var(--vscode-focusBorder);
+        }
+
+        .add-env-btn {
+            border: 1px solid var(--input-border);
+            background: var(--vscode-button-background);
+            color: var(--vscode-button-foreground);
+            font: inherit;
+            padding: 4px 12px;
+            border-radius: 2px;
+            height: var(--cell-height);
+            cursor: pointer;
+        }
+
+        .add-env-btn:hover {
+            background: var(--vscode-button-hoverBackground);
+        }
+
+        .cancel-btn {
+            border: 1px solid var(--input-border);
+            background: transparent;
+            color: var(--foreground);
+            font: inherit;
+            padding: 4px 12px;
+            border-radius: 2px;
+            height: var(--cell-height);
+            cursor: pointer;
+        }
+
+        .cancel-btn:hover {
+            background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
         }
     </style>
 </head>
@@ -179,14 +295,28 @@
             <div>
                 <div class="section-title">Environment Variables</div>
             </div>
+            <div class="button-group">
+                <button id="add-env-btn" class="icon-button" title="Add variable">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                        <path d="M14 7v1H8v6H7V8H1V7h6V1h1v6h6z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        <div id="add-env-row" class="add-env-row">
+            <input type="text" id="add-env-name" class="add-env-input" placeholder="Variable name" />
+            <input type="text" id="add-env-value" class="add-env-input" placeholder="Value" />
+            <button id="confirm-add-env" class="add-env-btn">Add</button>
+            <button id="cancel-add-env" class="cancel-btn">Cancel</button>
         </div>
         <div id="env-table-container" class="table-wrapper">
             <table class="env-table">
                 <thead>
                     <tr>
-                        <th style="width: 30%;">Name</th>
-                        <th style="width: 35%;">Label</th>
-                        <th style="width: 35%;">Value</th>
+                        <th>Name</th>
+                        <th>Label</th>
+                        <th>Value</th>
+                        <th class="env-actions" style="width: 32px;"></th>
                     </tr>
                 </thead>
                 <tbody id="env-table-body"></tbody>
@@ -230,11 +360,22 @@
                 const row = document.createElement('tr');
                 row.className = 'env-row';
 
-                const optionsHtml = Array.isArray(envVar.options) && envVar.options.length > 0
-                    ? envVar.options.map(opt =>
+                const isManual = envVar.isManual === true;
+                let optionsHtml = '';
+                if (isManual) {
+                    optionsHtml = `<option value="__manual__" selected disabled>Manual</option>`;
+                    if (Array.isArray(envVar.options) && envVar.options.length > 0) {
+                        optionsHtml += envVar.options.map(opt =>
+                            `<option value="${escapeHtml(String(opt.label))}" data-opt-value="${escapeHtml(String(opt.value))}">${escapeHtml(String(opt.label))}</option>`
+                        ).join('');
+                    }
+                } else if (Array.isArray(envVar.options) && envVar.options.length > 0) {
+                    optionsHtml = envVar.options.map(opt =>
                         `<option value="${escapeHtml(String(opt.label))}" data-opt-value="${escapeHtml(String(opt.value))}"${envVar.label === opt.label ? ' selected' : ''}>${escapeHtml(String(opt.label))}</option>`
-                    ).join('')
-                    : `<option value="${escapeHtml(String(envVar.label || envVar.name))}" selected>${escapeHtml(String(envVar.label || envVar.name))}</option>`;
+                    ).join('');
+                } else {
+                    optionsHtml = `<option value="${escapeHtml(String(envVar.label || envVar.name))}" selected>${escapeHtml(String(envVar.label || envVar.name))}</option>`;
+                }
 
                 row.innerHTML = `
                     <td class="env-name">${escapeHtml(envVar.name)}</td>
@@ -243,7 +384,16 @@
                             ${optionsHtml}
                         </select>
                     </td>
-                    <td class="env-value">${escapeHtml(String(envVar.value ?? ''))}</td>
+                    <td class="env-value">
+                        <input type="text" class="value-input" data-index="${index}" value="${escapeHtml(String(envVar.value ?? ''))}" />
+                    </td>
+                    <td class="env-actions">
+                        <button class="icon-button delete-btn" data-index="${index}" title="Delete variable">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                <path fill-rule="evenodd" clip-rule="evenodd" d="M10 3h3v1h-1v9l-1 1H4l-1-1V4H2V3h3V2a1 1 0 0 1 1-1h3a1 1 0 0 1 1 1v1zM9 2H6v1h3V2zM4 13h7V4H4v9zm2-8H5v7h1V5zm1 0h1v7H7V5zm2 0h1v7H9V5z"/>
+                            </svg>
+                        </button>
+                    </td>
                 `;
                 tableBody.appendChild(row);
             });
@@ -260,6 +410,7 @@
                     const optValue = selectedOption.getAttribute('data-opt-value');
                     const envVar = environmentVars[idx];
                     envVar.label = optLabel;
+                    envVar.isManual = false;
                     if (typeof optValue !== 'undefined') {
                         envVar.value = optValue;
                     }
@@ -268,7 +419,38 @@
                         type: 'multimeter.environment.set',
                         name: envVar.name,
                         value: optValue,
-                        label: optLabel
+                        label: optLabel,
+                        isManual: false
+                    });
+                });
+            });
+
+            document.querySelectorAll('.value-input').forEach(input => {
+                input.addEventListener('change', function () {
+                    const idx = this.getAttribute('data-index');
+                    const newValue = this.value;
+                    const envVar = environmentVars[idx];
+                    envVar.value = newValue;
+                    envVar.label = 'Manual';
+                    envVar.isManual = true;
+                    updateUI();
+                    vscode.postMessage({
+                        type: 'multimeter.environment.set',
+                        name: envVar.name,
+                        value: newValue,
+                        label: 'Manual',
+                        isManual: true
+                    });
+                });
+            });
+
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const idx = this.getAttribute('data-index');
+                    const envVar = environmentVars[idx];
+                    vscode.postMessage({
+                        type: 'multimeter.environment.delete',
+                        name: envVar.name
                     });
                 });
             });
@@ -376,6 +558,53 @@
         document.getElementById('preset-refresh')?.addEventListener('click', requestRefresh);
         document.getElementById('clear-environments')?.addEventListener('click', () => {
             vscode.postMessage({ type: 'multimeter.environment.clear' });
+        });
+
+        document.getElementById('add-env-btn')?.addEventListener('click', () => {
+            const addRow = document.getElementById('add-env-row');
+            addRow.style.display = 'flex';
+            document.getElementById('add-env-name').value = '';
+            document.getElementById('add-env-value').value = '';
+            document.getElementById('add-env-name').focus();
+        });
+
+        document.getElementById('cancel-add-env')?.addEventListener('click', () => {
+            document.getElementById('add-env-row').style.display = 'none';
+        });
+
+        document.getElementById('confirm-add-env')?.addEventListener('click', () => {
+            const nameInput = document.getElementById('add-env-name');
+            const valueInput = document.getElementById('add-env-value');
+            const name = nameInput.value.trim();
+            const value = valueInput.value;
+            if (!name) {
+                nameInput.focus();
+                return;
+            }
+            vscode.postMessage({
+                type: 'multimeter.environment.add',
+                name: name,
+                value: value,
+                label: 'Manual',
+                isManual: true
+            });
+            document.getElementById('add-env-row').style.display = 'none';
+        });
+
+        document.getElementById('add-env-name')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('add-env-value').focus();
+            } else if (e.key === 'Escape') {
+                document.getElementById('add-env-row').style.display = 'none';
+            }
+        });
+
+        document.getElementById('add-env-value')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('confirm-add-env').click();
+            } else if (e.key === 'Escape') {
+                document.getElementById('add-env-row').style.display = 'none';
+            }
         });
 
         requestRefresh();
