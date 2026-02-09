@@ -105,18 +105,6 @@
     "configuration": {
       "title": "Multimeter",
       "properties": {
-        "multimeter.enableCertificateValidation": {
-          "type": "boolean",
-          "default": true,
-          "description": "[Deprecated - use certificates section in env file] Enable SSL certificate validation for HTTPS requests",
-          "deprecationMessage": "Use the certificates section in your env file instead"
-        },
-        "multimeter.allowSelfSignedCertificates": {
-          "type": "boolean",
-          "default": false,
-          "description": "[Deprecated - use certificates section in env file] Trust self-signed certificates",
-          "deprecationMessage": "Use the certificates section in your env file instead"
-        },
         "multimeter.network.timeout": {
           "type": "number",
           "default": 30000,

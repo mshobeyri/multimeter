@@ -437,6 +437,24 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         }
       }
     }
+    {
+      const regex = /\$\{[^}]+\}/g;
+      const value = model.getValue();
+      let match;
+      while ((match = regex.exec(value)) !== null) {
+        const start = model.getPositionAt(match.index);
+        const end = model.getPositionAt(match.index + match[0].length);
+        matches.push({
+          range: new monaco.Range(
+            start.lineNumber,
+            start.column,
+            end.lineNumber,
+            end.column
+          ),
+          options: { inlineClassName: I_PREFIX_CLASS }
+        });
+      }
+    }
 
     decorationsRef.current = editor.deltaDecorations(
       decorationsRef.current,
