@@ -262,12 +262,6 @@
           "type": "webview"
         },
         {
-          "id": "multimeter.environment",
-          "name": "Environment Variables",
-          "icon": "res/activity.png",
-          "type": "webview"
-        },
-        {
           "id": "multimeter.connections",
           "name": "Connections",
           "icon": "res/activity.png",
@@ -275,6 +269,12 @@
         }
       ],
       "multimeter-panel": [
+        {
+          "id": "multimeter.environment",
+          "name": "Environment Variables",
+          "icon": "res/activity.png",
+          "type": "webview"
+        },
         {
           "id": "multimeter.history",
           "name": "History",
