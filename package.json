@@ -136,6 +136,17 @@
           "minimum": 8,
           "maximum": 40
         },
+        "multimeter.editor.defaultPanel": {
+          "type": "string",
+          "default": "yaml-ui",
+          "enum": ["yaml-ui", "yaml", "ui"],
+          "enumDescriptions": [
+            "Show both YAML editor and UI panel (split view)",
+            "Show only the YAML editor",
+            "Show only the UI panel"
+          ],
+          "description": "Default panel layout when opening MMT files"
+        },
         "multimeter.workspaceEnvFile": {
           "type": "string",
           "default": "multimeter.mmt",

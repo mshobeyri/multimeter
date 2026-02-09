@@ -109,6 +109,19 @@ const App: React.FC = () => {
         } else {
           setYamlFontSize(12);
         }
+        // Apply default panel mode on initial load
+        if (isInitLoad.current && message.defaultPanel) {
+          if (message.defaultPanel === "yaml-ui") {
+            setPanelMode("full");
+            setPanelSize(window.innerWidth / 2);
+          } else if (message.defaultPanel === "yaml") {
+            setPanelMode("yaml");
+            setPanelSize(window.innerWidth);
+          } else if (message.defaultPanel === "ui") {
+            setPanelMode("ui");
+            setPanelSize(0);
+          }
+        }
       }
     };
 
