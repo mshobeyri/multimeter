@@ -546,9 +546,16 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "html",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "html:\n\ttryIt: true",
+            insertText: "html:\n\ttriable: true",
             detail: 'HTML output options [object]',
-            documentation: 'Options for the generated HTML doc page. Enable tryIt to add interactive "Try" buttons for testing endpoints directly from the browser (like Swagger Try It Out).'
+            documentation: 'Options for the generated HTML doc page. Enable triable to add interactive "Try" buttons for testing endpoints directly from the browser (like Swagger Try It Out).'
+        },
+        {
+            label: "env",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "env:\n\t",
+            detail: 'Environment variables [object]',
+            documentation: 'Key-value pairs that resolve e:key placeholders in URLs, headers, bodies, and descriptions across all API endpoints.\nExample:\nenv:\n  url: http://localhost:8080\n  token: my-secret-token'
         }
     ];
     const apiSuggestions = [
@@ -974,18 +981,18 @@ export const KeySuggestionsByParent = (monaco: any) => {
     ];
     const htmlSuggestions = [
         {
-            label: 'tryIt',
+            label: 'triable',
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: 'tryIt: true',
+            insertText: 'triable: true',
             detail: 'Enable Try It button [boolean]',
             documentation: 'When true, adds a "Try" button to each endpoint in the HTML doc. Clicking it opens an interactive panel to send requests and view responses (like Swagger Try It Out).'
         },
         {
-            label: 'corsProxy',
+            label: 'cors_proxy',
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: 'corsProxy: ',
+            insertText: 'cors_proxy: ',
             detail: 'CORS proxy URL [string]',
-            documentation: 'Optional CORS proxy prefix for Try It requests. Prepended to the API URL when the browser blocks cross-origin requests.\nExample: corsProxy: https://corsproxy.io/?'
+            documentation: 'Optional CORS proxy prefix for Try It requests. Prepended to the API URL when the browser blocks cross-origin requests.\nExample: cors_proxy: https://corsproxy.io/?'
         }
     ];
 

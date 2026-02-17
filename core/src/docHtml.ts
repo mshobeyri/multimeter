@@ -1,5 +1,6 @@
 import { DOC_TEMPLATE_HTML } from './docTemplate';
 import { formatBody } from './markupConvertor';
+import { resolveEnvTokenValues } from './variableReplacer';
 // Shared HTML renderer for documentation pages
 // Framework-free and safe to use in Node and browser contexts
 
@@ -74,7 +75,7 @@ function isNonEmpty(val: any): boolean {
   return keys.some(k => isNonEmpty((val as any)[k]));
 }
 
-function renderParamTable(obj: any, valueHeader = 'Value'): string {
+function renderParamTable(obj: any, valueHeader = 'Default'): string {
   if (!obj || typeof obj !== 'object') {
     return '';
   }
@@ -132,7 +133,8 @@ export interface BuildDocHtmlOptions {
   logo?: string;
   sources?: string[];
   services?: Array<{ name?: string; description?: string; sources?: string[] }>;
-  html?: { tryIt?: boolean; corsProxy?: string };
+  html?: { triable?: boolean; cors_proxy?: string };
+  env?: Record<string, string>;
 }
 
 function cleanPath(p: string): string {
@@ -151,6 +153,53 @@ function matchesSource(filePath: string, src: string): boolean {
   return fp.startsWith(sDir) || fp.includes('/' + sDir) || fp.includes(sDir);
 }
 
+function resolveInputDefaults(str: string, inputs: any): string {
+  if (!str || !inputs || typeof inputs !== 'object') { return str; }
+  let result = str;
+  for (const [k, v] of Object.entries(inputs)) {
+    const val = String(v);
+    const escaped = k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(new RegExp('i:' + escaped, 'g'), val);
+    result = result.replace(new RegExp('\\{' + escaped + '\\}', 'g'), val);
+  }
+  return result;
+}
+
+export function resolveEnvVars(str: string, env: Record<string, string>): string {
+  if (!str || !env || typeof env !== 'object') { return str; }
+  return resolveEnvTokenValues(str, env);
+}
+
+function resolveEnvInValue(val: any, env: Record<string, string>): any {
+  if (!env || !Object.keys(env).length) { return val; }
+  if (typeof val === 'string') { return resolveEnvTokenValues(val, env); }
+  if (Array.isArray(val)) { return val.map(v => resolveEnvInValue(v, env)); }
+  if (val && typeof val === 'object') {
+    const out: any = {};
+    for (const [k, v] of Object.entries(val)) {
+      out[k] = resolveEnvInValue(v, env);
+    }
+    return out;
+  }
+  return val;
+}
+
+export function resolveEnvInApi(api: any, env: Record<string, string>): any {
+  if (!env || !Object.keys(env).length) { return api; }
+  const copy = { ...api };
+  if (typeof copy.url === 'string') { copy.url = resolveEnvTokenValues(copy.url, env); }
+  if (copy.headers) { copy.headers = resolveEnvInValue(copy.headers, env); }
+  if (copy.cookies) { copy.cookies = resolveEnvInValue(copy.cookies, env); }
+  if (copy.query) { copy.query = resolveEnvInValue(copy.query, env); }
+  if (copy.inputs) { copy.inputs = resolveEnvInValue(copy.inputs, env); }
+  if (typeof copy.body === 'string') { copy.body = resolveEnvTokenValues(copy.body, env); }
+  if (typeof copy.description === 'string') { copy.description = resolveEnvTokenValues(copy.description, env); }
+  if (copy.examples && Array.isArray(copy.examples)) {
+    copy.examples = copy.examples.map((ex: any) => resolveEnvInValue(ex, env));
+  }
+  return copy;
+}
+
 function renderEditableKV(obj: any, idPrefix: string): string {
   if (!obj || typeof obj !== 'object') {
     return '';
@@ -163,9 +212,19 @@ function renderEditableKV(obj: any, idPrefix: string): string {
 }
 
 export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): string {
-  const { title, description, logo } = opts;
-  const tryItEnabled = opts.html?.tryIt !== false;
-  const corsProxy = opts.html?.corsProxy || '';
+  const { logo } = opts;
+  const tryItEnabled = opts.html?.triable !== false;
+  const corsProxy = opts.html?.cors_proxy || '';
+  const env = opts.env;
+
+  // Resolve e:xxx in doc-level title/description
+  const title = (env && opts.title) ? resolveEnvVars(opts.title, env) : opts.title;
+  const description = (env && opts.description) ? resolveEnvVars(opts.description, env) : opts.description;
+
+  // Resolve e:xxx environment placeholders once across all APIs
+  const resolvedApis = (env && Object.keys(env).length)
+    ? (apis || []).map(a => resolveEnvInApi(a, env))
+    : (apis || []);
 
   // ensure unique IDs across the entire page, even when rendering per-group
   let rowIdCounter = 0;
@@ -178,21 +237,26 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     const urlStr = String(api?.url || '');
     const methodClass = (method || '').toLowerCase().startsWith('ws') ? 'ws' : (method || '').toLowerCase();
     const badge = method ? `<span class="badge method-${methodClass}">${method}</span>` : '';
-    const headers = api?.headers && Object.keys(api.headers).length ? renderParamTable(api.headers, 'Value') : '';
-    const cookies = api?.cookies && Object.keys(api.cookies).length ? renderParamTable(api.cookies, 'Value') : '';
-    let body = '';
+    const headers = api?.headers && Object.keys(api.headers).length ? renderParamTable(api.headers, 'Default') : '';
+    const cookies = api?.cookies && Object.keys(api.cookies).length ? renderParamTable(api.cookies, 'Default') : '';
+    // Compute body string once – used for both detail panel and Try panel
+    const fmtRaw = String(api?.format || 'json').toLowerCase();
+    const fmt = (fmtRaw === 'xml' || fmtRaw === 'json' || fmtRaw === 'text') ? fmtRaw : 'json';
+    let bodyStr = '';
     if (api?.body !== undefined && api?.body !== null && String(api.body).length) {
-      const fmtRaw = String(api?.format || 'json').toLowerCase();
-      const fmt = (fmtRaw === 'xml' || fmtRaw === 'json' || fmtRaw === 'text') ? fmtRaw : 'json';
       try {
-        const converted = formatBody(fmt as any, api.body, true);
-        if (fmt === 'json' || fmt === 'xml') {
-          body = `<pre class="code">${escapeHtml(converted)}</pre>`;
-        } else {
-          body = `<span class="value">${escapeHtml(converted)}</span>`;
-        }
+        bodyStr = formatBody(fmt as any, api.body, true);
       } catch {
-        body = `<span class="value">${escapeHtml(typeof api.body === 'string' ? api.body : String(api.body))}</span>`;
+        bodyStr = typeof api.body === 'string' ? api.body : String(api.body);
+      }
+    }
+    const bodyResolved = resolveInputDefaults(bodyStr, api?.inputs);
+    let body = '';
+    if (bodyResolved) {
+      if (fmt === 'json' || fmt === 'xml') {
+        body = `<pre class="code">${escapeHtml(bodyResolved)}</pre>`;
+      } else {
+        body = `<span class="value">${escapeHtml(bodyResolved)}</span>`;
       }
     }
     const examplesHtml = api?.examples && Array.isArray(api.examples) && api.examples.length
@@ -200,8 +264,8 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
         const obj = typeof ex === 'string' ? (tryParseJson(ex) ?? { description: ex }) : ex;
         const nameHtml = obj?.name ? `<div class="ex-name">${escapeHtml(String(obj.name))}</div>` : '';
         const descHtml = obj?.description ? `<div class="ex-desc">${escapeHtml(String(obj.description))}</div>` : '';
-        const exInputs = obj?.inputs ? renderParamTable(typeof obj.inputs === 'string' ? (tryParseJson(obj.inputs) ?? obj.inputs) : obj.inputs, 'Value') : '';
-        const exOutputs = obj?.outputs ? renderParamTable(typeof obj.outputs === 'string' ? (tryParseJson(obj.outputs) ?? obj.outputs) : obj.outputs, 'Value') : '';
+        const exInputs = obj?.inputs ? renderParamTable(typeof obj.inputs === 'string' ? (tryParseJson(obj.inputs) ?? obj.inputs) : obj.inputs, 'Default') : '';
+        const exOutputs = obj?.outputs ? renderParamTable(typeof obj.outputs === 'string' ? (tryParseJson(obj.outputs) ?? obj.outputs) : obj.outputs, 'Default') : '';
         const exTryBtn = tryItEnabled ? `<button class="try-btn-sm" onclick="tryExample(${idx}, ${i}, event)" type="button">Try</button>` : '';
         const ioBlocks = [
           exInputs ? `<div class="ex-sub"><strong>Inputs</strong>${exInputs}</div>` : '',
@@ -214,10 +278,10 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     const endpoint = extractEndpoint(api?.url);
     const desc = api?.description ? `<div class="desc">${escapeHtml(api.description)}</div>` : '';
     const outputSource = (api as any)?.outputs !== undefined ? (api as any).outputs : (api as any)?.output;
-    const output = outputSource ? renderParamTable(typeof outputSource === 'string' ? (tryParseJson(outputSource) ?? outputSource) : outputSource, 'Type') : '';
-    const inputs = api?.inputs ? renderParamTable(typeof api.inputs === 'string' ? (tryParseJson(api.inputs) ?? api.inputs) : api.inputs, 'Value') : '';
+    const output = outputSource ? renderParamTable(typeof outputSource === 'string' ? (tryParseJson(outputSource) ?? outputSource) : outputSource, 'Path') : '';
+    const inputs = api?.inputs ? renderParamTable(typeof api.inputs === 'string' ? (tryParseJson(api.inputs) ?? api.inputs) : api.inputs, 'Default') : '';
     const queryObj = (api as any)?.query;
-    const query = isNonEmpty(queryObj) ? renderParamTable(typeof queryObj === 'string' ? (tryParseJson(queryObj) ?? queryObj) : queryObj, 'Value') : '';
+    const query = isNonEmpty(queryObj) ? renderParamTable(typeof queryObj === 'string' ? (tryParseJson(queryObj) ?? queryObj) : queryObj, 'Default') : '';
     const metaHtml = [
       headers ? `<h3>Headers</h3>${headers}` : '',
       cookies ? `<h3>Cookies</h3>${cookies}` : '',
@@ -245,9 +309,6 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     // Build Try It panel
     let tryPanel = '';
     if (tryItEnabled) {
-      const bodyStr = api?.body !== undefined && api?.body !== null
-        ? (typeof api.body === 'object' ? JSON.stringify(api.body, null, 2) : String(api.body))
-        : '';
       const methodOptions = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']
         .map(m => `<option value="${m}" ${m === method ? 'selected' : ''}>${m}</option>`)
         .join('');
@@ -270,7 +331,7 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
             <h3>Headers</h3>
             <div class="try-kv" id="try-headers-${idx}">${headersKV}</div>
             <button class="try-add-btn" onclick="addKVRow('try-headers-${idx}')" type="button">+ Add Header</button>
-            ${bodyStr || method === 'POST' || method === 'PUT' || method === 'PATCH' ? `<h3>Body</h3><textarea class="try-body" id="try-body-${idx}" rows="6">${escapeHtml(bodyStr)}</textarea>` : ''}
+            ${bodyResolved || method === 'POST' || method === 'PUT' || method === 'PATCH' ? `<h3>Body</h3><textarea class="try-body" id="try-body-${idx}" rows="6">${escapeHtml(bodyResolved)}</textarea>` : ''}
             <div><button class="try-send-btn" onclick="sendTryRequest(${idx})" type="button">Send</button></div>
           </div>
           <div class="try-response" id="try-response-${idx}"></div>
@@ -290,7 +351,7 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
           const obj = typeof ex === 'string' ? (tryParseJson(ex) ?? {}) : ex;
           return { name: obj?.name, inputs: obj?.inputs || {} };
         }),
-        corsProxy: corsProxy,
+        cors_proxy: corsProxy,
       };
     }
 
@@ -325,11 +386,11 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
   let contentHtml = '';
   const anyServices = Array.isArray(opts.services) && opts.services.length > 0;
   const anySources = Array.isArray(opts.sources) && opts.sources.length > 0;
-  if ((anyServices || anySources) && (apis || []).some(a => (a as any).__file)) {
+  if ((anyServices || anySources) && resolvedApis.some(a => (a as any).__file)) {
     type Group = { title: string; description?: string; items: any[] };
     const groups: Group[] = [];
     const taken = new Set<string>();
-    const listApis = (apis || []) as any[];
+    const listApis = resolvedApis as any[];
     if (anyServices) {
       for (const svc of opts.services || []) {
         const svcSources = (svc?.sources || []) as string[];
@@ -371,7 +432,7 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
       contentHtml = topHtml + groupsHtml;
     }
   } else {
-    contentHtml = makeRows(apis || []);
+    contentHtml = makeRows(resolvedApis);
   }
 
   // Use embedded HTML template (generated at build time) and inject content.

@@ -1,4 +1,4 @@
-import {extractEndpoint} from './docHtml';
+import {extractEndpoint, resolveEnvVars, resolveEnvInApi} from './docHtml';
 import { formatBody } from './markupConvertor';
 
 export interface BuildDocMdOptions {
@@ -7,6 +7,7 @@ export interface BuildDocMdOptions {
   logo?: string;
   sources?: string[];
   services?: Array<{name?: string; description?: string; sources?: string[]}>;
+  env?: Record<string, string>;
 }
 
 function cleanPath(p: string): string {
@@ -32,7 +33,7 @@ function fence(code: string, lang = ''): string {
   return '```' + lang + '\n' + safe + '\n```';
 }
 
-function renderTableFromObject(obj: any, valueHeader = 'Value'): string {
+function renderTableFromObject(obj: any, valueHeader = 'Default'): string {
   if (!obj || typeof obj !== 'object') return '';
   const entries = Object.entries(obj);
   if (!entries.length) return '';
@@ -45,17 +46,23 @@ function renderTableFromObject(obj: any, valueHeader = 'Value'): string {
 
 export function buildDocMarkdown(
     apis: any[], opts: BuildDocMdOptions = {}): string {
-  const title = opts.title || 'Documentation';
+  const env = opts.env;
+  const title = (env && opts.title) ? resolveEnvVars(opts.title, env) : (opts.title || 'Documentation');
+  const descriptionRaw = opts.description;
+  const description = (env && descriptionRaw) ? resolveEnvVars(descriptionRaw, env) : descriptionRaw;
   const lines: string[] = [];
-  lines.push(`# ${title}`);
-  if (opts.description) {
-    lines.push('', opts.description);
+  lines.push(`# ${title || 'Documentation'}`);
+  if (description) {
+    lines.push('', description);
   }
 
   const anyServices = Array.isArray(opts.services) && opts.services.length > 0;
   const anySources = Array.isArray(opts.sources) && opts.sources.length > 0;
 
-  const listApis = (apis || []) as any[];
+  // Resolve e:xxx environment placeholders once across all APIs
+  const listApis = ((env && Object.keys(env).length)
+    ? (apis || []).map(a => resolveEnvInApi(a, env))
+    : (apis || [])) as any[];
   const taken = new Set<string>();
 
   const renderApi = (api: any) => {
@@ -73,11 +80,11 @@ export function buildDocMarkdown(
     // Parameters section
     lines.push('', '### Parameters');
     if (api?.url) { lines.push('', `**URL**: \`${String(api.url)}\``); }
-    if (api?.inputs) { lines.push('', '**Inputs**', renderTableFromObject(api.inputs, 'Default Value')); }
+    if (api?.inputs) { lines.push('', '**Inputs**', renderTableFromObject(api.inputs, 'Default')); }
     const outputSource = (api as any)?.outputs !== undefined ? (api as any).outputs : (api as any)?.output;
-    if (outputSource) { lines.push('', '**Outputs**', renderTableFromObject(outputSource, 'Value')); }
-    if (api?.headers && Object.keys(api.headers).length) { lines.push('', '**Headers**', renderTableFromObject(api.headers, 'Value')); }
-    if (api?.cookies && Object.keys(api.cookies).length) { lines.push('', '**Cookies**', renderTableFromObject(api.cookies, 'Value')); }
+    if (outputSource) { lines.push('', '**Outputs**', renderTableFromObject(outputSource, 'Path')); }
+    if (api?.headers && Object.keys(api.headers).length) { lines.push('', '**Headers**', renderTableFromObject(api.headers, 'Default')); }
+    if (api?.cookies && Object.keys(api.cookies).length) { lines.push('', '**Cookies**', renderTableFromObject(api.cookies, 'Default')); }
     // Body
     if (api?.body !== undefined && api?.body !== null && String(api.body).length) {
       const fmtRaw = String(api?.format || 'json').toLowerCase();
@@ -92,8 +99,8 @@ export function buildDocMarkdown(
         const obj = typeof ex === 'string' ? { description: ex } : ex;
         const exTitle = obj?.name ? String(obj.name) : 'Example';
         lines.push('', `**${exTitle}**`);
-        if (obj?.inputs) { lines.push('', 'Inputs', renderTableFromObject(obj.inputs, 'Value')); }
-        if (obj?.outputs) { lines.push('', 'Outputs', renderTableFromObject(obj.outputs, 'Value')); }
+        if (obj?.inputs) { lines.push('', 'Inputs', renderTableFromObject(obj.inputs, 'Default')); }
+        if (obj?.outputs) { lines.push('', 'Outputs', renderTableFromObject(obj.outputs, 'Default')); }
       });
     }
   };

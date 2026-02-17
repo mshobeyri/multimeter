@@ -101,7 +101,7 @@ Open this file in VS Code; the Doc view renders an interactive, searchable page 
 
 ## Try It (interactive API testing)
 
-Add `html.tryIt: true` to enable Swagger-like "Try" buttons on every endpoint in the HTML doc:
+Add `html.triable: true` to enable Swagger-like "Try" buttons on every endpoint in the HTML doc:
 
 ```yaml
 type: doc
@@ -109,7 +109,7 @@ title: My APIs
 sources:
   - ./apis
 html:
-  tryIt: true
+  triable: true
 ```
 
 Each endpoint gets a **Try** button on the right side of its header. Clicking it slides open an interactive panel where you can:
@@ -125,11 +125,31 @@ Browser security blocks requests to APIs on different domains unless the API ser
 
 ```yaml
 html:
-  tryIt: true
-  corsProxy: "https://corsproxy.io/?"
+  triable: true
+  cors_proxy: "https://corsproxy.io/?"
 ```
 
 The proxy URL is prepended to the target URL when sending requests.
+
+---
+
+## Environment variables
+
+Use the `env` key at the doc root to define key-value pairs that replace `e:key` placeholders across all API content in both HTML and Markdown output:
+
+```yaml
+type: doc
+title: My APIs
+sources:
+  - ./apis
+env:
+  url: http://localhost:8080
+  token: my-secret-token
+```
+
+Every occurrence of `e:url` in API URLs, headers, bodies, descriptions, inputs, query parameters, cookies, and examples is replaced with `http://localhost:8080`. Similarly, `e:token` becomes `my-secret-token`.
+
+Placeholders are resolved **once** at render time. The doc-level `title` and `description` are also resolved.
 
 ---
 
@@ -139,5 +159,6 @@ The proxy URL is prepended to the target URL when sending requests.
 - sources: string[] (folders or `.mmt` files)
 - services: array of { name?: string, description?: string, sources?: string[] }
 - html: object with optional keys:
-  - tryIt: boolean — enable interactive Try buttons
-  - corsProxy: string — CORS proxy URL prefix
+  - triable: boolean — enable interactive Try buttons
+  - cors_proxy: string — CORS proxy URL prefix
+- env: object — key-value pairs that replace `e:key` placeholders in the rendered output

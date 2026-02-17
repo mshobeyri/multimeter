@@ -614,10 +614,14 @@ export const DocSchema = {
         html: {
             type: 'object',
             properties: {
-                tryIt: { type: 'boolean' },
-                corsProxy: { type: 'string' }
+                triable: { type: 'boolean' },
+                cors_proxy: { type: 'string' }
             },
             additionalProperties: false
+        },
+        env: {
+            type: 'object',
+            additionalProperties: { type: 'string' }
         }
     },
     additionalProperties: false

@@ -114,9 +114,9 @@ const DocEdit: React.FC<DocEditProps> = ({ doc, update }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
             <input
               type="checkbox"
-              checked={!!(doc.html?.tryIt)}
+              checked={!!(doc.html?.triable)}
               onChange={e => {
-                const html = { ...(doc.html || {}), tryIt: e.target.checked };
+                const html = { ...(doc.html || {}), triable: e.target.checked };
                 update({ html });
               }}
               id="tryit-toggle"
@@ -126,9 +126,9 @@ const DocEdit: React.FC<DocEditProps> = ({ doc, update }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ whiteSpace: 'nowrap' }}>CORS Proxy:</span>
             <input
-              value={doc.html?.corsProxy || ''}
+              value={doc.html?.cors_proxy || ''}
               onChange={e => {
-                const html = { ...(doc.html || {}), corsProxy: e.target.value };
+                const html = { ...(doc.html || {}), cors_proxy: e.target.value };
                 update({ html });
               }}
               placeholder="https://corsproxy.io/?"

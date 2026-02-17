@@ -58,14 +58,23 @@ export function yamlToDoc(yamlContent: string): DocData {
     }
     if (doc.html && typeof doc.html === 'object') {
       const htmlOpts: DocHtmlOptions = {};
-      if (doc.html.tryIt !== undefined) {
-        htmlOpts.tryIt = !!doc.html.tryIt;
+      if (doc.html.triable !== undefined) {
+        htmlOpts.triable = !!doc.html.triable;
       }
-      if (doc.html.corsProxy && typeof doc.html.corsProxy === 'string') {
-        htmlOpts.corsProxy = doc.html.corsProxy;
+      if (doc.html.cors_proxy && typeof doc.html.cors_proxy === 'string') {
+        htmlOpts.cors_proxy = doc.html.cors_proxy;
       }
       if (Object.keys(htmlOpts).length) {
         res.html = htmlOpts;
+      }
+    }
+    if (doc.env && typeof doc.env === 'object' && !Array.isArray(doc.env)) {
+      const envMap: Record<string, string> = {};
+      for (const [k, v] of Object.entries(doc.env)) {
+        envMap[k] = String(v);
+      }
+      if (Object.keys(envMap).length) {
+        res.env = envMap;
       }
     }
     return res;
@@ -98,15 +107,18 @@ export function docToYaml(data: DocData): string {
   }
   if (data.html && typeof data.html === 'object') {
     const h: any = {};
-    if (data.html.tryIt !== undefined) {
-      h.tryIt = data.html.tryIt;
+    if (data.html.triable !== undefined) {
+      h.triable = data.html.triable;
     }
-    if (data.html.corsProxy) {
-      h.corsProxy = data.html.corsProxy;
+    if (data.html.cors_proxy) {
+      h.cors_proxy = data.html.cors_proxy;
     }
     if (Object.keys(h).length) {
       out.html = h;
     }
+  }
+  if (data.env && typeof data.env === 'object' && Object.keys(data.env).length) {
+    out.env = { ...data.env };
   }
   return packYaml(out);
 }

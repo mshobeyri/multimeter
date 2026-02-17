@@ -42,6 +42,7 @@ const DocViewHTML: React.FC<DocViewProps> = ({ doc }) => {
   const docServices = (doc as any).services;
   const docSources = Array.isArray((doc as any).sources) ? (doc as any).sources : undefined;
   const docHtmlOpts = (doc as any).html;
+  const docEnv = (doc as any).env;
 
   useEffect(() => {
     let cancelled = false;
@@ -97,10 +98,11 @@ const DocViewHTML: React.FC<DocViewProps> = ({ doc }) => {
         sources: docSources,
         services: Array.isArray(docServices) ? docServices : undefined,
         html: docHtmlOpts,
+        env: docEnv,
       }));
     })();
     return () => { cancelled = true; };
-  }, [sources, docTitle, docDescription, docLogo, docServices, docSources, docHtmlOpts]);
+  }, [sources, docTitle, docDescription, docLogo, docServices, docSources, docHtmlOpts, docEnv]);
 
   useEffect(() => {
     if (!iframeRef.current) return;

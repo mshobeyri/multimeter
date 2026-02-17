@@ -42,6 +42,7 @@ const DocViewMarkdown: React.FC<DocViewProps> = ({ doc }) => {
   const docTheme = (doc as any).theme;
   const docServices = (doc as any).services;
   const docSources = Array.isArray((doc as any).sources) ? (doc as any).sources : undefined;
+  const docEnv = (doc as any).env;
 
   useEffect(() => {
     let cancelled = false;
@@ -96,10 +97,11 @@ const DocViewMarkdown: React.FC<DocViewProps> = ({ doc }) => {
         logoDataUrl,
         sources: docSources,
         services: Array.isArray(docServices) ? docServices : undefined,
+        env: docEnv,
       }));
     })();
     return () => { cancelled = true; };
-  }, [sources, docTitle, docDescription, docTheme, docServices, docSources]);
+  }, [sources, docTitle, docDescription, docTheme, docServices, docSources, docEnv]);
 
   const handleExport = () => {
     window.vscode?.postMessage({ command: 'exportMarkdown', markdown: md, title: doc.title || 'documentation' });

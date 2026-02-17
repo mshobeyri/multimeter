@@ -623,7 +623,13 @@ export const DOC_TEMPLATE_HTML = `
   }
   .try-form select {
     cursor: pointer;
-    appearance: auto;
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 36px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23aaa'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 10px 6px;
   }
 
   .try-kv { margin: 4px 0; }
@@ -768,6 +774,17 @@ export const DOC_TEMPLATE_HTML = `
     function toggleDetails(idx) {
       const details = document.getElementById('details-' + idx);
       const toggle = document.getElementById('toggle-' + idx);
+      const tryPanel = document.getElementById('try-panel-' + idx);
+      const btn = document.getElementById('try-btn-' + idx);
+      // If try panel is open, collapse everything
+      if (tryPanel && tryPanel.style.display !== 'none') {
+        tryPanel.style.display = 'none';
+        if (details) { details.style.display = 'none'; }
+        if (btn) { btn.textContent = 'Try'; btn.classList.remove('try-btn-active'); }
+        toggle.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        return;
+      }
       const isClosed = details.style.display === 'none';
       if (isClosed) {
         details.style.display = 'block';
@@ -857,7 +874,9 @@ export const DOC_TEMPLATE_HTML = `
     apiSections.forEach(function(section) {
       const toggleBtn = section.querySelector('h2');
       if (toggleBtn) {
-        toggleBtn.addEventListener('click', function() {
+        toggleBtn.addEventListener('click', function(e) {
+          // Don't toggle open class if the try button was clicked
+          if (e.target.closest && e.target.closest('.try-btn')) { return; }
           section.classList.toggle('open');
         });
       }
@@ -901,6 +920,7 @@ export const DOC_TEMPLATE_HTML = `
     function closeTryPanel(idx) {
       var tryPanel = document.getElementById('try-panel-' + idx);
       var btn = document.getElementById('try-btn-' + idx);
+      var details = document.getElementById('details-' + idx);
       if (!tryPanel) { return; }
       if (btn) { btn.textContent = 'Try'; btn.classList.remove('try-btn-active'); }
       var inner = tryPanel.querySelector('.try-panel-inner');
@@ -909,9 +929,11 @@ export const DOC_TEMPLATE_HTML = `
         setTimeout(function() {
           tryPanel.style.display = 'none';
           inner.style.animation = '';
+          if (details) { details.style.display = 'block'; }
         }, 250);
       } else {
         tryPanel.style.display = 'none';
+        if (details) { details.style.display = 'block'; }
       }
     }
 
@@ -1005,7 +1027,7 @@ export const DOC_TEMPLATE_HTML = `
       }
 
       var body = bodyInput ? bodyInput.value : null;
-      var corsProxy = meta.corsProxy || '';
+      var corsProxy = meta.cors_proxy || '';
       var fetchUrl = corsProxy ? corsProxy + encodeURIComponent(url) : url;
 
       var sendBtn = document.querySelector('#try-panel-' + idx + ' .try-send-btn');
@@ -1044,7 +1066,7 @@ export const DOC_TEMPLATE_HTML = `
           '<span class="try-response-status error">Error</span>' +
           '<span class="try-response-time">' + elapsed2 + 'ms</span>' +
           '<pre class="try-response-body">' + escapeHtmlJS(String(err.message || err)) +
-          '\\n\\nIf this is a CORS error, configure your API server to set Access-Control-Allow-Origin headers,\\nor set corsProxy in the html options of your doc .mmt file.\\nExample:\\nhtml:\\n  corsProxy: https://corsproxy.io/?' + '</pre>';
+          '\\n\\nIf this is a CORS error, configure your API server to set Access-Control-Allow-Origin headers,\\nor set cors_proxy in the html options of your doc .mmt file.\\nExample:\\nhtml:\\n  cors_proxy: https://corsproxy.io/?' + '</pre>';
       }
       if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send'; }
     }
