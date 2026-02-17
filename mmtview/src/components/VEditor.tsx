@@ -13,6 +13,7 @@ interface VEditorProps {
   valueOptions?: string[];      // List of allowed values (optional)
   disabled?: boolean;
   deletable?: boolean;
+  copyable?: boolean;
 }
 
 const VEditor: React.FC<VEditorProps> = ({
@@ -22,7 +23,8 @@ const VEditor: React.FC<VEditorProps> = ({
   keyOptions,
   valueOptions,
   disabled,
-  deletable = true
+  deletable = true,
+  copyable = false
 }) => {
   const keys = typeof keyOptions === "string" ? [keyOptions]: keyOptions;
 
@@ -59,50 +61,49 @@ const VEditor: React.FC<VEditorProps> = ({
       >
         {label}
       </div>
-      <table style={{ width: "100%" }}>
-        <tbody>
-          {safeList(keys).map((key, index) => {
-            const currentValue = value?.[key];
-            const displayValue = valueToString(currentValue === undefined ? "" : currentValue);
-            const hasValue = currentValue !== undefined;
+      <div>
+        {safeList(keys).map((key, index) => {
+          const currentValue = value?.[key];
+          const displayValue = valueToString(currentValue === undefined ? "" : currentValue);
+          const hasValue = currentValue !== undefined;
 
-            return (
-              <tr key={key}>
-                <td style={{ width: "50%" }}>
-                  <span style={{ fontWeight: 500 }}>{key}</span>
-                  {hasValue && (
-                    <span style={{ fontSize: "8px", color: "#888", marginLeft: "4px" }}>
-                      ({typeof currentValue})
-                    </span>
-                  )}
-                </td>
-                <td style={{ width: "50%" }}>
-                  {valueOptions && valueOptions.length > 0 ? (
-                    <SelectWithRemove
-                      value={displayValue}
-                      onChange={newVal => handleValueChange(index, newVal)}
-                      onRemovePressed={() => handleRemove(index)}
-                      options={valueOptions}
-                      placeholder="Value"
-                      disabled={disabled}
-                      removable={deletable}
-                    />
-                  ) : (
-                    <FieldWithRemove
-                      value={displayValue}
-                      onChange={newVal => handleValueChange(index, newVal)}
-                      onRemovePressed={() => handleRemove(index)}
-                      placeholder="Value"
-                      disabled={disabled}
-                      removable={deletable && hasValue}
-                    />
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+          return (
+            <div key={key} style={{ marginBottom: 8, paddingLeft: 20 }}>
+              <div style={{ marginBottom: 2 }}>
+                <span style={{ fontWeight: 500 }}>{key}</span>
+                {hasValue && (
+                  <span style={{ fontSize: "8px", color: "#888", marginLeft: "4px" }}>
+                    ({typeof currentValue})
+                  </span>
+                )}
+              </div>
+              <div>
+                {valueOptions && valueOptions.length > 0 ? (
+                  <SelectWithRemove
+                    value={displayValue}
+                    onChange={newVal => handleValueChange(index, newVal)}
+                    onRemovePressed={() => handleRemove(index)}
+                    options={valueOptions}
+                    placeholder="Value"
+                    disabled={disabled}
+                    removable={deletable}
+                  />
+                ) : (
+                  <FieldWithRemove
+                    value={displayValue}
+                    onChange={newVal => handleValueChange(index, newVal)}
+                    onRemovePressed={() => handleRemove(index)}
+                    placeholder="Value"
+                    disabled={disabled}
+                    removable={deletable && hasValue}
+                    copyable={copyable}
+                  />
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 };

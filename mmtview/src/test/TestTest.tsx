@@ -1,10 +1,13 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { TestData } from 'mmt-core/TestData';
+import { JSONRecord } from 'mmt-core/CommonData';
 
 import { FileContext } from '../fileContext';
 import { setEnvironmentVariable } from '../environment/environmentUtils';
 import TestStepReportPanel, { StepReportItem } from '../shared/TestStepReportPanel';
 import { StepStatus } from '../shared/types';
+import VEditor from '../components/VEditor';
+import { loadEnvVariables } from '../workspaceStorage';
 
 interface TestTestProps {
     testData: TestData;
@@ -18,6 +21,78 @@ const TestTest: React.FC<TestTestProps> = (props) => {
     const latestRunIdRef = useRef<string | null>(null);
     const ignoredRunIdsRef = useRef<Set<string>>(new Set());
     const stepCountRef = useRef(0);
+
+    // Inputs/outputs state
+    const [currentInputs, setCurrentInputs] = useState<JSONRecord>({});
+    const currentInputsRef = useRef<JSONRecord>({});
+    const [outputs, setOutputs] = useState<JSONRecord>({});
+
+    const inputKeys = useMemo(() => {
+        const raw = props.testData.inputs;
+        if (!raw || typeof raw !== 'object') {
+            return [];
+        }
+        return Object.keys(raw);
+    }, [props.testData.inputs]);
+
+    const outputKeys = useMemo(() => {
+        const raw = props.testData.outputs;
+        if (!raw || typeof raw !== 'object') {
+            return [];
+        }
+        return Object.keys(raw);
+    }, [props.testData.outputs]);
+
+    const hasInputs = inputKeys.length > 0;
+    const hasOutputs = outputKeys.length > 0;
+
+    // Resolve env variables in default input values
+    useEffect(() => {
+        const defaults: JSONRecord = { ...(props.testData.inputs || {}) };
+        const resolveDefaults = (envVars: any[]) => {
+            const envParameters: JSONRecord = (envVars || []).reduce((acc: JSONRecord, envVar: any) => {
+                if (envVar && typeof envVar === 'object' && typeof envVar.name === 'string') {
+                    acc[envVar.name] = envVar.value;
+                }
+                return acc;
+            }, {} as JSONRecord);
+            // Resolve e:xxx references in default values
+            const resolved: JSONRecord = {};
+            for (const [key, val] of Object.entries(defaults)) {
+                if (typeof val === 'string') {
+                    let resolvedVal: string = val;
+                    resolvedVal = resolvedVal.replace(/<<\s*e:([A-Za-z0-9_]+)\s*>>/g, (_m, name) => {
+                        const envVal = envParameters[name];
+                        return envVal !== undefined ? String(envVal) : _m;
+                    });
+                    resolvedVal = resolvedVal.replace(/<\s*e:([A-Za-z0-9_]+)\s*>/g, (_m, name) => {
+                        const envVal = envParameters[name];
+                        return envVal !== undefined ? String(envVal) : _m;
+                    });
+                    resolvedVal = resolvedVal.replace(/\be:\{([A-Za-z0-9_]+)\}/g, (_m, name) => {
+                        const envVal = envParameters[name];
+                        return envVal !== undefined ? String(envVal) : _m;
+                    });
+                    resolvedVal = resolvedVal.replace(/\be:([A-Za-z0-9_]+)(?![A-Za-z0-9_])/g, (_m, name) => {
+                        const envVal = envParameters[name];
+                        return envVal !== undefined ? String(envVal) : _m;
+                    });
+                    resolved[key] = resolvedVal;
+                } else {
+                    resolved[key] = val;
+                }
+            }
+            setCurrentInputs(resolved);
+            currentInputsRef.current = resolved;
+        };
+
+        const cleanup = loadEnvVariables(resolveDefaults);
+        return cleanup;
+    }, [props.testData.inputs]);
+
+    useEffect(() => {
+        currentInputsRef.current = currentInputs;
+    }, [currentInputs]);
 
     useEffect(() => {
         stepCountRef.current = stepReports.length;
@@ -40,8 +115,14 @@ const TestTest: React.FC<TestTestProps> = (props) => {
         }
         latestRunIdRef.current = null;
         setStepReports([]);
+        setOutputs({});
         setRunState('running');
-        window.vscode?.postMessage({ command: 'runCurrentDocument' });
+        window.vscode?.postMessage({
+            command: 'runCurrentDocument',
+            inputs: {
+                manualInputs: currentInputsRef.current,
+            },
+        });
     }, [trimIgnoredRuns]);
 
     const appendReport = useCallback((report: StepReportItem) => {
@@ -74,14 +155,14 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                 return;
             }
             const scope = typeof message.scope === 'string' ? message.scope : undefined;
-            if (scope !== 'test-step' && scope !== 'test-step-run' && scope !== 'test-finished' && scope !== 'setenv') {
+            if (scope !== 'test-step' && scope !== 'test-step-run' && scope !== 'test-finished' && scope !== 'setenv' && scope !== 'test-outputs') {
                 return;
             }
             const runId = typeof message.runId === 'string' ? message.runId : null;
             if (runId && !acceptRunEvent(runId)) {
                 return;
             }
-            if (!runId && scope !== 'test-finished' && scope !== 'setenv' && latestRunIdRef.current) {
+            if (!runId && scope !== 'test-finished' && scope !== 'setenv' && scope !== 'test-outputs' && latestRunIdRef.current) {
                 return;
             }
 
@@ -92,6 +173,14 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                 const label = testTitle ? `test - ${testTitle}` : 'test';
                 if (name) {
                     setEnvironmentVariable(name, value, label);
+                }
+                return;
+            }
+
+            if (scope === 'test-outputs') {
+                const receivedOutputs = message.outputs;
+                if (receivedOutputs && typeof receivedOutputs === 'object') {
+                    setOutputs(receivedOutputs);
                 }
                 return;
             }
@@ -170,6 +259,35 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                     {props.rightOfRunButton}
                 </div>
             </div>
+            {hasInputs && (
+                <div style={{ marginBottom: 12 }}>
+                    <VEditor
+                        label="Inputs"
+                        value={currentInputs}
+                        onChange={(data) => {
+                            setCurrentInputs(data);
+                            currentInputsRef.current = data;
+                        }}
+                        keyOptions={inputKeys}
+                        deletable={false}
+                    />
+                </div>
+            )}
+            {hasOutputs && (
+                <div style={{ marginBottom: 12 }}>
+                    <VEditor
+                        label="Outputs"
+                        value={outputs}
+                        onChange={() => {}}
+                        keyOptions={outputKeys}
+                        deletable={false}
+                        copyable={true}
+                    />
+                </div>
+            )}
+            {(hasInputs || hasOutputs) && (
+                <div className="label" style={{ marginBottom: 10 }}>Report</div>
+            )}
             <TestStepReportPanel
                 isExpanded={true}
                 stepReports={stepReports}

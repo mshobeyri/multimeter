@@ -1,7 +1,7 @@
 import {LogLevel} from './CommonData';
 import * as JSer from './JSer';
 import {isPlainObject, PreparedRun, RunFileResult, runGeneratedJs, sanitizeIdentifier} from './runCommon';
-import {GenerateJsOptions, mergeInputs, RunFileOptions, TestRunSummaryEvent, TestStepReporterEvent} from './runConfig';
+import {GenerateJsOptions, mergeInputs, RunFileOptions, TestOutputsReporterEvent, TestRunSummaryEvent, TestStepReporterEvent} from './runConfig';
 import * as testParsePack from './testParsePack';
 
 const createRunId = (): string => {
@@ -105,6 +105,15 @@ export async function executeTest(
       runId, js, displayName, options.logger, options.jsRunner, stepReporter,
       (options as any).id, options.fileLoader, setenvReporter);
   if (forwardReporter) {
+    if (result.outputs && typeof result.outputs === 'object' && Object.keys(result.outputs).length > 0) {
+      const outputsEvent: TestOutputsReporterEvent = {
+        scope: 'test-outputs',
+        runId,
+        outputs: result.outputs,
+        id: (options as any).id,
+      };
+      forwardReporter(outputsEvent);
+    }
       const summary: TestRunSummaryEvent = {
         scope: 'test-step-run',
         runId,

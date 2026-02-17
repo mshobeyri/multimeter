@@ -149,7 +149,7 @@ export async function handleRunCurrentDocument(
       fileType: 'raw' as any,
       filePath: document.uri.fsPath,
       exampleIndex: message?.inputs?.exampleIndex,
-      manualInputs: {},
+      manualInputs: message?.inputs?.manualInputs || {},
       envvar: envVars,
       manualEnvvars: {},
       fileLoader,

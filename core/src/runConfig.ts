@@ -68,9 +68,17 @@ export interface SetEnvReporterEvent {
   timestamp?: number;
 }
 
+export interface TestOutputsReporterEvent {
+  scope: 'test-outputs';
+  runId: string;
+  outputs: Record<string, any>;
+  id?: string;
+}
+
 export type RunReporterMessage =
   SuiteReporterMessage|TestStepReporterEvent|TestRunSummaryEvent|
-  SuiteRunStartEvent|SuiteRunFinishedEvent|SetEnvReporterEvent;
+  SuiteRunStartEvent|SuiteRunFinishedEvent|SetEnvReporterEvent|
+  TestOutputsReporterEvent;
 
 export interface RunResult {
   success: boolean;
@@ -78,6 +86,7 @@ export interface RunResult {
   errors: string[];
   logs?: string[];
   threw?: boolean;
+  outputs?: Record<string, any>;
 }
 
 export interface GenerateJsOptions {
@@ -115,7 +124,7 @@ export interface RunFileOptions {
   envvar?: Record<string, any>;
   manualEnvvars?: Record<string, any>;
   fileLoader: FileLoader;
-  jsRunner: (context: RunJSCodeContext) => Promise<void>;
+  jsRunner: (context: RunJSCodeContext) => Promise<any>;
   logger: (level: LogLevel, msg: string) => void;
   reporter: (message: RunReporterMessage) => void;
 

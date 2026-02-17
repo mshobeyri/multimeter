@@ -32,7 +32,7 @@ export interface PreparedRun {
 export async function runGeneratedJs(
     runId: string, js: string, name: string,
     logger: (level: LogLevel, msg: string) => void,
-    jsRunner: (context: RunJSCodeContext) => Promise<void>,
+    jsRunner: (context: RunJSCodeContext) => Promise<any>,
     stepReporter?: (event: TestStepReporterEvent) => void,
   id?: string,
   fileLoader?: (path: string) => Promise<string>,
@@ -52,7 +52,7 @@ export async function runGeneratedJs(
       errors.push('Empty JS input');
       return {success: false, durationMs: Date.now() - start, errors, logs};
     }
-    await jsRunner({
+    const returnValue = await jsRunner({
       runId,
       js,
       title: name,
@@ -62,11 +62,13 @@ export async function runGeneratedJs(
         id,
     });
 
+    const outputs = returnValue && typeof returnValue === 'object' ? returnValue : undefined;
     return {
       success: errors.length === 0,
       durationMs: Date.now() - start,
       errors,
-      logs
+      logs,
+      outputs,
     };
   } catch (e: any) {
     errors.push(e?.message || String(e));

@@ -139,15 +139,18 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       `const report_ = (...args) => mmtHelper.reportWithContext_(__reporter, __runId, __id, ...args);\n` +
       `const setenv_ = (name, value) => mmtHelper.setenvWithContext_(__reporter, __runId, __id, name, value);\n` +
       `${code}`);
-    await fn(mmtHelper, customConsole, send, extractOutputs, Random, reporterFn, runId, context.id, mmtRandom, mmtCurrent);
-  } catch (e: any) {
-    lg('error', 'Error running test: ' + (e?.message || String(e)));
-  } finally {
+    const returnValue = await fn(mmtHelper, customConsole, send, extractOutputs, Random, reporterFn, runId, context.id, mmtRandom, mmtCurrent);
     restoreReporterGlobals();
     const elapsed = Date.now() - startTime;
     lg('info', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
+    return returnValue;
+  } catch (e: any) {
+    lg('error', 'Error running test: ' + (e?.message || String(e)));
+    restoreReporterGlobals();
+    const elapsed = Date.now() - startTime;
+    lg('info', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
+    return undefined;
   }
-  return;
 }
 
 export {setRunnerNetworkConfig};
