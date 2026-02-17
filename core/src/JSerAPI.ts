@@ -2,7 +2,7 @@ import {APIData} from './APIData';
 import {JSONRecord} from './CommonData';
 import {indentLines, toInputsParams} from './JSerHelper';
 import {formatBody} from './markupConvertor';
-import {replaceAllRefs} from './variableReplacer';
+import {replaceAllRefs, toTemplateWithEnvVars} from './variableReplacer';
 
 export interface APIContext {
   api: APIData, name: string, inputs: JSONRecord, envVars: JSONRecord
@@ -40,33 +40,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   } catch {
   }
 
-  // Helpers to build template literals with env variable slots safely
-  const escapeBackticks = (s: string) => String(s ?? '').replace(/`/g, '\\`');
-  const toTemplateWithEnvs = (s: string) => {
-    const src = String(s ?? '');
-    // Normalize env tokens to envVariables.NAME first
-    let withEnv =
-        src.replace(/<<\s*e:([A-Za-z_][A-Za-z0-9_]*)\s*>>/g, 'envVariables.$1')
-            .replace(/<\s*e:([A-Za-z_][A-Za-z0-9_]*)\s*>/g, 'envVariables.$1')
-            .replace(/\be:\{([A-Za-z_][A-Za-z0-9_]*)\}/g, 'envVariables.$1')
-            .replace(
-                /\be:([A-Za-z_][A-Za-z0-9_]*)(?![A-Za-z0-9_])/g,
-                'envVariables.$1');
-    // Inject ${envVariables.NAME}, avoiding double-wrapping
-    withEnv = withEnv.replace(
-        /envVariables\.([A-Za-z_][A-Za-z0-9_]*)/g, (m, name, offset, str) => {
-          if (offset >= 2 && str[offset - 2] === '$' &&
-              str[offset - 1] === '{') {
-            return m;  // already ${envVariables.name}
-          }
-          return '${envVariables.' + name + '}';
-        });
-    // Collapse nested patterns if any
-    withEnv = withEnv.replace(
-        /\$\{\s*\$\{\s*envVariables\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\s*\}/g,
-        '${envVariables.$1}');
-    return '`' + escapeBackticks(withEnv) + '`';
-  };
+  const toTemplateWithEnvs = toTemplateWithEnvVars;
 
   if (replaced.cookies && Object.keys(replaced.cookies).length > 0) {
     let cookies = Object.entries(replaced.cookies || {})

@@ -5,7 +5,7 @@ import {indentLines, toInputsParams, toLowerUnderscore} from './JSerHelper';
 import {importsToJsfunc} from './JSerImports';
 import {flowToJsFunc} from './JSerTestFlow';
 import {TestData} from './TestData';
-import {replaceAllRefs} from './variableReplacer';
+import {normalizeEnvTokens, replaceAllRefs} from './variableReplacer';
 
 export interface TestContext {
   test: TestData, name: string, inputs: JSONRecord, envVars: JSONRecord,
@@ -119,18 +119,14 @@ export const testToJsfunc = async(
 };
 
 export const variableReplacer = (full: string): string => {
-  const replaceOutside = (s: string) =>
-      s.replace(/<<\s*e:([A-Za-z0-9_]+)\s*>>/g, 'envVariables.$1')
-          .replace(/<\s*e:([A-Za-z0-9_]+)\s*>/g, 'envVariables.$1')
-          .replace(/\be:\{([A-Za-z0-9_]+)\}/g, 'envVariables.$1')
-          .replace(/\be:([A-Za-z0-9_]+)(?![A-Za-z0-9_])/g, 'envVariables.$1');
+  const replaceOutside = normalizeEnvTokens;
 
-  const replaceInsideTpl = (s: string) =>
-      s.replace(/<<\s*e:([A-Za-z0-9_]+)\s*>>/g, '${envVariables.$1}')
-          .replace(/<\s*e:([A-Za-z0-9_]+)\s*>/g, '${envVariables.$1}')
-          .replace(/\be:\{([A-Za-z0-9_]+)\}/g, '${envVariables.$1}')
-          .replace(
-              /\be:([A-Za-z0-9_]+)(?![A-Za-z0-9_])/g, '${envVariables.$1}');
+  const replaceInsideTpl = (s: string) => {
+    // Normalize to plain references first, then wrap each in ${…}
+    const normalized = normalizeEnvTokens(s);
+    return normalized.replace(
+        /envVariables\.([A-Za-z_][A-Za-z0-9_]*)/g, '${envVariables.$1}');
+  };
 
   let out = '';
   let i = 0;

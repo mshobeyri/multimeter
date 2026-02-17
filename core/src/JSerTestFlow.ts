@@ -1,49 +1,15 @@
 import {indentLines, toInputsParams} from './JSerHelper';
 import {Comparison, normalizeReportConfig, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
 import {getTestFlowStepType} from './testParsePack';
+import {replaceEnvTokensPlain, toTemplateWithEnvVars} from './variableReplacer';
 
 function randomName(): string {
   // Generate a random stage name like "stage_xxxxx"
   return 'stage_' + Math.random().toString(36).substr(2, 8);
 }
 
-const replaceEnvTokens = (s: string): string =>
-    s.replace(/\be:([A-Za-z_][A-Za-z0-9_]*)\b/g, 'envVariables.$1');
-
-// Build a JS template literal that resolves env tokens at runtime.
-// Examples:
-// - "hello e:NAME" -> `hello ${envVariables.NAME}`
-// - "<e:NAME>" -> `${envVariables.NAME}`
-const escapeBackticks = (s: string): string =>
-    String(s ?? '').replace(/`/g, '\\`');
-const toTemplateWithVars = (s: string): string => {
-  const src = String(s ?? '');
-  // Normalize env tokens to envVariables.NAME first
-  let withEnv =
-      src.replace(/<<\s*e:([A-Za-z_][A-Za-z0-9_]*)\s*>>/g, 'envVariables.$1')
-          .replace(/<\s*e:([A-Za-z_][A-Za-z0-9_]*)\s*>/g, 'envVariables.$1')
-          .replace(/\be:\{([A-Za-z_][A-Za-z0-9_]*)\}/g, 'envVariables.$1')
-          .replace(
-              /\be:([A-Za-z_][A-Za-z0-9_]*)(?![A-Za-z0-9_])/g,
-              'envVariables.$1');
-  // Inject ${envVariables.NAME}, avoiding double-wrapping
-  withEnv = withEnv.replace(
-      /envVariables\.([A-Za-z_][A-Za-z0-9_]*)/g, (m, name, offset, str) => {
-        if (offset >= 2 && str[offset - 2] === '$' && str[offset - 1] === '{') {
-          return m;
-        }
-        return '${envVariables.' + name + '}';
-      });
-  // Collapse nested patterns if any
-  withEnv = withEnv.replace(
-      /\$\{\s*\$\{\s*envVariables\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\s*\}/g,
-      '${envVariables.$1}');
-
-  // Preserve existing ${...} expressions (e.g. ${callId.result_code}) by
-  // default. Nothing to do here; we just need to ensure we emit a template
-  // literal.
-  return '`' + escapeBackticks(withEnv) + '`';
-};
+const replaceEnvTokens = replaceEnvTokensPlain;
+const toTemplateWithVars = toTemplateWithEnvVars;
 
 export const conditionalStatementToJSfunc = (check: string): string => {
   // Replace env tokens like e:FOO -> envVariables.FOO

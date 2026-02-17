@@ -1,6 +1,7 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { TestData } from 'mmt-core/TestData';
 import { JSONRecord } from 'mmt-core/CommonData';
+import { resolveEnvTokenValues } from 'mmt-core/variableReplacer';
 
 import { FileContext } from '../fileContext';
 import { setEnvironmentVariable } from '../environment/environmentUtils';
@@ -60,24 +61,7 @@ const TestTest: React.FC<TestTestProps> = (props) => {
             const resolved: JSONRecord = {};
             for (const [key, val] of Object.entries(defaults)) {
                 if (typeof val === 'string') {
-                    let resolvedVal: string = val;
-                    resolvedVal = resolvedVal.replace(/<<\s*e:([A-Za-z0-9_]+)\s*>>/g, (_m, name) => {
-                        const envVal = envParameters[name];
-                        return envVal !== undefined ? String(envVal) : _m;
-                    });
-                    resolvedVal = resolvedVal.replace(/<\s*e:([A-Za-z0-9_]+)\s*>/g, (_m, name) => {
-                        const envVal = envParameters[name];
-                        return envVal !== undefined ? String(envVal) : _m;
-                    });
-                    resolvedVal = resolvedVal.replace(/\be:\{([A-Za-z0-9_]+)\}/g, (_m, name) => {
-                        const envVal = envParameters[name];
-                        return envVal !== undefined ? String(envVal) : _m;
-                    });
-                    resolvedVal = resolvedVal.replace(/\be:([A-Za-z0-9_]+)(?![A-Za-z0-9_])/g, (_m, name) => {
-                        const envVal = envParameters[name];
-                        return envVal !== undefined ? String(envVal) : _m;
-                    });
-                    resolved[key] = resolvedVal;
+                    resolved[key] = resolveEnvTokenValues(val, envParameters);
                 } else {
                     resolved[key] = val;
                 }

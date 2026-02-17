@@ -1,5 +1,6 @@
 import {JSONValue} from './CommonData';
 import {Type} from './CommonData';
+import {normalizeEnvTokens} from './variableReplacer';
 
 export function indentLines(str: string): string {
   return str.split('\n').map(line => '  ' + line).join('\n').slice(2);
@@ -39,10 +40,10 @@ function toTemplateValue(value: string): string {
   }
 
   // For partial occurrences, convert to template literal with ${...}
-  // Handle <<e:VAR>> style
-  result = result.replace(/<<e:([A-Za-z_][A-Za-z0-9_]*)>>/g, '${envVariables.$1}');
-  // Handle e:VAR style (plain)
-  result = result.replace(/\be:([A-Za-z_][A-Za-z0-9_]*)(?![A-Za-z0-9_])/g, '${envVariables.$1}');
+  // Normalize all e: token forms to envVariables.VAR, then wrap in ${...}
+  const normalized = normalizeEnvTokens(result);
+  result = normalized.replace(
+      /envVariables\.([A-Za-z_][A-Za-z0-9_]*)/g, '${envVariables.$1}');
   // Handle <<r:token>> style
   result = result.replace(/<<r:([A-Za-z_][A-Za-z0-9_\-]*)>>/g, "${__mmt_random('$1')}");
   // Handle r:token style (plain)

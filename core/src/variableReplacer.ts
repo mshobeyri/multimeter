@@ -5,6 +5,86 @@ import {CURRENT_TOKEN_MAP} from './Current';
 import {safeList} from './safer';
 import {TestData} from './TestData';
 
+// ---------------------------------------------------------------------------
+// Shared env-token helpers
+//
+// All forms of env variable references in .mmt files:
+//   <<e:VAR>>   angle-bracket-wrapped
+//   <e:VAR>     single-angle-bracket-wrapped
+//   e:{VAR}     brace-wrapped
+//   e:VAR       plain
+// ---------------------------------------------------------------------------
+
+/**
+ * Normalize all env-token syntaxes to a plain JS reference `envVariables.VAR`.
+ * Used when generating JS code (outside template literals).
+ */
+export const normalizeEnvTokens = (s: string): string =>
+    s.replace(/<<\s*e:([A-Za-z_][A-Za-z0-9_]*)\s*>>/g, 'envVariables.$1')
+        .replace(/<\s*e:([A-Za-z_][A-Za-z0-9_]*)\s*>/g, 'envVariables.$1')
+        .replace(/\be:\{([A-Za-z_][A-Za-z0-9_]*)\}/g, 'envVariables.$1')
+        .replace(
+            /\be:([A-Za-z_][A-Za-z0-9_]*)(?![A-Za-z0-9_])/g,
+            'envVariables.$1');
+
+/**
+ * Simple word-boundary env-token replacement: `e:VAR` → `envVariables.VAR`.
+ * Only handles the plain `e:VAR` form (no angle/brace wrappers).
+ * Useful for short expressions like conditional checks.
+ */
+export const replaceEnvTokensPlain = (s: string): string =>
+    s.replace(/\be:([A-Za-z_][A-Za-z0-9_]*)\b/g, 'envVariables.$1');
+
+const escapeBackticks = (s: string): string =>
+    String(s ?? '').replace(/`/g, '\\`');
+
+/**
+ * Build a JS template literal that resolves env tokens at runtime.
+ *
+ * Examples:
+ * - `"hello e:NAME"`   → `` `hello ${envVariables.NAME}` ``
+ * - `"<<e:NAME>>"`     → `` `${envVariables.NAME}` ``
+ *
+ * Handles all env-token syntaxes, avoids double-wrapping of `${…}`, and
+ * preserves existing `${…}` expressions (e.g. `${callId.result_code}`).
+ */
+export const toTemplateWithEnvVars = (s: string): string => {
+  const src = String(s ?? '');
+  // Normalize env tokens to envVariables.NAME first
+  let withEnv = normalizeEnvTokens(src);
+  // Inject ${envVariables.NAME}, avoiding double-wrapping
+  withEnv = withEnv.replace(
+      /envVariables\.([A-Za-z_][A-Za-z0-9_]*)/g, (m, name, offset, str) => {
+        if (offset >= 2 && str[offset - 2] === '$' && str[offset - 1] === '{') {
+          return m;
+        }
+        return '${envVariables.' + name + '}';
+      });
+  // Collapse nested patterns if any
+  withEnv = withEnv.replace(
+      /\$\{\s*\$\{\s*envVariables\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\s*\}/g,
+      '${envVariables.$1}');
+  return '`' + escapeBackticks(withEnv) + '`';
+};
+
+/**
+ * Resolve env-token references against actual environment values at runtime.
+ * Replaces all `e:` token forms in `s` using values from `envParams`.
+ * If a token is not found in `envParams`, the original token text is kept.
+ */
+export const resolveEnvTokenValues =
+    (s: string, envParams: Record<string, any>): string => {
+      const resolver = (_m: string, name: string) => {
+        const val = envParams[name];
+        return val !== undefined ? String(val) : _m;
+      };
+      return s
+          .replace(/<<\s*e:([A-Za-z0-9_]+)\s*>>/g, resolver)
+          .replace(/<\s*e:([A-Za-z0-9_]+)\s*>/g, resolver)
+          .replace(/\be:\{([A-Za-z0-9_]+)\}/g, resolver)
+          .replace(/\be:([A-Za-z0-9_]+)(?![A-Za-z0-9_])/g, resolver);
+    };
+
 // Replacement modes enum
 enum ReplacementMode {
   BRACE = 'brace',    // <key> format
