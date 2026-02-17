@@ -107,6 +107,36 @@ const DocEdit: React.FC<DocEditProps> = ({ doc, update }) => {
           Add service
         </button>
       </div>
+
+      <div className="panel-form-row">
+        <div className="label">HTML Options</div>
+        <div className="inner-box">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+            <input
+              type="checkbox"
+              checked={!!(doc.html?.tryIt)}
+              onChange={e => {
+                const html = { ...(doc.html || {}), tryIt: e.target.checked };
+                update({ html });
+              }}
+              id="tryit-toggle"
+            />
+            <label htmlFor="tryit-toggle">Enable &ldquo;Try It&rdquo; buttons</label>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ whiteSpace: 'nowrap' }}>CORS Proxy:</span>
+            <input
+              value={doc.html?.corsProxy || ''}
+              onChange={e => {
+                const html = { ...(doc.html || {}), corsProxy: e.target.value };
+                update({ html });
+              }}
+              placeholder="https://corsproxy.io/?"
+              style={{ flex: 1 }}
+            />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

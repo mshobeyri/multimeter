@@ -118,6 +118,11 @@
       Reflect request as response
     </label>
 
+    <label class="mb-12 checkbox-label">
+      <input id="cors" type="checkbox" ${corsChecked}>
+      Allow CORS requests
+    </label>
+
     <div class="mb-12">
       <label class="label" for="response">Response</label>
       <textarea id="response" class="textarea" ${responseDisabled}>${response}</textarea>
@@ -164,6 +169,10 @@
       vscode.postMessage({ type: 'setReflect', value: e.target.checked });
       // Disable/enable response textarea based on reflect
       document.getElementById('response').disabled = e.target.checked;
+    };
+
+    document.querySelector('#cors').onchange = e => {
+      vscode.postMessage({ type: 'setCors', value: e.target.checked });
     };
 
     document.querySelector('#response').oninput = e => {

@@ -22,6 +22,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
   private wsServer?: WebSocket.Server;
   private statusCode = 200;
   private reflect = false;
+  private cors = false;
   private httpsCertPath: string = '';
   private httpsKeyPath: string = '';
   private httpsClientCaPath: string = '';
@@ -100,6 +101,9 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
         this.reflect = !!value;
         // Webview JS already toggles the textarea disabled state; avoid re-render to preserve focus
         break;
+      case 'setCors':
+        this.cors = !!value;
+        break;
       case 'startServer':
         this.startServer();
         break;
@@ -177,6 +181,18 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
 
         // Collect request body, then log incoming request
         let requestBody = '';
+        // Handle CORS headers
+        if (this.cors) {
+          res.setHeader('Access-Control-Allow-Origin', '*');
+          res.setHeader('Access-Control-Allow-Methods', '*');
+          res.setHeader('Access-Control-Allow-Headers', '*');
+          if (method === 'options') {
+            res.statusCode = 204;
+            res.end();
+            return;
+          }
+        }
+
         req.on('data', chunk => (requestBody += chunk));
         req.on('end', () => {
           void persistHistory({
@@ -333,6 +349,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
     response: string,
     isRunning: boolean,
     reflect: boolean,
+    cors: boolean,
     httpsCertPath: string,
     httpsKeyPath: string,
     httpsClientCaPath: string,
@@ -350,6 +367,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
     const httpsSelected = serverType === 'https' ? 'selected' : '';
     const wsSelected = serverType === 'ws' ? 'selected' : '';
     const reflectChecked = reflect ? 'checked' : '';
+    const corsChecked = cors ? 'checked' : '';
     const responseDisabled = reflect ? 'disabled' : '';
     const httpsSectionHidden = serverType === 'https' ? '' : 'hidden';
     return html
@@ -364,6 +382,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
       .replace(/\${httpsSelected}/g, httpsSelected)
       .replace(/\${wsSelected}/g, wsSelected)
       .replace(/\${reflectChecked}/g, reflectChecked)
+      .replace(/\${corsChecked}/g, corsChecked)
       .replace(/\${responseDisabled}/g, responseDisabled)
       .replace(/\${isRunning}/g, String(isRunning))
       .replace(/\${httpsSectionHidden}/g, httpsSectionHidden)
@@ -397,6 +416,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
       this.response,
       this.running,
       this.reflect,
+      this.cors,
       this.escapeHtml(this.httpsCertPath),
       this.escapeHtml(this.httpsKeyPath),
       this.escapeHtml(this.httpsClientCaPath),

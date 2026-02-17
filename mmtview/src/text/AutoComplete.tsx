@@ -542,6 +542,13 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: "logo: ",
             detail: 'Logo URL/path [string]',
             documentation: 'Path or URL to a logo image shown next to the title.'
+        },
+        {
+            label: "html",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "html:\n\ttryIt: true",
+            detail: 'HTML output options [object]',
+            documentation: 'Options for the generated HTML doc page. Enable tryIt to add interactive "Try" buttons for testing endpoints directly from the browser (like Swagger Try It Out).'
         }
     ];
     const apiSuggestions = [
@@ -965,6 +972,22 @@ export const KeySuggestionsByParent = (monaco: any) => {
         { label: 'description', kind: monaco.languages.CompletionItemKind.Property, insertText: 'description: ', detail: 'Service description', documentation: 'Shown under the section title.' },
         { label: 'sources', kind: monaco.languages.CompletionItemKind.Property, insertText: 'sources:\n\t- ', detail: 'Service sources', documentation: 'Folders or .mmt files for this group.' },
     ];
+    const htmlSuggestions = [
+        {
+            label: 'tryIt',
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: 'tryIt: true',
+            detail: 'Enable Try It button [boolean]',
+            documentation: 'When true, adds a "Try" button to each endpoint in the HTML doc. Clicking it opens an interactive panel to send requests and view responses (like Swagger Try It Out).'
+        },
+        {
+            label: 'corsProxy',
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: 'corsProxy: ',
+            detail: 'CORS proxy URL [string]',
+            documentation: 'Optional CORS proxy prefix for Try It requests. Prepended to the API URL when the browser blocks cross-origin requests.\nExample: corsProxy: https://corsproxy.io/?'
+        }
+    ];
 
     const keySuggestionsByParent: Record<string, any[]> = {
         root: rootSuggestions,
@@ -974,6 +997,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         suite: suiteSuggestions,
         doc: docSuggestions,
         services: servicesSuggestions,
+        html: htmlSuggestions,
         env: envSuggestions,
         certificates: envCertificatesSuggestions,
         clients: envCaClientSuggestions,

@@ -1,5 +1,10 @@
 import {MMTFile} from './CommonData';
 
+export interface DocHtmlOptions {
+  tryIt?: boolean;
+  corsProxy?: string;
+}
+
 export interface DocService {
   name?: string;
   description?: string;
@@ -12,4 +17,5 @@ export interface DocData extends MMTFile {
   logo?: string;
   sources?: string[];
   services?: DocService[];
+  html?: DocHtmlOptions;
 }

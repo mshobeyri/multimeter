@@ -527,6 +527,215 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
+  /* ── Try It Panel ── */
+  .try-btn {
+    margin-left: auto;
+    padding: 4px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 14px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .try-btn:hover {
+    background: var(--accent);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  .try-btn-sm {
+    padding: 2px 10px;
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 10px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    float: right;
+    margin-left: 8px;
+  }
+  .try-btn-sm:hover {
+    background: var(--accent);
+    color: white;
+  }
+
+  .try-panel {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+  }
+  .try-panel-inner {
+    animation: trySlideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+  @keyframes trySlideIn {
+    from { opacity: 0; transform: translateX(60px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes trySlideOut {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(60px); }
+  }
+
+  .try-btn-active {
+    background: var(--accent);
+    color: white;
+  }
+
+  .try-form { margin-top: 8px; }
+  .try-form input,
+  .try-form select,
+  .try-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 12px;
+    padding: 8px 12px;
+    color: var(--fg);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+  }
+  .try-form input:focus,
+  .try-form select:focus,
+  .try-form textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(77,159,255,0.15);
+  }
+  .try-form textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+  .try-form select {
+    cursor: pointer;
+    appearance: auto;
+  }
+
+  .try-kv { margin: 4px 0; }
+  .try-kv-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+    align-items: center;
+  }
+  .try-kv-row input { flex: 1; margin-bottom: 0; }
+  .try-kv-remove {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+    line-height: 1;
+  }
+  .try-kv-remove:hover {
+    background: #ef4444;
+    color: white;
+    border-color: #ef4444;
+  }
+
+  .try-add-btn {
+    padding: 4px 12px;
+    border-radius: 10px;
+    border: 1px dashed var(--glass-border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 11px;
+    margin-bottom: 12px;
+    transition: all 0.2s ease;
+  }
+  .try-add-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .try-send-btn {
+    padding: 8px 28px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border: none;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+    letter-spacing: 0.3px;
+  }
+  .try-send-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59,130,246,0.4);
+  }
+  .try-send-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .try-response { margin-top: 16px; }
+  .try-response-status {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+  .try-response-status.success { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+  .try-response-status.error   { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+  .try-response-status.redirect{ background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+  .try-response-time {
+    color: var(--muted);
+    font-size: 11px;
+    margin-left: 8px;
+  }
+  .try-response-body {
+    background: var(--glass-bg);
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    overflow: auto;
+    max-height: 400px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    backdrop-filter: blur(10px);
+    margin-top: 8px;
+  }
+  .try-response-headers-wrap {
+    margin-top: 8px;
+  }
+  .try-response-headers-wrap summary {
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 11px;
+    user-select: none;
+  }
 </style>
 </head><body>
   <div class="doc-header">
@@ -651,6 +860,192 @@
         });
       }
     });
+
+    /* ── Try It Panel functions ── */
+    var __tryApiMeta = window.__tryApiMeta || [];
+
+    function escapeHtmlJS(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function toggleTryPanel(idx, event) {
+      if (event) { event.stopPropagation(); event.preventDefault(); }
+      var tryPanel = document.getElementById('try-panel-' + idx);
+      if (!tryPanel) { return; }
+      var isOpen = tryPanel.style.display !== 'none';
+      if (isOpen) {
+        closeTryPanel(idx);
+      } else {
+        openTryPanel(idx);
+      }
+    }
+
+    function openTryPanel(idx) {
+      var details = document.getElementById('details-' + idx);
+      var tryPanel = document.getElementById('try-panel-' + idx);
+      var btn = document.getElementById('try-btn-' + idx);
+      if (!tryPanel) { return; }
+      if (details) { details.style.display = 'none'; }
+      tryPanel.style.display = 'block';
+      if (btn) { btn.textContent = '\u2190 Back'; btn.classList.add('try-btn-active'); }
+      var inner = tryPanel.querySelector('.try-panel-inner');
+      if (inner) { inner.style.animation = 'none'; inner.offsetHeight; inner.style.animation = 'trySlideIn 0.35s cubic-bezier(0.4,0,0.2,1) both'; }
+      var toggle = document.getElementById('toggle-' + idx);
+      if (toggle) { toggle.classList.add('open'); toggle.setAttribute('aria-expanded', 'true'); }
+      var section = document.getElementById('api-' + idx);
+      if (section) { section.classList.add('open'); }
+    }
+
+    function closeTryPanel(idx) {
+      var tryPanel = document.getElementById('try-panel-' + idx);
+      var btn = document.getElementById('try-btn-' + idx);
+      if (!tryPanel) { return; }
+      if (btn) { btn.textContent = 'Try'; btn.classList.remove('try-btn-active'); }
+      var inner = tryPanel.querySelector('.try-panel-inner');
+      if (inner) {
+        inner.style.animation = 'trySlideOut 0.25s ease forwards';
+        setTimeout(function() {
+          tryPanel.style.display = 'none';
+          inner.style.animation = '';
+        }, 250);
+      } else {
+        tryPanel.style.display = 'none';
+      }
+    }
+
+    function addKVRow(containerId) {
+      var container = document.getElementById(containerId);
+      if (!container) { return; }
+      var row = document.createElement('div');
+      row.className = 'try-kv-row';
+      row.innerHTML = '<input placeholder="Header name" /><input placeholder="Value" /><button class="try-kv-remove" onclick="this.parentElement.remove()" type="button">\u00d7</button>';
+      container.appendChild(row);
+    }
+
+    function collectKV(containerId) {
+      var container = document.getElementById(containerId);
+      if (!container) { return {}; }
+      var rows = container.querySelectorAll('.try-kv-row');
+      var result = {};
+      for (var i = 0; i < rows.length; i++) {
+        var inputs = rows[i].querySelectorAll('input');
+        var key = inputs[0] ? inputs[0].value.trim() : '';
+        var val = inputs[1] ? inputs[1].value : '';
+        if (key) { result[key] = val; }
+      }
+      return result;
+    }
+
+    function resolveInputsInUrl(url, inputs) {
+      if (!inputs || typeof inputs !== 'object') { return url; }
+      var result = url;
+      var keys = Object.keys(inputs);
+      for (var i = 0; i < keys.length; i++) {
+        var k = keys[i];
+        var v = String(inputs[k]);
+        result = result.replace(new RegExp('\\{' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\}', 'g'), v);
+        result = result.replace(new RegExp('i:' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=[/\\?&#]|$)', 'g'), v);
+      }
+      return result;
+    }
+
+    function tryExample(apiIdx, exIdx, event) {
+      if (event) { event.stopPropagation(); event.preventDefault(); }
+      var meta = __tryApiMeta[apiIdx];
+      if (!meta || !meta.examples || !meta.examples[exIdx]) { return; }
+      openTryPanel(apiIdx);
+      var ex = meta.examples[exIdx];
+      if (ex.inputs && typeof ex.inputs === 'object') {
+        var urlEl = document.getElementById('try-url-' + apiIdx);
+        if (urlEl) {
+          urlEl.value = resolveInputsInUrl(meta.url || '', ex.inputs);
+        }
+        // Populate query params from example inputs if they match query keys
+        var queryContainer = document.getElementById('try-query-' + apiIdx);
+        if (queryContainer && meta.query) {
+          var rows = queryContainer.querySelectorAll('.try-kv-row');
+          for (var r = 0; r < rows.length; r++) {
+            var qInputs = rows[r].querySelectorAll('input');
+            var qKey = qInputs[0] ? qInputs[0].value.trim() : '';
+            if (qKey && ex.inputs[qKey] !== undefined) {
+              qInputs[1].value = String(ex.inputs[qKey]);
+            }
+          }
+        }
+      }
+    }
+
+    async function sendTryRequest(idx) {
+      var meta = __tryApiMeta[idx] || {};
+      var urlInput = document.getElementById('try-url-' + idx);
+      var methodSelect = document.getElementById('try-method-' + idx);
+      var bodyInput = document.getElementById('try-body-' + idx);
+      var responseDiv = document.getElementById('try-response-' + idx);
+      if (!urlInput || !responseDiv) { return; }
+
+      var url = urlInput.value.trim();
+      var method = methodSelect ? methodSelect.value : 'GET';
+
+      // Collect headers
+      var headers = collectKV('try-headers-' + idx);
+
+      // Collect query params and append to URL
+      var queryParams = collectKV('try-query-' + idx);
+      var qKeys = Object.keys(queryParams);
+      if (qKeys.length) {
+        var sep = url.indexOf('?') >= 0 ? '&' : '?';
+        for (var qi = 0; qi < qKeys.length; qi++) {
+          if (queryParams[qKeys[qi]]) {
+            url += sep + encodeURIComponent(qKeys[qi]) + '=' + encodeURIComponent(queryParams[qKeys[qi]]);
+            sep = '&';
+          }
+        }
+      }
+
+      var body = bodyInput ? bodyInput.value : null;
+      var corsProxy = meta.corsProxy || '';
+      var fetchUrl = corsProxy ? corsProxy + encodeURIComponent(url) : url;
+
+      var sendBtn = document.querySelector('#try-panel-' + idx + ' .try-send-btn');
+      if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Sending\u2026'; }
+      responseDiv.innerHTML = '<div style="color:var(--muted)">Sending request\u2026</div>';
+
+      var startTime = Date.now();
+      try {
+        var fetchOpts = { method: method, headers: headers };
+        if (body && method !== 'GET' && method !== 'HEAD') {
+          fetchOpts.body = body;
+        }
+        var resp = await fetch(fetchUrl, fetchOpts);
+        var elapsed = Date.now() - startTime;
+        var respText = await resp.text();
+        var statusClass = resp.status < 300 ? 'success' : resp.status < 400 ? 'redirect' : 'error';
+
+        var formatted = respText;
+        try { formatted = JSON.stringify(JSON.parse(respText), null, 2); } catch(e) {}
+
+        var respHeaders = '';
+        resp.headers.forEach(function(v, k) {
+          respHeaders += '<tr><td class="param-name">' + escapeHtmlJS(k) + '</td><td class="param-value">' + escapeHtmlJS(v) + '</td></tr>';
+        });
+
+        responseDiv.innerHTML =
+          '<h3>Response</h3>' +
+          '<span class="try-response-status ' + statusClass + '">' + resp.status + ' ' + escapeHtmlJS(resp.statusText) + '</span>' +
+          '<span class="try-response-time">' + elapsed + 'ms</span>' +
+          '<pre class="try-response-body">' + escapeHtmlJS(formatted) + '</pre>' +
+          (respHeaders ? '<details class="try-response-headers-wrap"><summary>Response Headers</summary><table class="param-table"><tbody>' + respHeaders + '</tbody></table></details>' : '');
+      } catch (err) {
+        var elapsed2 = Date.now() - startTime;
+        responseDiv.innerHTML =
+          '<h3>Response</h3>' +
+          '<span class="try-response-status error">Error</span>' +
+          '<span class="try-response-time">' + elapsed2 + 'ms</span>' +
+          '<pre class="try-response-body">' + escapeHtmlJS(String(err.message || err)) +
+          '\\n\\nIf this is a CORS error, configure your API server to set Access-Control-Allow-Origin headers,\\nor set corsProxy in the html options of your doc .mmt file.\\nExample:\\nhtml:\\n  corsProxy: https://corsproxy.io/?' + '</pre>';
+      }
+      if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send'; }
+    }
   </script>
   </div>
   <footer class="doc-footer">

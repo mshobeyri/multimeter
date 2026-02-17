@@ -132,6 +132,7 @@ export interface BuildDocHtmlOptions {
   logo?: string;
   sources?: string[];
   services?: Array<{ name?: string; description?: string; sources?: string[] }>;
+  html?: { tryIt?: boolean; corsProxy?: string };
 }
 
 function cleanPath(p: string): string {
@@ -150,11 +151,27 @@ function matchesSource(filePath: string, src: string): boolean {
   return fp.startsWith(sDir) || fp.includes('/' + sDir) || fp.includes(sDir);
 }
 
+function renderEditableKV(obj: any, idPrefix: string): string {
+  if (!obj || typeof obj !== 'object') {
+    return '';
+  }
+  const entries = Object.entries(obj);
+  return entries.map(([k, v]) => {
+    const val = typeof v === 'string' ? v : JSON.stringify(v);
+    return `<div class="try-kv-row"><input value="${escapeHtml(k)}" placeholder="Key" /><input value="${escapeHtml(val)}" placeholder="Value" /><button class="try-kv-remove" onclick="this.parentElement.remove()" type="button">\u00d7</button></div>`;
+  }).join('');
+}
+
 export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): string {
   const { title, description, logo } = opts;
+  const tryItEnabled = opts.html?.tryIt !== false;
+  const corsProxy = opts.html?.corsProxy || '';
 
   // ensure unique IDs across the entire page, even when rendering per-group
   let rowIdCounter = 0;
+  // Collect metadata for Try It panels
+  const tryApiMetaList: any[] = [];
+
   const makeRows = (list: any[]) => (list || []).map((api: any) => {
     const idx = rowIdCounter++;
     let method = api.protocol === "ws" ? "WS":  String(api?.method || '').toUpperCase();
@@ -185,11 +202,12 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
         const descHtml = obj?.description ? `<div class="ex-desc">${escapeHtml(String(obj.description))}</div>` : '';
         const exInputs = obj?.inputs ? renderParamTable(typeof obj.inputs === 'string' ? (tryParseJson(obj.inputs) ?? obj.inputs) : obj.inputs, 'Value') : '';
         const exOutputs = obj?.outputs ? renderParamTable(typeof obj.outputs === 'string' ? (tryParseJson(obj.outputs) ?? obj.outputs) : obj.outputs, 'Value') : '';
+        const exTryBtn = tryItEnabled ? `<button class="try-btn-sm" onclick="tryExample(${idx}, ${i}, event)" type="button">Try</button>` : '';
         const ioBlocks = [
           exInputs ? `<div class="ex-sub"><strong>Inputs</strong>${exInputs}</div>` : '',
           exOutputs ? `<div class="ex-sub"><strong>Outputs</strong>${exOutputs}</div>` : ''
         ].filter(Boolean).join('');
-        return `${i > 0 ? '<hr class=\"sep\" />' : ''}<div class=\"example\">${nameHtml}${descHtml}${ioBlocks}</div>`;
+        return `${i > 0 ? '<hr class=\"sep\" />' : ''}<div class=\"example\">${exTryBtn}${nameHtml}${descHtml}${ioBlocks}</div>`;
       }).join('')
       : '';
     const tags = api?.tags && api.tags.length ? `<div class=\"tags\">${api.tags.map((t: string) => `<span class=\"tag\">${escapeHtml(t)}</span>`).join('')}</div>` : '';
@@ -223,6 +241,60 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
         ${hasMeta ? `<hr class="sep" />${metaHtml}` : ''}
         ${hasExamples ? `<hr class="sep" />\n<h3>Examples</h3>\n${examplesHtml}` : ''}
       </div>` : '';
+
+    // Build Try It panel
+    let tryPanel = '';
+    if (tryItEnabled) {
+      const bodyStr = api?.body !== undefined && api?.body !== null
+        ? (typeof api.body === 'object' ? JSON.stringify(api.body, null, 2) : String(api.body))
+        : '';
+      const methodOptions = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']
+        .map(m => `<option value="${m}" ${m === method ? 'selected' : ''}>${m}</option>`)
+        .join('');
+      const headersKV = renderEditableKV(api?.headers, `try-headers-${idx}`);
+      const queryKV = renderEditableKV(
+        typeof queryObj === 'string' ? (tryParseJson(queryObj) ?? {}) : (queryObj || {}),
+        `try-query-${idx}`
+      );
+      const hasQueryKV = isNonEmpty(queryObj);
+
+      tryPanel = `
+      <div class="try-panel" id="try-panel-${idx}" style="display:none;">
+        <div class="try-panel-inner">
+          <div class="try-form">
+            <h3>URL</h3>
+            <input type="text" id="try-url-${idx}" value="${escapeHtml(urlStr)}" />
+            <h3>Method</h3>
+            <select id="try-method-${idx}">${methodOptions}</select>
+            ${hasQueryKV ? `<h3>Query Parameters</h3><div class="try-kv" id="try-query-${idx}">${queryKV}</div><button class="try-add-btn" onclick="addKVRow('try-query-${idx}')" type="button">+ Add Query Param</button>` : ''}
+            <h3>Headers</h3>
+            <div class="try-kv" id="try-headers-${idx}">${headersKV}</div>
+            <button class="try-add-btn" onclick="addKVRow('try-headers-${idx}')" type="button">+ Add Header</button>
+            ${bodyStr || method === 'POST' || method === 'PUT' || method === 'PATCH' ? `<h3>Body</h3><textarea class="try-body" id="try-body-${idx}" rows="6">${escapeHtml(bodyStr)}</textarea>` : ''}
+            <div><button class="try-send-btn" onclick="sendTryRequest(${idx})" type="button">Send</button></div>
+          </div>
+          <div class="try-response" id="try-response-${idx}"></div>
+        </div>
+      </div>`;
+
+      // Collect metadata for the JS runtime
+      tryApiMetaList[idx] = {
+        method: method || 'GET',
+        url: urlStr,
+        headers: api?.headers || {},
+        body: api?.body || null,
+        format: api?.format || 'json',
+        inputs: api?.inputs || {},
+        query: queryObj || {},
+        examples: (api?.examples || []).map((ex: any) => {
+          const obj = typeof ex === 'string' ? (tryParseJson(ex) ?? {}) : ex;
+          return { name: obj?.name, inputs: obj?.inputs || {} };
+        }),
+        corsProxy: corsProxy,
+      };
+    }
+
+    const tryBtn = tryItEnabled ? `<button class="try-btn" id="try-btn-${idx}" onclick="toggleTryPanel(${idx}, event)" type="button">Try</button>` : '';
     return `
       <section class="api" id="api-${idx}">
         <h2 onclick="toggleDetails(${idx})" style="cursor: pointer;">
@@ -234,8 +306,10 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
           ${badge}
           ${api?.title ? `<span class="fade-title">${escapeHtml(api.title)}</span>` : ''}
           ${endpoint ? `<span class="endpoint">${escapeHtml(endpoint)}</span>` : ''}
+          ${tryBtn}
         </h2>
         ${details}
+        ${tryPanel}
       </section>`;
   }).join('\n');
 
@@ -327,6 +401,12 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
       // Logo injection: replace existing <h1> block if logo provided.
       if (logoStr) {
         html = html.replace(/<div class="doc-head-left">[\s\S]*?<\/div>/i, `<div class="doc-head-left"><img class="logo" src="${escapeHtml(logoStr)}" alt="logo" style="height:24px;object-fit:contain;" /><h1>${escapeHtml(title || 'API Documentation')}</h1></div>`);
+      }
+      // Inject Try It metadata script before closing </body> when enabled
+      if (tryItEnabled && tryApiMetaList.length) {
+        const metaJson = JSON.stringify(tryApiMetaList);
+        const metaScript = `<script>window.__tryApiMeta = ${metaJson};</script>`;
+        html = html.replace('</body>', `${metaScript}\n</body>`);
       }
     return html;
   }

@@ -1,4 +1,4 @@
-import {DocData, DocService} from './DocData';
+import {DocData, DocHtmlOptions, DocService} from './DocData';
 import parseYaml, {packYaml} from './markupConvertor';
 import {isNonEmptyList} from './safer';
 
@@ -56,6 +56,18 @@ export function yamlToDoc(yamlContent: string): DocData {
     if (services && services.length) {
       res.services = services;
     }
+    if (doc.html && typeof doc.html === 'object') {
+      const htmlOpts: DocHtmlOptions = {};
+      if (doc.html.tryIt !== undefined) {
+        htmlOpts.tryIt = !!doc.html.tryIt;
+      }
+      if (doc.html.corsProxy && typeof doc.html.corsProxy === 'string') {
+        htmlOpts.corsProxy = doc.html.corsProxy;
+      }
+      if (Object.keys(htmlOpts).length) {
+        res.html = htmlOpts;
+      }
+    }
     return res;
   } catch {
     return {type: 'doc'} as DocData;
@@ -83,6 +95,18 @@ export function docToYaml(data: DocData): string {
           ...(s.description ? {description: s.description} : {}),
           ...(isNonEmptyList(s.sources) ? {sources: s.sources} : {}),
         }));
+  }
+  if (data.html && typeof data.html === 'object') {
+    const h: any = {};
+    if (data.html.tryIt !== undefined) {
+      h.tryIt = data.html.tryIt;
+    }
+    if (data.html.corsProxy) {
+      h.corsProxy = data.html.corsProxy;
+    }
+    if (Object.keys(h).length) {
+      out.html = h;
+    }
   }
   return packYaml(out);
 }

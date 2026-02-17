@@ -36,12 +36,12 @@ const DocViewHTML: React.FC<DocViewProps> = ({ doc }) => {
     return list;
   }, [doc]);
 
-  // Extract simple doc properties to avoid complex expressions in effect deps
   const docTitle = doc.title;
   const docDescription = (doc as any).description;
   const docLogo = doc.logo;
   const docServices = (doc as any).services;
   const docSources = Array.isArray((doc as any).sources) ? (doc as any).sources : undefined;
+  const docHtmlOpts = (doc as any).html;
 
   useEffect(() => {
     let cancelled = false;
@@ -96,10 +96,11 @@ const DocViewHTML: React.FC<DocViewProps> = ({ doc }) => {
         logo: logoDataUrl || docLogo,
         sources: docSources,
         services: Array.isArray(docServices) ? docServices : undefined,
+        html: docHtmlOpts,
       }));
     })();
     return () => { cancelled = true; };
-  }, [sources, docTitle, docDescription, docLogo, docServices, docSources]);
+  }, [sources, docTitle, docDescription, docLogo, docServices, docSources, docHtmlOpts]);
 
   useEffect(() => {
     if (!iframeRef.current) return;

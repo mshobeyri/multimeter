@@ -99,8 +99,45 @@ Open this file in VS Code; the Doc view renders an interactive, searchable page 
 
 ---
 
+## Try It (interactive API testing)
+
+Add `html.tryIt: true` to enable Swagger-like "Try" buttons on every endpoint in the HTML doc:
+
+```yaml
+type: doc
+title: My APIs
+sources:
+  - ./apis
+html:
+  tryIt: true
+```
+
+Each endpoint gets a **Try** button on the right side of its header. Clicking it slides open an interactive panel where you can:
+- Edit the URL, method, query parameters, headers, and body
+- Click **Send** to fire a real HTTP request from the browser
+- See the response status, headers, body (auto-formatted JSON), and timing
+
+Each example also gets a small **Try** button that pre-fills the panel with that example's inputs.
+
+### CORS
+
+Browser security blocks requests to APIs on different domains unless the API server sets `Access-Control-Allow-Origin` headers. If your API server doesn't set these headers, you can route requests through a CORS proxy:
+
+```yaml
+html:
+  tryIt: true
+  corsProxy: "https://corsproxy.io/?"
+```
+
+The proxy URL is prepended to the target URL when sending requests.
+
+---
+
 ## Reference (types)
 - type: `doc`
 - title: string
 - sources: string[] (folders or `.mmt` files)
 - services: array of { name?: string, description?: string, sources?: string[] }
+- html: object with optional keys:
+  - tryIt: boolean — enable interactive Try buttons
+  - corsProxy: string — CORS proxy URL prefix
