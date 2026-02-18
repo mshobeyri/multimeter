@@ -125,7 +125,12 @@ export const variableReplacer = (full: string): string => {
     // Normalize to plain references first, then wrap each in ${…}
     const normalized = normalizeEnvTokens(s);
     return normalized.replace(
-        /envVariables\.([A-Za-z_][A-Za-z0-9_]*)/g, '${envVariables.$1}');
+        /envVariables\.([A-Za-z_][A-Za-z0-9_]*)/g, (m, name, offset, str) => {
+          if (offset >= 2 && str[offset - 2] === '$' && str[offset - 1] === '{') {
+            return m;
+          }
+          return '${envVariables.' + name + '}';
+        });
   };
 
   let out = '';

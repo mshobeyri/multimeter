@@ -1,4 +1,128 @@
-import { replaceInputRefsWithBrace, replaceInputRefsWithNone, replaceAllRefs } from './variableReplacer';
+import { replaceInputRefsWithBrace, replaceInputRefsWithNone, replaceAllRefs, normalizeEnvTokens, toTemplateWithEnvVars, replaceEnvTokensPlain, resolveEnvTokenValues } from './variableReplacer';
+
+describe('normalizeEnvTokens', () => {
+  it('normalizes <<e:VAR>> to envVariables.VAR', () => {
+    expect(normalizeEnvTokens('url=<<e:HOST>>')).toBe('url=envVariables.HOST');
+  });
+
+  it('normalizes <e:VAR> to envVariables.VAR', () => {
+    expect(normalizeEnvTokens('url=<e:HOST>')).toBe('url=envVariables.HOST');
+  });
+
+  it('normalizes e:{VAR} to envVariables.VAR', () => {
+    expect(normalizeEnvTokens('url=e:{HOST}')).toBe('url=envVariables.HOST');
+  });
+
+  it('normalizes plain e:VAR to envVariables.VAR', () => {
+    expect(normalizeEnvTokens('url=e:HOST/path')).toBe('url=envVariables.HOST/path');
+  });
+
+  it('normalizes multiple mixed forms in one string', () => {
+    const input = '<<e:A>> and <e:B> and e:{C} and e:D';
+    const out = normalizeEnvTokens(input);
+    expect(out).toBe('envVariables.A and envVariables.B and envVariables.C and envVariables.D');
+  });
+
+  it('handles whitespace in angle brackets', () => {
+    expect(normalizeEnvTokens('<< e:HOST >>')).toBe('envVariables.HOST');
+    expect(normalizeEnvTokens('< e:HOST >')).toBe('envVariables.HOST');
+  });
+
+  it('leaves strings without env tokens unchanged', () => {
+    expect(normalizeEnvTokens('hello world')).toBe('hello world');
+    expect(normalizeEnvTokens('${foo}')).toBe('${foo}');
+  });
+});
+
+describe('toTemplateWithEnvVars', () => {
+  it('converts e:VAR to template literal with ${envVariables.VAR}', () => {
+    expect(toTemplateWithEnvVars('hello e:NAME')).toBe('`hello ${envVariables.NAME}`');
+  });
+
+  it('converts <<e:VAR>> to template literal', () => {
+    expect(toTemplateWithEnvVars('<<e:NAME>>')).toBe('`${envVariables.NAME}`');
+  });
+
+  it('does not double-wrap existing ${envVariables.VAR}', () => {
+    const input = '${envVariables.HOST}/path';
+    const result = toTemplateWithEnvVars(input);
+    expect(result).toBe('`${envVariables.HOST}/path`');
+    expect(result).not.toContain('${${');
+  });
+
+  it('does not double-wrap when normalizeEnvTokens output is already inside ${...}', () => {
+    // Simulate a string that already had ${envVariables.FOO}
+    const input = 'prefix ${envVariables.FOO} suffix';
+    const result = toTemplateWithEnvVars(input);
+    expect(result).toBe('`prefix ${envVariables.FOO} suffix`');
+    expect(result).not.toContain('${${');
+  });
+
+  it('collapses nested ${ ${envVariables.VAR} } patterns', () => {
+    const input = '${${envVariables.NAME}}';
+    const result = toTemplateWithEnvVars(input);
+    expect(result).toBe('`${envVariables.NAME}`');
+  });
+
+  it('handles multiple env tokens in one string', () => {
+    const result = toTemplateWithEnvVars('http://e:HOST:e:PORT/path');
+    expect(result).toContain('${envVariables.HOST}');
+    expect(result).toContain('${envVariables.PORT}');
+    expect(result).not.toContain('${${');
+  });
+
+  it('preserves non-env ${...} expressions', () => {
+    const result = toTemplateWithEnvVars('${callId.result} and e:HOST');
+    expect(result).toContain('${callId.result}');
+    expect(result).toContain('${envVariables.HOST}');
+  });
+
+  it('escapes backticks in the value', () => {
+    const result = toTemplateWithEnvVars('hello `world` e:NAME');
+    expect(result).toContain('\\`world\\`');
+  });
+
+  it('handles null/undefined gracefully', () => {
+    expect(toTemplateWithEnvVars(null as any)).toBe('``');
+    expect(toTemplateWithEnvVars(undefined as any)).toBe('``');
+  });
+});
+
+describe('replaceEnvTokensPlain', () => {
+  it('replaces plain e:VAR with envVariables.VAR', () => {
+    expect(replaceEnvTokensPlain('e:FOO')).toBe('envVariables.FOO');
+  });
+
+  it('uses word boundary so mid-word tokens are not touched', () => {
+    expect(replaceEnvTokensPlain('note:FOO')).toBe('note:FOO');
+  });
+
+  it('does not handle angle-bracket or brace forms', () => {
+    expect(replaceEnvTokensPlain('<<e:FOO>>')).toBe('<<envVariables.FOO>>');
+    // \b doesn't match before {, so e:{FOO} is left untouched
+    expect(replaceEnvTokensPlain('e:{FOO}')).toBe('e:{FOO}');
+  });
+});
+
+describe('resolveEnvTokenValues', () => {
+  it('resolves all env token forms against provided values', () => {
+    const env = { HOST: 'localhost', PORT: '8080' };
+    expect(resolveEnvTokenValues('<<e:HOST>>:<<e:PORT>>', env)).toBe('localhost:8080');
+    expect(resolveEnvTokenValues('<e:HOST>:<e:PORT>', env)).toBe('localhost:8080');
+    expect(resolveEnvTokenValues('e:{HOST}:e:{PORT}', env)).toBe('localhost:8080');
+    expect(resolveEnvTokenValues('e:HOST:e:PORT', env)).toBe('localhost:8080');
+  });
+
+  it('keeps original token when env key is missing', () => {
+    expect(resolveEnvTokenValues('e:MISSING', {})).toBe('e:MISSING');
+    expect(resolveEnvTokenValues('<<e:MISSING>>', {})).toBe('<<e:MISSING>>');
+  });
+
+  it('resolves mixed known and unknown tokens', () => {
+    const env = { HOST: 'api.local' };
+    expect(resolveEnvTokenValues('http://e:HOST:e:PORT/path', env)).toBe('http://api.local:e:PORT/path');
+  });
+});
 
 describe('variableReplacer', () => {
   it('replaceInputRefsWithBrace replaces full and partial tokens with correct types', () => {

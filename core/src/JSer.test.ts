@@ -435,6 +435,76 @@ describe('env token replacements in generated JS', () => {
        expect(out).toContain(
            '`X=${envVariables.FOO} Y=${envVariables.BAR} Z=${envVariables.BAZ} W=${envVariables.QUX}`');
      });
+
+  it('does not double-wrap pre-existing ${envVariables.VAR} inside template literals',
+     () => {
+       // This is the exact regression: generated code may already have
+       // ${envVariables.FOO} inside a template literal. replaceInsideTpl must
+       // leave them as-is instead of producing ${${envVariables.FOO}}.
+       const input = 'console.log(`url=${envVariables.HOST}/api`);';
+       const out = variableReplacer(input);
+       expect(out).toContain('`url=${envVariables.HOST}/api`');
+       expect(out).not.toContain('${${');
+     });
+
+  it('does not double-wrap when mixing pre-existing and new env tokens in template',
+     () => {
+       // Template has both a pre-existing ${envVariables.HOST} and a raw e:PORT
+       const input = 'const u = `http://${envVariables.HOST}:e:PORT/path`;';
+       const out = variableReplacer(input);
+       expect(out).toContain('${envVariables.HOST}');
+       expect(out).toContain('${envVariables.PORT}');
+       expect(out).not.toContain('${${');
+     });
+
+  it('does not double-wrap with <<e:VAR>> inside template literal',
+     () => {
+       const input = 'const s = `value=<<e:FOO>>`;';
+       const out = variableReplacer(input);
+       expect(out).toContain('${envVariables.FOO}');
+       expect(out).not.toContain('${${');
+     });
+
+  it('preserves non-env ${...} expressions in template literals', () => {
+    const input = 'const x = `${someVar} and e:NAME`;';
+    const out = variableReplacer(input);
+    expect(out).toContain('${someVar}');
+    expect(out).toContain('${envVariables.NAME}');
+    expect(out).not.toContain('${${');
+  });
+
+  it('handles envVariables references outside template literals without wrapping',
+     () => {
+       // Outside backticks, envVariables.FOO should stay plain (no ${...})
+       const input = 'if (envVariables.FLAG) { run(); }';
+       const out = variableReplacer(input);
+       expect(out).toContain('envVariables.FLAG');
+       expect(out).not.toContain('${envVariables.FLAG}');
+     });
+});
+
+describe('toInputsParams env token handling', () => {
+  it('converts e:VAR input default to envVariables reference', () => {
+    const {toInputsParams} = require('./JSerHelper');
+    const result = toInputsParams({ host: 'e:HOST' }, '=');
+    expect(result).toContain('envVariables.HOST');
+    expect(result).not.toContain('e:HOST');
+  });
+
+  it('converts <<e:VAR>> partial input to template with ${envVariables.VAR}', () => {
+    const {toInputsParams} = require('./JSerHelper');
+    const result = toInputsParams({ url: 'http://<<e:HOST>>/path' }, '=');
+    expect(result).toContain('${envVariables.HOST}');
+    expect(result).not.toContain('${${');
+  });
+
+  it('does not double-wrap if value already contains envVariables reference', () => {
+    const {toInputsParams} = require('./JSerHelper');
+    // Edge case: a value that somehow already has envVariables.HOST
+    // (shouldn't normally happen, but must not produce ${${envVariables.HOST}})
+    const result = toInputsParams({ url: '${envVariables.HOST}/api' }, '=');
+    expect(result).not.toContain('${${');
+  });
 });
 
 describe('step reporter instrumentation', () => {

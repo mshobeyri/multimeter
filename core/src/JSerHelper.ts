@@ -43,7 +43,12 @@ function toTemplateValue(value: string): string {
   // Normalize all e: token forms to envVariables.VAR, then wrap in ${...}
   const normalized = normalizeEnvTokens(result);
   result = normalized.replace(
-      /envVariables\.([A-Za-z_][A-Za-z0-9_]*)/g, '${envVariables.$1}');
+      /envVariables\.([A-Za-z_][A-Za-z0-9_]*)/g, (m, name, offset, str) => {
+        if (offset >= 2 && str[offset - 2] === '$' && str[offset - 1] === '{') {
+          return m;
+        }
+        return '${envVariables.' + name + '}';
+      });
   // Handle <<r:token>> style
   result = result.replace(/<<r:([A-Za-z_][A-Za-z0-9_\-]*)>>/g, "${__mmt_random('$1')}");
   // Handle r:token style (plain)
