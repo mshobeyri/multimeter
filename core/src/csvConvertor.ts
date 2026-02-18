@@ -12,10 +12,11 @@ export const parseCsv = (content: string): Array<Record<string, any>> => {
   if (!lines[0].includes(',') && /:\s*/.test(lines[0])) {
     return [];
   }
-  const parseCsvLine = (line: string): string[] => {
-    const result: string[] = [];
+  const parseCsvLine = (line: string): {value: string; quoted: boolean}[] => {
+    const result: {value: string; quoted: boolean}[] = [];
     let current = '';
     let inQuotes = false;
+    let fieldQuoted = false;
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
       if (ch === '"') {
@@ -23,22 +24,29 @@ export const parseCsv = (content: string): Array<Record<string, any>> => {
           current += '"';
           i++;
         } else {
+          if (!inQuotes) {
+            fieldQuoted = true;
+          }
           inQuotes = !inQuotes;
         }
       } else if (ch === ',' && !inQuotes) {
-        result.push(current);
+        result.push({value: current, quoted: fieldQuoted});
         current = '';
+        fieldQuoted = false;
       } else {
         current += ch;
       }
     }
-    result.push(current);
+    result.push({value: current, quoted: fieldQuoted});
     return result;
   };
-  const coerce = (v: string): any => {
+  const coerce = (v: string, quoted: boolean): any => {
     const t = (v ?? '').trim();
     if (t === '') {
       return '';
+    }
+    if (quoted) {
+      return t;
     }
     if (/^\d+(?:\.\d+)?$/.test(t)) {
       return Number(t);
@@ -48,12 +56,15 @@ export const parseCsv = (content: string): Array<Record<string, any>> => {
     }
     return t;
   };
-  const headers = parseCsvLine(lines[0]).map(h => h.trim());
+  const headers = parseCsvLine(lines[0]).map(h => h.value.trim());
   const rows = lines.slice(1).map(parseCsvLine);
-  return rows.filter(r => r.some(c => (c ?? '').trim() !== ''))
+  return rows.filter(r => r.some(c => (c?.value ?? '').trim() !== ''))
       .map(
           cols => Object.fromEntries(
-              headers.map((h, i) => [h, coerce(cols[i] ?? '')])));
+              headers.map((h, i) => {
+                const cell = cols[i];
+                return [h, coerce(cell?.value ?? '', cell?.quoted ?? false)];
+              })));
 };
 
 export const csvToJSObj =
