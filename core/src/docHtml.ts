@@ -5,7 +5,23 @@ import { resolveEnvTokenValues } from './variableReplacer';
 // Framework-free and safe to use in Node and browser contexts
 
 function escapeHtml(s: string): string {
-  return String(s).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' } as any)[c]);
+  return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' } as any)[c]);
+}
+
+function highlightSyntax(escaped: string, fmt: string): string {
+  if (fmt === 'xml') {
+    return escaped
+      .replace(/(&lt;\/?)([\w:-]+)/g, '$1<span class="hl-tag">$2</span>')
+      .replace(/\b([\w:-]+)(=)(&quot;[^&]*&quot;)/g, '<span class="hl-attr">$1</span>$2<span class="hl-str">$3</span>');
+  }
+  if (fmt !== 'json') { return escaped; }
+  return escaped
+    .replace(/(&quot;)((?:[^&]|&(?!quot;))*)(&quot;)\s*:/g, '<span class="hl-key">$1$2$3</span>:')
+    .replace(/:[ ]*(&quot;)((?:[^&]|&(?!quot;))*)(&quot;)/g, ': <span class="hl-str">$1$2$3</span>')
+    .replace(/(&quot;)((?:[^&]|&(?!quot;))*)(&quot;)/g, '<span class="hl-str">$1$2$3</span>')
+    .replace(/\b(-?\d+\.?\d*(?:[eE][+-]?\d+)?)\b/g, '<span class="hl-num">$1</span>')
+    .replace(/\b(true|false)\b/g, '<span class="hl-bool">$1</span>')
+    .replace(/\bnull\b/g, '<span class="hl-null">null</span>');
 }
 
 // Attempt to parse JSON strings to objects for richer rendering
@@ -254,7 +270,7 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     let body = '';
     if (bodyResolved) {
       if (fmt === 'json' || fmt === 'xml') {
-        body = `<pre class="code">${escapeHtml(bodyResolved)}</pre>`;
+        body = `<pre class="code">${highlightSyntax(escapeHtml(bodyResolved), fmt)}</pre>`;
       } else {
         body = `<span class="value">${escapeHtml(bodyResolved)}</span>`;
       }
@@ -308,6 +324,7 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
 
     // Build Try It panel
     let tryPanel = '';
+    const isWs = api?.protocol === 'ws' || urlStr.startsWith('ws://') || urlStr.startsWith('wss://');
     if (tryItEnabled) {
       const methodOptions = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS']
         .map(m => `<option value="${m}" ${m === method ? 'selected' : ''}>${m}</option>`)
@@ -319,20 +336,33 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
       );
       const hasQueryKV = isNonEmpty(queryObj);
 
+      const methodRow = isWs ? '' : `
+            <h3>Method</h3>
+            <select id="try-method-${idx}">${methodOptions}</select>`;
+      const queryRow = hasQueryKV && !isWs ? `<h3>Query Parameters</h3><div class="try-kv" id="try-query-${idx}">${queryKV}</div><button class="try-add-btn" onclick="addKVRow('try-query-${idx}')" type="button">+ Add Query Param</button>` : '';
+      const bodyLabel = isWs ? 'Message' : 'Body';
+      const showBody = isWs || bodyResolved || method === 'POST' || method === 'PUT' || method === 'PATCH';
+      const bodyRow = showBody ? `<h3>${bodyLabel}</h3><textarea class="try-body" id="try-body-${idx}" rows="6">${escapeHtml(bodyResolved)}</textarea>` : '';
+      const buttonsRow = isWs
+        ? `<div class="try-ws-btns">
+            <button class="try-ws-connect" id="try-ws-connect-${idx}" onclick="wsToggleConnect(${idx})" type="button">Connect</button>
+            <button class="try-ws-send" id="try-ws-send-${idx}" onclick="wsSendMessage(${idx})" type="button" disabled>Send</button>
+            <button class="try-ws-clear" id="try-ws-clear-${idx}" onclick="wsClearMessages(${idx})" type="button">Clear</button>
+          </div>`
+        : `<div><button class="try-send-btn" onclick="sendTryRequest(${idx})" type="button">Send</button></div>`;
+
       tryPanel = `
       <div class="try-panel" id="try-panel-${idx}" style="display:none;">
         <div class="try-panel-inner">
           <div class="try-form">
             <h3>URL</h3>
-            <input type="text" id="try-url-${idx}" value="${escapeHtml(urlStr)}" />
-            <h3>Method</h3>
-            <select id="try-method-${idx}">${methodOptions}</select>
-            ${hasQueryKV ? `<h3>Query Parameters</h3><div class="try-kv" id="try-query-${idx}">${queryKV}</div><button class="try-add-btn" onclick="addKVRow('try-query-${idx}')" type="button">+ Add Query Param</button>` : ''}
+            <input type="text" id="try-url-${idx}" value="${escapeHtml(urlStr)}" />${methodRow}
+            ${queryRow}
             <h3>Headers</h3>
             <div class="try-kv" id="try-headers-${idx}">${headersKV}</div>
             <button class="try-add-btn" onclick="addKVRow('try-headers-${idx}')" type="button">+ Add Header</button>
-            ${bodyResolved || method === 'POST' || method === 'PUT' || method === 'PATCH' ? `<h3>Body</h3><textarea class="try-body" id="try-body-${idx}" rows="6">${escapeHtml(bodyResolved)}</textarea>` : ''}
-            <div><button class="try-send-btn" onclick="sendTryRequest(${idx})" type="button">Send</button></div>
+            ${bodyRow}
+            ${buttonsRow}
           </div>
           <div class="try-response" id="try-response-${idx}"></div>
         </div>
@@ -352,6 +382,7 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
           return { name: obj?.name, inputs: obj?.inputs || {} };
         }),
         cors_proxy: corsProxy,
+        protocol: isWs ? 'ws' : 'http',
       };
     }
 

@@ -4,6 +4,7 @@ const path = require('path');
 
 function escapeForTemplateLiteral(s) {
   return s
+    .replace(/\\/g, '\\\\')
     .replace(/`/g, '\\`')
     .replace(/\$\{/g, '\\${');
 }

@@ -21,6 +21,14 @@ export const DOC_TEMPLATE_HTML = `
     --glass-bg: rgba(35, 35, 35, 0.7);
     --glass-border: rgba(255, 255, 255, 0.12);
     --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --hl-key: #9cdcfe;
+    --hl-string: #ce9178;
+    --hl-number: #b5cea8;
+    --hl-bool: #569cd6;
+    --hl-null: #569cd6;
+    --hl-tag: #569cd6;
+    --hl-attr: #9cdcfe;
+    --hl-bracket: #888;
   }
 
   /* Light theme */
@@ -36,6 +44,14 @@ export const DOC_TEMPLATE_HTML = `
     --glass-bg: rgba(255, 255, 255, 0.6);
     --glass-border: rgba(0, 0, 0, 0.06);
     --shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    --hl-key: #0451a5;
+    --hl-string: #a31515;
+    --hl-number: #098658;
+    --hl-bool: #0000ff;
+    --hl-null: #0000ff;
+    --hl-tag: #800000;
+    --hl-attr: #e50000;
+    --hl-bracket: #666;
   }
 
   body {
@@ -703,6 +719,74 @@ export const DOC_TEMPLATE_HTML = `
     transform: none;
     box-shadow: none;
   }
+  .try-ws-btns {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .try-ws-connect {
+    padding: 8px 28px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+    letter-spacing: 0.3px;
+  }
+  .try-ws-connect:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16,185,129,0.4);
+  }
+  .try-ws-connect.connected {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    box-shadow: 0 4px 12px rgba(239,68,68,0.3);
+  }
+  .try-ws-connect.connected:hover {
+    box-shadow: 0 6px 20px rgba(239,68,68,0.4);
+  }
+  .try-ws-connect:disabled, .try-ws-send:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  .try-ws-send {
+    padding: 8px 28px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border: none;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+    letter-spacing: 0.3px;
+  }
+  .try-ws-send:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59,130,246,0.4);
+  }
+  .try-ws-clear {
+    padding: 8px 20px;
+    border-radius: 14px;
+    background: var(--glass-bg);
+    color: var(--muted);
+    border: 1px solid var(--glass-border);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.3px;
+  }
+  .try-ws-clear:hover {
+    color: var(--fg);
+    border-color: var(--accent);
+  }
 
   .try-response { margin-top: 16px; }
   .try-response-status {
@@ -735,6 +819,16 @@ export const DOC_TEMPLATE_HTML = `
     backdrop-filter: blur(10px);
     margin-top: 8px;
   }
+  /* Syntax highlight tokens */
+  .hl-key { color: var(--hl-key); }
+  .hl-str { color: var(--hl-string); }
+  .hl-num { color: var(--hl-number); }
+  .hl-bool { color: var(--hl-bool); }
+  .hl-null { color: var(--hl-null); }
+  .hl-bracket { color: var(--hl-bracket); }
+  .hl-tag { color: var(--hl-tag); }
+  .hl-attr { color: var(--hl-attr); }
+
   .try-response-headers-wrap {
     margin-top: 8px;
   }
@@ -889,6 +983,21 @@ export const DOC_TEMPLATE_HTML = `
       return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
 
+    function highlightSyntax(escaped, fmt) {
+      if (fmt === 'xml') {
+        return escaped
+          .replace(/(&lt;\\/?)([\\w:-]+)/g, '$1<span class="hl-tag">$2</span>')
+          .replace(/\\b([\\w:-]+)(=)(&quot;[^&]*&quot;)/g, '<span class="hl-attr">$1</span>$2<span class="hl-str">$3</span>');
+      }
+      return escaped
+        .replace(/(&quot;)((?:[^&]|&(?!quot;))*)(&quot;)\\s*:/g, '<span class="hl-key">$1$2$3</span>:')
+        .replace(/:[ ]*(&quot;)((?:[^&]|&(?!quot;))*)(&quot;)/g, ': <span class="hl-str">$1$2$3</span>')
+        .replace(/(&quot;)((?:[^&]|&(?!quot;))*)(&quot;)/g, '<span class="hl-str">$1$2$3</span>')
+        .replace(/\\b(-?\\d+\\.?\\d*(?:[eE][+-]?\\d+)?)\\b/g, '<span class="hl-num">$1</span>')
+        .replace(/\\b(true|false)\\b/g, '<span class="hl-bool">$1</span>')
+        .replace(/\\bnull\\b/g, '<span class="hl-null">null</span>');
+    }
+
     function toggleTryPanel(idx, event) {
       if (event) { event.stopPropagation(); event.preventDefault(); }
       var tryPanel = document.getElementById('try-panel-' + idx);
@@ -908,7 +1017,7 @@ export const DOC_TEMPLATE_HTML = `
       if (!tryPanel) { return; }
       if (details) { details.style.display = 'none'; }
       tryPanel.style.display = 'block';
-      if (btn) { btn.textContent = '\u2190 Back'; btn.classList.add('try-btn-active'); }
+      if (btn) { btn.textContent = '\\u2190 Back'; btn.classList.add('try-btn-active'); }
       var inner = tryPanel.querySelector('.try-panel-inner');
       if (inner) { inner.style.animation = 'none'; inner.offsetHeight; inner.style.animation = 'trySlideIn 0.35s cubic-bezier(0.4,0,0.2,1) both'; }
       var toggle = document.getElementById('toggle-' + idx);
@@ -942,7 +1051,7 @@ export const DOC_TEMPLATE_HTML = `
       if (!container) { return; }
       var row = document.createElement('div');
       row.className = 'try-kv-row';
-      row.innerHTML = '<input placeholder="Header name" /><input placeholder="Value" /><button class="try-kv-remove" onclick="this.parentElement.remove()" type="button">\u00d7</button>';
+      row.innerHTML = '<input placeholder="Header name" /><input placeholder="Value" /><button class="try-kv-remove" onclick="this.parentElement.remove()" type="button">\\u00d7</button>';
       container.appendChild(row);
     }
 
@@ -967,8 +1076,8 @@ export const DOC_TEMPLATE_HTML = `
       for (var i = 0; i < keys.length; i++) {
         var k = keys[i];
         var v = String(inputs[k]);
-        result = result.replace(new RegExp('\\{' + k.replace(/[.*+?^\${}()|[\]\\]/g, '\\$&') + '\\}', 'g'), v);
-        result = result.replace(new RegExp('i:' + k.replace(/[.*+?^\${}()|[\]\\]/g, '\\$&') + '(?=[/\\?&#]|$)', 'g'), v);
+        result = result.replace(new RegExp('\\\\{' + k.replace(/[.*+?^\${}()|[\\]\\\\]/g, '\\\\$&') + '\\\\}', 'g'), v);
+        result = result.replace(new RegExp('i:' + k.replace(/[.*+?^\${}()|[\\]\\\\]/g, '\\\\$&') + '(?=[/\\\\?&#]|$)', 'g'), v);
       }
       return result;
     }
@@ -999,6 +1108,120 @@ export const DOC_TEMPLATE_HTML = `
       }
     }
 
+    function renderWsResponse(container, messages, startTime, isClosed, closeCode, closeReason) {
+      var elapsed = Date.now() - startTime;
+      var statusClass = isClosed ? (closeCode === 1000 || closeCode === undefined ? 'success' : 'error') : 'redirect';
+      var statusText = isClosed ? 'Closed' + (closeCode ? ' (' + closeCode + ')' : '') : 'Open';
+      var html = '<h3>Response</h3>' +
+        '<span class="try-response-status ' + statusClass + '">' + escapeHtmlJS(statusText) + '</span>' +
+        '<span class="try-response-time">' + elapsed + 'ms</span>';
+      if (closeReason) {
+        html += '<div style="color:var(--muted);font-size:11px;margin:4px 0">' + escapeHtmlJS(closeReason) + '</div>';
+      }
+      if (messages.length === 0) {
+        html += '<pre class="try-response-body" style="color:var(--muted)">' + (isClosed ? 'No messages received.' : 'Waiting for messages\\u2026') + '</pre>';
+      } else {
+        for (var i = 0; i < messages.length; i++) {
+          var raw = messages[i];
+          var fmt = 'text';
+          try { raw = JSON.stringify(JSON.parse(raw), null, 2); fmt = 'json'; } catch(e) {
+            if (raw.trim().charAt(0) === '<') { fmt = 'xml'; }
+          }
+          html += '<div style="font-size:10px;color:var(--muted);margin-top:8px">Message ' + (i + 1) + '</div>';
+          html += '<pre class="try-response-body">' + highlightSyntax(escapeHtmlJS(raw), fmt) + '</pre>';
+        }
+      }
+      container.innerHTML = html;
+    }
+
+    /* ── WebSocket state per panel ── */
+    var __wsState = {};
+
+    function wsToggleConnect(idx) {
+      var state = __wsState[idx];
+      if (state && state.ws && !state.closed) {
+        /* Disconnect */
+        try { state.ws.close(); } catch(e) {}
+        return;
+      }
+      /* Connect */
+      var urlInput = document.getElementById('try-url-' + idx);
+      var responseDiv = document.getElementById('try-response-' + idx);
+      var connectBtn = document.getElementById('try-ws-connect-' + idx);
+      var sendBtn = document.getElementById('try-ws-send-' + idx);
+      if (!urlInput || !responseDiv) { return; }
+      var url = urlInput.value.trim();
+      if (connectBtn) { connectBtn.disabled = true; connectBtn.textContent = 'Connecting\\u2026'; }
+      responseDiv.innerHTML = '<div style="color:var(--muted)">Connecting\\u2026</div>';
+      var startTime = Date.now();
+      var ws;
+      try { ws = new WebSocket(url); } catch (err) {
+        responseDiv.innerHTML = '<h3>Response</h3><span class="try-response-status error">Error</span>' +
+          '<pre class="try-response-body">' + escapeHtmlJS(String(err.message || err)) + '</pre>';
+        if (connectBtn) { connectBtn.disabled = false; connectBtn.textContent = 'Connect'; }
+        return;
+      }
+      var s = { ws: ws, messages: [], closed: false, startTime: startTime };
+      __wsState[idx] = s;
+      ws.onopen = function() {
+        var connTime = Date.now() - startTime;
+        responseDiv.innerHTML = '<div style="color:var(--muted)">Connected (' + connTime + 'ms). Ready to send.</div>';
+        if (connectBtn) { connectBtn.disabled = false; connectBtn.textContent = 'Disconnect'; connectBtn.classList.add('connected'); }
+        if (sendBtn) { sendBtn.disabled = false; }
+      };
+      ws.onmessage = function(ev) {
+        if (ev.data instanceof Blob) {
+          ev.data.text().then(function(text) {
+            s.messages.push(text);
+            renderWsResponse(responseDiv, s.messages, startTime, false);
+          });
+        } else {
+          var data = typeof ev.data === 'string' ? ev.data : String(ev.data);
+          s.messages.push(data);
+          renderWsResponse(responseDiv, s.messages, startTime, false);
+        }
+      };
+      ws.onerror = function() {
+        if (!s.closed) {
+          s.closed = true;
+          var elapsed = Date.now() - startTime;
+          responseDiv.innerHTML = '<h3>Response</h3><span class="try-response-status error">Error</span>' +
+            '<span class="try-response-time">' + elapsed + 'ms</span>' +
+            '<pre class="try-response-body">WebSocket connection failed.\\n\\nMake sure the server is running and accessible from the browser.</pre>';
+          if (connectBtn) { connectBtn.disabled = false; connectBtn.textContent = 'Connect'; connectBtn.classList.remove('connected'); }
+          if (sendBtn) { sendBtn.disabled = true; }
+        }
+      };
+      ws.onclose = function(ev) {
+        s.closed = true;
+        renderWsResponse(responseDiv, s.messages, startTime, true, ev.code, ev.reason);
+        if (connectBtn) { connectBtn.disabled = false; connectBtn.textContent = 'Connect'; connectBtn.classList.remove('connected'); }
+        if (sendBtn) { sendBtn.disabled = true; }
+      };
+    }
+
+    function wsSendMessage(idx) {
+      var state = __wsState[idx];
+      if (!state || !state.ws || state.closed) { return; }
+      var bodyInput = document.getElementById('try-body-' + idx);
+      var message = bodyInput ? bodyInput.value : '';
+      if (message) {
+        state.ws.send(message);
+      }
+    }
+
+    function wsClearMessages(idx) {
+      var state = __wsState[idx];
+      if (state) { state.messages = []; }
+      var responseDiv = document.getElementById('try-response-' + idx);
+      if (!responseDiv) { return; }
+      if (state && !state.closed) {
+        responseDiv.innerHTML = '<div style="color:var(--muted)">Connected. Waiting for messages\\u2026</div>';
+      } else {
+        responseDiv.innerHTML = '';
+      }
+    }
+
     async function sendTryRequest(idx) {
       var meta = __tryApiMeta[idx] || {};
       var urlInput = document.getElementById('try-url-' + idx);
@@ -1008,6 +1231,8 @@ export const DOC_TEMPLATE_HTML = `
       if (!urlInput || !responseDiv) { return; }
 
       var url = urlInput.value.trim();
+
+      /* ── HTTP path ── */
       var method = methodSelect ? methodSelect.value : 'GET';
 
       // Collect headers
@@ -1031,8 +1256,8 @@ export const DOC_TEMPLATE_HTML = `
       var fetchUrl = corsProxy ? corsProxy + encodeURIComponent(url) : url;
 
       var sendBtn = document.querySelector('#try-panel-' + idx + ' .try-send-btn');
-      if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Sending\u2026'; }
-      responseDiv.innerHTML = '<div style="color:var(--muted)">Sending request\u2026</div>';
+      if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Sending\\u2026'; }
+      responseDiv.innerHTML = '<div style="color:var(--muted)">Sending request\\u2026</div>';
 
       var startTime = Date.now();
       try {
@@ -1046,7 +1271,10 @@ export const DOC_TEMPLATE_HTML = `
         var statusClass = resp.status < 300 ? 'success' : resp.status < 400 ? 'redirect' : 'error';
 
         var formatted = respText;
-        try { formatted = JSON.stringify(JSON.parse(respText), null, 2); } catch(e) {}
+        var respFmt = 'text';
+        try { formatted = JSON.stringify(JSON.parse(respText), null, 2); respFmt = 'json'; } catch(e) {
+          if (respText.trim().charAt(0) === '<') { respFmt = 'xml'; }
+        }
 
         var respHeaders = '';
         resp.headers.forEach(function(v, k) {
@@ -1057,7 +1285,7 @@ export const DOC_TEMPLATE_HTML = `
           '<h3>Response</h3>' +
           '<span class="try-response-status ' + statusClass + '">' + resp.status + ' ' + escapeHtmlJS(resp.statusText) + '</span>' +
           '<span class="try-response-time">' + elapsed + 'ms</span>' +
-          '<pre class="try-response-body">' + escapeHtmlJS(formatted) + '</pre>' +
+          '<pre class="try-response-body">' + highlightSyntax(escapeHtmlJS(formatted), respFmt) + '</pre>' +
           (respHeaders ? '<details class="try-response-headers-wrap"><summary>Response Headers</summary><table class="param-table"><tbody>' + respHeaders + '</tbody></table></details>' : '');
       } catch (err) {
         var elapsed2 = Date.now() - startTime;
@@ -1070,6 +1298,32 @@ export const DOC_TEMPLATE_HTML = `
       }
       if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send'; }
     }
+    /* Enable copy/paste/cut/select-all inside VS Code webview iframes.
+       VS Code intercepts Ctrl/Cmd shortcuts at the frame level, so standard
+       browser handling never fires. We capture keydown and use execCommand
+       as a synchronous fallback (works in all webview contexts). */
+    document.addEventListener('keydown', function(e) {
+      if (!(e.metaKey || e.ctrlKey)) { return; }
+      var key = e.key && e.key.toLowerCase();
+      if (key === 'a') {
+        var el = document.activeElement;
+        if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+          el.select();
+        } else {
+          document.execCommand('selectAll');
+        }
+        e.preventDefault(); e.stopPropagation();
+      } else if (key === 'c') {
+        document.execCommand('copy');
+        e.preventDefault(); e.stopPropagation();
+      } else if (key === 'x') {
+        document.execCommand('cut');
+        e.preventDefault(); e.stopPropagation();
+      } else if (key === 'v') {
+        document.execCommand('paste');
+        e.preventDefault(); e.stopPropagation();
+      }
+    }, true);
   </script>
   </div>
   <footer class="doc-footer">
