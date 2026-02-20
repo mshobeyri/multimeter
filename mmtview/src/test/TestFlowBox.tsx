@@ -296,25 +296,35 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
           onChange(next);
         };
         return (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <div style={{ width: '100%' }}>
             <input
               placeholder="id"
               value={idVal}
               onChange={e => updateStage({ id: e.target.value })}
-              style={{ minWidth: 80, flex: '0 0 120px' }}
+              style={{ width: '100%' }}
             />
-            <input
-              placeholder="condition"
-              value={condVal}
-              onChange={e => updateStage({ condition: e.target.value })}
-              style={{ minWidth: 120, flex: '1 1 40%' }}
-            />
-            <input
-              placeholder="depends_on"
-              value={depsStr}
-              onChange={e => updateStage({ depends_on: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
-              style={{ minWidth: 140, flex: '1 1 40%' }}
-            />
+            {expanded && (
+              <>
+                <div className="label">Condition</div>
+                <div style={{ padding: '5px' }}>
+                  <input
+                    placeholder="e.g. e:RUN_PREP == true"
+                    value={condVal}
+                    onChange={e => updateStage({ condition: e.target.value })}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+                <div className="label">Depends on</div>
+                <div style={{ padding: '5px' }}>
+                  <input
+                    placeholder="comma-separated stage ids"
+                    value={depsStr}
+                    onChange={e => updateStage({ depends_on: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                    style={{ width: '100%' }}
+                  />
+                </div>
+              </>
+            )}
           </div>
         );
       }
