@@ -18,9 +18,10 @@ const reportLevelOptions: ReportLevel[] = ['all', 'fails', 'none'];
 interface TestCheckProps {
   value: TestCheckValue;
   onChange: (val: TestCheckValue) => void;
+  expanded?: boolean;
 }
 
-const TestCheck: React.FC<TestCheckProps> = ({ value, onChange }) => {
+const TestCheck: React.FC<TestCheckProps> = ({ value, onChange, expanded }) => {
   const { actual, op, expected, title, details, report } = value;
 
   const update = (patch: Partial<TestCheckValue>) => {
@@ -75,62 +76,69 @@ const TestCheck: React.FC<TestCheckProps> = ({ value, onChange }) => {
           onChange={e => update({ expected: e.target.value })}
         />
       </div>
-      <div style={{ marginTop: 14 }}>
-        <input
-          value={title}
-          placeholder="Title (shown inline)"
-          style={{ width: '100%' }}
-          onChange={e => update({ title: e.target.value })}
-        />
-      </div>
-      <div style={{ marginTop: 8 }}>
-        <textarea
-          value={details}
-          placeholder="Details (shown in the details panel)"
-          style={{ width: '100%', height: 60, resize: 'vertical' }}
-          onChange={e => update({ details: e.target.value })}
-        />
-      </div>
-      <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <label 
-            htmlFor="mmt-report-internal"
-            title="Report level when running this test directly"
-            style={{ userSelect: 'none', fontSize: 12 }}
-          >
-            Internal:
-          </label>
-          <select
-            id="mmt-report-internal"
-            value={internalValue}
-            onChange={e => updateReport(e.target.value as ReportLevel, externalValue)}
-            style={{ fontSize: 12 }}
-          >
-            {reportLevelOptions.map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <label 
-            htmlFor="mmt-report-external"
-            title="Report level when this test is imported or added to a suite"
-            style={{ userSelect: 'none', fontSize: 12 }}
-          >
-            External:
-          </label>
-          <select
-            id="mmt-report-external"
-            value={externalValue}
-            onChange={e => updateReport(internalValue, e.target.value as ReportLevel)}
-            style={{ fontSize: 12 }}
-          >
-            {reportLevelOptions.map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
-        </div>
-      </div>
+      {expanded && (
+        <>
+          <div className="label">Title</div>
+          <div style={{ padding: '5px' }}>
+            <input
+              value={title}
+              placeholder="Title (shown inline)"
+              style={{ width: '100%' }}
+              onChange={e => update({ title: e.target.value })}
+            />
+          </div>
+          <div className="label">Details</div>
+          <div style={{ padding: '5px' }}>
+            <textarea
+              value={details}
+              placeholder="Details (shown in the details panel)"
+              style={{ width: '100%', height: 60, resize: 'vertical' }}
+              onChange={e => update({ details: e.target.value })}
+            />
+          </div>
+          <div className="label">Report</div>
+          <div style={{ padding: '5px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <label 
+                htmlFor="mmt-report-internal"
+                title="Report level when running this test directly"
+                style={{ userSelect: 'none', fontSize: 12 }}
+              >
+                Internal:
+              </label>
+              <select
+                id="mmt-report-internal"
+                value={internalValue}
+                onChange={e => updateReport(e.target.value as ReportLevel, externalValue)}
+                style={{ fontSize: 12 }}
+              >
+                {reportLevelOptions.map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <label 
+                htmlFor="mmt-report-external"
+                title="Report level when this test is imported or added to a suite"
+                style={{ userSelect: 'none', fontSize: 12 }}
+              >
+                External:
+              </label>
+              <select
+                id="mmt-report-external"
+                value={externalValue}
+                onChange={e => updateReport(internalValue, e.target.value as ReportLevel)}
+                style={{ fontSize: 12 }}
+              >
+                {reportLevelOptions.map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

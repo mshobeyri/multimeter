@@ -191,6 +191,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
         return (
           <TestCheck
               value={{ actual, op, expected, title, details, report }}
+              expanded={expanded}
               onChange={({ actual, op, expected, title, details, report }) => {
                 const obj: any = { actual, expected, operator: op || '==', };
               if (title.trim().length > 0) {
