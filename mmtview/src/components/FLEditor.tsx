@@ -61,6 +61,8 @@ const FLEditor: React.FC<FLEditorProps> = ({
                         filters={[{ name: 'MMT files', extensions: ['mmt'] }]}
                         allowFolders={true}
                         onRemovePressed={() => handleRemove(idx)}
+                        removable={true}
+                        showFilePicker={true}
                     />
                 </div>
             ))}
@@ -73,6 +75,7 @@ const FLEditor: React.FC<FLEditorProps> = ({
                     basePath={fileCtx?.mmtFilePath}
                     onChange={e => { setNewValue(e); }}
                     onEnterPressed={e => { handleAdd(e); }}
+                    showFilePicker={true}
                 />
             </div>
         </div>
