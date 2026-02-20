@@ -14,7 +14,8 @@ import {
   computeMissingSuiteFileMarkers,
   computeOrderingMarkers,
   computeTestCallAliasMarkers,
-  computeTestCallInputsMarkers,
+  findTestCallInputsProblems,
+  getUndefinedInputDecorations,
   type ProblemEntry,
 } from "./validator";
 import { useRunGlyphs } from './useRunGlyphs';
@@ -31,6 +32,7 @@ interface YamlEditorPanelProps {
 }
 
 const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
+const UNDEFINED_INPUT_CLASS = "mmt-undefined-input-underline";
 
 const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   content,
@@ -42,6 +44,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const editorRef = useRef<any>(null);
   const decorationsRef = useRef<string[]>([]);
   const linkDecorationsRef = useRef<string[]>([]);
+  const undefinedInputDecorationsRef = useRef<string[]>([]);
   const contentRef = useRef(content);
   const [editorReady, setEditorReady] = useState(false);
   const importsMapRef = useRef<Record<string, string>>({});
@@ -261,15 +264,15 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       if (doc.errors && doc.errors.length > 0) {
         monaco.editor.setModelMarkers(model, "mmt-call", []);
         setCallAliasProblems([]);
-        monaco.editor.setModelMarkers(model, "mmt-call-inputs", []);
         setCallInputsProblems([]);
+        undefinedInputDecorationsRef.current = editor.deltaDecorations(undefinedInputDecorationsRef.current, []);
         return;
       }
     } catch {
       monaco.editor.setModelMarkers(model, "mmt-call", []);
       setCallAliasProblems([]);
-      monaco.editor.setModelMarkers(model, "mmt-call-inputs", []);
       setCallInputsProblems([]);
+      undefinedInputDecorationsRef.current = editor.deltaDecorations(undefinedInputDecorationsRef.current, []);
       return;
     }
 
@@ -284,16 +287,27 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     monaco.editor.setModelMarkers(model, "mmt-call", aliasMarkers);
     setCallAliasProblems(aliasProblems);
 
-    const { markers: inputMarkers, problems: inputProblems } = computeTestCallInputsMarkers(
-      monaco,
-      model,
+    const inputProblems = findTestCallInputsProblems(
       content,
       doc,
       docType,
       apiInputsByAlias
     );
-    monaco.editor.setModelMarkers(model, "mmt-call-inputs", inputMarkers);
     setCallInputsProblems(inputProblems);
+
+    const undefinedInputDecos = getUndefinedInputDecorations(
+      monaco,
+      model,
+      content,
+      doc,
+      docType,
+      apiInputsByAlias,
+      UNDEFINED_INPUT_CLASS
+    );
+    undefinedInputDecorationsRef.current = editor.deltaDecorations(
+      undefinedInputDecorationsRef.current,
+      undefinedInputDecos
+    );
   }, [content, docType, editorReady, apiInputsByAlias]);
 
   useEffect(() => {

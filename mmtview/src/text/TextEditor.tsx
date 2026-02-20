@@ -89,6 +89,21 @@ const TextEditor: React.FC<TextEditorProps> = ({
     document.head.appendChild(style);
   }, []);
 
+  // Add CSS for yellow underline on undefined inputs passed to imported items
+  useEffect(() => {
+    if (document.getElementById("mmt-undefined-input-style")) return;
+    const style = document.createElement("style");
+    style.id = "mmt-undefined-input-style";
+    style.innerHTML = `
+      .mmt-undefined-input-underline {
+        text-decoration: underline wavy;
+        text-decoration-color: #e2c358;
+        text-underline-offset: 3px;
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
   // Add CSS for run glyph rendered in the gutter
   useEffect(() => {
     if (document.getElementById("mmt-run-glyph-style")) return;

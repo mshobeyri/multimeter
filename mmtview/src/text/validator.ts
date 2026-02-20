@@ -32,10 +32,11 @@ export type CallSiteInfo = {
   line: number;
 };
 
-type CallInputKeyInfo = {
+export type CallInputKeyInfo = {
   alias: string;
   inputKey: string;
   line: number;
+  offset: number;
 };
 
 export function offsetToLineNumber(content: string, offset: number): number {
@@ -173,6 +174,30 @@ export function detectOrderingIssue(doc: any, content: string, expectedOrder: st
   return null;
 }
 
+function collectCallSitesFromSteps(seqItems: any[], content: string, results: CallSiteInfo[]): void {
+  for (const stepNode of seqItems) {
+    const stepPairs: any[] = Array.isArray(stepNode?.items) ? stepNode.items : [];
+    const callPair = stepPairs.find((pair) => pair?.key?.value === "call");
+    const alias = callPair?.value?.value;
+    if (typeof alias === "string" && alias.trim()) {
+      const offset =
+        Array.isArray(callPair?.value?.range) && typeof callPair.value.range[0] === "number"
+          ? callPair.value.range[0]
+          : Array.isArray(callPair?.range)
+            ? callPair.range[0]
+            : undefined;
+      const line = typeof offset === "number" ? offsetToLineNumber(content, offset) : 1;
+      results.push({ alias, line });
+    }
+    // Recurse into nested steps (repeat, for, if, etc.)
+    const nestedStepsPair = stepPairs.find((pair) => pair?.key?.value === "steps");
+    const nestedSeq: any[] = Array.isArray(nestedStepsPair?.value?.items) ? nestedStepsPair.value.items : [];
+    if (nestedSeq.length) {
+      collectCallSitesFromSteps(nestedSeq, content, results);
+    }
+  }
+}
+
 function extractTestCallSites(doc: any, content: string): CallSiteInfo[] {
   if (!doc?.contents?.items) {
     return [];
@@ -184,31 +209,45 @@ function extractTestCallSites(doc: any, content: string): CallSiteInfo[] {
     return [];
   }
 
-  const seqItems: any[] = Array.isArray(stepsPair.value.items) ? stepsPair.value.items : [];
   const callSites: CallSiteInfo[] = [];
+  collectCallSitesFromSteps(stepsPair.value.items, content, callSites);
+  return callSites;
+}
 
+function collectCallInputKeySitesFromSteps(seqItems: any[], content: string, results: CallInputKeyInfo[]): void {
   for (const stepNode of seqItems) {
     const stepPairs: any[] = Array.isArray(stepNode?.items) ? stepNode.items : [];
     const callPair = stepPairs.find((pair) => pair?.key?.value === "call");
     const alias = callPair?.value?.value;
-    if (typeof alias !== "string" || !alias.trim()) {
-      continue;
+    if (typeof alias === "string" && alias.trim()) {
+      const inputsPair = stepPairs.find((pair) => pair?.key?.value === "inputs");
+      const inputPairs: any[] = Array.isArray(inputsPair?.value?.items) ? inputsPair.value.items : [];
+
+      for (const pair of inputPairs) {
+        const inputKey = pair?.key?.value;
+        if (typeof inputKey !== "string" || !inputKey.trim()) {
+          continue;
+        }
+        const offset =
+          Array.isArray(pair?.key?.range) && typeof pair.key.range[0] === "number"
+            ? pair.key.range[0]
+            : Array.isArray(pair?.range)
+              ? pair.range[0]
+              : undefined;
+        const line = typeof offset === "number" ? offsetToLineNumber(content, offset) : 1;
+        results.push({ alias, inputKey, line, offset: typeof offset === "number" ? offset : -1 });
+      }
     }
-
-    const offset =
-      Array.isArray(callPair?.value?.range) && typeof callPair.value.range[0] === "number"
-        ? callPair.value.range[0]
-        : Array.isArray(callPair?.range)
-          ? callPair.range[0]
-          : undefined;
-    const line = typeof offset === "number" ? offsetToLineNumber(content, offset) : 1;
-    callSites.push({ alias, line });
+    // Recurse into nested steps (repeat, for, if, etc.)
+    const nestedStepsPair = stepPairs.find((pair) => pair?.key?.value === "steps");
+    const nestedSeq: any[] = Array.isArray(nestedStepsPair?.value?.items) ? nestedStepsPair.value.items : [];
+    if (nestedSeq.length) {
+      collectCallInputKeySitesFromSteps(nestedSeq, content, results);
+    }
   }
-
-  return callSites;
 }
 
-function extractTestCallInputKeySites(doc: any, content: string): CallInputKeyInfo[] {
+export function extractTestCallInputKeySites(doc: any, content: string): CallInputKeyInfo[] {
   if (!doc?.contents?.items) {
     return [];
   }
@@ -219,36 +258,8 @@ function extractTestCallInputKeySites(doc: any, content: string): CallInputKeyIn
     return [];
   }
 
-  const seqItems: any[] = Array.isArray(stepsPair.value.items) ? stepsPair.value.items : [];
   const infos: CallInputKeyInfo[] = [];
-
-  for (const stepNode of seqItems) {
-    const stepPairs: any[] = Array.isArray(stepNode?.items) ? stepNode.items : [];
-    const callPair = stepPairs.find((pair) => pair?.key?.value === "call");
-    const alias = callPair?.value?.value;
-    if (typeof alias !== "string" || !alias.trim()) {
-      continue;
-    }
-
-    const inputsPair = stepPairs.find((pair) => pair?.key?.value === "inputs");
-    const inputPairs: any[] = Array.isArray(inputsPair?.value?.items) ? inputsPair.value.items : [];
-
-    for (const pair of inputPairs) {
-      const inputKey = pair?.key?.value;
-      if (typeof inputKey !== "string" || !inputKey.trim()) {
-        continue;
-      }
-      const offset =
-        Array.isArray(pair?.key?.range) && typeof pair.key.range[0] === "number"
-          ? pair.key.range[0]
-          : Array.isArray(pair?.range)
-            ? pair.range[0]
-            : undefined;
-      const line = typeof offset === "number" ? offsetToLineNumber(content, offset) : 1;
-      infos.push({ alias, inputKey, line });
-    }
-  }
-
+  collectCallInputKeySitesFromSteps(stepsPair.value.items, content, infos);
   return infos;
 }
 
@@ -399,6 +410,49 @@ export function computeTestCallAliasMarkers(
   });
 
   return { markers, problems };
+}
+
+export function getUndefinedInputDecorations(
+  monaco: any,
+  model: any,
+  content: string,
+  yamlDoc: any,
+  docType: string | null,
+  importedInputsByAlias: Record<string, string[]> | null,
+  inlineClassName: string
+): any[] {
+  if (!model || !yamlDoc || docType !== "test" || !importedInputsByAlias) {
+    return [];
+  }
+
+  const allowedByAlias = new Map<string, Set<string>>();
+  for (const [alias, keys] of Object.entries(importedInputsByAlias)) {
+    allowedByAlias.set(alias, new Set((Array.isArray(keys) ? keys : []).filter((k) => typeof k === "string")));
+  }
+
+  const keySites = extractTestCallInputKeySites(yamlDoc, content);
+  const decorations: any[] = [];
+
+  for (const site of keySites) {
+    if (!allowedByAlias.has(site.alias) || allowedByAlias.get(site.alias)!.has(site.inputKey)) {
+      continue;
+    }
+    if (site.offset < 0) {
+      continue;
+    }
+    const hoverMessage = { value: `Input "${site.inputKey}" is not defined in imported "${site.alias}"` };
+    const start = model.getPositionAt(site.offset);
+    const end = model.getPositionAt(site.offset + site.inputKey.length);
+    decorations.push({
+      range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column),
+      options: {
+        inlineClassName,
+        hoverMessage,
+      },
+    });
+  }
+
+  return decorations;
 }
 
 export function computeTestCallInputsMarkers(
