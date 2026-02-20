@@ -77,13 +77,12 @@ export const handleBeforeMount = (monaco: any) => {
         }
     };
 
-    const getInputTokenSuggestions = (model: any, prefixWithSpace: boolean): any[] => {
+    const getInputTokenSuggestions = (model: any): any[] => {
         const names = getInputsKeysFromModel(model);
-        const lead = prefixWithSpace ? ' ' : '';
         return names.map((name) => ({
             label: 'i:' + name,
             kind: monaco.languages.CompletionItemKind.Variable,
-            insertText: lead + 'i:' + name,
+            insertText: 'i:' + name,
             documentation: `Input token i:${name} (from this file's inputs:)`,
             detail: `Input: ${name}`,
         }));
@@ -264,8 +263,7 @@ export const handleBeforeMount = (monaco: any) => {
             const tokenSource = lineContent.slice(0, Math.max(0, position.column - 1));
             const tokenMatch = tokenSource.match(/(^|\s)(i:)([\w-]*)$/);
             if (tokenMatch) {
-                const prefixWithSpace = tokenMatch[1] === ' ';
-                const suggestionList = getInputTokenSuggestions(model, prefixWithSpace);
+                const suggestionList = getInputTokenSuggestions(model);
                 const replaceStartColumn = Math.max(1, position.column - tokenMatch[2].length - tokenMatch[3].length);
                 return {
                     suggestions: suggestionList.map((item) => ({
