@@ -277,14 +277,14 @@ const TestCall: React.FC<TestCallProps> = ({
           <div className="label">Parameters</div>
           <div style={{ padding: "5px" }}>
             {keys.length ? (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', columnGap: 12, rowGap: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {keys.map(k => {
                   const hasProblem = invalidInputKeys.has(k);
                   const problemMessage = hasProblem ? validationProblems.inputProblems.find(p => p.inputKey === k)?.message : undefined;
                   const valueForInput = typeof inputs[k] === 'string' ? inputs[k] as string : JSON.stringify(inputs[k]);
                   return (
-                    <React.Fragment key={k}>
-                      <div style={{ alignSelf: 'center' }}>{k}
+                    <div key={k} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                      <div style={{ fontSize: '12px', opacity: 0.85 }}>{k}
                         {hasProblem && problemMessage && (
                           <span
                             className="action-button codicon codicon-warning"
@@ -299,7 +299,7 @@ const TestCall: React.FC<TestCallProps> = ({
                         onChange={(e) => onInputChange(k, e)}
                         onRemovePressed={() => handleRemoveInput(k)}
                       />
-                    </React.Fragment>
+                    </div>
                   );
                 })}
               </div>
