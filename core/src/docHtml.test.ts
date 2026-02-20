@@ -1,4 +1,4 @@
-import { extractEndpoint, parseParamDescriptions, buildDocHtml } from './docHtml';
+import { extractEndpoint, parseParamDescriptions, extractSources, buildDocHtml } from './docHtml';
 import { buildDocMarkdown } from './docMarkdown';
 
 describe('parseParamDescriptions', () => {
@@ -81,7 +81,7 @@ describe('buildDocHtml param descriptions', () => {
       outputs: { status: '$.status' },
     }];
     const html = buildDocHtml(apis);
-    const matches = html.match(/has-desc/g);
+    const matches = html.match(/cols-3/g);
     expect(matches).not.toBeNull();
     expect(matches!.length).toBeGreaterThanOrEqual(2);
   });
@@ -103,7 +103,7 @@ describe('buildDocHtml param descriptions', () => {
       inputs: { userId: '123' },
     }];
     const html = buildDocHtml(apis);
-    expect(html).not.toContain('class="param-table has-desc"');
+    expect(html).not.toContain('class="param-table cols-3"');
     expect(html).not.toContain('<th>Description</th>');
   });
 });
@@ -151,6 +151,82 @@ describe('buildDocMarkdown param descriptions', () => {
     }];
     const md = buildDocMarkdown(apis);
     expect(md).toContain('**<<i:token>>**');
+  });
+});
+
+describe('extractSources', () => {
+  test('extracts i:xxx references', () => {
+    expect(extractSources('Bearer i:token')).toBe('i:token');
+  });
+
+  test('extracts e:xxx references', () => {
+    expect(extractSources('e:baseUrl/api')).toBe('e:baseUrl');
+  });
+
+  test('extracts multiple references', () => {
+    expect(extractSources('i:user and e:env_key')).toBe('i:user, e:env_key');
+  });
+
+  test('returns empty for fixed values', () => {
+    expect(extractSources('application/json')).toBe('');
+    expect(extractSources('12345')).toBe('');
+  });
+
+  test('deduplicates references', () => {
+    expect(extractSources('i:token i:token')).toBe('i:token');
+  });
+});
+
+describe('buildDocHtml Source column', () => {
+  test('renders Source column in headers table when values contain i: or e: references', () => {
+    const apis = [{
+      title: 'Test API', method: 'GET', url: 'http://example.com/test', format: 'json',
+      headers: { Authorization: 'Bearer i:token', 'Content-Type': 'application/json' },
+    }];
+    const html = buildDocHtml(apis);
+    expect(html).toContain('<th>Source</th>');
+    expect(html).toContain('i:token');
+    expect(html).toContain('param-source');
+  });
+
+  test('Source column always present in headers table even with fixed values', () => {
+    const apis = [{
+      title: 'Test API', method: 'GET', url: 'http://example.com/test', format: 'json',
+      headers: { 'Content-Type': 'application/json' },
+    }];
+    const html = buildDocHtml(apis);
+    expect(html).toContain('<th>Source</th>');
+  });
+
+  test('renders Source column in query table when values have references', () => {
+    const apis = [{
+      title: 'Test API', method: 'GET', url: 'http://example.com/test', format: 'json',
+      query: { userId: 'i:userId', page: '1' },
+    }];
+    const html = buildDocHtml(apis);
+    expect(html).toContain('<th>Source</th>');
+    expect(html).toContain('i:userId');
+  });
+});
+
+describe('buildDocMarkdown Source column', () => {
+  test('renders Source column in headers table when values contain references', () => {
+    const apis = [{
+      title: 'Test API', method: 'GET', url: 'http://example.com/test', format: 'json',
+      headers: { Authorization: 'Bearer i:token', 'Content-Type': 'application/json' },
+    }];
+    const md = buildDocMarkdown(apis);
+    expect(md).toContain('Source|');
+    expect(md).toContain('i:token');
+  });
+
+  test('Source column always present in headers table even with fixed values', () => {
+    const apis = [{
+      title: 'Test API', method: 'GET', url: 'http://example.com/test', format: 'json',
+      headers: { 'Content-Type': 'application/json' },
+    }];
+    const md = buildDocMarkdown(apis);
+    expect(md).toContain('Source|');
   });
 });
 

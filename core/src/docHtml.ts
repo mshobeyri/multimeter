@@ -70,6 +70,23 @@ function highlightParamRefs(escapedHtml: string): string {
   );
 }
 
+/**
+ * Extract i:xxx and e:xxx source references from a value string.
+ * Returns a comma-separated string of unique references, or empty string if none.
+ */
+export function extractSources(val: string): string {
+  if (!val) { return ''; }
+  const refs: string[] = [];
+  const re = /\b([ie]:[a-zA-Z_][a-zA-Z0-9_.]*)\b/g;
+  let m;
+  while ((m = re.exec(val)) !== null) {
+    if (!refs.includes(m[1])) {
+      refs.push(m[1]);
+    }
+  }
+  return refs.join(', ');
+}
+
 function renderValueList(val: any): string {
   if (val === undefined || val === null) {
     return '';
@@ -125,7 +142,13 @@ function isNonEmpty(val: any): boolean {
   return keys.some(k => isNonEmpty((val as any)[k]));
 }
 
-function renderParamTable(obj: any, valueHeader = 'Default', paramDescs?: Record<string, string>, showDescCol = false): string {
+interface ParamTableOptions {
+  paramDescs?: Record<string, string>;
+  showDescCol?: boolean;
+  showSource?: boolean;
+}
+
+function renderParamTable(obj: any, valueHeader = 'Default', opts: ParamTableOptions = {}): string {
   if (!obj || typeof obj !== 'object') {
     return '';
   }
@@ -133,22 +156,28 @@ function renderParamTable(obj: any, valueHeader = 'Default', paramDescs?: Record
   if (!entries.length) {
     return '';
   }
+  const { paramDescs, showDescCol = false, showSource = false } = opts;
   const hasDescCol = showDescCol || (paramDescs != null && Object.keys(paramDescs).length > 0);
+  const hasSrcCol = showSource;
   const rows = entries.map(([k, v]) => {
-    const val = typeof v === 'string' ? escapeHtml(v) : escapeHtml(JSON.stringify(v));
+    const raw = typeof v === 'string' ? v : JSON.stringify(v);
+    const val = escapeHtml(raw);
     const descCell = hasDescCol ? `\n            <td class="param-desc">${escapeHtml(paramDescs?.[k] || '')}</td>` : '';
+    const srcCell = hasSrcCol ? `\n            <td class="param-source">${escapeHtml(extractSources(raw))}</td>` : '';
     return `          <tr>
             <td class="param-name">${escapeHtml(k)}</td>
-            <td class="param-value">${val}</td>${descCell}
+            <td class="param-value">${val}</td>${descCell}${srcCell}
           </tr>`;
   }).join('\n');
   const descHeader = hasDescCol ? `\n            <th>Description</th>` : '';
-  const tableClass = hasDescCol ? 'param-table has-desc' : 'param-table';
+  const srcHeader = hasSrcCol ? `\n            <th>Source</th>` : '';
+  const colCount = 2 + (hasDescCol ? 1 : 0) + (hasSrcCol ? 1 : 0);
+  const tableClass = colCount > 2 ? 'param-table cols-' + colCount : 'param-table';
   return `      <table class="${tableClass}">
         <thead>
           <tr>
             <th>Parameter</th>
-            <th>${escapeHtml(valueHeader)}</th>${descHeader}
+            <th>${escapeHtml(valueHeader)}</th>${descHeader}${srcHeader}
           </tr>
         </thead>
         <tbody>
@@ -291,8 +320,8 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     const urlStr = String(api?.url || '');
     const methodClass = (method || '').toLowerCase().startsWith('ws') ? 'ws' : (method || '').toLowerCase();
     const badge = method ? `<span class="badge method-${methodClass}">${method}</span>` : '';
-    const headers = api?.headers && Object.keys(api.headers).length ? renderParamTable(api.headers, 'Default') : '';
-    const cookies = api?.cookies && Object.keys(api.cookies).length ? renderParamTable(api.cookies, 'Default') : '';
+    const headers = api?.headers && Object.keys(api.headers).length ? renderParamTable(api.headers, 'Default', { showSource: true }) : '';
+    const cookies = api?.cookies && Object.keys(api.cookies).length ? renderParamTable(api.cookies, 'Default', { showSource: true }) : '';
     // Compute body string once – used for both detail panel and Try panel
     const fmtRaw = String(api?.format || 'json').toLowerCase();
     const fmt = (fmtRaw === 'xml' || fmtRaw === 'json' || fmtRaw === 'text') ? fmtRaw : 'json';
@@ -318,8 +347,8 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
         const obj = typeof ex === 'string' ? (tryParseJson(ex) ?? { description: ex }) : ex;
         const nameHtml = obj?.name ? `<div class="ex-name">${escapeHtml(String(obj.name))}</div>` : '';
         const descHtml = obj?.description ? `<div class="ex-desc">${escapeHtml(String(obj.description))}</div>` : '';
-        const exInputs = obj?.inputs ? renderParamTable(typeof obj.inputs === 'string' ? (tryParseJson(obj.inputs) ?? obj.inputs) : obj.inputs, 'Default') : '';
-        const exOutputs = obj?.outputs ? renderParamTable(typeof obj.outputs === 'string' ? (tryParseJson(obj.outputs) ?? obj.outputs) : obj.outputs, 'Default') : '';
+        const exInputs = obj?.inputs ? renderParamTable(typeof obj.inputs === 'string' ? (tryParseJson(obj.inputs) ?? obj.inputs) : obj.inputs, 'Default', {}) : '';
+        const exOutputs = obj?.outputs ? renderParamTable(typeof obj.outputs === 'string' ? (tryParseJson(obj.outputs) ?? obj.outputs) : obj.outputs, 'Default', {}) : '';
         const exTryBtn = tryItEnabled ? `<button class="try-btn-sm" onclick="tryExample(${idx}, ${i}, event)" type="button">Try</button>` : '';
         const ioBlocks = [
           exInputs ? `<div class="ex-sub"><strong>Inputs</strong>${exInputs}</div>` : '',
@@ -336,31 +365,30 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     const hasAnyParamDescs = Object.keys(paramDescs.inputs).length > 0 || Object.keys(paramDescs.outputs).length > 0;
     const desc = cleanedDesc ? `<div class="desc">${highlightParamRefs(escapeHtml(cleanedDesc))}</div>` : '';
     const outputSource = (api as any)?.outputs !== undefined ? (api as any).outputs : (api as any)?.output;
-    const output = outputSource ? renderParamTable(typeof outputSource === 'string' ? (tryParseJson(outputSource) ?? outputSource) : outputSource, 'Path', paramDescs.outputs, hasAnyParamDescs) : '';
-    const inputs = api?.inputs ? renderParamTable(typeof api.inputs === 'string' ? (tryParseJson(api.inputs) ?? api.inputs) : api.inputs, 'Default', paramDescs.inputs, hasAnyParamDescs) : '';
+    const output = outputSource ? renderParamTable(typeof outputSource === 'string' ? (tryParseJson(outputSource) ?? outputSource) : outputSource, 'Path', { paramDescs: paramDescs.outputs, showDescCol: hasAnyParamDescs }) : '';
+    const inputs = api?.inputs ? renderParamTable(typeof api.inputs === 'string' ? (tryParseJson(api.inputs) ?? api.inputs) : api.inputs, 'Default', { paramDescs: paramDescs.inputs, showDescCol: hasAnyParamDescs }) : '';
     const queryObj = (api as any)?.query;
-    const query = isNonEmpty(queryObj) ? renderParamTable(typeof queryObj === 'string' ? (tryParseJson(queryObj) ?? queryObj) : queryObj, 'Default') : '';
-    const metaHtml = [
+    const hasQuery = isNonEmpty(queryObj);
+    const query = hasQuery ? renderParamTable(typeof queryObj === 'string' ? (tryParseJson(queryObj) ?? queryObj) : queryObj, 'Default', { showSource: true }) : '';
+    const requestMeta = [
+      `<h3>URL</h3>\n        <div class="url"><input class="url-input" type="text" id="url-${idx}" value="${escapeHtml(api?.url || '')}" /></div>`,
+      hasQuery ? `<h3>Query</h3>${query}` : '',
       headers ? `<h3>Headers</h3>${headers}` : '',
       cookies ? `<h3>Cookies</h3>${cookies}` : '',
       body ? `<h3>Body (${api?.format || 'JSON'})</h3>${body}` : ''
-    ].filter(Boolean).join('');
-    const hasInfo = !!desc || !!tags || !!headers || !!cookies;
+    ].filter(Boolean).join('\n');
+    const hasInfo = !!desc || !!tags;
     const hasInputs = !!inputs;
-    const hasQuery = isNonEmpty(queryObj);
     const hasOutputs = !!output;
-    const hasMeta = !!metaHtml;
+    const hasRequestMeta = !!requestMeta;
     const hasExamples = !!examplesHtml;
-    const details = hasInfo || hasInputs || hasQuery || hasOutputs || hasMeta || hasExamples ? `
+    const details = hasInfo || hasInputs || hasOutputs || hasRequestMeta || hasExamples ? `
       <div class="details" id="details-${idx}" style="display: none;">
-        <h3>URL</h3>
-        <div class="url"><input class="url-input" type="text" id="url-${idx}" value="${escapeHtml(api?.url || '')}" /></div>
         ${desc}
         ${tags}
-        ${hasQuery ? `<h3>Query</h3>${query}` : ''}
         ${hasInputs ? `<h3>Inputs</h3>${inputs}` : ''}
         ${hasOutputs ? `<h3>Outputs</h3>${output}` : ''}
-        ${hasMeta ? `<hr class="sep" />${metaHtml}` : ''}
+        ${hasRequestMeta ? `<hr class="sep" />${requestMeta}` : ''}
         ${hasExamples ? `<hr class="sep" />\n<h3>Examples</h3>\n${examplesHtml}` : ''}
       </div>` : '';
 

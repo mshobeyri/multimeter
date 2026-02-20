@@ -1,4 +1,4 @@
-import {extractEndpoint, resolveEnvVars, resolveEnvInApi, parseParamDescriptions} from './docHtml';
+import {extractEndpoint, resolveEnvVars, resolveEnvInApi, parseParamDescriptions, extractSources} from './docHtml';
 import { formatBody } from './markupConvertor';
 
 export interface BuildDocMdOptions {
@@ -33,19 +33,30 @@ function fence(code: string, lang = ''): string {
   return '```' + lang + '\n' + safe + '\n```';
 }
 
-function renderTableFromObject(obj: any, valueHeader = 'Default', paramDescs?: Record<string, string>, showDescCol = false): string {
+interface MdTableOptions {
+  paramDescs?: Record<string, string>;
+  showDescCol?: boolean;
+  showSource?: boolean;
+}
+
+function renderTableFromObject(obj: any, valueHeader = 'Default', opts: MdTableOptions = {}): string {
   if (!obj || typeof obj !== 'object') return '';
   const entries = Object.entries(obj);
   if (!entries.length) return '';
+  const { paramDescs, showDescCol = false, showSource = false } = opts;
   const hasDescCol = showDescCol || (paramDescs != null && Object.keys(paramDescs).length > 0);
+  const hasSrcCol = showSource;
   const rows = entries.map(([k, v]) => {
     const val = typeof v === 'string' ? v : JSON.stringify(v);
     const descCol = hasDescCol ? ` ${paramDescs?.[k] || ''}|` : '';
-    return `|${k}| ${val}|${descCol}`;
+    const srcCol = hasSrcCol ? ` ${extractSources(val)}|` : '';
+    return `|${k}| ${val}|${descCol}${srcCol}`;
   });
   const headerDesc = hasDescCol ? 'Description|' : '';
   const sepDesc = hasDescCol ? '-|' : '';
-  return ['|Parameter|'+valueHeader+'|'+headerDesc, '|-|-|'+sepDesc, ...rows].join('\n');
+  const headerSrc = hasSrcCol ? 'Source|' : '';
+  const sepSrc = hasSrcCol ? '-|' : '';
+  return ['|Parameter|'+valueHeader+'|'+headerDesc+headerSrc, '|-|-|'+sepDesc+sepSrc, ...rows].join('\n');
 }
 
 export function buildDocMarkdown(
@@ -91,12 +102,13 @@ export function buildDocMarkdown(
     }
     // Parameters section
     lines.push('', '### Parameters');
-    if (api?.url) { lines.push('', `**URL**: \`${String(api.url)}\``); }
-    if (api?.inputs) { lines.push('', '**Inputs**', renderTableFromObject(api.inputs, 'Default', paramDescs.inputs, hasAnyParamDescs)); }
+    if (api?.inputs) { lines.push('', '**Inputs**', renderTableFromObject(api.inputs, 'Default', { paramDescs: paramDescs.inputs, showDescCol: hasAnyParamDescs })); }
     const outputSource = (api as any)?.outputs !== undefined ? (api as any).outputs : (api as any)?.output;
-    if (outputSource) { lines.push('', '**Outputs**', renderTableFromObject(outputSource, 'Path', paramDescs.outputs, hasAnyParamDescs)); }
-    if (api?.headers && Object.keys(api.headers).length) { lines.push('', '**Headers**', renderTableFromObject(api.headers, 'Default')); }
-    if (api?.cookies && Object.keys(api.cookies).length) { lines.push('', '**Cookies**', renderTableFromObject(api.cookies, 'Default')); }
+    if (outputSource) { lines.push('', '**Outputs**', renderTableFromObject(outputSource, 'Path', { paramDescs: paramDescs.outputs, showDescCol: hasAnyParamDescs })); }
+    lines.push('', '---');
+    if (api?.url) { lines.push('', `**URL**: \`${String(api.url)}\``); }
+    if (api?.headers && Object.keys(api.headers).length) { lines.push('', '**Headers**', renderTableFromObject(api.headers, 'Default', { showSource: true })); }
+    if (api?.cookies && Object.keys(api.cookies).length) { lines.push('', '**Cookies**', renderTableFromObject(api.cookies, 'Default', { showSource: true })); }
     // Body
     if (api?.body !== undefined && api?.body !== null && String(api.body).length) {
       const fmtRaw = String(api?.format || 'json').toLowerCase();
@@ -111,8 +123,8 @@ export function buildDocMarkdown(
         const obj = typeof ex === 'string' ? { description: ex } : ex;
         const exTitle = obj?.name ? String(obj.name) : 'Example';
         lines.push('', `**${exTitle}**`);
-        if (obj?.inputs) { lines.push('', 'Inputs', renderTableFromObject(obj.inputs, 'Default')); }
-        if (obj?.outputs) { lines.push('', 'Outputs', renderTableFromObject(obj.outputs, 'Default')); }
+        if (obj?.inputs) { lines.push('', 'Inputs', renderTableFromObject(obj.inputs, 'Default', {})); }
+        if (obj?.outputs) { lines.push('', 'Outputs', renderTableFromObject(obj.outputs, 'Default', {})); }
       });
     }
   };

@@ -305,6 +305,7 @@ export const DOC_TEMPLATE_HTML = `
   .desc {
     color: var(--muted);
     margin-bottom: 8px;
+    padding-top: 8px;
     white-space: pre-wrap;
     line-height: 1.6;
   }
@@ -395,9 +396,14 @@ export const DOC_TEMPLATE_HTML = `
     width: 50%;
   }
 
-  .param-table.has-desc th,
-  .param-table.has-desc td {
+  .param-table.cols-3 th,
+  .param-table.cols-3 td {
     width: 33.33%;
+  }
+
+  .param-table.cols-4 th,
+  .param-table.cols-4 td {
+    width: 25%;
   }
 
   .param-table tbody tr:last-child td {
@@ -433,6 +439,12 @@ export const DOC_TEMPLATE_HTML = `
     color: var(--muted);
     font-size: 11px;
     font-style: italic;
+  }
+
+  .param-table .param-source {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    color: var(--accent);
+    font-size: 11px;
   }
 
   .param-ref {
