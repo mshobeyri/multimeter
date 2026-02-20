@@ -1,5 +1,6 @@
 import { validateYamlContent } from './Validate';
 import { KeySuggestionsByParent } from './AutoComplete';
+import { readFile } from '../vsAPI';
 
 async function listFiles(folder: string, recursive = true): Promise<string[]> {
     return new Promise((resolve) => {
@@ -87,6 +88,198 @@ export const handleBeforeMount = (monaco: any) => {
             detail: `Input: ${name}`,
         }));
     };
+
+    // --- Import-aware autocomplete helpers ---
+
+    /** Parse the top-level import: map from the document text. Returns { alias: path } */
+    const getImportMap = (model: any): Record<string, string> => {
+        try {
+            const value = String(model?.getValue?.() ?? '');
+            const lines = value.split(/\r?\n/);
+            let inImport = false;
+            let importIndent = 0;
+            let childIndent: number | null = null;
+            const map: Record<string, string> = {};
+            for (const line of lines) {
+                if (!line.trim()) { continue; }
+                const indent = line.search(/\S|$/);
+                const trimmed = line.trim();
+                if (!inImport) {
+                    if (/^import:\s*$/.test(trimmed) && indent === 0) {
+                        inImport = true;
+                        importIndent = indent;
+                        childIndent = null;
+                    }
+                    continue;
+                }
+                if (indent <= importIndent) { break; }
+                if (childIndent === null) { childIndent = indent; }
+                if (indent !== childIndent) { continue; }
+                const m = trimmed.match(/^([A-Za-z_][A-Za-z0-9_-]*)\s*:\s*(.+)$/);
+                if (m) {
+                    map[m[1]] = m[2].trim().replace(/^["']|["']$/g, '');
+                }
+            }
+            return map;
+        } catch {
+            return {};
+        }
+    };
+
+    /** Scan the document for `- call: alias` + `id: varName` pairs. Returns [{ alias, id }] */
+    const getCallIdsWithAliases = (model: any): { alias: string; id: string }[] => {
+        try {
+            const value = String(model?.getValue?.() ?? '');
+            const lines = value.split(/\r?\n/);
+            const results: { alias: string; id: string }[] = [];
+            for (let i = 0; i < lines.length; i++) {
+                const trimmed = lines[i].trim();
+                const callMatch = trimmed.match(/^-\s*call:\s*(.+)$/);
+                if (!callMatch) { continue; }
+                const alias = callMatch[1].trim().replace(/^["']|["']$/g, '');
+                const callIndent = lines[i].search(/\S|$/);
+                // Look for sibling `id:` at same indent+2 (or same block)
+                let id = '';
+                for (let j = i + 1; j < lines.length && j < i + 10; j++) {
+                    const next = lines[j];
+                    if (!next.trim()) { continue; }
+                    const nextIndent = next.search(/\S|$/);
+                    if (nextIndent <= callIndent) { break; }
+                    const idMatch = next.trim().match(/^id:\s*(.+)$/);
+                    if (idMatch) {
+                        id = idMatch[1].trim().replace(/^["']|["']$/g, '');
+                        break;
+                    }
+                }
+                if (id) {
+                    results.push({ alias, id });
+                }
+            }
+            return results;
+        } catch {
+            return [];
+        }
+    };
+
+    /** Cache for imported file parsed data */
+    const importedFileCache = new Map<string, { inputs: Record<string, string>; outputs: Record<string, string>; type: string } | null>();
+
+    /** Read and parse an imported .mmt file, extracting its inputs: and outputs: */
+    const readAndParseImportedFile = async (path: string): Promise<{ inputs: Record<string, string>; outputs: Record<string, string>; type: string } | null> => {
+        if (importedFileCache.has(path)) {
+            return importedFileCache.get(path) ?? null;
+        }
+        try {
+            const content = await readFile(path);
+            if (!content) { return null; }
+            const lines = content.split(/\r?\n/);
+            const inputs: Record<string, string> = {};
+            const outputs: Record<string, string> = {};
+            let fileType = '';
+
+            // Parse type
+            for (const line of lines) {
+                const tm = line.trim().match(/^type:\s*(.+)$/);
+                if (tm) {
+                    fileType = tm[1].trim();
+                    break;
+                }
+            }
+
+            // Parse inputs: section
+            let section: 'none' | 'inputs' | 'outputs' = 'none';
+            let sectionIndent = 0;
+            let childIndent: number | null = null;
+            for (const line of lines) {
+                if (!line.trim()) { continue; }
+                const indent = line.search(/\S|$/);
+                const trimmed = line.trim();
+                if (/^inputs:\s*$/.test(trimmed) && indent === 0) {
+                    section = 'inputs';
+                    sectionIndent = indent;
+                    childIndent = null;
+                    continue;
+                }
+                if (/^outputs:\s*$/.test(trimmed) && indent === 0) {
+                    section = 'outputs';
+                    sectionIndent = indent;
+                    childIndent = null;
+                    continue;
+                }
+                if (section !== 'none') {
+                    if (indent <= sectionIndent && !/^\s*$/.test(line)) {
+                        // Check if this is a new top-level key
+                        if (indent === 0) {
+                            section = 'none';
+                            childIndent = null;
+                            continue;
+                        }
+                    }
+                    if (indent > sectionIndent) {
+                        if (childIndent === null) { childIndent = indent; }
+                        if (indent === childIndent) {
+                            const m = trimmed.match(/^([A-Za-z_][A-Za-z0-9_-]*)\s*:\s*(.*)$/);
+                            if (m) {
+                                const target = section === 'inputs' ? inputs : outputs;
+                                target[m[1]] = m[2].trim().replace(/^["']|["']$/g, '');
+                            }
+                        }
+                    }
+                }
+            }
+            const result = { inputs, outputs, type: fileType };
+            importedFileCache.set(path, result);
+            // Auto-expire cache after 10 seconds
+            setTimeout(() => importedFileCache.delete(path), 10000);
+            return result;
+        } catch {
+            importedFileCache.set(path, null);
+            setTimeout(() => importedFileCache.delete(path), 5000);
+            return null;
+        }
+    };
+
+    /**
+     * Detect if the cursor is inside the `inputs:` block of a `- call:` step.
+     * Returns the call alias if so, null otherwise.
+     */
+    const getCallAliasForInputsContext = (lines: string[], lineNumber: number, currentIndent: number): string | null => {
+        // Walk upward to find `inputs:` then the parent `- call:` line
+        let foundInputs = false;
+        let inputsIndent = -1;
+        for (let i = lineNumber - 2; i >= 0; i--) {
+            const line = lines[i];
+            if (!line.trim()) { continue; }
+            const indent = line.search(/\S|$/);
+            const trimmed = line.trim();
+
+            if (!foundInputs) {
+                // We're looking for the `inputs:` parent of current line
+                if (indent < currentIndent && /^inputs:\s*$/.test(trimmed)) {
+                    foundInputs = true;
+                    inputsIndent = indent;
+                    continue;
+                }
+                if (indent < currentIndent) {
+                    // Some other key at a lower indent — not under inputs
+                    return null;
+                }
+                continue;
+            }
+
+            // We found inputs:, now look for the `- call:` parent
+            if (indent < inputsIndent) {
+                const callMatch = trimmed.match(/^-\s*call:\s*(.+)$/);
+                if (callMatch) {
+                    return callMatch[1].trim().replace(/^["']|["']$/g, '');
+                }
+                return null;
+            }
+        }
+        return null;
+    };
+
+    // --- End of import-aware autocomplete helpers ---
 
     // Helper function to deduplicate suggestions by label
     const deduplicateSuggestions = (suggestions: any[]): any[] => {
@@ -278,9 +471,116 @@ export const handleBeforeMount = (monaco: any) => {
                 };
             }
 
+            // Output token suggestions: ${callId.<field>}
+            // When user types ${someId. or ${ someId. detect the call id and suggest output fields.
             const firstLine = model.getLineContent(1).trim();
+            if (firstLine === 'type: test') {
+                const outputTokenMatch = tokenSource.match(/\$\{([A-Za-z_][A-Za-z0-9_]*)\.([\w]*)$/);
+                if (outputTokenMatch) {
+                    const callId = outputTokenMatch[1];
+                    const callPairs = getCallIdsWithAliases(model);
+                    const callPair = callPairs.find(c => c.id === callId);
+                    if (callPair) {
+                        const importMap = getImportMap(model);
+                        const filePath = importMap[callPair.alias];
+                        if (filePath) {
+                            const parsed = await readAndParseImportedFile(filePath);
+                            const suggestions: any[] = [];
+                            // Always suggest built-in fields
+                            suggestions.push({
+                                label: `${callId}.statusCode_`,
+                                kind: monaco.languages.CompletionItemKind.Property,
+                                insertText: 'statusCode_',
+                                detail: 'HTTP status code (number)',
+                                documentation: `The HTTP status code returned by the API call (e.g. 200, 404, 500).`,
+                                sortText: '~0',
+                            });
+                            suggestions.push({
+                                label: `${callId}.details_`,
+                                kind: monaco.languages.CompletionItemKind.Property,
+                                insertText: 'details_',
+                                detail: 'Full request/response JSON',
+                                documentation: `JSON stringified object containing the full request and response details.`,
+                                sortText: '~1',
+                            });
+                            if (parsed?.outputs) {
+                                for (const [key, rule] of Object.entries(parsed.outputs)) {
+                                    suggestions.push({
+                                        label: `${callId}.${key}`,
+                                        kind: monaco.languages.CompletionItemKind.Field,
+                                        insertText: key,
+                                        detail: `Output: ${rule || key}`,
+                                        documentation: `Extracted output "${key}" from the API response.\nExtraction rule: ${rule || '(default)'}`,
+                                        sortText: `0${key}`,
+                                    });
+                                }
+                            }
+                            // For test imports, outputs are returned as-is
+                            if (parsed?.type === 'test' && parsed?.outputs) {
+                                // Already added above
+                            }
+                            if (suggestions.length > 0) {
+                                const dotPos = tokenSource.lastIndexOf('.');
+                                const replaceStartColumn = dotPos + 2; // after the dot
+                                return {
+                                    suggestions: deduplicateSuggestions(suggestions).map((item) => ({
+                                        ...item,
+                                        range: {
+                                            startLineNumber: position.lineNumber,
+                                            startColumn: replaceStartColumn,
+                                            endLineNumber: position.lineNumber,
+                                            endColumn: position.column,
+                                        }
+                                    }))
+                                };
+                            }
+                        }
+                    }
+                }
+            }
+
             const currentIndent = lineContent.search(/\S|$/);
             const parentContext = getParentContext(lines, currentIndent, firstLine);
+
+            // Call inputs autocomplete: when inside inputs: of a call step, suggest the imported API/test's input keys
+            // Example:
+            //   - call: login
+            //     inputs:
+            //       <here>  ← suggest username, password, etc. from login.mmt
+            if (firstLine === 'type: test' && parentContext === 'inputs') {
+                const allLines = model.getLinesContent();
+                const callAlias = getCallAliasForInputsContext(allLines, lineNumber, currentIndent);
+                if (callAlias) {
+                    const importMap = getImportMap(model);
+                    const filePath = importMap[callAlias];
+                    if (filePath) {
+                        const parsed = await readAndParseImportedFile(filePath);
+                        if (parsed?.inputs && Object.keys(parsed.inputs).length > 0) {
+                            const suggestionList = Object.entries(parsed.inputs).map(([key, defaultVal]) => ({
+                                label: key,
+                                kind: monaco.languages.CompletionItemKind.Field,
+                                insertText: `${key}: `,
+                                detail: defaultVal ? `Default: ${defaultVal}` : `Input parameter`,
+                                documentation: `Input "${key}" from ${callAlias} (${filePath})${defaultVal ? `\nDefault value: ${defaultVal}` : ''}`,
+                            }));
+                            const wordInfo = model.getWordUntilPosition(position);
+                            const baseStartColumn = wordInfo?.startColumn ?? position.column;
+                            const baseEndColumn = wordInfo?.endColumn ?? position.column;
+                            return {
+                                suggestions: deduplicateSuggestions(suggestionList).map((item) => ({
+                                    ...item,
+                                    range: {
+                                        startLineNumber: position.lineNumber,
+                                        startColumn: baseStartColumn,
+                                        endLineNumber: position.lineNumber,
+                                        endColumn: baseEndColumn,
+                                    }
+                                }))
+                            };
+                        }
+                    }
+                }
+            }
 
             // Test: suggest list items under steps:/stages: when editing a dash line.
             // Example:
@@ -516,7 +816,7 @@ export const handleBeforeMount = (monaco: any) => {
 
             return { suggestions };
         },
-        triggerCharacters: ["\n", " ", ":", "-"],
+        triggerCharacters: ["\n", " ", ":", "-", ".", "$", "{"],
     });
 
     // Validation setup
