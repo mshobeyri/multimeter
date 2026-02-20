@@ -36,6 +36,40 @@ function tryParseJson(s: any): any | null {
   }
 }
 
+export interface ParamDescriptions {
+  inputs: Record<string, string>;
+  outputs: Record<string, string>;
+}
+
+/**
+ * Parse <<i:xxx>> and <<o:xxx>> annotations from a description string.
+ * Returns the cleaned description (annotations removed) and maps of param → description.
+ */
+export function parseParamDescriptions(desc: string): { cleaned: string; params: ParamDescriptions } {
+  const inputs: Record<string, string> = {};
+  const outputs: Record<string, string> = {};
+  const cleaned = desc.replace(/^[ \t]*<<([io]):(\S+?)>>\s+(.*?)$/gm, (_match, kind, name, text) => {
+    if (kind === 'i') {
+      inputs[name] = text.trim();
+    } else {
+      outputs[name] = text.trim();
+    }
+    return '';
+  }).replace(/\n{3,}/g, '\n\n').trim();
+  return { cleaned, params: { inputs, outputs } };
+}
+
+/**
+ * Highlight <<i:xxx>> and <<o:xxx>> patterns in HTML-escaped description text.
+ * The escaped form is &lt;&lt;i:xxx&gt;&gt; after escapeHtml.
+ */
+function highlightParamRefs(escapedHtml: string): string {
+  return escapedHtml.replace(
+    /&lt;&lt;([io]):(\S+?)&gt;&gt;/g,
+    '<span class="param-ref">&lt;&lt;$1:<strong>$2</strong>&gt;&gt;</span>'
+  );
+}
+
 function renderValueList(val: any): string {
   if (val === undefined || val === null) {
     return '';
@@ -91,7 +125,7 @@ function isNonEmpty(val: any): boolean {
   return keys.some(k => isNonEmpty((val as any)[k]));
 }
 
-function renderParamTable(obj: any, valueHeader = 'Default'): string {
+function renderParamTable(obj: any, valueHeader = 'Default', paramDescs?: Record<string, string>, showDescCol = false): string {
   if (!obj || typeof obj !== 'object') {
     return '';
   }
@@ -99,18 +133,22 @@ function renderParamTable(obj: any, valueHeader = 'Default'): string {
   if (!entries.length) {
     return '';
   }
+  const hasDescCol = showDescCol || (paramDescs != null && Object.keys(paramDescs).length > 0);
   const rows = entries.map(([k, v]) => {
     const val = typeof v === 'string' ? escapeHtml(v) : escapeHtml(JSON.stringify(v));
+    const descCell = hasDescCol ? `\n            <td class="param-desc">${escapeHtml(paramDescs?.[k] || '')}</td>` : '';
     return `          <tr>
             <td class="param-name">${escapeHtml(k)}</td>
-            <td class="param-value">${val}</td>
+            <td class="param-value">${val}</td>${descCell}
           </tr>`;
   }).join('\n');
-  return `      <table class="param-table">
+  const descHeader = hasDescCol ? `\n            <th>Description</th>` : '';
+  const tableClass = hasDescCol ? 'param-table has-desc' : 'param-table';
+  return `      <table class="${tableClass}">
         <thead>
           <tr>
             <th>Parameter</th>
-            <th>${escapeHtml(valueHeader)}</th>
+            <th>${escapeHtml(valueHeader)}</th>${descHeader}
           </tr>
         </thead>
         <tbody>
@@ -292,10 +330,14 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
       : '';
     const tags = api?.tags && api.tags.length ? `<div class=\"tags\">${api.tags.map((t: string) => `<span class=\"tag\">${escapeHtml(t)}</span>`).join('')}</div>` : '';
     const endpoint = extractEndpoint(api?.url);
-    const desc = api?.description ? `<div class="desc">${escapeHtml(api.description)}</div>` : '';
+    // Parse <<i:xxx>> / <<o:xxx>> annotations from description
+    const rawDesc = api?.description || '';
+    const { cleaned: cleanedDesc, params: paramDescs } = parseParamDescriptions(rawDesc);
+    const hasAnyParamDescs = Object.keys(paramDescs.inputs).length > 0 || Object.keys(paramDescs.outputs).length > 0;
+    const desc = cleanedDesc ? `<div class="desc">${highlightParamRefs(escapeHtml(cleanedDesc))}</div>` : '';
     const outputSource = (api as any)?.outputs !== undefined ? (api as any).outputs : (api as any)?.output;
-    const output = outputSource ? renderParamTable(typeof outputSource === 'string' ? (tryParseJson(outputSource) ?? outputSource) : outputSource, 'Path') : '';
-    const inputs = api?.inputs ? renderParamTable(typeof api.inputs === 'string' ? (tryParseJson(api.inputs) ?? api.inputs) : api.inputs, 'Default') : '';
+    const output = outputSource ? renderParamTable(typeof outputSource === 'string' ? (tryParseJson(outputSource) ?? outputSource) : outputSource, 'Path', paramDescs.outputs, hasAnyParamDescs) : '';
+    const inputs = api?.inputs ? renderParamTable(typeof api.inputs === 'string' ? (tryParseJson(api.inputs) ?? api.inputs) : api.inputs, 'Default', paramDescs.inputs, hasAnyParamDescs) : '';
     const queryObj = (api as any)?.query;
     const query = isNonEmpty(queryObj) ? renderParamTable(typeof queryObj === 'string' ? (tryParseJson(queryObj) ?? queryObj) : queryObj, 'Default') : '';
     const metaHtml = [

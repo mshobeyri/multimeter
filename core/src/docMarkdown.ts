@@ -1,4 +1,4 @@
-import {extractEndpoint, resolveEnvVars, resolveEnvInApi} from './docHtml';
+import {extractEndpoint, resolveEnvVars, resolveEnvInApi, parseParamDescriptions} from './docHtml';
 import { formatBody } from './markupConvertor';
 
 export interface BuildDocMdOptions {
@@ -33,15 +33,19 @@ function fence(code: string, lang = ''): string {
   return '```' + lang + '\n' + safe + '\n```';
 }
 
-function renderTableFromObject(obj: any, valueHeader = 'Default'): string {
+function renderTableFromObject(obj: any, valueHeader = 'Default', paramDescs?: Record<string, string>, showDescCol = false): string {
   if (!obj || typeof obj !== 'object') return '';
   const entries = Object.entries(obj);
   if (!entries.length) return '';
+  const hasDescCol = showDescCol || (paramDescs != null && Object.keys(paramDescs).length > 0);
   const rows = entries.map(([k, v]) => {
     const val = typeof v === 'string' ? v : JSON.stringify(v);
-    return `|${k}| ${val}|`;
+    const descCol = hasDescCol ? ` ${paramDescs?.[k] || ''}|` : '';
+    return `|${k}| ${val}|${descCol}`;
   });
-  return ['|Parameter|'+valueHeader+'|', '|-|-|', ...rows].join('\n');
+  const headerDesc = hasDescCol ? 'Description|' : '';
+  const sepDesc = hasDescCol ? '-|' : '';
+  return ['|Parameter|'+valueHeader+'|'+headerDesc, '|-|-|'+sepDesc, ...rows].join('\n');
 }
 
 export function buildDocMarkdown(
@@ -73,16 +77,24 @@ export function buildDocMarkdown(
       endpoint ? `*\`${endpoint}\`*` : ''
     ].filter(Boolean).join(' ');
     lines.push('', hdr);
-    if (api?.description) { lines.push('', api.description); }
+    // Parse <<i:xxx>> / <<o:xxx>> annotations from description
+    const rawDesc = api?.description || '';
+    const { cleaned: cleanedDesc, params: paramDescs } = parseParamDescriptions(rawDesc);
+    const hasAnyParamDescs = Object.keys(paramDescs.inputs).length > 0 || Object.keys(paramDescs.outputs).length > 0;
+    if (cleanedDesc) {
+      // Highlight <<i:xxx>> / <<o:xxx>> references with bold
+      const highlighted = cleanedDesc.replace(/<<([io]):(\S+?)>>/g, '**<<$1:$2>>**');
+      lines.push('', highlighted);
+    }
     if (api?.tags && api.tags.length) {
       lines.push('', `**Tags**: ${api.tags.map((t: string) => `\`${t}\``).join(', ')}`);
     }
     // Parameters section
     lines.push('', '### Parameters');
     if (api?.url) { lines.push('', `**URL**: \`${String(api.url)}\``); }
-    if (api?.inputs) { lines.push('', '**Inputs**', renderTableFromObject(api.inputs, 'Default')); }
+    if (api?.inputs) { lines.push('', '**Inputs**', renderTableFromObject(api.inputs, 'Default', paramDescs.inputs, hasAnyParamDescs)); }
     const outputSource = (api as any)?.outputs !== undefined ? (api as any).outputs : (api as any)?.output;
-    if (outputSource) { lines.push('', '**Outputs**', renderTableFromObject(outputSource, 'Path')); }
+    if (outputSource) { lines.push('', '**Outputs**', renderTableFromObject(outputSource, 'Path', paramDescs.outputs, hasAnyParamDescs)); }
     if (api?.headers && Object.keys(api.headers).length) { lines.push('', '**Headers**', renderTableFromObject(api.headers, 'Default')); }
     if (api?.cookies && Object.keys(api.cookies).length) { lines.push('', '**Cookies**', renderTableFromObject(api.cookies, 'Default')); }
     // Body

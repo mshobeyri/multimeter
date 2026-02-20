@@ -367,6 +367,7 @@ export const DOC_TEMPLATE_HTML = `
     overflow: hidden;
     backdrop-filter: blur(10px);
     box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
+    table-layout: fixed;
   }
 
   .param-table thead {
@@ -394,6 +395,11 @@ export const DOC_TEMPLATE_HTML = `
     width: 50%;
   }
 
+  .param-table.has-desc th,
+  .param-table.has-desc td {
+    width: 33.33%;
+  }
+
   .param-table tbody tr:last-child td {
     border-bottom: none;
   }
@@ -415,10 +421,32 @@ export const DOC_TEMPLATE_HTML = `
     color: var(--accent);
     font-weight: 600;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .param-table .param-value {
     color: var(--fg);
+  }
+
+  .param-table .param-desc {
+    color: var(--muted);
+    font-size: 11px;
+    font-style: italic;
+  }
+
+  .param-ref {
+    display: inline;
+    background: rgba(14, 99, 156, 0.15);
+    color: var(--accent);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 11px;
+  }
+
+  [data-theme="light"] .param-ref {
+    background: rgba(14, 99, 156, 0.10);
   }
 
   .details .url-input {
