@@ -246,7 +246,6 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
     };
 
     const [addMenuOpen, setAddMenuOpen] = React.useState(false);
-    const [addMenuPos, setAddMenuPos] = React.useState<{ left: number; top: number } | null>(null);
     const addBtnRef = React.useRef<HTMLButtonElement | null>(null);
 
     React.useEffect(() => {
@@ -260,13 +259,6 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
         window.addEventListener('resize', () => setAddMenuOpen(false), { once: true });
         return () => document.removeEventListener('click', onDocDown, true);
     }, [addMenuOpen]);
-
-    const openAddMenuAtButton = () => {
-        const el = addBtnRef.current;
-        if (!el) return;
-        const r = el.getBoundingClientRect();
-        setAddMenuPos({ left: Math.max(8, r.right - 200), top: r.bottom + 6 });
-    };
 
     const createDefaultStep = (type: FlowType | 'data'): any => {
         switch (type) {
@@ -349,14 +341,14 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                     ref={addBtnRef}
                     className="button-icon"
                     onPointerDown={(e) => e.stopPropagation()}
-                    onPointerUp={(e) => { e.stopPropagation(); setAddMenuOpen(v => { const next = !v; if (!v) openAddMenuAtButton(); return next; }); }}
+                    onPointerUp={(e) => { e.stopPropagation(); setAddMenuOpen(v => !v); }}
                     title="Add flow item"
                 >
                     <span className="codicon codicon-add" aria-hidden />
                     Add item
                 </button>
-                {addMenuOpen && addMenuPos && (
-                    <div style={{ position: 'fixed', left: addMenuPos.left, top: addMenuPos.top, zIndex: 1000, background: 'var(--vscode-editorWidget-background,#232323)', border: '1px solid var(--vscode-editorWidget-border,#333)', borderRadius: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.4)', minWidth: 200 }}
+                {addMenuOpen && (
+                    <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 6, zIndex: 1000, background: 'var(--vscode-editorWidget-background,#232323)', border: '1px solid var(--vscode-editorWidget-border,#333)', borderRadius: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.4)', minWidth: 200 }}
                         onPointerDown={(e) => e.stopPropagation()}
                         onMouseDown={(e) => e.stopPropagation()}
                         onClick={(e) => e.stopPropagation()}>
