@@ -340,15 +340,20 @@ export const handleBeforeMount = (monaco: any) => {
                     return match[1];
                 }
 
-                // Handle list items
+                // Handle list items: walk up to find the container key (e.g. steps:)
+                // Must respect indentation — skip lines at same/deeper indent.
                 if (line.trim().startsWith("- ")) {
+                    const listItemIndent = indent;
                     for (let j = i - 1; j >= 0; j--) {
                         const upperLine = lines[j];
-                        if (!upperLine.trim()) continue;
+                        if (!upperLine.trim()) { continue; }
+                        const upperIndent = upperLine.search(/\S|$/);
+                        if (upperIndent >= listItemIndent) { continue; }
                         const upperMatch = upperLine.trim().match(/^\s*(\w+):/);
                         if (upperMatch) {
                             return upperMatch[1];
                         }
+                        break;
                     }
                 }
                 break;
@@ -589,41 +594,88 @@ export const handleBeforeMount = (monaco: any) => {
             // Works even if user already typed "- ".
             if (firstLine === 'type: test') {
                 const trimmedLine = lineContent.trim();
-                const isDashLine = trimmedLine === '-' || trimmedLine.startsWith('- ') || trimmedLine === '';
-                if ((parentContext === 'steps' || parentContext === 'stages') && isDashLine) {
-                    const suggestionList = (keySuggestionsByParent.steps || []).map((item: any) => {
-                        const insertText = typeof item.insertText === 'string' ? item.insertText : '';
-                        if (trimmedLine.startsWith('-')) {
-                            // User already has '-' on the line; avoid inserting it twice.
-                            if (insertText.startsWith('- ')) {
-                                return { ...item, insertText: insertText.slice(2) };
+                const isDashLine = trimmedLine === '-' || trimmedLine.startsWith('- ');
+                const isBlankLine = trimmedLine === '';
+                if ((parentContext === 'steps' || parentContext === 'stages') && (isDashLine || isBlankLine)) {
+                    // For blank lines, check if we're at sibling indent of an existing step item
+                    // (i.e. deeper than the dash). If so, skip — the sibling block below will handle it.
+                    let isAtSiblingIndent = false;
+                    if (isBlankLine && currentIndent > 0) {
+                        for (let i = lines.length - 1; i >= 0; i--) {
+                            const l = lines[i];
+                            if (!l.trim()) { continue; }
+                            const indent = l.search(/\S|$/);
+                            if (indent >= currentIndent) { continue; }
+                            if (indent < currentIndent && l.trim().match(/^-\s*\w+\s*:/)) {
+                                isAtSiblingIndent = true;
                             }
-                            if (insertText.startsWith('-')) {
-                                return { ...item, insertText: insertText.slice(1) };
+                            break;
+                        }
+                    }
+                    if (!isAtSiblingIndent) {
+                        const suggestionList = (keySuggestionsByParent.steps || []).map((item: any) => {
+                            const insertText = typeof item.insertText === 'string' ? item.insertText : '';
+                            if (trimmedLine.startsWith('-')) {
+                                // User already has '-' on the line; avoid inserting it twice.
+                                if (insertText.startsWith('- ')) {
+                                    return { ...item, insertText: insertText.slice(2) };
+                                }
+                                if (insertText.startsWith('-')) {
+                                    return { ...item, insertText: insertText.slice(1) };
+                                }
+                            }
+                            return item;
+                        });
+
+                        // On blank lines at step level, also include sibling suggestions
+                        // from the previous step (e.g. title/details/report after - check:).
+                        // This handles the case where Monaco auto-indents to the dash level,
+                        // not the deeper sibling-property level.
+                        if (isBlankLine) {
+                            for (let i = lines.length - 1; i >= 0; i--) {
+                                const l = lines[i];
+                                if (!l.trim()) { continue; }
+                                const indent = l.search(/\S|$/);
+                                // Skip lines deeper than current (sibling properties like title:, id:)
+                                if (indent > currentIndent) { continue; }
+                                // At or above current indent, check for step pattern
+                                const stepMatch = l.trim().match(/^-\s*(call|check|assert|if|for|repeat|data|print|js|set|var|const|let|delay|setenv)\s*:/);
+                                if (stepMatch) {
+                                    const siblingKey = `step-${stepMatch[1]}`;
+                                    const siblingList = keySuggestionsByParent[siblingKey] || [];
+                                    for (const sib of siblingList) {
+                                        if (!suggestionList.some((s: any) => s.label === sib.label)) {
+                                            suggestionList.push({
+                                                ...sib,
+                                                sortText: `~~~${sib.label}`,
+                                            });
+                                        }
+                                    }
+                                }
+                                break;
                             }
                         }
-                        return item;
-                    });
 
-                    const wordInfo = model.getWordUntilPosition(position);
-                    const baseStartColumn = wordInfo?.startColumn ?? position.column;
-                    const baseEndColumn = wordInfo?.endColumn ?? position.column;
-                    // If line starts with "- ", replace from after the dash+space.
-                    const dashOffset = trimmedLine.startsWith('-')
-                        ? Math.min(lineContent.length, lineContent.indexOf('-') + 2)
-                        : (baseStartColumn - 1);
+                        const wordInfo = model.getWordUntilPosition(position);
+                        const baseStartColumn = wordInfo?.startColumn ?? position.column;
+                        const baseEndColumn = wordInfo?.endColumn ?? position.column;
+                        // If line starts with "- ", replace from after the dash+space.
+                        const dashOffset = trimmedLine.startsWith('-')
+                            ? Math.min(lineContent.length, lineContent.indexOf('-') + 2)
+                            : (baseStartColumn - 1);
 
-                    return {
-                        suggestions: suggestionList.map((item: any) => ({
-                            ...item,
-                            range: {
-                                startLineNumber: position.lineNumber,
-                                startColumn: Math.max(1, dashOffset + 1),
-                                endLineNumber: position.lineNumber,
-                                endColumn: Math.max(baseEndColumn, dashOffset + 1),
-                            }
-                        }))
-                    };
+                        return {
+                            suggestions: suggestionList.map((item: any) => ({
+                                ...item,
+                                range: {
+                                    startLineNumber: position.lineNumber,
+                                    startColumn: Math.max(1, dashOffset + 1),
+                                    endLineNumber: position.lineNumber,
+                                    endColumn: Math.max(baseEndColumn, dashOffset + 1),
+                                }
+                            }))
+                        };
+                    }
                 }
             }
 
@@ -748,8 +800,10 @@ export const handleBeforeMount = (monaco: any) => {
             // Handle object-form check/assert under list items:
             // - check:
             //     <here>
-            // In this case, the YAML parentContext will likely be "steps" (or similar),
-            // but we want to offer the check/assert object keys.
+            // Also handles when sibling properties already exist:
+            // - check:
+            //     actual: something
+            //     <here>   ← still suggest expected, operator, etc.
             if (parentContext === 'steps' || parentContext === 'stages') {
                 for (let i = lines.length - 1; i >= 0; i--) {
                     const l = lines[i];
@@ -757,9 +811,18 @@ export const handleBeforeMount = (monaco: any) => {
                         continue;
                     }
                     const indent = l.search(/\S|$/);
-                    if (indent >= currentIndent) {
+                    // Skip lines deeper than cursor
+                    if (indent > currentIndent) {
                         continue;
                     }
+                    // At same indent: skip sibling properties, but check step items (- xxx:)
+                    if (indent === currentIndent) {
+                        if (!l.trim().startsWith('- ')) {
+                            continue; // sibling property like actual:, title: — skip
+                        }
+                        // dash line at same indent: could be step parent (Monaco auto-indent case)
+                    }
+                    // Check for - check: or - assert: with no value (object form)
                     const m = l.trim().match(/^-\s*(check|assert):\s*$/);
                     if (m) {
                         const containerKey = m[1];
@@ -781,8 +844,58 @@ export const handleBeforeMount = (monaco: any) => {
                             };
                         }
                     }
-
                     break;
+                }
+            }
+
+            // Step-sibling suggestions: when the cursor is on a line that is
+            // a sibling property of a step list item (e.g. id/inputs after - call:)
+            // Example:
+            //   - call: login
+            //     <cursor>   ← suggest id, inputs
+            //   - check: x == 1
+            //     <cursor>   ← suggest title, details, report
+            if (firstLine === 'type: test' && (parentContext === 'steps' || parentContext === 'stages')) {
+                const trimmedLine = lineContent.trim();
+                // Check if cursor is at sibling indent of a step item:
+                // walk up to find the nearest `- <stepType>:` at a lower indent
+                const isSiblingCandidate = !trimmedLine.startsWith('- ');
+                if (isSiblingCandidate) {
+                    for (let i = lines.length - 1; i >= 0; i--) {
+                        const l = lines[i];
+                        if (!l.trim()) { continue; }
+                        const indent = l.search(/\S|$/);
+                        // Skip lines deeper than cursor
+                        if (indent > currentIndent) { continue; }
+                        // At same indent: skip sibling properties, but check step items (- xxx:)
+                        if (indent === currentIndent && !l.trim().startsWith('- ')) {
+                            continue; // sibling property like id:, title: — skip
+                        }
+                        // Check for step pattern (at same or lower indent)
+                        const stepMatch = l.trim().match(/^-\s*(call|check|assert|if|for|repeat|data|print|js|set|var|const|let|delay|setenv)\s*:/);
+                        if (stepMatch) {
+                            const stepType = stepMatch[1];
+                            const siblingKey = `step-${stepType}`;
+                            const suggestionList = keySuggestionsByParent[siblingKey] || [];
+                            if (suggestionList.length > 0) {
+                                const wordInfo = model.getWordUntilPosition(position);
+                                const baseStartColumn = wordInfo?.startColumn ?? position.column;
+                                const baseEndColumn = wordInfo?.endColumn ?? position.column;
+                                return {
+                                    suggestions: deduplicateSuggestions(suggestionList).map((item: any) => ({
+                                        ...item,
+                                        range: {
+                                            startLineNumber: position.lineNumber,
+                                            startColumn: baseStartColumn,
+                                            endLineNumber: position.lineNumber,
+                                            endColumn: baseEndColumn,
+                                        }
+                                    }))
+                                };
+                            }
+                        }
+                        break;
+                    }
                 }
             }
 

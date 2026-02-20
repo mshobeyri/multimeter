@@ -996,6 +996,27 @@ export const KeySuggestionsByParent = (monaco: any) => {
         }
     ];
 
+    // Sibling property suggestions for step list items (shown without leading dash)
+    const callSiblings = [
+        { label: 'id', kind: monaco.languages.CompletionItemKind.Property, insertText: 'id: ', detail: 'Capture call result', documentation: 'Variable name to capture the call output.\nExample:\n- call: login\n  id: loginResult' },
+        { label: 'inputs', kind: monaco.languages.CompletionItemKind.Property, insertText: 'inputs:\n\t', detail: 'Override call inputs', documentation: 'Key-value inputs to pass to the called API/test.\nExample:\n- call: login\n  inputs:\n    username: alice' },
+    ];
+    const checkAssertSiblings = [
+        { label: 'title', kind: monaco.languages.CompletionItemKind.Property, insertText: 'title: ', detail: 'Check title', documentation: 'Short summary shown inline in reports/UI.' },
+        { label: 'details', kind: monaco.languages.CompletionItemKind.Property, insertText: 'details: ', detail: 'Check details', documentation: 'Long description shown in the details panel.' },
+        { label: 'report', kind: monaco.languages.CompletionItemKind.Property, insertText: 'report: ', detail: 'Report level', documentation: 'Controls when check/assert results are reported.\nValues: all, fails, none\nOr object form: { internal: all, external: fails }' },
+    ];
+    const ifSiblings = [
+        { label: 'steps', kind: monaco.languages.CompletionItemKind.Property, insertText: 'steps:\n\t', detail: 'Conditional steps', documentation: 'Steps to execute when the condition is true.' },
+        { label: 'else', kind: monaco.languages.CompletionItemKind.Property, insertText: 'else:\n\t', detail: 'Else steps', documentation: 'Steps to execute when the condition is false.' },
+    ];
+    const forRepeatSiblings = [
+        { label: 'steps', kind: monaco.languages.CompletionItemKind.Property, insertText: 'steps:\n\t', detail: 'Loop body steps', documentation: 'Steps to execute in each iteration.' },
+    ];
+    const dataSiblings = [
+        { label: 'id', kind: monaco.languages.CompletionItemKind.Property, insertText: 'id: ', detail: 'Data variable name', documentation: 'Variable name to access loaded data in subsequent steps.' },
+    ];
+
     const keySuggestionsByParent: Record<string, any[]> = {
         root: rootSuggestions,
         general: variablesSuggestions,
@@ -1018,7 +1039,14 @@ export const KeySuggestionsByParent = (monaco: any) => {
         outputs: outputsSuggestions,
         check: checkAssertObjectKeySuggestions,
         assert: checkAssertObjectKeySuggestions,
-        operator: operatorValueSuggestions
+        operator: operatorValueSuggestions,
+        'step-call': callSiblings,
+        'step-check': checkAssertSiblings,
+        'step-assert': checkAssertSiblings,
+        'step-if': ifSiblings,
+        'step-for': forRepeatSiblings,
+        'step-repeat': forRepeatSiblings,
+        'step-data': dataSiblings,
     };
 
     return keySuggestionsByParent;
