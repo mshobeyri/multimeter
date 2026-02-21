@@ -14,16 +14,18 @@ export default function Home() {
   return (
     <>
       <Hero />
-      <Features />
-      <BuiltForVSCode />
-      <GitNative />
-      <Protocols />
-      <AITestGen />
-      <Replaces />
-      <CICDReady />
-      <Comparison />
-      <FAQ />
-      <CTA />
+      <div className="relative z-10 bg-surface">
+        <Features />
+        <BuiltForVSCode />
+        <GitNative />
+        <Protocols />
+        <AITestGen />
+        <Replaces />
+        <CICDReady />
+        <Comparison />
+        <FAQ />
+        <CTA />
+      </div>
     </>
   )
 }
