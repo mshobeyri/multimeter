@@ -1,5 +1,6 @@
 import { ArrowRight, Download } from 'lucide-react'
 import FadeIn from '../components/FadeIn'
+import HeroIllustration from '../components/HeroIllustration'
 
 export default function Hero() {
   return (
@@ -62,17 +63,10 @@ export default function Hero() {
           </div>
         </FadeIn>
 
-        {/* Hero screenshot */}
+        {/* Hero animated illustration */}
         <FadeIn delay={400}>
           <div className="mt-16 sm:mt-20 relative">
-            <div className="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent z-10 pointer-events-none" />
-            <div className="glow rounded-2xl overflow-hidden border border-border">
-              <img
-                src="/screenshots/test_panel_flow.png"
-                alt="Multimeter Test Flow Editor"
-                className="w-full rounded-2xl"
-              />
-            </div>
+            <HeroIllustration />
           </div>
         </FadeIn>
       </div>
