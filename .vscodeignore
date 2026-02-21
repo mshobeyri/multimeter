@@ -10,6 +10,7 @@ mmtcli/
 out/
 examples/
 screenshots/
+website/
 
 # Webview build artifacts (not needed in the vsix)
 mmtview/node_modules/**
