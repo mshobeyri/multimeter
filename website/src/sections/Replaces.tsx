@@ -18,12 +18,12 @@ export default function Replaces() {
             Replace them all
           </span>
           <h2 className="text-3xl sm:text-4xl font-bold text-white mt-3 mb-4">
-            One free tool to replace{' '}
+            One tool to replace{' '}
             <span className="gradient-text">everything</span>
           </h2>
           <p className="text-lg text-slate-400 max-w-2xl mx-auto mb-12">
             Stop juggling multiple paid tools. Multimeter covers API testing, load testing,
-            mock servers, documentation, and more — completely free.
+            mock servers, documentation, and more — free for small businesses.
           </p>
         </FadeIn>
 
@@ -80,9 +80,9 @@ export default function Replaces() {
                 <img src="/logo.svg" alt="Multimeter" className="w-10 h-10" />
                 <h3 className="text-2xl font-bold text-white">Multimeter</h3>
               </div>
-              <p className="text-4xl font-extrabold text-green-400 mb-2">$0</p>
+              <p className="text-lg font-semibold text-green-400 mb-2">Free for small businesses</p>
               <p className="text-slate-400">
-                Free forever. All features. No limits.
+                All features included. No limits.
               </p>
             </div>
           </div>

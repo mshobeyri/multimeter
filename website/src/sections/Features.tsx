@@ -13,9 +13,9 @@ import FadeIn from '../components/FadeIn'
 const features = [
   {
     icon: DollarSign,
-    title: 'Free Forever',
+    title: 'Free for Small Businesses',
     description:
-      'No paywalls, no feature gates, no paid tiers. Every feature is available to everyone, always.',
+      'Small teams get every feature at no cost. No paywalls, no feature gates — just install and start testing.',
     color: 'text-green-400',
     bg: 'bg-green-400/10',
   },
@@ -39,7 +39,7 @@ const features = [
     icon: Layers,
     title: 'One Tool Replaces Many',
     description:
-      'API testing, load testing, mock servers, documentation — one free tool instead of Postman, JMeter, and more.',
+      'API testing, load testing, mock servers, documentation — one tool instead of Postman, JMeter, and more.',
     color: 'text-blue-400',
     bg: 'bg-blue-400/10',
   },

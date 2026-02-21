@@ -11,7 +11,7 @@ const faqItems: FAQItem[] = [
   {
     question: 'Is Multimeter really free?',
     answer:
-      'Yes! Multimeter is 100% free and open-source under the MIT license. There are no paid tiers, no feature restrictions, and no paywalls. Every feature is available to everyone.',
+      'Yes! Multimeter is free for small businesses. There are no feature restrictions and no paywalls — every feature is available. Larger teams can check the pricing page for details.',
   },
   {
     question: 'Do I need to create an account?',
