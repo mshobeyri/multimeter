@@ -36,16 +36,17 @@
       "y": "bottom"
     },
     "size": 30.0,
-    "zoom_size": 60.0,
+    "zoomSize": 60.0,
     "rounding": 30.0,
     "shadow": 62.5,
-    "advanced_shadow": {
+    "advancedShadow": {
       "size": 33.9,
       "opacity": 44.2,
       "blur": 10.5
     },
     "shape": "square",
-    "rounding_type": "squircle"
+    "roundingType": "squircle",
+    "scaleDuringZoom": 0.7
   },
   "audio": {
     "mute": false,
@@ -66,7 +67,11 @@
     "friction": 50.0,
     "raw": false,
     "motionBlur": 0.5,
-    "useSvg": false
+    "useSvg": false,
+    "rotationAmount": 0.5,
+    "baseRotation": 0.0,
+    "clickSpring": null,
+    "stopMovementInLastSeconds": null
   },
   "hotkeys": {
     "show": false
@@ -76,13 +81,31 @@
       {
         "recordingSegment": 0,
         "timescale": 1.0,
-        "start": 0.0,
-        "end": 13.733333
+        "start": 1.900018844875658,
+        "end": 15.621444
       }
     ],
     "zoomSegments": [],
-    "sceneSegments": []
+    "sceneSegments": [],
+    "maskSegments": [],
+    "textSegments": []
   },
   "captions": null,
-  "clips": []
+  "clips": [
+    {
+      "index": 0,
+      "offsets": {
+        "camera": 0.0,
+        "mic": 0.0,
+        "system_audio": 0.0
+      }
+    }
+  ],
+  "annotations": [],
+  "screenMotionBlur": 0.5,
+  "screenMovementSpring": {
+    "stiffness": 200.0,
+    "damping": 40.0,
+    "mass": 2.25
+  }
 }
