@@ -1,4 +1,5 @@
 import FadeIn from '../components/FadeIn'
+import TestFlowIllustration from '../components/TestFlowIllustration'
 
 export default function BuiltForVSCode() {
   return (
@@ -9,26 +10,27 @@ export default function BuiltForVSCode() {
           <FadeIn direction="left">
             <div>
               <span className="text-accent text-sm font-semibold uppercase tracking-wider">
-                VS Code Native
+                Test Flows
               </span>
               <h2 className="text-3xl sm:text-4xl font-bold text-white mt-3 mb-6">
-                Built for your editor,
+                Reusable test flows
                 <br />
-                not a separate app
+                that run everywhere
               </h2>
               <p className="text-lg text-slate-400 mb-6 leading-relaxed">
-                Multimeter lives inside VS Code as a first-class extension. No context
-                switching between your code editor and a separate API client. Everything —
-                writing tests, running APIs, viewing results — happens in the same window
-                where you write code.
+                Chain API calls, assertions, loops, and delays into complete
+                test flows. Write them in YAML or build them visually with
+                drag-and-drop — either way you get portable <code className="text-accent bg-accent/10 px-1.5 py-0.5 rounded text-sm">.mmt</code> files
+                that run inside VS Code, in CI pipelines with <code className="text-accent bg-accent/10 px-1.5 py-0.5 rounded text-sm">testlight</code>,
+                or anywhere Node runs.
               </p>
               <ul className="space-y-4">
                 {[
-                  'Custom YAML editor with split UI view',
-                  'Activity bar panels for convertor, mock server & connections',
-                  'Environment variables panel with preset switching',
-                  'Full test history browser',
-                  'AI chat participant for test generation',
+                  'Compose flows from reusable API definitions — call, assert, loop, branch',
+                  'Import other tests and CSV data to build complex scenarios',
+                  'Run locally in VS Code or in CI/CD with a single CLI command',
+                  'Simpler than JMeter or Postman Runner — no GUI required in pipelines',
+                  'Plain YAML files live in your repo, versioned and reviewed like code',
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-3">
                     <span className="mt-1.5 w-2 h-2 rounded-full bg-accent shrink-0" />
@@ -39,15 +41,9 @@ export default function BuiltForVSCode() {
             </div>
           </FadeIn>
 
-          {/* Screenshot */}
+          {/* Interactive flow demo */}
           <FadeIn direction="right" delay={200}>
-            <div className="glow rounded-2xl overflow-hidden border border-border">
-              <img
-                src="/screenshots/test_panel_test.png"
-                alt="Multimeter inside VS Code"
-                className="w-full rounded-2xl"
-              />
-            </div>
+            <TestFlowIllustration />
           </FadeIn>
         </div>
       </div>

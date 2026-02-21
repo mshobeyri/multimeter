@@ -9,8 +9,8 @@ export default function GitNative() {
           <FadeIn direction="left" delay={200}>
             <div className="order-2 lg:order-1 glow rounded-2xl overflow-hidden border border-border">
               <img
-                src="/screenshots/environment_panel.png"
-                alt="Multimeter YAML files and environment panel"
+                src="/screenshots/git.png"
+                alt="Multimeter tests versioned in Git"
                 className="w-full rounded-2xl"
               />
             </div>
@@ -26,23 +26,27 @@ export default function GitNative() {
                 Collaborate via Git
               </h2>
               <p className="text-lg text-slate-400 mb-6 leading-relaxed">
-                Or any version control system of your choice. Tests are plain YAML <code className="text-accent bg-accent/10 px-1.5 py-0.5 rounded text-sm">.mmt</code> files
-                stored in your repository alongside your source code. No proprietary formats,
-                no cloud sync, no separate version control.
+                Tests are plain YAML <code className="text-accent bg-accent/10 px-1.5 py-0.5 rounded text-sm">.mmt</code> files
+                stored right next to your source code. No proprietary formats,
+                no cloud sync — just files in your repo, versioned and reviewed
+                like everything else.
               </p>
-              <div className="bg-surface-light border border-border rounded-xl p-6">
-                <pre className="text-sm text-slate-300 overflow-x-auto">
-                  <code>{`my-project/
-├── src/
-│   └── api/
-├── tests/
-│   ├── _environments.mmt    # env presets
-│   ├── login-api.mmt        # API definition
-│   ├── login-test.mmt       # test flow
-│   └── smoke-suite.mmt      # test suite
-├── package.json
-└── .gitignore`}</code>
-                </pre>
+              <ul className="space-y-4 mb-6">
+                {[
+                  'Code and tests reviewed in the same pull request',
+                  'Check out an older branch and run its tests — they always match that version',
+                  'Share a reproduced bug as a committed test — anyone can pull and re-run it',
+                  'No separate user management — your Git permissions are enough',
+                  'Works with any VCS: Git, SVN, Mercurial — they are just files',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-3">
+                    <span className="mt-1.5 w-2 h-2 rounded-full bg-orange-400 shrink-0" />
+                    <span className="text-slate-300">{item}</span>
+                  </li>
+                ))}
+              </ul>
+              <div className="bg-surface-light border border-border rounded-xl p-4 font-mono text-sm text-slate-300 overflow-x-auto">
+                <span className="text-slate-500">$</span> git commit -m <span className="text-accent">"Add title and an example to reproduce bug 1234"</span>
               </div>
             </div>
           </FadeIn>
