@@ -198,27 +198,17 @@ function ApiPanel({ reducedMotion }: { reducedMotion: boolean | null }) {
   return (
     <div className="flex-1 flex flex-col min-w-0 border-l border-border sm:border-l sm:border-t-0 border-t text-left sm:-ml-[100px]">
       {/* URL Bar */}
-      <motion.div
-        className="flex items-center gap-2 px-3 py-2 border-b border-border"
-        initial={reducedMotion ? { opacity: 1 } : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={reducedMotion ? { duration: 0 } : { delay: baseDelay, duration: 0.4 }}
-      >
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-border">
         <span className="px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30 shrink-0">
           POST
         </span>
         <div className="flex-1 bg-surface-light rounded px-2 py-1 text-[10px] sm:text-xs text-slate-400 font-mono truncate">
           https://mmt.dev/reflect
         </div>
-      </motion.div>
+      </div>
 
       {/* Tab Bar */}
-      <motion.div
-        className="flex items-center gap-0 px-3 border-b border-border"
-        initial={reducedMotion ? { opacity: 1 } : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={reducedMotion ? { duration: 0 } : { delay: baseDelay + 0.1, duration: 0.3 }}
-      >
+      <div className="flex items-center gap-0 px-3 border-b border-border">
         {TABS.map((tab, i) => (
           <div
             key={tab}
@@ -231,81 +221,45 @@ function ApiPanel({ reducedMotion }: { reducedMotion: boolean | null }) {
             {tab}
           </div>
         ))}
-      </motion.div>
+      </div>
 
       {/* Request Body Area */}
       <div className="flex-1 flex-col relative">
-        <motion.div
-          className="px-3 py-1.5 text-[9px] sm:text-[10px] text-slate-500 uppercase tracking-wider font-sans"
-          initial={reducedMotion ? { opacity: 1 } : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={reducedMotion ? { duration: 0 } : { delay: baseDelay + 0.2, duration: 0.3 }}
-        >
+        <div className="px-3 py-1.5 text-[9px] sm:text-[10px] text-slate-500 uppercase tracking-wider font-sans">
           Request Body
-        </motion.div>
+        </div>
         <JsonBlock lines={REQUEST_BODY_LINES} baseDelay={baseDelay + 0.3} reducedMotion={reducedMotion} />
       </div>
 
       {/* Divider + Send Button + Mouse Cursor */}
       <div className="relative border-t border-border -mt-[40px]">
-        <motion.div
-          className="absolute right-3 -top-4 w-8 h-8 rounded-full bg-green-600 flex items-center justify-center shadow-lg shadow-green-500/20 z-10 rotate-[40deg]"
-            initial={reducedMotion ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.5 }}
-            animate={
-              reducedMotion
-                ? { opacity: 1, scale: 1 }
-                : {
-                    opacity: 1,
-                    scale: [0.5, 1, 1, 0.9, 1],
-                  }
-            }
-            transition={
-              reducedMotion
-                ? { duration: 0 }
-                : {
-                    delay: baseDelay + 0.5,
-                    duration: sendClickDelay - baseDelay - 0.5 + 0.4,
-                    times: [0, 0.15, 0.85, 0.92, 1],
-                    ease: 'easeInOut',
-                  }
-            }
-          >
-            {/* Send/arrow icon */}
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-              <line x1="22" y1="2" x2="11" y2="13" />
-              <polygon points="22 2 15 22 11 13 2 9 22 2" />
-            </svg>
-          </motion.div>
-          <MouseCursor reducedMotion={reducedMotion} />
+        <div className="absolute right-3 -top-4 w-8 h-8 rounded-full bg-green-600 flex items-center justify-center shadow-lg shadow-green-500/20 z-10 rotate-[40deg]">
+          {/* Send/arrow icon */}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
+            <line x1="22" y1="2" x2="11" y2="13" />
+            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+          </svg>
         </div>
+        <MouseCursor reducedMotion={reducedMotion} />
+      </div>
 
       {/* Response Body Area */}
       <div className="flex-1 flex flex-col">
-        <motion.div
-          className="px-3 py-1.5 text-[9px] sm:text-[10px] text-slate-500 uppercase tracking-wider font-sans"
-          initial={reducedMotion ? { opacity: 1 } : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={reducedMotion ? { duration: 0 } : { delay: responseDelay, duration: 0.3 }}
-        >
+        <div className="px-3 py-1.5 text-[9px] sm:text-[10px] text-slate-500 uppercase tracking-wider font-sans">
           Response Body
-        </motion.div>
+        </div>
         <JsonBlock lines={RESPONSE_BODY_LINES} baseDelay={responseDelay + 0.15} reducedMotion={reducedMotion} />
       </div>
 
       {/* Bottom Status Bar */}
-      <motion.div
-        className="flex items-center justify-end gap-2 px-3 py-1.5 border-t border-border mt-auto"
-        initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 4 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={reducedMotion ? { duration: 0 } : { delay: responseDelay + 0.6, duration: 0.4 }}
-      >
+      <div className="flex items-center justify-end gap-2 px-3 py-1.5 border-t border-border mt-auto">
         <span className="px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold bg-accent/10 text-accent border border-accent/20">
           142ms
         </span>
         <span className="px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold bg-green-500/15 text-green-400 border border-green-500/30">
           200
         </span>
-      </motion.div>
+      </div>
     </div>
   )
 }
