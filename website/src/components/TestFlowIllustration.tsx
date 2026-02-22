@@ -80,34 +80,55 @@ const FLAT_STEPS = flattenSteps(FLOW_STEPS)
 const TOTAL_APPEAR = FLAT_STEPS.length * STEP_DELAY
 
 /* ── Swap animation constants ─────────────────────────────────────── */
-const SWAP_A = 1
-const SWAP_B = 2
+const SWAP_A = 1   // assert row (moves down first)
+const SWAP_B = 2   // delay row (moves down second)
 const SWAP_INITIAL_DELAY = TOTAL_APPEAR + 1.5
 const BOX_H = 46
 
-/* ── CSS keyframes for the swap (injected once via <style>) ───────── */
+/*
+ * Full cycle = 10s:
+ *   Phase 1 (0–3s):  assert slides down, delay slides up, cursor on assert
+ *   Gap     (3–6s):  both at swapped positions, no cursor
+ *   Phase 2 (6–9s):  delay slides down, assert slides up, cursor on delay
+ *   Gap     (9–10s): back to original, brief pause before repeat
+ *
+ * Percentages for a 10s cycle:
+ *   Phase 1 move:  5%–15%  (0.5s–1.5s)
+ *   Phase 1 hold: 15%–60%  (1.5s–6.0s)
+ *   Phase 2 move: 60%–70%  (6.0s–7.0s)
+ *   Phase 2 hold: 70%–95%  (7.0s–9.5s)
+ *   Reset:        95%–100% (9.5s–10s)
+ */
 
-const swapDownKeyframes = `
-@keyframes swapDown {
-  0%, 15% { transform: translateY(0); }
-  35%, 65% { transform: translateY(${BOX_H}px); }
-  85%, 100% { transform: translateY(0); }
+const CYCLE = 10 // seconds
+
+/* Assert row: slides down in phase 1 (+5px overshoot), returns up in phase 2 */
+const assertRowKeyframes = `
+@keyframes assertSlide {
+  0%, 5%   { transform: translateY(0); }
+  15%, 60% { transform: translateY(${BOX_H + 8}px); }
+  70%, 95% { transform: translateY(0); }
+  100%     { transform: translateY(0); }
 }
 `
 
-const swapUpKeyframes = `
-@keyframes swapUp {
-  0%, 15% { transform: translateY(0); }
-  35%, 65% { transform: translateY(${-BOX_H}px); }
-  85%, 100% { transform: translateY(0); }
+/* Delay row: slides up in phase 1 (+5px overshoot), returns down in phase 2 */
+const delayRowKeyframes = `
+@keyframes delaySlide {
+  0%, 5%   { transform: translateY(0); }
+  15%, 60% { transform: translateY(${-BOX_H - 8}px); }
+  70%, 95% { transform: translateY(0); }
+  100%     { transform: translateY(0); }
 }
 `
 
-const cursorKeyframes = `
-@keyframes cursorFade {
-  0%, 10% { opacity: 0; }
-  18%, 80% { opacity: 1; }
-  90%, 100% { opacity: 0; }
+/* Cursor on assert row (phase 1): appear, hold 1s, then slide down with drag, disappear */
+const cursorPhase1Keyframes = `
+@keyframes cursorPhase1 {
+  0%, 2%   { opacity: 0; transform: translateY(0); }
+  15%, 60%  { opacity: 1; transform: translateY(0); }
+  70%, 95% { opacity: 1; transform: translateY(0); }
+  98%, 100% { opacity: 0; transform: translateY(0); }
 }
 `
 
@@ -173,21 +194,20 @@ function TabBar() {
 function FlowStepBox({
   flat,
   reducedMotion,
-  swapDir,
+  swapRole,
   inView,
 }: {
   flat: FlatStep
   reducedMotion: boolean | null
-  swapDir?: 'down' | 'up'
+  swapRole?: 'assert' | 'delay'
   inView: boolean
 }) {
   const { step, depth, index, hasChildren } = flat
   const appearDelay = index * STEP_DELAY
   const icon = kindIcon[step.kind]
 
-  const isSwapped = !!swapDir
-  const showCursor = swapDir === 'down'
-  const animName = swapDir === 'down' ? 'swapDown' : swapDir === 'up' ? 'swapUp' : undefined
+  const isSwapped = !!swapRole
+  const animName = swapRole === 'assert' ? 'assertSlide' : swapRole === 'delay' ? 'delaySlide' : undefined
   const skip = !inView && !reducedMotion
 
   return (
@@ -197,7 +217,7 @@ function FlowStepBox({
         paddingRight: 16,
         position: 'relative',
         ...(isSwapped && !reducedMotion && inView ? {
-          animation: `${animName} 5s ease-in-out ${SWAP_INITIAL_DELAY}s infinite`,
+          animation: `${animName} ${CYCLE}s ease-in-out ${SWAP_INITIAL_DELAY}s infinite`,
         } : {}),
       }}
       initial={reducedMotion ? { opacity: 1 } : { opacity: 0, x: -14 }}
@@ -235,14 +255,37 @@ function FlowStepBox({
         </div>
       </div>
 
-      {/* Mouse cursor attached to the dragged item */}
-      {showCursor && !reducedMotion && (
+      {/* Phase 1 cursor: appears on assert row while it drags down */}
+      {swapRole === 'assert' && !reducedMotion && (
         <div
           className="absolute z-30 pointer-events-none"
           style={{
             right: 20,
             top: 10,
-            animation: `cursorFade 5s ease-in-out ${SWAP_INITIAL_DELAY}s infinite`,
+            animation: `cursorPhase1 ${CYCLE}s ease-in-out ${SWAP_INITIAL_DELAY}s infinite`,
+            opacity: 0,
+          }}
+        >
+          <svg width="18" height="22" viewBox="0 0 16 20" fill="none">
+            <path
+              d="M1 1L1 14L4.5 10.5L8 17L10.5 16L7 9.5L12 9.5L1 1Z"
+              fill="white"
+              stroke="#334155"
+              strokeWidth="1"
+            />
+          </svg>
+        </div>
+      )}
+
+      {/* Phase 2 cursor: appears on delay row while it drags down */}
+      {swapRole === 'delay' && !reducedMotion && (
+        <div
+          className="absolute z-30 pointer-events-none"
+          style={{
+            right: 20,
+            top: 10,
+            animation: `cursorPhase2 ${CYCLE}s ease-in-out ${SWAP_INITIAL_DELAY}s infinite`,
+            opacity: 0,
           }}
         >
           <svg width="18" height="22" viewBox="0 0 16 20" fill="none">
@@ -268,7 +311,7 @@ export default function TestFlowIllustration() {
   return (
     <div className="relative" ref={ref} aria-hidden="true">
       {/* Inject CSS keyframes */}
-      <style>{swapDownKeyframes}{swapUpKeyframes}{cursorKeyframes}</style>
+      <style>{assertRowKeyframes}{delayRowKeyframes}{cursorPhase1Keyframes}</style>
 
       {/* Editor mockup */}
       <div className="glow rounded-2xl overflow-hidden border border-border bg-surface relative">
@@ -278,18 +321,18 @@ export default function TestFlowIllustration() {
         {/* Flow tree */}
         <div className="flex flex-col gap-[6px] py-3 px-0 min-h-[400px] sm:min-h-[460px] relative">
           {FLAT_STEPS.map((flat, i) => {
-            let swapDir: 'down' | 'up' | undefined
+            let swapRole: 'assert' | 'delay' | undefined
             if (i === SWAP_A) {
-              swapDir = 'down'
+              swapRole = 'assert'
             } else if (i === SWAP_B) {
-              swapDir = 'up'
+              swapRole = 'delay'
             }
             return (
               <FlowStepBox
                 key={i}
                 flat={flat}
                 reducedMotion={reducedMotion}
-                swapDir={reducedMotion ? undefined : swapDir}
+                swapRole={reducedMotion ? undefined : swapRole}
                 inView={inView}
               />
             )
