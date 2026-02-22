@@ -34,7 +34,7 @@ const roadmap: RoadmapMonth[] = [
     year: 2025,
     items: [
       { title: 'Version 1.0 release', status: 'done' },
-      { title: 'AI assistant (@mmt chat participant)', status: 'done' },
+      { title: 'AI assistant (@Multimeter chat participant)', status: 'done' },
       { title: 'Curl command import & execution', status: 'done' },
       { title: 'Test suite (type: suite)', status: 'done' },
       { title: 'Drag & drop test flow builder', status: 'done' },
