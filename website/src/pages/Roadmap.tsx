@@ -142,12 +142,12 @@ export default function Roadmap() {
                     {/* Timeline dot */}
                     <div className="hidden sm:flex flex-col items-center shrink-0">
                       <div
-                        className={`w-10 h-10 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                        className={`w-10 h-10 rounded-full border-2 flex items-center justify-center shrink-0 bg-surface ${
                           allDone
-                            ? 'border-green-400 bg-green-400/10'
+                            ? 'border-green-400'
                             : hasInProgress
-                              ? 'border-yellow-400 bg-yellow-400/10'
-                              : 'border-slate-600 bg-surface-light'
+                              ? 'border-yellow-400'
+                              : 'border-slate-600'
                         }`}
                       >
                         {allDone ? (
