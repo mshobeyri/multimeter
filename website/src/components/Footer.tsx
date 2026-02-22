@@ -106,7 +106,7 @@ export default function Footer() {
             © {new Date().getFullYear()} Multimeter. All rights reserved.
           </p>
           <p className="text-sm text-slate-500">
-            Made with ❤️ for developers everywhere
+          
           </p>
         </div>
       </div>

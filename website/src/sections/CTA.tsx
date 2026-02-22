@@ -12,6 +12,7 @@ export default function CTA() {
               <h2 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-6">
                 Ready to simplify your
                 <br />
+                <br />
                 <span className="gradient-text">API testing?</span>
               </h2>
               <p className="text-lg text-slate-400 max-w-2xl mx-auto mb-10">

@@ -104,7 +104,11 @@ function ChatInputBox({ reducedMotion, inView }: { reducedMotion: boolean | null
           {reducedMotion ? (
             <span>{COPILOT_PROMPT}</span>
           ) : (
-            <span>
+            <motion.span
+              initial={{ opacity: 1 }}
+              animate={{ opacity: 0 }}
+              transition={{ delay: BUBBLE_APPEAR - 0.1, duration: 0.2 }}
+            >
               {COPILOT_PROMPT.split('').map((char, i) => (
                 <motion.span
                   key={i}
@@ -120,7 +124,7 @@ function ChatInputBox({ reducedMotion, inView }: { reducedMotion: boolean | null
                 animate={{ opacity: [1, 0] }}
                 transition={{ duration: 0.6, repeat: Infinity, repeatType: 'reverse' }}
               />
-            </span>
+            </motion.span>
           )}
         </div>
         <motion.button
@@ -185,6 +189,9 @@ function ResponseBubble({ reducedMotion, inView }: { reducedMotion: boolean | nu
           </div>
         </motion.div>
       </div>
+
+      {/* Chat input — inside the right column */}
+      <ChatInputBox reducedMotion={reducedMotion} inView={inView} />
     </div>
   )
 }
@@ -256,7 +263,6 @@ export default function AIIllustration() {
           <YamlResultPanel reducedMotion={reducedMotion} inView={inView} />
           <ResponseBubble reducedMotion={reducedMotion} inView={inView} />
         </div>
-        <ChatInputBox reducedMotion={reducedMotion} inView={inView} />
       </div>
 
       {/* Bottom gradient fade */}
