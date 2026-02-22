@@ -48,14 +48,25 @@ export interface ParamDescriptions {
 export function parseParamDescriptions(desc: string): { cleaned: string; params: ParamDescriptions } {
   const inputs: Record<string, string> = {};
   const outputs: Record<string, string> = {};
-  const cleaned = desc.replace(/^[ \t]*<<([io]):(\S+?)>>\s+(.*?)$/gm, (_match, kind, name, text) => {
+  // First pass: match annotations at the start of a line (whole-line removal)
+  let cleaned = desc.replace(/^[ \t]*<<([io]):(\S+?)>>\s+(.*?)$/gm, (_match, kind, name, text) => {
     if (kind === 'i') {
       inputs[name] = text.trim();
     } else {
       outputs[name] = text.trim();
     }
     return '';
-  }).replace(/\n{3,}/g, '\n\n').trim();
+  });
+  // Second pass: match inline annotations (e.g. YAML-folded single-line descriptions)
+  cleaned = cleaned.replace(/\s*<<([io]):(\S+?)>>\s+(.*?)(?=\s*<<[io]:|\s*$)/g, (_match, kind, name, text) => {
+    if (kind === 'i') {
+      if (!inputs[name]) { inputs[name] = text.trim(); }
+    } else {
+      if (!outputs[name]) { outputs[name] = text.trim(); }
+    }
+    return '';
+  });
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
   return { cleaned, params: { inputs, outputs } };
 }
 

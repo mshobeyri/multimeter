@@ -46,6 +46,30 @@ describe('parseParamDescriptions', () => {
     expect(params.inputs).toEqual({});
     expect(params.outputs).toEqual({});
   });
+
+  test('extracts inline <<o:xxx>> annotations (YAML-folded single line)', () => {
+    const desc = 'Return list of all users. <<o:users>> List of users';
+    const { cleaned, params } = parseParamDescriptions(desc);
+    expect(cleaned).toBe('Return list of all users.');
+    expect(params.outputs).toEqual({ users: 'List of users' });
+    expect(params.inputs).toEqual({});
+  });
+
+  test('extracts inline <<i:xxx>> annotations (YAML-folded single line)', () => {
+    const desc = 'Add a new user. <<i:username>> Should be email of the user.';
+    const { cleaned, params } = parseParamDescriptions(desc);
+    expect(cleaned).toBe('Add a new user.');
+    expect(params.inputs).toEqual({ username: 'Should be email of the user.' });
+    expect(params.outputs).toEqual({});
+  });
+
+  test('extracts multiple inline annotations on single line', () => {
+    const desc = 'My API <<i:id>> The identifier <<o:result>> The result value';
+    const { cleaned, params } = parseParamDescriptions(desc);
+    expect(cleaned).toBe('My API');
+    expect(params.inputs).toEqual({ id: 'The identifier' });
+    expect(params.outputs).toEqual({ result: 'The result value' });
+  });
 });
 
 describe('buildDocHtml param descriptions', () => {
@@ -86,14 +110,18 @@ describe('buildDocHtml param descriptions', () => {
     expect(matches!.length).toBeGreaterThanOrEqual(2);
   });
 
-  test('highlights <<i:xxx>> refs remaining in description', () => {
+  test('extracts inline <<i:xxx>> into table Description column', () => {
     const apis = [{
       title: 'Test API', method: 'GET', url: 'http://example.com/test', format: 'json',
       description: 'Uses <<i:token>> for auth',
       inputs: { token: 'xxx' },
     }];
     const html = buildDocHtml(apis);
-    expect(html).toContain('param-ref');
+    expect(html).toContain('<th>Description</th>');
+    expect(html).toContain('for auth');
+    expect(html).toContain('param-desc');
+    // The annotation should be extracted, not left as raw text in description
+    expect(html).not.toContain('&lt;&lt;i:token&gt;&gt;');
   });
 
   test('no Description column when no annotations', () => {
@@ -105,6 +133,20 @@ describe('buildDocHtml param descriptions', () => {
     const html = buildDocHtml(apis);
     expect(html).not.toContain('class="param-table cols-3"');
     expect(html).not.toContain('<th>Description</th>');
+  });
+
+  test('renders Description column in outputs table with inline <<o:xxx>> (YAML-folded)', () => {
+    const apis = [{
+      title: 'Get Users', method: 'GET', url: 'http://example.com/users', format: 'json',
+      description: 'Return list of all users. <<o:users>> List of users',
+      outputs: { users: 'body[users]' },
+    }];
+    const html = buildDocHtml(apis);
+    expect(html).toContain('<th>Description</th>');
+    expect(html).toContain('List of users');
+    expect(html).toContain('param-desc');
+    // The annotation should NOT appear as raw text in the description div
+    expect(html).not.toContain('&lt;&lt;o:users&gt;&gt;');
   });
 });
 
@@ -143,14 +185,17 @@ describe('buildDocMarkdown param descriptions', () => {
     expect(md).toContain('|Parameter|Path|Description|');
   });
 
-  test('highlights <<i:xxx>> refs in markdown with bold', () => {
+  test('extracts inline <<i:xxx>> into table Description column in markdown', () => {
     const apis = [{
       title: 'Test API', method: 'GET', url: 'http://example.com/test', format: 'json',
       description: 'Uses <<i:token>> for auth',
       inputs: { token: 'xxx' },
     }];
     const md = buildDocMarkdown(apis);
-    expect(md).toContain('**<<i:token>>**');
+    expect(md).toContain('Description|');
+    expect(md).toContain('for auth');
+    // The annotation should be extracted, not left in description
+    expect(md).not.toContain('<<i:token>>');
   });
 });
 

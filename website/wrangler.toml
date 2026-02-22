@@ -1,0 +1,8 @@
+# Cloudflare Worker configuration for reflect.mmt.dev
+# Deploy with: npx wrangler deploy
+name = "mmt-reflect"
+main = "worker/reflect.ts"
+compatibility_date = "2024-01-01"
+
+# Custom domain (configure after first deploy)
+# routes = [{ pattern = "reflect.mmt.dev", custom_domain = true }]

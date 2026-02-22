@@ -1,0 +1,12 @@
+type: api
+title: Add user
+description: |
+  Add a new user using email address as username. The set password link will be send to the user's email.
+  <<i:username>> Should be email of the user.
+inputs:
+  username: mehrdad@mmt.dev
+url: <<e:url>>/api/user/add
+method: post
+format: json
+body:
+  username: i:username
