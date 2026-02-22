@@ -18,7 +18,10 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
       webviewView: vscode.WebviewView,
       context: vscode.WebviewViewResolveContext,
       _token: vscode.CancellationToken) {
-    webviewView.webview.options = {enableScripts: true};
+    webviewView.webview.options = {
+      enableScripts: true,
+      localResourceRoots: [this.context.extensionUri]
+    };
 
     const postmanIconPath =
         vscode.Uri.file(this.context.asAbsolutePath('res/postman.svg'));
@@ -30,15 +33,8 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
     const openApiIconWebviewUri =
         webviewView.webview.asWebviewUri(openApiIconPath);
 
-
-    const multimeterIconPath =
-        vscode.Uri.file(this.context.asAbsolutePath('res/logo.png'));
-    const multimeterIconWebviewUri =
-        webviewView.webview.asWebviewUri(multimeterIconPath);
-
     webviewView.webview.html = this.getHtml(
-        postmanIconWebviewUri.toString(), openApiIconWebviewUri.toString(),
-        multimeterIconWebviewUri.toString());
+        postmanIconWebviewUri.toString(), openApiIconWebviewUri.toString());
 
     webviewView.webview.onDidReceiveMessage(async (msg) => {
       if (msg.type === 'chooseSaveDir') {
@@ -135,18 +131,14 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
     });
   }
 
-  getHtml(
-      postmanIconUri: string, openApiIconUri: string,
-      multimeterIconUri: string) {
+  getHtml(postmanIconUri: string, openApiIconUri: string) {
     const htmlPath =
         path.join(this.context.extensionPath, 'res', 'convertor.html');
     let html = fs.readFileSync(htmlPath, 'utf8');
 
-
     // Replace placeholders with icon URIs
     html = html.replace(/__POSTMAN_ICON__/g, postmanIconUri)
-               .replace(/__OPENAPI_ICON__/g, openApiIconUri)
-               .replace(/__MULTIMETER_ICON__/g, multimeterIconUri);
+               .replace(/__OPENAPI_ICON__/g, openApiIconUri);
     return html;
   }
 }
