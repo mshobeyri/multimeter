@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Github, Twitter, Mail } from 'lucide-react'
+import { Github, Linkedin, Mail } from 'lucide-react'
 
 const footerLinks = {
   Product: [
@@ -51,15 +51,15 @@ export default function Footer() {
                 <Github size={20} />
               </a>
               <a
-                href="https://twitter.com"
+                href="https://www.linkedin.com/company/multimetertest"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-slate-400 hover:text-white transition-colors"
               >
-                <Twitter size={20} />
+                <Linkedin size={20} />
               </a>
               <a
-                href="mailto:support@multimeter.dev"
+                href="mailto:support@mmt.dev"
                 className="text-slate-400 hover:text-white transition-colors"
               >
                 <Mail size={20} />
