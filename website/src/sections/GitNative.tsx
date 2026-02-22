@@ -1,18 +1,96 @@
+import { useEffect, useRef, useState } from 'react'
 import FadeIn from '../components/FadeIn'
+
+const COMMIT_TEXT = 'git commit -m "Add title and an example to reproduce bug 1234"'
+const CHAR_SPEED = 45     // ms per character
+
+function TypingBox() {
+  const ref = useRef<HTMLDivElement>(null)
+  const [inView, setInView] = useState(false)
+  const [count, setCount] = useState(0)
+
+  // Observe when the box scrolls into view
+  useEffect(() => {
+    const el = ref.current
+    if (!el) { return }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true)
+          observer.unobserve(el)
+        }
+      },
+      { threshold: 0.3 }
+    )
+    observer.observe(el)
+    return () => { observer.disconnect() }
+  }, [])
+
+  // Start typing only after in view, with a small delay
+  useEffect(() => {
+    if (!inView) { return }
+    const timeout = setTimeout(() => {
+      const id = setInterval(() => {
+        setCount((c) => {
+          if (c >= COMMIT_TEXT.length) {
+            clearInterval(id)
+            return c
+          }
+          return c + 1
+        })
+      }, CHAR_SPEED)
+      return () => { clearInterval(id) }
+    }, 800)
+    return () => { clearTimeout(timeout) }
+  }, [inView])
+
+  const visible = COMMIT_TEXT.slice(0, count)
+  const showCursor = count < COMMIT_TEXT.length
+
+  // Split the visible text to colour the quoted part
+  const mIdx = visible.indexOf('-m ')
+  let before = visible
+  let flag = ''
+  let quoted = ''
+  if (mIdx !== -1) {
+    before = visible.slice(0, mIdx)
+    const afterM = visible.slice(mIdx)
+    const qIdx = afterM.indexOf('"')
+    if (qIdx !== -1) {
+      flag = afterM.slice(0, qIdx)
+      quoted = afterM.slice(qIdx)
+    } else {
+      flag = afterM
+    }
+  }
+
+  return (
+    <div ref={ref} className="bg-surface-light border border-border rounded-xl p-4 font-mono text-sm text-slate-300 overflow-x-auto whitespace-nowrap">
+      <span className="text-slate-500">$ </span>
+      <span>{before}</span>
+      {flag && <span>{flag}</span>}
+      {quoted && <span className="text-accent">{quoted}</span>}
+      {showCursor && <span className="inline-block w-[2px] h-[1.1em] bg-accent align-middle animate-pulse ml-[1px]" />}
+    </div>
+  )
+}
 
 export default function GitNative() {
   return (
     <section className="py-24 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          {/* Screenshot — left on desktop */}
+          {/* Screenshot + terminal — left on desktop */}
           <FadeIn direction="left" delay={200}>
-            <div className="order-2 lg:order-1 glow rounded-2xl overflow-hidden border border-border">
-              <img
-                src="/screenshots/git.png"
-                alt="Multimeter tests versioned in Git"
-                className="w-full rounded-2xl"
-              />
+            <div className="order-2 lg:order-1 flex flex-col gap-4">
+              <div className="glow rounded-2xl overflow-hidden border border-border">
+                <img
+                  src="/screenshots/git.png"
+                  alt="Multimeter tests versioned in Git"
+                  className="w-full rounded-2xl"
+                />
+              </div>
+              <TypingBox />
             </div>
           </FadeIn>
 
@@ -31,7 +109,7 @@ export default function GitNative() {
                 no cloud sync — just files in your repo, versioned and reviewed
                 like everything else.
               </p>
-              <ul className="space-y-4 mb-6">
+              <ul className="space-y-4">
                 {[
                   'Code and tests reviewed in the same pull request',
                   'Check out an older branch and run its tests — they always match that version',
@@ -45,9 +123,6 @@ export default function GitNative() {
                   </li>
                 ))}
               </ul>
-              <div className="bg-surface-light border border-border rounded-xl p-4 font-mono text-sm text-slate-300 overflow-x-auto">
-                <span className="text-slate-500">$</span> git commit -m <span className="text-accent">"Add title and an example to reproduce bug 1234"</span>
-              </div>
             </div>
           </FadeIn>
         </div>

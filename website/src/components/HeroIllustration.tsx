@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 
 const YAML_LINES = [
@@ -74,32 +75,84 @@ function TitleBar() {
 }
 
 function YamlPanel({ reducedMotion }: { reducedMotion: boolean | null }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [inView, setInView] = useState(false)
+  const [charCount, setCharCount] = useState(0)
+
+  // Build the full YAML text with tokens for colouring
+  const fullLines = YAML_LINES.map(
+    (l) => `${'  '.repeat(l.indent)}${l.keyword}:${l.value ? ' ' + l.value : ''}`
+  )
+  const fullText = fullLines.join('\n')
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) { return }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true)
+          observer.unobserve(el)
+        }
+      },
+      { threshold: 0.2 }
+    )
+    observer.observe(el)
+    return () => { observer.disconnect() }
+  }, [])
+
+  useEffect(() => {
+    if (!inView || reducedMotion) { return }
+    const timer = setTimeout(() => {
+      const id = setInterval(() => {
+        setCharCount((c) => {
+          if (c >= fullText.length) {
+            clearInterval(id)
+            return c
+          }
+          return c + 1
+        })
+      }, 18)
+      return () => { clearInterval(id) }
+    }, 200)
+    return () => { clearTimeout(timer) }
+  }, [inView, reducedMotion, fullText.length])
+
+  const visibleText = reducedMotion ? fullText : fullText.slice(0, charCount)
+  const showCursor = !reducedMotion && charCount < fullText.length && inView
+
+  // Render visible text with syntax highlighting
+  const visibleLines = visibleText.split('\n')
+
   return (
-    <div className="flex-1 p-4 sm:p-5 font-mono text-xs sm:text-sm leading-6 min-w-0 text-left">
+    <div ref={ref} className="flex-1 p-4 sm:p-5 font-mono text-xs sm:text-sm leading-6 min-w-0 text-left">
       <div className="text-slate-500 text-[10px] sm:text-xs mb-3 uppercase tracking-wider font-sans">
         Request
       </div>
-      {YAML_LINES.map((line, i) => (
-        <motion.div
-          key={i}
-          className="whitespace-nowrap overflow-hidden"
-          style={{ paddingLeft: `${line.indent * 16}px` }}
-          initial={reducedMotion ? { opacity: 1 } : { opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={
-            reducedMotion
-              ? { duration: 0 }
-              : {
-                  delay: i * 0.4,
-                  duration: 0.5,
-                }
-          }
-        >
-          <span className="text-primary-light">{line.keyword}</span>
-          <span className="text-slate-500">: </span>
-          {line.value && <span className="text-accent">{line.value}</span>}
-        </motion.div>
-      ))}
+      {visibleLines.map((line, i) => {
+        const colonIdx = line.indexOf(':')
+        if (colonIdx === -1) {
+          return <div key={i} className="whitespace-nowrap overflow-hidden"><span className="text-slate-300">{line}</span></div>
+        }
+        const indent = line.match(/^(\s*)/)?.[1] || ''
+        const keyword = line.slice(indent.length, colonIdx)
+        const rest = line.slice(colonIdx)
+        const colonAndValue = rest.startsWith(': ') ? rest : rest
+        const valueStart = colonAndValue.indexOf(' ')
+        const colon = valueStart === -1 ? colonAndValue : colonAndValue.slice(0, 2)
+        const value = valueStart === -1 ? '' : colonAndValue.slice(2)
+
+        return (
+          <div key={i} className="whitespace-nowrap overflow-hidden" style={{ paddingLeft: `${(indent.length / 2) * 16}px` }}>
+            <span className="text-primary-light">{keyword}</span>
+            <span className="text-slate-500">{colon}</span>
+            {value && <span className="text-accent">{value}</span>}
+            {i === visibleLines.length - 1 && showCursor && (
+              <span className="inline-block w-[2px] h-[1.1em] bg-primary-light align-middle animate-pulse ml-[1px]" />
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }

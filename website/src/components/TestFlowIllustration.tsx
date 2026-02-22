@@ -1,4 +1,30 @@
+import { useEffect, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
+
+/* ── Hook: trigger once when element scrolls into view ────────────── */
+
+function useInView(threshold = 0.2) {
+  const ref = useRef<HTMLDivElement>(null)
+  const [inView, setInView] = useState(false)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) { return }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true)
+          observer.unobserve(el)
+        }
+      },
+      { threshold }
+    )
+    observer.observe(el)
+    return () => { observer.disconnect() }
+  }, [threshold])
+
+  return { ref, inView }
+}
 
 /* ── Step definitions for the test-flow tree ──────────────────────── */
 
@@ -15,9 +41,9 @@ const FLOW_STEPS: FlowStep[] = [
   { kind: 'call',   label: 'call',   value: 'login' },
   { kind: 'assert', label: 'assert', value: 'login.status == 200' },
   { kind: 'delay',  label: 'delay',  value: '1s' },
-  { kind: 'for',    label: 'for',    value: 'const user of users', children: [
+  { kind: 'for',    label: 'for',    value: 'user of users', children: [
     { kind: 'call',  label: 'call',   value: 'getProfile' },
-    { kind: 'check', label: 'check',  value: 'profile.email =~ /@/' },
+    { kind: 'check', label: 'check',  value: 'profile.name == user.name' },
     { kind: 'if',    label: 'if',     value: 'user.admin == true', children: [
       { kind: 'call', label: 'call',  value: 'getPermissions' },
     ]},
@@ -148,10 +174,12 @@ function FlowStepBox({
   flat,
   reducedMotion,
   swapDir,
+  inView,
 }: {
   flat: FlatStep
   reducedMotion: boolean | null
   swapDir?: 'down' | 'up'
+  inView: boolean
 }) {
   const { step, depth, index, hasChildren } = flat
   const appearDelay = index * STEP_DELAY
@@ -160,6 +188,7 @@ function FlowStepBox({
   const isSwapped = !!swapDir
   const showCursor = swapDir === 'down'
   const animName = swapDir === 'down' ? 'swapDown' : swapDir === 'up' ? 'swapUp' : undefined
+  const skip = !inView && !reducedMotion
 
   return (
     <motion.div
@@ -167,12 +196,12 @@ function FlowStepBox({
         paddingLeft: `${16 + depth * 28}px`,
         paddingRight: 16,
         position: 'relative',
-        ...(isSwapped && !reducedMotion ? {
+        ...(isSwapped && !reducedMotion && inView ? {
           animation: `${animName} 5s ease-in-out ${SWAP_INITIAL_DELAY}s infinite`,
         } : {}),
       }}
       initial={reducedMotion ? { opacity: 1 } : { opacity: 0, x: -14 }}
-      animate={{ opacity: 1, x: 0 }}
+      animate={skip ? { opacity: 0, x: -14 } : { opacity: 1, x: 0 }}
       transition={
         reducedMotion
           ? { duration: 0 }
@@ -234,9 +263,10 @@ function FlowStepBox({
 
 export default function TestFlowIllustration() {
   const reducedMotion = useReducedMotion()
+  const { ref, inView } = useInView(0.15)
 
   return (
-    <div className="relative" aria-hidden="true">
+    <div className="relative" ref={ref} aria-hidden="true">
       {/* Inject CSS keyframes */}
       <style>{swapDownKeyframes}{swapUpKeyframes}{cursorKeyframes}</style>
 
@@ -260,6 +290,7 @@ export default function TestFlowIllustration() {
                 flat={flat}
                 reducedMotion={reducedMotion}
                 swapDir={reducedMotion ? undefined : swapDir}
+                inView={inView}
               />
             )
           })}
