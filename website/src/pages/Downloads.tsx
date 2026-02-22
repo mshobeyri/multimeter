@@ -15,8 +15,7 @@ export default function Downloads() {
             Install the VS Code extension or the CLI tool for CI/CD pipelines
           </p>
           <p className="text-sm text-slate-500">
-            Latest Version: <span className="text-white font-medium">1.9.2</span> •
-            License: <span className="text-white font-medium">MIT</span>
+            Latest Version: <span className="text-white font-medium">1.9.2</span>
           </p>
         </FadeIn>
       </section>

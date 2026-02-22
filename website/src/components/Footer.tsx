@@ -21,7 +21,8 @@ const footerLinks = {
     { name: 'Request Feature', href: 'https://github.com/mshobeyri/multimeter/issues/new', external: true },
   ],
   Legal: [
-    { name: 'MIT License', href: 'https://github.com/mshobeyri/multimeter/blob/main/LICENCE.md', external: true },
+    { name: 'Terms of Service', href: '/terms', external: false },
+    { name: 'Privacy Policy', href: '/privacy', external: false },
   ],
 }
 
@@ -38,7 +39,7 @@ export default function Footer() {
               <span className="text-xl font-bold text-white">Multimeter</span>
             </Link>
             <p className="text-sm text-slate-400 mb-6">
-              All possible tests for your service — as code. Free API testing for VS Code.
+              All possible tests for your service — as code. API testing for VS Code.
             </p>
             <div className="flex items-center gap-4">
               <a
@@ -102,7 +103,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-sm text-slate-500">
-            © {new Date().getFullYear()} Multimeter. Open-source under MIT License.
+            © {new Date().getFullYear()} Multimeter. All rights reserved.
           </p>
           <p className="text-sm text-slate-500">
             Made with ❤️ for developers everywhere

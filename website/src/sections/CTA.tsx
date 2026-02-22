@@ -16,7 +16,7 @@ export default function CTA() {
               </h2>
               <p className="text-lg text-slate-400 max-w-2xl mx-auto mb-10">
                 Install Multimeter in VS Code and start testing in seconds.
-                No account needed. No credit card. No limits.
+                No account needed. No complex setup.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <a
@@ -26,7 +26,7 @@ export default function CTA() {
                   className="group flex items-center gap-2 bg-primary hover:bg-primary-dark text-white px-8 py-4 rounded-xl text-lg font-semibold transition-all shadow-lg shadow-primary/25 hover:shadow-primary/40"
                 >
                   <Download size={20} />
-                  Install Free Extension
+                  Install Extension
                   <ArrowRight
                     size={18}
                     className="group-hover:translate-x-1 transition-transform"

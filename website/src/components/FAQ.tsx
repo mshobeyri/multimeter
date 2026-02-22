@@ -9,9 +9,9 @@ interface FAQItem {
 
 const faqItems: FAQItem[] = [
   {
-    question: 'Is Multimeter really free?',
+    question: 'How much does Multimeter cost?',
     answer:
-      'Yes! Multimeter is free for small businesses. There are no feature restrictions and no paywalls — every feature is available. Larger teams can check the pricing page for details.',
+      'Multimeter is free for individuals and small businesses (up to 20 users). For teams of 20–50, it costs $2/user/month, and for 50+ users it drops to just $1/user/month. Every plan includes all features — no restrictions.',
   },
   {
     question: 'Do I need to create an account?',

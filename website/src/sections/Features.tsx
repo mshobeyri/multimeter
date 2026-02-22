@@ -13,9 +13,9 @@ import FadeIn from '../components/FadeIn'
 const features = [
   {
     icon: DollarSign,
-    title: 'Free for Small Businesses',
+    title: 'Affordable for Everyone',
     description:
-      'Small teams get every feature at no cost. No paywalls, no feature gates — just install and start testing.',
+      'Free for individuals and small teams. Simple, transparent pricing for larger organizations — no feature gates.',
     color: 'text-green-400',
     bg: 'bg-green-400/10',
   },

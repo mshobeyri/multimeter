@@ -5,31 +5,41 @@ interface FeatureRow {
   feature: string
   multimeter: boolean | string
   postman: boolean | string
+  bruno: boolean | string
 }
 
 const features: FeatureRow[] = [
-  { feature: 'Price', multimeter: 'Free for small businesses', postman: '$14/user/mo' },
-  { feature: 'HTTP / REST', multimeter: true, postman: true },
-  { feature: 'WebSocket', multimeter: true, postman: true },
-  { feature: 'gRPC', multimeter: true, postman: true },
-  { feature: 'Fully Offline', multimeter: true, postman: false },
-  { feature: 'Git-Native Files', multimeter: true, postman: false },
-  { feature: 'VS Code Integration', multimeter: 'Native', postman: 'Plugin' },
-  { feature: 'AI Test Generation', multimeter: true, postman: '$' },
-  { feature: 'Mock Server', multimeter: true, postman: '$' },
-  { feature: 'Interactive API Docs (HTML & Markdown)', multimeter: true, postman: false },
-  { feature: 'Test Suites', multimeter: true, postman: '$' },
-  { feature: 'CI/CD CLI', multimeter: true, postman: '$' },
-  { feature: 'Environment Presets', multimeter: true, postman: true },
-  { feature: 'Postman Import', multimeter: true, postman: '—' },
-  { feature: 'OpenAPI Import', multimeter: true, postman: true },
-  { feature: 'Data Extraction (JSONPath/XPath/Regex)', multimeter: true, postman: 'Scripting' },
+  { feature: 'Price', multimeter: 'From $0', postman: '$14/user/mo', bruno: '$6/user/mo' },
+  { feature: 'HTTP / REST', multimeter: true, postman: true, bruno: true },
+  { feature: 'WebSocket', multimeter: true, postman: true, bruno: true },
+  { feature: 'gRPC', multimeter: true, postman: true, bruno: true },
+  { feature: 'Git-Native Files', multimeter: true, postman: false, bruno: true },
+  { feature: 'VS Code Integration', multimeter: 'Native', postman: 'Plugin', bruno: 'Separate app' },
+  { feature: 'Interactive API Docs (HTML)', multimeter: true, postman: false, bruno: false },
+  { feature: 'Markdown API Docs', multimeter: true, postman: false, bruno: false },
+  { feature: 'Try-It Buttons in Docs', multimeter: true, postman: false, bruno: false },
+  { feature: 'Declarative Test Flows (YAML)', multimeter: true, postman: false, bruno: false },
+  { feature: 'Drag & Drop Test Builder', multimeter: true, postman: false, bruno: false },
+  { feature: 'AI Test Generation', multimeter: true, postman: true, bruno: false },
+  { feature: 'Mock Server', multimeter: true, postman: 'Cloud only', bruno: false },
+  { feature: 'Mock Server Reflect Mode', multimeter: true, postman: false, bruno: false },
+  { feature: 'mTLS / Client Certificates', multimeter: true, postman: true, bruno: true },
+  { feature: 'Certificate Management in Config', multimeter: true, postman: false, bruno: false },
+  { feature: 'Test Suites (Parallel + Sequential)', multimeter: true, postman: 'Sequential', bruno: false },
+  { feature: 'CI/CD CLI', multimeter: true, postman: true, bruno: true },
+  { feature: 'Same Engine in IDE & CLI', multimeter: true, postman: false, bruno: true },
+  { feature: 'Environment Presets', multimeter: true, postman: true, bruno: true },
+  { feature: 'Dynamic Tokens (random, date, uuid)', multimeter: true, postman: true, bruno: false },
+  { feature: 'Data Extraction (JSONPath/XPath/Regex)', multimeter: true, postman: 'Scripting', bruno: 'Scripting' },
+  { feature: 'Postman Import', multimeter: true, postman: '—', bruno: true },
+  { feature: 'OpenAPI Import', multimeter: true, postman: true, bruno: true },
+  { feature: 'Curl Import & Execution', multimeter: true, postman: true, bruno: true },
+  { feature: 'JS Helper Module Imports', multimeter: true, postman: false, bruno: false },
+  { feature: 'CSV Data-Driven Testing', multimeter: true, postman: true, bruno: false },
+  { feature: 'Fully Offline', multimeter: true, postman: false, bruno: true },
 ]
 
 function CellValue({ value }: { value: boolean | string }) {
-  if (value === '$') {
-    return <span className="text-sm font-semibold text-yellow-400">$</span>
-  }
   if (typeof value === 'string') {
     return <span className="text-sm">{value}</span>
   }
@@ -73,6 +83,9 @@ export default function Comparison() {
                   <th className="px-6 py-4 text-sm font-medium text-slate-400 text-center">
                     Postman
                   </th>
+                  <th className="px-6 py-4 text-sm font-medium text-slate-400 text-center">
+                    Bruno
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -91,6 +104,9 @@ export default function Comparison() {
                     </td>
                     <td className="px-6 py-3.5 text-center text-slate-400">
                       <CellValue value={row.postman} />
+                    </td>
+                    <td className="px-6 py-3.5 text-center text-slate-400">
+                      <CellValue value={row.bruno} />
                     </td>
                   </tr>
                 ))}

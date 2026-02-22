@@ -35,7 +35,7 @@ export default function Hero() {
             <div className="inline-flex items-center gap-2 bg-surface-light border border-border rounded-full px-4 py-1.5 mb-8">
               <span className="text-xs font-medium text-accent">VS Code Extension</span>
               <span className="text-xs text-slate-400">•</span>
-              <span className="text-xs text-slate-400">Free for Small Businesses</span>
+              <span className="text-xs text-slate-400">Free for Individuals & Small Teams</span>
             </div>
           </FadeIn>
 
@@ -51,7 +51,7 @@ export default function Hero() {
           <FadeIn delay={200}>
             <p className="text-lg sm:text-xl text-slate-400 max-w-3xl mx-auto mb-10 leading-relaxed">
               A VS Code extension for writing, running, and managing structured
-              API tests as version-controlled YAML files. Free for small businesses. No login. No cloud.
+              API tests as version-controlled YAML files. No login. No cloud.
             </p>
           </FadeIn>
 
