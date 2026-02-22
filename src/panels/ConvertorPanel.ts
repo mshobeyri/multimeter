@@ -32,7 +32,7 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
 
 
     const multimeterIconPath =
-        vscode.Uri.file(this.context.asAbsolutePath('res/icon.png'));
+        vscode.Uri.file(this.context.asAbsolutePath('res/logo.png'));
     const multimeterIconWebviewUri =
         webviewView.webview.asWebviewUri(multimeterIconPath);
 
