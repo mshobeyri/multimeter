@@ -9,7 +9,7 @@ const navLinks = [
   { name: 'Downloads', href: '/downloads' },
   {
     name: 'Docs',
-    href: 'https://github.com/mshobeyri/multimeter/tree/main/docs',
+    href: 'https://github.com/mshobeyri/multimeter/tree/master/docs',
     external: true,
   },
 ]

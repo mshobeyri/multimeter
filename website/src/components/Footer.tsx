@@ -9,7 +9,7 @@ const footerLinks = {
     { name: 'CLI (testlight)', href: 'https://www.npmjs.com/package/testlight', external: true },
   ],
   Resources: [
-    { name: 'Documentation', href: 'https://github.com/mshobeyri/multimeter/tree/main/docs', external: true },
+    { name: 'Documentation', href: 'https://github.com/mshobeyri/multimeter/tree/master/docs', external: true },
     { name: 'API Testing Guide', href: 'https://github.com/mshobeyri/multimeter/blob/main/docs/api-mmt.md', external: true },
     { name: 'Test Flow Guide', href: 'https://github.com/mshobeyri/multimeter/blob/main/docs/test-mmt.md', external: true },
     { name: 'MMT Overview', href: 'https://github.com/mshobeyri/multimeter/blob/main/docs/mmt-overview.md', external: true },
