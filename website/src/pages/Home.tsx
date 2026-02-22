@@ -6,6 +6,7 @@ import Protocols from '../sections/Protocols'
 import Replaces from '../sections/Replaces'
 import AITestGen from '../sections/AITestGen'
 import CICDReady from '../sections/CICDReady'
+import Documentation from '../sections/Documentation'
 import Comparison from '../sections/Comparison'
 import FAQ from '../components/FAQ'
 import CTA from '../sections/CTA'
@@ -22,6 +23,7 @@ export default function Home() {
         <AITestGen />
         <Replaces />
         <CICDReady />
+        <Documentation />
         <Comparison />
         <FAQ />
         <CTA />
