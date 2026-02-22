@@ -1,6 +1,6 @@
 import React, { useState, useContext } from "react";
 import { APIData } from "mmt-core/APIData";
-import { JSONRecord, Protocol } from "mmt-core/CommonData";
+import { JSONRecord, Method, Protocol } from "mmt-core/CommonData";
 import KSVEditor from "../components/KSVEditor";
 import BodyView from "../components/BodyView";
 import { formatBody } from "mmt-core/markupConvertor";
@@ -41,6 +41,18 @@ function cloneInputs(source?: JSONRecord): JSONRecord {
     return { ...source };
   }
 }
+
+const methodColor: Record<string, string> = {
+  get: "#61affe",
+  post: "#49cc90",
+  put: "#fca130",
+  delete: "#f93e3e",
+  patch: "#50e3c2",
+  head: "#9012fe",
+  options: "#0d5aa7",
+  trace: "#888",
+  ws: "#888",
+};
 
 const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton }) => {
   const { mmtFilePath } = useContext(FileContext);
@@ -110,6 +122,26 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
   return (
     <div className="apitest-root">
       <div style={{ padding: "8px", display: "flex", alignItems: "stretch", gap: 8 }}>
+        {isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url) ? (
+          <span
+            className="method-select method-badge"
+            style={{ background: methodColor["ws"] }}
+          >
+            WS
+          </span>
+        ) : (
+          <select
+            className="method-select"
+            value={(requestData?.method || api.method || "get").toLowerCase()}
+            onChange={e => updateField("method", e.target.value as Method)}
+            title="HTTP Method (temporary override)"
+            style={{ background: methodColor[(requestData?.method || api.method || "get").toLowerCase()] || "#888" }}
+          >
+            {(["get", "post", "put", "delete", "patch", "head", "options", "trace"] as Method[]).map(m => (
+              <option key={m} value={m}>{m.toUpperCase()}</option>
+            ))}
+          </select>
+        )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <UrlInput
             url={requestData?.url ?? ""}

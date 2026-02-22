@@ -712,6 +712,38 @@ button:focus {
 }
 
 
+.method-select {
+  flex-shrink: 0;
+  flex-grow: 0;
+  padding: 4px 4px;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  font-size: var(--vscode-font-size, 13px);
+  font-family: var(--vscode-font-family, inherit);
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  text-align: center;
+  width: 70px;
+  max-width: 70px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.method-select.method-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: default;
+}
+
+.method-select:focus {
+  border-color: var(--vscode-focusBorder, #007fd4);
+}
+
 .apitest-root {
   display: flex;
   flex-direction: column;
