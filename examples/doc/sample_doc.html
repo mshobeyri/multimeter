@@ -1,0 +1,1546 @@
+
+<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sample Doc</title>
+<style>
+  html, body { height: 100%; }
+  
+  /* Dark theme (default) */
+  :root {
+    --fg: #e5e5e5;
+    --bg: #1a1a1a;
+    --bg-gradient: linear-gradient(135deg, #252525 0%, #2f2f2f 50%, #282828 100%);
+    --muted: #a8a8a8;
+    --accent: #999999;
+    --card: rgba(40, 40, 40, 0.8);
+    --card-hover: rgba(48, 48, 48, 0.9);
+    --border: rgba(110, 110, 110, 0.25);
+    --glass-bg: rgba(35, 35, 35, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.12);
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    --hl-key: #9cdcfe;
+    --hl-string: #ce9178;
+    --hl-number: #b5cea8;
+    --hl-bool: #569cd6;
+    --hl-null: #569cd6;
+    --hl-tag: #569cd6;
+    --hl-attr: #9cdcfe;
+    --hl-bracket: #888;
+  }
+
+  /* Light theme */
+  [data-theme="light"] {
+    --fg: #374151;
+    --bg: #f9fafb;
+    --bg-gradient: linear-gradient(135deg, #f0f4f8 0%, #f9fafb 50%, #f3f5f7 100%);
+    --muted: #6b7280;
+    --accent: #3b82f6;
+    --card: rgba(255, 255, 255, 0.75);
+    --card-hover: rgba(255, 255, 255, 0.95);
+    --border: rgba(100, 110, 150, 0.15);
+    --glass-bg: rgba(255, 255, 255, 0.6);
+    --glass-border: rgba(0, 0, 0, 0.06);
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    --hl-key: #0451a5;
+    --hl-string: #a31515;
+    --hl-number: #098658;
+    --hl-bool: #0000ff;
+    --hl-null: #0000ff;
+    --hl-tag: #800000;
+    --hl-attr: #e50000;
+    --hl-bracket: #666;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;
+    background: var(--bg-gradient);
+    background-attachment: fixed;
+    color: var(--fg);
+    box-sizing: border-box;
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+
+  .doc-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+
+  h1 {
+    margin: 0 0 6px;
+    font-size: 18px;
+    font-weight: 600;
+  }
+
+  .doc-desc {
+    color: var(--muted);
+    margin: 0 0 12px;
+    white-space: pre-wrap;
+    font-size: 13px;
+  }
+
+  .doc-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 0 16px;
+    padding: 12px 20px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-bottom: 1px solid var(--glass-border);
+    border-radius: 0;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.1);
+    min-height: 50px;
+  }
+
+  .doc-head-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .doc-head-left h1 {
+    margin: 0;
+    font-size: 18px;
+    line-height: 28px;
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, #888888 0%, #d0d0d0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  [data-theme="light"] .doc-head-left h1 {
+    background: linear-gradient(135deg, #4a5568 0%, #718096 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .search {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .theme-toggle {
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 50%;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    color: var(--fg);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .theme-toggle:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    background: var(--card-hover);
+  }
+
+  .theme-toggle:active {
+    transform: translateY(0) scale(0.98);
+  }
+
+  .search-input {
+    min-width: 260px;
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 20px;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    color: var(--fg);
+    outline: none;
+    font-size: 13px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  }
+
+  .search-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(77, 159, 255, 0.2);
+    background: var(--card);
+  }
+
+  .search-input::-webkit-search-cancel-button {
+    height: 14px;
+    width: 14px;
+    cursor: pointer;
+    filter: grayscale(1) brightness(0.85);
+    opacity: 0.9;
+  }
+
+  .search-input::placeholder {
+    color: var(--muted);
+  }
+
+  .api {
+    width: 100%;
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    padding: 16px;
+    margin: 14px 0;
+    background: var(--card);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-sizing: border-box;
+    box-shadow: var(--shadow);
+    transition: all 0.3s ease;
+  }
+
+  .api:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+    background: var(--card-hover);
+    border-color: var(--accent);
+  }
+
+  .api.open:hover {
+    transform: none;
+    box-shadow: var(--shadow);
+    background: var(--card);
+    border-color: var(--glass-border);
+  }
+
+  h2 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    margin: 0 0;
+    font-weight: 600;
+  }
+
+  .endpoint {
+    font-weight: 400;
+    color: var(--muted);
+    word-break: break-all;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 11px;
+  }
+
+  .fade-title {
+    color: var(--fg);
+    font-weight: 600;
+    margin-right: 8px;
+  }
+
+  .toggle {
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s ease;
+  }
+
+  .toggle:hover {
+    background: var(--accent);
+    color: white;
+  }
+
+  .toggle .chevron {
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: rotate(0deg);
+  }
+
+  .toggle.open .chevron {
+    transform: rotate(90deg);
+  }
+
+  .badge {
+    font-size: 10px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: #444;
+    color: #fff;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .method-get { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+  .method-post { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+  .method-put { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+  .method-patch { background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%); }
+  .method-delete { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+  .method-ws { background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%); }
+
+  .url {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    color: var(--accent);
+    margin-bottom: 8px;
+    word-break: break-all;
+    font-size: 12px;
+  }
+
+  .desc {
+    color: var(--muted);
+    margin-bottom: 8px;
+    padding-top: 8px;
+    white-space: pre-wrap;
+    line-height: 1.6;
+  }
+
+  h3 {
+    font-size: 12px;
+    margin: 12px 0 6px;
+    color: var(--fg);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    opacity: 0.8;
+  }
+
+  .kv, .code {
+    background: var(--glass-bg);
+    padding: 10px 12px;
+    border-radius: 12px;
+    overflow: auto;
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(10px);
+    font-size: 12px;
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .details {
+    width: 100%;
+    animation: slideDown 0.3s ease;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .details ul {
+    margin: 0 0 8px 18px;
+  }
+
+  .details li {
+    margin: 3px 0;
+    line-height: 1.6;
+  }
+
+  /* Table styling */
+  .param-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 8px 0;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.05);
+    table-layout: fixed;
+  }
+
+  .param-table thead {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+  }
+
+  .param-table th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--glass-border);
+    width: 50%;
+  }
+
+  .param-table td {
+    padding: 10px 14px;
+    font-size: 12px;
+    border-bottom: 1px solid var(--glass-border);
+    line-height: 1.6;
+    width: 50%;
+  }
+
+  .param-table.cols-3 th,
+  .param-table.cols-3 td {
+    width: 33.33%;
+  }
+
+  .param-table.cols-4 th,
+  .param-table.cols-4 td {
+    width: 25%;
+  }
+
+  .param-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .param-table tbody tr {
+    transition: background 0.2s ease;
+  }
+
+  .param-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.02);
+  }
+
+  [data-theme="light"] .param-table tbody tr:hover {
+    background: rgba(0, 0, 0, 0.02);
+  }
+
+  .param-table .param-name {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    color: var(--accent);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .param-table .param-value {
+    color: var(--fg);
+  }
+
+  .param-table .param-desc {
+    color: var(--muted);
+    font-size: 11px;
+    font-style: italic;
+  }
+
+  .param-table .param-source {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    color: var(--accent);
+    font-size: 11px;
+  }
+
+  .param-ref {
+    display: inline;
+    background: rgba(14, 99, 156, 0.15);
+    color: var(--accent);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 11px;
+  }
+
+  [data-theme="light"] .param-ref {
+    background: rgba(14, 99, 156, 0.10);
+  }
+
+  .details .url-input {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 12px;
+    padding: 8px 12px;
+    color: var(--fg);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+  }
+
+  .details .url-input:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(77, 159, 255, 0.15);
+  }
+
+  .response {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 20px;
+  }
+
+  .sep {
+    border: none;
+    border-top: 1px solid var(--glass-border);
+    margin: 14px 0;
+    opacity: 0.5;
+  }
+
+  .tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 6px 0 10px;
+  }
+
+  .tag {
+    display: inline-block;
+    padding: 4px 12px;
+    font-size: 11px;
+    border-radius: 16px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    color: var(--fg);
+    backdrop-filter: blur(10px);
+    font-weight: 500;
+    transition: all 0.2s ease;
+  }
+
+  .tag:hover {
+    background: var(--accent);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(77, 159, 255, 0.3);
+  }
+
+  .example {
+    padding: 12px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    margin: 8px 0;
+    backdrop-filter: blur(10px);
+  }
+
+  .ex-name {
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: var(--fg);
+    font-size: 13px;
+  }
+
+  .ex-desc {
+    color: var(--muted);
+    margin-bottom: 8px;
+    line-height: 1.6;
+    font-size: 12px;
+  }
+
+  .ex-sub {
+    margin-top: 8px;
+  }
+
+  /* Smooth transitions for theme switching */
+  * {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
+
+  .doc-footer {
+    margin: 32px 0 0;
+    padding: 16px 20px;
+    text-align: center;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-top: 1px solid var(--glass-border);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .doc-footer a {
+    background: linear-gradient(135deg, #888888 0%, #d0d0d0 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-decoration: none;
+    font-weight: 600;
+    transition: opacity 0.3s ease;
+  }
+
+  .doc-footer a:hover {
+    opacity: 0.8;
+  }
+
+  [data-theme="light"] .doc-footer a {
+    background: linear-gradient(135deg, #4a5568 0%, #718096 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Try It Panel ── */
+  .try-btn {
+    margin-left: auto;
+    padding: 4px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 14px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .try-btn:hover {
+    background: var(--accent);
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  }
+  .try-btn-sm {
+    padding: 2px 10px;
+    font-size: 10px;
+    font-weight: 600;
+    border-radius: 10px;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    float: right;
+    margin-left: 8px;
+  }
+  .try-btn-sm:hover {
+    background: var(--accent);
+    color: white;
+  }
+
+  .try-panel {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+  }
+  .try-panel-inner {
+    animation: trySlideIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+  @keyframes trySlideIn {
+    from { opacity: 0; transform: translateX(60px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes trySlideOut {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(60px); }
+  }
+
+  .try-btn-active {
+    background: var(--accent);
+    color: white;
+  }
+
+  .try-form { margin-top: 8px; }
+  .try-form input,
+  .try-form select,
+  .try-form textarea {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 12px;
+    padding: 8px 12px;
+    color: var(--fg);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    margin-bottom: 8px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+  }
+  .try-form input:focus,
+  .try-form select:focus,
+  .try-form textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(77,159,255,0.15);
+  }
+  .try-form textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+  .try-form select {
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 36px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23aaa'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 10px 6px;
+  }
+
+  .try-kv { margin: 4px 0; }
+  .try-kv-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 4px;
+    align-items: center;
+  }
+  .try-kv-row input { flex: 1; margin-bottom: 0; }
+  .try-kv-remove {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--glass-border);
+    background: var(--glass-bg);
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    padding: 0;
+    line-height: 1;
+  }
+  .try-kv-remove:hover {
+    background: #ef4444;
+    color: white;
+    border-color: #ef4444;
+  }
+
+  .try-add-btn {
+    padding: 4px 12px;
+    border-radius: 10px;
+    border: 1px dashed var(--glass-border);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 11px;
+    margin-bottom: 12px;
+    transition: all 0.2s ease;
+  }
+  .try-add-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .try-send-btn {
+    padding: 8px 28px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border: none;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+    letter-spacing: 0.3px;
+  }
+  .try-send-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59,130,246,0.4);
+  }
+  .try-send-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  .try-ws-btns {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .try-ws-connect {
+    padding: 8px 28px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    border: none;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(16,185,129,0.3);
+    letter-spacing: 0.3px;
+  }
+  .try-ws-connect:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(16,185,129,0.4);
+  }
+  .try-ws-connect.connected {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    box-shadow: 0 4px 12px rgba(239,68,68,0.3);
+  }
+  .try-ws-connect.connected:hover {
+    box-shadow: 0 6px 20px rgba(239,68,68,0.4);
+  }
+  .try-ws-connect:disabled, .try-ws-send:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  .try-ws-send {
+    padding: 8px 28px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border: none;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+    letter-spacing: 0.3px;
+  }
+  .try-ws-send:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(59,130,246,0.4);
+  }
+  .try-ws-clear {
+    padding: 8px 20px;
+    border-radius: 14px;
+    background: var(--glass-bg);
+    color: var(--muted);
+    border: 1px solid var(--glass-border);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    letter-spacing: 0.3px;
+  }
+  .try-ws-clear:hover {
+    color: var(--fg);
+    border-color: var(--accent);
+  }
+
+  .try-response { margin-top: 16px; }
+  .try-response-status {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 12px;
+    margin-bottom: 8px;
+  }
+  .try-response-status.success { background: linear-gradient(135deg, #10b981, #059669); color: white; }
+  .try-response-status.error   { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; }
+  .try-response-status.redirect{ background: linear-gradient(135deg, #f59e0b, #d97706); color: white; }
+  .try-response-time {
+    color: var(--muted);
+    font-size: 11px;
+    margin-left: 8px;
+  }
+  .try-response-body {
+    background: var(--glass-bg);
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    overflow: auto;
+    max-height: 400px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    backdrop-filter: blur(10px);
+    margin-top: 8px;
+  }
+  /* Syntax highlight tokens */
+  .hl-key { color: var(--hl-key); }
+  .hl-str { color: var(--hl-string); }
+  .hl-num { color: var(--hl-number); }
+  .hl-bool { color: var(--hl-bool); }
+  .hl-null { color: var(--hl-null); }
+  .hl-bracket { color: var(--hl-bracket); }
+  .hl-tag { color: var(--hl-tag); }
+  .hl-attr { color: var(--hl-attr); }
+
+  .try-response-headers-wrap {
+    margin-top: 8px;
+  }
+  .try-response-headers-wrap summary {
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 11px;
+    user-select: none;
+  }
+</style>
+</head><body>
+  <div class="doc-header">
+    <div class="doc-head-left"><img class="logo" src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+CjwhLS0gQ3JlYXRlZCB3aXRoIElua3NjYXBlIChodHRwOi8vd3d3Lmlua3NjYXBlLm9yZy8pIC0tPgoKPHN2ZwogICB3aWR0aD0iMTAyNG1tIgogICBoZWlnaHQ9IjEwMjRtbSIKICAgdmlld0JveD0iMCAwIDEwMjQgMTAyNCIKICAgdmVyc2lvbj0iMS4xIgogICBpZD0ic3ZnMSIKICAgeG1sOnNwYWNlPSJwcmVzZXJ2ZSIKICAgaW5rc2NhcGU6dmVyc2lvbj0iMS40LjMgKDBkMTVmNzUsIDIwMjUtMTItMjUpIgogICBzb2RpcG9kaTpkb2NuYW1lPSJpY29uX2dyYWRpZW50LnN2ZyIKICAgeG1sbnM6aW5rc2NhcGU9Imh0dHA6Ly93d3cuaW5rc2NhcGUub3JnL25hbWVzcGFjZXMvaW5rc2NhcGUiCiAgIHhtbG5zOnNvZGlwb2RpPSJodHRwOi8vc29kaXBvZGkuc291cmNlZm9yZ2UubmV0L0RURC9zb2RpcG9kaS0wLmR0ZCIKICAgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiCiAgIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICAgeG1sbnM6c3ZnPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHNvZGlwb2RpOm5hbWVkdmlldwogICAgIGlkPSJuYW1lZHZpZXcxIgogICAgIHBhZ2Vjb2xvcj0iI2ZmZmZmZiIKICAgICBib3JkZXJjb2xvcj0iIzY2NjY2NiIKICAgICBib3JkZXJvcGFjaXR5PSIxLjAiCiAgICAgaW5rc2NhcGU6c2hvd3BhZ2VzaGFkb3c9IjIiCiAgICAgaW5rc2NhcGU6cGFnZW9wYWNpdHk9IjAuMCIKICAgICBpbmtzY2FwZTpwYWdlY2hlY2tlcmJvYXJkPSIwIgogICAgIGlua3NjYXBlOmRlc2tjb2xvcj0iI2QxZDFkMSIKICAgICBpbmtzY2FwZTpkb2N1bWVudC11bml0cz0ibW0iCiAgICAgc2hvd2d1aWRlcz0idHJ1ZSIKICAgICBpbmtzY2FwZTp6b29tPSIwLjE1ODg5OTM4IgogICAgIGlua3NjYXBlOmN4PSI0MjcuOTQzNzYiCiAgICAgaW5rc2NhcGU6Y3k9Ijc2Ny43ODE0NiIKICAgICBpbmtzY2FwZTp3aW5kb3ctd2lkdGg9IjI5NjciCiAgICAgaW5rc2NhcGU6d2luZG93LWhlaWdodD0iMTYzOSIKICAgICBpbmtzY2FwZTp3aW5kb3cteD0iMCIKICAgICBpbmtzY2FwZTp3aW5kb3cteT0iMjUiCiAgICAgaW5rc2NhcGU6d2luZG93LW1heGltaXplZD0iMCIKICAgICBpbmtzY2FwZTpjdXJyZW50LWxheWVyPSJsYXllcjEiIC8+PGRlZnMKICAgICBpZD0iZGVmczEiPjxsaW5lYXJHcmFkaWVudAogICAgICAgaWQ9ImxpbmVhckdyYWRpZW50MSIKICAgICAgIGlua3NjYXBlOmNvbGxlY3Q9ImFsd2F5cyI+PHN0b3AKICAgICAgICAgc3R5bGU9InN0b3AtY29sb3I6IzgxOGNmODtzdG9wLW9wYWNpdHk6MTsiCiAgICAgICAgIG9mZnNldD0iMCIKICAgICAgICAgaWQ9InN0b3AxIiAvPjxzdG9wCiAgICAgICAgIHN0eWxlPSJzdG9wLWNvbG9yOiMwNmI2ZDQ7c3RvcC1vcGFjaXR5OjE7IgogICAgICAgICBvZmZzZXQ9IjEiCiAgICAgICAgIGlkPSJzdG9wMiIgLz48L2xpbmVhckdyYWRpZW50PjxsaW5lYXJHcmFkaWVudAogICAgICAgaW5rc2NhcGU6Y29sbGVjdD0iYWx3YXlzIgogICAgICAgeGxpbms6aHJlZj0iI2xpbmVhckdyYWRpZW50MSIKICAgICAgIGlkPSJsaW5lYXJHcmFkaWVudDIiCiAgICAgICB4MT0iMTExLjU2MTY4IgogICAgICAgeTE9IjUxLjYxODA5NSIKICAgICAgIHgyPSI3NTIuNjI1MTIiCiAgICAgICB5Mj0iOTE5LjEzNTA3IgogICAgICAgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiIC8+PC9kZWZzPjxnCiAgICAgaW5rc2NhcGU6bGFiZWw9IkxheWVyIDEiCiAgICAgaW5rc2NhcGU6Z3JvdXBtb2RlPSJsYXllciIKICAgICBpZD0ibGF5ZXIxIj48cGF0aAogICAgICAgc3R5bGU9ImZpbGw6dXJsKCNsaW5lYXJHcmFkaWVudDIpO3N0cm9rZS13aWR0aDo1LjI3MzA3O2ZpbGwtb3BhY2l0eToxIgogICAgICAgZD0ibSAzMTcuMTM2NzksOTQ0LjMzMTUyIGMgLTMzLjY3MzE1LC01LjIxNTQzIC02NC41NzE4NSwtMjEuMDU1NDUgLTg4LjU4NzIsLTQ1LjQxMzY3IC0yMy41MTI5NSwtMjMuODQ4NyAtMzcuNTc2MTMsLTUxLjE1MTc3IC00My41Mjk0NiwtODQuNTEwODMgLTEuNjYxMTksLTkuMzA4MjMgLTEuNzMxNywtMjEuNjI3MjEgLTEuNzMxNywtMzAyLjQ5MTI2IDAsLTI4MC44NjQgMC4wNzA1LC0yOTMuMTgzMDIgMS43MzE3LC0zMDIuNDkxMjIgNS45NTMzMywtMzMuMzU5MDYgMjAuMDE2NTEsLTYwLjY2MjE1IDQzLjUyOTQ2LC04NC41MTA4IDIyLjI0NDQxLC0yMi41NjIwMyA0OS4yMTYxMSwtMzcuMTg4NTc5IDgxLjY4ODc5LC00NC4yOTkyMzMgOS41ODQ1OSwtMi4wOTg3NjQgOS41ODQ1OSwtMi4wOTg3NjQgMjAxLjc2MTY1LC0yLjA5ODc2NCAxOTIuMTc3MDUsMCAxOTIuMTc3MDUsMCAyMDEuOTk2MywyLjEzMzc3MSA2NC40NTg1LDE0LjAwNzE0IDExMS42MTU4OSw2MS4wODI3NDYgMTI0LjU4MTkzLDEyNC4zNjU5MzYgMi4xMzMzMSwxMC40MTIxNSAyLjEzMzMxLDEwLjQxMjE1IDIuMTMzMzEsMzA2LjkwMDMxIDAsMjk2LjQ4ODIgMCwyOTYuNDg4MiAtMi4xMzMzMSwzMDYuOTAwMzYgLTIuODUyMTIsMTMuOTIwMjkgLTYuNzE2NjEsMjUuMzU0OTIgLTEyLjgyMzg1LDM3Ljk0NDMgLTIxLjY3NzcsNDQuNjg2MjUgLTYwLjcxNzk3LDc0Ljk5MzExIC0xMTEuMjkwNTIsODYuMzk0NDggLTkuMzUxNjQsMi4xMDgzMSAtOS4zNTE2NCwyLjEwODMxIC0xOTkuMTkwNzgsMi4yODUwNiAtMTU4LjA2NjcyLDAuMTQ3MzcgLTE5MS4yMjc3OCwtMC4wMzY3IC0xOTguMTM2MzIsLTEuMTA4NDQgeiBNIDcwMC45MDQsOTAwLjg2Nzk0IGMgNDkuNTI4NywtNy45Mzk4OSA4Ny4zOTY0OCwtNDUuOTgyNjQgOTQuOTE5ODYsLTk1LjM1ODM5IDIuMTAwOTIsLTEzLjc4ODM1IDIuMTAwOTIsLTU3My4zOTkxNyAwLC01ODcuMTg3NSAtNi41MDAwNCwtNDIuNjU5NzYgLTM1LjU3MDIyLC03Ny4yMzMwOSAtNzYuMjY0OTUsLTkwLjcwMjQ0IC0xOS42NTA2OSwtNi41MDQwNyAtOC4xMTYzMywtNi4xODUxNSAtMjExLjc2NzE0LC01Ljg1NTI5IC0xODMuMTg0MTQsMC4yOTY3NCAtMTgzLjI5NzcsMC4yOTgwNCAtMTkxLjI0MTg4LDIuMjU5NzQgLTQyLjg1NzU3LDEwLjU4Mjk3IC03NC4xMjM4NCw0MC42NTE2MiAtODUuOTA1OTUsODIuNjE1MjggLTIuNDY3NDMsOC43ODgyNiAtMi40Njc0Myw4Ljc4ODI2IC0yLjQ2NzQzLDMwNS4yNzY0MiAwLDI5Ni40ODgyIDAsMjk2LjQ4ODIgMi40Njc0MywzMDUuMjc2NDMgOC45MzQ0OSwzMS44MjE1MSAyOS43OTU3OCw1Ny44MDY5IDU3Ljg1MDg5LDcyLjA2MDY1IDEzLjM5NTcsNi44MDU4NSAyNS40ODk5MiwxMC41ODIxIDM5Ljc0NDY2LDEyLjQwOTgyIDEuNTQzMDEsMC4xOTc3MiA4NC4wMjQ4NCwwLjQyMDYyIDE4My4yOTI5OCwwLjQ5NDU3IDE1OC40NjUzLDAuMTE4NTMgMTgxLjU3MTQsLTAuMDM2NyAxODkuMzcxNTMsLTEuMjg5MjkgeiBNIDQ5MS4wNDkxNCw4NjQuMjk2MzIgYyAtMzYuODAzNTcsLTQuOTc2MTkgLTcwLjU0MjA0LC0xOS42Mjg0IC05OC4zNTk0NywtNDIuNzE2NDggLTQwLjk5MjQ4LC0zNC4wMjMxOCAtNjUuMzM1NDIsLTc3LjQzMzI1IC03MS40NDEyMiwtMTI3LjM5OTAxIC0xLjM1NzA4LC0xMS4xMDU3IC0xLjE1NTE5LC0zMy45MDI1IDAuNDAyOTMsLTQ1LjQ3OTMyIDUuNTI3ODYsLTQxLjA3NTE0IDI0Ljc3MTExLC03OS41MTU1NCA1NC4zNzEwNSwtMTA4LjYxMTkxIDI5LjA1OTEsLTI4LjU2NDc2IDY1LjEzNzkyLC00Ni40MTg2MSAxMDYuNTUxNzcsLTUyLjcyNzkyIDEzLjgyNjczLC0yLjEwNjQxIDQwLjM0OTI3LC0yLjEwNjQxIDU0LjE3NTk5LDAgNDMuMzE1MDEsNi41OTg5IDc5LjEwODY1LDI0Ljk4MjI1IDExMC45MjMwMSw1Ni45NjkyOSAxNi40MzA0MSwxNi41MTk1MyAyNy42MDAxNywzMS43ODQ4OSAzNi44NjI4OSw1MC4zNzk0OCAzMC4yNDkyOSw2MC43MjQyOSAyNS41MTk0NSwxMzEuODMzMTcgLTEyLjUwMDEyLDE4Ny45MjcxNCAtMjguODIzMjMsNDIuNTI1ODEgLTcyLjYwMDI4LDcwLjY1MzEgLTEyNS4xNDIzOCw4MC40MDU0NSAtOS43MzA4MiwxLjgwNjE2IC00NS43NzI5NSwyLjYxNTAyIC01NS44NDQzNCwxLjI1MzI5IHogbSA1MS45MDcyNywtNDUuMTI1ODIgYyAxMC4yNzE4LC0yLjA4NTYgMjMuMDQ2MjksLTYuMTUyOTEgMzIuMzI5MzIsLTEwLjI5MzQ0IDYuNzU5OTksLTMuMDE1MTMgMjAuODg1MDQsLTExLjEyOTI0IDIwLjg3MTI2LC0xMS45ODkzOSAtMC4wMTU5LC0xLjAwMDM1IC0yMzAuMTgwMywtMTM4LjA1Njk0IC0yMzAuODA2OTEsLTEzNy40MzkyMyAtMS4xNjM5NSwxLjE0NzQgLTEuMjk5OTQsMTkuOTQxNzcgLTAuMjExNTQsMjkuMjA0ODQgMi45OTQxLDI1LjQ3NjY2IDEyLjY3Mzg2LDQ5Ljg5NTk2IDI3Ljg1MDQ2LDcwLjI1ODg2IDYuOTMyNjEsOS4zMDE3OSAyNy45MTA1NCwyOS43MDgyOCAzNy4zODQ3NSwzNi4zNjY1NSAxOS4xMTA0OSwxMy40MzAzNCA0NC42NjY0NywyMy4xMTQ5NyA2OC41MzM2MywyNS45NzEyMSA4LjE0MDkzLDAuOTc0MjMgMzUuMzMwNTgsLTAuMzA5NDMgNDQuMDQ4NzcsLTIuMDc5NCB6IG0gODUuODYxNjgsLTcxLjY5MzczIGMgNC4xMzUyNSwtNi43OTgyNCA3Ljc3MjA5LC0xMy4wMTM5MyA4LjA4MTg3LC0xMy44MTI1NyAwLjQzODQ1LC0xLjEzMDMgLTI1LjI1NzcsLTE2Ljc1NTE4IC0xMTUuOTc1MDksLTcwLjUyMDA0IC02NC4wOTYwOCwtMzcuOTg3MzcgLTExNy4wNDg4NSwtNjguODY4MzcgLTExNy42NzI3NiwtNjguNjI0NDUgLTAuNjIzOTEsMC4yNDM4NyAtNC40Mzc5OCw2LjE3NDcyIC04LjQ3NTc5LDEzLjE3OTUgLTUuNjQ5MTYsOS44MDAzNCAtNy4wNTAzLDEyLjkwNzgzIC02LjA3ODU1LDEzLjQ4MTM4IDAuNjk0NTMsMC40MTAxMiA1My4wMjQzNSwzMS43NDY1MSAxMTYuMjg4NDgsNjkuNjM2OCA2My4yNjQxMywzNy44OTAzNCAxMTUuMzE1MzksNjguOTIwMzUgMTE1LjY2OTUsNjguOTU1NyAwLjM1NDE1LDAuMDM2NyA0LjAyNzE0LC01LjQ5ODA3IDguMTYyMzQsLTEyLjI5NjMyIHogbSAzMC42NjI5MywtNzIuNTE1NjQgYyAtMC41NDM1MywtMTkuMzA2ODEgLTEuNzU2MzYsLTI2LjgxNTM4IC02LjgzNjM4LC00Mi4zMjI0MSAtMy41ODE1MywtMTAuOTMyODQgLTEyLjU4MTI5LC0yOC40MDEzOCAtMTkuNzY2OTUsLTM4LjM2NzU0IC04LjEzMzE0LC0xMS4yODAzNSAtMjcuMjczMDYsLTMwLjIwMTExIC0zOC42MDYzNywtMzguMTY0MzIgLTE2LjM4MjgsLTExLjUxMTIxIC0zNy4zNTE1LC0yMC40MjU2NCAtNTcuNTIzMjUsLTI0LjQ1NDkyIC0xMS44NzM2NywtMi4zNzE2OCAtNDIuMjk4MjMsLTIuMzcxNjggLTU0LjE3MTkxLDAgLTE3Ljc0NTYxLDMuNTQ0NjMgLTM2LjYwNzkzLDEwLjkwNDU4IC01MC4xNDA4MywxOS41NjQ1MyAtNS4xMjUwOSwzLjI3OTYzIC02LjQ5MTg4LDQuNTY4MDEgLTUuNDgwNDEsNS4xNjU4OCAwLjc0MTE4LDAuNDM3OTIgNTIuODk4NjksMzEuMzg1OTUgMTE1LjkwNTYzLDY4Ljc3MzAzIDYzLjAwNjk1LDM3LjM4NzAyIDExNS4xMzc4NCw2Ny45OTg4OCAxMTUuODQ2NDIsNjguMDI2MjYgMS4wNjkyLDAuMDQyIDEuMjAwODQsLTMuMDU3ODQgMC43NzQwNSwtMTguMjIwNTEgeiBNIDM2Ny4wNDg5Nyw0MzAuNDc5MzUgYyAtMzguNzQxNDEsLTQuNTMzMjQgLTcwLjY2OTA3LC0zNC42MzY5NSAtNzYuNjcwMzIsLTcyLjI5MDM0IC0wLjc1ODM3LC00Ljc1ODEyIC0wLjk4MDkzLC0yMy41NzE0NiAtMC43NDc3NiwtNjMuMjA0NTIgMC4zMjY1OSwtNTUuNTUzMjEgMC4zNjQ3NiwtNTYuNTM2NzEgMi40NTQxMiwtNjMuMzA1NzUgMTAuMDI4NjcsLTMyLjQ5Mzc2IDM1LjEwNTU4LC01NS42ODcxIDY3LjIyODI0LC02Mi4xNzg1MiA4LjI5NjExLC0xLjY3NjUyIDE0LjY1ODk0LC0xLjczNzYxIDE1Ni4xODI0MywtMS40OTk3MiAxNDcuNTM0MDEsMC4yNDgwMyAxNDcuNTM0MDEsMC4yNDgwMyAxNTUuNzUyNTYsMi43OTgyMSAzMi4wNzY2NCw5Ljk1MzI5IDU0LjY0MDI2LDMzLjgzNjkzIDYyLjI0ODY4LDY1Ljg5MDQ3IDEuMzQyMjQsNS42NTQ4OCAxLjU0MDY5LDEzLjc1ODM5IDEuNTQwNjksNjIuOTIwNzQgMCw1Ni4yNTQyOSAtMC4wMDUsNTYuNDU1NzQgLTIuMTk3ODQsNjQuNzU1NTQgLTkuNTM1MTgsMzYuMTIwNzMgLTM4LjYzODM0LDYxLjYwNjY4IC03NS40MjExMiw2Ni4wNDcwNyAtOS43NjE1MSwxLjE3ODQgLTI4MC4zMzc4NCwxLjI0MDcxIC0yOTAuMzY5NjgsMC4wNjY2IHogTSA2NjUuODcxOCwzODIuOTM5NTEgYyA5Ljc5NDA2LC00Ljc4ODQ4IDE2LjI0NTkxLC0xMS4xODU3MyAyMC44MDM0OSwtMjAuNjI3MzkgMy40NzQyMywtNy4xOTc0MSAzLjQ3NDIzLC03LjE5NzQxIDMuNDc0MjMsLTYzLjE2NDc3IDAsLTU1Ljk2NzM2IDAsLTU1Ljk2NzM2IC0zLjQ3Njk4LC02My4wMDMwMyAtNS45MjIxLC0xMS45ODMyNiAtMTcuNjgyMjEsLTIxLjE4ODA5IC0zMC40Njg4OSwtMjMuODQ4NSAtMy41MTYwMSwtMC43MzE1NSAtNDUuNDk5NDMsLTEuMDMxMDggLTE0NC41MjA3NywtMS4wMzEwOCAtMTUyLjA0NjEyLDAgLTE0NC4yNTA2LC0wLjI2MDcxIC0xNTUuMTIwMDcsNS4xODc4OCAtNi4yMDg4NiwzLjExMjI3IC0xNC43ODkyLDExLjYwMDEgLTE3LjkzNTQ3LDE3Ljc0MTk0IC01LjE1NTc4LDEwLjA2NDY1IC01LjI0NTM4LDExLjE4NDEgLTUuMjMzMzQsNjUuMzc4NDQgMC4wMTA2LDUzLjI0MjcxIDAuMTA4MTUsNTQuNTU2NzkgNC42OTk0MSw2My45MzgyNCAyLjY2MTg0LDUuNDM5MzcgMTEuMjIwODYsMTQuNTkyMzMgMTYuNTE1ODIsMTcuNjYxODUgMi4yNjE4MywxLjMxMTI0IDYuNTEyMTMsMy4xNDY0MiA5LjQ0NTA1LDQuMDc4MTYgNS4wODUxMSwxLjYxNTQyIDEyLjA0MDgzLDEuNjg1MjggMTQ5Ljg2NDg3LDEuNTA1MDggMTQ0LjUzMjMzLC0wLjE4ODggMTQ0LjUzMjMzLC0wLjE4ODggMTUxLjk1MjY1LC0zLjgxNjgyIHoiCiAgICAgICBpZD0icGF0aDEiIC8+PC9nPjwvc3ZnPgo=" alt="logo" style="height:24px;object-fit:contain;" /><h1>Sample Doc</h1></div>
+    <div class="search">
+      <button class="theme-toggle" id="theme-toggle" aria-label="Toggle theme">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+      </button>
+      <input id="search-input" class="search-input" type="search" placeholder="Search..." aria-label="Filter endpoints" />
+    </div>
+  </div>
+  <div class="doc-container">
+<div class="doc-desc">Example of how docs looks like.</div>
+
+        <section class="group" id="group-0">
+          <br /><br />
+          <h2 class="group-title">User </h2>
+          <div class="desc">User's related APIs</div>
+          
+      <section class="api" id="api-0">
+        <h2 onclick="toggleDetails(0)" style="cursor: pointer;">
+          <span class="toggle" id="toggle-0" role="button" aria-expanded="false" aria-controls="details-0">
+            <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 6 15 12 9 18"></polyline>
+            </svg>
+          </span>
+          <span class="badge method-post">POST</span>
+          <span class="fade-title">Add user</span>
+          <span class="endpoint">/sample/api/user/add</span>
+          <button class="try-btn" id="try-btn-0" onclick="toggleTryPanel(0, event)" type="button">Try</button>
+        </h2>
+        
+      <div class="details" id="details-0" style="display: none;">
+        <div class="desc">Add a new user using email address as username. The set password link will be send to the user's email.</div>
+        
+        <h3>Inputs</h3>      <table class="param-table cols-3">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="param-name">username</td>
+            <td class="param-value">mehrdad@mmt.dev</td>
+            <td class="param-desc">Email of the user.</td>
+          </tr>
+        </tbody>
+      </table>
+        
+        <hr class="sep" /><h3>URL</h3>
+        <div class="url"><input class="url-input" type="text" id="url-0" value="https://mmt.dev/sample/api/user/add" /></div>
+<h3>Body (json)</h3><pre class="code">{
+  <span class="hl-key"><span class="hl-str">&quot;username&quot;</span></span>: <span class="hl-str"><span class="hl-str">&quot;mehrdad@mmt.dev&quot;</span></span>
+}</pre>
+        
+      </div>
+        
+      <div class="try-panel" id="try-panel-0" style="display:none;">
+        <div class="try-panel-inner">
+          <div class="try-form">
+            <h3>URL</h3>
+            <input type="text" id="try-url-0" value="https://mmt.dev/sample/api/user/add" />
+            <h3>Method</h3>
+            <select id="try-method-0"><option value="GET" >GET</option><option value="POST" selected>POST</option><option value="PUT" >PUT</option><option value="DELETE" >DELETE</option><option value="PATCH" >PATCH</option><option value="HEAD" >HEAD</option><option value="OPTIONS" >OPTIONS</option></select>
+            
+            <h3>Headers</h3>
+            <div class="try-kv" id="try-headers-0"></div>
+            <button class="try-add-btn" onclick="addKVRow('try-headers-0')" type="button">+ Add Header</button>
+            <h3>Body</h3><textarea class="try-body" id="try-body-0" rows="6">{
+  &quot;username&quot;: &quot;mehrdad@mmt.dev&quot;
+}</textarea>
+            <div><button class="try-send-btn" onclick="sendTryRequest(0)" type="button">Send</button></div>
+          </div>
+          <div class="try-response" id="try-response-0"></div>
+        </div>
+      </div>
+      </section>
+
+      <section class="api" id="api-1">
+        <h2 onclick="toggleDetails(1)" style="cursor: pointer;">
+          <span class="toggle" id="toggle-1" role="button" aria-expanded="false" aria-controls="details-1">
+            <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 6 15 12 9 18"></polyline>
+            </svg>
+          </span>
+          <span class="badge method-get">GET</span>
+          <span class="fade-title">Get users</span>
+          <span class="endpoint">/sample/api/users</span>
+          <button class="try-btn" id="try-btn-1" onclick="toggleTryPanel(1, event)" type="button">Try</button>
+        </h2>
+        
+      <div class="details" id="details-1" style="display: none;">
+        <div class="desc">Return list of all users.</div>
+        
+        
+        <h3>Outputs</h3>      <table class="param-table cols-3">
+        <thead>
+          <tr>
+            <th>Parameter</th>
+            <th>Path</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="param-name">users</td>
+            <td class="param-value">body[users]</td>
+            <td class="param-desc">List of users</td>
+          </tr>
+        </tbody>
+      </table>
+        <hr class="sep" /><h3>URL</h3>
+        <div class="url"><input class="url-input" type="text" id="url-1" value="https://mmt.dev/sample/api/users" /></div>
+        
+      </div>
+        
+      <div class="try-panel" id="try-panel-1" style="display:none;">
+        <div class="try-panel-inner">
+          <div class="try-form">
+            <h3>URL</h3>
+            <input type="text" id="try-url-1" value="https://mmt.dev/sample/api/users" />
+            <h3>Method</h3>
+            <select id="try-method-1"><option value="GET" selected>GET</option><option value="POST" >POST</option><option value="PUT" >PUT</option><option value="DELETE" >DELETE</option><option value="PATCH" >PATCH</option><option value="HEAD" >HEAD</option><option value="OPTIONS" >OPTIONS</option></select>
+            
+            <h3>Headers</h3>
+            <div class="try-kv" id="try-headers-1"></div>
+            <button class="try-add-btn" onclick="addKVRow('try-headers-1')" type="button">+ Add Header</button>
+            
+            <div><button class="try-send-btn" onclick="sendTryRequest(1)" type="button">Send</button></div>
+          </div>
+          <div class="try-response" id="try-response-1"></div>
+        </div>
+      </div>
+      </section>
+
+      <section class="api" id="api-2">
+        <h2 onclick="toggleDetails(2)" style="cursor: pointer;">
+          <span class="toggle" id="toggle-2" role="button" aria-expanded="false" aria-controls="details-2">
+            <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 6 15 12 9 18"></polyline>
+            </svg>
+          </span>
+          <span class="badge method-ws">WS</span>
+          <span class="fade-title">Online users</span>
+          <span class="endpoint">/sample</span>
+          <button class="try-btn" id="try-btn-2" onclick="toggleTryPanel(2, event)" type="button">Try</button>
+        </h2>
+        
+      <div class="details" id="details-2" style="display: none;">
+        <div class="desc">Shows list of online users.</div>
+        
+        
+        
+        <hr class="sep" /><h3>URL</h3>
+        <div class="url"><input class="url-input" type="text" id="url-2" value="wss://mmt.dev/sample" /></div>
+<h3>Body (json)</h3><pre class="code">{
+  <span class="hl-key"><span class="hl-str">&quot;subscribe&quot;</span></span>: <span class="hl-str"><span class="hl-str">&quot;online_users&quot;</span></span>
+}</pre>
+        
+      </div>
+        
+      <div class="try-panel" id="try-panel-2" style="display:none;">
+        <div class="try-panel-inner">
+          <div class="try-form">
+            <h3>URL</h3>
+            <input type="text" id="try-url-2" value="wss://mmt.dev/sample" />
+            
+            <h3>Headers</h3>
+            <div class="try-kv" id="try-headers-2"></div>
+            <button class="try-add-btn" onclick="addKVRow('try-headers-2')" type="button">+ Add Header</button>
+            <h3>Message</h3><textarea class="try-body" id="try-body-2" rows="6">{
+  &quot;subscribe&quot;: &quot;online_users&quot;
+}</textarea>
+            <div class="try-ws-btns">
+            <button class="try-ws-connect" id="try-ws-connect-2" onclick="wsToggleConnect(2)" type="button">Connect</button>
+            <button class="try-ws-send" id="try-ws-send-2" onclick="wsSendMessage(2)" type="button" disabled>Send</button>
+            <button class="try-ws-clear" id="try-ws-clear-2" onclick="wsClearMessages(2)" type="button">Clear</button>
+          </div>
+          </div>
+          <div class="try-response" id="try-response-2"></div>
+        </div>
+      </div>
+      </section>
+        </section>
+      
+</div>
+  <!-- DOC_CONTENT will be injected here by buildDocHtml -->
+  <script>
+    function toggleDetails(idx) {
+      const details = document.getElementById('details-' + idx);
+      const toggle = document.getElementById('toggle-' + idx);
+      const tryPanel = document.getElementById('try-panel-' + idx);
+      const btn = document.getElementById('try-btn-' + idx);
+      // If try panel is open, collapse everything
+      if (tryPanel && tryPanel.style.display !== 'none') {
+        tryPanel.style.display = 'none';
+        if (details) { details.style.display = 'none'; }
+        if (btn) { btn.textContent = 'Try'; btn.classList.remove('try-btn-active'); }
+        toggle.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        return;
+      }
+      const isClosed = details.style.display === 'none';
+      if (isClosed) {
+        details.style.display = 'block';
+        toggle.classList.add('open');
+        toggle.setAttribute('aria-expanded', 'true');
+      } else {
+        details.style.display = 'none';
+        toggle.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+      }
+    }
+    (function setUpSearch(){
+      var input = document.getElementById('search-input');
+      if (!input) return;
+      var noResId = 'no-results';
+      function applyFilter(){
+        var q = (input.value || '').toLowerCase().trim();
+        var nodes = Array.prototype.slice.call(document.querySelectorAll('section.api'));
+        var any = false;
+        for (var i=0;i<nodes.length;i++){
+          var sec = nodes[i];
+          var text = (sec.textContent || '').toLowerCase();
+          var match = !q || text.indexOf(q) !== -1;
+          sec.style.display = match ? '' : 'none';
+          if (match) any = true;
+        }
+        var noRes = document.getElementById(noResId);
+        if (!q || any) {
+          if (noRes && noRes.parentElement) noRes.parentElement.removeChild(noRes);
+        } else {
+          if (!noRes) {
+            var div = document.createElement('div');
+            div.id = noResId;
+            div.textContent = 'No results';
+            div.style.color = '#bbb';
+            div.style.margin = '8px 0';
+            document.body.appendChild(div);
+          }
+        }
+      }
+      input.addEventListener('input', applyFilter);
+    })();
+
+    // Theme toggle functionality
+    (function setupTheme() {
+      const toggle = document.getElementById('theme-toggle');
+      const root = document.documentElement;
+      
+      // Check for saved theme preference or default to dark
+      const currentTheme = localStorage.getItem('theme') || 'dark';
+      root.setAttribute('data-theme', currentTheme);
+      updateThemeIcon(currentTheme);
+
+      toggle.addEventListener('click', function() {
+        const theme = root.getAttribute('data-theme');
+        const newTheme = theme === 'dark' ? 'light' : 'dark';
+        root.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        updateThemeIcon(newTheme);
+      });
+
+      function updateThemeIcon(theme) {
+        const sunIcon = `
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+        `;
+        const moonIcon = `
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        `;
+        toggle.innerHTML = theme === 'dark' ? sunIcon : moonIcon;
+      }
+    })();
+
+    // Add open class to API cards when toggled
+    const apiSections = document.querySelectorAll('section.api');
+    apiSections.forEach(function(section) {
+      const toggleBtn = section.querySelector('h2');
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', function(e) {
+          // Don't toggle open class if the try button was clicked
+          if (e.target.closest && e.target.closest('.try-btn')) { return; }
+          section.classList.toggle('open');
+        });
+      }
+    });
+
+    /* ── Try It Panel functions ── */
+    var __tryApiMeta = window.__tryApiMeta || [];
+
+    function escapeHtmlJS(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function highlightSyntax(escaped, fmt) {
+      if (fmt === 'xml') {
+        return escaped
+          .replace(/(&lt;\/?)([\w:-]+)/g, '$1<span class="hl-tag">$2</span>')
+          .replace(/\b([\w:-]+)(=)(&quot;[^&]*&quot;)/g, '<span class="hl-attr">$1</span>$2<span class="hl-str">$3</span>');
+      }
+      return escaped
+        .replace(/(&quot;)((?:[^&]|&(?!quot;))*)(&quot;)\s*:/g, '<span class="hl-key">$1$2$3</span>:')
+        .replace(/:[ ]*(&quot;)((?:[^&]|&(?!quot;))*)(&quot;)/g, ': <span class="hl-str">$1$2$3</span>')
+        .replace(/(&quot;)((?:[^&]|&(?!quot;))*)(&quot;)/g, '<span class="hl-str">$1$2$3</span>')
+        .replace(/\b(-?\d+\.?\d*(?:[eE][+-]?\d+)?)\b/g, '<span class="hl-num">$1</span>')
+        .replace(/\b(true|false)\b/g, '<span class="hl-bool">$1</span>')
+        .replace(/\bnull\b/g, '<span class="hl-null">null</span>');
+    }
+
+    function toggleTryPanel(idx, event) {
+      if (event) { event.stopPropagation(); event.preventDefault(); }
+      var tryPanel = document.getElementById('try-panel-' + idx);
+      if (!tryPanel) { return; }
+      var isOpen = tryPanel.style.display !== 'none';
+      if (isOpen) {
+        closeTryPanel(idx);
+      } else {
+        openTryPanel(idx);
+      }
+    }
+
+    function openTryPanel(idx) {
+      var details = document.getElementById('details-' + idx);
+      var tryPanel = document.getElementById('try-panel-' + idx);
+      var btn = document.getElementById('try-btn-' + idx);
+      if (!tryPanel) { return; }
+      if (details) { details.style.display = 'none'; }
+      tryPanel.style.display = 'block';
+      if (btn) { btn.textContent = '\u2190 Back'; btn.classList.add('try-btn-active'); }
+      var inner = tryPanel.querySelector('.try-panel-inner');
+      if (inner) { inner.style.animation = 'none'; inner.offsetHeight; inner.style.animation = 'trySlideIn 0.35s cubic-bezier(0.4,0,0.2,1) both'; }
+      var toggle = document.getElementById('toggle-' + idx);
+      if (toggle) { toggle.classList.add('open'); toggle.setAttribute('aria-expanded', 'true'); }
+      var section = document.getElementById('api-' + idx);
+      if (section) { section.classList.add('open'); }
+    }
+
+    function closeTryPanel(idx) {
+      var tryPanel = document.getElementById('try-panel-' + idx);
+      var btn = document.getElementById('try-btn-' + idx);
+      var details = document.getElementById('details-' + idx);
+      if (!tryPanel) { return; }
+      if (btn) { btn.textContent = 'Try'; btn.classList.remove('try-btn-active'); }
+      var inner = tryPanel.querySelector('.try-panel-inner');
+      if (inner) {
+        inner.style.animation = 'trySlideOut 0.25s ease forwards';
+        setTimeout(function() {
+          tryPanel.style.display = 'none';
+          inner.style.animation = '';
+          if (details) { details.style.display = 'block'; }
+        }, 250);
+      } else {
+        tryPanel.style.display = 'none';
+        if (details) { details.style.display = 'block'; }
+      }
+    }
+
+    function addKVRow(containerId) {
+      var container = document.getElementById(containerId);
+      if (!container) { return; }
+      var row = document.createElement('div');
+      row.className = 'try-kv-row';
+      row.innerHTML = '<input placeholder="Header name" /><input placeholder="Value" /><button class="try-kv-remove" onclick="this.parentElement.remove()" type="button">\u00d7</button>';
+      container.appendChild(row);
+    }
+
+    function collectKV(containerId) {
+      var container = document.getElementById(containerId);
+      if (!container) { return {}; }
+      var rows = container.querySelectorAll('.try-kv-row');
+      var result = {};
+      for (var i = 0; i < rows.length; i++) {
+        var inputs = rows[i].querySelectorAll('input');
+        var key = inputs[0] ? inputs[0].value.trim() : '';
+        var val = inputs[1] ? inputs[1].value : '';
+        if (key) { result[key] = val; }
+      }
+      return result;
+    }
+
+    function resolveInputsInUrl(url, inputs) {
+      if (!inputs || typeof inputs !== 'object') { return url; }
+      var result = url;
+      var keys = Object.keys(inputs);
+      for (var i = 0; i < keys.length; i++) {
+        var k = keys[i];
+        var v = String(inputs[k]);
+        result = result.replace(new RegExp('\\{' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\}', 'g'), v);
+        result = result.replace(new RegExp('i:' + k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=[/\\?&#]|$)', 'g'), v);
+      }
+      return result;
+    }
+
+    function tryExample(apiIdx, exIdx, event) {
+      if (event) { event.stopPropagation(); event.preventDefault(); }
+      var meta = __tryApiMeta[apiIdx];
+      if (!meta || !meta.examples || !meta.examples[exIdx]) { return; }
+      openTryPanel(apiIdx);
+      var ex = meta.examples[exIdx];
+      if (ex.inputs && typeof ex.inputs === 'object') {
+        var urlEl = document.getElementById('try-url-' + apiIdx);
+        if (urlEl) {
+          urlEl.value = resolveInputsInUrl(meta.url || '', ex.inputs);
+        }
+        // Populate query params from example inputs if they match query keys
+        var queryContainer = document.getElementById('try-query-' + apiIdx);
+        if (queryContainer && meta.query) {
+          var rows = queryContainer.querySelectorAll('.try-kv-row');
+          for (var r = 0; r < rows.length; r++) {
+            var qInputs = rows[r].querySelectorAll('input');
+            var qKey = qInputs[0] ? qInputs[0].value.trim() : '';
+            if (qKey && ex.inputs[qKey] !== undefined) {
+              qInputs[1].value = String(ex.inputs[qKey]);
+            }
+          }
+        }
+      }
+    }
+
+    function renderWsResponse(container, messages, startTime, isClosed, closeCode, closeReason) {
+      var elapsed = Date.now() - startTime;
+      var statusClass = isClosed ? (closeCode === 1000 || closeCode === undefined ? 'success' : 'error') : 'redirect';
+      var statusText = isClosed ? 'Closed' + (closeCode ? ' (' + closeCode + ')' : '') : 'Open';
+      var html = '<h3>Response</h3>' +
+        '<span class="try-response-status ' + statusClass + '">' + escapeHtmlJS(statusText) + '</span>' +
+        '<span class="try-response-time">' + elapsed + 'ms</span>';
+      if (closeReason) {
+        html += '<div style="color:var(--muted);font-size:11px;margin:4px 0">' + escapeHtmlJS(closeReason) + '</div>';
+      }
+      if (messages.length === 0) {
+        html += '<pre class="try-response-body" style="color:var(--muted)">' + (isClosed ? 'No messages received.' : 'Waiting for messages\u2026') + '</pre>';
+      } else {
+        for (var i = 0; i < messages.length; i++) {
+          var raw = messages[i];
+          var fmt = 'text';
+          try { raw = JSON.stringify(JSON.parse(raw), null, 2); fmt = 'json'; } catch(e) {
+            if (raw.trim().charAt(0) === '<') { fmt = 'xml'; }
+          }
+          html += '<div style="font-size:10px;color:var(--muted);margin-top:8px">Message ' + (i + 1) + '</div>';
+          html += '<pre class="try-response-body">' + highlightSyntax(escapeHtmlJS(raw), fmt) + '</pre>';
+        }
+      }
+      container.innerHTML = html;
+    }
+
+    /* ── WebSocket state per panel ── */
+    var __wsState = {};
+
+    function wsToggleConnect(idx) {
+      var state = __wsState[idx];
+      if (state && state.ws && !state.closed) {
+        /* Disconnect */
+        try { state.ws.close(); } catch(e) {}
+        return;
+      }
+      /* Connect */
+      var urlInput = document.getElementById('try-url-' + idx);
+      var responseDiv = document.getElementById('try-response-' + idx);
+      var connectBtn = document.getElementById('try-ws-connect-' + idx);
+      var sendBtn = document.getElementById('try-ws-send-' + idx);
+      if (!urlInput || !responseDiv) { return; }
+      var url = urlInput.value.trim();
+      if (connectBtn) { connectBtn.disabled = true; connectBtn.textContent = 'Connecting\u2026'; }
+      responseDiv.innerHTML = '<div style="color:var(--muted)">Connecting\u2026</div>';
+      var startTime = Date.now();
+      var ws;
+      try { ws = new WebSocket(url); } catch (err) {
+        responseDiv.innerHTML = '<h3>Response</h3><span class="try-response-status error">Error</span>' +
+          '<pre class="try-response-body">' + escapeHtmlJS(String(err.message || err)) + '</pre>';
+        if (connectBtn) { connectBtn.disabled = false; connectBtn.textContent = 'Connect'; }
+        return;
+      }
+      var s = { ws: ws, messages: [], closed: false, startTime: startTime };
+      __wsState[idx] = s;
+      ws.onopen = function() {
+        var connTime = Date.now() - startTime;
+        responseDiv.innerHTML = '<div style="color:var(--muted)">Connected (' + connTime + 'ms). Ready to send.</div>';
+        if (connectBtn) { connectBtn.disabled = false; connectBtn.textContent = 'Disconnect'; connectBtn.classList.add('connected'); }
+        if (sendBtn) { sendBtn.disabled = false; }
+      };
+      ws.onmessage = function(ev) {
+        if (ev.data instanceof Blob) {
+          ev.data.text().then(function(text) {
+            s.messages.push(text);
+            renderWsResponse(responseDiv, s.messages, startTime, false);
+          });
+        } else {
+          var data = typeof ev.data === 'string' ? ev.data : String(ev.data);
+          s.messages.push(data);
+          renderWsResponse(responseDiv, s.messages, startTime, false);
+        }
+      };
+      ws.onerror = function() {
+        if (!s.closed) {
+          s.closed = true;
+          var elapsed = Date.now() - startTime;
+          responseDiv.innerHTML = '<h3>Response</h3><span class="try-response-status error">Error</span>' +
+            '<span class="try-response-time">' + elapsed + 'ms</span>' +
+            '<pre class="try-response-body">WebSocket connection failed.\n\nMake sure the server is running and accessible from the browser.</pre>';
+          if (connectBtn) { connectBtn.disabled = false; connectBtn.textContent = 'Connect'; connectBtn.classList.remove('connected'); }
+          if (sendBtn) { sendBtn.disabled = true; }
+        }
+      };
+      ws.onclose = function(ev) {
+        s.closed = true;
+        renderWsResponse(responseDiv, s.messages, startTime, true, ev.code, ev.reason);
+        if (connectBtn) { connectBtn.disabled = false; connectBtn.textContent = 'Connect'; connectBtn.classList.remove('connected'); }
+        if (sendBtn) { sendBtn.disabled = true; }
+      };
+    }
+
+    function wsSendMessage(idx) {
+      var state = __wsState[idx];
+      if (!state || !state.ws || state.closed) { return; }
+      var bodyInput = document.getElementById('try-body-' + idx);
+      var message = bodyInput ? bodyInput.value : '';
+      if (message) {
+        state.ws.send(message);
+      }
+    }
+
+    function wsClearMessages(idx) {
+      var state = __wsState[idx];
+      if (state) { state.messages = []; }
+      var responseDiv = document.getElementById('try-response-' + idx);
+      if (!responseDiv) { return; }
+      if (state && !state.closed) {
+        responseDiv.innerHTML = '<div style="color:var(--muted)">Connected. Waiting for messages\u2026</div>';
+      } else {
+        responseDiv.innerHTML = '';
+      }
+    }
+
+    async function sendTryRequest(idx) {
+      var meta = __tryApiMeta[idx] || {};
+      var urlInput = document.getElementById('try-url-' + idx);
+      var methodSelect = document.getElementById('try-method-' + idx);
+      var bodyInput = document.getElementById('try-body-' + idx);
+      var responseDiv = document.getElementById('try-response-' + idx);
+      if (!urlInput || !responseDiv) { return; }
+
+      var url = urlInput.value.trim();
+
+      /* ── HTTP path ── */
+      var method = methodSelect ? methodSelect.value : 'GET';
+
+      // Collect headers
+      var headers = collectKV('try-headers-' + idx);
+
+      // Collect query params and append to URL
+      var queryParams = collectKV('try-query-' + idx);
+      var qKeys = Object.keys(queryParams);
+      if (qKeys.length) {
+        var sep = url.indexOf('?') >= 0 ? '&' : '?';
+        for (var qi = 0; qi < qKeys.length; qi++) {
+          if (queryParams[qKeys[qi]]) {
+            url += sep + encodeURIComponent(qKeys[qi]) + '=' + encodeURIComponent(queryParams[qKeys[qi]]);
+            sep = '&';
+          }
+        }
+      }
+
+      var body = bodyInput ? bodyInput.value : null;
+      var corsProxy = meta.cors_proxy || '';
+      var fetchUrl = corsProxy ? corsProxy + encodeURIComponent(url) : url;
+
+      var sendBtn = document.querySelector('#try-panel-' + idx + ' .try-send-btn');
+      if (sendBtn) { sendBtn.disabled = true; sendBtn.textContent = 'Sending\u2026'; }
+      responseDiv.innerHTML = '<div style="color:var(--muted)">Sending request\u2026</div>';
+
+      var startTime = Date.now();
+      try {
+        var fetchOpts = { method: method, headers: headers };
+        if (body && method !== 'GET' && method !== 'HEAD') {
+          fetchOpts.body = body;
+        }
+        var resp = await fetch(fetchUrl, fetchOpts);
+        var elapsed = Date.now() - startTime;
+        var respText = await resp.text();
+        var statusClass = resp.status < 300 ? 'success' : resp.status < 400 ? 'redirect' : 'error';
+
+        var formatted = respText;
+        var respFmt = 'text';
+        try { formatted = JSON.stringify(JSON.parse(respText), null, 2); respFmt = 'json'; } catch(e) {
+          if (respText.trim().charAt(0) === '<') { respFmt = 'xml'; }
+        }
+
+        var respHeaders = '';
+        resp.headers.forEach(function(v, k) {
+          respHeaders += '<tr><td class="param-name">' + escapeHtmlJS(k) + '</td><td class="param-value">' + escapeHtmlJS(v) + '</td></tr>';
+        });
+
+        responseDiv.innerHTML =
+          '<h3>Response</h3>' +
+          '<span class="try-response-status ' + statusClass + '">' + resp.status + ' ' + escapeHtmlJS(resp.statusText) + '</span>' +
+          '<span class="try-response-time">' + elapsed + 'ms</span>' +
+          '<pre class="try-response-body">' + highlightSyntax(escapeHtmlJS(formatted), respFmt) + '</pre>' +
+          (respHeaders ? '<details class="try-response-headers-wrap"><summary>Response Headers</summary><table class="param-table"><tbody>' + respHeaders + '</tbody></table></details>' : '');
+      } catch (err) {
+        var elapsed2 = Date.now() - startTime;
+        responseDiv.innerHTML =
+          '<h3>Response</h3>' +
+          '<span class="try-response-status error">Error</span>' +
+          '<span class="try-response-time">' + elapsed2 + 'ms</span>' +
+          '<pre class="try-response-body">' + escapeHtmlJS(String(err.message || err)) +
+          '\n\nIf this is a CORS error, configure your API server to set Access-Control-Allow-Origin headers,\nor set cors_proxy in the html options of your doc .mmt file.\nExample:\nhtml:\n  cors_proxy: https://corsproxy.io/?' + '</pre>';
+      }
+      if (sendBtn) { sendBtn.disabled = false; sendBtn.textContent = 'Send'; }
+    }
+    /* Enable copy/paste/cut/select-all inside VS Code webview iframes.
+       VS Code intercepts Ctrl/Cmd shortcuts at the frame level, so standard
+       browser handling never fires. We capture keydown and use execCommand
+       as a synchronous fallback (works in all webview contexts). */
+    document.addEventListener('keydown', function(e) {
+      if (!(e.metaKey || e.ctrlKey)) { return; }
+      var key = e.key && e.key.toLowerCase();
+      if (key === 'a') {
+        var el = document.activeElement;
+        if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')) {
+          el.select();
+        } else {
+          document.execCommand('selectAll');
+        }
+        e.preventDefault(); e.stopPropagation();
+      } else if (key === 'c') {
+        document.execCommand('copy');
+        e.preventDefault(); e.stopPropagation();
+      } else if (key === 'x') {
+        document.execCommand('cut');
+        e.preventDefault(); e.stopPropagation();
+      } else if (key === 'v') {
+        document.execCommand('paste');
+        e.preventDefault(); e.stopPropagation();
+      }
+    }, true);
+  </script>
+  </div>
+  <footer class="doc-footer">
+    Powered by <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter" target="_blank" rel="noopener noreferrer">Multimeter</a>
+  </footer>
+<script>window.__tryApiMeta = [{"method":"POST","url":"https://mmt.dev/sample/api/user/add","headers":{},"body":{"username":"i:username"},"format":"json","inputs":{"username":"mehrdad@mmt.dev"},"query":{},"examples":[],"cors_proxy":"","protocol":"http"},{"method":"GET","url":"https://mmt.dev/sample/api/users","headers":{},"body":null,"format":"json","inputs":{},"query":{},"examples":[],"cors_proxy":"","protocol":"http"},{"method":"WS","url":"wss://mmt.dev/sample","headers":{},"body":{"subscribe":"online_users"},"format":"json","inputs":{},"query":{},"examples":[],"cors_proxy":"","protocol":"ws"}];</script>
+</body></html>
