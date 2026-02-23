@@ -28,7 +28,68 @@ interface YamlEditorPanelProps {
   language?: string;
   showNumbers?: boolean;
   fontSize?: number;
+  collapseDescription?: boolean;
   onFocusChange?: (focused: boolean) => void; // <-- add this
+}
+
+/**
+ * Find 1-based line numbers of multi-line description blocks that should
+ * be auto-folded.  A description counts as "multi-line" when the
+ * `description:` key is followed by at least one indented continuation
+ * line (block-scalar `|`/`>` with 2+ content lines, or a plain/quoted
+ * value that wraps to the next line).
+ */
+function getDescriptionFoldLines(model: any): number[] {
+  const lines: string[] = model.getLinesContent();
+  const result: number[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trimStart();
+    if (!/^description:(\s|$)/.test(trimmed)) {
+      continue;
+    }
+
+    const descIndent = lines[i].search(/\S/);
+    const afterColon = trimmed.slice('description:'.length).trim();
+    const isBlockScalar = /^[|>]/.test(afterColon);
+
+    // Count continuation lines that are indented deeper than the key
+    let continuationCount = 0;
+    for (let j = i + 1; j < lines.length; j++) {
+      const nextLine = lines[j];
+      if (nextLine.trim() === '') {
+        // Blank lines are part of the block only if more indented
+        // content follows
+        let hasMore = false;
+        for (let k = j + 1; k < lines.length; k++) {
+          if (lines[k].trim() === '') {
+            continue;
+          }
+          hasMore = lines[k].search(/\S/) > descIndent;
+          break;
+        }
+        if (hasMore) {
+          continuationCount++;
+          continue;
+        }
+        break;
+      }
+      if (nextLine.search(/\S/) > descIndent) {
+        continuationCount++;
+      } else {
+        break;
+      }
+    }
+
+    // Block scalars (| / >) need 2+ content lines to qualify as
+    // "more than one line".  Inline values need just 1 continuation.
+    const threshold = isBlockScalar ? 2 : 1;
+    if (continuationCount >= threshold) {
+      result.push(i + 1); // 1-based
+    }
+  }
+
+  return result;
 }
 
 const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
@@ -38,7 +99,8 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   content,
   setContent,
   onFocusChange, // <-- receive it as a prop
-  fontSize
+  fontSize,
+  collapseDescription
 }) => {
   const monacoRef = useRef<any>(null);
   const editorRef = useRef<any>(null);
@@ -81,6 +143,32 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   useEffect(() => {
     contentRef.current = content;
   }, [content]);
+
+  // Auto-fold multi-line description blocks on initial document load
+  // so they don't visually distract the user.
+  useEffect(() => {
+    if (!collapseDescription || !editorReady || !editorRef.current) {
+      return;
+    }
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) {
+      return;
+    }
+
+    // The indentation-based folding model needs a moment to initialise
+    // after the editor is mounted and content is set.
+    const timer = setTimeout(() => {
+      const foldLines = getDescriptionFoldLines(model);
+      if (foldLines.length > 0) {
+        editor.trigger('auto-fold-descriptions', 'editor.fold', {
+          selectionLines: foldLines,
+        });
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [editorReady, collapseDescription]);
 
   // Validate YAML and set error marker if invalid
   useEffect(() => {

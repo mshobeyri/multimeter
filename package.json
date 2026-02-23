@@ -135,6 +135,11 @@
           ],
           "description": "Default panel layout when opening MMT files"
         },
+        "multimeter.editor.collapseDescription": {
+          "type": "boolean",
+          "default": false,
+          "description": "Automatically collapse multi-line description fields when opening MMT files"
+        },
         "multimeter.workspaceEnvFile": {
           "type": "string",
           "default": "multimeter.mmt",

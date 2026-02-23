@@ -99,6 +99,9 @@ export const defineTheme = (monaco: any) => {
       "editor.inactiveSelectedForeground": cssVar('--vscode-editor-inactiveSelectedForeground', "#ffffff"),
       "editor.lineHighlightBorder": cssVar('--vscode-editor-lineHighlightBorder', "transparent"),
 
+      // Folded region background — keep transparent to avoid visual noise
+      "editor.foldBackground": "#00000000",
+
       // Widgets
       "editorWidget.background": cssVar('--vscode-editorWidget-background', "#232323"),
       "editorWidget.border": cssVar('--vscode-editorWidget-border', "#454545"),

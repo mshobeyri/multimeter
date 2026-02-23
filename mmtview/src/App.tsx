@@ -30,6 +30,7 @@ const App: React.FC = () => {
   const [mmtFilePath, setMmtFilePath] = useState<string | undefined>(undefined);
   const [projectRoot, setProjectRoot] = useState<string | undefined>(undefined);
   const [yamlFontSize, setYamlFontSize] = useState<number>(12);
+  const [collapseDescription, setCollapseDescription] = useState<boolean>(false);
 
   const isInitLoad = useRef(true);
   const [yamlEditorFocused, setYamlEditorFocused] = useState(false);
@@ -122,6 +123,9 @@ const App: React.FC = () => {
             setPanelSize(0);
           }
         }
+        if (typeof message.collapseDescription === "boolean") {
+          setCollapseDescription(message.collapseDescription);
+        }
       }
     };
 
@@ -207,6 +211,7 @@ const App: React.FC = () => {
             setContent={yamlSetContent}
             onFocusChange={setYamlEditorFocused}
             fontSize={yamlFontSize}
+            collapseDescription={collapseDescription}
           />
         </div>
         <div style={{ height: "100vh", minHeight: 0, display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
