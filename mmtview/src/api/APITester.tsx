@@ -310,6 +310,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
             onChange={() => { }}
             keyOptions={typeof api.outputs === "object" ? Object.keys(api.outputs || {}) : []}
             deletable={false}
+            copyable={true}
           />
         )}
       </div>
