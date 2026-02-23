@@ -1,7 +1,7 @@
 <br />
 <div align="center">
-  <a href="https://github.com/othneildrew/Best-README-Template">
-    <img src="res/logoc.svg" alt="Logo" width="120" height="115">
+  <a href="https://mmt.dev">
+    <img src="res/logo.png" alt="Logo" width="120" height="115">
   </a>
   <p align="center">
     <h4>All possible tests for your service as code!</h4>

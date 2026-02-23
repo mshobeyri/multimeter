@@ -3,7 +3,7 @@
   "publisher": "mshobeyri",
   "displayName": "Multimeter",
   "description": "API test tools",
-  "version": "1.9.2",
+  "version": "1.9.3",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git"
