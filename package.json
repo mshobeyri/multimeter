@@ -3,7 +3,7 @@
   "publisher": "mshobeyri",
   "displayName": "Multimeter",
   "description": "API test tools",
-  "version": "1.9.3",
+  "version": "1.9.4",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git"
@@ -13,7 +13,7 @@
     "vscode": "^1.95.0"
   },
   "categories": [
-    "Other"
+    "Testing", "Programming Languages", "AI"
   ],
   "activationEvents": [
     "onStartupFinished",
