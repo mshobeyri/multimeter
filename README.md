@@ -1,7 +1,7 @@
 <br />
 <div align="center">
-  <a href="https://github.com/othneildrew/Best-README-Template">
-    <img src="res/icon.png" alt="Logo" width="120" height="115">
+  <a href="https://mmt.dev">
+    <img src="res/logo.png" alt="Logo" width="120" height="115">
   </a>
 
 
@@ -94,7 +94,7 @@ Here is a how you can run the test in VSCode <a href="https://marketplace.visual
 
 
 ## 🛠️ Usage
-- Add <img src="res/icon.png" alt="Multimeter Logo" width="16" height="16"/>[Multimeter](https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter) extension to your vscode.
+- Add <img src="res/logo.png" alt="Multimeter Logo" width="16" height="16"/>[Multimeter](https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter) extension to your vscode.
 - Create a .mmt file in your project (e.g., login.mmt).
 - Use UI or write YAML file represent your test.
 - Click Run!
