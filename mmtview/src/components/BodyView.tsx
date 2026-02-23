@@ -1,6 +1,7 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { xml2js } from "xml-js";
 import { beautify } from "mmt-core/markupConvertor";
+import { extractPathAtPosition, PathSegment } from "mmt-core/outputExtractor";
 import TextEditor from "../text/TextEditor";
 
 export type mode = "appliable" | "live";
@@ -21,10 +22,67 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const isUserEditingRef = useRef(false);
+    const editorRef = useRef<any>(null);
+    const [cursorPath, setCursorPath] = useState<{ path: PathSegment[]; expr: string; key: string } | null>(null);
+    const cursorListenerRef = useRef<any>(null);
+
+    const detectContentType = useCallback((text: string): "json" | "xml" => {
+        const fmt = (format || "json").toLowerCase();
+        return fmt.includes("xml") || text.trim().startsWith("<") ? "xml" : "json";
+    }, [format]);
+
+    const computePathAtCursor = useCallback((editor: any) => {
+        if (!onInspectPosition || !editor) {
+            setCursorPath(null);
+            return;
+        }
+        const pos = editor.getPosition();
+        if (!pos) {
+            setCursorPath(null);
+            return;
+        }
+        const text = editor.getValue();
+        const contentType = detectContentType(text);
+        const path = extractPathAtPosition(text, contentType, pos.lineNumber, pos.column);
+        if (!path || path.length === 0) {
+            setCursorPath(null);
+            return;
+        }
+        const expr = "body" + path.map(seg => `[${String(seg)}]`).join("");
+        let key = "value";
+        for (let i = path.length - 1; i >= 0; i--) {
+            const seg = path[i];
+            if (typeof seg === "string" && seg.trim()) {
+                key = seg;
+                break;
+            }
+        }
+        setCursorPath({ path, expr, key });
+    }, [onInspectPosition, detectContentType]);
+
+    // Attach cursor position listener when editor mounts
+    useEffect(() => {
+        const editor = editorRef.current;
+        if (!editor || !onInspectPosition) {
+            return;
+        }
+        // Compute once for initial position
+        computePathAtCursor(editor);
+        // Listen for cursor changes
+        cursorListenerRef.current = editor.onDidChangeCursorPosition?.(() => {
+            computePathAtCursor(editor);
+        });
+        return () => {
+            cursorListenerRef.current?.dispose();
+            cursorListenerRef.current = null;
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editorRef.current, onInspectPosition, computePathAtCursor]);
 
     // Keep localValue in sync with parent value (when parent changes)
     useEffect(() => {
         setLocalValue(value);
+        setCursorPath(null);
     }, [value, refreshKey]);
 
     useEffect(() => {
@@ -96,6 +154,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                 showNumbers={false}
                 fontSize={11}
                 onInspectPosition={onInspectPosition}
+                editorRef={editorRef}
             />
             <div className="bodyview-toolbar">
                 {((format === "json" || format === "xml") && isValid && beautify(format, localValue) !== localValue) && (
@@ -130,6 +189,26 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                     >
                         <span className="codicon codicon-error" />
                     </span>
+                )}
+                {onInspectPosition && cursorPath && (
+                    <button
+                        className="bodyview-btn-icon"
+                        title={`Add output: ${cursorPath.key} = ${cursorPath.expr}`}
+                        onClick={() => {
+                            const editor = editorRef.current;
+                            if (!editor) {
+                                return;
+                            }
+                            const pos = editor.getPosition();
+                            if (!pos) {
+                                return;
+                            }
+                            const text = editor.getValue();
+                            onInspectPosition({ line: pos.lineNumber, column: pos.column, text });
+                        }}
+                    >
+                        <span className="codicon codicon-sign-out" />
+                    </button>
                 )}
                 <button
                     className="bodyview-btn-icon"

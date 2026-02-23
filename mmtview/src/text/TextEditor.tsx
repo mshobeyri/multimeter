@@ -47,6 +47,11 @@ const TextEditor: React.FC<TextEditorProps> = ({
     toggleRunButtonRef.current = onToggleRunButton;
   }, [onToggleRunButton]);
 
+  const inspectPositionRef = useRef(onInspectPosition);
+  useEffect(() => {
+    inspectPositionRef.current = onInspectPosition;
+  }, [onInspectPosition]);
+
   // Listen for VS Code theme changes and update Monaco theme
   useEffect(() => {
     const handler = () => {
@@ -156,7 +161,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
             return;
           }
           const text = editor.getValue();
-          onInspectPosition({
+          inspectPositionRef.current?.({
             line: pos.lineNumber,
             column: pos.column,
             text,

@@ -35,6 +35,27 @@ describe('extractPathAtPosition - JSON', () => {
     const path = extractPathAtPosition(json, 'json', pos.line, pos.col);
     expect(path).toEqual(['items', 1, 'name']);
   });
+
+  it('returns path when clicking on a key name', () => {
+    const json = `{ "user": { "name": "mehrdad" } }`;
+    const pos = posOf(json, '"name"');
+    const path = extractPathAtPosition(json, 'json', pos.line, pos.col);
+    expect(path).toEqual(['user', 'name']);
+  });
+
+  it('returns path when clicking on a key with empty string value', () => {
+    const json = `{ "data": { "value": "" } }`;
+    const pos = posOf(json, '"value"');
+    const path = extractPathAtPosition(json, 'json', pos.line, pos.col);
+    expect(path).toEqual(['data', 'value']);
+  });
+
+  it('returns path when clicking on a key with null value', () => {
+    const json = `{ "item": null }`;
+    const pos = posOf(json, '"item"');
+    const path = extractPathAtPosition(json, 'json', pos.line, pos.col);
+    expect(path).toEqual(['item']);
+  });
 });
 
 describe('extractPathAtPosition - JSON with \n', () => {
@@ -62,5 +83,29 @@ describe('extractPathAtPosition - XML', () => {
     const adjusted = {line: pos.line, col: pos.col + '<name>'.length};
     const path = extractPathAtPosition(xml, 'xml', adjusted.line, adjusted.col);
     expect(path).toEqual(['root', 'items', 'item', 1, 'name']);
+  });
+
+  it('returns path when clicking on opening tag name', () => {
+    const xml = `<root>\n  <user>\n    <name>mehrdad</name>\n  </user>\n</root>`;
+    // Click on the 'n' in '<name>'
+    const pos = posOf(xml, 'name>mehrdad');
+    const path = extractPathAtPosition(xml, 'xml', pos.line, pos.col);
+    expect(path).toEqual(['root', 'user', 'name']);
+  });
+
+  it('returns path when clicking on closing tag name', () => {
+    const xml = `<root>\n  <user>\n    <name>mehrdad</name>\n  </user>\n</root>`;
+    // Click on the 'n' in '</name>'
+    const pos = posOf(xml, 'name>\n  </user>');
+    const path = extractPathAtPosition(xml, 'xml', pos.line, pos.col);
+    expect(path).toEqual(['root', 'user', 'name']);
+  });
+
+  it('returns path when clicking on tag name of empty element', () => {
+    const xml = `<root>\n  <data></data>\n</root>`;
+    // Click on 'd' in '<data>'
+    const pos = posOf(xml, 'data>');
+    const path = extractPathAtPosition(xml, 'xml', pos.line, pos.col);
+    expect(path).toEqual(['root', 'data']);
   });
 });

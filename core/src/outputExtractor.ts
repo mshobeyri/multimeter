@@ -207,7 +207,23 @@ function findXMLPathAtOffset(s: string, offset: number): PathSegment[]|null {
         continue;
       }
       if (s[i + 1] === '/') {
-        // closing tag
+        // closing tag – check if offset is on the closing tag name
+        const closeNameStart = i + 2;
+        let cn = closeNameStart;
+        while (cn < s.length && /[A-Za-z0-9_:.-]/.test(s[cn])) {
+          cn++;
+        }
+        const closeNameEnd = cn - 1;
+        if (offset >= closeNameStart && offset <= closeNameEnd && stack.length > 0) {
+          const path: PathSegment[] = [];
+          for (const seg of stack) {
+            path.push(seg.name);
+            if (seg.index > 0) {
+              path.push(seg.index);
+            }
+          }
+          return path;
+        }
         const end = s.indexOf('>', i + 2);
         if (end < 0) break;
         stack.pop();
@@ -219,9 +235,11 @@ function findXMLPathAtOffset(s: string, offset: number): PathSegment[]|null {
       let j = i + 1;
       // read name
       let name = '';
+      const nameStart = j;
       while (j < s.length && /[A-Za-z0-9_:.-]/.test(s[j])) {
         name += s[j++];
       }
+      const nameEnd = j - 1;
       // advance to end of tag
       const endTag = s.indexOf('>', j);
       if (endTag < 0) break;
@@ -232,6 +250,19 @@ function findXMLPathAtOffset(s: string, offset: number): PathSegment[]|null {
       top.set(name, cur + 1);
       stack.push({name, index: cur});
       counts.push(new Map());
+
+      // If offset is on the opening tag name, return the path to this element
+      if (offset >= nameStart && offset <= nameEnd) {
+        const path: PathSegment[] = [];
+        for (const seg of stack) {
+          path.push(seg.name);
+          if (seg.index > 0) {
+            path.push(seg.index);
+          }
+        }
+        return path;
+      }
+
       const textStart = endTag + 1;
       i = endTag + 1;
       if (selfClosing) {
