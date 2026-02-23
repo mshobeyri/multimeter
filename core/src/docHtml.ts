@@ -8,6 +8,130 @@ function escapeHtml(s: string): string {
   return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' } as any)[c]);
 }
 
+function inlineMarkdownToHtml(text: string): string {
+  let s = escapeHtml(text);
+  s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  return s;
+}
+
+/**
+ * Convert a lightweight markdown description to HTML.
+ * Supports: `> ` headings (single level), **bold**, *italic*, `inline code`,
+ * bullet lists (- / *), numbered lists (1.), and pipe tables.
+ * Blank lines between list items or table rows do not break them apart.
+ * @param md  raw markdown text
+ * @param headingTag  HTML tag for `> ` headings (default "h4")
+ */
+export function simpleMarkdownToHtml(md: string, headingTag = 'h4'): string {
+  if (!md) { return ''; }
+  const lines = md.split('\n');
+  const result: string[] = [];
+  let inUl = false;
+  let inOl = false;
+  let inTable = false;
+  const paraLines: string[] = [];
+
+  function flushParagraph() {
+    if (paraLines.length) {
+      result.push(`<p>${paraLines.join(' ')}</p>`);
+      paraLines.length = 0;
+    }
+  }
+  function closeList() {
+    if (inUl) { result.push('</ul>'); inUl = false; }
+    if (inOl) { result.push('</ol>'); inOl = false; }
+  }
+  function closeTable() {
+    if (inTable) { result.push('</tbody></table>'); inTable = false; }
+  }
+  function closeAll() { flushParagraph(); closeList(); closeTable(); }
+
+  // Look ahead past blank lines to find the next non-empty trimmed line
+  function peekNextNonEmpty(from: number): string | null {
+    for (let j = from + 1; j < lines.length; j++) {
+      const t = lines[j].trim();
+      if (t) { return t; }
+    }
+    return null;
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim();
+
+    if (!trimmed) {
+      // Blank line: keep list/table open if next content continues the same block
+      if (inUl || inOl) {
+        const next = peekNextNonEmpty(i);
+        if (next && (inUl ? /^[-*]\s+/.test(next) : /^\d+\.\s+/.test(next))) {
+          continue; // skip blank, list continues
+        }
+      }
+      if (inTable) {
+        const next = peekNextNonEmpty(i);
+        if (next && /^\|.*\|\s*$/.test(next)) {
+          continue; // skip blank, table continues
+        }
+      }
+      closeAll();
+      continue;
+    }
+
+    // Heading: > text  (using > because # is a YAML comment)
+    if (/^>\s+/.test(trimmed)) {
+      closeAll();
+      const text = trimmed.replace(/^>\s+/, '');
+      result.push(`<${headingTag}>${inlineMarkdownToHtml(text)}</${headingTag}>`);
+      continue;
+    }
+
+    // Table row: | ... |
+    if (/^\|.*\|\s*$/.test(trimmed)) {
+      flushParagraph(); closeList();
+      const cells = trimmed.slice(1, trimmed.lastIndexOf('|')).split('|').map(c => c.trim());
+      // Separator row (e.g. |---|---|)
+      if (cells.every(c => /^:?-+:?$/.test(c))) {
+        continue;
+      }
+      if (!inTable) {
+        inTable = true;
+        result.push('<table><thead><tr>' + cells.map(c => `<th>${inlineMarkdownToHtml(c)}</th>`).join('') + '</tr></thead><tbody>');
+        continue;
+      }
+      result.push('<tr>' + cells.map(c => `<td>${inlineMarkdownToHtml(c)}</td>`).join('') + '</tr>');
+      continue;
+    } else if (inTable) {
+      closeTable();
+    }
+
+    // Unordered list: - item or * item
+    if (/^[-*]\s+/.test(trimmed)) {
+      flushParagraph(); closeTable();
+      if (inOl) { result.push('</ol>'); inOl = false; }
+      if (!inUl) { result.push('<ul>'); inUl = true; }
+      result.push(`<li>${inlineMarkdownToHtml(trimmed.replace(/^[-*]\s+/, ''))}</li>`);
+      continue;
+    }
+
+    // Ordered list: 1. item
+    if (/^\d+\.\s+/.test(trimmed)) {
+      flushParagraph(); closeTable();
+      if (inUl) { result.push('</ul>'); inUl = false; }
+      if (!inOl) { result.push('<ol>'); inOl = true; }
+      result.push(`<li>${inlineMarkdownToHtml(trimmed.replace(/^\d+\.\s+/, ''))}</li>`);
+      continue;
+    }
+
+    // Regular text — accumulate into paragraph
+    closeList(); closeTable();
+    paraLines.push(inlineMarkdownToHtml(trimmed));
+  }
+
+  closeAll();
+  return result.join('\n');
+}
+
 function highlightSyntax(escaped: string, fmt: string): string {
   if (fmt === 'xml') {
     return escaped
@@ -374,7 +498,7 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     const rawDesc = api?.description || '';
     const { cleaned: cleanedDesc, params: paramDescs } = parseParamDescriptions(rawDesc);
     const hasAnyParamDescs = Object.keys(paramDescs.inputs).length > 0 || Object.keys(paramDescs.outputs).length > 0;
-    const desc = cleanedDesc ? `<div class="desc">${highlightParamRefs(escapeHtml(cleanedDesc))}</div>` : '';
+    const desc = cleanedDesc ? `<div class="desc">${highlightParamRefs(simpleMarkdownToHtml(cleanedDesc, 'h4'))}</div>` : '';
     const outputSource = (api as any)?.outputs !== undefined ? (api as any).outputs : (api as any)?.output;
     const output = outputSource ? renderParamTable(typeof outputSource === 'string' ? (tryParseJson(outputSource) ?? outputSource) : outputSource, 'Path', { paramDescs: paramDescs.outputs, showDescCol: hasAnyParamDescs }) : '';
     const inputs = api?.inputs ? renderParamTable(typeof api.inputs === 'string' ? (tryParseJson(api.inputs) ?? api.inputs) : api.inputs, 'Default', { paramDescs: paramDescs.inputs, showDescCol: hasAnyParamDescs }) : '';
@@ -537,7 +661,7 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
         <section class="group" id="group-${gi}">
           <br /><br />
           <h2 class="group-title">${escapeHtml(g.title)} </h2>
-          ${g.description ? `<div class="desc">${escapeHtml(g.description)}</div>` : ''}
+          ${g.description ? `<div class="desc">${simpleMarkdownToHtml(g.description, 'h3')}</div>` : ''}
           ${makeRows(g.items)}
         </section>
       `).join('\n');
@@ -553,7 +677,7 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     // Replace <title>...</title>
     html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(title || 'API Documentation')}</title>`);
     // Replace description block
-    const descHtml = `<div class="doc-desc">${escapeHtml(description || 'Generated API Documentation')}</div>`;
+    const descHtml = `<div class="doc-desc">${simpleMarkdownToHtml(description || 'Generated API Documentation', 'h3')}</div>`;
     html = html.replace(/<div class="doc-desc">[\s\S]*?<\/div>/i, descHtml);
       // Inject generated API content but preserve existing <script> (interactivity) inside container.
       // Strategy: locate the container, then the first <script> tag within it, and inject before that script.
@@ -596,12 +720,19 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     .doc-container { padding: 12px; flex: 1 0 auto; }
     .doc-footer { margin-top: auto; padding: 12px; text-align: center; color: var(--muted); border-top: 1px solid ${cssBorder}; background: rgba(255,255,255,0.02); }
     h1 { margin: 0 0 6px; font-size: 16px; }
-    .doc-desc { color: var(--muted); margin: 0 0 8px; white-space: pre-wrap; }
+    .doc-desc { color: var(--muted); margin: 0 0 6px; line-height: 1.6; }
+    .doc-desc p { margin: 4px 0; }
+    .doc-desc h3 { font-size: 13px; margin: 8px 0 4px; font-weight: 600; }
+    .doc-desc table { width: auto; border-collapse: collapse; margin: 4px 0; margin-left: 12px; }
+    .doc-desc th { padding: 2px 10px 2px 0; text-align: left; font-weight: 600; }
+    .doc-desc td { padding: 2px 10px 2px 0; text-align: left; }
+    .doc-desc ul, .doc-desc ol { margin: 4px 0; padding-left: 20px; }
+    .doc-desc code { background: rgba(255,255,255,0.06); padding: 1px 4px; border-radius: 3px; }
   </style>
   </head><body>
     <div class="doc-container">
       <h1>${escapeHtml(title || 'Documentation')}</h1>
-      ${description ? `<div class="doc-desc">${escapeHtml(description)}</div>` : ''}
+      ${description ? `<div class="doc-desc">${simpleMarkdownToHtml(description, 'h3')}</div>` : ''}
       ${contentHtml || '<div>No APIs found.</div>'}
     </div>
     <footer class="doc-footer">Powered by Multimeter</footer>

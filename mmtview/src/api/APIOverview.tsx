@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useState } from "react";
 import SearchableTagInput from "../components/SearchableTagInput";
 import KSVEditor from "../components/KSVEditor";
 import KVEditor from "../components/KVEditor";
 import { APIData } from "mmt-core/APIData";
 import DescriptionEditor from "../components/DescriptionEditor";
+import MdViewer from "../components/MdViewer";
 import { safeList } from "mmt-core/safer";
 
 interface APIOverviewProps {
@@ -13,6 +14,7 @@ interface APIOverviewProps {
 
 const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
   const outputOptions = Object.keys(api.outputs || {});
+  const [showPreview, setShowPreview] = useState(false);
 
   return (
     <div
@@ -39,13 +41,33 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         />
       </div>
 
-      <div className="label">Description</div>
+      <div className="label" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span>Description</span>
+        <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 400, cursor: "pointer", userSelect: "none" }}>
+          <input
+            type="checkbox"
+            checked={showPreview}
+            onChange={e => setShowPreview(e.target.checked)}
+            style={{ margin: 0, cursor: "pointer" }}
+          />
+          Preview
+        </label>
+      </div>
       <div style={{ width: "100%", padding: "5px" }}>
         <DescriptionEditor
           value={api.description || ""}
           onChange={value => update({ description: value })}
         />
       </div>
+      {showPreview && api.description && (
+        <div style={{ width: "100%", padding: "0 5px" }}>
+          <MdViewer
+            description={api.description}
+            inputs={api.inputs}
+            outputs={api.outputs}
+          />
+        </div>
+      )}
 
       <KSVEditor
         label="Import"

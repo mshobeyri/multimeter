@@ -1,6 +1,15 @@
 import {extractEndpoint, resolveEnvVars, resolveEnvInApi, parseParamDescriptions, extractSources} from './docHtml';
 import { formatBody } from './markupConvertor';
 
+/**
+ * Adjust `> ` headings in a description to proper markdown heading depth.
+ * `> text` is converted to `#### text` (or the requested level).
+ */
+function adjustMdHeadings(md: string, level: number): string {
+  const prefix = '#'.repeat(level) + ' ';
+  return md.replace(/^>\s+(.*)$/gm, (_m, text) => prefix + text);
+}
+
 export interface BuildDocMdOptions {
   title?: string;
   description?: string;
@@ -68,7 +77,7 @@ export function buildDocMarkdown(
   const lines: string[] = [];
   lines.push(`# ${title || 'Documentation'}`);
   if (description) {
-    lines.push('', description);
+    lines.push('', adjustMdHeadings(description, 3));
   }
 
   const anyServices = Array.isArray(opts.services) && opts.services.length > 0;
@@ -95,7 +104,7 @@ export function buildDocMarkdown(
     if (cleanedDesc) {
       // Highlight <<i:xxx>> / <<o:xxx>> references with bold
       const highlighted = cleanedDesc.replace(/<<([io]):(\S+?)>>/g, '**<<$1:$2>>**');
-      lines.push('', highlighted);
+      lines.push('', adjustMdHeadings(highlighted, 4));
     }
     if (api?.tags && api.tags.length) {
       lines.push('', `**Tags**: ${api.tags.map((t: string) => `\`${t}\``).join(', ')}`);
@@ -164,7 +173,7 @@ export function buildDocMarkdown(
         }
         lines.push('', `# ${String(svc?.name || 'Service')}`);
         if (svc?.description) {
-          lines.push('', svc.description);
+          lines.push('', adjustMdHeadings(svc.description, 3));
         }
         items.forEach(a => taken.add(String((a as any).__file)));
         renderList(items);

@@ -13,7 +13,7 @@ export function yamlToAPI(yamlContent: string): APIData {
     return {
       type: doc.type || '',
       title: doc.title || '',
-      description: doc.description || '',
+      description: typeof doc.description === 'string' ? doc.description.trimEnd() : '',
       tags: doc.tags,
       import: doc.import,
       inputs: doc.inputs,

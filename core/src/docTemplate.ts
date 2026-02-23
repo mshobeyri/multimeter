@@ -81,10 +81,19 @@ export const DOC_TEMPLATE_HTML = `
 
   .doc-desc {
     color: var(--muted);
-    margin: 0 0 12px;
-    white-space: pre-wrap;
+    margin: 0 0 6px;
     font-size: 13px;
+    line-height: 1.6;
   }
+
+  .doc-desc p { margin: 4px 0; }
+  .doc-desc h3 { font-size: 13px; margin: 8px 0 4px; color: var(--fg); font-weight: 600; text-transform: none; letter-spacing: normal; opacity: 1; }
+  .doc-desc ul, .doc-desc ol { margin: 4px 0; padding-left: 20px; }
+  .doc-desc li { margin: 2px 0; }
+  .doc-desc code { background: rgba(255,255,255,0.06); padding: 1px 4px; border-radius: 3px; font-size: 12px; }
+  .doc-desc table { width: auto; border-collapse: collapse; margin: 4px 0; padding-left: 12px; margin-left: 12px; }
+  .doc-desc th { padding: 2px 10px 2px 0; text-align: left; font-size: 13px; font-weight: 600; }
+  .doc-desc td { padding: 2px 10px 2px 0; text-align: left; font-size: 13px; }
 
   .doc-header {
     position: sticky;
@@ -306,9 +315,18 @@ export const DOC_TEMPLATE_HTML = `
     color: var(--muted);
     margin-bottom: 8px;
     padding-top: 8px;
-    white-space: pre-wrap;
     line-height: 1.6;
   }
+
+  .desc p { margin: 4px 0; }
+  .desc h4 { font-size: 12px; margin: 8px 0 4px; color: var(--fg); font-weight: 600; }
+  .desc h3 { text-transform: none; letter-spacing: normal; opacity: 1; }
+  .desc ul, .desc ol { margin: 4px 0; padding-left: 20px; }
+  .desc li { margin: 2px 0; }
+  .desc code { background: rgba(255,255,255,0.06); padding: 1px 4px; border-radius: 3px; font-size: 11px; }
+  .desc table { width: auto; border-collapse: collapse; margin: 4px 0; margin-left: 12px; }
+  .desc th { padding: 2px 10px 2px 0; text-align: left; font-size: 12px; font-weight: 600; }
+  .desc td { padding: 2px 10px 2px 0; text-align: left; font-size: 12px; }
 
   h3 {
     font-size: 12px;

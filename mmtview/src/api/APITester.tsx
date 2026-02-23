@@ -14,6 +14,7 @@ import { FileContext } from "../fileContext";
 import { showHistoryPanel } from "../vsAPI";
 import { useAPITesterLogic } from "./useAPITesterLogic";
 import { protocolResolver } from "mmt-core";
+import MdViewer from "../components/MdViewer";
 
 interface APITestProps {
   api: APIData;
@@ -21,14 +22,15 @@ interface APITestProps {
   rightOfUrlButton?: React.ReactNode;
 }
 
-type EditorTab = "inout" | "body" | "params" | "headers" | "cookies";
+type EditorTab = "inout" | "body" | "params" | "headers" | "cookies" | "doc";
 
 const TAB_OPTIONS: Array<{ key: EditorTab; label: string }> = [
   { key: "inout", label: "In / Out" },
   { key: "body", label: "Body" },
   { key: "params", label: "Params" },
   { key: "headers", label: "Headers" },
-  { key: "cookies", label: "Cookies" }
+  { key: "cookies", label: "Cookies" },
+  { key: "doc", label: "Doc" }
 ];
 
 function cloneInputs(source?: JSONRecord): JSONRecord {
@@ -88,7 +90,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
 
   const [editorTab, setEditorTabInternal] = useState<EditorTab>(() => {
     const saved = localStorage.getItem("apitest-editor-tab");
-    if (saved === "body" || saved === "params" || saved === "headers" || saved === "cookies") {
+    if (saved === "body" || saved === "params" || saved === "headers" || saved === "cookies" || saved === "doc") {
       return saved;
     }
     return "inout";
@@ -108,6 +110,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
   const shouldShowResponseHeaders = () => editorTab === "headers";
   const shouldShowResponseCookies = () => editorTab === "cookies";
   const shouldShowOutputs = () => editorTab === "inout";
+  const shouldShowDoc = () => editorTab === "doc";
 
   const handleExampleChange = (newIdx: number) => {
     setSelectedExampleIdx(newIdx);
@@ -186,6 +189,17 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
           value={requestData?.cookies || {}}
           onChange={cookies => updateField("cookies", cookies)}
         />}
+        {shouldShowDoc() && api.description ? (
+          <MdViewer
+            description={api.description}
+            inputs={api.inputs}
+            outputs={api.outputs}
+          />
+        ) : shouldShowDoc() ? (
+          <div style={{ padding: "12px", color: "var(--vscode-disabledForeground, #666)", fontSize: "12px" }}>
+            No description available.
+          </div>
+        ) : null}
         {shouldShowBody() && (
           <>
             <div className="label">Request Body</div>

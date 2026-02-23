@@ -1,4 +1,4 @@
-import { extractEndpoint, parseParamDescriptions, extractSources, buildDocHtml } from './docHtml';
+import { extractEndpoint, parseParamDescriptions, extractSources, buildDocHtml, simpleMarkdownToHtml } from './docHtml';
 import { buildDocMarkdown } from './docMarkdown';
 
 describe('parseParamDescriptions', () => {
@@ -298,5 +298,124 @@ describe('extractEndpoint', () => {
   test('returns empty for no slash', () => {
     expect(extractEndpoint('noslash')).toBe('');
     expect(extractEndpoint('abc?query')).toBe('');
+  });
+});
+
+describe('simpleMarkdownToHtml', () => {
+  test('converts bold, italic, and inline code', () => {
+    const html = simpleMarkdownToHtml('**bold** and *italic* and `code`');
+    expect(html).toContain('<strong>bold</strong>');
+    expect(html).toContain('<em>italic</em>');
+    expect(html).toContain('<code>code</code>');
+  });
+
+  test('converts > heading to default h4', () => {
+    const html = simpleMarkdownToHtml('> My Section');
+    expect(html).toBe('<h4>My Section</h4>');
+  });
+
+  test('converts > heading to specified tag', () => {
+    const html = simpleMarkdownToHtml('> My Section', 'h3');
+    expect(html).toBe('<h3>My Section</h3>');
+  });
+
+  test('converts unordered list', () => {
+    const html = simpleMarkdownToHtml('- item one\n- item two');
+    expect(html).toContain('<ul>');
+    expect(html).toContain('<li>item one</li>');
+    expect(html).toContain('<li>item two</li>');
+    expect(html).toContain('</ul>');
+  });
+
+  test('converts ordered list', () => {
+    const html = simpleMarkdownToHtml('1. first\n2. second');
+    expect(html).toContain('<ol>');
+    expect(html).toContain('<li>first</li>');
+    expect(html).toContain('<li>second</li>');
+    expect(html).toContain('</ol>');
+  });
+
+  test('converts markdown table', () => {
+    const md = '| Name | Value |\n| --- | --- |\n| a | 1 |\n| b | 2 |';
+    const html = simpleMarkdownToHtml(md);
+    expect(html).toContain('<table>');
+    expect(html).toContain('<th>Name</th>');
+    expect(html).toContain('<th>Value</th>');
+    expect(html).toContain('<td>a</td>');
+    expect(html).toContain('<td>1</td>');
+    expect(html).toContain('<td>b</td>');
+    expect(html).toContain('</table>');
+  });
+
+  test('handles mixed content', () => {
+    const md = '> Header\n\nSome **text** here.\n\n- bullet one\n- bullet two\n\n1. numbered\n2. items';
+    const html = simpleMarkdownToHtml(md);
+    expect(html).toContain('<h4>Header</h4>');
+    expect(html).toContain('<strong>text</strong>');
+    expect(html).toContain('<ul>');
+    expect(html).toContain('<ol>');
+  });
+
+  test('escapes HTML in content', () => {
+    const html = simpleMarkdownToHtml('Use <div> tag');
+    expect(html).toContain('&lt;div&gt;');
+    expect(html).not.toContain('<div>');
+  });
+
+  test('returns empty string for empty input', () => {
+    expect(simpleMarkdownToHtml('')).toBe('');
+  });
+
+  test('handles plain text as paragraph', () => {
+    const html = simpleMarkdownToHtml('Just some text');
+    expect(html).toBe('<p>Just some text</p>');
+  });
+
+  test('joins consecutive text lines into single paragraph', () => {
+    const html = simpleMarkdownToHtml('line one\nline two');
+    expect(html).toBe('<p>line one line two</p>');
+  });
+
+  test('separates paragraphs with blank lines', () => {
+    const html = simpleMarkdownToHtml('para one\n\npara two');
+    expect(html).toContain('<p>para one</p>');
+    expect(html).toContain('<p>para two</p>');
+  });
+
+  test('list items separated by blank lines stay in one list', () => {
+    const html = simpleMarkdownToHtml('- item one\n\n- item two\n\n- item three');
+    expect(html).toContain('<ul>');
+    expect(html).toContain('<li>item one</li>');
+    expect(html).toContain('<li>item two</li>');
+    expect(html).toContain('<li>item three</li>');
+    expect(html).toContain('</ul>');
+    // Should be a single list, not multiple
+    expect(html.match(/<ul>/g)?.length).toBe(1);
+    expect(html.match(/<\/ul>/g)?.length).toBe(1);
+  });
+
+  test('numbered list items separated by blank lines stay in one list', () => {
+    const html = simpleMarkdownToHtml('1. first\n\n2. second\n\n3. third');
+    expect(html).toContain('<ol>');
+    expect(html.match(/<ol>/g)?.length).toBe(1);
+    expect(html.match(/<\/ol>/g)?.length).toBe(1);
+  });
+
+  test('table rows separated by blank lines stay in one table', () => {
+    const md = '|Name|Value|\n\n|a|1|\n\n|b|2|';
+    const html = simpleMarkdownToHtml(md);
+    expect(html).toContain('<table>');
+    expect(html).toContain('<th>Name</th>');
+    expect(html).toContain('<td>a</td>');
+    expect(html).toContain('<td>b</td>');
+    expect(html.match(/<table>/g)?.length).toBe(1);
+    expect(html.match(/<\/table>/g)?.length).toBe(1);
+  });
+
+  test('blank line between list and different content closes the list', () => {
+    const html = simpleMarkdownToHtml('- item\n\nsome text');
+    expect(html).toContain('<ul>');
+    expect(html).toContain('</ul>');
+    expect(html).toContain('<p>some text</p>');
   });
 });
