@@ -136,7 +136,7 @@ async function handleRunCurlCommand(message: any) {
   }
 }
 
-export const messageRecieved = async (
+export const messageReceived = async (
     message: any, webviewPanel: vscode.WebviewPanel,
     document: vscode.TextDocument, mmtProvider: any) => {
   switch (message.command) {

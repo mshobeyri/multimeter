@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as YAML from 'yaml';
+import {CertificateSettings, DEFAULT_CERT_SETTINGS} from 'mmt-core/NetworkData';
 
 interface EnvOption {
   label: string;
@@ -31,20 +32,6 @@ interface EnvCertificates {
   ca?: EnvCaCertificate;
   clients?: EnvClientCertificate[];
 }
-
-interface CertificateSettings {
-  sslValidation: boolean;
-  allowSelfSigned: boolean;
-  caEnabled: boolean;
-  clientsEnabled: Record<string, boolean>;
-}
-
-const DEFAULT_CERT_SETTINGS: CertificateSettings = {
-  sslValidation: true,
-  allowSelfSigned: false,
-  caEnabled: false,
-  clientsEnabled: {},
-};
 
 /**
  * Load the workspace environment file (multimeter.mmt by default)

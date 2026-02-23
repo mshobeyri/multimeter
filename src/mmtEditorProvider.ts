@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
-import {messageRecieved} from './mmtAPI/mmtAPI';
+import {messageReceived} from './mmtAPI/mmtAPI';
 
 const LAST_VIEW_MODE = 'mmtview:view:selectedViewMode';
 
@@ -124,7 +124,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
 
     webviewPanel.webview.html = html;
     webviewPanel.webview.onDidReceiveMessage(async (message) => {
-      messageRecieved(message, webviewPanel, document, this);
+      messageReceived(message, webviewPanel, document, this);
     });
 
     vscode.window.onDidChangeActiveColorTheme(() => {

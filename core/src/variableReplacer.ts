@@ -1,5 +1,6 @@
 import {APIData} from './APIData';
 import {JSONRecord} from './CommonData';
+import {normalizeTokenName} from './JSerHelper';
 import {RANDOM_TOKEN_MAP} from './Random';
 import {CURRENT_TOKEN_MAP} from './Current';
 import {safeList} from './safer';
@@ -97,13 +98,6 @@ type DynamicResolver = (key: string) => any | undefined;
 // Cache for random token results to keep UI stable across re-renders
 const RANDOM_CACHE = new Map<string, any>();
 export function resetRandomTokenCache(): void { RANDOM_CACHE.clear(); }
-
-function normalizeTokenName(name: string): string {
-  return name
-      .replace(/([a-z])([A-Z])/g, '$1_$2')
-      .replace(/[-\s]+/g, '_')
-      .toLowerCase();
-}
 
 function generateRandomByName(name: string): any {
   const normalized = normalizeTokenName(name);

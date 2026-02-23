@@ -1,5 +1,6 @@
 import {runner, suiteHierarchy, suiteBundle} from 'mmt-core';
 import {LogLevel} from 'mmt-core/CommonData';
+import {findProjectRootSync} from 'mmt-core/fileHelper';
 import {runJSCode, setRunnerNetworkConfig} from 'mmt-core/jsRunner';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -29,26 +30,7 @@ function findWorkspaceProjectRoot(): string|undefined {
  * Returns the directory containing multimeter.mmt, or undefined if not found.
  */
 function findProjectRoot(startPath: string): string | undefined {
-  let currentDir = path.dirname(startPath);
-  const visited = new Set<string>();
-
-  while (currentDir && !visited.has(currentDir)) {
-    visited.add(currentDir);
-    const markerPath = path.join(currentDir, 'multimeter.mmt');
-
-    if (fs.existsSync(markerPath)) {
-      return currentDir;
-    }
-
-    const parentDir = path.dirname(currentDir);
-    // Stop if we've reached the root (parent is same as current)
-    if (parentDir === currentDir) {
-      break;
-    }
-    currentDir = parentDir;
-  }
-
-  return findWorkspaceProjectRoot();
+  return findProjectRootSync(startPath, fs.existsSync, path.dirname, path.join) ?? findWorkspaceProjectRoot();
 }
 
 let activeSuiteRun:
@@ -94,25 +76,14 @@ export function logToOutput(level: LogLevel, message: string) {
     case 'warn':
       logOutputChannel.warn(message);
       break;
-    case 'info':
-      logOutputChannel.info(message);
-      break;
   }
 }
 export function showLogOutputChannel() {
   logOutputChannel.show(true);
 }
 
-export async function handleRunCurrentDocument(
-    message: any, webviewPanel: vscode.WebviewPanel,
-    document: vscode.TextDocument, mmtProvider: any) {
-  const fileName = path.basename(document.uri.fsPath);
-  const forwardLog = (level: LogLevel, message: string) => {
-    logToOutput(level, message);
-  };
-
-  // Env vars should come from the UI-selected workspace state.
-  // Certificates should come from the env file (handled via prepareNetworkConfigForFile).
+/** Extract envVars dict from workspace state storage. */
+function extractEnvVars(mmtProvider: any): Record<string, any> {
   const envStorage = mmtProvider.context.workspaceState.get(
       'multimeter.environment.storage', []);
   const envVars: Record<string, any> = {};
@@ -127,26 +98,50 @@ export async function handleRunCurrentDocument(
       }
     }
   }
-  const projectRoot = findProjectRoot(document.uri.fsPath);
+  return envVars;
+}
 
+/** Apply network/certificate config for a file. Returns true if applied. */
+function applyNetworkConfig(filePath: string, envVars: Record<string, any>): boolean {
   try {
-    const netConfig = prepareNetworkConfigForFile(document.uri.fsPath, envVars);
+    const netConfig = prepareNetworkConfigForFile(filePath, envVars);
     setRunnerNetworkConfig(netConfig);
+    return true;
   } catch (err: any) {
     logToOutput(
         'warn', `Unable to apply certificate settings: ${err?.message || err}`);
+    return false;
   }
+}
+
+/** Create a fileLoader scoped to the directory of `basePath`. */
+function createFileLoader(basePath: string): (relPath: string) => Promise<string> {
+  return async (relPath: string) => {
+    try {
+      return await readRelativeFileContent(basePath, relPath);
+    } catch {
+      return '';
+    }
+  };
+}
+
+export async function handleRunCurrentDocument(
+    message: any, webviewPanel: vscode.WebviewPanel,
+    document: vscode.TextDocument, mmtProvider: any) {
+  const fileName = path.basename(document.uri.fsPath);
+  const forwardLog = (level: LogLevel, message: string) => {
+    logToOutput(level, message);
+  };
+
+  const envVars = extractEnvVars(mmtProvider);
+  const projectRoot = findProjectRoot(document.uri.fsPath);
+  applyNetworkConfig(document.uri.fsPath, envVars);
+
   try {
-    const fileLoader = async (relPath: string) => {
-      try {
-        return await readRelativeFileContent(document.uri.fsPath, relPath);
-      } catch {
-        return '';
-      }
-    };
+    const fileLoader = createFileLoader(document.uri.fsPath);
     const runOutcome = await runner.runFile({
       file: document.getText(),
-      fileType: 'raw' as any,
+      fileType: 'raw',
       filePath: document.uri.fsPath,
       exampleIndex: message?.inputs?.exampleIndex,
       manualInputs: message?.inputs?.manualInputs || {},
@@ -185,6 +180,37 @@ export async function handleRunCurrentDocument(
   }
 }
 
+/** Create a reporter callback for suite runs that routes events via the webview. */
+function createSuiteReporter(
+    webviewPanel: vscode.WebviewPanel,
+    suiteRunId: string,
+    controller: AbortController): (msg: any) => void {
+  return (msg: any) => {
+    const current = activeSuiteRun;
+    if (!current || current.suiteRunId !== suiteRunId) {
+      return;
+    }
+    if (current.controller.signal.aborted) {
+      return;
+    }
+
+    let id = typeof msg?.id === 'string' ? msg.id : undefined;
+    if (!id && typeof msg?.runId === 'string' && msg.runId) {
+      id = suiteRunIdByChildRunId.get(msg.runId);
+    }
+    if (msg?.scope === 'suite-item' && typeof msg?.runId === 'string' && msg.runId && id) {
+      suiteRunIdByChildRunId.set(msg.runId, id);
+    }
+
+    webviewPanel.webview.postMessage({
+      command: 'runFileReport',
+      suiteRunId,
+      id,
+      ...msg,
+    });
+  };
+}
+
 export async function handleRunSuite(
     message: any, webviewPanel: vscode.WebviewPanel,
     document: vscode.TextDocument, mmtProvider: any) {
@@ -193,33 +219,9 @@ export async function handleRunSuite(
     logToOutput(level, message);
   };
 
-  // Env vars should come from the UI-selected workspace state.
-  // Certificates should come from the env file (handled via prepareNetworkConfigForFile).
-  const envStorage = mmtProvider.context.workspaceState.get(
-      'multimeter.environment.storage', []);
-  const envVars: Record<string, any> = {};
-  if (Array.isArray(envStorage)) {
-    for (const item of envStorage) {
-      if (!item || typeof item !== 'object') {
-        continue;
-      }
-      const name = (item as any).name;
-      if (typeof name === 'string' && name) {
-        envVars[name] = (item as any).value;
-      }
-    }
-  }
+  const envVars = extractEnvVars(mmtProvider);
   const projectRoot = findProjectRoot(document.uri.fsPath);
-
-  let netConfigApplied = false;
-  try {
-    const netConfig = prepareNetworkConfigForFile(document.uri.fsPath, envVars);
-    setRunnerNetworkConfig(netConfig);
-    netConfigApplied = true;
-  } catch (err: any) {
-    logToOutput(
-        'warn', `Unable to apply certificate settings: ${err?.message || err}`);
-  }
+  const netConfigApplied = applyNetworkConfig(document.uri.fsPath, envVars);
 
   const suiteRunId =
       typeof message?.suiteRunId === 'string' && message.suiteRunId ?
@@ -247,16 +249,11 @@ export async function handleRunSuite(
     const runFilePath = document.uri.fsPath;
 
     const bundleTarget = typeof target === 'string' && target ? target : undefined;
+    const fileLoader = createFileLoader(runFilePath);
     const tree = await suiteHierarchy.buildSuiteHierarchyFromSuiteFile({
       suiteFilePath: runFilePath,
       suiteRawText: rawSuite,
-      fileLoader: async (requestedPath: string) => {
-        try {
-          return await readRelativeFileContent(runFilePath, requestedPath);
-        } catch {
-          return '';
-        }
-      },
+      fileLoader,
     });
     forwardLog('debug', `handleRunSuite: built hierarchy for ${runFilePath}`);
     const bundle = suiteBundle.createSuiteBundle({
@@ -276,52 +273,21 @@ export async function handleRunSuite(
     const projectRootSuite = findProjectRoot(runFilePath);
     await runner.runFile({
       file: rawSuite,
-      fileType: 'raw' as any,
+      fileType: 'raw',
       filePath: runFilePath,
       exampleIndex: message?.inputs?.exampleIndex,
       manualInputs: {},
       envvar: envVars,
       manualEnvvars: {},
-      fileLoader: async (relPath: string) => {
-        try {
-          return await readRelativeFileContent(runFilePath, relPath);
-        } catch {
-          return '';
-        }
-      },
+      fileLoader,
       jsRunner: runJSCode,
       logger: forwardLog,
-      abortSignal: controller.signal as any,
-      // Bundle-based suite run: core uses bundle ids for targeting + routing.
+      abortSignal: controller.signal,
       suiteBundle: bundle,
-      // Provide a per-suite-run nonce for unique child runIds.
       suiteRunId: suiteRunId,
       projectRoot: projectRootSuite,
-      reporter: (msg: any) => {
-        const current = activeSuiteRun;
-        if (!current || current.suiteRunId !== suiteRunId) {
-          return;
-        }
-        if (current.controller.signal.aborted) {
-          return;
-        }
-
-        let id = typeof msg?.id === 'string' ? msg.id : undefined;
-        if (!id && typeof msg?.runId === 'string' && msg.runId) {
-          id = suiteRunIdByChildRunId.get(msg.runId);
-        }
-        if (msg?.scope === 'suite-item' && typeof msg?.runId === 'string' && msg.runId && id) {
-          suiteRunIdByChildRunId.set(msg.runId, id);
-        }
-
-        webviewPanel.webview.postMessage({
-          command: 'runFileReport',
-          suiteRunId,
-          id,
-          ...msg,
-        });
-      },
-    } as any);
+      reporter: createSuiteReporter(webviewPanel, suiteRunId, controller),
+    });
 
     webviewPanel.webview.postMessage({
       command: 'suiteRunEnd',

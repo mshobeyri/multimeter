@@ -1,6 +1,7 @@
 import {
   computeRelative,
   fileUriToPath,
+  findProjectRootSync,
   resolveDotSegments,
   resolveRequestedAgainst,
 } from './fileHelper';
@@ -177,5 +178,39 @@ describe('path helpers', () => {
     const projectRoot = 'C:/project';
     expect(resolveRequestedAgainst(base, '+/apis/user.mmt', projectRoot))
         .toBe('C:/project/apis/user.mmt');
+  });
+});
+
+describe('findProjectRootSync', () => {
+  const dirname = (p: string) => {
+    const parts = p.split('/').filter(Boolean);
+    if (parts.length <= 1) { return '/'; }
+    parts.pop();
+    return '/' + parts.join('/');
+  };
+  const join = (...parts: string[]) => parts.join('/').replace(/\/+/g, '/');
+
+  test('finds marker in parent directory', () => {
+    const existsSync = (p: string) => p === '/a/b/multimeter.mmt';
+    expect(findProjectRootSync('/a/b/c/test.mmt', existsSync, dirname, join))
+        .toBe('/a/b');
+  });
+
+  test('finds marker in start directory', () => {
+    const existsSync = (p: string) => p === '/a/b/multimeter.mmt';
+    expect(findProjectRootSync('/a/b/test.mmt', existsSync, dirname, join))
+        .toBe('/a/b');
+  });
+
+  test('returns null when marker not found', () => {
+    const existsSync = () => false;
+    expect(findProjectRootSync('/a/b/c/test.mmt', existsSync, dirname, join))
+        .toBeNull();
+  });
+
+  test('handles root directory without infinite loop', () => {
+    const existsSync = () => false;
+    expect(findProjectRootSync('/test.mmt', existsSync, dirname, join))
+        .toBeNull();
   });
 });

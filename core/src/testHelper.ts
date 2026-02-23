@@ -233,27 +233,7 @@ const emitStep = (event: Record<string, any>) => {
 export const report_ = (
     stepType: StepType, comparison: unknown, title: unknown,
     details: unknown, passed: boolean, actual?: any, expected?: any) => {
-  const payload: Record<string, any> = {
-    scope: 'test-step',
-    stepType,
-    comparison: normalizeComparison(comparison),
-    stepIndex: nextStepIndex(),
-    status: passed ? 'passed' : 'failed',
-    actual,
-    expected
-  };
-
-  const normalized = normalizeTitleDetails(title, details);
-  if (typeof normalized.title === 'string') {
-    payload.title = normalized.title;
-  }
-  if (typeof normalized.details === 'string') {
-    payload.details = normalized.details;
-  }
-  if (typeof __mmtId === 'string' && __mmtId) {
-    payload.id = __mmtId;
-  }
-  emitStep(payload);
+  reportWithContext_(undefined, undefined, undefined, stepType, comparison, title, details, passed, actual, expected);
 };
 
 export const reportWithContext_ = (
@@ -267,12 +247,14 @@ export const reportWithContext_ = (
     scope: 'test-step',
     stepType,
     comparison: normalizeComparison(comparison),
-    stepIndex: nextStepIndexFor(resolvedRunId),
+    stepIndex: runId !== undefined ? nextStepIndexFor(resolvedRunId) : nextStepIndex(),
     status: passed ? 'passed' : 'failed',
     actual,
     expected,
-    runId: resolvedRunId,
   };
+  if (resolvedRunId) {
+    payload.runId = resolvedRunId;
+  }
 
   const normalized = normalizeTitleDetails(title, details);
   if (typeof normalized.title === 'string') {
@@ -281,8 +263,11 @@ export const reportWithContext_ = (
   if (typeof normalized.details === 'string') {
     payload.details = normalized.details;
   }
-  if (typeof id === 'string' && id) {
-    payload.id = id;
+
+  const resolvedId = (typeof id === 'string' && id) ? id :
+      (typeof __mmtId === 'string' && __mmtId) ? __mmtId : undefined;
+  if (resolvedId) {
+    payload.id = resolvedId;
   }
 
   if (typeof reporter === 'function') {
@@ -298,15 +283,7 @@ export const reportWithContext_ = (
 };
 
 export const setenv_ = (name: string, value: any) => {
-  const payload: Record<string, any> = {
-    scope: 'setenv',
-    name,
-    value,
-  };
-  if (typeof __mmtId === 'string' && __mmtId) {
-    payload.id = __mmtId;
-  }
-  emitStep(payload);
+  setenvWithContext_(undefined, undefined, undefined, name, value);
 };
 
 export const setenvWithContext_ = (
@@ -319,10 +296,15 @@ export const setenvWithContext_ = (
     scope: 'setenv',
     name,
     value,
-    runId: resolvedRunId,
   };
-  if (typeof id === 'string' && id) {
-    payload.id = id;
+  if (resolvedRunId) {
+    payload.runId = resolvedRunId;
+  }
+
+  const resolvedId = (typeof id === 'string' && id) ? id :
+      (typeof __mmtId === 'string' && __mmtId) ? __mmtId : undefined;
+  if (resolvedId) {
+    payload.id = resolvedId;
   }
 
   if (typeof reporter === 'function') {

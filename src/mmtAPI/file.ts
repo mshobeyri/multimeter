@@ -1,5 +1,6 @@
 import {markupConvertor} from 'mmt-core';
 const {parseYaml} = markupConvertor;
+import {findProjectRootSync} from 'mmt-core/fileHelper';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
@@ -33,27 +34,9 @@ function findWorkspaceProjectRoot(): string|undefined {
  * Returns the directory containing multimeter.mmt, or undefined if not found.
  */
 function findProjectRoot(startPath: string): string | undefined {
-  let currentDir = path.dirname(startPath);
-  const visited = new Set<string>();
-
-  while (currentDir && !visited.has(currentDir)) {
-    visited.add(currentDir);
-    const markerPath = path.join(currentDir, 'multimeter.mmt');
-
-    if (fs.existsSync(markerPath)) {
-      return currentDir;
-    }
-
-    const parentDir = path.dirname(currentDir);
-    // Stop if we've reached the root (parent is same as current)
-    if (parentDir === currentDir) {
-      break;
-    }
-    currentDir = parentDir;
-  }
-
-  // Prefer configured workspace env file location, then workspace root.
-  return findConfiguredProjectRoot(startPath) ?? findWorkspaceProjectRoot();
+  return findProjectRootSync(startPath, fs.existsSync, path.dirname, path.join)
+      ?? findConfiguredProjectRoot(startPath)
+      ?? findWorkspaceProjectRoot();
 }
 
 /**

@@ -33,7 +33,7 @@ export async function prepareRunFromOptions(
     options: RunFileOptions,
     log: (level: LogLevel, message: string) => void =
         () => {}): Promise<PreparedRun> {
-  const {file, fileType, filePath: optFilePath} = options as any;
+  const {file, fileType, filePath: optFilePath} = options;
   const filePath = typeof optFilePath === 'string' && optFilePath ?
       optFilePath :
       (fileType === 'path' ? file : '');
@@ -95,9 +95,9 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
   }
 
   if (docType === 'suite') {
-    if ((options as any).suiteBundle) {
+    if (options.suiteBundle) {
       return executeSuiteBundle({
-        bundle: (options as any).suiteBundle,
+        bundle: options.suiteBundle,
         options,
         preLogs,
         runFile,

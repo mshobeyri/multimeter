@@ -6,47 +6,39 @@ import * as mmtcore from 'mmt-core';
 // pkg
 import {apiParsePack, docHtml, docParsePack, runner} from 'mmt-core';
 
-const resolveRunJSCode = (): any => {
-  try {
-    // When packaged with pkg, node resolves from a /snapshot path.
-    // mmt-core is included as an asset in node_modules/mmt-core/dist/**.
-    // Use a relative require that survives snapshot layout.
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const jsRunner = require('mmt-core/dist/jsRunner.js');
-    if (jsRunner && typeof jsRunner.runJSCode === 'function') {
-      return jsRunner.runJSCode;
-    }
-  } catch {
-  }
+/**
+ * Generic resolver for mmt-core exports that handles three resolution strategies:
+ * 1. pkg snapshot paths (require 'mmt-core/dist/...')
+ * 2. CJS/Node16 paths (require 'mmt-core/...')
+ * 3. Fallback from mmtcore namespace
+ */
+function resolveCoreExport<T>(module: string, exportName: string, fallback?: T): T|null {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const jsRunner = require('mmt-core/jsRunner');
-    if (jsRunner && typeof jsRunner.runJSCode === 'function') {
-      return jsRunner.runJSCode;
+    const mod = require(`mmt-core/dist/${module}.js`);
+    if (mod && typeof mod[exportName] === 'function') {
+      return mod[exportName];
     }
-  } catch {
-  }
-  return (mmtcore as any)?.jsRunner?.runJSCode;
-};
-
-function getRunJSCode(): any {
-  return resolveRunJSCode();
+  } catch { /* pkg path not available */ }
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mod = require(`mmt-core/${module}`);
+    if (mod && typeof mod[exportName] === 'function') {
+      return mod[exportName];
+    }
+  } catch { /* CJS path not available */ }
+  return fallback ?? (mmtcore as any)?.[module]?.[exportName] ?? null;
 }
 
-async function loadRunJSCode(): Promise<any> {
-  // When running as ESM (dist/cli.js), `require` isn't available.
-  // Use dynamic imports for the normal (non-pkg) dev/CI path.
+async function loadCoreExport<T>(module: string, exportName: string): Promise<T|null> {
+  // When running as ESM, prefer dynamic import
   try {
-    const jsRunner: any = await import('mmt-core/jsRunner');
-    if (jsRunner && typeof jsRunner.runJSCode === 'function') {
-      return jsRunner.runJSCode;
+    const mod: any = await import(`mmt-core/${module}`);
+    if (mod && typeof mod[exportName] === 'function') {
+      return mod[exportName];
     }
-  } catch {
-  }
-
-  // Fallback for pkg/CJS scenarios.
-  return getRunJSCode();
+  } catch { /* ESM path not available */ }
+  return resolveCoreExport<T>(module, exportName);
 }
 import path from 'path';
 
@@ -54,38 +46,6 @@ import {summarize} from './loadTest.js';
 import {buildCliRunArgs} from './runArgs.js';
 
 // Defer importing runTest until needed to avoid pulling axios for to-js
-
-// Resolve setRunnerNetworkConfig dynamically
-const resolveSetRunnerNetworkConfig = (): ((config: any) => void)|null => {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const jsRunner = require('mmt-core/dist/jsRunner.js');
-    if (jsRunner && typeof jsRunner.setRunnerNetworkConfig === 'function') {
-      return jsRunner.setRunnerNetworkConfig;
-    }
-  } catch {
-  }
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const jsRunner = require('mmt-core/jsRunner');
-    if (jsRunner && typeof jsRunner.setRunnerNetworkConfig === 'function') {
-      return jsRunner.setRunnerNetworkConfig;
-    }
-  } catch {
-  }
-  return (mmtcore as any)?.jsRunner?.setRunnerNetworkConfig || null;
-};
-
-async function loadSetRunnerNetworkConfig(): Promise<((config: any) => void)|null> {
-  try {
-    const jsRunner: any = await import('mmt-core/jsRunner');
-    if (jsRunner && typeof jsRunner.setRunnerNetworkConfig === 'function') {
-      return jsRunner.setRunnerNetworkConfig;
-    }
-  } catch {
-  }
-  return resolveSetRunnerNetworkConfig();
-}
 
 const program = new Command();
 
@@ -142,7 +102,7 @@ program.command('run')
     .option('-p, --print-js', 'Print generated JS before executing', false)
     .action(async (file: string, opts: {quiet?: boolean; out?: string}) => {
       try {
-        const runJSCode = await loadRunJSCode();
+        const runJSCode = await loadCoreExport<any>('jsRunner', 'runJSCode');
         if (typeof runJSCode !== 'function') {
           throw new Error('Internal error: runJSCode is not available');
         }
@@ -160,7 +120,7 @@ program.command('run')
         // Apply network config if certificates are configured
         if (networkConfig) {
           try {
-            const setRunnerNetworkConfig = await loadSetRunnerNetworkConfig();
+            const setRunnerNetworkConfig = await loadCoreExport<(config: any) => void>('jsRunner', 'setRunnerNetworkConfig');
             if (setRunnerNetworkConfig) {
               setRunnerNetworkConfig(networkConfig);
             }

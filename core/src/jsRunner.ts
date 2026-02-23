@@ -1,4 +1,5 @@
 import {LogLevel} from './CommonData';
+import {normalizeTokenName} from './JSerHelper';
 // Import your send function from the network core
 import {send, setRunnerNetworkConfig} from './networkCoreNode';
 import {extractOutputs} from './outputExtractor';
@@ -19,14 +20,6 @@ export interface RunJSCodeContext {
 const REPORTER_KEY = '__mmtReportStep';
 const RUN_ID_KEY = '__mmtRunId';
 const ID_KEY = '__mmtId';
-
-// Helper to normalize token names (e.g., firstName -> first_name)
-function normalizeTokenName(name: string): string {
-  return name
-      .replace(/([a-z])([A-Z])/g, '$1_$2')
-      .replace(/[-\s]+/g, '_')
-      .toLowerCase();
-}
 
 // Runtime helper to get random value by token name
 function mmtRandom(name: string): any {

@@ -30,8 +30,8 @@ export interface TestRunSummaryEvent {
 
 export interface SuiteReporterMessage {
   scope?: 'suite-item';
-  groupIndex: number;
-  groupItemIndex: number;
+  groupIndex?: number;
+  groupItemIndex?: number;
   status?: SuiteStepStatus;
   success?: boolean;
   runId?: string;
@@ -147,6 +147,18 @@ export interface RunFileOptions {
    * If not provided, will be auto-detected by walking up from filePath.
    */
   projectRoot?: string;
+
+  /**
+   * Nonce string used by the suite runner to generate unique child run IDs
+   * across repeated runs of the same suite.
+   */
+  suiteRunId?: string;
+
+  /**
+   * Internal flag set by the suite bundle runner on child run options to
+   * suppress duplicate suite-run lifecycle events (start/finished).
+   */
+  __mmtIsSuiteBundleChildRun?: boolean;
 }
 
 export interface MergeInputsParams {
@@ -236,11 +248,11 @@ export function resolvePresetEnv(
   // - "runner.cd" (explicit group)
   if (presetName.includes('.')) {
     const [group, name] = presetName.split('.', 2);
-    if ((presets as any)[group] && (presets as any)[group][name]) {
-      mapping = (presets as any)[group][name];
+    if (presets[group] && presets[group][name]) {
+      mapping = presets[group][name];
     }
-  } else if ((presets as any).runner && (presets as any).runner[presetName]) {
-    mapping = (presets as any).runner[presetName];
+  } else if (presets.runner && presets.runner[presetName]) {
+    mapping = presets.runner[presetName];
   }
   if (!mapping) {
     return out;

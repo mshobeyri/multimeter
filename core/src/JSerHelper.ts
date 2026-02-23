@@ -107,6 +107,33 @@ export const fileType = (path: string, content: string): Type => {
   return null;
 };
 
+/**
+ * Convert a numeric value with a time unit suffix to milliseconds.
+ * Supported units: ns, ms, s, m, h. Defaults to ms if no unit provided.
+ */
+export function timeUnitToMs(value: number, unit: string): number {
+  switch (unit) {
+    case 'ns': return value / 1e6;
+    case 'ms': return value;
+    case 's':  return value * 1000;
+    case 'm':  return value * 60 * 1000;
+    case 'h':  return value * 60 * 60 * 1000;
+    default:   return value;
+  }
+}
+
+/**
+ * Normalize a token name: split camelCase, replace hyphens/spaces with
+ * underscores, and lowercase everything.
+ * e.g. "firstName" → "first_name", "my-token" → "my_token"
+ */
+export function normalizeTokenName(name: string): string {
+  return name
+      .replace(/([a-z])([A-Z])/g, '$1_$2')
+      .replace(/[-\s]+/g, '_')
+      .toLowerCase();
+}
+
 // Convert a string to lowercase and replace spaces with underscores
 export function toLowerUnderscore(input: string): string {
   if (input === undefined || input === null) {

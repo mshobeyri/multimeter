@@ -248,4 +248,39 @@ export const findProjectRoot = async (
   return null;
 };
 
-export default {computeRelative, resolveRequestedAgainst, isProjectRootImport, resolveProjectRootImport, findProjectRoot};
+/**
+ * Synchronous variant of findProjectRoot for environments with sync file access.
+ * Returns the directory containing multimeter.mmt, or null if not found.
+ */
+export const findProjectRootSync = (
+  startPath: string,
+  fileExistsSync: (filePath: string) => boolean,
+  dirnameFunc: (p: string) => string,
+  joinFunc: (...parts: string[]) => string,
+): string | null => {
+  let currentDir = dirnameFunc(startPath);
+  const visited = new Set<string>();
+
+  while (currentDir && !visited.has(currentDir)) {
+    visited.add(currentDir);
+    const markerPath = joinFunc(currentDir, 'multimeter.mmt');
+
+    try {
+      if (fileExistsSync(markerPath)) {
+        return currentDir;
+      }
+    } catch {
+      // File doesn't exist or can't be read, continue
+    }
+
+    const parentDir = dirnameFunc(currentDir);
+    if (parentDir === currentDir || !parentDir || parentDir === '.') {
+      break;
+    }
+    currentDir = parentDir;
+  }
+
+  return null;
+};
+
+export default {computeRelative, resolveRequestedAgainst, isProjectRootImport, resolveProjectRootImport, findProjectRoot, findProjectRootSync};

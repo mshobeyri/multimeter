@@ -7,7 +7,7 @@ function findNodeById(nodes: readonly SuiteBundleNode[], targetId: string): Suit
   const stack: SuiteBundleNode[] = [...nodes];
   while (stack.length) {
     const n = stack.pop()!;
-    if ((n as any).id === targetId) {
+    if (n.id === targetId) {
       return n;
     }
     if (n.kind === 'group' || n.kind === 'suite') {
@@ -35,8 +35,8 @@ function collectRunnableCountFromRoot(root: readonly SuiteBundleNode[]): number 
   return count;
 }
 
-async function runSuiteTest(params: {
-  node: Extract<SuiteBundleNode, {kind: 'test'}>;
+async function runSuiteBundleNode(params: {
+  node: Extract<SuiteBundleNode, {kind: 'test'}> | Extract<SuiteBundleNode, {kind: 'suite'}>;
   bundle: SuiteBundle;
   options: RunFileOptions;
   runFile: (options: RunFileOptions) => Promise<RunFileResult>;
@@ -50,7 +50,7 @@ async function runSuiteTest(params: {
   const childFilePath = resolveRelativeTo(node.path, bundle.rootSuitePath);
   const display = basename(childFilePath || node.path);
   // Include a suite-run nonce so repeating the suite reuses no runIds.
-  const suiteRunNonce = typeof (options as any)?.suiteRunId === 'string' ? (options as any).suiteRunId : '';
+  const suiteRunNonce = typeof options.suiteRunId === 'string' ? options.suiteRunId : '';
   const runId = `suite:${sanitizeIdentifier(bundle.rootSuitePath)}:${suiteRunNonce}:${currentIndex}:${sanitizeIdentifier(childFilePath || node.path)}`;
   const id = node.id;
 
@@ -72,114 +72,38 @@ async function runSuiteTest(params: {
       entry: node.path,
       docType: childDocType ?? undefined,
       id,
-    } as any);
-
-    const childRunOptions: RunFileOptions = {
-      ...options,
-      file: childRawText,
-      fileType: 'raw' as any,
-      filePath: childFilePath,
-      fileLoader: childFileLoader,
-      logger: suiteLogger,
-      runId,
-      id,
-      __mmtIsSuiteBundleChildRun: true,
-    } as any;
-
-    const childRun = await runFile(childRunOptions);
-    const status: SuiteStepStatus = childRun.result?.success ? 'passed' : 'failed';
-
-    options.reporter && options.reporter({
-      scope: 'suite-item',
-      status,
-      runId,
-      filePath: childFilePath,
-      entry: node.path,
-      docType: childDocType ?? undefined,
-      id,
-    } as any);
-
-    return {success: status === 'passed', threw: childRun.result?.threw === true, status};
-  } catch (e: any) {
-    const errorMessage = e?.message || String(e);
-    suiteLogger('error', `Failed to run suite item: ${display} - ${errorMessage}`);
-
-    options.reporter && options.reporter({
-      scope: 'suite-item',
-      status: 'failed',
-      runId,
-      filePath: childFilePath,
-      entry: node.path,
-      id,
-    } as any);
-
-    return {success: false, threw: true, status: 'failed'};
-  }
-}
-
-async function runSuiteSuite(params: {
-  node: Extract<SuiteBundleNode, {kind: 'suite'}>;
-  bundle: SuiteBundle;
-  options: RunFileOptions;
-  runFile: (options: RunFileOptions) => Promise<RunFileResult>;
-  suiteLogger: (level: LogLevel, msg: string) => void;
-  baseFileLoader: RunFileOptions['fileLoader'];
-  nextIndex: () => number;
-}): Promise<{success: boolean; threw: boolean; status: SuiteStepStatus}> {
-  const {node, bundle, options, runFile, suiteLogger, baseFileLoader, nextIndex} = params;
-
-  const currentIndex = nextIndex();
-  const childFilePath = resolveRelativeTo(node.path, bundle.rootSuitePath);
-  const display = basename(childFilePath || node.path);
-  // Include a suite-run nonce so repeating the suite reuses no runIds.
-  const suiteRunNonce = typeof (options as any)?.suiteRunId === 'string' ? (options as any).suiteRunId : '';
-  const runId = `suite:${sanitizeIdentifier(bundle.rootSuitePath)}:${suiteRunNonce}:${currentIndex}:${sanitizeIdentifier(childFilePath || node.path)}`;
-  const id = node.id;
-
-  try {
-    const childRawText = await baseFileLoader(childFilePath);
-    const childDocType = detectDocType(childFilePath, childRawText);
-
-    suiteLogger('info', `Running suite item: ${display}`);
-    const childFileLoader = async (requestedPath: string) => {
-      const resolved = resolveRelativeTo(requestedPath, childFilePath);
-      return await baseFileLoader(resolved);
-    };
-
-    options.reporter && options.reporter({
-      scope: 'suite-item',
-      status: 'running',
-      runId,
-      filePath: childFilePath,
-      entry: node.path,
-      docType: childDocType ?? undefined,
-      id,
-    } as any);
-
-    const childRunOptions: RunFileOptions = {
-      ...options,
-      file: childRawText,
-      fileType: 'raw' as any,
-      filePath: childFilePath,
-      fileLoader: childFileLoader,
-      logger: suiteLogger,
-      runId,
-      id,
-      __mmtIsSuiteBundleChildRun: true,
-    } as any;
-
-    const childRun = await executeSuiteBundle({
-      bundle: {
-        rootSuitePath: childFilePath,
-        bundle: node.children,
-        target: undefined,
-      },
-      options: childRunOptions,
-      preLogs: [],
-      runFile,
     });
 
+    const childRunOptions: RunFileOptions = {
+      ...options,
+      file: childRawText,
+      fileType: 'raw',
+      filePath: childFilePath,
+      fileLoader: childFileLoader,
+      logger: suiteLogger,
+      runId,
+      id,
+      __mmtIsSuiteBundleChildRun: true,
+    };
+
+    let childRun: RunFileResult;
+    if (node.kind === 'test') {
+      childRun = await runFile(childRunOptions);
+    } else {
+      childRun = await executeSuiteBundle({
+        bundle: {
+          rootSuitePath: childFilePath,
+          bundle: node.children,
+          target: undefined,
+        },
+        options: childRunOptions,
+        preLogs: [],
+        runFile,
+      });
+    }
+
     const status: SuiteStepStatus = childRun.result?.success ? 'passed' : 'failed';
+
     options.reporter && options.reporter({
       scope: 'suite-item',
       status,
@@ -188,7 +112,7 @@ async function runSuiteSuite(params: {
       entry: node.path,
       docType: childDocType ?? undefined,
       id,
-    } as any);
+    });
 
     return {success: status === 'passed', threw: childRun.result?.threw === true, status};
   } catch (e: any) {
@@ -202,7 +126,7 @@ async function runSuiteSuite(params: {
       filePath: childFilePath,
       entry: node.path,
       id,
-    } as any);
+    });
 
     return {success: false, threw: true, status: 'failed'};
   }
@@ -224,20 +148,8 @@ async function runSuiteGroup(params: {
       return {success: false, threw: false, status: 'failed' as SuiteStepStatus};
     }
 
-    if (child.kind === 'test') {
-      return await runSuiteTest({
-        node: child,
-        bundle,
-        options,
-        runFile,
-        suiteLogger,
-        baseFileLoader,
-        nextIndex,
-      });
-    }
-
-    if (child.kind === 'suite') {
-      return await runSuiteSuite({
+    if (child.kind === 'test' || child.kind === 'suite') {
+      return await runSuiteBundleNode({
         node: child,
         bundle,
         options,
@@ -282,7 +194,7 @@ export async function executeSuiteBundle(params: {
   const {bundle, options, preLogs, runFile} = params;
 
   // Prevent nested suite bundle executions from emitting suite-run lifecycle.
-  const shouldEmitSuiteRunEvents = !((options as any).__mmtIsSuiteBundleChildRun);
+  const shouldEmitSuiteRunEvents = !(options.__mmtIsSuiteBundleChildRun);
 
   const suiteDisplayName = basename(bundle.rootSuitePath);
   const identifier = sanitizeIdentifier(suiteDisplayName);
@@ -319,7 +231,7 @@ export async function executeSuiteBundle(params: {
       suitePath: bundle.rootSuitePath,
       startedAt: suiteStart,
       totalRunnable,
-    } as any);
+    });
   }
 
   let overallSuccess = true;
@@ -361,27 +273,8 @@ export async function executeSuiteBundle(params: {
         continue;
       }
 
-      if (n.kind === 'test') {
-        const r = await runSuiteTest({
-          node: n,
-          bundle,
-          options,
-          runFile,
-          suiteLogger,
-          baseFileLoader,
-          nextIndex,
-        });
-        if (!r.success) {
-          overallSuccess = false;
-        }
-        if (r.threw) {
-          return;
-        }
-        continue;
-      }
-
-      if (n.kind === 'suite') {
-        const r = await runSuiteSuite({
+      if (n.kind === 'test' || n.kind === 'suite') {
+        const r = await runSuiteBundleNode({
           node: n,
           bundle,
           options,
@@ -428,7 +321,7 @@ export async function executeSuiteBundle(params: {
       success: overallSuccess,
       durationMs,
       cancelled: options.abortSignal?.aborted === true,
-    } as any);
+    });
   }
 
   if (preLogs.length) {

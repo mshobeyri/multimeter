@@ -8,7 +8,7 @@ import * as https from 'https';
 import WebSocket from 'ws';
 
 import {connectionTracker} from './connectionTracker';
-import {HttpRequest, HttpResponse, NetworkConfig, Request, Response} from './NetworkData';
+import {ClientCertificate, DEFAULT_NETWORK_CONFIG, HttpRequest, HttpResponse, NetworkConfig, Request, Response} from './NetworkData';
 
 // Re-export connectionTracker for use by extension
 export {connectionTracker} from './connectionTracker';
@@ -22,12 +22,21 @@ const httpsAgentPool: Map<string, https.Agent> = new Map();
 const socketConnectionIds = new WeakMap<any, string>();
 const trackedSockets = new WeakSet<any>();
 
+/**
+ * Find the first enabled client certificate whose host matches the given hostname.
+ * Matches exactly, as a substring, or via wildcard '*'.
+ */
+function findMatchingClientCert(
+    clients: ClientCertificate[], hostname: string): ClientCertificate|undefined {
+  return clients.find(
+      cert => cert.enabled &&
+          (cert.host === hostname || hostname.includes(cert.host) ||
+           cert.host === '*'));
+}
+
 function getAgentKey(hostname: string, config: NetworkConfig, skipValidation: boolean): string {
   // Create a key that uniquely identifies the agent configuration
-  const clientCertHost = config.clients.find(
-    cert => cert.enabled &&
-      (cert.host === hostname || hostname.includes(cert.host) || cert.host === '*')
-  )?.host || '';
+  const clientCertHost = findMatchingClientCert(config.clients, hostname)?.host || '';
   return `${hostname}:${config.sslValidation}:${skipValidation}:${config.ca.enabled}:${clientCertHost}`;
 }
 
@@ -108,10 +117,7 @@ export function createHttpsAgentWithCertificates(
       agentOptions.ca = [config.ca.certData];
     }
   }
-  const matchingClientCert = config.clients.find(
-      cert => cert.enabled &&
-          (cert.host === hostname || hostname.includes(cert.host) ||
-           cert.host === '*'));
+  const matchingClientCert = findMatchingClientCert(config.clients, hostname);
   if (matchingClientCert && matchingClientCert.certData &&
       matchingClientCert.keyData) {
     agentOptions.cert = matchingClientCert.certData;
@@ -527,10 +533,7 @@ export function createWebSocketOptionsWithCertificates(
       wsOptions.ca = [config.ca.certData];
     }
   }
-  const matchingClientCert = config.clients.find(
-      cert => cert.enabled &&
-          (cert.host === hostname || hostname.includes(cert.host) ||
-           cert.host === '*'));
+  const matchingClientCert = findMatchingClientCert(config.clients, hostname);
   if (matchingClientCert && matchingClientCert.certData &&
       matchingClientCert.keyData) {
     wsOptions.cert = matchingClientCert.certData;
@@ -541,16 +544,6 @@ export function createWebSocketOptionsWithCertificates(
   }
   return wsOptions;
 }
-
-// Define your default config (adjust values as needed)
-const defaultConfig: NetworkConfig = {
-  ca: {enabled: false},
-  clients: [],
-  sslValidation: true,
-  allowSelfSigned: false,
-  timeout: 30000,
-  autoFormat: false,
-};
 
 function cloneNetworkConfig(config: NetworkConfig): NetworkConfig {
   const ca = config?.ca ? {...config.ca} : {enabled: false};
@@ -564,11 +557,11 @@ function cloneNetworkConfig(config: NetworkConfig): NetworkConfig {
   };
 }
 
-let runnerNetworkConfig: NetworkConfig = cloneNetworkConfig(defaultConfig);
+let runnerNetworkConfig: NetworkConfig = cloneNetworkConfig(DEFAULT_NETWORK_CONFIG);
 
 export function setRunnerNetworkConfig(config: NetworkConfig) {
   if (!config) {
-    runnerNetworkConfig = cloneNetworkConfig(defaultConfig);
+    runnerNetworkConfig = cloneNetworkConfig(DEFAULT_NETWORK_CONFIG);
     return;
   }
   runnerNetworkConfig = cloneNetworkConfig(config);

@@ -1,4 +1,4 @@
-import {indentLines, toInputsParams} from './JSerHelper';
+import {indentLines, timeUnitToMs, toInputsParams} from './JSerHelper';
 import {Comparison, normalizeReportConfig, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
 import {getTestFlowStepType} from './testParsePack';
 import {replaceEnvTokensPlain, toTemplateWithEnvVars} from './variableReplacer';
@@ -123,24 +123,7 @@ export const repeatToJSfunc = (loop: TestFlowRepeat): string => {
   if (timeMatch) {
     const value = parseFloat(timeMatch[1]);
     const unit = timeMatch[2];
-    let durationMs = 0;
-    switch (unit) {
-      case 'ns':
-        durationMs = value / 1e6;
-        break;
-      case 'ms':
-        durationMs = value;
-        break;
-      case 's':
-        durationMs = value * 1000;
-        break;
-      case 'm':
-        durationMs = value * 60 * 1000;
-        break;
-      case 'h':
-        durationMs = value * 60 * 60 * 1000;
-        break;
-    }
+    const durationMs = timeUnitToMs(value, unit);
     return `for (const start = Date.now(); Date.now() < start + ${
         durationMs}; ) {
   ${indentLines(loopBody)}
@@ -160,25 +143,7 @@ export function delayToJSfunc(d: string|number): string {
   if (m) {
     const num = parseFloat(m[1]);
     const unit = m[2] || 'ms';
-    switch (unit) {
-      case 'ns':
-        msExpr = String(num / 1e6);
-        break;
-      case 'ms':
-        msExpr = String(num);
-        break;
-      case 's':
-        msExpr = String(num * 1000);
-        break;
-      case 'm':
-        msExpr = String(num * 60 * 1000);
-        break;
-      case 'h':
-        msExpr = String(num * 60 * 60 * 1000);
-        break;
-      default:
-        msExpr = String(num);
-    }
+    msExpr = String(timeUnitToMs(num, unit));
   } else {
     msExpr = `(function(x){
       const s = String(x).trim();
@@ -205,22 +170,23 @@ export const setToJSfunc = (set: Record<string, any>): string => {
 };
 
 
-export const checkToJSfunc = (check: Comparison, useExternalReport: boolean): string => {
-  const normalized = normalizeComparison(check, 'check');
+const comparisonToJSfunc = (type: 'check'|'assert', comparison: Comparison, useExternalReport: boolean): string => {
+  const label = type === 'check' ? 'Check' : 'Assert';
+  const normalized = normalizeComparison(comparison, type);
   if (!normalized) {
     return '';
   }
   const {actual, operator, expected, raw, title, details} = normalized;
   // Determine report level: internal (useExternalReport=false, direct run) vs external (useExternalReport=true, imported or in suite)
   const reportCfg = normalizeReportConfig(
-    (check && typeof check === 'object') ? (check as any).report : undefined
+    (comparison && typeof comparison === 'object') ? (comparison as any).report : undefined
   );
   const reportLevel = useExternalReport ? reportCfg.external : reportCfg.internal;
   const conditionStatement = conditionalStatementToJSfunc(raw);
   const titlePart = title ? `"${title}" - ` : '';
   const failMessage =
-      `Check ${titlePart}"${raw}" failed, as ${actual} ${operator} ${expected} is false`;
-  const successMessage = `Check ${titlePart}"${raw}" passed`;
+      `${label} ${titlePart}"${raw}" failed, as ${actual} ${operator} ${expected} is false`;
+  const successMessage = `${label} ${titlePart}"${raw}" passed`;
   const detailsPart = details ? `\n${details}` : '';
   const finaFaillMsg = `${failMessage}${detailsPart}`;
   const finaSuccessMsg = `${successMessage}`;
@@ -232,51 +198,21 @@ export const checkToJSfunc = (check: Comparison, useExternalReport: boolean): st
   const reportOnSuccess = reportLevel === 'all';
   // Report on fail unless level is 'none'
   const reportOnFail = reportLevel !== 'none';
+  const throwOnFail = type === 'assert' ? `\n  throw new Error("Assertion failed");` : '';
   return `if (${conditionStatement}) {
   console.log(${toTemplateWithVars(finaSuccessMsg)});
-  ${reportOnSuccess ? `report_('check', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, true);` : ''}
+  ${reportOnSuccess ? `report_('${type}', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, true);` : ''}
 } else {
   console.error(${toTemplateWithVars(finaFaillMsg)});
-  ${reportOnFail ? `report_('check', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, false, ${finalActual}, ${finalExpected});` : ''}
+  ${reportOnFail ? `report_('${type}', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, false, ${finalActual}, ${finalExpected});` : ''}${throwOnFail}
 }\n`;
 };
 
-export const assertToJSfunc = (assert: Comparison, useExternalReport: boolean): string => {
-  const normalized = normalizeComparison(assert, 'assert');
-  if (!normalized) {
-    return '';
-  }
-  const {actual, operator, expected, raw, title, details} = normalized;
-  // Determine report level: internal (useExternalReport=false, direct run) vs external (useExternalReport=true, imported or in suite)
-  const reportCfg = normalizeReportConfig(
-    (assert && typeof assert === 'object') ? (assert as any).report : undefined
-  );
-  const reportLevel = useExternalReport ? reportCfg.external : reportCfg.internal;
-  const conditionStatement = conditionalStatementToJSfunc(raw);
-  const titlePart = title ? `"${title}" - ` : '';
-  const failMessage =
-      `Assert ${titlePart}"${raw}" failed, as ${actual} ${operator} ${expected} is false`;
-  const successMessage = `Assert ${titlePart}"${raw}" passed`;
-  const detailsPart = details ? `\n${details}` : '';
-  const finaFaillMsg = `${failMessage}${detailsPart}`;
-  const finaSuccessMsg = `${successMessage}`;
-  const finalTitle = typeof title === 'string' ? toTemplateWithVars(title) : undefined;
-  const finalDetails = typeof details === 'string' ? toTemplateWithVars(details) : undefined;
-  const finalActual = typeof actual === 'string' ? toTemplateWithVars(actual) : undefined;
-  const finalExpected = typeof expected === 'string' ? toTemplateWithVars(expected) : undefined;
-  // Report on success only if level is 'all'
-  const reportOnSuccess = reportLevel === 'all';
-  // Report on fail unless level is 'none'
-  const reportOnFail = reportLevel !== 'none';
-  return `if (${conditionStatement}) {
-  console.log(${toTemplateWithVars(finaSuccessMsg)});
-  ${reportOnSuccess ? `report_('assert', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, true);` : ''}
-} else {
-  console.error(${toTemplateWithVars(finaFaillMsg)});
-  ${reportOnFail ? `report_('assert', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, false, ${finalActual}, ${finalExpected});` : ''}
-  throw new Error("Assertion failed");
-}\n`;
-};
+export const checkToJSfunc = (check: Comparison, useExternalReport: boolean): string =>
+  comparisonToJSfunc('check', check, useExternalReport);
+
+export const assertToJSfunc = (assert: Comparison, useExternalReport: boolean): string =>
+  comparisonToJSfunc('assert', assert, useExternalReport);
 
 const callToJSfunc = (step: TestFlowCall): string => {
   let inputParams = toInputsParams(step.inputs || {}, ': ');
@@ -358,10 +294,6 @@ export const flowStepsToJsfunc =
                 return varToJSfunc('const ', (step as any).const);
               case 'let':
                 return varToJSfunc('let ', (step as any).let);
-              case 'data': {
-                const alias = (step as any).data;
-                return '';
-              }
               case 'setenv':
                 return setenvToJSfunc((step as any).setenv, root);
               default:

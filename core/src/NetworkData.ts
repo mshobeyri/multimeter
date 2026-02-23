@@ -97,3 +97,59 @@ export interface HttpResponse {
   duration: number;
   autoformat: boolean;
 }
+
+/** Canonical default NetworkConfig – import this instead of re-declaring. */
+export const DEFAULT_NETWORK_CONFIG: NetworkConfig = {
+  ca: {enabled: false},
+  clients: [],
+  sslValidation: true,
+  allowSelfSigned: false,
+  timeout: 30000,
+  autoFormat: false,
+};
+
+/**
+ * Boolean toggle settings for certificates, stored separately from the
+ * certificate file paths (e.g. in localStorage/workspaceState).
+ */
+export interface CertificateSettings {
+  sslValidation: boolean;
+  allowSelfSigned: boolean;
+  caEnabled: boolean;
+  clientsEnabled: Record<string, boolean>;
+}
+
+/** Default certificate toggle settings. */
+export const DEFAULT_CERT_SETTINGS: CertificateSettings = {
+  sslValidation: true,
+  allowSelfSigned: false,
+  caEnabled: false,
+  clientsEnabled: {},
+};
+
+/**
+ * Resolve a passphrase from a plain-text value, an environment variable name,
+ * or a combination of env-var maps.
+ *
+ * @param passphrasePlain  Literal passphrase (highest priority).
+ * @param passphraseEnv    Name of an env var that holds the passphrase.
+ * @param envVars          Application-level env vars (from .mmt env file, CLI flags, etc.).
+ * @param processEnv       System environment (pass `process.env` on Node; omit in other runtimes).
+ */
+export function resolvePassphrase(
+    passphrasePlain?: string, passphraseEnv?: string,
+    envVars?: Record<string, any>,
+    processEnv?: Record<string, string | undefined>): string|undefined {
+  if (passphrasePlain) {
+    return passphrasePlain;
+  }
+  if (passphraseEnv) {
+    if (envVars && passphraseEnv in envVars) {
+      return String(envVars[passphraseEnv]);
+    }
+    if (processEnv && processEnv[passphraseEnv]) {
+      return processEnv[passphraseEnv];
+    }
+  }
+  return undefined;
+}

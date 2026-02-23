@@ -13,6 +13,27 @@ import {loadWorkspaceEnvFile} from './workspaceEnvLoader';
 
 export function activate(context: vscode.ExtensionContext) {
   const mmtviewPanel = new MmtEditorProvider(context);
+
+  registerEditorProvider(context, mmtviewPanel);
+
+  const {historyPanel, environmentPanel, connectionsPanel} =
+      registerSidePanels(context);
+
+  registerConnectionsCommands(context, connectionsPanel);
+  registerHistoryCommands(context, historyPanel);
+  registerEnvironmentCommands(context, environmentPanel, mmtviewPanel);
+  registerMiscCommands(context);
+
+  setupChatParticipants(context);
+}
+
+// ---------------------------------------------------------------------------
+// Registration helpers
+// ---------------------------------------------------------------------------
+
+function registerEditorProvider(
+    context: vscode.ExtensionContext,
+    mmtviewPanel: MmtEditorProvider): void {
   context.subscriptions.push(
       vscode.window.registerCustomEditorProvider('mmt.editor', mmtviewPanel, {
         webviewOptions: {retainContextWhenHidden: true, enableFindWidget: true}
@@ -39,7 +60,13 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.commands.registerCommand('multimeter.mmt.show.ui', () => {
         mmtviewPanel.showPanel('ui');
       }));
+}
 
+function registerSidePanels(context: vscode.ExtensionContext): {
+  historyPanel: HistoryPanel;
+  environmentPanel: EnvironmentPanel;
+  connectionsPanel: ConnectionsPanel;
+} {
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(
       'multimeter.convertor', new ConvertorPanel(context),
       {webviewOptions: {retainContextWhenHidden: true}}));
@@ -63,6 +90,12 @@ export function activate(context: vscode.ExtensionContext) {
       'multimeter.connections', connectionsPanel,
       {webviewOptions: {retainContextWhenHidden: true}}));
 
+  return {historyPanel, environmentPanel, connectionsPanel};
+}
+
+function registerConnectionsCommands(
+    context: vscode.ExtensionContext,
+    connectionsPanel: ConnectionsPanel): void {
   context.subscriptions.push(
       vscode.commands.registerCommand('multimeter.connections.refresh', () => {
         connectionsPanel.refresh();
@@ -72,7 +105,11 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.commands.registerCommand('multimeter.connections.closeAll', () => {
         connectionTracker.closeAll();
       }));
+}
 
+function registerHistoryCommands(
+    context: vscode.ExtensionContext,
+    historyPanel: HistoryPanel): void {
   context.subscriptions.push(
       vscode.commands.registerCommand('multimeter.history.clear', async () => {
         const historyFile =
@@ -85,7 +122,16 @@ export function activate(context: vscode.ExtensionContext) {
       vscode.commands.registerCommand('multimeter.history.refresh', () => {
         historyPanel.refreshHistory();
       }));
+  context.subscriptions.push(
+      vscode.commands.registerCommand('multimeter.history.show', async () => {
+        await vscode.commands.executeCommand('multimeter.history.focus');
+      }));
+}
 
+function registerEnvironmentCommands(
+    context: vscode.ExtensionContext,
+    environmentPanel: EnvironmentPanel,
+    mmtviewPanel: MmtEditorProvider): void {
   const openSettingsCommand =
       vscode.commands.registerCommand('multimeter.setting.open', () => {
         vscode.commands.executeCommand(
@@ -111,6 +157,17 @@ export function activate(context: vscode.ExtensionContext) {
     mmtviewPanel.refreshEnvironmentVars();
   });
 
+  context.subscriptions.push(
+      vscode.commands.registerCommand(
+          'multimeter.environment.loadFromFile', async () => {
+            // Force reload when manually triggered (overwrites existing values)
+            await loadWorkspaceEnvFile(context, true);
+            environmentPanel.refreshEnvironmentVars();
+            mmtviewPanel.refreshEnvironmentVars();
+          }));
+}
+
+function registerMiscCommands(context: vscode.ExtensionContext): void {
   context.subscriptions.push(vscode.commands.registerCommand(
       'multimeter.mmt.show.as.text', async (uri?: vscode.Uri) => {
         const targetUri = uri || vscode.window.activeTextEditor?.document.uri;
@@ -136,20 +193,4 @@ export function activate(context: vscode.ExtensionContext) {
         });
         await vscode.languages.setTextDocumentLanguage(document, 'mmt');
       }));
-
-  context.subscriptions.push(
-      vscode.commands.registerCommand('multimeter.history.show', async () => {
-        await vscode.commands.executeCommand('multimeter.history.focus');
-      }));
-
-  context.subscriptions.push(
-      vscode.commands.registerCommand(
-          'multimeter.environment.loadFromFile', async () => {
-            // Force reload when manually triggered (overwrites existing values)
-            await loadWorkspaceEnvFile(context, true);
-            environmentPanel.refreshEnvironmentVars();
-            mmtviewPanel.refreshEnvironmentVars();
-          }));
-
-  setupChatParticipants(context);
 }

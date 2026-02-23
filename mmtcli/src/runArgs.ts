@@ -1,8 +1,10 @@
+import {findProjectRootSync} from 'mmt-core/fileHelper';
 import fs from 'fs';
 import yaml from 'js-yaml';
 import * as mmtcore from 'mmt-core';
 import type {RunFileOptions, RunReporterMessage} from 'mmt-core/runConfig';
 import type {NetworkConfig, EnvCertificateSettings} from 'mmt-core/NetworkData';
+import {DEFAULT_NETWORK_CONFIG, resolvePassphrase} from 'mmt-core/NetworkData';
 import path from 'path';
 
 const {mergeEnv, resolvePresetEnv, resolveEnvFromDoc} =
@@ -88,25 +90,6 @@ function resolveCertPath(certPath: string, envFileDir: string): string {
   return path.resolve(envFileDir, certPath);
 }
 
-// Resolve passphrase from plain text or environment variable
-function resolvePassphrase(
-    passphrasePlain?: string, passphraseEnv?: string,
-    envVars?: Record<string, any>): string|undefined {
-  if (passphrasePlain) {
-    return passphrasePlain;
-  }
-  if (passphraseEnv) {
-    // First check passed envVars, then process.env
-    if (envVars && passphraseEnv in envVars) {
-      return String(envVars[passphraseEnv]);
-    }
-    if (process.env[passphraseEnv]) {
-      return process.env[passphraseEnv];
-    }
-  }
-  return undefined;
-}
-
 // Build NetworkConfig from certificate settings in env file
 // Note: Boolean settings (sslValidation, allowSelfSigned, enabled) default to sensible values
 // since they are not stored in YAML
@@ -114,17 +97,8 @@ export function buildNetworkConfigFromEnv(
     certSettings: EnvCertificateSettings | undefined,
     envFileDir: string,
     envVars?: Record<string, any>): NetworkConfig {
-  const defaultConfig: NetworkConfig = {
-    ca: {enabled: false},
-    clients: [],
-    sslValidation: true,
-    allowSelfSigned: false,
-    timeout: 30000,
-    autoFormat: false,
-  };
-
   if (!certSettings) {
-    return defaultConfig;
+    return {...DEFAULT_NETWORK_CONFIG};
   }
 
   // Load CA certs (multiple paths)
@@ -162,7 +136,7 @@ export function buildNetworkConfigFromEnv(
       }
     }
     const passphrase = resolvePassphrase(
-        client.passphrase_plain, client.passphrase_env, envVars);
+        client.passphrase_plain, client.passphrase_env, envVars, process.env);
     return {
       id: `client-${idx}`,
       name: client.name || '',
@@ -190,27 +164,8 @@ export function buildNetworkConfigFromEnv(
  * Find the project root by walking up from startPath looking for multimeter.mmt.
  * Returns the directory containing multimeter.mmt, or undefined if not found.
  */
-function findProjectRootSync(startPath: string): string | undefined {
-  let currentDir = path.dirname(startPath);
-  const visited = new Set<string>();
-
-  while (currentDir && !visited.has(currentDir)) {
-    visited.add(currentDir);
-    const markerPath = path.join(currentDir, 'multimeter.mmt');
-    
-    if (fs.existsSync(markerPath)) {
-      return currentDir;
-    }
-
-    const parentDir = path.dirname(currentDir);
-    // Stop if we've reached the root (parent is same as current)
-    if (parentDir === currentDir) {
-      break;
-    }
-    currentDir = parentDir;
-  }
-
-  return undefined;
+function findProjectRootForCli(startPath: string): string | undefined {
+  return findProjectRootSync(startPath, fs.existsSync, path.dirname, path.join) ?? undefined;
 }
 
 export interface ParsedCliRunArgs {
@@ -304,7 +259,7 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
         console.log(`[${level}] ${msg}`);
     },
     reporter: (_message: RunReporterMessage) => {},
-    projectRoot: findProjectRootSync(full),
+    projectRoot: findProjectRootForCli(full),
   };
 
   return {

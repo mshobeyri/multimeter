@@ -1,7 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import {findProjectRootSync} from 'mmt-core/fileHelper';
 import {handleNetworkMessage as coreHandleNetworkMessage, NetworkMessage, PostMessage} from 'mmt-core/network';
-import {NetworkConfig} from 'mmt-core/NetworkData';
+import {CertificateSettings, DEFAULT_CERT_SETTINGS, NetworkConfig, resolvePassphrase} from 'mmt-core/NetworkData';
 import * as vscode from 'vscode';
 import * as YAML from 'yaml';
 
@@ -167,21 +168,6 @@ function tryParseEnvFile(filePath: string): ParsedEnvFile|undefined {
   }
 }
 
-// Certificate boolean settings stored separately
-interface CertificateSettings {
-  sslValidation: boolean;
-  allowSelfSigned: boolean;
-  caEnabled: boolean;
-  clientsEnabled: Record<string, boolean>;  // keyed by "name:host"
-}
-
-const DEFAULT_CERT_SETTINGS: CertificateSettings = {
-  sslValidation: true,
-  allowSelfSigned: false,
-  caEnabled: false,
-  clientsEnabled: {},
-};
-
 // Resolve certificate paths against the current document's project root
 function resolveCertPath(certPath: string, baseFilePath?: string): string {
   if (!certPath) {
@@ -190,27 +176,15 @@ function resolveCertPath(certPath: string, baseFilePath?: string): string {
   if (path.isAbsolute(certPath)) {
     return certPath;
   }
-  const baseDir = baseFilePath ? path.dirname(baseFilePath) : undefined;
-  if (baseDir) {
-    // Walk up from the current document to find multimeter.mmt and treat that
-    // folder as the project root (mirrors +/ import behavior).
-    let currentDir = baseDir;
-    const visited = new Set<string>();
-    while (currentDir && !visited.has(currentDir)) {
-      visited.add(currentDir);
-      const markerPath = path.join(currentDir, 'multimeter.mmt');
-      if (fs.existsSync(markerPath)) {
-        return path.resolve(currentDir, certPath);
-      }
-      const parentDir = path.dirname(currentDir);
-      if (parentDir === currentDir) {
-        break;
-      }
-      currentDir = parentDir;
+  if (baseFilePath) {
+    // Use shared project-root finder (mirrors +/ import behavior).
+    const projectRoot = findProjectRootSync(
+        baseFilePath, fs.existsSync, path.dirname, path.join);
+    if (projectRoot) {
+      return path.resolve(projectRoot, certPath);
     }
-
     // Fallback: relative to document folder
-    return path.resolve(baseDir, certPath);
+    return path.resolve(path.dirname(baseFilePath), certPath);
   }
 
   // Last resort: relative to first workspace folder
@@ -219,25 +193,6 @@ function resolveCertPath(certPath: string, baseFilePath?: string): string {
     return path.resolve(ws.uri.fsPath, certPath);
   }
   return certPath;
-}
-
-// Resolve passphrase from plain text or environment variable
-function resolvePassphrase(
-    passphrasePlain?: string, passphraseEnv?: string,
-    envVars?: Record<string, any>): string|undefined {
-  if (passphrasePlain) {
-    return passphrasePlain;
-  }
-  if (passphraseEnv) {
-    // First check passed envVars, then process.env
-    if (envVars && passphraseEnv in envVars) {
-      return String(envVars[passphraseEnv]);
-    }
-    if (process.env[passphraseEnv]) {
-      return process.env[passphraseEnv];
-    }
-  }
-  return undefined;
 }
 
 // Generate key for client certificate enable/disable
@@ -302,7 +257,7 @@ export function getPreparedConfigFromStorage(
       }
     }
     const passphrase = resolvePassphrase(
-      client.passphrase_plain, client.passphrase_env, mergedEnvVars);
+      client.passphrase_plain, client.passphrase_env, mergedEnvVars, process.env);
     return {
       id: `client-${idx}`,
       name: client.name,
@@ -386,7 +341,7 @@ export function prepareNetworkConfigFromProjectFile(
       }
     }
     const passphrase = resolvePassphrase(
-        client.passphrase_plain, client.passphrase_env, envVars);
+        client.passphrase_plain, client.passphrase_env, envVars, process.env);
     return {
       id: `client-${idx}`,
       name: client.name,
