@@ -1,6 +1,100 @@
 import parseYaml, {packYaml} from './markupConvertor';
 import {isNonEmptyList, isNonEmptyObject} from './safer';
-import {FlowType, TestData, TestFlowStep} from './TestData';
+import {FlowType, TestData, TestFlowStep, TestFlowSteps, TestFlowStages} from './TestData';
+
+/**
+ * Canonical key orders for each step type.
+ * Keys not listed here are appended in original order after the canonical ones.
+ */
+export const STEP_KEY_ORDER: Record<string, string[]> = {
+  call:   ['call', 'id', 'inputs'],
+  check:  ['check'],
+  assert: ['assert'],
+  if:     ['if', 'steps', 'else'],
+  for:    ['for', 'steps'],
+  repeat: ['repeat', 'steps'],
+  delay:  ['delay'],
+  js:     ['js'],
+  print:  ['print'],
+  set:    ['set'],
+  var:    ['var'],
+  const:  ['const'],
+  let:    ['let'],
+  data:   ['data'],
+  setenv: ['setenv'],
+};
+
+/** Canonical key order for check/assert object-form (ComparisonObject) values. */
+export const CHECK_ASSERT_VALUE_ORDER = ['title', 'actual', 'operator', 'expected', 'report', 'details'];
+
+/** Canonical key order for stage items. */
+export const STAGE_KEY_ORDER = ['id', 'title', 'condition', 'depends_on', 'steps'];
+
+/**
+ * Reorder the keys of an object according to a canonical order.
+ * Keys present in `order` come first (in that order); remaining keys follow in original order.
+ */
+function reorderKeys(obj: Record<string, any>, order: string[]): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const key of order) {
+    if (key in obj) {
+      result[key] = obj[key];
+    }
+  }
+  for (const key of Object.keys(obj)) {
+    if (!(key in result)) {
+      result[key] = obj[key];
+    }
+  }
+  return result;
+}
+
+/** Reorder a single step's keys and recursively process nested steps. */
+function reorderStep(step: any): any {
+  if (!step || typeof step !== 'object') {
+    return step;
+  }
+  const stepType = getTestFlowStepType(step as TestFlowStep);
+  const order = STEP_KEY_ORDER[stepType];
+
+  let ordered = order ? reorderKeys(step, order) : {...step};
+
+  // Recursively reorder nested steps
+  if (Array.isArray(ordered.steps)) {
+    ordered.steps = reorderSteps(ordered.steps);
+  }
+  if (Array.isArray(ordered.else)) {
+    ordered.else = reorderSteps(ordered.else);
+  }
+
+  // Reorder check/assert object-form values (ComparisonObject)
+  if ((stepType === 'check' || stepType === 'assert') &&
+      ordered[stepType] && typeof ordered[stepType] === 'object' &&
+      !Array.isArray(ordered[stepType])) {
+    ordered[stepType] = reorderKeys(ordered[stepType], CHECK_ASSERT_VALUE_ORDER);
+  }
+
+  return ordered;
+}
+
+/** Reorder keys for each step in a steps array. */
+function reorderSteps(steps: any[]): any[] {
+  return steps.map(reorderStep);
+}
+
+/** Reorder keys for each stage, including its nested steps. */
+function reorderStages(stages: any[]): any[] {
+  return stages.map(stage => {
+    if (!stage || typeof stage !== 'object') {
+      return stage;
+    }
+    const ordered = reorderKeys(stage, STAGE_KEY_ORDER);
+    if (Array.isArray(ordered.steps)) {
+      ordered.steps = reorderSteps(ordered.steps);
+    }
+    return ordered;
+  });
+}
 
 export function yamlToTest(yamlContent: string): TestData {
   try {
@@ -53,10 +147,10 @@ export function testToYaml(test: TestData): string {
     yamlObj.metrics = test.metrics;
   }
   if (test.steps) {
-    yamlObj.steps = test.steps;
+    yamlObj.steps = reorderSteps(test.steps);
   }
   if (test.stages) {
-    yamlObj.stages = test.stages;
+    yamlObj.stages = reorderStages(test.stages);
   }
   return packYaml(yamlObj);
 }

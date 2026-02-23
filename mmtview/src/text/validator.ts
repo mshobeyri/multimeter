@@ -174,6 +174,184 @@ export function detectOrderingIssue(doc: any, content: string, expectedOrder: st
   return null;
 }
 
+/**
+ * Canonical key orders for step types (must match core/testParsePack).
+ */
+const STEP_KEY_ORDER: Record<string, string[]> = {
+  call:   ['call', 'id', 'inputs'],
+  check:  ['check'],
+  assert: ['assert'],
+  if:     ['if', 'steps', 'else'],
+  for:    ['for', 'steps'],
+  repeat: ['repeat', 'steps'],
+  delay:  ['delay'],
+  js:     ['js'],
+  print:  ['print'],
+  set:    ['set'],
+  var:    ['var'],
+  const:  ['const'],
+  let:    ['let'],
+  data:   ['data'],
+  setenv: ['setenv'],
+};
+const CHECK_ASSERT_VALUE_ORDER = ['title', 'actual', 'operator', 'expected', 'report', 'details'];
+const STAGE_KEY_ORDER = ['id', 'title', 'condition', 'depends_on', 'steps'];
+
+/** Detect the step type from a YAML map node's key-value pairs. */
+function detectStepTypeFromPairs(pairs: any[]): string | null {
+  const stepTypes = Object.keys(STEP_KEY_ORDER);
+  for (const pair of pairs) {
+    const k = pair?.key?.value;
+    if (typeof k === 'string' && stepTypes.includes(k)) {
+      return k;
+    }
+  }
+  return null;
+}
+
+/** Check if a map node's keys are out of canonical order, returning the first issue. */
+function detectKeysOutOfOrder(
+  pairs: any[],
+  expectedOrder: string[],
+  content: string,
+  contextLabel: string
+): OrderingIssue | null {
+  const orderMap = new Map<string, number>();
+  expectedOrder.forEach((key, idx) => orderMap.set(key, idx));
+  let lastIdx = -1;
+  let lastKey: string | undefined;
+  for (const pair of pairs) {
+    const key = pair?.key?.value;
+    if (typeof key !== 'string' || !orderMap.has(key)) {
+      continue;
+    }
+    const currentIdx = orderMap.get(key) ?? 0;
+    if (currentIdx < lastIdx) {
+      const offset = Array.isArray(pair?.key?.range) ? pair.key.range[0] : undefined;
+      const line = typeof offset === 'number' ? offsetToLineNumber(content, offset) : 1;
+      const message = lastKey
+        ? `${contextLabel}: '${key}' should appear before '${lastKey}'. Use Format Document (Shift+Alt+F) to fix it.`
+        : `${contextLabel}: '${key}' is out of order. Use Format Document (Shift+Alt+F) to fix it.`;
+      return { line, key, prevKey: lastKey, message };
+    }
+    lastIdx = currentIdx;
+    lastKey = key;
+  }
+  return null;
+}
+
+/**
+ * Recursively detect ordering issues within step-level items.
+ * Returns the first issue found, or null.
+ */
+function detectStepLevelOrderingIssue(seqItems: any[], content: string): OrderingIssue | null {
+  for (const stepNode of seqItems) {
+    const pairs: any[] = Array.isArray(stepNode?.items) ? stepNode.items : [];
+    if (pairs.length === 0) {
+      continue;
+    }
+
+    const stepType = detectStepTypeFromPairs(pairs);
+    if (!stepType) {
+      continue;
+    }
+
+    // Check step-level key order
+    const stepOrder = STEP_KEY_ORDER[stepType];
+    if (stepOrder && stepOrder.length > 1) {
+      const issue = detectKeysOutOfOrder(pairs, stepOrder, content, `Step '${stepType}'`);
+      if (issue) {
+        return issue;
+      }
+    }
+
+    // For check/assert with object-form value, check inner key order
+    if (stepType === 'check' || stepType === 'assert') {
+      const mainPair = pairs.find((p: any) => p?.key?.value === stepType);
+      const innerPairs: any[] = Array.isArray(mainPair?.value?.items) ? mainPair.value.items : [];
+      if (innerPairs.length > 1) {
+        const issue = detectKeysOutOfOrder(innerPairs, CHECK_ASSERT_VALUE_ORDER, content, `${stepType} fields`);
+        if (issue) {
+          return issue;
+        }
+      }
+    }
+
+    // Recurse into nested steps
+    const nestedStepsPair = pairs.find((p: any) => p?.key?.value === 'steps');
+    const nestedSeq: any[] = Array.isArray(nestedStepsPair?.value?.items) ? nestedStepsPair.value.items : [];
+    if (nestedSeq.length) {
+      const issue = detectStepLevelOrderingIssue(nestedSeq, content);
+      if (issue) {
+        return issue;
+      }
+    }
+
+    // Recurse into else branch
+    const elsePair = pairs.find((p: any) => p?.key?.value === 'else');
+    const elseSeq: any[] = Array.isArray(elsePair?.value?.items) ? elsePair.value.items : [];
+    if (elseSeq.length) {
+      const issue = detectStepLevelOrderingIssue(elseSeq, content);
+      if (issue) {
+        return issue;
+      }
+    }
+  }
+  return null;
+}
+
+/** Detect ordering issues inside stages (stage-level keys and their nested steps). */
+function detectStageOrderingIssue(stagesSeq: any[], content: string): OrderingIssue | null {
+  for (const stageNode of stagesSeq) {
+    const pairs: any[] = Array.isArray(stageNode?.items) ? stageNode.items : [];
+    if (pairs.length > 1) {
+      const issue = detectKeysOutOfOrder(pairs, STAGE_KEY_ORDER, content, 'Stage');
+      if (issue) {
+        return issue;
+      }
+    }
+    // Check nested steps within the stage
+    const stepsPair = pairs.find((p: any) => p?.key?.value === 'steps');
+    const stepsSeq: any[] = Array.isArray(stepsPair?.value?.items) ? stepsPair.value.items : [];
+    if (stepsSeq.length) {
+      const issue = detectStepLevelOrderingIssue(stepsSeq, content);
+      if (issue) {
+        return issue;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Detect the first step-level or stage-level ordering issue in a test document.
+ */
+export function detectTestStepOrderingIssue(doc: any, content: string): OrderingIssue | null {
+  const rootItems: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
+
+  // Check steps
+  const stepsPair = rootItems.find((item: any) => item?.key?.value === 'steps');
+  if (stepsPair?.value?.items) {
+    const stepsSeq: any[] = Array.isArray(stepsPair.value.items) ? stepsPair.value.items : [];
+    const issue = detectStepLevelOrderingIssue(stepsSeq, content);
+    if (issue) {
+      return issue;
+    }
+  }
+
+  // Check stages
+  const stagesPair = rootItems.find((item: any) => item?.key?.value === 'stages');
+  if (stagesPair?.value?.items) {
+    const stagesSeq: any[] = Array.isArray(stagesPair.value.items) ? stagesPair.value.items : [];
+    const issue = detectStageOrderingIssue(stagesSeq, content);
+    if (issue) {
+      return issue;
+    }
+  }
+
+  return null;
+}
+
 function collectCallSitesFromSteps(seqItems: any[], content: string, results: CallSiteInfo[]): void {
   for (const stepNode of seqItems) {
     const stepPairs: any[] = Array.isArray(stepNode?.items) ? stepNode.items : [];
@@ -312,15 +490,24 @@ export function computeOrderingMarkers(
     return { markers: [], problems: [] };
   }
 
+  // Check root-level key ordering first
   const issue = detectOrderingIssue(yamlDoc, content, expectedOrder);
-  const markers = issue
+
+  // If no root-level issue, check step/stage-level ordering for test documents
+  const stepIssue = !issue && docType === 'test'
+    ? detectTestStepOrderingIssue(yamlDoc, content)
+    : null;
+
+  const effectiveIssue = issue || stepIssue;
+
+  const markers = effectiveIssue
     ? [
         {
-          startLineNumber: issue.line,
+          startLineNumber: effectiveIssue.line,
           startColumn: 1,
-          endLineNumber: issue.line,
-          endColumn: model.getLineMaxColumn(issue.line),
-          message: issue.message,
+          endLineNumber: effectiveIssue.line,
+          endColumn: model.getLineMaxColumn(effectiveIssue.line),
+          message: effectiveIssue.message,
           severity: monaco.MarkerSeverity.Warning,
         },
       ]
@@ -328,8 +515,8 @@ export function computeOrderingMarkers(
 
   return {
     markers,
-    problems: issue
-      ? [{ message: issue.message, severity: "warning" as const, line: issue.line, column: 1 }]
+    problems: effectiveIssue
+      ? [{ message: effectiveIssue.message, severity: "warning" as const, line: effectiveIssue.line, column: 1 }]
       : [],
   };
 }
