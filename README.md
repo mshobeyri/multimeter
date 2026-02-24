@@ -78,6 +78,7 @@ Here is a how you can run the test in VSCode;
   - [Environment](docs/environment-mmt.md)
   - [Doc](docs/doc-mmt.md)
   - [Suite](docs/suite-mmt.md)
+- [Sample Project](docs/sample-project.md) — full walkthrough with APIs, tests, suites, docs, and CLI
 - [Testlight (CLI)](docs/testlight.md)
 - [Convertor](docs/convertor.md)
 - [Mock Server](docs/mock-server.md)

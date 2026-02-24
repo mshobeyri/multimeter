@@ -88,3 +88,11 @@ curl --cacert certs-test/ca.crt \
 - Certificate file paths are stored in VS Code workspace state and persist across restarts.
 - Only PEM format is supported (`.pem`, `.crt`, `.cer`, `.key`).
 - Most HTTP clients will need to trust the server certificate (add the CA to `certificates.ca` or disable validation where appropriate).
+
+---
+
+## See also
+- [API](./api-mmt.md) — point API URLs at the mock server
+- [Environment](./environment-mmt.md) — swap between real and mock URLs with presets
+- [Certificates](./certificates-mmt.md) — configure TLS certificates for HTTPS mocking
+- [Sample Project](./sample-project.md) — full walkthrough of a Multimeter project

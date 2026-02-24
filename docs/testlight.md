@@ -97,3 +97,13 @@ Testlight compiles your `.mmt`/YAML tests to JS on the fly and executes them wit
 - Quoted values are kept as strings: `-e port="08080"`.
 - When `--env-file` is relative, it resolves from the shell cwd first, then the test file directory.
 - Use `--out` to capture structured results in CI.
+
+---
+
+## See also
+- [API](./api-mmt.md) — define HTTP/WS requests to run from the CLI
+- [Test](./test-mmt.md) — define test flows to run from the CLI
+- [Environment](./environment-mmt.md) — variables and presets (`--env-file`, `--preset`)
+- [Doc](./doc-mmt.md) — author doc files for `testlight doc`
+- [Suite](./suite-mmt.md) — run suites from the CLI
+- [Sample Project](./sample-project.md) — full walkthrough with CLI examples

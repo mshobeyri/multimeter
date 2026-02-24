@@ -151,3 +151,14 @@ import:
 
 See [Test documentation](./test-mmt.md#import) for more details on import paths.
 
+---
+
+## See also
+- [API](./api-mmt.md) — use `e:VAR` and `<<e:VAR>>` tokens in API definitions
+- [Test](./test-mmt.md) — consume environment variables in test flows
+- [Doc](./doc-mmt.md) — use `env` key in doc files to resolve placeholders
+- [Suite](./suite-mmt.md) — pass `--preset` when running suites
+- [Testlight CLI](./testlight.md) — `--env-file`, `--preset`, and `-e` flags
+- [Certificates](./certificates-mmt.md) — SSL/TLS settings in env files
+- [Sample Project](./sample-project.md) — full walkthrough showing environment setup
+

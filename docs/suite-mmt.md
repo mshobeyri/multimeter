@@ -123,3 +123,4 @@ The suite runner executes stages sequentially. Within each stage (items between 
 - [API](./api-mmt.md) — define APIs that suites can run directly
 - [Environment](./environment-mmt.md) — variables and presets, including `+/` project root imports
 - [Testlight CLI](./testlight.md) — run suites from the command line
+- [Sample Project](./sample-project.md) — full walkthrough with APIs, tests, suites, and docs

@@ -138,3 +138,5 @@ Place a `multimeter.mmt` file (with `type: env`) at the root of your project to 
 - `+/` project root imports in tests, APIs, and suites
 
 See [Environment — Project Root Marker](./environment-mmt.md#project-root-marker) for details.
+
+For a hands-on walkthrough covering all features end-to-end, see [Sample Project](./sample-project.md).

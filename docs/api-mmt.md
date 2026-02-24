@@ -379,3 +379,4 @@ examples:
 - [Doc](./doc-mmt.md) — generate browsable HTML documentation from API files
 - [Suite](./suite-mmt.md) — group and run multiple tests and APIs together
 - [Testlight CLI](./testlight.md) — run APIs and tests from the command line
+- [Sample Project](./sample-project.md) — full walkthrough with APIs, tests, suites, and docs
