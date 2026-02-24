@@ -970,3 +970,16 @@ button:focus {
   font-size: 11px !important;
   line-height: 1.2 !important;
 }
+
+/* Enable horizontal scrolling when panel is narrow */
+@media (max-width: 300px) {
+  body {
+    overflow-x: auto;
+    min-width: 300px;
+  }
+}
+
+/* Enable horizontal scrolling on the right (UI) pane when it gets too narrow */
+.SplitPane > .Pane2 {
+  overflow-x: auto !important;
+}

@@ -147,6 +147,14 @@
     .mmt-action-btn:hover:enabled {
       background: var(--vscode-list-hoverBackground, #2a2d2e);
     }
+
+    /* Enable horizontal scrolling when panel is narrow */
+    @media (max-width: 300px) {
+      body {
+        overflow-x: auto;
+        min-width: 300px;
+      }
+    }
   </style>
   <script>
     const vscode = acquireVsCodeApi();

@@ -150,6 +150,14 @@
             transform: rotate(90deg);
             color: #3399ff;
         }
+
+        /* Enable horizontal scrolling when panel is narrow */
+        @media (max-width: 400px) {
+            body {
+                overflow-x: auto;
+                min-width: 400px;
+            }
+        }
     </style>
     <script>
         const vscode = acquireVsCodeApi();

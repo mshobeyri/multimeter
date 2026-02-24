@@ -201,6 +201,14 @@
             background: rgba(186, 104, 200, 0.2);
             color: #ba68c8;
         }
+
+        /* Enable horizontal scrolling when panel is narrow */
+        @media (max-width: 300px) {
+            body {
+                overflow-x: auto;
+                min-width: 300px;
+            }
+        }
     </style>
 
     <script>

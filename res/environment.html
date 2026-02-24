@@ -276,6 +276,14 @@
         .cancel-btn:hover {
             background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31));
         }
+
+        /* Enable horizontal scrolling when panel is narrow */
+        @media (max-width: 400px) {
+            body {
+                overflow-x: auto;
+                min-width: 400px;
+            }
+        }
     </style>
 </head>
 

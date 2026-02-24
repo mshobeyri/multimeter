@@ -515,3 +515,11 @@ textarea:focus {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--vscode-scrollbarSlider-hoverBackground);
 }
+
+/* Enable horizontal scrolling when panel is narrow */
+@media (max-width: 300px) {
+  body {
+    overflow-x: auto;
+    min-width: 300px;
+  }
+}
