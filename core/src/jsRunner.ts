@@ -15,6 +15,7 @@ export interface RunJSCodeContext {
   fileLoader?: (path: string) => Promise<string>;
   reporter?: (message: any) => void;
   id?: string;
+  abortSignal?: AbortSignal;
 }
 
 const REPORTER_KEY = '__mmtReportStep';
@@ -114,6 +115,11 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     (mmtHelper as any).setFileLoader_(typeof context.fileLoader === 'function' ? context.fileLoader : undefined);
   }
 
+  // Set the abort signal so checkAbort_() can cooperatively cancel between steps.
+  if ('setAbortSignal_' in mmtHelper && typeof (mmtHelper as any).setAbortSignal_ === 'function') {
+    (mmtHelper as any).setAbortSignal_(context.abortSignal);
+  }
+
   try {
     const helperDecls =
           Object.keys(mmtHelper)
@@ -138,11 +144,23 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     lg('info', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
     return returnValue;
   } catch (e: any) {
-    lg('error', 'Error running test: ' + (e?.message || String(e)));
+    // Suppress noisy error logging for intentional abort.
+    const isAbort = e?.name === 'TestAbortError';
+    if (!isAbort) {
+      lg('error', 'Error running test: ' + (e?.message || String(e)));
+    }
     restoreReporterGlobals();
     const elapsed = Date.now() - startTime;
     lg('info', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
+    if (isAbort) {
+      throw e;
+    }
     return undefined;
+  } finally {
+    // Clear abort signal after run completes.
+    if ('setAbortSignal_' in mmtHelper && typeof (mmtHelper as any).setAbortSignal_ === 'function') {
+      (mmtHelper as any).setAbortSignal_(undefined);
+    }
   }
 }
 

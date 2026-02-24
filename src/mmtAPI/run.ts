@@ -37,6 +37,9 @@ let activeSuiteRun:
   {suiteRunId: string; controller: AbortController; panelId: string;}|null =
     null;
 
+let activeTestRun:
+  {controller: AbortController; panelId: string;}|null = null;
+
 const suiteRunIdByChildRunId = new Map<string, string>();
 
 function createSuiteRunId(document: vscode.TextDocument) {
@@ -137,6 +140,12 @@ export async function handleRunCurrentDocument(
   const projectRoot = findProjectRoot(document.uri.fsPath);
   applyNetworkConfig(document.uri.fsPath, envVars);
 
+  const controller = new AbortController();
+  activeTestRun = {
+    controller,
+    panelId: getPanelId(webviewPanel),
+  };
+
   try {
     const fileLoader = createFileLoader(document.uri.fsPath);
     const runOutcome = await runner.runFile({
@@ -153,7 +162,11 @@ export async function handleRunCurrentDocument(
         fileLoader,
       }),
       logger: forwardLog,
+      abortSignal: controller.signal,
       reporter: (msg: any) => {
+        if (controller.signal.aborted) {
+          return;
+        }
         webviewPanel.webview.postMessage({
           command: 'runFileReport',
           filePath: document.uri.toString(),
@@ -168,7 +181,21 @@ export async function handleRunCurrentDocument(
         docType === 'test'          ? 'Test' :
         docType === 'suite'         ? 'Suite' :
                                       'Document';
+
+    if (result.cancelled) {
+      webviewPanel.webview.postMessage({
+        command: 'testRunStopped',
+        filePath: document.uri.toString(),
+      });
+    }
   } catch (err: any) {
+    if (controller.signal.aborted) {
+      webviewPanel.webview.postMessage({
+        command: 'testRunStopped',
+        filePath: document.uri.toString(),
+      });
+      return;
+    }
     const msg = err?.message || String(err);
     if (typeof msg === 'string' && msg.includes('Cannot resolve "+/" import')) {
       vscode.window.showErrorMessage(
@@ -177,6 +204,10 @@ export async function handleRunCurrentDocument(
     }
     vscode.window.showErrorMessage(
         `Failed to run ${fileName}: ${msg}`);
+  } finally {
+    if (activeTestRun && activeTestRun.controller === controller) {
+      activeTestRun = null;
+    }
   }
 }
 
@@ -333,6 +364,23 @@ export function handleStopSuiteRun(
   webviewPanel.webview.postMessage({
     command: 'suiteRunStopped',
     suiteRunId: current.suiteRunId,
+  });
+}
+
+export function handleStopTestRun(
+    _message: any, webviewPanel: vscode.WebviewPanel,
+    _document: vscode.TextDocument, _mmtProvider: any) {
+  const current = activeTestRun;
+  if (!current) {
+    return;
+  }
+  if (current.panelId !== getPanelId(webviewPanel)) {
+    return;
+  }
+  current.controller.abort();
+  webviewPanel.webview.postMessage({
+    command: 'testRunStopped',
+    filePath: _document.uri.toString(),
   });
 }
 

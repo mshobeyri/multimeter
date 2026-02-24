@@ -87,6 +87,7 @@ export interface RunResult {
   logs?: string[];
   threw?: boolean;
   outputs?: Record<string, any>;
+  cancelled?: boolean;
 }
 
 export interface GenerateJsOptions {

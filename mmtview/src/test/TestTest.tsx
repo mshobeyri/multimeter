@@ -109,6 +109,12 @@ const TestTest: React.FC<TestTestProps> = (props) => {
         });
     }, [trimIgnoredRuns]);
 
+    const handleStop = useCallback(() => {
+        window.vscode?.postMessage({
+            command: 'stopTestRun',
+        });
+    }, []);
+
     const appendReport = useCallback((report: StepReportItem) => {
         setStepReports(prev => [...prev, report]);
     }, []);
@@ -199,8 +205,22 @@ const TestTest: React.FC<TestTestProps> = (props) => {
             }
         };
 
+        const stopHandler = (event: MessageEvent) => {
+            const message = event.data;
+            if (!message || typeof message !== 'object') {
+                return;
+            }
+            if (message.command === 'testRunStopped') {
+                setRunState('default');
+            }
+        };
+
         window.addEventListener('message', handler);
-        return () => window.removeEventListener('message', handler);
+        window.addEventListener('message', stopHandler);
+        return () => {
+            window.removeEventListener('message', handler);
+            window.removeEventListener('message', stopHandler);
+        };
     }, [acceptRunEvent, appendReport, mmtFilePath]);
 
     const summary = useMemo(() => {
@@ -216,6 +236,8 @@ const TestTest: React.FC<TestTestProps> = (props) => {
         return 'Ready to run';
     }, [runState]);
 
+    const isRunning = runState === 'running';
+
     return (
         <div style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <div
@@ -229,17 +251,25 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                 }}>
                 <div>{summary}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <button
-                        onClick={handleRun}
-                        className='button-icon'
-                        disabled={runState === 'running'}
-                        style={{
-                            opacity: runState === 'running' ? 0.7 : 1,
-                        }}
-                    >
-                        <span className="codicon codicon-run" />
-                        {runState === 'running' ? 'Running…' : 'Run test'}
-                    </button>
+                    {isRunning ? (
+                        <button
+                            onClick={handleStop}
+                            className='button-icon'
+                            style={{ opacity: 1 }}
+                        >
+                            <span className="codicon codicon-debug-stop" />
+                            Stop
+                        </button>
+                    ) : (
+                        <button
+                            onClick={handleRun}
+                            className='button-icon'
+                            style={{ opacity: 1 }}
+                        >
+                            <span className="codicon codicon-run" />
+                            Run test
+                        </button>
+                    )}
                     {props.rightOfRunButton}
                 </div>
             </div>

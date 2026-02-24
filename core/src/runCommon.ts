@@ -36,7 +36,8 @@ export async function runGeneratedJs(
     stepReporter?: (event: TestStepReporterEvent) => void,
   id?: string,
   fileLoader?: (path: string) => Promise<string>,
-  reporter?: (event: Record<string, any>) => void): Promise<RunResult> {
+  reporter?: (event: Record<string, any>) => void,
+  abortSignal?: AbortSignal): Promise<RunResult> {
   const start = Date.now();
   const errors: string[] = [];
   const logs: string[] = [];
@@ -59,7 +60,8 @@ export async function runGeneratedJs(
       logger: forward,
       fileLoader,
       reporter: reporter ?? stepReporter,
-        id,
+      id,
+      abortSignal,
     });
 
     const outputs = returnValue && typeof returnValue === 'object' ? returnValue : undefined;
@@ -71,13 +73,17 @@ export async function runGeneratedJs(
       outputs,
     };
   } catch (e: any) {
-    errors.push(e?.message || String(e));
+    const isCancelled = e?.name === 'TestAbortError';
+    if (!isCancelled) {
+      errors.push(e?.message || String(e));
+    }
     return {
       success: false,
       durationMs: Date.now() - start,
       errors,
       logs,
       threw: true,
+      cancelled: isCancelled,
     };
   }
 }

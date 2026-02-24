@@ -1,3 +1,27 @@
+/**
+ * Abort signal for cooperative test cancellation.
+ * Set via setAbortSignal_ before each run, checked by checkAbort_
+ * which is injected between test steps.
+ */
+let __mmtAbortSignal: AbortSignal|undefined;
+
+export class TestAbortError extends Error {
+  constructor() {
+    super('Test run was stopped');
+    this.name = 'TestAbortError';
+  }
+}
+
+export const setAbortSignal_ = (signal: AbortSignal|undefined) => {
+  __mmtAbortSignal = signal;
+};
+
+export const checkAbort_ = () => {
+  if (__mmtAbortSignal?.aborted) {
+    throw new TestAbortError();
+  }
+};
+
 export function less_(a: any, b: any) {
   return a < b;
 }

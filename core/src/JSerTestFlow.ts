@@ -264,41 +264,61 @@ export const flowStepsToJsfunc =
     (flow: TestFlowSteps, root: boolean, useExternalReport: boolean = !root): string => {
       return (flow ?? [])
           .map((step: TestFlowStep) => {
+            let stepJs: string;
             switch (getTestFlowStepType(step)) {
               case 'call':
-                return callToJSfunc(step as TestFlowCall);
+                stepJs = callToJSfunc(step as TestFlowCall);
+                break;
               case 'check':
-                return checkToJSfunc((step as TestFlowCheck).check, useExternalReport);
+                stepJs = checkToJSfunc((step as TestFlowCheck).check, useExternalReport);
+                break;
               case 'assert':
-                return assertToJSfunc((step as TestFlowAssert).assert, useExternalReport);
+                stepJs = assertToJSfunc((step as TestFlowAssert).assert, useExternalReport);
+                break;
               case 'if':
-                return ifToJSfunc(step as TestFlowCondition);
+                stepJs = ifToJSfunc(step as TestFlowCondition);
+                break;
               case 'repeat':
-                return repeatToJSfunc(step as TestFlowRepeat);
+                stepJs = repeatToJSfunc(step as TestFlowRepeat);
+                break;
               case 'delay':
-                return delayToJSfunc((step as any).delay);
+                stepJs = delayToJSfunc((step as any).delay);
+                break;
               case 'for':
-                return forToJSfunc(step as TestFlowLoop);
+                stepJs = forToJSfunc(step as TestFlowLoop);
+                break;
               case 'js':
-                return (step as any).js;
+                stepJs = (step as any).js;
+                break;
               case 'print':
                 if (root) {
-                  return `console.log(\`${(step as any).print}\`);`;
+                  stepJs = `console.log(\`${(step as any).print}\`);`;
+                } else {
+                  stepJs = `console.debug(\`${(step as any).print}\`);`;
                 }
-                return `console.debug(\`${(step as any).print}\`);`;
+                break;
               case 'set':
-                return varToJSfunc('', (step as any).set);
+                stepJs = varToJSfunc('', (step as any).set);
+                break;
               case 'var':
-                return varToJSfunc('var ', (step as any).var);
+                stepJs = varToJSfunc('var ', (step as any).var);
+                break;
               case 'const':
-                return varToJSfunc('const ', (step as any).const);
+                stepJs = varToJSfunc('const ', (step as any).const);
+                break;
               case 'let':
-                return varToJSfunc('let ', (step as any).let);
+                stepJs = varToJSfunc('let ', (step as any).let);
+                break;
               case 'setenv':
-                return setenvToJSfunc((step as any).setenv, root);
+                stepJs = setenvToJSfunc((step as any).setenv, root);
+                break;
               default:
-                return '';
+                stepJs = '';
+                break;
             }
+            // Inject cooperative abort check before each step so a stopped
+            // test run can bail out between steps.
+            return stepJs ? `checkAbort_();\n${stepJs}` : stepJs;
           })
           .join('\n');
     };
