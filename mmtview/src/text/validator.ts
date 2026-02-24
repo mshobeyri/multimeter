@@ -761,6 +761,466 @@ export type DocFileLineInfo = {
 //   return { path, line };
 // }
 
+export type ExampleKeySiteInfo = {
+  key: string;
+  section: "inputs" | "outputs";
+  exampleIndex: number;
+  offset: number;
+  line: number;
+};
+
+/**
+ * Walk the `examples` array in an API YAML doc and collect every key under
+ * each example's `inputs` / `outputs` mapping together with its byte offset.
+ */
+export function extractApiExampleKeySites(doc: any, content: string): ExampleKeySiteInfo[] {
+  const rootItems: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
+  const examplesPair = rootItems.find((item: any) => item?.key?.value === "examples");
+  if (!examplesPair?.value?.items) {
+    return [];
+  }
+
+  const results: ExampleKeySiteInfo[] = [];
+  const examplesSeq: any[] = Array.isArray(examplesPair.value.items) ? examplesPair.value.items : [];
+
+  for (let idx = 0; idx < examplesSeq.length; idx++) {
+    const exampleNode = examplesSeq[idx];
+    const examplePairs: any[] = Array.isArray(exampleNode?.items) ? exampleNode.items : [];
+
+    for (const section of ["inputs", "outputs"] as const) {
+      const sectionPair = examplePairs.find((pair: any) => pair?.key?.value === section);
+      if (!sectionPair?.value?.items) {
+        continue;
+      }
+      const mapItems: any[] = Array.isArray(sectionPair.value.items) ? sectionPair.value.items : [];
+      for (const pair of mapItems) {
+        const key = pair?.key?.value;
+        if (typeof key !== "string" || !key.trim()) {
+          continue;
+        }
+        const offset =
+          Array.isArray(pair?.key?.range) && typeof pair.key.range[0] === "number"
+            ? pair.key.range[0]
+            : Array.isArray(pair?.range)
+              ? pair.range[0]
+              : undefined;
+        const line = typeof offset === "number" ? offsetToLineNumber(content, offset) : 1;
+        results.push({ key, section, exampleIndex: idx, offset: typeof offset === "number" ? offset : -1, line });
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Extract the set of key names declared under the root-level `inputs` or
+ * `outputs` mapping in an API YAML document.
+ */
+function extractApiLevelKeys(doc: any, field: "inputs" | "outputs"): Set<string> {
+  const rootItems: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
+  const pair = rootItems.find((item: any) => item?.key?.value === field);
+  if (!pair?.value?.items) {
+    return new Set();
+  }
+  const mapItems: any[] = Array.isArray(pair.value.items) ? pair.value.items : [];
+  const keys = new Set<string>();
+  for (const item of mapItems) {
+    const k = item?.key?.value;
+    if (typeof k === "string" && k.trim()) {
+      keys.add(k);
+    }
+  }
+  return keys;
+}
+
+/**
+ * Produce Monaco inline decorations (yellow wavy underline) for every key
+ * inside an example's `inputs` / `outputs` that does not exist in the
+ * corresponding API-level `inputs` / `outputs` declaration.
+ */
+export function getUndefinedExampleKeyDecorations(
+  monaco: any,
+  model: any,
+  content: string,
+  yamlDoc: any,
+  docType: string | null,
+  inlineClassName: string
+): any[] {
+  if (!model || !yamlDoc || docType !== "api") {
+    return [];
+  }
+
+  const apiInputs = extractApiLevelKeys(yamlDoc, "inputs");
+  const apiOutputs = extractApiLevelKeys(yamlDoc, "outputs");
+
+  // If neither inputs nor outputs are declared, nothing to warn about
+  if (apiInputs.size === 0 && apiOutputs.size === 0) {
+    return [];
+  }
+
+  const sites = extractApiExampleKeySites(yamlDoc, content);
+  const decorations: any[] = [];
+
+  for (const site of sites) {
+    const allowed = site.section === "inputs" ? apiInputs : apiOutputs;
+    // Skip if the API doesn't declare this section at all
+    if (allowed.size === 0) {
+      continue;
+    }
+    if (allowed.has(site.key)) {
+      continue;
+    }
+    if (site.offset < 0) {
+      continue;
+    }
+
+    const sectionLabel = site.section === "inputs" ? "inputs" : "outputs";
+    const hoverMessage = { value: `"${site.key}" is not defined in API ${sectionLabel}` };
+    const start = model.getPositionAt(site.offset);
+    const end = model.getPositionAt(site.offset + site.key.length);
+    decorations.push({
+      range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column),
+      options: {
+        inlineClassName,
+        hoverMessage,
+      },
+    });
+  }
+
+  return decorations;
+}
+
+/**
+ * Produce ProblemEntry items for example keys that don't match API-level
+ * inputs/outputs (for the problems panel).
+ */
+export function findExampleKeyProblems(
+  content: string,
+  yamlDoc: any,
+  docType: string | null
+): ProblemEntry[] {
+  if (docType !== "api" || !yamlDoc) {
+    return [];
+  }
+
+  const apiInputs = extractApiLevelKeys(yamlDoc, "inputs");
+  const apiOutputs = extractApiLevelKeys(yamlDoc, "outputs");
+
+  if (apiInputs.size === 0 && apiOutputs.size === 0) {
+    return [];
+  }
+
+  const sites = extractApiExampleKeySites(yamlDoc, content);
+  return sites
+    .filter((site) => {
+      const allowed = site.section === "inputs" ? apiInputs : apiOutputs;
+      return allowed.size > 0 && !allowed.has(site.key);
+    })
+    .map((site) => {
+      const sectionLabel = site.section === "inputs" ? "inputs" : "outputs";
+      return {
+        message: `"${site.key}" is not defined in API ${sectionLabel}`,
+        severity: "warning" as const,
+        line: site.line,
+        column: 1,
+      };
+    });
+}
+
+export type InputRefSiteInfo = {
+  name: string;
+  offset: number;
+  length: number;
+  line: number;
+};
+
+/**
+ * Scan the raw YAML content for `i:xxx` and `<<i:xxx>>` references and
+ * return their positions. We match:
+ *   - `<<i:name>>` — brace-wrapped form
+ *   - `i:name`     — plain form (word-boundary delimited)
+ *
+ * Comment lines (starting with `#`) are skipped.
+ */
+export function extractInputRefSites(content: string): InputRefSiteInfo[] {
+  const results: InputRefSiteInfo[] = [];
+
+  // Match <<i:name>> — capture the full `i:name` and just `name`
+  const braceRe = /<<\s*i:([a-zA-Z_][a-zA-Z0-9_]*)\s*>>/g;
+  let m: RegExpExecArray | null;
+  while ((m = braceRe.exec(content)) !== null) {
+    const name = m[1];
+    const fullMatchOffset = m.index;
+    const line = offsetToLineNumber(content, fullMatchOffset);
+    // Check if this is on a comment line
+    const lineStart = content.lastIndexOf('\n', fullMatchOffset) + 1;
+    const linePrefix = content.slice(lineStart, fullMatchOffset).trimStart();
+    if (linePrefix.startsWith('#')) {
+      continue;
+    }
+    // Underline just the `i:name` portion inside `<<i:name>>`
+    const innerOffset = content.indexOf('i:' + name, fullMatchOffset);
+    const underlineOffset = innerOffset >= 0 ? innerOffset : fullMatchOffset;
+    const underlineLength = innerOffset >= 0 ? ('i:' + name).length : m[0].length;
+    results.push({ name, offset: underlineOffset, length: underlineLength, line });
+  }
+
+  // Match plain i:name (word-boundary delimited, not inside << >>)
+  const plainRe = /\bi:([a-zA-Z_][a-zA-Z0-9_]*)\b/g;
+  while ((m = plainRe.exec(content)) !== null) {
+    const name = m[1];
+    const fullMatchOffset = m.index;
+    // Skip if this is inside a <<...>> (already handled above)
+    const before = content.slice(Math.max(0, fullMatchOffset - 10), fullMatchOffset);
+    if (/<<\s*$/.test(before)) {
+      continue;
+    }
+    const line = offsetToLineNumber(content, fullMatchOffset);
+    // Check if this is on a comment line
+    const lineStart = content.lastIndexOf('\n', fullMatchOffset) + 1;
+    const linePrefix = content.slice(lineStart, fullMatchOffset).trimStart();
+    if (linePrefix.startsWith('#')) {
+      continue;
+    }
+    results.push({ name, offset: fullMatchOffset, length: m[0].length, line });
+  }
+
+  return results;
+}
+
+/**
+ * Produce Monaco inline decorations (yellow wavy underline) for `i:xxx`
+ * and `<<i:xxx>>` references whose name is not declared in the file-level
+ * `inputs` (works for both API and test files).
+ */
+export function getUndefinedInputRefDecorations(
+  monaco: any,
+  model: any,
+  content: string,
+  yamlDoc: any,
+  docType: string | null,
+  inlineClassName: string
+): any[] {
+  if (!model || !yamlDoc || (docType !== "api" && docType !== "test")) {
+    return [];
+  }
+
+  const declaredInputs = extractApiLevelKeys(yamlDoc, "inputs");
+  if (declaredInputs.size === 0) {
+    return [];
+  }
+
+  const sites = extractInputRefSites(content);
+  const decorations: any[] = [];
+
+  for (const site of sites) {
+    if (declaredInputs.has(site.name)) {
+      continue;
+    }
+    if (site.offset < 0) {
+      continue;
+    }
+
+    const label = docType === "test" ? "test" : "API";
+    const hoverMessage = { value: `Input "${site.name}" is not defined in ${label} inputs` };
+    const start = model.getPositionAt(site.offset);
+    const end = model.getPositionAt(site.offset + site.length);
+    decorations.push({
+      range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column),
+      options: {
+        inlineClassName,
+        hoverMessage,
+      },
+    });
+  }
+
+  return decorations;
+}
+
+/**
+ * Produce ProblemEntry items for `i:xxx` / `<<i:xxx>>` references that don't
+ * match any declared file-level input (works for both API and test files).
+ */
+export function findInputRefProblems(
+  content: string,
+  yamlDoc: any,
+  docType: string | null
+): ProblemEntry[] {
+  if ((docType !== "api" && docType !== "test") || !yamlDoc) {
+    return [];
+  }
+
+  const declaredInputs = extractApiLevelKeys(yamlDoc, "inputs");
+  if (declaredInputs.size === 0) {
+    return [];
+  }
+
+  const label = docType === "test" ? "test" : "API";
+  const sites = extractInputRefSites(content);
+  return sites
+    .filter((site) => !declaredInputs.has(site.name))
+    .map((site) => ({
+      message: `Input "${site.name}" is not defined in ${label} inputs`,
+      severity: "warning" as const,
+      line: site.line,
+      column: 1,
+    }));
+}
+
+export type EnvRefSiteInfo = {
+  name: string;
+  offset: number;
+  length: number;
+  line: number;
+};
+
+/**
+ * Scan the raw YAML content for `e:xxx`, `<<e:xxx>>`, `<e:xxx>`, and `e:{xxx}`
+ * references and return their positions.
+ * Comment lines (starting with `#`) are skipped.
+ */
+export function extractEnvRefSites(content: string): EnvRefSiteInfo[] {
+  const results: EnvRefSiteInfo[] = [];
+  const seen = new Set<number>(); // track offsets to avoid duplicates
+
+  function isCommentLine(offset: number): boolean {
+    const lineStart = content.lastIndexOf('\n', offset) + 1;
+    return content.slice(lineStart, offset).trimStart().startsWith('#');
+  }
+
+  // Match <<e:NAME>> — brace-wrapped
+  const braceRe = /<<\s*e:([A-Za-z_][A-Za-z0-9_]*)\s*>>/g;
+  let m: RegExpExecArray | null;
+  while ((m = braceRe.exec(content)) !== null) {
+    if (isCommentLine(m.index)) {
+      continue;
+    }
+    const name = m[1];
+    // Underline the `e:NAME` portion
+    const innerOffset = content.indexOf('e:' + name, m.index);
+    const underlineOffset = innerOffset >= 0 ? innerOffset : m.index;
+    const underlineLength = innerOffset >= 0 ? ('e:' + name).length : m[0].length;
+    seen.add(underlineOffset);
+    results.push({ name, offset: underlineOffset, length: underlineLength, line: offsetToLineNumber(content, m.index) });
+  }
+
+  // Match <e:NAME> — single-angle
+  const singleAngleRe = /<\s*e:([A-Za-z_][A-Za-z0-9_]*)\s*>/g;
+  while ((m = singleAngleRe.exec(content)) !== null) {
+    if (isCommentLine(m.index)) {
+      continue;
+    }
+    // Skip if already covered by <<...>>
+    const innerOffset = content.indexOf('e:' + m[1], m.index);
+    const offset = innerOffset >= 0 ? innerOffset : m.index;
+    if (seen.has(offset)) {
+      continue;
+    }
+    seen.add(offset);
+    const underlineLength = innerOffset >= 0 ? ('e:' + m[1]).length : m[0].length;
+    results.push({ name: m[1], offset, length: underlineLength, line: offsetToLineNumber(content, m.index) });
+  }
+
+  // Match e:{NAME}
+  const curlyRe = /\be:\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
+  while ((m = curlyRe.exec(content)) !== null) {
+    if (isCommentLine(m.index)) {
+      continue;
+    }
+    if (seen.has(m.index)) {
+      continue;
+    }
+    seen.add(m.index);
+    results.push({ name: m[1], offset: m.index, length: m[0].length, line: offsetToLineNumber(content, m.index) });
+  }
+
+  // Match plain e:NAME (word-boundary delimited)
+  const plainRe = /\be:([A-Za-z_][A-Za-z0-9_]*)\b/g;
+  while ((m = plainRe.exec(content)) !== null) {
+    if (isCommentLine(m.index)) {
+      continue;
+    }
+    if (seen.has(m.index)) {
+      continue;
+    }
+    // Skip if inside << >> or < > or e:{}
+    const before = content.slice(Math.max(0, m.index - 10), m.index);
+    if (/<<\s*$/.test(before) || /<\s*$/.test(before)) {
+      continue;
+    }
+    seen.add(m.index);
+    results.push({ name: m[1], offset: m.index, length: m[0].length, line: offsetToLineNumber(content, m.index) });
+  }
+
+  return results;
+}
+
+/**
+ * Produce Monaco inline decorations (yellow wavy underline) for `e:xxx`
+ * references whose name is not in the known environment variable set.
+ */
+export function getUndefinedEnvRefDecorations(
+  monaco: any,
+  model: any,
+  content: string,
+  knownEnvNames: Set<string>,
+  inlineClassName: string
+): any[] {
+  if (!model || knownEnvNames.size === 0) {
+    return [];
+  }
+
+  const sites = extractEnvRefSites(content);
+  const decorations: any[] = [];
+
+  for (const site of sites) {
+    if (knownEnvNames.has(site.name)) {
+      continue;
+    }
+    if (site.offset < 0) {
+      continue;
+    }
+
+    const hoverMessage = { value: `Environment variable "${site.name}" is not defined` };
+    const start = model.getPositionAt(site.offset);
+    const end = model.getPositionAt(site.offset + site.length);
+    decorations.push({
+      range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column),
+      options: {
+        inlineClassName,
+        hoverMessage,
+      },
+    });
+  }
+
+  return decorations;
+}
+
+/**
+ * Produce ProblemEntry items for `e:xxx` references that don't match any
+ * known environment variable.
+ */
+export function findEnvRefProblems(
+  content: string,
+  knownEnvNames: Set<string>
+): ProblemEntry[] {
+  if (knownEnvNames.size === 0) {
+    return [];
+  }
+
+  const sites = extractEnvRefSites(content);
+  return sites
+    .filter((site) => !knownEnvNames.has(site.name))
+    .map((site) => ({
+      message: `Environment variable "${site.name}" is not defined`,
+      severity: "warning" as const,
+      line: site.line,
+      column: 1,
+    }));
+}
+
+
 export function computeMissingDocFileMarkers(
   monaco: any,
   model: any,

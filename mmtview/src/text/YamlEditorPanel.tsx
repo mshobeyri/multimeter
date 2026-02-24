@@ -4,6 +4,7 @@ import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./BeforeMount";
 import { safeList } from "mmt-core/safer";
 import { openRelativeFile } from "../vsAPI";
+import { loadEnvVariables } from "../workspaceStorage";
 import { useImportValidation } from "./useImportValidation";
 import { useDocFileValidation } from "./useDocFileValidation";
 import { useSuiteTestsValidation } from "./useSuiteTestsValidation";
@@ -16,6 +17,12 @@ import {
   computeTestCallAliasMarkers,
   findTestCallInputsProblems,
   getUndefinedInputDecorations,
+  getUndefinedExampleKeyDecorations,
+  findExampleKeyProblems,
+  getUndefinedInputRefDecorations,
+  findInputRefProblems,
+  getUndefinedEnvRefDecorations,
+  findEnvRefProblems,
   type ProblemEntry,
 } from "./validator";
 import { useRunGlyphs } from './useRunGlyphs';
@@ -107,6 +114,9 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const decorationsRef = useRef<string[]>([]);
   const linkDecorationsRef = useRef<string[]>([]);
   const undefinedInputDecorationsRef = useRef<string[]>([]);
+  const undefinedExampleKeyDecorationsRef = useRef<string[]>([]);
+  const undefinedInputRefDecorationsRef = useRef<string[]>([]);
+  const undefinedEnvRefDecorationsRef = useRef<string[]>([]);
   const contentRef = useRef(content);
   const [editorReady, setEditorReady] = useState(false);
   const importsMapRef = useRef<Record<string, string>>({});
@@ -124,8 +134,42 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const [missingDocFileProblems, setMissingDocFileProblems] = useState<ProblemEntry[]>([]); // Changed from missingLogoFileProblems
   const [callAliasProblems, setCallAliasProblems] = useState<ProblemEntry[]>([]);
   const [callInputsProblems, setCallInputsProblems] = useState<ProblemEntry[]>([]);
+  const [exampleKeyProblems, setExampleKeyProblems] = useState<ProblemEntry[]>([]);
+  const [inputRefProblems, setInputRefProblems] = useState<ProblemEntry[]>([]);
+  const [envRefProblems, setEnvRefProblems] = useState<ProblemEntry[]>([]);
+  const [knownEnvNames, setKnownEnvNames] = useState<Set<string>>(new Set());
   // Keep track of whether the editor has detected a canonical key-order issue via markers.
   const shouldShowRunControls = (docType === "test" || docType === "api" || docType === "suite");
+
+  // Load environment variable names and listen for refresh events
+  useEffect(() => {
+    const refreshEnv = () => {
+      const cleanup = loadEnvVariables((variables) => {
+        setKnownEnvNames(new Set(variables.map((v) => v.name)));
+      });
+      return cleanup;
+    };
+
+    let envCleanup = refreshEnv();
+
+    const handleMessage = (event: MessageEvent) => {
+      const message = event.data;
+      if (message?.command === 'multimeter.environment.refresh') {
+        if (envCleanup) {
+          envCleanup();
+        }
+        envCleanup = refreshEnv();
+      }
+    };
+    window.addEventListener('message', handleMessage);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+      if (envCleanup) {
+        envCleanup();
+      }
+    };
+  }, []);
 
   const { handleRunClick } = useRunGlyphs({
     monacoRef,
@@ -398,6 +442,122 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     );
   }, [content, docType, editorReady, apiInputsByAlias]);
 
+  // Warn on example input/output keys that don't match API-level inputs/outputs
+  useEffect(() => {
+    if (!editorReady || !monacoRef.current || !editorRef.current) {
+      return;
+    }
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) {
+      return;
+    }
+
+    let doc: any = null;
+    try {
+      doc = parseYamlDoc(content);
+      if (doc.errors && doc.errors.length > 0) {
+        setExampleKeyProblems([]);
+        undefinedExampleKeyDecorationsRef.current = editor.deltaDecorations(undefinedExampleKeyDecorationsRef.current, []);
+        return;
+      }
+    } catch {
+      setExampleKeyProblems([]);
+      undefinedExampleKeyDecorationsRef.current = editor.deltaDecorations(undefinedExampleKeyDecorationsRef.current, []);
+      return;
+    }
+
+    const problems = findExampleKeyProblems(content, doc, docType);
+    setExampleKeyProblems(problems);
+
+    const decos = getUndefinedExampleKeyDecorations(
+      monaco,
+      model,
+      content,
+      doc,
+      docType,
+      UNDEFINED_INPUT_CLASS
+    );
+    undefinedExampleKeyDecorationsRef.current = editor.deltaDecorations(
+      undefinedExampleKeyDecorationsRef.current,
+      decos
+    );
+  }, [content, docType, editorReady]);
+
+  // Warn on i:xxx / <<i:xxx>> references to undefined inputs
+  useEffect(() => {
+    if (!editorReady || !monacoRef.current || !editorRef.current) {
+      return;
+    }
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) {
+      return;
+    }
+
+    let doc: any = null;
+    try {
+      doc = parseYamlDoc(content);
+      if (doc.errors && doc.errors.length > 0) {
+        setInputRefProblems([]);
+        undefinedInputRefDecorationsRef.current = editor.deltaDecorations(undefinedInputRefDecorationsRef.current, []);
+        return;
+      }
+    } catch {
+      setInputRefProblems([]);
+      undefinedInputRefDecorationsRef.current = editor.deltaDecorations(undefinedInputRefDecorationsRef.current, []);
+      return;
+    }
+
+    const problems = findInputRefProblems(content, doc, docType);
+    setInputRefProblems(problems);
+
+    const decos = getUndefinedInputRefDecorations(
+      monaco,
+      model,
+      content,
+      doc,
+      docType,
+      UNDEFINED_INPUT_CLASS
+    );
+    undefinedInputRefDecorationsRef.current = editor.deltaDecorations(
+      undefinedInputRefDecorationsRef.current,
+      decos
+    );
+  }, [content, docType, editorReady]);
+
+  // Warn on e:xxx / <<e:xxx>> references to undefined environment variables
+  useEffect(() => {
+    if (!editorReady || !monacoRef.current || !editorRef.current) {
+      return;
+    }
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model || knownEnvNames.size === 0) {
+      setEnvRefProblems([]);
+      undefinedEnvRefDecorationsRef.current = editor.deltaDecorations(undefinedEnvRefDecorationsRef.current, []);
+      return;
+    }
+
+    const problems = findEnvRefProblems(content, knownEnvNames);
+    setEnvRefProblems(problems);
+
+    const decos = getUndefinedEnvRefDecorations(
+      monaco,
+      model,
+      content,
+      knownEnvNames,
+      UNDEFINED_INPUT_CLASS
+    );
+    undefinedEnvRefDecorationsRef.current = editor.deltaDecorations(
+      undefinedEnvRefDecorationsRef.current,
+      decos
+    );
+  }, [content, editorReady, knownEnvNames]);
+
   useEffect(() => {
     if (!editorReady || !editorRef.current || !monacoRef.current) {
       return;
@@ -576,12 +736,15 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       ...callAliasProblems,
       ...callInputsProblems,
       ...missingSuiteFileProblems,
+      ...exampleKeyProblems,
+      ...inputRefProblems,
+      ...envRefProblems,
     ];
     window.vscode.postMessage({
       command: "updateDocumentProblems",
       problems,
     });
-  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, missingDocFileProblems]);
+  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, missingDocFileProblems, exampleKeyProblems, inputRefProblems, envRefProblems]);
 
   return (
     <div style={{ height: "100%" }}>
