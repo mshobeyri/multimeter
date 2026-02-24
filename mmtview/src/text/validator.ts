@@ -1221,6 +1221,68 @@ export function findEnvRefProblems(
 }
 
 
+/**
+ * Detect root-level `description:` keys whose value spans multiple lines
+ * without a YAML block-scalar indicator (`|` or `>`).  Returns a warning
+ * for each occurrence so the user can add the indicator.
+ */
+export function findMultilineDescriptionProblems(content: string): ProblemEntry[] {
+  const lines = content.split('\n');
+  const results: ProblemEntry[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trimStart();
+    if (!/^description:(\s|$)/.test(trimmed)) {
+      continue;
+    }
+
+    const descIndent = lines[i].search(/\S/);
+    const afterColon = trimmed.slice('description:'.length).trim();
+
+    // Already using a block-scalar indicator — nothing to warn about
+    if (/^[|>]/.test(afterColon)) {
+      continue;
+    }
+
+    // Count continuation lines indented deeper than the key
+    let continuationCount = 0;
+    for (let j = i + 1; j < lines.length; j++) {
+      const nextLine = lines[j];
+      if (nextLine.trim() === '') {
+        let hasMore = false;
+        for (let k = j + 1; k < lines.length; k++) {
+          if (lines[k].trim() === '') {
+            continue;
+          }
+          hasMore = lines[k].search(/\S/) > descIndent;
+          break;
+        }
+        if (hasMore) {
+          continuationCount++;
+          continue;
+        }
+        break;
+      }
+      if (nextLine.search(/\S/) > descIndent) {
+        continuationCount++;
+      } else {
+        break;
+      }
+    }
+
+    if (continuationCount >= 1) {
+      results.push({
+        message: 'Multiline description should use "|" block scalar indicator',
+        severity: 'warning' as const,
+        line: i + 1, // 1-based
+        column: 1,
+      });
+    }
+  }
+
+  return results;
+}
+
 export function computeMissingDocFileMarkers(
   monaco: any,
   model: any,

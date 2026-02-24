@@ -23,6 +23,7 @@ import {
   findInputRefProblems,
   getUndefinedEnvRefDecorations,
   findEnvRefProblems,
+  findMultilineDescriptionProblems,
   type ProblemEntry,
 } from "./validator";
 import { useRunGlyphs } from './useRunGlyphs';
@@ -137,6 +138,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const [exampleKeyProblems, setExampleKeyProblems] = useState<ProblemEntry[]>([]);
   const [inputRefProblems, setInputRefProblems] = useState<ProblemEntry[]>([]);
   const [envRefProblems, setEnvRefProblems] = useState<ProblemEntry[]>([]);
+  const [descriptionProblems, setDescriptionProblems] = useState<ProblemEntry[]>([]);
   const [knownEnvNames, setKnownEnvNames] = useState<Set<string>>(new Set());
   // Keep track of whether the editor has detected a canonical key-order issue via markers.
   const shouldShowRunControls = (docType === "test" || docType === "api" || docType === "suite");
@@ -528,6 +530,37 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     );
   }, [content, docType, editorReady]);
 
+  // Warn on multiline description without block-scalar indicator
+  useEffect(() => {
+    if (!editorReady || !monacoRef.current || !editorRef.current) {
+      setDescriptionProblems([]);
+      return;
+    }
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) {
+      setDescriptionProblems([]);
+      return;
+    }
+
+    const problems = findMultilineDescriptionProblems(content);
+    setDescriptionProblems(problems);
+
+    const markers = problems.map((p) => {
+      const lineNumber = Math.min(Math.max(p.line ?? 1, 1), model.getLineCount());
+      return {
+        startLineNumber: lineNumber,
+        startColumn: 1,
+        endLineNumber: lineNumber,
+        endColumn: model.getLineMaxColumn(lineNumber),
+        message: p.message,
+        severity: monaco.MarkerSeverity.Warning,
+      };
+    });
+    monaco.editor.setModelMarkers(model, "mmt-description", markers);
+  }, [content, editorReady]);
+
   // Warn on e:xxx / <<e:xxx>> references to undefined environment variables
   useEffect(() => {
     if (!editorReady || !monacoRef.current || !editorRef.current) {
@@ -739,12 +772,13 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       ...exampleKeyProblems,
       ...inputRefProblems,
       ...envRefProblems,
+      ...descriptionProblems,
     ];
     window.vscode.postMessage({
       command: "updateDocumentProblems",
       problems,
     });
-  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, missingDocFileProblems, exampleKeyProblems, inputRefProblems, envRefProblems]);
+  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, missingDocFileProblems, exampleKeyProblems, inputRefProblems, envRefProblems, descriptionProblems]);
 
   return (
     <div style={{ height: "100%" }}>
