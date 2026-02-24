@@ -80,6 +80,9 @@ For CLI usage, sensible defaults are applied:
 - Self-signed certificates are not allowed by default
 - All configured certificates are enabled
 
+### Self-signed certificate auto-retry
+When "Allow Self-Signed" is enabled, Multimeter automatically retries failed HTTPS requests with SSL validation disabled if the error matches specific TLS error codes (such as `SELF_SIGNED_CERT_IN_CHAIN` or `DEPTH_ZERO_SELF_SIGNED_CERT`). This makes it easier to work with development servers using self-signed certificates without manually disabling validation globally.
+
 ## Passphrase handling
 
 For security, you can store passphrases in environment variables instead of the env file:

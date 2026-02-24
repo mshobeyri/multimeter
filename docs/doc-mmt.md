@@ -29,11 +29,11 @@ sources:
   - ./shared
 services:
   - name: Accounts
-  description: Endpoints for authentication and account management
+    description: Endpoints for authentication and account management
     sources:
       - ./services/accounts
   - name: Billing
-  description: Invoicing and payment endpoints
+    description: Invoicing and payment endpoints
     sources:
       - ./services/billing
 ```
@@ -47,33 +47,17 @@ Notes
 ## Elements
 The `doc` type is intentionally small:
 
-- title: Page title shown in the header
-- sources: Array of folders and/or `.mmt` files to include
-- services: Optional array of groups with `name`, `description?`, and `sources`
+- title: page title shown in the header
+- description: introductory text shown below the title in the rendered output
+- logo: path or URL to a logo image, displayed in the HTML header
+- sources: array of folders and/or `.mmt` files to include
+- services: optional array of groups with `name`, `description?`, and `sources`
 
 The editor’s Doc view:
 - Renders a sticky header with logo (if configured), title, and a search box
 - Lets you filter API boxes by typing in the search field (matches text in the box)
 - Each API row is expandable; details include URL, inputs, headers, cookies, body, outputs, and examples when present
   - Example blocks may include their own inputs and outputs when provided
-
----
-
-## Legacy compatibility
-Older fields are mapped to `sources` automatically when reading YAML:
-
-```yaml
-type: doc
-title: Legacy
-files: [a.mmt]
-folders: [apis]
-services:
-  - name: A
-    files: [b.mmt]
-    folders: [svc]
-```
-
-These are normalized to `sources` at runtime. When saving from the UI, only `sources` is written.
 
 ---
 
@@ -153,9 +137,58 @@ Placeholders are resolved **once** at render time. The doc-level `title` and `de
 
 ---
 
+## Parameter annotations in API descriptions
+
+API `description` fields support special annotations that document input and output parameters. These annotations are parsed and displayed as parameter description columns in both HTML and Markdown output.
+
+Syntax:
+- `<<i:param_name>> description text` — documents an input parameter
+- `<<o:param_name>> description text` — documents an output parameter
+
+Example API file:
+```yaml
+type: api
+title: Create user
+description: |
+  Create a new user account.
+
+  <<i:username>> The desired username (3-20 characters)
+  <<i:email>> User email address
+  <<i:role>> User role: admin, editor, or viewer
+
+  <<o:id>> The generated user ID
+  <<o:created_at>> ISO 8601 timestamp of account creation
+inputs:
+  username: string
+  email: string
+  role: viewer
+method: post
+url: <<e:API_URL>>/users
+```
+
+In the rendered doc, each `<<i:...>>` and `<<o:...>>` annotation appears as a row in the parameter table for that API.
+
+---
+
+## Markdown in API descriptions
+
+API `description` fields support a subset of Markdown formatting that renders in both the editor UI and the generated documentation:
+
+- `**bold**` and `*italic*`
+- `` `inline code` ``
+- `> headings` (blockquote-style headings)
+- Bullet lists (`-` or `*`) and numbered lists (`1.`)
+- Pipe tables (`| col1 | col2 |`)
+
+This applies to descriptions in both `type: api` files and the doc-level `description` field.
+
+---
+
 ## Reference (types)
 - type: `doc`
 - title: string
+- description: string (rendered as subtitle/intro; supports Markdown)
+- logo: string (path or URL to logo image for the HTML header)
 - sources: string[] (folders or `.mmt` files)
 - services: array of { name?: string, description?: string, sources?: string[] }
 - html: object with optional keys:

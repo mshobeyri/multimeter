@@ -8,16 +8,9 @@ export function yamlToDoc(yamlContent: string): DocData {
     if (!doc || typeof doc !== 'object') {
       return {type: 'doc'} as DocData;
     }
-    // Back-compat: support legacy files/folders merged into sources
     const sources: string[] = [];
     if (Array.isArray(doc.sources)) {
       sources.push(...doc.sources);
-    }
-    if (Array.isArray(doc.files)) {
-      sources.push(...doc.files);
-    }
-    if (Array.isArray(doc.folders)) {
-      sources.push(...doc.folders);
     }
 
     const services: DocService[]|undefined = Array.isArray(doc.services) ?
@@ -25,12 +18,6 @@ export function yamlToDoc(yamlContent: string): DocData {
           const svcSources: string[] = [];
           if (Array.isArray(s?.sources)) {
             svcSources.push(...s.sources);
-          }
-          if (Array.isArray(s?.files)) {
-            svcSources.push(...s.files);
-          }
-          if (Array.isArray(s?.folders)) {
-            svcSources.push(...s.folders);
           }
           return {
             name: s?.name,

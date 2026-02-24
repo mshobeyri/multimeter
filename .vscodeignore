@@ -11,6 +11,7 @@ out/
 examples/
 screenshots/
 website/
+demos/
 
 # Webview build artifacts (not needed in the vsix)
 mmtview/node_modules/**

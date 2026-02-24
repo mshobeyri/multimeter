@@ -38,6 +38,14 @@ The panel parses the spec and creates one or more `.mmt` API files (and optional
   - example payloads when available
 - A flat structure by default; you can rearrange files afterward
 
+### Postman-specific features
+- **Dynamic variable mapping**: Postman variables like `{{$guid}}`, `{{$randomEmail}}`, `{{$randomInt}}` are automatically converted to Multimeter `r:` tokens (e.g., `r:uuid`, `r:email`, `r:int`).
+- **Form data and URL-encoded bodies**: `formdata` and `urlencoded` body modes from Postman collections are converted to the appropriate body format.
+- **Example extraction**: When Postman items include saved response examples with `originalRequest`, the convertor auto-generates inputs, header input placeholders, and example overrides in the generated API files.
+
+### OpenAPI-specific features
+- **XML body generation**: When an OpenAPI spec defines content types like `application/xml`, the convertor generates XML body templates from the schema.
+
 ## Tips
 - Map your base URL to an environment variable early (for example, API_URL) and reference it with `<<e:API_URL>>` so you can switch presets
 - Review generated inputs/headers—tweak names to match your project conventions

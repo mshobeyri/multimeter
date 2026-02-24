@@ -6,6 +6,8 @@
   - `mmtview/`: React + VS Code webview UI for editing/running `.mmt` files.
   - `mmtcli/`: CLI app; binary is `testlight`, used for CI and local runs.
   - Root `src/`: VS Code extension host code (activation, editor provider, assistant, network bridge).
+  - `docs/`: user-facing documentation (API, test, env, suite, CLI, convertor, etc.).
+  - `devdocs/`: internal development docs — SDDs, competitive strategy, architectural decision records. Not shipped to users.
 - **Single source of truth** for running `.mmt` files is `core/src/runner.ts`:
   - Use `runner.runFile({ rawFile, filePath, inputs, envvar, fileLoader, jsRunner, logger })`.
   - Do **not** reimplement parsing or execution pipelines in the extension or CLI – always go through `runner`.

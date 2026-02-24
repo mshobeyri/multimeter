@@ -84,6 +84,13 @@ steps:
 - **Relative paths** (e.g., `./login.mmt`, `../apis/users.mmt`) resolve relative to the current file's directory.
 - **Project root paths** start with `+/` and resolve relative to the directory containing `multimeter.mmt`. This is useful for importing shared APIs or data from a central location without worrying about relative path depth.
 
+**CSV import behavior:**
+- CSV files are parsed following RFC 4180 (quoted fields, embedded commas).
+- Unquoted numeric strings are auto-coerced to numbers (`"42"` → `42`).
+- `true`/`false` are coerced to booleans.
+- Quoted values remain strings (e.g., `"00123"` stays `"00123"`).
+- BOM characters at the start of the file are handled automatically.
+
 Example with project root imports:
 ```yaml
 # File: tests/auth/login_test.mmt
@@ -137,14 +144,19 @@ Invoke an imported API or another test; give it an id to reference its outputs l
 - call: getUser
   id: profile
   inputs:
-  token: doLogin.token
+    token: doLogin.token
 ```
 
 ### check, assert
 Use check to log a failure and continue; use assert to stop the flow on failure.
 
 Supported operators
-- `<`, `>`, `<=`, `>=`, `==`, `!=`, `=@` (contains), `!@` (not contains), `=^` (starts with), `!^` (not starts with), `=$` (ends with), `!$` (not ends with), `=~` (regex), `!~` (not regex)
+- `<`, `>`, `<=`, `>=`, `==`, `!=`
+- `=@` (right side contains left side, i.e., `expected.includes(actual)`)
+- `!@` (right side does not contain left side)
+- `=^` (starts with), `!^` (not starts with)
+- `=$` (ends with), `!$` (not ends with)
+- `=~` (regex match), `!~` (not regex match)
 
 You can write checks and asserts in a concise inline form or in a structured object form with explicit `actual`, `expected`, `operator`, and an optional `title` or `details`.
 
@@ -217,7 +229,9 @@ Conditionally run nested steps based on an expression.
 ```
 
 ### for, repeat
-for runs with a JavaScript-style header (for example, `const user of users`) and executes the inner steps per item. repeat runs the inner steps a fixed number of times (or time-based).
+`for` runs with a JavaScript-style header (for example, `const user of users`) and executes the inner steps per item. `repeat` runs the inner steps a fixed number of times, time-based, or indefinitely.
+
+The `for` expression is passed directly to JavaScript, so any valid JS for-of/for-in/for header works:
 ```yaml
 # iterate imported CSV rows (from import:
 #   users: ./users.csv)
@@ -229,11 +243,40 @@ for runs with a JavaScript-style header (for example, `const user of users`) and
         username: user.username
         password: user.password
 
+# iterate with index
+- for: let i = 0; i < 10; i++
+  steps:
+    - print: "iteration ${i}"
+
+# iterate object entries
+- for: const [key, value] of Object.entries(config)
+  steps:
+    - print: "${key} = ${value}"
+```
+
+`repeat` supports count-based, time-based, and infinite modes:
+```yaml
 # repeat N times
 - repeat: 3
   steps:
     - call: poll
     - delay: 2s
+
+# repeat for a duration
+- repeat: 30s
+  steps:
+    - call: healthCheck
+
+# other time units: ms, s, m, h
+- repeat: 5m
+  steps:
+    - call: poll
+
+# repeat indefinitely (until manually stopped)
+- repeat: inf
+  steps:
+    - call: monitor
+    - delay: 1s
 ```
 
 ### delay
@@ -251,6 +294,21 @@ Run inline JavaScript for custom logic or logging.
     console.log('ts', t);
 ```
 
+The following globals are available inside `js` steps:
+
+| Global | Description |
+|--------|-------------|
+| `console` | Custom console with `log`, `warn`, `error`, `debug`, `trace` |
+| `send_(request)` | Send an HTTP request directly |
+| `extractOutputs_(response, outputMap)` | Extract values from a response |
+| `report_(stepType, comparison, title, details, passed)` | Emit a check/assert result to the log |
+| `setenv_(name, value)` | Set an environment variable at runtime |
+| `importJsModule_(path)` | Load a JS module at runtime |
+| `Random.*` | All random token functions (e.g., `Random.randomUUID()`, `Random.randomInt()`, `Random.randomEmail()`) |
+| `__mmt_random(name)` | Resolve a random token by name (e.g., `__mmt_random('uuid')`) |
+| `__mmt_current(name)` | Resolve a current token by name (e.g., `__mmt_current('date')`) |
+| `equals_()`, `less_()`, `greater_()`, etc. | Comparison helpers matching check/assert operators |
+
 ### print
 Write a message to the log output.
 ```yaml
@@ -258,11 +316,27 @@ Write a message to the log output.
 ```
 
 ### set, var, const, or let
-Create or change variables for later steps. set mutates existing (or creates new); var/const/let follow JS scoping.
+Create or change variables for later steps. `set` mutates existing (or creates new); `var`/`const`/`let` follow JS scoping.
+
 ```yaml
 - set:
-  token: doLogin.token   # mutable
+    token: doLogin.token   # mutable
+
 - var:
+    attempt: 1
+
+- const:
+    role: "admin"
+
+- let:
+    note: "temp"
+```
+
+When to use which:
+- **set**: creates or updates a variable in the current scope (mutable). Use for values that change across steps.
+- **var**: function-scoped variable (hoisted). Rarely needed; prefer `let`.
+- **const**: block-scoped, cannot be reassigned. Use for values that shouldn't change.
+- **let**: block-scoped, can be reassigned. Use for loop counters or temporary values.
 
 ### setenv
 Set environment variables during a run. This is mainly useful when you run a test directly (not as an imported sub-test), because it updates the runtime environment for subsequent calls.
@@ -276,18 +350,56 @@ Set environment variables during a run. This is mainly useful when you run a tes
 Notes:
 - Values can be strings (template strings supported) or non-string literals.
 - When running a suite, setenv events are still emitted but may be scoped to the top-level run behavior.
-  attempt: 1
-- const:
-  role: "admin"
-- let:
-  note: "temp"
-```
 
 ### data
 Bind an imported CSV alias (from the test's import section) into scope for use in loops and steps.
 ```yaml
 - data: users   # where import:
                 #   users: ./users.csv
+```
+
+## Metrics (load testing)
+The `metrics` field enables load/performance testing by running your test flow with controlled concurrency and duration.
+
+```yaml
+type: test
+title: Load test login
+metrics:
+  repeat: 100        # run the flow 100 times total (or time-based: "30s", "5m", "1h", "inf")
+  threads: 10        # run up to 10 concurrent instances
+  duration: 2m       # overall time limit (optional)
+  rampup: 30s        # gradually increase threads over 30 seconds (optional)
+import:
+  login: ./api/login.mmt
+steps:
+  - call: login
+    id: doLogin
+    inputs:
+      username: r:email
+      password: r:uuid
+  - assert: doLogin.status == 200
+```
+
+Fields:
+- **repeat**: number of iterations or a time string (`30s`, `5m`, `1h`). Use `inf` for infinite.
+- **threads**: number of concurrent instances to run.
+- **duration**: overall time limit for the test. Use `inf` for unlimited. Format: `Ns`, `Nm`, `Nh`.
+- **rampup**: time to gradually increase from 1 thread to the target `threads` count.
+
+## Stage condition
+Stages support a `condition` field that skips the stage if the condition evaluates to false. The condition uses the same syntax as `assert`/`check` inline expressions.
+
+```yaml
+stages:
+  - id: login
+    steps:
+      - call: login
+        id: doLogin
+  - id: profile
+    condition: doLogin.status == 200
+    depends_on: login
+    steps:
+      - call: getProfile
 ```
 
 ## Complete example
@@ -320,11 +432,23 @@ steps:
 - type: `test`
 - title: string
 - tags: string[]
-- description: string
-- import: record<string, string> (CSV)
-- inputs: record<string, string | number | boolean | null>
-- outputs: record<string, string | number | boolean | null>
-- metrics: repeat?: string | number, threads?: number, duration?: string, rampup?: string
-- steps: array of step
+- description: string (supports Markdown)
+- import: record&lt;string, string&gt; (`.mmt`, `.csv`, `.js`/`.cjs`/`.mjs`)
+- inputs: record&lt;string, string | number | boolean | null&gt;
+- outputs: record&lt;string, string | number | boolean | null&gt;
+- metrics: { repeat?, threads?, duration?, rampup? }
+- steps: array of step (alias: `flow`)
 - stages: array of { id, title?, steps, condition?, depends_on? }
-- step types: `call`, `check`, `assert`, `if`, `for`, `repeat`, `delay`, `js`, `print`, `set`, `var`, `const`, `let`, `data`
+- step types: `call`, `check`, `assert`, `if`, `for`, `repeat`, `delay`, `js`, `print`, `set`, `var`, `const`, `let`, `setenv`, `data`
+
+Notes:
+- `flow` is accepted as a backward-compatible alias for `steps`.
+- The YAML editor provides autocomplete for `call` step names, check/assert operators, and input references.
+
+---
+
+## See also
+- [API](./api-mmt.md) — define HTTP/WS requests that tests call
+- [Environment](./environment-mmt.md) — variables and presets consumed by tests
+- [Suite](./suite-mmt.md) — group and run multiple tests together
+- [Testlight CLI](./testlight.md) — run tests from the command line

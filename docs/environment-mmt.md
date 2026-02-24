@@ -34,8 +34,11 @@ Notes
  
 ## Usage
 Supported token forms in tests and APIs:
-- `<<e:VAR>>`
-- `e:VAR` when used as a value after `: ` (colon + space), for example `value: e:VAR`.
+
+| Syntax | Where to use | Type behavior |
+|--------|-------------|---------------|
+| `<<e:VAR>>` | Anywhere in a string (URLs, headers, body text) | Always substituted as string |
+| `e:VAR` | As the entire value after `: ` (colon + space) | Preserves type (number, boolean, string) |
 
 What to use when
 - Use `<<e:VAR>>` when you want substitution anywhere in a string (inside URLs, headers, or other text).
@@ -43,7 +46,7 @@ What to use when
 
 Notes
 - `e:VAR` is not replaced inside plain text like `hi:e:VAR there`; it must follow `: `.
-- `e:{VAR}` and `{{VAR}}` are not supported.
+- `{{VAR}}` is not supported — use `<<e:VAR>>` or `e:VAR` instead.
 
 Examples:
 ```yaml
@@ -100,10 +103,25 @@ setenv:
 SSL/TLS certificate settings can be configured in the `certificates` section of the env file. See [Certificates documentation](./certificates-mmt.md) for details on configuring CA certificates, client certificates (mTLS), and SSL validation settings.
 
 ## Reference (types)
-- type: `env`
+- type: `env` or `var`
 - variables: record<string, string | object (choices) | array (allowed values)>
 - presets: record<string, record<string, record<string, string|number|boolean|null>>>
 - certificates: { ca?, clients?, sslValidation?, allowSelfSigned? }
+
+`type: var` is an alias for `type: env` — both define variables and presets. Use whichever name fits your project conventions.
+
+## VS Code Settings
+
+Multimeter exposes the following VS Code settings (accessible via Settings or `settings.json`):
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `multimeter.network.timeout` | `30000` | HTTP request timeout in milliseconds |
+| `multimeter.body.auto.format` | `true` | Auto-format response bodies (JSON pretty-print) |
+| `multimeter.editor.fontSize` | `14` | Font size for the YAML editor (range: 8-40) |
+| `multimeter.editor.defaultPanel` | `yaml-ui` | Default panel when opening `.mmt` files: `yaml-ui`, `yaml`, or `ui` |
+| `multimeter.editor.collapseDescription` | `false` | Auto-collapse multi-line description fields when opening files |
+| `multimeter.workspaceEnvFile` | `multimeter.mmt` | Path to the workspace environment file loaded on project open |
 
 ## Project Root Marker
 
