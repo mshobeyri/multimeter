@@ -551,24 +551,26 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, rightOfRunButton }) => {
                     }}
                 >
                     <div style={{ display: 'flex', gap: 8}}>
-                        <button
-                            className="button-icon"
-                            disabled={!canRun}
-                            onClick={onRunSuite}
-                            title={!canRun ? 'No suite files to run' : 'Run suite'}
-                        >
-                            <span className="codicon codicon-run" aria-hidden />
-                            Run suite
-                        </button>
-                        <button
-                            className="button-icon"
-                            disabled={suiteRunState !== 'running'}
-                            onClick={onStopSuite}
-                            title={suiteRunState !== 'running' ? 'Suite is not running' : 'Stop suite'}
-                        >
-                            <span className="codicon codicon-debug-stop" aria-hidden />
-                            Stop
-                        </button>
+                        {suiteRunState === 'running' ? (
+                            <button
+                                className="button-icon"
+                                onClick={onStopSuite}
+                                title="Stop suite"
+                            >
+                                <span className="codicon codicon-debug-stop" aria-hidden />
+                                Stop
+                            </button>
+                        ) : (
+                            <button
+                                className="button-icon"
+                                disabled={!canRun}
+                                onClick={onRunSuite}
+                                title={!canRun ? 'No suite files to run' : 'Run suite'}
+                            >
+                                <span className="codicon codicon-run" aria-hidden />
+                                Run suite
+                            </button>
+                        )}
                         {rightOfRunButton}
                     </div>
                 </div>
