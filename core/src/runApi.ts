@@ -198,7 +198,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `        headers: __headers,\n` +
       `        body: __mmt_formatBodyValue(__body)\n` +
       `      };\n` +
-      `      console.log(__mmt_formatSection('Response:', __resLog));\n` +
+      `      console.debug(__mmt_formatSection('Response:', __resLog));\n` +
       `      if (typeof __status === 'number' && __status < 0) {\n` +
       `        let err = new Error(__statusText || 'Network error');\n` +
       `        err.status = __status;\n` +
@@ -218,7 +218,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `          __errorLog.headers = err.headers;\n` +
       `        }\n` +
       `      }\n` +
-      `      console.log(__mmt_formatSection('Response:', __errorLog));\n` +
+      `      console.error(__mmt_formatSection('Response:', __errorLog));\n` +
       `      throw err;\n` +
       `    }\n` +
       `  };\n\n` +
@@ -232,7 +232,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `    if (__mmt_hasEnv) {\n` +
       `      console.debug(__mmt_formatSection('Environment:', __mmt_envVars));\n` +
       `    }\n` +
-      `    console.debug(__mmt_formatSection('Inputs:', __mmt_inputs));\n` +
+      `    console.log(__mmt_formatSection('Inputs:', __mmt_inputs));\n` +
       `    const result = await ${opts.name}({ ...__mmt_inputs });\n` +
       `    const __outputLog = (() => {\n` +
       `      if (result === undefined) {\n` +

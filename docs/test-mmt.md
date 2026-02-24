@@ -213,7 +213,7 @@ Default behavior (if `report` is omitted):
 - `internal: all` — report all results when running directly
 - `external: fails` — report only failures when imported or in a suite
 
-Checks, assertions, prints, and errors appear in the Log panel while the flow runs.
+Checks, assertions, prints, and errors appear in the Log panel while the flow runs. The report level also determines the [log level](./logging.md#checks-and-asserts) for each result.
 
 ![Log panel](../screenshots/test_panel_log.png)
 
@@ -453,3 +453,4 @@ Notes:
 - [Suite](./suite-mmt.md) — group and run multiple tests together
 - [Testlight CLI](./testlight.md) — run tests from the command line
 - [Sample Project](./sample-project.md) — full walkthrough with APIs, tests, suites, and docs
+- [Logging](./logging.md) — log levels for checks, prints, and network calls

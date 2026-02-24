@@ -198,12 +198,19 @@ const comparisonToJSfunc = (type: 'check'|'assert', comparison: Comparison, useE
   const reportOnSuccess = reportLevel === 'all';
   // Report on fail unless level is 'none'
   const reportOnFail = reportLevel !== 'none';
+  // Log levels follow report policy:
+  //   none  → fail: debug, success: trace
+  //   fails → fail: error, success: debug
+  //   all   → fail: error, success: info
+  const failLogFn = reportLevel === 'none' ? 'console.debug' : 'console.error';
+  const successLogFn = reportLevel === 'all' ? 'console.log' :
+      reportLevel === 'fails' ? 'console.debug' : 'console.trace';
   const throwOnFail = type === 'assert' ? `\n  throw new Error("Assertion failed");` : '';
   return `if (${conditionStatement}) {
-  console.log(${toTemplateWithVars(finaSuccessMsg)});
+  ${successLogFn}(${toTemplateWithVars(finaSuccessMsg)});
   ${reportOnSuccess ? `report_('${type}', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, true);` : ''}
 } else {
-  console.error(${toTemplateWithVars(finaFaillMsg)});
+  ${failLogFn}(${toTemplateWithVars(finaFaillMsg)});
   ${reportOnFail ? `report_('${type}', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, false, ${finalActual}, ${finalExpected});` : ''}${throwOnFail}
 }\n`;
 };

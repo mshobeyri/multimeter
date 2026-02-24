@@ -16,6 +16,8 @@ export interface RunJSCodeContext {
   reporter?: (message: any) => void;
   id?: string;
   abortSignal?: AbortSignal;
+  /** When true, wrap send_ with trace-level request/response logging (used by test runs). */
+  traceSend?: boolean;
 }
 
 const REPORTER_KEY = '__mmtReportStep';
@@ -138,7 +140,22 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       `const report_ = (...args) => mmtHelper.reportWithContext_(__reporter, __runId, __id, ...args);\n` +
       `const setenv_ = (name, value) => mmtHelper.setenvWithContext_(__reporter, __runId, __id, name, value);\n` +
       `${code}`);
-    const returnValue = await fn(mmtHelper, customConsole, send, extractOutputs, Random, reporterFn, runId, context.id, mmtRandom, mmtCurrent);
+    // Wrap send_ with trace-level request/response logging for test runs
+    const sendFn = context.traceSend ? async (req: any) => {
+      const reqSummary = req ? `${(req.method || 'GET').toUpperCase()} ${req.url || ''}` : 'unknown';
+      lg('trace', `Request: ${reqSummary}`);
+      try {
+        const res = await send(req);
+        const status = res && typeof res.status === 'number' ? res.status : '?';
+        const duration = res && typeof res.duration === 'number' ? ` (${res.duration}ms)` : '';
+        lg('trace', `Response: ${status}${duration}`);
+        return res;
+      } catch (err: any) {
+        lg('trace', `Response: error - ${err?.message || String(err)}`);
+        throw err;
+      }
+    } : send;
+    const returnValue = await fn(mmtHelper, customConsole, sendFn, extractOutputs, Random, reporterFn, runId, context.id, mmtRandom, mmtCurrent);
     restoreReporterGlobals();
     const elapsed = Date.now() - startTime;
     lg('info', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);

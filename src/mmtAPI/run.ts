@@ -82,7 +82,10 @@ export function logToOutput(level: LogLevel, message: string) {
   }
 }
 export function showLogOutputChannel() {
-  logOutputChannel.show(true);
+  const config = vscode.workspace.getConfiguration('multimeter');
+  if (config.get<boolean>('showLogOnRun', true)) {
+    logOutputChannel.show(true);
+  }
 }
 
 /** Extract envVars dict from workspace state storage. */

@@ -144,6 +144,11 @@
           "type": "string",
           "default": "multimeter.mmt",
           "description": "Path to the workspace environment file (type: env) relative to the workspace root. This file is loaded on workspace open and sets environment variables, presets, and certificates."
+        },
+        "multimeter.showLogOnRun": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically open the Multimeter log panel when running a test, API, or suite from the editor"
         }
       }
     },

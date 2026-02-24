@@ -107,3 +107,4 @@ Testlight compiles your `.mmt`/YAML tests to JS on the fly and executes them wit
 - [Doc](./doc-mmt.md) — author doc files for `testlight doc`
 - [Suite](./suite-mmt.md) — run suites from the CLI
 - [Sample Project](./sample-project.md) — full walkthrough with CLI examples
+- [Logging](./logging.md) — log levels and where logs appear for each entry point
