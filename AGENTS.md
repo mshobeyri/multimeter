@@ -65,6 +65,16 @@
 
 - Do **NOT** create, stage, or push git commits unless the user explicitly asks you to do so. Always ask for confirmation before running any `git add`, `git commit`, or `git push` operations. You may edit files in the workspace to make suggested changes, but do not record those changes in version control until the user gives explicit permission. When edits are made without committing, clearly list the modified files and the intended commit message so the user can approve.
 
+### Release workflow
+
+When the user says **"release version X.Y.Z"** (or "release version X.Y.Z pre-release"):
+
+1. Update the `version` field in the root `package.json` to `X.Y.Z`.
+2. Update CHANGELOG.md based on commits (consider adding change log of previous versions if missed)
+3. Stage all changes and create a git commit with the message: `Release version X.Y.Z`.
+4. Run `vsce package` at the repo root to produce the `.vsix`.
+   - If the user said **pre-release**, run `vsce package --pre-release` instead.
+
 ## Build, test, and packaging
 - From repo root:
   - `npm run compile --silent` – build all apps (core, extension, webview, CLI) via the shared pipeline.

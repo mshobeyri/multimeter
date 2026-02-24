@@ -2,6 +2,23 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.11.0]
+
+- Add test stop button
+- Add warning for description fields missing block scalar indicator
+- Add validation for inputs and environment variables in YAML
+- Unify test and suite UI buttons
+- Activate horizontal sliders for responsive UI
+- Refine logs
+
+## [1.10.0]
+
+- Add support for markdown in descriptions
+- Refine extract variable from output
+- Add option to auto-collapse long description sections
+- Make API outputs copyable
+- Reorder sub items by format
+
 ## [1.9.4]
 
 - Add copy button for API output values
