@@ -76,6 +76,9 @@ export interface TestFlowCall extends TestFlowBase {
   call: string;
   id: string;
   inputs?: Record<string, any>;
+  check?: Comparison | Comparison[];
+  assert?: Comparison | Comparison[];
+  report?: ReportLevel | ReportConfig;
 }
 
 export interface TestFlowCallTest extends TestFlowCall {

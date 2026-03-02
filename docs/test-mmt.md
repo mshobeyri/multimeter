@@ -147,6 +147,45 @@ Invoke an imported API or another test; give it an id to reference its outputs l
     token: doLogin.token
 ```
 
+#### Inline check/assert on call
+
+You can add `check` or `assert` directly on a call step to validate its output parameters without a separate step. The left side of the comparison is always an output parameter of the called API/test.
+
+Single check:
+```yaml
+- call: login
+  check: status == 200
+```
+
+Multiple checks (array form):
+```yaml
+- call: login
+  check:
+    - status == 200
+    - token != null
+```
+
+Inline assert (stops on failure):
+```yaml
+- call: login
+  assert: status == 200
+```
+
+You can combine check and assert, and optionally set a `report` level:
+```yaml
+- call: login
+  inputs:
+    username: alice
+  check:
+    - token != null
+  assert: status == 200
+  report: all
+```
+
+- **Title**: defaults to the call's `id` if set, otherwise the call name.
+- **Details**: defaults to the full output of the call (JSON).
+- **Report**: defaults to standard config; override with `report` on the call step.
+
 ### check, assert
 Use check to log a failure and continue; use assert to stop the flow on failure.
 

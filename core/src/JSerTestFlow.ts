@@ -1,5 +1,5 @@
 import {indentLines, timeUnitToMs, toInputsParams} from './JSerHelper';
-import {Comparison, normalizeReportConfig, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
+import {Comparison, ComparisonObject, normalizeReportConfig, ReportConfig, ReportLevel, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
 import {getTestFlowStepType} from './testParsePack';
 import {replaceEnvTokensPlain, toTemplateWithEnvVars} from './variableReplacer';
 
@@ -221,18 +221,79 @@ export const checkToJSfunc = (check: Comparison, useExternalReport: boolean): st
 export const assertToJSfunc = (assert: Comparison, useExternalReport: boolean): string =>
   comparisonToJSfunc('assert', assert, useExternalReport);
 
-const callToJSfunc = (step: TestFlowCall): string => {
+/**
+ * Build a ComparisonObject from an inline call check/assert comparison,
+ * prefixing the actual expression with the call result variable.
+ * Uses ${resultVar.field} so the value evaluates at runtime inside template literals.
+ */
+const transformCallComparison = (
+    comp: Comparison, resultVar: string, defaultTitle: string,
+    defaultDetails: string, report?: ReportLevel | ReportConfig): ComparisonObject => {
+  if (typeof comp === 'string') {
+    const parts = comp.split(' ');
+    if (parts.length !== 3) {
+      throw new Error(`Invalid inline check format: ${comp}`);
+    }
+    const [actual, operator, expected] = parts;
+    return {
+      actual: `\${${resultVar}.${actual}}`,
+      expected,
+      operator,
+      title: defaultTitle,
+      details: defaultDetails,
+      report,
+    };
+  }
+  // Object form
+  const actualStr = typeof comp.actual === 'string' ? comp.actual : String(comp.actual);
+  return {
+    actual: `\${${resultVar}.${actualStr}}`,
+    expected: comp.expected,
+    operator: comp.operator || '==',
+    title: comp.title || defaultTitle,
+    details: comp.details || defaultDetails,
+    report: comp.report || report,
+  };
+};
+
+const callToJSfunc = (step: TestFlowCall, useExternalReport: boolean): string => {
   let inputParams = toInputsParams(step.inputs || {}, ': ');
   if (inputParams.length > 0) {
     inputParams = ' ' + inputParams + ' ';
   }
 
-  let call = `await ${step.call}({${inputParams}});`;
-  if (step.id) {
-    call = `const ${step.id} = ` + call;
+  const hasInlineChecks = step.check || step.assert;
+  const safeName = step.call.replace(/[^a-zA-Z0-9_]/g, '_');
+  const resultVar = step.id || (hasInlineChecks ? `_${safeName}` : undefined);
+
+  let callExpr = `await ${step.call}({${inputParams}});`;
+  if (resultVar) {
+    callExpr = `const ${resultVar} = ` + callExpr;
   }
 
-  return call;
+  let result = callExpr;
+
+  if (hasInlineChecks) {
+    const title = step.id || step.call || 'call';
+    const details = `\${JSON.stringify(${resultVar})}`;
+
+    const processComparisons = (comps: Comparison | Comparison[], type: 'check' | 'assert') => {
+      const list = Array.isArray(comps) ? comps : [comps];
+      for (const comp of list) {
+        const transformed = transformCallComparison(comp, resultVar!, title, details, step.report);
+        result += '\ncheckAbort_();\n' + comparisonToJSfunc(type, transformed, useExternalReport);
+      }
+    };
+
+    if (step.check) {
+      processComparisons(step.check, 'check');
+    }
+    if (step.assert) {
+      processComparisons(step.assert, 'assert');
+    }
+  }
+
+  return result;
 };
 
 const varToJSfunc = (key: string, step: any): string => {
@@ -274,7 +335,7 @@ export const flowStepsToJsfunc =
             let stepJs: string;
             switch (getTestFlowStepType(step)) {
               case 'call':
-                stepJs = callToJSfunc(step as TestFlowCall);
+                stepJs = callToJSfunc(step as TestFlowCall, useExternalReport);
                 break;
               case 'check':
                 stepJs = checkToJSfunc((step as TestFlowCheck).check, useExternalReport);

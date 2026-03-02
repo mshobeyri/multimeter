@@ -296,6 +296,31 @@ export const TestSchema = {
                                         { type: 'null' }
                                     ]
                                 }
+                            },
+                            check: {
+                                oneOf: [
+                                    { type: 'string' },
+                                    { type: 'array', items: { type: 'string' } }
+                                ]
+                            },
+                            assert: {
+                                oneOf: [
+                                    { type: 'string' },
+                                    { type: 'array', items: { type: 'string' } }
+                                ]
+                            },
+                            report: {
+                                oneOf: [
+                                    { type: 'string', enum: ['all', 'fails', 'none'] },
+                                    {
+                                        type: 'object',
+                                        properties: {
+                                            internal: { type: 'string', enum: ['all', 'fails', 'none'] },
+                                            external: { type: 'string', enum: ['all', 'fails', 'none'] }
+                                        },
+                                        additionalProperties: false
+                                    }
+                                ]
                             }
                         },
                         additionalProperties: false
