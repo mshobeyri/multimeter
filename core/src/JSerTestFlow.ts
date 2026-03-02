@@ -11,6 +11,13 @@ function randomName(): string {
 const replaceEnvTokens = replaceEnvTokensPlain;
 const toTemplateWithVars = toTemplateWithEnvVars;
 
+/** Strip empty-string markers: '' and "" both mean empty string in comparison expressions. */
+const unquoteEmpty = (s: string): string => {
+  const t = s.trim();
+  if (t === "''" || t === '""') { return ''; }
+  return t;
+};
+
 export const conditionalStatementToJSfunc = (check: string): string => {
   // Replace env tokens like e:FOO -> envVariables.FOO
   const normalized = replaceEnvTokens(check);
@@ -18,7 +25,8 @@ export const conditionalStatementToJSfunc = (check: string): string => {
   if (checkParts.length !== 3) {
     return 'true';
   }
-  const [actual, operator, expected] = checkParts;
+  const [actual, operator, rawExpected] = checkParts;
+  const expected = unquoteEmpty(rawExpected);
   switch (operator) {
     case '<':
       return `less_(\`${actual}\`, \`${expected}\`)`;
@@ -70,10 +78,12 @@ const normalizeComparison =
       if (typeof comp === 'string') {
         const raw = comp;
         const parts = comp.split(' ');
-        if (parts.length !== 3) {
+        if (parts.length < 2 || parts.length > 3) {
           throw new Error(`Invalid ${kind} format: ${comp}`);
         }
-        const [actual, operator, expected] = parts;
+        const actual = parts[0];
+        const operator = parts[1];
+        const expected = unquoteEmpty(parts[2] ?? '');
         return {actual, operator, expected, raw};
       }
 
@@ -231,10 +241,12 @@ const transformCallComparison = (
     defaultDetails: string, report?: ReportLevel | ReportConfig): ComparisonObject => {
   if (typeof comp === 'string') {
     const parts = comp.split(' ');
-    if (parts.length !== 3) {
+    if (parts.length < 2 || parts.length > 3) {
       throw new Error(`Invalid inline check format: ${comp}`);
     }
-    const [actual, operator, expected] = parts;
+    const actual = parts[0];
+    const operator = parts[1];
+    const expected = unquoteEmpty(parts[2] ?? '');
     return {
       actual: `\${${resultVar}.${actual}}`,
       expected,

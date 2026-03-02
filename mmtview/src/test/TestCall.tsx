@@ -270,32 +270,62 @@ const TestCall: React.FC<TestCallProps> = ({
     return ['statusCode_', ...outs];
   }, [currentAlias, importedOutputsByAlias]);
 
-  /** Parse a comparison string "actual op expected" into its three parts */
+  /** Strip empty-string markers so the UI text field shows blank for empty values.
+   *  '' or "" in YAML both represent "compare against empty string". */
+  const unquoteEmpty = (v: string): string => {
+    const t = v.trim();
+    if (t === "''" || t === '""') { return ''; }
+    return t;
+  };
+
+  /** Parse a comparison string "actual op expected" into its three parts.
+   *  The core format is strict: exactly "actual operator expected" (3 space-separated tokens).
+   *  We also handle:
+   *    - "actual op" (no expected → empty string)
+   *    - operator at end of string (no trailing space)
+   */
   const parseComparison = (s: string): { actual: string; op: string; expected: string } => {
     const trimmed = (s ?? '').trim();
-    // Try to find any known operator in the string
+    // Try to find any known operator (surrounded by spaces or at end of string)
     for (const op of opsList) {
-      const idx = trimmed.indexOf(` ${op} `);
+      const withSpaces = ` ${op} `;
+      const idx = trimmed.indexOf(withSpaces);
       if (idx >= 0) {
         return {
           actual: trimmed.slice(0, idx).trim(),
           op,
-          expected: trimmed.slice(idx + op.length + 2).trim(),
+          expected: unquoteEmpty(trimmed.slice(idx + withSpaces.length)),
+        };
+      }
+      // Operator at end of string (e.g. "name ==")
+      if (trimmed.endsWith(` ${op}`)) {
+        return {
+          actual: trimmed.slice(0, trimmed.length - op.length - 1).trim(),
+          op,
+          expected: '',
         };
       }
     }
-    // Fallback: split on first whitespace-delimited token
+    // Fallback: split on whitespace
     const parts = trimmed.split(/\s+/);
     return {
       actual: parts[0] ?? '',
       op: parts[1] ?? '==',
-      expected: parts.slice(2).join(' '),
+      expected: unquoteEmpty(parts.slice(2).join(' ')),
     };
   };
 
-  /** Build a comparison string from parts */
+  /** Build a comparison string from parts.
+   *  Always produces "actual op expected" (exactly 3 tokens) since the core
+   *  parser requires 3 space-separated parts.  When expected is empty we
+   *  still emit a placeholder so the runner won't throw.
+   */
   const buildComparison = (actual: string, op: string, expected: string): string => {
-    return `${actual} ${op} ${expected}`;
+    // The core requires exactly 3 space-delimited tokens.
+    // An empty expected must therefore still be represented as a single token.
+    // We use an empty-quoted string ('') to serialize "empty" values.
+    const exp = expected === '' ? "''" : expected;
+    return `${actual} ${op} ${exp}`;
   };
 
   const onInputChange = (key: string, val: string) => {

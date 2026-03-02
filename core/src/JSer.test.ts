@@ -847,6 +847,51 @@ describe('inline check/assert on call steps', () => {
     expect(js).toContain('await login(');
     expect(js).not.toContain('const _login');
   });
+
+  it('handles check with empty expected (2-part format)', async () => {
+    const ctx: TestContext = {
+      name: 'callEmptyExpected',
+      test: {
+        steps: [{call: 'login', check: 'name =='} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('const _login');
+    expect(js).toContain('equals_');
+    // The expected arg in the template literal should be empty
+    expect(js).toContain('``');
+  });
+
+  it('handles check with quoted empty string markers', async () => {
+    const ctx: TestContext = {
+      name: 'callQuotedEmpty',
+      test: {
+        steps: [{call: 'login', check: "name == ''"} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('equals_');
+    // '' should be unquoted to truly empty
+    expect(js).toContain('``');
+  });
+
+  it('handles check with double-quoted empty string markers', async () => {
+    const ctx: TestContext = {
+      name: 'callDblQuotedEmpty',
+      test: {
+        steps: [{call: 'login', check: 'name == ""'} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('equals_');
+    expect(js).toContain('``');
+  });
 });
 
 describe('body inputs numeric/boolean templating', () => {
