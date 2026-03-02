@@ -6,7 +6,7 @@ import { safeList } from "mmt-core/safer";
 import { replaceAllRefs } from "mmt-core/variableReplacer";
 import { formatBody } from "mmt-core/markupConvertor";
 import { loadEnvVariables } from "../workspaceStorage";
-import { extractOutputs, extractPathAtPosition } from "mmt-core/outputExtractor";
+import { extractOutputs, extractPathAtPosition, buildBodyExprFromPath } from "mmt-core/outputExtractor";
 import { setEnvironmentVariable, getEnvironmentVariable } from "../environment/environmentUtils";
 import { useNetwork } from "../components/network/Network";
 import { NetworkNodeApi, Error as NetworkError } from "../components/network/NetworkNodeApi";
@@ -553,10 +553,7 @@ function toContentString(data: any): string {
   return String(data);
 }
 
-function buildBodyExprFromPath(path: Array<string | number>): string {
-  const parts = path.map(seg => `[${String(seg)}]`).join("");
-  return `body${parts}`;
-}
+// buildBodyExprFromPath is now imported from mmt-core/outputExtractor
 
 async function handleSetEnvVariables(
   api: APIData,

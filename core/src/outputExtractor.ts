@@ -495,6 +495,13 @@ function resolveDotPath(response: ResponseData, expr: string): any {
   return val ?? '';
 }
 
+export function buildBodyExprFromPath(path: PathSegment[]): string {
+  if (!path || path.length === 0) {
+    return '';
+  }
+  return 'body.' + path.map(seg => String(seg)).join('.');
+}
+
 export function extractOutputs(
     response: ResponseData, outputsDef: Record<string, string>): JSONRecord {
   const result: JSONRecord = {};

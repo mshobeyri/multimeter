@@ -1,4 +1,4 @@
-import { extractOutputs, ResponseData } from './outputExtractor';
+import { extractOutputs, buildBodyExprFromPath, ResponseData } from './outputExtractor';
 
 describe('outputExtractor', () => {
   it('extracts with explicit regex prefix', () => {
@@ -276,5 +276,31 @@ describe('outputExtractor', () => {
     const res = extractOutputs(response, { admin: '$body[0]' });
     expect(typeof res.admin).toBe('object');
     expect(res.admin).toEqual({ id: 5, role: 'admin' });
+  });
+});
+
+describe('buildBodyExprFromPath', () => {
+  it('builds dot notation for simple property path', () => {
+    expect(buildBodyExprFromPath(['user', 'id'])).toBe('body.user.id');
+  });
+
+  it('builds dot notation for deeply nested path', () => {
+    expect(buildBodyExprFromPath(['user', 'profile', 'address', 'city'])).toBe('body.user.profile.address.city');
+  });
+
+  it('builds dot notation with numeric array indices', () => {
+    expect(buildBodyExprFromPath(['items', 0, 'name'])).toBe('body.items.0.name');
+  });
+
+  it('builds dot notation for single segment', () => {
+    expect(buildBodyExprFromPath(['message'])).toBe('body.message');
+  });
+
+  it('returns empty string for empty path', () => {
+    expect(buildBodyExprFromPath([])).toBe('');
+  });
+
+  it('handles mixed string and numeric segments', () => {
+    expect(buildBodyExprFromPath(['data', 2, 'tags', 0])).toBe('body.data.2.tags.0');
   });
 });
