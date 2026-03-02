@@ -281,6 +281,46 @@ export const handleBeforeMount = (monaco: any) => {
 
     // --- End of import-aware autocomplete helpers ---
 
+    /**
+     * Detect if the cursor is inside the `check:` or `assert:` list of a `- call:` step.
+     * Returns { alias, field } where field is 'check' or 'assert', or null otherwise.
+     */
+    const getCallAliasForCheckContext = (lines: string[], lineNumber: number, currentIndent: number): { alias: string; field: string } | null => {
+        let foundField = false;
+        let fieldIndent = -1;
+        let field = '';
+        for (let i = lineNumber - 2; i >= 0; i--) {
+            const line = lines[i];
+            if (!line.trim()) { continue; }
+            const indent = line.search(/\S|$/);
+            const trimmed = line.trim();
+
+            if (!foundField) {
+                // Looking for check: or assert: parent of current line
+                if (indent < currentIndent && /^(check|assert):\s*$/.test(trimmed)) {
+                    foundField = true;
+                    fieldIndent = indent;
+                    field = trimmed.replace(/:.*/, '');
+                    continue;
+                }
+                if (indent < currentIndent) {
+                    return null;
+                }
+                continue;
+            }
+
+            // Found check/assert, now look for the `- call:` parent
+            if (indent < fieldIndent) {
+                const callMatch = trimmed.match(/^-\s*call:\s*(.+)$/);
+                if (callMatch) {
+                    return { alias: callMatch[1].trim().replace(/^["']|["']$/g, ''), field };
+                }
+                return null;
+            }
+        }
+        return null;
+    };
+
     // Helper function to deduplicate suggestions by label
     const deduplicateSuggestions = (suggestions: any[]): any[] => {
         const uniqueLabels = new Set<string>();
@@ -579,6 +619,66 @@ export const handleBeforeMount = (monaco: any) => {
                                         startColumn: baseStartColumn,
                                         endLineNumber: position.lineNumber,
                                         endColumn: baseEndColumn,
+                                    }
+                                }))
+                            };
+                        }
+                    }
+                }
+            }
+
+            // Call inline check/assert autocomplete: when inside check: or assert: list of a call step,
+            // suggest output parameters of the called API/test as comparison expressions.
+            // Example:
+            //   - call: login
+            //     check:
+            //       - <here>  ← suggest status == , token == , etc.
+            if (firstLine === 'type: test' && (parentContext === 'check' || parentContext === 'assert')) {
+                const allLines = model.getLinesContent();
+                const callInfo = getCallAliasForCheckContext(allLines, lineNumber, currentIndent);
+                if (callInfo) {
+                    const importMap = getImportMap(model);
+                    const filePath = importMap[callInfo.alias];
+                    if (filePath) {
+                        const parsed = await readAndParseImportedFile(filePath);
+                        const suggestionList: any[] = [];
+                        // Always suggest built-in fields
+                        suggestionList.push({
+                            label: 'statusCode_ == ',
+                            kind: monaco.languages.CompletionItemKind.Property,
+                            insertText: 'statusCode_ == ',
+                            detail: 'HTTP status code',
+                            documentation: `Check the HTTP status code of the ${callInfo.alias} call.\nExample: statusCode_ == 200`,
+                            sortText: '~0',
+                        });
+                        if (parsed?.outputs) {
+                            for (const [key, rule] of Object.entries(parsed.outputs)) {
+                                suggestionList.push({
+                                    label: `${key} == `,
+                                    kind: monaco.languages.CompletionItemKind.Field,
+                                    insertText: `${key} == `,
+                                    detail: `Output: ${rule || key}`,
+                                    documentation: `Check output "${key}" from ${callInfo.alias}.\nExtraction rule: ${rule || '(default)'}`,
+                                    sortText: `0${key}`,
+                                });
+                            }
+                        }
+                        if (suggestionList.length > 0) {
+                            const wordInfo = model.getWordUntilPosition(position);
+                            const baseStartColumn = wordInfo?.startColumn ?? position.column;
+                            const baseEndColumn = wordInfo?.endColumn ?? position.column;
+                            const trimmedLine = lineContent.trim();
+                            const dashOffset = trimmedLine.startsWith('-')
+                                ? Math.min(lineContent.length, lineContent.indexOf('-') + 2)
+                                : (baseStartColumn - 1);
+                            return {
+                                suggestions: deduplicateSuggestions(suggestionList).map((item) => ({
+                                    ...item,
+                                    range: {
+                                        startLineNumber: position.lineNumber,
+                                        startColumn: Math.max(1, dashOffset + 1),
+                                        endLineNumber: position.lineNumber,
+                                        endColumn: Math.max(baseEndColumn, dashOffset + 1),
                                     }
                                 }))
                             };

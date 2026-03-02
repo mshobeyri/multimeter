@@ -1,8 +1,8 @@
 import React from "react";
 import { parseYamlDoc } from "mmt-core/markupConvertor";
 import { findTestCallAliasProblems, findTestCallInputsProblems, type MissingImportEntry, type ProblemEntry } from "../text/validator";
+import { opsList, opsNames } from "mmt-core/TestData";
 import FieldWithRemove from "../components/FieldWithRemove";
-
 interface TestCallProps {
   value: any; // current value can be alias string
   imports?: Record<string, string>; // alias -> file path
@@ -10,6 +10,7 @@ interface TestCallProps {
   placeholder?: string;
   missingImports?: MissingImportEntry[];
   importedInputsByAlias?: Record<string, string[]>;
+  importedOutputsByAlias?: Record<string, string[]>;
 }
 
 const TestCall: React.FC<TestCallProps> = ({
@@ -19,6 +20,7 @@ const TestCall: React.FC<TestCallProps> = ({
   placeholder = "Select an item...",
   missingImports,
   importedInputsByAlias,
+  importedOutputsByAlias,
 }) => {
   // Local model to avoid excessive parent re-renders while editing
   const [local, setLocal] = React.useState<any>(typeof value === 'object' && value ? value : null);
@@ -46,7 +48,11 @@ const TestCall: React.FC<TestCallProps> = ({
     if ((ac.id || '') !== (bc.id || '')) return false;
     const ai = ac.inputs && typeof ac.inputs === 'object' ? ac.inputs : {};
     const bi = bc.inputs && typeof bc.inputs === 'object' ? bc.inputs : {};
-    return stableStringify(ai) === stableStringify(bi);
+    if (stableStringify(ai) !== stableStringify(bi)) return false;
+    if (stableStringify(ac.check) !== stableStringify(bc.check)) return false;
+    if (stableStringify(ac.assert) !== stableStringify(bc.assert)) return false;
+    if (stableStringify(ac.report) !== stableStringify(bc.report)) return false;
+    return true;
   };
 
   const parseLiteral = (text: string): any => {
@@ -83,6 +89,62 @@ const TestCall: React.FC<TestCallProps> = ({
     }
   }, [value]);
 
+  // --- Inline check/assert helpers ---
+
+  /** Normalize a comparison to string form "actual op expected" */
+  const comparisonToString = (c: any): string => {
+    if (typeof c === 'string') { return c; }
+    if (c && typeof c === 'object') {
+      const actual = c.actual ?? '';
+      const op = c.operator || '==';
+      const expected = c.expected ?? '';
+      return `${actual} ${op} ${expected}`;
+    }
+    return '';
+  };
+
+  /** Read check/assert lists from local state */
+  const checkList: string[] = React.useMemo(() => {
+    const raw = local && typeof local === 'object' ? (local as any).check : undefined;
+    if (raw === undefined || raw === null) { return []; }
+    const arr = Array.isArray(raw) ? raw : [raw];
+    return arr.map(comparisonToString);
+  }, [local]);
+
+  const assertList: string[] = React.useMemo(() => {
+    const raw = local && typeof local === 'object' ? (local as any).assert : undefined;
+    if (raw === undefined || raw === null) { return []; }
+    const arr = Array.isArray(raw) ? raw : [raw];
+    return arr.map(comparisonToString);
+  }, [local]);
+
+  const callReport = React.useMemo(() => {
+    return local && typeof local === 'object' ? (local as any).report : undefined;
+  }, [local]);
+
+  /** Build the full call object from current state */
+  const buildCallObj = (overrides?: {
+    alias?: string; id?: string; inputs?: Record<string, any>;
+    check?: string[]; assert?: string[]; report?: any;
+  }) => {
+    const alias = overrides?.alias ?? currentAlias;
+    const id = overrides?.id ?? currentId;
+    const inp = overrides?.inputs ?? inputs;
+    const chk = overrides?.check ?? checkList;
+    const ast = overrides?.assert ?? assertList;
+    const rep = overrides?.report !== undefined ? overrides.report : callReport;
+    if (!alias) { return {}; }
+    const obj: any = { call: alias };
+    if (id && id.trim().length > 0) { obj.id = id; }
+    obj.inputs = inp;
+    if (chk.length === 1) { obj.check = chk[0]; }
+    else if (chk.length > 1) { obj.check = chk; }
+    if (ast.length === 1) { obj.assert = ast[0]; }
+    else if (ast.length > 1) { obj.assert = ast; }
+    if (rep !== undefined) { obj.report = rep; }
+    return obj;
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const alias = e.target.value;
     if (!alias) {
@@ -90,7 +152,7 @@ const TestCall: React.FC<TestCallProps> = ({
       scheduleEmit({});
       return;
     }
-    const next = currentId ? { call: alias, id: currentId, inputs: (local as any)?.inputs || {} } : { call: alias, inputs: (local as any)?.inputs || {} };
+    const next = buildCallObj({ alias });
     setLocal(next);
     scheduleEmit(next);
   };
@@ -98,8 +160,7 @@ const TestCall: React.FC<TestCallProps> = ({
   const handleIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const idVal = e.target.value;
     if (!currentAlias) return;
-    const base = { call: currentAlias, inputs: (local as any)?.inputs || {} } as any;
-    const next = idVal && idVal.trim().length > 0 ? { ...base, id: idVal } : base;
+    const next = buildCallObj({ id: idVal });
     setLocal(next);
   };
 
@@ -201,10 +262,46 @@ const TestCall: React.FC<TestCallProps> = ({
     availableInputs.filter((key) => !keys.includes(key))
   ), [availableInputs, keys]);
 
+  const availableOutputs = React.useMemo(() => {
+    if (!currentAlias || !importedOutputsByAlias) {
+      return ['statusCode_'] as string[];
+    }
+    const outs = (importedOutputsByAlias[currentAlias] || []).filter(Boolean);
+    return ['statusCode_', ...outs];
+  }, [currentAlias, importedOutputsByAlias]);
+
+  /** Parse a comparison string "actual op expected" into its three parts */
+  const parseComparison = (s: string): { actual: string; op: string; expected: string } => {
+    const trimmed = (s ?? '').trim();
+    // Try to find any known operator in the string
+    for (const op of opsList) {
+      const idx = trimmed.indexOf(` ${op} `);
+      if (idx >= 0) {
+        return {
+          actual: trimmed.slice(0, idx).trim(),
+          op,
+          expected: trimmed.slice(idx + op.length + 2).trim(),
+        };
+      }
+    }
+    // Fallback: split on first whitespace-delimited token
+    const parts = trimmed.split(/\s+/);
+    return {
+      actual: parts[0] ?? '',
+      op: parts[1] ?? '==',
+      expected: parts.slice(2).join(' '),
+    };
+  };
+
+  /** Build a comparison string from parts */
+  const buildComparison = (actual: string, op: string, expected: string): string => {
+    return `${actual} ${op} ${expected}`;
+  };
+
   const onInputChange = (key: string, val: string) => {
     if (!currentAlias) return;
     const nextInputs = { ...inputs, [key]: parseLiteral(val) };
-    const next = currentId ? { call: currentAlias, id: currentId, inputs: nextInputs } : { call: currentAlias, inputs: nextInputs };
+    const next = buildCallObj({ inputs: nextInputs });
     setLocal(next);
     scheduleEmit(next);
   };
@@ -213,7 +310,7 @@ const TestCall: React.FC<TestCallProps> = ({
     if (!currentAlias) return;
     const nextInputs = { ...inputs };
     delete nextInputs[key];
-    const next = currentId ? { call: currentAlias, id: currentId, inputs: nextInputs } : { call: currentAlias, inputs: nextInputs };
+    const next = buildCallObj({ inputs: nextInputs });
     setLocal(next);
     scheduleEmit(next);
   };
@@ -224,7 +321,55 @@ const TestCall: React.FC<TestCallProps> = ({
       return;
     }
     const nextInputs = { ...inputs, [key]: '' };
-    const next = currentId ? { call: currentAlias, id: currentId, inputs: nextInputs } : { call: currentAlias, inputs: nextInputs };
+    const next = buildCallObj({ inputs: nextInputs });
+    setLocal(next);
+    scheduleEmit(next);
+  };
+
+  // --- Check/Assert handlers ---
+
+  const handleAddCheck = () => {
+    const defaultActual = availableOutputs[0] || '';
+    const next = buildCallObj({ check: [...checkList, buildComparison(defaultActual, '==', '')] });
+    setLocal(next);
+    scheduleEmit(next);
+  };
+
+  const handleRemoveCheck = (index: number) => {
+    const next = buildCallObj({ check: checkList.filter((_, i) => i !== index) });
+    setLocal(next);
+    scheduleEmit(next);
+  };
+
+  const handleCheckPartChange = (index: number, part: 'actual' | 'op' | 'expected', val: string) => {
+    const parsed = parseComparison(checkList[index]);
+    parsed[part] = val;
+    const updated = [...checkList];
+    updated[index] = buildComparison(parsed.actual, parsed.op, parsed.expected);
+    const next = buildCallObj({ check: updated });
+    setLocal(next);
+    scheduleEmit(next);
+  };
+
+  const handleAddAssert = () => {
+    const defaultActual = availableOutputs[0] || '';
+    const next = buildCallObj({ assert: [...assertList, buildComparison(defaultActual, '==', '')] });
+    setLocal(next);
+    scheduleEmit(next);
+  };
+
+  const handleRemoveAssert = (index: number) => {
+    const next = buildCallObj({ assert: assertList.filter((_, i) => i !== index) });
+    setLocal(next);
+    scheduleEmit(next);
+  };
+
+  const handleAssertPartChange = (index: number, part: 'actual' | 'op' | 'expected', val: string) => {
+    const parsed = parseComparison(assertList[index]);
+    parsed[part] = val;
+    const updated = [...assertList];
+    updated[index] = buildComparison(parsed.actual, parsed.op, parsed.expected);
+    const next = buildCallObj({ assert: updated });
     setLocal(next);
     scheduleEmit(next);
   };
@@ -326,6 +471,148 @@ const TestCall: React.FC<TestCallProps> = ({
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="label">Checks</div>
+          <div style={{ padding: "5px" }}>
+            {checkList.length ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {checkList.map((c, i) => {
+                  const parsed = parseComparison(c);
+                  return (
+                    <div key={i} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      <select
+                        value={parsed.actual}
+                        onChange={(e) => handleCheckPartChange(i, 'actual', e.target.value)}
+                        style={{ flex: 2, minWidth: 0 }}
+                        title="Output field to check"
+                      >
+                        <option value="" disabled>-- field --</option>
+                        {availableOutputs.map(o => (
+                          <option key={o} value={o}>{o}</option>
+                        ))}
+                        {parsed.actual && !availableOutputs.includes(parsed.actual) && (
+                          <option key={parsed.actual} value={parsed.actual}>{parsed.actual}</option>
+                        )}
+                      </select>
+                      <select
+                        value={parsed.op}
+                        onChange={(e) => handleCheckPartChange(i, 'op', e.target.value)}
+                        style={{ flex: 1, minWidth: 0 }}
+                        title="Comparison operator"
+                      >
+                        {opsList.map((op, oi) => (
+                          <option key={op} value={op} title={opsNames[oi]}>{op}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        value={parsed.expected}
+                        onChange={(e) => handleCheckPartChange(i, 'expected', e.target.value)}
+                        style={{ flex: 2, minWidth: 0 }}
+                        placeholder="expected value"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveCheck(i)}
+                        className="action-button codicon codicon-close"
+                        style={{ flexShrink: 0 }}
+                        title="Remove check"
+                        aria-label="Remove check"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ opacity: 0.7 }}>No checks</div>
+            )}
+            <div style={{ marginTop: 8 }}>
+              <button
+                type="button"
+                onClick={handleAddCheck}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: 4,
+                  border: '1px dashed var(--vscode-editorWidget-border, #555)',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                }}
+              >
+                + Add check
+              </button>
+            </div>
+          </div>
+
+          <div className="label">Asserts</div>
+          <div style={{ padding: "5px" }}>
+            {assertList.length ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {assertList.map((a, i) => {
+                  const parsed = parseComparison(a);
+                  return (
+                    <div key={i} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      <select
+                        value={parsed.actual}
+                        onChange={(e) => handleAssertPartChange(i, 'actual', e.target.value)}
+                        style={{ flex: 2, minWidth: 0 }}
+                        title="Output field to assert"
+                      >
+                        <option value="" disabled>-- field --</option>
+                        {availableOutputs.map(o => (
+                          <option key={o} value={o}>{o}</option>
+                        ))}
+                        {parsed.actual && !availableOutputs.includes(parsed.actual) && (
+                          <option key={parsed.actual} value={parsed.actual}>{parsed.actual}</option>
+                        )}
+                      </select>
+                      <select
+                        value={parsed.op}
+                        onChange={(e) => handleAssertPartChange(i, 'op', e.target.value)}
+                        style={{ flex: 1, minWidth: 0 }}
+                        title="Comparison operator"
+                      >
+                        {opsList.map((op, oi) => (
+                          <option key={op} value={op} title={opsNames[oi]}>{op}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="text"
+                        value={parsed.expected}
+                        onChange={(e) => handleAssertPartChange(i, 'expected', e.target.value)}
+                        style={{ flex: 2, minWidth: 0 }}
+                        placeholder="expected value"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveAssert(i)}
+                        className="action-button codicon codicon-close"
+                        style={{ flexShrink: 0 }}
+                        title="Remove assert"
+                        aria-label="Remove assert"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{ opacity: 0.7 }}>No asserts</div>
+            )}
+            <div style={{ marginTop: 8 }}>
+              <button
+                type="button"
+                onClick={handleAddAssert}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: 4,
+                  border: '1px dashed var(--vscode-editorWidget-border, #555)',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                }}
+              >
+                + Add assert
+              </button>
+            </div>
           </div>
         </>
       )}

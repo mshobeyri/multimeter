@@ -53,7 +53,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
     return sanitized;
   }, [test]);
 
-  const { missingImports, inputsByAlias } = useImportValidation(importsMap);
+  const { missingImports, inputsByAlias, outputsByAlias } = useImportValidation(importsMap);
 
   // Restore last selected tab from localStorage, default to "overview"
   const [page, setPage] = useState<"test" | "edit">(
@@ -179,7 +179,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
               {tab === "flow" && (
                 <TestFlow
                   testData={test}
-                  importValidation={{ missingImports, inputsByAlias }}
+                  importValidation={{ missingImports, inputsByAlias, outputsByAlias }}
                   update={(patch) => {
                     setTest(prev => {
                       const next = { ...prev } as any;

@@ -228,6 +228,7 @@ export async function handleValidateImports(
   const importEntries = imports && typeof imports === 'object' ? imports : {};
   const missing: Array<{alias: string; path: string}> = [];
   const apiInputsByAlias: Record<string, string[]> = {};
+  const apiOutputsByAlias: Record<string, string[]> = {};
   const includeInputs = !!message?.includeInputs;
   const projectRoot = findProjectRoot(document.uri.fsPath);
   for (const [alias, relativePath] of Object.entries(importEntries)) {
@@ -256,6 +257,13 @@ export async function handleValidateImports(
         } else {
           apiInputsByAlias[alias] = [];
         }
+        const outputsObj = js && js.outputs;
+        if (outputsObj && typeof outputsObj === 'object' &&
+            !Array.isArray(outputsObj)) {
+          apiOutputsByAlias[alias] = Object.keys(outputsObj);
+        } else {
+          apiOutputsByAlias[alias] = [];
+        }
       } catch {
         apiInputsByAlias[alias] = [];
       }
@@ -266,6 +274,7 @@ export async function handleValidateImports(
     requestId: message?.requestId,
     missing,
     apiInputsByAlias: includeInputs ? apiInputsByAlias : undefined,
+    apiOutputsByAlias: includeInputs ? apiOutputsByAlias : undefined,
   });
 }
 

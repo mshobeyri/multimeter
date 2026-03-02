@@ -20,6 +20,7 @@ interface TestFlowBoxProps {
   importValidation?: {
     missingImports: MissingImportEntry[];
     inputsByAlias: Record<string, string[]>;
+    outputsByAlias?: Record<string, string[]>;
   };
 }
 
@@ -142,6 +143,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             imports={typeof testData?.import === 'object' ? (Object.fromEntries(Object.entries(testData.import).filter(([_, p]) => typeof p === 'string' && (p as string).endsWith('.mmt'))) as Record<string, string>) : undefined}
             missingImports={importValidation?.missingImports}
             importedInputsByAlias={importValidation?.inputsByAlias}
+            importedOutputsByAlias={importValidation?.outputsByAlias}
             onChange={callObj => onChange({ ...callObj })}
             placeholder="select a call"
           />

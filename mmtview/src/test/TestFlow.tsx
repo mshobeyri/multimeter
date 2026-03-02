@@ -25,6 +25,7 @@ function setTransparentDragImage(dt: DataTransfer | null | undefined) {
 interface ImportValidationInfo {
     missingImports: MissingImportEntry[];
     inputsByAlias: Record<string, string[]>;
+    outputsByAlias?: Record<string, string[]>;
 }
 
 interface TestFlowProps {

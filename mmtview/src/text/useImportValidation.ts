@@ -25,12 +25,27 @@ export function useImportValidation(importsMap?: Record<string, string> | null) 
       [normalized]);
   const [missingImports, setMissingImports] = useState<MissingImportEntry[]>([]);
   const [inputsByAlias, setInputsByAlias] = useState<Record<string, string[]>>({});
+  const [outputsByAlias, setOutputsByAlias] = useState<Record<string, string[]>>({});
   const pendingIdRef = useRef<number>(0);
+
+  // Bump revision when the webview regains visibility so imported-file
+  // changes are picked up without closing/reopening the editor.
+  const [visRevision, setVisRevision] = useState(0);
+  useEffect(() => {
+    const onVisChange = () => {
+      if (document.visibilityState === 'visible') {
+        setVisRevision(r => r + 1);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisChange);
+    return () => document.removeEventListener('visibilitychange', onVisChange);
+  }, []);
 
   useEffect(() => {
     if (!entries.length || !window?.vscode) {
       setMissingImports([]);
       setInputsByAlias({});
+      setOutputsByAlias({});
       return;
     }
     const requestId = Date.now();
@@ -58,6 +73,12 @@ export function useImportValidation(importsMap?: Record<string, string> | null) 
       } else {
         setInputsByAlias({});
       }
+      const rawOutputs = message.apiOutputsByAlias;
+      if (rawOutputs && typeof rawOutputs === 'object') {
+        setOutputsByAlias(rawOutputs as Record<string, string[]>);
+      } else {
+        setOutputsByAlias({});
+      }
     };
 
     window.addEventListener('message', listener);
@@ -71,7 +92,8 @@ export function useImportValidation(importsMap?: Record<string, string> | null) 
     return () => {
       window.removeEventListener('message', listener);
     };
-  }, [entries]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entries, visRevision]);
 
-  return {missingImports, inputsByAlias};
+  return {missingImports, inputsByAlias, outputsByAlias};
 }
