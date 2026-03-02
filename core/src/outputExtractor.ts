@@ -448,8 +448,51 @@ function resolvePath(response: ResponseData, expr: string): any {
     return val ?? '';
   }
 
-  // If not bracket notation, return empty (dot notation not supported)
+  // If not bracket notation, try dot notation
   return '';
+}
+
+function resolveDotPath(response: ResponseData, expr: string): any {
+  const parts = expr.split('.');
+  if (parts.length < 2) {
+    return '';
+  }
+
+  const section = parts[0];
+  let val: any;
+  switch (section) {
+    case 'body':
+      val = response.body;
+      break;
+    case 'headers':
+      val = response.headers;
+      break;
+    case 'cookies':
+      val = response.cookies;
+      break;
+    default:
+      return '';
+  }
+
+  for (let i = 1; i < parts.length; i++) {
+    if (val === undefined || val === null) {
+      return '';
+    }
+    const part = parts[i];
+    // Check if it's a numeric index for arrays
+    if (/^\d+$/.test(part)) {
+      const index = parseInt(part, 10);
+      if (Array.isArray(val)) {
+        val = val[index];
+      } else {
+        return '';
+      }
+    } else {
+      val = val[part];
+    }
+  }
+
+  return val ?? '';
 }
 
 export function extractOutputs(
@@ -533,7 +576,11 @@ export function extractOutputs(
       else if (expr.includes('[') && expr.includes(']')) {
         extractedValue = resolvePath(objectResponse, expr);
       }
-      // Not bracket notation or regex: return empty
+      // Check if it's dot notation path (e.g. body.user.id)
+      else if (expr.includes('.')) {
+        extractedValue = resolveDotPath(objectResponse, expr);
+      }
+      // No recognized pattern: return empty
       else {
         extractedValue = '';
       }
@@ -545,8 +592,8 @@ export function extractOutputs(
       extractedValue = '';
     }
 
-    // Preserve type for bracket notation and JSONPath extractions
-    if ((expr.startsWith('$') || (expr.includes('[') && expr.includes(']'))) &&
+    // Preserve type for bracket notation, JSONPath, and dot notation extractions
+    if ((expr.startsWith('$') || (expr.includes('[') && expr.includes(']')) || expr.includes('.')) &&
         extractedValue !== null && extractedValue !== undefined) {
       // Preserve the native type (object, array, number, boolean, string)
       result[key] = extractedValue;

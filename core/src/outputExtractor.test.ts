@@ -77,15 +77,113 @@ describe('outputExtractor', () => {
     expect(res.second).toBe('b');
   });
 
-  it('returns empty string for unsupported/dot notation', () => {
+  it('extracts values via dot notation', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: { user: { id: 1, name: 'mehrdad' } },
+      headers: {},
+      cookies: {}
+    } as any;
+    const res = extractOutputs(response, {
+      id: 'body.user.id',
+      name: 'body.user.name'
+    });
+    expect(res.id).toBe(1);
+    expect(res.name).toBe('mehrdad');
+  });
+
+  it('extracts nested object via dot notation – preserves type', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: { user: { profile: { city: 'Tehran', zip: '12345' } } },
+      headers: {},
+      cookies: {}
+    } as any;
+    const res = extractOutputs(response, { profile: 'body.user.profile' });
+    expect(typeof res.profile).toBe('object');
+    expect(res.profile).toEqual({ city: 'Tehran', zip: '12345' });
+  });
+
+  it('extracts array element via dot notation with numeric index', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: { items: [{ name: 'a' }, { name: 'b' }] },
+      headers: {},
+      cookies: {}
+    } as any;
+    const res = extractOutputs(response, { second: 'body.items.1.name' });
+    expect(res.second).toBe('b');
+  });
+
+  it('extracts array via dot notation – preserves array type', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: { tags: ['alpha', 'beta'] },
+      headers: {},
+      cookies: {}
+    } as any;
+    const res = extractOutputs(response, { tags: 'body.tags' });
+    expect(Array.isArray(res.tags)).toBe(true);
+    expect(res.tags).toEqual(['alpha', 'beta']);
+  });
+
+  it('extracts headers and cookies via dot notation', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: {},
+      headers: { 'Content-Type': 'application/json', 'x-req-id': 'RID-9' },
+      cookies: { sid: 'S-77' }
+    };
+    const res = extractOutputs(response, {
+      ct: 'headers.Content-Type',
+      rid: 'headers.x-req-id',
+      sid: 'cookies.sid'
+    });
+    expect(res.ct).toBe('application/json');
+    expect(res.rid).toBe('RID-9');
+    expect(res.sid).toBe('S-77');
+  });
+
+  it('returns empty string for missing dot notation path', () => {
     const response: ResponseData = {
       type: 'json',
       body: { user: { id: 1 } },
       headers: {},
       cookies: {}
     } as any;
-    const res = extractOutputs(response, { nope: 'body.user.id' });
+    const res = extractOutputs(response, { nope: 'body.user.missing.deep' });
     expect(res.nope).toBe('');
+  });
+
+  it('extracts primitives with correct types via dot notation', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: { message: 'Hello', active: true, count: 42 },
+      headers: {},
+      cookies: {}
+    };
+    const res = extractOutputs(response, {
+      msg: 'body.message',
+      active: 'body.active',
+      count: 'body.count'
+    });
+    expect(res.msg).toBe('Hello');
+    expect(typeof res.msg).toBe('string');
+    expect(res.active).toBe(true);
+    expect(typeof res.active).toBe('boolean');
+    expect(res.count).toBe(42);
+    expect(typeof res.count).toBe('number');
+  });
+
+  it('extracts from JSON string body via dot notation', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: '{"user":{"id":5,"role":"admin"}}',
+      headers: { 'Content-Type': 'application/json' },
+      cookies: {}
+    };
+    const res = extractOutputs(response, { role: 'body.user.role' });
+    expect(res.role).toBe('admin');
   });
 
   it('extracts message and from with correct types', () => {
