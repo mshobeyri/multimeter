@@ -73,7 +73,7 @@ const VEditor: React.FC<VEditorProps> = ({
                 <span style={{ fontWeight: 500 }}>{key}</span>
                 {hasValue && (
                   <span style={{ fontSize: "8px", color: "#888", marginLeft: "4px" }}>
-                    ({typeof currentValue})
+                    ({Array.isArray(currentValue) ? "array" : typeof currentValue})
                   </span>
                 )}
               </div>

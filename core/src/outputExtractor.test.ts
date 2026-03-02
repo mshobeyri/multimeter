@@ -107,4 +107,76 @@ describe('outputExtractor', () => {
     expect(res.count).toBe(42);
     expect(typeof res.count).toBe('number');
   });
+
+  it('extracts an object from a list body by index – preserves object type', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: [{ id: 1, name: 'alice' }, { id: 2, name: 'bob' }],
+      headers: { 'Content-Type': 'application/json' },
+      cookies: {}
+    } as any;
+    const res = extractOutputs(response, { first: '$body[0]' });
+    expect(typeof res.first).toBe('object');
+    expect(res.first).toEqual({ id: 1, name: 'alice' });
+  });
+
+  it('extracts a nested object from a list – preserves object type', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: [{ id: 1, address: { city: 'Tehran', zip: '12345' } }],
+      headers: { 'Content-Type': 'application/json' },
+      cookies: {}
+    } as any;
+    const res = extractOutputs(response, { addr: '$body[0][address]' });
+    expect(typeof res.addr).toBe('object');
+    expect(res.addr).toEqual({ city: 'Tehran', zip: '12345' });
+  });
+
+  it('extracts an array value from a list body – preserves array type', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: { items: [10, 20, 30] },
+      headers: { 'Content-Type': 'application/json' },
+      cookies: {}
+    } as any;
+    const res = extractOutputs(response, { items: '$body[items]' });
+    expect(Array.isArray(res.items)).toBe(true);
+    expect(res.items).toEqual([10, 20, 30]);
+  });
+
+  it('extracts a primitive from a list body by index – preserves type', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: ['alpha', 'beta', 'gamma'],
+      headers: { 'Content-Type': 'application/json' },
+      cookies: {}
+    } as any;
+    const res = extractOutputs(response, { second: '$body[1]' });
+    expect(res.second).toBe('beta');
+    expect(typeof res.second).toBe('string');
+  });
+
+  it('extracts a number from a list body by index – preserves number type', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: [100, 200, 300],
+      headers: { 'Content-Type': 'application/json' },
+      cookies: {}
+    } as any;
+    const res = extractOutputs(response, { val: '$body[2]' });
+    expect(res.val).toBe(300);
+    expect(typeof res.val).toBe('number');
+  });
+
+  it('extracts object from JSON string list body – preserves object type', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: '[{"id":5,"role":"admin"},{"id":6,"role":"user"}]',
+      headers: { 'Content-Type': 'application/json' },
+      cookies: {}
+    };
+    const res = extractOutputs(response, { admin: '$body[0]' });
+    expect(typeof res.admin).toBe('object');
+    expect(res.admin).toEqual({ id: 5, role: 'admin' });
+  });
 });
