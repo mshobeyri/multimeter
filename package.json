@@ -158,7 +158,7 @@
         "displayName": "MMT Editor",
         "selector": [
           {
-            "filenamePattern": "file:/**/*.mmt"
+            "filenamePattern": "*.mmt"
           }
         ],
         "icon": {
