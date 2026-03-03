@@ -2,6 +2,16 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.12.0]
+
+- Add inline check and assert fields on call steps
+- Add structured report display for call check/assert results (status code, inputs, outputs, request, response)
+- Add Format/Raw toggle button for JSON body fields in report details
+- Add support of dot notation as default output extractor
+- Parse object and array values in output extraction
+- Handle empty values in check comparisons
+- Fix duplicate call alias generating invalid code
+
 ## [1.11.0]
 
 - Add test stop button
