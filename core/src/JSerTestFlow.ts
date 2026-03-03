@@ -268,7 +268,7 @@ const transformCallComparison = (
   };
 };
 
-const callToJSfunc = (step: TestFlowCall, useExternalReport: boolean): string => {
+const callToJSfunc = (step: TestFlowCall, useExternalReport: boolean, stepIdx: number): string => {
   let inputParams = toInputsParams(step.inputs || {}, ': ');
   if (inputParams.length > 0) {
     inputParams = ' ' + inputParams + ' ';
@@ -276,7 +276,7 @@ const callToJSfunc = (step: TestFlowCall, useExternalReport: boolean): string =>
 
   const hasInlineChecks = step.check || step.assert;
   const safeName = step.call.replace(/[^a-zA-Z0-9_]/g, '_');
-  const resultVar = step.id || (hasInlineChecks ? `_${safeName}` : undefined);
+  const resultVar = step.id || (hasInlineChecks ? `_${safeName}_${stepIdx}` : undefined);
 
   let callExpr = `await ${step.call}({${inputParams}});`;
   if (resultVar) {
@@ -343,11 +343,11 @@ export const setenvToJSfunc = (setenv: Record<string, any>, root: boolean): stri
 export const flowStepsToJsfunc =
     (flow: TestFlowSteps, root: boolean, useExternalReport: boolean = !root): string => {
       return (flow ?? [])
-          .map((step: TestFlowStep) => {
+          .map((step: TestFlowStep, idx: number) => {
             let stepJs: string;
             switch (getTestFlowStepType(step)) {
               case 'call':
-                stepJs = callToJSfunc(step as TestFlowCall, useExternalReport);
+                stepJs = callToJSfunc(step as TestFlowCall, useExternalReport, idx);
                 break;
               case 'check':
                 stepJs = checkToJSfunc((step as TestFlowCheck).check, useExternalReport);

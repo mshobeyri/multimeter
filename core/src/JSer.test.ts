@@ -713,10 +713,10 @@ describe('inline check/assert on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    // Should capture call result (no id → temp variable)
-    expect(js).toContain('const _login = await login(');
+    // Should capture call result (no id → temp variable with index suffix)
+    expect(js).toContain('const _login_0 = await login(');
     // Should generate check on the output parameter
-    expect(js).toContain('equals_(`${_login.status}`, `200`)');
+    expect(js).toContain('equals_(`${_login_0.status}`, `200`)');
     expect(js).toContain("report_('check'");
   });
 
@@ -730,9 +730,9 @@ describe('inline check/assert on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('const _login = await login(');
-    expect(js).toContain('equals_(`${_login.status}`, `200`)');
-    expect(js).toContain('notEquals_(`${_login.token}`, `null`)');
+    expect(js).toContain('const _login_0 = await login(');
+    expect(js).toContain('equals_(`${_login_0.status}`, `200`)');
+    expect(js).toContain('notEquals_(`${_login_0.token}`, `null`)');
   });
 
   it('generates assert after call', async () => {
@@ -745,7 +745,7 @@ describe('inline check/assert on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('const _login = await login(');
+    expect(js).toContain('const _login_0 = await login(');
     expect(js).toContain("report_('assert'");
     expect(js).toContain('throw new Error("Assertion failed")');
   });
@@ -760,7 +760,7 @@ describe('inline check/assert on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('const _login = await login(');
+    expect(js).toContain('const _login_0 = await login(');
     expect(js).toContain("report_('check'");
     expect(js).toContain("report_('assert'");
   });
@@ -816,7 +816,7 @@ describe('inline check/assert on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('JSON.stringify(_login)');
+    expect(js).toContain('JSON.stringify(_login_0)');
   });
 
   it('passes inputs to call with inline check', async () => {
@@ -829,9 +829,9 @@ describe('inline check/assert on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('_login = await login(');
+    expect(js).toContain('_login_0 = await login(');
     expect(js).toContain('alice');
-    expect(js).toContain('equals_(`${_login.status}`, `200`)');
+    expect(js).toContain('equals_(`${_login_0.status}`, `200`)');
   });
 
   it('does not generate temp variable when no check or assert', async () => {
@@ -845,7 +845,7 @@ describe('inline check/assert on call steps', () => {
     };
     const js = await testToJsfunc(ctx, true);
     expect(js).toContain('await login(');
-    expect(js).not.toContain('const _login');
+    expect(js).not.toContain('const _login_0');
   });
 
   it('handles check with empty expected (2-part format)', async () => {
@@ -858,7 +858,7 @@ describe('inline check/assert on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('const _login');
+    expect(js).toContain('const _login_0');
     expect(js).toContain('equals_');
     // The expected arg in the template literal should be empty
     expect(js).toContain('``');
@@ -891,6 +891,27 @@ describe('inline check/assert on call steps', () => {
     const js = await testToJsfunc(ctx, true);
     expect(js).toContain('equals_');
     expect(js).toContain('``');
+  });
+
+  it('generates unique variable names for duplicate call aliases', async () => {
+    const ctx: TestContext = {
+      name: 'duplicateCalls',
+      test: {
+        steps: [
+          {call: 'login', check: 'status == 200'} as any,
+          {call: 'login', check: 'name == ok'} as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    // First call at index 0
+    expect(js).toContain('const _login_0 = await login(');
+    expect(js).toContain('equals_(`${_login_0.status}`, `200`)');
+    // Second call at index 1 — different variable name
+    expect(js).toContain('const _login_1 = await login(');
+    expect(js).toContain('equals_(`${_login_1.name}`, `ok`)');
   });
 });
 
