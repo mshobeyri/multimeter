@@ -2,6 +2,10 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.12.1]
+
+- Fix custom editor not loading on Windows due to filenamePattern selector issue
+
 ## [1.12.0]
 
 - Add inline check and assert fields on call steps
