@@ -5,6 +5,7 @@ import * as path from 'path';
 import * as file from './file';
 import {handleNetworkMessage} from './network';
 import * as run from './run';
+import * as mockRunner from './mockRunner';
 import {suiteHierarchy} from 'mmt-core';
 
 let curlTerminal: vscode.Terminal|null = null;
@@ -303,6 +304,25 @@ export const messageReceived = async (
 
     case 'runCurlCommand':
       await handleRunCurlCommand(message);
+      break;
+
+    case 'startMock':
+      try {
+        await mockRunner.startMockServer(document, webviewPanel, mmtProvider);
+      } catch (err: any) {
+        // Error already shown to user in mockRunner
+      }
+      break;
+
+    case 'stopMock':
+      mockRunner.stopMockServer(document.uri.toString());
+      break;
+
+    case 'mockStatus':
+      webviewPanel.webview.postMessage({
+        command: 'mockServerStatus',
+        running: mockRunner.isRunning(document.uri.toString()),
+      });
       break;
   }
 };

@@ -84,6 +84,13 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Define a suite runner',
             documentation: 'Suite definition that runs referenced .mmt files. Uses tests: [path | then | path], runs items in a group in parallel and groups sequentially.',
         },
+        {
+            label: "Mock",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " mock",
+            detail: 'Define a mock server',
+            documentation: 'Local mock server with configurable endpoints, route matching, conditional responses, and dynamic tokens. Supports HTTP, HTTPS, and WebSocket protocols.',
+        },
     ]
     const testSuggestions = [
         {
@@ -764,15 +771,22 @@ export const KeySuggestionsByParent = (monaco: any) => {
             label: "http",
             kind: monaco.languages.CompletionItemKind.EnumMember,
             insertText: " http",
-            detail: 'Define a HTTP API',
-            documentation: 'HTTP method for retrieving data from the server. Used for read-only operations',
+            detail: 'HTTP protocol',
+            documentation: 'Standard HTTP protocol.',
+        },
+        {
+            label: "https",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " https",
+            detail: 'HTTPS protocol (requires tls)',
+            documentation: 'HTTPS protocol. For mock servers, requires tls.cert and tls.key configuration.',
         },
         {
             label: "ws",
             kind: monaco.languages.CompletionItemKind.EnumMember,
             insertText: " ws",
-            detail: 'Define a WS API',
-            documentation: 'WS method for creating new resources on the server. Used for submitting data',
+            detail: 'WebSocket protocol',
+            documentation: 'WebSocket protocol for bidirectional communication.',
         },
     ]
     const formatSuggestion = [
@@ -1000,6 +1014,248 @@ export const KeySuggestionsByParent = (monaco: any) => {
         }
     ];
 
+    // Mock server suggestions
+    const mockSuggestions = [
+        {
+            label: "title",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "title: ",
+            detail: 'Mock server title [string]',
+            documentation: 'A descriptive title for this mock server.'
+        },
+        {
+            label: "description",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "description: ",
+            detail: 'Mock server description [string]',
+            documentation: 'Optional description of the mock server.'
+        },
+        {
+            label: "tags",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "tags:\n\t- ",
+            detail: 'Mock server tags [array of strings]',
+            documentation: 'Tags for categorizing mock servers.'
+        },
+        {
+            label: "protocol",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "protocol: ",
+            detail: 'Server protocol [http, https, ws]',
+            documentation: 'Server protocol. Defaults to http.\nOptions:\n\t- http: Plain HTTP server\n\t- https: HTTPS server (requires tls config)\n\t- ws: WebSocket server'
+        },
+        {
+            label: "port",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "port: ",
+            detail: 'Listen port [number, 1-65535]',
+            documentation: 'Port number the mock server will listen on.\nExample: port: 3000'
+        },
+        {
+            label: "tls",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "tls:\n\tcert: \n\tkey: ",
+            detail: 'TLS configuration [object]',
+            documentation: 'TLS certificate configuration for HTTPS. Requires cert and key paths.\nExample:\ntls:\n  cert: ./certs/server.crt\n  key: ./certs/server.key'
+        },
+        {
+            label: "cors",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "cors: true",
+            detail: 'Enable CORS [boolean]',
+            documentation: 'When true, adds Access-Control-Allow-Origin: * and related CORS headers to all responses.'
+        },
+        {
+            label: "delay",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "delay: ",
+            detail: 'Global response delay [number, ms]',
+            documentation: 'Global response delay in milliseconds applied to all endpoints. Can be overridden per endpoint.\nExample: delay: 200'
+        },
+        {
+            label: "headers",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "headers:\n\t",
+            detail: 'Global response headers [object]',
+            documentation: 'Default response headers applied to all endpoints. Per-endpoint headers are merged on top.\nExample:\nheaders:\n  X-Powered-By: multimeter-mock'
+        },
+        {
+            label: "endpoints",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "endpoints:\n\t- path: /\n\t  status: 200\n\t  body: ",
+            detail: 'Endpoint definitions [array]',
+            documentation: 'Array of endpoint definitions. First matching endpoint wins.\nEach endpoint defines a path, optional method/match, and a response (status, headers, body).\nExample:\nendpoints:\n  - path: /users\n    method: get\n    status: 200\n    format: json\n    body:\n      users: []'
+        },
+        {
+            label: "proxy",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "proxy: ",
+            detail: 'Proxy URL for unmatched requests [string]',
+            documentation: 'Forward unmatched requests to this URL. Useful for partial mocking.\nExample: proxy: https://api.example.com'
+        },
+        {
+            label: "fallback",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "fallback:\n\tstatus: 404\n\tbody: ",
+            detail: 'Default response for unmatched routes [object]',
+            documentation: 'Response returned when no endpoint matches and no proxy is configured.\nExample:\nfallback:\n  status: 404\n  format: json\n  body:\n    error: "Not found"'
+        },
+    ];
+    const mockEndpointSuggestions = [
+        {
+            label: "method",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "method: ",
+            detail: 'HTTP method [string]',
+            documentation: 'HTTP method to match. If omitted, matches any method.\nOptions: get, post, put, delete, patch, head, options'
+        },
+        {
+            label: "path",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "path: ",
+            detail: 'URL path pattern [string]',
+            documentation: 'URL path to match. Supports Express-style parameters.\nExamples:\n  path: /users\n  path: /users/:id\n  path: /files/:folder/:name'
+        },
+        {
+            label: "name",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "name: ",
+            detail: 'Endpoint name [string]',
+            documentation: 'Optional name for this endpoint. Callers can select it via the x-mock-example header.\nExample: name: admin-user'
+        },
+        {
+            label: "match",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "match:\n\t",
+            detail: 'Conditional matching [object]',
+            documentation: 'Additional match criteria beyond method+path. Supports partial body, headers, and query matching.\nExample:\nmatch:\n  headers:\n    Authorization: Bearer admin-token\n  query:\n    page: "1"'
+        },
+        {
+            label: "status",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "status: ",
+            detail: 'HTTP status code [number, 100-599]',
+            documentation: 'Response status code. Defaults to 200.\nExample: status: 201'
+        },
+        {
+            label: "format",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "format: ",
+            detail: 'Response format [json, xml, text]',
+            documentation: 'Response body format. Auto-detected from body if not specified.'
+        },
+        {
+            label: "headers",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "headers:\n\t",
+            detail: 'Response headers [object]',
+            documentation: 'Response headers for this endpoint. Merged with global headers.\nExample:\nheaders:\n  Cache-Control: no-cache'
+        },
+        {
+            label: "body",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "body: ",
+            detail: 'Response body [any]',
+            documentation: 'Response body content. Supports JSON objects, strings, or any YAML value.\nTokens like <<r:uuid>>, <<c:timestamp>>, <<e:VAR>> are resolved at runtime.\nPath parameters like :id are substituted from the request URL.'
+        },
+        {
+            label: "delay",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "delay: ",
+            detail: 'Response delay [number, ms]',
+            documentation: 'Per-endpoint response delay in milliseconds. Overrides the global delay.\nExample: delay: 500'
+        },
+        {
+            label: "reflect",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "reflect: true",
+            detail: 'Echo request body [boolean]',
+            documentation: 'When true, echoes the request body back as the response body. Useful for testing.'
+        },
+    ];
+    const mockMatchSuggestions = [
+        {
+            label: "body",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "body:\n\t",
+            detail: 'Partial body match [object]',
+            documentation: 'Partial JSON match against the request body. All specified keys must match (deep partial).\nExample:\nmatch:\n  body:\n    action: create'
+        },
+        {
+            label: "headers",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "headers:\n\t",
+            detail: 'Header match [object]',
+            documentation: 'Match specific request headers (case-insensitive values).\nExample:\nmatch:\n  headers:\n    Authorization: Bearer admin-token'
+        },
+        {
+            label: "query",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "query:\n\t",
+            detail: 'Query parameter match [object]',
+            documentation: 'Match specific query string parameters.\nExample:\nmatch:\n  query:\n    page: "1"\n    sort: name'
+        },
+    ];
+    const mockTlsSuggestions = [
+        {
+            label: "cert",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "cert: ",
+            detail: 'Certificate path [string]',
+            documentation: 'Path to the TLS certificate file (PEM format).\nExample: cert: ./certs/server.crt'
+        },
+        {
+            label: "key",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "key: ",
+            detail: 'Private key path [string]',
+            documentation: 'Path to the TLS private key file (PEM format).\nExample: key: ./certs/server.key'
+        },
+        {
+            label: "ca",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "ca: ",
+            detail: 'CA certificate path [string]',
+            documentation: 'Path to CA certificate for client verification.\nExample: ca: ./certs/ca.pem'
+        },
+        {
+            label: "requestCert",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "requestCert: true",
+            detail: 'Request client certificate [boolean]',
+            documentation: 'When true, the server requests a client certificate for mutual TLS.'
+        },
+    ];
+    const mockFallbackSuggestions = [
+        {
+            label: "status",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "status: ",
+            detail: 'Fallback status code [number]',
+            documentation: 'Status code for unmatched routes. Defaults to 404.\nExample: status: 404'
+        },
+        {
+            label: "format",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "format: ",
+            detail: 'Fallback format [json, xml, text]',
+            documentation: 'Response format for the fallback response.'
+        },
+        {
+            label: "headers",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "headers:\n\t",
+            detail: 'Fallback headers [object]',
+            documentation: 'Headers returned with the fallback response.'
+        },
+        {
+            label: "body",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "body: ",
+            detail: 'Fallback body [any]',
+            documentation: 'Body content for the fallback response.\nExample:\nfallback:\n  body:\n    error: "Not found"'
+        },
+    ];
     // Sibling property suggestions for step list items (shown without leading dash)
     const callSiblings = [
         { label: 'id', kind: monaco.languages.CompletionItemKind.Property, insertText: 'id: ', detail: 'Capture call result', documentation: 'Variable name to capture the call output.\nExample:\n- call: login\n  id: loginResult' },
@@ -1031,6 +1287,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         test: testSuggestions,
         suite: suiteSuggestions,
         doc: docSuggestions,
+        mock: mockSuggestions,
         services: servicesSuggestions,
         html: htmlSuggestions,
         env: envSuggestions,
@@ -1047,6 +1304,10 @@ export const KeySuggestionsByParent = (monaco: any) => {
         check: checkAssertObjectKeySuggestions,
         assert: checkAssertObjectKeySuggestions,
         operator: operatorValueSuggestions,
+        endpoints: mockEndpointSuggestions,
+        match: mockMatchSuggestions,
+        tls: mockTlsSuggestions,
+        fallback: mockFallbackSuggestions,
         'step-call': callSiblings,
         'step-check': checkAssertSiblings,
         'step-assert': checkAssertSiblings,

@@ -7,6 +7,7 @@ import NotypePanel from "./NotypePanel";
 import TestPanel from "./test/TestPanel";
 import SuitePanel from "./suite/SuitePanel";
 import DocPanel from "./doc/DocPanel";
+import MockPanel from "./mock/MockPanel";
 import parseYaml from "mmt-core/markupConvertor";
 import YamlEditorPanel from "./text/YamlEditorPanel";
 import { FileContext } from "./fileContext";
@@ -230,6 +231,9 @@ const App: React.FC = () => {
             )}
             {docType === "suite" && (
               <SuitePanel content={validContent} setContent={uiSetContent} />
+            )}
+            {docType === "mock" && (
+              <MockPanel content={validContent} setContent={uiSetContent} />
             )}
             {docType === null && (
               <NotypePanel content={validContent} setContent={uiSetContent} />

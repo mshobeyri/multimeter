@@ -133,7 +133,7 @@ function generateCurrentByName(name: string): any {
   return val;
 }
 
-function resolveEmbeddedTokens(val: any, envs: Record<string, any>): any {
+export function resolveEmbeddedTokens(val: any, envs: Record<string, any>): any {
   if (typeof val === 'string') {
     // Full matches first (random or environment) preserve original type
     const fullRandomAngle = /^<<r:([a-zA-Z0-9_\-]+)>>$/;

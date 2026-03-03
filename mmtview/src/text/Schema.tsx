@@ -2,7 +2,7 @@ export const GeneralSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
     properties: {
-        type: { type: 'string', enum: ['api', 'env', 'var', 'test', 'suite', 'doc'] },
+        type: { type: 'string', enum: ['api', 'env', 'var', 'test', 'suite', 'doc', 'mock'] },
     }
 }
 
@@ -611,6 +611,74 @@ export const TestSchema = {
         { required: ['steps'] },
         { required: ['stages'] }
     ]
+};
+
+export const MockSchema = {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    type: 'object',
+    required: ['type', 'port', 'endpoints'],
+    properties: {
+        type: { type: 'string', enum: ['mock'] },
+        title: { type: 'string' },
+        description: { type: 'string' },
+        tags: { type: 'array', items: { type: 'string' } },
+        protocol: { type: 'string', enum: ['http', 'https', 'ws'] },
+        port: { type: 'number', minimum: 1, maximum: 65535 },
+        tls: {
+            type: 'object',
+            properties: {
+                cert: { type: 'string' },
+                key: { type: 'string' },
+                ca: { type: 'string' },
+                requestCert: { type: 'boolean' }
+            },
+            required: ['cert', 'key'],
+            additionalProperties: false
+        },
+        cors: { type: 'boolean' },
+        delay: { type: 'number', minimum: 0 },
+        headers: { type: 'object', additionalProperties: { type: 'string' } },
+        endpoints: {
+            type: 'array',
+            items: {
+                type: 'object',
+                required: ['path'],
+                properties: {
+                    method: { type: 'string', enum: ['get', 'post', 'put', 'delete', 'patch', 'head', 'options'] },
+                    path: { type: 'string' },
+                    name: { type: 'string' },
+                    match: {
+                        type: 'object',
+                        properties: {
+                            body: { type: 'object' },
+                            headers: { type: 'object', additionalProperties: { type: 'string' } },
+                            query: { type: 'object', additionalProperties: { type: 'string' } }
+                        },
+                        additionalProperties: false
+                    },
+                    status: { type: 'number', minimum: 100, maximum: 599 },
+                    format: { type: 'string', enum: ['json', 'xml', 'text'] },
+                    headers: { type: 'object', additionalProperties: { type: 'string' } },
+                    body: {},
+                    delay: { type: 'number', minimum: 0 },
+                    reflect: { type: 'boolean' }
+                },
+                additionalProperties: false
+            }
+        },
+        proxy: { type: 'string' },
+        fallback: {
+            type: 'object',
+            properties: {
+                status: { type: 'number' },
+                format: { type: 'string', enum: ['json', 'xml', 'text'] },
+                headers: { type: 'object', additionalProperties: { type: 'string' } },
+                body: {}
+            },
+            additionalProperties: false
+        }
+    },
+    additionalProperties: false
 };
 
 export const DocSchema = {

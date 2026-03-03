@@ -104,6 +104,9 @@ export const fileType = (path: string, content: string): Type => {
   if (content.includes('type: env')) {
     return 'env';
   }
+  if (content.includes('type: mock')) {
+    return 'mock';
+  }
   return null;
 };
 

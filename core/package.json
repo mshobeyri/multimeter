@@ -83,6 +83,21 @@
       "types": "./dist/fileHelper.d.ts",
       "require": "./dist/fileHelper.js",
       "default": "./dist/fileHelper.js"
+    },
+    "./MockData": {
+      "types": "./dist/MockData.d.ts",
+      "require": "./dist/MockData.js",
+      "default": "./dist/MockData.js"
+    },
+    "./mockParsePack": {
+      "types": "./dist/mockParsePack.d.ts",
+      "require": "./dist/mockParsePack.js",
+      "default": "./dist/mockParsePack.js"
+    },
+    "./mockServer": {
+      "types": "./dist/mockServer.d.ts",
+      "require": "./dist/mockServer.js",
+      "default": "./dist/mockServer.js"
     }
   },
   "scripts": {
