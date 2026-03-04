@@ -5,6 +5,8 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import WebSocket = require('ws');
 
+import {HistoryManager} from '../historyManager';
+
 type ServerType = 'http' | 'https' | 'ws';
 
 export default class MockServerPanel implements vscode.WebviewViewProvider,
@@ -27,9 +29,12 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
   private httpsKeyPath: string = '';
   private httpsClientCaPath: string = '';
   private httpsRequestCert: boolean = false;
+  private logHistory: boolean = false;
   private disposables: vscode.Disposable[] = [];
 
-  constructor(private readonly context: vscode.ExtensionContext) {}
+  constructor(
+      private readonly context: vscode.ExtensionContext,
+      private readonly historyManager: HistoryManager) {}
 
   resolveWebviewView(
     webviewView: vscode.WebviewView,
@@ -104,6 +109,11 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
       case 'setCors':
         this.cors = !!value;
         break;
+      case 'setLogHistory':
+        this.logHistory = !!value;
+        void this.context.workspaceState.update(
+            'multimeter.mockServer.logHistory', this.logHistory);
+        break;
       case 'startServer':
         this.startServer();
         break;
@@ -151,31 +161,12 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
       this.running = true;
       this.updateViewHtml();
     };
+
     if (this.serverType === 'http' || this.serverType === 'https') {
       const createHandler = () => (req: http.IncomingMessage, res: http.ServerResponse) => {
         const method = String(req.method || 'GET').toLowerCase();
         const scheme = this.serverType === 'https' ? 'https' : 'http';
         const url = `${scheme}://127.0.0.1:${this.port}${req.url || ''}`;
-
-        const persistHistory = async (item: any) => {
-          const historyFile =
-              vscode.Uri.joinPath(this.context.globalStorageUri, 'history.json');
-          let history: any[] = [];
-          try {
-            const data = await vscode.workspace.fs.readFile(historyFile);
-            history = JSON.parse(Buffer.from(data).toString('utf8'));
-          } catch {
-            history = [];
-          }
-          history.unshift({
-            ...item,
-            time: item.time ||
-                new Date().toISOString().replace('T', ' ').substring(0, 19),
-          });
-          await vscode.workspace.fs.writeFile(
-              historyFile, Buffer.from(JSON.stringify(history, null, 2), 'utf8'));
-          await vscode.commands.executeCommand('multimeter.history.refresh');
-        };
 
         const titleBase = `${method} ${url}`;
 
@@ -195,17 +186,19 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
 
         req.on('data', chunk => (requestBody += chunk));
         req.on('end', () => {
-          void persistHistory({
-            type: 'recv',
-            method,
-            protocol: 'mock',
-            serverType: this.serverType,
-            title: titleBase,
-            headers: req.headers as any,
-            query: {},
-            cookies: {},
-            content: requestBody,
-          });
+          if (this.logHistory) {
+            this.historyManager.add({
+              type: 'recv',
+              method,
+              protocol: 'mock',
+              serverType: this.serverType,
+              title: titleBase,
+              headers: req.headers as any,
+              query: {},
+              cookies: {},
+              content: requestBody,
+            });
+          }
 
           // Send response
           res.statusCode = this.statusCode;
@@ -217,20 +210,22 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
           }
           res.end(responseBody);
 
-          void persistHistory({
-            type: this.statusCode >= 400 ? 'error' : 'send',
-            method,
-            protocol: 'mock',
-            serverType: this.serverType,
-            title: titleBase,
-            headers: {
-              'content-type': String(res.getHeader('content-type') || ''),
-            },
-            cookies: {},
-            content: String(responseBody || ''),
-            status: this.statusCode,
-            duration: -1,
-          });
+          if (this.logHistory) {
+            this.historyManager.add({
+              type: this.statusCode >= 400 ? 'error' : 'send',
+              method,
+              protocol: 'mock',
+              serverType: this.serverType,
+              title: titleBase,
+              headers: {
+                'content-type': String(res.getHeader('content-type') || ''),
+              },
+              cookies: {},
+              content: String(responseBody || ''),
+              status: this.statusCode,
+              duration: -1,
+            });
+          }
         });
       };
 
@@ -284,10 +279,51 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
         this.wsServer = new WebSocket.Server({ port: this.port });
         this.wsServer.on('connection', ws => {
           ws.on('message', msg => {
-            ws.send(this.reflect ? msg : this.response);
+            const msgStr = typeof msg === 'string' ? msg : msg.toString();
+            if (this.logHistory) {
+              this.historyManager.add({
+                type: 'recv',
+                method: 'ws',
+                protocol: 'mock',
+                serverType: 'ws',
+                title: `ws://127.0.0.1:${this.port}`,
+                headers: {},
+                query: {},
+                cookies: {},
+                content: msgStr,
+              });
+            }
+            const reply = this.reflect ? msg : this.response;
+            ws.send(reply);
+            if (this.logHistory) {
+              this.historyManager.add({
+                type: 'send',
+                method: 'ws',
+                protocol: 'mock',
+                serverType: 'ws',
+                title: `ws://127.0.0.1:${this.port}`,
+                headers: {},
+                cookies: {},
+                content: typeof reply === 'string' ? reply : reply.toString(),
+                duration: -1,
+              });
+            }
           });
           if (!this.reflect) {
             ws.send(this.response);
+            if (this.logHistory) {
+              this.historyManager.add({
+                type: 'send',
+                method: 'ws',
+                protocol: 'mock',
+                serverType: 'ws',
+                title: `ws://127.0.0.1:${this.port}`,
+                headers: {},
+                cookies: {},
+                content: this.response,
+                duration: -1,
+              });
+            }
           }
         });
         this.wsServer.on('listening', updateAndNotify);
@@ -350,6 +386,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
     isRunning: boolean,
     reflect: boolean,
     cors: boolean,
+    logHistory: boolean,
     httpsCertPath: string,
     httpsKeyPath: string,
     httpsClientCaPath: string,
@@ -368,6 +405,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
     const wsSelected = serverType === 'ws' ? 'selected' : '';
     const reflectChecked = reflect ? 'checked' : '';
     const corsChecked = cors ? 'checked' : '';
+    const logHistoryChecked = logHistory ? 'checked' : '';
     const responseDisabled = reflect ? 'disabled' : '';
     const httpsSectionHidden = serverType === 'https' ? '' : 'hidden';
     return html
@@ -383,6 +421,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
       .replace(/\${wsSelected}/g, wsSelected)
       .replace(/\${reflectChecked}/g, reflectChecked)
       .replace(/\${corsChecked}/g, corsChecked)
+      .replace(/\${logHistoryChecked}/g, logHistoryChecked)
       .replace(/\${responseDisabled}/g, responseDisabled)
       .replace(/\${isRunning}/g, String(isRunning))
       .replace(/\${httpsSectionHidden}/g, httpsSectionHidden)
@@ -402,12 +441,15 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
         'multimeter.mockServer.httpsClientCaPath', '');
     const storedRequestCert = this.context.workspaceState.get<boolean>(
         'multimeter.mockServer.httpsRequestCert', false);
+    const storedLogHistory = this.context.workspaceState.get<boolean>(
+        'multimeter.mockServer.logHistory', false);
     if (!this.running) {
       this.httpsCertPath = storedCertPath;
       this.httpsKeyPath = storedKeyPath;
       this.httpsClientCaPath = storedClientCaPath;
       this.httpsRequestCert = storedRequestCert;
     }
+    this.logHistory = storedLogHistory;
 
     return this.getHtmlForWebview(
       this.serverType,
@@ -417,6 +459,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
       this.running,
       this.reflect,
       this.cors,
+      this.logHistory,
       this.escapeHtml(this.httpsCertPath),
       this.escapeHtml(this.httpsKeyPath),
       this.escapeHtml(this.httpsClientCaPath),

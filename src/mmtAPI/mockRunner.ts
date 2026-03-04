@@ -101,29 +101,6 @@ export async function startMockServer(
   const router = mockServer.createMockRouter(data, tokenResolver);
   const filePath = document.uri.fsPath;
 
-  // Persistence helper (reused from MockServerPanel pattern)
-  const persistHistory = async (item: any) => {
-    try {
-      const historyFile = vscode.Uri.joinPath(mmtProvider.context.globalStorageUri, 'history.json');
-      let history: any[] = [];
-      try {
-        const raw = await vscode.workspace.fs.readFile(historyFile);
-        history = JSON.parse(Buffer.from(raw).toString('utf8'));
-      } catch {
-        history = [];
-      }
-      history.unshift({
-        ...item,
-        time: item.time || new Date().toISOString().replace('T', ' ').substring(0, 19),
-      });
-      await vscode.workspace.fs.writeFile(
-        historyFile, Buffer.from(JSON.stringify(history, null, 2), 'utf8'));
-      await vscode.commands.executeCommand('multimeter.history.refresh');
-    } catch {
-      // Ignore history errors
-    }
-  };
-
   const requestHandler = (req: http.IncomingMessage, res: http.ServerResponse) => {
     const method = (req.method || 'GET').toLowerCase();
     const urlStr = req.url || '/';
@@ -211,7 +188,7 @@ export async function startMockServer(
 
       // Persist to history
       const titleBase = `${method.toUpperCase()} ${pathname}`;
-      void persistHistory({
+      mmtProvider.historyManager.add({
         type: 'recv',
         method,
         protocol: 'mock',
@@ -221,7 +198,7 @@ export async function startMockServer(
         cookies: {},
         content: body,
       });
-      void persistHistory({
+      mmtProvider.historyManager.add({
         type: mockRes.status >= 400 ? 'error' : 'send',
         method,
         protocol: 'mock',

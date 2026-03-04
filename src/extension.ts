@@ -9,18 +9,20 @@ import ConvertorPanel from './panels/ConvertorPanel';
 import EnvironmentPanel from './panels/EnvironmentPanel';
 import HistoryPanel from './panels/HistoryPanel';
 import MockServerPanel from './panels/MockServerPanel';
+import {HistoryManager} from './historyManager';
 import {loadWorkspaceEnvFile} from './workspaceEnvLoader';
 
 export function activate(context: vscode.ExtensionContext) {
-  const mmtviewPanel = new MmtEditorProvider(context);
+  const historyManager = new HistoryManager(context.globalStorageUri);
+  const mmtviewPanel = new MmtEditorProvider(context, historyManager);
 
   registerEditorProvider(context, mmtviewPanel);
 
   const {historyPanel, environmentPanel, connectionsPanel} =
-      registerSidePanels(context);
+      registerSidePanels(context, historyManager);
 
   registerConnectionsCommands(context, connectionsPanel);
-  registerHistoryCommands(context, historyPanel);
+  registerHistoryCommands(context, historyPanel, historyManager);
   registerEnvironmentCommands(context, environmentPanel, mmtviewPanel);
   registerMiscCommands(context);
 
@@ -62,7 +64,7 @@ function registerEditorProvider(
       }));
 }
 
-function registerSidePanels(context: vscode.ExtensionContext): {
+function registerSidePanels(context: vscode.ExtensionContext, historyManager: HistoryManager): {
   historyPanel: HistoryPanel;
   environmentPanel: EnvironmentPanel;
   connectionsPanel: ConnectionsPanel;
@@ -72,7 +74,7 @@ function registerSidePanels(context: vscode.ExtensionContext): {
       {webviewOptions: {retainContextWhenHidden: true}}));
 
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(
-      'multimeter.mock.server', new MockServerPanel(context),
+      'multimeter.mock.server', new MockServerPanel(context, historyManager),
       {webviewOptions: {retainContextWhenHidden: true}}));
 
   const historyPanel = new HistoryPanel(context);
@@ -109,14 +111,11 @@ function registerConnectionsCommands(
 
 function registerHistoryCommands(
     context: vscode.ExtensionContext,
-    historyPanel: HistoryPanel): void {
+    historyPanel: HistoryPanel,
+    historyManager: HistoryManager): void {
   context.subscriptions.push(
-      vscode.commands.registerCommand('multimeter.history.clear', async () => {
-        const historyFile =
-            vscode.Uri.joinPath(context.globalStorageUri, 'history.json');
-        await vscode.workspace.fs.writeFile(
-            historyFile, Buffer.from('[]', 'utf8'));
-        historyPanel.refreshHistory();
+      vscode.commands.registerCommand('multimeter.history.clear', () => {
+        historyManager.clear();
       }));
   context.subscriptions.push(
       vscode.commands.registerCommand('multimeter.history.refresh', () => {

@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
+import {HistoryManager} from './historyManager';
 import {messageReceived} from './mmtAPI/mmtAPI';
 
 const LAST_VIEW_MODE = 'mmtview:view:selectedViewMode';
@@ -12,15 +13,17 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   private fileReadTimeouts: Map<vscode.WebviewPanel, NodeJS.Timeout> =
       new Map();
   private diagnostics: vscode.DiagnosticCollection;
+  public readonly historyManager: HistoryManager;
 
   // Static method to get the provider instance
   public static getInstance(): MmtEditorProvider|null {
     return MmtEditorProvider.instance;
   }
 
-  constructor(private readonly context: vscode.ExtensionContext) {
+  constructor(private readonly context: vscode.ExtensionContext, historyManager: HistoryManager) {
     // Set the static instance when constructor is called
     MmtEditorProvider.instance = this;
+    this.historyManager = historyManager;
     this.diagnostics =
         vscode.languages.createDiagnosticCollection('multimeter');
     this.context.subscriptions.push(this.diagnostics);
