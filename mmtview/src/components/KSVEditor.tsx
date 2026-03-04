@@ -107,11 +107,13 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
 
   return (
     <div style={{ width: "100%" }}>
-      <div
-        className={disabled ? "label label-disabled" : "label"}
-      >
-        {label}
-      </div>
+      {label ? (
+        <div
+          className={disabled ? "label label-disabled" : "label"}
+        >
+          {label}
+        </div>
+      ) : null}
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <tbody style={{ width: "100%" }}>
           {safeList(entries)
