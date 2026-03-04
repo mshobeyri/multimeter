@@ -127,9 +127,10 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
       messageReceived(message, webviewPanel, document, this);
     });
 
-    vscode.window.onDidChangeActiveColorTheme(() => {
+    const themeListener = vscode.window.onDidChangeActiveColorTheme(() => {
       webviewPanel.webview.postMessage({type: 'vscode:changeColorTheme'});
     });
+    webviewPanel.onDidDispose(() => { themeListener.dispose(); });
   }
 
   updateTextDocument(document: vscode.TextDocument, text: string) {
