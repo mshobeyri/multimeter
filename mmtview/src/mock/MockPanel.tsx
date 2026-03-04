@@ -1,6 +1,8 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { MockData, MockEndpoint } from "mmt-core/MockData";
+import { resolveEnvTokenValues } from "mmt-core/variableReplacer";
 import { parseYaml, parseYamlDoc } from "mmt-core/markupConvertor";
+import { loadEnvVariables } from "../workspaceStorage";
 import MockOverview from "./MockOverview";
 import MockEndpoints from "./MockEndpoints";
 
@@ -22,6 +24,7 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
     () => (localStorage.getItem(LAST_MOCK_TAB_KEY) as 'overview' | 'endpoints') || 'overview'
   );
   const [showIconsOnly, setShowIconsOnly] = useState(false);
+  const [envParams, setEnvParams] = useState<Record<string, any>>({});
   const tabContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { localStorage.setItem(LAST_MOCK_PAGE_KEY, page); }, [page]);
@@ -36,6 +39,19 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
     const ro = new ResizeObserver(checkWidth);
     if (tabContainerRef.current) { ro.observe(tabContainerRef.current); }
     return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    const cleanup = loadEnvVariables((envVars) => {
+      const params: Record<string, any> = {};
+      for (const v of envVars || []) {
+        if (v && typeof v === 'object' && typeof v.name === 'string') {
+          params[v.name] = v.value;
+        }
+      }
+      setEnvParams(params);
+    });
+    return cleanup;
   }, []);
 
   useEffect(() => {
@@ -85,7 +101,7 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
   if (!mockData) {
     return (
       <div style={{ padding: 16, color: "var(--vscode-descriptionForeground)" }}>
-        Invalid or incomplete mock definition. Ensure the file has <code>type: mock</code>, <code>port</code>, and <code>endpoints</code>.
+        Invalid or incomplete server definition. Ensure the file has <code>type: server</code>, <code>port</code>, and <code>endpoints</code>.
       </div>
     );
   }
@@ -105,133 +121,115 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
             {/* ── Run page ── */}
             <div className="api-swipe-page api-swipe-page--test">
               <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-                {/* Header bar: run/stop + status + edit button */}
-                <div style={{
-                  padding: "8px 16px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  gap: 8,
-                  backgroundColor: "transparent",
-                  marginBottom: 8,
-                }}>
-                  <div style={{ fontSize: 12, color: "var(--vscode-descriptionForeground)" }}>
-                    <span style={{ fontFamily: "var(--vscode-editor-font-family, monospace)" }}>{baseUrl}</span>
-                    {" · "}{protocol.toUpperCase()}
-                    {mockData.cors ? " · CORS" : ""}
-                    {" · "}{endpointCount} endpoint{endpointCount !== 1 ? "s" : ""}
-                    {running && (
-                      <span style={{
-                        width: 8, height: 8, borderRadius: "50%",
-                        backgroundColor: "#3fb950", display: "inline-block", marginLeft: 6,
-                      }} />
-                    )}
+                {/* Header bar */}
+                <div style={{ padding: "10px 16px 0", display: "flex", flexDirection: "column", gap: 6 }}>
+                  {/* Row 1: Run/Stop + Edit buttons (right-aligned) */}
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
+                      {running ? (
+                        <button onClick={handleStop} className="button-icon" style={{ opacity: 1 }}>
+                          <span className="codicon codicon-debug-stop" />
+                          Stop
+                        </button>
+                      ) : (
+                        <button onClick={handleStart} className="button-icon" style={{ opacity: 1 }}>
+                          <span className="codicon codicon-run" />
+                          Run
+                        </button>
+                      )}
+                      <button
+                        className="action-button api-edit-launcher"
+                        onClick={() => setPage('edit')}
+                        title="Edit Mock"
+                        type="button"
+                      >
+                        <span className="codicon codicon-edit" aria-hidden />
+                        <span className="api-edit-launcher-text">Edit Mock</span>
+                      </button>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {running ? (
-                      <button onClick={handleStop} className="button-icon" style={{ opacity: 1 }}>
-                        <span className="codicon codicon-debug-stop" />
-                        Stop
-                      </button>
-                    ) : (
-                      <button onClick={handleStart} className="button-icon" style={{ opacity: 1 }}>
-                        <span className="codicon codicon-run" />
-                        Run
-                      </button>
-                    )}
-                    <button
-                      className="action-button api-edit-launcher"
-                      onClick={() => setPage('edit')}
-                      title="Edit Mock"
-                      type="button"
-                    >
-                      <span className="codicon codicon-edit" aria-hidden />
-                      <span className="api-edit-launcher-text">Edit Mock</span>
-                    </button>
+                  {/* Row 2: Status dot + title */}
+                  {mockData.title && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{
+                        width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+                        backgroundColor: running ? "#3fb950" : "#6e7681",
+                        boxShadow: running ? "0 0 6px #3fb950" : "none",
+                        display: "inline-block",
+                      }} />
+                      <div style={{ fontWeight: 600, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mockData.title}</div>
+                    </div>
+                  )}
+                  {/* Row 3: Info chips */}
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", paddingBottom: 8 }}>
+                    <span className="mock-info-chip mock-info-chip--url">{baseUrl}</span>
+                    <span className="mock-info-chip">{protocol.toUpperCase()}</span>
+                    {mockData.cors && <span className="mock-info-chip">CORS</span>}
+                    {mockData.tls && <span className="mock-info-chip">TLS</span>}
+                    {mockData.delay && <span className="mock-info-chip">delay: {mockData.delay}ms</span>}
                   </div>
                 </div>
 
                 {/* Scrollable endpoint list (read-only view) */}
                 <div style={{ flex: 1, overflow: "auto", padding: "0 16px 16px" }}>
-                  {/* Title / description */}
-                  {(mockData.title || mockData.description) && (
-                    <div style={{ marginBottom: 12 }}>
-                      {mockData.title && (
-                        <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 2 }}>{mockData.title}</div>
-                      )}
-                      {mockData.description && (
-                        <div style={{ fontSize: 12, color: "var(--vscode-descriptionForeground)" }}>{mockData.description}</div>
-                      )}
-                    </div>
-                  )}
 
-                  {/* Endpoints as tree-view-boxes (read-only) */}
+                  {/* Endpoints */}
+                  <div className="label">Endpoints ({endpointCount})</div>
                   {(mockData.endpoints || []).map((ep, idx) => {
                     const endpoint = ep as MockEndpoint;
                     const method = (endpoint.method || "ANY").toUpperCase();
+                    const color = METHOD_COLORS[method.toLowerCase()] || "var(--vscode-descriptionForeground)";
                     return (
-                      <div key={idx} className="tree-view-box" style={{ cursor: "default" }}>
-                        <span style={{ display: "inline-flex", paddingTop: 8, lineHeight: 0, alignSelf: "flex-start", width: 16, justifyContent: "center" }} aria-hidden>
-                          <span className={`codicon ${methodIconFor(method)}`} style={{ fontSize: 14, opacity: 0.8, color: METHOD_COLORS[method.toLowerCase()] || "inherit" }} />
+                      <div key={idx} className="mock-ep-row">
+                        <span className="mock-ep-icon" aria-hidden>
+                          <span className={`codicon ${methodIconFor(method)}`} style={{ color }} />
                         </span>
-                        <div className="test-flow-box-items">
-                          <span style={{ flex: "0 1 60px", fontWeight: 700, fontSize: 12, color: METHOD_COLORS[method.toLowerCase()] || "inherit" }}>{method}</span>
-                          <span style={{ flex: "1 1 auto", fontSize: 12, fontFamily: "var(--vscode-editor-font-family, monospace)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{endpoint.path}</span>
-                          {endpoint.name && (
-                            <span style={{ fontSize: 10, padding: "1px 5px", borderRadius: 3, backgroundColor: "var(--vscode-badge-background)", color: "var(--vscode-badge-foreground)" }}>{endpoint.name}</span>
-                          )}
-                          {endpoint.match && <span style={{ fontSize: 10, fontStyle: "italic", color: "var(--vscode-descriptionForeground)" }}>match</span>}
+                        <span className="mock-ep-method" style={{ color }}>{method}</span>
+                        <span className="mock-ep-path">{endpoint.path}</span>
+                        <span className="mock-ep-tags">
+                          {endpoint.name && <span className="mock-tag mock-tag--name">{endpoint.name}</span>}
+                          {endpoint.match && <span className="mock-tag">match</span>}
+                        </span>
+                        <span className="mock-ep-right">
                           {endpoint.reflect ? (
-                            <span style={{ fontSize: 10, fontStyle: "italic", color: "var(--vscode-descriptionForeground)" }}>reflect</span>
+                            <span className="mock-tag">reflect</span>
                           ) : (
-                            <span style={{ color: "var(--vscode-descriptionForeground)", fontSize: 12, minWidth: 28, textAlign: "right" }}>{endpoint.status ?? 200}</span>
+                            <span className="mock-ep-status">{endpoint.status ?? 200}</span>
                           )}
-                          {endpoint.format && (
-                            <span style={{ fontSize: 10, color: "var(--vscode-descriptionForeground)", minWidth: 28, textAlign: "right" }}>{endpoint.format}</span>
-                          )}
-                        </div>
+                          {endpoint.format && <span className="mock-ep-format">{endpoint.format}</span>}
+                        </span>
                       </div>
                     );
                   })}
 
                   {endpointCount === 0 && (
-                    <div style={{ fontSize: 12, color: "var(--vscode-descriptionForeground)", fontStyle: "italic" }}>
+                    <div style={{ fontSize: 12, color: "var(--vscode-descriptionForeground)", fontStyle: "italic", padding: "12px 0" }}>
                       No endpoints defined.
                     </div>
                   )}
 
                   {/* Fallback */}
                   {mockData.fallback && (
-                    <div style={{ marginTop: 12 }}>
+                    <div style={{ marginTop: 4 }}>
                       <div className="label">Fallback</div>
-                      <div className="tree-view-box" style={{ cursor: "default" }}>
-                        <span style={{ display: "inline-flex", paddingTop: 8, lineHeight: 0, alignSelf: "flex-start", width: 16, justifyContent: "center" }} aria-hidden>
-                          <span className="codicon codicon-circle-slash" style={{ fontSize: 14, opacity: 0.8 }} />
+                      <div className="mock-ep-row mock-ep-row--fallback">
+                        <span className="mock-ep-icon" aria-hidden>
+                          <span className="codicon codicon-circle-slash" style={{ color: "var(--vscode-descriptionForeground)" }} />
                         </span>
-                        <div className="test-flow-box-items">
-                          <span style={{ flex: "0 1 60px", fontWeight: 700, fontSize: 12, color: "var(--vscode-descriptionForeground)" }}>ANY</span>
-                          <span style={{ flex: "1 1 auto", fontSize: 12, fontFamily: "var(--vscode-editor-font-family, monospace)" }}>*</span>
-                          <span style={{ color: "var(--vscode-descriptionForeground)", fontSize: 12 }}>{mockData.fallback.status || 404}</span>
-                          {mockData.fallback.format && (
-                            <span style={{ fontSize: 10, color: "var(--vscode-descriptionForeground)" }}>{mockData.fallback.format}</span>
-                          )}
-                        </div>
+                        <span className="mock-ep-method" style={{ color: "var(--vscode-descriptionForeground)" }}>ANY</span>
+                        <span className="mock-ep-path">*</span>
+                        <span className="mock-ep-tags" />
+                        <span className="mock-ep-right">
+                          <span className="mock-ep-status">{mockData.fallback.status || 404}</span>
+                          {mockData.fallback.format && <span className="mock-ep-format">{mockData.fallback.format}</span>}
+                        </span>
                       </div>
                     </div>
                   )}
 
                   {/* Proxy */}
                   {mockData.proxy && (
-                    <div style={{ marginTop: 8 }}>
+                    <div style={{ marginTop: 4 }}>
                       <div className="label">Proxy</div>
-                      <div style={{
-                        padding: "6px 10px", borderRadius: 4,
-                        backgroundColor: "var(--vscode-editor-background)",
-                        border: "1px solid var(--vscode-panel-border)",
-                        fontSize: 12, fontFamily: "var(--vscode-editor-font-family, monospace)",
-                      }}>
-                        {mockData.proxy}
-                      </div>
+                      <div className="mock-proxy-row">{resolveEnvTokenValues(mockData.proxy, envParams)}</div>
                     </div>
                   )}
                 </div>
