@@ -25,7 +25,75 @@ export const METHOD_COLORS: Record<string, string> = {
 const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
   endpoint, onChange, onDuplicate, onRemove, showExpand, expanded, onToggleExpand,
 }) => {
-  const method = (endpoint.method || 'get').toLowerCase();
+  /* ─── Local state: commit only on blur / Enter ─── */
+  const bodyToStr = (b: any) =>
+    typeof b === 'string' ? b : (b != null ? JSON.stringify(b, null, 2) : '');
+
+  const [local, setLocal] = React.useState<MockEndpoint>(endpoint);
+  const [localBody, setLocalBody] = React.useState(() => bodyToStr(endpoint.body));
+  const localRef = React.useRef(local);
+  const localBodyRef = React.useRef(localBody);
+  localRef.current = local;
+  localBodyRef.current = localBody;
+
+  // Keep a stable ref to the latest onChange to avoid stale closures
+  const onChangeRef = React.useRef(onChange);
+  onChangeRef.current = onChange;
+
+  // Sync from parent only when the actual data changes (not just object reference)
+  const endpointJson = JSON.stringify(endpoint);
+  const prevEndpointJson = React.useRef(endpointJson);
+  React.useEffect(() => {
+    if (endpointJson !== prevEndpointJson.current) {
+      prevEndpointJson.current = endpointJson;
+      setLocal(endpoint);
+      setLocalBody(bodyToStr(endpoint.body));
+    }
+  }, [endpointJson]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const commit = React.useCallback(() => {
+    const ep = { ...localRef.current };
+    const raw = localBodyRef.current;
+    if (!raw) { ep.body = undefined; }
+    else { try { ep.body = JSON.parse(raw); } catch { ep.body = raw; } }
+    onChangeRef.current(ep);
+  }, []);
+
+  const commitWith = React.useCallback((patch: Partial<MockEndpoint>) => {
+    const next = { ...localRef.current, ...patch };
+    setLocal(next);
+    localRef.current = next;
+    const ep = { ...next };
+    if (!('body' in patch)) {
+      const raw = localBodyRef.current;
+      if (!raw) { ep.body = undefined; }
+      else { try { ep.body = JSON.parse(raw); } catch { ep.body = raw; } }
+    }
+    onChangeRef.current(ep);
+  }, []);
+
+  const setField = React.useCallback((patch: Partial<MockEndpoint>) => {
+    const next = { ...localRef.current, ...patch };
+    localRef.current = next;
+    setLocal(next);
+  }, []);
+
+  const updateLocalBody = React.useCallback((raw: string) => {
+    localBodyRef.current = raw;
+    setLocalBody(raw);
+  }, []);
+
+  /** onBlur / onKeyDown helper for text inputs */
+  const blurOrEnter = React.useMemo(() => ({
+    onBlur: () => commit(),
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        (e.target as HTMLElement).blur();
+      }
+    },
+  }), [commit]);
+
+  const method = (local.method || 'get').toLowerCase();
 
   /* ─── Context menu (kebab) ─── */
   const Actions = () => {
@@ -120,22 +188,22 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
       </span>
       <div style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{ fontSize: 12, fontFamily: 'var(--vscode-editor-font-family, monospace)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {endpoint.path}
+          {local.path}
         </span>
-        {endpoint.name && (
+        {local.name && (
           <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 3, backgroundColor: 'var(--vscode-badge-background)', color: 'var(--vscode-badge-foreground)', whiteSpace: 'nowrap' }}>
-            {endpoint.name}
+            {local.name}
           </span>
         )}
       </div>
-      {endpoint.match && <span style={{ fontSize: 10, fontStyle: 'italic', color: 'var(--vscode-descriptionForeground)' }}>match</span>}
-      {endpoint.reflect ? (
+      {local.match && <span style={{ fontSize: 10, fontStyle: 'italic', color: 'var(--vscode-descriptionForeground)' }}>match</span>}
+      {local.reflect ? (
         <span style={{ fontSize: 10, fontStyle: 'italic', color: 'var(--vscode-descriptionForeground)' }}>reflect</span>
       ) : (
-        <span style={{ color: 'var(--vscode-descriptionForeground)', fontSize: 12, minWidth: 28, textAlign: 'right' }}>{endpoint.status ?? 200}</span>
+        <span style={{ color: 'var(--vscode-descriptionForeground)', fontSize: 12, minWidth: 28, textAlign: 'right' }}>{local.status ?? 200}</span>
       )}
-      {endpoint.format && (
-        <span style={{ fontSize: 10, color: 'var(--vscode-descriptionForeground)', minWidth: 28, textAlign: 'right' }}>{endpoint.format}</span>
+      {local.format && (
+        <span style={{ fontSize: 10, color: 'var(--vscode-descriptionForeground)', minWidth: 28, textAlign: 'right' }}>{local.format}</span>
       )}
       <Actions />
     </div>
@@ -146,8 +214,6 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
   }
 
   /* ─── Expanded editor ─── */
-  const set = (patch: Partial<MockEndpoint>) => onChange({ ...endpoint, ...patch });
-
   return (
     <div style={{ width: '100%' }}>
       {summary}
@@ -157,7 +223,7 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
           <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Method</span>
           <select
             value={method}
-            onChange={e => set({ method: e.target.value as any })}
+            onChange={e => commitWith({ method: e.target.value as any })}
             style={{ flex: 1, padding: '4px 6px' }}
           >
             {METHODS.map(m => <option key={m} value={m}>{m.toUpperCase()}</option>)}
@@ -167,8 +233,9 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Path</span>
           <input
-            value={endpoint.path || ''}
-            onChange={e => set({ path: e.target.value })}
+            value={local.path || ''}
+            onChange={e => setField({ path: e.target.value })}
+            {...blurOrEnter}
             placeholder="/path/:param"
             style={{ flex: 1, width: '100%' }}
           />
@@ -178,8 +245,9 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
           <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Status</span>
           <input
             type="number"
-            value={endpoint.status ?? 200}
-            onChange={e => set({ status: parseInt(e.target.value, 10) || 200 })}
+            value={local.status ?? 200}
+            onChange={e => setField({ status: parseInt(e.target.value, 10) || 200 })}
+            {...blurOrEnter}
             min={100} max={599}
             style={{ flex: 1, width: '100%' }}
           />
@@ -188,8 +256,8 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Format</span>
           <select
-            value={endpoint.format || ''}
-            onChange={e => set({ format: (e.target.value || undefined) as any })}
+            value={local.format || ''}
+            onChange={e => commitWith({ format: (e.target.value || undefined) as any })}
             style={{ flex: 1, padding: '4px 6px' }}
           >
             <option value="">auto</option>
@@ -200,8 +268,9 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Name</span>
           <input
-            value={endpoint.name || ''}
-            onChange={e => set({ name: e.target.value || undefined })}
+            value={local.name || ''}
+            onChange={e => setField({ name: e.target.value || undefined })}
+            {...blurOrEnter}
             placeholder="optional"
             style={{ flex: 1, width: '100%' }}
           />
@@ -211,8 +280,9 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
           <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Delay</span>
           <input
             type="number"
-            value={endpoint.delay ?? ''}
-            onChange={e => set({ delay: parseInt(e.target.value, 10) || undefined })}
+            value={local.delay ?? ''}
+            onChange={e => setField({ delay: parseInt(e.target.value, 10) || undefined })}
+            {...blurOrEnter}
             min={0}
             placeholder="inherited"
             style={{ flex: 1, width: '100%' }}
@@ -224,8 +294,8 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
           <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Reflect</span>
           <input
             type="checkbox"
-            checked={!!endpoint.reflect}
-            onChange={e => set({ reflect: e.target.checked || undefined })}
+            checked={!!local.reflect}
+            onChange={e => commitWith({ reflect: e.target.checked || undefined })}
           />
         </div>
         {/* Body */}
@@ -233,12 +303,10 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
           <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0, paddingTop: 4 }}>Body</span>
           <div style={{ flex: 1, minWidth: 0, height: 120, border: '1px solid var(--vscode-editorWidget-border, #333)', borderRadius: 4, overflow: 'hidden' }}>
             <TextEditor
-              content={typeof endpoint.body === 'string' ? endpoint.body : (endpoint.body != null ? JSON.stringify(endpoint.body, null, 2) : '')}
-              setContent={raw => {
-                if (!raw) { set({ body: undefined }); return; }
-                try { set({ body: JSON.parse(raw) }); } catch { set({ body: raw }); }
-              }}
-              language={(endpoint.format === 'xml' ? 'xml' : endpoint.format === 'text' ? 'plaintext' : 'json')}
+              content={localBody}
+              setContent={updateLocalBody}
+              onFocusChange={focused => { if (!focused) { commit(); } }}
+              language={(local.format === 'xml' ? 'xml' : local.format === 'text' ? 'plaintext' : 'json')}
               showNumbers={false}
               fontSize={12}
             />
@@ -250,10 +318,10 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
           <div style={{ flex: 1, minWidth: 0 }}>
             <KSVEditor
               label=""
-              value={endpoint.headers}
+              value={local.headers}
               onChange={kv => {
                 const cleaned = Object.fromEntries(Object.entries(kv).filter(([k]) => k.trim()));
-                set({ headers: Object.keys(cleaned).length > 0 ? cleaned : undefined });
+                commitWith({ headers: Object.keys(cleaned).length > 0 ? cleaned : undefined });
               }}
               keyPlaceholder="Header"
               valuePlaceholder="value"

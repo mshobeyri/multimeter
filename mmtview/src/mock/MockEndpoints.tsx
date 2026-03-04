@@ -3,7 +3,24 @@ import { MockData, MockEndpoint } from "mmt-core/MockData";
 import { parseYamlDoc } from "mmt-core/markupConvertor";
 import MockEndpointBox, { METHOD_COLORS } from "./MockEndpointBox";
 import TextEditor from "../text/TextEditor";
-import { ControlledTreeEnvironment, Tree } from 'react-complex-tree';
+import { ControlledTreeEnvironment, Tree, DraggingPosition, DraggingPositionBetweenItems } from 'react-complex-tree';
+
+// Transparent drag image to remove native ghost preview while preserving drop lines
+let dragPreviewEl: HTMLDivElement | null = null;
+function setTransparentDragImage(dt: DataTransfer | null | undefined) {
+    if (!dt) return;
+    try {
+        const el = document.createElement('div');
+        el.setAttribute('aria-hidden', 'true');
+        Object.assign(el.style, {
+            position: 'fixed', top: '-10000px', left: '-10000px',
+            width: '1px', height: '1px', opacity: '0', pointerEvents: 'none',
+        } as Partial<CSSStyleDeclaration>);
+        document.body.appendChild(el);
+        dragPreviewEl = el;
+        dt.setDragImage(el, 0, 0);
+    } catch { }
+}
 
 const methodIconFor = (method: string): string => {
   switch (method.toLowerCase()) {
@@ -36,7 +53,6 @@ function endpointsToTree(endpoints: MockEndpoint[]): { items: Record<string, any
     items[key] = {
       index: key,
       isFolder: false,
-      canMove: false,
       children: [],
       data: JSON.stringify(ep),
     };
@@ -45,21 +61,15 @@ function endpointsToTree(endpoints: MockEndpoint[]): { items: Record<string, any
   items.root = {
     index: 'root',
     isFolder: true,
-    children: ['endpoints'],
-    data: 'root',
-  };
-  items.endpoints = {
-    index: 'endpoints',
-    isFolder: true,
     children: topChildren,
-    data: 'endpoints',
+    data: 'root',
   };
 
   return { items };
 }
 
 function treeToEndpoints(items: Record<string, any>): MockEndpoint[] {
-  const root = items.endpoints;
+  const root = items.root;
   if (!root) { return []; }
   const order: string[] = Array.isArray(root.children) ? root.children : [];
   return order.map(key => {
@@ -94,13 +104,20 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
       setContent(doc.toString());
     } catch { /* ignore */ }
   }, [content, setContent]);
-  const [expandedItems, setExpandedItems] = React.useState<string[]>(['endpoints']);
+  const contentRef = React.useRef(content);
+  contentRef.current = content;
+  const internalChangeRef = React.useRef(false);
+  const [expandedItems, setExpandedItems] = React.useState<string[]>([]);
   const [openEditors, setOpenEditors] = React.useState<Record<string, boolean>>({});
   const [addMenuOpen, setAddMenuOpen] = React.useState(false);
   const addBtnRef = React.useRef<HTMLButtonElement | null>(null);
 
-  /* Sync tree when external data changes */
+  /* Sync tree when external data changes (skip when change was from our own commit) */
   React.useEffect(() => {
+    if (internalChangeRef.current) {
+      internalChangeRef.current = false;
+      return;
+    }
     const newTree = endpointsToTree(endpoints);
     setShortTree(newTree);
     setExpandedItems(prev => {
@@ -134,13 +151,14 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
   const commitEndpoints = React.useCallback((items: Record<string, any>) => {
     try {
       const newEndpoints = treeToEndpoints(items);
-      const doc = parseYamlDoc(content);
+      const doc = parseYamlDoc(contentRef.current);
       doc.set('endpoints', doc.createNode(newEndpoints));
+      internalChangeRef.current = true;
       setContent(doc.toString());
     } catch (e) {
       console.error('Failed to commit endpoints:', e);
     }
-  }, [content, setContent]);
+  }, [setContent]);
 
   /* ─── Add endpoint ─── */
   const METHODS_TO_ADD = ['get', 'post', 'put', 'delete', 'patch'] as const;
@@ -153,14 +171,13 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
     itemsCopy[key] = {
       index: key,
       isFolder: false,
-      canMove: false,
       children: [],
       data: JSON.stringify(newEp),
     };
-    const parent = itemsCopy.endpoints;
+    const parent = itemsCopy.root;
     const children: string[] = Array.isArray(parent.children) ? [...parent.children] : [];
     children.push(key);
-    itemsCopy.endpoints = { ...parent, children };
+    itemsCopy.root = { ...parent, children };
     setShortTree({ items: itemsCopy });
     commitEndpoints(itemsCopy);
     // auto-expand the new endpoint
@@ -177,7 +194,7 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
       while (itemsCopy[newKey]) { newKey = `ep_${Math.random().toString(36).slice(2, 8)}`; }
       itemsCopy[newKey] = { ...src, index: newKey };
 
-      const parentKey = Object.keys(itemsCopy).find(pk => Array.isArray(itemsCopy[pk].children) && itemsCopy[pk].children.includes(targetKey)) || 'endpoints';
+      const parentKey = Object.keys(itemsCopy).find(pk => Array.isArray(itemsCopy[pk].children) && itemsCopy[pk].children.includes(targetKey)) || 'root';
       const parent = itemsCopy[parentKey];
       const children: string[] = Array.isArray(parent.children) ? [...parent.children] : [];
       const idx = children.indexOf(targetKey);
@@ -191,10 +208,10 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
   };
 
   const doRemove = (targetKey: string) => {
-    if (targetKey === 'root' || targetKey === 'endpoints') { return; }
+    if (targetKey === 'root') { return; }
     setShortTree(prev => {
       const itemsCopy = { ...prev.items } as Record<string, any>;
-      const parentKey = Object.keys(itemsCopy).find(pk => Array.isArray(itemsCopy[pk].children) && itemsCopy[pk].children.includes(targetKey)) || 'endpoints';
+      const parentKey = Object.keys(itemsCopy).find(pk => Array.isArray(itemsCopy[pk].children) && itemsCopy[pk].children.includes(targetKey)) || 'root';
       const parent = itemsCopy[parentKey];
       const children: string[] = Array.isArray(parent.children) ? [...parent.children] : [];
       const idx = children.indexOf(targetKey);
@@ -204,6 +221,61 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
 
       commitEndpoints(itemsCopy);
       return { items: itemsCopy };
+    });
+  };
+
+  /* ─── Drag & drop ─── */
+  const handleDrop = (draggedItems: any[], target: DraggingPosition) => {
+    if (!Array.isArray(draggedItems) || draggedItems.length === 0) { return; }
+    const itemsCopy = { ...shortTree.items } as Record<string, any>;
+
+    const removeDraggedFromParent = (index: string) => {
+      const parentKey = Object.keys(itemsCopy).find(key =>
+        itemsCopy[key].children?.includes(index)
+      );
+      if (parentKey) {
+        const newChildren = itemsCopy[parentKey].children.filter((c: string) => c !== index);
+        itemsCopy[parentKey] = { ...itemsCopy[parentKey], children: newChildren };
+      }
+    };
+
+    draggedItems.forEach(di => removeDraggedFromParent(di.index));
+
+    if (target.targetType === 'between-items') {
+      const t = target as DraggingPositionBetweenItems;
+      const parentKey = t.parentItem;
+      const siblings = itemsCopy[parentKey].children;
+      const childIndex = t.childIndex;
+      const originalSiblings: string[] = (shortTree.items[parentKey]?.children) || [];
+      const removedBefore = draggedItems.reduce((acc, di) => {
+        const wasSameParent = originalSiblings.includes(di.index);
+        if (wasSameParent) {
+          const origIdx = originalSiblings.indexOf(di.index);
+          if (origIdx >= 0 && origIdx < childIndex) { return acc + 1; }
+        }
+        return acc;
+      }, 0);
+      const insertIdx = Math.max(0, Math.min(childIndex - removedBefore, siblings.length));
+      const newChildren = [
+        ...siblings.slice(0, insertIdx),
+        ...draggedItems.map(di => di.index),
+        ...siblings.slice(insertIdx),
+      ];
+      itemsCopy[parentKey] = { ...itemsCopy[parentKey], children: newChildren };
+    } else if (target.targetType === 'root') {
+      const siblings = itemsCopy.root.children;
+      const newChildren = [...siblings, ...draggedItems.map(di => di.index)];
+      itemsCopy.root = { ...itemsCopy.root, children: newChildren };
+    }
+
+    setShortTree({ items: itemsCopy });
+    commitEndpoints(itemsCopy);
+
+    // Collapse dragged items after move
+    setOpenEditors(prev => {
+      const next = { ...prev } as Record<string, boolean>;
+      draggedItems.forEach(di => { delete next[String(di.index)]; });
+      return next;
     });
   };
 
@@ -280,14 +352,12 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
           if (treeId !== 'mock-tree') { return; }
           setExpandedItems(prev => prev.filter(i => i !== item.index));
         }}
-        canDragAndDrop={false}
+        canDragAndDrop={true}
         canDropOnFolder={false}
-        canReorderItems={false}
+        canReorderItems={true}
+        onDrop={handleDrop}
         onSelectItems={() => { }}
         renderItemArrow={({ item }) => {
-          if (item.isFolder) {
-            return null; // The root folder ('endpoints') is invisible
-          }
           let ep: MockEndpoint | undefined;
           try { ep = JSON.parse(item.data as string); } catch { }
           const method = (ep?.method || 'get').toLowerCase();
@@ -302,15 +372,7 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
           );
         }}
         renderItem={({ title, arrow, context, item, children }) => {
-          if (!title || item.isFolder) {
-            // For folder nodes (root, endpoints), just render children
-            return (
-              <div {...context.itemContainerWithChildrenProps}>
-                <div {...context.itemContainerWithoutChildrenProps} style={{ display: 'none' }} />
-                {children}
-              </div>
-            );
-          }
+          if (!title) { return null; }
 
           let ep: MockEndpoint = { path: '/' };
           try { ep = JSON.parse(title as string); } catch { }
@@ -318,7 +380,20 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
           const isOpen = !!openEditors[String(item.index)];
 
           return (
-            <div {...context.itemContainerWithChildrenProps}>
+            <div
+              {...context.itemContainerWithChildrenProps}
+              onDragStart={(e) => {
+                const key = String(item.index);
+                setOpenEditors(prev => (prev[key] ? { ...prev, [key]: false } : prev));
+                setTransparentDragImage(e.dataTransfer);
+              }}
+              onDragEnd={() => {
+                if (dragPreviewEl && dragPreviewEl.parentNode) {
+                  (dragPreviewEl.parentNode as Node).removeChild(dragPreviewEl);
+                }
+                dragPreviewEl = null;
+              }}
+            >
               <div
                 className={`tree-view-box${isOpen ? ' active' : ''}`}
                 {...context.itemContainerWithoutChildrenProps}
@@ -350,6 +425,19 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
                     />
                   </div>
                 </NoTreeInterference>
+                <span
+                  {...context.interactiveElementProps}
+                  title="Drag to reorder"
+                  onMouseDownCapture={(e) => e.stopPropagation()}
+                  onPointerDownCapture={(e) => e.stopPropagation()}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    width: 24, minWidth: 24, height: 24, marginTop: 4,
+                    opacity: 0.7, cursor: 'grab', userSelect: 'none',
+                  }}
+                >
+                  <span className="codicon codicon-gripper" aria-hidden />
+                </span>
               </div>
               {children}
             </div>
@@ -357,6 +445,9 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
         }}
         renderTreeContainer={({ children, containerProps }) => <div {...containerProps}>{children}</div>}
         renderItemsContainer={({ children, containerProps }) => <ul {...containerProps} style={{ ...(containerProps.style || {}), margin: 0, padding: 0, listStyle: 'none' }}>{children}</ul>}
+        renderDragBetweenLine={({ lineProps }) => (
+          <div {...lineProps} style={{ background: 'var(--vscode-focusBorder, #264f78)', height: '1px' }} />
+        )}
       >
         <Tree treeId="mock-tree" rootItem="root" treeLabel="Mock Endpoints" />
       </ControlledTreeEnvironment>
