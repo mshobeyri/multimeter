@@ -2,7 +2,6 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { MockEndpoint } from "mmt-core/MockData";
 import KSVEditor from "../components/KSVEditor";
-import TextEditor from "../text/TextEditor";
 
 interface MockEndpointBoxProps {
   endpoint: MockEndpoint;
@@ -301,14 +300,17 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
         {/* Body */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
           <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0, paddingTop: 4 }}>Body</span>
-          <div style={{ flex: 1, minWidth: 0, height: 120, border: '1px solid var(--vscode-editorWidget-border, #333)', borderRadius: 4, overflow: 'hidden' }}>
-            <TextEditor
-              content={localBody}
-              setContent={updateLocalBody}
-              onFocusChange={focused => { if (!focused) { commit(); } }}
-              language={(local.format === 'xml' ? 'xml' : local.format === 'text' ? 'plaintext' : 'json')}
-              showNumbers={false}
-              fontSize={12}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <textarea
+              value={localBody}
+              onChange={e => updateLocalBody(e.target.value)}
+              onBlur={() => commit()}
+              onKeyDown={e => { if (e.key === 'Enter' && e.metaKey) { (e.target as HTMLElement).blur(); } }}
+              placeholder="Response body"
+              style={{
+                width: '100%', height: 120, resize: 'vertical', overflow: 'auto',
+                fontFamily: 'var(--vscode-editor-font-family, monospace)', fontSize: 12,
+              }}
             />
           </div>
         </div>
