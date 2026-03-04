@@ -232,7 +232,7 @@ const App: React.FC = () => {
             {docType === "suite" && (
               <SuitePanel content={validContent} setContent={uiSetContent} />
             )}
-            {docType === "mock" && (
+            {docType === "server" && (
               <MockPanel content={validContent} setContent={uiSetContent} />
             )}
             {docType === null && (

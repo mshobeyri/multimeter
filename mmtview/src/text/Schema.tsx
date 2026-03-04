@@ -2,7 +2,7 @@ export const GeneralSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
     properties: {
-        type: { type: 'string', enum: ['api', 'env', 'var', 'test', 'suite', 'doc', 'mock'] },
+        type: { type: 'string', enum: ['api', 'env', 'var', 'test', 'suite', 'doc', 'server'] },
     }
 }
 
@@ -618,7 +618,7 @@ export const MockSchema = {
     type: 'object',
     required: ['type', 'port', 'endpoints'],
     properties: {
-        type: { type: 'string', enum: ['mock'] },
+        type: { type: 'string', enum: ['server'] },
         title: { type: 'string' },
         description: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },

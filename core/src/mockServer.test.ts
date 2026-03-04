@@ -243,7 +243,7 @@ describe('buildFallbackResponse', () => {
 
 describe('createMockRouter', () => {
   const data: MockData = {
-    type: 'mock',
+    type: 'server',
     port: 8081,
     cors: false,
     delay: 0,

@@ -51,7 +51,7 @@ export interface MockFallback {
 export type MockProtocol = 'http' | 'https' | 'ws';
 
 export interface MockData extends MMTFile {
-  type: 'mock';
+  type: 'server';
   title?: string;
   description?: string;
   tags?: string[];

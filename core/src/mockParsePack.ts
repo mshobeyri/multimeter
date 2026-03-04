@@ -1,5 +1,7 @@
 import {MockData, MockEndpoint, MockFallback, MockProtocol, MockTlsConfig} from './MockData';
 import {Format, Method} from './CommonData';
+import parseYaml, {packYaml} from './markupConvertor';
+import {isNonEmptyList, isNonEmptyObject} from './safer';
 
 const VALID_PROTOCOLS: MockProtocol[] = ['http', 'https', 'ws'];
 const VALID_METHODS: Method[] = ['get', 'post', 'put', 'delete', 'patch', 'head', 'options', 'trace'];
@@ -30,8 +32,8 @@ export function parseMockData(yaml: any): {data: MockData | null; errors: ParseE
     return {data: null, errors};
   }
 
-  if (yaml.type !== 'mock') {
-    errors.push({message: 'type must be "mock"', severity: 'error'});
+  if (yaml.type !== 'server') {
+    errors.push({message: 'type must be "server"', severity: 'error'});
     return {data: null, errors};
   }
 
@@ -151,7 +153,7 @@ export function parseMockData(yaml: any): {data: MockData | null; errors: ParseE
   }
 
   const data: MockData = {
-    type: 'mock',
+    type: 'server',
     title: yaml.title ? String(yaml.title) : undefined,
     description: yaml.description ? String(yaml.description) : undefined,
     tags: Array.isArray(yaml.tags) ? yaml.tags.map(String) : undefined,
@@ -186,4 +188,78 @@ function parseEndpoint(ep: any): MockEndpoint {
     delay: ep.delay,
     reflect: !!ep.reflect
   };
+}
+
+export function yamlToMock(yamlContent: string): MockData | null {
+  const yaml = parseYaml(yamlContent);
+  if (!yaml || typeof yaml !== 'object') { return null; }
+  if (yaml.type !== 'server') { return null; }
+  // Lenient parse: build MockData even if some fields are missing/invalid,
+  // so the format button can reorder fields in partially-written files.
+  const data: MockData = {
+    type: 'server',
+    title: yaml.title ? String(yaml.title) : undefined,
+    description: yaml.description ? String(yaml.description) : undefined,
+    tags: Array.isArray(yaml.tags) ? yaml.tags.map(String) : undefined,
+    protocol: yaml.protocol || 'http',
+    port: typeof yaml.port === 'number' ? yaml.port : (yaml.port || 0),
+    tls: yaml.tls && typeof yaml.tls === 'object' ? {
+      cert: String(yaml.tls.cert || ''),
+      key: String(yaml.tls.key || ''),
+      ca: yaml.tls.ca ? String(yaml.tls.ca) : undefined,
+      requestCert: !!yaml.tls.requestCert,
+    } : undefined,
+    cors: !!yaml.cors,
+    delay: typeof yaml.delay === 'number' ? yaml.delay : 0,
+    headers: yaml.headers && typeof yaml.headers === 'object' ? yaml.headers : undefined,
+    endpoints: Array.isArray(yaml.endpoints) ? yaml.endpoints.map((ep: any) => parseEndpoint(ep)) : [],
+    proxy: yaml.proxy ? String(yaml.proxy) : undefined,
+    fallback: yaml.fallback && typeof yaml.fallback === 'object' ? {
+      status: yaml.fallback.status ?? 404,
+      format: yaml.fallback.format,
+      headers: yaml.fallback.headers,
+      body: yaml.fallback.body,
+    } : undefined,
+  };
+  return data;
+}
+
+export function mockToYaml(mock: MockData): string {
+  const obj: Record<string, any> = {
+    type: mock.type,
+  };
+  if (mock.title) { obj.title = mock.title; }
+  if (mock.description) { obj.description = mock.description; }
+  if (isNonEmptyList(mock.tags)) { obj.tags = mock.tags; }
+  if (mock.protocol && mock.protocol !== 'http') { obj.protocol = mock.protocol; }
+  obj.port = mock.port;
+  if (mock.tls) { obj.tls = mock.tls; }
+  if (mock.cors) { obj.cors = mock.cors; }
+  if (mock.delay) { obj.delay = mock.delay; }
+  if (isNonEmptyObject(mock.headers)) { obj.headers = mock.headers; }
+  if (mock.proxy) { obj.proxy = mock.proxy; }
+  obj.endpoints = mock.endpoints.map(ep => {
+    const e: Record<string, any> = {};
+    if ('method' in ep && ep.method) { e.method = ep.method; }
+    e.path = ep.path;
+    if ('name' in ep && ep.name) { e.name = ep.name; }
+    if ('match' in ep && ep.match) { e.match = ep.match; }
+    if ('status' in ep) { e.status = ep.status; }
+    if (ep.format) { e.format = ep.format; }
+    if ('headers' in ep && isNonEmptyObject(ep.headers)) { e.headers = ep.headers; }
+    if (ep.body !== undefined && ep.body !== null && ep.body !== '') { e.body = ep.body; }
+    if ('delay' in ep && ep.delay) { e.delay = ep.delay; }
+    if ('reflect' in ep && ep.reflect) { e.reflect = ep.reflect; }
+    if ('messages' in ep && Array.isArray(ep.messages)) { e.messages = ep.messages; }
+    return e;
+  });
+  if (mock.fallback) {
+    const fb: Record<string, any> = {};
+    if (mock.fallback.status !== undefined) { fb.status = mock.fallback.status; }
+    if (mock.fallback.format) { fb.format = mock.fallback.format; }
+    if (isNonEmptyObject(mock.fallback.headers)) { fb.headers = mock.fallback.headers; }
+    if (mock.fallback.body !== undefined && mock.fallback.body !== null && mock.fallback.body !== '') { fb.body = mock.fallback.body; }
+    obj.fallback = fb;
+  }
+  return packYaml(obj);
 }

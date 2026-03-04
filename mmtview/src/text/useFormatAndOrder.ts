@@ -2,9 +2,11 @@ import { useCallback } from 'react';
 import { apiToYaml, yamlToAPI } from 'mmt-core/apiParsePack';
 import { yamlToTest, testToYaml } from 'mmt-core/testParsePack';
 import { yamlToDoc, docToYaml } from 'mmt-core/docParsePack';
+import { yamlToMock, mockToYaml } from 'mmt-core/mockParsePack';
 import { APIData } from 'mmt-core/APIData';
 import { TestData } from 'mmt-core/TestData';
 import { DocData } from 'mmt-core/DocData';
+import { MockData } from 'mmt-core/MockData';
 import { showVSCodeMessage } from '../vsAPI';
 
 export function useFormatAndOrder({
@@ -67,6 +69,14 @@ export function buildCanonicalYaml(content: string, docType: string | null): str
       case 'suite': {
         showVSCodeMessage('warn', 'Suite reordering is not supported yet.');
         return null;
+      }
+      case 'server': {
+        const mockData = yamlToMock(content);
+        if (!mockData || typeof mockData !== 'object' || mockData === ({} as MockData)) {
+          showVSCodeMessage('error', 'Document is not a valid YAML.');
+          return null;
+        }
+        return mockToYaml(mockData);
       }
       default:
         return null;

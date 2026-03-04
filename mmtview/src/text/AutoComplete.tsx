@@ -85,9 +85,9 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'Suite definition that runs referenced .mmt files. Uses tests: [path | then | path], runs items in a group in parallel and groups sequentially.',
         },
         {
-            label: "Mock",
+            label: "Server",
             kind: monaco.languages.CompletionItemKind.EnumMember,
-            insertText: " mock",
+            insertText: " server",
             detail: 'Define a mock server',
             documentation: 'Local mock server with configurable endpoints, route matching, conditional responses, and dynamic tokens. Supports HTTP, HTTPS, and WebSocket protocols.',
         },

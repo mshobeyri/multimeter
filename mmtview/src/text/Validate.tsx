@@ -70,7 +70,7 @@ export const validateYamlContent = (content: string): any[] => {
             validate = ajv.compile(SuiteSchema);
         } else if (parsedContent.type && parsedContent.type === 'doc') {
             validate = ajv.compile(DocSchema);
-        } else if (parsedContent.type && parsedContent.type === 'mock') {
+        } else if (parsedContent.type && parsedContent.type === 'server') {
             validate = ajv.compile(MockSchema);
         }
         const isValid = validate(parsedContent);

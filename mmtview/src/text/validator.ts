@@ -146,6 +146,22 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
       ];
     case "doc":
       return ["type", "title", "description", "logo", "sources", "services", "html", "env"];
+    case "server":
+      return [
+        "type",
+        "title",
+        "description",
+        "tags",
+        "protocol",
+        "port",
+        "tls",
+        "cors",
+        "delay",
+        "headers",
+        "proxy",
+        "endpoints",
+        "fallback",
+      ];
     default:
       return null;
   }
@@ -196,6 +212,7 @@ const STEP_KEY_ORDER: Record<string, string[]> = {
 };
 const CHECK_ASSERT_VALUE_ORDER = ['title', 'actual', 'operator', 'expected', 'report', 'details'];
 const STAGE_KEY_ORDER = ['id', 'title', 'condition', 'depends_on', 'steps'];
+const SERVER_ENDPOINT_KEY_ORDER = ['method', 'path', 'name', 'match', 'status', 'format', 'headers', 'body', 'delay', 'reflect', 'messages'];
 
 /** Detect the step type from a YAML map node's key-value pairs. */
 function detectStepTypeFromPairs(pairs: any[]): string | null {
@@ -478,6 +495,28 @@ export function computeMissingImportMarkers(
   };
 }
 
+/**
+ * Detect the first endpoint-level ordering issue in a server document.
+ */
+function detectServerEndpointOrderingIssue(doc: any, content: string): OrderingIssue | null {
+  const rootItems: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
+  const endpointsPair = rootItems.find((item: any) => item?.key?.value === 'endpoints');
+  if (!endpointsPair?.value?.items) {
+    return null;
+  }
+  const endpointsSeq: any[] = Array.isArray(endpointsPair.value.items) ? endpointsPair.value.items : [];
+  for (const epNode of endpointsSeq) {
+    const pairs: any[] = Array.isArray(epNode?.items) ? epNode.items : [];
+    if (pairs.length > 1) {
+      const issue = detectKeysOutOfOrder(pairs, SERVER_ENDPOINT_KEY_ORDER, content, 'Endpoint');
+      if (issue) {
+        return issue;
+      }
+    }
+  }
+  return null;
+}
+
 export function computeOrderingMarkers(
   monaco: any,
   model: any,
@@ -498,7 +537,12 @@ export function computeOrderingMarkers(
     ? detectTestStepOrderingIssue(yamlDoc, content)
     : null;
 
-  const effectiveIssue = issue || stepIssue;
+  // If no root-level issue, check endpoint-level ordering for server documents
+  const endpointIssue = !issue && !stepIssue && docType === 'server'
+    ? detectServerEndpointOrderingIssue(yamlDoc, content)
+    : null;
+
+  const effectiveIssue = issue || stepIssue || endpointIssue;
 
   const markers = effectiveIssue
     ? [

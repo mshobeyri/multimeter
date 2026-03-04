@@ -41,7 +41,7 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
   useEffect(() => {
     try {
       const parsed = parseYaml(content);
-      if (parsed && parsed.type === "mock") {
+      if (parsed && parsed.type === "server") {
         setMockData(parsed as MockData);
       } else {
         setMockData(null);
