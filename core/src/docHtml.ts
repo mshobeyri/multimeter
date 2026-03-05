@@ -4,14 +4,67 @@ import { resolveEnvTokenValues } from './variableReplacer';
 // Shared HTML renderer for documentation pages
 // Framework-free and safe to use in Node and browser contexts
 
+/**
+ * Parse a `ref path/to/file.md#section` description.
+ * Returns `{ path, fragment }` if the description is a ref, or `null`.
+ */
+export function parseRefDescription(desc: string): { path: string; fragment: string } | null {
+  const m = /^\s*ref\s+(\S+)\s*$/.exec(desc);
+  if (!m) { return null; }
+  const raw = m[1];
+  const hashIdx = raw.indexOf('#');
+  if (hashIdx < 0) { return { path: raw, fragment: '' }; }
+  return { path: raw.slice(0, hashIdx), fragment: raw.slice(hashIdx + 1) };
+}
+
+/**
+ * Extract a section from markdown content by heading fragment.
+ * The fragment matches a heading slug (GitHub-style: lowercase, spaces→dashes,
+ * leading `-` for special chars). Returns all content under that heading until
+ * the next heading of the same or higher level, or end of file.
+ * If `fragment` is empty, returns the entire content.
+ */
+export function extractMarkdownSection(content: string, fragment: string): string {
+  if (!fragment) { return content; }
+  const lines = content.split('\n');
+  // GitHub-style slug: lowercase, strip non-alphanum except dashes/spaces, collapse
+  const slugify = (text: string) =>
+    text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
+  const target = fragment.replace(/^-+/, '').toLowerCase();
+
+  let startIdx = -1;
+  let headingLevel = 0;
+  for (let i = 0; i < lines.length; i++) {
+    const hm = /^(#{1,6})\s+(.+)$/.exec(lines[i]);
+    if (!hm) { continue; }
+    const slug = slugify(hm[2]);
+    if (slug === target || slug === fragment.toLowerCase()) {
+      startIdx = i;
+      headingLevel = hm[1].length;
+      break;
+    }
+  }
+  if (startIdx < 0) { return ''; }
+
+  // Collect lines until next heading of same or higher level
+  const result: string[] = [];
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    const hm = /^(#{1,6})\s+/.exec(lines[i]);
+    if (hm && hm[1].length <= headingLevel) { break; }
+    result.push(lines[i]);
+  }
+  // Trim leading/trailing blank lines
+  while (result.length && !result[0].trim()) { result.shift(); }
+  while (result.length && !result[result.length - 1].trim()) { result.pop(); }
+  return result.join('\n');
+}
+
 function escapeHtml(s: string): string {
   return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' } as any)[c]);
 }
 
 function inlineMarkdownToHtml(text: string): string {
   let s = escapeHtml(text);
-  // ref links: "ref path/to/file.md#section" → clickable highlighted link
-  s = s.replace(/\bref (\S+)/g, '<a class="desc-ref" href="$1" title="$1">ref $1</a>');
   s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
   s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');

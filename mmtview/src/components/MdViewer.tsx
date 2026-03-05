@@ -1,7 +1,7 @@
-import React, { useMemo, useCallback } from "react";
-import { simpleMarkdownToHtml, parseParamDescriptions } from "mmt-core/docHtml";
+import React, { useMemo, useCallback, useState, useEffect } from "react";
+import { simpleMarkdownToHtml, parseParamDescriptions, parseRefDescription, extractMarkdownSection } from "mmt-core/docHtml";
 import { JSONRecord } from "mmt-core/CommonData";
-import { openRelativeFile } from "../vsAPI";
+import { readFile, openRelativeFile } from "../vsAPI";
 
 interface MdViewerProps {
   description: string;
@@ -38,19 +38,45 @@ function buildParamTable(
   return html;
 }
 
+function renderDescription(desc: string, inputs?: JSONRecord, outputs?: Record<string, string>): string {
+  if (!desc) { return ''; }
+  const { cleaned, params } = parseParamDescriptions(desc);
+  let result = simpleMarkdownToHtml(cleaned, 'h4');
+  if (inputs && Object.keys(inputs).length) {
+    result += buildParamTable('Inputs', inputs, params.inputs);
+  }
+  if (outputs && Object.keys(outputs).length) {
+    result += buildParamTable('Outputs', outputs, params.outputs);
+  }
+  return result;
+}
+
 const MdViewer: React.FC<MdViewerProps> = ({ description, inputs, outputs }) => {
+  const ref = useMemo(() => parseRefDescription(description), [description]);
+  const [resolvedDesc, setResolvedDesc] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!ref) {
+      setResolvedDesc(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const content = await readFile(ref.path);
+        const section = extractMarkdownSection(content, ref.fragment);
+        if (!cancelled) { setResolvedDesc(section || description); }
+      } catch {
+        if (!cancelled) { setResolvedDesc(description); }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [ref, description]);
+
   const html = useMemo(() => {
-    if (!description) { return ''; }
-    const { cleaned, params } = parseParamDescriptions(description);
-    let result = simpleMarkdownToHtml(cleaned, 'h4');
-    if (inputs && Object.keys(inputs).length) {
-      result += buildParamTable('Inputs', inputs, params.inputs);
-    }
-    if (outputs && Object.keys(outputs).length) {
-      result += buildParamTable('Outputs', outputs, params.outputs);
-    }
-    return result;
-  }, [description, inputs, outputs]);
+    const desc = ref ? (resolvedDesc ?? '') : description;
+    return renderDescription(desc, inputs, outputs);
+  }, [ref, resolvedDesc, description, inputs, outputs]);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -58,7 +84,6 @@ const MdViewer: React.FC<MdViewerProps> = ({ description, inputs, outputs }) => 
       e.preventDefault();
       const href = target.getAttribute('href');
       if (href) {
-        // Strip fragment (#...) when opening the file
         const filePath = href.replace(/#.*$/, '');
         openRelativeFile(filePath);
       }

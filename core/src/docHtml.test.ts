@@ -1,4 +1,4 @@
-import { extractEndpoint, parseParamDescriptions, extractSources, buildDocHtml, simpleMarkdownToHtml } from './docHtml';
+import { extractEndpoint, parseParamDescriptions, extractSources, buildDocHtml, simpleMarkdownToHtml, parseRefDescription, extractMarkdownSection } from './docHtml';
 import { buildDocMarkdown } from './docMarkdown';
 
 describe('parseParamDescriptions', () => {
@@ -418,26 +418,76 @@ describe('simpleMarkdownToHtml', () => {
     expect(html).toContain('</ul>');
     expect(html).toContain('<p>some text</p>');
   });
+});
 
-  test('converts ref to highlighted link', () => {
-    const html = simpleMarkdownToHtml('ref README.md#-why-multimeter');
-    expect(html).toContain('<a class="desc-ref"');
-    expect(html).toContain('href="README.md#-why-multimeter"');
-    expect(html).toContain('ref README.md#-why-multimeter</a>');
+describe('parseRefDescription', () => {
+  test('parses ref with fragment', () => {
+    expect(parseRefDescription('ref README.md#-why-multimeter')).toEqual({
+      path: 'README.md', fragment: '-why-multimeter'
+    });
   });
 
-  test('converts inline ref within text', () => {
-    const html = simpleMarkdownToHtml('See ref docs/api-mmt.md#inputs for details');
-    expect(html).toContain('<a class="desc-ref"');
-    expect(html).toContain('href="docs/api-mmt.md#inputs"');
-    expect(html).toContain('>ref docs/api-mmt.md#inputs</a>');
-    expect(html).toContain('See ');
-    expect(html).toContain(' for details');
+  test('parses ref without fragment', () => {
+    expect(parseRefDescription('ref docs/guide.md')).toEqual({
+      path: 'docs/guide.md', fragment: ''
+    });
   });
 
-  test('converts multiple ref links in one line', () => {
-    const html = simpleMarkdownToHtml('ref a.md and ref b.md#x');
-    expect(html).toContain('href="a.md"');
-    expect(html).toContain('href="b.md#x"');
+  test('parses ref with leading/trailing whitespace', () => {
+    expect(parseRefDescription('  ref ./doc.md#section  ')).toEqual({
+      path: './doc.md', fragment: 'section'
+    });
+  });
+
+  test('returns null for non-ref descriptions', () => {
+    expect(parseRefDescription('Just a plain description')).toBeNull();
+    expect(parseRefDescription('reference to something')).toBeNull();
+    expect(parseRefDescription('See ref docs.md for info')).toBeNull();
+  });
+
+  test('returns null for empty string', () => {
+    expect(parseRefDescription('')).toBeNull();
+  });
+});
+
+describe('extractMarkdownSection', () => {
+  const md = [
+    '# Top',
+    'Intro text.',
+    '',
+    '## Why',
+    'Because reasons.',
+    '',
+    '### Sub-section',
+    'Details here.',
+    '',
+    '## How',
+    'Steps to follow.',
+  ].join('\n');
+
+  test('extracts section by heading slug', () => {
+    const result = extractMarkdownSection(md, 'why');
+    expect(result).toContain('Because reasons.');
+    expect(result).toContain('### Sub-section');
+    expect(result).toContain('Details here.');
+    expect(result).not.toContain('Steps to follow.');
+  });
+
+  test('extracts top-level section stopping at same level', () => {
+    const result = extractMarkdownSection(md, 'how');
+    expect(result).toBe('Steps to follow.');
+  });
+
+  test('returns empty string if section not found', () => {
+    expect(extractMarkdownSection(md, 'nonexistent')).toBe('');
+  });
+
+  test('returns full content when fragment is empty', () => {
+    expect(extractMarkdownSection(md, '')).toBe(md);
+  });
+
+  test('handles fragment with leading dash', () => {
+    const result = extractMarkdownSection(md, '-why');
+    expect(result).toContain('Because reasons.');
   });
 });

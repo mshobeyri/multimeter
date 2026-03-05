@@ -3,6 +3,7 @@ import { DocData } from 'mmt-core/DocData';
 import { yamlToAPI } from 'mmt-core/apiParsePack';
 import parseYaml from 'mmt-core/markupConvertor';
 import { docHtml } from 'mmt-core';
+import { parseRefDescription, extractMarkdownSection } from 'mmt-core/docHtml';
 import { readFile, readFileAsDataUrl } from '../vsAPI';
 
 interface DocViewProps { doc: DocData; }
@@ -91,9 +92,32 @@ const DocViewHTML: React.FC<DocViewProps> = ({ doc }) => {
           logoDataUrl = logoStr;
         }
       }
+      // Resolve ref descriptions in APIs (inline file content)
+      for (const api of apis) {
+        if (typeof api.description === 'string') {
+          const ref = parseRefDescription(api.description);
+          if (ref) {
+            try {
+              const content = await readFile(ref.path);
+              api.description = extractMarkdownSection(content, ref.fragment) || api.description;
+            } catch { /* keep original description on error */ }
+          }
+        }
+      }
+      // Resolve ref in doc-level description
+      let resolvedDocDescription = docDescription;
+      if (typeof docDescription === 'string') {
+        const ref = parseRefDescription(docDescription);
+        if (ref) {
+          try {
+            const content = await readFile(ref.path);
+            resolvedDocDescription = extractMarkdownSection(content, ref.fragment) || docDescription;
+          } catch { /* keep original */ }
+        }
+      }
       if (!cancelled) setHtml(docHtml.buildDocHtml(apis, {
         title: docTitle,
-        description: docDescription,
+        description: resolvedDocDescription,
         logo: logoDataUrl || docLogo,
         sources: docSources,
         services: Array.isArray(docServices) ? docServices : undefined,
