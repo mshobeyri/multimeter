@@ -678,7 +678,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "examples",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "examples:\n\t- name: example1\n\t\tdescription: desc\n\t\tinputs:\n\t\t\tkey1: value1\n\t\t\tkey2: value2\n\t\toutputs:\n\t\t\tkey1: value1\n\t\t\tkey2: value2\n",
+            insertText: "examples:\n\t- name: example1\n\t\tdescription: desc\n\t\tinputs:\n\t\t\tkey1: value1\n\t\t\tkey2: value2\n\t\toutputs:\n\t\t\tstatusCode_: 200\n\t\t\tkey1: value1\n",
             detail: 'Usage examples [array of key: value]',
             documentation: 'Provide concrete examples of how to use the API with specific input values. These examples can be used for testing and documentation.\nExample:\nexamples:\n\t- name: "Get Admin User"\n\t\tinputs:\n\t\tuserId: "admin123"\n\t\tapiKey: "test-key-456 "\n\t\toutputs:\n\t\tstatus_code: 200\n\t\tuserName: "Admin User"',
         }
@@ -872,6 +872,14 @@ export const KeySuggestionsByParent = (monaco: any) => {
     ];
     const outputsSuggestions = [
         {
+            label: "statusCode_",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "statusCode_: ",
+            detail: 'HTTP status code (number)',
+            documentation: 'Built-in output containing the HTTP status code returned by the API call (e.g. 200, 404, 500).\nExample: statusCode_: 200',
+            sortText: '0statusCode_',
+        },
+        {
             label: "regex ",
             kind: monaco.languages.CompletionItemKind.Function,
             insertText: " regex ",
@@ -990,6 +998,13 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: "inputs:\n\t",
             detail: 'Input parameters [array of objects]',
             documentation: 'Define specific input values for this example. These override the default inputs defined at the API level and provide concrete test data.\nExample:\ninputs:\n\t- username: "admin123"\n\t- email: "admin@example.com"\n\t- role: "administrator"\n\t- password: "SecurePass123!"',
+        },
+        {
+            label: "outputs",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "outputs:\n\t",
+            detail: 'Expected outputs [object]',
+            documentation: 'Define expected output values for this example. Used to verify the API response matches expectations.\nExample:\noutputs:\n\tstatusCode_: 200\n\tbody: {"id": 1}',
         }
     ];
     const servicesSuggestions = [

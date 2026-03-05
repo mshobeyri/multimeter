@@ -898,6 +898,9 @@ export function getUndefinedExampleKeyDecorations(
   const apiInputs = extractApiLevelKeys(yamlDoc, "inputs");
   const apiOutputs = extractApiLevelKeys(yamlDoc, "outputs");
 
+  // Built-in output keys that are always valid in example outputs
+  const builtInOutputKeys = new Set(["statusCode_", "details_"]);
+
   // If neither inputs nor outputs are declared, nothing to warn about
   if (apiInputs.size === 0 && apiOutputs.size === 0) {
     return [];
@@ -908,6 +911,10 @@ export function getUndefinedExampleKeyDecorations(
 
   for (const site of sites) {
     const allowed = site.section === "inputs" ? apiInputs : apiOutputs;
+    // Skip built-in output keys (statusCode_, details_)
+    if (site.section === "outputs" && builtInOutputKeys.has(site.key)) {
+      continue;
+    }
     // Skip if the API doesn't declare this section at all
     if (allowed.size === 0) {
       continue;
@@ -951,6 +958,9 @@ export function findExampleKeyProblems(
   const apiInputs = extractApiLevelKeys(yamlDoc, "inputs");
   const apiOutputs = extractApiLevelKeys(yamlDoc, "outputs");
 
+  // Built-in output keys that are always valid in example outputs
+  const builtInOutputKeys = new Set(["statusCode_", "details_"]);
+
   if (apiInputs.size === 0 && apiOutputs.size === 0) {
     return [];
   }
@@ -958,6 +968,10 @@ export function findExampleKeyProblems(
   const sites = extractApiExampleKeySites(yamlDoc, content);
   return sites
     .filter((site) => {
+      // Skip built-in output keys (statusCode_, details_)
+      if (site.section === "outputs" && builtInOutputKeys.has(site.key)) {
+        return false;
+      }
       const allowed = site.section === "inputs" ? apiInputs : apiOutputs;
       return allowed.size > 0 && !allowed.has(site.key);
     })
