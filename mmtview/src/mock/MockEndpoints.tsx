@@ -298,7 +298,7 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
   return (
     <div className="test-flow-tree" style={{ padding: '0 16px 16px', boxSizing: 'border-box' }}>
       {/* Endpoints header */}
-      <div className="label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative' }}>
+      <div className="label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', overflow: 'visible' }}>
         <span>Endpoints</span>
         <button
           ref={addBtnRef}
