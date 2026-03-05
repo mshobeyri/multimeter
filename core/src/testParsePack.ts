@@ -7,7 +7,7 @@ import {FlowType, TestData, TestFlowStep, TestFlowSteps, TestFlowStages} from '.
  * Keys not listed here are appended in original order after the canonical ones.
  */
 export const STEP_KEY_ORDER: Record<string, string[]> = {
-  call:   ['call', 'id', 'inputs', 'check', 'assert', 'report'],
+  call:   ['call', 'id', 'title', 'inputs', 'check', 'assert', 'report'],
   check:  ['check'],
   assert: ['assert'],
   if:     ['if', 'steps', 'else'],

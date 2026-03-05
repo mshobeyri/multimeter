@@ -86,7 +86,16 @@ Dotted paths are supported: `result.name == John` → `_callResult.result.name =
 
 ### Title
 
-The generated check/assert title defaults to: `step.id || step.call || 'call'`.
+The generated check/assert title is resolved using this priority (first non-empty value wins):
+
+1. **`title`** — explicit `title` field on the call step
+2. **Called file title** — the `title` field of the imported `.mmt` file
+3. **Import key** — the alias used in the `call` field (e.g. `login`)
+4. **Import file name** — the base filename of the imported path (without extension)
+5. **`id`** — the `id` field of the call step
+6. Fallback: `'call'`
+
+This metadata is threaded from `ImportTracker.getFileTitle()` through a `callMeta` map passed to `callToJSfunc`.
 
 ### Details
 
@@ -110,42 +119,48 @@ The generated check/assert details defaults to `${JSON.stringify(<resultVar>)}`,
 - Add `check?: Comparison | Comparison[]` to `TestFlowCall`.
 - Add `assert?: Comparison | Comparison[]` to `TestFlowCall`.
 - Add `report?: ReportLevel | ReportConfig` to `TestFlowCall`.
+- Add `title?: string` to `TestFlowCall` for explicit title override.
 
 ### 2. `core/src/testParsePack.ts`
 
-- Update `STEP_KEY_ORDER.call` to include `'check'`, `'assert'`, `'report'`.
+- Update `STEP_KEY_ORDER.call` to include `'title'`, `'check'`, `'assert'`, `'report'`.
 - `getTestFlowStepType` already checks `'call'` before `'check'`/`'assert'`, so no change needed there.
 
-### 3. `core/src/JSerTestFlow.ts`
+### 3. `core/src/importTracker.ts`
 
-- Update `callToJSfunc` signature to accept `useExternalReport`.
-- When `check` or `assert` fields are present:
-  - Generate a result variable (use `id` if present, else `_<callName>`).
-  - For each comparison, build a `ComparisonObject` with:
-    - `actual`: `<resultVar>.<outputKey>`
-    - `expected`: as-is from the comparison
-    - `operator`: as-is
-    - `title`: `step.id || step.call || 'call'`
-    - `details`: `${JSON.stringify(<resultVar>)}`
-    - `report`: `step.report`
-  - Use `comparisonToJSfunc` to generate the check/assert JS.
-- Update `flowStepsToJsfunc` to pass `useExternalReport` to `callToJSfunc`.
+- Add `setFileTitle` / `getFileTitle` methods to store and retrieve imported file titles.
 
-### 4. `mmtview/src/text/Schema.tsx`
+### 4. `core/src/JSerImports.ts`
 
-- Add `check`, `assert`, and `report` properties to the call step schema.
+- Store file titles in `ImportTracker` during `emitResolved` for test and API files.
+
+### 5. `core/src/JSerTestFlow.ts`
+
+- Add `CallTitleMeta` interface for per-alias import metadata.
+- Update `callToJSfunc` signature to accept `callMeta`.
+- Title resolution uses priority chain: `step.title || meta.fileTitle || step.call || meta.fileName || step.id || 'call'`.
+- Thread `callMeta` through `flowStepsToJsfunc`, `flowStagesToJsfunc`, `flowToJsFunc`, `ifToJSfunc`, `repeatToJSfunc`, `forToJSfunc`.
+
+### 6. `core/src/JSerTest.ts`
+
+- Build `callMeta` from the test's import section and `ImportTracker`, then pass it to `flowToJsFunc`.
+
+### 7. `mmtview/src/text/Schema.tsx`
+
+- Add `check`, `assert`, `title`, and `report` properties to the call step schema.
 - `check` / `assert`: `oneOf` string or array of strings.
 
-### 5. `mmtview/src/text/AutoComplete.tsx`
+### 8. `mmtview/src/text/AutoComplete.tsx`
 
-- Add `check`, `assert`, and `report` to `callSiblings`.
+- Add `check`, `assert`, `title`, and `report` to `callSiblings`.
 - Update call step documentation to mention inline checks.
 
-### 6. `docs/test-mmt.md`
+### 9. `docs/test-mmt.md`
 
 - Document inline `check`/`assert` on call steps with examples.
+- Document the `title` field and title priority chain.
 
-### 7. `core/src/JSer.test.ts`
+### 10. `core/src/JSer.test.ts`
 
 - Test: call with single string check generates correct JS.
 - Test: call with array of checks generates multiple checks.

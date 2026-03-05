@@ -3,7 +3,7 @@ import {resolveRequestedAgainst} from './fileHelper';
 import {ImportTracker} from './importTracker';
 import {indentLines, toInputsParams, toLowerUnderscore} from './JSerHelper';
 import {importsToJsfunc} from './JSerImports';
-import {flowToJsFunc} from './JSerTestFlow';
+import {CallTitleMeta, flowToJsFunc} from './JSerTestFlow';
 import {TestData} from './TestData';
 import {normalizeEnvTokens, replaceAllRefs} from './variableReplacer';
 
@@ -107,7 +107,18 @@ export const testToJsfunc = async(
 
   // For report settings: use external if not root OR if explicitly marked as external (suite run)
   const useExternalReport = !root || ctx.isExternal === true;
-  flow += flowToJsFunc(replaced, root, useExternalReport);
+
+  // Build callMeta: per import alias, the file title and filename
+  const callMeta: Record<string, CallTitleMeta> = {};
+  for (const [alias, requestedPathRaw] of Object.entries(ctx.test.import ?? {})) {
+    const requestedPath = typeof requestedPathRaw === 'string' ? requestedPathRaw : '';
+    const resolvedPath = resolveRequestedAgainst(ctx.filePath || '', requestedPath, ctx.projectRoot);
+    const fileTitle = importTracker.getFileTitle(resolvedPath);
+    const base = (requestedPath.split('/').pop() || '').replace(/\.[^.]+$/, '');
+    callMeta[alias] = { fileTitle: fileTitle || undefined, fileName: base || undefined };
+  }
+
+  flow += flowToJsFunc(replaced, root, useExternalReport, callMeta);
 
   return `${jsImportsHoisted ? jsImportsHoisted + '\n\n' : ''}const ${toLowerUnderscore(ctx.name)}${root ? '_' : ''} = async ({ ${
       inputParams}} = {}) => {

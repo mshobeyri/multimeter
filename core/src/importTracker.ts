@@ -16,6 +16,7 @@ export class ImportTracker {
   private importPathByResolvedPath = new Map<string, string[]>();
   private aliasByImportingResolvedPath = new Map<string, ImportAliasMap>();
   private testFuncNameByResolvedPath = new Map<string, string>();
+  private fileTitleByResolvedPath = new Map<string, string>();
 
   wasVisited(resolvedPath: string): boolean {
     return this.visitedPaths.has(resolvedPath);
@@ -59,6 +60,16 @@ export class ImportTracker {
 
   getTestFuncName(resolvedPath: string): string|undefined {
     return this.testFuncNameByResolvedPath.get(resolvedPath);
+  }
+
+  setFileTitle(resolvedPath: string, title: string): void {
+    if (!this.fileTitleByResolvedPath.has(resolvedPath)) {
+      this.fileTitleByResolvedPath.set(resolvedPath, title);
+    }
+  }
+
+  getFileTitle(resolvedPath: string): string|undefined {
+    return this.fileTitleByResolvedPath.get(resolvedPath);
   }
 
   snapshot(): ImportTrackerSnapshot {

@@ -151,6 +151,20 @@ Invoke an imported API or another test; give it an id to reference its outputs l
 
 You can add `check` or `assert` directly on a call step to validate its output parameters without a separate step. The left side of the comparison is always an output parameter of the called API/test.
 
+**Fields:**
+
+| Field     | Description |
+|-----------|-------------|
+| `call`    | (required) The import alias of the API or test to invoke |
+| `id`      | Assign the call result to a variable for later reference |
+| `title`   | Explicit title for the test box shown in the output panel |
+| `inputs`  | Key-value pairs passed as input parameters to the called item |
+| `check`   | One or more comparisons that log failures but continue |
+| `assert`  | One or more comparisons that stop the flow on failure |
+| `report`  | Override the report level (`all`, `fails`, or `none`) |
+
+**Examples:**
+
 Single check:
 ```yaml
 - call: login
@@ -171,6 +185,13 @@ Inline assert (stops on failure):
   assert: status == 200
 ```
 
+With explicit title:
+```yaml
+- call: login
+  title: Login Verification
+  check: status == 200
+```
+
 You can combine check and assert, and optionally set a `report` level:
 ```yaml
 - call: login
@@ -182,7 +203,35 @@ You can combine check and assert, and optionally set a `report` level:
   report: all
 ```
 
-- **Title**: defaults to the call's `id` if set, otherwise the call name.
+#### Test box title priority
+
+When inline `check` or `assert` is used on a call, the title shown in the output panel is resolved using this priority (first non-empty value wins):
+
+1. **`title`** — explicit `title` field on the call step
+2. **Called file title** — the `title` field of the imported `.mmt` file (e.g. if `login` imports `login.mmt` and that file has `title: User Login`, it is used)
+3. **Import key** — the alias used in the `call` field (e.g. `login`)
+4. **Import file name** — the base filename of the imported path (without extension)
+5. **`id`** — the `id` field of the call step
+
+For example, given this import and call:
+```yaml
+import:
+  login: ./auth/user-login.mmt   # user-login.mmt has title: "User Authentication"
+
+steps:
+  - call: login
+    check: status == 200
+```
+The test box title will be **"User Authentication"** (priority 2). If `user-login.mmt` had no title, it would fall back to **"login"** (priority 3, the import key).
+
+To override it explicitly:
+```yaml
+  - call: login
+    title: Auth Check
+    check: status == 200
+```
+Now the title is **"Auth Check"** (priority 1).
+
 - **Details**: defaults to the full output of the call (JSON).
 - **Report**: defaults to standard config; override with `report` on the call step.
 

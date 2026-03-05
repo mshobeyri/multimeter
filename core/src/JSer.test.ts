@@ -793,7 +793,7 @@ describe('inline check/assert on call steps', () => {
     expect(js).toContain('"myApi"');
   });
 
-  it('sets default title to id when id is present', async () => {
+  it('title falls back to call name over id (call has higher priority)', async () => {
     const ctx: TestContext = {
       name: 'callTitleId',
       test: {
@@ -803,7 +803,39 @@ describe('inline check/assert on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('"res"');
+    // call name (priority 3) beats id (priority 5)
+    expect(js).toContain('"myApi"');
+  });
+
+  it('uses explicit title field when set on call step', async () => {
+    const ctx: TestContext = {
+      name: 'callExplicitTitle',
+      test: {
+        steps: [{call: 'myApi', title: 'My Custom Title', check: 'value == ok'} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    // explicit title (priority 1) wins
+    expect(js).toContain('"My Custom Title"');
+    expect(js).not.toContain('"myApi"');
+  });
+
+  it('title priority: title > fileTitle > call > fileName > id', async () => {
+    // Without explicit title or file metadata, call name is used
+    const ctx: TestContext = {
+      name: 'titlePriority',
+      test: {
+        steps: [
+          {call: 'login', id: 'res', check: 'status == 200'} as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('"login"');
   });
 
   it('includes details with JSON.stringify of call result', async () => {

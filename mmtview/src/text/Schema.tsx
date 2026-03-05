@@ -284,6 +284,7 @@ export const TestSchema = {
                         properties: {
                             call: { type: 'string' },
                             id: { type: 'string' },
+                            title: { type: 'string' },
                             inputs: {
                                 type: 'object',
                                 additionalProperties: {

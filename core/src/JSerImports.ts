@@ -145,6 +145,7 @@ const emitResolved = async(
 
     if (type === 'test') {
       const test = yamlToTest(content) as any;
+      if (test.title) { tracker.setFileTitle(resolvedPath, test.title); }
 
       const flowJs = await testToJsfunc(
           {
@@ -160,6 +161,7 @@ const emitResolved = async(
       results.push(flowJs + '\n');
     } else if (type === 'api') {
       const api = yamlToAPI(content);
+      if (api.title) { tracker.setFileTitle(resolvedPath, api.title); }
       results.push(
           await apiToJSfunc({
             api,
