@@ -3,17 +3,13 @@
   <a href="https://mmt.dev">
     <img src="res/logo.png" alt="Logo" width="120" height="115">
   </a>
-
-
   <p align="center">
     <h4>All possible tests for your service as code!</h4>
     <br />
     <a href="#-documentation"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-      <a href="docs/demos.md"><img src="res/demo.png" alt="Demo" width="16" height="16" style="vertical-align: text-bottom;"/> View Demo</a>
-    &middot;
-      <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter"><img src="res/vscode.png" alt="VS Code" width="16" height="16" style="vertical-align: text-bottom;"/> Try on VSCode</a>
+      <a href="https://github.com/mshobeyri/multimeter/blob/master/docs/demos.md"><img src="res/demo.png" alt="Demo" width="16" height="16" style="vertical-align: text-bottom;"/> View Demo</a>
     &middot;
       <a href="https://github.com/mshobeyri/multimeter/issues/new?labels=enhancement&template=feature-request---.md"><img src="res/request_feature.png" alt="Request Feature" width="16" height="16" style="vertical-align: text-bottom;"/> Request Feature</a>
   </p>
@@ -33,12 +29,12 @@ body:
   password: 123456
 ```
 </br>
-Here is a how you can run the test in VSCode <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter">Click & try!</a> ;
+Here is a how you can run the test in VSCode;
 </br></br>
-<img src="demos/api.gif" alt="Multimeter sample post" style="max-width: 100%; height: auto;" />
+<img src="res/api.gif" alt="Multimeter sample post" style="max-width: 100%; height: auto;" />
 </br></br>
 
-## ⭐ Why Multimeter?
+## 🤔 Why Multimeter?
 
 - 💰 **The extention is free and remains free** — no paywalls, no limitation.
 - 👤 **Zero setup friction.** No login or account needed — your Git repo controls access.  
@@ -55,64 +51,41 @@ Here is a how you can run the test in VSCode <a href="https://marketplace.visual
 - 🎛️ **No coding skills needed.** Modern graphical UI lets even non-coders create and run tests.  
 - ⛓️ **CI/CD ready.** Integrate with your pipeline via `testlight` to automatically run tests before merging — ensuring quality before merge.  
 
-## 🚀 Demo
+## 🚀 (Some Of) Features' Demo
 
- - 🧩 UI editor ( No code mode ) along with text editor. <a href="docs/demos.md#ui-overview"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
+ - 🧩 UI editor ( No code mode ) along with text editor. <a href="https://github.com/mshobeyri/multimeter/blob/master/docs/demos.md#ui-overview"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
+ - 🤖 Generate tests using AI (Multimeter assistant). <a href="https://github.com/mshobeyri/multimeter/blob/master/docs/demos.md#ai-test-generation"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
+ - 🧱 JSON/XML schema-aware formating and editing. <a href="https://github.com/mshobeyri/multimeter/blob/master/docs/demos.md#xml-handling"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
+ - 🔗 Chaining request responses. <a href="https://github.com/mshobeyri/multimeter/blob/master/docs/demos.md#output-extraction"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
+ - 🗄 Environment variable and presets support. <a href="https://github.com/mshobeyri/multimeter/blob/master/docs/demos.md#environment-variables"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
+ - ⛏️ Extract data from results using xpath, jsonpath and regular expression. <a href="https://github.com/mshobeyri/multimeter/blob/master/docs/demos.md#output-extraction"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
+ - 🌐 REST, WEBSOCKET, SOAP protocols support. <a href="https://github.com/mshobeyri/multimeter/blob/master/docs/demos.md#websocket-testing"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
+ - 🔄 Support Postman and OpenAPI collection convert. <a href="https://github.com/mshobeyri/multimeter/blob/master/docs/demos.md#postman-import"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
+ - 🪞 Server mocking. <a href="https://github.com/mshobeyri/multimeter/blob/master/docs/demos.md#mock-server"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
+ - 📃 Auto documentation: generate HTML and MD docs from API. <a href="https://github.com/mshobeyri/multimeter/blob/master/docs/demos.md#documentation-generation"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
 
-- 🤖 Generate tests using AI (Multimeter assistant). <a href="docs/demos.md#ai-test-generation"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
- - 🧱 JSON/XML schema-aware formating and editing. <a href="docs/demos.md#xml-handling"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
- - 🔗 Chaining request responses. <a href="docs/demos.md#output-extraction"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
- - 🗄 Environment variable and presets support. <a href="docs/demos.md#environment-variables"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
- - ⛏️ Extract data from results using xpath, jsonpath and regular expression. <a href="docs/demos.md#output-extraction"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
- - 🌐 REST, WEBSOCKET, SOAP protocols support. <a href="docs/demos.md#websocket-testing"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
- - 🔄 Support Postman and OpenAPI collection convert. <a href="docs/demos.md#postman-import"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
- - 🪞 Server mocking. <a href="docs/demos.md#mock-server"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
- - 📃 Auto documentation: generate HTML and MD docs from API. <a href="docs/demos.md#documentation-generation"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
+ <a href="https://github.com/mshobeyri/multimeter/blob/master/docs/demos.md" >
+  ▸ See ALL Demos!
+</a>
 
-- 🏋 Load testing (soon).
- - ▶️ And more...  <a href="docs/demos.md" > ▸ Explore all demos!</a>
-
-
-## 🔎 Tool Comparison  
-
-| Feature / Capability | **Multimeter** | Postman | JMeter | SoapUI|
-|----------------------|:-------------:|:------:|:--------:|:-------:|
-| HTTP API (REST/SOAP/HTTP) testing | ✔ | ✔ | ✔ | ✔ |
-| WebSocket / real‑time API support | ✔ | ✔ | ✖ | ✖ |
-| Tests stored as versionable, text‑based files (YAML/code) | ✔ | ✖ | ⚠ | ⚠ |
-| Built‑in mock server (HTTP/WS) for testing & simulation | ✔ | ✔ | ✖ | ✔ |
-| Modular & reusable test definitions (parameterized / composable) | ✔ | ✖ | ⚠ | ⚠ |
-| Auto‑generate API documentation from tests | ✔ | ✖ | ✖ | ✖ |
-| Lightweight & simple for small-to-medium projects | ✔ | ✔ | ⚠ | ⚠ |
-| AI‑powered test generation / assistant built‑in | ✔ | ⚠ | ✖ | ✖ |
-| No‑code / low‑code support  | ✔ | ✔ | ✖ | ✔ |
-| No GUI / full code support  | ✔ | ✖ | ✖ | ✖ |
-
-✔ supported / natural fit 
-✖ = not supported / missing
-⚠ = partial or caveat / less ideal  
-
-
-## 🛠️ Usage
-- Add <img src="res/logo.png" alt="Multimeter Logo" width="16" height="16"/>[Multimeter](https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter) extension to your vscode.
-- Create a .mmt file in your project (e.g., login.mmt).
-- Use UI or write YAML file represent your test.
-- Click Run!
-
+## 🎯 Upcoming Features
+- 🏋 Load testing.
 
 ## 📚 Documentation
 - [MMT Overview](docs/mmt-overview.md)
   - [API](docs/api-mmt.md)
   - [Test](docs/test-mmt.md)
   - [Environment](docs/environment-mmt.md)
-  - [Suite](docs/suite-mmt.md)
   - [Doc](docs/doc-mmt.md)
+  - [Suite](docs/suite-mmt.md)
+- [Sample Project](docs/sample-project.md) — full walkthrough with APIs, tests, suites, docs, and CLI
 - [Testlight (CLI)](docs/testlight.md)
 - [Convertor](docs/convertor.md)
 - [Mock Server](docs/mock-server.md)
 - [History](docs/history.md)
 - [Test Generation Profile(cheat sheet)](docs/testgen-profile.md)
-- [Test Generation Profile(AI optimized)](docs/testgen-profile-ai.md)
 
----
-**Special thanks to: Dear Ashkan Palganeh.**
+## 💬 Communcations
+- [Trello](https://trello.com/invite/b/696e9c5c2f58a795c49a2f09/ATTI82216d5bd7d640679502ecc972eeea7a169DFB32/multimeter)
+- [Teams](https://teams.live.com/l/community/FEAfSabmdjSjkKgCAI)
+- [Contanct](mehrdad.shobeyri@gmail.com)

@@ -14,10 +14,9 @@ Supported:
 ### HTTP GET
 ```yaml
  type: api
- protocol: http
  format: json   # affects default Content-Type and body handling
  method: get
- url: <<e:API_URL>>/users
+ url: <<e:API_URL>>/users   # protocol inferred as http from URL
  headers:
    Session: e:TOKEN
  query:
@@ -27,6 +26,7 @@ Supported:
 Notes
 - `format` sets how the body is encoded/decoded
 - `query` merges with any query string in `url`
+- `protocol` is optional - inferred from URL (ws:// or wss:// → ws, otherwise http)
 
 Tip: You can use dynamic tokens anywhere in url/headers/body/query/cookies.
 - Random: `r:<name>` (e.g., `r:uuid`, `r:int`)
@@ -96,23 +96,49 @@ Items in the `api` type fall into a few sections:
 The next sections cover each category in detail.
 
 ## Documentation
-The following fields make it easy to search, filter, and auto‑document APIs:
+The following fields make it easy to search, filter, and auto-document APIs:
 - title: API title
 - tags: related tags
-- description: short explanation of the API
+- description: short explanation of the API (supports Markdown formatting: **bold**, *italic*, `code`, lists, headings, and tables)
 
 Sample:
 ```yaml
 type: api
 title: generate session
-description: create a session from username and password.
+description: |
+  Create a session from **username** and **password**.
+
+  Returns:
+  - `token`: JWT session token
+  - `expires_in`: token TTL in seconds
 tags:
   - smoke
   - authentication
 ```
 
+### File references in descriptions
+
+Use the `ref` prefix to link to another file from a description. The path is resolved relative to the current `.mmt` file.
+
+```yaml
+description: ref README.md#-why-multimeter
+```
+
+- In the **editor**, the path is highlighted and Ctrl+click (Cmd+click on macOS) opens the referenced file.
+- In the **description preview**, the link is clickable and opens the file.
+- In **generated HTML docs**, it renders as a highlighted link.
+- In **generated Markdown docs**, it renders as a standard markdown link.
+
+You can also use `ref` inline alongside other text:
+
+```yaml
+description: See ref docs/api-mmt.md#inputs for details
+```
+
 ## Request
-- protocol: `http` or `ws`
+- protocol: `http` or `ws` (optional - inferred from URL if not specified)
+  - URLs starting with `ws://` or `wss://` default to `ws`
+  - All other URLs default to `http`
 - method: HTTP method `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
 - format: body format `json` | `xml` | `text`
 - url: server URL
@@ -165,6 +191,16 @@ Notes
 ## Reuse and compose
 These fields help you call an API with different inputs and capture outputs.
 
+### import
+The `import` field lets an API reference other `.mmt` files. Each import has an alias (the key) and a file path (the value). Paths can be relative to the current file or use `+/` for project root imports (see [Environment](./environment-mmt.md#project-root-marker)).
+
+```yaml
+type: api
+import:
+  auth: ./auth.mmt            # relative path
+  shared: +/apis/shared.mmt   # project root path
+```
+
 ### inputs
 Declare inputs and reference them with `<<i:key>>` in URL, headers, or body. This lets you reuse the API with different values across tests. Tests have the same structure to chain calls.
 You can also write `i:name` if it doesn’t conflict with surrounding text. When embedded in other text (like inside a URL), use `<<i:name>>`.
@@ -186,7 +222,10 @@ Notes
 ### outputs
 Pull fields from the response to populate outputs. Use one of the following per key:
 - A regex applied to the raw response body text: `regex ...`
-- A bracket path starting with `body[...]` to read structured fields (you can also use `headers[...]` or `cookies[...]`)
+- A bracket path starting with `body[...]` to read structured fields
+- `headers[...]` to extract response headers
+- `cookies[...]` to extract response cookies
+- A JSONPath starting with `$` (e.g., `$[body][user][id]` or `$body[user]`)
 
 Example
 ```yaml
@@ -194,7 +233,12 @@ outputs:
   name: regex message(.*)
   from: body[from][0]
   method: body[method]
+  token: headers[Authorization]
+  session: cookies[session_id]
+  userId: $[body][user][id]
 ```
+
+JSONPath syntax: `$` references the root response object. Use `$[body][key]` or `$body[key]` to drill into the body, headers, or cookies sections. This is an alternative to the `body[...]` bracket notation.
 
 ### setenv
 Promote values from `outputs` into the runtime environment.
@@ -226,12 +270,18 @@ Common random tokens (`r:`)
 - epoch_past, epoch_past_ms
 - epoch_recent, epoch_recent_ms
 - epoch_future, epoch_future_ms
-- image (small SVG data URI), and other basic generators
+- latitude, longitude
+- hex_color
+- weekday, month
+- date_future, date_past, date_recent
+- phone_number (alias for phone)
 
 Common current tokens (`c:`)
 - time, date, day, month, year
 - epoch, epoch_ms
 - city, country (best effort based on your locale/time zone)
+
+Token name normalization: `r:firstName`, `r:first-name`, and `r:first_name` all resolve to the same token. Underscores, hyphens, and casing are ignored when matching token names.
 
 Examples
 ```yaml
@@ -271,6 +321,11 @@ examples:
 - For `protocol: http`, `method` is required
 - For `method: post|put|patch`, `body` is required
 - Unknown fields are rejected (strict schema)
+
+## UI features
+- **Method override button**: Temporarily change the HTTP method from the UI without editing the YAML. Useful for quick testing of the same endpoint with different methods.
+- **Copyable outputs**: Output values in the response panel can be copied with a click.
+- **Extract variable from output**: Click on a value in the response body to automatically create an output extraction path for that value.
 
 ---
 
@@ -334,3 +389,14 @@ examples:
 - cookies: record<string, string>
 - body: string or object (json/xml/text based on format)
 - examples: array of { name (required), description?, inputs?, outputs? }
+
+---
+
+## See also
+- [Test](./test-mmt.md) — orchestrate flows calling APIs with steps, assertions, and loops
+- [Environment](./environment-mmt.md) — define variables and presets used by `e:VAR` tokens
+- [Doc](./doc-mmt.md) — generate browsable HTML documentation from API files
+- [Suite](./suite-mmt.md) — group and run multiple tests and APIs together
+- [Testlight CLI](./testlight.md) — run APIs and tests from the command line
+- [Sample Project](./sample-project.md) — full walkthrough with APIs, tests, suites, and docs
+- [Logging](./logging.md) — log levels for inputs, outputs, requests, and responses

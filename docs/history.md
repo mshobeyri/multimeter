@@ -33,3 +33,10 @@ Use the History panel to review what was sent, what came back, and how long it t
 - History is local to your workspace; it isn’t synced or persisted across machines
 - Very large bodies may be truncated in the panel for performance
 - Sensitive data can appear in history—use Clear History when needed
+
+---
+
+## See also
+- [API](./api-mmt.md) — requests made from the API editor appear in history
+- [Mock Server](./mock-server.md) — mock server requests are also recorded
+- [Sample Project](./sample-project.md) — full walkthrough of a Multimeter project

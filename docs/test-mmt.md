@@ -43,6 +43,66 @@ For the provided MMT, the Test panel shows the generated JavaScript. Click Run t
 ## Elements
 The `test` type also supports documentation fields (title, tags, description) and reuse/compose elements (import, inputs, outputs). See the API doc for details. The sections below cover flow elements.
 
+### import
+The `import` section lets you bring in other `.mmt` files (APIs, tests, or CSVs) to use in your test. Each import has an alias (the key) and a file path (the value).
+
+```yaml
+import:
+  login: login.mmt           # relative to current file
+  users: ../data/users.csv   # relative path
+  api: +/apis/userApi.mmt    # project root path
+  helpers: ./helpers/xxx.js  # JS helper module (CommonJS)
+```
+
+**JS helper modules**
+- Files ending in `.js`, `.cjs`, or `.mjs` are treated as JavaScript helper modules.
+- They are loaded via the runner's `fileLoader` and evaluated once per run, then cached.
+- Use CommonJS exports (recommended):
+
+```js
+// xxx.js
+module.exports = {
+  add(a, b) {
+    return a + b;
+  }
+};
+```
+
+Then in your test steps:
+
+```yaml
+type: test
+import:
+  helpers: ./helpers/xxx.js
+steps:
+  - js: |
+      const sum = helpers.add(1, 2)
+      console.log('sum', sum)
+```
+
+**Path resolution:**
+- **Relative paths** (e.g., `./login.mmt`, `../apis/users.mmt`) resolve relative to the current file's directory.
+- **Project root paths** start with `+/` and resolve relative to the directory containing `multimeter.mmt`. This is useful for importing shared APIs or data from a central location without worrying about relative path depth.
+
+**CSV import behavior:**
+- CSV files are parsed following RFC 4180 (quoted fields, embedded commas).
+- Unquoted numeric strings are auto-coerced to numbers (`"42"` → `42`).
+- `true`/`false` are coerced to booleans.
+- Quoted values remain strings (e.g., `"00123"` stays `"00123"`).
+- BOM characters at the start of the file are handled automatically.
+
+Example with project root imports:
+```yaml
+# File: tests/auth/login_test.mmt
+type: test
+import:
+  auth_api: +/apis/auth.mmt      # resolves to <project>/apis/auth.mmt
+  test_data: +/data/users.csv    # resolves to <project>/data/users.csv
+  helper: ./helper.mmt           # resolves to tests/auth/helper.mmt
+```
+
+The project root is detected by walking up directories from the current file until `multimeter.mmt` is found. If no `multimeter.mmt` exists, `+/` paths will fail to resolve.
+
 ### Stages
 Stages let you run groups of steps in parallel. All stages start concurrently; use depends_on to control order. If you have a single linear flow, you can skip stages and place steps at the test root.
 
@@ -84,22 +144,164 @@ Invoke an imported API or another test; give it an id to reference its outputs l
 - call: getUser
   id: profile
   inputs:
-  token: doLogin.token
+    token: doLogin.token
 ```
+
+#### Inline check/assert on call
+
+You can add `check` or `assert` directly on a call step to validate its output parameters without a separate step. The left side of the comparison is always an output parameter of the called API/test.
+
+**Fields:**
+
+| Field     | Description |
+|-----------|-------------|
+| `call`    | (required) The import alias of the API or test to invoke |
+| `id`      | Assign the call result to a variable for later reference |
+| `title`   | Explicit title for the test box shown in the output panel |
+| `inputs`  | Key-value pairs passed as input parameters to the called item |
+| `check`   | One or more comparisons that log failures but continue |
+| `assert`  | One or more comparisons that stop the flow on failure |
+| `report`  | Override the report level (`all`, `fails`, or `none`) |
+
+**Examples:**
+
+Single check:
+```yaml
+- call: login
+  check: status == 200
+```
+
+Multiple checks (array form):
+```yaml
+- call: login
+  check:
+    - status == 200
+    - token != null
+```
+
+Inline assert (stops on failure):
+```yaml
+- call: login
+  assert: status == 200
+```
+
+With explicit title:
+```yaml
+- call: login
+  title: Login Verification
+  check: status == 200
+```
+
+You can combine check and assert, and optionally set a `report` level:
+```yaml
+- call: login
+  inputs:
+    username: alice
+  check:
+    - token != null
+  assert: status == 200
+  report: all
+```
+
+#### Test box title priority
+
+When inline `check` or `assert` is used on a call, the title shown in the output panel is resolved using this priority (first non-empty value wins):
+
+1. **`title`** — explicit `title` field on the call step
+2. **Called file title** — the `title` field of the imported `.mmt` file (e.g. if `login` imports `login.mmt` and that file has `title: User Login`, it is used)
+3. **Import key** — the alias used in the `call` field (e.g. `login`)
+4. **Import file name** — the base filename of the imported path (without extension)
+5. **`id`** — the `id` field of the call step
+
+For example, given this import and call:
+```yaml
+import:
+  login: ./auth/user-login.mmt   # user-login.mmt has title: "User Authentication"
+
+steps:
+  - call: login
+    check: status == 200
+```
+The test box title will be **"User Authentication"** (priority 2). If `user-login.mmt` had no title, it would fall back to **"login"** (priority 3, the import key).
+
+To override it explicitly:
+```yaml
+  - call: login
+    title: Auth Check
+    check: status == 200
+```
+Now the title is **"Auth Check"** (priority 1).
+
+- **Details**: defaults to the full output of the call (JSON).
+- **Report**: defaults to standard config; override with `report` on the call step.
 
 ### check, assert
 Use check to log a failure and continue; use assert to stop the flow on failure.
 
 Supported operators
-- `<`, `>`, `<=`, `>=`, `==`, `!=`, `=@` (contains), `!@` (not contains), `=^` (starts with), `!^` (not starts with), `=$` (ends with), `!$` (not ends with), `=~` (regex), `!~` (not regex)
+- `<`, `>`, `<=`, `>=`, `==`, `!=`
+- `=@` (right side contains left side, i.e., `expected.includes(actual)`)
+- `!@` (right side does not contain left side)
+- `=^` (starts with), `!^` (not starts with)
+- `=$` (ends with), `!$` (not ends with)
+- `=~` (regex match), `!~` (not regex match)
 
-Examples
+You can write checks and asserts in a concise inline form or in a structured object form with explicit `actual`, `expected`, `operator`, and an optional `title` or `details`.
+
+Inline examples
 ```yaml
 - assert: doLogin.status == 200
 - check: profile.name =~ /John/i
 ```
 
-Checks, assertions, prints, and errors appear in the Log panel while the flow runs.
+Object-form examples
+```yaml
+- check:
+    actual: profile.name
+    expected: "John"
+    operator: "=="
+    title: "Profile name check"
+    details: "Profile name must be John"
+
+- assert:
+    actual: doLogin.status
+    expected: 200
+    operator: "=="
+    title: "Login status"
+    details: "Login must succeed"
+```
+
+#### Report configuration
+The `report` field controls when check/assert results are emitted. This is useful when tests are imported or added to suites.
+
+Values:
+- `all` — report both passes and failures
+- `fails` — report only failures (default for external)
+- `none` — silent, no reporting
+
+Shorthand (applies to both internal and external runs):
+```yaml
+- check:
+    actual: status
+    expected: 200
+    report: all
+```
+
+Object form (different levels for direct vs imported/suite runs):
+```yaml
+- check:
+    actual: status
+    expected: 200
+    report:
+      internal: all   # when running this test directly
+      external: fails # when imported or added to a suite
+```
+
+Default behavior (if `report` is omitted):
+- `internal: all` — report all results when running directly
+- `external: fails` — report only failures when imported or in a suite
+
+Checks, assertions, prints, and errors appear in the Log panel while the flow runs. The report level also determines the [log level](./logging.md#checks-and-asserts) for each result.
 
 ![Log panel](../screenshots/test_panel_log.png)
 
@@ -115,7 +317,9 @@ Conditionally run nested steps based on an expression.
 ```
 
 ### for, repeat
-for runs with a JavaScript-style header (for example, `const user of users`) and executes the inner steps per item. repeat runs the inner steps a fixed number of times (or time-based).
+`for` runs with a JavaScript-style header (for example, `const user of users`) and executes the inner steps per item. `repeat` runs the inner steps a fixed number of times, time-based, or indefinitely.
+
+The `for` expression is passed directly to JavaScript, so any valid JS for-of/for-in/for header works:
 ```yaml
 # iterate imported CSV rows (from import:
 #   users: ./users.csv)
@@ -127,11 +331,40 @@ for runs with a JavaScript-style header (for example, `const user of users`) and
         username: user.username
         password: user.password
 
+# iterate with index
+- for: let i = 0; i < 10; i++
+  steps:
+    - print: "iteration ${i}"
+
+# iterate object entries
+- for: const [key, value] of Object.entries(config)
+  steps:
+    - print: "${key} = ${value}"
+```
+
+`repeat` supports count-based, time-based, and infinite modes:
+```yaml
 # repeat N times
 - repeat: 3
   steps:
     - call: poll
     - delay: 2s
+
+# repeat for a duration
+- repeat: 30s
+  steps:
+    - call: healthCheck
+
+# other time units: ms, s, m, h
+- repeat: 5m
+  steps:
+    - call: poll
+
+# repeat indefinitely (until manually stopped)
+- repeat: inf
+  steps:
+    - call: monitor
+    - delay: 1s
 ```
 
 ### delay
@@ -149,6 +382,21 @@ Run inline JavaScript for custom logic or logging.
     console.log('ts', t);
 ```
 
+The following globals are available inside `js` steps:
+
+| Global | Description |
+|--------|-------------|
+| `console` | Custom console with `log`, `warn`, `error`, `debug`, `trace` |
+| `send_(request)` | Send an HTTP request directly |
+| `extractOutputs_(response, outputMap)` | Extract values from a response |
+| `report_(stepType, comparison, title, details, passed)` | Emit a check/assert result to the log |
+| `setenv_(name, value)` | Set an environment variable at runtime |
+| `importJsModule_(path)` | Load a JS module at runtime |
+| `Random.*` | All random token functions (e.g., `Random.randomUUID()`, `Random.randomInt()`, `Random.randomEmail()`) |
+| `__mmt_random(name)` | Resolve a random token by name (e.g., `__mmt_random('uuid')`) |
+| `__mmt_current(name)` | Resolve a current token by name (e.g., `__mmt_current('date')`) |
+| `equals_()`, `less_()`, `greater_()`, etc. | Comparison helpers matching check/assert operators |
+
 ### print
 Write a message to the log output.
 ```yaml
@@ -156,23 +404,90 @@ Write a message to the log output.
 ```
 
 ### set, var, const, or let
-Create or change variables for later steps. set mutates existing (or creates new); var/const/let follow JS scoping.
+Create or change variables for later steps. `set` mutates existing (or creates new); `var`/`const`/`let` follow JS scoping.
+
 ```yaml
 - set:
-  token: doLogin.token   # mutable
+    token: doLogin.token   # mutable
+
 - var:
-  attempt: 1
+    attempt: 1
+
 - const:
-  role: "admin"
+    role: "admin"
+
 - let:
-  note: "temp"
+    note: "temp"
 ```
+
+When to use which:
+- **set**: creates or updates a variable in the current scope (mutable). Use for values that change across steps.
+- **var**: function-scoped variable (hoisted). Rarely needed; prefer `let`.
+- **const**: block-scoped, cannot be reassigned. Use for values that shouldn't change.
+- **let**: block-scoped, can be reassigned. Use for loop counters or temporary values.
+
+### setenv
+Set environment variables during a run. This is mainly useful when you run a test directly (not as an imported sub-test), because it updates the runtime environment for subsequent calls.
+
+```yaml
+- setenv:
+    TOKEN: "${doLogin.token}"
+    USER_ID: "${me.id}"
+```
+
+Notes:
+- Values can be strings (template strings supported) or non-string literals.
+- When running a suite, setenv events are still emitted but may be scoped to the top-level run behavior.
 
 ### data
 Bind an imported CSV alias (from the test's import section) into scope for use in loops and steps.
 ```yaml
 - data: users   # where import:
                 #   users: ./users.csv
+```
+
+## Metrics (load testing)
+The `metrics` field enables load/performance testing by running your test flow with controlled concurrency and duration.
+
+```yaml
+type: test
+title: Load test login
+metrics:
+  repeat: 100        # run the flow 100 times total (or time-based: "30s", "5m", "1h", "inf")
+  threads: 10        # run up to 10 concurrent instances
+  duration: 2m       # overall time limit (optional)
+  rampup: 30s        # gradually increase threads over 30 seconds (optional)
+import:
+  login: ./api/login.mmt
+steps:
+  - call: login
+    id: doLogin
+    inputs:
+      username: r:email
+      password: r:uuid
+  - assert: doLogin.status == 200
+```
+
+Fields:
+- **repeat**: number of iterations or a time string (`30s`, `5m`, `1h`). Use `inf` for infinite.
+- **threads**: number of concurrent instances to run.
+- **duration**: overall time limit for the test. Use `inf` for unlimited. Format: `Ns`, `Nm`, `Nh`.
+- **rampup**: time to gradually increase from 1 thread to the target `threads` count.
+
+## Stage condition
+Stages support a `condition` field that skips the stage if the condition evaluates to false. The condition uses the same syntax as `assert`/`check` inline expressions.
+
+```yaml
+stages:
+  - id: login
+    steps:
+      - call: login
+        id: doLogin
+  - id: profile
+    condition: doLogin.status == 200
+    depends_on: login
+    steps:
+      - call: getProfile
 ```
 
 ## Complete example
@@ -205,11 +520,25 @@ steps:
 - type: `test`
 - title: string
 - tags: string[]
-- description: string
-- import: record<string, string> (CSV)
-- inputs: record<string, string | number | boolean | null>
-- outputs: record<string, string | number | boolean | null>
-- metrics: repeat?: string | number, threads?: number, duration?: string, rampup?: string
-- steps: array of step
+- description: string (supports Markdown)
+- import: record&lt;string, string&gt; (`.mmt`, `.csv`, `.js`/`.cjs`/`.mjs`)
+- inputs: record&lt;string, string | number | boolean | null&gt;
+- outputs: record&lt;string, string | number | boolean | null&gt;
+- metrics: { repeat?, threads?, duration?, rampup? }
+- steps: array of step (alias: `flow`)
 - stages: array of { id, title?, steps, condition?, depends_on? }
-- step types: `call`, `check`, `assert`, `if`, `for`, `repeat`, `delay`, `js`, `print`, `set`, `var`, `const`, `let`, `data`
+- step types: `call`, `check`, `assert`, `if`, `for`, `repeat`, `delay`, `js`, `print`, `set`, `var`, `const`, `let`, `setenv`, `data`
+
+Notes:
+- `flow` is accepted as a backward-compatible alias for `steps`.
+- The YAML editor provides autocomplete for `call` step names, check/assert operators, and input references.
+
+---
+
+## See also
+- [API](./api-mmt.md) — define HTTP/WS requests that tests call
+- [Environment](./environment-mmt.md) — variables and presets consumed by tests
+- [Suite](./suite-mmt.md) — group and run multiple tests together
+- [Testlight CLI](./testlight.md) — run tests from the command line
+- [Sample Project](./sample-project.md) — full walkthrough with APIs, tests, suites, and docs
+- [Logging](./logging.md) — log levels for checks, prints, and network calls

@@ -1,0 +1,50 @@
+This file is the **single entry point** when the AI needs to **generate or modify** any `.mmt` file.
+
+The AI must:
+- Always output valid **YAML**.
+- Always put `type` as the **first key** in the file.
+- Choose the correct `type` based on the user request (rules below).
+- Use the exact structures outlined and never deviate them.
+- Use the fence language identifier yaml (i.e. ```yaml).
+- Do not use stray backticks inside YAML.
+
+The only file types are:
+- `type: api` – describe a single HTTP/WebSocket endpoint.
+- `type: test` – describe a test flow that calls APIs/tests.
+- `type: env` – define environment variables and presets.
+- `type: doc` – describe API documentation over a set of `.mmt` files.
+- `type: suite` – group and run multiple tests, APIs, or other suites.
+
+When the user asks you to **create or change** a `.mmt` file, follow this order:
+
+1. **Decide the type**
+	- If the user talks about an endpoint, URL, method, headers, body, or examples → use `type: api`.
+	- If the user talks about scenarios, flows, assertions, retries, loops, or "tests" → use `type: test`.
+	- If the user talks about base URLs, credentials, modes, feature flags, presets → use `type: env`.
+	- If the user talks about documentation, catalogs, grouping APIs → use `type: doc`.
+	- If the user talks about running multiple tests, orchestration, collections of tests → use `type: suite`.
+
+2. **Jump to the detailed generator**
+	- For `type: api`, use **`AI/generate-api.md`** to shape fields and examples.
+	- For `type: test`, use **`AI/generate-test.md`**.
+	- For `type: env`, use **`AI/generate-env.md`**.
+	- For `type: doc`, use **`AI/generate-doc.md`**.
+	- For `type: suite`, use **`AI/generate-suite.md`**.
+
+3. **Token syntax (always snake_case)**
+	- Environment variables: `e:api_url`, `e:auth_token`, etc.
+	- Embedded in strings/URLs: `<<e:api_url>>/users`, `Bearer <<e:auth_token>>`.
+	- Test/API inputs: `i:user_id`, `<<i:user_id>>`.
+	- Random: `r:uuid`, `r:first_name`, etc.
+	- Current/time: `c:date`, `c:epoch_ms`, etc.
+
+	Rules:
+	- Prefer **snake_case** for names inside tokens: `e:api_url`, `i:user_id`, not `e:API_URL`.
+	- Use bare tokens as the **entire YAML value** when possible.
+	- Use `<< >>` only when embedding tokens inside a larger string.
+
+4. **Editing vs. creating**
+	- When creating a new file: start from the minimal valid skeleton in the corresponding `generate-*.md`.
+	- When editing: keep the existing structure, only add/change what the user asked, and do not remove unrelated fields.
+
+If you only need to **reason** about a user file (and not generate new YAML), prefer reading **only the relevant `AI/generate-*.md`** file to save tokens.

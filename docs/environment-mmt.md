@@ -34,16 +34,21 @@ Notes
  
 ## Usage
 Supported token forms in tests and APIs:
-- `e:VAR`
-- `<<e:VAR>>`
+
+| Syntax | Where to use | Type behavior |
+|--------|-------------|---------------|
+| `<<e:VAR>>` | Anywhere in a string (URLs, headers, body text) | Always substituted as string |
+| `e:VAR` | As the entire value after `: ` (colon + space) | Preserves type (number, boolean, string) |
 
 What to use when
-- Use `e:VAR` when the value is just the variable by itself (a standalone YAML value). Types are preserved (numbers, booleans, strings).
-- Use `<<e:VAR>>` to force substitution inside quoted/template strings in generated JS; it’s the safest choice when you’re unsure.
+- Use `<<e:VAR>>` when you want substitution anywhere in a string (inside URLs, headers, or other text).
+- Use `e:VAR` only when it appears as the entire value after `: `; types are preserved (numbers, booleans, strings).
 
-Note: `e:{VAR}` and `{{VAR}}` are not supported.
+Notes
+- `e:VAR` is not replaced inside plain text like `hi:e:VAR there`; it must follow `: `.
+- `{{VAR}}` is not supported — use `<<e:VAR>>` or `e:VAR` instead.
 
-Example:
+Examples:
 ```yaml
 url: <<e:API_URL>>/login
 headers:
@@ -93,7 +98,67 @@ setenv:
   TOKEN: body[token]
 ```
 
+## Certificates
+
+SSL/TLS certificate settings can be configured in the `certificates` section of the env file. See [Certificates documentation](./certificates-mmt.md) for details on configuring CA certificates, client certificates (mTLS), and SSL validation settings.
+
 ## Reference (types)
-- type: `env`
+- type: `env` or `var`
 - variables: record<string, string | object (choices) | array (allowed values)>
 - presets: record<string, record<string, record<string, string|number|boolean|null>>>
+- certificates: { ca?, clients?, sslValidation?, allowSelfSigned? }
+
+`type: var` is an alias for `type: env` — both define variables and presets. Use whichever name fits your project conventions.
+
+## VS Code Settings
+
+Multimeter exposes the following VS Code settings (accessible via Settings or `settings.json`):
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `multimeter.network.timeout` | `30000` | HTTP request timeout in milliseconds |
+| `multimeter.body.auto.format` | `true` | Auto-format response bodies (JSON pretty-print) |
+| `multimeter.editor.fontSize` | `14` | Font size for the YAML editor (range: 8-40) |
+| `multimeter.editor.defaultPanel` | `yaml-ui` | Default panel when opening `.mmt` files: `yaml-ui`, `yaml`, or `ui` |
+| `multimeter.editor.collapseDescription` | `false` | Auto-collapse multi-line description fields when opening files |
+| `multimeter.workspaceEnvFile` | `multimeter.mmt` | Path to the workspace environment file loaded on project open |
+
+## Project Root Marker
+
+A file named `multimeter.mmt` (with `type: env`) placed at the root of your project serves as the **project root marker**. This enables:
+
+1. **Workspace environment loading**: When configured, VS Code will automatically load variables, presets, and certificates from `multimeter.mmt` into workspace storage on project open. Configure the path using `multimeter.workspaceEnvFile` setting (default: `multimeter.mmt` at project root).
+
+2. **Project root imports**: In test and API files, you can use `+/` prefix to import files relative to the project root (where `multimeter.mmt` exists) instead of relative to the current file.
+
+Example project structure:
+```
+project/
+├── multimeter.mmt          # Project root marker
+├── apis/
+│   ├── auth.mmt
+│   └── users.mmt
+└── tests/
+    └── auth/
+        └── login_test.mmt  # Can use +/apis/auth.mmt
+```
+
+In `tests/auth/login_test.mmt`:
+```yaml
+import:
+  auth: +/apis/auth.mmt     # Resolves to project/apis/auth.mmt
+```
+
+See [Test documentation](./test-mmt.md#import) for more details on import paths.
+
+---
+
+## See also
+- [API](./api-mmt.md) — use `e:VAR` and `<<e:VAR>>` tokens in API definitions
+- [Test](./test-mmt.md) — consume environment variables in test flows
+- [Doc](./doc-mmt.md) — use `env` key in doc files to resolve placeholders
+- [Suite](./suite-mmt.md) — pass `--preset` when running suites
+- [Testlight CLI](./testlight.md) — `--env-file`, `--preset`, and `-e` flags
+- [Certificates](./certificates-mmt.md) — SSL/TLS settings in env files
+- [Sample Project](./sample-project.md) — full walkthrough showing environment setup
+

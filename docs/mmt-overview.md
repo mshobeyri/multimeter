@@ -8,6 +8,11 @@ For full details, see the references:
 - [Environment](./environment-mmt.md)
 - [Doc](./doc-mmt.md)
 - [Suite](./suite-mmt.md)
+- [Testlight CLI](./testlight.md)
+- [Mock Server](./mock-server.md)
+- [Convertor](./convertor.md)
+- [Certificates](./certificates-mmt.md)
+- [Changelog](../CHANGELOG.md)
 
 ## API (type: api)
 Purpose: Define a single HTTP/WS request with inputs, headers, body, and extraction rules.
@@ -19,8 +24,8 @@ protocol: http
 url: https://abc.com/login
 method: post
 format: json
-headers: 
- - content-type: application/json
+headers:
+  content-type: application/json
 body:
   username: mehrdad
   password: 123456
@@ -35,7 +40,7 @@ Deep dive: see [API](./api-mmt.md).
 ## Test (type: test)
 Purpose: Orchestrate flows using steps/stages; call APIs/tests, assert, loop, and set outputs.
 
-Minimal example for calling loging and make sure the response is fine.
+Minimal example for calling login and making sure the response is correct.
 ```yaml
 type: test
 title: Login flow
@@ -52,7 +57,7 @@ steps:
       pass: i:pass
   - assert: doLogin.status == 200
   - set:
-    token: doLogin.token
+      token: doLogin.token
 ```
 UI: The flow is editable/visible in the Flow and Test panels; logs appear in Log.
 Run: Click Run in the Test panel or use CLI (testlight run ...).
@@ -81,8 +86,9 @@ presets:
       API_URL: prod
       test_type: regression
 ```
-Here we defined two urls 'dev' and 'prod' to switch target machines easily. Also a variable called test type to filter some of tests for example. In the presets section also we defined two presets as environmets that can modify both variables with just one click.
-variables are accessible in the whole yamls by ```e:NAME``` and ```<<e:NAME>>```.
+Here we defined two URLs "dev" and "prod" to switch target machines easily. Also a variable called test type to filter some tests, for example. In the presets section we defined two presets as environments that can modify both variables with just one click.
+
+Variables are accessible in all YAML files by `<<e:NAME>>` and, when used as a value after `: ` (colon + space), by `e:NAME`.
 
 Deep dive: see [Environment](./environment-mmt.md).
 
@@ -119,5 +125,18 @@ Deep dive: see [Suite](./suite-mmt.md).
 
 ## How they fit together
 - Tests import APIs and data; Environments supply variables consumed by both.
-- Inputs (<<i:key>>) are test-provided; Envs (e:VAR) come from env files/UI.
+- Inputs (`<<i:key>>`) are test-provided; Envs (`e:VAR`) come from env files/UI.
+- Suites group tests and APIs into staged execution plans.
 - The JS that runs is generated automatically from your YAML.
+
+## Connections panel
+The Connections panel shows active HTTP keep-alive and WebSocket connections with lifecycle states (`connecting`, `open`, `idle`, `closing`). You can close connections manually from this panel.
+
+## Project root (`multimeter.mmt`)
+Place a `multimeter.mmt` file (with `type: env`) at the root of your project to enable:
+- Workspace environment auto-loading
+- `+/` project root imports in tests, APIs, and suites
+
+See [Environment — Project Root Marker](./environment-mmt.md#project-root-marker) for details.
+
+For a hands-on walkthrough covering all features end-to-end, see [Sample Project](./sample-project.md).

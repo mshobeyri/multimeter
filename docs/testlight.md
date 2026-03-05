@@ -16,19 +16,27 @@ Testlight compiles your `.mmt`/YAML tests to JS on the fly and executes them wit
 - run <file>
   - Execute a test file (.yaml/.yml/.json/.mmt)
   - Writes a JSON summary if `--out` is provided
+  - Options:
+    - `--example <name|#n>` — run a specific named example or numeric index (e.g., `--example happy-path` or `--example #1`)
 - print-js <file>
   - Print the generated executable JS for a test file
   - Use this to inspect how a test will run
-- doc <file>
-  - Generate a standalone HTML document from a `type: doc` file (.mmt/.yaml/.yml)
   - Options:
-    - -o, --out <file>  Write HTML to file (default: <docname>.html in the current directory)
+    - `--example <name|#n>` — print JS for a specific example
+- doc <file>
+  - Generate documentation from a `type: doc` file (.mmt/.yaml/.yml)
+  - Options:
+    - `-o, --out <file>` — write output to file (default: `<docname>.html` in the current directory)
+    - `--md` — generate Markdown instead of HTML
   - See [Doc](./doc-mmt.md) for authoring `type: doc` files
 - version-info
   - Print the CLI and Node.js version
 
 ## Options
 
+- --log-level <level>
+  - Set log verbosity: `error`, `warn`, `info`, `debug`, `trace`
+  - Example: `--log-level debug`
 - -i, --input <pairs>
   - Input variables as key/value pairs, repeatable
   - Forms: key=value or key value
@@ -72,6 +80,15 @@ Testlight compiles your `.mmt`/YAML tests to JS on the fly and executes them wit
 
   # custom output path
   testlight doc docs/catalog.mmt --out ./public/catalog.html
+
+  # generate Markdown instead of HTML
+  testlight doc docs/catalog.mmt --md --out ./public/catalog.md
+  ```
+
+- Run a specific example by name or index
+  ```sh
+  testlight run api/login.mmt --example happy-path
+  testlight run api/login.mmt --example '#1'
   ```
 
 ## Tips
@@ -80,3 +97,14 @@ Testlight compiles your `.mmt`/YAML tests to JS on the fly and executes them wit
 - Quoted values are kept as strings: `-e port="08080"`.
 - When `--env-file` is relative, it resolves from the shell cwd first, then the test file directory.
 - Use `--out` to capture structured results in CI.
+
+---
+
+## See also
+- [API](./api-mmt.md) — define HTTP/WS requests to run from the CLI
+- [Test](./test-mmt.md) — define test flows to run from the CLI
+- [Environment](./environment-mmt.md) — variables and presets (`--env-file`, `--preset`)
+- [Doc](./doc-mmt.md) — author doc files for `testlight doc`
+- [Suite](./suite-mmt.md) — run suites from the CLI
+- [Sample Project](./sample-project.md) — full walkthrough with CLI examples
+- [Logging](./logging.md) — log levels and where logs appear for each entry point
