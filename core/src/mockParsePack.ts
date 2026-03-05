@@ -87,7 +87,10 @@ export function parseMockData(yaml: any): {data: MockData | null; errors: ParseE
   } else {
     const names = new Set<string>();
     yaml.endpoints.forEach((ep: any, i: number) => {
-      if (!ep || typeof ep !== 'object') {
+      if (ep == null) {
+        return;
+      }
+      if (typeof ep !== 'object') {
         errors.push({message: `endpoints[${i}]: must be an object`, severity: 'error'});
         return;
       }
@@ -156,14 +159,14 @@ export function parseMockData(yaml: any): {data: MockData | null; errors: ParseE
     type: 'server',
     title: yaml.title ? String(yaml.title) : undefined,
     description: yaml.description ? String(yaml.description) : undefined,
-    tags: Array.isArray(yaml.tags) ? yaml.tags.map(String) : undefined,
+    tags: Array.isArray(yaml.tags) ? yaml.tags.filter((t: any) => t != null).map(String) : undefined,
     protocol,
     port: yaml.port,
     tls,
     cors: !!yaml.cors,
     delay: typeof yaml.delay === 'number' ? yaml.delay : 0,
     headers: yaml.headers && typeof yaml.headers === 'object' ? yaml.headers : undefined,
-    endpoints: (yaml.endpoints || []).map((ep: any) => parseEndpoint(ep)),
+    endpoints: (yaml.endpoints || []).filter((ep: any) => ep != null && typeof ep === 'object').map((ep: any) => parseEndpoint(ep)),
     proxy: yaml.proxy ? String(yaml.proxy) : undefined,
     fallback
   };
@@ -200,7 +203,7 @@ export function yamlToMock(yamlContent: string): MockData | null {
     type: 'server',
     title: yaml.title ? String(yaml.title) : undefined,
     description: yaml.description ? String(yaml.description) : undefined,
-    tags: Array.isArray(yaml.tags) ? yaml.tags.map(String) : undefined,
+    tags: Array.isArray(yaml.tags) ? yaml.tags.filter((t: any) => t != null).map(String) : undefined,
     protocol: yaml.protocol || 'http',
     port: typeof yaml.port === 'number' ? yaml.port : (yaml.port || 0),
     tls: yaml.tls && typeof yaml.tls === 'object' ? {
@@ -212,7 +215,7 @@ export function yamlToMock(yamlContent: string): MockData | null {
     cors: !!yaml.cors,
     delay: typeof yaml.delay === 'number' ? yaml.delay : 0,
     headers: yaml.headers && typeof yaml.headers === 'object' ? yaml.headers : undefined,
-    endpoints: Array.isArray(yaml.endpoints) ? yaml.endpoints.map((ep: any) => parseEndpoint(ep)) : [],
+    endpoints: Array.isArray(yaml.endpoints) ? yaml.endpoints.filter((ep: any) => ep != null && typeof ep === 'object').map((ep: any) => parseEndpoint(ep)) : [],
     proxy: yaml.proxy ? String(yaml.proxy) : undefined,
     fallback: yaml.fallback && typeof yaml.fallback === 'object' ? {
       status: yaml.fallback.status ?? 404,

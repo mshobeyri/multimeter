@@ -173,8 +173,7 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
 
                   {/* Endpoints */}
                   <div className="label">Endpoints ({endpointCount})</div>
-                  {(mockData.endpoints || []).map((ep, idx) => {
-                    const endpoint = ep as MockEndpoint;
+                  {(mockData.endpoints || []).filter((ep): ep is MockEndpoint => ep != null).map((endpoint, idx) => {
                     const method = (endpoint.method || "ANY").toUpperCase();
                     const color = METHOD_COLORS[method.toLowerCase()] || "var(--vscode-descriptionForeground)";
                     return (
