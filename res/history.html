@@ -40,6 +40,26 @@
             vertical-align: middle;
         }
 
+        .mock-protocol-wrapper {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            margin-right: 8px;
+        }
+
+        .mock-protocol-wrapper .history-icon {
+            margin-right: 0;
+            position: absolute;
+            bottom: -3px;
+            right: -5px;
+            width: 10px;
+            height: 10px;
+        }
+
+        .mock-server-icon {
+            font-size: 14px !important;
+        }
+
         .history-title {
             flex: 1;
             color: var(--vscode-foreground, #aaa);
@@ -165,11 +185,7 @@
         let openIdx = null;
 
         function getTypeIcon(type, status, protocol) {
-            // Mock server entries show server icon instead of send/recv arrows
-            if (protocol === 'mock') {
-                const color = type === 'error' || status >= 400 ? '#ff5555' : '#66bb6a';
-                return '<span class="codicon codicon-server" style="color:' + color + '"></span>';
-            }
+            // Mock server entries show send/recv arrows just like regular entries
             return type === 'send'
                 ? '<span class="codicon codicon-arrow-up" style="color:#3399ff"></span>'
                 : type === 'recv' && status < 400
@@ -178,10 +194,13 @@
         }
         function getProtocolIcon(protocol, serverType) {
             if (protocol === 'mock') {
-                // For mock entries, show the underlying server protocol icon
-                if (serverType === 'ws') return '<img src="__WS_ICON__" class="history-icon" />';
-                // Default to HTTP icon for http/https mock servers
-                return '<img src="__HTTP_ICON__" class="history-icon" />';
+                // For mock entries, show the underlying protocol icon with a small server badge
+                var iconSrc = '__HTTP_ICON__';
+                if (serverType === 'ws') { iconSrc = '__WS_ICON__'; }
+                return '<span class="mock-protocol-wrapper">' +
+                    '<span class="codicon codicon-server mock-server-icon" style="color:#66bb6a"></span>' +
+                    '<img src="' + iconSrc + '" class="history-icon" />' +
+                    '</span>';
             }
             if (protocol === 'ws') return '<img src="__WS_ICON__" class="history-icon" />';
             if (protocol === 'grpc') return '<img src="__GRPC_ICON__" class="history-icon" />';

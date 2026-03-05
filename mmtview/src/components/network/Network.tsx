@@ -64,9 +64,9 @@ export function useNetwork(): NetworkAPI {
         // Save request to history
         pushHistory({
           type: "send",
-          method: method.toLowerCase(),
+          method: method.toUpperCase(),
           protocol,
-          title: `${method.toLowerCase()} ${url}`,
+          title: `${method.toUpperCase()} ${url}`,
           cookies: cookies,
           headers: headers,
           query: query,
@@ -75,7 +75,7 @@ export function useNetwork(): NetworkAPI {
 
         lastRequestID.current = NetworkNodeApi.sendHttp({
           url: url ?? "",
-          method: method.toLowerCase(),
+          method: method.toUpperCase(),
           headers: headers || {},
           body,
           cookies: cookies || {},
@@ -89,7 +89,7 @@ export function useNetwork(): NetworkAPI {
               type: "recv",
               method,
               protocol,
-              title: `${method.toLowerCase()} ${url}`,
+              title: `${method.toUpperCase()} ${url}`,
               cookies: parseSetCookie(res.headers?.["set-cookie"]),
               headers: res.headers || {},
               content: toContentString(res.body),
@@ -113,7 +113,7 @@ export function useNetwork(): NetworkAPI {
               type: "error",
               method,
               protocol,
-              title: `${method.toLowerCase()} ${url} Error`,
+              title: `${method.toUpperCase()} ${url} Error`,
               cookies: {},
               headers: {},
               content: toContentString(error),

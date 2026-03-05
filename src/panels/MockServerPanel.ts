@@ -164,7 +164,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
 
     if (this.serverType === 'http' || this.serverType === 'https') {
       const createHandler = () => (req: http.IncomingMessage, res: http.ServerResponse) => {
-        const method = String(req.method || 'GET').toLowerCase();
+        const method = String(req.method || 'GET').toUpperCase();
         const scheme = this.serverType === 'https' ? 'https' : 'http';
         const url = `${scheme}://127.0.0.1:${this.port}${req.url || ''}`;
 
@@ -177,7 +177,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
           res.setHeader('Access-Control-Allow-Origin', '*');
           res.setHeader('Access-Control-Allow-Methods', '*');
           res.setHeader('Access-Control-Allow-Headers', '*');
-          if (method === 'options') {
+          if (method === 'OPTIONS') {
             res.statusCode = 204;
             res.end();
             return;
