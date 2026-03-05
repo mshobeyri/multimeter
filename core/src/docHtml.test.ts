@@ -418,4 +418,26 @@ describe('simpleMarkdownToHtml', () => {
     expect(html).toContain('</ul>');
     expect(html).toContain('<p>some text</p>');
   });
+
+  test('converts ref to highlighted link', () => {
+    const html = simpleMarkdownToHtml('ref README.md#-why-multimeter');
+    expect(html).toContain('<a class="desc-ref"');
+    expect(html).toContain('href="README.md#-why-multimeter"');
+    expect(html).toContain('ref README.md#-why-multimeter</a>');
+  });
+
+  test('converts inline ref within text', () => {
+    const html = simpleMarkdownToHtml('See ref docs/api-mmt.md#inputs for details');
+    expect(html).toContain('<a class="desc-ref"');
+    expect(html).toContain('href="docs/api-mmt.md#inputs"');
+    expect(html).toContain('>ref docs/api-mmt.md#inputs</a>');
+    expect(html).toContain('See ');
+    expect(html).toContain(' for details');
+  });
+
+  test('converts multiple ref links in one line', () => {
+    const html = simpleMarkdownToHtml('ref a.md and ref b.md#x');
+    expect(html).toContain('href="a.md"');
+    expect(html).toContain('href="b.md#x"');
+  });
 });

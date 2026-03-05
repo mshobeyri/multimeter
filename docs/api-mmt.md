@@ -116,6 +116,25 @@ tags:
   - authentication
 ```
 
+### File references in descriptions
+
+Use the `ref` prefix to link to another file from a description. The path is resolved relative to the current `.mmt` file.
+
+```yaml
+description: ref README.md#-why-multimeter
+```
+
+- In the **editor**, the path is highlighted and Ctrl+click (Cmd+click on macOS) opens the referenced file.
+- In the **description preview**, the link is clickable and opens the file.
+- In **generated HTML docs**, it renders as a highlighted link.
+- In **generated Markdown docs**, it renders as a standard markdown link.
+
+You can also use `ref` inline alongside other text:
+
+```yaml
+description: See ref docs/api-mmt.md#inputs for details
+```
+
 ## Request
 - protocol: `http` or `ws` (optional - inferred from URL if not specified)
   - URLs starting with `ws://` or `wss://` default to `ws`

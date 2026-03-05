@@ -10,6 +10,8 @@ function escapeHtml(s: string): string {
 
 function inlineMarkdownToHtml(text: string): string {
   let s = escapeHtml(text);
+  // ref links: "ref path/to/file.md#section" → clickable highlighted link
+  s = s.replace(/\bref (\S+)/g, '<a class="desc-ref" href="$1" title="$1">ref $1</a>');
   s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
   s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
   s = s.replace(/\*(.+?)\*/g, '<em>$1</em>');
@@ -728,6 +730,8 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     .doc-desc td { padding: 2px 10px 2px 0; text-align: left; }
     .doc-desc ul, .doc-desc ol { margin: 4px 0; padding-left: 20px; }
     .doc-desc code { background: rgba(255,255,255,0.06); padding: 1px 4px; border-radius: 3px; }
+    .desc-ref { display: inline; background: rgba(14,99,156,0.15); color: ${cssAccent}; padding: 1px 5px; border-radius: 4px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; text-decoration: none; }
+    .desc-ref:hover { text-decoration: underline; background: rgba(14,99,156,0.25); }
   </style>
   </head><body>
     <div class="doc-container">

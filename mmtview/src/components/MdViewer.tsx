@@ -1,6 +1,7 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useCallback } from "react";
 import { simpleMarkdownToHtml, parseParamDescriptions } from "mmt-core/docHtml";
 import { JSONRecord } from "mmt-core/CommonData";
+import { openRelativeFile } from "../vsAPI";
 
 interface MdViewerProps {
   description: string;
@@ -51,6 +52,19 @@ const MdViewer: React.FC<MdViewerProps> = ({ description, inputs, outputs }) => 
     return result;
   }, [description, inputs, outputs]);
 
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'A' && target.classList.contains('desc-ref')) {
+      e.preventDefault();
+      const href = target.getAttribute('href');
+      if (href) {
+        // Strip fragment (#...) when opening the file
+        const filePath = href.replace(/#.*$/, '');
+        openRelativeFile(filePath);
+      }
+    }
+  }, []);
+
   if (!html) { return null; }
 
   return (
@@ -63,6 +77,7 @@ const MdViewer: React.FC<MdViewerProps> = ({ description, inputs, outputs }) => 
         color: "var(--vscode-editor-foreground, #ccc)",
       }}
       dangerouslySetInnerHTML={{ __html: html }}
+      onClick={handleClick}
     />
   );
 };
