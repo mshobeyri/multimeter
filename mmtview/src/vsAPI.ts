@@ -73,11 +73,11 @@ if (typeof window !== 'undefined' &&
   (window as any).__fileContentListenerAdded = true;
 }
 
-export function readFile(filename: string): Promise<string> {
+export function readFile(filename: string, options?: { silent?: boolean }): Promise<string> {
   return new Promise((resolve, reject) => {
     lastFileContentResolver = resolve;
     lastFileContentRejecter = reject;
-    window.vscode?.postMessage({command: 'getFileContent', filename});
+    window.vscode?.postMessage({command: 'getFileContent', filename, silent: options?.silent});
   });
 }
 

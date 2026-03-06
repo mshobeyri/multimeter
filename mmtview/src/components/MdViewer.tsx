@@ -1,5 +1,5 @@
 import React, { useMemo, useCallback, useState, useEffect } from "react";
-import { simpleMarkdownToHtml, parseParamDescriptions, parseRefDescription, extractMarkdownSection } from "mmt-core/docHtml";
+import { simpleMarkdownToHtml, parseParamDescriptions, parseRefDescription, extractMarkdownSection, resolveRefPath } from "mmt-core/docHtml";
 import { JSONRecord } from "mmt-core/CommonData";
 import { readFile, openRelativeFile } from "../vsAPI";
 
@@ -7,6 +7,8 @@ interface MdViewerProps {
   description: string;
   inputs?: JSONRecord;
   outputs?: Record<string, string>;
+  /** Source file path of the API (used to resolve relative ref paths). */
+  basePath?: string;
 }
 
 function escapeHtml(s: string): string {
@@ -51,7 +53,7 @@ function renderDescriptionParts(desc: string, inputs?: JSONRecord, outputs?: Rec
   return { descHtml, inputsHtml, outputsHtml };
 }
 
-const MdViewer: React.FC<MdViewerProps> = ({ description, inputs, outputs }) => {
+const MdViewer: React.FC<MdViewerProps> = ({ description, inputs, outputs, basePath }) => {
   const ref = useMemo(() => parseRefDescription(description), [description]);
   const [resolvedDesc, setResolvedDesc] = useState<string | null>(null);
 
@@ -63,7 +65,8 @@ const MdViewer: React.FC<MdViewerProps> = ({ description, inputs, outputs }) => 
     let cancelled = false;
     (async () => {
       try {
-        const content = await readFile(ref.path);
+        const resolvedPath = resolveRefPath(ref.path, basePath);
+        const content = await readFile(resolvedPath, { silent: true });
         const section = extractMarkdownSection(content, ref.fragment);
         if (!cancelled) { setResolvedDesc(section || description); }
       } catch {
@@ -71,7 +74,7 @@ const MdViewer: React.FC<MdViewerProps> = ({ description, inputs, outputs }) => 
       }
     })();
     return () => { cancelled = true; };
-  }, [ref, description]);
+  }, [ref, description, basePath]);
 
   const { descHtml, inputsHtml, outputsHtml } = useMemo(() => {
     const desc = ref ? (resolvedDesc ?? '') : description;

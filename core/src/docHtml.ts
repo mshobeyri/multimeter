@@ -14,7 +14,33 @@ export function parseRefDescription(desc: string): { path: string; fragment: str
   const raw = m[1];
   const hashIdx = raw.indexOf('#');
   if (hashIdx < 0) { return { path: raw, fragment: '' }; }
-  return { path: raw.slice(0, hashIdx), fragment: raw.slice(hashIdx + 1) };
+  let refPath = raw.slice(0, hashIdx);
+  // Strip trailing slash before fragment (e.g. `ref +/docs/doc.md/#-sample`)
+  if (refPath.endsWith('/')) { refPath = refPath.slice(0, -1); }
+  return { path: refPath, fragment: raw.slice(hashIdx + 1) };
+}
+
+/**
+ * Resolve a ref path relative to a source file.
+ * If `basePath` is provided (the directory or file from which the ref originates),
+ * relative paths like `./doc.md` are resolved against that base.
+ * Non-relative paths (absolute, `+/`, etc.) are returned as-is.
+ */
+export function resolveRefPath(refPath: string, basePath?: string): string {
+  if (!basePath) { return refPath; }
+  // Only resolve paths that look relative (start with ./ or ../)
+  if (!refPath.startsWith('./') && !refPath.startsWith('../')) { return refPath; }
+  // basePath may be a file path — extract its directory
+  const baseDir = basePath.replace(/[\/][^\/]*$/, '');
+  // Join baseDir + refPath and normalize
+  const parts = (baseDir + '/' + refPath).split(/[\/]/);
+  const resolved: string[] = [];
+  for (const p of parts) {
+    if (p === '.' || p === '') { continue; }
+    if (p === '..') { resolved.pop(); }
+    else { resolved.push(p); }
+  }
+  return resolved.join('/');
 }
 
 /**

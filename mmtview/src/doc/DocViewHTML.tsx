@@ -3,7 +3,7 @@ import { DocData } from 'mmt-core/DocData';
 import { yamlToAPI } from 'mmt-core/apiParsePack';
 import parseYaml from 'mmt-core/markupConvertor';
 import { docHtml } from 'mmt-core';
-import { parseRefDescription, extractMarkdownSection } from 'mmt-core/docHtml';
+import { parseRefDescription, extractMarkdownSection, resolveRefPath } from 'mmt-core/docHtml';
 import { readFile, readFileAsDataUrl } from '../vsAPI';
 
 interface DocViewProps { doc: DocData; }
@@ -98,7 +98,8 @@ const DocViewHTML: React.FC<DocViewProps> = ({ doc }) => {
           const ref = parseRefDescription(api.description);
           if (ref) {
             try {
-              const content = await readFile(ref.path);
+              const resolvedPath = resolveRefPath(ref.path, api.__file);
+              const content = await readFile(resolvedPath, { silent: true });
               api.description = extractMarkdownSection(content, ref.fragment) || api.description;
             } catch { /* keep original description on error */ }
           }
@@ -110,7 +111,7 @@ const DocViewHTML: React.FC<DocViewProps> = ({ doc }) => {
         const ref = parseRefDescription(docDescription);
         if (ref) {
           try {
-            const content = await readFile(ref.path);
+            const content = await readFile(ref.path, { silent: true });
             resolvedDocDescription = extractMarkdownSection(content, ref.fragment) || docDescription;
           } catch { /* keep original */ }
         }

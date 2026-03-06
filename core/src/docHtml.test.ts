@@ -1,4 +1,4 @@
-import { extractEndpoint, parseParamDescriptions, extractSources, buildDocHtml, simpleMarkdownToHtml, parseRefDescription, extractMarkdownSection } from './docHtml';
+import { extractEndpoint, parseParamDescriptions, extractSources, buildDocHtml, simpleMarkdownToHtml, parseRefDescription, extractMarkdownSection, resolveRefPath } from './docHtml';
 import { buildDocMarkdown } from './docMarkdown';
 
 describe('parseParamDescriptions', () => {
@@ -466,9 +466,59 @@ describe('parseRefDescription', () => {
   test('returns null for empty string', () => {
     expect(parseRefDescription('')).toBeNull();
   });
+
+  test('parses ref with +/ project root path', () => {
+    expect(parseRefDescription('ref +/docs/doc.md#-sample')).toEqual({
+      path: '+/docs/doc.md', fragment: '-sample'
+    });
+  });
+
+  test('strips trailing slash before fragment', () => {
+    expect(parseRefDescription('ref +/docs/doc.md/#-sample')).toEqual({
+      path: '+/docs/doc.md', fragment: '-sample'
+    });
+  });
+
+  test('strips trailing slash on relative path before fragment', () => {
+    expect(parseRefDescription('ref ./doc.md/#section')).toEqual({
+      path: './doc.md', fragment: 'section'
+    });
+  });
 });
 
-describe('extractMarkdownSection', () => {
+describe('resolveRefPath', () => {
+  test('returns refPath as-is when no basePath', () => {
+    expect(resolveRefPath('./doc.md')).toBe('./doc.md');
+  });
+
+  test('returns absolute-like paths as-is', () => {
+    expect(resolveRefPath('+/docs/doc.md', 'api/api1.mmt')).toBe('+/docs/doc.md');
+    expect(resolveRefPath('docs/doc.md', 'api/api1.mmt')).toBe('docs/doc.md');
+  });
+
+  test('resolves relative ref from API file in subfolder', () => {
+    // doc.mmt is at root, api1.mmt is at api/api1.mmt, doc.md is at api/doc.md
+    // api1.mmt has description: ref ./doc.md
+    // basePath = 'api/api1.mmt' → dir = 'api'
+    // refPath = './doc.md' → resolved = 'api/doc.md'
+    expect(resolveRefPath('./doc.md', 'api/api1.mmt')).toBe('api/doc.md');
+  });
+
+  test('resolves ../ relative paths', () => {
+    // api1.mmt at api/api1.mmt, doc.md at root doc.md
+    // refPath = '../doc.md', basePath = 'api/api1.mmt'
+    expect(resolveRefPath('../doc.md', 'api/api1.mmt')).toBe('doc.md');
+  });
+
+  test('resolves nested relative paths', () => {
+    // api1.mmt at api/sub/api1.mmt, doc.md at api/doc.md
+    expect(resolveRefPath('../doc.md', 'api/sub/api1.mmt')).toBe('api/doc.md');
+  });
+
+  test('resolves ./sibling in same directory', () => {
+    expect(resolveRefPath('./other.md', 'folder/file.mmt')).toBe('folder/other.md');
+  });
+});describe('extractMarkdownSection', () => {
   const md = [
     '# Top',
     'Intro text.',
