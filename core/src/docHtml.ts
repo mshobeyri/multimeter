@@ -141,6 +141,16 @@ export function simpleMarkdownToHtml(md: string, headingTag = 'h4'): string {
       continue;
     }
 
+    // Markdown headings: ## and ### (useful for referenced .md content)
+    const mdHeadingMatch = trimmed.match(/^(#{2,3})\s+(.+)$/);
+    if (mdHeadingMatch) {
+      closeAll();
+      const level = mdHeadingMatch[1].length; // 2 or 3
+      const tag = level === 2 ? 'h3' : 'h4';
+      result.push(`<${tag}>${inlineMarkdownToHtml(mdHeadingMatch[2])}</${tag}>`);
+      continue;
+    }
+
     // Table row: | ... |
     if (/^\|.*\|\s*$/.test(trimmed)) {
       flushParagraph(); closeList();

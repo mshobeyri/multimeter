@@ -14,15 +14,13 @@ function escapeHtml(s: string): string {
 }
 
 function buildParamTable(
-  label: string,
   params: Record<string, any>,
   annotations: Record<string, string>
 ): string {
   const keys = Object.keys(params);
   if (!keys.length) { return ''; }
   const hasDesc = keys.some(k => annotations[k]);
-  let html = `<div style="margin-top:8px"><span style="font-weight:600;font-size:12px">${label}</span>`;
-  html += '<table><thead><tr><th>Name</th><th>Value</th>';
+  let html = '<table><thead><tr><th>Name</th><th>Value</th>';
   if (hasDesc) { html += '<th>Description</th>'; }
   html += '</tr></thead><tbody>';
   for (const k of keys) {
@@ -34,21 +32,23 @@ function buildParamTable(
     }
     html += '</tr>';
   }
-  html += '</tbody></table></div>';
+  html += '</tbody></table>';
   return html;
 }
 
-function renderDescription(desc: string, inputs?: JSONRecord, outputs?: Record<string, string>): string {
-  if (!desc) { return ''; }
+interface DescriptionParts {
+  descHtml: string;
+  inputsHtml: string;
+  outputsHtml: string;
+}
+
+function renderDescriptionParts(desc: string, inputs?: JSONRecord, outputs?: Record<string, string>): DescriptionParts {
+  if (!desc) { return { descHtml: '', inputsHtml: '', outputsHtml: '' }; }
   const { cleaned, params } = parseParamDescriptions(desc);
-  let result = simpleMarkdownToHtml(cleaned, 'h4');
-  if (inputs && Object.keys(inputs).length) {
-    result += buildParamTable('Inputs', inputs, params.inputs);
-  }
-  if (outputs && Object.keys(outputs).length) {
-    result += buildParamTable('Outputs', outputs, params.outputs);
-  }
-  return result;
+  const descHtml = simpleMarkdownToHtml(cleaned, 'h4');
+  const inputsHtml = (inputs && Object.keys(inputs).length) ? buildParamTable(inputs, params.inputs) : '';
+  const outputsHtml = (outputs && Object.keys(outputs).length) ? buildParamTable(outputs, params.outputs) : '';
+  return { descHtml, inputsHtml, outputsHtml };
 }
 
 const MdViewer: React.FC<MdViewerProps> = ({ description, inputs, outputs }) => {
@@ -73,9 +73,9 @@ const MdViewer: React.FC<MdViewerProps> = ({ description, inputs, outputs }) => 
     return () => { cancelled = true; };
   }, [ref, description]);
 
-  const html = useMemo(() => {
+  const { descHtml, inputsHtml, outputsHtml } = useMemo(() => {
     const desc = ref ? (resolvedDesc ?? '') : description;
-    return renderDescription(desc, inputs, outputs);
+    return renderDescriptionParts(desc, inputs, outputs);
   }, [ref, resolvedDesc, description, inputs, outputs]);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
@@ -90,20 +90,67 @@ const MdViewer: React.FC<MdViewerProps> = ({ description, inputs, outputs }) => 
     }
   }, []);
 
-  if (!html) { return null; }
+  if (!descHtml && !inputsHtml && !outputsHtml) { return null; }
+
+  const refLabel = ref ? description.trim() : '';
+  const contentPadding = { paddingLeft: 12 };
 
   return (
     <div
       className="doc-preview"
       style={{
         padding: "8px 12px",
-        fontSize: "12px",
+        fontSize: "var(--vscode-font-size, 13px)",
         lineHeight: 1.6,
         color: "var(--vscode-editor-foreground, #ccc)",
       }}
-      dangerouslySetInnerHTML={{ __html: html }}
       onClick={handleClick}
-    />
+    >
+      {descHtml && (
+        <>
+          <div className="label" style={{ paddingTop: 0 }}>Description</div>
+          {ref && (
+            <div
+              style={{
+                marginBottom: 6,
+                fontSize: 11,
+                paddingLeft: 12,
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+              }}
+            >
+              <a
+                className="desc-ref"
+                href={refLabel.replace(/^ref\s+/, '')}
+                title={refLabel}
+                style={{
+                  color: 'var(--vscode-textLink-foreground, #3794ff)',
+                  background: 'rgba(14, 99, 156, 0.15)',
+                  padding: '1px 5px',
+                  borderRadius: 4,
+                  textDecoration: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                {refLabel}
+              </a>
+            </div>
+          )}
+          <div style={contentPadding} dangerouslySetInnerHTML={{ __html: descHtml }} />
+        </>
+      )}
+      {inputsHtml && (
+        <>
+          <div className="label" style={{ paddingTop: 8 }}>Inputs</div>
+          <div style={contentPadding} dangerouslySetInnerHTML={{ __html: inputsHtml }} />
+        </>
+      )}
+      {outputsHtml && (
+        <>
+          <div className="label" style={{ paddingTop: 8 }}>Outputs</div>
+          <div style={contentPadding} dangerouslySetInnerHTML={{ __html: outputsHtml }} />
+        </>
+      )}
+    </div>
   );
 };
 

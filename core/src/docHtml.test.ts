@@ -319,6 +319,24 @@ describe('simpleMarkdownToHtml', () => {
     expect(html).toBe('<h3>My Section</h3>');
   });
 
+  test('converts ## heading to h3', () => {
+    const html = simpleMarkdownToHtml('## Sub Heading');
+    expect(html).toBe('<h3>Sub Heading</h3>');
+  });
+
+  test('converts ### heading to h4', () => {
+    const html = simpleMarkdownToHtml('### Minor Heading');
+    expect(html).toBe('<h4>Minor Heading</h4>');
+  });
+
+  test('converts mixed ## and ### headings with content', () => {
+    const html = simpleMarkdownToHtml('## Section\nSome text\n### Sub-section\nMore text');
+    expect(html).toContain('<h3>Section</h3>');
+    expect(html).toContain('<h4>Sub-section</h4>');
+    expect(html).toContain('Some text');
+    expect(html).toContain('More text');
+  });
+
   test('converts unordered list', () => {
     const html = simpleMarkdownToHtml('- item one\n- item two');
     expect(html).toContain('<ul>');
