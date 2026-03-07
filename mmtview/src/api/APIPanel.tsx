@@ -88,13 +88,11 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     setAPI({ ...api, examples });
   };
 
-  const isTestPage = page === "test";
-
   return (
-    <div className="panel" style={{ minHeight: 600, overflow: 'hidden' }}>
+    <div className="panel" style={{ overflow: 'hidden' }}>
       <div
         className="panel-box"
-        style={isTestPage ? { display: "flex", flexDirection: "column", height: "100%", minHeight: 0, marginBottom: 0 } : undefined}
+        style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0, marginBottom: 0, overflow: 'hidden' }}
       >
         <div className="api-swipe-root" style={{ flex: 1, minHeight: 0 }}>
           <div
@@ -114,7 +112,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
                       type="button"
                     >
                       <span className="codicon codicon-edit" aria-hidden />
-                        <span className="api-edit-launcher-text">Edit API</span>
+                      <span className="api-edit-launcher-text">Edit API</span>
                     </button>
                   }
                 />

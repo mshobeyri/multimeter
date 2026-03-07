@@ -175,7 +175,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
         </div>
       </div>
       </div>
-      <div className="apitest-scrollable">
+      <div className="apitest-scroll-outer">
+        <div className="apitest-scroll-inner">
       <div className="apitest-section apitest-section--request">
         {shouldShowQuery() && <KSVEditor
           label="Query parameters"
@@ -420,6 +421,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
           </button>
         </div>
       </div>
+        </div>
       </div>
     </div>
   );

@@ -27,8 +27,8 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
             <div className="api-swipe-page api-swipe-page--test">
               <div style={{ flex: 1, minHeight: 0, display: 'flex', minWidth: 0, overflow: 'hidden', flexDirection: 'column' }}>
                 <div className="api-edit-header">
-                  <div className="tab-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div className="tab-button active" style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 6, borderBottom: 'none' }}>
+                  <div className="tab-bar tab-bar-single" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div className="tab-button active" style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span className="codicon codicon-layers" aria-hidden />
                       {suiteTitle}
                     </div>
@@ -62,7 +62,7 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
                   </button>
                   <div className="api-edit-title">Edit Suite</div>
                 </div>
-                <div className="tab-bar">
+                <div className="tab-bar tab-bar-single">
                   <button
                     className="tab-button active"
                     title="Tests"
