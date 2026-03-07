@@ -8,6 +8,7 @@ import { setEnvironmentVariable } from '../environment/environmentUtils';
 import TestStepReportPanel, { StepReportItem } from '../shared/TestStepReportPanel';
 import { StepStatus } from '../shared/types';
 import ExportReportButton, { ReportFormat } from '../shared/ExportReportButton';
+import OverviewBoxes, { OverviewStats } from '../shared/OverviewBoxes';
 import VEditor from '../components/VEditor';
 import { loadEnvVariables } from '../workspaceStorage';
 
@@ -28,6 +29,8 @@ const TestTest: React.FC<TestTestProps> = (props) => {
     const [currentInputs, setCurrentInputs] = useState<JSONRecord>({});
     const currentInputsRef = useRef<JSONRecord>({});
     const [outputs, setOutputs] = useState<JSONRecord>({});
+    const runStartTimeRef = useRef<number | null>(null);
+    const [runDurationMs, setRunDurationMs] = useState<number | null>(null);
 
     const inputKeys = useMemo(() => {
         const raw = props.testData.inputs;
@@ -102,6 +105,8 @@ const TestTest: React.FC<TestTestProps> = (props) => {
         setStepReports([]);
         setOutputs({});
         setRunState('running');
+        runStartTimeRef.current = Date.now();
+        setRunDurationMs(null);
         window.vscode?.postMessage({
             command: 'runCurrentDocument',
             inputs: {
@@ -202,6 +207,10 @@ const TestTest: React.FC<TestTestProps> = (props) => {
 
             if (scope === 'test-finished') {
                 setRunState(message.success ? 'passed' : 'failed');
+                if (runStartTimeRef.current) {
+                    setRunDurationMs(Date.now() - runStartTimeRef.current);
+                    runStartTimeRef.current = null;
+                }
                 return;
             }
         };
@@ -254,6 +263,23 @@ const TestTest: React.FC<TestTestProps> = (props) => {
     }, [runState]);
 
     const isRunning = runState === 'running';
+
+    const overviewStats = useMemo((): OverviewStats | null => {
+        if (stepReports.length === 0 && runState === 'default') {
+            return null;
+        }
+        const passed = stepReports.filter(r => r.status === 'passed').length;
+        const failed = stepReports.filter(r => r.status === 'failed').length;
+        const total = stepReports.length;
+        const duration = runDurationMs != null ? (runDurationMs / 1000).toFixed(3) + 's' : undefined;
+        return {
+            passed,
+            failed,
+            total,
+            duration,
+            totalSub: `${total} check${total !== 1 ? 's' : ''}`,
+        };
+    }, [stepReports, runState, runDurationMs]);
 
     return (
         <div style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
@@ -317,7 +343,8 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                     />
                 </div>
             )}
-            {(hasInputs || hasOutputs) && (
+            {overviewStats && <OverviewBoxes stats={overviewStats} />}
+            {(hasInputs || hasOutputs || overviewStats) && (
                 <div className="label" style={{ marginBottom: 10 }}>Report</div>
             )}
             <TestStepReportPanel

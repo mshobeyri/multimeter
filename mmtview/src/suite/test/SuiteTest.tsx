@@ -13,6 +13,7 @@ import { getSuiteHierarchy } from '../../vsAPI';
 import { resetLeafStateMap } from './leafStateReset';
 import { statusIconFor } from '../../shared/Common';
 import ExportReportButton, { ReportFormat } from '../../shared/ExportReportButton';
+import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
 
 interface SuiteTestProps {
     content: string;
@@ -90,6 +91,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, rightOfRunButton }) => {
     const [suiteRunState, setSuiteRunState] = useState<StepStatus>('default');
     const [leafReportsById, setLeafReportsById] = useState<Record<string, StepReportItem[]>>({});
     const [leafRunStateById, setLeafRunStateById] = useState<Record<string, StepStatus>>({});
+    const suiteRunStartTimeRef = useRef<number | null>(null);
+    const [suiteRunDurationMs, setSuiteRunDurationMs] = useState<number | null>(null);
     const pendingLeafResetRef = useRef<'all' | string[] | null>(null);
     const pendingEntriesToCancelRef = useRef<string[] | null>(null);
     const reportQueueRef = useRef<any[]>([]);
@@ -341,6 +344,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, rightOfRunButton }) => {
                         return prev;
                     });
                 }
+                if (suiteRunStartTimeRef.current) {
+                    setSuiteRunDurationMs(Date.now() - suiteRunStartTimeRef.current);
+                    suiteRunStartTimeRef.current = null;
+                }
                 return;
             }
 
@@ -465,6 +472,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, rightOfRunButton }) => {
         const nextSuiteRunId = `suite-ui:${Date.now()}`;
         setSuiteRunId(nextSuiteRunId);
         setSuiteRunState('running');
+        suiteRunStartTimeRef.current = Date.now();
+        setSuiteRunDurationMs(null);
         pendingLeafResetRef.current = 'all';
         resetLeafState('all');
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId });
@@ -550,6 +559,27 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, rightOfRunButton }) => {
 
     const suiteExportDisabled = suiteRunState === 'running' || Object.keys(leafReportsById).length === 0;
 
+    const overviewStats = useMemo((): OverviewStats | null => {
+        const allReports = Object.values(leafReportsById).flat();
+        if (allReports.length === 0 && suiteRunState === 'default') {
+            return null;
+        }
+        const passed = allReports.filter(r => r.status === 'passed').length;
+        const failed = allReports.filter(r => r.status === 'failed').length;
+        const total = allReports.length;
+        const fileCount = Object.keys(leafReportsById).length;
+        const duration = suiteRunDurationMs != null ? (suiteRunDurationMs / 1000).toFixed(3) + 's' : undefined;
+        return {
+            passed,
+            failed,
+            total,
+            duration,
+            failedSub: `${fileCount} file${fileCount !== 1 ? 's' : ''}`,
+            totalSub: `${total} check${total !== 1 ? 's' : ''}`,
+            durationSub: `${fileCount} file${fileCount !== 1 ? 's' : ''}`,
+        };
+    }, [leafReportsById, suiteRunState, suiteRunDurationMs]);
+
     const tree = (
         <SuiteTestTree
             groups={groups}
@@ -602,7 +632,12 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, rightOfRunButton }) => {
                         <ExportReportButton disabled={suiteExportDisabled} onExport={handleExportReport} />
                     </div>
                 </div>
-                {noItems ? <div style={{ opacity: 0.8 }}>No suite items found under `tests:`</div> : tree}
+                {noItems ? <div style={{ opacity: 0.8 }}>No suite items found under `tests:`</div> : (
+                    <>
+                        {overviewStats && <OverviewBoxes stats={overviewStats} />}
+                        {tree}
+                    </>
+                )}
             </div>
         </div>
     );
