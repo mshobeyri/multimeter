@@ -7,6 +7,8 @@ import type {NetworkConfig, EnvCertificateSettings} from 'mmt-core/NetworkData';
 import {DEFAULT_NETWORK_CONFIG, resolvePassphrase} from 'mmt-core/NetworkData';
 import path from 'path';
 
+export type ReportFormat = 'junit' | 'mmt' | 'html' | 'md';
+
 const {mergeEnv, resolvePresetEnv, resolveEnvFromDoc} =
     ((mmtcore as any).runConfig || {}) as any;
 
@@ -174,6 +176,9 @@ export interface ParsedCliRunArgs {
   quiet: boolean;
   outFile?: string;
   printJs: boolean;
+  reportFormat?: ReportFormat;
+  reportFile?: string;
+  getReportResults?: () => import('mmt-core/reportCollector').CollectedResults;
 }
 
 export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
@@ -262,12 +267,36 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
     projectRoot: findProjectRootForCli(full),
   };
 
+  // Wire collecting reporter when --report is requested
+  const reportFormat = opts.report as ReportFormat | undefined;
+  let getReportResults: (() => any) | undefined;
+  if (reportFormat) {
+    const {createReportCollector} = (mmtcore as any).reportCollector || {};
+    if (typeof createReportCollector === 'function') {
+      const collector = createReportCollector();
+      runFileOptions.reporter = collector.reporter;
+      getReportResults = collector.getResults;
+    }
+  }
+
+  const defaultReportFiles: Record<ReportFormat, string> = {
+    junit: 'test-results.xml',
+    mmt: 'test-results.mmt',
+    html: 'test-results.html',
+    md: 'test-results.md',
+  };
+
   return {
     runFileOptions,
     networkConfig,
     quiet: !!opts.quiet,
     outFile: opts.out ? String(opts.out) : undefined,
     printJs: !!opts.printJs,
+    reportFormat,
+    reportFile: reportFormat
+      ? (opts.reportFile ? String(opts.reportFile) : defaultReportFiles[reportFormat])
+      : undefined,
+    getReportResults,
   };
 }
 

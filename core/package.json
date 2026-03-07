@@ -98,6 +98,36 @@
       "types": "./dist/mockServer.d.ts",
       "require": "./dist/mockServer.js",
       "default": "./dist/mockServer.js"
+    },
+    "./reportCollector": {
+      "types": "./dist/reportCollector.d.ts",
+      "require": "./dist/reportCollector.js",
+      "default": "./dist/reportCollector.js"
+    },
+    "./junitXml": {
+      "types": "./dist/junitXml.d.ts",
+      "require": "./dist/junitXml.js",
+      "default": "./dist/junitXml.js"
+    },
+    "./mmtReport": {
+      "types": "./dist/mmtReport.d.ts",
+      "require": "./dist/mmtReport.js",
+      "default": "./dist/mmtReport.js"
+    },
+    "./reportHtml": {
+      "types": "./dist/reportHtml.d.ts",
+      "require": "./dist/reportHtml.js",
+      "default": "./dist/reportHtml.js"
+    },
+    "./reportMarkdown": {
+      "types": "./dist/reportMarkdown.d.ts",
+      "require": "./dist/reportMarkdown.js",
+      "default": "./dist/reportMarkdown.js"
+    },
+    "./reportParser": {
+      "types": "./dist/reportParser.d.ts",
+      "require": "./dist/reportParser.js",
+      "default": "./dist/reportParser.js"
     }
   },
   "scripts": {

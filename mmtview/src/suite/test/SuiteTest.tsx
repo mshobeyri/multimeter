@@ -12,6 +12,7 @@ import { getSuiteHierarchy } from '../../vsAPI';
 // Suite hierarchy prefixes removed; targeting is now bundle id.
 import { resetLeafStateMap } from './leafStateReset';
 import { statusIconFor } from '../../shared/Common';
+import ExportReportButton, { ReportFormat } from '../../shared/ExportReportButton';
 
 interface SuiteTestProps {
     content: string;
@@ -328,8 +329,18 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, rightOfRunButton }) => {
                     return;
                 }
                 const cancelled = Boolean((message as any).cancelled);
-                setSuiteRunState(cancelled ? 'cancelled' : 'default');
                 flushReportQueue();
+                // Derive pass/fail from the current leaf statuses
+                if (cancelled) {
+                    setSuiteRunState('cancelled');
+                } else {
+                    setStepStatuses(prev => {
+                        const vals = Object.values(prev);
+                        const hasFailed = vals.some(v => v === 'failed');
+                        setSuiteRunState(hasFailed ? 'failed' : 'passed');
+                        return prev;
+                    });
+                }
                 return;
             }
 
@@ -523,6 +534,22 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, rightOfRunButton }) => {
         window.vscode?.postMessage({ command: 'stopSuiteRun', suiteRunId });
     }, [suiteRunId]);
 
+    const handleExportReport = useCallback((format: ReportFormat) => {
+        window.vscode?.postMessage({
+            command: 'exportReport',
+            format,
+            data: {
+                type: 'suite',
+                leafReportsById,
+                leafRunStateById,
+                stepStatuses,
+                suiteRunState,
+            },
+        });
+    }, [leafReportsById, leafRunStateById, stepStatuses, suiteRunState]);
+
+    const suiteExportDisabled = suiteRunState === 'running' || Object.keys(leafReportsById).length === 0;
+
     const tree = (
         <SuiteTestTree
             groups={groups}
@@ -572,6 +599,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, rightOfRunButton }) => {
                             </button>
                         )}
                         {rightOfRunButton}
+                        <ExportReportButton disabled={suiteExportDisabled} onExport={handleExportReport} />
                     </div>
                 </div>
                 {noItems ? <div style={{ opacity: 0.8 }}>No suite items found under `tests:`</div> : tree}

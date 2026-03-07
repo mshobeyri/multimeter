@@ -8,6 +8,7 @@ import TestPanel from "./test/TestPanel";
 import SuitePanel from "./suite/SuitePanel";
 import DocPanel from "./doc/DocPanel";
 import MockPanel from "./mock/MockPanel";
+import ReportPanel from "./report/ReportPanel";
 import parseYaml from "mmt-core/markupConvertor";
 import YamlEditorPanel from "./text/YamlEditorPanel";
 import { FileContext } from "./fileContext";
@@ -234,6 +235,9 @@ const App: React.FC = () => {
             )}
             {docType === "server" && (
               <MockPanel content={validContent} setContent={uiSetContent} />
+            )}
+            {docType === "report" && (
+              <ReportPanel content={validContent} setContent={uiSetContent} />
             )}
             {docType === null && (
               <NotypePanel content={validContent} setContent={uiSetContent} />

@@ -285,6 +285,10 @@ export const messageReceived = async (
       await file.handleExportMarkdown(message);
       break;
 
+    case 'exportReport':
+      await file.handleExportReport(message, document);
+      break;
+
     case 'openMarkdownPreview':
       await file.handleOpenMarkdownPreview(message, mmtProvider);
       break;

@@ -107,6 +107,9 @@ export const fileType = (path: string, content: string): Type => {
   if (content.includes('type: server')) {
     return 'server';
   }
+  if (content.includes('type: report')) {
+    return 'report';
+  }
   return null;
 };
 

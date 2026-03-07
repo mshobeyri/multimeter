@@ -100,6 +100,12 @@ program.command('run')
       '--example <name|#n>',
       'Run a named example (matches name) or numeric index (#1 = first)')
     .option('-p, --print-js', 'Print generated JS before executing', false)
+    .option(
+      '--report <format>',
+      'Generate test report: junit, mmt, html, or md')
+    .option(
+      '--report-file <path>',
+      'Output path for the report file (default depends on format)')
     .action(async (file: string, opts: {quiet?: boolean; out?: string}) => {
       try {
         const runJSCode = await loadCoreExport<any>('jsRunner', 'runJSCode');
@@ -114,7 +120,7 @@ program.command('run')
         if (!opts.quiet) {
           console.log(`Loaded: ${path.resolve(file)} (${summary})`);
         }
-        const {runFileOptions, networkConfig, outFile, printJs} =
+        const {runFileOptions, networkConfig, outFile, printJs, reportFormat, reportFile, getReportResults} =
           buildCliRunArgs(file, {...(opts as any), logLevel: (program.opts() as any).logLevel});
         
         // Apply network config if certificates are configured
@@ -150,6 +156,30 @@ program.command('run')
           fs.writeFileSync(outPath, JSON.stringify(result, null, 2), 'utf8');
           if (!opts.quiet) {
             console.log(`Result written: ${outPath}`);
+          }
+        }
+        // Generate and write test report if --report was specified
+        if (reportFormat && reportFile && getReportResults) {
+          const collectedResults = getReportResults();
+          let reportContent: string | undefined;
+          const serializers: Record<string, ((r: any, o?: any) => string) | undefined> = {
+            junit: (mmtcore as any).junitXml?.generateJunitXml,
+            mmt: (mmtcore as any).mmtReport?.generateMmtReport,
+            html: (mmtcore as any).reportHtml?.generateReportHtml,
+            md: (mmtcore as any).reportMarkdown?.generateReportMarkdown,
+          };
+          const serializer = serializers[reportFormat];
+          if (typeof serializer === 'function') {
+            reportContent = serializer(collectedResults);
+          }
+          if (reportContent) {
+            const reportPath = path.resolve(reportFile);
+            fs.writeFileSync(reportPath, reportContent, 'utf8');
+            if (!opts.quiet) {
+              console.log(`Report written: ${reportPath}`);
+            }
+          } else if (!opts.quiet) {
+            console.warn(`Unknown report format: ${reportFormat}`);
           }
         }
         process.exit(result.success ? 0 : 1);

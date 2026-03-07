@@ -57,6 +57,11 @@ Testlight compiles your `.mmt`/YAML tests to JS on the fly and executes them wit
   - Minimal output
 - -o, --out <file>
   - Write result JSON to a file
+- --report <format>
+  - Generate a test report after the run: `junit`, `mmt`, `html`, or `md`
+  - See [reports.md](reports.md) for format details and CI/CD integration
+- --report-file <path>
+  - Custom output path for the report file (default depends on format)
 
 ## Examples
 

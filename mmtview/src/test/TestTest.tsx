@@ -7,6 +7,7 @@ import { FileContext } from '../fileContext';
 import { setEnvironmentVariable } from '../environment/environmentUtils';
 import TestStepReportPanel, { StepReportItem } from '../shared/TestStepReportPanel';
 import { StepStatus } from '../shared/types';
+import ExportReportButton, { ReportFormat } from '../shared/ExportReportButton';
 import VEditor from '../components/VEditor';
 import { loadEnvVariables } from '../workspaceStorage';
 
@@ -223,6 +224,22 @@ const TestTest: React.FC<TestTestProps> = (props) => {
         };
     }, [acceptRunEvent, appendReport, mmtFilePath]);
 
+    const handleExportReport = useCallback((format: ReportFormat) => {
+        window.vscode?.postMessage({
+            command: 'exportReport',
+            format,
+            data: {
+                type: 'test',
+                stepReports,
+                runState,
+                outputs,
+                filePath: mmtFilePath,
+            },
+        });
+    }, [stepReports, runState, outputs, mmtFilePath]);
+
+    const exportDisabled = runState === 'running' || stepReports.length === 0;
+
     const summary = useMemo(() => {
         if (runState === 'running') {
             return 'Running checks...';
@@ -271,6 +288,7 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                         </button>
                     )}
                     {props.rightOfRunButton}
+                    <ExportReportButton disabled={exportDisabled} onExport={handleExportReport} />
                 </div>
             </div>
             {hasInputs && (

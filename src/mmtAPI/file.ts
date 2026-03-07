@@ -1,6 +1,11 @@
 import {markupConvertor} from 'mmt-core';
 const {parseYaml} = markupConvertor;
 import {findProjectRootSync} from 'mmt-core/fileHelper';
+import {generateJunitXml} from 'mmt-core/junitXml';
+import {generateMmtReport} from 'mmt-core/mmtReport';
+import {generateReportHtml} from 'mmt-core/reportHtml';
+import {generateReportMarkdown} from 'mmt-core/reportMarkdown';
+import type {CollectedResults, TestStepResult, TestRunResult} from 'mmt-core/reportCollector';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
@@ -494,6 +499,115 @@ export async function handleExportMarkdown(message: any) {
   if (uri) {
     await vscode.workspace.fs.writeFile(
         uri, Buffer.from(markdown ?? '', 'utf8'));
+  }
+}
+
+type ReportFormat = 'junit' | 'mmt' | 'html' | 'md';
+
+const reportSerializers: Record<ReportFormat, (r: CollectedResults) => string> = {
+  junit: generateJunitXml,
+  mmt: generateMmtReport,
+  html: generateReportHtml,
+  md: generateReportMarkdown,
+};
+
+const reportDefaults: Record<ReportFormat, {name: string; filters: Record<string, string[]>}> = {
+  junit: {name: 'test-results.xml', filters: {'JUnit XML': ['xml']}},
+  mmt: {name: 'test-results.mmt', filters: {'MMT Report': ['mmt']}},
+  html: {name: 'test-results.html', filters: {'HTML': ['html']}},
+  md: {name: 'test-results.md', filters: {'Markdown': ['md', 'markdown']}},
+};
+
+function webviewDataToCollectedResults(data: any): CollectedResults {
+  // Test view sends: { type: 'test', stepReports, runState, outputs, filePath }
+  if (data.type === 'test' && Array.isArray(data.stepReports)) {
+    const steps: TestStepResult[] = data.stepReports.map((r: any, i: number) => ({
+      stepIndex: r.stepIndex ?? i,
+      stepType: r.stepType === 'assert' ? 'assert' as const : 'check' as const,
+      status: r.status === 'failed' ? 'failed' as const : 'passed' as const,
+      comparison: r.comparison || '',
+      title: r.title,
+      details: r.details,
+      actual: r.actual,
+      expected: r.expected,
+      timestamp: r.timestamp || 0,
+    }));
+    const run: TestRunResult = {
+      runId: 'export',
+      filePath: data.filePath,
+      displayName: data.filePath ? path.basename(data.filePath) : undefined,
+      result: data.runState === 'passed' ? 'passed' : 'failed',
+      steps,
+      outputs: data.outputs,
+    };
+    return {type: 'test', testRuns: [run]};
+  }
+
+  // Suite view sends: { type: 'suite', leafReportsById, leafRunStateById, ... }
+  if (data.type === 'suite' && data.leafReportsById) {
+    const testRuns: TestRunResult[] = Object.entries(data.leafReportsById).map(
+      ([id, reports]: [string, any]) => {
+        const steps: TestStepResult[] = (Array.isArray(reports) ? reports : []).map(
+          (r: any, i: number) => ({
+            stepIndex: r.stepIndex ?? i,
+            stepType: r.stepType === 'assert' ? 'assert' as const : 'check' as const,
+            status: r.status === 'failed' ? 'failed' as const : 'passed' as const,
+            comparison: r.comparison || '',
+            title: r.title,
+            details: r.details,
+            actual: r.actual,
+            expected: r.expected,
+            timestamp: r.timestamp || 0,
+          }),
+        );
+        const runState = data.leafRunStateById?.[id];
+        return {
+          runId: id,
+          id,
+          result: (runState === 'passed' ? 'passed' : 'failed') as 'passed' | 'failed',
+          steps,
+        };
+      },
+    );
+    return {
+      type: 'suite',
+      suiteRun: {
+        runId: 'export',
+        startedAt: Date.now(),
+        success: data.suiteRunState === 'passed',
+        totalRunnable: testRuns.length,
+        testRuns,
+      },
+      testRuns,
+    };
+  }
+
+  // Fallback: empty
+  return {type: 'test', testRuns: []};
+}
+
+export async function handleExportReport(message: any, document: vscode.TextDocument) {
+  try {
+    const format = message.format as ReportFormat;
+    if (!reportSerializers[format]) {
+      vscode.window.showWarningMessage(`Unknown report format: ${format}`);
+      return;
+    }
+    const results = webviewDataToCollectedResults(message.data || {});
+    const content = reportSerializers[format](results);
+    const defaults = reportDefaults[format];
+    const docDir = path.dirname(document.uri.fsPath);
+    const uri = await vscode.window.showSaveDialog({
+      defaultUri: vscode.Uri.file(path.join(docDir, defaults.name)),
+      filters: defaults.filters,
+    });
+    if (uri) {
+      await vscode.workspace.fs.writeFile(uri, Buffer.from(content, 'utf8'));
+      vscode.window.showInformationMessage(`Report exported to ${path.basename(uri.fsPath)}`);
+    }
+  } catch (err: any) {
+    const msg = err?.message || String(err);
+    vscode.window.showErrorMessage(`Failed to export report: ${msg}`);
   }
 }
 
