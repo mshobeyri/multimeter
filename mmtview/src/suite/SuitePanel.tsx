@@ -20,20 +20,20 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
             style={{ transform: page === 'test' ? 'translateX(0%)' : 'translateX(-50%)' }}
           >
             <div className="api-swipe-page api-swipe-page--test">
-              <div style={{ flex: 1, minHeight: 0, display: 'flex', minWidth: 0, overflow: 'hidden' }}>
+              <div style={{ flex: 1, minHeight: 0, display: 'flex', minWidth: 0, overflow: 'hidden', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '8px 16px 4px' }}>
+                  <button
+                    className="action-button api-edit-launcher"
+                    onClick={() => setPage('edit')}
+                    title="Edit Suite"
+                    type="button"
+                  >
+                    <span className="codicon codicon-edit" aria-hidden />
+                    <span className="api-edit-launcher-text">Edit Suite</span>
+                  </button>
+                </div>
                 <SuiteTest
                   content={content}
-                  rightOfRunButton={(
-                    <button
-                      className="action-button api-edit-launcher"
-                      onClick={() => setPage('edit')}
-                      title="Edit Suite"
-                      type="button"
-                    >
-                      <span className="codicon codicon-edit" aria-hidden />
-                      <span className="api-edit-launcher-text">Edit Suite</span>
-                    </button>
-                  )}
                 />
               </div>
             </div>

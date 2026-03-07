@@ -17,7 +17,6 @@ import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
 
 interface SuiteTestProps {
     content: string;
-    rightOfRunButton?: React.ReactNode;
 }
 
 const buildSuiteGroupsFromContent = (content: string): SuiteGroup[] => {
@@ -74,7 +73,7 @@ const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
     return allPaths;
 };
 
-const SuiteTest: React.FC<SuiteTestProps> = ({ content, rightOfRunButton }) => {
+const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
     const groups = useMemo(() => buildSuiteGroupsFromContent(content), [content]);
     const allPaths = useMemo(() => collectSuitePaths(groups), [groups]);
     const canRun = allPaths.length > 0;
@@ -628,13 +627,13 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, rightOfRunButton }) => {
                                 Run suite
                             </button>
                         )}
-                        {rightOfRunButton}
                         <ExportReportButton disabled={suiteExportDisabled} onExport={handleExportReport} />
                     </div>
                 </div>
                 {noItems ? <div style={{ opacity: 0.8 }}>No suite items found under `tests:`</div> : (
                     <>
                         {overviewStats && <OverviewBoxes stats={overviewStats} />}
+                        <div className="label" style={{ marginBottom: 10 }}>Tests</div>
                         {tree}
                     </>
                 )}

@@ -14,7 +14,6 @@ import { loadEnvVariables } from '../workspaceStorage';
 
 interface TestTestProps {
     testData: TestData;
-    rightOfRunButton?: React.ReactNode;
 }
 
 const TestTest: React.FC<TestTestProps> = (props) => {
@@ -288,11 +287,9 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                     marginBottom: 8,
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'space-between',
+                    justifyContent: 'flex-end',
                     gap: 8,
-                    backgroundColor: "transparent"
                 }}>
-                <div>{summary}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     {isRunning ? (
                         <button
@@ -313,7 +310,6 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                             Run test
                         </button>
                     )}
-                    {props.rightOfRunButton}
                     <ExportReportButton disabled={exportDisabled} onExport={handleExportReport} />
                 </div>
             </div>

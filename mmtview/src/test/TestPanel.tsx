@@ -105,20 +105,20 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
             style={{ transform: page === 'test' ? 'translateX(0%)' : 'translateX(-50%)' }}
           >
             <div className="api-swipe-page api-swipe-page--test">
-              <div style={{ flex: 1, minHeight: 0, display: "flex", overflow: "auto" }}>
+              <div style={{ flex: 1, minHeight: 0, display: "flex", overflow: "auto", flexDirection: 'column' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '8px 16px 4px' }}>
+                  <button
+                    className="action-button api-edit-launcher"
+                    onClick={() => setPage('edit')}
+                    title="Edit Test"
+                    type="button"
+                  >
+                    <span className="codicon codicon-edit" aria-hidden />
+                    <span className="api-edit-launcher-text">Edit Test</span>
+                  </button>
+                </div>
                 <TestTest
                   testData={test}
-                  rightOfRunButton={(
-                    <button
-                      className="action-button api-edit-launcher"
-                      onClick={() => setPage('edit')}
-                      title="Edit Test"
-                      type="button"
-                    >
-                      <span className="codicon codicon-edit" aria-hidden />
-                      <span className="api-edit-launcher-text">Edit Test</span>
-                    </button>
-                  )}
                 />
               </div>
             </div>

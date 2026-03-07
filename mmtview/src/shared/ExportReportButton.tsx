@@ -22,29 +22,49 @@ const ExportReportButton: React.FC<ExportReportButtonProps> = ({ disabled, onExp
   }, [onExport]);
 
   return (
-    <select
-      ref={selectRef}
-      className="button-icon"
-      disabled={disabled}
-      onChange={handleChange}
-      defaultValue=""
-      title="Export test report"
-      style={{
-        opacity: disabled ? 0.5 : 1,
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        appearance: 'none',
-        WebkitAppearance: 'none',
-        paddingRight: 8,
-      }}
-    >
-      <option value="" disabled hidden>
-        &#xeaf7; Export
-      </option>
+    <div style={{ position: 'relative', display: 'inline-flex' }}>
+      <div
+        className="button-icon"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          padding: '4px 12px',
+          opacity: disabled ? 0.5 : 1,
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          pointerEvents: 'none',
+          background: 'var(--vscode-button-background, #0e639c)',
+          color: 'var(--vscode-button-foreground, #ffffff)',
+          border: '1px solid var(--vscode-button-border, #3c3c3c)',
+          borderRadius: 2,
+          fontSize: 'var(--vscode-font-size, 13px)',
+          fontFamily: 'var(--vscode-font-family, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif)',
+        }}
+      >
+        <span className="codicon codicon-export" aria-hidden />
+        Export
+      </div>
+      <select
+        ref={selectRef}
+        disabled={disabled}
+        onChange={handleChange}
+        defaultValue=""
+        title="Export test report"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          opacity: 0,
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          width: '100%',
+          height: '100%',
+        }}
+      >
       <option value="junit">JUnit XML</option>
       <option value="mmt">MMT Report</option>
       <option value="html">HTML</option>
       <option value="md">Markdown</option>
     </select>
+    </div>
   );
 };
 
