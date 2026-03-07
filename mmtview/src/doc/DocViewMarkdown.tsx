@@ -115,11 +115,14 @@ const DocViewMarkdown: React.FC<DocViewProps> = ({ doc }) => {
 
   return (
     <div style={{ height: 'calc(100vh - 100px)', width: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 0' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 8 }}>
         <div />
         <div>
           <button onClick={handleOpenPreview} style={{ marginRight: 8, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 12px' }}>Show Preview</button>
-          <button onClick={handleExport} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 12px' }}>Export as Markdown</button>
+          <button onClick={handleExport} className="button-icon" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 12px', background: 'var(--vscode-button-background, #0e639c)', color: 'var(--vscode-button-foreground, #ffffff)', border: '1px solid var(--vscode-button-border, #3c3c3c)', borderRadius: 2 }}>
+            <span className="codicon codicon-export" aria-hidden />
+            Export
+          </button>
         </div>
       </div>
       <pre

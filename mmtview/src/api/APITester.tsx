@@ -124,6 +124,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
 
   return (
     <div className="apitest-root">
+      <div className="apitest-fixed-header">
       <div style={{ padding: "8px", display: "flex", alignItems: "stretch", gap: 8 }}>
         {isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url) ? (
           <span
@@ -173,6 +174,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
           ))}
         </div>
       </div>
+      </div>
+      <div className="apitest-scrollable">
       <div className="apitest-section apitest-section--request">
         {shouldShowQuery() && <KSVEditor
           label="Query parameters"
@@ -416,6 +419,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
             <span className="codicon codicon-sparkle-filled toolbar-button-icon"></span>
           </button>
         </div>
+      </div>
       </div>
     </div>
   );

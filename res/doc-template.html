@@ -5,7 +5,26 @@
 <title>API Documentation</title>
 <style>
   html, body { height: 100%; }
-  
+
+  /* Scrollbar Styling (VS Code-like) */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+  }
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
   /* Dark theme (default) */
   :root {
     --fg: #e5e5e5;
@@ -27,6 +46,8 @@
     --hl-tag: #569cd6;
     --hl-attr: #9cdcfe;
     --hl-bracket: #888;
+    --scrollbar-thumb: rgba(121, 121, 121, 0.4);
+    --scrollbar-thumb-hover: rgba(100, 100, 100, 0.7);
   }
 
   /* Light theme */
@@ -50,6 +71,8 @@
     --hl-tag: #800000;
     --hl-attr: #e50000;
     --hl-bracket: #666;
+    --scrollbar-thumb: rgba(100, 100, 100, 0.4);
+    --scrollbar-thumb-hover: rgba(100, 100, 100, 0.7);
   }
 
   body {

@@ -120,56 +120,51 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
           >
             {/* ── Run page ── */}
             <div className="api-swipe-page api-swipe-page--test">
-              <div style={{ height: "100%", display: "flex", flexDirection: "column", overflow: "hidden" }}>
-                {/* Header bar */}
-                <div style={{ padding: "10px 16px 0", display: "flex", flexDirection: "column", gap: 6 }}>
-                  {/* Row 1: Run/Stop + Edit buttons (right-aligned) */}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
-                      {running ? (
-                        <button onClick={handleStop} className="button-icon" style={{ opacity: 1 }}>
-                          <span className="codicon codicon-debug-stop" />
-                          Stop
-                        </button>
-                      ) : (
-                        <button onClick={handleStart} className="button-icon" style={{ opacity: 1 }}>
-                          <span className="codicon codicon-run" />
-                          Run
-                        </button>
-                      )}
-                      <button
-                        className="action-button api-edit-launcher"
-                        onClick={() => setPage('edit')}
-                        title="Edit Mock"
-                        type="button"
-                      >
-                        <span className="codicon codicon-edit" aria-hidden />
-                        <span className="api-edit-launcher-text">Edit Mock</span>
-                      </button>
-                  </div>
-                  {/* Row 2: Status dot + title */}
-                  {mockData.title && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{
-                        width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
-                        backgroundColor: running ? "#3fb950" : "#6e7681",
-                        boxShadow: running ? "0 0 6px #3fb950" : "none",
-                        display: "inline-block",
-                      }} />
-                      <div style={{ fontWeight: 600, fontSize: 14, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{mockData.title}</div>
+              <div style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden", flexDirection: "column" }}>
+                <div className="api-edit-header">
+                  <div className="tab-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div className="tab-button active" style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 6, borderBottom: 'none' }}>
+                      <span
+                        className="codicon codicon-server"
+                        aria-hidden
+                        style={{ color: running ? '#3fb950' : undefined, transition: 'color 0.2s' }}
+                      />
+                      {mockData.title || 'Server'}
                     </div>
-                  )}
-                  {/* Row 3: Info chips */}
-                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", paddingBottom: 8 }}>
+                    <button
+                      className="action-button api-edit-launcher"
+                      onClick={() => setPage('edit')}
+                      title="Edit Mock"
+                      type="button"
+                    >
+                      <span className="codicon codicon-edit" aria-hidden />
+                      <span className="api-edit-launcher-text">Edit Mock</span>
+                    </button>
+                  </div>
+                </div>
+                <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
+                  <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
+                    {running ? (
+                      <button onClick={handleStop} className="button-icon" style={{ opacity: 1 }}>
+                        <span className="codicon codicon-debug-stop" />
+                        Stop
+                      </button>
+                    ) : (
+                      <button onClick={handleStart} className="button-icon" style={{ opacity: 1 }}>
+                        <span className="codicon codicon-run" />
+                        Run
+                      </button>
+                    )}
+                  </div>
+                  {/* Info chips */}
+                  <div className="label" style={{ marginBottom: 8 }}>Configuration</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
                     <span className="mock-info-chip mock-info-chip--url">{baseUrl}</span>
                     <span className="mock-info-chip">{protocol.toUpperCase()}</span>
                     {mockData.cors && <span className="mock-info-chip">CORS</span>}
                     {mockData.tls && <span className="mock-info-chip">TLS</span>}
                     {mockData.delay && <span className="mock-info-chip">delay: {mockData.delay}ms</span>}
                   </div>
-                </div>
-
-                {/* Scrollable endpoint list (read-only view) */}
-                <div style={{ flex: 1, overflow: "auto", padding: "0 16px 16px" }}>
 
                   {/* Endpoints */}
                   <div className="label">Endpoints ({endpointCount})</div>

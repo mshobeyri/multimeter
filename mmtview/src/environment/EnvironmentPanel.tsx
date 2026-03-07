@@ -308,6 +308,23 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
           >
             <div className="api-swipe-page api-swipe-page--test">
               <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <div className="api-edit-header">
+                  <div className="tab-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div className="tab-button active" style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span className="codicon codicon-server-environment" aria-hidden />
+                      Environment
+                    </div>
+                    <button
+                      className="action-button api-edit-launcher"
+                      onClick={() => setPage('edit')}
+                      title="Edit Environment"
+                      type="button"
+                    >
+                      <span className="codicon codicon-edit" aria-hidden />
+                      <span className="api-edit-launcher-text">Edit Environment</span>
+                    </button>
+                  </div>
+                </div>
                 <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
                   <EnvironmentEnv
                     variables={variables}
@@ -317,7 +334,6 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
                     handlePresetsChange={handlePresetsChange}
                     onClearCache={handleClearCache}
                     onSaveToCache={handleSaveToCache}
-                    onEdit={() => setPage('edit')}
                     clients={certificates?.clients}
                   />
                 </div>

@@ -594,7 +594,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
     );
 
     return (
-        <div className="panel-box" style={{ overflow: 'auto', flex: 1 }}>
+        <div style={{ overflow: 'auto', flex: 1, width: '100%' }}>
             <div className="test-flow-tree" style={{ paddingTop: 4 }}>
                 <div
                     style={{
@@ -606,7 +606,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                         gap: 8,
                     }}
                 >
-                    <div style={{ display: 'flex', gap: 8}}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8}}>
                         {suiteRunState === 'running' ? (
                             <button
                                 className="button-icon"

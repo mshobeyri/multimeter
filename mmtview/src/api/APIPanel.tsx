@@ -91,10 +91,10 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
   const isTestPage = page === "test";
 
   return (
-    <div className="panel">
+    <div className="panel" style={{ minHeight: 600, overflow: 'hidden' }}>
       <div
         className="panel-box"
-        style={isTestPage ? { display: "flex", flexDirection: "column", height: "100%", minHeight: 0 } : undefined}
+        style={isTestPage ? { display: "flex", flexDirection: "column", height: "100%", minHeight: 0, marginBottom: 0 } : undefined}
       >
         <div className="api-swipe-root" style={{ flex: 1, minHeight: 0 }}>
           <div

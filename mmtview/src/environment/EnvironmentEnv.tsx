@@ -13,7 +13,6 @@ interface EnvironmentEnvProps {
     handlePresetsChange: (presetName: string, envName: string) => void;
     onClearCache?: () => void;
     onSaveToCache?: () => void;
-    onEdit?: () => void;
     // Client certificates from YAML (read-only names for enable/disable toggles)
     clients?: EnvClientCertificate[];
 }
@@ -26,7 +25,6 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
     handlePresetsChange,
     onClearCache,
     onSaveToCache,
-    onEdit,
     clients,
 }) => {
     const currentMap = useMemo(() => {
@@ -130,21 +128,15 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                 <div className="label">Variables</div>
                 <div style={{ display: "flex", gap: "8px" }}>
                     {onSaveToCache && (
-                        <button onClick={onSaveToCache} className="action-button">
+                        <button onClick={onSaveToCache} className="button-icon">
                             <span className="codicon codicon-checklist" style={{ fontSize: "16px" }}></span>
-                            Reset
+                            Reload
                         </button>
                     )}
                     {onClearCache && (
-                        <button onClick={onClearCache} className="action-button">
+                        <button onClick={onClearCache} className="button-icon">
                             <span className="codicon codicon-clear-all" style={{ fontSize: "16px" }}></span>
                             Clear
-                        </button>
-                    )}
-                    {onEdit && (
-                        <button onClick={onEdit} className="action-button api-edit-launcher" type="button">
-                            <span className="codicon codicon-edit" aria-hidden />
-                            <span className="api-edit-launcher-text">Edit Environment</span>
                         </button>
                     )}
                 </div>

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import 'react-complex-tree/lib/style.css';
 import SuiteEdit from './edit/SuiteEdit';
 import SuiteTest from './test/SuiteTest';
+import { parseYaml } from 'mmt-core/markupConvertor';
 
 interface SuitePanelProps {
   content: string;
@@ -10,6 +11,10 @@ interface SuitePanelProps {
 
 const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
   const [page, setPage] = useState<'test' | 'edit'>('test');
+  const suiteTitle = useMemo(() => {
+    const parsed = parseYaml(content);
+    return (parsed && typeof parsed.title === 'string') ? parsed.title : 'Suite';
+  }, [content]);
 
   return (
     <div className="panel">
@@ -21,16 +26,22 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
           >
             <div className="api-swipe-page api-swipe-page--test">
               <div style={{ flex: 1, minHeight: 0, display: 'flex', minWidth: 0, overflow: 'hidden', flexDirection: 'column' }}>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '8px 16px 4px' }}>
-                  <button
-                    className="action-button api-edit-launcher"
-                    onClick={() => setPage('edit')}
-                    title="Edit Suite"
-                    type="button"
-                  >
-                    <span className="codicon codicon-edit" aria-hidden />
-                    <span className="api-edit-launcher-text">Edit Suite</span>
-                  </button>
+                <div className="api-edit-header">
+                  <div className="tab-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div className="tab-button active" style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 6, borderBottom: 'none' }}>
+                      <span className="codicon codicon-layers" aria-hidden />
+                      {suiteTitle}
+                    </div>
+                    <button
+                      className="action-button api-edit-launcher"
+                      onClick={() => setPage('edit')}
+                      title="Edit Suite"
+                      type="button"
+                    >
+                      <span className="codicon codicon-edit" aria-hidden />
+                      <span className="api-edit-launcher-text">Edit Suite</span>
+                    </button>
+                  </div>
                 </div>
                 <SuiteTest
                   content={content}

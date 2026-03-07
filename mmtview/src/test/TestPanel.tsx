@@ -105,21 +105,29 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
             style={{ transform: page === 'test' ? 'translateX(0%)' : 'translateX(-50%)' }}
           >
             <div className="api-swipe-page api-swipe-page--test">
-              <div style={{ flex: 1, minHeight: 0, display: "flex", overflow: "auto", flexDirection: 'column' }}>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '8px 16px 4px' }}>
-                  <button
-                    className="action-button api-edit-launcher"
-                    onClick={() => setPage('edit')}
-                    title="Edit Test"
-                    type="button"
-                  >
-                    <span className="codicon codicon-edit" aria-hidden />
-                    <span className="api-edit-launcher-text">Edit Test</span>
-                  </button>
+              <div style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden", flexDirection: 'column' }}>
+                <div className="api-edit-header">
+                  <div className="tab-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div className="tab-button active" style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 6, borderBottom: 'none' }}>
+                      <span className="codicon codicon-beaker" aria-hidden />
+                      {test.title || 'Test'}
+                    </div>
+                    <button
+                      className="action-button api-edit-launcher"
+                      onClick={() => setPage('edit')}
+                      title="Edit Test"
+                      type="button"
+                    >
+                      <span className="codicon codicon-edit" aria-hidden />
+                      <span className="api-edit-launcher-text">Edit Test</span>
+                    </button>
+                  </div>
                 </div>
-                <TestTest
-                  testData={test}
-                />
+                <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+                  <TestTest
+                    testData={test}
+                  />
+                </div>
               </div>
             </div>
 

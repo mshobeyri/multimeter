@@ -468,6 +468,7 @@ button:focus {
   height: 1px;
   background: var(--vscode-editorWidget-border, #444);
   opacity: 0.7;
+  flex-shrink: 0;
 }
 
 /* Doc preview in Interface editor */
@@ -765,6 +766,19 @@ button:focus {
   padding-bottom: 0;
   min-height: 0;
   min-width: 0;
+  gap: 0;
+}
+
+.apitest-fixed-header {
+  flex-shrink: 0;
+}
+
+.apitest-scrollable {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
@@ -772,7 +786,6 @@ button:focus {
   flex: 1;
   min-height: 0;
   min-width: 0;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
