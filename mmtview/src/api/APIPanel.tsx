@@ -165,45 +165,47 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
                 </div>
               </div>
 
-              {tab === 'overview' && <APIOverview api={api} update={update} />}
+              <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+                {tab === 'overview' && <APIOverview api={api} update={update} />}
 
-              {tab === 'interface' && (
-                <InterfaceEditor
-                  data={api}
-                  onChange={(updated) => updateInterface(updated)}
-                />
-              )}
+                {tab === 'interface' && (
+                  <InterfaceEditor
+                    data={api}
+                    onChange={(updated) => updateInterface(updated)}
+                  />
+                )}
 
-              {tab === 'examples' && (
-                <table
-                  className="APIEditor"
-                  style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', marginTop: 0 }}
-                >
-                  <tbody>
-                    <tr>
-                      <td colSpan={2} style={{ padding: 0 }}>
-                        {safeList(api.examples)
-                          .filter((ex) => ex != null)
-                          .map((example, idx) => (
-                            <div key={idx} className="inner-box">
-                              <APIExample
-                                data={example}
-                                apiInputs={api.inputs}
-                                apiOutputs={api.outputs}
-                                onChange={(updated) => updateExample(idx, updated)}
-                                onRemove={() => removeExample(idx)}
-                              />
-                            </div>
-                          ))}
-                        <button onClick={addExample} className="button-icon" type="button">
-                          <span className="codicon codicon-add" aria-hidden />
-                          Add Example
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              )}
+                {tab === 'examples' && (
+                  <table
+                    className="APIEditor"
+                    style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', marginTop: 0 }}
+                  >
+                    <tbody>
+                      <tr>
+                        <td colSpan={2} style={{ padding: 0 }}>
+                          {safeList(api.examples)
+                            .filter((ex) => ex != null)
+                            .map((example, idx) => (
+                              <div key={idx} className="inner-box">
+                                <APIExample
+                                  data={example}
+                                  apiInputs={api.inputs}
+                                  apiOutputs={api.outputs}
+                                  onChange={(updated) => updateExample(idx, updated)}
+                                  onRemove={() => removeExample(idx)}
+                                />
+                              </div>
+                            ))}
+                          <button onClick={addExample} className="button-icon" type="button">
+                            <span className="codicon codicon-add" aria-hidden />
+                            Add Example
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                )}
+              </div>
             </div>
           </div>
         </div>

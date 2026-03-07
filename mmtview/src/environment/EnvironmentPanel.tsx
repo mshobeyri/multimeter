@@ -21,6 +21,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   const [page, setPage] = useState<'environment' | 'edit'>(
     () => (localStorage.getItem(LAST_ENV_PAGE_KEY) as 'environment' | 'edit') || 'environment'
   );
+  const [editTab, setEditTab] = useState<'variables' | 'presets' | 'certificates'>('variables');
   const [showIconsOnly, setShowIconsOnly] = useState(false);
   const [variables, setVariables] = useState<ComboTablePair[]>([]);
   const [presets, setPresets] = useState<ComboTablePair[]>([]);
@@ -353,9 +354,38 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
                   </button>
                   <div className="api-edit-title">Edit Environment</div>
                 </div>
+                <div className="tab-bar">
+                  <button
+                    onClick={() => setEditTab('variables')}
+                    className={`tab-button ${editTab === 'variables' ? 'active' : ''}`}
+                    title="Variables"
+                    type="button"
+                  >
+                    <span className="codicon codicon-symbol-variable tab-button-icon"></span>
+                    Variables
+                  </button>
+                  <button
+                    onClick={() => setEditTab('presets')}
+                    className={`tab-button ${editTab === 'presets' ? 'active' : ''}`}
+                    title="Presets"
+                    type="button"
+                  >
+                    <span className="codicon codicon-tasklist tab-button-icon"></span>
+                    Presets
+                  </button>
+                  <button
+                    onClick={() => setEditTab('certificates')}
+                    className={`tab-button ${editTab === 'certificates' ? 'active' : ''}`}
+                    title="Certificates"
+                    type="button"
+                  >
+                    <span className="codicon codicon-shield tab-button-icon"></span>
+                    Certificates
+                  </button>
+                </div>
               </div>
               <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
-                <EnvironmentEdit content={content} setContent={setContent} />
+                <EnvironmentEdit content={content} setContent={setContent} tab={editTab} />
               </div>
             </div>
           </div>

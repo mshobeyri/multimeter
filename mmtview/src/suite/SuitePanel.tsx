@@ -62,6 +62,16 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
                   </button>
                   <div className="api-edit-title">Edit Suite</div>
                 </div>
+                <div className="tab-bar">
+                  <button
+                    className="tab-button active"
+                    title="Tests"
+                    type="button"
+                  >
+                    <span className="codicon codicon-beaker tab-button-icon"></span>
+                    Tests
+                  </button>
+                </div>
               </div>
 
               <SuiteEdit content={content} setContent={setContent} />

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import parseYaml, { packYaml } from "mmt-core/markupConvertor";
 import EnvironmentVariableEdit from "./EnvironmentVariableEdit";
 import EnvironmentPresetEdit from "./EnvironmentPresetEdit";
@@ -8,10 +8,10 @@ import { EnvironmentData, EnvCertificates } from "./EnvironmentData";
 interface EnvironmentEditProps {
   content: string;
   setContent: (value: string) => void;
+  tab: "variables" | "presets" | "certificates";
 }
 
-const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent }) => {
-  const [tab, setTab] = useState<"variables" | "presets" | "certificates">("variables");
+const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent, tab }) => {
 
   let envData: EnvironmentData | null = null;
   try {
@@ -53,35 +53,6 @@ const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent }
 
   return (
     <div style={{ padding: 0 }}>
-      <div className="tab-bar">
-        <button
-          onClick={() => setTab("variables")}
-          className={`tab-button ${tab === "variables" ? "active" : ""}`}
-          title="Variables"
-          type="button"
-        >
-          <span className="codicon codicon-symbol-variable tab-button-icon"></span>
-          Variables
-        </button>
-        <button
-          onClick={() => setTab("presets")}
-          className={`tab-button ${tab === "presets" ? "active" : ""}`}
-          title="Presets"
-          type="button"
-        >
-          <span className="codicon codicon-tasklist tab-button-icon"></span>
-          Presets
-        </button>
-        <button
-          onClick={() => setTab("certificates")}
-          className={`tab-button ${tab === "certificates" ? "active" : ""}`}
-          title="Certificates"
-          type="button"
-        >
-          <span className="codicon codicon-shield tab-button-icon"></span>
-          Certificates
-        </button>
-      </div>
       {tab === "variables" && (
         <EnvironmentVariableEdit
           variables={envData.variables}
