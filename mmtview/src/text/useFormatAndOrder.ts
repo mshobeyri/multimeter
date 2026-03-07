@@ -3,6 +3,9 @@ import { apiToYaml, yamlToAPI } from 'mmt-core/apiParsePack';
 import { yamlToTest, testToYaml } from 'mmt-core/testParsePack';
 import { yamlToDoc, docToYaml } from 'mmt-core/docParsePack';
 import { yamlToMock, mockToYaml } from 'mmt-core/mockParsePack';
+import { parseReportMmt } from 'mmt-core/reportParser';
+import { generateMmtReport } from 'mmt-core/mmtReport';
+import YAML from 'yaml';
 import { APIData } from 'mmt-core/APIData';
 import { TestData } from 'mmt-core/TestData';
 import { DocData } from 'mmt-core/DocData';
@@ -77,6 +80,15 @@ export function buildCanonicalYaml(content: string, docType: string | null): str
           return null;
         }
         return mockToYaml(mockData);
+      }
+      case 'report': {
+        const parsed = YAML.parse(content);
+        if (!parsed || parsed.type !== 'report') {
+          showVSCodeMessage('error', 'Document is not a valid report YAML.');
+          return null;
+        }
+        const results = parseReportMmt(parsed);
+        return generateMmtReport(results, { suiteName: parsed.name });
       }
       default:
         return null;

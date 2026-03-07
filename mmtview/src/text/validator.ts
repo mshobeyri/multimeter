@@ -162,6 +162,16 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "endpoints",
         "fallback",
       ];
+    case "report":
+      return [
+        "type",
+        "name",
+        "timestamp",
+        "duration",
+        "summary",
+        "cancelled",
+        "suites",
+      ];
     default:
       return null;
   }

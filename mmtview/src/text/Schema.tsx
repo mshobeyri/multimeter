@@ -2,7 +2,7 @@ export const GeneralSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
     properties: {
-        type: { type: 'string', enum: ['api', 'env', 'var', 'test', 'suite', 'doc', 'server'] },
+        type: { type: 'string', enum: ['api', 'env', 'var', 'test', 'suite', 'doc', 'server', 'report'] },
     }
 }
 
@@ -677,6 +677,67 @@ export const MockSchema = {
                 body: {}
             },
             additionalProperties: false
+        }
+    },
+    additionalProperties: false
+};
+
+export const ReportSchema = {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    type: 'object',
+    required: ['type'],
+    properties: {
+        type: { type: 'string', enum: ['report'] },
+        name: { type: 'string' },
+        timestamp: { type: 'string' },
+        duration: { type: 'string' },
+        cancelled: { type: 'boolean' },
+        summary: {
+            type: 'object',
+            properties: {
+                tests: { type: 'integer' },
+                passed: { type: 'integer' },
+                failed: { type: 'integer' },
+                errors: { type: 'integer' },
+                skipped: { type: 'integer' }
+            },
+            additionalProperties: false
+        },
+        suites: {
+            type: 'array',
+            items: {
+                type: 'object',
+                properties: {
+                    name: { type: 'string' },
+                    file: { type: 'string' },
+                    duration: { type: 'string' },
+                    result: { type: 'string' },
+                    tests: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                name: { type: 'string' },
+                                type: { type: 'string' },
+                                result: { type: 'string' },
+                                duration: { type: 'string' },
+                                failure: {
+                                    type: 'object',
+                                    properties: {
+                                        message: { type: 'string' },
+                                        actual: {},
+                                        expected: {},
+                                        operator: { type: 'string' }
+                                    },
+                                    additionalProperties: false
+                                }
+                            },
+                            additionalProperties: false
+                        }
+                    }
+                },
+                additionalProperties: false
+            }
         }
     },
     additionalProperties: false

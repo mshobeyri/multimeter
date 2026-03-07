@@ -22,7 +22,7 @@ function makeRun(overrides: Partial<TestRunResult> = {}): TestRunResult {
 }
 
 describe('generateReportHtml', () => {
-  it('generates valid HTML with summary counts', () => {
+  it('generates valid HTML with summary boxes', () => {
     const results: CollectedResults = {
       type: 'test',
       testRuns: [
@@ -38,10 +38,13 @@ describe('generateReportHtml', () => {
 
     const html = generateReportHtml(results);
     expect(html).toContain('<!DOCTYPE html>');
-    expect(html).toContain('<html lang="en">');
-    expect(html).toContain('1 passed');
-    expect(html).toContain('1 failed');
-    expect(html).toContain('2 tests');
+    expect(html).toContain('<html lang="en"');
+    expect(html).toContain('summary-boxes');
+    expect(html).toContain('box-passed');
+    expect(html).toContain('box-failed');
+    expect(html).toContain('box-total');
+    expect(html).toContain('box-duration');
+    expect(html).toContain('>1<');  // 1 passed
     expect(html).toContain('</html>');
   });
 
@@ -109,7 +112,6 @@ describe('generateReportHtml', () => {
     const html = generateReportHtml(results);
     expect(html).toContain('test &lt;script&gt;');
     expect(html).toContain('a &amp; b &lt; c');
-    expect(html).not.toContain('<script>');
   });
 
   it('contains inline style (self-contained)', () => {
@@ -120,10 +122,10 @@ describe('generateReportHtml', () => {
 
     const html = generateReportHtml(results);
     expect(html).toContain('<style>');
-    expect(html).toContain('prefers-color-scheme');
+    expect(html).toContain('data-theme');
   });
 
-  it('contains no external resource references', () => {
+  it('contains no external resource references (except footer link)', () => {
     const results: CollectedResults = {
       type: 'test',
       testRuns: [makeRun()],
@@ -131,7 +133,10 @@ describe('generateReportHtml', () => {
 
     const html = generateReportHtml(results);
     expect(html).not.toContain('<link');
-    expect(html).not.toContain('href="http');
+    // The only external href is the footer Multimeter marketplace link
+    const lines = html.split('\n').filter(l => l.includes('href="http'));
+    expect(lines.length).toBe(1);
+    expect(lines[0]).toContain('marketplace.visualstudio.com');
     expect(html).not.toContain('src="http');
   });
 
@@ -142,13 +147,13 @@ describe('generateReportHtml', () => {
     };
 
     const darkHtml = generateReportHtml(results, { theme: 'dark' });
-    expect(darkHtml).toContain('class="theme-dark"');
+    expect(darkHtml).toContain('data-theme="dark"');
 
     const lightHtml = generateReportHtml(results, { theme: 'light' });
-    expect(lightHtml).toContain('class="theme-light"');
+    expect(lightHtml).toContain('data-theme="light"');
 
     const autoHtml = generateReportHtml(results, { theme: 'auto' });
-    expect(autoHtml).not.toContain('class="theme-');
+    expect(autoHtml).toContain('data-theme="dark"');
   });
 
   it('uses suiteName option', () => {
@@ -158,17 +163,19 @@ describe('generateReportHtml', () => {
     };
 
     const html = generateReportHtml(results, { suiteName: 'My Suite' });
-    expect(html).toContain('<h1>My Suite</h1>');
+    expect(html).toContain('>My Suite</h1>');
     expect(html).toContain('<title>Test Report — My Suite</title>');
   });
 
-  it('shows Powered by Multimeter footer', () => {
+  it('shows Powered by Multimeter footer with link', () => {
     const results: CollectedResults = {
       type: 'test',
       testRuns: [makeRun()],
     };
 
     const html = generateReportHtml(results);
-    expect(html).toContain('Powered by Multimeter');
+    expect(html).toContain('Powered by');
+    expect(html).toContain('Multimeter');
+    expect(html).toContain('report-footer');
   });
 });

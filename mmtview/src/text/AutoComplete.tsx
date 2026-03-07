@@ -44,8 +44,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
             label: "type",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "type: ",
-            detail: 'Type of mmt file [api, env, doc, test, suite]',
-            documentation: 'Type of mmt file, must be one of: api, env, doc, test, suite\n\t- api: Define an API\n\t- env: Define environment variables\n\t- doc: Define a documentation page (title/description/sources/theme)\n\t- test: Define a test suite (steps/stages)\n\t- suite: Orchestrate multiple .mmt files in groups split by "then"\nExample: type: suite',
+            detail: 'Type of mmt file [api, env, doc, test, suite, server, report]',
+            documentation: 'Type of mmt file, must be one of: api, env, doc, test, suite, server, report\n\t- api: Define an API\n\t- env: Define environment variables\n\t- doc: Define a documentation page (title/description/sources/theme)\n\t- test: Define a test suite (steps/stages)\n\t- suite: Orchestrate multiple .mmt files in groups split by "then"\n\t- server: Define a mock server\n\t- report: Test/suite run results\nExample: type: suite',
         }];
 
     const typeSuggestions = [
@@ -90,6 +90,13 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: " server",
             detail: 'Define a mock server',
             documentation: 'Local mock server with configurable endpoints, route matching, conditional responses, and dynamic tokens. Supports HTTP, HTTPS, and WebSocket protocols.',
+        },
+        {
+            label: "Report",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " report",
+            detail: 'Test/suite run results',
+            documentation: 'Report file generated from test or suite runs. Contains summary (tests, passed, failed, errors, skipped), timestamp, duration, and per-suite/test step results.',
         },
     ]
     const testSuggestions = [
@@ -188,6 +195,50 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: "tests:\n\t- ",
             detail: 'Suite items [array]',
             documentation: 'List of .mmt paths and the literal "then" barrier. Items in a group run in parallel; groups run sequentially.',
+        },
+    ];
+    const reportSuggestions = [
+        {
+            label: "name",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "name: ",
+            detail: 'Report name [string]',
+            documentation: 'Name of the report. Defaults to the suite path or "multimeter".',
+        },
+        {
+            label: "timestamp",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "timestamp: ",
+            detail: 'Run timestamp [ISO 8601]',
+            documentation: 'ISO 8601 timestamp of when the run started.\nExample: timestamp: 2026-03-07T08:04:43.553Z',
+        },
+        {
+            label: "duration",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "duration: ",
+            detail: 'Total duration [string]',
+            documentation: 'Total run duration in seconds.\nExample: duration: 1.234s',
+        },
+        {
+            label: "summary",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "summary:\n\ttests: \n\tpassed: \n\tfailed: \n\terrors: \n\tskipped: ",
+            detail: 'Results summary [object]',
+            documentation: 'Aggregate counts: tests, passed, failed, errors, skipped.',
+        },
+        {
+            label: "cancelled",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "cancelled: true",
+            detail: 'Whether run was cancelled [boolean]',
+            documentation: 'Set to true if the run was cancelled before completion.',
+        },
+        {
+            label: "suites",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "suites:\n\t- name: \n\t  result: \n\t  tests:\n\t    - name: \n\t      type: \n\t      result: ",
+            detail: 'Suite entries [array]',
+            documentation: 'List of suite/test-run entries. Each has name, optional file, duration, result, and a tests array of step results.',
         },
     ];
     const stepsSuggestions = [
@@ -1303,6 +1354,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         test: testSuggestions,
         suite: suiteSuggestions,
         doc: docSuggestions,
+        report: reportSuggestions,
         mock: mockSuggestions,
         services: servicesSuggestions,
         html: htmlSuggestions,

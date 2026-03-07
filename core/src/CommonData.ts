@@ -14,7 +14,8 @@ export const typeOptions = [
   { value: "test", label: "Test" },
   { value: "suite", label: "Suite" },
   { value: "doc", label: "Documentation" },
-  { value: "server", label: "Mock Server" }
+  { value: "server", label: "Mock Server" },
+  { value: "report", label: "Report" }
 ];
 
 export interface MMTFile {
