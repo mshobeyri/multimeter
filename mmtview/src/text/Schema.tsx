@@ -15,6 +15,7 @@ export const SuiteSchema = {
         title: { type: 'string' },
         description: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
+        servers: { type: 'array', items: { type: 'string' } },
         tests: {
             type: 'array',
             items: {

@@ -29,6 +29,7 @@ export function yamlToSuite(rawYaml: string): SuiteData {
     title: typeof doc.title === 'string' ? doc.title : undefined,
     description: typeof doc.description === 'string' ? doc.description : undefined,
     tags,
+    servers: intoStringArray(doc.servers).length > 0 ? intoStringArray(doc.servers) : undefined,
     tests,
   };
 

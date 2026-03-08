@@ -13,7 +13,10 @@ export type SuiteHierarchyNode =
 
 export type SuiteHierarchyFileLoader = (path: string) => Promise<string>;
 
-export type SuiteHierarchyRootNode = Extract<SuiteHierarchyNode, {kind: 'suite'}>;
+export type SuiteHierarchyRootNode = Extract<SuiteHierarchyNode, {kind: 'suite'}> & {
+  /** Server file paths from the top-level `servers:` field. */
+  servers?: string[];
+};
 
 export async function buildSuiteHierarchyFromSuiteFile(params: {
   suiteFilePath: string;
@@ -33,13 +36,17 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
   ): Promise<SuiteHierarchyRootNode> => {
     const suiteDoc = yamlToSuite(rawText);
     const children = await buildNodesFromEntries(suiteDoc.tests ?? [], targetFilePath, indexPath);
-    return {
+    const node: SuiteHierarchyRootNode = {
       kind: 'suite',
       id: createSuiteNodeId(indexPath, {prefix: leafPrefix}),
       path: targetFilePath,
       title: suiteDoc.title,
       children,
     };
+    if (Array.isArray(suiteDoc.servers) && suiteDoc.servers.length > 0) {
+      node.servers = suiteDoc.servers;
+    }
+    return node;
   };
 
   const buildNodesFromEntries = async (

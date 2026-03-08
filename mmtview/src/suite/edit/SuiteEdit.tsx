@@ -70,6 +70,30 @@ const updateSuiteContentWithGroups = (content: string, groups: SuiteGroup[]): st
   }
 };
 
+const buildServersFromContent = (content: string): string[] => {
+  const parsed = parseYaml(content);
+  if (!Array.isArray(parsed?.servers)) {
+    return [];
+  }
+  return parsed.servers
+    .map((v: any) => (typeof v === 'string' ? v.trim() : ''))
+    .filter(Boolean);
+};
+
+const updateSuiteContentWithServers = (content: string, servers: string[]): string | null => {
+  try {
+    const doc = parseYamlDoc(content);
+    if (servers.length === 0) {
+      doc.delete('servers');
+    } else {
+      doc.set('servers', servers);
+    }
+    return doc.toString();
+  } catch {
+    return null;
+  }
+};
+
 const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
   const allPaths: string[] = [];
   groups.forEach((group) => group.entries.forEach((entry) => allPaths.push(entry.path)));
@@ -78,6 +102,7 @@ const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
 
 const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   const [groups, setGroups] = useState<SuiteGroup[]>(() => buildSuiteGroupsFromContent(content));
+  const [servers, setServers] = useState<string[]>(() => buildServersFromContent(content));
   const [missingFiles, setMissingFiles] = useState<Set<string>>(new Set());
 
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -87,6 +112,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
 
   useEffect(() => {
     setGroups(buildSuiteGroupsFromContent(content));
+    setServers(buildServersFromContent(content));
   }, [content]);
 
   const persistGroups = useCallback(
@@ -176,6 +202,32 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
     persistGroups(nextGroups);
     setAddMenuOpen(false);
   }, [groups, persistGroups]);
+
+  const persistServers = useCallback(
+    (nextServers: string[]) => {
+      setServers(nextServers);
+      const updated = updateSuiteContentWithServers(content, nextServers);
+      if (updated) {
+        setContent(updated);
+      }
+    },
+    [content, setContent]
+  );
+
+  const handleAddServer = useCallback(() => {
+    persistServers([...servers, 'server path']);
+    setAddMenuOpen(false);
+  }, [servers, persistServers]);
+
+  const handleRemoveServer = useCallback((index: number) => {
+    const next = servers.filter((_, i) => i !== index);
+    persistServers(next);
+  }, [servers, persistServers]);
+
+  const handleChangeServer = useCallback((index: number, value: string) => {
+    const next = servers.map((s, i) => i === index ? value : s);
+    persistServers(next);
+  }, [servers, persistServers]);
 
   const allPaths = useMemo(() => collectSuitePaths(groups), [groups]);
   useEffect(() => {
@@ -288,13 +340,66 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
                 <span className="codicon codicon-symbol-file" style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
                 <span>Add test file</span>
               </button>
+              <button
+                className="action-button"
+                style={{
+                  width: '100%',
+                  justifyContent: 'flex-start',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+                onClick={() => handleAddServer()}
+                title="Add a mock server file to run before the suite"
+              >
+                <span className="codicon codicon-server-environment" style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
+                <span>Add server file</span>
+              </button>
             </div>
           )}
         </div>
+        {servers.length > 0 && (
+          <>
+            <div className="label" style={{ marginBottom: 6 }}>Servers</div>
+            <div style={{ marginBottom: 12, paddingLeft: 4 }}>
+              {servers.map((s, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0' }}>
+                  <span className="codicon codicon-server-environment" style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
+                  <input
+                    type="text"
+                    value={s}
+                    onChange={(e) => handleChangeServer(i, e.target.value)}
+                    style={{
+                      flex: 1,
+                      background: 'var(--vscode-input-background, #1e1e1e)',
+                      color: 'var(--vscode-input-foreground, #ccc)',
+                      border: '1px solid var(--vscode-input-border, #3c3c3c)',
+                      borderRadius: 3,
+                      padding: '2px 6px',
+                      fontSize: 'inherit',
+                      fontFamily: 'inherit',
+                    }}
+                  />
+                  <button
+                    className="button-icon"
+                    onClick={() => handleRemoveServer(i)}
+                    title="Remove server"
+                    style={{ padding: '2px 4px' }}
+                  >
+                    <span className="codicon codicon-trash" style={{ fontSize: 13 }} aria-hidden />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
         {noItems ? (
           <div style={{ opacity: 0.8 }}>No suite items found under `tests:`</div>
         ) : (
-          tree
+          <>
+            <div className="label" style={{ marginBottom: 6 }}>Tests</div>
+            {tree}
+          </>
         )}
       </div>
     </div >

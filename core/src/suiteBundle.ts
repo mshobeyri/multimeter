@@ -22,15 +22,18 @@ export type SuiteBundleNode =
 export interface SuiteBundle {
   rootSuitePath: string;
   bundle: SuiteBundleNode[];
+  /** Server file paths to start before suite execution and keep running throughout. */
+  servers?: string[];
   target?: string;
 }
 
 export function createSuiteBundle(params: {
   rootSuitePath: string;
   hierarchy: SuiteHierarchyRootNode;
+  servers?: string[];
   target?: string;
 }): SuiteBundle {
-  const {rootSuitePath, hierarchy, target} = params;
+  const {rootSuitePath, hierarchy, servers, target} = params;
 
   const build = (nodes: readonly SuiteHierarchyNode[], indexPath: number[]): SuiteBundleNode[] => {
     const out: SuiteBundleNode[] = [];
@@ -101,6 +104,7 @@ export function createSuiteBundle(params: {
       // treat all root entries as being in a single group.
       return [{kind: 'group', id: createSuiteNodeId([0]), label: 'Group 1', children: built}];
     })(),
+    servers: Array.isArray(servers) && servers.length > 0 ? servers : undefined,
     target: typeof target === 'string' && target ? target : undefined,
   };
 }

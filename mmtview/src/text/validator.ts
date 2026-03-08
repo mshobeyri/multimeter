@@ -142,6 +142,7 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "title",
         "description",
         "tags",
+        "servers",
         "tests",
       ];
     case "doc":

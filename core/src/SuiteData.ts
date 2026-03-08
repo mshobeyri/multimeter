@@ -3,5 +3,6 @@ export interface SuiteData {
   title?: string;
   description?: string;
   tags?: string[];
+  servers?: string[];
   tests: Array<string>;
 }

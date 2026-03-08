@@ -376,6 +376,16 @@ export const startServer_ = async (alias: string): Promise<void> => {
 };
 
 /**
+ * Register a server that was started externally (e.g. suite-level servers).
+ * This prevents `startServer_` from trying to start a duplicate.
+ * @param alias The server alias/path
+ * @param cleanup The cleanup function to stop the server
+ */
+export const registerServer_ = (alias: string, cleanup: () => void): void => {
+  __mmtStartedServers.set(alias, cleanup);
+};
+
+/**
  * Stop all servers started during this test run.
  */
 export const stopAllServers_ = (): void => {

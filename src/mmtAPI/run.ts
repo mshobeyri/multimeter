@@ -303,6 +303,7 @@ export async function handleRunSuite(
     const bundle = suiteBundle.createSuiteBundle({
       rootSuitePath: runFilePath,
       hierarchy: tree,
+      servers: tree.servers,
       target: bundleTarget,
     });
     forwardLog('debug', `handleRunSuite: created bundle root=${runFilePath} target=${String(bundleTarget)}`);

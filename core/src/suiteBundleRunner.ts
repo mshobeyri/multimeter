@@ -2,6 +2,7 @@ import {LogLevel} from './CommonData';
 import {basename, detectDocType, resolveRelativeTo, RunFileResult, sanitizeIdentifier} from './runCommon';
 import {RunFileOptions, RunResult, SuiteStepStatus} from './runConfig';
 import {SuiteBundle, SuiteBundleNode} from './suiteBundle';
+import {stopAllServers_, registerServer_} from './testHelper';
 
 /** Cleanup functions for servers started during suite execution. */
 type ServerCleanup = () => void;
@@ -87,6 +88,7 @@ async function runSuiteBundleNode(params: {
       runId,
       id,
       __mmtIsSuiteBundleChildRun: true,
+      skipServerCleanup: true,
     };
 
     let childRun: RunFileResult;
@@ -165,8 +167,7 @@ async function runSuiteGroup(params: {
     }
 
     if (child.kind === 'group') {
-      // Nested group: runs sequentially relative to sibling runnable items by executing it inline.
-      // This mirrors the "sequential groups" semantics.
+      // Nested group: runs its own children in parallel.
       const childGroup = await runSuiteGroup({
         node: child,
         bundle,
@@ -363,20 +364,67 @@ export async function executeSuiteBundle(params: {
   };
 
   try {
-    if (root && (root.kind === 'group' || root.kind === 'suite')) {
-      await runNodesSequentially(root.children);
-    } else if (root) {
-      await runNodesSequentially([root]);
-    } else {
-      await runNodesSequentially(bundle.bundle);
+    // Start suite-level servers (from the `servers:` field) before running tests.
+    // These servers remain running for the entire suite duration and are cleaned up in `finally`.
+    if (shouldEmitSuiteRunEvents && Array.isArray(bundle.servers) && bundle.servers.length > 0) {
+      for (const serverPath of bundle.servers) {
+        if (options.abortSignal?.aborted) {
+          suiteLogger('warn', 'Suite run cancelled before servers could start.');
+          overallSuccess = false;
+          break;
+        }
+        const resolvedPath = resolveRelativeTo(serverPath, bundle.rootSuitePath);
+        const display = basename(resolvedPath || serverPath);
+        if (!options.serverRunner) {
+          suiteLogger('error', `Cannot start server '${display}': no server runner provided`);
+          overallSuccess = false;
+          break;
+        }
+        try {
+          suiteLogger('info', `Starting suite server: ${display}`);
+          const cleanup = await options.serverRunner(serverPath, resolvedPath);
+          serverCleanups.push(cleanup);
+          // Register the server so tests with `run: mock` won't try to start a duplicate.
+          // Register with both the alias and resolved path since tests might use either.
+          registerServer_(serverPath, cleanup);
+          if (resolvedPath && resolvedPath !== serverPath) {
+            registerServer_(resolvedPath, cleanup);
+          }
+          suiteLogger('info', `Suite server started: ${display}`);
+        } catch (e: any) {
+          const errorMessage = e?.message || String(e);
+          suiteLogger('error', `Failed to start suite server '${display}': ${errorMessage}`);
+          overallSuccess = false;
+          break;
+        }
+      }
+    }
+
+    if (overallSuccess) {
+      if (root && (root.kind === 'group' || root.kind === 'suite')) {
+        await runNodesSequentially(root.children);
+      } else if (root) {
+        await runNodesSequentially([root]);
+      } else {
+        await runNodesSequentially(bundle.bundle);
+      }
     }
   } finally {
-    // Stop all servers started during this suite run.
+    // Stop all servers started during this suite run (from `servers:` field).
     for (const cleanup of serverCleanups) {
       try {
         cleanup();
       } catch (e: any) {
         suiteLogger('warn', `Error stopping server: ${e?.message || String(e)}`);
+      }
+    }
+    // Stop any servers started via `run: mock` steps in child tests.
+    // Only do this at the top-level suite run (not nested suite children).
+    if (shouldEmitSuiteRunEvents) {
+      try {
+        stopAllServers_();
+      } catch (e: any) {
+        suiteLogger('warn', `Error stopping servers: ${e?.message || String(e)}`);
       }
     }
   }

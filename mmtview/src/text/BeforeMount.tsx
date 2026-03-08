@@ -438,6 +438,31 @@ export const handleBeforeMount = (monaco: any) => {
         return deduplicateSuggestions(suggestions);
     };
 
+    const suiteServersItemFoldersCache = new Map<string, string[]>();
+    const getSuiteServersItemSuggestions = async (): Promise<any[]> => {
+        if (!window?.vscode) {
+            return [];
+        }
+        const folder = '.';
+        const cached = suiteServersItemFoldersCache.get(folder);
+        const files = cached ?? await listFiles(folder, true);
+        if (!cached) {
+            suiteServersItemFoldersCache.set(folder, files);
+        }
+
+        const suggestions = files
+            .filter((p) => typeof p === 'string' && p.toLowerCase().endsWith('.mmt'))
+            .sort((a, b) => a.localeCompare(b))
+            .map((p) => ({
+                label: p,
+                kind: monaco.languages.CompletionItemKind.File,
+                insertText: `- ${p}`,
+                detail: 'MMT server file',
+                documentation: `Start ${p} as a mock server for the suite`,
+            }));
+        return deduplicateSuggestions(suggestions);
+    };
+
     const importValueFoldersCache = new Map<string, string[]>();
     const getImportValueSuggestions = async (typedValue: string): Promise<any[]> => {
         if (!window?.vscode) {
@@ -790,6 +815,23 @@ export const handleBeforeMount = (monaco: any) => {
             if (firstLine === 'type: suite' && inListItemLine) {
                 if (parentContext === 'tests') {
                     const suggestionList = await getSuiteTestsItemSuggestions();
+                    const wordInfo = model.getWordUntilPosition(position);
+                    const baseStartColumn = wordInfo?.startColumn ?? position.column;
+                    const baseEndColumn = wordInfo?.endColumn ?? position.column;
+                    return {
+                        suggestions: suggestionList.map((item) => ({
+                            ...item,
+                            range: {
+                                startLineNumber: position.lineNumber,
+                                startColumn: Math.max(1, baseStartColumn - listPrefixLength),
+                                endLineNumber: position.lineNumber,
+                                endColumn: baseEndColumn,
+                            }
+                        }))
+                    };
+                }
+                if (parentContext === 'servers') {
+                    const suggestionList = await getSuiteServersItemSuggestions();
                     const wordInfo = model.getWordUntilPosition(position);
                     const baseStartColumn = wordInfo?.startColumn ?? position.column;
                     const baseEndColumn = wordInfo?.endColumn ?? position.column;

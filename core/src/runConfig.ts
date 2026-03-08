@@ -168,6 +168,13 @@ export interface RunFileOptions {
    * Returns: a cleanup function to stop the server.
    */
   serverRunner?: (alias: string, filePath: string) => Promise<() => void>;
+
+  /**
+   * When true, do not stop servers after test execution.
+   * Used by suite runners to keep servers alive for the entire suite duration.
+   * The suite runner is responsible for cleanup in this case.
+   */
+  skipServerCleanup?: boolean;
 }
 
 export interface MergeInputsParams {

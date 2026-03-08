@@ -66,11 +66,30 @@ In the example above, the execution flow is as follows:
 
 ### Mock Servers in Suites
 
-You can include `type: server` files in the `tests` array. Servers start before tests in the same stage and stop automatically when the suite completes.
+#### Suite-level servers (`servers:` field)
+
+Use the top-level `servers:` field to list mock server files that should start **before** any tests and remain running for the **entire** suite duration. They are stopped automatically when the suite finishes.
 
 ```yaml
 type: suite
-title: Integration Suite with Mock Server
+title: Integration Suite
+servers:
+  - mocks/user-service.mmt
+  - mocks/auth-service.mmt
+tests:
+  - tests/login.mmt
+  - tests/profile.mmt
+```
+
+This is the recommended way to manage mock servers in suites. It is safe even when the same test file appears multiple times, or when multiple tests use the same server — the server is started once and kept alive for all of them.
+
+#### Inline servers in `tests:`
+
+You can also include `type: server` files directly in the `tests` array. Servers start before tests in the same stage and stop automatically when the suite completes.
+
+```yaml
+type: suite
+title: Integration Suite with Inline Mock Server
 tests:
   - mocks/user-service.mmt    # type: server — starts first
   - mocks/auth-service.mmt    # runs in parallel with above
@@ -132,6 +151,7 @@ The suite runner executes stages sequentially. Within each stage (items between 
 - title: string
 - description: string (supports Markdown)
 - tags: string[]
+- servers: string[] (paths to `type: server` `.mmt` files — started before tests, kept running for the suite)
 - tests: string[] (paths to `.mmt` files; use `then` to separate sequential stages)
 
 ---

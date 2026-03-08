@@ -21,6 +21,8 @@ export interface RunJSCodeContext {
   traceSend?: boolean;
   /** Optional server runner for starting mock servers in tests. */
   serverRunner?: ServerRunner;
+  /** When true, do not stop servers after execution. Suite runners set this. */
+  skipServerCleanup?: boolean;
 }
 
 const REPORTER_KEY = '__mmtReportStep';
@@ -186,13 +188,15 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     if ('setAbortSignal_' in mmtHelper && typeof (mmtHelper as any).setAbortSignal_ === 'function') {
       (mmtHelper as any).setAbortSignal_(undefined);
     }
-    // Stop all servers started during this test run.
-    if ('stopAllServers_' in mmtHelper && typeof (mmtHelper as any).stopAllServers_ === 'function') {
-      (mmtHelper as any).stopAllServers_();
-    }
-    // Clear server runner.
-    if ('setServerRunner_' in mmtHelper && typeof (mmtHelper as any).setServerRunner_ === 'function') {
-      (mmtHelper as any).setServerRunner_(undefined);
+    // Stop all servers started during this test run, unless suite runner is handling cleanup.
+    if (!context.skipServerCleanup) {
+      if ('stopAllServers_' in mmtHelper && typeof (mmtHelper as any).stopAllServers_ === 'function') {
+        (mmtHelper as any).stopAllServers_();
+      }
+      // Clear server runner.
+      if ('setServerRunner_' in mmtHelper && typeof (mmtHelper as any).setServerRunner_ === 'function') {
+        (mmtHelper as any).setServerRunner_(undefined);
+      }
     }
   }
 }

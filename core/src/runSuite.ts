@@ -3,6 +3,7 @@ import {basename, detectDocType, PreparedRun, resolveRelativeTo, RunFileResult, 
 import {RunFileOptions, RunResult, SuiteStepStatus} from './runConfig';
 import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
 import {isProjectRootImport, resolveProjectRootImport} from './fileHelper';
+import {stopAllServers_, registerServer_} from './testHelper';
 
 const stableIdForSuiteItem = (params: {
   suitePath: string;
@@ -65,6 +66,46 @@ export async function executeSuite(
   suiteLogger('info', `Running suite: ${suiteDisplayName}`);
 
   let overallSuccess = true;
+  const serverCleanups: Array<() => void> = [];
+
+  try {
+  // Start suite-level servers (from the `servers:` field) before running tests.
+  if (Array.isArray(suite.servers) && suite.servers.length > 0) {
+    for (const serverPath of suite.servers) {
+      if (options.abortSignal?.aborted) {
+        suiteLogger('warn', 'Suite run cancelled before servers could start.');
+        overallSuccess = false;
+        break;
+      }
+      const resolvedPath = resolveRelativeTo(serverPath, prepared.filePath);
+      const display = basename(resolvedPath || serverPath);
+      if (!options.serverRunner) {
+        suiteLogger('error', `Cannot start server '${display}': no server runner provided`);
+        overallSuccess = false;
+        break;
+      }
+      try {
+        suiteLogger('info', `Starting suite server: ${display}`);
+        const cleanup = await options.serverRunner(serverPath, resolvedPath);
+        serverCleanups.push(cleanup);
+        // Register the server so tests with `run: mock` won't try to start a duplicate.
+        registerServer_(serverPath, cleanup);
+        if (resolvedPath && resolvedPath !== serverPath) {
+          registerServer_(resolvedPath, cleanup);
+        }
+        suiteLogger('info', `Suite server started: ${display}`);
+      } catch (e: any) {
+        const errorMessage = e?.message || String(e);
+        suiteLogger('error', `Failed to start suite server '${display}': ${errorMessage}`);
+        overallSuccess = false;
+        break;
+      }
+    }
+  }
+
+  if (!overallSuccess) {
+    // Server startup failed; skip test execution.
+  } else {
 
   for (let gi = 0; gi < groups.length; gi++) {
     if (options.abortSignal?.aborted) {
@@ -152,6 +193,7 @@ export async function executeSuite(
           logger: suiteLogger,
           id,
           runId,
+          skipServerCleanup: true,
         } as any);
 
         const status: SuiteStepStatus = childRun.result?.success ? 'passed' : 'failed';
@@ -230,6 +272,25 @@ export async function executeSuite(
     if (groupThrew) {
       // Stop executing further groups when an item threw (assert-like failure).
       break;
+    }
+  }
+
+  } // end else (server startup succeeded)
+
+  } finally {
+    // Stop all suite-level servers (from `servers:` field).
+    for (const cleanup of serverCleanups) {
+      try {
+        cleanup();
+      } catch (e: any) {
+        suiteLogger('warn', `Error stopping server: ${e?.message || String(e)}`);
+      }
+    }
+    // Stop any servers started via `run: mock` steps in child tests.
+    try {
+      stopAllServers_();
+    } catch (e: any) {
+      suiteLogger('warn', `Error stopping servers: ${e?.message || String(e)}`);
     }
   }
 

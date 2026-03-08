@@ -190,6 +190,13 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'Tags for categorizing suites.',
         },
         {
+            label: "servers",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "servers:\n\t- ",
+            detail: 'Suite servers [array]',
+            documentation: 'List of mock server .mmt file paths to start before the suite runs and keep running throughout.',
+        },
+        {
             label: "tests",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "tests:\n\t- ",

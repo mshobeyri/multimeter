@@ -67,6 +67,16 @@ const buildSuiteGroupsFromContent = (content: string): SuiteGroup[] => {
     });
 };
 
+const buildServersFromContent = (content: string): string[] => {
+    const parsed = parseYaml(content);
+    if (!Array.isArray(parsed?.servers)) {
+        return [];
+    }
+    return parsed.servers
+        .map((v: any) => (typeof v === 'string' ? v.trim() : ''))
+        .filter(Boolean);
+};
+
 const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
     const allPaths: string[] = [];
     groups.forEach((group) => group.entries.forEach((entry) => allPaths.push(entry.path)));
@@ -75,6 +85,7 @@ const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
 
 const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
     const groups = useMemo(() => buildSuiteGroupsFromContent(content), [content]);
+    const servers = useMemo(() => buildServersFromContent(content), [content]);
     const allPaths = useMemo(() => collectSuitePaths(groups), [groups]);
     const canRun = allPaths.length > 0;
     const noItems = groups.every(group => group.entries.length === 0);
@@ -633,6 +644,22 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 {noItems ? <div style={{ opacity: 0.8 }}>No suite items found under `tests:`</div> : (
                     <>
                         {overviewStats && <OverviewBoxes stats={overviewStats} />}
+                        {servers.length > 0 && (
+                            <>
+                                <div className="label" style={{ marginBottom: 6 }}>Servers</div>
+                                <div style={{ marginBottom: 12, paddingLeft: 8 }}>
+                                    {servers.map((s, i) => {
+                                        const name = s.includes('/') ? s.slice(s.lastIndexOf('/') + 1) : s;
+                                        return (
+                                            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
+                                                <span className="codicon codicon-server-environment" style={{ fontSize: 14 }} aria-hidden />
+                                                <span title={s}>{name}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </>
+                        )}
                         <div className="label" style={{ marginBottom: 10 }}>Tests</div>
                         {tree}
                     </>
