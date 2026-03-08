@@ -111,5 +111,8 @@ Testlight compiles your `.mmt`/YAML tests to JS on the fly and executes them wit
 - [Environment](./environment-mmt.md) — variables and presets (`--env-file`, `--preset`)
 - [Doc](./doc-mmt.md) — author doc files for `testlight doc`
 - [Suite](./suite-mmt.md) — run suites from the CLI
-- [Sample Project](./sample-project.md) — full walkthrough with CLI examples
+- [Reports](./reports.md) — generate JUnit XML, HTML, Markdown, or MMT reports (`--report`)
+- [Mock Server](./mock-server.md) — `type: server` files started by tests/suites during CLI runs
+- [Certificates](./certificates-mmt.md) — SSL/TLS configuration for CLI runs
 - [Logging](./logging.md) — log levels and where logs appear for each entry point
+- [Sample Project](./sample-project.md) — full walkthrough with CLI examples

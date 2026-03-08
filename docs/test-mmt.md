@@ -169,9 +169,6 @@ steps:
 - If the port is already in use, the test fails with an error
 
 Use this to make tests self-contained — no need to manually start servers before running.
-  inputs:
-    token: doLogin.token
-```
 
 #### Inline check/assert on call
 
@@ -565,6 +562,9 @@ Notes:
 - [API](./api-mmt.md) — define HTTP/WS requests that tests call
 - [Environment](./environment-mmt.md) — variables and presets consumed by tests
 - [Suite](./suite-mmt.md) — group and run multiple tests together
+- [Mock Server](./mock-server.md) — use `run` step to start servers in tests; define `type: server` files
 - [Testlight CLI](./testlight.md) — run tests from the command line
-- [Sample Project](./sample-project.md) — full walkthrough with APIs, tests, suites, and docs
+- [Reports](./reports.md) — generate test reports (JUnit XML, HTML, Markdown, MMT YAML)
+- [Certificates](./certificates-mmt.md) — SSL/TLS and mTLS configuration
 - [Logging](./logging.md) — log levels for checks, prints, and network calls
+- [Sample Project](./sample-project.md) — full walkthrough with APIs, tests, suites, and docs

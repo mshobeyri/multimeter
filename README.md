@@ -72,18 +72,33 @@ Here is a how you can run the test in VSCode;
 - 🏋 Load testing.
 
 ## 📚 Documentation
-- [MMT Overview](docs/mmt-overview.md)
-  - [API](docs/api-mmt.md)
-  - [Test](docs/test-mmt.md)
-  - [Environment](docs/environment-mmt.md)
-  - [Doc](docs/doc-mmt.md)
-  - [Suite](docs/suite-mmt.md)
+
+### [MMT Overview](docs/mmt-overview.md)
+
+**MMT File Types** — YAML files you create and version-control:
+- [API (`type: api`)](docs/api-mmt.md) — define HTTP/WebSocket requests
+- [Test (`type: test`)](docs/test-mmt.md) — orchestrate flows with steps, assertions, and loops
+- [Environment (`type: env`)](docs/environment-mmt.md) — variables, presets, and certificates
+- [Doc (`type: doc`)](docs/doc-mmt.md) — generate API documentation from your `.mmt` files
+- [Suite (`type: suite`)](docs/suite-mmt.md) — group and run tests, APIs, or other suites
+- [Mock Server (`type: server`)](docs/mock-server.md#mmt-mock-server-files) — define mock endpoints with routing, matching, and dynamic responses
+- [Report (`type: report`)](docs/reports.md#mmt-report-yaml) — structured test results viewable in the editor
+
+**VS Code Panels & Features:**
+- [Mock Server Panel](docs/mock-server.md) — start HTTP/HTTPS/WS mock servers from the UI
+- [Convertor](docs/convertor.md) — import OpenAPI and Postman collections into `.mmt`
+- [History](docs/history.md) — inspect recent requests and responses
+- [Certificates](docs/certificates-mmt.md) — SSL/TLS, mTLS, and CA certificate configuration
+
+**Running & CI/CD:**
+- [Testlight CLI](docs/testlight.md) — run tests, suites, and generate docs from the command line
+- [Reports](docs/reports.md) — JUnit XML, HTML, Markdown, and MMT YAML test reports
+- [Logging](docs/logging.md) — log levels and where logs appear
+
+**Guides & Reference:**
 - [Sample Project](docs/sample-project.md) — full walkthrough with APIs, tests, suites, docs, and CLI
-- [Testlight (CLI)](docs/testlight.md)
-- [Convertor](docs/convertor.md)
-- [Mock Server](docs/mock-server.md)
-- [History](docs/history.md)
-- [Test Generation Profile(cheat sheet)](docs/testgen-profile.md)
+- [Test Generation Profile (cheat sheet)](docs/testgen-profile.md) — AI/tool guidance for generating `.mmt` files
+- [Demos](docs/demos.md) — animated feature demos
 
 ## 💬 Communcations
 - [Trello](https://trello.com/invite/b/696e9c5c2f58a795c49a2f09/ATTI82216d5bd7d640679502ecc972eeea7a169DFB32/multimeter)

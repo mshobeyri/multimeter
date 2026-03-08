@@ -141,6 +141,7 @@ The suite runner executes stages sequentially. Within each stage (items between 
 - [API](./api-mmt.md) — define APIs that suites can run directly
 - [Mock Server](./mock-server.md) — define mock servers to include in suites
 - [Environment](./environment-mmt.md) — variables and presets, including `+/` project root imports
+- [Reports](./reports.md) — generate test reports from suite runs
 - [Testlight CLI](./testlight.md) — run suites from the command line
 - [Logging](./logging.md) — log levels for suite items and child test runs
 - [Sample Project](./sample-project.md) — full walkthrough with APIs, tests, suites, and docs

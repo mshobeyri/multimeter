@@ -397,6 +397,9 @@ examples:
 - [Environment](./environment-mmt.md) — define variables and presets used by `e:VAR` tokens
 - [Doc](./doc-mmt.md) — generate browsable HTML documentation from API files
 - [Suite](./suite-mmt.md) — group and run multiple tests and APIs together
+- [Mock Server](./mock-server.md) — point API URLs at a mock server for local development
 - [Testlight CLI](./testlight.md) — run APIs and tests from the command line
-- [Sample Project](./sample-project.md) — full walkthrough with APIs, tests, suites, and docs
+- [Reports](./reports.md) — generate JUnit XML, HTML, Markdown, or MMT reports from test runs
+- [Certificates](./certificates-mmt.md) — SSL/TLS and mTLS configuration
 - [Logging](./logging.md) — log levels for inputs, outputs, requests, and responses
+- [Sample Project](./sample-project.md) — full walkthrough with APIs, tests, suites, and docs

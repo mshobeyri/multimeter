@@ -204,5 +204,7 @@ This applies to descriptions in both `type: api` files and the doc-level `descri
 - [Test](./test-mmt.md) — orchestrate flows calling APIs
 - [Environment](./environment-mmt.md) — variables and presets used by `e:VAR` tokens in docs
 - [Suite](./suite-mmt.md) — group and run multiple tests together
+- [Mock Server](./mock-server.md) — mock server files that can appear alongside APIs
 - [Testlight CLI](./testlight.md) — generate docs from the command line (`testlight doc`)
+- [Convertor](./convertor.md) — import OpenAPI/Postman specs, then document them with `type: doc`
 - [Sample Project](./sample-project.md) — full walkthrough with APIs, tests, suites, and docs

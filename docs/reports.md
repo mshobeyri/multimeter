@@ -197,3 +197,12 @@ pipeline {
     }
 }
 ```
+
+---
+
+## See also
+- [Testlight CLI](./testlight.md) — `--report` and `--report-file` flags
+- [Test](./test-mmt.md) — test files that produce reports
+- [Suite](./suite-mmt.md) — suite files that produce reports
+- [Logging](./logging.md) — log levels during test runs
+- [Sample Project](./sample-project.md) — full walkthrough with CI examples

@@ -160,5 +160,7 @@ See [Test documentation](./test-mmt.md#import) for more details on import paths.
 - [Suite](./suite-mmt.md) — pass `--preset` when running suites
 - [Testlight CLI](./testlight.md) — `--env-file`, `--preset`, and `-e` flags
 - [Certificates](./certificates-mmt.md) — SSL/TLS settings in env files
+- [Reports](./reports.md) — generate test reports from your runs
+- [Mock Server](./mock-server.md) — swap between real and mock URLs with presets
 - [Sample Project](./sample-project.md) — full walkthrough showing environment setup
 

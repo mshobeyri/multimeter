@@ -1,5 +1,16 @@
 # Mock Server
 
+Multimeter provides two ways to mock APIs:
+
+1. **Mock Server Panel** (VS Code sidebar) — a lightweight server for quick prototyping with reflect mode and custom status codes.
+2. **MMT Mock Server Files** (`type: server`) — fully-featured mock definitions in YAML with routing, matching, dynamic responses, and proxy forwarding.
+
+Both approaches support HTTP, HTTPS (with TLS/mTLS), and WebSocket.
+
+---
+
+## Mock Server Panel
+
 A lightweight mock server built into Multimeter to prototype and test clients without a live backend.
 
 Use it during development to inspect requests, echo (reflect) them back, and simulate simple responses for HTTP and WebSocket.
@@ -212,8 +223,10 @@ This lets you set up complex integration environments declaratively, without man
 
 ## See also
 - [API](./api-mmt.md) — point API URLs at the mock server
+- [Test](./test-mmt.md) — use `run` step to start mock servers in tests
+- [Suite](./suite-mmt.md) — include `type: server` files in suite execution
 - [Environment](./environment-mmt.md) — swap between real and mock URLs with presets
 - [Certificates](./certificates-mmt.md) — configure TLS certificates for HTTPS mocking
-- [Test](./test-mmt.md) — use `run` step to start servers in tests
-- [Suite](./suite-mmt.md) — include servers in suite execution
+- [Reports](./reports.md) — generate test reports from runs that use mocks
+- [Testlight CLI](./testlight.md) — run tests and suites (including mock servers) from the command line
 - [Sample Project](./sample-project.md) — full walkthrough of a Multimeter project

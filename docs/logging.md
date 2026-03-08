@@ -106,4 +106,5 @@ Since child tests run with the `external` report config by default, check passes
 - [API](./api-mmt.md) — API file format, inputs, outputs, and examples
 - [Suite](./suite-mmt.md) — suite file format and execution
 - [Environment](./environment-mmt.md) — variables and presets
-- [Testlight CLI](./testlight.md) — running from the command line
+- [Reports](./reports.md) — structured test reports generated after runs
+- [Testlight CLI](./testlight.md) — running from the command line (`--log-level`, `--quiet`)
