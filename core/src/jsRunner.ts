@@ -6,6 +6,7 @@ import {extractOutputs} from './outputExtractor';
 import * as Random from './Random';
 import * as Current from './Current';
 import * as mmtHelper from './testHelper';
+import type {ServerRunner} from './testHelper';
 
 export interface RunJSCodeContext {
   runId: string;
@@ -18,6 +19,8 @@ export interface RunJSCodeContext {
   abortSignal?: AbortSignal;
   /** When true, wrap send_ with trace-level request/response logging (used by test runs). */
   traceSend?: boolean;
+  /** Optional server runner for starting mock servers in tests. */
+  serverRunner?: ServerRunner;
 }
 
 const REPORTER_KEY = '__mmtReportStep';
@@ -122,6 +125,11 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     (mmtHelper as any).setAbortSignal_(context.abortSignal);
   }
 
+  // Set the server runner for starting mock servers in tests.
+  if ('setServerRunner_' in mmtHelper && typeof (mmtHelper as any).setServerRunner_ === 'function') {
+    (mmtHelper as any).setServerRunner_(context.serverRunner);
+  }
+
   try {
     const helperDecls =
           Object.keys(mmtHelper)
@@ -177,6 +185,14 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     // Clear abort signal after run completes.
     if ('setAbortSignal_' in mmtHelper && typeof (mmtHelper as any).setAbortSignal_ === 'function') {
       (mmtHelper as any).setAbortSignal_(undefined);
+    }
+    // Stop all servers started during this test run.
+    if ('stopAllServers_' in mmtHelper && typeof (mmtHelper as any).stopAllServers_ === 'function') {
+      (mmtHelper as any).stopAllServers_();
+    }
+    // Clear server runner.
+    if ('setServerRunner_' in mmtHelper && typeof (mmtHelper as any).setServerRunner_ === 'function') {
+      (mmtHelper as any).setServerRunner_(undefined);
     }
   }
 }

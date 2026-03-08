@@ -7,6 +7,7 @@ export type SuiteHierarchyNode =
   | {kind: 'group'; id: string; label: string; children: SuiteHierarchyNode[]}
   | {kind: 'suite'; id: string; path: string; title?: string; children: SuiteHierarchyNode[]}
   | {kind: 'test'; id: string; path: string; title?: string}
+  | {kind: 'server'; id: string; path: string; title?: string}
   | {kind: 'missing'; id: string; path: string}
   | {kind: 'cycle'; id: string; path: string};
 
@@ -100,6 +101,11 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
         // ignore
       }
       return {kind: 'test', id: createSuiteNodeId(indexPath, {prefix: leafPrefix}), path: resolvedPath, title};
+    }
+
+    if (type === 'server') {
+      // Server files can be included in suites to start mock servers
+      return {kind: 'server', id: createSuiteNodeId(indexPath, {prefix: leafPrefix}), path: resolvedPath};
     }
 
     if (type !== 'suite') {

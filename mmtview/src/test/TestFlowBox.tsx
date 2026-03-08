@@ -287,6 +287,15 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       case 'steps':
       case 'stages':
         return null;
+      case 'run':
+        return (
+          <input
+            placeholder="mock server file (e.g. mock/server.mmt)"
+            value={stepData[type] || ''}
+            onChange={e => onChange({ [type]: e.target.value })}
+            style={{ width: '100%' }}
+          />
+        );
       case 'stage': {
         const idVal = typeof stepData?.id === 'string' ? stepData.id : '';
         const condVal = typeof stepData?.condition === 'string' ? stepData.condition : '';

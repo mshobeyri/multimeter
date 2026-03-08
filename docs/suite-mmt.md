@@ -64,6 +64,23 @@ In the example above, the execution flow is as follows:
 4. The suite waits for both `test3.mmt` and `test4.mmt` to complete.
 5. `test5.mmt` is run.
 
+### Mock Servers in Suites
+
+You can include `type: server` files in the `tests` array. Servers start before tests in the same stage and stop automatically when the suite completes.
+
+```yaml
+type: suite
+title: Integration Suite with Mock Server
+tests:
+  - mocks/user-service.mmt    # type: server — starts first
+  - mocks/auth-service.mmt    # runs in parallel with above
+  - then
+  - tests/login.mmt           # tests run after servers are ready
+  - tests/profile.mmt
+```
+
+This lets you set up complex integration environments declaratively, without manual server management. The suite runner ensures servers are running before dependent tests execute.
+
 ## UI and Execution
 
 When you open a suite file, the Multimeter panel displays the items in the suite, grouped by execution stage. Each item is shown with its name and an icon that indicates its type.
@@ -79,6 +96,7 @@ Each item in the suite tree is shown with an icon indicating its type:
 - **API**: HTTP or WebSocket API file
 - **Test**: Test file with steps/stages
 - **Suite**: A nested suite (suites can include other suites recursively)
+- **Server**: Mock server file (`type: server`) — started before tests in the same stage
 - **Missing**: The referenced file could not be found at the specified path
 - **Cycle**: A circular reference was detected (Suite A includes Suite B which includes Suite A)
 
@@ -121,6 +139,7 @@ The suite runner executes stages sequentially. Within each stage (items between 
 ## See also
 - [Test](./test-mmt.md) — define test flows that suites can run
 - [API](./api-mmt.md) — define APIs that suites can run directly
+- [Mock Server](./mock-server.md) — define mock servers to include in suites
 - [Environment](./environment-mmt.md) — variables and presets, including `+/` project root imports
 - [Testlight CLI](./testlight.md) — run suites from the command line
 - [Logging](./logging.md) — log levels for suite items and child test runs

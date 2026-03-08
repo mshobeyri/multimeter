@@ -58,6 +58,41 @@
       margin-top: var(--mmt-gap-16);
     }
 
+    .file-picker-container {
+      position: relative;
+      width: 100%;
+    }
+
+    .file-picker-input {
+      width: 100%;
+      padding-right: 36px !important;
+    }
+
+    .file-picker-button {
+      position: absolute;
+      right: 4px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--vscode-foreground);
+      opacity: 0.8;
+    }
+
+    .file-picker-button:hover {
+      opacity: 1;
+    }
+
+    .file-picker-button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
     /* Enable horizontal scrolling when panel is narrow */
     @media (max-width: 300px) {
       body {
@@ -76,7 +111,18 @@
         <option value="http" ${httpSelected}>HTTP</option>
         <option value="https" ${httpsSelected}>HTTPS</option>
         <option value="ws" ${wsSelected}>WebSocket</option>
+        <option value="mmt" ${mmtSelected}>MMT Mock Server</option>
       </select>
+    </div>
+
+    <div class="mb-12" id="mmtSection" ${mmtSectionHidden}>
+      <label class="label">Server file (.mmt)</label>
+      <div class="file-picker-container">
+        <input id="mmtFilePath" class="input file-picker-input" type="text" value="${mmtFilePath}" ${disabled} placeholder="Select a .mmt server file" />
+        <button id="pickMmtServerFile" class="file-picker-button" ${disabled} title="Choose file">
+          <span class="codicon codicon-folder-opened"></span>
+        </button>
+      </div>
     </div>
 
     <div class="mb-12" id="httpsSection" ${httpsSectionHidden}>
@@ -110,7 +156,7 @@
       </div>
     </div>
 
-    <div class="flex gap-8 mb-12">
+    <div class="flex gap-8 mb-12" id="portStatusSection" style="${simpleMockSectionStyle}">
       <div class="flex-1">
         <label class="label" for="port">Port</label>
         <input id="port" class="input" type="number" min="1" max="65535" value="${port}" ${disabled} />
@@ -121,22 +167,24 @@
       </div>
     </div>
 
-    <label class="mb-12 checkbox-label">
-      <input id="reflect" type="checkbox" ${reflectChecked}>
-      Reflect request as response
-    </label>
+    <div id="simpleMockOptionsSection" style="${simpleMockSectionStyle}">
+      <label class="mb-12 checkbox-label">
+        <input id="reflect" type="checkbox" ${reflectChecked}>
+        Reflect request as response
+      </label>
 
-    <label class="mb-12 checkbox-label">
-      <input id="cors" type="checkbox" ${corsChecked}>
-      Allow CORS requests
-    </label>
+      <label class="mb-12 checkbox-label">
+        <input id="cors" type="checkbox" ${corsChecked}>
+        Allow CORS requests
+      </label>
 
-    <label class="mb-12 checkbox-label">
-      <input id="logHistory" type="checkbox" ${logHistoryChecked}>
-      Log to History
-    </label>
+      <label class="mb-12 checkbox-label">
+        <input id="logHistory" type="checkbox" ${logHistoryChecked}>
+        Log to History
+      </label>
+    </div>
 
-    <div class="mb-12">
+    <div class="mb-12" id="responseSection" ${responseSectionHidden}>
       <label class="label" for="response">Response</label>
       <textarea id="response" class="textarea" ${responseDisabled}>${response}</textarea>
     </div>
@@ -164,6 +212,14 @@
 
     document.querySelector('#pickHttpsClientCa').onclick = () => {
       vscode.postMessage({ type: 'pickHttpsClientCa' });
+    };
+
+    document.querySelector('#pickMmtServerFile').onclick = () => {
+      vscode.postMessage({ type: 'pickMmtServerFile' });
+    };
+
+    document.querySelector('#mmtFilePath').onchange = e => {
+      vscode.postMessage({ type: 'setMmtServerFile', value: e.target.value });
     };
 
     document.querySelector('#httpsRequestCert').onchange = e => {

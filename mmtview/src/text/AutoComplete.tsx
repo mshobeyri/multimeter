@@ -466,6 +466,20 @@ export const KeySuggestionsByParent = (monaco: any) => {
             ].join('\n')
         },
         {
+            label: "run",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "- run: ",
+            detail: 'Start a mock server',
+            documentation: [
+                'Starts a mock server from a .mmt server file.',
+                'The server runs for the duration of the test and stops automatically.',
+                'Example:',
+                '- run: ./mocks/user-service.mmt',
+                '',
+                'The path is relative to the test file.'
+            ].join('\n')
+        },
+        {
             label: "id",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "- id: ",

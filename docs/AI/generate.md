@@ -14,6 +14,7 @@ The only file types are:
 - `type: env` – define environment variables and presets.
 - `type: doc` – describe API documentation over a set of `.mmt` files.
 - `type: suite` – group and run multiple tests, APIs, or other suites.
+- `type: server` – define a mock server with endpoints, matching, and responses.
 
 When the user asks you to **create or change** a `.mmt` file, follow this order:
 
@@ -23,6 +24,7 @@ When the user asks you to **create or change** a `.mmt` file, follow this order:
 	- If the user talks about base URLs, credentials, modes, feature flags, presets → use `type: env`.
 	- If the user talks about documentation, catalogs, grouping APIs → use `type: doc`.
 	- If the user talks about running multiple tests, orchestration, collections of tests → use `type: suite`.
+	- If the user talks about mocking, fake servers, stubbing responses, or "mock server" → use `type: server`.
 
 2. **Jump to the detailed generator**
 	- For `type: api`, use **`AI/generate-api.md`** to shape fields and examples.

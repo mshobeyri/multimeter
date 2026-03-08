@@ -91,8 +91,129 @@ curl --cacert certs-test/ca.crt \
 
 ---
 
+## MMT Mock Server Files
+
+In addition to the basic mock server modes (HTTP, HTTPS, WebSocket), you can define fully-featured mock servers in `.mmt` files with `type: server`. These files support:
+
+- Multiple endpoints with different paths and methods
+- Request matching (body, headers, query parameters)
+- Path parameters (e.g., `/users/:id`)
+- Dynamic response values (`r:uuid`, `c:date`, `e:VAR`)
+- Response delays and global headers
+- Proxy forwarding for unmatched routes
+- Fallback responses
+
+### Server file example
+
+```yaml
+type: server
+title: User Service Mock
+port: 8081
+cors: true
+
+endpoints:
+  - method: get
+    path: /health
+    status: 200
+    body: OK
+
+  - method: get
+    path: /users/:id
+    status: 200
+    format: json
+    body:
+      id: ":id"
+      name: Test User
+      created: c:date
+
+  - method: post
+    path: /users
+    status: 201
+    format: json
+    body:
+      id: r:uuid
+      message: User created
+
+fallback:
+  status: 404
+  body:
+    error: Not Found
+```
+
+### Running from the Mock Server panel
+
+1. Set **Server Type** to **MMT Mock Server**
+2. Click the folder button and select your `.mmt` server file
+3. Optionally adjust the port (overrides the file's default)
+4. Click **Run Mock Server**
+
+The server starts with full routing — requests are matched against your endpoints, and responses use all the dynamic token features of Multimeter.
+
+---
+
+## Using Mock Servers in Tests
+
+You can start mock servers directly from your tests using the `run` step. This makes tests self-contained — no need to manually start servers before running.
+
+### Import and run
+
+```yaml
+type: test
+title: Test with Mock Server
+import:
+  mockApi: ./mocks/user-service.mmt
+  userApi: ./apis/user.mmt
+steps:
+  - run: mockApi                # starts the mock server
+  - call: userApi
+    id: getUsers
+  - assert: getUsers.status == 200
+```
+
+### Behavior
+
+- If the server is already running, `run` does nothing (idempotent)
+- All servers started by `run` stop automatically when the test finishes
+- If the port is already in use by another process, the test fails with an error
+
+### Adding a server step in the UI
+
+In the Flow panel, click **Add item** and select **Server**. A box appears where you can choose from your imported server files.
+
+---
+
+## Using Mock Servers in Suites
+
+Suites can include `type: server` files in the `tests` array. Servers start before tests in the same stage and stop when the suite completes.
+
+### Example
+
+```yaml
+type: suite
+title: Integration Suite
+tests:
+  - mocks/user-service.mmt    # server starts first
+  - mocks/auth-service.mmt    # runs in parallel with above
+  - then
+  - tests/login.mmt           # tests run after servers are ready
+  - tests/profile.mmt
+```
+
+### Execution flow
+
+1. Items before the first `then` start in parallel
+2. Server files start; tests wait for servers to be ready
+3. After all items in a stage complete, the next stage begins
+4. When the suite finishes, all servers are stopped
+
+This lets you set up complex integration environments declaratively, without manual server management.
+
+---
+
 ## See also
 - [API](./api-mmt.md) — point API URLs at the mock server
 - [Environment](./environment-mmt.md) — swap between real and mock URLs with presets
 - [Certificates](./certificates-mmt.md) — configure TLS certificates for HTTPS mocking
+- [Test](./test-mmt.md) — use `run` step to start servers in tests
+- [Suite](./suite-mmt.md) — include servers in suite execution
 - [Sample Project](./sample-project.md) — full walkthrough of a Multimeter project

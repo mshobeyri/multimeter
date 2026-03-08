@@ -7,6 +7,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 
 import {readRelativeFileContent} from './file';
+import {startMockServerFromPath} from './mockRunner';
 import {prepareNetworkConfigForFile, parseEnvFileForRun, resolveWorkspaceEnvFilePath} from './network';
 
 const logOutputChannel =
@@ -149,6 +150,13 @@ export async function handleRunCurrentDocument(
     panelId: getPanelId(webviewPanel),
   };
 
+  // Create serverRunner to start mock servers from test `run` steps.
+  const serverRunner = async (alias: string, filePath: string): Promise<() => void> => {
+    // filePath is the resolved absolute path to the mock server file
+    forwardLog('info', `Starting mock server from ${alias}`);
+    return startMockServerFromPath(filePath, envVars);
+  };
+
   try {
     const fileLoader = createFileLoader(document.uri.fsPath);
     const runOutcome = await runner.runFile({
@@ -163,6 +171,7 @@ export async function handleRunCurrentDocument(
       jsRunner: (ctx: any) => runJSCode({
         ...ctx,
         fileLoader,
+        serverRunner,
       }),
       logger: forwardLog,
       abortSignal: controller.signal,
@@ -177,6 +186,7 @@ export async function handleRunCurrentDocument(
         });
       },
       projectRoot,
+      serverRunner,
     });
 
     const {docType, displayName, result} = runOutcome;
@@ -304,6 +314,13 @@ export async function handleRunSuite(
       console.warn('Unable to post suiteBundle to webview', e);
     }
 
+    // Create serverRunner to start mock servers from suite server nodes and test `run` steps.
+    const suiteServerRunner = async (alias: string, filePath: string): Promise<() => void> => {
+      // filePath is the resolved absolute path to the mock server file
+      forwardLog('info', `Starting mock server from ${alias}`);
+      return startMockServerFromPath(filePath, envVars);
+    };
+
     const projectRootSuite = findProjectRoot(runFilePath);
     await runner.runFile({
       file: rawSuite,
@@ -314,13 +331,18 @@ export async function handleRunSuite(
       envvar: envVars,
       manualEnvvars: {},
       fileLoader,
-      jsRunner: runJSCode,
+      jsRunner: (ctx: any) => runJSCode({
+        ...ctx,
+        fileLoader,
+        serverRunner: suiteServerRunner,
+      }),
       logger: forwardLog,
       abortSignal: controller.signal,
       suiteBundle: bundle,
       suiteRunId: suiteRunId,
       projectRoot: projectRootSuite,
       reporter: createSuiteReporter(webviewPanel, suiteRunId, controller),
+      serverRunner: suiteServerRunner,
     });
 
     webviewPanel.webview.postMessage({

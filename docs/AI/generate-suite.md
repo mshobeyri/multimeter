@@ -36,6 +36,7 @@ tests:                           # REQUIRED, array of files to run
 The `tests` array defines the execution flow.
 - All files listed between `then` separators (or before the first one) are run in parallel.
 - The groups of files separated by `then` are run sequentially.
+- **Server files** (`type: server`) can be included — they start before tests in the same stage and stop when the suite completes.
 
 Example: `[a, b, then, c]` will run `a` and `b` in parallel, and once both are finished, it will run `c`.
 
@@ -84,6 +85,23 @@ tests:
   - then
   - ./tests/test3.mmt
 ```
+
+### 4. Suite with mock servers
+
+User asks: "Create a suite that starts a mock server before running integration tests."
+
+```yaml
+type: suite
+title: Integration with Mock Server
+tags: [integration]
+tests:
+  - ./mocks/user-service.mmt    # type: server — starts first
+  - then
+  - ./tests/user_crud.mmt
+  - ./tests/user_auth.mmt
+```
+
+Servers start before tests in the same stage and stop when the suite finishes.
 
 ---
 

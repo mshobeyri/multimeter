@@ -213,6 +213,7 @@ const STEP_KEY_ORDER: Record<string, string[]> = {
   delay:  ['delay'],
   js:     ['js'],
   print:  ['print'],
+  run:    ['run'],
   set:    ['set'],
   var:    ['var'],
   const:  ['const'],

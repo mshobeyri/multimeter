@@ -6,8 +6,9 @@ import * as vscode from 'vscode';
 import WebSocket = require('ws');
 
 import {HistoryManager} from '../historyManager';
+import {startMockServerFromPath} from '../mmtAPI/mockRunner';
 
-type ServerType = 'http' | 'https' | 'ws';
+type ServerType = 'http' | 'https' | 'ws' | 'mmt';
 
 export default class MockServerPanel implements vscode.WebviewViewProvider,
                                                 vscode.Disposable {
@@ -30,6 +31,8 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
   private httpsClientCaPath: string = '';
   private httpsRequestCert: boolean = false;
   private logHistory: boolean = false;
+  private mmtFilePath: string = '';
+  private mmtServerCleanup?: () => void;
   private disposables: vscode.Disposable[] = [];
 
   constructor(
@@ -52,7 +55,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
     const { type, value } = msg;
     switch (type) {
       case 'setType':
-        if (!this.running && (value === 'http' || value === 'https' || value === 'ws')) {
+        if (!this.running && (value === 'http' || value === 'https' || value === 'ws' || value === 'mmt')) {
           this.serverType = value;
           this.updateViewHtml();
         }
@@ -70,6 +73,19 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
       case 'pickHttpsClientCa':
         if (!this.running) {
           void this.pickHttpsFile('clientCa');
+        }
+        break;
+      case 'pickMmtServerFile':
+        if (!this.running) {
+          void this.pickMmtFile();
+        }
+        break;
+      case 'setMmtServerFile':
+        if (!this.running) {
+          this.mmtFilePath = String(value ?? '');
+          void this.context.workspaceState.update(
+              'multimeter.mockServer.mmtFilePath', this.mmtFilePath);
+          this.updateViewHtml();
         }
         break;
       case 'setHttpsRequestCert':
@@ -151,6 +167,14 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
         this.wsServer = undefined;
         finalizeStart();
       });
+    } else if (this.mmtServerCleanup) {
+      try {
+        this.mmtServerCleanup();
+      } catch {
+        // ignore
+      }
+      this.mmtServerCleanup = undefined;
+      finalizeStart();
     } else {
       finalizeStart();
     }
@@ -161,6 +185,46 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
       this.running = true;
       this.updateViewHtml();
     };
+
+    // Handle MMT mock server type
+    if (this.serverType === 'mmt') {
+      const filePath = this.resolvePathMaybeRelative(this.mmtFilePath);
+      if (!filePath) {
+        vscode.window.showErrorMessage(
+            'MMT Mock Server requires a server file. Use "Choose file…" in the panel.');
+        return;
+      }
+      if (!fs.existsSync(filePath)) {
+        vscode.window.showErrorMessage(
+            `MMT mock server file not found: ${filePath}`);
+        return;
+      }
+
+      // Load environment variables from workspace state
+      const envStorage = this.context.workspaceState.get<any[]>(
+          'multimeter.environment.storage', []);
+      const envVars: Record<string, any> = {};
+      if (Array.isArray(envStorage)) {
+        for (const item of envStorage) {
+          if (item && typeof item === 'object' && typeof item.name === 'string' && item.name) {
+            envVars[item.name] = item.value;
+          }
+        }
+      }
+
+      startMockServerFromPath(filePath, envVars, () => {
+        this.running = false;
+        this.mmtServerCleanup = undefined;
+        this.updateViewHtml();
+      }).then((cleanup) => {
+        this.mmtServerCleanup = cleanup;
+        updateAndNotify();
+        vscode.window.showInformationMessage(`MMT Mock server running from ${path.basename(filePath)}`);
+      }).catch((err: any) => {
+        vscode.window.showErrorMessage(`MMT Mock server error: ${err?.message || err}`);
+      });
+      return;
+    }
 
     if (this.serverType === 'http' || this.serverType === 'https') {
       const createHandler = () => (req: http.IncomingMessage, res: http.ServerResponse) => {
@@ -373,6 +437,14 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
           finalize();
         });
       }, 100);
+    } else if (this.mmtServerCleanup) {
+      try {
+        this.mmtServerCleanup();
+      } catch {
+        // ignore
+      }
+      this.mmtServerCleanup = undefined;
+      finalize();
     } else {
       finalize();
     }
@@ -390,7 +462,8 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
     httpsCertPath: string,
     httpsKeyPath: string,
     httpsClientCaPath: string,
-    httpsRequestCert: boolean
+    httpsRequestCert: boolean,
+    mmtFilePath: string
   ): string {
     const htmlPath = path.join(this.context.extensionPath, 'res', 'mockServer.html');
     const cssPath = path.join(this.context.extensionPath, 'res', 'common.css');
@@ -403,11 +476,15 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
     const httpSelected = serverType === 'http' ? 'selected' : '';
     const httpsSelected = serverType === 'https' ? 'selected' : '';
     const wsSelected = serverType === 'ws' ? 'selected' : '';
+    const mmtSelected = serverType === 'mmt' ? 'selected' : '';
     const reflectChecked = reflect ? 'checked' : '';
     const corsChecked = cors ? 'checked' : '';
     const logHistoryChecked = logHistory ? 'checked' : '';
     const responseDisabled = reflect ? 'disabled' : '';
     const httpsSectionHidden = serverType === 'https' ? '' : 'hidden';
+    const mmtSectionHidden = serverType === 'mmt' ? '' : 'hidden';
+    const responseSectionHidden = serverType === 'mmt' ? 'hidden' : '';
+    const simpleMockSectionStyle = serverType === 'mmt' ? 'display:none' : '';
     return html
       .replace(/\${serverType}/g, serverType)
       .replace(/\${port}/g, port.toString())
@@ -419,16 +496,21 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
       .replace(/\${httpSelected}/g, httpSelected)
       .replace(/\${httpsSelected}/g, httpsSelected)
       .replace(/\${wsSelected}/g, wsSelected)
+      .replace(/\${mmtSelected}/g, mmtSelected)
       .replace(/\${reflectChecked}/g, reflectChecked)
       .replace(/\${corsChecked}/g, corsChecked)
       .replace(/\${logHistoryChecked}/g, logHistoryChecked)
       .replace(/\${responseDisabled}/g, responseDisabled)
       .replace(/\${isRunning}/g, String(isRunning))
       .replace(/\${httpsSectionHidden}/g, httpsSectionHidden)
+      .replace(/\${mmtSectionHidden}/g, mmtSectionHidden)
+      .replace(/\${responseSectionHidden}/g, responseSectionHidden)
         .replace(/\${httpsCertPath}/g, httpsCertPath)
         .replace(/\${httpsKeyPath}/g, httpsKeyPath)
         .replace(/\${httpsClientCaPath}/g, httpsClientCaPath)
-        .replace(/\${httpsRequestCertChecked}/g, httpsRequestCert ? 'checked' : '');
+        .replace(/\${httpsRequestCertChecked}/g, httpsRequestCert ? 'checked' : '')
+        .replace(/\${mmtFilePath}/g, mmtFilePath)
+        .replace(/\${simpleMockSectionStyle}/g, simpleMockSectionStyle);
   }
 
   private getHtmlContent(): string {
@@ -443,11 +525,14 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
         'multimeter.mockServer.httpsRequestCert', false);
     const storedLogHistory = this.context.workspaceState.get<boolean>(
         'multimeter.mockServer.logHistory', false);
+    const storedMmtFilePath = this.context.workspaceState.get<string>(
+        'multimeter.mockServer.mmtFilePath', '');
     if (!this.running) {
       this.httpsCertPath = storedCertPath;
       this.httpsKeyPath = storedKeyPath;
       this.httpsClientCaPath = storedClientCaPath;
       this.httpsRequestCert = storedRequestCert;
+      this.mmtFilePath = storedMmtFilePath;
     }
     this.logHistory = storedLogHistory;
 
@@ -463,7 +548,8 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
       this.escapeHtml(this.httpsCertPath),
       this.escapeHtml(this.httpsKeyPath),
       this.escapeHtml(this.httpsClientCaPath),
-      this.httpsRequestCert
+      this.httpsRequestCert,
+      this.escapeHtml(this.mmtFilePath)
     );
   }
 
@@ -502,6 +588,28 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
           'multimeter.mockServer.httpsClientCaPath', this.httpsClientCaPath);
     }
 
+    this.updateViewHtml();
+  }
+
+  private async pickMmtFile() {
+    const uris = await vscode.window.showOpenDialog({
+      title: 'Select MMT mock server file',
+      canSelectFiles: true,
+      canSelectFolders: false,
+      canSelectMany: false,
+      filters: {
+        'Multimeter Files': ['mmt'],
+        'All files': ['*']
+      }
+    });
+    const uri = uris?.[0];
+    if (!uri) {
+      return;
+    }
+
+    this.mmtFilePath = uri.fsPath;
+    await this.context.workspaceState.update(
+        'multimeter.mockServer.mmtFilePath', this.mmtFilePath);
     this.updateViewHtml();
   }
 

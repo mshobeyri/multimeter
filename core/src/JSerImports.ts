@@ -102,6 +102,7 @@ const buildAliasMaps =
       for (const imp of resolved) {
         const {resolvedPath, content} = imp;
         const type = fileType(resolvedPath, content);
+        // Only test files have nested imports that need alias resolution
         if (type !== 'test') {
           continue;
         }
@@ -172,6 +173,10 @@ const emitResolved = async(
           '\n');
     } else if (type === 'csv') {
       results.push(await csvToJSObj(content, publicName) + '\n');
+    } else if (type === 'server') {
+      // Server files emit a path constant for use with the 'run' step.
+      // Example: const my_server_ = "/resolved/path/to/server.mmt";
+      results.push(`const ${publicName} = ${JSON.stringify(resolvedPath)};\n`);
     }
   }
 

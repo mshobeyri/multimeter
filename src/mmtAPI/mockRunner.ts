@@ -42,6 +42,19 @@ export function stopAll(): void {
   }
 }
 
+/**
+ * Check if any managed server is already running on the given port.
+ * Returns the document URI if found, undefined otherwise.
+ */
+function findServerByPort(port: number): string | undefined {
+  for (const [uri, handle] of activeServers) {
+    if (handle.port === port) {
+      return uri;
+    }
+  }
+  return undefined;
+}
+
 export async function startMockServer(
   document: vscode.TextDocument,
   webviewPanel: vscode.WebviewPanel,
@@ -280,6 +293,208 @@ export async function startMockServer(
         vscode.window.showErrorMessage(`Mock server error: ${err.message}`);
       }
       reject(err);
+    });
+
+    server.listen(data.port, '127.0.0.1');
+  });
+}
+
+/**
+ * Start a mock server from a file path (for use in test/suite `run` steps).
+ * Returns a cleanup function to stop the server.
+ */
+export async function startMockServerFromPath(
+  filePath: string,
+  envVars: Record<string, any> = {},
+  onClose?: () => void,
+): Promise<() => void> {
+  // Use the file path as the identifier
+  const documentUri = filePath;
+
+  // Stop existing server on this path if any
+  stopMockServer(documentUri);
+
+  const rawContent = fs.readFileSync(filePath, 'utf-8');
+  let parsed: any;
+  try {
+    parsed = YAML.parse(rawContent);
+  } catch (err: any) {
+    throw new Error(`Mock server: YAML parse error in ${path.basename(filePath)}: ${err.message}`);
+  }
+
+  const { data, errors } = mockParsePack.parseMockData(parsed);
+  if (errors.length > 0 || !data) {
+    const msg = errors.map(e => e.message).join('; ');
+    throw new Error(`Mock server validation errors in ${path.basename(filePath)}: ${msg}`);
+  }
+
+  // Check if a server is already running on this port (possibly started via Mock Server panel)
+  const existingUri = findServerByPort(data.port);
+  if (existingUri) {
+    // Server already running on this port - return a no-op cleanup
+    // This makes the 'run' step idempotent
+    return () => {};
+  }
+
+  // Create token resolver using core's resolveEmbeddedTokens
+  const tokenResolver = (value: any): any => {
+    variableReplacer.resetRandomTokenCache();
+    variableReplacer.resetCurrentTokenCache();
+    return variableReplacer.resolveEmbeddedTokens(value, envVars);
+  };
+
+  // Also resolve tokens in global headers
+  const resolvedGlobalHeaders: Record<string, string> | undefined = data.headers
+    ? Object.fromEntries(
+      Object.entries(data.headers).map(([k, v]) =>
+        [k, typeof v === 'string' ? String(variableReplacer.resolveEmbeddedTokens(v, envVars)) : v])
+    )
+    : undefined;
+  if (resolvedGlobalHeaders && data.headers) {
+    Object.assign(data.headers, resolvedGlobalHeaders);
+  }
+
+  // Build the router from core
+  const router = mockServer.createMockRouter(data, tokenResolver);
+
+  const requestHandler = (req: http.IncomingMessage, res: http.ServerResponse) => {
+    const method = (req.method || 'GET').toLowerCase();
+    const urlStr = req.url || '/';
+
+    // Handle CORS preflight
+    if (data.cors) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', '*');
+      res.setHeader('Access-Control-Allow-Headers', '*');
+      if (method === 'options') {
+        res.statusCode = 204;
+        res.end();
+        return;
+      }
+    }
+
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', async () => {
+      // Parse URL for path and query
+      let pathname = urlStr;
+      const queryObj: Record<string, string> = {};
+      const qIdx = urlStr.indexOf('?');
+      if (qIdx >= 0) {
+        pathname = urlStr.slice(0, qIdx);
+        const searchParams = new URLSearchParams(urlStr.slice(qIdx + 1));
+        searchParams.forEach((v, k) => { queryObj[k] = v; });
+      }
+
+      // Parse request body
+      let parsedBody: any;
+      try {
+        parsedBody = JSON.parse(body);
+      } catch {
+        parsedBody = body || undefined;
+      }
+
+      const mockReq = {
+        method,
+        path: pathname,
+        headers: (req.headers || {}) as Record<string, string>,
+        query: queryObj,
+        body: parsedBody,
+      };
+
+      let mockRes: ReturnType<typeof router>;
+      try {
+        mockRes = router(mockReq);
+      } catch (err: any) {
+        res.statusCode = 500;
+        res.end(JSON.stringify({ error: 'Mock router error', message: err.message }));
+        return;
+      }
+
+      // Apply delay
+      if (mockRes.delay && mockRes.delay > 0) {
+        await new Promise<void>(resolve => setTimeout(resolve, mockRes.delay));
+      }
+
+      // Resolve tokens in response headers per-request
+      const resolvedHeaders: Record<string, string> = {};
+      if (mockRes.headers) {
+        for (const [k, v] of Object.entries(mockRes.headers)) {
+          resolvedHeaders[k] = typeof v === 'string'
+            ? String(variableReplacer.resolveEmbeddedTokens(v, envVars))
+            : v;
+        }
+      }
+
+      // Set status and headers
+      res.statusCode = mockRes.status;
+      for (const [k, v] of Object.entries(resolvedHeaders)) {
+        res.setHeader(k, v);
+      }
+
+      // Send body
+      const responseBody = mockRes.body !== undefined ? (
+        typeof mockRes.body === 'string' ? mockRes.body : JSON.stringify(mockRes.body)
+      ) : '';
+      res.end(responseBody);
+    });
+  };
+
+  // Create server based on protocol
+  let server: http.Server | https.Server;
+  const protocol = data.protocol || 'http';
+
+  if (protocol === 'https' && data.tls) {
+    const certPath = resolveFilePath(data.tls.cert, filePath);
+    const keyPath = resolveFilePath(data.tls.key, filePath);
+    const tlsOptions: https.ServerOptions = {
+      cert: fs.readFileSync(certPath),
+      key: fs.readFileSync(keyPath),
+    };
+    if (data.tls.ca) {
+      tlsOptions.ca = fs.readFileSync(resolveFilePath(data.tls.ca, filePath));
+    }
+    if (data.tls.requestCert) {
+      tlsOptions.requestCert = true;
+      tlsOptions.rejectUnauthorized = false;
+    }
+    server = https.createServer(tlsOptions, requestHandler);
+  } else {
+    server = http.createServer(requestHandler);
+  }
+
+  return new Promise<() => void>((resolve, reject) => {
+    server.on('listening', () => {
+      const dispose = () => {
+        try {
+          server.close();
+        } catch {
+          // ignore
+        }
+        activeServers.delete(documentUri);
+      };
+
+      const handle: MockServerHandle = {
+        server,
+        port: data.port,
+        dispose,
+      };
+      activeServers.set(documentUri, handle);
+      resolve(dispose);
+    });
+
+    server.on('close', () => {
+      activeServers.delete(documentUri);
+      onClose?.();
+    });
+
+    server.on('error', (err: any) => {
+      activeServers.delete(documentUri);
+      if (err.code === 'EADDRINUSE') {
+        reject(new Error(`Mock server: port ${data.port} is already in use.`));
+      } else {
+        reject(new Error(`Mock server error: ${err.message}`));
+      }
     });
 
     server.listen(data.port, '127.0.0.1');

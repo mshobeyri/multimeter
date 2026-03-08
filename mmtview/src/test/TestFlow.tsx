@@ -67,6 +67,8 @@ const codiconForType = (t?: string): string => {
             return 'codicon-globe';
         case 'stage':
             return 'codicon-layers';
+        case 'run':
+            return 'codicon-server-process';
         default:
             return 'codicon-file';
     }
@@ -277,6 +279,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
             case 'for': return { for: '' };
             case 'repeat': return { repeat: '2' };
             case 'delay': return { delay: '1s' };
+            case 'run': return { run: '' };
             case 'stage': return { id: 'stage_1', steps: [{ print: 'stage 1' }] };
             default: return { print: '' };
         }

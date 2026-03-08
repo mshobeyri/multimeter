@@ -342,3 +342,56 @@ export const setenvWithContext_ = (
 
   emitStep(payload);
 };
+
+/**
+ * Server runner callback type.
+ * Returns a cleanup function that stops the server when called.
+ */
+export type ServerRunner = (alias: string, filePath: string) => Promise<() => void>;
+
+let __mmtServerRunner: ServerRunner | undefined;
+const __mmtStartedServers = new Map<string, () => void>();
+
+export const setServerRunner_ = (runner: ServerRunner | undefined) => {
+  __mmtServerRunner = runner;
+};
+
+/**
+ * Start a mock server by alias. The alias must correspond to an imported server file.
+ * If the server is already running, this is a no-op.
+ */
+export const startServer_ = async (alias: string): Promise<void> => {
+  if (__mmtStartedServers.has(alias)) {
+    // Server already running, idempotent
+    return;
+  }
+  if (!__mmtServerRunner) {
+    throw new Error(`Cannot start server "${alias}": no server runner configured`);
+  }
+  // The alias needs to be resolved to a file path by the generated code
+  // For now, we pass the alias directly; the serverRunner implementation
+  // should have access to the import map to resolve it
+  const cleanup = await __mmtServerRunner(alias, alias);
+  __mmtStartedServers.set(alias, cleanup);
+};
+
+/**
+ * Stop all servers started during this test run.
+ */
+export const stopAllServers_ = (): void => {
+  for (const [alias, cleanup] of __mmtStartedServers) {
+    try {
+      cleanup();
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
+  __mmtStartedServers.clear();
+};
+
+/**
+ * Check if a server is running by alias.
+ */
+export const isServerRunning_ = (alias: string): boolean => {
+  return __mmtStartedServers.has(alias);
+};

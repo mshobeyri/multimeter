@@ -480,6 +480,15 @@ export const TestSchema = {
                         },
                         additionalProperties: false
                     },
+                    // run step (start a mock server)
+                    {
+                        type: 'object',
+                        required: ['run'],
+                        properties: {
+                            run: { type: 'string' }
+                        },
+                        additionalProperties: false
+                    },
                     // set step
                     {
                         type: 'object',

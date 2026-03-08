@@ -160,6 +160,14 @@ export interface RunFileOptions {
    * suppress duplicate suite-run lifecycle events (start/finished).
    */
   __mmtIsSuiteBundleChildRun?: boolean;
+
+  /**
+   * Optional callback for starting mock servers.
+   * Used by the `run` step in tests and for server nodes in suites.
+   * Arguments: (alias: server file path, filePath: resolved absolute path).
+   * Returns: a cleanup function to stop the server.
+   */
+  serverRunner?: (alias: string, filePath: string) => Promise<() => void>;
 }
 
 export interface MergeInputsParams {

@@ -1,5 +1,5 @@
 import {indentLines, timeUnitToMs, toInputsParams} from './JSerHelper';
-import {Comparison, ComparisonObject, normalizeReportConfig, ReportConfig, ReportLevel, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
+import {Comparison, ComparisonObject, normalizeReportConfig, ReportConfig, ReportLevel, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
 import {getTestFlowStepType} from './testParsePack';
 import {replaceEnvTokensPlain, toTemplateWithEnvVars} from './variableReplacer';
 
@@ -347,6 +347,18 @@ export const setenvToJSfunc = (setenv: Record<string, any>, root: boolean): stri
       .join('\n');
 };
 
+export const runToJSfunc = (step: TestFlowRun): string => {
+  const alias = step.run;
+  if (!alias) {
+    return '';
+  }
+  // startServer_ is a runtime helper that starts the imported server.
+  // The alias is a variable that was assigned by the import system:
+  // const mock = mock_server_;  // where mock_server_ = "/path/to/server.mmt"
+  // So we emit the alias as a variable reference, not a string literal.
+  return `await startServer_(${alias});`;
+};
+
 export const flowStepsToJsfunc =
     (flow: TestFlowSteps, root: boolean, useExternalReport: boolean = !root, callMeta?: Record<string, CallTitleMeta>): string => {
       return (flow ?? [])
@@ -355,6 +367,9 @@ export const flowStepsToJsfunc =
             switch (getTestFlowStepType(step)) {
               case 'call':
                 stepJs = callToJSfunc(step as TestFlowCall, useExternalReport, idx, callMeta);
+                break;
+              case 'run':
+                stepJs = runToJSfunc(step as TestFlowRun);
                 break;
               case 'check':
                 stepJs = checkToJSfunc((step as TestFlowCheck).check, useExternalReport);

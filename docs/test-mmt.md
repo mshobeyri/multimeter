@@ -147,6 +147,32 @@ Invoke an imported API or another test; give it an id to reference its outputs l
     token: doLogin.token
 ```
 
+### run
+Start an imported mock server. The server runs for the duration of the test and stops automatically when the test finishes.
+
+```yaml
+type: test
+title: Test with Mock Server
+import:
+  mockApi: ./mocks/user-service.mmt   # type: server file
+  userApi: ./apis/user.mmt
+steps:
+  - run: mockApi                       # starts the mock server
+  - call: userApi
+    id: getUsers
+  - assert: getUsers.status == 200
+```
+
+**Behavior:**
+- If the server is already running, `run` does nothing (idempotent)
+- All servers started by `run` stop automatically when the test finishes
+- If the port is already in use, the test fails with an error
+
+Use this to make tests self-contained — no need to manually start servers before running.
+  inputs:
+    token: doLogin.token
+```
+
 #### Inline check/assert on call
 
 You can add `check` or `assert` directly on a call step to validate its output parameters without a separate step. The left side of the comparison is always an output parameter of the called API/test.

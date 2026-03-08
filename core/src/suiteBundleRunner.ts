@@ -3,6 +3,9 @@ import {basename, detectDocType, resolveRelativeTo, RunFileResult, sanitizeIdent
 import {RunFileOptions, RunResult, SuiteStepStatus} from './runConfig';
 import {SuiteBundle, SuiteBundleNode} from './suiteBundle';
 
+/** Cleanup functions for servers started during suite execution. */
+type ServerCleanup = () => void;
+
 function findNodeById(nodes: readonly SuiteBundleNode[], targetId: string): SuiteBundleNode|undefined {
   const stack: SuiteBundleNode[] = [...nodes];
   while (stack.length) {
@@ -140,8 +143,9 @@ async function runSuiteGroup(params: {
   suiteLogger: (level: LogLevel, msg: string) => void;
   baseFileLoader: RunFileOptions['fileLoader'];
   nextIndex: () => number;
+  serverCleanups: ServerCleanup[];
 }): Promise<{overallSuccess: boolean; anyThrew: boolean}> {
-  const {node, bundle, options, runFile, suiteLogger, baseFileLoader, nextIndex} = params;
+  const {node, bundle, options, runFile, suiteLogger, baseFileLoader, nextIndex, serverCleanups} = params;
 
   const results = await Promise.all(node.children.map(async (child) => {
     if (options.abortSignal?.aborted) {
@@ -171,8 +175,20 @@ async function runSuiteGroup(params: {
         suiteLogger,
         baseFileLoader,
         nextIndex,
+        serverCleanups,
       });
       return {success: childGroup.overallSuccess, threw: childGroup.anyThrew, status: childGroup.overallSuccess ? 'passed' as SuiteStepStatus : 'failed' as SuiteStepStatus};
+    }
+
+    if (child.kind === 'server') {
+      const serverResult = await startServerNode({
+        node: child,
+        bundle,
+        options,
+        suiteLogger,
+        serverCleanups,
+      });
+      return {success: serverResult.success, threw: false, status: serverResult.success ? 'passed' as SuiteStepStatus : 'failed' as SuiteStepStatus};
     }
 
     // missing/cycle are not runnable.
@@ -183,6 +199,36 @@ async function runSuiteGroup(params: {
   const groupThrew = results.some(r => !!r && r.threw === true);
 
   return {overallSuccess: !groupHadAnyFailure, anyThrew: groupThrew};
+}
+
+async function startServerNode(params: {
+  node: Extract<SuiteBundleNode, {kind: 'server'}>;
+  bundle: SuiteBundle;
+  options: RunFileOptions;
+  suiteLogger: (level: LogLevel, msg: string) => void;
+  serverCleanups: ServerCleanup[];
+}): Promise<{success: boolean}> {
+  const {node, bundle, options, suiteLogger, serverCleanups} = params;
+
+  if (!options.serverRunner) {
+    suiteLogger('error', `Cannot start server '${node.path}': no server runner provided`);
+    return {success: false};
+  }
+
+  const serverFilePath = resolveRelativeTo(node.path, bundle.rootSuitePath);
+  const display = basename(serverFilePath || node.path);
+
+  try {
+    suiteLogger('info', `Starting server: ${display}`);
+    const cleanup = await options.serverRunner(node.path, serverFilePath);
+    serverCleanups.push(cleanup);
+    suiteLogger('info', `Server started: ${display}`);
+    return {success: true};
+  } catch (e: any) {
+    const errorMessage = e?.message || String(e);
+    suiteLogger('error', `Failed to start server '${display}': ${errorMessage}`);
+    return {success: false};
+  }
 }
 
 export async function executeSuiteBundle(params: {
@@ -239,6 +285,9 @@ export async function executeSuiteBundle(params: {
   // Capture the original loader so child loaders never recurse through an overridden loader.
   const baseFileLoader = options.fileLoader;
 
+  // Track cleanup functions for servers started during this suite run.
+  const serverCleanups: ServerCleanup[] = [];
+
   let flatIndex = 0;
   const nextIndex = () => {
     const idx = flatIndex;
@@ -263,11 +312,28 @@ export async function executeSuiteBundle(params: {
           suiteLogger,
           baseFileLoader,
           nextIndex,
+          serverCleanups,
         });
         if (!group.overallSuccess) {
           overallSuccess = false;
         }
         if (group.anyThrew) {
+          return;
+        }
+        continue;
+      }
+
+      if (n.kind === 'server') {
+        const serverResult = await startServerNode({
+          node: n,
+          bundle,
+          options,
+          suiteLogger,
+          serverCleanups,
+        });
+        if (!serverResult.success) {
+          overallSuccess = false;
+          // Server startup failure stops the suite (treat like throw).
           return;
         }
         continue;
@@ -296,12 +362,23 @@ export async function executeSuiteBundle(params: {
     }
   };
 
-  if (root && (root.kind === 'group' || root.kind === 'suite')) {
-    await runNodesSequentially(root.children);
-  } else if (root) {
-    await runNodesSequentially([root]);
-  } else {
-    await runNodesSequentially(bundle.bundle);
+  try {
+    if (root && (root.kind === 'group' || root.kind === 'suite')) {
+      await runNodesSequentially(root.children);
+    } else if (root) {
+      await runNodesSequentially([root]);
+    } else {
+      await runNodesSequentially(bundle.bundle);
+    }
+  } finally {
+    // Stop all servers started during this suite run.
+    for (const cleanup of serverCleanups) {
+      try {
+        cleanup();
+      } catch (e: any) {
+        suiteLogger('warn', `Error stopping server: ${e?.message || String(e)}`);
+      }
+    }
   }
 
   const durationMs = Date.now() - suiteStart;

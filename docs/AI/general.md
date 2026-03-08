@@ -13,6 +13,7 @@ Short mental model of file types:
 - `type: env` → define environment variables and presets.
 - `type: doc` → describe documentation over existing `.mmt` files.
 - `type: suite` → group and run multiple tests, APIs, or other suites.
+- `type: server` → define a mock server with endpoints, matching, and responses.
 
 When you are the AI, follow these rules:
 

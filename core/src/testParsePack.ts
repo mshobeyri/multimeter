@@ -8,6 +8,7 @@ import {FlowType, TestData, TestFlowStep, TestFlowSteps, TestFlowStages} from '.
  */
 export const STEP_KEY_ORDER: Record<string, string[]> = {
   call:   ['call', 'id', 'title', 'inputs', 'check', 'assert', 'report'],
+  run:    ['run'],
   check:  ['check'],
   assert: ['assert'],
   if:     ['if', 'steps', 'else'],
@@ -167,6 +168,9 @@ export function getTestFlowStepType(step: TestFlowStep): FlowType|'unknown' {
   }
   if ('call' in step) {
     return 'call';
+  }
+  if ('run' in step) {
+    return 'run';
   }
   if ('check' in step) {
     return 'check';

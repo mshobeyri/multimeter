@@ -1,7 +1,7 @@
 import {SuiteHierarchyNode, SuiteHierarchyRootNode} from './suiteHierarchy';
 import {createSuiteNodeId} from './suiteNodeId';
 
-export type SuiteBundleNodeKind = 'group'|'suite'|'test'|'missing'|'cycle';
+export type SuiteBundleNodeKind = 'group'|'suite'|'test'|'server'|'missing'|'cycle';
 
 function resolveNodeId(node: SuiteHierarchyNode, indexPath: number[]): string {
   const existing = (node as any)?.id;
@@ -15,6 +15,7 @@ export type SuiteBundleNode =
   | {kind: 'group'; id: string; label: string; children: SuiteBundleNode[]}
   | {kind: 'suite'; id: string; path: string; children: SuiteBundleNode[]}
   | {kind: 'test'; id: string; path: string}
+  | {kind: 'server'; id: string; path: string}
   | {kind: 'missing'; id: string; path: string}
   | {kind: 'cycle'; id: string; path: string};
 
@@ -63,6 +64,12 @@ export function createSuiteBundle(params: {
       if (node.kind === 'test') {
         const id = resolveNodeId(node, nextIndexPath);
         out.push({kind: 'test', id, path: node.path});
+        continue;
+      }
+
+      if (node.kind === 'server') {
+        const id = resolveNodeId(node, nextIndexPath);
+        out.push({kind: 'server', id, path: node.path});
         continue;
       }
 

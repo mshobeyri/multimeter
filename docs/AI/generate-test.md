@@ -66,44 +66,47 @@ Supported step forms:
   inputs?:                      # passed as JSON object
     <name>: <value>
 
-# 2) check: soft assertion (logs failure, continues)
+# 2) run: start an imported mock server (type: server file)
+- run: <alias>                  # alias of an imported server file
+
+# 3) check: soft assertion (logs failure, continues)
 - check: <comparison>
 
-# 3) assert: hard assertion (stops on failure)
+# 4) assert: hard assertion (stops on failure)
 - assert: <comparison>
 
-# 4) if: conditional block
+# 5) if: conditional block
 - if: <comparison>
   steps:
     - <step>
   else?:
     - <step>
 
-# 5) repeat: repeat a block N times or by string
+# 6) repeat: repeat a block N times or by string
 - repeat: <number | string>
   steps:
     - <step>
 
-# 6) for: loop header (JS-style or shorthand)
+# 7) for: loop header (JS-style or shorthand)
 - for: <header or expression>
   steps:
     - <step>
 
-# 7) js: inline JavaScript
+# 8) js: inline JavaScript
 - js: |
     // javascript code
 
-# 8) print: log a message
+# 9) print: log a message
 - print: "text"
 
-# 9) delay: sleep
+# 10) delay: sleep
 - delay: <number | string>      # e.g. 200, "2s", "1m"
 
-# 10) set: assign/update variables
+# 11) set: assign/update variables
 - set:
     <name>: <value>
 
-# 11) var / const / let: JS-style declarations
+# 12) var / const / let: JS-style declarations
 - var:
     <name>: <value>
 - const:
@@ -111,7 +114,7 @@ Supported step forms:
 - let:
     <name>: <value>
 
-# 12) data: bind CSV alias (from import)
+# 13) data: bind CSV alias (from import)
 - data: <alias>
 ```
 
