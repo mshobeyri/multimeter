@@ -124,6 +124,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
 
   return (
     <div className="apitest-root">
+      {/* ── Fixed header: URL bar + tab bar ── */}
       <div className="apitest-fixed-header">
       <div style={{ padding: "8px", display: "flex", alignItems: "stretch", gap: 8 }}>
         {isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url) ? (
@@ -175,8 +176,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
         </div>
       </div>
       </div>
-      <div className="apitest-scroll-outer">
-        <div className="apitest-scroll-inner">
+
+      {/* ── Scrollable content area: fills between header and toolbar ── */}
+      <div className="apitest-content">
+
+      {/* Request section */}
       <div className="apitest-section apitest-section--request">
         {shouldShowQuery() && <KSVEditor
           label="Query parameters"
@@ -263,6 +267,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
         )}
       </div>
 
+      {/* Send button row */}
       <div className="apitest-send-row">
         <div className="apitest-send-controls">
           {isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url) && (
@@ -281,6 +286,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
         <div className="horizontal-line horizontal-line--below" />
       </div>
 
+      {/* Response section */}
       <div className="apitest-section apitest-section--response">
         {shouldShowResponseHeaders() && (
           <KSVEditor
@@ -333,6 +339,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
         )}
       </div>
 
+      </div>
+
+      {/* ── Fixed bottom toolbar ── */}
       <div className="apitest-toolbar">
         <div className="horizontal-line horizontal-line--above" />
         <div className="apitest-toolbar-inner">
@@ -419,8 +428,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
           >
             <span className="codicon codicon-sparkle-filled toolbar-button-icon"></span>
           </button>
-        </div>
-      </div>
         </div>
       </div>
     </div>

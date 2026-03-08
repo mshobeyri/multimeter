@@ -772,40 +772,36 @@ button:focus {
   min-height: 0;
   min-width: 0;
   gap: 0;
+  overflow-x: hidden;
 }
 
 .apitest-fixed-header {
   flex-shrink: 0;
 }
 
-.apitest-scroll-outer {
+/* Content area between fixed header and fixed toolbar.
+   Uses flex:1 to fill available height.  overflow-y:auto
+   kicks in when total height is small (min-height ensures
+   a minimum scrollable area of 500px). */
+.apitest-content {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-}
-
-.apitest-scroll-inner {
-  min-height: max(calc(100% - 1px), 600px);
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.apitest-scrollable {
-  flex: 1;
-  min-height: 0;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+  overflow-x: hidden;
 }
 
-.apitest-scrollable > * {
+/* Inner content needs a minimum so the scroll activates
+   when the panel gets below ~500px usable height. */
+.apitest-content > * {
   flex-shrink: 0;
 }
 
 .apitest-section {
   flex: 1;
+  min-height: 0;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -833,10 +829,6 @@ button:focus {
 
 .apitest-toolbar {
   flex-shrink: 0;
-  position: sticky;
-  bottom: 0;
-  left: 0;
-  right: 0;
   background: var(--vscode-editor-background, #232323);
   padding: 0;
   z-index: 5;
@@ -851,17 +843,26 @@ button:focus {
   min-height: 32px;
 }
 
+/* Body wrapper: grows to fill section, minimum 150px triggers scroll.
+   Position:relative so the bodyview can be position:absolute inside. */
 .apitest-body-wrapper {
   flex: 1;
-  min-height: 120px;
+  min-height: 150px;
   padding: 0 8px 8px;
-  display: flex;
-  flex-direction: column;
+  position: relative;
 }
 
+/* Bodyview inside api tester: absolute-fill so Monaco gets real pixel
+   dimensions regardless of flex chain. */
 .apitest-body-wrapper .bodyview {
-  flex: 1;
-  min-height: 120px;
+  position: absolute;
+  top: 0;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  height: auto;
+  width: auto;
+  overflow: hidden;
 }
 
 .inner-box {
