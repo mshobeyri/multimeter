@@ -13,9 +13,9 @@ function resolveNodeId(node: SuiteHierarchyNode, indexPath: number[]): string {
 
 export type SuiteBundleNode =
   | {kind: 'group'; id: string; label: string; children: SuiteBundleNode[]}
-  | {kind: 'suite'; id: string; path: string; children: SuiteBundleNode[]}
-  | {kind: 'test'; id: string; path: string}
-  | {kind: 'server'; id: string; path: string}
+  | {kind: 'suite'; id: string; path: string; title?: string; children: SuiteBundleNode[]}
+  | {kind: 'test'; id: string; path: string; title?: string}
+  | {kind: 'server'; id: string; path: string; title?: string}
   | {kind: 'missing'; id: string; path: string}
   | {kind: 'cycle'; id: string; path: string};
 
@@ -55,24 +55,36 @@ export function createSuiteBundle(params: {
 
       if (node.kind === 'suite') {
         const id = resolveNodeId(node, nextIndexPath);
-        out.push({
+        const suiteNode: SuiteBundleNode = {
           kind: 'suite',
           id,
           path: node.path,
           children: build(node.children, nextIndexPath),
-        });
+        };
+        if (node.title) {
+          (suiteNode as any).title = node.title;
+        }
+        out.push(suiteNode);
         continue;
       }
 
       if (node.kind === 'test') {
         const id = resolveNodeId(node, nextIndexPath);
-        out.push({kind: 'test', id, path: node.path});
+        const testNode: SuiteBundleNode = {kind: 'test', id, path: node.path};
+        if (node.title) {
+          (testNode as any).title = node.title;
+        }
+        out.push(testNode);
         continue;
       }
 
       if (node.kind === 'server') {
         const id = resolveNodeId(node, nextIndexPath);
-        out.push({kind: 'server', id, path: node.path});
+        const serverNode: SuiteBundleNode = {kind: 'server', id, path: node.path};
+        if (node.title) {
+          (serverNode as any).title = node.title;
+        }
+        out.push(serverNode);
         continue;
       }
 

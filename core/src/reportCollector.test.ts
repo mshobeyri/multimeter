@@ -284,4 +284,39 @@ describe('reportCollector', () => {
     expect(results.testRuns[0].filePath).toBe('/a/b.mmt');
     expect(results.testRuns[0].displayName).toBe('b.mmt');
   });
+
+  it('suite-item with title uses title as displayName instead of entry', () => {
+    const {reporter, getResults} = createReportCollector();
+    reporter({
+      scope: 'suite-run-start',
+      runId: 's1',
+      startedAt: 0,
+      totalRunnable: 1,
+    } as SuiteRunStartEvent);
+    reporter({
+      scope: 'suite-item',
+      id: 'n1',
+      runId: 'r1',
+      status: 'running',
+      filePath: '/path/to/my-test.mmt',
+      entry: 'my-test.mmt',
+      title: 'My Custom Test Title',
+    } as SuiteReporterMessage);
+    reporter({
+      scope: 'suite-item',
+      id: 'n1',
+      runId: 'r1',
+      status: 'passed',
+    } as SuiteReporterMessage);
+    reporter({
+      scope: 'suite-run-finished',
+      runId: 's1',
+      finishedAt: 100,
+      success: true,
+      durationMs: 100,
+    } as SuiteRunFinishedEvent);
+    const results = getResults();
+    expect(results.testRuns[0].filePath).toBe('/path/to/my-test.mmt');
+    expect(results.testRuns[0].displayName).toBe('My Custom Test Title');
+  });
 });

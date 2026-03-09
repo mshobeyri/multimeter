@@ -6,7 +6,7 @@ import * as file from './file';
 import {handleNetworkMessage} from './network';
 import * as run from './run';
 import * as mockRunner from './mockRunner';
-import {suiteHierarchy} from 'mmt-core';
+import {suiteHierarchy, JSer, testParsePack} from 'mmt-core';
 
 let curlTerminal: vscode.Terminal|null = null;
 
@@ -177,13 +177,41 @@ export const messageReceived = async (
         break;
       }
       try {
-        const suiteRawText = await file.readRelativeFileContent(document.uri.fsPath, filename);
+        const rawText = await file.readRelativeFileContent(document.uri.fsPath, filename);
         // Make it absolute for proper relative resolution.
-        const suiteFilePath = path.resolve(path.dirname(document.uri.fsPath), filename);
+        const filePath = path.resolve(path.dirname(document.uri.fsPath), filename);
+        const docType = JSer.fileType(filePath, rawText);
 
+        // For test files, return a simple test node with title (not full hierarchy)
+        if (docType === 'test') {
+          let title: string | undefined;
+          try {
+            const testDoc = testParsePack.yamlToTest(rawText);
+            if (typeof testDoc?.title === 'string' && testDoc.title.trim()) {
+              title = testDoc.title.trim();
+            }
+          } catch {
+            // Ignore parsing errors
+          }
+          webviewPanel.webview.postMessage({
+            command: 'suiteHierarchyResult',
+            requestId: message?.requestId,
+            filename,
+            suiteFilePath: filePath,
+            tree: {
+              kind: 'test',
+              id: leafPrefix || 'test',
+              path: filePath,
+              title,
+            },
+          });
+          break;
+        }
+
+        // For suite files, build full hierarchy
         const tree = await suiteHierarchy.buildSuiteHierarchyFromSuiteFile({
-          suiteFilePath,
-          suiteRawText,
+          suiteFilePath: filePath,
+          suiteRawText: rawText,
           leafPrefix,
           fileLoader: async (requestedPath: string) => {
             try {
@@ -198,7 +226,7 @@ export const messageReceived = async (
           command: 'suiteHierarchyResult',
           requestId: message?.requestId,
           filename,
-          suiteFilePath,
+          suiteFilePath: filePath,
           tree,
         });
       } catch (err: any) {

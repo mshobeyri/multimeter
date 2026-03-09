@@ -116,7 +116,7 @@ export function createReportCollector() {
       if (event.status === 'running') {
         const run = getOrCreateTestRun(key, event.runId || key);
         run.filePath = event.filePath;
-        run.displayName = event.entry;
+        run.displayName = event.title || event.entry;
       } else if (event.status === 'passed' || event.status === 'failed') {
         const run = testRunsByKey.get(key);
         if (run) {

@@ -71,4 +71,60 @@ describe('createSuiteBundle (single target)', () => {
     });
     expect(bundle.target).toBe('some-target-id');
   });
+
+  it('preserves titles from hierarchy nodes', () => {
+    const hierarchy: any = {
+      kind: 'suite',
+      path: '/repo/root.suite.mmt',
+      title: 'Root Suite Title',
+      children: [
+        {
+          kind: 'group',
+          label: 'Group 1',
+          children: [
+            {
+              kind: 'suite',
+              path: '/repo/child.suite.mmt',
+              title: 'Child Suite Title',
+              children: [
+                {
+                  kind: 'group',
+                  label: 'Group 1',
+                  children: [{kind: 'test', path: '/repo/nested-test.mmt', title: 'Nested Test Title'}],
+                },
+              ],
+            },
+            {kind: 'test', path: '/repo/direct-test.mmt', title: 'Direct Test Title'},
+            {kind: 'server', path: '/repo/mock.mmt', title: 'Mock Server Title'},
+          ],
+        },
+      ],
+    };
+
+    const bundle = createSuiteBundle({
+      rootSuitePath: '/repo/root.suite.mmt',
+      hierarchy,
+      target: undefined,
+    });
+
+    const root = bundle.bundle[0] as any;
+    expect(root.kind).toBe('group');
+
+    const suiteNode = root.children[0] as any;
+    expect(suiteNode.kind).toBe('suite');
+    expect(suiteNode.title).toBe('Child Suite Title');
+
+    const directTest = root.children[1] as any;
+    expect(directTest.kind).toBe('test');
+    expect(directTest.title).toBe('Direct Test Title');
+
+    const serverNode = root.children[2] as any;
+    expect(serverNode.kind).toBe('server');
+    expect(serverNode.title).toBe('Mock Server Title');
+
+    const nestedGroup = suiteNode.children[0] as any;
+    const nestedTest = nestedGroup.children[0] as any;
+    expect(nestedTest.kind).toBe('test');
+    expect(nestedTest.title).toBe('Nested Test Title');
+  });
 });

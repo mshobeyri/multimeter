@@ -37,6 +37,7 @@ export interface SuiteReporterMessage {
   runId?: string;
   filePath?: string;
   entry?: string;
+  title?: string;
   docType?: string;
   id?: string;
 }

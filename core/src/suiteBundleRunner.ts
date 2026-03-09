@@ -74,6 +74,7 @@ async function runSuiteBundleNode(params: {
       runId,
       filePath: childFilePath,
       entry: node.path,
+      title: (node as any).title,
       docType: childDocType ?? undefined,
       id,
     });
@@ -115,6 +116,7 @@ async function runSuiteBundleNode(params: {
       runId,
       filePath: childFilePath,
       entry: node.path,
+      title: (node as any).title,
       docType: childDocType ?? undefined,
       id,
     });
@@ -130,6 +132,7 @@ async function runSuiteBundleNode(params: {
       runId,
       filePath: childFilePath,
       entry: node.path,
+      title: (node as any).title,
       id,
     });
 
