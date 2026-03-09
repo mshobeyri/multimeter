@@ -582,6 +582,7 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
         testRuns,
         durationMs: data.durationMs ?? undefined,
         suiteTitle: data.suiteName ?? undefined,
+        suitePath: data.filePath ? path.basename(data.filePath) : undefined,
       },
       testRuns,
     };

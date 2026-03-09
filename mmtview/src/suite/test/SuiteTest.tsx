@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { parseYaml } from 'mmt-core/markupConvertor';
 import { splitSuiteGroups } from 'mmt-core/suiteParsePack';
 import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
@@ -14,6 +14,7 @@ import { resetLeafStateMap } from './leafStateReset';
 import { statusIconFor } from '../../shared/Common';
 import ExportReportButton, { ReportFormat } from '../../shared/ExportReportButton';
 import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
+import { FileContext } from '../../fileContext';
 
 /** Get basename from a file path. */
 function basename(p: string): string {
@@ -149,6 +150,7 @@ const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
 };
 
 const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
+    const { mmtFilePath } = useContext(FileContext);
     const groups = useMemo(() => buildSuiteGroupsFromContent(content), [content]);
     const servers = useMemo(() => buildServersFromContent(content), [content]);
     const suiteTitle = useMemo(() => {
@@ -643,9 +645,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 durationMs: suiteRunDurationMs,
                 displayNameById,
                 suiteName: suiteTitle,
+                filePath: mmtFilePath,
             },
         });
-    }, [leafReportsById, leafRunStateById, stepStatuses, suiteRunState, suiteRunDurationMs, displayNameById, suiteTitle]);
+    }, [leafReportsById, leafRunStateById, stepStatuses, suiteRunState, suiteRunDurationMs, displayNameById, suiteTitle, mmtFilePath]);
 
     const suiteExportDisabled = suiteRunState === 'running' || Object.keys(leafReportsById).length === 0;
 
