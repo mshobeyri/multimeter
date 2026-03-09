@@ -71,7 +71,7 @@ function buildTestsuite(run: TestRunResult, index: number): string {
 
 export function generateJunitXml(results: CollectedResults, options?: JunitXmlOptions): string {
   const runs = results.testRuns;
-  const suiteName = escapeXml(options?.suiteName || results.suiteRun?.suitePath || 'multimeter');
+  const suiteName = escapeXml(options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || results.testRuns[0]?.displayName || 'Test Report');
   const totalTests = runs.reduce((sum, r) => sum + r.steps.length, 0);
   const totalFailures = runs.reduce((sum, r) => sum + r.steps.filter(s => s.status === 'failed').length, 0);
   const totalTime = formatTime(results.suiteRun?.durationMs ?? runs.reduce((sum, r) => sum + (r.durationMs || 0), 0));

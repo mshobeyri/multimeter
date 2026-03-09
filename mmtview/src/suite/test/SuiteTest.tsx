@@ -151,6 +151,14 @@ const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
 const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
     const groups = useMemo(() => buildSuiteGroupsFromContent(content), [content]);
     const servers = useMemo(() => buildServersFromContent(content), [content]);
+    const suiteTitle = useMemo(() => {
+        try {
+            const parsed = parseYaml(content);
+            return typeof parsed?.title === 'string' ? parsed.title : undefined;
+        } catch {
+            return undefined;
+        }
+    }, [content]);
     const allPaths = useMemo(() => collectSuitePaths(groups), [groups]);
     const canRun = allPaths.length > 0;
     const noItems = groups.every(group => group.entries.length === 0);
@@ -634,9 +642,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 suiteRunState,
                 durationMs: suiteRunDurationMs,
                 displayNameById,
+                suiteName: suiteTitle,
             },
         });
-    }, [leafReportsById, leafRunStateById, stepStatuses, suiteRunState, suiteRunDurationMs, displayNameById]);
+    }, [leafReportsById, leafRunStateById, stepStatuses, suiteRunState, suiteRunDurationMs, displayNameById, suiteTitle]);
 
     const suiteExportDisabled = suiteRunState === 'running' || Object.keys(leafReportsById).length === 0;
 

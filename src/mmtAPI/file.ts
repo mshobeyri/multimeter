@@ -535,7 +535,7 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
     const run: TestRunResult = {
       runId: 'export',
       filePath: data.filePath,
-      displayName: data.filePath ? path.basename(data.filePath) : undefined,
+      displayName: data.testTitle || (data.filePath ? path.basename(data.filePath) : undefined),
       result: data.runState === 'passed' ? 'passed' : 'failed',
       steps,
       outputs: data.outputs,
@@ -581,6 +581,7 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
         totalRunnable: testRuns.length,
         testRuns,
         durationMs: data.durationMs ?? undefined,
+        suiteTitle: data.suiteName ?? undefined,
       },
       testRuns,
     };

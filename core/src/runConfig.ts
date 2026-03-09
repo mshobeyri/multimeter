@@ -46,6 +46,7 @@ export interface SuiteRunStartEvent {
   scope: 'suite-run-start';
   runId: string;
   suitePath?: string;
+  suiteTitle?: string;
   startedAt: number;
   totalRunnable: number;
 }

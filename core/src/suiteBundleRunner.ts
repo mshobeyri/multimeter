@@ -279,6 +279,7 @@ export async function executeSuiteBundle(params: {
       scope: 'suite-run-start',
       runId: `suite:${sanitizeIdentifier(bundle.rootSuitePath)}`,
       suitePath: bundle.rootSuitePath,
+      suiteTitle: bundle.rootTitle,
       startedAt: suiteStart,
       totalRunnable,
     });

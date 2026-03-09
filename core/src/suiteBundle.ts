@@ -21,6 +21,7 @@ export type SuiteBundleNode =
 
 export interface SuiteBundle {
   rootSuitePath: string;
+  rootTitle?: string;
   bundle: SuiteBundleNode[];
   /** Server file paths to start before suite execution and keep running throughout. */
   servers?: string[];
@@ -106,6 +107,7 @@ export function createSuiteBundle(params: {
 
   return {
     rootSuitePath,
+    rootTitle: hierarchy.title,
     bundle: (() => {
       const built = build(hierarchy.children, []);
       const hasAnyGroup = built.some((n) => n.kind === 'group');

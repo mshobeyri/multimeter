@@ -35,6 +35,7 @@ export interface TestRunResult {
 export interface SuiteRunResult {
   runId: string;
   suitePath?: string;
+  suiteTitle?: string;
   startedAt: number;
   finishedAt?: number;
   durationMs?: number;
@@ -86,6 +87,7 @@ export function createReportCollector() {
       suiteRun = {
         runId: event.runId,
         suitePath: event.suitePath,
+        suiteTitle: event.suiteTitle,
         startedAt: event.startedAt,
         success: true,
         totalRunnable: event.totalRunnable,

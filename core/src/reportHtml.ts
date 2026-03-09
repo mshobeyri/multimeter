@@ -548,7 +548,7 @@ const SCRIPT = `
 
 export function generateReportHtml(results: CollectedResults, options?: ReportHtmlOptions): string {
   const runs = results.testRuns;
-  const suiteName = escapeHtml(options?.suiteName || results.suiteRun?.suitePath || 'multimeter');
+  const suiteName = escapeHtml(options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || results.testRuns[0]?.displayName || 'Test Report');
   const totalTests = runs.reduce((sum, r) => sum + r.steps.length, 0);
   const totalPassed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.status === 'passed').length, 0);
   const totalFailed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.status === 'failed').length, 0);

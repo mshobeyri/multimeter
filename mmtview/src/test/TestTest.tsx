@@ -243,9 +243,10 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                 outputs,
                 filePath: mmtFilePath,
                 durationMs: runDurationMs,
+                testTitle: props.testData.title,
             },
         });
-    }, [stepReports, runState, outputs, mmtFilePath, runDurationMs]);
+    }, [stepReports, runState, outputs, mmtFilePath, runDurationMs, props.testData.title]);
 
     const exportDisabled = runState === 'running' || stepReports.length === 0;
 

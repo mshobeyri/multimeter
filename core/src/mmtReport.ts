@@ -65,7 +65,7 @@ export function generateMmtReport(results: CollectedResults, options?: MmtReport
 
   const report: Record<string, any> = {
     type: 'report',
-    name: options?.suiteName || results.suiteRun?.suitePath || 'multimeter',
+    name: options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || results.testRuns[0]?.displayName || 'Test Report',
   };
 
   if (results.suiteRun?.startedAt) {

@@ -115,7 +115,7 @@ function buildSuiteSection(run: TestRunResult, index: number, includeDetails: bo
 
 export function generateReportMarkdown(results: CollectedResults, options?: ReportMarkdownOptions): string {
   const runs = results.testRuns;
-  const suiteName = options?.suiteName || results.suiteRun?.suitePath || 'multimeter';
+  const suiteName = options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || results.testRuns[0]?.displayName || 'Test Report';
   const includeDetails = options?.includeDetails !== false;
   const totalTests = runs.reduce((sum, r) => sum + r.steps.length, 0);
   const totalPassed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.status === 'passed').length, 0);
