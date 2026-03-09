@@ -87,6 +87,8 @@ const SuiteEditFileItem: React.FC<SuiteEditFileItemProps> = ({
                             basePath={fileContext.mmtFilePath}
                             filters={[{ name: 'MMT files', extensions: ['mmt'] }]}
                             onRemovePressed={() => onChange('')}
+                            showFilePicker
+                            removable
                         />
                     </NoTreeInterference>
                 </div>

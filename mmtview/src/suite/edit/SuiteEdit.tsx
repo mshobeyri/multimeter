@@ -1,8 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { parseYaml, parseYamlDoc } from 'mmt-core/markupConvertor';
 import { SuiteEntry, SuiteGroup } from '../types';
 import SuiteEditTree from './SuiteEditTree';
 import { statusIconFor } from '../../shared/Common';
+import FilePickerInput from '../../components/FilePickerInput';
+import { FileContext } from '../../fileContext';
 
 interface SuiteEditProps {
   content: string;
@@ -101,6 +103,7 @@ const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
 };
 
 const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
+  const fileContext = useContext(FileContext);
   const [groups, setGroups] = useState<SuiteGroup[]>(() => buildSuiteGroupsFromContent(content));
   const [servers, setServers] = useState<string[]>(() => buildServersFromContent(content));
   const [missingFiles, setMissingFiles] = useState<Set<string>>(new Set());
@@ -361,34 +364,18 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
         {servers.length > 0 && (
           <>
             <div className="label" style={{ marginBottom: 6 }}>Servers</div>
-            <div style={{ marginBottom: 12, paddingLeft: 4 }}>
+            <div style={{ marginBottom: 12, paddingLeft: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
               {servers.map((s, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0' }}>
-                  <span className="codicon codicon-server-environment" style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
-                  <input
-                    type="text"
-                    value={s}
-                    onChange={(e) => handleChangeServer(i, e.target.value)}
-                    style={{
-                      flex: 1,
-                      background: 'var(--vscode-input-background, #1e1e1e)',
-                      color: 'var(--vscode-input-foreground, #ccc)',
-                      border: '1px solid var(--vscode-input-border, #3c3c3c)',
-                      borderRadius: 3,
-                      padding: '2px 6px',
-                      fontSize: 'inherit',
-                      fontFamily: 'inherit',
-                    }}
-                  />
-                  <button
-                    className="button-icon"
-                    onClick={() => handleRemoveServer(i)}
-                    title="Remove server"
-                    style={{ padding: '2px 4px' }}
-                  >
-                    <span className="codicon codicon-trash" style={{ fontSize: 13 }} aria-hidden />
-                  </button>
-                </div>
+                <FilePickerInput
+                  key={i}
+                  value={s}
+                  onChange={(v) => handleChangeServer(i, v)}
+                  onRemovePressed={() => handleRemoveServer(i)}
+                  basePath={fileContext.mmtFilePath}
+                  filters={[{ name: 'MMT files', extensions: ['mmt'] }]}
+                  showFilePicker
+                  removable
+                />
               ))}
             </div>
           </>
