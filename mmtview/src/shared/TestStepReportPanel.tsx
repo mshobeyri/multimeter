@@ -410,8 +410,7 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                   ></span>
                   <div style={{ flex: 1 }}>
                     <div style={{ marginTop: 2 }}>
-                      {report.stepIndex} {report.stepType === 'check' ? 'Check' : 'Assert'}
-                      {report.title ? `: ${report.title}` : ''}
+                      {report.title || (report.stepType === 'check' ? 'Check' : 'Assert')}
                     </div>
 
                     {isDetailsExpanded && (

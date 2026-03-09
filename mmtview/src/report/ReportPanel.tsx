@@ -6,6 +6,7 @@ import TestStepReportPanel, { StepReportItem } from '../shared/TestStepReportPan
 import type { StepStatus } from '../shared/types';
 import ExportReportButton, { ReportFormat } from '../shared/ExportReportButton';
 import OverviewBoxes from '../shared/OverviewBoxes';
+import { statusIconFor } from '../shared/Common';
 
 interface ReportPanelProps {
   content: string;
@@ -128,20 +129,73 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
         const reports = mapToStepReports(run);
         const state = runStateFromResult(run);
         const name = run.displayName || run.filePath || `Test ${i + 1}`;
-        const isExpanded = expandedSuites[i] !== false;
+        const isExpanded = expandedSuites[i] === true;
+        const statusIcon = statusIconFor(state);
+        const passedCount = reports.filter(r => r.status === 'passed').length;
+        const failedCount = reports.filter(r => r.status === 'failed').length;
 
         return (
-          <div key={run.id || run.runId || i} style={{ marginBottom: 8 }}>
-            <TestStepReportPanel
-              isExpanded={isExpanded}
-              onToggleExpanded={() =>
-                setExpandedSuites(prev => ({ ...prev, [i]: !isExpanded }))
-              }
-              stepReports={reports}
-              runState={state}
-              runButtonLabel={name}
-              showHeader={true}
-            />
+          <div key={run.id || run.runId || i} style={{ marginBottom: 4 }}>
+            {/* Tree item header */}
+            <div
+              onClick={() => setExpandedSuites(prev => ({ ...prev, [i]: !isExpanded }))}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 4px',
+                cursor: 'pointer',
+                borderRadius: 4,
+                background: 'transparent',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLElement).style.background = 'var(--vscode-list-hoverBackground, rgba(255,255,255,0.05))';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLElement).style.background = 'transparent';
+              }}
+            >
+              {/* Expand/collapse arrow */}
+              <span
+                className={`codicon ${isExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right'}`}
+                style={{ width: 16, opacity: 0.7 }}
+              />
+              {/* Status icon */}
+              <span
+                className={`codicon ${statusIcon.icon}`}
+                style={{ color: statusIcon.color }}
+                title={statusIcon.title}
+              />
+              {/* Test name */}
+              <span style={{
+                flex: 1,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }} title={name}>
+                {name}
+              </span>
+              {/* Summary badge */}
+              <span style={{
+                fontSize: '0.85em',
+                opacity: 0.7,
+                whiteSpace: 'nowrap',
+              }}>
+                {failedCount > 0 ? `${failedCount} failed` : `${passedCount} passed`}
+              </span>
+            </div>
+
+            {/* Expanded content - check/assert results */}
+            {isExpanded && (
+              <div style={{ marginLeft: 24, paddingBottom: 8 }}>
+                <TestStepReportPanel
+                  isExpanded={true}
+                  stepReports={reports}
+                  runState={state}
+                  showHeader={false}
+                />
+              </div>
+            )}
           </div>
         );
       })}
