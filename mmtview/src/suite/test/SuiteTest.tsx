@@ -563,9 +563,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 leafRunStateById,
                 stepStatuses,
                 suiteRunState,
+                durationMs: suiteRunDurationMs,
             },
         });
-    }, [leafReportsById, leafRunStateById, stepStatuses, suiteRunState]);
+    }, [leafReportsById, leafRunStateById, stepStatuses, suiteRunState, suiteRunDurationMs]);
 
     const suiteExportDisabled = suiteRunState === 'running' || Object.keys(leafReportsById).length === 0;
 

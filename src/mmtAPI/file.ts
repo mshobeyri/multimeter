@@ -539,6 +539,7 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
       result: data.runState === 'passed' ? 'passed' : 'failed',
       steps,
       outputs: data.outputs,
+      durationMs: data.durationMs ?? undefined,
     };
     return {type: 'test', testRuns: [run]};
   }
@@ -577,6 +578,7 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
         success: data.suiteRunState === 'passed',
         totalRunnable: testRuns.length,
         testRuns,
+        durationMs: data.durationMs ?? undefined,
       },
       testRuns,
     };
