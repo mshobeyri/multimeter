@@ -544,8 +544,9 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
     return {type: 'test', testRuns: [run]};
   }
 
-  // Suite view sends: { type: 'suite', leafReportsById, leafRunStateById, ... }
+  // Suite view sends: { type: 'suite', leafReportsById, leafRunStateById, displayNameById, ... }
   if (data.type === 'suite' && data.leafReportsById) {
+    const displayNameById: Record<string, string> = data.displayNameById || {};
     const testRuns: TestRunResult[] = Object.entries(data.leafReportsById).map(
       ([id, reports]: [string, any]) => {
         const steps: TestStepResult[] = (Array.isArray(reports) ? reports : []).map(
@@ -565,6 +566,7 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
         return {
           runId: id,
           id,
+          displayName: displayNameById[id] || undefined,
           result: (runState === 'passed' ? 'passed' : 'failed') as 'passed' | 'failed',
           steps,
         };

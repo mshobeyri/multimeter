@@ -15,6 +15,71 @@ import { statusIconFor } from '../../shared/Common';
 import ExportReportButton, { ReportFormat } from '../../shared/ExportReportButton';
 import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
 
+/** Get basename from a file path. */
+function basename(p: string): string {
+    const parts = p.replace(/\\/g, '/').split('/');
+    return parts[parts.length - 1] || p;
+}
+
+/** Build a map from node id to display path by combining group entries and hierarchy trees. */
+function buildDisplayNamesFromHierarchy(
+    groups: SuiteGroup[],
+    hierarchyByEntryPath: Record<string, SuiteTreeNode>
+): Record<string, string> {
+    const result: Record<string, string> = {};
+
+    const getNodeLabel = (node: SuiteTreeNode): string => {
+        if (node.kind === 'group') {
+            return node.label;
+        }
+        if ('title' in node && node.title) {
+            return node.title;
+        }
+        if ('path' in node && node.path) {
+            return basename(node.path);
+        }
+        return node.id;
+    };
+
+    const traverse = (node: SuiteTreeNode, pathParts: string[]): void => {
+        const label = getNodeLabel(node);
+        const currentPath = node.kind === 'group' ? pathParts : [...pathParts, label];
+
+        if (node.kind === 'test' || node.kind === 'missing' || node.kind === 'cycle') {
+            result[node.id] = currentPath.join(' / ');
+        }
+
+        if ('children' in node && Array.isArray(node.children)) {
+            for (const child of node.children) {
+                traverse(child, currentPath);
+            }
+        }
+    };
+
+    // First, add display names for all top-level entries from groups
+    for (const group of groups) {
+        for (const entry of group.entries) {
+            const hierarchy = hierarchyByEntryPath[entry.path];
+            if (hierarchy) {
+                // Entry is a suite - use its title or filename as the base, then traverse children
+                const suiteLabel = getNodeLabel(hierarchy);
+                result[entry.id] = suiteLabel;
+                // Traverse children with the suite label as path prefix
+                if ('children' in hierarchy && Array.isArray(hierarchy.children)) {
+                    for (const child of hierarchy.children) {
+                        traverse(child, [suiteLabel]);
+                    }
+                }
+            } else {
+                // Entry is a direct test file - use its filename
+                result[entry.id] = basename(entry.path);
+            }
+        }
+    }
+
+    return result;
+}
+
 interface SuiteTestProps {
     content: string;
 }
@@ -553,6 +618,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
         window.vscode?.postMessage({ command: 'stopSuiteRun', suiteRunId });
     }, [suiteRunId]);
 
+    const displayNameById = useMemo(() => {
+        return buildDisplayNamesFromHierarchy(groups, hierarchyByEntryPath);
+    }, [groups, hierarchyByEntryPath]);
+
     const handleExportReport = useCallback((format: ReportFormat) => {
         window.vscode?.postMessage({
             command: 'exportReport',
@@ -564,9 +633,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 stepStatuses,
                 suiteRunState,
                 durationMs: suiteRunDurationMs,
+                displayNameById,
             },
         });
-    }, [leafReportsById, leafRunStateById, stepStatuses, suiteRunState, suiteRunDurationMs]);
+    }, [leafReportsById, leafRunStateById, stepStatuses, suiteRunState, suiteRunDurationMs, displayNameById]);
 
     const suiteExportDisabled = suiteRunState === 'running' || Object.keys(leafReportsById).length === 0;
 

@@ -18,6 +18,36 @@ function formatDuration(ms?: number): string {
   return (ms / 1000).toFixed(3) + 's';
 }
 
+interface ParsedCallDetails {
+  request?: { method?: string; url?: string; body?: string };
+  response?: { status?: number; statusText?: string; body?: string };
+}
+
+function tryFormatJson(s: string): string {
+  try {
+    return JSON.stringify(JSON.parse(s), null, 2);
+  } catch {
+    return s;
+  }
+}
+
+function parseStepCallDetails(details?: string): ParsedCallDetails | null {
+  if (!details || typeof details !== 'string') { return null; }
+  try {
+    const parsed = JSON.parse(details);
+    if (!parsed || typeof parsed !== 'object') { return null; }
+    if (typeof parsed.details_ !== 'string') { return null; }
+    const inner = JSON.parse(parsed.details_);
+    if (!inner || typeof inner !== 'object') { return null; }
+    return {
+      request: inner.request,
+      response: inner.response,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function buildStepHtml(step: TestStepResult): string {
   const name = escapeHtml(step.title || `step-${step.stepIndex}`);
   const duration = step.durationMs != null ? ` <span class="duration">(${formatDuration(step.durationMs)})</span>` : '';
@@ -37,6 +67,28 @@ function buildStepHtml(step: TestStepResult): string {
   if (step.comparison) {
     failureHtml += `            <div><strong>Operator:</strong> ${escapeHtml(step.comparison)}</div>\n`;
   }
+  // Include request/response details for failed tests
+  const reqResp = parseStepCallDetails(step.details);
+  if (reqResp?.request) {
+    const req = reqResp.request;
+    failureHtml += '            <div style="margin-top:8px"><strong>Request:</strong></div>\n';
+    if (req.method && req.url) {
+      failureHtml += `            <div>${escapeHtml(req.method)} ${escapeHtml(req.url)}</div>\n`;
+    }
+    if (req.body) {
+      failureHtml += `            <pre style="margin:4px 0;white-space:pre-wrap;word-break:break-word;">${escapeHtml(tryFormatJson(req.body))}</pre>\n`;
+    }
+  }
+  if (reqResp?.response) {
+    const resp = reqResp.response;
+    failureHtml += '            <div style="margin-top:8px"><strong>Response:</strong></div>\n';
+    if (resp.status !== undefined) {
+      failureHtml += `            <div>Status: ${resp.status}${resp.statusText ? ' ' + escapeHtml(resp.statusText) : ''}</div>\n`;
+    }
+    if (resp.body) {
+      failureHtml += `            <pre style="margin:4px 0;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto;">${escapeHtml(tryFormatJson(resp.body))}</pre>\n`;
+    }
+  }
   failureHtml += '          </div>\n';
 
   return (
@@ -55,8 +107,8 @@ function buildSuiteSection(run: TestRunResult, index: number): string {
     : ` <span class="badge passed">all passed</span>`;
 
   let html = `      <section class="suite">\n`;
-  html += `        <h2><span class="toggle" id="toggle-${index}" onclick="toggleSuite(${index})" aria-expanded="true"><svg class="chevron" width="10" height="10" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span> ${name}${badge} <span class="suite-count">${passCount + failCount} steps</span></h2>\n`;
-  html += `        <div class="suite-steps" id="suite-steps-${index}">\n`;
+  html += `        <h2><span class="toggle collapsed" id="toggle-${index}" onclick="toggleSuite(${index})" aria-expanded="false"><svg class="chevron" width="10" height="10" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span> ${name}${badge} <span class="suite-count">${passCount + failCount} steps</span></h2>\n`;
+  html += `        <div class="suite-steps" id="suite-steps-${index}" style="display: none">\n`;
   for (const step of run.steps) {
     html += buildStepHtml(step);
   }

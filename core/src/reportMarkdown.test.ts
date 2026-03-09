@@ -40,7 +40,7 @@ describe('generateReportMarkdown', () => {
     const md = generateReportMarkdown(results);
     expect(md).toContain('# Test Report: multimeter');
     expect(md).toContain('2 passed, 0 failed, 2 total');
-    expect(md).toContain('| # | Test | Type | Result | Duration |');
+    expect(md).toContain('| # | Test | Type | Result |');
     expect(md).toContain('status == 200');
     expect(md).toContain('✓ passed');
   });

@@ -12,6 +12,36 @@ function formatDuration(ms?: number): string {
   return (ms / 1000).toFixed(3) + 's';
 }
 
+interface ParsedCallDetails {
+  request?: { method?: string; url?: string; body?: string };
+  response?: { status?: number; statusText?: string; body?: string };
+}
+
+function tryFormatJson(s: string): string {
+  try {
+    return JSON.stringify(JSON.parse(s), null, 2);
+  } catch {
+    return s;
+  }
+}
+
+function parseStepCallDetails(details?: string): ParsedCallDetails | null {
+  if (!details || typeof details !== 'string') { return null; }
+  try {
+    const parsed = JSON.parse(details);
+    if (!parsed || typeof parsed !== 'object') { return null; }
+    if (typeof parsed.details_ !== 'string') { return null; }
+    const inner = JSON.parse(parsed.details_);
+    if (!inner || typeof inner !== 'object') { return null; }
+    return {
+      request: inner.request,
+      response: inner.response,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function escapeMdTable(s: string): string {
   return String(s).replace(/\|/g, '\\|').replace(/\n/g, ' ');
 }
@@ -20,8 +50,7 @@ function buildStepRow(step: TestStepResult, index: number): string {
   const name = escapeMdTable(step.title || `step-${step.stepIndex}`);
   const icon = step.status === 'passed' ? '✓' : '✗';
   const result = `${icon} ${step.status}`;
-  const duration = step.durationMs != null ? formatDuration(step.durationMs) : '';
-  return `| ${index + 1} | ${name} | ${step.stepType} | ${result} | ${duration} |`;
+  return `| ${index + 1} | ${name} | ${step.stepType} | ${result} |`;
 }
 
 function buildFailureDetails(step: TestStepResult): string {
@@ -36,6 +65,28 @@ function buildFailureDetails(step: TestStepResult): string {
   if (step.comparison) {
     md += `- **Operator:** ${step.comparison}\n`;
   }
+  // Include request/response details for failed tests
+  const reqResp = parseStepCallDetails(step.details);
+  if (reqResp?.request) {
+    const req = reqResp.request;
+    md += `\n**Request:**\n`;
+    if (req.method && req.url) {
+      md += `\`${req.method} ${req.url}\`\n`;
+    }
+    if (req.body) {
+      md += `\n\`\`\`json\n${tryFormatJson(req.body)}\n\`\`\`\n`;
+    }
+  }
+  if (reqResp?.response) {
+    const resp = reqResp.response;
+    md += `\n**Response:**\n`;
+    if (resp.status !== undefined) {
+      md += `Status: ${resp.status}${resp.statusText ? ' ' + resp.statusText : ''}\n`;
+    }
+    if (resp.body) {
+      md += `\n\`\`\`json\n${tryFormatJson(resp.body)}\n\`\`\`\n`;
+    }
+  }
   md += `\n</details>\n`;
   return md;
 }
@@ -43,13 +94,13 @@ function buildFailureDetails(step: TestStepResult): string {
 function buildSuiteSection(run: TestRunResult, index: number, includeDetails: boolean): string {
   const name = run.displayName || run.filePath || `test-${index}`;
   let md = `\n## ${name}\n\n`;
-  md += `| # | Test | Type | Result | Duration |\n`;
-  md += `|---|------|------|--------|----------|\n`;
+  md += `| # | Test | Type | Result |\n`;
+  md += `|---|------|------|--------|\n`;
   for (let i = 0; i < run.steps.length; i++) {
     md += buildStepRow(run.steps[i], i) + '\n';
   }
   if (run.steps.length === 0) {
-    md += `| | *No test steps* | | | |\n`;
+    md += `| | *No test steps* | | |\n`;
   }
 
   if (includeDetails) {
