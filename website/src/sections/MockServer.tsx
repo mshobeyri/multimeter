@@ -4,7 +4,7 @@ import { Server } from 'lucide-react'
 
 const MOCK_YAML = `type: server
 title: User Service Mock
-port: 8081
+port: 8080
 endpoints:
   - method: get
     path: /users/:id

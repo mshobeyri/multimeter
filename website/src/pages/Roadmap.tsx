@@ -77,6 +77,19 @@ const roadmap: RoadmapMonth[] = [
     month: 'March',
     year: 2026,
     items: [
+      { title: 'Suite environment & export fields', status: 'done' },
+      { title: 'Auto-generate reports from suites (JUnit, HTML, Markdown, MMT)', status: 'done' },
+      { title: 'Suite overview section (pass/fail/skip counts)', status: 'done' },
+      { title: 'Mock server in tests (run step)', status: 'done' },
+      { title: '4-tab suite edit panel (Tests, Servers, Environment, Exports)', status: 'done' },
+      { title: 'Report format toggle & duration tracking', status: 'done' },
+      { title: 'Website: mock server & reports sections, Robot Framework comparison', status: 'done' },
+    ],
+  },
+  {
+    month: 'April',
+    year: 2026,
+    items: [
       { title: 'gRPC protocol support', status: 'in-progress' },
       { title: 'Proto file import & service discovery', status: 'planned' },
       { title: 'gRPC streaming (unary, server, client, bidi)', status: 'planned' },
@@ -85,7 +98,7 @@ const roadmap: RoadmapMonth[] = [
     ],
   },
   {
-    month: 'April',
+    month: 'May',
     year: 2026,
     items: [
       { title: 'GraphQL protocol support', status: 'planned' },
