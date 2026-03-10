@@ -1,0 +1,85 @@
+type: server
+title: User Service Mock
+description: |
+  Local mock for the user service API.
+  Supports auth and user CRUD endpoints.
+tags:
+  - auth
+  - users
+port: 8081
+tls:
+  cert: ./certs/server.crt
+  key: ./certs/server.key
+  ca: ./certs/ca.crt
+  requestCert: false
+cors: true
+headers:
+  X-Powered-By: Multimeter Mock
+proxy: <<e:url>>
+endpoints:
+  - method: get
+    path: /users
+    status: 200
+    format: json
+    body:
+      - id: 1
+        name: Mehrdad
+        email: e:url
+      - id: 2
+        name: Ali
+        email: ali@example.com
+  - method: get
+    path: /users/:id
+    status: 200
+    format: json
+    body:
+      id: :id
+      created: c:epoch
+      name: Mehrdad
+  - method: post
+    path: /login
+    name: admin-login
+    match:
+      body:
+        username: admin
+      headers:
+        X-Api-Key: secret
+    status: 200
+    format: json
+    body:
+      token: r:uuid
+      role: admin
+  - method: post
+    path: /login
+    name: normal-login
+    status: 200
+    format: json
+    body:
+      token: r:uuid
+      expiresIn: 3600
+  - method: delete
+    path: /users/:id
+    status: 205
+  - method: get
+    path: /health
+    status: 200
+    format: text
+    body: OK
+  - method: get
+    path: /error
+    status: 500
+    format: json
+    body:
+      error: Internal Server Error
+      traceId: r:uuid
+    delay: 2000
+  - method: post
+    path: /echo
+    status: 200
+    reflect: true
+fallback:
+  status: 404
+  format: json
+  body:
+    error: Not Found
+    path: :path

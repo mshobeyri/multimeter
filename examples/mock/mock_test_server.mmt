@@ -1,0 +1,16 @@
+type: test
+title: Test with server
+import:
+  api: mock_api.mmt
+  mock: mock_server.mmt
+outputs:
+  mehrdad: 123
+steps:
+  - run: mock
+  - call: api
+    id: xxx
+    inputs:
+      id: 50
+    check: id == 50
+    report: all
+  - delay: 1s
