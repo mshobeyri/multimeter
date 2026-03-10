@@ -110,6 +110,23 @@ npx testlight run suite.mmt --report html --report-file reports/results.html
 | `html` | `test-results.html` |
 | `md` | `test-results.md` |
 
+### Suite auto-export
+
+Suites can automatically generate reports after completion using the `export` field:
+
+```yaml
+type: suite
+title: CI Suite
+tests:
+  - tests/login.mmt
+  - tests/profile.mmt
+export:
+  - ./reports/results.xml     # JUnit XML
+  - ./reports/results.html    # HTML report
+```
+
+This is equivalent to running with `--report` but configured directly in the suite file. Useful for consistent CI outputs without additional CLI flags. See [Suite — Exports](./suite-mmt.md#exports) for details.
+
 ## VS Code Extension
 
 ### Export Report button

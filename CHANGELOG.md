@@ -2,6 +2,20 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.13.0]
+
+- Add `environment` field for suite files to configure presets, env files, and inline variables
+- Add `export` field for suite files to auto-generate reports (JUnit XML, HTML, Markdown, MMT) after suite completion
+- Add overview section showing pass/fail/skip counts for tests and suites
+- Add duration tracking in reports
+- Add report format toggle (formatted/raw JSON)
+- Add server type support in tests (`run` step can start mock servers)
+- Improve suite UI with 4-tab edit panel (Tests, Servers, Environment, Exports)
+- Improve report display and naming
+- Fix suite hierarchy issues
+- Fix mock server startup issues
+- Various UI refinements
+
 ## [1.12.1]
 
 - Fix custom editor not loading on Windows due to filenamePattern selector issue
