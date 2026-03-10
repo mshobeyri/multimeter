@@ -12,7 +12,7 @@
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "dev": "tsx src/cli.ts --help",
     "clean": "rimraf dist",
-    "pkg": "rimraf dist-cjs && npm run build:cjs && pkg src/pkg-entry.cjs --targets node18-macos-x64,node18-linux-x64,node18-win-x64 --output dist/bin/testlight",
+    "pkg": "rimraf dist-cjs && npm run build:cjs && pkg src/pkg-entry.cjs --targets node18-macos-x64,node18-linux-x64,node18-win-x64 --output ../bin/testlight",
     "test": "echo \"(no tests yet)\""
   },
   "pkg": {

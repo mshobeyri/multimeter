@@ -43,6 +43,14 @@ export async function executeSuite(
   const suite = yamlToSuite(rawText);
   const mergedInputsUsed = {...(options.manualInputs || {})};
 
+  // Merge suite-level environment variables into the envvar dict for child runs.
+  // This ensures `environment.variables` defined in the suite file are available
+  // to child test/api files without requiring the caller (CLI/extension) to do it.
+  const suiteEnvVars = suite.environment?.variables || {};
+  const childEnvvar = Object.keys(suiteEnvVars).length > 0
+    ? {...(options.envvar || {}), ...suiteEnvVars, ...(options.manualEnvvars || {})}
+    : options.envvar;
+
   const groups = splitSuiteGroups(suite.tests);
   const suiteDisplayName = title || baseName;
   const identifier = sanitizeIdentifier(suiteDisplayName);
@@ -185,6 +193,7 @@ export async function executeSuite(
 
         const childRun = await runFile({
           ...options,
+          envvar: childEnvvar,
           file: childRawText,
           fileType: 'raw',
           filePath: childFilePath,

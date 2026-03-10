@@ -43,6 +43,7 @@ async function loadCoreExport<T>(module: string, exportName: string): Promise<T|
 import path from 'path';
 
 import {summarize} from './loadTest.js';
+import {startMockServerFromPath, stopAllServers} from './mockRunner.js';
 import {buildCliRunArgs} from './runArgs.js';
 
 // Defer importing runTest until needed to avoid pulling axios for to-js
@@ -136,9 +137,23 @@ program.command('run')
         }
         
         const runOpts: any = {...(runFileOptions as any)};
-        runOpts.jsRunner = (code: string, title: string, lg: any) =>
-            runJSCode(code, title, lg as any);
-        const runOutcome = await runner.runFile(runOpts as any);
+        // Create serverRunner to start mock servers from suite servers and test run steps
+        const cliServerRunner = async (alias: string, filePath: string): Promise<() => void> => {
+          if (!(opts as any).quiet) {
+            console.log(`Starting mock server: ${alias}`);
+          }
+          return startMockServerFromPath(filePath, runOpts.envvar || {});
+        };
+        runOpts.serverRunner = cliServerRunner;
+        runOpts.jsRunner = (ctx: any) =>
+            runJSCode({...ctx, serverRunner: cliServerRunner});
+        let runOutcome: any;
+        try {
+          runOutcome = await runner.runFile(runOpts as any);
+        } finally {
+          // Always stop mock servers after run completes
+          stopAllServers();
+        }
         const {js, result} = runOutcome;
         if (printJs) {
           console.log(js.trim());
@@ -148,7 +163,7 @@ program.command('run')
           console.log(`Duration: ${result.durationMs.toFixed(2)} ms`);
           if (result.errors.length) {
             console.log('Errors:');
-            result.errors.forEach(e => console.log(' -', e));
+            result.errors.forEach((e: any) => console.log(' -', e));
           }
         }
         if (outFile) {

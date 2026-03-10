@@ -295,7 +295,7 @@ export async function startMockServer(
       reject(err);
     });
 
-    server.listen(data.port, '127.0.0.1');
+    server.listen(data.port);
   });
 }
 
@@ -497,6 +497,6 @@ export async function startMockServerFromPath(
       }
     });
 
-    server.listen(data.port, '127.0.0.1');
+    server.listen(data.port);
   });
 }

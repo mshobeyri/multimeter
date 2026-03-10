@@ -16,7 +16,18 @@ function createPkgJsRunner() {
 
 	// eslint-disable-next-line global-require
 	const mmtCore = require('mmt-core');
-	const networkCore = mmtCore.networkCore;
+	// networkCore is not in the default export (browser-safe). Load it from the
+	// compiled core dist. Use a static string so pkg can resolve it at build time.
+	let networkCore;
+	try {
+		// eslint-disable-next-line global-require
+		networkCore = require('../../core/dist/networkCoreNode.js');
+	} catch {
+		try {
+			// eslint-disable-next-line global-require
+			networkCore = require('../../core/dist/networkCore.js');
+		} catch { /* give up */ }
+	}
 	const outputExtractor = mmtCore.outputExtractor;
 	const Random = mmtCore.Random;
 	const testHelper = mmtCore.testHelper;
@@ -32,45 +43,297 @@ function createPkgJsRunner() {
 	}
 
 	return {
-		runJSCode: async ({ code, title, logger }) => {
+		runJSCode: async ({ js: code, title, logger, fileLoader, serverRunner, reporter, runId, id, traceSend, abortSignal }) => {
 			const startTime = Date.now();
+			const lg = (level, msg) => logger(level, msg);
 			const customConsole = {
-				trace: (...args) => logger('trace', args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')),
-				debug: (...args) => logger('debug', args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')),
-				log: (...args) => logger('info', args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')),
-				warn: (...args) => logger('warn', args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')),
-				error: (...args) => logger('error', args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')),
+				trace: (...args) => lg('trace', args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')),
+				debug: (...args) => lg('debug', args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')),
+				log: (...args) => lg('info', args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')),
+				warn: (...args) => lg('warn', args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')),
+				error: (...args) => lg('error', args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')),
 			};
+			// Set file loader, abort signal and server runner before executing
+			if (typeof testHelper.setFileLoader_ === 'function') {
+				testHelper.setFileLoader_(typeof fileLoader === 'function' ? fileLoader : undefined);
+			}
+			if (typeof testHelper.setAbortSignal_ === 'function') {
+				testHelper.setAbortSignal_(abortSignal);
+			}
+			if (typeof testHelper.setServerRunner_ === 'function') {
+				testHelper.setServerRunner_(serverRunner);
+			}
 			try {
 				const helperDecls = Object.keys(testHelper)
-					.map((name) => `const ${name} = testHelper[\"${name}\"];`)
+					.filter((name) => name !== 'report_' && name !== 'setenv_')
+					.map((name) => `const ${name} = mmtHelper["${name}"];`)
 					.join('\n');
 				const randomDecls = Object.keys(Random)
 					.filter((name) => typeof Random[name] === 'function')
-					.map((name) => `const ${name} = Random[\"${name}\"];`)
+					.map((name) => `const ${name} = Random["${name}"];`)
 					.join('\n');
+
+				const reporterFn = typeof reporter === 'function' ? reporter : () => {};
+				const mmtRandom = mmtCore.Random || {};
+				const mmtCurrent = mmtCore.Current || {};
+
 				const fn = new Function(
-					'testHelper',
+					'mmtHelper',
 					'console',
-					'send',
-					'extractOutputs',
+					'send_',
+					'extractOutputs_',
 					'Random',
-					`${helperDecls}\n${randomDecls}\n${code}`,
+					'__reporter',
+					'__runId',
+					'__id',
+					'__mmt_random',
+					'__mmt_current',
+					`${helperDecls}\n${randomDecls}\n` +
+					`const report_ = (...args) => mmtHelper.reportWithContext_ ? mmtHelper.reportWithContext_(__reporter, __runId, __id, ...args) : undefined;\n` +
+					`const setenv_ = (name, value) => mmtHelper.setenvWithContext_ ? mmtHelper.setenvWithContext_(__reporter, __runId, __id, name, value) : undefined;\n` +
+					`${code}`,
 				);
+
+				// Wrap send_ with trace-level logging when requested
+				const sendFn = traceSend ? async (req) => {
+					const reqSummary = req ? `${(req.method || 'GET').toUpperCase()} ${req.url || ''}` : 'unknown';
+					lg('trace', `Request: ${reqSummary}`);
+					try {
+						const res = await networkCore.send(req);
+						const status = res && typeof res.status === 'number' ? res.status : '?';
+						const duration = res && typeof res.duration === 'number' ? ` (${res.duration}ms)` : '';
+						lg('trace', `Response: ${status}${duration}`);
+						return res;
+					} catch (err) {
+						lg('trace', `Response: error - ${err?.message || String(err)}`);
+						throw err;
+					}
+				} : networkCore.send;
+
 				await fn(
 					testHelper,
 					customConsole,
-					networkCore.send,
+					sendFn,
 					outputExtractor.extractOutputs,
 					Random,
+					reporterFn,
+					runId || '',
+					id || '',
+					mmtRandom,
+					mmtCurrent,
 				);
 			} finally {
+				// Clean up
+				if (typeof testHelper.setServerRunner_ === 'function') {
+					testHelper.setServerRunner_(undefined);
+				}
+				if (typeof testHelper.setAbortSignal_ === 'function') {
+					testHelper.setAbortSignal_(undefined);
+				}
 				const elapsed = Date.now() - startTime;
-				logger('info', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
+				lg('info', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
 			}
 		},
 		setRunnerNetworkConfig: networkCore.setRunnerNetworkConfig,
 	};
+}
+
+/**
+ * Create a server runner for pkg builds that starts mock servers from .mmt files.
+ */
+function createPkgServerRunner(envVars) {
+	const http = require('http');
+	const https = require('https');
+	const pathMod = require('path');
+	const yaml = require('js-yaml');
+	const mmtCore = require('mmt-core');
+	const mockParsePack = mmtCore.mockParsePack;
+	const mockServer = mmtCore.mockServer;
+	const variableReplacer = mmtCore.variableReplacer;
+
+	if (!mockParsePack || !mockServer || !variableReplacer) {
+		return null;
+	}
+
+	const activeServers = new Map();
+
+	function resolveFilePath(relative, basePath) {
+		if (pathMod.isAbsolute(relative)) {
+			return relative;
+		}
+		return pathMod.resolve(pathMod.dirname(basePath), relative);
+	}
+
+	const serverRunner = async (alias, filePath) => {
+		// Stop existing server on this path if any
+		const existing = activeServers.get(filePath);
+		if (existing) {
+			existing.dispose();
+		}
+
+		const rawContent = fs.readFileSync(filePath, 'utf-8');
+		let parsed;
+		try {
+			parsed = yaml.load(rawContent);
+		} catch (err) {
+			throw new Error(`Mock server: YAML parse error in ${pathMod.basename(filePath)}: ${err.message}`);
+		}
+
+		const result = mockParsePack.parseMockData(parsed);
+		if (result.errors.length > 0 || !result.data) {
+			const msg = result.errors.map(e => e.message).join('; ');
+			throw new Error(`Mock server validation errors in ${pathMod.basename(filePath)}: ${msg}`);
+		}
+		const data = result.data;
+
+		// Check if a server is already running on this port
+		for (const [, handle] of activeServers) {
+			if (handle.port === data.port) {
+				return () => {};
+			}
+		}
+
+		// Create token resolver
+		const tokenResolver = (value) => {
+			variableReplacer.resetRandomTokenCache();
+			variableReplacer.resetCurrentTokenCache();
+			return variableReplacer.resolveEmbeddedTokens(value, envVars);
+		};
+
+		// Resolve tokens in global headers
+		if (data.headers) {
+			for (const [k, v] of Object.entries(data.headers)) {
+				if (typeof v === 'string') {
+					data.headers[k] = String(variableReplacer.resolveEmbeddedTokens(v, envVars));
+				}
+			}
+		}
+
+		const router = mockServer.createMockRouter(data, tokenResolver);
+
+		const requestHandler = (req, res) => {
+			const method = (req.method || 'GET').toLowerCase();
+			const urlStr = req.url || '/';
+
+			if (data.cors) {
+				res.setHeader('Access-Control-Allow-Origin', '*');
+				res.setHeader('Access-Control-Allow-Methods', '*');
+				res.setHeader('Access-Control-Allow-Headers', '*');
+				if (method === 'options') {
+					res.statusCode = 204;
+					res.end();
+					return;
+				}
+			}
+
+			let body = '';
+			req.on('data', chunk => { body += chunk; });
+			req.on('end', async () => {
+				let pathname = urlStr;
+				const queryObj = {};
+				const qIdx = urlStr.indexOf('?');
+				if (qIdx >= 0) {
+					pathname = urlStr.slice(0, qIdx);
+					const searchParams = new URLSearchParams(urlStr.slice(qIdx + 1));
+					searchParams.forEach((v, k) => { queryObj[k] = v; });
+				}
+
+				let parsedBody;
+				try {
+					parsedBody = JSON.parse(body);
+				} catch {
+					parsedBody = body || undefined;
+				}
+
+				const mockReq = {
+					method,
+					path: pathname,
+					headers: req.headers || {},
+					query: queryObj,
+					body: parsedBody,
+				};
+
+				let mockRes;
+				try {
+					mockRes = router(mockReq);
+				} catch (err) {
+					res.statusCode = 500;
+					res.end(JSON.stringify({ error: 'Mock router error', message: err.message }));
+					return;
+				}
+
+				if (mockRes.delay && mockRes.delay > 0) {
+					await new Promise(resolve => setTimeout(resolve, mockRes.delay));
+				}
+
+				if (mockRes.headers) {
+					for (const [k, v] of Object.entries(mockRes.headers)) {
+						if (typeof v === 'string') {
+							res.setHeader(k, String(variableReplacer.resolveEmbeddedTokens(v, envVars)));
+						} else {
+							res.setHeader(k, v);
+						}
+					}
+				}
+
+				res.statusCode = mockRes.status;
+				const responseBody = mockRes.body !== undefined ? (
+					typeof mockRes.body === 'string' ? mockRes.body : JSON.stringify(mockRes.body)
+				) : '';
+				res.end(responseBody);
+			});
+		};
+
+		let server;
+		const protocol = data.protocol || 'http';
+		if (protocol === 'https' && data.tls) {
+			const certPath = resolveFilePath(data.tls.cert, filePath);
+			const keyPath = resolveFilePath(data.tls.key, filePath);
+			const tlsOptions = {
+				cert: fs.readFileSync(certPath),
+				key: fs.readFileSync(keyPath),
+			};
+			if (data.tls.ca) {
+				tlsOptions.ca = fs.readFileSync(resolveFilePath(data.tls.ca, filePath));
+			}
+			if (data.tls.requestCert) {
+				tlsOptions.requestCert = true;
+				tlsOptions.rejectUnauthorized = false;
+			}
+			server = https.createServer(tlsOptions, requestHandler);
+		} else {
+			server = http.createServer(requestHandler);
+		}
+
+		return new Promise((resolve, reject) => {
+			server.on('listening', () => {
+				const dispose = () => {
+					try { server.close(); } catch { /* ignore */ }
+					activeServers.delete(filePath);
+				};
+				activeServers.set(filePath, { server, port: data.port, dispose });
+				resolve(dispose);
+			});
+			server.on('error', (err) => {
+				activeServers.delete(filePath);
+				if (err.code === 'EADDRINUSE') {
+					reject(new Error(`Mock server: port ${data.port} is already in use.`));
+				} else {
+					reject(new Error(`Mock server error: ${err.message}`));
+				}
+			});
+			server.listen(data.port);
+		});
+	};
+
+	const stopAll = () => {
+		for (const [, handle] of activeServers) {
+			handle.dispose();
+		}
+		activeServers.clear();
+	};
+
+	return { serverRunner, stopAll };
 }
 
 function printHelp() {
@@ -433,6 +696,21 @@ async function main() {
 		} catch (e) {
 			msgs.push(`mmt-core/jsRunner: (not resolved) ${String(e && e.message ? e.message : e)}`);
 		}
+		// Check networkCore resolution
+		const pathMod = require('path');
+		try {
+			const coreDir = pathMod.dirname(require.resolve('mmt-core'));
+			msgs.push(`mmt-core dir: ${coreDir}`);
+			const ncPath = pathMod.join(coreDir, 'networkCoreNode.js');
+			msgs.push(`networkCoreNode path: ${ncPath}`);
+			const nc = require(ncPath);
+			msgs.push(`networkCoreNode.send: ${typeof nc.send}`);
+		} catch (e) {
+			msgs.push(`networkCoreNode: (failed) ${String(e && e.message ? e.message : e)}`);
+		}
+		// Check jsRunner
+		const jsRunner = createPkgJsRunner();
+		msgs.push(`jsRunner.runJSCode: ${typeof jsRunner.runJSCode}`);
 		process.stdout.write(msgs.join('\n') + '\n');
 		return;
 	}
@@ -459,13 +737,17 @@ async function main() {
 	const levelLogger = createLevelLogger(logLevel);
 
 	const parsed = command === 'run' ? parseRunArgv(argv) : parsePrintJsArgv(argv);
-	const filePath = parsed.filePath;
+	let filePath = parsed.filePath;
 	if (!filePath) {
 		process.stderr.write('Missing <file> argument.\n');
 		(command === 'run' ? printRunHelp() : printPrintJsHelp());
 		process.exitCode = 2;
 		return;
 	}
+	// Resolve to absolute path so that all subsequent relative path resolution
+	// produces absolute paths readable from disk (pkg can't read relative paths).
+	const pathMod = require('path');
+	filePath = pathMod.resolve(process.cwd(), filePath);
 
 	// Run directly using the shared core runner.
 	// eslint-disable-next-line global-require
@@ -480,8 +762,7 @@ async function main() {
 	const jsRunner = createPkgJsRunner();
 
 	const file = fs.readFileSync(filePath, 'utf8');
-	const pathMod = require('path');
-	const baseDir = pathMod.dirname(pathMod.resolve(process.cwd(), filePath));
+	const baseDir = pathMod.dirname(filePath);
 
 	const manualInputs = parsePairs(parsed.opts.input);
 	const manualEnvvars = parsePairs(parsed.opts.env);
@@ -547,6 +828,9 @@ async function main() {
 	}
 
 	let res;
+	// Create server runner for mock servers
+	const mockRunnerInstance = createPkgServerRunner(envvar || {});
+	const pkgServerRunner = mockRunnerInstance ? mockRunnerInstance.serverRunner : undefined;
 	try {
 		res = await runner.runFile({
 			file,
@@ -559,12 +843,18 @@ async function main() {
 			exampleIndex,
 			exampleName,
 			fileLoader: async (p) => fs.promises.readFile(p, 'utf8'),
-			jsRunner: (code, title, lg) => jsRunner.runJSCode({ code, title, logger: lg }),
+			jsRunner: (ctx) => jsRunner.runJSCode({ ...ctx, serverRunner: pkgServerRunner }),
 			logger: (lvl, msg) => levelLogger(lvl, msg),
+			serverRunner: pkgServerRunner,
 		});
 	} catch (e) {
 		process.stderr.write(`runner.runFile threw: ${String(e && e.message ? e.message : e)}\n`);
 		throw e;
+	} finally {
+		// Always stop mock servers after run completes
+		if (mockRunnerInstance) {
+			mockRunnerInstance.stopAll();
+		}
 	}
 	if (parsed.opts.debugEnv) {
 		try {
