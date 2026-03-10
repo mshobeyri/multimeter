@@ -63,6 +63,18 @@ Testlight compiles your `.mmt`/YAML tests to JS on the fly and executes them wit
 - --report-file <path>
   - Custom output path for the report file (default depends on format)
 
+## Environment Priority
+
+When running suite files, environment variables are resolved in this priority order (highest wins):
+
+1. **CLI `-e` flags** — explicit overrides always take precedence
+2. **Suite `environment.variables`** — inline variables in the suite file
+3. **Suite `environment.preset`** — preset from suite's env file or `multimeter.mmt`
+4. **CLI `--env-file` + `--preset`** — external env file settings
+5. **Project defaults** — base values from `multimeter.mmt`
+
+Suite-level environment configuration (from `environment:` field) only applies when the suite is run directly. When imported by another suite, the root suite's environment takes precedence.
+
 ## Examples
 
 - Run a test with inputs and env overrides
@@ -102,6 +114,7 @@ Testlight compiles your `.mmt`/YAML tests to JS on the fly and executes them wit
 - Quoted values are kept as strings: `-e port="08080"`.
 - When `--env-file` is relative, it resolves from the shell cwd first, then the test file directory.
 - Use `--out` to capture structured results in CI.
+- Suite files with an `export:` field automatically generate reports after completion—no `--report` flag needed.
 
 ---
 

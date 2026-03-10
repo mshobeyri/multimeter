@@ -182,6 +182,81 @@ program.command('run')
             console.warn(`Unknown report format: ${reportFormat}`);
           }
         }
+
+        // Handle suite exports (from suite file's export: field)
+        const suiteExports = (runOutcome as any).suiteExports;
+        if (suiteExports && Array.isArray(suiteExports.paths) && suiteExports.collectedResults) {
+          const suiteDir = path.dirname(path.resolve(process.cwd(), file));
+          const projectRoot = (runFileOptions as any).projectRoot;
+
+          for (const exportPath of suiteExports.paths) {
+            try {
+              // Resolve path relative to suite file or +/ project root
+              let resolvedPath: string;
+              if (exportPath.startsWith('+/')) {
+                if (projectRoot) {
+                  resolvedPath = path.resolve(projectRoot, exportPath.slice(2));
+                } else {
+                  if (!opts.quiet) {
+                    console.warn(`Cannot resolve +/ path without project root: ${exportPath}`);
+                  }
+                  continue;
+                }
+              } else {
+                resolvedPath = path.resolve(suiteDir, exportPath);
+              }
+
+              // Determine format from extension
+              const ext = path.extname(resolvedPath).toLowerCase();
+              const formatForExt: Record<string, string> = {
+                '.xml': 'junit',
+                '.html': 'html',
+                '.md': 'md',
+                '.mmt': 'mmt',
+              };
+              const format = formatForExt[ext];
+              if (!format) {
+                if (!opts.quiet) {
+                  console.warn(`Unknown export format for extension ${ext}: ${exportPath}`);
+                }
+                continue;
+              }
+
+              // Generate report content
+              const exportSerializers: Record<string, ((r: any, o?: any) => string) | undefined> = {
+                junit: (mmtcore as any).junitXml?.generateJunitXml,
+                mmt: (mmtcore as any).mmtReport?.generateMmtReport,
+                html: (mmtcore as any).reportHtml?.generateReportHtml,
+                md: (mmtcore as any).reportMarkdown?.generateReportMarkdown,
+              };
+              const serializer = exportSerializers[format];
+              if (typeof serializer !== 'function') {
+                if (!opts.quiet) {
+                  console.warn(`Export serializer not available for format: ${format}`);
+                }
+                continue;
+              }
+
+              const content = serializer(suiteExports.collectedResults);
+
+              // Create parent directories if they don't exist
+              const parentDir = path.dirname(resolvedPath);
+              if (!fs.existsSync(parentDir)) {
+                fs.mkdirSync(parentDir, {recursive: true});
+              }
+
+              fs.writeFileSync(resolvedPath, content, 'utf8');
+              if (!opts.quiet) {
+                console.log(`Suite export written: ${resolvedPath}`);
+              }
+            } catch (e: any) {
+              if (!opts.quiet) {
+                console.warn(`Failed to write suite export ${exportPath}: ${e?.message || e}`);
+              }
+            }
+          }
+        }
+
         process.exit(result.success ? 0 : 1);
       } catch (e: any) {
         if (!opts.quiet) {

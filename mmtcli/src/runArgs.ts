@@ -210,6 +210,18 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
   const envFileOpt = opts.envFile as string | undefined;
   const presetName = opts.preset as string | undefined;
   let envFileDir = dir;
+
+  // Detect if this is a suite file and check for suite environment config
+  let suiteEnvConfig: {preset?: string; file?: string; variables?: Record<string, unknown>} | undefined;
+  try {
+    const parsed = yaml.load(rawText) as any;
+    if (parsed && parsed.type === 'suite' && parsed.environment) {
+      suiteEnvConfig = parsed.environment;
+    }
+  } catch {
+    // Not valid YAML or not a suite, continue normally
+  }
+
   if (envFileOpt) {
     let p = String(envFileOpt);
     if (!path.isAbsolute(p)) {
@@ -235,6 +247,44 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
   } else {
     envvar = mergeEnv({envvar: undefined, manualEnvvars});
   }
+
+  // Merge suite environment for CLI
+  // Priority: CLI -e > suite environment.variables > suite preset > --env-file/--preset > defaults
+  if (suiteEnvConfig) {
+    const projectRoot = findProjectRootForCli(full);
+
+    // Resolve suite preset if specified
+    let suitePresetEnv: Record<string, any> = {};
+    if (suiteEnvConfig.preset) {
+      let suiteEnvFilePath: string | undefined;
+      if (suiteEnvConfig.file) {
+        // Resolve relative to suite file or project root for +/ paths
+        if (suiteEnvConfig.file.startsWith('+/')) {
+          suiteEnvFilePath = projectRoot ? path.join(projectRoot, suiteEnvConfig.file.slice(2)) : undefined;
+        } else {
+          suiteEnvFilePath = path.resolve(dir, suiteEnvConfig.file);
+        }
+      } else if (projectRoot) {
+        // Use multimeter.mmt in project root
+        suiteEnvFilePath = path.join(projectRoot, 'multimeter.mmt');
+      }
+
+      if (suiteEnvFilePath && fs.existsSync(suiteEnvFilePath)) {
+        const suiteEnvDoc = loadEnvDoc(suiteEnvFilePath);
+        suitePresetEnv = resolvePresetEnv(suiteEnvDoc, suiteEnvConfig.preset);
+      }
+    }
+
+    // Merge: base (--env-file/--preset) < suite preset < suite variables < CLI -e
+    const baseEnv = {...(envvar || {})};
+    // Remove CLI -e from base (it will be applied at highest priority)
+    for (const key of Object.keys(manualEnvvars)) {
+      delete baseEnv[key];
+    }
+    const suiteVariables = suiteEnvConfig.variables ? {...suiteEnvConfig.variables} : {};
+    envvar = {...baseEnv, ...suitePresetEnv, ...suiteVariables, ...manualEnvvars};
+  }
+
   const runFileOptions: RunFileOptions&{
     fileLoader: (path: string) => Promise<string>;
     jsRunner: (

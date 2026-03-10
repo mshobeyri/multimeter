@@ -4,7 +4,16 @@ import { SuiteEntry, SuiteGroup } from '../types';
 import SuiteEditTree from './SuiteEditTree';
 import { statusIconFor } from '../../shared/Common';
 import FilePickerInput from '../../components/FilePickerInput';
+import KSVEditor from '../../components/KSVEditor';
 import { FileContext } from '../../fileContext';
+
+type SuiteEditTab = 'tests' | 'servers' | 'environment' | 'exports';
+
+interface SuiteEnvironmentConfig {
+  preset?: string;
+  file?: string;
+  variables?: Record<string, unknown>;
+}
 
 interface SuiteEditProps {
   content: string;
@@ -96,6 +105,73 @@ const updateSuiteContentWithServers = (content: string, servers: string[]): stri
   }
 };
 
+const buildEnvironmentFromContent = (content: string): SuiteEnvironmentConfig | null => {
+  const parsed = parseYaml(content);
+  if (!parsed?.environment || typeof parsed.environment !== 'object') {
+    return null;
+  }
+  const env = parsed.environment;
+  const result: SuiteEnvironmentConfig = {};
+  if (typeof env.preset === 'string') {
+    result.preset = env.preset;
+  }
+  if (typeof env.file === 'string') {
+    result.file = env.file;
+  }
+  if (env.variables && typeof env.variables === 'object') {
+    result.variables = env.variables;
+  }
+  return Object.keys(result).length > 0 ? result : null;
+};
+
+const updateSuiteContentWithEnvironment = (content: string, env: SuiteEnvironmentConfig | null): string | null => {
+  try {
+    const doc = parseYamlDoc(content);
+    if (!env || (env.preset === undefined && env.file === undefined && (!env.variables || Object.keys(env.variables).length === 0))) {
+      doc.delete('environment');
+    } else {
+      const envObj: any = {};
+      if (env.preset) {
+        envObj.preset = env.preset;
+      }
+      if (env.file) {
+        envObj.file = env.file;
+      }
+      if (env.variables && Object.keys(env.variables).length > 0) {
+        envObj.variables = env.variables;
+      }
+      doc.set('environment', envObj);
+    }
+    return doc.toString();
+  } catch {
+    return null;
+  }
+};
+
+const buildExportsFromContent = (content: string): string[] => {
+  const parsed = parseYaml(content);
+  if (!Array.isArray(parsed?.export)) {
+    return [];
+  }
+  return parsed.export
+    .map((v: any) => (typeof v === 'string' ? v.trim() : ''))
+    .filter(Boolean);
+};
+
+const updateSuiteContentWithExports = (content: string, exports: string[]): string | null => {
+  try {
+    const doc = parseYamlDoc(content);
+    if (exports.length === 0) {
+      doc.delete('export');
+    } else {
+      doc.set('export', exports);
+    }
+    return doc.toString();
+  } catch {
+    return null;
+  }
+};
+
 const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
   const allPaths: string[] = [];
   groups.forEach((group) => group.entries.forEach((entry) => allPaths.push(entry.path)));
@@ -104,8 +180,11 @@ const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
 
 const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   const fileContext = useContext(FileContext);
+  const [activeTab, setActiveTab] = useState<SuiteEditTab>('tests');
   const [groups, setGroups] = useState<SuiteGroup[]>(() => buildSuiteGroupsFromContent(content));
   const [servers, setServers] = useState<string[]>(() => buildServersFromContent(content));
+  const [environment, setEnvironment] = useState<SuiteEnvironmentConfig | null>(() => buildEnvironmentFromContent(content));
+  const [exports, setExports] = useState<string[]>(() => buildExportsFromContent(content));
   const [missingFiles, setMissingFiles] = useState<Set<string>>(new Set());
 
   const addButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -116,6 +195,8 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   useEffect(() => {
     setGroups(buildSuiteGroupsFromContent(content));
     setServers(buildServersFromContent(content));
+    setEnvironment(buildEnvironmentFromContent(content));
+    setExports(buildExportsFromContent(content));
   }, [content]);
 
   const persistGroups = useCallback(
@@ -232,6 +313,70 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
     persistServers(next);
   }, [servers, persistServers]);
 
+  const persistEnvironment = useCallback(
+    (nextEnv: SuiteEnvironmentConfig | null) => {
+      setEnvironment(nextEnv);
+      const updated = updateSuiteContentWithEnvironment(content, nextEnv);
+      if (updated) {
+        setContent(updated);
+      }
+    },
+    [content, setContent]
+  );
+
+  const handleEnvPresetChange = useCallback((value: string) => {
+    const next = { ...environment, preset: value || undefined };
+    if (!next.preset && !next.file && (!next.variables || Object.keys(next.variables).length === 0)) {
+      persistEnvironment(null);
+    } else {
+      persistEnvironment(next);
+    }
+  }, [environment, persistEnvironment]);
+
+  const handleEnvFileChange = useCallback((value: string) => {
+    const next = { ...environment, file: value || undefined };
+    if (!next.preset && !next.file && (!next.variables || Object.keys(next.variables).length === 0)) {
+      persistEnvironment(null);
+    } else {
+      persistEnvironment(next);
+    }
+  }, [environment, persistEnvironment]);
+
+  const handleEnvVariablesChange = useCallback((value: Record<string, string>) => {
+    const vars = Object.keys(value).length > 0 ? value : undefined;
+    const next = { ...environment, variables: vars };
+    if (!next.preset && !next.file && (!next.variables || Object.keys(next.variables).length === 0)) {
+      persistEnvironment(null);
+    } else {
+      persistEnvironment(next);
+    }
+  }, [environment, persistEnvironment]);
+
+  const persistExports = useCallback(
+    (nextExports: string[]) => {
+      setExports(nextExports);
+      const updated = updateSuiteContentWithExports(content, nextExports);
+      if (updated) {
+        setContent(updated);
+      }
+    },
+    [content, setContent]
+  );
+
+  const handleAddExport = useCallback(() => {
+    persistExports([...exports, 'reports/report.html']);
+  }, [exports, persistExports]);
+
+  const handleRemoveExport = useCallback((index: number) => {
+    const next = exports.filter((_, i) => i !== index);
+    persistExports(next);
+  }, [exports, persistExports]);
+
+  const handleChangeExport = useCallback((index: number, value: string) => {
+    const next = exports.map((s, i) => i === index ? value : s);
+    persistExports(next);
+  }, [exports, persistExports]);
+
   const allPaths = useMemo(() => collectSuitePaths(groups), [groups]);
   useEffect(() => {
     if (allPaths.length > 0) {
@@ -266,130 +411,247 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
       canEdit={true}
     />
   );
-  return (
-    <div className="panel-box" style={{ overflow: 'auto', flex: 1 }}>
-      <div className="test-flow-tree" style={{ paddingTop: 4 }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'flex-end',
-            marginBottom: 8,
-            alignItems: 'center',
-            position: 'relative',
-            gap: 8,
-          }}
-        >
-          <div style={{ display: 'flex', gap: 8 }}>
+
+  const testsTabContent = (
+    <div style={{ paddingTop: 8 }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          marginBottom: 8,
+          alignItems: 'center',
+          position: 'relative',
+          gap: 8,
+        }}
+      >
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            ref={addButtonRef as any}
+            className="button-icon"
+            onPointerDown={(event) => event.stopPropagation()}
+            onPointerUp={(event) => {
+              event.stopPropagation();
+              toggleAddMenu();
+            }}
+            title="Add suite item"
+          >
+            <span className="codicon codicon-add" aria-hidden />
+            Add item
+          </button>
+        </div>
+        {addMenuOpen && addMenuPos && (
+          <div
+            ref={addMenuRef}
+            style={{
+              position: 'fixed',
+              left: addMenuPos.left,
+              top: addMenuPos.top,
+              zIndex: 1000,
+              background: 'var(--vscode-editorWidget-background,#232323)',
+              border: '1px solid var(--vscode-editorWidget-border,#333)',
+              borderRadius: 4,
+              boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+              minWidth: 220,
+              padding: 4,
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
+          >
             <button
-              ref={addButtonRef as any}
-              className="button-icon"
-              onPointerDown={(event) => event.stopPropagation()}
-              onPointerUp={(event) => {
-                event.stopPropagation();
-                toggleAddMenu();
+              className="action-button"
+              style={{
+                width: '100%',
+                justifyContent: 'flex-start',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
               }}
-              title="Add suite item"
+              onClick={() => handleAddGroup()}
+              title="Insert a group separator (then)"
             >
-              <span className="codicon codicon-add" aria-hidden />
-              Add item
+              <span className="codicon codicon-list-tree" style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
+              <span>Add group (then)</span>
+            </button>
+            <button
+              className="action-button"
+              style={{
+                width: '100%',
+                justifyContent: 'flex-start',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+              }}
+              onClick={() => handleAddTestFile()}
+              title="Add a test file entry"
+            >
+              <span className="codicon codicon-symbol-file" style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
+              <span>Add test file</span>
             </button>
           </div>
-          {addMenuOpen && addMenuPos && (
-            <div
-              ref={addMenuRef}
-              style={{
-                position: 'fixed',
-                left: addMenuPos.left,
-                top: addMenuPos.top,
-                zIndex: 1000,
-                background: 'var(--vscode-editorWidget-background,#232323)',
-                border: '1px solid var(--vscode-editorWidget-border,#333)',
-                borderRadius: 4,
-                boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
-                minWidth: 220,
-                padding: 4,
-              }}
-              onPointerDown={(event) => event.stopPropagation()}
-              onMouseDown={(event) => event.stopPropagation()}
-              onClick={(event) => event.stopPropagation()}
-            >
-              <button
-                className="action-button"
-                style={{
-                  width: '100%',
-                  justifyContent: 'flex-start',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-                onClick={() => handleAddGroup()}
-                title="Insert a group separator (then)"
-              >
-                <span className="codicon codicon-list-tree" style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
-                <span>Add group (then)</span>
-              </button>
-              <button
-                className="action-button"
-                style={{
-                  width: '100%',
-                  justifyContent: 'flex-start',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-                onClick={() => handleAddTestFile()}
-                title="Add a test file entry"
-              >
-                <span className="codicon codicon-symbol-file" style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
-                <span>Add test file</span>
-              </button>
-              <button
-                className="action-button"
-                style={{
-                  width: '100%',
-                  justifyContent: 'flex-start',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                }}
-                onClick={() => handleAddServer()}
-                title="Add a mock server file to run before the suite"
-              >
-                <span className="codicon codicon-server-environment" style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
-                <span>Add server file</span>
-              </button>
-            </div>
-          )}
-        </div>
-        {servers.length > 0 && (
-          <>
-            <div className="label" style={{ marginBottom: 6 }}>Servers</div>
-            <div style={{ marginBottom: 12, paddingLeft: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {servers.map((s, i) => (
-                <FilePickerInput
-                  key={i}
-                  value={s}
-                  onChange={(v) => handleChangeServer(i, v)}
-                  onRemovePressed={() => handleRemoveServer(i)}
-                  basePath={fileContext.mmtFilePath}
-                  filters={[{ name: 'MMT files', extensions: ['mmt'] }]}
-                  showFilePicker
-                  removable
-                />
-              ))}
-            </div>
-          </>
-        )}
-        {noItems ? (
-          <div style={{ opacity: 0.8 }}>No suite items found under `tests:`</div>
-        ) : (
-          <>
-            <div className="label" style={{ marginBottom: 6 }}>Tests</div>
-            {tree}
-          </>
         )}
       </div>
-    </div >
+      {noItems ? (
+        <div style={{ opacity: 0.8 }}>No suite items found under `tests:`</div>
+      ) : (
+        tree
+      )}
+    </div>
+  );
+
+  const serversTabContent = (
+    <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <button
+          className="button-icon"
+          onClick={handleAddServer}
+          title="Add server file"
+        >
+          <span className="codicon codicon-add" aria-hidden />
+          Add server
+        </button>
+      </div>
+      {servers.length === 0 ? (
+        <div style={{ opacity: 0.8 }}>No servers configured. Add a mock server file to run before the suite.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {servers.map((s, i) => (
+            <FilePickerInput
+              key={i}
+              value={s}
+              onChange={(v) => handleChangeServer(i, v)}
+              onRemovePressed={() => handleRemoveServer(i)}
+              basePath={fileContext.mmtFilePath}
+              filters={[{ name: 'MMT files', extensions: ['mmt'] }]}
+              showFilePicker
+              removable
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+
+  const environmentTabContent = (
+    <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
+      <div className="label" style={{ marginBottom: 6 }}>Preset</div>
+      <div style={{ marginBottom: 12, paddingLeft: 4 }}>
+        <input
+          type="text"
+          className="vscode-input"
+          value={environment?.preset || ''}
+          onChange={(e) => handleEnvPresetChange(e.target.value)}
+          placeholder="preset name (from multimeter.mmt or env file)"
+          style={{ width: '100%' }}
+        />
+      </div>
+      <div className="label" style={{ marginBottom: 6 }}>Environment File</div>
+      <div style={{ marginBottom: 12, paddingLeft: 4 }}>
+        <FilePickerInput
+          value={environment?.file || ''}
+          onChange={handleEnvFileChange}
+          basePath={fileContext.mmtFilePath}
+          filters={[{ name: 'MMT files', extensions: ['mmt'] }]}
+          showFilePicker
+          placeholder="path to env.mmt file"
+        />
+      </div>
+      <div className="label" style={{ marginBottom: 6 }}>Variables</div>
+      <div style={{ paddingLeft: 4 }}>
+        <KSVEditor
+          label=""
+          value={environment?.variables as Record<string, string> || {}}
+          onChange={handleEnvVariablesChange}
+          keyPlaceholder="variable name"
+          valuePlaceholder="value"
+        />
+      </div>
+    </div>
+  );
+
+  const exportsTabContent = (
+    <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <button
+          className="button-icon"
+          onClick={handleAddExport}
+          title="Add export path"
+        >
+          <span className="codicon codicon-add" aria-hidden />
+          Add export
+        </button>
+      </div>
+      {exports.length === 0 ? (
+        <div style={{ opacity: 0.8 }}>No exports configured. Add paths to generate reports after suite completion.</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {exports.map((ex, i) => (
+            <FilePickerInput
+              key={i}
+              value={ex}
+              onChange={(v) => handleChangeExport(i, v)}
+              onRemovePressed={() => handleRemoveExport(i)}
+              basePath={fileContext.mmtFilePath}
+              placeholder="e.g., reports/results.html or +/report.xml"
+              removable
+            />
+          ))}
+        </div>
+      )}
+      <div style={{ marginTop: 12, opacity: 0.7, fontSize: '0.9em' }}>
+        <div>Supported formats: <code>.html</code>, <code>.xml</code> (JUnit), <code>.md</code>, <code>.mmt</code></div>
+        <div style={{ marginTop: 4 }}>Paths are relative to the suite file. Use <code>+/</code> prefix for project root.</div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div style={{ overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+      <div className="tab-bar" style={{ flexShrink: 0 }}>
+        <button
+          className={`tab-button ${activeTab === 'tests' ? 'active' : ''}`}
+          onClick={() => setActiveTab('tests')}
+          title="Tests"
+          type="button"
+        >
+          <span className="codicon codicon-beaker tab-button-icon" aria-hidden />
+          Tests
+        </button>
+        <button
+          className={`tab-button ${activeTab === 'servers' ? 'active' : ''}`}
+          onClick={() => setActiveTab('servers')}
+          title="Servers"
+          type="button"
+        >
+          <span className="codicon codicon-server-environment tab-button-icon" aria-hidden />
+          Servers
+        </button>
+        <button
+          className={`tab-button ${activeTab === 'environment' ? 'active' : ''}`}
+          onClick={() => setActiveTab('environment')}
+          title="Environment"
+          type="button"
+        >
+          <span className="codicon codicon-symbol-namespace tab-button-icon" aria-hidden />
+          Environment
+        </button>
+        <button
+          className={`tab-button ${activeTab === 'exports' ? 'active' : ''}`}
+          onClick={() => setActiveTab('exports')}
+          title="Exports"
+          type="button"
+        >
+          <span className="codicon codicon-export tab-button-icon" aria-hidden />
+          Exports
+        </button>
+      </div>
+      <div className="test-flow-tree" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        {activeTab === 'tests' && testsTabContent}
+        {activeTab === 'servers' && serversTabContent}
+        {activeTab === 'environment' && environmentTabContent}
+        {activeTab === 'exports' && exportsTabContent}
+      </div>
+    </div>
   );
 };
 

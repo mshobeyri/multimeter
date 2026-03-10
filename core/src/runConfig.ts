@@ -280,3 +280,48 @@ export function resolvePresetEnv(
   }
   return out;
 }
+
+export interface SuiteEnvironment {
+  preset?: string;
+  file?: string;
+  variables?: Record<string, unknown>;
+}
+
+export interface MergeSuiteEnvParams {
+  /** Base env from CLI --env-file/--preset or VS Code local storage. */
+  baseEnv?: Record<string, any>;
+  /** Suite environment config from suite file. */
+  suiteEnv?: SuiteEnvironment;
+  /** Resolved preset env from suite's environment.preset (caller resolves from file/multimeter.mmt). */
+  suitePresetEnv?: Record<string, any>;
+  /** Manual CLI -e overrides (highest priority in CLI). */
+  manualEnvvars?: Record<string, any>;
+  /** Whether CLI -e should override suite env (true for CLI, false for VS Code). */
+  cliOverridesSuiteEnv?: boolean;
+}
+
+/**
+ * Merge environment variables for suite execution.
+ * 
+ * CLI priority: manualEnvvars > suiteEnv.variables > suitePresetEnv > baseEnv
+ * VS Code priority: suiteEnv.variables > suitePresetEnv > baseEnv
+ */
+export function mergeSuiteEnv(params: MergeSuiteEnvParams): Record<string, any> {
+  const {
+    baseEnv = {},
+    suiteEnv,
+    suitePresetEnv = {},
+    manualEnvvars = {},
+    cliOverridesSuiteEnv = false,
+  } = params;
+
+  const suiteVariables = suiteEnv?.variables ? {...suiteEnv.variables} : {};
+
+  if (cliOverridesSuiteEnv) {
+    // CLI: manualEnvvars > suite variables > suite preset > base
+    return {...baseEnv, ...suitePresetEnv, ...suiteVariables, ...manualEnvvars};
+  } else {
+    // VS Code: suite variables > suite preset > base (no CLI manual env)
+    return {...baseEnv, ...suitePresetEnv, ...suiteVariables};
+  }
+}

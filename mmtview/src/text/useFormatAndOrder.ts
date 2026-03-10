@@ -3,6 +3,7 @@ import { apiToYaml, yamlToAPI } from 'mmt-core/apiParsePack';
 import { yamlToTest, testToYaml } from 'mmt-core/testParsePack';
 import { yamlToDoc, docToYaml } from 'mmt-core/docParsePack';
 import { yamlToMock, mockToYaml } from 'mmt-core/mockParsePack';
+import { yamlToSuite, suiteToYaml } from 'mmt-core/suiteParsePack';
 import { parseReportMmt } from 'mmt-core/reportParser';
 import { generateMmtReport } from 'mmt-core/mmtReport';
 import YAML from 'yaml';
@@ -10,6 +11,7 @@ import { APIData } from 'mmt-core/APIData';
 import { TestData } from 'mmt-core/TestData';
 import { DocData } from 'mmt-core/DocData';
 import { MockData } from 'mmt-core/MockData';
+import { SuiteData } from 'mmt-core/SuiteData';
 import { showVSCodeMessage } from '../vsAPI';
 
 export function useFormatAndOrder({
@@ -70,8 +72,12 @@ export function buildCanonicalYaml(content: string, docType: string | null): str
         return docToYaml(docData);
       }
       case 'suite': {
-        showVSCodeMessage('warn', 'Suite reordering is not supported yet.');
-        return null;
+        const suiteData = yamlToSuite(content);
+        if (!suiteData || typeof suiteData !== 'object' || suiteData === ({} as SuiteData)) {
+          showVSCodeMessage('error', 'Document is not a valid YAML.');
+          return null;
+        }
+        return suiteToYaml(suiteData);
       }
       case 'server': {
         const mockData = yamlToMock(content);

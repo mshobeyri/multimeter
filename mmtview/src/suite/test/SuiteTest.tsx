@@ -143,6 +143,41 @@ const buildServersFromContent = (content: string): string[] => {
         .filter(Boolean);
 };
 
+interface SuiteEnvironmentConfig {
+    preset?: string;
+    file?: string;
+    variables?: Record<string, unknown>;
+}
+
+const buildEnvironmentFromContent = (content: string): SuiteEnvironmentConfig | null => {
+    const parsed = parseYaml(content);
+    if (!parsed?.environment || typeof parsed.environment !== 'object') {
+        return null;
+    }
+    const env = parsed.environment;
+    const result: SuiteEnvironmentConfig = {};
+    if (typeof env.preset === 'string') {
+        result.preset = env.preset;
+    }
+    if (typeof env.file === 'string') {
+        result.file = env.file;
+    }
+    if (env.variables && typeof env.variables === 'object') {
+        result.variables = env.variables;
+    }
+    return Object.keys(result).length > 0 ? result : null;
+};
+
+const buildExportsFromContent = (content: string): string[] => {
+    const parsed = parseYaml(content);
+    if (!Array.isArray(parsed?.export)) {
+        return [];
+    }
+    return parsed.export
+        .map((v: any) => (typeof v === 'string' ? v.trim() : ''))
+        .filter(Boolean);
+};
+
 const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
     const allPaths: string[] = [];
     groups.forEach((group) => group.entries.forEach((entry) => allPaths.push(entry.path)));
@@ -153,6 +188,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
     const { mmtFilePath } = useContext(FileContext);
     const groups = useMemo(() => buildSuiteGroupsFromContent(content), [content]);
     const servers = useMemo(() => buildServersFromContent(content), [content]);
+    const environment = useMemo(() => buildEnvironmentFromContent(content), [content]);
+    const suiteExports = useMemo(() => buildExportsFromContent(content), [content]);
     const suiteTitle = useMemo(() => {
         try {
             const parsed = parseYaml(content);
@@ -727,6 +764,40 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 {noItems ? <div style={{ opacity: 0.8 }}>No suite items found under `tests:`</div> : (
                     <>
                         {overviewStats && <OverviewBoxes stats={overviewStats} />}
+                        {environment && (
+                            <>
+                                <div className="label" style={{ marginBottom: 6 }}>Environment</div>
+                                <div style={{ marginBottom: 12, paddingLeft: 8 }}>
+                                    {environment.preset && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
+                                            <span className="codicon codicon-symbol-namespace" style={{ fontSize: 14 }} aria-hidden />
+                                            <span>Preset: <code>{environment.preset}</code></span>
+                                        </div>
+                                    )}
+                                    {environment.file && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
+                                            <span className="codicon codicon-file" style={{ fontSize: 14 }} aria-hidden />
+                                            <span>File: <code>{environment.file}</code></span>
+                                        </div>
+                                    )}
+                                    {environment.variables && Object.keys(environment.variables).length > 0 && (
+                                        <div style={{ padding: '2px 0', opacity: 0.9 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                                                <span className="codicon codicon-symbol-variable" style={{ fontSize: 14 }} aria-hidden />
+                                                <span>Variables:</span>
+                                            </div>
+                                            <div style={{ paddingLeft: 20 }}>
+                                                {Object.entries(environment.variables).map(([key, val]) => (
+                                                    <div key={key} style={{ padding: '1px 0', fontSize: '0.9em' }}>
+                                                        <code>{key}</code>: <code>{JSON.stringify(val)}</code>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
                         {servers.length > 0 && (
                             <>
                                 <div className="label" style={{ marginBottom: 6 }}>Servers</div>
@@ -740,6 +811,19 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                                             </div>
                                         );
                                     })}
+                                </div>
+                            </>
+                        )}
+                        {suiteExports.length > 0 && (
+                            <>
+                                <div className="label" style={{ marginBottom: 6 }}>Exports</div>
+                                <div style={{ marginBottom: 12, paddingLeft: 8 }}>
+                                    {suiteExports.map((ex, i) => (
+                                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
+                                            <span className="codicon codicon-export" style={{ fontSize: 14 }} aria-hidden />
+                                            <span><code>{ex}</code></span>
+                                        </div>
+                                    ))}
                                 </div>
                             </>
                         )}

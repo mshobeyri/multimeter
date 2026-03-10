@@ -2,7 +2,15 @@ import {APIData} from './APIData';
 import {LogLevel, Type} from './CommonData';
 import * as JSer from './JSer';
 import {RunJSCodeContext} from './jsRunner';
+import type {CollectedResults} from './reportCollector';
 import {RunResult, TestStepReporterEvent} from './runConfig';
+
+export interface SuiteExportSpec {
+  /** Export file paths from the suite file's `export` field. */
+  paths: string[];
+  /** Collected results from the suite run for generating reports. */
+  collectedResults: CollectedResults;
+}
 
 export interface RunFileResult {
   js: string;
@@ -14,6 +22,8 @@ export interface RunFileResult {
   envVarsUsed: Record<string, any>;
   exampleName?: string;
   exampleIndex?: number;
+  /** Export specifications for suite runs (only set when `bundle.export` is defined). */
+  suiteExports?: SuiteExportSpec;
 }
 
 export interface PreparedRun {

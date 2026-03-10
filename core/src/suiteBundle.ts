@@ -1,3 +1,4 @@
+import {SuiteEnvironment} from './SuiteData';
 import {SuiteHierarchyNode, SuiteHierarchyRootNode} from './suiteHierarchy';
 import {createSuiteNodeId} from './suiteNodeId';
 
@@ -25,6 +26,10 @@ export interface SuiteBundle {
   bundle: SuiteBundleNode[];
   /** Server file paths to start before suite execution and keep running throughout. */
   servers?: string[];
+  /** Environment configuration (root-only, from suite file). */
+  environment?: SuiteEnvironment;
+  /** Export file paths to generate after suite completion (root-only). */
+  export?: string[];
   target?: string;
 }
 
@@ -32,9 +37,11 @@ export function createSuiteBundle(params: {
   rootSuitePath: string;
   hierarchy: SuiteHierarchyRootNode;
   servers?: string[];
+  environment?: SuiteEnvironment;
+  export?: string[];
   target?: string;
 }): SuiteBundle {
-  const {rootSuitePath, hierarchy, servers, target} = params;
+  const {rootSuitePath, hierarchy, servers, environment, target} = params;
 
   const build = (nodes: readonly SuiteHierarchyNode[], indexPath: number[]): SuiteBundleNode[] => {
     const out: SuiteBundleNode[] = [];
@@ -119,6 +126,8 @@ export function createSuiteBundle(params: {
       return [{kind: 'group', id: createSuiteNodeId([0]), label: 'Group 1', children: built}];
     })(),
     servers: Array.isArray(servers) && servers.length > 0 ? servers : undefined,
+    environment: environment ?? undefined,
+    export: Array.isArray(params.export) && params.export.length > 0 ? params.export : undefined,
     target: typeof target === 'string' && target ? target : undefined,
   };
 }

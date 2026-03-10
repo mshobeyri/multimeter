@@ -1,4 +1,5 @@
 import {detectDocType, resolveRelativeTo} from './runCommon';
+import {SuiteEnvironment} from './SuiteData';
 import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
 import {createSuiteNodeId} from './suiteNodeId';
 import {yamlToTest} from './testParsePack';
@@ -16,6 +17,10 @@ export type SuiteHierarchyFileLoader = (path: string) => Promise<string>;
 export type SuiteHierarchyRootNode = Extract<SuiteHierarchyNode, {kind: 'suite'}> & {
   /** Server file paths from the top-level `servers:` field. */
   servers?: string[];
+  /** Environment configuration (root-only). */
+  environment?: SuiteEnvironment;
+  /** Export file paths (root-only). */
+  export?: string[];
 };
 
 export async function buildSuiteHierarchyFromSuiteFile(params: {
@@ -45,6 +50,12 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
     };
     if (Array.isArray(suiteDoc.servers) && suiteDoc.servers.length > 0) {
       node.servers = suiteDoc.servers;
+    }
+    if (suiteDoc.environment) {
+      node.environment = suiteDoc.environment;
+    }
+    if (Array.isArray(suiteDoc.export) && suiteDoc.export.length > 0) {
+      node.export = suiteDoc.export;
     }
     return node;
   };

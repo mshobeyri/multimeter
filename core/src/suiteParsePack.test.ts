@@ -23,4 +23,68 @@ describe('suiteParsePack', () => {
     expect(() => splitSuiteGroups(['a', 'then']))
         .toThrow(/cannot end/i);
   });
+
+  it('parses environment config with preset and variables', () => {
+    const raw = `
+type: suite
+title: With Environment
+environment:
+  preset: staging
+  file: ./envs/custom.mmt
+  variables:
+    API_URL: http://localhost:8080
+    DEBUG: true
+tests:
+  - test.mmt
+`;
+    const suite = yamlToSuite(raw);
+    expect(suite.environment).toBeDefined();
+    expect(suite.environment?.preset).toBe('staging');
+    expect(suite.environment?.file).toBe('./envs/custom.mmt');
+    expect(suite.environment?.variables).toEqual({
+      API_URL: 'http://localhost:8080',
+      DEBUG: true,
+    });
+  });
+
+  it('parses export paths', () => {
+    const raw = `
+type: suite
+title: With Exports
+tests:
+  - test.mmt
+export:
+  - ./reports/results.xml
+  - +/reports/summary.html
+`;
+    const suite = yamlToSuite(raw);
+    expect(suite.export).toEqual([
+      './reports/results.xml',
+      '+/reports/summary.html',
+    ]);
+  });
+
+  it('ignores empty environment config', () => {
+    const raw = `
+type: suite
+title: Empty Env
+environment: {}
+tests:
+  - test.mmt
+`;
+    const suite = yamlToSuite(raw);
+    expect(suite.environment).toBeUndefined();
+  });
+
+  it('ignores empty export array', () => {
+    const raw = `
+type: suite
+title: Empty Export
+tests:
+  - test.mmt
+export: []
+`;
+    const suite = yamlToSuite(raw);
+    expect(suite.export).toBeUndefined();
+  });
 });

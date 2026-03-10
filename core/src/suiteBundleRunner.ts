@@ -1,6 +1,7 @@
 import {LogLevel} from './CommonData';
-import {basename, detectDocType, resolveRelativeTo, RunFileResult, sanitizeIdentifier} from './runCommon';
-import {RunFileOptions, RunResult, SuiteStepStatus} from './runConfig';
+import {createReportCollector, CollectedResults} from './reportCollector';
+import {basename, detectDocType, resolveRelativeTo, RunFileResult, sanitizeIdentifier, SuiteExportSpec} from './runCommon';
+import {RunFileOptions, RunReporterMessage, RunResult, SuiteStepStatus} from './runConfig';
 import {SuiteBundle, SuiteBundleNode} from './suiteBundle';
 import {stopAllServers_, registerServer_} from './testHelper';
 
@@ -246,6 +247,23 @@ export async function executeSuiteBundle(params: {
   // Prevent nested suite bundle executions from emitting suite-run lifecycle.
   const shouldEmitSuiteRunEvents = !(options.__mmtIsSuiteBundleChildRun);
 
+  // Create a collecting reporter wrapper when exports are configured (root-only).
+  const hasExports = shouldEmitSuiteRunEvents && Array.isArray(bundle.export) && bundle.export.length > 0;
+  let collectingReporter: ReturnType<typeof createReportCollector> | undefined;
+
+  // Use wrapped reporter if collecting, otherwise use original
+  let effectiveOptions: RunFileOptions;
+  if (hasExports) {
+    collectingReporter = createReportCollector();
+    const wrappedReporter = (message: RunReporterMessage): void => {
+      collectingReporter!.reporter(message);
+      options.reporter(message);
+    };
+    effectiveOptions = {...options, reporter: wrappedReporter};
+  } else {
+    effectiveOptions = options;
+  }
+
   const suiteDisplayName = basename(bundle.rootSuitePath);
   const identifier = sanitizeIdentifier(suiteDisplayName);
 
@@ -275,7 +293,7 @@ export async function executeSuiteBundle(params: {
   const totalRunnable = collectRunnableCountFromRoot(rootChildren);
 
   if (shouldEmitSuiteRunEvents) {
-    options.reporter && options.reporter({
+    effectiveOptions.reporter && effectiveOptions.reporter({
       scope: 'suite-run-start',
       runId: `suite:${sanitizeIdentifier(bundle.rootSuitePath)}`,
       suitePath: bundle.rootSuitePath,
@@ -302,7 +320,7 @@ export async function executeSuiteBundle(params: {
 
   const runNodesSequentially = async (nodes: readonly SuiteBundleNode[]) => {
     for (const n of nodes) {
-      if (options.abortSignal?.aborted) {
+      if (effectiveOptions.abortSignal?.aborted) {
         suiteLogger('warn', 'Suite run cancelled.');
         overallSuccess = false;
         return;
@@ -312,7 +330,7 @@ export async function executeSuiteBundle(params: {
         const group = await runSuiteGroup({
           node: n,
           bundle,
-          options,
+          options: effectiveOptions,
           runFile,
           suiteLogger,
           baseFileLoader,
@@ -332,7 +350,7 @@ export async function executeSuiteBundle(params: {
         const serverResult = await startServerNode({
           node: n,
           bundle,
-          options,
+          options: effectiveOptions,
           suiteLogger,
           serverCleanups,
         });
@@ -348,7 +366,7 @@ export async function executeSuiteBundle(params: {
         const r = await runSuiteBundleNode({
           node: n,
           bundle,
-          options,
+          options: effectiveOptions,
           runFile,
           suiteLogger,
           baseFileLoader,
@@ -442,19 +460,28 @@ export async function executeSuiteBundle(params: {
   };
 
   if (shouldEmitSuiteRunEvents) {
-    options.reporter && options.reporter({
+    effectiveOptions.reporter && effectiveOptions.reporter({
       scope: 'suite-run-finished',
       runId: `suite:${sanitizeIdentifier(bundle.rootSuitePath)}`,
       suitePath: bundle.rootSuitePath,
       finishedAt: Date.now(),
       success: overallSuccess,
       durationMs,
-      cancelled: options.abortSignal?.aborted === true,
+      cancelled: effectiveOptions.abortSignal?.aborted === true,
     });
   }
 
   if (preLogs.length) {
     result.logs = [...preLogs.map((l) => l.message), ...(result.logs ?? [])];
+  }
+
+  // Build suite exports if configured
+  let suiteExports: SuiteExportSpec | undefined;
+  if (hasExports && collectingReporter && bundle.export) {
+    suiteExports = {
+      paths: bundle.export,
+      collectedResults: collectingReporter.getResults(),
+    };
   }
 
   return {
@@ -465,5 +492,6 @@ export async function executeSuiteBundle(params: {
     docType: 'suite',
     inputsUsed: options.manualInputs || {},
     envVarsUsed: options.envvar || {},
+    suiteExports,
   };
 }

@@ -1,14 +1,21 @@
-import {runner, suiteHierarchy, suiteBundle} from 'mmt-core';
+import {runner, suiteHierarchy, suiteBundle, runConfig, SuiteData} from 'mmt-core';
 import {LogLevel} from 'mmt-core/CommonData';
 import {findProjectRootSync} from 'mmt-core/fileHelper';
+import {generateJunitXml} from 'mmt-core/junitXml';
+import {generateMmtReport} from 'mmt-core/mmtReport';
+import {generateReportHtml} from 'mmt-core/reportHtml';
+import {generateReportMarkdown} from 'mmt-core/reportMarkdown';
 import {runJSCode, setRunnerNetworkConfig} from 'mmt-core/jsRunner';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import YAML from 'yaml';
 
 import {readRelativeFileContent} from './file';
 import {startMockServerFromPath} from './mockRunner';
 import {prepareNetworkConfigForFile, parseEnvFileForRun, resolveWorkspaceEnvFilePath} from './network';
+
+type SuiteEnvironment = SuiteData.SuiteEnvironment;
 
 const logOutputChannel =
     vscode.window.createOutputChannel('Multimeter', {log: true});
@@ -87,6 +94,62 @@ export function showLogOutputChannel() {
   if (config.get<boolean>('showLogOnRun', true)) {
     logOutputChannel.show(true);
   }
+}
+
+/**
+ * Resolve suite environment configuration into merged env vars.
+ * Reads the env file (multimeter.mmt or suite's environment.file) and resolves preset.
+ */
+function resolveSuiteEnvVars(params: {
+  suiteEnv?: SuiteEnvironment;
+  suiteFilePath: string;
+  projectRoot?: string;
+  baseEnvVars: Record<string, any>;
+}): Record<string, any> {
+  const {suiteEnv, suiteFilePath, projectRoot, baseEnvVars} = params;
+
+  if (!suiteEnv) {
+    return baseEnvVars;
+  }
+
+  // Resolve which env file to read for preset
+  let envFilePath: string | undefined;
+  if (suiteEnv.file) {
+    // Resolve relative to suite file or project root for +/ paths
+    if (suiteEnv.file.startsWith('+/')) {
+      envFilePath = projectRoot ? path.join(projectRoot, suiteEnv.file.slice(2)) : undefined;
+    } else {
+      envFilePath = path.resolve(path.dirname(suiteFilePath), suiteEnv.file);
+    }
+  } else if (suiteEnv.preset && projectRoot) {
+    // Use multimeter.mmt in project root
+    envFilePath = path.join(projectRoot, 'multimeter.mmt');
+  }
+
+  // Resolve preset env vars if preset is specified
+  let suitePresetEnv: Record<string, any> = {};
+  if (suiteEnv.preset && envFilePath && fs.existsSync(envFilePath)) {
+    try {
+      const content = fs.readFileSync(envFilePath, 'utf8');
+      const doc = YAML.parse(content);
+      if (doc && typeof doc === 'object') {
+        suitePresetEnv = runConfig.resolvePresetEnv(
+          {variables: doc.variables, presets: doc.presets},
+          suiteEnv.preset
+        );
+      }
+    } catch (e: any) {
+      logToOutput('warn', `Failed to resolve suite preset '${suiteEnv.preset}': ${e?.message || e}`);
+    }
+  }
+
+  // Merge using VS Code priority: suite variables > suite preset > base (local storage)
+  return runConfig.mergeSuiteEnv({
+    baseEnv: baseEnvVars,
+    suiteEnv,
+    suitePresetEnv,
+    cliOverridesSuiteEnv: false, // VS Code: suite env overrides local storage
+  });
 }
 
 /** Extract envVars dict from workspace state storage. */
@@ -304,6 +367,8 @@ export async function handleRunSuite(
       rootSuitePath: runFilePath,
       hierarchy: tree,
       servers: tree.servers,
+      environment: tree.environment,
+      export: tree.export,
       target: bundleTarget,
     });
     forwardLog('debug', `handleRunSuite: created bundle root=${runFilePath} target=${String(bundleTarget)}`);
@@ -315,21 +380,29 @@ export async function handleRunSuite(
       console.warn('Unable to post suiteBundle to webview', e);
     }
 
+    // Merge suite environment with VS Code local storage env vars
+    const projectRootSuite = findProjectRoot(runFilePath);
+    const mergedEnvVars = resolveSuiteEnvVars({
+      suiteEnv: bundle.environment,
+      suiteFilePath: runFilePath,
+      projectRoot: projectRootSuite,
+      baseEnvVars: envVars,
+    });
+
     // Create serverRunner to start mock servers from suite server nodes and test `run` steps.
     const suiteServerRunner = async (alias: string, filePath: string): Promise<() => void> => {
       // filePath is the resolved absolute path to the mock server file
       forwardLog('info', `Starting mock server from ${alias}`);
-      return startMockServerFromPath(filePath, envVars);
+      return startMockServerFromPath(filePath, mergedEnvVars);
     };
 
-    const projectRootSuite = findProjectRoot(runFilePath);
-    await runner.runFile({
+    const runOutcome = await runner.runFile({
       file: rawSuite,
       fileType: 'raw',
       filePath: runFilePath,
       exampleIndex: message?.inputs?.exampleIndex,
       manualInputs: {},
-      envvar: envVars,
+      envvar: mergedEnvVars,
       manualEnvvars: {},
       fileLoader,
       jsRunner: (ctx: any) => runJSCode({
@@ -345,6 +418,68 @@ export async function handleRunSuite(
       reporter: createSuiteReporter(webviewPanel, suiteRunId, controller),
       serverRunner: suiteServerRunner,
     });
+
+    // Process suite exports if configured
+    const suiteExports = (runOutcome as any)?.suiteExports;
+    if (suiteExports && Array.isArray(suiteExports.paths) && suiteExports.collectedResults) {
+      const suiteDir = path.dirname(runFilePath);
+      for (const exportPath of suiteExports.paths) {
+        try {
+          // Resolve path relative to suite file or +/ project root
+          let resolvedPath: string;
+          if (exportPath.startsWith('+/')) {
+            if (projectRootSuite) {
+              resolvedPath = path.resolve(projectRootSuite, exportPath.slice(2));
+            } else {
+              forwardLog('warn', `Cannot resolve +/ path without project root: ${exportPath}`);
+              continue;
+            }
+          } else {
+            resolvedPath = path.resolve(suiteDir, exportPath);
+          }
+
+          // Determine format from extension
+          const ext = path.extname(resolvedPath).toLowerCase();
+          const formatForExt: Record<string, string> = {
+            '.xml': 'junit',
+            '.html': 'html',
+            '.md': 'md',
+            '.mmt': 'mmt',
+          };
+          const format = formatForExt[ext];
+          if (!format) {
+            forwardLog('warn', `Unknown export format for extension ${ext}: ${exportPath}`);
+            continue;
+          }
+
+          // Generate report content
+          const exportSerializers: Record<string, ((r: any, o?: any) => string) | undefined> = {
+            junit: generateJunitXml,
+            mmt: generateMmtReport,
+            html: generateReportHtml,
+            md: generateReportMarkdown,
+          };
+          const serializer = exportSerializers[format];
+          if (typeof serializer !== 'function') {
+            forwardLog('warn', `Export serializer not available for format: ${format}`);
+            continue;
+          }
+
+          const content = serializer(suiteExports.collectedResults);
+
+          // Create parent directories if they don't exist
+          const parentDir = path.dirname(resolvedPath);
+          if (!fs.existsSync(parentDir)) {
+            fs.mkdirSync(parentDir, {recursive: true});
+          }
+
+          fs.writeFileSync(resolvedPath, content, 'utf8');
+          forwardLog('info', `Suite export written: ${resolvedPath}`);
+        } catch (exportErr: any) {
+          forwardLog('error', `Failed to write export ${exportPath}: ${exportErr?.message || String(exportErr)}`);
+        }
+      }
+    }
 
     webviewPanel.webview.postMessage({
       command: 'suiteRunEnd',
