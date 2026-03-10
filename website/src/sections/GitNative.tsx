@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import FadeIn from '../components/FadeIn'
+import { GitBranch } from 'lucide-react'
 
 const COMMIT_TEXT = 'git commit -m "Add title and an example to reproduce bug 1234"'
 const CHAR_SPEED = 45     // ms per character
@@ -97,7 +98,8 @@ export default function GitNative() {
           {/* Text — right on desktop */}
           <FadeIn direction="right" className="order-1 lg:order-2">
             <div>
-              <span className="text-orange-400 text-sm font-semibold uppercase tracking-wider">
+              <span className="text-orange-400 text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
+                <GitBranch size={16} />
                 Version Controlled
               </span>
               <h2 className="text-3xl sm:text-4xl font-bold text-white mt-3 mb-6">

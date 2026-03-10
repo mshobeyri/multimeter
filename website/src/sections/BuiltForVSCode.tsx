@@ -1,5 +1,6 @@
 import FadeIn from '../components/FadeIn'
 import TestFlowIllustration from '../components/TestFlowIllustration'
+import { Workflow } from 'lucide-react'
 
 export default function BuiltForVSCode() {
   return (
@@ -9,7 +10,8 @@ export default function BuiltForVSCode() {
           {/* Text */}
           <FadeIn direction="left">
             <div>
-              <span className="text-accent text-sm font-semibold uppercase tracking-wider">
+              <span className="text-accent text-sm font-semibold uppercase tracking-wider flex items-center gap-2">
+                <Workflow size={16} />
                 Test Flows
               </span>
               <h2 className="text-3xl sm:text-4xl font-bold text-white mt-3 mb-6">

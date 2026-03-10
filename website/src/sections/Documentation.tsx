@@ -14,7 +14,7 @@ export default function Documentation() {
                 API Documentation
               </span>
               <h2 className="text-3xl sm:text-4xl font-bold text-white mt-3 mb-6">
-                Beautiful docs from your APIs
+                Docs that write themselves
               </h2>
               <p className="text-lg text-slate-400 mb-6 leading-relaxed">
                 Multimeter auto-generates polished, interactive API documentation

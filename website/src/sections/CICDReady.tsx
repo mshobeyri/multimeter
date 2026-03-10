@@ -39,6 +39,7 @@ export default function CICDReady() {
                     <span className="text-green-400">4 passed</span>
                     <span className="text-slate-500"> | 0 failed | 815ms</span>
                   </div>
+                  <div className="mt-2 text-sky-400">✓ Report written: reports/results.xml</div>
                 </div>
               </div>
             </div>
@@ -63,6 +64,8 @@ export default function CICDReady() {
               <ul className="space-y-4">
                 {[
                   'GitHub Actions, Jenkins, GitLab CI, Azure DevOps',
+                  'JUnit XML, HTML, and Markdown report generation',
+                  'Auto-export reports via suite export: field — no extra flags',
                   'Environment variables via --env-file or -e flags',
                   'Preset switching for dev/staging/production',
                   'Exit codes for pass/fail pipeline gating',

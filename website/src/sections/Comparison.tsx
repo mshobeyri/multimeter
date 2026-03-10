@@ -6,36 +6,42 @@ interface FeatureRow {
   multimeter: boolean | string
   postman: boolean | string
   bruno: boolean | string
+  robot: boolean | string
 }
 
 const features: FeatureRow[] = [
-  { feature: 'Price', multimeter: 'From $0', postman: '$14/user/mo', bruno: '$6/user/mo' },
-  { feature: 'HTTP / REST', multimeter: true, postman: true, bruno: true },
-  { feature: 'WebSocket', multimeter: true, postman: true, bruno: true },
-  { feature: 'gRPC', multimeter: "Soon", postman: true, bruno: true },
-  { feature: 'Git-Native Files', multimeter: true, postman: false, bruno: true },
-  { feature: 'Interactive API Docs (HTML)', multimeter: true, postman: false, bruno: false },
-  { feature: 'Markdown API Docs', multimeter: true, postman: false, bruno: false },
-  { feature: 'Try-It Buttons in Docs', multimeter: true, postman: false, bruno: false },
-  { feature: 'Declarative Test Flows (YAML)', multimeter: true, postman: false, bruno: false },
-  { feature: 'Drag & Drop Test Builder', multimeter: true, postman: false, bruno: false },
-  { feature: 'AI Test Generation', multimeter: true, postman: true, bruno: false },
-  { feature: 'Mock Server', multimeter: true, postman: 'Cloud only', bruno: false },
-  { feature: 'Mock Server Reflect Mode', multimeter: true, postman: false, bruno: false },
-  { feature: 'mTLS / Client Certificates', multimeter: true, postman: true, bruno: true },
-  { feature: 'Certificate Management in Config', multimeter: true, postman: false, bruno: false },
-  { feature: 'Test Suites (Parallel + Sequential)', multimeter: true, postman: 'Sequential', bruno: false },
-  { feature: 'CI/CD CLI', multimeter: true, postman: true, bruno: true },
-  { feature: 'Same Engine in IDE & CLI', multimeter: true, postman: false, bruno: true },
-  { feature: 'Environment Presets', multimeter: true, postman: true, bruno: true },
-  { feature: 'Dynamic Tokens (random, date, uuid)', multimeter: true, postman: true, bruno: false },
-  { feature: 'Data Extraction (JSONPath/XPath/Regex)', multimeter: true, postman: 'Scripting', bruno: 'Scripting' },
-  { feature: 'Postman Import', multimeter: true, postman: '—', bruno: true },
-  { feature: 'OpenAPI Import', multimeter: true, postman: true, bruno: true },
-  { feature: 'Curl Import & Execution', multimeter: true, postman: true, bruno: true },
-  { feature: 'JS Helper Module Imports', multimeter: true, postman: false, bruno: false },
-  { feature: 'CSV Data-Driven Testing', multimeter: true, postman: true, bruno: false },
-  { feature: 'Fully Offline', multimeter: true, postman: false, bruno: true },
+  { feature: 'Price', multimeter: 'From $0', postman: '$14/user/mo', bruno: '$6/user/mo', robot: 'Free' },
+  { feature: 'HTTP / REST', multimeter: true, postman: true, bruno: true, robot: true },
+  { feature: 'WebSocket', multimeter: true, postman: true, bruno: true, robot: 'Via library' },
+  { feature: 'gRPC', multimeter: 'Soon', postman: true, bruno: true, robot: 'Via library' },
+  { feature: 'Git-Native Files', multimeter: true, postman: false, bruno: true, robot: true },
+  { feature: 'Interactive API Docs (HTML)', multimeter: true, postman: false, bruno: false, robot: false },
+  { feature: 'Markdown API Docs', multimeter: true, postman: false, bruno: false, robot: false },
+  { feature: 'Try-It Buttons in Docs', multimeter: true, postman: false, bruno: false, robot: false },
+  { feature: 'Declarative Test Flows (YAML)', multimeter: true, postman: false, bruno: false, robot: false },
+  { feature: 'Drag & Drop Test Builder', multimeter: true, postman: false, bruno: false, robot: false },
+  { feature: 'AI Test Generation', multimeter: true, postman: true, bruno: false, robot: false },
+  { feature: 'Mock Server', multimeter: true, postman: 'Cloud only', bruno: false, robot: false },
+  { feature: 'mTLS / Client Certificates', multimeter: true, postman: true, bruno: true, robot: 'Via library' },
+  { feature: 'Certificate Management in Config', multimeter: true, postman: false, bruno: false, robot: false },
+  { feature: 'Test Suites (Parallel + Sequential)', multimeter: true, postman: 'Sequential', bruno: false, robot: true },
+  { feature: 'CI/CD CLI', multimeter: true, postman: true, bruno: true, robot: true },
+  { feature: 'Same Engine in IDE & CLI', multimeter: true, postman: false, bruno: true, robot: true },
+  { feature: 'Environment Presets', multimeter: true, postman: true, bruno: true, robot: 'Variables' },
+  { feature: 'Dynamic Tokens (random, date, uuid)', multimeter: true, postman: true, bruno: false, robot: 'Via library' },
+  { feature: 'Data Extraction (JSONPath/XPath/Regex)', multimeter: true, postman: 'Scripting', bruno: 'Scripting', robot: 'Via library' },
+  { feature: 'Postman Import', multimeter: true, postman: '—', bruno: true, robot: false },
+  { feature: 'OpenAPI Import', multimeter: true, postman: true, bruno: true, robot: false },
+  { feature: 'Curl Import & Execution', multimeter: true, postman: true, bruno: true, robot: false },
+  { feature: 'JS Helper Module Imports', multimeter: true, postman: false, bruno: false, robot: false },
+  { feature: 'CSV Data-Driven Testing', multimeter: true, postman: true, bruno: false, robot: true },
+  { feature: 'JUnit XML Reports', multimeter: true, postman: false, bruno: false, robot: true },
+  { feature: 'HTML / Markdown Reports', multimeter: true, postman: false, bruno: false, robot: 'HTML only' },
+  { feature: 'Suite Auto-Export Reports', multimeter: true, postman: false, bruno: false, robot: true },
+  { feature: 'Report Viewer (open .mmt reports)', multimeter: true, postman: false, bruno: false, robot: false },
+  { feature: 'Mock Server Reflect Mode', multimeter: true, postman: false, bruno: false, robot: false },
+  { feature: 'Mock Server in Test (run step)', multimeter: true, postman: false, bruno: false, robot: false },
+  { feature: 'Fully Offline', multimeter: true, postman: false, bruno: true, robot: true },
 ]
 
 function CellValue({ value }: { value: boolean | string }) {
@@ -85,6 +91,9 @@ export default function Comparison() {
                   <th className="px-6 py-4 text-sm font-medium text-slate-400 text-center">
                     Bruno
                   </th>
+                  <th className="px-6 py-4 text-sm font-medium text-slate-400 text-center">
+                    Robot Framework
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -106,6 +115,9 @@ export default function Comparison() {
                     </td>
                     <td className="px-6 py-3.5 text-center text-slate-400">
                       <CellValue value={row.bruno} />
+                    </td>
+                    <td className="px-6 py-3.5 text-center text-slate-400">
+                      <CellValue value={row.robot} />
                     </td>
                   </tr>
                 ))}

@@ -3,9 +3,10 @@ import Features from '../sections/Features'
 import BuiltForVSCode from '../sections/BuiltForVSCode'
 import GitNative from '../sections/GitNative'
 import Protocols from '../sections/Protocols'
-import Replaces from '../sections/Replaces'
+import MockServer from '../sections/MockServer'
 import AITestGen from '../sections/AITestGen'
 import CICDReady from '../sections/CICDReady'
+import Reports from '../sections/Reports'
 import Documentation from '../sections/Documentation'
 import Comparison from '../sections/Comparison'
 import FAQ from '../components/FAQ'
@@ -21,8 +22,9 @@ export default function Home() {
         <GitNative />
         <Protocols />
         <AITestGen />
-        <Replaces />
+        <MockServer />
         <CICDReady />
+        <Reports />
         <Documentation />
         <Comparison />
         <FAQ />

@@ -1,4 +1,5 @@
 import FadeIn from '../components/FadeIn'
+import { Network } from 'lucide-react'
 
 const protocols = [
   {
@@ -29,7 +30,8 @@ export default function Protocols() {
       <div className="max-w-7xl mx-auto">
         <FadeIn>
           <div className="text-center mb-16">
-            <span className="text-cyan-400 text-sm font-semibold uppercase tracking-wider">
+            <span className="text-cyan-400 text-sm font-semibold uppercase tracking-wider flex items-center gap-2 justify-center">
+              <Network size={16} />
               Multi-Protocol
             </span>
             <h2 className="text-3xl sm:text-4xl font-bold text-white mt-3 mb-4">

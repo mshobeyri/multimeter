@@ -43,6 +43,16 @@ const faqItems: FAQItem[] = [
     answer:
       'Multimeter supports HTTP/REST, WebSocket, SOAP/XML, and gRPC protocols. You can test any API endpoint with full control over headers, body, authentication, and response validation.',
   },
+  {
+    question: 'What report formats are available?',
+    answer:
+      'Multimeter generates reports in four formats: JUnit XML (for CI/CD tools like Jenkins, GitHub Actions, GitLab CI), HTML (self-contained visual reports), Markdown (for PRs and documentation), and MMT Report (YAML format that opens in the built-in viewer). Generate them from the CLI with --report, from the VS Code Export button, or automatically via the suite export: field.',
+  },
+  {
+    question: 'How does the mock server work?',
+    answer:
+      'Define mock servers as simple YAML files (type: server) with routes, status codes, and response bodies. They support dynamic responses via template variables (params, body, random, date), reflect mode (echo back requests), and both HTTP and WebSocket protocols. Start them from suites with the servers: field, from tests with the run step, or manually from the VS Code panel.',
+  },
 ]
 
 export default function FAQ() {

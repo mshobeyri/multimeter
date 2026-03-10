@@ -1,5 +1,6 @@
 import FadeIn from '../components/FadeIn'
 import AIIllustration from '../components/AIIllustration'
+import { Sparkles } from 'lucide-react'
 
 export default function AITestGen() {
   return (
@@ -8,7 +9,8 @@ export default function AITestGen() {
         {/* Heading */}
         <FadeIn direction="up">
           <div className="text-center mb-14">
-            <span className="text-purple-400 text-sm font-semibold uppercase tracking-wider">
+            <span className="text-purple-400 text-sm font-semibold uppercase tracking-wider flex items-center gap-2 justify-center">
+              <Sparkles size={16} />
               AI-Powered
             </span>
             <h2 className="text-3xl sm:text-4xl font-bold text-white mt-3 mb-4">
