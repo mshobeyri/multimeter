@@ -13,6 +13,7 @@ const footerLinks = {
     { name: 'API Testing Guide', href: 'https://github.com/mshobeyri/multimeter/blob/main/docs/api-mmt.md', external: true },
     { name: 'Test Flow Guide', href: 'https://github.com/mshobeyri/multimeter/blob/main/docs/test-mmt.md', external: true },
     { name: 'MMT Overview', href: 'https://github.com/mshobeyri/multimeter/blob/main/docs/mmt-overview.md', external: true },
+    { name: 'Test Server', href: '/test-server' },
   ],
   Community: [
     { name: 'GitHub', href: 'https://github.com/mshobeyri/multimeter', external: true },

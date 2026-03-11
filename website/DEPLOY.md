@@ -8,6 +8,7 @@
 | Cloudflare Pages | Host website (mmt.dev) | Free |
 | Cloudflare Email Routing | Email forwarding (@mmt.dev) | Free |
 | Cloudflare Workers | Reflect API (reflect.mmt.dev) | Free |
+| Cloudflare Workers | Test Server (test.mmt.dev) | Free |
 
 ---
 
@@ -111,6 +112,68 @@ curl -X POST https://reflect.mmt.dev/api/test \
 
 ---
 
+## Step 5: Deploy Test Server Worker
+
+### First-time setup
+
+```bash
+cd website
+npx wrangler deploy -c wrangler-testserver.toml
+```
+
+### Add custom domain
+
+1. Cloudflare dashboard → **Workers & Pages** → `mmt-testserver` worker → **Settings** → **Triggers**
+2. Add **Custom Domain**: `test.mmt.dev`
+3. Cloudflare auto-creates the DNS record
+
+### Test it
+
+```bash
+# Echo
+curl https://test.mmt.dev/echo
+
+# Status code
+curl https://test.mmt.dev/status/201
+
+# Delay
+curl https://test.mmt.dev/delay/2000
+
+# JSON sample
+curl https://test.mmt.dev/json
+
+# Basic auth
+curl -u user:pass https://test.mmt.dev/auth/basic
+
+# All endpoints
+curl https://test.mmt.dev/
+```
+
+### Available endpoints
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/` | GET | Help page listing all endpoints |
+| `/echo` | ANY | Echo back request details |
+| `/anything` | ANY | Alias for `/echo` |
+| `/status/:code` | GET | Respond with given HTTP status (100-599) |
+| `/delay/:ms` | ANY | Delay response up to 10000ms |
+| `/headers` | GET | Return request headers as JSON |
+| `/ip` | GET | Return client IP address |
+| `/method/:method` | ANY | 200 if method matches, 405 otherwise |
+| `/redirect/:n` | GET | Redirect n times (max 20), then 200 |
+| `/json` | GET | Sample JSON response |
+| `/xml` | GET | Sample XML response |
+| `/html` | GET | Sample HTML response |
+| `/bytes/:n` | GET | Random bytes (max 100KB) |
+| `/auth/basic` | GET | Basic auth check (user: `user`, pass: `pass`) |
+| `/auth/bearer` | GET | Bearer token check (token: `testtoken`) |
+| `/cookies` | GET | Return cookies sent |
+| `/cookies/set?k=v` | GET | Set cookies via query params |
+| `/cache/:seconds` | GET | Set Cache-Control max-age (max 86400) |
+
+---
+
 ## DNS Records Summary
 
 After setup, your Cloudflare DNS should look like this (most are auto-created):
@@ -120,6 +183,7 @@ After setup, your Cloudflare DNS should look like this (most are auto-created):
 | CNAME | `mmt.dev` | `<pages-project>.pages.dev` | ✅ Proxied |
 | CNAME | `www` | `<pages-project>.pages.dev` | ✅ Proxied |
 | CNAME | `reflect` | (auto by Worker custom domain) | ✅ Proxied |
+| CNAME | `test` | (auto by Worker custom domain) | ✅ Proxied |
 | MX | `mmt.dev` | (auto by Email Routing) | — |
 | TXT | `mmt.dev` | (auto by Email Routing — SPF) | — |
 

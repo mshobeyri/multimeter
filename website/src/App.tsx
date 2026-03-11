@@ -5,6 +5,7 @@ import Downloads from './pages/Downloads'
 import Demos from './pages/Demos'
 import Pricing from './pages/Pricing'
 import Roadmap from './pages/Roadmap'
+import TestServer from './pages/TestServer'
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/downloads" element={<Downloads />} />
         <Route path="/demos" element={<Demos />} />
         <Route path="/roadmap" element={<Roadmap />} />
+        <Route path="/test-server" element={<TestServer />} />
       </Route>
     </Routes>
   )
