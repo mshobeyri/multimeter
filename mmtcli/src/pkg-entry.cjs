@@ -831,13 +831,109 @@ async function main() {
 	// Create server runner for mock servers
 	const mockRunnerInstance = createPkgServerRunner(envvar || {});
 	const pkgServerRunner = mockRunnerInstance ? mockRunnerInstance.serverRunner : undefined;
+
+	// Detect if running a suite file and build suite bundle for proper export handling
+	let suiteBundleArg;
+	let mergedEnvvar = envvar; // Default to CLI-resolved envvar
+	const yaml = require('js-yaml');
+	try {
+		const parsedYaml = yaml.load(file);
+		if (parsedYaml && parsedYaml.type === 'suite') {
+			const mmtCore = require('mmt-core');
+			const { suiteHierarchy, suiteBundle, runConfig: coreRunConfig } = mmtCore;
+			if (suiteHierarchy && suiteBundle) {
+				const fileLoader = async (p) => fs.promises.readFile(p, 'utf8');
+				const tree = await suiteHierarchy.buildSuiteHierarchyFromSuiteFile({
+					suiteFilePath: filePath,
+					suiteRawText: file,
+					fileLoader,
+				});
+				suiteBundleArg = suiteBundle.createSuiteBundle({
+					rootSuitePath: filePath,
+					hierarchy: tree,
+					servers: tree.servers,
+					environment: tree.environment,
+					export: tree.export,
+				});
+
+				// Merge suite environment with CLI env vars
+				// Priority: CLI -e > suite variables > suite preset > CLI --env-file/--preset
+				if (tree.environment && coreRunConfig && typeof coreRunConfig.mergeSuiteEnv === 'function') {
+					let suitePresetEnv = {};
+					const suiteEnv = tree.environment;
+
+					// Resolve suite preset from env file
+					if (suiteEnv.preset) {
+						let envFileForPreset = null;
+						if (suiteEnv.file) {
+							// Suite specifies its own env file
+							const suiteEnvFile = suiteEnv.file.startsWith('+/')
+								? pathMod.resolve(baseDir, suiteEnv.file.slice(2))
+								: pathMod.resolve(baseDir, suiteEnv.file);
+							if (fs.existsSync(suiteEnvFile)) {
+								envFileForPreset = loadEnvDoc(suiteEnvFile);
+							}
+						} else if (parsed.opts.envFile) {
+							// Use CLI --env-file for preset resolution
+							const envFileRaw = String(parsed.opts.envFile);
+							let p = pathMod.isAbsolute(envFileRaw) ? envFileRaw : pathMod.resolve(process.cwd(), envFileRaw);
+							if (!fs.existsSync(p)) {
+								const alt = pathMod.isAbsolute(envFileRaw) ? envFileRaw : pathMod.join(baseDir, envFileRaw);
+								if (fs.existsSync(alt)) {
+									p = alt;
+								}
+							}
+							if (fs.existsSync(p)) {
+								envFileForPreset = loadEnvDoc(p);
+							}
+						}
+						if (envFileForPreset && coreRunConfig.resolvePresetEnv) {
+							suitePresetEnv = coreRunConfig.resolvePresetEnv(envFileForPreset, suiteEnv.preset) || {};
+						}
+					}
+
+					mergedEnvvar = coreRunConfig.mergeSuiteEnv({
+						baseEnv: envvar || {},
+						suiteEnv: suiteEnv,
+						suitePresetEnv: suitePresetEnv,
+						manualEnvvars: manualEnvvars || {},
+						cliOverridesSuiteEnv: true, // CLI -e takes precedence
+					});
+
+					if (command === 'run' && parsed.opts.debugEnv) {
+						process.stdout.write(`debug suite environment: ${JSON.stringify(suiteEnv)}\n`);
+						process.stdout.write(`debug suite preset env keys: ${Object.keys(suitePresetEnv).join(',') || '(none)'}\n`);
+						process.stdout.write(`debug merged envvar keys: ${Object.keys(mergedEnvvar).join(',') || '(none)'}\n`);
+					}
+				}
+			}
+		}
+	} catch (e) {
+		// If YAML parsing fails or suite bundle creation fails, continue without bundle
+		// The runner will still attempt to run the file and report appropriate errors
+	}
+
+	// Update mockRunnerInstance with merged env vars for suite runs
+	if (suiteBundleArg && mergedEnvvar !== envvar) {
+		// Re-create server runner with merged env vars
+		const mergedMockRunnerInstance = createPkgServerRunner(mergedEnvvar || {});
+		if (mergedMockRunnerInstance) {
+			// Stop original mock runner to avoid conflicts
+			if (mockRunnerInstance) {
+				mockRunnerInstance.stopAll();
+			}
+			// Use the merged one for suite execution
+			Object.assign(mockRunnerInstance || {}, { serverRunner: mergedMockRunnerInstance.serverRunner, stopAll: mergedMockRunnerInstance.stopAll });
+		}
+	}
+
 	try {
 		res = await runner.runFile({
 			file,
 			fileType: 'raw',
 			filePath,
 			inputs: { type: 'manual', manualInputs },
-			envvar,
+			envvar: mergedEnvvar,
 			manualInputs,
 			manualEnvvars,
 			exampleIndex,
@@ -846,6 +942,7 @@ async function main() {
 			jsRunner: (ctx) => jsRunner.runJSCode({ ...ctx, serverRunner: pkgServerRunner }),
 			logger: (lvl, msg) => levelLogger(lvl, msg),
 			serverRunner: pkgServerRunner,
+			suiteBundle: suiteBundleArg,
 		});
 	} catch (e) {
 		process.stderr.write(`runner.runFile threw: ${String(e && e.message ? e.message : e)}\n`);
@@ -884,6 +981,81 @@ async function main() {
 		fs.writeFileSync(outPath, JSON.stringify(res.result, null, 2), 'utf8');
 		if (!parsed.opts.quiet) {
 			process.stdout.write(`Result written: ${outPath}\n`);
+		}
+	}
+
+	// Handle suite exports (from suite file's export: field)
+	const suiteExports = res.suiteExports;
+	if (suiteExports && Array.isArray(suiteExports.paths) && suiteExports.collectedResults) {
+		const suiteDir = pathMod.dirname(filePath);
+		// eslint-disable-next-line global-require
+		const mmtCore = require('mmt-core');
+
+		for (const exportPath of suiteExports.paths) {
+			try {
+				// Resolve path relative to suite file or +/ project root
+				let resolvedPath;
+				if (exportPath.startsWith('+/')) {
+					// Project root not supported in standalone binary; skip
+					if (!parsed.opts.quiet) {
+						process.stderr.write(`Cannot resolve +/ path in standalone binary: ${exportPath}\n`);
+					}
+					continue;
+				} else {
+					resolvedPath = pathMod.resolve(suiteDir, exportPath);
+				}
+
+				// Determine format from extension
+				const ext = pathMod.extname(resolvedPath).toLowerCase();
+				const formatForExt = {
+					'.xml': 'junit',
+					'.html': 'html',
+					'.md': 'md',
+					'.mmt': 'mmt',
+				};
+				const format = formatForExt[ext];
+				if (!format) {
+					if (!parsed.opts.quiet) {
+						process.stderr.write(`Unknown export format for extension ${ext}: ${exportPath}\n`);
+					}
+					continue;
+				}
+
+				// Generate report content
+				const exportSerializers = {
+					junit: mmtCore.junitXml?.generateJunitXml,
+					mmt: mmtCore.mmtReport?.generateMmtReport,
+					html: mmtCore.reportHtml?.generateReportHtml,
+					md: mmtCore.reportMarkdown?.generateReportMarkdown,
+				};
+				const serializer = exportSerializers[format];
+				if (typeof serializer !== 'function') {
+					if (!parsed.opts.quiet) {
+						process.stderr.write(`Export serializer not available for format: ${format}\n`);
+					}
+					continue;
+				}
+
+				if (!parsed.opts.quiet) {
+					process.stdout.write(`Exporting results to ${resolvedPath}\n`);
+				}
+				const content = serializer(suiteExports.collectedResults);
+
+				// Create parent directories if they don't exist
+				const parentDir = pathMod.dirname(resolvedPath);
+				if (!fs.existsSync(parentDir)) {
+					fs.mkdirSync(parentDir, { recursive: true });
+				}
+
+				fs.writeFileSync(resolvedPath, content, 'utf8');
+				if (!parsed.opts.quiet) {
+					process.stdout.write(`Suite export written: ${resolvedPath}\n`);
+				}
+			} catch (e) {
+				if (!parsed.opts.quiet) {
+					process.stderr.write(`Failed to write suite export ${exportPath}: ${e?.message || e}\n`);
+				}
+			}
 		}
 	}
 

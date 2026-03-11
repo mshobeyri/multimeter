@@ -257,7 +257,9 @@ export async function executeSuiteBundle(params: {
     collectingReporter = createReportCollector();
     const wrappedReporter = (message: RunReporterMessage): void => {
       collectingReporter!.reporter(message);
-      options.reporter(message);
+      if (options.reporter) {
+        options.reporter(message);
+      }
     };
     effectiveOptions = {...options, reporter: wrappedReporter};
   } else {

@@ -252,6 +252,9 @@ program.command('run')
                 continue;
               }
 
+              if (!opts.quiet) {
+                console.log(`Exporting results to ${resolvedPath}`);
+              }
               const content = serializer(suiteExports.collectedResults);
 
               // Create parent directories if they don't exist

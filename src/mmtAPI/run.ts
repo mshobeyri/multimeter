@@ -465,6 +465,7 @@ export async function handleRunSuite(
             continue;
           }
 
+          forwardLog('info', `Exporting results to ${resolvedPath}`);
           const content = serializer(suiteExports.collectedResults);
 
           // Create parent directories if they don't exist

@@ -53,11 +53,17 @@ export function useRunGlyphs(params: {
       return;
     }
     try {
-      const message: any = {command: 'runCurrentDocument'};
-      if (docType === 'api') {
-        message.inputs = {exampleIndex: -1};
+      if (docType === 'suite') {
+        // Suite files use the dedicated runSuite handler for server/export support
+        const suiteRunId = `suite-glyph:${Date.now()}`;
+        window.vscode?.postMessage({command: 'runSuite', suiteRunId});
+      } else {
+        const message: any = {command: 'runCurrentDocument'};
+        if (docType === 'api') {
+          message.inputs = {exampleIndex: -1};
+        }
+        window.vscode?.postMessage(message);
       }
-      window.vscode?.postMessage(message);
       window.vscode?.postMessage({command: 'showLogOutputChannel'});
     } catch (err: any) {
       showVSCodeMessage('error', err?.message || 'Failed to run document.');

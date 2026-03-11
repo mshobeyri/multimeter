@@ -1,10 +1,12 @@
 type: suite
-title: Suite outer
+title: Suite inner
 environment:
   variables:
     url: http://localhost:8081
 servers:
   - mock_server.mmt
+export:
+  - result.mmt
 tests:
   - mock_test.mmt
   - mock_test.mmt
