@@ -103,9 +103,9 @@ describe('path helpers', () => {
 
   test('fileUriToPath decodes Windows file URIs', () => {
     expect(fileUriToPath('file:///C:/Users/foo/bar.mmt'))
-        .toBe('/C:/Users/foo/bar.mmt');
+        .toBe('C:/Users/foo/bar.mmt');
     expect(fileUriToPath('file:///c:/Users/foo/bar.mmt'))
-        .toBe('/c:/Users/foo/bar.mmt');
+        .toBe('c:/Users/foo/bar.mmt');
   });
 
   test('resolveDotSegments collapses dot segments', () => {
@@ -155,7 +155,7 @@ describe('path helpers', () => {
   test('resolveRequestedAgainst normalizes Windows file URI requested', () => {
     const base = 'C:\\root\\tests\\main.mmt';
     expect(resolveRequestedAgainst(base, 'file:///C:/root/tests/./child.mmt'))
-        .toBe('/C:/root/tests/child.mmt');
+        .toBe('C:/root/tests/child.mmt');
   });
 
   test('resolveRequestedAgainst handles +/ project root imports', () => {

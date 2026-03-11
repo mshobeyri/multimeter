@@ -33,9 +33,11 @@ export const fileUriToPath = (p: string): string => {
   }
   if (/^file:\/\//i.test(s)) {
     try {
-      return decodeURIComponent(s.replace(/^file:\/\/+/, '/'));
+      return normalizeWindowsDriveSlashes(
+          decodeURIComponent(s.replace(/^file:\/\/+/, '/')));
     } catch {
-      return s.replace(/^file:\/\/+/, '/');
+      return normalizeWindowsDriveSlashes(
+          s.replace(/^file:\/\/+/, '/'));
     }
   }
   return s;

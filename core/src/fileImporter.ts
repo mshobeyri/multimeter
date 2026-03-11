@@ -31,6 +31,14 @@ const normalizePath = (p: string): string => {
   return String(p ?? '').replace(/\\/g, '/');
 };
 
+const normalizeWindowsDriveSlashes = (p: string): string => {
+  // file URIs can yield "/C:/..."; normalize to "C:/..." for Windows.
+  if (/^\/[A-Za-z]:\//.test(p)) {
+    return p.slice(1);
+  }
+  return p;
+};
+
 const fileUriToPath = (p: string): string => {
   const s = String(p ?? '').trim();
   if (!s.toLowerCase().startsWith('file:')) {
@@ -40,10 +48,10 @@ const fileUriToPath = (p: string): string => {
   try {
     // URL is available in both browser and Node.
     const u = new URL(s);
-    return u.pathname;
+    return normalizeWindowsDriveSlashes(u.pathname);
   } catch {
     // Fallback: strip scheme and extra slashes.
-    return s.replace(/^file:\/*/i, '/');
+    return normalizeWindowsDriveSlashes(s.replace(/^file:\/*/i, '/'));
   }
 };
 
