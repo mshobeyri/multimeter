@@ -14,11 +14,9 @@ Supported:
 ### HTTP GET
 ```yaml
  type: api
- title: List users
- description: Fetch a paginated list of users
- url: <<e:api_url>>/users
+ url: <<e:api_url>>/users   # protocol inferred as http from URL
  method: get
- format: json
+ format: json   # affects default Content-Type and body handling
  headers:
    Session: e:token
  query:
@@ -28,8 +26,7 @@ Supported:
 Notes
 - `format` sets how the body is encoded/decoded
 - `query` merges with any query string in `url`
-- `protocol` is optional — inferred from URL (ws:// or wss:// → ws, otherwise http)
-- Place documentation fields (`title`, `description`, `tags`) and reuse fields (`inputs`, `outputs`) before request fields (`url`, `method`, `body`, etc.)
+- `protocol` is optional - inferred from URL (ws:// or wss:// → ws, otherwise http)
 
 Tip: You can use dynamic tokens anywhere in url/headers/body/query/cookies.
 - Random: `r:<name>` (e.g., `r:uuid`, `r:int`)
@@ -39,39 +36,33 @@ See “Dynamic values: random and current” below for details and examples.
 ### HTTP POST JSON or XML
 ```yaml
  type: api
- title: Login
- description: Authenticate with username and password
- inputs:
-   username: string
-   password: string
+ protocol: http
  url: <<e:api_url>>/login
  method: post
  format: json
  headers:
    X-App: multimeter
  body:
-   username: i:username
-   password: i:password
+   username: e:user
+   password: e:pass
 ```
 
 Change `format` to `xml` to send an XML body instead of JSON.
 
 ### HTTP raw text or raw XML
 ```yaml
+# text
  type: api
- title: Echo text
- description: Send plain text to the echo endpoint
+ protocol: http
  url: <<e:api_url>>/echo
  method: post
  format: text
  body: |
    hello world
-```
 
-```yaml
+# xml
  type: api
- title: Post XML
- description: Send raw XML payload
+ protocol: http
  url: <<e:api_url>>/xml
  method: post
  format: xml
@@ -84,16 +75,12 @@ Change `format` to `xml` to send an XML body instead of JSON.
 ### WebSocket
 ```yaml
  type: api
- title: WebSocket echo
- description: Connect to a WebSocket server and send a message
- inputs:
-   greeting: Hello!
- outputs:
-   reply: body
  protocol: ws
- url: wss://test.mmt.dev/ws
+ url: ws://localhost:8080/ws
  format: json
- body: i:greeting
+ headers:
+   X-Auth: e:token
+ # drive messages in tests via call steps
 ```
 Tip: For WS, use tests to send/receive frames with `call` steps that invoke this API.
 
@@ -109,21 +96,12 @@ Items in the `api` type fall into a few sections:
 The next sections cover each category in detail.
 
 ## Documentation
+The following fields make it easy to search, filter, and auto-document APIs:
+- title: API title
+- tags: related tags
+- description: short explanation of the API (supports Markdown formatting: **bold**, *italic*, `code`, lists, headings, and tables)
 
-### title
-The API title, displayed in the editor, output panels, and generated documentation.
-
-### tags
-An array of strings for filtering and categorizing APIs.
-```yaml
-tags:
-  - smoke
-  - authentication
-```
-
-### description
-A short explanation of the API. Supports Markdown formatting: **bold**, *italic*, `code`, `> headings`, bullet and numbered lists, and pipe tables.
-
+Sample:
 ```yaml
 type: api
 title: generate session
@@ -158,71 +136,37 @@ description: See ref docs/api-mmt.md#inputs for details
 ```
 
 ## Request
+- protocol: `http` or `ws` (optional - inferred from URL if not specified)
+  - URLs starting with `ws://` or `wss://` default to `ws`
+  - All other URLs default to `http`
+- url: server URL
+- method: HTTP method `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
+- format: body format `json` | `xml` | `text`
+- headers: HTTP headers
+- query: query parameters for HTTP requests
+- cookies: HTTP cookies
+- body: request body (HTTP) or message (WS)
 
-### protocol
-`http` or `ws`. Optional — inferred from the URL scheme:
-- `ws://` or `wss://` → `ws`
-- All other URLs → `http`
+As noted in the quick start, the body can be raw XML, JSON, or text. It can also be a YAML object that’s automatically converted to the specified format.
 
-### url
-The server URL. Can include inline query strings (merged with `query` if both are present). Supports `<<e:VAR>>` and `<<i:key>>` tokens.
+
+Sample:
 ```yaml
-url: <<e:api_url>>/users/<<i:userId>>
-```
-
-### method
-HTTP method: `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`. Required for `protocol: http`.
-
-### format
-Body encoding: `json`, `xml`, or `text`. Determines how the body is serialized and the default `Content-Type` header.
-
-### headers
-HTTP headers as key-value pairs.
-```yaml
+protocol: http
+url: x.com/blog
+method: get
 headers:
   Authorization: Bearer <<e:token>>
   Accept: application/json
-```
-
-### query
-Query parameters for HTTP requests. Merged with any query string already in the `url`.
-```yaml
-url: <<e:api_url>>/search
 query:
-  q: "search term"
-  limit: "10"
+  limit: "20"
   page: "1"
-# results in: <<e:api_url>>/search?q=search+term&limit=10&page=1
-```
-
-### cookies
-HTTP cookies sent with the request.
-```yaml
+  # will be converted to x.com/blog?limit=20&page=1
 cookies:
   session: e:session_id
-  locale: en-US
 ```
 
-### body
-Request body (HTTP) or message (WebSocket). Can be a YAML object (auto-serialized to the specified `format`) or a raw string.
-```yaml
-# YAML object (auto-serialized as JSON)
-body:
-  username: i:username
-  password: i:password
-
-# Raw text
-body: |
-  hello world
-
-# Raw XML
-body: |
-  <root>
-    <value>42</value>
-  </root>
-```
-
-### Header defaults
+### Headers
 For convenience, Multimeter adds a few sensible HTTP headers if they’re missing:
 - User-Agent: Multimeter
 - Accept: */*
@@ -277,39 +221,20 @@ Notes
 
 ### outputs
 Pull fields from the response to populate outputs. Use one of the following per key:
+- A regex applied to the raw response body text: `regex ...`
 - A bracket path starting with `body[...]` to read structured fields
-- A dot-notation path starting with `body.` for the same structured access (e.g., `body.user.name`)
-- A regex applied to the raw response body text: `regex <pattern>` (first capture group becomes the value)
 - `headers[...]` to extract response headers
 - `cookies[...]` to extract response cookies
 - A JSONPath starting with `$` (e.g., `$[body][user][id]` or `$body[user]`)
-- `.length` suffix on any array path to get the array length
 
 Example
 ```yaml
 outputs:
-  # bracket-path notation
+  name: regex message(.*)
   from: body[from][0]
   method: body[method]
-
-  # dot-notation (equivalent to bracket paths)
-  username: body.user.name
-  enabled: body.settings.enabled
-  first_item: body.items[0].key
-
-  # array length
-  item_count: body[tags].length
-  nested_len: body.nested.items.length
-
-  # regex (first capture group)
-  name: regex "name":"(.*?)"
-  email: regex "email":"([^"]+)"
-
-  # headers and cookies
   token: headers[Authorization]
   session: cookies[session_id]
-
-  # JSONPath
   userId: $[body][user][id]
 ```
 
@@ -435,20 +360,13 @@ examples:
 ### WS
 ```yaml
  type: api
- title: WebSocket JSON echo
- description: Send a JSON object and extract fields from the echoed response
- inputs:
-   username: alice
-   action: ping
- outputs:
-   echoed_user: body[username]
-   echoed_action: body[action]
+ title: Notifications stream
  protocol: ws
- url: wss://test.mmt.dev/ws
+ url: wss://example.com/ws
  format: json
- body:
-   username: i:username
-   action: i:action
+ headers:
+   X-Auth: e:token
+ # Drive messages in a test using steps
 ```
 
 ---

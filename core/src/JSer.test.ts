@@ -866,6 +866,47 @@ describe('inline check/assert on call steps', () => {
     expect(js).toContain('equals_(`${_login_0.status}`, `200`)');
   });
 
+  it('resolves <<i:input>> reference in inline check expected value', async () => {
+    const ctx: TestContext = {
+      name: 'inputRefInCheck',
+      test: {
+        inputs: { message: 'hello world' },
+        import: { echo: 'echo_api.mmt' },
+        steps: [{
+          call: 'echo',
+          id: 'result',
+          inputs: { message: 'i:message' },
+          check: ['statusCode_ == 200', 'echoed_message == <<i:message>>'],
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('equals_(`${result.echoed_message}`, `${message}`)');
+  });
+
+  it('resolves <<i:input>> in inline check when manual inputs have spaces', async () => {
+    const ctx: TestContext = {
+      name: 'inputRefInCheckWithSpaces',
+      test: {
+        inputs: { message: 'hello world' },
+        import: { echo: 'echo_api.mmt' },
+        steps: [{
+          call: 'echo',
+          id: 'result',
+          inputs: { message: 'i:message' },
+          check: ['echoed_message == <<i:message>>'],
+        } as any],
+      } as any,
+      inputs: { message: 'hello world' },
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    // Should generate valid JS even when the input value has spaces
+    expect(js).toContain('equals_');
+  });
+
   it('does not generate temp variable when no check or assert', async () => {
     const ctx: TestContext = {
       name: 'callNoCheck',

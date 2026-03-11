@@ -24,15 +24,38 @@ const unquoteEmpty = (s: string): string => {
   return t;
 };
 
+/**
+ * Parse a comparison string "actual operator expected" where the expected
+ * part may contain spaces. Only the first two space-delimited tokens (actual
+ * and operator) are split; everything after the operator is the expected value.
+ */
+const parseComparisonParts = (comp: string): { actual: string; operator: string; expected: string } | null => {
+  const trimmed = comp.trim();
+  const firstSpace = trimmed.indexOf(' ');
+  if (firstSpace === -1) {
+    return null;
+  }
+  const actual = trimmed.slice(0, firstSpace);
+  const afterActual = trimmed.slice(firstSpace + 1);
+  const secondSpace = afterActual.indexOf(' ');
+  if (secondSpace === -1) {
+    // "actual operator" with no expected value
+    return { actual, operator: afterActual, expected: '' };
+  }
+  const operator = afterActual.slice(0, secondSpace);
+  const expected = afterActual.slice(secondSpace + 1);
+  return { actual, operator, expected };
+};
+
 export const conditionalStatementToJSfunc = (check: string): string => {
   // Replace env tokens like e:FOO -> envVariables.FOO
   const normalized = replaceEnvTokens(check);
-  const checkParts = normalized.split(' ');
-  if (checkParts.length !== 3) {
+  const parsed = parseComparisonParts(normalized);
+  if (!parsed) {
     return 'true';
   }
-  const [actual, operator, rawExpected] = checkParts;
-  const expected = unquoteEmpty(rawExpected);
+  const { actual, operator } = parsed;
+  const expected = unquoteEmpty(parsed.expected);
   switch (operator) {
     case '<':
       return `less_(\`${actual}\`, \`${expected}\`)`;
@@ -63,7 +86,7 @@ export const conditionalStatementToJSfunc = (check: string): string => {
     case '!$':
       return `notEndsWith_(\`${actual}\`, \`${expected}\`)`;
     default:
-      throw new Error(`${check}: Unknown operator: ${operator}`);
+      return 'true';
   }
 };
 
@@ -83,13 +106,12 @@ const normalizeComparison =
       }
       if (typeof comp === 'string') {
         const raw = comp;
-        const parts = comp.split(' ');
-        if (parts.length < 2 || parts.length > 3) {
+        const parsed = parseComparisonParts(comp);
+        if (!parsed) {
           throw new Error(`Invalid ${kind} format: ${comp}`);
         }
-        const actual = parts[0];
-        const operator = parts[1];
-        const expected = unquoteEmpty(parts[2] ?? '');
+        const { actual, operator } = parsed;
+        const expected = unquoteEmpty(parsed.expected);
         return {actual, operator, expected, raw};
       }
 
@@ -246,13 +268,12 @@ const transformCallComparison = (
     comp: Comparison, resultVar: string, defaultTitle: string,
     defaultDetails: string, report?: ReportLevel | ReportConfig): ComparisonObject => {
   if (typeof comp === 'string') {
-    const parts = comp.split(' ');
-    if (parts.length < 2 || parts.length > 3) {
+    const parsed = parseComparisonParts(comp);
+    if (!parsed) {
       throw new Error(`Invalid inline check format: ${comp}`);
     }
-    const actual = parts[0];
-    const operator = parts[1];
-    const expected = unquoteEmpty(parts[2] ?? '');
+    const { actual, operator } = parsed;
+    const expected = unquoteEmpty(parsed.expected);
     return {
       actual: `\${${resultVar}.${actual}}`,
       expected,

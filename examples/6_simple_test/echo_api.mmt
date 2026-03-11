@@ -1,0 +1,12 @@
+type: api
+title: Echo API
+description: Posts a message and echoes it back
+inputs:
+  message: hello world
+outputs:
+  echoed_message: body[body][message]
+url: http://test.mmt.dev/echo
+method: post
+format: json
+body:
+  message: i:message

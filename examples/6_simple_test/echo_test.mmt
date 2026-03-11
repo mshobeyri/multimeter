@@ -1,0 +1,15 @@
+type: test
+title: Test echo API
+description: Calls the echo API with an input and verifies the response
+import:
+  echo: echo_api.mmt
+inputs:
+  message: hello world
+steps:
+  - call: echo
+    id: result
+    inputs:
+      message: i:message
+    check:
+      - statusCode_ == 200
+      - echoed_message == <<i:message>>
