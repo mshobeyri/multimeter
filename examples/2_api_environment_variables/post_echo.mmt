@@ -1,0 +1,11 @@
+type: api
+title: Post echo
+description: Send a JSON body to the echo endpoint using an environment-based URL
+url: <<e:base_url>>/echo
+method: post
+format: json
+headers:
+  X-Custom: e:custom_header
+body:
+  name: Multimeter
+  message: Hello from mmt!

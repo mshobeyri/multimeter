@@ -29,6 +29,7 @@ const endpoints: Endpoint[] = [
   { method: 'GET', path: '/cookies', description: 'Return cookies sent with the request' },
   { method: 'GET', path: '/cookies/set?theme=dark', description: 'Set cookies via query params', example: '/cookies/set?theme=dark' },
   { method: 'GET', path: '/cache/3600', description: 'Set Cache-Control max-age (max 86,400)', example: '/cache/3600' },
+  { method: 'WS', path: '/ws', description: 'WebSocket echo — reflects every message back' },
 ]
 
 function methodColor(method: string): string {
@@ -37,6 +38,7 @@ function methodColor(method: string): string {
     case 'POST': return 'text-blue-400'
     case 'PUT': return 'text-amber-400'
     case 'DELETE': return 'text-red-400'
+    case 'WS': return 'text-purple-400'
     default: return 'text-slate-400'
   }
 }

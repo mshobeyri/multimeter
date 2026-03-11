@@ -23,12 +23,18 @@
  *   GET  /cookies/set?k=v      → set cookies and return them
  *   GET  /cache/:seconds       → respond with Cache-Control max-age
  *   ANY  /anything             → alias for /echo
+ *   WS   /ws                   → WebSocket echo (reflects every message back)
  */
 
 export default {
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
+
+    // Handle WebSocket upgrade
+    if (request.headers.get('upgrade') === 'websocket') {
+      return handleWebSocket(request, url);
+    }
 
     // Handle CORS preflight
     if (request.method === 'OPTIONS') {
@@ -398,6 +404,45 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// ---------------------------------------------------------------------------
+// WebSocket
+// ---------------------------------------------------------------------------
+
+function handleWebSocket(_request: Request, url: URL): Response {
+  const p = url.pathname.replace(/\/+$/, '') || '/';
+
+  // Only accept connections on /ws (or /ws/...)
+  if (p !== '/ws') {
+    return new Response('WebSocket endpoint is /ws', { status: 404 });
+  }
+
+  const pair = new WebSocketPair();
+  const [client, server] = Object.values(pair);
+
+  server.accept();
+
+  server.addEventListener('message', (event: MessageEvent) => {
+    // Try to parse as JSON and echo back with metadata
+    const raw = typeof event.data === 'string' ? event.data : '';
+    try {
+      const parsed = JSON.parse(raw);
+      server.send(JSON.stringify(parsed));
+    } catch {
+      // Plain text: echo as-is
+      server.send(raw);
+    }
+  });
+
+  server.addEventListener('close', () => {
+    // nothing to clean up
+  });
+
+  return new Response(null, {
+    status: 101,
+    webSocket: client,
+  });
+}
+
 function endpointList(): string[] {
   return [
     'GET  /                     → this help page',
@@ -418,6 +463,7 @@ function endpointList(): string[] {
     'GET  /cookies              → return cookies sent',
     'GET  /cookies/set?k=v      → set cookies via query params',
     'GET  /cache/:seconds       → Cache-Control max-age (max 86400)',
+    'WS   /ws                   → WebSocket echo (reflects every message back)',
   ];
 }
 

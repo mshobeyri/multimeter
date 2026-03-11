@@ -1,0 +1,16 @@
+type: api
+title: WebSocket JSON echo
+description: Send a JSON object over WebSocket and extract fields from the echoed response
+inputs:
+  username: alice
+  action: ping
+outputs:
+  echoed_user: body.username
+  echoed_action: body.action
+url: wss://test.mmt.dev/ws
+protocol: ws
+format: json
+body:
+  username: i:username
+  action: i:action
+  timestamp: c:epoch

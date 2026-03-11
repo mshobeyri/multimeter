@@ -84,12 +84,16 @@ Change `format` to `xml` to send an XML body instead of JSON.
 ### WebSocket
 ```yaml
  type: api
+ title: WebSocket echo
+ description: Connect to a WebSocket server and send a message
+ inputs:
+   greeting: Hello!
+ outputs:
+   reply: body
  protocol: ws
- url: ws://localhost:8080/ws
+ url: wss://test.mmt.dev/ws
  format: json
- headers:
-   X-Auth: e:token
- # drive messages in tests via call steps
+ body: i:greeting
 ```
 Tip: For WS, use tests to send/receive frames with `call` steps that invoke this API.
 
@@ -369,13 +373,20 @@ examples:
 ### WS
 ```yaml
  type: api
- title: Notifications stream
+ title: WebSocket JSON echo
+ description: Send a JSON object and extract fields from the echoed response
+ inputs:
+   username: alice
+   action: ping
+ outputs:
+   echoed_user: body[username]
+   echoed_action: body[action]
  protocol: ws
- url: wss://example.com/ws
+ url: wss://test.mmt.dev/ws
  format: json
- headers:
-   X-Auth: e:token
- # Drive messages in a test using steps
+ body:
+   username: i:username
+   action: i:action
 ```
 
 ---
