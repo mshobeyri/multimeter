@@ -1,0 +1,18 @@
+type: api
+title: Submit order
+description: ref overview.md#submit-order
+inputs:
+  product_id: prod_9281
+  quantity: 3
+outputs:
+  echoed_product: body[body][product_id]
+  method: body[method]
+url: https://test.mmt.dev/echo
+method: post
+format: json
+headers:
+  Authorization: Bearer demo-token-xyz
+body:
+  product_id: i:product_id
+  quantity: i:quantity
+  note: Please gift-wrap

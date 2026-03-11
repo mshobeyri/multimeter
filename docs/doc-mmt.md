@@ -45,13 +45,45 @@ Notes
 ---
 
 ## Elements
-The `doc` type is intentionally small:
 
-- title: page title shown in the header
-- description: introductory text shown below the title in the rendered output
-- logo: path or URL to a logo image, displayed in the HTML header
-- sources: array of folders and/or `.mmt` files to include
-- services: optional array of groups with `name`, `description?`, and `sources`
+### title
+Page title shown in the header of the rendered documentation.
+
+### description
+Introductory text displayed below the title. Supports Markdown formatting and `<<e:VAR>>` placeholders.
+```yaml
+description: |
+  API documentation for the **Acme** platform.
+  Base URL: `<<e:api_url>>`
+```
+
+### logo
+Path or URL to a logo image, displayed in the HTML header alongside the title.
+```yaml
+logo: ./assets/logo.png
+```
+
+### sources
+Array of folders and/or individual `.mmt` files to scan for `type: api` files.
+```yaml
+sources:
+  - ./apis
+  - ./shared/auth.mmt
+```
+
+### services
+Optional array of groups. Each service has a `name`, optional `description`, and its own `sources`. Use services to organize APIs into logical sections in the rendered doc.
+```yaml
+services:
+  - name: Users
+    description: User CRUD and authentication
+    sources:
+      - ./services/users
+  - name: Billing
+    description: Invoicing and payment endpoints
+    sources:
+      - ./services/billing
+```
 
 The editor’s Doc view:
 - Renders a sticky header with logo (if configured), title, and a search box

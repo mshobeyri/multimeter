@@ -109,12 +109,21 @@ Items in the `api` type fall into a few sections:
 The next sections cover each category in detail.
 
 ## Documentation
-The following fields make it easy to search, filter, and auto-document APIs:
-- title: API title
-- tags: related tags
-- description: short explanation of the API (supports Markdown formatting: **bold**, *italic*, `code`, lists, headings, and tables)
 
-Sample:
+### title
+The API title, displayed in the editor, output panels, and generated documentation.
+
+### tags
+An array of strings for filtering and categorizing APIs.
+```yaml
+tags:
+  - smoke
+  - authentication
+```
+
+### description
+A short explanation of the API. Supports Markdown formatting: **bold**, *italic*, `code`, `> headings`, bullet and numbered lists, and pipe tables.
+
 ```yaml
 type: api
 title: generate session
@@ -149,37 +158,71 @@ description: See ref docs/api-mmt.md#inputs for details
 ```
 
 ## Request
-- protocol: `http` or `ws` (optional - inferred from URL if not specified)
-  - URLs starting with `ws://` or `wss://` default to `ws`
-  - All other URLs default to `http`
-- url: server URL
-- method: HTTP method `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
-- format: body format `json` | `xml` | `text`
-- headers: HTTP headers
-- query: query parameters for HTTP requests
-- cookies: HTTP cookies
-- body: request body (HTTP) or message (WS)
 
-As noted in the quick start, the body can be raw XML, JSON, or text. It can also be a YAML object that’s automatically converted to the specified format.
+### protocol
+`http` or `ws`. Optional — inferred from the URL scheme:
+- `ws://` or `wss://` → `ws`
+- All other URLs → `http`
 
-
-Sample:
+### url
+The server URL. Can include inline query strings (merged with `query` if both are present). Supports `<<e:VAR>>` and `<<i:key>>` tokens.
 ```yaml
-protocol: http
-url: x.com/blog
-method: get
+url: <<e:api_url>>/users/<<i:userId>>
+```
+
+### method
+HTTP method: `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`. Required for `protocol: http`.
+
+### format
+Body encoding: `json`, `xml`, or `text`. Determines how the body is serialized and the default `Content-Type` header.
+
+### headers
+HTTP headers as key-value pairs.
+```yaml
 headers:
   Authorization: Bearer <<e:token>>
   Accept: application/json
-query:
-  limit: "20"
-  page: "1"
-  # will be converted to x.com/blog?limit=20&page=1
-cookies:
-  session: e:session_id
 ```
 
-### Headers
+### query
+Query parameters for HTTP requests. Merged with any query string already in the `url`.
+```yaml
+url: <<e:api_url>>/search
+query:
+  q: "search term"
+  limit: "10"
+  page: "1"
+# results in: <<e:api_url>>/search?q=search+term&limit=10&page=1
+```
+
+### cookies
+HTTP cookies sent with the request.
+```yaml
+cookies:
+  session: e:session_id
+  locale: en-US
+```
+
+### body
+Request body (HTTP) or message (WebSocket). Can be a YAML object (auto-serialized to the specified `format`) or a raw string.
+```yaml
+# YAML object (auto-serialized as JSON)
+body:
+  username: i:username
+  password: i:password
+
+# Raw text
+body: |
+  hello world
+
+# Raw XML
+body: |
+  <root>
+    <value>42</value>
+  </root>
+```
+
+### Header defaults
 For convenience, Multimeter adds a few sensible HTTP headers if they’re missing:
 - User-Agent: Multimeter
 - Accept: */*
@@ -234,20 +277,39 @@ Notes
 
 ### outputs
 Pull fields from the response to populate outputs. Use one of the following per key:
-- A regex applied to the raw response body text: `regex ...`
 - A bracket path starting with `body[...]` to read structured fields
+- A dot-notation path starting with `body.` for the same structured access (e.g., `body.user.name`)
+- A regex applied to the raw response body text: `regex <pattern>` (first capture group becomes the value)
 - `headers[...]` to extract response headers
 - `cookies[...]` to extract response cookies
 - A JSONPath starting with `$` (e.g., `$[body][user][id]` or `$body[user]`)
+- `.length` suffix on any array path to get the array length
 
 Example
 ```yaml
 outputs:
-  name: regex message(.*)
+  # bracket-path notation
   from: body[from][0]
   method: body[method]
+
+  # dot-notation (equivalent to bracket paths)
+  username: body.user.name
+  enabled: body.settings.enabled
+  first_item: body.items[0].key
+
+  # array length
+  item_count: body[tags].length
+  nested_len: body.nested.items.length
+
+  # regex (first capture group)
+  name: regex "name":"(.*?)"
+  email: regex "email":"([^"]+)"
+
+  # headers and cookies
   token: headers[Authorization]
   session: cookies[session_id]
+
+  # JSONPath
   userId: $[body][user][id]
 ```
 

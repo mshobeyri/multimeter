@@ -780,23 +780,15 @@ button:focus {
 }
 
 /* Content area between fixed header and fixed toolbar.
-   Uses flex:1 to fill available height.  overflow-y:auto
-   kicks in when total height is small (min-height ensures
-   a minimum scrollable area of 500px). */
+   Uses flex:1 to fill available height.  Overflow is hidden
+   here because request / response sections scroll independently. */
 .apitest-content {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
-  overflow-y: auto;
-  overflow-x: hidden;
-}
-
-/* Inner content needs a minimum so the scroll activates
-   when the panel gets below ~500px usable height. */
-.apitest-content > * {
-  flex-shrink: 0;
+  overflow: hidden;
 }
 
 .apitest-section {
@@ -806,6 +798,14 @@ button:focus {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Section children keep their natural height so the section scrolls
+   when combined content exceeds the available space. */
+.apitest-section > * {
+  flex-shrink: 0;
 }
 
 .apitest-section .label {

@@ -39,7 +39,7 @@ function matchesSource(filePath: string, src: string): boolean {
     return fp.endsWith(s) || fp === s;
   }
   const sDir = s.endsWith('/') ? s : s + '/';
-  return fp.startsWith(sDir) || fp.includes('/' + sDir) || fp.includes(sDir);
+  return fp.startsWith(sDir) || fp.includes('/' + sDir);
 }
 
 function fence(code: string, lang = ''): string {

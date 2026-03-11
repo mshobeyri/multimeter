@@ -559,3 +559,58 @@ describe('resolveRefPath', () => {
     expect(result).toContain('Because reasons.');
   });
 });
+
+describe('service grouping with overlapping directory names', () => {
+  test('source "api" should not match files from "markdown_api" directory', () => {
+    const apis = [
+      { title: 'Get Users', method: 'GET', url: '/users', format: 'json', __file: 'api/get_users.mmt' },
+      { title: 'Create User', method: 'POST', url: '/users', format: 'json', __file: 'api/post_create_user.mmt' },
+      { title: 'Health Check', method: 'GET', url: '/health', format: 'json', __file: 'markdown_api/health_check.mmt' },
+      { title: 'Search Products', method: 'GET', url: '/search', format: 'json', __file: 'markdown_api/search_products.mmt' },
+    ];
+    const html = buildDocHtml(apis, {
+      title: 'Test',
+      services: [
+        { name: 'Group A', description: 'First group', sources: ['api'] },
+        { name: 'Group B', description: 'Second group', sources: ['markdown_api'] },
+      ],
+    });
+    // Group A should contain only api/ items
+    const groupAIdx = html.indexOf('Group A');
+    const groupBIdx = html.indexOf('Group B');
+    expect(groupAIdx).toBeGreaterThan(-1);
+    expect(groupBIdx).toBeGreaterThan(-1);
+    // Health Check and Search should appear AFTER Group B header, not under Group A
+    const healthIdx = html.indexOf('Health Check');
+    const searchIdx = html.indexOf('Search Products');
+    expect(healthIdx).toBeGreaterThan(groupBIdx);
+    expect(searchIdx).toBeGreaterThan(groupBIdx);
+    // Get Users and Create User should appear between Group A and Group B
+    const getUsersIdx = html.indexOf('Get Users');
+    const createUserIdx = html.indexOf('Create User');
+    expect(getUsersIdx).toBeGreaterThan(groupAIdx);
+    expect(getUsersIdx).toBeLessThan(groupBIdx);
+    expect(createUserIdx).toBeGreaterThan(groupAIdx);
+    expect(createUserIdx).toBeLessThan(groupBIdx);
+  });
+
+  test('markdown doc: source "api" should not match "markdown_api" files', () => {
+    const apis = [
+      { title: 'Get Users', method: 'GET', url: '/users', format: 'json', __file: 'api/get_users.mmt' },
+      { title: 'Health Check', method: 'GET', url: '/health', format: 'json', __file: 'markdown_api/health_check.mmt' },
+    ];
+    const md = buildDocMarkdown(apis, {
+      title: 'Test',
+      services: [
+        { name: 'Group A', sources: ['api'] },
+        { name: 'Group B', sources: ['markdown_api'] },
+      ],
+    });
+    const groupAIdx = md.indexOf('Group A');
+    const groupBIdx = md.indexOf('Group B');
+    expect(groupAIdx).toBeGreaterThan(-1);
+    expect(groupBIdx).toBeGreaterThan(-1);
+    const healthIdx = md.indexOf('Health Check');
+    expect(healthIdx).toBeGreaterThan(groupBIdx);
+  });
+});

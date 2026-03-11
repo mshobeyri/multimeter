@@ -459,7 +459,7 @@ function matchesSource(filePath: string, src: string): boolean {
   }
   // directory prefix match (ensure trailing slash on src)
   const sDir = s.endsWith('/') ? s : s + '/';
-  return fp.startsWith(sDir) || fp.includes('/' + sDir) || fp.includes(sDir);
+  return fp.startsWith(sDir) || fp.includes('/' + sDir);
 }
 
 function resolveInputDefaults(str: string, inputs: any): string {
