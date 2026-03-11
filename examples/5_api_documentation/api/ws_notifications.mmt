@@ -1,0 +1,18 @@
+type: api
+title: Notification stream
+description: |
+  Subscribe to real-time notifications via WebSocket.
+  Send a JSON message to start receiving events.
+
+  <<i:channel>> The notification channel to subscribe to
+  <<o:echoed_channel>> The channel name echoed back by the server
+inputs:
+  channel: alerts
+outputs:
+  echoed_channel: body.channel
+url: wss://test.mmt.dev/ws
+protocol: ws
+format: json
+body:
+  action: subscribe
+  channel: i:channel

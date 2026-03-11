@@ -1,0 +1,13 @@
+type: api
+title: List users
+description: |
+  Returns a list of all users in the system.
+
+  <<o:name>> The user's display name
+  <<o:tags>> Array of tags associated with the user
+outputs:
+  name: body[name]
+  tags: body[tags]
+url: https://test.mmt.dev/json
+method: get
+format: json
