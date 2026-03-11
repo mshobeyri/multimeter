@@ -14,9 +14,11 @@ Supported:
 ### HTTP GET
 ```yaml
  type: api
- url: <<e:api_url>>/users   # protocol inferred as http from URL
+ title: List users
+ description: Fetch a paginated list of users
+ url: <<e:api_url>>/users
  method: get
- format: json   # affects default Content-Type and body handling
+ format: json
  headers:
    Session: e:token
  query:
@@ -26,7 +28,8 @@ Supported:
 Notes
 - `format` sets how the body is encoded/decoded
 - `query` merges with any query string in `url`
-- `protocol` is optional - inferred from URL (ws:// or wss:// → ws, otherwise http)
+- `protocol` is optional — inferred from URL (ws:// or wss:// → ws, otherwise http)
+- Place documentation fields (`title`, `description`, `tags`) and reuse fields (`inputs`, `outputs`) before request fields (`url`, `method`, `body`, etc.)
 
 Tip: You can use dynamic tokens anywhere in url/headers/body/query/cookies.
 - Random: `r:<name>` (e.g., `r:uuid`, `r:int`)
@@ -36,33 +39,39 @@ See “Dynamic values: random and current” below for details and examples.
 ### HTTP POST JSON or XML
 ```yaml
  type: api
- protocol: http
+ title: Login
+ description: Authenticate with username and password
+ inputs:
+   username: string
+   password: string
  url: <<e:api_url>>/login
  method: post
  format: json
  headers:
    X-App: multimeter
  body:
-   username: e:user
-   password: e:pass
+   username: i:username
+   password: i:password
 ```
 
 Change `format` to `xml` to send an XML body instead of JSON.
 
 ### HTTP raw text or raw XML
 ```yaml
-# text
  type: api
- protocol: http
+ title: Echo text
+ description: Send plain text to the echo endpoint
  url: <<e:api_url>>/echo
  method: post
  format: text
  body: |
    hello world
+```
 
-# xml
+```yaml
  type: api
- protocol: http
+ title: Post XML
+ description: Send raw XML payload
  url: <<e:api_url>>/xml
  method: post
  format: xml
