@@ -1,0 +1,18 @@
+type: api
+title: Extract with regex
+description: |
+  Extract values from the raw response text using regular expressions.
+  Use `regex <pattern>` — the first capture group `(...)` becomes the output value.
+inputs:
+  username: alice
+  email: alice@example.com
+outputs:
+  extracted_name: regex "username":\s"(alice)"
+  extracted_email: regex "email":\s"([^"]+)"
+  timestamp_date: regex "timestamp":\s"(\d{4}-\d{2}-\d{2})
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  username: i:username
+  email: i:email

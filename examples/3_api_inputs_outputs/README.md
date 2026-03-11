@@ -6,8 +6,10 @@ This example shows how to use **inputs** and **outputs** in `.mmt` API files. In
 
 | File | Description |
 |---|---|
-| `get_with_outputs.mmt` | GET request that extracts `name`, `item_count`, and `first_tag` from the response |
-| `post_with_inputs_outputs.mmt` | POST request with `username` and `role` inputs, plus outputs that extract the echoed values |
+| `get_with_outputs.mmt` | Bracket-path extraction — `body[name]`, `body[tags][0]`, `body[tags].length` |
+| `get_dot_notation.mmt` | Dot-notation extraction — `body.nested.enabled`, `body.nested.items[0].key` |
+| `post_with_inputs_outputs.mmt` | Inputs + bracket-path outputs from the echoed response |
+| `post_regex_outputs.mmt` | Regex extraction — `regex "username":"(.*?)"` captures from raw body text |
 
 ## How to use
 
@@ -34,7 +36,10 @@ npx testlight run examples/3_api_inputs_outputs/post_with_inputs_outputs.mmt \
 ## Key concepts
 
 - **`inputs`** — declare parameters with default values. Reference them with `i:name` (entire value) or `<<i:name>>` (inline in a string).
-- **`outputs`** — extract fields from the response using bracket paths like `body[field]`, `headers[name]`, or `cookies[name]`.
+- **`outputs`** — three extraction styles:
+  - **Bracket path** — `body[nested][items][0][key]` for structured access
+  - **Dot notation** — `body.nested.items[0].key` as a shorter alternative
+  - **Regex** — `regex "field":"(.*?)"` to capture from raw response text (first capture group wins)
 - Outputs can be chained into subsequent steps in a test flow using `${step_id.output_name}`.
 
 See [API docs](../../docs/api-mmt.md#inputs) and [API docs — outputs](../../docs/api-mmt.md#outputs) for full details.
