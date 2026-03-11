@@ -3,6 +3,7 @@
 .vscode-test/**
 
 # Folders
+bin/
 src/
 core/src/
 mmtview/src/
