@@ -1,0 +1,18 @@
+type: test
+title: Data driven echo test
+description: Loops over rows from a CSV file and calls the echo API for each message
+import:
+  echo: echo_api.mmt
+  messages: messages.csv
+steps:
+  - data: messages
+  - for: row of messages
+    steps:
+      - call: echo
+        id: result
+        inputs:
+          message: ${row.message}
+        check:
+          - statusCode_ == 200
+          - echoed_message == ${row.message}
+          - request_method == ${row.expected_method}

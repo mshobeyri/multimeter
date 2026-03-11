@@ -1367,6 +1367,15 @@ export const KeySuggestionsByParent = (monaco: any) => {
     const dataSiblings = [
         { label: 'id', kind: monaco.languages.CompletionItemKind.Property, insertText: 'id: ', detail: 'Data variable name', documentation: 'Variable name to access loaded data in subsequent steps.' },
     ];
+    const stepReportSuggestions = [
+        { label: 'internal', kind: monaco.languages.CompletionItemKind.Property, insertText: 'internal: ', detail: 'Report level when running directly', documentation: 'Report level when the test is run directly.\nValues: all (default), fails, none' },
+        { label: 'external', kind: monaco.languages.CompletionItemKind.Property, insertText: 'external: ', detail: 'Report level when imported/suite', documentation: 'Report level when the test is imported or run as part of a suite.\nValues: all, fails (default), none' },
+    ];
+    const reportLevelValues = [
+        { label: 'all', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: 'all', detail: 'Report all', documentation: 'Report both passed and failed checks/asserts.' },
+        { label: 'fails', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: 'fails', detail: 'Report failures only', documentation: 'Only report failed checks/asserts (default for external runs).' },
+        { label: 'none', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: 'none', detail: 'No reporting', documentation: 'Suppress all check/assert reporting.' },
+    ];
 
     const keySuggestionsByParent: Record<string, any[]> = {
         root: rootSuggestions,
@@ -1404,6 +1413,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
         'step-for': forRepeatSiblings,
         'step-repeat': forRepeatSiblings,
         'step-data': dataSiblings,
+        'step-report': stepReportSuggestions,
+        'report-level': reportLevelValues,
     };
 
     return keySuggestionsByParent;

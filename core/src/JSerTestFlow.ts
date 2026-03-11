@@ -131,12 +131,12 @@ const normalizeComparison =
       return {actual: actualStr, operator, expected: expectedStr, raw, title, details};
     };
 
-export const ifToJSfunc = (condition: TestFlowCondition, callMeta?: Record<string, CallTitleMeta>): string => {
+export const ifToJSfunc = (condition: TestFlowCondition, useExternalReport: boolean, callMeta?: Record<string, CallTitleMeta>): string => {
   const cond = typeof condition.if === 'string' ? condition.if : '';
   const conditionStatement = conditionalStatementToJSfunc(cond);
-  const thenBlock = flowStepsToJsfunc(condition.steps, true, true, callMeta);
+  const thenBlock = flowStepsToJsfunc(condition.steps, true, useExternalReport, callMeta);
   const elseBlock =
-      condition.else ? flowStepsToJsfunc(condition.else, true, true, callMeta) : undefined;
+      condition.else ? flowStepsToJsfunc(condition.else, true, useExternalReport, callMeta) : undefined;
 
   if (!elseBlock) {
     return `if (${conditionStatement}) {
@@ -151,10 +151,10 @@ export const ifToJSfunc = (condition: TestFlowCondition, callMeta?: Record<strin
   }
 };
 
-export const repeatToJSfunc = (loop: TestFlowRepeat, callMeta?: Record<string, CallTitleMeta>): string => {
+export const repeatToJSfunc = (loop: TestFlowRepeat, useExternalReport: boolean, callMeta?: Record<string, CallTitleMeta>): string => {
   const loopCondition = typeof loop.repeat === 'string' ? loop.repeat.trim() :
                                                           String(loop.repeat);
-  const loopBody = flowStepsToJsfunc(loop.steps, true, true, callMeta);
+  const loopBody = flowStepsToJsfunc(loop.steps, true, useExternalReport, callMeta);
 
   // Check for time-based repeat
   const timeMatch = loopCondition.match(/^(\d+(?:\.\d+)?)(ns|ms|s|m|h)$/);
@@ -195,8 +195,8 @@ export function delayToJSfunc(d: string|number): string {
   return `await new Promise(r => setTimeout(r, ${msExpr}));`;
 }
 
-export const forToJSfunc = (loop: TestFlowLoop, callMeta?: Record<string, CallTitleMeta>): string => {
-  const loopBody = flowStepsToJsfunc(loop.steps, true, true, callMeta);
+export const forToJSfunc = (loop: TestFlowLoop, useExternalReport: boolean, callMeta?: Record<string, CallTitleMeta>): string => {
+  const loopBody = flowStepsToJsfunc(loop.steps, true, useExternalReport, callMeta);
   return `
 for (${loop.for}) {
   ${indentLines(loopBody)}
@@ -399,16 +399,16 @@ export const flowStepsToJsfunc =
                 stepJs = assertToJSfunc((step as TestFlowAssert).assert, useExternalReport);
                 break;
               case 'if':
-                stepJs = ifToJSfunc(step as TestFlowCondition, callMeta);
+                stepJs = ifToJSfunc(step as TestFlowCondition, useExternalReport, callMeta);
                 break;
               case 'repeat':
-                stepJs = repeatToJSfunc(step as TestFlowRepeat, callMeta);
+                stepJs = repeatToJSfunc(step as TestFlowRepeat, useExternalReport, callMeta);
                 break;
               case 'delay':
                 stepJs = delayToJSfunc((step as any).delay);
                 break;
               case 'for':
-                stepJs = forToJSfunc(step as TestFlowLoop, callMeta);
+                stepJs = forToJSfunc(step as TestFlowLoop, useExternalReport, callMeta);
                 break;
               case 'js':
                 stepJs = (step as any).js;

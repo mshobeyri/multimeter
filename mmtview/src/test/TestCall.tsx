@@ -1,7 +1,7 @@
 import React from "react";
 import { parseYamlDoc } from "mmt-core/markupConvertor";
 import { findTestCallAliasProblems, findTestCallInputsProblems, type MissingImportEntry, type ProblemEntry } from "../text/validator";
-import { opsList, opsNames } from "mmt-core/TestData";
+import { opsList, opsNames, ReportLevel, ReportConfig } from "mmt-core/TestData";
 import FieldWithRemove from "../components/FieldWithRemove";
 interface TestCallProps {
   value: any; // current value can be alias string
@@ -121,6 +121,31 @@ const TestCall: React.FC<TestCallProps> = ({
   const callReport = React.useMemo(() => {
     return local && typeof local === 'object' ? (local as any).report : undefined;
   }, [local]);
+
+  const reportLevelOptions: ReportLevel[] = ['all', 'fails', 'none'];
+
+  // Parse current report value into internal/external
+  const isReportObjectForm = callReport && typeof callReport === 'object';
+  const reportInternalValue: ReportLevel = isReportObjectForm
+    ? (callReport as ReportConfig).internal ?? 'all'
+    : (typeof callReport === 'string' ? callReport as ReportLevel : 'all');
+  const reportExternalValue: ReportLevel = isReportObjectForm
+    ? (callReport as ReportConfig).external ?? 'fails'
+    : (typeof callReport === 'string' ? callReport as ReportLevel : 'fails');
+
+  const handleReportChange = (internal: ReportLevel, external: ReportLevel) => {
+    let rep: any;
+    if (internal === 'all' && external === 'fails') {
+      rep = undefined;
+    } else if (internal === external) {
+      rep = internal;
+    } else {
+      rep = { internal, external };
+    }
+    const next = buildCallObj({ report: rep });
+    setLocal(next);
+    scheduleEmit(next);
+  };
 
   /** Build the full call object from current state */
   const buildCallObj = (overrides?: {
@@ -644,6 +669,48 @@ const TestCall: React.FC<TestCallProps> = ({
               </button>
             </div>
           </div>
+
+          {(checkList.length > 0 || assertList.length > 0) && (
+            <>
+              <div className="label">Report</div>
+              <div style={{ padding: '5px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <label
+                    title="Report level when running this test directly"
+                    style={{ userSelect: 'none', fontSize: 12 }}
+                  >
+                    Internal:
+                  </label>
+                  <select
+                    value={reportInternalValue}
+                    onChange={e => handleReportChange(e.target.value as ReportLevel, reportExternalValue)}
+                    style={{ fontSize: 12 }}
+                  >
+                    {reportLevelOptions.map(opt => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <label
+                    title="Report level when this test is imported or added to a suite"
+                    style={{ userSelect: 'none', fontSize: 12 }}
+                  >
+                    External:
+                  </label>
+                  <select
+                    value={reportExternalValue}
+                    onChange={e => handleReportChange(reportInternalValue, e.target.value as ReportLevel)}
+                    style={{ fontSize: 12 }}
+                  >
+                    {reportLevelOptions.map(opt => (
+                      <option key={opt} value={opt}>{opt}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </>
+          )}
         </>
       )}
     </div>

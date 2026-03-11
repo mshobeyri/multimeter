@@ -277,6 +277,17 @@ Inline examples
 - check: profile.name =~ /John/i
 ```
 
+> **Note:** Input values and check expected values are evaluated as JavaScript template literals.
+> To reference a runtime variable (loop variable, JS `let`/`const`, etc.), wrap it in `${...}`:
+> ```yaml
+> - call: myApi
+>   inputs:
+>     name: ${row.name}         # resolves the loop variable
+>   check:
+>     - result.name == ${row.expected_name}
+> ```
+> Without `${...}`, the text is treated as a literal string (e.g. `name: row.name` sends the text "row.name").
+
 Object-form examples
 ```yaml
 - check:

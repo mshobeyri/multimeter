@@ -878,7 +878,13 @@ export const handleBeforeMount = (monaco: any) => {
 
                 // Only suggest values if cursor is after the colon
                 if (position.column >= valueStartColumn) {
-                    const suggestionList = getValueSuggestions(key);
+                    // In test files, report/internal/external keys get report-level values
+                    const isReportLevelKey = firstLine === 'type: test' && (
+                        (key === 'report' && (parentContext === 'steps' || parentContext === 'stages')) ||
+                        ((key === 'internal' || key === 'external') && parentContext === 'report')
+                    );
+                    const effectiveKey = isReportLevelKey ? 'report-level' : key;
+                    const suggestionList = getValueSuggestions(effectiveKey);
 
                     if (suggestionList.length > 0) {
                         return {
@@ -1044,7 +1050,12 @@ export const handleBeforeMount = (monaco: any) => {
             }
 
             // Get parent-specific suggestions and deduplicate
-            const parentSuggestions = keySuggestionsByParent[parentContext] || [];
+            // When inside report: of a test step, use step-report suggestions (internal/external)
+            // instead of type: report file-level suggestions
+            const effectiveContext = (parentContext === 'report' && firstLine === 'type: test')
+                ? 'step-report'
+                : parentContext;
+            const parentSuggestions = keySuggestionsByParent[effectiveContext] || [];
             const baseSuggestions = deduplicateSuggestions(parentSuggestions);
 
             const wordInfo = model.getWordUntilPosition(position);

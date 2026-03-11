@@ -986,6 +986,57 @@ describe('inline check/assert on call steps', () => {
     expect(js).toContain('const _login_1 = await login(');
     expect(js).toContain('equals_(`${_login_1.name}`, `ok`)');
   });
+
+  it('uses internal report settings for checks inside for loop when root run', async () => {
+    const ctx: TestContext = {
+      name: 'forLoopReport',
+      test: {
+        steps: [{
+          for: 'const row of items',
+          steps: [{
+            call: 'echo',
+            id: 'result',
+            check: ['status == 200'],
+            report: { internal: 'all', external: 'none' },
+          } as any],
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    // root=true → useExternalReport=false → should use internal='all'
+    const js = await testToJsfunc(ctx, true);
+    // console.log on success means report level is 'all' (internal)
+    expect(js).toContain('console.log');
+    expect(js).toContain("report_('check'");
+    // Should NOT have console.trace (which is used for 'none')
+    expect(js).not.toContain('console.trace');
+  });
+
+  it('uses external report settings for checks inside for loop when imported', async () => {
+    const ctx: TestContext = {
+      name: 'forLoopReportExt',
+      test: {
+        steps: [{
+          for: 'const row of items',
+          steps: [{
+            call: 'echo',
+            id: 'result',
+            check: ['status == 200'],
+            report: { internal: 'all', external: 'none' },
+          } as any],
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    // root=false → useExternalReport=true → should use external='none'
+    const js = await testToJsfunc(ctx, false);
+    // console.trace on success means report level is 'none'
+    expect(js).toContain('console.trace');
+    // Should NOT have report_ calls at all (none = no reporting)
+    expect(js).not.toContain("report_('check'");
+  });
 });
 
 describe('body inputs numeric/boolean templating', () => {
