@@ -77,7 +77,7 @@ Minimal example
 ```yaml
 type: env
 variables:
-  API_URL:
+  api_url:
     dev: http://localhost:8080
     prod: https://api.example.com
   test_type: 
@@ -86,10 +86,10 @@ variables:
 presets:
   runner:
     dev: 
-      API_URL: dev
+      api_url: dev
       test_type: smoke
     ci:  
-      API_URL: prod
+      api_url: prod
       test_type: regression
 ```
 Here we defined two URLs "dev" and "prod" to switch target machines easily. Also a variable called test type to filter some tests, for example. In the presets section we defined two presets as environments that can modify both variables with just one click.

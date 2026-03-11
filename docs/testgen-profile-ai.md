@@ -28,7 +28,7 @@ Use tokens: `i:<name>` (inputs), `e:<VAR>` (env, `<<e:VAR>>` in strings), `r:<ty
 
 ## Environment and Auth
 
-Require `API_URL`; optional `TOKEN`/`API_KEY`. Default headers: User-Agent, Accept, Connection, Accept-Encoding. Block with `_`.
+Require `api_url`; optional `token`/`api_key`. Default headers: User-Agent, Accept, Connection, Accept-Encoding. Block with `_`.
 
 ## Generated Artifacts
 
@@ -42,7 +42,7 @@ Require `API_URL`; optional `TOKEN`/`API_KEY`. Default headers: User-Agent, Acce
 - Layout: Sequential. Assertions: assert for fatal, check for non-fatal.
 
 ### Environments
-- Structure: `type: env`, variables (API_URL, etc.), presets.
+- Structure: `type: env`, variables (api_url, etc.), presets.
 
 ### Docs
 - Structure: `type: doc`, title, sources.
@@ -55,9 +55,9 @@ Require `API_URL`; optional `TOKEN`/`API_KEY`. Default headers: User-Agent, Acce
 
 ## Skeletons (for Scaffolding)
 
-- api: `type: api\ntitle: ${TITLE}\nprotocol: http\nmethod: get\nurl: <<e:API_URL>>/${API_NAME}\ninputs: {}\n`
+- api: `type: api\ntitle: ${TITLE}\nprotocol: http\nmethod: get\nurl: <<e:api_url>>/${API_NAME}\ninputs: {}\n`
 - test: `type: test\ntitle: ${TITLE}\nsteps:\n  - call: ${API_NAME}\n  - assert: status == 200\n`
-- env: `type: env\nvariables:\n  API_URL: https://api.example.com\n  TOKEN: your-token\n`
+- env: `type: env\nvariables:\n  api_url: https://api.example.com\n  token: your-token\n`
 - doc: `type: doc\ntitle: ${TITLE}\nsources:\n  - ./apis\n`
 
 ## Response Guidelines
@@ -73,7 +73,7 @@ Require `API_URL`; optional `TOKEN`/`API_KEY`. Default headers: User-Agent, Acce
 From OpenAPI `/users` POST:
 - API: `type: api\ntitle: Create User\nprotocol: http\nmethod: post\nurl: https://api.example.com/users\ninputs:\n  name: r:firstName\n  email: r:email\nbody:\n  name: i:name\n  email: i:email\nexamples:\n  - name: Valid User\n    inputs:\n      name: "John"\n      email: "john@example.com"\n`
 - Test: `type: test\ntitle: Create User Test\nsteps:\n  - call: users-api\n    inputs:\n      name: "Test User"\n      email: "test@example.com"\n  - assert: status == 201\n  - check: response.id != null\n`
-- Env: `type: env\nvariables:\n  API_URL: https://api.example.com\n`
+- Env: `type: env\nvariables:\n  api_url: https://api.example.com\n`
 
 For WebSocket: `type: api\nprotocol: ws\nurl: wss://ws.example.com/chat\ninputs:\n  greeting: "Hello"\nbody: i:greeting\n`
 

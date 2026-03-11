@@ -6,23 +6,23 @@ Acts as a global store for variables to read and write across tests. Like any gl
 ```yaml
 type: env
 variables:
-  API_URL: "http://localhost:8080"
-  USER: "alice"
-  PASS: "secret"
-  MODE:
+  api_url: "http://localhost:8080"
+  user: "alice"
+  pass: "secret"
+  mode:
     dev: "debug"      # map of named choices
     prod: "release"
-  TIMEOUTS:
+  timeouts:
     - 1000            # list of allowed values (optional)
     - 2000
 presets:
   runner:
     dev:
-      API_URL: dev    # picks choice "dev" when the variable is defined as a mapping
-      MODE: dev
+      api_url: dev    # picks choice "dev" when the variable is defined as a mapping
+      mode: dev
     prod:
-      API_URL: prod
-      MODE: prod
+      api_url: prod
+      mode: prod
 ```
 
 Notes
@@ -50,12 +50,12 @@ Notes
 
 Examples:
 ```yaml
-url: <<e:API_URL>>/login
+url: <<e:api_url>>/login
 headers:
-  Authorization: Bearer <<e:TOKEN>>
+  Authorization: Bearer <<e:token>>
 body:
-  username: e:USER
-  password: e:PASS
+  username: e:user
+  password: e:pass
 ```
 
 ## Using presets and overrides in CLI
@@ -67,11 +67,11 @@ Use preset from env file:
 Override values explicitly (wins over preset):
 ```sh
  testlight run tests/login.mmt --env-file env.mmt --preset runner.dev \
-  -e API_URL http://localhost:8080 -e USER bob
+  -e api_url http://localhost:8080 -e user bob
 ```
 Without env file, pass env directly:
 ```sh
- testlight run tests/login.mmt -e API_URL=http://localhost:8080 -e USER=alice -e PASS='00123'
+ testlight run tests/login.mmt -e api_url=http://localhost:8080 -e user=alice -e pass='00123'
 ```
 
 Typing rules for CLI values
@@ -95,7 +95,7 @@ Typing rules for CLI values
 In API definitions, use `setenv` to capture values from responses for later steps.
 ```yaml
 setenv:
-  TOKEN: body[token]
+  token: body[token]
 ```
 
 ## Certificates

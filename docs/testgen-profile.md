@@ -36,7 +36,7 @@ Other specs (e.g., GraphQL, RAML) not supported; REST APIs only. Tools should at
 
 ### OpenAPI → MMT
 - Base URL: first server url
-- Auth: Not directly supported; handle via custom headers (e.g., `Authorization: Bearer <<e:TOKEN>>`) or JS code in tests.
+- Auth: Not directly supported; handle via custom headers (e.g., `Authorization: Bearer <<e:token>>`) or JS code in tests.
 - URL = path + resolved query params
 - Method = `operationId` if available, else the HTTP method
 - Inputs = union of parameters + requestBody.schema
@@ -52,7 +52,7 @@ Other specs (e.g., GraphQL, RAML) not supported; REST APIs only. Tools should at
 - Generation rules:
   - Do NOT include `method` for `protocol: ws` APIs.
 ### Postman → MMT
-- Base URL: collection variable `API_URL` if present; else inferred
+- Base URL: collection variable `api_url` if present; else inferred
 - Inputs:
   - `url` → `i:url`
   - `headers` → `i:hdr_<headerName>`
@@ -104,7 +104,7 @@ Guidelines:
 
 ## Environment and auth
 
-Expect `API_URL`; optionally `TOKEN`/`API_KEY` depending on the API.
+Expect `api_url`; optionally `token`/`api_key` depending on the API.
 Default headers:
 - User-Agent: Multimeter
 - Accept: */*
@@ -143,7 +143,7 @@ Generation knobs (see YAML profile):
 - naming: patterns for files/suites/examples
 
 ### Environments
-- Expect at least API_URL; TOKEN/API_KEY optional depending on auth
+- Expect at least api_url; token/api_key optional depending on auth
 - Presets (dev/prod) are supported via env files; users can choose at runtime
 - Use `e:VAR` tokens directly in APIs/tests for type-preserving substitution; use `<<e:VAR>>` inside strings
 
@@ -176,7 +176,7 @@ Starter templates are included for quick scaffolding:
 - test
   - Simple flow calling one API and asserting status 200
 - env
-  - Basic environment with `API_URL` and optional `TOKEN`
+  - Basic environment with `api_url` and optional `token`
 - doc
   - Minimal doc pointing to `./examples`
 
@@ -240,7 +240,7 @@ steps:
 ```yaml
 type: env
 variables:
-  API_URL: https://api.example.com
+  api_url: https://api.example.com
 ```
 
 ## Structures (API, Test, Env, Doc)
@@ -372,13 +372,13 @@ Example:
 ```yaml
 type: env
 variables:
-  API_URL: https://api.example.com
-  TOKEN: your-token
+  api_url: https://api.example.com
+  token: your-token
 presets:
   dev:
-    API_URL: http://localhost:3000
+    api_url: http://localhost:3000
   prod:
-    API_URL: https://prod.api.com
+    api_url: https://prod.api.com
 ```
 
 Usage

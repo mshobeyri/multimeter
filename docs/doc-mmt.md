@@ -163,7 +163,7 @@ inputs:
   email: string
   role: viewer
 method: post
-url: <<e:API_URL>>/users
+url: <<e:api_url>>/users
 ```
 
 In the rendered doc, each `<<i:...>>` and `<<o:...>>` annotation appears as a row in the parameter table for that API.

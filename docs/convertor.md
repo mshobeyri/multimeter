@@ -47,7 +47,7 @@ The panel parses the spec and creates one or more `.mmt` API files (and optional
 - **XML body generation**: When an OpenAPI spec defines content types like `application/xml`, the convertor generates XML body templates from the schema.
 
 ## Tips
-- Map your base URL to an environment variable early (for example, API_URL) and reference it with `<<e:API_URL>>` so you can switch presets
+- Map your base URL to an environment variable early (for example, api_url) and reference it with `<<e:api_url>>` so you can switch presets
 - Review generated inputs/headers—tweak names to match your project conventions
 - Use the API editor to refine bodies and add `setenv` for downstream tests
 

@@ -14,11 +14,11 @@ Supported:
 ### HTTP GET
 ```yaml
  type: api
- format: json   # affects default Content-Type and body handling
+ url: <<e:api_url>>/users   # protocol inferred as http from URL
  method: get
- url: <<e:API_URL>>/users   # protocol inferred as http from URL
+ format: json   # affects default Content-Type and body handling
  headers:
-   Session: e:TOKEN
+   Session: e:token
  query:
    limit: "10"
    sort: desc
@@ -37,14 +37,14 @@ See “Dynamic values: random and current” below for details and examples.
 ```yaml
  type: api
  protocol: http
- format: json
+ url: <<e:api_url>>/login
  method: post
- url: <<e:API_URL>>/login
+ format: json
  headers:
    X-App: multimeter
  body:
-   username: e:USER
-   password: e:PASS
+   username: e:user
+   password: e:pass
 ```
 
 Change `format` to `xml` to send an XML body instead of JSON.
@@ -54,18 +54,18 @@ Change `format` to `xml` to send an XML body instead of JSON.
 # text
  type: api
  protocol: http
- format: text
+ url: <<e:api_url>>/echo
  method: post
- url: <<e:API_URL>>/echo
+ format: text
  body: |
    hello world
 
 # xml
  type: api
  protocol: http
- format: xml
+ url: <<e:api_url>>/xml
  method: post
- url: <<e:API_URL>>/xml
+ format: xml
  body: |
    <root>
     <value>42</value>
@@ -76,10 +76,10 @@ Change `format` to `xml` to send an XML body instead of JSON.
 ```yaml
  type: api
  protocol: ws
- format: json
  url: ws://localhost:8080/ws
+ format: json
  headers:
-   X-Auth: e:TOKEN
+   X-Auth: e:token
  # drive messages in tests via call steps
 ```
 Tip: For WS, use tests to send/receive frames with `call` steps that invoke this API.
@@ -139,9 +139,9 @@ description: See ref docs/api-mmt.md#inputs for details
 - protocol: `http` or `ws` (optional - inferred from URL if not specified)
   - URLs starting with `ws://` or `wss://` default to `ws`
   - All other URLs default to `http`
+- url: server URL
 - method: HTTP method `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
 - format: body format `json` | `xml` | `text`
-- url: server URL
 - headers: HTTP headers
 - query: query parameters for HTTP requests
 - cookies: HTTP cookies
@@ -153,17 +153,17 @@ As noted in the quick start, the body can be raw XML, JSON, or text. It can also
 Sample:
 ```yaml
 protocol: http
-method: get
 url: x.com/blog
+method: get
 headers:
-  Authorization: Bearer <<e:TOKEN>>
+  Authorization: Bearer <<e:token>>
   Accept: application/json
 query:
   limit: "20"
   page: "1"
   # will be converted to x.com/blog?limit=20&page=1
 cookies:
-  session: e:SESSION_ID
+  session: e:session_id
 ```
 
 ### Headers
@@ -210,9 +210,9 @@ You can also write `i:name` if it doesn’t conflict with surrounding text. When
  inputs:
    userId: string
  protocol: http
- format: json
+ url: <<e:api_url>>/users/<<i:userId>>
  method: get
- url: <<e:API_URL>>/users/<<i:userId>>
+ format: json
 ```
 
 Notes
@@ -342,11 +342,11 @@ examples:
  outputs:
   total: body[total]
  protocol: http
- format: json
+ url: <<e:api_url>>/users/search
  method: get
- url: <<e:API_URL>>/users/search
+ format: json
  headers:
-   Authorization: Bearer <<e:TOKEN>>
+   Authorization: Bearer <<e:token>>
    X-Client: test
  query:
    q: john
@@ -354,7 +354,7 @@ examples:
  cookies:
    locale: en-US 
  setenv:
-  LAST_TOTAL: total
+  last_total: total
 ```
 
 ### WS
@@ -362,10 +362,10 @@ examples:
  type: api
  title: Notifications stream
  protocol: ws
- format: json
  url: wss://example.com/ws
+ format: json
  headers:
-   X-Auth: e:TOKEN
+   X-Auth: e:token
  # Drive messages in a test using steps
 ```
 
@@ -380,10 +380,10 @@ examples:
 - inputs: record<string, string | number | boolean | null>
 - outputs: record<string, string>
 - setenv: record<string, string>
+- url: string (can contain query string)
 - protocol: `http` or `ws`
 - method: HTTP verbs (HTTP only)
 - format: `json` | `xml` | `text`
-- url: string (can contain query string)
 - headers: record<string, string>
 - query: record<string, string>
 - cookies: record<string, string>

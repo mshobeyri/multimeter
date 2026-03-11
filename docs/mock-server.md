@@ -41,8 +41,8 @@ Tip: Reflect is a great way to validate what your client actually sends -- no ba
 - In your API `.mmt`, set the base URL to the mock server, for example:
   - url: http://localhost:8081
 - Or use an environment variable and swap presets between real and mock:
-  - variables.API_URL: http://localhost:8081
-  - tests and APIs reference it via `<<e:API_URL>>`
+  - variables.api_url: http://localhost:8081
+  - tests and APIs reference it via `<<e:api_url>>`
 
 When Reflect is on, you will see the same payload you sent in the response body. Turn it off and set a Status to simulate error paths.
 

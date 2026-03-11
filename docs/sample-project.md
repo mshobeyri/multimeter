@@ -42,27 +42,27 @@ This file at the project root serves two purposes: it defines shared environment
 ```yaml
 type: env
 variables:
-  API_URL:
+  api_url:
     local: http://localhost:3000
     staging: https://staging.petstore.io
     production: https://api.petstore.io
-  ADMIN_USER: admin@petstore.io
-  ADMIN_PASS: secret123
-  DEFAULT_LIMIT: 20
+  admin_user: admin@petstore.io
+  admin_pass: secret123
+  default_limit: 20
 
 presets:
   runner:
     dev:
-      API_URL: local
-      DEFAULT_LIMIT: 5
+      api_url: local
+      default_limit: 5
     staging:
-      API_URL: staging
+      api_url: staging
     prod:
-      API_URL: production
+      api_url: production
 ```
 
 What you get:
-- `e:API_URL` resolves to the selected URL everywhere
+- `e:api_url` resolves to the selected URL everywhere
 - `presets.runner.dev` switches all variables at once — one flag in the UI or CLI
 - `+/` imports in any file resolve relative to this directory
 
@@ -87,16 +87,16 @@ tags:
   - auth
   - smoke
 inputs:
-  email: e:ADMIN_USER
-  password: e:ADMIN_PASS
+  email: e:admin_user
+  password: e:admin_pass
 outputs:
   token: body[token]
   userId: body[user][id]
 setenv:
-  TOKEN: token
+  token: token
 method: post
 format: json
-url: <<e:API_URL>>/auth/login
+url: <<e:api_url>>/auth/login
 body:
   email: i:email
   password: i:password
@@ -150,10 +150,9 @@ outputs:
   createdAt: body[createdAt]
 method: post
 format: json
-url: <<e:API_URL>>/pets
+url: <<e:api_url>>/pets
 headers:
-  Authorization: Bearer <<e:TOKEN>>
-body:
+  Authorization: Bearer <<e:token>>
   name: i:name
   species: i:species
   price: i:price
@@ -162,7 +161,7 @@ body:
 
 Features shown:
 - **`r:uuid`** generates a random UUID for each request
-- **Bearer token from environment** via `<<e:TOKEN>>` (set by login's `setenv`)
+- **Bearer token from environment** via `<<e:token>>` (set by login's `setenv`)
 
 ### `apis/pets/get_pet.mmt` — Get a pet by ID
 
@@ -187,9 +186,9 @@ outputs:
   price: body[price]
 method: get
 format: json
-url: <<e:API_URL>>/pets/<<i:petId>>
+url: <<e:api_url>>/pets/<<i:petId>>
 headers:
-  Authorization: Bearer <<e:TOKEN>>
+  Authorization: Bearer <<e:token>>
 ```
 
 ### `apis/pets/list_pets.mmt` — List pets
@@ -208,17 +207,17 @@ outputs:
   firstId: body[items][0][id]
 method: get
 format: json
-url: <<e:API_URL>>/pets
+url: <<e:api_url>>/pets
 headers:
-  Authorization: Bearer <<e:TOKEN>>
+  Authorization: Bearer <<e:token>>
 query:
-  limit: e:DEFAULT_LIMIT
+  limit: e:default_limit
   sort: name
 ```
 
 Features shown:
 - **Query parameters** as a map (merged into the URL)
-- **Environment variable in query** (`e:DEFAULT_LIMIT` preserves its number type)
+- **Environment variable in query** (`e:default_limit` preserves its number type)
 - **Deep output extraction** with bracket path (`body[items][0][id]`)
 
 ### `apis/orders/place_order.mmt` — Place an order
@@ -244,9 +243,9 @@ outputs:
   status: body[status]
 method: post
 format: json
-url: <<e:API_URL>>/orders
+url: <<e:api_url>>/orders
 headers:
-  Authorization: Bearer <<e:TOKEN>>
+  Authorization: Bearer <<e:token>>
   X-Request-Id: r:uuid
 body:
   petId: i:petId
@@ -295,8 +294,8 @@ tags:
 import:
   login: +/apis/auth/login.mmt
 inputs:
-  email: e:ADMIN_USER
-  password: e:ADMIN_PASS
+  email: e:admin_user
+  password: e:admin_pass
 steps:
   - call: login
     id: doLogin
@@ -461,8 +460,8 @@ services:
     sources:
       - +/apis/orders
 env:
-  API_URL: https://api.petstore.io
-  TOKEN: your-token-here
+  api_url: https://api.petstore.io
+  token: your-token-here
 html:
   triable: true
   cors_proxy: "https://corsproxy.io/?"
@@ -470,7 +469,7 @@ html:
 
 Features shown:
 - **Services** group APIs by domain in the rendered HTML
-- **`env`** replaces `e:API_URL` placeholders in the rendered docs
+- **`env`** replaces `e:api_url` placeholders in the rendered docs
 - **`html.triable`** adds interactive "Try" buttons to every endpoint
 - **`cors_proxy`** routes Try-It requests through a CORS proxy
 - **`logo`** and **`description`** render in the HTML header
