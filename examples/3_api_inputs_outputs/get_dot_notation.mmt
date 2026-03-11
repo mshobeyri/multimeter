@@ -1,13 +1,13 @@
 type: api
 title: Extract nested fields (dot notation)
-description: |
+description: |-
   Extract deeply nested values from a JSON response.
   Use dot notation for object traversal and bracket notation for arrays.
 outputs:
   is_enabled: body.nested.enabled
   nested_count: body.nested.count
-  first_item_key: body.nested.items[0].key
-  second_item_value: body.nested.items[1].value
+  first_item_key: body.nested.items.0.key
+  second_item_value: body.nested.items.1.value
   items_length: body.nested.items.length
 url: https://test.mmt.dev/json
 method: get

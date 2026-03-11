@@ -6,8 +6,27 @@ A minimal example of a `type: test` file that calls an API with an input and che
 
 | File | Description |
 |---|---|
-| `echo_api.mmt` | API definition — POSTs a message to the echo endpoint and extracts it from the response |
+| `echo_api.mmt` | API definition using **bracket notation** — `body[body][message]` |
+| `echo_api_dot.mmt` | API definition using **dot notation** — `body.body.message` |
 | `echo_test.mmt` | Test flow — calls the echo API, passes an input, and checks the response status and echoed message |
+
+## Dot notation vs bracket notation
+
+Both notations extract fields from the response. **Dot notation is preferred** because it is shorter and easier to read:
+
+```yaml
+# Dot notation (preferred)
+outputs:
+  echoed_message: body.body.message
+  request_method: body.method
+
+# Bracket notation
+outputs:
+  echoed_message: body[body][message]
+  request_method: body[method]
+```
+
+Use **bracket notation** when a key contains a dot (e.g. `body[my.key.name]`), since dot notation would interpret the dots as path separators.
 
 ## How to use
 

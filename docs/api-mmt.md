@@ -221,18 +221,28 @@ Notes
 
 ### outputs
 Pull fields from the response to populate outputs. Use one of the following per key:
+- **Dot notation** (preferred): `body.field`, `body.nested.items.0.key` — shorter and easier to read
+- **Bracket notation**: `body[field]`, `body[nested][items][0]` — required when keys contain dots (e.g. `body[my.key.name]`)
 - A regex applied to the raw response body text: `regex ...`
-- A bracket path starting with `body[...]` to read structured fields
-- `headers[...]` to extract response headers
-- `cookies[...]` to extract response cookies
+- `headers[...]` or `headers.Name` to extract response headers
+- `cookies[...]` or `cookies.name` to extract response cookies
 - A JSONPath starting with `$` (e.g., `$[body][user][id]` or `$body[user]`)
+
+> **Tip:** Prefer dot notation for readability. Use bracket notation only when a key literally contains a `.` character, since dot notation would interpret it as a path separator.
 
 Example
 ```yaml
 outputs:
+  # Dot notation (preferred)
+  method: body.method
+  message: body.body.message
+
+  # Bracket notation (needed for keys with dots)
+  weird_key: body[some.dotted.key]
+
+  # Other extraction styles
   name: regex message(.*)
   from: body[from][0]
-  method: body[method]
   token: headers[Authorization]
   session: cookies[session_id]
   userId: $[body][user][id]

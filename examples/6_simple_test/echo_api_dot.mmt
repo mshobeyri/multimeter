@@ -1,0 +1,16 @@
+type: api
+title: Echo API (dot notation)
+description: |-
+  Same as echo_api.mmt but uses dot notation for output extraction.
+  Dot notation is shorter and preferred when keys don't contain dots.
+inputs:
+  message: hello world
+outputs:
+  echoed_message: body.body.message
+  request_method: body.method
+  request_path: body.path
+url: http://test.mmt.dev/echo
+method: post
+format: json
+body:
+  message: i:message

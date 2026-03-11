@@ -4,8 +4,8 @@ description: Posts a message and echoes it back
 inputs:
   message: hello world
 outputs:
-  echoed_message: body[body][message]
-url: http://test.mmt.dev/echo
+  echoed_message: body.body.message
+url: https://test.mmt.dev/echo
 method: post
 format: json
 body:
