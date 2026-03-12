@@ -17,6 +17,7 @@ import {
   computeTestCallAliasMarkers,
   findTestCallInputsProblems,
   getUndefinedInputDecorations,
+  getUndefinedExpectKeyDecorations,
   getUndefinedExampleKeyDecorations,
   findExampleKeyProblems,
   getUndefinedInputRefDecorations,
@@ -119,6 +120,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const decorationsRef = useRef<string[]>([]);
   const linkDecorationsRef = useRef<string[]>([]);
   const undefinedInputDecorationsRef = useRef<string[]>([]);
+  const undefinedExpectKeyDecorationsRef = useRef<string[]>([]);
   const undefinedExampleKeyDecorationsRef = useRef<string[]>([]);
   const undefinedInputRefDecorationsRef = useRef<string[]>([]);
   const undefinedEnvRefDecorationsRef = useRef<string[]>([]);
@@ -129,7 +131,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const [docType, setDocType] = useState<string | null>(null);
   const [importsMapState, setImportsMapState] = useState<Record<string, string>>({});
   const lastImportsSignatureRef = useRef<string>("");
-  const { missingImports, inputsByAlias: apiInputsByAlias } = useImportValidation(importsMapState);
+  const { missingImports, inputsByAlias: apiInputsByAlias, outputsByAlias: apiOutputsByAlias } = useImportValidation(importsMapState);
   const { missingSuiteFiles } = useSuiteTestsValidation(docType, content);
   const { missingDocFiles } = useDocFileValidation(docType, content); // Changed from missingLogoFile
   const [yamlProblems, setYamlProblems] = useState<ProblemEntry[]>([]);
@@ -404,6 +406,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         setCallAliasProblems([]);
         setCallInputsProblems([]);
         undefinedInputDecorationsRef.current = editor.deltaDecorations(undefinedInputDecorationsRef.current, []);
+        undefinedExpectKeyDecorationsRef.current = editor.deltaDecorations(undefinedExpectKeyDecorationsRef.current, []);
         return;
       }
     } catch {
@@ -411,6 +414,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       setCallAliasProblems([]);
       setCallInputsProblems([]);
       undefinedInputDecorationsRef.current = editor.deltaDecorations(undefinedInputDecorationsRef.current, []);
+      undefinedExpectKeyDecorationsRef.current = editor.deltaDecorations(undefinedExpectKeyDecorationsRef.current, []);
       return;
     }
 
@@ -446,7 +450,21 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       undefinedInputDecorationsRef.current,
       undefinedInputDecos
     );
-  }, [content, docType, editorReady, apiInputsByAlias]);
+
+    const undefinedExpectDecos = getUndefinedExpectKeyDecorations(
+      monaco,
+      model,
+      content,
+      doc,
+      docType,
+      apiOutputsByAlias,
+      UNDEFINED_INPUT_CLASS
+    );
+    undefinedExpectKeyDecorationsRef.current = editor.deltaDecorations(
+      undefinedExpectKeyDecorationsRef.current,
+      undefinedExpectDecos
+    );
+  }, [content, docType, editorReady, apiInputsByAlias, apiOutputsByAlias]);
 
   // Warn on example input/output keys that don't match API-level inputs/outputs
   useEffect(() => {

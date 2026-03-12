@@ -702,212 +702,8 @@ describe('empty test items are valid', () => {
      });
 });
 
-describe('inline check/assert on call steps', () => {
-  it('generates check after call with single string check', async () => {
-    const ctx: TestContext = {
-      name: 'callCheck',
-      test: {
-        steps: [{call: 'login', check: 'status == 200'} as any],
-      } as any,
-      inputs: {},
-      envVars: {},
-    };
-    const js = await testToJsfunc(ctx, true);
-    // Should capture call result (no id → temp variable with index suffix)
-    expect(js).toContain('const _login_0 = await login(');
-    // Should generate check on the output parameter
-    expect(js).toContain('equals_(`${_login_0.status}`, `200`)');
-    expect(js).toContain("report_('check'");
-  });
-
-  it('generates check after call with array of checks', async () => {
-    const ctx: TestContext = {
-      name: 'callMultiCheck',
-      test: {
-        steps: [{call: 'login', check: ['status == 200', 'token != null']} as any],
-      } as any,
-      inputs: {},
-      envVars: {},
-    };
-    const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('const _login_0 = await login(');
-    expect(js).toContain('equals_(`${_login_0.status}`, `200`)');
-    expect(js).toContain('notEquals_(`${_login_0.token}`, `null`)');
-  });
-
-  it('generates assert after call', async () => {
-    const ctx: TestContext = {
-      name: 'callAssert',
-      test: {
-        steps: [{call: 'login', assert: 'status == 200'} as any],
-      } as any,
-      inputs: {},
-      envVars: {},
-    };
-    const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('const _login_0 = await login(');
-    expect(js).toContain("report_('assert'");
-    expect(js).toContain('throw new Error("Assertion failed")');
-  });
-
-  it('generates both check and assert on same call', async () => {
-    const ctx: TestContext = {
-      name: 'callBoth',
-      test: {
-        steps: [{call: 'login', check: 'token != null', assert: 'status == 200'} as any],
-      } as any,
-      inputs: {},
-      envVars: {},
-    };
-    const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('const _login_0 = await login(');
-    expect(js).toContain("report_('check'");
-    expect(js).toContain("report_('assert'");
-  });
-
-  it('uses id as result variable when call has id', async () => {
-    const ctx: TestContext = {
-      name: 'callWithId',
-      test: {
-        steps: [{call: 'login', id: 'res', check: 'status == 200'} as any],
-      } as any,
-      inputs: {},
-      envVars: {},
-    };
-    const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('const res = await login(');
-    expect(js).toContain('equals_(`${res.status}`, `200`)');
-  });
-
-  it('sets default title to call name', async () => {
-    const ctx: TestContext = {
-      name: 'callTitle',
-      test: {
-        steps: [{call: 'myApi', check: 'value == ok'} as any],
-      } as any,
-      inputs: {},
-      envVars: {},
-    };
-    const js = await testToJsfunc(ctx, true);
-    // Title should be the call name
-    expect(js).toContain('"myApi"');
-  });
-
-  it('title falls back to call name over id (call has higher priority)', async () => {
-    const ctx: TestContext = {
-      name: 'callTitleId',
-      test: {
-        steps: [{call: 'myApi', id: 'res', check: 'value == ok'} as any],
-      } as any,
-      inputs: {},
-      envVars: {},
-    };
-    const js = await testToJsfunc(ctx, true);
-    // call name (priority 3) beats id (priority 5)
-    expect(js).toContain('"myApi"');
-  });
-
-  it('uses explicit title field when set on call step', async () => {
-    const ctx: TestContext = {
-      name: 'callExplicitTitle',
-      test: {
-        steps: [{call: 'myApi', title: 'My Custom Title', check: 'value == ok'} as any],
-      } as any,
-      inputs: {},
-      envVars: {},
-    };
-    const js = await testToJsfunc(ctx, true);
-    // explicit title (priority 1) wins
-    expect(js).toContain('"My Custom Title"');
-    expect(js).not.toContain('"myApi"');
-  });
-
-  it('title priority: title > fileTitle > call > fileName > id', async () => {
-    // Without explicit title or file metadata, call name is used
-    const ctx: TestContext = {
-      name: 'titlePriority',
-      test: {
-        steps: [
-          {call: 'login', id: 'res', check: 'status == 200'} as any,
-        ],
-      } as any,
-      inputs: {},
-      envVars: {},
-    };
-    const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('"login"');
-  });
-
-  it('includes details with JSON.stringify of call result', async () => {
-    const ctx: TestContext = {
-      name: 'callDetails',
-      test: {
-        steps: [{call: 'login', check: 'status == 200'} as any],
-      } as any,
-      inputs: {},
-      envVars: {},
-    };
-    const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('JSON.stringify(_login_0)');
-  });
-
-  it('passes inputs to call with inline check', async () => {
-    const ctx: TestContext = {
-      name: 'callInputsCheck',
-      test: {
-        steps: [{call: 'login', inputs: {username: 'alice'}, check: 'status == 200'} as any],
-      } as any,
-      inputs: {},
-      envVars: {},
-    };
-    const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('_login_0 = await login(');
-    expect(js).toContain('alice');
-    expect(js).toContain('equals_(`${_login_0.status}`, `200`)');
-  });
-
-  it('resolves <<i:input>> reference in inline check expected value', async () => {
-    const ctx: TestContext = {
-      name: 'inputRefInCheck',
-      test: {
-        inputs: { message: 'hello world' },
-        import: { echo: 'echo_api.mmt' },
-        steps: [{
-          call: 'echo',
-          id: 'result',
-          inputs: { message: 'i:message' },
-          check: ['statusCode_ == 200', 'echoed_message == <<i:message>>'],
-        } as any],
-      } as any,
-      inputs: {},
-      envVars: {},
-    };
-    const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('equals_(`${result.echoed_message}`, `${message}`)');
-  });
-
-  it('resolves <<i:input>> in inline check when manual inputs have spaces', async () => {
-    const ctx: TestContext = {
-      name: 'inputRefInCheckWithSpaces',
-      test: {
-        inputs: { message: 'hello world' },
-        import: { echo: 'echo_api.mmt' },
-        steps: [{
-          call: 'echo',
-          id: 'result',
-          inputs: { message: 'i:message' },
-          check: ['echoed_message == <<i:message>>'],
-        } as any],
-      } as any,
-      inputs: { message: 'hello world' },
-      envVars: {},
-    };
-    const js = await testToJsfunc(ctx, true);
-    // Should generate valid JS even when the input value has spaces
-    expect(js).toContain('equals_');
-  });
-
-  it('does not generate temp variable when no check or assert', async () => {
+describe('call steps without expect', () => {
+  it('does not generate temp variable when no expect', async () => {
     const ctx: TestContext = {
       name: 'callNoCheck',
       test: {
@@ -921,58 +717,13 @@ describe('inline check/assert on call steps', () => {
     expect(js).not.toContain('const _login_0');
   });
 
-  it('handles check with empty expected (2-part format)', async () => {
-    const ctx: TestContext = {
-      name: 'callEmptyExpected',
-      test: {
-        steps: [{call: 'login', check: 'name =='} as any],
-      } as any,
-      inputs: {},
-      envVars: {},
-    };
-    const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('const _login_0');
-    expect(js).toContain('equals_');
-    // The expected arg in the template literal should be empty
-    expect(js).toContain('``');
-  });
-
-  it('handles check with quoted empty string markers', async () => {
-    const ctx: TestContext = {
-      name: 'callQuotedEmpty',
-      test: {
-        steps: [{call: 'login', check: "name == ''"} as any],
-      } as any,
-      inputs: {},
-      envVars: {},
-    };
-    const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('equals_');
-    // '' should be unquoted to truly empty
-    expect(js).toContain('``');
-  });
-
-  it('handles check with double-quoted empty string markers', async () => {
-    const ctx: TestContext = {
-      name: 'callDblQuotedEmpty',
-      test: {
-        steps: [{call: 'login', check: 'name == ""'} as any],
-      } as any,
-      inputs: {},
-      envVars: {},
-    };
-    const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('equals_');
-    expect(js).toContain('``');
-  });
-
   it('generates unique variable names for duplicate call aliases', async () => {
     const ctx: TestContext = {
       name: 'duplicateCalls',
       test: {
         steps: [
-          {call: 'login', check: 'status == 200'} as any,
-          {call: 'login', check: 'name == ok'} as any,
+          {call: 'login', expect: { status: 200 }} as any,
+          {call: 'login', expect: { name: 'ok' }} as any,
         ],
       } as any,
       inputs: {},
@@ -985,57 +736,6 @@ describe('inline check/assert on call steps', () => {
     // Second call at index 1 — different variable name
     expect(js).toContain('const _login_1 = await login(');
     expect(js).toContain('equals_(`${_login_1.name}`, `ok`)');
-  });
-
-  it('uses internal report settings for checks inside for loop when root run', async () => {
-    const ctx: TestContext = {
-      name: 'forLoopReport',
-      test: {
-        steps: [{
-          for: 'const row of items',
-          steps: [{
-            call: 'echo',
-            id: 'result',
-            check: ['status == 200'],
-            report: { internal: 'all', external: 'none' },
-          } as any],
-        } as any],
-      } as any,
-      inputs: {},
-      envVars: {},
-    };
-    // root=true → useExternalReport=false → should use internal='all'
-    const js = await testToJsfunc(ctx, true);
-    // console.log on success means report level is 'all' (internal)
-    expect(js).toContain('console.log');
-    expect(js).toContain("report_('check'");
-    // Should NOT have console.trace (which is used for 'none')
-    expect(js).not.toContain('console.trace');
-  });
-
-  it('uses external report settings for checks inside for loop when imported', async () => {
-    const ctx: TestContext = {
-      name: 'forLoopReportExt',
-      test: {
-        steps: [{
-          for: 'const row of items',
-          steps: [{
-            call: 'echo',
-            id: 'result',
-            check: ['status == 200'],
-            report: { internal: 'all', external: 'none' },
-          } as any],
-        } as any],
-      } as any,
-      inputs: {},
-      envVars: {},
-    };
-    // root=false → useExternalReport=true → should use external='none'
-    const js = await testToJsfunc(ctx, false);
-    // console.trace on success means report level is 'none'
-    expect(js).toContain('console.trace');
-    // Should NOT have report_ calls at all (none = no reporting)
-    expect(js).not.toContain("report_('check'");
   });
 });
 
@@ -1236,30 +936,24 @@ describe('expect on call steps', () => {
     expect(js).toContain('equals_(`${res.status_code}`, `200`)');
   });
 
-  it('expect runs before check and assert', async () => {
+  it('expect generates multiple checks in field order', async () => {
     const ctx: TestContext = {
       name: 'callExpectOrder',
       test: {
         steps: [{
           call: 'login',
-          expect: { status_code: 200 },
-          check: 'token != null',
-          assert: 'status == 200',
+          expect: { status_code: 200, token: '!= null' },
         } as any],
       } as any,
       inputs: {},
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    const expectIdx = js.indexOf('equals_(`${_login_0.status_code}`, `200`)');
-    const checkIdx = js.indexOf('notEquals_(`${_login_0.token}`, `null`)');
-    const assertIdx = js.indexOf('equals_(`${_login_0.status}`, `200`)');
-    expect(expectIdx).toBeGreaterThan(-1);
-    expect(checkIdx).toBeGreaterThan(-1);
-    expect(assertIdx).toBeGreaterThan(-1);
-    // expect runs first, then check, then assert
-    expect(expectIdx).toBeLessThan(checkIdx);
-    expect(checkIdx).toBeLessThan(assertIdx);
+    const statusIdx = js.indexOf('equals_(`${_login_0.status_code}`, `200`)');
+    const tokenIdx = js.indexOf('notEquals_(`${_login_0.token}`, `null`)');
+    expect(statusIdx).toBeGreaterThan(-1);
+    expect(tokenIdx).toBeGreaterThan(-1);
+    expect(statusIdx).toBeLessThan(tokenIdx);
   });
 
   it('expect is non-throwing (no assertion failure throw)', async () => {
@@ -1310,6 +1004,58 @@ describe('expect on call steps', () => {
     };
     const js = await testToJsfunc(ctx, true);
     expect(js).toContain('equals_(`${_login_0.active}`, `true`)');
+  });
+
+  it('uses step title in generated checks when provided', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectTitle',
+      test: {
+        steps: [{
+          call: 'login',
+          title: 'Login validation',
+          expect: { status_code: 200 },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('Login validation');
+  });
+
+  it('passes report config to generated checks', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectReport',
+      test: {
+        steps: [{
+          call: 'login',
+          expect: { status_code: 200 },
+          report: 'none',
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    // With report: 'none', both internal and external are 'none',
+    // so report_ calls should not appear
+    expect(js).not.toContain("report_('check'");
+  });
+
+  it('uses call alias as fallback title when no step title', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectFallback',
+      test: {
+        steps: [{
+          call: 'verifyUser',
+          expect: { status_code: 200 },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('verifyUser');
   });
 });
 

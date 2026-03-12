@@ -259,15 +259,14 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 'Fields:',
                 '  - id: optional variable name to assign the output',
                 '  - inputs: overrides for API inputs',
-                '  - check: inline check on output parameters',
-                '  - assert: inline assert on output parameters (stops on failure)',
-                '  - report: report level for inline checks/asserts',
+                '  - expect: map of output fields to expected values (non-throwing)',
                 'Example:',
                 '- call: get_user',
                 '  id: user',
                 '  inputs:',
                 '    userId: "u-123"',
-                '  check: status == 200',
+                '  expect:',
+                '    statusCode_: 200',
                 'Note: Outputs returned by the API include mapped fields plus status_code and response_time.'
             ].join('\n')
         },
@@ -1346,12 +1345,10 @@ export const KeySuggestionsByParent = (monaco: any) => {
     // Sibling property suggestions for step list items (shown without leading dash)
     const callSiblings = [
         { label: 'id', kind: monaco.languages.CompletionItemKind.Property, insertText: 'id: ', detail: 'Capture call result', documentation: 'Variable name to capture the call output.\nExample:\n- call: login\n  id: loginResult' },
-        { label: 'title', kind: monaco.languages.CompletionItemKind.Property, insertText: 'title: ', detail: 'Test box title', documentation: 'Explicit title for the test box shown in results.\nOverrides the default title priority (called file title → import key → filename → id).\nExample:\n- call: login\n  title: Login Verification\n  check: status == 200' },
+        { label: 'title', kind: monaco.languages.CompletionItemKind.Property, insertText: 'title: ', detail: 'Call step title', documentation: 'Short summary shown inline in reports/UI.\nExample:\n- call: login\n  title: Authenticate user' },
         { label: 'inputs', kind: monaco.languages.CompletionItemKind.Property, insertText: 'inputs:\n\t', detail: 'Override call inputs', documentation: 'Key-value inputs to pass to the called API/test.\nExample:\n- call: login\n  inputs:\n    username: alice' },
-        { label: 'expect', kind: monaco.languages.CompletionItemKind.Property, insertText: 'expect:\n\t', detail: 'Map-based output check', documentation: 'Map of output field names to expected values (non-throwing).\nRuns before check/assert. Default operator is ==.\nExamples:\n- call: login\n  expect:\n    status_code: 200\n    token: != null\n\nWith explicit operator:\n  expect:\n    status_code: == 200\n\nMultiple checks on same field:\n  expect:\n    status_code:\n      - == 200\n      - != 500' },
-        { label: 'check', kind: monaco.languages.CompletionItemKind.Property, insertText: 'check: ', detail: 'Inline check on output', documentation: 'Check an output parameter of the call.\nSingle:\n- call: login\n  check: status == 200\nMultiple:\n- call: login\n  check:\n    - status == 200\n    - token != null' },
-        { label: 'assert', kind: monaco.languages.CompletionItemKind.Property, insertText: 'assert: ', detail: 'Inline assert on output', documentation: 'Assert an output parameter of the call (stops on failure).\nExample:\n- call: login\n  assert: status == 200' },
-        { label: 'report', kind: monaco.languages.CompletionItemKind.Property, insertText: 'report: ', detail: 'Report level for inline checks', documentation: 'Controls when inline check/assert results are reported.\nValues: all, fails, none\nOr object form: { internal: all, external: fails }' },
+        { label: 'expect', kind: monaco.languages.CompletionItemKind.Property, insertText: 'expect:\n\t', detail: 'Map-based output validation', documentation: 'Map of output field names to expected values (non-throwing).\nDefault operator is ==.\nExamples:\n- call: login\n  expect:\n    statusCode_: 200\n    token: != null\n\nWith explicit operator:\n  expect:\n    statusCode_: == 200\n\nMultiple checks on same field:\n  expect:\n    statusCode_:\n      - == 200\n      - != 500' },
+        { label: 'report', kind: monaco.languages.CompletionItemKind.Property, insertText: 'report: ', detail: 'Report level', documentation: 'Controls when expect results are reported.\nValues: all, fails, none\nOr object form:\n  report:\n    internal: all\n    external: fails' },
     ];
     const checkAssertSiblings = [
         { label: 'title', kind: monaco.languages.CompletionItemKind.Property, insertText: 'title: ', detail: 'Check title', documentation: 'Short summary shown inline in reports/UI.' },

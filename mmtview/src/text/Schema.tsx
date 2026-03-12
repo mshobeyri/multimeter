@@ -324,7 +324,7 @@ export const TestSchema = {
                             },
                             expect: {
                                 type: 'object',
-                                description: 'Map of output field names to expected values. Non-throwing (like check). Runs before check/assert.',
+                                description: 'Map of output field names to expected values. Non-throwing — logs failures but continues.',
                                 additionalProperties: {
                                     oneOf: [
                                         { type: 'string' },
@@ -343,18 +343,6 @@ export const TestSchema = {
                                     ]
                                 }
                             },
-                            check: {
-                                oneOf: [
-                                    { type: 'string' },
-                                    { type: 'array', items: { type: 'string' } }
-                                ]
-                            },
-                            assert: {
-                                oneOf: [
-                                    { type: 'string' },
-                                    { type: 'array', items: { type: 'string' } }
-                                ]
-                            },
                             report: {
                                 oneOf: [
                                     { type: 'string', enum: ['all', 'fails', 'none'] },
@@ -367,7 +355,7 @@ export const TestSchema = {
                                         additionalProperties: false
                                     }
                                 ]
-                            }
+                            },
                         },
                         additionalProperties: false
                     },

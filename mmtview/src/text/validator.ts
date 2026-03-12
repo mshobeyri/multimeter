@@ -472,6 +472,109 @@ export function extractTestCallInputKeySites(doc: any, content: string): CallInp
   return infos;
 }
 
+export type CallExpectKeyInfo = {
+  alias: string;
+  expectKey: string;
+  line: number;
+  offset: number;
+};
+
+function collectCallExpectKeySitesFromSteps(seqItems: any[], content: string, results: CallExpectKeyInfo[]): void {
+  for (const stepNode of seqItems) {
+    const stepPairs: any[] = Array.isArray(stepNode?.items) ? stepNode.items : [];
+    const callPair = stepPairs.find((pair) => pair?.key?.value === "call");
+    const alias = callPair?.value?.value;
+    if (typeof alias === "string" && alias.trim()) {
+      const expectPair = stepPairs.find((pair) => pair?.key?.value === "expect");
+      const expectPairs: any[] = Array.isArray(expectPair?.value?.items) ? expectPair.value.items : [];
+
+      for (const pair of expectPairs) {
+        const expectKey = pair?.key?.value;
+        if (typeof expectKey !== "string" || !expectKey.trim()) {
+          continue;
+        }
+        const offset =
+          Array.isArray(pair?.key?.range) && typeof pair.key.range[0] === "number"
+            ? pair.key.range[0]
+            : Array.isArray(pair?.range)
+              ? pair.range[0]
+              : undefined;
+        const line = typeof offset === "number" ? offsetToLineNumber(content, offset) : 1;
+        results.push({ alias, expectKey, line, offset: typeof offset === "number" ? offset : -1 });
+      }
+    }
+    // Recurse into nested steps (repeat, for, if, etc.)
+    const nestedStepsPair = stepPairs.find((pair) => pair?.key?.value === "steps");
+    const nestedSeq: any[] = Array.isArray(nestedStepsPair?.value?.items) ? nestedStepsPair.value.items : [];
+    if (nestedSeq.length) {
+      collectCallExpectKeySitesFromSteps(nestedSeq, content, results);
+    }
+  }
+}
+
+export function extractTestCallExpectKeySites(doc: any, content: string): CallExpectKeyInfo[] {
+  if (!doc?.contents?.items) {
+    return [];
+  }
+
+  const rootItems: any[] = Array.isArray(doc.contents.items) ? doc.contents.items : [];
+  const stepsPair = rootItems.find((item) => item?.key?.value === "steps");
+  if (!stepsPair?.value?.items) {
+    return [];
+  }
+
+  const infos: CallExpectKeyInfo[] = [];
+  collectCallExpectKeySitesFromSteps(stepsPair.value.items, content, infos);
+  return infos;
+}
+
+export function getUndefinedExpectKeyDecorations(
+  monaco: any,
+  model: any,
+  content: string,
+  yamlDoc: any,
+  docType: string | null,
+  importedOutputsByAlias: Record<string, string[]> | null,
+  inlineClassName: string
+): any[] {
+  if (!model || !yamlDoc || docType !== "test" || !importedOutputsByAlias) {
+    return [];
+  }
+
+  const builtInOutputKeys = new Set(["statusCode_", "details_"]);
+
+  const allowedByAlias = new Map<string, Set<string>>();
+  for (const [alias, keys] of Object.entries(importedOutputsByAlias)) {
+    const keySet = new Set((Array.isArray(keys) ? keys : []).filter((k) => typeof k === "string"));
+    builtInOutputKeys.forEach((b) => keySet.add(b));
+    allowedByAlias.set(alias, keySet);
+  }
+
+  const keySites = extractTestCallExpectKeySites(yamlDoc, content);
+  const decorations: any[] = [];
+
+  for (const site of keySites) {
+    if (!allowedByAlias.has(site.alias) || allowedByAlias.get(site.alias)!.has(site.expectKey)) {
+      continue;
+    }
+    if (site.offset < 0) {
+      continue;
+    }
+    const hoverMessage = { value: `Output "${site.expectKey}" is not defined in imported "${site.alias}"` };
+    const start = model.getPositionAt(site.offset);
+    const end = model.getPositionAt(site.offset + site.expectKey.length);
+    decorations.push({
+      range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column),
+      options: {
+        inlineClassName,
+        hoverMessage,
+      },
+    });
+  }
+
+  return decorations;
+}
+
 export function computeMissingImportMarkers(
   monaco: any,
   model: any,

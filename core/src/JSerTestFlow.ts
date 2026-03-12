@@ -3,12 +3,6 @@ import {Comparison, ComparisonObject, ExpectMap, ExpectValue, normalizeReportCon
 import {getTestFlowStepType} from './testParsePack';
 import {replaceEnvTokensPlain, toTemplateWithEnvVars} from './variableReplacer';
 
-/** Metadata about an imported file, keyed by import alias. */
-export interface CallTitleMeta {
-  fileTitle?: string;
-  fileName?: string;
-}
-
 function randomName(): string {
   // Generate a random stage name like "stage_xxxxx"
   return 'stage_' + Math.random().toString(36).substr(2, 8);
@@ -131,12 +125,12 @@ const normalizeComparison =
       return {actual: actualStr, operator, expected: expectedStr, raw, title, details};
     };
 
-export const ifToJSfunc = (condition: TestFlowCondition, useExternalReport: boolean, callMeta?: Record<string, CallTitleMeta>): string => {
+export const ifToJSfunc = (condition: TestFlowCondition, useExternalReport: boolean): string => {
   const cond = typeof condition.if === 'string' ? condition.if : '';
   const conditionStatement = conditionalStatementToJSfunc(cond);
-  const thenBlock = flowStepsToJsfunc(condition.steps, true, useExternalReport, callMeta);
+  const thenBlock = flowStepsToJsfunc(condition.steps, true, useExternalReport);
   const elseBlock =
-      condition.else ? flowStepsToJsfunc(condition.else, true, useExternalReport, callMeta) : undefined;
+      condition.else ? flowStepsToJsfunc(condition.else, true, useExternalReport) : undefined;
 
   if (!elseBlock) {
     return `if (${conditionStatement}) {
@@ -151,10 +145,10 @@ export const ifToJSfunc = (condition: TestFlowCondition, useExternalReport: bool
   }
 };
 
-export const repeatToJSfunc = (loop: TestFlowRepeat, useExternalReport: boolean, callMeta?: Record<string, CallTitleMeta>): string => {
+export const repeatToJSfunc = (loop: TestFlowRepeat, useExternalReport: boolean): string => {
   const loopCondition = typeof loop.repeat === 'string' ? loop.repeat.trim() :
                                                           String(loop.repeat);
-  const loopBody = flowStepsToJsfunc(loop.steps, true, useExternalReport, callMeta);
+  const loopBody = flowStepsToJsfunc(loop.steps, true, useExternalReport);
 
   // Check for time-based repeat
   const timeMatch = loopCondition.match(/^(\d+(?:\.\d+)?)(ns|ms|s|m|h)$/);
@@ -195,8 +189,8 @@ export function delayToJSfunc(d: string|number): string {
   return `await new Promise(r => setTimeout(r, ${msExpr}));`;
 }
 
-export const forToJSfunc = (loop: TestFlowLoop, useExternalReport: boolean, callMeta?: Record<string, CallTitleMeta>): string => {
-  const loopBody = flowStepsToJsfunc(loop.steps, true, useExternalReport, callMeta);
+export const forToJSfunc = (loop: TestFlowLoop, useExternalReport: boolean): string => {
+  const loopBody = flowStepsToJsfunc(loop.steps, true, useExternalReport);
   return `
 for (${loop.for}) {
   ${indentLines(loopBody)}
@@ -301,51 +295,15 @@ const transformExpectEntry = (
   };
 };
 
-/**
- * Build a ComparisonObject from an inline call check/assert comparison,
- * prefixing the actual expression with the call result variable.
- * Uses ${resultVar.field} so the value evaluates at runtime inside template literals.
- */
-const transformCallComparison = (
-    comp: Comparison, resultVar: string, defaultTitle: string,
-    defaultDetails: string, report?: ReportLevel | ReportConfig): ComparisonObject => {
-  if (typeof comp === 'string') {
-    const parsed = parseComparisonParts(comp);
-    if (!parsed) {
-      throw new Error(`Invalid inline check format: ${comp}`);
-    }
-    const { actual, operator } = parsed;
-    const expected = unquoteEmpty(parsed.expected);
-    return {
-      actual: `\${${resultVar}.${actual}}`,
-      expected,
-      operator,
-      title: defaultTitle,
-      details: defaultDetails,
-      report,
-    };
-  }
-  // Object form
-  const actualStr = typeof comp.actual === 'string' ? comp.actual : String(comp.actual);
-  return {
-    actual: `\${${resultVar}.${actualStr}}`,
-    expected: comp.expected,
-    operator: comp.operator || '==',
-    title: comp.title || defaultTitle,
-    details: comp.details || defaultDetails,
-    report: comp.report || report,
-  };
-};
-
-const callToJSfunc = (step: TestFlowCall, useExternalReport: boolean, stepIdx: number, callMeta?: Record<string, CallTitleMeta>): string => {
+const callToJSfunc = (step: TestFlowCall, useExternalReport: boolean, stepIdx: number): string => {
   let inputParams = toInputsParams(step.inputs || {}, ': ');
   if (inputParams.length > 0) {
     inputParams = ' ' + inputParams + ' ';
   }
 
-  const hasInlineChecks = step.expect || step.check || step.assert;
+  const hasExpect = !!step.expect;
   const safeName = step.call.replace(/[^a-zA-Z0-9_]/g, '_');
-  const resultVar = step.id || (hasInlineChecks ? `_${safeName}_${stepIdx}` : undefined);
+  const resultVar = step.id || (hasExpect ? `_${safeName}_${stepIdx}` : undefined);
 
   let callExpr = `await ${step.call}({${inputParams}});`;
   if (resultVar) {
@@ -354,34 +312,16 @@ const callToJSfunc = (step: TestFlowCall, useExternalReport: boolean, stepIdx: n
 
   let result = callExpr;
 
-  if (hasInlineChecks) {
-    const meta = callMeta?.[step.call];
-    const title = step.title || meta?.fileTitle || step.call || meta?.fileName || step.id || 'call';
+  if (hasExpect) {
+    const title = step.title || step.call || step.id || 'call';
     const details = `\${JSON.stringify(${resultVar})}`;
 
-    const processComparisons = (comps: Comparison | Comparison[], type: 'check' | 'assert') => {
-      const list = Array.isArray(comps) ? comps : [comps];
-      for (const comp of list) {
-        const transformed = transformCallComparison(comp, resultVar!, title, details, step.report);
-        result += '\ncheckAbort_();\n' + comparisonToJSfunc(type, transformed, useExternalReport);
+    for (const [field, val] of Object.entries(step.expect!)) {
+      const values = Array.isArray(val) ? val : [val];
+      for (const v of values) {
+        const transformed = transformExpectEntry(field, v, resultVar!, title, details, step.report);
+        result += '\ncheckAbort_();\n' + comparisonToJSfunc('check', transformed, useExternalReport);
       }
-    };
-
-    // Process expect map entries (non-throwing, runs first)
-    if (step.expect) {
-      for (const [field, val] of Object.entries(step.expect)) {
-        const values = Array.isArray(val) ? val : [val];
-        for (const v of values) {
-          const transformed = transformExpectEntry(field, v, resultVar!, title, details, step.report);
-          result += '\ncheckAbort_();\n' + comparisonToJSfunc('check', transformed, useExternalReport);
-        }
-      }
-    }
-    if (step.check) {
-      processComparisons(step.check, 'check');
-    }
-    if (step.assert) {
-      processComparisons(step.assert, 'assert');
     }
   }
 
@@ -433,13 +373,13 @@ export const runToJSfunc = (step: TestFlowRun): string => {
 };
 
 export const flowStepsToJsfunc =
-    (flow: TestFlowSteps, root: boolean, useExternalReport: boolean = !root, callMeta?: Record<string, CallTitleMeta>): string => {
+    (flow: TestFlowSteps, root: boolean, useExternalReport: boolean = !root): string => {
       return (flow ?? [])
           .map((step: TestFlowStep, idx: number) => {
             let stepJs: string;
             switch (getTestFlowStepType(step)) {
               case 'call':
-                stepJs = callToJSfunc(step as TestFlowCall, useExternalReport, idx, callMeta);
+                stepJs = callToJSfunc(step as TestFlowCall, useExternalReport, idx);
                 break;
               case 'run':
                 stepJs = runToJSfunc(step as TestFlowRun);
@@ -451,16 +391,16 @@ export const flowStepsToJsfunc =
                 stepJs = assertToJSfunc((step as TestFlowAssert).assert, useExternalReport);
                 break;
               case 'if':
-                stepJs = ifToJSfunc(step as TestFlowCondition, useExternalReport, callMeta);
+                stepJs = ifToJSfunc(step as TestFlowCondition, useExternalReport);
                 break;
               case 'repeat':
-                stepJs = repeatToJSfunc(step as TestFlowRepeat, useExternalReport, callMeta);
+                stepJs = repeatToJSfunc(step as TestFlowRepeat, useExternalReport);
                 break;
               case 'delay':
                 stepJs = delayToJSfunc((step as any).delay);
                 break;
               case 'for':
-                stepJs = forToJSfunc(step as TestFlowLoop, useExternalReport, callMeta);
+                stepJs = forToJSfunc(step as TestFlowLoop, useExternalReport);
                 break;
               case 'js':
                 stepJs = (step as any).js;
@@ -499,7 +439,7 @@ export const flowStepsToJsfunc =
     };
 
 export const flowStagesToJsfunc =
-    (flow: TestFlowStages, root: boolean, useExternalReport: boolean = !root, callMeta?: Record<string, CallTitleMeta>): string => {
+    (flow: TestFlowStages, root: boolean, useExternalReport: boolean = !root): string => {
       if (!flow || flow.length === 0) {
         return '';
       };
@@ -522,7 +462,7 @@ export const flowStagesToJsfunc =
           const cond = conditionalStatementToJSfunc(String(stage.condition));
           code += `if (!(${cond})) {\n  return;\n}\n`;
         }
-        code += flowStepsToJsfunc(stage.steps ?? [], root, useExternalReport, callMeta);
+        code += flowStepsToJsfunc(stage.steps ?? [], root, useExternalReport);
         stageMap.set(stageName, {code, dependsOn});
       }
 
@@ -567,12 +507,12 @@ export const flowStagesToJsfunc =
       return generated.join('\n');
     };
 
-export const flowToJsFunc = (testData: TestData, root: boolean, useExternalReport: boolean = !root, callMeta?: Record<string, CallTitleMeta>): string => {
+export const flowToJsFunc = (testData: TestData, root: boolean, useExternalReport: boolean = !root): string => {
   let flow = '';
   if (testData.stages && testData.stages.length > 0) {
-    flow += flowStagesToJsfunc(testData.stages, root, useExternalReport, callMeta);
+    flow += flowStagesToJsfunc(testData.stages, root, useExternalReport);
   } else if (testData.steps && testData.steps.length > 0) {
-    flow += flowStepsToJsfunc(testData.steps, root, useExternalReport, callMeta);
+    flow += flowStepsToJsfunc(testData.steps, root, useExternalReport);
   }
   return flow;
 };

@@ -170,9 +170,9 @@ steps:
 
 Use this to make tests self-contained — no need to manually start servers before running.
 
-#### Inline check/assert on call
+#### Inline expect on call
 
-You can add `check` or `assert` directly on a call step to validate its output parameters without a separate step. The left side of the comparison is always an output parameter of the called API/test.
+Use `expect` on a call step to validate its output parameters inline, without a separate `check`/`assert` step. Each key is an output field name; each value is the expected result. Expect is non-throwing — it logs failures but continues execution.
 
 **Fields:**
 
@@ -180,58 +180,10 @@ You can add `check` or `assert` directly on a call step to validate its output p
 |-----------|-------------|
 | `call`    | (required) The import alias of the API or test to invoke |
 | `id`      | Assign the call result to a variable for later reference |
-| `title`   | Explicit title for the test box shown in the output panel |
+| `title`   | Short summary shown inline in reports and UI |
 | `inputs`  | Key-value pairs passed as input parameters to the called item |
-| `expect`  | Map of output fields to expected values (non-throwing, runs first) |
-| `check`   | One or more comparisons that log failures but continue |
-| `assert`  | One or more comparisons that stop the flow on failure |
-| `report`  | Override the report level (`all`, `fails`, or `none`) |
-
-**Examples:**
-
-Single check:
-```yaml
-- call: login
-  check: status == 200
-```
-
-Multiple checks (array form):
-```yaml
-- call: login
-  check:
-    - status == 200
-    - token != null
-```
-
-Inline assert (stops on failure):
-```yaml
-- call: login
-  assert: status == 200
-```
-
-With explicit title:
-```yaml
-- call: login
-  title: Login Verification
-  check: status == 200
-```
-
-You can combine check and assert, and optionally set a `report` level:
-```yaml
-- call: login
-  inputs:
-    username: alice
-  check:
-    - token != null
-  assert: status == 200
-  report: all
-```
-
-#### Inline expect on call
-
-`expect` is a map-based alternative to `check` for validating call outputs. Each key is an output field name, and each value is the expected result. Like `check`, it is non-throwing (logs failures but continues execution).
-
-When `expect`, `check`, and `assert` are all present on the same call, execution order is: **expect → check → assert**.
+| `expect`  | Map of output fields to expected values (non-throwing) |
+| `report`  | Report level: `all`, `fails`, `none`, or object with `internal`/`external` |
 
 **Formats:**
 
@@ -239,14 +191,14 @@ Simple equality (default operator is `==`):
 ```yaml
 - call: login
   expect:
-    status_code: 200
+    statusCode_: 200
 ```
 
 Explicit operator:
 ```yaml
 - call: echo
   expect:
-    status_code: == 200
+    statusCode_: == 200
     echoed_message: == <<i:message>>
 ```
 
@@ -254,7 +206,7 @@ Multiple checks on the same field (array form):
 ```yaml
 - call: login
   expect:
-    status_code:
+    statusCode_:
       - == 200
       - != 500
 ```
@@ -267,52 +219,19 @@ Nested field access with dot-notation:
     body.user.active: true
 ```
 
-Combining expect with check and assert:
+With title and report:
 ```yaml
 - call: login
-  inputs:
-    username: alice
+  title: Login validation
   expect:
-    status_code: 200
-    name: == alice
-  check:
-    - token != null
-  assert: status == 200
+    statusCode_: 200
+    token: != null
+  report:
+    internal: all
+    external: fails
 ```
 
 All comparison operators supported by `check`/`assert` are available in `expect` values: `==`, `!=`, `<`, `>`, `<=`, `>=`, `=@`, `!@`, `=^`, `!^`, `=$`, `!$`, `=~`, `!~`.
-
-#### Test box title priority
-
-When inline `check` or `assert` is used on a call, the title shown in the output panel is resolved using this priority (first non-empty value wins):
-
-1. **`title`** — explicit `title` field on the call step
-2. **Called file title** — the `title` field of the imported `.mmt` file (e.g. if `login` imports `login.mmt` and that file has `title: User Login`, it is used)
-3. **Import key** — the alias used in the `call` field (e.g. `login`)
-4. **Import file name** — the base filename of the imported path (without extension)
-5. **`id`** — the `id` field of the call step
-
-For example, given this import and call:
-```yaml
-import:
-  login: ./auth/user-login.mmt   # user-login.mmt has title: "User Authentication"
-
-steps:
-  - call: login
-    check: status == 200
-```
-The test box title will be **"User Authentication"** (priority 2). If `user-login.mmt` had no title, it would fall back to **"login"** (priority 3, the import key).
-
-To override it explicitly:
-```yaml
-  - call: login
-    title: Auth Check
-    check: status == 200
-```
-Now the title is **"Auth Check"** (priority 1).
-
-- **Details**: defaults to the full output of the call (JSON).
-- **Report**: defaults to standard config; override with `report` on the call step.
 
 ### check, assert
 Use check to log a failure and continue; use assert to stop the flow on failure.

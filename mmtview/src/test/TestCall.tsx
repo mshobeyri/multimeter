@@ -3,6 +3,14 @@ import { parseYamlDoc } from "mmt-core/markupConvertor";
 import { findTestCallAliasProblems, findTestCallInputsProblems, type MissingImportEntry, type ProblemEntry } from "../text/validator";
 import { opsList, opsNames, ReportLevel, ReportConfig } from "mmt-core/TestData";
 import FieldWithRemove from "../components/FieldWithRemove";
+
+/** A single row in the expect UI list */
+interface ExpectRow {
+  field: string;
+  op: string;
+  expected: string;
+}
+
 interface TestCallProps {
   value: any; // current value can be alias string
   imports?: Record<string, string>; // alias -> file path
@@ -49,8 +57,7 @@ const TestCall: React.FC<TestCallProps> = ({
     const ai = ac.inputs && typeof ac.inputs === 'object' ? ac.inputs : {};
     const bi = bc.inputs && typeof bc.inputs === 'object' ? bc.inputs : {};
     if (stableStringify(ai) !== stableStringify(bi)) return false;
-    if (stableStringify(ac.check) !== stableStringify(bc.check)) return false;
-    if (stableStringify(ac.assert) !== stableStringify(bc.assert)) return false;
+    if (stableStringify(ac.expect) !== stableStringify(bc.expect)) return false;
     if (stableStringify(ac.report) !== stableStringify(bc.report)) return false;
     return true;
   };
@@ -89,33 +96,57 @@ const TestCall: React.FC<TestCallProps> = ({
     }
   }, [value]);
 
-  // --- Inline check/assert helpers ---
+  // --- Inline expect helpers ---
 
-  /** Normalize a comparison to string form "actual op expected" */
-  const comparisonToString = (c: any): string => {
-    if (typeof c === 'string') { return c; }
-    if (c && typeof c === 'object') {
-      const actual = c.actual ?? '';
-      const op = c.operator || '==';
-      const expected = c.expected ?? '';
-      return `${actual} ${op} ${expected}`;
+  /** Parse an ExpectMap (from YAML) into a flat list of ExpectRow for the UI */
+  const expectMapToRows = (map: Record<string, any> | undefined): ExpectRow[] => {
+    if (!map || typeof map !== 'object') { return []; }
+    const rows: ExpectRow[] = [];
+    for (const [field, val] of Object.entries(map)) {
+      const values = Array.isArray(val) ? val : [val];
+      for (const v of values) {
+        const s = String(v ?? '').trim();
+        let matched = false;
+        for (const op of opsList) {
+          if (s.startsWith(op + ' ') || s === op) {
+            rows.push({ field, op, expected: s.slice(op.length).trim() });
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) {
+          // Plain value → default equality
+          rows.push({ field, op: '==', expected: s });
+        }
+      }
     }
-    return '';
+    return rows;
   };
 
-  /** Read check/assert lists from local state */
-  const checkList: string[] = React.useMemo(() => {
-    const raw = local && typeof local === 'object' ? (local as any).check : undefined;
-    if (raw === undefined || raw === null) { return []; }
-    const arr = Array.isArray(raw) ? raw : [raw];
-    return arr.map(comparisonToString);
-  }, [local]);
+  /** Convert flat ExpectRow[] back to an ExpectMap for YAML serialisation */
+  const rowsToExpectMap = (rows: ExpectRow[]): Record<string, any> | undefined => {
+    if (rows.length === 0) { return undefined; }
+    const map: Record<string, any> = {};
+    for (const r of rows) {
+      const entry = r.op === '==' ? r.expected : `${r.op} ${r.expected}`;
+      if (map[r.field] !== undefined) {
+        // Multiple entries for same field → array
+        if (Array.isArray(map[r.field])) {
+          map[r.field].push(entry);
+        } else {
+          map[r.field] = [map[r.field], entry];
+        }
+      } else {
+        map[r.field] = entry;
+      }
+    }
+    return map;
+  };
 
-  const assertList: string[] = React.useMemo(() => {
-    const raw = local && typeof local === 'object' ? (local as any).assert : undefined;
-    if (raw === undefined || raw === null) { return []; }
-    const arr = Array.isArray(raw) ? raw : [raw];
-    return arr.map(comparisonToString);
+  /** Read expect rows from local state */
+  const expectList: ExpectRow[] = React.useMemo(() => {
+    const raw = local && typeof local === 'object' ? (local as any).expect : undefined;
+    return expectMapToRows(raw);
   }, [local]);
 
   const callReport = React.useMemo(() => {
@@ -150,22 +181,19 @@ const TestCall: React.FC<TestCallProps> = ({
   /** Build the full call object from current state */
   const buildCallObj = (overrides?: {
     alias?: string; id?: string; inputs?: Record<string, any>;
-    check?: string[]; assert?: string[]; report?: any;
+    expect?: ExpectRow[]; report?: any;
   }) => {
     const alias = overrides?.alias ?? currentAlias;
     const id = overrides?.id ?? currentId;
     const inp = overrides?.inputs ?? inputs;
-    const chk = overrides?.check ?? checkList;
-    const ast = overrides?.assert ?? assertList;
+    const exp = overrides?.expect ?? expectList;
     const rep = overrides?.report !== undefined ? overrides.report : callReport;
     if (!alias) { return {}; }
     const obj: any = { call: alias };
     if (id && id.trim().length > 0) { obj.id = id; }
     obj.inputs = inp;
-    if (chk.length === 1) { obj.check = chk[0]; }
-    else if (chk.length > 1) { obj.check = chk; }
-    if (ast.length === 1) { obj.assert = ast[0]; }
-    else if (ast.length > 1) { obj.assert = ast; }
+    const expectMap = rowsToExpectMap(exp);
+    if (expectMap) { obj.expect = expectMap; }
     if (rep !== undefined) { obj.report = rep; }
     return obj;
   };
@@ -295,62 +323,26 @@ const TestCall: React.FC<TestCallProps> = ({
     return ['statusCode_', ...outs];
   }, [currentAlias, importedOutputsByAlias]);
 
-  /** Strip empty-string markers so the UI text field shows blank for empty values.
-   *  '' or "" in YAML both represent "compare against empty string". */
-  const unquoteEmpty = (v: string): string => {
-    const t = v.trim();
-    if (t === "''" || t === '""') { return ''; }
-    return t;
+  // --- Expect handlers ---
+
+  const handleAddExpect = () => {
+    const defaultField = availableOutputs[0] || '';
+    const next = buildCallObj({ expect: [...expectList, { field: defaultField, op: '==', expected: '' }] });
+    setLocal(next);
+    scheduleEmit(next);
   };
 
-  /** Parse a comparison string "actual op expected" into its three parts.
-   *  The core format is strict: exactly "actual operator expected" (3 space-separated tokens).
-   *  We also handle:
-   *    - "actual op" (no expected → empty string)
-   *    - operator at end of string (no trailing space)
-   */
-  const parseComparison = (s: string): { actual: string; op: string; expected: string } => {
-    const trimmed = (s ?? '').trim();
-    // Try to find any known operator (surrounded by spaces or at end of string)
-    for (const op of opsList) {
-      const withSpaces = ` ${op} `;
-      const idx = trimmed.indexOf(withSpaces);
-      if (idx >= 0) {
-        return {
-          actual: trimmed.slice(0, idx).trim(),
-          op,
-          expected: unquoteEmpty(trimmed.slice(idx + withSpaces.length)),
-        };
-      }
-      // Operator at end of string (e.g. "name ==")
-      if (trimmed.endsWith(` ${op}`)) {
-        return {
-          actual: trimmed.slice(0, trimmed.length - op.length - 1).trim(),
-          op,
-          expected: '',
-        };
-      }
-    }
-    // Fallback: split on whitespace
-    const parts = trimmed.split(/\s+/);
-    return {
-      actual: parts[0] ?? '',
-      op: parts[1] ?? '==',
-      expected: unquoteEmpty(parts.slice(2).join(' ')),
-    };
+  const handleRemoveExpect = (index: number) => {
+    const next = buildCallObj({ expect: expectList.filter((_, i) => i !== index) });
+    setLocal(next);
+    scheduleEmit(next);
   };
 
-  /** Build a comparison string from parts.
-   *  Always produces "actual op expected" (exactly 3 tokens) since the core
-   *  parser requires 3 space-separated parts.  When expected is empty we
-   *  still emit a placeholder so the runner won't throw.
-   */
-  const buildComparison = (actual: string, op: string, expected: string): string => {
-    // The core requires exactly 3 space-delimited tokens.
-    // An empty expected must therefore still be represented as a single token.
-    // We use an empty-quoted string ('') to serialize "empty" values.
-    const exp = expected === '' ? "''" : expected;
-    return `${actual} ${op} ${exp}`;
+  const handleExpectPartChange = (index: number, part: 'field' | 'op' | 'expected', val: string) => {
+    const updated = expectList.map((row, i) => i === index ? { ...row, [part]: val } : row);
+    const next = buildCallObj({ expect: updated });
+    setLocal(next);
+    scheduleEmit(next);
   };
 
   const onInputChange = (key: string, val: string) => {
@@ -377,54 +369,6 @@ const TestCall: React.FC<TestCallProps> = ({
     }
     const nextInputs = { ...inputs, [key]: '' };
     const next = buildCallObj({ inputs: nextInputs });
-    setLocal(next);
-    scheduleEmit(next);
-  };
-
-  // --- Check/Assert handlers ---
-
-  const handleAddCheck = () => {
-    const defaultActual = availableOutputs[0] || '';
-    const next = buildCallObj({ check: [...checkList, buildComparison(defaultActual, '==', '')] });
-    setLocal(next);
-    scheduleEmit(next);
-  };
-
-  const handleRemoveCheck = (index: number) => {
-    const next = buildCallObj({ check: checkList.filter((_, i) => i !== index) });
-    setLocal(next);
-    scheduleEmit(next);
-  };
-
-  const handleCheckPartChange = (index: number, part: 'actual' | 'op' | 'expected', val: string) => {
-    const parsed = parseComparison(checkList[index]);
-    parsed[part] = val;
-    const updated = [...checkList];
-    updated[index] = buildComparison(parsed.actual, parsed.op, parsed.expected);
-    const next = buildCallObj({ check: updated });
-    setLocal(next);
-    scheduleEmit(next);
-  };
-
-  const handleAddAssert = () => {
-    const defaultActual = availableOutputs[0] || '';
-    const next = buildCallObj({ assert: [...assertList, buildComparison(defaultActual, '==', '')] });
-    setLocal(next);
-    scheduleEmit(next);
-  };
-
-  const handleRemoveAssert = (index: number) => {
-    const next = buildCallObj({ assert: assertList.filter((_, i) => i !== index) });
-    setLocal(next);
-    scheduleEmit(next);
-  };
-
-  const handleAssertPartChange = (index: number, part: 'actual' | 'op' | 'expected', val: string) => {
-    const parsed = parseComparison(assertList[index]);
-    parsed[part] = val;
-    const updated = [...assertList];
-    updated[index] = buildComparison(parsed.actual, parsed.op, parsed.expected);
-    const next = buildCallObj({ assert: updated });
     setLocal(next);
     scheduleEmit(next);
   };
@@ -528,17 +472,16 @@ const TestCall: React.FC<TestCallProps> = ({
             )}
           </div>
 
-          <div className="label">Checks</div>
+          <div className="label">Expect</div>
           <div style={{ padding: "5px" }}>
-            {checkList.length ? (
+            {expectList.length ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {checkList.map((c, i) => {
-                  const parsed = parseComparison(c);
+                {expectList.map((row, i) => {
                   return (
                     <div key={i} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                       <select
-                        value={parsed.actual}
-                        onChange={(e) => handleCheckPartChange(i, 'actual', e.target.value)}
+                        value={row.field}
+                        onChange={(e) => handleExpectPartChange(i, 'field', e.target.value)}
                         style={{ flex: 2, minWidth: 0 }}
                         title="Output field to check"
                       >
@@ -546,13 +489,13 @@ const TestCall: React.FC<TestCallProps> = ({
                         {availableOutputs.map(o => (
                           <option key={o} value={o}>{o}</option>
                         ))}
-                        {parsed.actual && !availableOutputs.includes(parsed.actual) && (
-                          <option key={parsed.actual} value={parsed.actual}>{parsed.actual}</option>
+                        {row.field && !availableOutputs.includes(row.field) && (
+                          <option key={row.field} value={row.field}>{row.field}</option>
                         )}
                       </select>
                       <select
-                        value={parsed.op}
-                        onChange={(e) => handleCheckPartChange(i, 'op', e.target.value)}
+                        value={row.op}
+                        onChange={(e) => handleExpectPartChange(i, 'op', e.target.value)}
                         style={{ flex: 1, minWidth: 0 }}
                         title="Comparison operator"
                       >
@@ -562,30 +505,30 @@ const TestCall: React.FC<TestCallProps> = ({
                       </select>
                       <input
                         type="text"
-                        value={parsed.expected}
-                        onChange={(e) => handleCheckPartChange(i, 'expected', e.target.value)}
+                        value={row.expected}
+                        onChange={(e) => handleExpectPartChange(i, 'expected', e.target.value)}
                         style={{ flex: 2, minWidth: 0 }}
                         placeholder="expected value"
                       />
                       <button
                         type="button"
-                        onClick={() => handleRemoveCheck(i)}
+                        onClick={() => handleRemoveExpect(i)}
                         className="action-button codicon codicon-close"
                         style={{ flexShrink: 0 }}
-                        title="Remove check"
-                        aria-label="Remove check"
+                        title="Remove expect"
+                        aria-label="Remove expect"
                       />
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <div style={{ opacity: 0.7 }}>No checks</div>
+              <div style={{ opacity: 0.7 }}>No expectations</div>
             )}
             <div style={{ marginTop: 8 }}>
               <button
                 type="button"
-                onClick={handleAddCheck}
+                onClick={handleAddExpect}
                 style={{
                   padding: '4px 8px',
                   borderRadius: 4,
@@ -594,83 +537,12 @@ const TestCall: React.FC<TestCallProps> = ({
                   cursor: 'pointer',
                 }}
               >
-                + Add check
+                + Add expect
               </button>
             </div>
           </div>
 
-          <div className="label">Asserts</div>
-          <div style={{ padding: "5px" }}>
-            {assertList.length ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {assertList.map((a, i) => {
-                  const parsed = parseComparison(a);
-                  return (
-                    <div key={i} style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                      <select
-                        value={parsed.actual}
-                        onChange={(e) => handleAssertPartChange(i, 'actual', e.target.value)}
-                        style={{ flex: 2, minWidth: 0 }}
-                        title="Output field to assert"
-                      >
-                        <option value="" disabled>-- field --</option>
-                        {availableOutputs.map(o => (
-                          <option key={o} value={o}>{o}</option>
-                        ))}
-                        {parsed.actual && !availableOutputs.includes(parsed.actual) && (
-                          <option key={parsed.actual} value={parsed.actual}>{parsed.actual}</option>
-                        )}
-                      </select>
-                      <select
-                        value={parsed.op}
-                        onChange={(e) => handleAssertPartChange(i, 'op', e.target.value)}
-                        style={{ flex: 1, minWidth: 0 }}
-                        title="Comparison operator"
-                      >
-                        {opsList.map((op, oi) => (
-                          <option key={op} value={op} title={opsNames[oi]}>{op}</option>
-                        ))}
-                      </select>
-                      <input
-                        type="text"
-                        value={parsed.expected}
-                        onChange={(e) => handleAssertPartChange(i, 'expected', e.target.value)}
-                        style={{ flex: 2, minWidth: 0 }}
-                        placeholder="expected value"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveAssert(i)}
-                        className="action-button codicon codicon-close"
-                        style={{ flexShrink: 0 }}
-                        title="Remove assert"
-                        aria-label="Remove assert"
-                      />
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={{ opacity: 0.7 }}>No asserts</div>
-            )}
-            <div style={{ marginTop: 8 }}>
-              <button
-                type="button"
-                onClick={handleAddAssert}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: 4,
-                  border: '1px dashed var(--vscode-editorWidget-border, #555)',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                }}
-              >
-                + Add assert
-              </button>
-            </div>
-          </div>
-
-          {(checkList.length > 0 || assertList.length > 0) && (
+          {expectList.length > 0 && (
             <>
               <div className="label">Report</div>
               <div style={{ padding: '5px', display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
