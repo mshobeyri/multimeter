@@ -1,7 +1,7 @@
 import {generateApiJs} from './runApi';
 
 describe('runApi output printing', () => {
-  it('omits details_ from Outputs section', async () => {
+  it('logs Outputs section in generated API JS', async () => {
     const js = await generateApiJs({
       api: {
         type: 'api',
@@ -15,7 +15,8 @@ describe('runApi output printing', () => {
     });
 
     expect(js).toContain("console.log(__mmt_formatSection('Outputs:', __outputLog))");
-    expect(js).toContain("hasOwnProperty.call(copy, 'details_')");
-    expect(js).toContain("copy.details_ = __mmt_raw('{...}')");
+    // details_ is no longer auto-added; only user-defined outputs are present
+    expect(js).not.toContain("details_");
+    expect(js).not.toContain("statusCode_");
   });
 });

@@ -266,8 +266,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 '  inputs:',
                 '    userId: "u-123"',
                 '  expect:',
-                '    statusCode_: 200',
-                'Note: Outputs returned by the API include mapped fields plus status_code and response_time.'
+                '    status_code: 200',
+                'Note: Outputs are defined in the API file\'s outputs section using extraction keywords (body, header, status, details, duration).'
             ].join('\n')
         },
         {
@@ -680,8 +680,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
             label: "outputs",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "outputs:\n\t",
-            detail: 'Output parameters [object of key: value]',
-            documentation: 'Define how to extract values from API responses as output parameters. These extracted values can be used in subsequent requests or stored as environment variables.\nExample:\nextract:\n\tuserId: "$.data.user.id"\n\ttoken: "$.data.access_token"',
+            detail: 'Output extraction [object of key: expression]',
+            documentation: 'Define how to extract values from API responses. Keys are exported names, values are extraction expressions.\nValid keywords: body, header, status, details, duration\nExample:\noutputs:\n\tmessage: body[data][message]\n\tstatus_code: status\n\tresponse_time: duration',
         },
         {
             label: "setenv",
@@ -749,7 +749,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "examples",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "examples:\n\t- name: example1\n\t\tdescription: desc\n\t\tinputs:\n\t\t\tkey1: value1\n\t\t\tkey2: value2\n\t\toutputs:\n\t\t\tstatusCode_: 200\n\t\t\tkey1: value1\n",
+            insertText: "examples:\n\t- name: example1\n\t\tdescription: desc\n\t\tinputs:\n\t\t\tkey1: value1\n\t\t\tkey2: value2\n\t\toutputs:\n\t\t\tstatus_code: 200\n\t\t\tkey1: value1\n",
             detail: 'Usage examples [array of key: value]',
             documentation: 'Provide concrete examples of how to use the API with specific input values. These examples can be used for testing and documentation.\nExample:\nexamples:\n\t- name: "Get Admin User"\n\t\tinputs:\n\t\tuserId: "admin123"\n\t\tapiKey: "test-key-456 "\n\t\toutputs:\n\t\tstatus_code: 200\n\t\tuserName: "Admin User"',
         }
@@ -943,12 +943,44 @@ export const KeySuggestionsByParent = (monaco: any) => {
     ];
     const outputsSuggestions = [
         {
-            label: "statusCode_",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "statusCode_: ",
+            label: "body",
+            kind: monaco.languages.CompletionItemKind.Keyword,
+            insertText: " body",
+            detail: 'Response body (full or path)',
+            documentation: 'Extract values from the response body.\nPlain: body (returns full body)\nPath: body[field], body.field.subfield\nExample:\n  message: body[data][message]\n  full_body: body',
+            sortText: '0body',
+        },
+        {
+            label: "header",
+            kind: monaco.languages.CompletionItemKind.Keyword,
+            insertText: " header",
+            detail: 'Response headers (full or specific)',
+            documentation: 'Extract values from response headers.\nPlain: header (returns all headers)\nPath: header[Content-Type], header.Content-Type\nExample:\n  content_type: header[Content-Type]\n  all_headers: header',
+            sortText: '1header',
+        },
+        {
+            label: "status",
+            kind: monaco.languages.CompletionItemKind.Keyword,
+            insertText: " status",
             detail: 'HTTP status code (number)',
-            documentation: 'Built-in output containing the HTTP status code returned by the API call (e.g. 200, 404, 500).\nExample: statusCode_: 200',
-            sortText: '0statusCode_',
+            documentation: 'Returns the HTTP status code of the response (e.g. 200, 404, 500).\nExample:\n  status_code: status',
+            sortText: '2status',
+        },
+        {
+            label: "details",
+            kind: monaco.languages.CompletionItemKind.Keyword,
+            insertText: " details",
+            detail: 'Full request/response details (JSON string)',
+            documentation: 'Returns a JSON string containing the full request and response details.\nExample:\n  req_res: details',
+            sortText: '3details',
+        },
+        {
+            label: "duration",
+            kind: monaco.languages.CompletionItemKind.Keyword,
+            insertText: " duration",
+            detail: 'Response time in milliseconds (number)',
+            documentation: 'Returns the response duration in milliseconds.\nExample:\n  response_time: duration',
+            sortText: '4duration',
         },
         {
             label: "regex ",
@@ -1075,7 +1107,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "outputs:\n\t",
             detail: 'Expected outputs [object]',
-            documentation: 'Define expected output values for this example. Used to verify the API response matches expectations.\nExample:\noutputs:\n\tstatusCode_: 200\n\tbody: {"id": 1}',
+            documentation: 'Define expected output values for this example. Used to verify the API response matches expectations.\nExample:\noutputs:\n\tstatus_code: 200\n\tbody: {\"id\": 1}',
         }
     ];
     const servicesSuggestions = [
@@ -1347,7 +1379,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         { label: 'id', kind: monaco.languages.CompletionItemKind.Property, insertText: 'id: ', detail: 'Capture call result', documentation: 'Variable name to capture the call output.\nExample:\n- call: login\n  id: loginResult' },
         { label: 'title', kind: monaco.languages.CompletionItemKind.Property, insertText: 'title: ', detail: 'Call step title', documentation: 'Short summary shown inline in reports/UI.\nExample:\n- call: login\n  title: Authenticate user' },
         { label: 'inputs', kind: monaco.languages.CompletionItemKind.Property, insertText: 'inputs:\n\t', detail: 'Override call inputs', documentation: 'Key-value inputs to pass to the called API/test.\nExample:\n- call: login\n  inputs:\n    username: alice' },
-        { label: 'expect', kind: monaco.languages.CompletionItemKind.Property, insertText: 'expect:\n\t', detail: 'Map-based output validation', documentation: 'Map of output field names to expected values (non-throwing).\nDefault operator is ==.\nExamples:\n- call: login\n  expect:\n    statusCode_: 200\n    token: != null\n\nWith explicit operator:\n  expect:\n    statusCode_: == 200\n\nMultiple checks on same field:\n  expect:\n    statusCode_:\n      - == 200\n      - != 500' },
+        { label: 'expect', kind: monaco.languages.CompletionItemKind.Property, insertText: 'expect:\n\t', detail: 'Map-based output validation', documentation: 'Map of output field names to expected values (non-throwing).\nDefault operator is ==.\nExamples:\n- call: login\n  expect:\n    status_code: 200\n    token: != null\n\nWith explicit operator:\n  expect:\n    status_code: == 200\n\nMultiple checks on same field:\n  expect:\n    status_code:\n      - == 200\n      - != 500' },
         { label: 'report', kind: monaco.languages.CompletionItemKind.Property, insertText: 'report: ', detail: 'Report level', documentation: 'Controls when expect results are reported.\nValues: all, fails, none\nOr object form:\n  report:\n    internal: all\n    external: fails' },
     ];
     const checkAssertSiblings = [

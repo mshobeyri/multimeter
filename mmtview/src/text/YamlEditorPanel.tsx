@@ -19,6 +19,7 @@ import {
   getUndefinedInputDecorations,
   getUndefinedExpectKeyDecorations,
   getUndefinedExampleKeyDecorations,
+  getUndefinedOutputValueDecorations,
   findExampleKeyProblems,
   getUndefinedInputRefDecorations,
   findInputRefProblems,
@@ -124,6 +125,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const undefinedExampleKeyDecorationsRef = useRef<string[]>([]);
   const undefinedInputRefDecorationsRef = useRef<string[]>([]);
   const undefinedEnvRefDecorationsRef = useRef<string[]>([]);
+  const undefinedOutputValueDecorationsRef = useRef<string[]>([]);
   const contentRef = useRef(content);
   const [editorReady, setEditorReady] = useState(false);
   const importsMapRef = useRef<Record<string, string>>({});
@@ -484,11 +486,13 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       if (doc.errors && doc.errors.length > 0) {
         setExampleKeyProblems([]);
         undefinedExampleKeyDecorationsRef.current = editor.deltaDecorations(undefinedExampleKeyDecorationsRef.current, []);
+        undefinedOutputValueDecorationsRef.current = editor.deltaDecorations(undefinedOutputValueDecorationsRef.current, []);
         return;
       }
     } catch {
       setExampleKeyProblems([]);
       undefinedExampleKeyDecorationsRef.current = editor.deltaDecorations(undefinedExampleKeyDecorationsRef.current, []);
+      undefinedOutputValueDecorationsRef.current = editor.deltaDecorations(undefinedOutputValueDecorationsRef.current, []);
       return;
     }
 
@@ -506,6 +510,19 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     undefinedExampleKeyDecorationsRef.current = editor.deltaDecorations(
       undefinedExampleKeyDecorationsRef.current,
       decos
+    );
+
+    const outputValueDecos = getUndefinedOutputValueDecorations(
+      monaco,
+      model,
+      content,
+      doc,
+      docType,
+      UNDEFINED_INPUT_CLASS
+    );
+    undefinedOutputValueDecorationsRef.current = editor.deltaDecorations(
+      undefinedOutputValueDecorationsRef.current,
+      outputValueDecos
     );
   }, [content, docType, editorReady]);
 

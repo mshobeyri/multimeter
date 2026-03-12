@@ -541,12 +541,9 @@ export function getUndefinedExpectKeyDecorations(
     return [];
   }
 
-  const builtInOutputKeys = new Set(["statusCode_", "details_"]);
-
   const allowedByAlias = new Map<string, Set<string>>();
   for (const [alias, keys] of Object.entries(importedOutputsByAlias)) {
     const keySet = new Set((Array.isArray(keys) ? keys : []).filter((k) => typeof k === "string"));
-    builtInOutputKeys.forEach((b) => keySet.add(b));
     allowedByAlias.set(alias, keySet);
   }
 
@@ -1015,9 +1012,6 @@ export function getUndefinedExampleKeyDecorations(
   const apiInputs = extractApiLevelKeys(yamlDoc, "inputs");
   const apiOutputs = extractApiLevelKeys(yamlDoc, "outputs");
 
-  // Built-in output keys that are always valid in example outputs
-  const builtInOutputKeys = new Set(["statusCode_", "details_"]);
-
   // If neither inputs nor outputs are declared, nothing to warn about
   if (apiInputs.size === 0 && apiOutputs.size === 0) {
     return [];
@@ -1028,10 +1022,6 @@ export function getUndefinedExampleKeyDecorations(
 
   for (const site of sites) {
     const allowed = site.section === "inputs" ? apiInputs : apiOutputs;
-    // Skip built-in output keys (statusCode_, details_)
-    if (site.section === "outputs" && builtInOutputKeys.has(site.key)) {
-      continue;
-    }
     // Skip if the API doesn't declare this section at all
     if (allowed.size === 0) {
       continue;
@@ -1075,9 +1065,6 @@ export function findExampleKeyProblems(
   const apiInputs = extractApiLevelKeys(yamlDoc, "inputs");
   const apiOutputs = extractApiLevelKeys(yamlDoc, "outputs");
 
-  // Built-in output keys that are always valid in example outputs
-  const builtInOutputKeys = new Set(["statusCode_", "details_"]);
-
   if (apiInputs.size === 0 && apiOutputs.size === 0) {
     return [];
   }
@@ -1085,10 +1072,6 @@ export function findExampleKeyProblems(
   const sites = extractApiExampleKeySites(yamlDoc, content);
   return sites
     .filter((site) => {
-      // Skip built-in output keys (statusCode_, details_)
-      if (site.section === "outputs" && builtInOutputKeys.has(site.key)) {
-        return false;
-      }
       const allowed = site.section === "inputs" ? apiInputs : apiOutputs;
       return allowed.size > 0 && !allowed.has(site.key);
     })
@@ -1491,3 +1474,123 @@ export function computeMissingDocFileMarkers(
   };
 }
 
+// --- Output value keyword validation for API files ---
+
+/** Valid base keywords for the right-hand side of output mapping expressions. */
+const VALID_OUTPUT_KEYWORDS = new Set([
+  "body", "header", "headers", "status", "details", "duration", "cookies",
+]);
+
+export type OutputValueSiteInfo = {
+  key: string;
+  value: string;
+  offset: number;
+  line: number;
+};
+
+/**
+ * Extract sites for the values (right-hand side) of the root-level `outputs`
+ * mapping in an API YAML document.
+ */
+function extractApiOutputValueSites(doc: any, content: string): OutputValueSiteInfo[] {
+  const rootItems: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
+  const outputsPair = rootItems.find((item: any) => item?.key?.value === "outputs");
+  if (!outputsPair?.value?.items) {
+    return [];
+  }
+
+  const mapItems: any[] = Array.isArray(outputsPair.value.items) ? outputsPair.value.items : [];
+  const results: OutputValueSiteInfo[] = [];
+
+  for (const item of mapItems) {
+    const key = item?.key?.value;
+    const val = item?.value?.value;
+    if (typeof key !== "string" || typeof val !== "string" || !val.trim()) {
+      continue;
+    }
+    const offset =
+      Array.isArray(item?.value?.range) && typeof item.value.range[0] === "number"
+        ? item.value.range[0]
+        : -1;
+    const line = offset >= 0 ? offsetToLineNumber(content, offset) : 1;
+    results.push({ key, value: val, offset, line });
+  }
+
+  return results;
+}
+
+/**
+ * Check whether an output extraction expression starts with a valid keyword.
+ * Valid patterns:
+ * - Plain keyword: body, header, headers, status, details, duration, cookies
+ * - Keyword with path: body[...], body.field, header[...], header.field
+ * - JSONPath: $...
+ * - Regex: regex ..., or section[/pattern/], or section./pattern/
+ */
+function isValidOutputExpression(expr: string): boolean {
+  const trimmed = expr.trim();
+  if (!trimmed) {
+    return false;
+  }
+
+  // JSONPath expressions
+  if (trimmed.startsWith("$")) {
+    return true;
+  }
+
+  // Legacy regex prefix
+  if (trimmed.startsWith("regex ")) {
+    return true;
+  }
+
+  // Extract the base keyword (before any [ or . or whitespace)
+  const baseMatch = trimmed.match(/^([a-zA-Z_]+)/);
+  if (!baseMatch) {
+    return false;
+  }
+
+  const base = baseMatch[1].toLowerCase();
+  return VALID_OUTPUT_KEYWORDS.has(base);
+}
+
+/**
+ * Produce Monaco inline decorations (yellow wavy underline) for every output
+ * value in an API file whose extraction expression does not start with a valid keyword.
+ */
+export function getUndefinedOutputValueDecorations(
+  monaco: any,
+  model: any,
+  content: string,
+  yamlDoc: any,
+  docType: string | null,
+  inlineClassName: string
+): any[] {
+  if (!model || !yamlDoc || docType !== "api") {
+    return [];
+  }
+
+  const sites = extractApiOutputValueSites(yamlDoc, content);
+  const decorations: any[] = [];
+
+  for (const site of sites) {
+    if (isValidOutputExpression(site.value)) {
+      continue;
+    }
+    if (site.offset < 0) {
+      continue;
+    }
+
+    const hoverMessage = { value: `"${site.value}" does not start with a valid keyword (body, header, status, details, duration)` };
+    const start = model.getPositionAt(site.offset);
+    const end = model.getPositionAt(site.offset + site.value.length);
+    decorations.push({
+      range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column),
+      options: {
+        inlineClassName,
+        hoverMessage,
+      },
+    });
+  }
+
+  return decorations;
+}

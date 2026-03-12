@@ -100,16 +100,14 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
       type: 'auto',
       body: res_?.body,
       headers: res_?.headers || {},
-      cookies: res_?.cookies || {}
+      cookies: res_?.cookies || {},
+      status: res_?.status || 0,
+      duration: res_?.duration || 0,
+      details: JSON.stringify({ request: req_, response: res_ }, null, 2)
     },
     ${indentLines(indentLines(JSON.stringify(extractRules, null, 2)))}
   );
 
-  output_.statusCode_ = res_?.status || 0;
-  output_.details_ = JSON.stringify({
-    request: req_,
-    response: res_
-  }, null, 2);
   return output_;
 };`;
 };

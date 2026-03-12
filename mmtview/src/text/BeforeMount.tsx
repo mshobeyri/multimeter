@@ -556,23 +556,6 @@ export const handleBeforeMount = (monaco: any) => {
                         if (filePath) {
                             const parsed = await readAndParseImportedFile(filePath);
                             const suggestions: any[] = [];
-                            // Always suggest built-in fields
-                            suggestions.push({
-                                label: `${callId}.statusCode_`,
-                                kind: monaco.languages.CompletionItemKind.Property,
-                                insertText: 'statusCode_',
-                                detail: 'HTTP status code (number)',
-                                documentation: `The HTTP status code returned by the API call (e.g. 200, 404, 500).`,
-                                sortText: '~0',
-                            });
-                            suggestions.push({
-                                label: `${callId}.details_`,
-                                kind: monaco.languages.CompletionItemKind.Property,
-                                insertText: 'details_',
-                                detail: 'Full request/response JSON',
-                                documentation: `JSON stringified object containing the full request and response details.`,
-                                sortText: '~1',
-                            });
                             if (parsed?.outputs) {
                                 for (const [key, rule] of Object.entries(parsed.outputs)) {
                                     suggestions.push({
@@ -667,15 +650,6 @@ export const handleBeforeMount = (monaco: any) => {
                     if (filePath) {
                         const parsed = await readAndParseImportedFile(filePath);
                         const suggestionList: any[] = [];
-                        // Always suggest built-in fields
-                        suggestionList.push({
-                            label: 'statusCode_',
-                            kind: monaco.languages.CompletionItemKind.Property,
-                            insertText: 'statusCode_: ',
-                            detail: 'HTTP status code',
-                            documentation: `Expect the HTTP status code of the ${callInfo.alias} call.\nExample:\n  expect:\n    statusCode_: 200`,
-                            sortText: '~0',
-                        });
                         if (parsed?.outputs) {
                             for (const [key, rule] of Object.entries(parsed.outputs)) {
                                 suggestionList.push({

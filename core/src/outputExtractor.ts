@@ -8,6 +8,9 @@ export interface ResponseData {
   body: any;
   headers: Record<string, string>;
   cookies: Record<string, string>;
+  status?: number;
+  duration?: number;
+  details?: string;
 }
 
 export type PathSegment = string|number;
@@ -414,6 +417,7 @@ function resolvePath(response: ResponseData, expr: string): any {
       case 'body':
         val = response.body;
         break;
+      case 'header':
       case 'headers':
         val = response.headers;
         break;
@@ -464,6 +468,7 @@ function resolveDotPath(response: ResponseData, expr: string): any {
     case 'body':
       val = response.body;
       break;
+    case 'header':
     case 'headers':
       val = response.headers;
       break;
@@ -506,13 +511,13 @@ export function buildBodyExprFromPath(path: PathSegment[]): string {
 // where section is body, headers, or cookies
 function parseRegexExtraction(expr: string): {section: string; pattern: string}|null {
   // Match bracket notation: body[/pattern/] or headers[/pattern/]
-  const bracketMatch = expr.match(/^(body|headers|cookies)\[\/(.*)\/\]$/);
+  const bracketMatch = expr.match(/^(body|headers?|cookies)\[\/(.*)\/\]$/);
   if (bracketMatch) {
     return {section: bracketMatch[1], pattern: bracketMatch[2]};
   }
 
   // Match dot notation: body./pattern/ or headers./pattern/
-  const dotMatch = expr.match(/^(body|headers|cookies)\.\/(.*)\/$/);
+  const dotMatch = expr.match(/^(body|headers?|cookies)\.\/(.*)\/$/);
   if (dotMatch) {
     return {section: dotMatch[1], pattern: dotMatch[2]};
   }
@@ -527,6 +532,7 @@ function sectionToText(
   switch (section) {
     case 'body':
       return bodyText;
+    case 'header':
     case 'headers':
       return Object.entries(headers || {})
           .map(([k, v]) => `${k}: ${v}`)
@@ -595,7 +601,7 @@ export function extractOutputs(
       continue;
     }
 
-    let extractedValue = '';
+    let extractedValue: any = '';
 
     try {
       // New regex syntax: section[/pattern/] or section./pattern/
@@ -639,6 +645,18 @@ export function extractOutputs(
       // Check if it's dot notation path (e.g. body.user.id)
       else if (expr.includes('.')) {
         extractedValue = resolveDotPath(objectResponse, expr);
+      }
+      // Plain keyword resolution
+      else if (expr === 'body') {
+        extractedValue = response.body;
+      } else if (expr === 'header' || expr === 'headers') {
+        extractedValue = response.headers;
+      } else if (expr === 'status') {
+        extractedValue = response.status ?? 0;
+      } else if (expr === 'details') {
+        extractedValue = response.details ?? '';
+      } else if (expr === 'duration') {
+        extractedValue = response.duration ?? 0;
       }
       // No recognized pattern: return empty
       else {

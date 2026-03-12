@@ -220,14 +220,23 @@ Notes
 - Declare input names under `inputs:` (string/number/boolean/null)
 
 ### outputs
-Pull fields from the response to populate outputs. Use one of the following per key:
+Map response data to named output variables. Keys are the exported names (used in tests via `expect` or `id`), values are extraction expressions using these keywords:
+
+| Keyword | Description |
+|---------|-------------|
+| `body` | Full response body, or path into it: `body.field`, `body[field][sub]` |
+| `header` / `headers` | All response headers, or a specific one: `header[Content-Type]`, `headers.Authorization` |
+| `status` | HTTP status code (number, e.g. 200, 404) |
+| `details` | Full request/response details as JSON string |
+| `duration` | Response time in milliseconds (number) |
+| `cookies` | Response cookies: `cookies[name]`, `cookies.name` |
+
+Additional extraction styles:
 - **Dot notation** (preferred): `body.field`, `body.nested.items.0.key` — shorter and easier to read
 - **Bracket notation**: `body[field]`, `body[nested][items][0]` — required when keys contain dots (e.g. `body[my.key.name]`)
 - **Regex extraction**: `body[/pattern/]` or `body./pattern/` — apply a regex to the response body text
 - **Header regex**: `headers[/pattern/]` or `headers./pattern/` — apply a regex to the response headers
 - **Cookie regex**: `cookies[/pattern/]` or `cookies./pattern/` — apply a regex to the response cookies
-- `headers[...]` or `headers.Name` to extract response headers by name
-- `cookies[...]` or `cookies.name` to extract response cookies by name
 - A JSONPath starting with `$` (e.g., `$[body][user][id]` or `$body[user]`)
 
 > **Tip:** Prefer dot notation for readability. Use bracket notation only when a key literally contains a `.` character, since dot notation would interpret it as a path separator.
@@ -237,6 +246,11 @@ Pull fields from the response to populate outputs. Use one of the following per 
 Example
 ```yaml
 outputs:
+  # Plain keywords
+  status_code: status
+  response_time: duration
+  req_res_details: details
+
   # Dot notation (preferred)
   method: body.method
   message: body.body.message
@@ -254,6 +268,7 @@ outputs:
   # Other extraction styles
   from: body[from][0]
   token: headers[Authorization]
+  content_type: header[Content-Type]
   session: cookies[session_id]
   userId: $[body][user][id]
 ```

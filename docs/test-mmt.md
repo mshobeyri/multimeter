@@ -191,14 +191,14 @@ Simple equality (default operator is `==`):
 ```yaml
 - call: login
   expect:
-    statusCode_: 200
+    status_code: 200
 ```
 
 Explicit operator:
 ```yaml
 - call: echo
   expect:
-    statusCode_: == 200
+    status_code: == 200
     echoed_message: == <<i:message>>
 ```
 
@@ -206,7 +206,7 @@ Multiple checks on the same field (array form):
 ```yaml
 - call: login
   expect:
-    statusCode_:
+    status_code:
       - == 200
       - != 500
 ```
@@ -224,7 +224,7 @@ With title and report:
 - call: login
   title: Login validation
   expect:
-    statusCode_: 200
+    status_code: 200
     token: != null
   report:
     internal: all
