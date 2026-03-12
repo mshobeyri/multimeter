@@ -203,48 +203,22 @@ export const setToJSfunc = (set: Record<string, any>): string => {
 
 
 const comparisonToJSfunc = (type: 'check'|'assert', comparison: Comparison, useExternalReport: boolean): string => {
-  const label = type === 'check' ? 'Check' : 'Assert';
   const normalized = normalizeComparison(comparison, type);
   if (!normalized) {
     return '';
   }
-  const {actual, operator, expected, raw, title, details} = normalized;
+  const {actual, expected, raw, title, details} = normalized;
   // Determine report level: internal (useExternalReport=false, direct run) vs external (useExternalReport=true, imported or in suite)
   const reportCfg = normalizeReportConfig(
     (comparison && typeof comparison === 'object') ? (comparison as any).report : undefined
   );
   const reportLevel = useExternalReport ? reportCfg.external : reportCfg.internal;
   const conditionStatement = conditionalStatementToJSfunc(raw);
-  const titlePart = title ? `"${title}" - ` : '';
-  const failMessage =
-      `${label} ${titlePart}"${raw}" failed, as ${actual} ${operator} ${expected} is false`;
-  const successMessage = `${label} ${titlePart}"${raw}" passed`;
-  const detailsPart = details ? `\n${details}` : '';
-  const finaFaillMsg = `${failMessage}${detailsPart}`;
-  const finaSuccessMsg = `${successMessage}`;
   const finalTitle = typeof title === 'string' ? toTemplateWithVars(title) : undefined;
   const finalDetails = typeof details === 'string' ? toTemplateWithVars(details) : undefined;
   const finalActual = typeof actual === 'string' ? toTemplateWithVars(actual) : undefined;
   const finalExpected = typeof expected === 'string' ? toTemplateWithVars(expected) : undefined;
-  // Report on success only if level is 'all'
-  const reportOnSuccess = reportLevel === 'all';
-  // Report on fail unless level is 'none'
-  const reportOnFail = reportLevel !== 'none';
-  // Log levels follow report policy:
-  //   none  → fail: debug, success: trace
-  //   fails → fail: error, success: debug
-  //   all   → fail: error, success: info
-  const failLogFn = reportLevel === 'none' ? 'console.debug' : 'console.error';
-  const successLogFn = reportLevel === 'all' ? 'console.log' :
-      reportLevel === 'fails' ? 'console.debug' : 'console.trace';
-  const throwOnFail = type === 'assert' ? `\n  throw new Error("Assertion failed");` : '';
-  return `if (${conditionStatement}) {
-  ${successLogFn}(${toTemplateWithVars(finaSuccessMsg)});
-  ${reportOnSuccess ? `report_('${type}', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, true);` : ''}
-} else {
-  ${failLogFn}(${toTemplateWithVars(finaFaillMsg)});
-  ${reportOnFail ? `report_('${type}', ${JSON.stringify(raw)}, ${finalTitle}, ${finalDetails}, false, ${finalActual}, ${finalExpected});` : ''}${throwOnFail}
-}\n`;
+  return `check_(${conditionStatement}, '${type}', ${JSON.stringify(raw)}, '${reportLevel}', ${finalTitle}, ${finalDetails}, ${finalActual}, ${finalExpected});\n`;
 };
 
 export const checkToJSfunc = (check: Comparison, useExternalReport: boolean): string =>

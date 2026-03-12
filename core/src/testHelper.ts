@@ -414,3 +414,53 @@ export const protocolFromUrl_ = (url: string): string => {
   const t = (url || '').trim().toLowerCase();
   return t.startsWith('ws://') || t.startsWith('wss://') ? 'ws' : 'http';
 };
+
+/**
+ * Unified check/assert helper. Handles logging, reporting, and throwing.
+ *
+ * @param passed    - result of the comparison (e.g. equals_(...))
+ * @param type      - 'check' or 'assert'
+ * @param raw       - the expression string, e.g. "foo == bar"
+ * @param reportLevel - 'all' | 'fails' | 'none'
+ * @param title     - optional check title
+ * @param details   - optional details string
+ * @param actual    - runtime actual value (for reporting and fail message)
+ * @param expected  - runtime expected value (for reporting and fail message)
+ */
+export const check_ = (
+    passed: boolean,
+    type: 'check' | 'assert',
+    raw: string,
+    reportLevel: string,
+    title?: string,
+    details?: string,
+    actual?: any,
+    expected?: any,
+): void => {
+  const label = type === 'check' ? 'Check' : 'Assert';
+  const titlePart = title ? `"${title}" - ` : '';
+  if (passed) {
+    const msg = `${label} ${titlePart}"${raw}" passed`;
+    if (reportLevel === 'all') {
+      console.log(msg);
+      report_(type, raw, title, details, true);
+    } else if (reportLevel === 'fails') {
+      console.debug(msg);
+    } else {
+      // reportLevel === 'none'
+      console.trace(msg);
+    }
+  } else {
+    const failSuffix = details ? `\n${details}` : '';
+    const msg = `${label} ${titlePart}"${raw}" failed, as ${actual} is not ${expected}${failSuffix}`;
+    if (reportLevel === 'none') {
+      console.debug(msg);
+    } else {
+      console.error(msg);
+      report_(type, raw, title, details, false, actual, expected);
+    }
+    if (type === 'assert') {
+      throw new Error('Assertion failed');
+    }
+  }
+};

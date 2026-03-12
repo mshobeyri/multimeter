@@ -508,7 +508,7 @@ describe('toInputsParams env token handling', () => {
 });
 
 describe('step reporter instrumentation', () => {
-  it('relies on shared _report helper instead of inlining reporter code', async () => {
+  it('relies on shared check_ helper instead of inlining reporter code', async () => {
     const ctx: TestContext = {
       name: 'reporterTest',
       test: {steps: [{check: 'a == b'} as any]} as any,
@@ -517,63 +517,60 @@ describe('step reporter instrumentation', () => {
     };
     const js = await rootTestToJsfunc(ctx);
     expect(js).not.toContain('__mmtReportStepHandler');
-    expect(js).toContain("report_('check'");
+    expect(js).toContain("check_(");
+    expect(js).toContain("'check'");
   });
 
   it('reports failed checks and asserts (default)', () => {
     // useExternalReport=false means internal run (direct)
     const checkJs = checkToJSfunc('foo == bar', false);
-    expect(checkJs).toContain("report_('check'");
+    expect(checkJs).toContain("check_(");
+    expect(checkJs).toContain("'check'");
     expect(checkJs).toContain('foo == bar');
 
     const assertJs = assertToJSfunc('foo != bar', false);
-    expect(assertJs).toContain("report_('assert'");
+    expect(assertJs).toContain("check_(");
+    expect(assertJs).toContain("'assert'");
     expect(assertJs).toContain('foo != bar');
   });
 
   it('reports success when report: all (internal run)', () => {
     // useExternalReport=false means internal run
     const checkJs = checkToJSfunc({ actual: 'foo', operator: '==', expected: 'bar', report: 'all' } as any, false);
-    // success branch should have report_ call
-    expect(checkJs).toContain("console.log");
-    expect(checkJs).toContain("report_('check'");
-    // Verify the success path has the report call
-    const successBlock = checkJs.split('} else')[0];
-    expect(successBlock).toContain("report_('check'");
+    // report level 'all' means report on success too
+    expect(checkJs).toContain("'all'");
+    expect(checkJs).toContain("'check'");
     
     const assertJs = assertToJSfunc({ actual: 'foo', operator: '!=', expected: 'bar', report: 'all' } as any, false);
-    const assertSuccessBlock = assertJs.split('} else')[0];
-    expect(assertSuccessBlock).toContain("report_('assert'");
+    expect(assertJs).toContain("'all'");
+    expect(assertJs).toContain("'assert'");
   });
 
   it('reports only failures with report: fails (default external)', () => {
     // useExternalReport=true means external run (suite or import)
     const checkJs = checkToJSfunc({ actual: 'foo', operator: '==', expected: 'bar' } as any, true);
-    // success branch should NOT have report_ call
-    const successBlock = checkJs.split('} else')[0];
-    expect(successBlock).not.toContain("report_('check'");
-    // failure branch should have report_ call
-    expect(checkJs).toContain("report_('check'");
+    // Default external report level is 'fails'
+    expect(checkJs).toContain("'fails'");
+    expect(checkJs).toContain("'check'");
   });
 
   it('suppresses all reports with report: none', () => {
     // useExternalReport=false means internal run, but report: none overrides
     const checkJs = checkToJSfunc({ actual: 'foo', operator: '==', expected: 'bar', report: 'none' } as any, false);
-    // No report_ calls at all
-    expect(checkJs).not.toContain("report_('check'");
+    // report level 'none' is passed to check_ helper
+    expect(checkJs).toContain("'none'");
   });
 
   it('supports object form report with internal/external', () => {
     // useExternalReport=false means use internal config
     const checkJs = checkToJSfunc({ actual: 'foo', operator: '==', expected: 'bar', report: { internal: 'all', external: 'none' } } as any, false);
-    // Internal run with report.internal='all' should report success
-    const successBlock = checkJs.split('} else')[0];
-    expect(successBlock).toContain("report_('check'");
+    // Internal run with report.internal='all'
+    expect(checkJs).toContain("'all'");
     
     // useExternalReport=true means use external config
     const checkJsExt = checkToJSfunc({ actual: 'foo', operator: '==', expected: 'bar', report: { internal: 'all', external: 'none' } } as any, true);
-    // External run with report.external='none' should not report anything
-    expect(checkJsExt).not.toContain("report_('check'");
+    // External run with report.external='none'
+    expect(checkJsExt).toContain("'none'");
   });
 });
 
@@ -589,7 +586,7 @@ describe('check/assert details templating', () => {
 
     // Details is emitted as a template literal so ${...} resolves at runtime.
     expect(js).toContain('`result code is ${myCall.result_code}`');
-    expect(js).toContain("report_('check'");
+    expect(js).toContain("check_(");
   });
 });
 
@@ -815,7 +812,7 @@ describe('expect on call steps', () => {
     const js = await testToJsfunc(ctx, true);
     expect(js).toContain('const _login_0 = await login(');
     expect(js).toContain('equals_(`${_login_0.status_code}`, `200`)');
-    expect(js).toContain("report_('check'");
+    expect(js).toContain("check_(");
   });
 
   it('generates check from string expect with explicit operator', async () => {
@@ -970,8 +967,9 @@ describe('expect on call steps', () => {
     };
     const js = await testToJsfunc(ctx, true);
     // expect uses check (non-throwing) behavior, not assert
-    expect(js).toContain("report_('check'");
-    expect(js).not.toContain('throw new Error("Assertion failed")');
+    expect(js).toContain("check_(");
+    expect(js).toContain("'check'");
+    expect(js).not.toContain("'assert'");
   });
 
   it('handles plain string expect value (default equality)', async () => {
@@ -1037,9 +1035,8 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    // With report: 'none', both internal and external are 'none',
-    // so report_ calls should not appear
-    expect(js).not.toContain("report_('check'");
+    // With report: 'none', the check_ helper will suppress reporting at runtime
+    expect(js).toContain("'none'");
   });
 
   it('uses call alias as fallback title when no step title', async () => {
