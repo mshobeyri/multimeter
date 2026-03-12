@@ -131,7 +131,7 @@ You can visualize and run the flow from the Flow panel; each step here correspon
 ![Flow panel](../screenshots/test_panel_flow.png)
 
 ### call
-Invoke an imported API or another test; give it an id to reference its outputs later.
+Invoke an imported API or another test; give it an id to reference its outputs later. The `call` field must be the first key in the step.
 ```yaml
 # call an API named login
 - call: login
@@ -554,7 +554,7 @@ steps:
 - type: `test`
 - title: string
 - tags: string[]
-- description: string (supports Markdown)
+- description: string (supports Markdown; use `|-` for multiline)
 - import: record&lt;string, string&gt; (`.mmt`, `.csv`, `.js`/`.cjs`/`.mjs`)
 - inputs: record&lt;string, string | number | boolean | null&gt;
 - outputs: record&lt;string, string | number | boolean | null&gt;

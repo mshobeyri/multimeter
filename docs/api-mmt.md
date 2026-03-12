@@ -99,13 +99,13 @@ The next sections cover each category in detail.
 The following fields make it easy to search, filter, and auto-document APIs:
 - title: API title
 - tags: related tags
-- description: short explanation of the API (supports Markdown formatting: **bold**, *italic*, `code`, lists, headings, and tables)
+- description: short explanation of the API (supports Markdown formatting: **bold**, *italic*, `code`, lists, headings, and tables). For multiline descriptions use `|-` (literal block, strip trailing newline).
 
 Sample:
 ```yaml
 type: api
 title: generate session
-description: |
+description: |-
   Create a session from **username** and **password**.
 
   Returns:

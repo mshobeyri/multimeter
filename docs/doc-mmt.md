@@ -149,7 +149,7 @@ Example API file:
 ```yaml
 type: api
 title: Create user
-description: |
+description: |-
   Create a new user account.
 
   <<i:username>> The desired username (3-20 characters)

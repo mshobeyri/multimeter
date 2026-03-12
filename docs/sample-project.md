@@ -75,7 +75,7 @@ What you get:
 ```yaml
 type: api
 title: Login
-description: |
+description: |-
   Authenticate a user and receive a JWT token.
 
   <<i:email>> User email address
@@ -129,7 +129,7 @@ Features shown:
 ```yaml
 type: api
 title: Create Pet
-description: |
+description: |-
   Add a new pet to the store.
 
   <<i:name>> Pet name
@@ -168,7 +168,7 @@ Features shown:
 ```yaml
 type: api
 title: Get Pet
-description: |
+description: |-
   Retrieve a pet by its ID.
 
   <<i:petId>> The pet's unique identifier
@@ -196,7 +196,7 @@ headers:
 ```yaml
 type: api
 title: List Pets
-description: |
+description: |-
   List all pets with optional filtering.
 
   <<o:total>> Total number of pets matching the query
@@ -225,7 +225,7 @@ Features shown:
 ```yaml
 type: api
 title: Place Order
-description: |
+description: |-
   Place an order for a pet.
 
   <<i:petId>> ID of the pet to order
@@ -373,7 +373,7 @@ Features shown:
 ```yaml
 type: test
 title: Order Flow
-description: |
+description: |-
   Full flow: login → create pet → place order → verify.
   Uses stages for parallel setup and sequential ordering.
 tags:
@@ -440,7 +440,7 @@ Features shown:
 ```yaml
 type: doc
 title: Pet Store API
-description: |
+description: |-
   Complete API reference for the Pet Store service.
   Covers authentication, pet management, and order placement.
 logo: https://petstore.io/logo.png
@@ -505,7 +505,7 @@ All tests run in **parallel** by default. This suite finishes as fast as the slo
 ```yaml
 type: suite
 title: Full Regression
-description: |
+description: |-
   Runs auth first, then CRUD and order tests in parallel.
 tags:
   - regression

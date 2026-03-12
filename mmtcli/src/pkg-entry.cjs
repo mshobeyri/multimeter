@@ -4,6 +4,31 @@
 // (and snapshot path quirks), we implement a minimal CLI here.
 
 const fs = require('fs');
+const path = require('path');
+
+/**
+ * Walk up from startPath looking for multimeter.mmt.
+ * Returns the directory containing it, or undefined.
+ */
+function findProjectRootForPkg(startPath) {
+	let currentDir = path.dirname(startPath);
+	const visited = new Set();
+	while (currentDir && !visited.has(currentDir)) {
+		visited.add(currentDir);
+		const markerPath = path.join(currentDir, 'multimeter.mmt');
+		try {
+			if (fs.existsSync(markerPath)) {
+				return currentDir;
+			}
+		} catch { /* continue */ }
+		const parentDir = path.dirname(currentDir);
+		if (parentDir === currentDir || !parentDir) {
+			break;
+		}
+		currentDir = parentDir;
+	}
+	return undefined;
+}
 
 function createPkgJsRunner() {
 	// In pkg, `mmt-core` resolves to the workspace path (`/snapshot/mmt/core/dist/index.js`).
@@ -927,11 +952,14 @@ async function main() {
 		}
 	}
 
+	const projectRoot = findProjectRootForPkg(filePath);
+
 	try {
 		res = await runner.runFile({
 			file,
 			fileType: 'raw',
 			filePath,
+			projectRoot,
 			inputs: { type: 'manual', manualInputs },
 			envvar: mergedEnvvar,
 			manualInputs,
