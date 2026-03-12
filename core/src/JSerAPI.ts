@@ -80,7 +80,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   const explicitProtocol = ctx.api.protocol;
   const protocolExpr = explicitProtocol ?
       `'${explicitProtocol}'` :
-      `((__url) => { const __t = (__url || '').trim().toLowerCase(); return __t.startsWith('ws://') || __t.startsWith('wss://') ? 'ws' : 'http'; })(__resolvedUrl)`;
+      `protocolFromUrl_(__resolvedUrl)`;
 
   return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
   const __resolvedUrl = ${toTemplateWithEnvs(String(replaced.url || ''))};

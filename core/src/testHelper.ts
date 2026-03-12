@@ -405,3 +405,12 @@ export const stopAllServers_ = (): void => {
 export const isServerRunning_ = (alias: string): boolean => {
   return __mmtStartedServers.has(alias);
 };
+
+/**
+ * Infer the network protocol from a URL string.
+ * Returns 'ws' for WebSocket URLs (ws:// or wss://), 'http' otherwise.
+ */
+export const protocolFromUrl_ = (url: string): string => {
+  const t = (url || '').trim().toLowerCase();
+  return t.startsWith('ws://') || t.startsWith('wss://') ? 'ws' : 'http';
+};
