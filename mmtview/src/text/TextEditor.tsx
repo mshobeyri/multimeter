@@ -79,6 +79,19 @@ const TextEditor: React.FC<TextEditorProps> = ({
     document.head.appendChild(style);
   }, []);
 
+  // Add CSS for expect operator highlights (red colour matching YAML tag token)
+  useEffect(() => {
+    if (document.getElementById("mmt-expect-operator-style")) return;
+    const style = document.createElement("style");
+    style.id = "mmt-expect-operator-style";
+    style.innerHTML = `
+      .mmt-expect-operator {
+        color: var(--mmt-expect-op-color, #F07178) !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
   // Add CSS for link underline used by YamlEditorPanel
   useEffect(() => {
     if (document.getElementById("mmt-link-underline-style")) return;

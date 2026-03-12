@@ -4,7 +4,7 @@ import {APIContext} from './JSerAPI';
 import {setFileLoader} from './JSerFileLoader';
 import {importsToJsfunc} from './JSerImports';
 import {TestContext, variableReplacer} from './JSerTest';
-import {assertToJSfunc, checkToJSfunc, flowStagesToJsfunc} from './JSerTestFlow';
+import {assertToJSfunc, checkToJSfunc, flowStagesToJsfunc, parseExpectValue} from './JSerTestFlow';
 import {createTestFileLoaderMock} from './testFileLoaderMock';
 import {normalizeReportConfig} from './TestData';
 
@@ -1036,6 +1036,280 @@ describe('inline check/assert on call steps', () => {
     expect(js).toContain('console.trace');
     // Should NOT have report_ calls at all (none = no reporting)
     expect(js).not.toContain("report_('check'");
+  });
+});
+
+describe('parseExpectValue', () => {
+  it('defaults plain number to == operator', () => {
+    expect(parseExpectValue(200)).toEqual({ operator: '==', expected: '200' });
+  });
+
+  it('defaults plain boolean to == operator', () => {
+    expect(parseExpectValue(true)).toEqual({ operator: '==', expected: 'true' });
+    expect(parseExpectValue(false)).toEqual({ operator: '==', expected: 'false' });
+  });
+
+  it('defaults plain string to == operator', () => {
+    expect(parseExpectValue('hello')).toEqual({ operator: '==', expected: 'hello' });
+  });
+
+  it('parses == operator prefix', () => {
+    expect(parseExpectValue('== 200')).toEqual({ operator: '==', expected: '200' });
+  });
+
+  it('parses != operator prefix', () => {
+    expect(parseExpectValue('!= 500')).toEqual({ operator: '!=', expected: '500' });
+  });
+
+  it('parses < operator prefix', () => {
+    expect(parseExpectValue('< 100')).toEqual({ operator: '<', expected: '100' });
+  });
+
+  it('parses > operator prefix', () => {
+    expect(parseExpectValue('> 0')).toEqual({ operator: '>', expected: '0' });
+  });
+
+  it('parses <= operator prefix', () => {
+    expect(parseExpectValue('<= 300')).toEqual({ operator: '<=', expected: '300' });
+  });
+
+  it('parses >= operator prefix', () => {
+    expect(parseExpectValue('>= 100')).toEqual({ operator: '>=', expected: '100' });
+  });
+
+  it('parses =@ (contains) operator prefix', () => {
+    expect(parseExpectValue('=@ success')).toEqual({ operator: '=@', expected: 'success' });
+  });
+
+  it('parses =~ (regex) operator prefix', () => {
+    expect(parseExpectValue('=~ /ok/i')).toEqual({ operator: '=~', expected: '/ok/i' });
+  });
+
+  it('handles expected value with spaces', () => {
+    expect(parseExpectValue('== hello world')).toEqual({ operator: '==', expected: 'hello world' });
+  });
+
+  it('handles operator-only (no expected value)', () => {
+    expect(parseExpectValue('==')).toEqual({ operator: '==', expected: '' });
+  });
+
+  it('unquotes empty string markers', () => {
+    expect(parseExpectValue("== ''")).toEqual({ operator: '==', expected: '' });
+    expect(parseExpectValue('== ""')).toEqual({ operator: '==', expected: '' });
+  });
+});
+
+describe('expect on call steps', () => {
+  it('generates check from simple expect map (default == operator)', async () => {
+    const ctx: TestContext = {
+      name: 'callExpect',
+      test: {
+        steps: [{
+          call: 'login',
+          expect: { status_code: 200 },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('const _login_0 = await login(');
+    expect(js).toContain('equals_(`${_login_0.status_code}`, `200`)');
+    expect(js).toContain("report_('check'");
+  });
+
+  it('generates check from string expect with explicit operator', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectOp',
+      test: {
+        steps: [{
+          call: 'login',
+          expect: { status_code: '== 200' },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('equals_(`${_login_0.status_code}`, `200`)');
+  });
+
+  it('generates check from != operator', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectNe',
+      test: {
+        steps: [{
+          call: 'login',
+          expect: { status_code: '!= 500' },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('notEquals_(`${_login_0.status_code}`, `500`)');
+  });
+
+  it('generates multiple checks from array expect value', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectArr',
+      test: {
+        steps: [{
+          call: 'login',
+          expect: { status_code: ['== 200', '!= 500'] },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('equals_(`${_login_0.status_code}`, `200`)');
+    expect(js).toContain('notEquals_(`${_login_0.status_code}`, `500`)');
+  });
+
+  it('generates checks for multiple fields', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectMulti',
+      test: {
+        steps: [{
+          call: 'login',
+          expect: { status_code: 200, token: '!= null' },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('equals_(`${_login_0.status_code}`, `200`)');
+    expect(js).toContain('notEquals_(`${_login_0.token}`, `null`)');
+  });
+
+  it('supports dot-notation for nested field access', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectDot',
+      test: {
+        steps: [{
+          call: 'getUser',
+          expect: { 'body.user.name': '== John' },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('equals_(`${_getUser_0.body.user.name}`, `John`)');
+  });
+
+  it('supports template expressions in expected value', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectTpl',
+      test: {
+        inputs: { message: 'hello' },
+        steps: [{
+          call: 'echo',
+          id: 'result',
+          expect: { echoed_message: '== <<i:message>>' },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('equals_(`${result.echoed_message}`, `${message}`)') ;
+  });
+
+  it('uses id as result variable when call has id', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectId',
+      test: {
+        steps: [{
+          call: 'login',
+          id: 'res',
+          expect: { status_code: 200 },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('const res = await login(');
+    expect(js).toContain('equals_(`${res.status_code}`, `200`)');
+  });
+
+  it('expect runs before check and assert', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectOrder',
+      test: {
+        steps: [{
+          call: 'login',
+          expect: { status_code: 200 },
+          check: 'token != null',
+          assert: 'status == 200',
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    const expectIdx = js.indexOf('equals_(`${_login_0.status_code}`, `200`)');
+    const checkIdx = js.indexOf('notEquals_(`${_login_0.token}`, `null`)');
+    const assertIdx = js.indexOf('equals_(`${_login_0.status}`, `200`)');
+    expect(expectIdx).toBeGreaterThan(-1);
+    expect(checkIdx).toBeGreaterThan(-1);
+    expect(assertIdx).toBeGreaterThan(-1);
+    // expect runs first, then check, then assert
+    expect(expectIdx).toBeLessThan(checkIdx);
+    expect(checkIdx).toBeLessThan(assertIdx);
+  });
+
+  it('expect is non-throwing (no assertion failure throw)', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectNoThrow',
+      test: {
+        steps: [{
+          call: 'login',
+          expect: { status_code: 200 },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    // expect uses check (non-throwing) behavior, not assert
+    expect(js).toContain("report_('check'");
+    expect(js).not.toContain('throw new Error("Assertion failed")');
+  });
+
+  it('handles plain string expect value (default equality)', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectStr',
+      test: {
+        steps: [{
+          call: 'login',
+          expect: { name: 'alice' },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('equals_(`${_login_0.name}`, `alice`)');
+  });
+
+  it('handles boolean expect value', async () => {
+    const ctx: TestContext = {
+      name: 'callExpectBool',
+      test: {
+        steps: [{
+          call: 'login',
+          expect: { active: true },
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('equals_(`${_login_0.active}`, `true`)');
   });
 });
 

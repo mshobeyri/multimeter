@@ -55,7 +55,7 @@ describe('check/assert object-form autocomplete', () => {
 });
 /**
  * Replicate getCallAliasForCheckContext from BeforeMount.tsx for testing.
- * Detects if cursor is inside check:/assert: list of a call step.
+ * Detects if cursor is inside check:/assert:/expect: block of a call step.
  */
 function getCallAliasForCheckContext(
     lines: string[], lineNumber: number, currentIndent: number
@@ -70,7 +70,7 @@ function getCallAliasForCheckContext(
     const trimmed = line.trim();
 
     if (!foundField) {
-      if (indent < currentIndent && /^(check|assert):\s*$/.test(trimmed)) {
+      if (indent < currentIndent && /^(check|assert|expect):\s*$/.test(trimmed)) {
         foundField = true;
         fieldIndent = indent;
         field = trimmed.replace(/:.*/, '');
@@ -154,5 +154,43 @@ describe('inline call check/assert autocomplete context', () => {
     ];
     const result = getCallAliasForCheckContext(lines, 5, 8);
     expect(result).toEqual({ alias: 'my_api', field: 'check' });
+  });
+
+  it('detects expect: under a call step', () => {
+    const lines = [
+      'type: test',
+      'steps:',
+      '  - call: login',
+      '    expect:',
+      '      ',
+    ];
+    const result = getCallAliasForCheckContext(lines, 5, 6);
+    expect(result).toEqual({ alias: 'login', field: 'expect' });
+  });
+
+  it('detects expect: with inputs above', () => {
+    const lines = [
+      'type: test',
+      'steps:',
+      '  - call: getUser',
+      '    inputs:',
+      '      id: 123',
+      '    expect:',
+      '      ',
+    ];
+    const result = getCallAliasForCheckContext(lines, 7, 6);
+    expect(result).toEqual({ alias: 'getUser', field: 'expect' });
+  });
+
+  it('returns null for expect: under a non-call step', () => {
+    const lines = [
+      'type: test',
+      'steps:',
+      '  - print: hello',
+      '    expect:',
+      '      ',
+    ];
+    const result = getCallAliasForCheckContext(lines, 5, 6);
+    expect(result).toBeNull();
   });
 });

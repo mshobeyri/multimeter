@@ -160,4 +160,7 @@ export const defineTheme = (monaco: any) => {
       "symbolIcon.variableForeground": cssVar('--vscode-symbolIcon-variableForeground', "#75beff"),
     },
   });
+
+  // Expose the tag (operator) colour so decoration CSS can reference it.
+  document.documentElement.style.setProperty('--mmt-expect-op-color', `#${colors.yamlTag}`);
 };

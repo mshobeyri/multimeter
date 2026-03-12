@@ -53,6 +53,24 @@ export interface ComparisonObject {
 
 export type Comparison = string | ComparisonObject;
 
+/**
+ * A single expect value: operator + expected (e.g. '== 200', '!= 500'),
+ * or a plain value (defaults to == equality).
+ */
+export type ExpectValue = string | number | boolean;
+
+/**
+ * Map of output field names to expected values.
+ * Each value can be a single ExpectValue or an array of ExpectValues
+ * for multiple checks on the same field.
+ * Examples:
+ *   status_code: 200              → == 200 (default equality)
+ *   status_code: == 200           → == 200
+ *   status_code: [== 200, != 500] → two checks
+ *   body.user.name: == John       → nested path access
+ */
+export type ExpectMap = Record<string, ExpectValue | ExpectValue[]>;
+
 export interface TestImportItem {
   [key: string]: string;
 }
@@ -77,6 +95,7 @@ export interface TestFlowCall extends TestFlowBase {
   id: string;
   title?: string;
   inputs?: Record<string, any>;
+  expect?: ExpectMap;
   check?: Comparison | Comparison[];
   assert?: Comparison | Comparison[];
   report?: ReportLevel | ReportConfig;

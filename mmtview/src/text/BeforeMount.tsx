@@ -282,8 +282,8 @@ export const handleBeforeMount = (monaco: any) => {
     // --- End of import-aware autocomplete helpers ---
 
     /**
-     * Detect if the cursor is inside the `check:` or `assert:` list of a `- call:` step.
-     * Returns { alias, field } where field is 'check' or 'assert', or null otherwise.
+     * Detect if the cursor is inside the `check:`, `assert:`, or `expect:` block of a `- call:` step.
+     * Returns { alias, field } where field is 'check', 'assert', or 'expect', or null otherwise.
      */
     const getCallAliasForCheckContext = (lines: string[], lineNumber: number, currentIndent: number): { alias: string; field: string } | null => {
         let foundField = false;
@@ -296,8 +296,8 @@ export const handleBeforeMount = (monaco: any) => {
             const trimmed = line.trim();
 
             if (!foundField) {
-                // Looking for check: or assert: parent of current line
-                if (indent < currentIndent && /^(check|assert):\s*$/.test(trimmed)) {
+                // Looking for check:, assert:, or expect: parent of current line
+                if (indent < currentIndent && /^(check|assert|expect):\s*$/.test(trimmed)) {
                     foundField = true;
                     fieldIndent = indent;
                     field = trimmed.replace(/:.*/, '');
@@ -309,7 +309,7 @@ export const handleBeforeMount = (monaco: any) => {
                 continue;
             }
 
-            // Found check/assert, now look for the `- call:` parent
+            // Found check/assert/expect, now look for the `- call:` parent
             if (indent < fieldIndent) {
                 const callMatch = trimmed.match(/^-\s*call:\s*(.+)$/);
                 if (callMatch) {
@@ -663,7 +663,7 @@ export const handleBeforeMount = (monaco: any) => {
             if (firstLine === 'type: test' && (parentContext === 'check' || parentContext === 'assert')) {
                 const allLines = model.getLinesContent();
                 const callInfo = getCallAliasForCheckContext(allLines, lineNumber, currentIndent);
-                if (callInfo) {
+                if (callInfo && callInfo.field !== 'expect') {
                     const importMap = getImportMap(model);
                     const filePath = importMap[callInfo.alias];
                     if (filePath) {
@@ -706,6 +706,62 @@ export const handleBeforeMount = (monaco: any) => {
                                         startColumn: Math.max(1, dashOffset + 1),
                                         endLineNumber: position.lineNumber,
                                         endColumn: Math.max(baseEndColumn, dashOffset + 1),
+                                    }
+                                }))
+                            };
+                        }
+                    }
+                }
+            }
+
+            // Call inline expect autocomplete: when inside expect: of a call step,
+            // suggest output parameters as map keys (e.g. status_code: , token: ).
+            // Example:
+            //   - call: login
+            //     expect:
+            //       <here>  ← suggest status_code: , token: , etc.
+            if (firstLine === 'type: test' && parentContext === 'expect') {
+                const allLines = model.getLinesContent();
+                const callInfo = getCallAliasForCheckContext(allLines, lineNumber, currentIndent);
+                if (callInfo && callInfo.field === 'expect') {
+                    const importMap = getImportMap(model);
+                    const filePath = importMap[callInfo.alias];
+                    if (filePath) {
+                        const parsed = await readAndParseImportedFile(filePath);
+                        const suggestionList: any[] = [];
+                        // Always suggest built-in fields
+                        suggestionList.push({
+                            label: 'statusCode_',
+                            kind: monaco.languages.CompletionItemKind.Property,
+                            insertText: 'statusCode_: ',
+                            detail: 'HTTP status code',
+                            documentation: `Expect the HTTP status code of the ${callInfo.alias} call.\nExample:\n  expect:\n    statusCode_: 200`,
+                            sortText: '~0',
+                        });
+                        if (parsed?.outputs) {
+                            for (const [key, rule] of Object.entries(parsed.outputs)) {
+                                suggestionList.push({
+                                    label: key,
+                                    kind: monaco.languages.CompletionItemKind.Field,
+                                    insertText: `${key}: `,
+                                    detail: `Output: ${rule || key}`,
+                                    documentation: `Expect output "${key}" from ${callInfo.alias}.\nExtraction rule: ${rule || '(default)'}\nExample:\n  expect:\n    ${key}: == value`,
+                                    sortText: `0${key}`,
+                                });
+                            }
+                        }
+                        if (suggestionList.length > 0) {
+                            const wordInfo = model.getWordUntilPosition(position);
+                            const baseStartColumn = wordInfo?.startColumn ?? position.column;
+                            const baseEndColumn = wordInfo?.endColumn ?? position.column;
+                            return {
+                                suggestions: deduplicateSuggestions(suggestionList).map((item) => ({
+                                    ...item,
+                                    range: {
+                                        startLineNumber: position.lineNumber,
+                                        startColumn: baseStartColumn,
+                                        endLineNumber: position.lineNumber,
+                                        endColumn: baseEndColumn,
                                     }
                                 }))
                             };

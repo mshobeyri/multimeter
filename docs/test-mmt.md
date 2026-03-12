@@ -182,6 +182,7 @@ You can add `check` or `assert` directly on a call step to validate its output p
 | `id`      | Assign the call result to a variable for later reference |
 | `title`   | Explicit title for the test box shown in the output panel |
 | `inputs`  | Key-value pairs passed as input parameters to the called item |
+| `expect`  | Map of output fields to expected values (non-throwing, runs first) |
 | `check`   | One or more comparisons that log failures but continue |
 | `assert`  | One or more comparisons that stop the flow on failure |
 | `report`  | Override the report level (`all`, `fails`, or `none`) |
@@ -225,6 +226,61 @@ You can combine check and assert, and optionally set a `report` level:
   assert: status == 200
   report: all
 ```
+
+#### Inline expect on call
+
+`expect` is a map-based alternative to `check` for validating call outputs. Each key is an output field name, and each value is the expected result. Like `check`, it is non-throwing (logs failures but continues execution).
+
+When `expect`, `check`, and `assert` are all present on the same call, execution order is: **expect → check → assert**.
+
+**Formats:**
+
+Simple equality (default operator is `==`):
+```yaml
+- call: login
+  expect:
+    status_code: 200
+```
+
+Explicit operator:
+```yaml
+- call: echo
+  expect:
+    status_code: == 200
+    echoed_message: == <<i:message>>
+```
+
+Multiple checks on the same field (array form):
+```yaml
+- call: login
+  expect:
+    status_code:
+      - == 200
+      - != 500
+```
+
+Nested field access with dot-notation:
+```yaml
+- call: getUser
+  expect:
+    body.user.name: == John
+    body.user.active: true
+```
+
+Combining expect with check and assert:
+```yaml
+- call: login
+  inputs:
+    username: alice
+  expect:
+    status_code: 200
+    name: == alice
+  check:
+    - token != null
+  assert: status == 200
+```
+
+All comparison operators supported by `check`/`assert` are available in `expect` values: `==`, `!=`, `<`, `>`, `<=`, `>=`, `=@`, `!@`, `=^`, `!^`, `=$`, `!$`, `=~`, `!~`.
 
 #### Test box title priority
 

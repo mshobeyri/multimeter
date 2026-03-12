@@ -322,6 +322,27 @@ export const TestSchema = {
                                     ]
                                 }
                             },
+                            expect: {
+                                type: 'object',
+                                description: 'Map of output field names to expected values. Non-throwing (like check). Runs before check/assert.',
+                                additionalProperties: {
+                                    oneOf: [
+                                        { type: 'string' },
+                                        { type: 'number' },
+                                        { type: 'boolean' },
+                                        {
+                                            type: 'array',
+                                            items: {
+                                                anyOf: [
+                                                    { type: 'string' },
+                                                    { type: 'number' },
+                                                    { type: 'boolean' }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
                             check: {
                                 oneOf: [
                                     { type: 'string' },

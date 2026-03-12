@@ -102,6 +102,10 @@ function getDescriptionFoldLines(model: any): number[] {
 
 const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
 const UNDEFINED_INPUT_CLASS = "mmt-undefined-input-underline";
+const EXPECT_OP_CLASS = "mmt-expect-operator";
+
+/** Known comparison operators, longest first so >= matches before > */
+const EXPECT_OPS = ['==', '!=', '>=', '<=', '=@', '!@', '=~', '!~', '=^', '!^', '=$', '!$', '>', '<'];
 
 const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   content,
@@ -748,6 +752,81 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
           ),
           options: { inlineClassName: I_PREFIX_CLASS }
         });
+      }
+    }
+
+    // Highlight comparison operators inside expect: blocks (red colour)
+    {
+      const lines: string[] = model.getLinesContent();
+      let inExpect = false;
+      let expectIndent = -1;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const trimmed = line.trimStart();
+        if (trimmed === '') { continue; }
+
+        const indent = line.length - trimmed.length;
+
+        // Detect `expect:` header (block form, nothing after the colon)
+        if (/^\s*expect:\s*$/.test(line)) {
+          inExpect = true;
+          expectIndent = indent;
+          continue;
+        }
+
+        if (inExpect) {
+          if (indent <= expectIndent) {
+            inExpect = false;
+            // fall through — this line is outside the block
+          } else {
+            // Inside expect block — look for a leading operator in the value.
+            // Map entry:   key: ["]OP ...["]
+            // Array item:  - ["]OP ...["]
+            let valueStartCol = -1;
+            const mapMatch = line.match(/^(\s*[\w.]+:\s+)/);
+            if (mapMatch) {
+              valueStartCol = mapMatch[1].length;
+            }
+            if (valueStartCol < 0) {
+              const arrMatch = line.match(/^(\s*-\s+)/);
+              if (arrMatch) {
+                valueStartCol = arrMatch[1].length;
+              }
+            }
+
+            if (valueStartCol >= 0 && valueStartCol < line.length) {
+              let opStartCol = valueStartCol;
+              const rest = line.slice(valueStartCol);
+
+              // Skip opening quote if value is quoted
+              let afterQuote = rest;
+              if (rest[0] === '"' || rest[0] === "'") {
+                afterQuote = rest.slice(1);
+                opStartCol += 1;
+              }
+
+              for (const op of EXPECT_OPS) {
+                if (
+                  afterQuote.startsWith(op + ' ') ||
+                  afterQuote === op ||
+                  afterQuote.startsWith(op + '"') ||
+                  afterQuote.startsWith(op + "'")
+                ) {
+                  matches.push({
+                    range: new monaco.Range(
+                      i + 1, opStartCol + 1,
+                      i + 1, opStartCol + op.length + 1
+                    ),
+                    options: { inlineClassName: EXPECT_OP_CLASS }
+                  });
+                  break;
+                }
+              }
+            }
+            continue;
+          }
+        }
       }
     }
 

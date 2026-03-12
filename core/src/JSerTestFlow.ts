@@ -1,5 +1,5 @@
 import {indentLines, timeUnitToMs, toInputsParams} from './JSerHelper';
-import {Comparison, ComparisonObject, normalizeReportConfig, ReportConfig, ReportLevel, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
+import {Comparison, ComparisonObject, ExpectMap, ExpectValue, normalizeReportConfig, opsList, ReportConfig, ReportLevel, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
 import {getTestFlowStepType} from './testParsePack';
 import {replaceEnvTokensPlain, toTemplateWithEnvVars} from './variableReplacer';
 
@@ -260,6 +260,48 @@ export const assertToJSfunc = (assert: Comparison, useExternalReport: boolean): 
   comparisonToJSfunc('assert', assert, useExternalReport);
 
 /**
+ * Parse a single expect value into operator + expected parts.
+ * - String starting with a known operator (e.g. '== 200', '!= 500'): split into operator + expected.
+ * - Plain string without operator prefix (e.g. 'hello'): defaults to '==' operator.
+ * - Number or boolean: converted to string, defaults to '==' operator.
+ */
+export const parseExpectValue = (value: ExpectValue): { operator: string; expected: string } => {
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return { operator: '==', expected: String(value) };
+  }
+  const trimmed = String(value).trim();
+  // Try to match a known operator at the start of the string
+  for (const op of opsList) {
+    if (trimmed.startsWith(op + ' ') || trimmed === op) {
+      const expected = trimmed.slice(op.length).trim();
+      return { operator: op, expected: unquoteEmpty(expected) };
+    }
+  }
+  // No operator prefix found → default to equality
+  return { operator: '==', expected: trimmed };
+};
+
+/**
+ * Transform a single expect map entry into a ComparisonObject.
+ * The field key becomes the actual expression (prefixed with resultVar),
+ * and the value is parsed for operator + expected.
+ */
+const transformExpectEntry = (
+    field: string, value: ExpectValue, resultVar: string,
+    defaultTitle: string, defaultDetails: string,
+    report?: ReportLevel | ReportConfig): ComparisonObject => {
+  const { operator, expected } = parseExpectValue(value);
+  return {
+    actual: `\${${resultVar}.${field}}`,
+    expected,
+    operator,
+    title: defaultTitle,
+    details: defaultDetails,
+    report,
+  };
+};
+
+/**
  * Build a ComparisonObject from an inline call check/assert comparison,
  * prefixing the actual expression with the call result variable.
  * Uses ${resultVar.field} so the value evaluates at runtime inside template literals.
@@ -301,7 +343,7 @@ const callToJSfunc = (step: TestFlowCall, useExternalReport: boolean, stepIdx: n
     inputParams = ' ' + inputParams + ' ';
   }
 
-  const hasInlineChecks = step.check || step.assert;
+  const hasInlineChecks = step.expect || step.check || step.assert;
   const safeName = step.call.replace(/[^a-zA-Z0-9_]/g, '_');
   const resultVar = step.id || (hasInlineChecks ? `_${safeName}_${stepIdx}` : undefined);
 
@@ -325,6 +367,16 @@ const callToJSfunc = (step: TestFlowCall, useExternalReport: boolean, stepIdx: n
       }
     };
 
+    // Process expect map entries (non-throwing, runs first)
+    if (step.expect) {
+      for (const [field, val] of Object.entries(step.expect)) {
+        const values = Array.isArray(val) ? val : [val];
+        for (const v of values) {
+          const transformed = transformExpectEntry(field, v, resultVar!, title, details, step.report);
+          result += '\ncheckAbort_();\n' + comparisonToJSfunc('check', transformed, useExternalReport);
+        }
+      }
+    }
     if (step.check) {
       processComparisons(step.check, 'check');
     }
