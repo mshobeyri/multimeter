@@ -299,11 +299,11 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       case 'stage': {
         const idVal = typeof stepData?.id === 'string' ? stepData.id : '';
         const condVal = typeof stepData?.condition === 'string' ? stepData.condition : '';
-        const deps = Array.isArray(stepData?.depends_on)
-          ? stepData.depends_on as string[]
-          : (stepData?.depends_on ? [String(stepData.depends_on)] : []);
+        const deps = Array.isArray(stepData?.after)
+          ? stepData.after as string[]
+          : (stepData?.after ? [String(stepData.after)] : []);
         const depsStr = deps.join(', ');
-        const updateStage = (patch: Partial<{ id: string; condition: string; depends_on: string[] }>) => {
+        const updateStage = (patch: Partial<{ id: string; condition: string; after: string[] }>) => {
           const next = { ...(stepData || {}), ...patch } as any;
           onChange(next);
         };
@@ -331,7 +331,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
                   <input
                     placeholder="comma-separated stage ids"
                     value={depsStr}
-                    onChange={e => updateStage({ depends_on: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                    onChange={e => updateStage({ after: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
                     style={{ width: '100%' }}
                   />
                 </div>

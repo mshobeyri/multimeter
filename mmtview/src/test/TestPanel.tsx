@@ -74,6 +74,19 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
     localStorage.setItem(LAST_TEST_PAGE_KEY, page);
   }, [page]);
 
+  // Listen for extension command to switch to the Code tab (e.g. on syntax error)
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      const msg = event.data;
+      if (msg && typeof msg === 'object' && msg.command === 'switchToCodeTab') {
+        setPage('edit');
+        setTab('code');
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
   useEffect(() => {
     const checkTabWidth = () => {
       if (!tabContainerRef.current) return;

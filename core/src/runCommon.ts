@@ -39,6 +39,34 @@ export interface PreparedRun {
   exampleIndex?: number;
 }
 
+/**
+ * Attempt to parse a generated JS string to detect syntax errors early.
+ * Returns an error message if the code is invalid, or `undefined` if it is OK.
+ *
+ * We wrap the code with the same parameter names that `runJSCode` uses so
+ * that the identifier references don't trigger false positives.  Only the
+ * *parse* phase of `new Function()` runs — nothing is executed.
+ */
+export function validateJsSyntax(js: string): string | undefined {
+  try {
+    // Wrap in an async function so `await` is valid (the generated code runs
+    // inside an async context in `runJSCode`).
+    // eslint-disable-next-line no-new-func
+    new Function(
+      'mmtHelper', 'console', 'send_', 'extractOutputs_', 'Random',
+      '__reporter', '__runId', '__id', '__mmt_random', '__mmt_current',
+      `return (async () => {\n${js}\n})();`,
+    );
+    return undefined;
+  } catch (e: any) {
+    if (e instanceof SyntaxError) {
+      return `Generated code has a syntax error (likely caused by invalid .mmt syntax): ${e.message}. Use print-js to see the generated code.`;
+    }
+    // Non-syntax error during construction is unexpected; still report it.
+    return `Unexpected error validating generated code: ${e?.message || String(e)}`;
+  }
+}
+
 export async function runGeneratedJs(
     runId: string, js: string, name: string,
     logger: (level: LogLevel, msg: string) => void,
@@ -64,6 +92,14 @@ export async function runGeneratedJs(
     if (!js || !js.trim()) {
       errors.push('Empty JS input');
       return {success: false, durationMs: Date.now() - start, errors, logs};
+    }
+    // Syntax-check the generated JS before execution so malformed .mmt
+    // files surface a clear error instead of silently failing.
+    const syntaxError = validateJsSyntax(js);
+    if (syntaxError) {
+      errors.push(syntaxError);
+      forward('error', syntaxError);
+      return {success: false, durationMs: Date.now() - start, errors, logs, syntaxError: true};
     }
     const returnValue = await jsRunner({
       runId,

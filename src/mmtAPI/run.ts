@@ -258,6 +258,19 @@ export async function handleRunCurrentDocument(
         docType === 'suite'         ? 'Suite' :
                                       'Document';
 
+    if (result.syntaxError) {
+      const errorMsg = result.errors?.[0] || 'Generated code has a syntax error';
+      const action = await vscode.window.showErrorMessage(
+          `${label} ${displayName}: ${errorMsg}`,
+          'View Code');
+      if (action === 'View Code') {
+        webviewPanel.webview.postMessage({
+          command: 'switchToCodeTab',
+          filePath: document.uri.toString(),
+        });
+      }
+    }
+
     if (result.cancelled) {
       webviewPanel.webview.postMessage({
         command: 'testRunStopped',

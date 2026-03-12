@@ -324,7 +324,7 @@ stages?: Array<{            # optional staged/parallel model
   id: string
   name?: string
   condition?: string
-  depends_on?: string | string[]
+  after?: string | string[]
   steps: Step[]
 }>
 ```

@@ -562,16 +562,16 @@ export const KeySuggestionsByParent = (monaco: any) => {
             ].join('\n')
         },
         {
-            label: "depends_on",
+            label: "after",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "depends_on: ",
+            insertText: "after: ",
             detail: 'Stage dependencies',
             documentation: [
                 'Single name or list of stage names that must finish before this stage starts.',
                 'Example:',
-                '- depends_on: prepare',
+                '- after: prepare',
                 'or',
-                '- depends_on:',
+                '- after:',
                 '  - prepare',
                 '  - seed'
             ].join('\n')
@@ -582,7 +582,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: "steps:\n\t",
             detail: 'Stage steps',
             documentation: [
-                'Steps executed in this stage. Stages run concurrently by default and are synchronized by depends_on.',
+                'Steps executed in this stage. Stages run concurrently by default and are synchronized by after.',
                 'Example:',
                 '- steps:',
                 '  - call: get_user'

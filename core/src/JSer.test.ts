@@ -59,7 +59,7 @@ describe('flowStagesToJsfunc', () => {
       },
       {
         id: 'stage2',
-        depends_on: ['stage1'],
+        after: ['stage1'],
         steps: [
           {type: 'call', id: 'step2', target: 'apiFunc2', inputs: ['b']},
         ],
@@ -87,7 +87,7 @@ describe('flowStagesToJsfunc', () => {
       },
       {
         id: 'stage3',
-        depends_on: ['stage1', 'stage2'],
+        after: ['stage1', 'stage2'],
         steps: [
           {type: 'call', id: 'step3', target: 'apiFunc3', inputs: ['c']},
         ],
@@ -162,7 +162,7 @@ describe('testToJsfunc (multi-stage)', () => {
           },
           {
             id: 'stage2',
-            depends_on: ['stage1'],
+            after: ['stage1'],
             steps: [
               {type: 'call', id: 'step2', target: 'apiFunc2', inputs: ['b']},
             ],

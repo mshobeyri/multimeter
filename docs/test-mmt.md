@@ -104,7 +104,7 @@ import:
 The project root is detected by walking up directories from the current file until `multimeter.mmt` is found. If no `multimeter.mmt` exists, `+/` paths will fail to resolve.
 
 ### Stages
-Stages let you run groups of steps in parallel. All stages start concurrently; use depends_on to control order. If you have a single linear flow, you can skip stages and place steps at the test root.
+Stages let you run groups of steps in parallel. All stages start concurrently; use `after` to control order. If you have a single linear flow, you can skip stages and place steps at the test root.
 
 ```yaml
 stages:
@@ -114,7 +114,7 @@ stages:
       - call: login
         id: doLogin
   - id: profile
-    depends_on: login   # or
+    after: login   # or
                           #   - login
                           #   - anotherStage
     steps:
@@ -494,7 +494,7 @@ stages:
         id: doLogin
   - id: profile
     condition: doLogin.status == 200
-    depends_on: login
+    after: login
     steps:
       - call: getProfile
 ```
@@ -535,7 +535,7 @@ steps:
 - outputs: record&lt;string, string | number | boolean | null&gt;
 - metrics: { repeat?, threads?, duration?, rampup? }
 - steps: array of step (alias: `flow`)
-- stages: array of { id, title?, steps, condition?, depends_on? }
+- stages: array of { id, title?, steps, condition?, after? }
 - step types: `call`, `check`, `assert`, `if`, `for`, `repeat`, `delay`, `js`, `print`, `set`, `var`, `const`, `let`, `setenv`, `data`
 
 Notes:

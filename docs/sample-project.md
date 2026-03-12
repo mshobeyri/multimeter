@@ -394,7 +394,7 @@ stages:
 
   - id: create_pets
     title: Create Pets from CSV
-    depends_on: auth
+    after: auth
     steps:
       - data: pets_csv
       - for: const pet of pets_csv
@@ -412,7 +412,7 @@ stages:
 
   - id: place_order
     title: Place Order
-    depends_on: create_pets
+    after: create_pets
     condition: created.status == 201
     steps:
       - call: order
@@ -427,7 +427,7 @@ stages:
 ```
 
 Features shown:
-- **Stages** with `depends_on` for sequential ordering
+- **Stages** with `after` for sequential ordering
 - **`condition`** to skip a stage if a previous step failed
 - **CSV data import** and **`for` loop** for data-driven testing
 - **`data`** step binds the CSV into scope
@@ -623,7 +623,7 @@ This runs 500 iterations across 20 concurrent threads, ramping up over 10 second
 | `js` step with helper module | `pet_crud_test.mmt` |
 | `for` loop with CSV data | `order_flow_test.mmt` |
 | `data` step | `order_flow_test.mmt` |
-| Stages with `depends_on` | `order_flow_test.mmt` |
+| Stages with `after` | `order_flow_test.mmt` |
 | Stage `condition` | `order_flow_test.mmt` |
 | `delay` | — (use `- delay: 2s` in any step list) |
 | `if` / `else` | — (use `- if: expr` with nested `steps`) |

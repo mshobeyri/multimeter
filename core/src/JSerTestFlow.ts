@@ -453,8 +453,8 @@ export const flowStagesToJsfunc =
 
       for (const stage of flow) {
         const stageName = stage.id || randomName();
-        const dependsOn = Array.isArray(stage.depends_on) ? stage.depends_on :
-            stage.depends_on                              ? [stage.depends_on] :
+        const dependsOn = Array.isArray(stage.after) ? stage.after :
+            stage.after                              ? [stage.after] :
                                                             [];
         // Build stage code with optional early-return condition
         let code = '';

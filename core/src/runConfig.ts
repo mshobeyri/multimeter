@@ -90,6 +90,8 @@ export interface RunResult {
   threw?: boolean;
   outputs?: Record<string, any>;
   cancelled?: boolean;
+  /** True when the generated JS failed syntax validation (bad .mmt syntax). */
+  syntaxError?: boolean;
 }
 
 export interface GenerateJsOptions {

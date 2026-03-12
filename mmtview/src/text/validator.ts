@@ -225,7 +225,7 @@ const STEP_KEY_ORDER: Record<string, string[]> = {
   setenv: ['setenv'],
 };
 const CHECK_ASSERT_VALUE_ORDER = ['title', 'actual', 'operator', 'expected', 'report', 'details'];
-const STAGE_KEY_ORDER = ['id', 'title', 'condition', 'depends_on', 'steps'];
+const STAGE_KEY_ORDER = ['id', 'title', 'condition', 'after', 'steps'];
 const SERVER_ENDPOINT_KEY_ORDER = ['method', 'path', 'name', 'match', 'status', 'format', 'headers', 'body', 'delay', 'reflect', 'messages'];
 
 /** Detect the step type from a YAML map node's key-value pairs. */

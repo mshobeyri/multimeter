@@ -178,7 +178,7 @@ export interface TestFlowStage {
   id: TestFlowStageId;
   title?: string;
   condition?: Comparison;
-  depends_on?: TestFlowStageId|TestFlowStageId[];
+  after?: TestFlowStageId|TestFlowStageId[];
   steps: TestFlowSteps;
 }
 

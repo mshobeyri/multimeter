@@ -29,7 +29,7 @@ export const STEP_KEY_ORDER: Record<string, string[]> = {
 export const CHECK_ASSERT_VALUE_ORDER = ['title', 'actual', 'operator', 'expected', 'report', 'details'];
 
 /** Canonical key order for stage items. */
-export const STAGE_KEY_ORDER = ['id', 'title', 'condition', 'depends_on', 'steps'];
+export const STAGE_KEY_ORDER = ['id', 'title', 'condition', 'after', 'steps'];
 
 /**
  * Operators that need quoting in YAML because they start with a character that

@@ -636,7 +636,7 @@ export const TestSchema = {
                     id: { type: 'string' },
                     title: { type: 'string' },
                     condition: { type: 'string' },
-                    depends_on: {
+                    after: {
                         anyOf: [
                             { type: 'string' },
                             { type: 'array', items: { type: 'string' } }

@@ -44,7 +44,7 @@ stages:                         # parallel/grouped flows
   - id: string
     title?: string
     condition?: string          # optional condition string
-    depends_on?: string | string[]
+    after?: string | string[]
     steps:                      # steps inside this stage
       - <step>
 ```
