@@ -1,7 +1,7 @@
 import { extractOutputs, buildBodyExprFromPath, ResponseData } from './outputExtractor';
 
 describe('outputExtractor', () => {
-  it('extracts with explicit regex prefix', () => {
+  it('extracts with explicit regex prefix (legacy)', () => {
     const response: ResponseData = {
       type: 'json',
       body: '{"id": 123, "name": "mehrdad"}',
@@ -12,7 +12,7 @@ describe('outputExtractor', () => {
     expect(res.id).toBe('123');
   });
 
-  it('extracts using regex with capture group', () => {
+  it('extracts using regex with capture group (legacy)', () => {
     const response: ResponseData = {
       type: 'json',
       body: '{"token":"abc-123-def"}',
@@ -21,6 +21,107 @@ describe('outputExtractor', () => {
     };
     const res = extractOutputs(response, { token: 'regex "token":"([^\\"]+)"' });
     expect(res.token).toBe('abc-123-def');
+  });
+
+  // --- New regex syntax: body[/REGEX/] and body./REGEX/ ---
+
+  it('extracts from body with bracket regex syntax body[/pattern/]', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: '{"id": 123, "name": "mehrdad"}',
+      headers: { 'Content-Type': 'application/json' },
+      cookies: {}
+    };
+    const res = extractOutputs(response, { id: 'body[/"id":\\s*(\\d+)/]' });
+    expect(res.id).toBe('123');
+  });
+
+  it('extracts from body with dot regex syntax body./pattern/', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: '{"token":"abc-123-def"}',
+      headers: { 'Content-Type': 'application/json' },
+      cookies: {}
+    };
+    const res = extractOutputs(response, { token: 'body./"token":"([^\\"]+)"/' });
+    expect(res.token).toBe('abc-123-def');
+  });
+
+  it('extracts whole match when no capture group in body[/pattern/]', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: '{"status":"active","id":42}',
+      headers: { 'Content-Type': 'application/json' },
+      cookies: {}
+    };
+    const res = extractOutputs(response, { status: 'body[/active/]' });
+    expect(res.status).toBe('active');
+  });
+
+  it('extracts whole match when no capture group in body./pattern/', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: 'order-12345-confirmed',
+      headers: { 'Content-Type': 'text/plain' },
+      cookies: {}
+    };
+    const res = extractOutputs(response, { order: 'body./order-\\d+-confirmed/' });
+    expect(res.order).toBe('order-12345-confirmed');
+  });
+
+  it('extracts from headers with bracket regex syntax headers[/pattern/]', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: '{}',
+      headers: { 'Authorization': 'Bearer abc123token', 'Content-Type': 'application/json' },
+      cookies: {}
+    };
+    const res = extractOutputs(response, { token: 'headers[/Bearer (\\S+)/]' });
+    expect(res.token).toBe('abc123token');
+  });
+
+  it('extracts from headers with dot regex syntax headers./pattern/', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: '{}',
+      headers: { 'X-Request-Id': 'req-9876', 'Content-Type': 'application/json' },
+      cookies: {}
+    };
+    const res = extractOutputs(response, { reqId: 'headers./req-\\d+/' });
+    expect(res.reqId).toBe('req-9876');
+  });
+
+  it('extracts from cookies with bracket regex syntax cookies[/pattern/]', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: '{}',
+      headers: {},
+      cookies: { session: 'sess-abcdef-123' }
+    };
+    const res = extractOutputs(response, { sid: 'cookies[/sess-([a-f]+)-\\d+/]' });
+    expect(res.sid).toBe('abcdef');
+  });
+
+  it('extracts whole match from headers when no capture group', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: '{}',
+      headers: { 'Content-Type': 'application/json; charset=utf-8' },
+      cookies: {}
+    };
+    const res = extractOutputs(response, { ct: 'headers[/application\\/json/]' });
+    expect(res.ct).toBe('application/json');
+  });
+
+  it('returns empty string when regex does not match', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: '{"status":"ok"}',
+      headers: { 'Content-Type': 'text/plain' },
+      cookies: {}
+    };
+    const res = extractOutputs(response, { nope: 'body[/nomatch/]' });
+    expect(res.nope).toBe('');
   });
 
   it('extracts using JSONPath-style bracket syntax with $ root', () => {

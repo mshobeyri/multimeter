@@ -223,12 +223,16 @@ Notes
 Pull fields from the response to populate outputs. Use one of the following per key:
 - **Dot notation** (preferred): `body.field`, `body.nested.items.0.key` — shorter and easier to read
 - **Bracket notation**: `body[field]`, `body[nested][items][0]` — required when keys contain dots (e.g. `body[my.key.name]`)
-- A regex applied to the raw response body text: `regex ...`
-- `headers[...]` or `headers.Name` to extract response headers
-- `cookies[...]` or `cookies.name` to extract response cookies
+- **Regex extraction**: `body[/pattern/]` or `body./pattern/` — apply a regex to the response body text
+- **Header regex**: `headers[/pattern/]` or `headers./pattern/` — apply a regex to the response headers
+- **Cookie regex**: `cookies[/pattern/]` or `cookies./pattern/` — apply a regex to the response cookies
+- `headers[...]` or `headers.Name` to extract response headers by name
+- `cookies[...]` or `cookies.name` to extract response cookies by name
 - A JSONPath starting with `$` (e.g., `$[body][user][id]` or `$body[user]`)
 
 > **Tip:** Prefer dot notation for readability. Use bracket notation only when a key literally contains a `.` character, since dot notation would interpret it as a path separator.
+
+> **Regex tip:** If the regex contains a capture group `(...)`, the first group is returned. If there is no capture group, the entire match is returned.
 
 Example
 ```yaml
@@ -240,8 +244,14 @@ outputs:
   # Bracket notation (needed for keys with dots)
   weird_key: body[some.dotted.key]
 
+  # Regex extraction from body
+  name: body[/message(.*)/]
+  email: body./"email":\s"([^"]+)"/
+
+  # Regex extraction from headers
+  auth_token: headers[/Bearer (\S+)/]
+
   # Other extraction styles
-  name: regex message(.*)
   from: body[from][0]
   token: headers[Authorization]
   session: cookies[session_id]

@@ -9,7 +9,7 @@ This example shows how to use **inputs** and **outputs** in `.mmt` API files. In
 | `get_with_outputs.mmt` | Bracket-path extraction — `body[name]`, `body[tags][0]`, `body[tags].length` |
 | `get_dot_notation.mmt` | Dot-notation extraction — `body.nested.enabled`, `body.nested.items[0].key` |
 | `post_with_inputs_outputs.mmt` | Inputs + bracket-path outputs from the echoed response |
-| `post_regex_outputs.mmt` | Regex extraction — `regex "username":"(.*?)"` captures from raw body text |
+| `post_regex_outputs.mmt` | Regex extraction — `body[/"username":"(.*?)"/]` captures from body, `headers[/pattern/]` from headers |
 
 ## How to use
 

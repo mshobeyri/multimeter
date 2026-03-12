@@ -502,6 +502,44 @@ export function buildBodyExprFromPath(path: PathSegment[]): string {
   return 'body.' + path.map(seg => String(seg)).join('.');
 }
 
+// Parse new regex extraction syntax: section[/pattern/] or section./pattern/
+// where section is body, headers, or cookies
+function parseRegexExtraction(expr: string): {section: string; pattern: string}|null {
+  // Match bracket notation: body[/pattern/] or headers[/pattern/]
+  const bracketMatch = expr.match(/^(body|headers|cookies)\[\/(.*)\/\]$/);
+  if (bracketMatch) {
+    return {section: bracketMatch[1], pattern: bracketMatch[2]};
+  }
+
+  // Match dot notation: body./pattern/ or headers./pattern/
+  const dotMatch = expr.match(/^(body|headers|cookies)\.\/(.*)\/$/);
+  if (dotMatch) {
+    return {section: dotMatch[1], pattern: dotMatch[2]};
+  }
+
+  return null;
+}
+
+function sectionToText(
+    section: string, bodyText: string,
+    headers: Record<string, string>,
+    cookies: Record<string, string>): string {
+  switch (section) {
+    case 'body':
+      return bodyText;
+    case 'headers':
+      return Object.entries(headers || {})
+          .map(([k, v]) => `${k}: ${v}`)
+          .join('\n');
+    case 'cookies':
+      return Object.entries(cookies || {})
+          .map(([k, v]) => `${k}: ${v}`)
+          .join('\n');
+    default:
+      return '';
+  }
+}
+
 export function extractOutputs(
     response: ResponseData, outputsDef: Record<string, string>): JSONRecord {
   const result: JSONRecord = {};
@@ -560,9 +598,24 @@ export function extractOutputs(
     let extractedValue = '';
 
     try {
+      // New regex syntax: section[/pattern/] or section./pattern/
+      const regexExtraction = parseRegexExtraction(expr);
+      if (regexExtraction) {
+        const text = sectionToText(
+            regexExtraction.section, bodyText,
+            response.headers, response.cookies);
+        const regex = new RegExp(regexExtraction.pattern);
+        const found = text.match(regex);
+        if (found) {
+          // If capture group exists, use first group; otherwise whole match
+          extractedValue = found[1] !== undefined ? found[1] : found[0];
+        } else {
+          extractedValue = '';
+        }
+      }
       // Check if it starts with "regex " prefix (maintain backward
       // compatibility)
-      if (expr.startsWith('regex ')) {
+      else if (expr.startsWith('regex ')) {
         const pattern = expr.slice(6);
         const regex = new RegExp(pattern);
         const found = bodyText.match(regex);
@@ -600,7 +653,11 @@ export function extractOutputs(
     }
 
     // Preserve type for bracket notation, JSONPath, and dot notation extractions
-    if ((expr.startsWith('$') || (expr.includes('[') && expr.includes(']')) || expr.includes('.')) &&
+    // (but not when the expression is a regex extraction via section[/pattern/] or section./pattern/)
+    const isRegexExpr = !!parseRegexExtraction(expr) || expr.startsWith('regex ') ||
+        (expr.includes('(') && expr.includes(')') && !expr.includes('['));
+    if (!isRegexExpr &&
+        (expr.startsWith('$') || (expr.includes('[') && expr.includes(']')) || expr.includes('.')) &&
         extractedValue !== null && extractedValue !== undefined) {
       // Preserve the native type (object, array, number, boolean, string)
       result[key] = extractedValue;
