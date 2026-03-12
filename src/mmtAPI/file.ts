@@ -401,6 +401,7 @@ export async function handleOpenRelativeFile(
   const absolutePath = resolveImportPath(document.uri.fsPath, message.filename, projectRoot);
   const uri = vscode.Uri.file(absolutePath);
   const pathLower: string = absolutePath.toLowerCase();
+  const fragment: string | undefined = typeof message.fragment === 'string' ? message.fragment : undefined;
   try {
     // Prefer opening with our custom MMT editor when the file is an
     // .mmt
@@ -411,15 +412,67 @@ export async function handleOpenRelativeFile(
       await vscode.commands.executeCommand('vscode.open', uri);
     }
 
+    // If a fragment (heading slug) was provided, scroll to it
+    if (fragment) {
+      await scrollToHeading(absolutePath, fragment);
+    }
+
   } catch (err) {
     // Fallback to default text editor if custom opening fails
     try {
       const doc = await vscode.workspace.openTextDocument(uri);
       await vscode.window.showTextDocument(doc, {preview: false});
+      if (fragment) {
+        await scrollToHeading(absolutePath, fragment);
+      }
     } catch (e2) {
       vscode.window.showErrorMessage(
           `Failed to open file ${message.filename}: ${err}`);
     }
+  }
+}
+
+/**
+ * Scroll the active editor to a heading matching the given fragment slug.
+ * Fragment slugs follow GitHub-style: lowercase, spaces→dashes, leading `-`
+ * for special chars.
+ */
+async function scrollToHeading(filePath: string, fragment: string) {
+  try {
+    const uri = vscode.Uri.file(filePath);
+    const doc = await vscode.workspace.openTextDocument(uri);
+    const text = doc.getText();
+    const lines = text.split('\n');
+    const slug = fragment.toLowerCase().replace(/^-/, '');
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const headingMatch = /^(#{1,6})\s+(.*)$/.exec(line);
+      if (!headingMatch) { continue; }
+      const headingText = headingMatch[2];
+      // GitHub-style slug: lowercase, strip non-alphanumeric except spaces/dashes,
+      // replace spaces with dashes
+      const headingSlug = headingText
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+      if (headingSlug === slug) {
+        const editor = vscode.window.activeTextEditor;
+        if (editor && editor.document.uri.fsPath === filePath) {
+          const pos = new vscode.Position(i, 0);
+          editor.selection = new vscode.Selection(pos, pos);
+          editor.revealRange(
+            new vscode.Range(pos, pos),
+            vscode.TextEditorRevealType.AtTop,
+          );
+        }
+        return;
+      }
+    }
+  } catch {
+    // Silently ignore — the file is already open, just can't scroll
   }
 }
 

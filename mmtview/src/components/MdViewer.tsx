@@ -88,7 +88,9 @@ const MdViewer: React.FC<MdViewerProps> = ({ description, inputs, outputs, baseP
       const href = target.getAttribute('href');
       if (href) {
         const filePath = href.replace(/#.*$/, '');
-        openRelativeFile(filePath);
+        const hashIdx = href.indexOf('#');
+        const fragment = hashIdx >= 0 ? href.slice(hashIdx + 1) : undefined;
+        openRelativeFile(filePath, fragment);
       }
     }
   }, []);

@@ -1,6 +1,6 @@
 import { parseYamlDoc } from "mmt-core/markupConvertor";
 
-export type YamlLinkTarget = { path: string; range: any } | null;
+export type YamlLinkTarget = { path: string; fragment?: string; range: any } | null;
 
 const FILE_EXT_REGEX = /\.(mmt|svg|png|jpg|jpeg|gif|bmp|tiff|webp|csv)$/i;
 const MD_REF_REGEX = /\S*\.md\/?#\S*/;
@@ -27,11 +27,14 @@ export function getFileLinkTargetAtPosition(
     const refPath = refMatch[0];
     // Strip fragment (#...) when opening the file; also strip trailing slash before #
     const filePath = refPath.replace(/\/?#.*$/, '');
+    const hashIdx = refPath.indexOf('#');
+    const fragment = hashIdx >= 0 ? refPath.slice(hashIdx + 1) : undefined;
     const startColumn = refMatch.index + 1;
     const endColumn = startColumn + refPath.length;
     if (pos.column >= startColumn && pos.column <= endColumn) {
       return {
         path: filePath,
+        fragment,
         range: new monaco.Range(lineNumber, startColumn, lineNumber, endColumn),
       };
     }

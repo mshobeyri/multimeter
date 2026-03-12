@@ -210,8 +210,8 @@ duration?: number
     return results.join('\n');
   };
 
-  export function openRelativeFile(filename: string) {
-    window.vscode?.postMessage({command: 'openRelativeFile', filename});
+  export function openRelativeFile(filename: string, fragment?: string) {
+    window.vscode?.postMessage({command: 'openRelativeFile', filename, fragment});
   }
 
   export function showHistoryPanel() {

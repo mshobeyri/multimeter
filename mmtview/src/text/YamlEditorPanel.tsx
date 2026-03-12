@@ -706,7 +706,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       if (!withMod) return;
       const target = getFileLinkTargetAtPosition(monaco, model, content, pos);
       if (target) {
-        openRelativeFile(target.path);
+        openRelativeFile(target.path, target.fragment);
       }
     });
 
