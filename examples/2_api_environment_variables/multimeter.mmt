@@ -1,7 +1,10 @@
 type: env
 variables:
-  base_url: https://test.mmt.dev
-  custom_header: multimeter-example
+  base_url: 
+    local: http://localhost:8787
+    cloud: https://test.mmt.dev
+  custom_header: 
+    - multimeter-example
 presets:
   server:
     local:

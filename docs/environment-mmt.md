@@ -6,19 +6,21 @@ Acts as a global store for variables to read and write across tests. Like any gl
 ```yaml
 type: env
 variables:
-  api_url: "http://localhost:8080"
-  user: "alice"
-  pass: "secret"
+  api_url:
+    local: "http://localhost:8080"      # key-value map (named choices)
+    staging: "https://staging.example.com"
+    prod: "https://api.example.com"
   mode:
-    dev: "debug"      # map of named choices
+    dev: "debug"
     prod: "release"
   timeouts:
-    - 1000            # list of allowed values (optional)
+    - 1000                               # array list (allowed values)
     - 2000
+    - 5000
 presets:
   runner:
     dev:
-      api_url: dev    # picks choice "dev" when the variable is defined as a mapping
+      api_url: local    # picks choice "local" from the variable map
       mode: dev
     prod:
       api_url: prod
@@ -26,10 +28,9 @@ presets:
 ```
 
 Notes
-- `variables` values can be:
-  - scalar (string/number/bool/null)
-  - object map (named choices)
-  - array list of allowed values
+- `variables` values must be one of:
+  - **key-value map** (named choices) — a preset selects a choice by key
+  - **array list** (allowed values) — a preset or user picks from the list
 - `presets` groups can be hierarchical; `runner.dev` is a common pattern
  
 ## Usage
@@ -104,7 +105,7 @@ SSL/TLS certificate settings can be configured in the `certificates` section of 
 
 ## Reference (types)
 - type: `env` or `var`
-- variables: record<string, string | object (choices) | array (allowed values)>
+- variables: record<string, object (key-value choices) | array (allowed values)>
 - presets: record<string, record<string, record<string, string|number|boolean|null>>>
 - certificates: { ca?, clients?, sslValidation?, allowSelfSigned? }
 

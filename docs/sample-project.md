@@ -46,15 +46,20 @@ variables:
     local: http://localhost:3000
     staging: https://staging.petstore.io
     production: https://api.petstore.io
-  admin_user: admin@petstore.io
-  admin_pass: secret123
-  default_limit: 20
+  admin_user:
+    - admin@petstore.io
+  admin_pass:
+    - secret123
+  default_limit:
+    - 20
+    - 5
+    - 50
 
 presets:
   runner:
     dev:
       api_url: local
-      default_limit: 5
+      default_limit: "5"
     staging:
       api_url: staging
     prod:

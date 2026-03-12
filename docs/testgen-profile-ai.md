@@ -57,7 +57,7 @@ Require `api_url`; optional `token`/`api_key`. Default headers: User-Agent, Acce
 
 - api: `type: api\ntitle: ${TITLE}\nprotocol: http\nmethod: get\nurl: <<e:api_url>>/${API_NAME}\ninputs: {}\n`
 - test: `type: test\ntitle: ${TITLE}\nsteps:\n  - call: ${API_NAME}\n  - assert: status == 200\n`
-- env: `type: env\nvariables:\n  api_url: https://api.example.com\n  token: your-token\n`
+- env: `type: env\nvariables:\n  api_url:\n    local: http://localhost:8080\n    prod: https://api.example.com\n`
 - doc: `type: doc\ntitle: ${TITLE}\nsources:\n  - ./apis\n`
 
 ## Response Guidelines
@@ -73,7 +73,7 @@ Require `api_url`; optional `token`/`api_key`. Default headers: User-Agent, Acce
 From OpenAPI `/users` POST:
 - API: `type: api\ntitle: Create User\nprotocol: http\nmethod: post\nurl: https://api.example.com/users\ninputs:\n  name: r:firstName\n  email: r:email\nbody:\n  name: i:name\n  email: i:email\nexamples:\n  - name: Valid User\n    inputs:\n      name: "John"\n      email: "john@example.com"\n`
 - Test: `type: test\ntitle: Create User Test\nsteps:\n  - call: users-api\n    inputs:\n      name: "Test User"\n      email: "test@example.com"\n  - assert: status == 201\n  - check: response.id != null\n`
-- Env: `type: env\nvariables:\n  api_url: https://api.example.com\n`
+- Env: `type: env\nvariables:\n  api_url:\n    local: http://localhost:8080\n    prod: https://api.example.com\n`
 
 For WebSocket: `type: api\nprotocol: ws\nurl: wss://ws.example.com/chat\ninputs:\n  greeting: "Hello"\nbody: i:greeting\n`
 
@@ -101,7 +101,7 @@ steps: Array<call|assert|check>
 ### Env
 ```yaml
 type: env
-variables: record<string, primitive>
+variables: record<string, object (key-value choices) | array (allowed values)>
 ```
 
 ### Doc
