@@ -3,7 +3,7 @@ import { parseYamlDoc } from "mmt-core/markupConvertor";
 export type YamlLinkTarget = { path: string; range: any } | null;
 
 const FILE_EXT_REGEX = /\.(mmt|svg|png|jpg|jpeg|gif|bmp|tiff|webp|csv)$/i;
-const REF_REGEX = /\bref\s+(\S+)/;
+const MD_REF_REGEX = /\S*\.md\/?#\S*/;
 
 export function getFileLinkTargetAtPosition(
   monaco: any,
@@ -21,14 +21,13 @@ export function getFileLinkTargetAtPosition(
     return null;
   }
 
-  // Detect "ref <path>" pattern (e.g. description: ref README.md#section)
-  const refMatch = REF_REGEX.exec(lineContent);
+  // Detect bare .md# ref pattern (e.g. description: README.md#section)
+  const refMatch = MD_REF_REGEX.exec(lineContent);
   if (refMatch) {
-    const refPath = refMatch[1];
-    // Strip fragment (#...) when opening the file
-    const filePath = refPath.replace(/#.*$/, '');
-    const refStart = refMatch.index + 'ref '.length;
-    const startColumn = refStart + 1;
+    const refPath = refMatch[0];
+    // Strip fragment (#...) when opening the file; also strip trailing slash before #
+    const filePath = refPath.replace(/\/?#.*$/, '');
+    const startColumn = refMatch.index + 1;
     const endColumn = startColumn + refPath.length;
     if (pos.column >= startColumn && pos.column <= endColumn) {
       return {

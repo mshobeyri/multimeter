@@ -439,50 +439,44 @@ describe('simpleMarkdownToHtml', () => {
 });
 
 describe('parseRefDescription', () => {
-  test('parses ref with fragment', () => {
-    expect(parseRefDescription('ref README.md#-why-multimeter')).toEqual({
+  test('detects ref: no spaces, single line, contains .md#', () => {
+    expect(parseRefDescription('README.md#-why-multimeter')).toEqual({
       path: 'README.md', fragment: '-why-multimeter'
     });
-  });
-
-  test('parses ref without fragment', () => {
-    expect(parseRefDescription('ref docs/guide.md')).toEqual({
-      path: 'docs/guide.md', fragment: ''
+    expect(parseRefDescription('./doc.md#section')).toEqual({
+      path: './doc.md', fragment: 'section'
+    });
+    expect(parseRefDescription('+/docs/doc.md#-sample')).toEqual({
+      path: '+/docs/doc.md', fragment: '-sample'
     });
   });
 
-  test('parses ref with leading/trailing whitespace', () => {
-    expect(parseRefDescription('  ref ./doc.md#section  ')).toEqual({
+  test('strips trailing slash before fragment', () => {
+    expect(parseRefDescription('+/docs/doc.md/#-sample')).toEqual({
+      path: '+/docs/doc.md', fragment: '-sample'
+    });
+    expect(parseRefDescription('./doc.md/#section')).toEqual({
       path: './doc.md', fragment: 'section'
     });
   });
 
-  test('returns null for non-ref descriptions', () => {
+  test('returns null for descriptions with spaces', () => {
     expect(parseRefDescription('Just a plain description')).toBeNull();
     expect(parseRefDescription('reference to something')).toBeNull();
-    expect(parseRefDescription('See ref docs.md for info')).toBeNull();
+    expect(parseRefDescription('see doc.md#section for info')).toBeNull();
+    expect(parseRefDescription('ref README.md#section')).toBeNull();
   });
 
   test('returns null for empty string', () => {
     expect(parseRefDescription('')).toBeNull();
   });
 
-  test('parses ref with +/ project root path', () => {
-    expect(parseRefDescription('ref +/docs/doc.md#-sample')).toEqual({
-      path: '+/docs/doc.md', fragment: '-sample'
-    });
+  test('returns null for multi-line description containing .md#', () => {
+    expect(parseRefDescription('line1\ndoc.md#section')).toBeNull();
   });
 
-  test('strips trailing slash before fragment', () => {
-    expect(parseRefDescription('ref +/docs/doc.md/#-sample')).toEqual({
-      path: '+/docs/doc.md', fragment: '-sample'
-    });
-  });
-
-  test('strips trailing slash on relative path before fragment', () => {
-    expect(parseRefDescription('ref ./doc.md/#section')).toEqual({
-      path: './doc.md', fragment: 'section'
-    });
+  test('returns null for bare .md without #', () => {
+    expect(parseRefDescription('docs/guide.md')).toBeNull();
   });
 });
 

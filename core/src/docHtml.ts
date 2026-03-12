@@ -5,19 +5,22 @@ import { resolveEnvTokenValues } from './variableReplacer';
 // Framework-free and safe to use in Node and browser contexts
 
 /**
- * Parse a `ref path/to/file.md#section` description.
+ * Parse a ref description that points to a markdown file section.
+ *
+ * A description is recognised as a ref when it is a single line,
+ * contains no spaces (after trim), and includes `.md#`.
+ *
  * Returns `{ path, fragment }` if the description is a ref, or `null`.
  */
 export function parseRefDescription(desc: string): { path: string; fragment: string } | null {
-  const m = /^\s*ref\s+(\S+)\s*$/.exec(desc);
-  if (!m) { return null; }
-  const raw = m[1];
-  const hashIdx = raw.indexOf('#');
-  if (hashIdx < 0) { return { path: raw, fragment: '' }; }
-  let refPath = raw.slice(0, hashIdx);
-  // Strip trailing slash before fragment (e.g. `ref +/docs/doc.md/#-sample`)
+  const trimmed = desc.trim();
+  if (!trimmed || /\n/.test(desc) || /\s/.test(trimmed) || !(/\.md\/?#/.test(trimmed))) { return null; }
+  const hashIdx = trimmed.indexOf('#');
+  if (hashIdx < 0) { return null; }
+  let refPath = trimmed.slice(0, hashIdx);
+  // Strip trailing slash before fragment (e.g. `+/docs/doc.md/#-sample`)
   if (refPath.endsWith('/')) { refPath = refPath.slice(0, -1); }
-  return { path: refPath, fragment: raw.slice(hashIdx + 1) };
+  return { path: refPath, fragment: trimmed.slice(hashIdx + 1) };
 }
 
 /**
