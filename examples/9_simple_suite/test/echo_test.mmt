@@ -1,0 +1,14 @@
+type: test
+title: Test echo API
+description: Calls the echo API and verifies the echoed message
+import:
+  echo: ../api/echo_api.mmt
+inputs:
+  message: hello from suite
+steps:
+  - call: echo
+    id: result
+    inputs:
+      message: i:message
+    expect:
+      echoed_message: <<i:message>>

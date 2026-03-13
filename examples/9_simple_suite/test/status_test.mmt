@@ -1,0 +1,10 @@
+type: test
+title: Test status API
+description: Calls the status API and verifies a successful response
+import:
+  status: ../api/status_api.mmt
+steps:
+  - call: status
+    id: result
+    expect:
+      status_code: 200

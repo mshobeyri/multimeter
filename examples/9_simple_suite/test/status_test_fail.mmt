@@ -1,0 +1,10 @@
+type: test
+title: Test status API (fail case)
+description: Calls the status API and expects a wrong status code — should fail
+import:
+  status: ../api/status_api.mmt
+steps:
+  - call: status
+    id: result
+    expect:
+      status_code: 404
