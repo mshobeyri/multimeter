@@ -12,6 +12,18 @@ import * as fs from 'fs';
 
 import {resolveWorkspaceEnvFilePath} from './network';
 
+async function showExportedNotification(message: string, uri: vscode.Uri): Promise<void> {
+  const ext = path.extname(uri.fsPath).toLowerCase();
+  const action = await vscode.window.showInformationMessage(message, 'Open');
+  if (action === 'Open') {
+    if (ext === '.html' || ext === '.htm') {
+      await vscode.env.openExternal(uri);
+    } else {
+      await vscode.commands.executeCommand('vscode.open', uri);
+    }
+  }
+}
+
 function findConfiguredProjectRoot(baseFilePath?: string): string|undefined {
   const envFile = resolveWorkspaceEnvFilePath(baseFilePath);
   if (envFile) {
@@ -540,6 +552,7 @@ export async function handleExportHtml(message: any) {
   });
   if (uri) {
     await vscode.workspace.fs.writeFile(uri, Buffer.from(html, 'utf8'));
+    await showExportedNotification(`Exported to ${path.basename(uri.fsPath)}`, uri);
   }
 }
 
@@ -552,6 +565,7 @@ export async function handleExportMarkdown(message: any) {
   if (uri) {
     await vscode.workspace.fs.writeFile(
         uri, Buffer.from(markdown ?? '', 'utf8'));
+    await showExportedNotification(`Exported to ${path.basename(uri.fsPath)}`, uri);
   }
 }
 
@@ -662,7 +676,7 @@ export async function handleExportReport(message: any, document: vscode.TextDocu
     });
     if (uri) {
       await vscode.workspace.fs.writeFile(uri, Buffer.from(content, 'utf8'));
-      vscode.window.showInformationMessage(`Report exported to ${path.basename(uri.fsPath)}`);
+      await showExportedNotification(`Report exported to ${path.basename(uri.fsPath)}`, uri);
     }
   } catch (err: any) {
     const msg = err?.message || String(err);

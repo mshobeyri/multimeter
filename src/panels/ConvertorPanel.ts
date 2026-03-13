@@ -56,8 +56,11 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
                 fileUri, Buffer.from(file.content, 'utf8'));
           }
 
-          vscode.window.showInformationMessage(
-              `Saved ${msg.files.length} file(s) to ${uri[0].fsPath}`);
+          const choice = await vscode.window.showInformationMessage(
+              `Saved ${msg.files.length} file(s) to ${uri[0].fsPath}`, 'Open Folder');
+          if (choice === 'Open Folder') {
+            await vscode.commands.executeCommand('revealFileInOS', uri[0]);
+          }
         }
       } else if (msg.type === 'file') {
         try {
@@ -125,8 +128,12 @@ class ConvertorPanel implements vscode.WebviewViewProvider {
               fileUri, Buffer.from(file.content, 'utf8'));
         }
 
-        vscode.window.showInformationMessage(
-            `Saved ${msg.files.length} file(s) to ${msg.targetDir}`);
+        const folderUri = vscode.Uri.file(msg.targetDir);
+        const choice = await vscode.window.showInformationMessage(
+            `Saved ${msg.files.length} file(s) to ${msg.targetDir}`, 'Open Folder');
+        if (choice === 'Open Folder') {
+          await vscode.commands.executeCommand('revealFileInOS', folderUri);
+        }
       }
     });
   }
