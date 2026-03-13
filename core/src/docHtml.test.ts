@@ -492,7 +492,7 @@ describe('resolveRefPath', () => {
 
   test('resolves relative ref from API file in subfolder', () => {
     // doc.mmt is at root, api1.mmt is at api/api1.mmt, doc.md is at api/doc.md
-    // api1.mmt has description: ref ./doc.md
+    // api1.mmt has description: ./doc.md
     // basePath = 'api/api1.mmt' → dir = 'api'
     // refPath = './doc.md' → resolved = 'api/doc.md'
     expect(resolveRefPath('./doc.md', 'api/api1.mmt')).toBe('api/doc.md');
