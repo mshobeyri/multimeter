@@ -108,7 +108,19 @@ export const testToJsfunc = async(
   // For report settings: use external if not root OR if explicitly marked as external (suite run)
   const useExternalReport = !root || ctx.isExternal === true;
 
-  flow += flowToJsFunc(replaced, root, useExternalReport);
+  // Build alias → title map so call steps can display the API/test title
+  const importTitleMap: Record<string, string> = {};
+  for (const [alias, requested] of importsEntries) {
+    const requestedPathRaw = typeof requested === 'string' ? requested : '';
+    const resolvedPath = resolveRequestedAgainst(
+        ctx.filePath || '', requestedPathRaw, ctx.projectRoot);
+    const title = ctx.importTracker?.getFileTitle(resolvedPath);
+    if (title) {
+      importTitleMap[alias] = title;
+    }
+  }
+
+  flow += flowToJsFunc(replaced, root, useExternalReport, importTitleMap);
 
   return `${jsImportsHoisted ? jsImportsHoisted + '\n\n' : ''}const ${toLowerUnderscore(ctx.name)}${root ? '_' : ''} = async ({ ${
       inputParams}} = {}) => {

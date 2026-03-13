@@ -10,6 +10,5 @@ steps:
     id: result
     inputs:
       message: i:message
-    check:
-      - _.status == 200
-      - echoed_message == <<i:message>>
+    expect:
+      echoed_message: <<i:message>>
