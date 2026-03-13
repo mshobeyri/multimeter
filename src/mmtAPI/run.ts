@@ -286,6 +286,11 @@ export async function handleRunCurrentDocument(
       return;
     }
     const msg = err?.message || String(err);
+    logToOutput('error', `Failed to run ${fileName}: ${msg}`);
+    webviewPanel.webview.postMessage({
+      command: 'testRunStopped',
+      filePath: document.uri.toString(),
+    });
     if (typeof msg === 'string' && msg.includes('Cannot resolve "+/" import')) {
       vscode.window.showErrorMessage(
           `Failed to run ${fileName}: ${msg}. Add a multimeter.mmt file in your project root (or a parent folder) to enable +/ imports.`);
