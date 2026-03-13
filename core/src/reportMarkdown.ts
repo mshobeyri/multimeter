@@ -30,8 +30,9 @@ function parseStepCallDetails(details?: string): ParsedCallDetails | null {
   try {
     const parsed = JSON.parse(details);
     if (!parsed || typeof parsed !== 'object') { return null; }
-    if (typeof parsed.details_ !== 'string') { return null; }
-    const inner = JSON.parse(parsed.details_);
+    const underscore = parsed['_'];
+    if (!underscore || typeof underscore !== 'object' || typeof underscore.details !== 'string') { return null; }
+    const inner = JSON.parse(underscore.details);
     if (!inner || typeof inner !== 'object') { return null; }
     return {
       request: inner.request,

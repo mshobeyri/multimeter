@@ -13,6 +13,6 @@ steps:
         inputs:
           message: ${row.message}
         check:
-          - statusCode_ == 200
+          - _.status == 200
           - echoed_message == ${row.message}
           - request_method == ${row.expected_method}

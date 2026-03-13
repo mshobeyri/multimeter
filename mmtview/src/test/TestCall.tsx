@@ -317,10 +317,10 @@ const TestCall: React.FC<TestCallProps> = ({
 
   const availableOutputs = React.useMemo(() => {
     if (!currentAlias || !importedOutputsByAlias) {
-      return ['statusCode_'] as string[];
+      return ['_.status'] as string[];
     }
     const outs = (importedOutputsByAlias[currentAlias] || []).filter(Boolean);
-    return ['statusCode_', ...outs];
+    return ['_.status', ...outs];
   }, [currentAlias, importedOutputsByAlias]);
 
   // --- Expect handlers ---

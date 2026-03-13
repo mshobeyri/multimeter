@@ -178,12 +178,12 @@ type: test
 steps:
   - call: echo
     expect:
-      statusCode_: != 200
+      _.status: != 200
       echoed_message: != salam
 `;
     const t = yamlToTest(yaml);
     const step = (t as any).steps[0];
-    expect(step.expect.statusCode_).toBe('!= 200');
+    expect(step.expect['_.status']).toBe('!= 200');
     expect(step.expect.echoed_message).toBe('!= salam');
   });
 

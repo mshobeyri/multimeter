@@ -11,5 +11,5 @@ steps:
     inputs:
       message: i:message
     check:
-      - statusCode_ == 200
+      - _.status == 200
       - echoed_message == <<i:message>>

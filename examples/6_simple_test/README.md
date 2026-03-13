@@ -53,7 +53,7 @@ npx testlight run examples/6_simple_test/echo_test.mmt -e message="hi there"
 - **`import`** — brings `echo_api.mmt` into the test as `echo`.
 - **`call`** — invokes the imported API. `id: result` stores its outputs for later reference.
 - **`inputs`** — passes the test-level `message` input into the API call via `i:message`.
-- **`check`** — inline checks on the call verify that `statusCode_ == 200` and the echoed message matches the input. Failures are logged but don't stop the flow (use `assert` to stop on failure).
+- **`check`** — inline checks on the call verify that `_.status == 200` and the echoed message matches the input. Failures are logged but don't stop the flow (use `assert` to stop on failure).
 
 ## Next steps
 

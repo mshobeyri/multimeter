@@ -15,8 +15,7 @@ describe('runApi output printing', () => {
     });
 
     expect(js).toContain("console.log(__mmt_formatSection('Outputs:', __outputLog))");
-    // details_ is no longer auto-added; only user-defined outputs are present
-    expect(js).not.toContain("details_");
-    expect(js).not.toContain("statusCode_");
+    // _ internal properties are auto-injected but filtered from the output log
+    expect(js).toContain("delete copy['_']");
   });
 });

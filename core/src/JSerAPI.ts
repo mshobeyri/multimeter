@@ -108,6 +108,12 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
     ${indentLines(indentLines(JSON.stringify(extractRules, null, 2)))}
   );
 
+  output_['_'] = {
+    details: JSON.stringify({ request: req_, response: res_ }, null, 2),
+    status: res_?.status || 0,
+    duration: res_?.duration || 0
+  };
+
   return output_;
 };`;
 };

@@ -50,7 +50,7 @@ This means during a direct test run you see all check results prominently, while
 steps:
   - call: myAPI
   - check:
-      actual: statusCode_
+      actual: _.status
       expected: 200
       report:
         internal: all    # direct run: pass=info, fail=error

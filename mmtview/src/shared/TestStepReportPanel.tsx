@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { StepStatus } from './types';
 import { statusIconFor } from './Common';
 
-/** Parsed call result details extracted from the `details_` field of an API call output. */
+/** Parsed call result details extracted from the `_` field of an API call output. */
 interface CallResultDetails {
   request?: {
     url?: string;
@@ -107,17 +107,21 @@ function parseCallDetails(details: string | undefined): CallResultDetails | null
   try {
     const parsed = JSON.parse(details);
     if (!parsed || typeof parsed !== 'object') { return null; }
-    // Detect: has details_ (stringified request/response) or statusCode_
-    if (typeof parsed.details_ !== 'string' && parsed.statusCode_ === undefined) {
+    const underscore = parsed['_'];
+    // Detect: has _ object with details or status
+    if (!underscore || typeof underscore !== 'object') {
+      return null;
+    }
+    if (typeof underscore.details !== 'string' && underscore.status === undefined) {
       return null;
     }
     const result: CallResultDetails = {};
-    if (parsed.statusCode_ !== undefined) {
-      result.statusCode = parsed.statusCode_;
+    if (underscore.status !== undefined) {
+      result.statusCode = underscore.status;
     }
-    if (typeof parsed.details_ === 'string') {
+    if (typeof underscore.details === 'string') {
       try {
-        const inner = JSON.parse(parsed.details_);
+        const inner = JSON.parse(underscore.details);
         if (inner && typeof inner === 'object') {
           if (inner.request) { result.request = inner.request; }
           if (inner.response) { result.response = inner.response; }
@@ -126,7 +130,7 @@ function parseCallDetails(details: string | undefined): CallResultDetails | null
     }
     const outputs: Record<string, any> = {};
     for (const [k, v] of Object.entries(parsed)) {
-      if (k !== 'statusCode_' && k !== 'details_') {
+      if (k !== '_') {
         outputs[k] = v;
       }
     }

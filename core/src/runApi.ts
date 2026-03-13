@@ -245,6 +245,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `        return { value: result };\n` +
       `      }\n` +
       `      const copy = { ...result };\n` +
+      `      delete copy['_'];\n` +
       `      if (typeof copy.response_time === 'number' && Number.isFinite(copy.response_time)) {\n` +
       `        copy.response_time = __mmt_raw(copy.response_time + ' ms');\n` +
       `      }\n` +
