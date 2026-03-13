@@ -12,7 +12,7 @@ steps:
         id: result
         inputs:
           message: ${row.message}
-        check:
-          - _.status == 200
-          - echoed_message == ${row.message}
-          - request_method == ${row.expected_method}
+        expect:
+          status: 200
+          echoed_message: ${row.message}
+          request_method: ${row.expected_method}
