@@ -1,15 +1,9 @@
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
+import { formatDuration } from './CommonData';
 
 export interface ReportMarkdownOptions {
   suiteName?: string;
   includeDetails?: boolean;
-}
-
-function formatDuration(ms?: number): string {
-  if (ms == null || ms < 0) {
-    return '0.000s';
-  }
-  return (ms / 1000).toFixed(3) + 's';
 }
 
 interface ParsedCallDetails {

@@ -1,4 +1,5 @@
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
+import { formatDuration } from './CommonData';
 
 export interface ReportHtmlOptions {
   suiteName?: string;
@@ -9,13 +10,6 @@ function escapeHtml(s: string): string {
   return String(s).replace(/[&<>"]/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' } as Record<string, string>)[c]
   );
-}
-
-function formatDuration(ms?: number): string {
-  if (ms == null || ms < 0) {
-    return '0.000s';
-  }
-  return (ms / 1000).toFixed(3) + 's';
 }
 
 interface ParsedCallDetails {

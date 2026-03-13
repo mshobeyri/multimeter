@@ -1,15 +1,9 @@
 import YAML from 'yaml';
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
+import { formatDuration } from './CommonData';
 
 export interface MmtReportOptions {
   suiteName?: string;
-}
-
-function formatDuration(ms?: number): string {
-  if (ms == null || ms < 0) {
-    return '0.000s';
-  }
-  return (ms / 1000).toFixed(3) + 's';
 }
 
 function buildStepEntry(step: TestStepResult): Record<string, any> {

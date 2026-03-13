@@ -1,6 +1,6 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { TestData } from 'mmt-core/TestData';
-import { JSONRecord } from 'mmt-core/CommonData';
+import { JSONRecord, formatDuration } from 'mmt-core/CommonData';
 import { resolveEnvTokenValues } from 'mmt-core/variableReplacer';
 
 import { FileContext } from '../fileContext';
@@ -196,11 +196,19 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                 if (normalized.status === 'failed') {
                     setRunState('failed');
                 }
+                // Update running duration on every step so it's never stale
+                if (runStartTimeRef.current) {
+                    setRunDurationMs(Date.now() - runStartTimeRef.current);
+                }
                 return;
             }
 
             if (scope === 'test-step-run') {
                 setRunState(message.result === 'passed' ? 'passed' : 'failed');
+                if (runStartTimeRef.current) {
+                    setRunDurationMs(Date.now() - runStartTimeRef.current);
+                    runStartTimeRef.current = null;
+                }
                 return;
             }
 
@@ -220,6 +228,10 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                 return;
             }
             if (message.command === 'testRunStopped') {
+                if (runStartTimeRef.current) {
+                    setRunDurationMs(Date.now() - runStartTimeRef.current);
+                    runStartTimeRef.current = null;
+                }
                 setRunState('default');
             }
         };
@@ -272,7 +284,7 @@ const TestTest: React.FC<TestTestProps> = (props) => {
         const passed = stepReports.filter(r => r.status === 'passed').length;
         const failed = stepReports.filter(r => r.status === 'failed').length;
         const total = stepReports.length;
-        const duration = runDurationMs != null ? (runDurationMs / 1000).toFixed(3) + 's' : undefined;
+        const duration = runDurationMs != null ? formatDuration(runDurationMs) : undefined;
         return {
             passed,
             failed,

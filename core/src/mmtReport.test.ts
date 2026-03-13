@@ -188,9 +188,9 @@ describe('generateMmtReport', () => {
     const output = generateMmtReport(results);
     const parsed = YAML.parse(output);
 
-    expect(parsed.duration).toBe('1.234s');
-    expect(parsed.suites[0].duration).toBe('1.234s');
-    expect(parsed.suites[0].tests[0].duration).toBe('0.567s');
+    expect(parsed.duration).toBe('1s 234ms');
+    expect(parsed.suites[0].duration).toBe('1s 234ms');
+    expect(parsed.suites[0].tests[0].duration).toBe('567ms');
   });
 
   it('uses suiteName option when provided', () => {

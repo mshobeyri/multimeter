@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { parseYaml } from 'mmt-core/markupConvertor';
+import { formatDuration } from 'mmt-core/CommonData';
 import { parseReportMmt } from 'mmt-core/reportParser';
 import type { CollectedResults, TestRunResult } from 'mmt-core/reportCollector';
 import TestStepReportPanel, { StepReportItem } from '../shared/TestStepReportPanel';
@@ -97,7 +98,7 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
   const totalSuites = results.testRuns.length;
   const suiteName = results.suiteRun?.suitePath || 'Test Report';
   const duration = results.suiteRun?.durationMs != null
-    ? (results.suiteRun.durationMs / 1000).toFixed(3) + 's'
+    ? formatDuration(results.suiteRun.durationMs)
     : undefined;
 
   return (

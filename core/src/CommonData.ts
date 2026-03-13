@@ -27,3 +27,30 @@ export type Parameter = { [key: string]: JSONValue };
 export type JSONRecord = Record<string, JSONValue>;
 
 export type LogLevel = 'trace' | 'debug' | 'error' | 'warn' | 'info' | 'log';
+
+export function formatDuration(ms?: number): string {
+  if (ms == null || ms < 0) {
+    return '0ms';
+  }
+  if (ms < 1000) {
+    return `${Math.round(ms)}ms`;
+  }
+  if (ms < 60_000) {
+    const s = Math.floor(ms / 1000);
+    const rem = Math.round(ms % 1000);
+    return rem > 0 ? `${s}s ${rem}ms` : `${s}s`;
+  }
+  if (ms < 3_600_000) {
+    const m = Math.floor(ms / 60_000);
+    const s = Math.round((ms % 60_000) / 1000);
+    return s > 0 ? `${m}m ${s}s` : `${m}m`;
+  }
+  if (ms < 86_400_000) {
+    const h = Math.floor(ms / 3_600_000);
+    const m = Math.round((ms % 3_600_000) / 60_000);
+    return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  }
+  const d = Math.floor(ms / 86_400_000);
+  const h = Math.round((ms % 86_400_000) / 3_600_000);
+  return h > 0 ? `${d}d ${h}h` : `${d}d`;
+}

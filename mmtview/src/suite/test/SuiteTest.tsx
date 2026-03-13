@@ -1,5 +1,6 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { parseYaml } from 'mmt-core/markupConvertor';
+import { formatDuration } from 'mmt-core/CommonData';
 import { splitSuiteGroups } from 'mmt-core/suiteParsePack';
 import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
 import { StepStatus } from '../../shared/types';
@@ -698,7 +699,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
         const failed = allReports.filter(r => r.status === 'failed').length;
         const total = allReports.length;
         const fileCount = Object.keys(leafReportsById).length;
-        const duration = suiteRunDurationMs != null ? (suiteRunDurationMs / 1000).toFixed(3) + 's' : undefined;
+        const duration = suiteRunDurationMs != null ? formatDuration(suiteRunDurationMs) : undefined;
         return {
             passed,
             failed,

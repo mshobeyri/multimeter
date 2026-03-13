@@ -20,7 +20,7 @@ describe('createApiLogHelpers', () => {
     });
 
     expect(section).toBe(
-        `REQUEST\n  method:    GET\n  headers:\n    {\n      Accept:  "json"\n    }\n  duration:  125 ms`);
+        `REQUEST\n  method:    GET\n  headers:\n    {\n      Accept:  "json"\n    }\n  duration:  125ms`);
   });
 
   it('formats nested values with indentation', () => {
@@ -49,7 +49,7 @@ describe('createApiLogHelpers', () => {
     const formatted = helpers.formatDuration(321) as ApiLogRawValue;
     const blank = helpers.formatDuration('skip') as ApiLogRawValue;
 
-    expect(formatted).toEqual({__mmt_raw: '321 ms'});
+    expect(formatted).toEqual({__mmt_raw: '321ms'});
     expect(blank).toEqual({__mmt_raw: ''});
   });
 });

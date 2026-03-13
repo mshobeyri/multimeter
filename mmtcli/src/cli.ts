@@ -160,7 +160,7 @@ program.command('run')
         }
         if (!opts.quiet) {
           console.log(`Success: ${result.success}`);
-          console.log(`Duration: ${result.durationMs.toFixed(2)} ms`);
+          console.log(`Duration: ${mmtcore.CommonData.formatDuration(result.durationMs)}`);
           if (result.errors.length) {
             console.log('Errors:');
             result.errors.forEach((e: any) => console.log(' -', e));

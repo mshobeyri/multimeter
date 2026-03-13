@@ -1,6 +1,6 @@
 import {APIData} from './APIData';
 import {yamlToAPI} from './apiParsePack';
-import {LogLevel} from './CommonData';
+import {formatDuration as formatDurationHuman, LogLevel} from './CommonData';
 import * as JSer from './JSer';
 import {isPlainObject, PreparedRun, RunFileResult, runGeneratedJs, sanitizeIdentifier} from './runCommon';
 import {FileLoader, mergeInputs, RunFileOptions} from './runConfig';
@@ -377,7 +377,7 @@ export function createApiLogHelpers(): ApiLogHelpers {
   }
   function formatDuration(value: unknown): ApiLogRawValue {
     if (typeof value === 'number' && Number.isFinite(value)) {
-      return raw(`${value} ms`);
+      return raw(formatDurationHuman(value));
     }
     return raw('');
   }

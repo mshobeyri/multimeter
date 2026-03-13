@@ -123,7 +123,7 @@ async function handleChatRequest(
         const out = [
                          `Running ${header}...`, logsBlock,
                          `Success: ${result.success}`,
-                         `Duration: ${result.durationMs.toFixed(2)} ms`,
+                         `Duration: ${mmtcore.CommonData.formatDuration(result.durationMs)}`,
                          errorsBlock
                        ]
                            .filter(Boolean)
