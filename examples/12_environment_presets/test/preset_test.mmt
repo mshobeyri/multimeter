@@ -1,0 +1,14 @@
+type: test
+title: Environment Preset Test
+description: Tests that environment variables from presets are applied correctly
+import:
+  echoApi: +/api/echo_env.mmt
+inputs:
+  message: testing presets
+steps:
+  - call: echoApi
+    id: result
+    inputs:
+      message: i:message
+    expect:
+      echoed_message: <<i:message>>

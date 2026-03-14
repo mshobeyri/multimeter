@@ -117,12 +117,12 @@ Suites can automatically generate reports after completion using the `export` fi
 ```yaml
 type: suite
 title: CI Suite
-tests:
-  - tests/login.mmt
-  - tests/profile.mmt
 export:
   - ./reports/results.xml     # JUnit XML
   - ./reports/results.html    # HTML report
+tests:
+  - tests/login.mmt
+  - tests/profile.mmt
 ```
 
 This is equivalent to running with `--report` but configured directly in the suite file. Useful for consistent CI outputs without additional CLI flags. See [Suite — Exports](./suite-mmt.md#exports) for details.

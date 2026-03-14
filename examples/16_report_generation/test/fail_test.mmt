@@ -1,0 +1,12 @@
+type: test
+title: Failing Test
+description: A test with a deliberate check failure (for report demo)
+import:
+  echo: ../api/echo.mmt
+steps:
+  - call: echo
+    id: result
+    inputs:
+      message: fail test
+  - check: ${result.status_code} == 999
+    report: all

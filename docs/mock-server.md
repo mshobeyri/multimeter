@@ -178,7 +178,7 @@ steps:
   - run: mockApi                # starts the mock server
   - call: userApi
     id: getUsers
-  - assert: getUsers.status == 200
+  - assert: ${getUsers.status} == 200
 ```
 
 ### Behavior

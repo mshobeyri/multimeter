@@ -1,0 +1,15 @@
+type: api
+title: Get User Profile
+description: Fetches a user profile using a session token
+inputs:
+  token: placeholder
+  user_id: "1"
+outputs:
+  name: body.body.user_id
+  email: body.body.token
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  token: i:token
+  user_id: i:user_id

@@ -129,9 +129,9 @@ Supported step forms:
 Example comparisons:
 
 ```yaml
-- assert: login.status == 200
-- check: profile.email =~ /@example.com$/
-- assert: response.body.total >= 1
+- assert: ${login.status} == 200
+- check: ${profile.email} =~ /@example.com$/
+- assert: ${response.body.total} >= 1
 ```
 
 ---
@@ -148,14 +148,14 @@ Example comparisons:
     username: i:username
     password: i:password
 
-- assert: loginStep.status == 200
+- assert: ${loginStep.status} == 200
 ```
 
 - Use `set` to place values into `outputs` if you want the test itself to expose results:
 
 ```yaml
 - set:
-    outputs.token: loginStep.token
+    outputs.token: ${loginStep.token}
 ```
 
 ---
@@ -186,9 +186,9 @@ steps:
     inputs:
       username: i:username
       password: i:password
-  - assert: loginStep.status == 200
+  - assert: ${loginStep.status} == 200
   - set:
-      outputs.token: loginStep.token
+      outputs.token: ${loginStep.token}
 ```
 
 ---
@@ -212,7 +212,7 @@ steps:
     inputs:
       username: i:username
       password: i:password
-  - assert: loginStep.status == 200
+  - assert: ${loginStep.status} == 200
 ```
 
 ### 2. Chained calls: login then get profile
@@ -233,13 +233,13 @@ steps:
     inputs:
       username: i:username
       password: i:password
-  - assert: loginStep.status == 200
+  - assert: ${loginStep.status} == 200
 
   - call: get_profile
     id: profileStep
     inputs:
-      token: loginStep.token
-  - assert: profileStep.status == 200
+      token: ${loginStep.token}
+  - assert: ${profileStep.status} == 200
 ```
 
 ### 3. Data-driven loop over CSV
@@ -259,9 +259,9 @@ steps:
       - call: login
         id: loginStep
         inputs:
-          username: user.username
-          password: user.password
-      - check: loginStep.status == 200
+          username: ${user.username}
+          password: ${user.password}
+      - check: ${loginStep.status} == 200
 ```
 
 ### 4. Conditional flows
@@ -276,12 +276,12 @@ import:
 steps:
   - call: login
     id: login1
-  - if: login1.status != 200
+  - if: ${login1.status} != 200
     steps:
       - print: "Retrying login"
       - call: login
         id: login2
-      - assert: login2.status == 200
+      - assert: ${login2.status} == 200
     else:
       - print: "Login succeeded on first attempt"
 ```

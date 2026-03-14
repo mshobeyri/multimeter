@@ -1,0 +1,29 @@
+type: test
+title: Chained API Calls
+description: Login, capture the token, then fetch the user profile using the token
+import:
+  login: ./api/login.mmt
+  getProfile: ./api/get_profile.mmt
+inputs:
+  username: alice@example.com
+  password: secret123
+steps:
+  - call: login
+    id: auth
+    inputs:
+      username: i:username
+      password: i:password
+    expect:
+      token: "!= null"
+  - set:
+      session_token: ${auth.token}
+      user_id: ${auth.user_id}
+  - setenv:
+      AUTH_TOKEN: ${auth.token}
+  - call: getProfile
+    id: profile
+    inputs:
+      token: ${session_token}
+      user_id: ${user_id}
+    expect:
+      name: "!= null"

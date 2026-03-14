@@ -1,0 +1,15 @@
+type: test
+title: Control Flow — for loop
+description: Demonstrates for loops with index iteration and variable scoping
+import:
+  echo: ./api/echo.mmt
+steps:
+  - print: Iterating with a counter...
+  - for: let i = 0; i < 3; i++
+    steps:
+      - call: echo
+        id: iter
+        inputs:
+          message: iteration ${i}
+      - check: ${iter.status_code} == 200
+  - print: Loop completed

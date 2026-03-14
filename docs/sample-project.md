@@ -307,8 +307,8 @@ steps:
     inputs:
       email: i:email
       password: i:password
-  - assert: doLogin.status == 200
-  - check: doLogin.token != null
+  - assert: ${doLogin.status} == 200
+  - check: ${doLogin.token} != null
   - print: "Logged in, token starts with ${doLogin.token.substring(0, 10)}…"
 ```
 
@@ -336,7 +336,7 @@ steps:
   - call: login
     id: auth
 
-  - assert: auth.status == 200
+  - assert: ${auth.status} == 200
 
   # create a pet
   - call: create
@@ -346,7 +346,7 @@ steps:
       species: dog
       price: 49.99
 
-  - assert: newPet.status == 201
+  - assert: ${newPet.status} == 201
 
   # use JS helper to validate the ID format
   - js: |
@@ -358,12 +358,12 @@ steps:
   - call: get
     id: fetched
     inputs:
-      petId: newPet.id
+      petId: ${newPet.id}
 
-  - assert: fetched.status == 200
-  - check: fetched.name == "Rex"
-  - check: fetched.species == "dog"
-  - check: fetched.price == 49.99
+  - assert: ${fetched.status} == 200
+  - check: ${fetched.name} == "Rex"
+  - check: ${fetched.species} == "dog"
+  - check: ${fetched.price} == 49.99
 
   - print: "Created and verified pet ${newPet.id}"
 ```
@@ -395,7 +395,7 @@ stages:
     steps:
       - call: login
         id: doLogin
-      - assert: doLogin.status == 200
+      - assert: ${doLogin.status} == 200
 
   - id: create_pets
     title: Create Pets from CSV
@@ -407,26 +407,26 @@ stages:
           - call: create
             id: created
             inputs:
-              name: pet.name
-              species: pet.species
-              price: pet.price
-          - check: created.status == 201
+              name: ${pet.name}
+              species: ${pet.species}
+              price: ${pet.price}
+          - check: ${created.status} == 201
 
       - set:
-          lastPetId: created.id
+          lastPetId: ${created.id}
 
   - id: place_order
     title: Place Order
     after: create_pets
-    condition: created.status == 201
+    condition: ${created.status} == 201
     steps:
       - call: order
         id: myOrder
         inputs:
-          petId: lastPetId
+          petId: ${lastPetId}
           quantity: 2
-      - assert: myOrder.status == 201
-      - check: myOrder.status == "placed"
+      - assert: ${myOrder.status} == 201
+      - check: ${myOrder.status} == "placed"
 
       - print: "Order ${myOrder.orderId} placed for pet ${lastPetId}"
 ```
@@ -581,40 +581,13 @@ testlight print-js tests/order_flow_test.mmt \
 
 ---
 
-## 7. Load testing with metrics
-
-Add `metrics` to any test to run it under load:
-
-```yaml
-type: test
-title: Login Load Test
-metrics:
-  repeat: 500
-  threads: 20
-  rampup: 10s
-  duration: 2m
-import:
-  login: +/apis/auth/login.mmt
-steps:
-  - call: login
-    id: doLogin
-    inputs:
-      email: r:email
-      password: r:uuid
-  - assert: doLogin.status == 200
-```
-
-This runs 500 iterations across 20 concurrent threads, ramping up over 10 seconds, with a 2-minute time limit. Each iteration gets a random email and password via `r:email` and `r:uuid`.
-
----
-
 ## Feature summary
 
 | Feature | Where it appears |
 |---------|-----------------|
 | Environment variables & presets | `multimeter.mmt` |
 | `e:VAR` / `<<e:VAR>>` tokens | All API files |
-| `r:` random tokens | `create_pet.mmt`, `place_order.mmt`, load test |
+| `r:` random tokens | `create_pet.mmt`, `place_order.mmt` |
 | `c:` current tokens | `place_order.mmt` |
 | Inputs / outputs | All API files |
 | `setenv` (promote to env) | `login.mmt` |
@@ -633,7 +606,6 @@ This runs 500 iterations across 20 concurrent threads, ramping up over 10 second
 | `delay` | — (use `- delay: 2s` in any step list) |
 | `if` / `else` | — (use `- if: expr` with nested `steps`) |
 | `repeat` | — (use `- repeat: 3` or `- repeat: 30s`) |
-| Metrics (load testing) | Load test example |
 | Doc with services | `catalog.mmt` |
 | Try It (interactive docs) | `catalog.mmt` |
 | Suite parallel execution | `smoke.mmt` |

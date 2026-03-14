@@ -201,14 +201,14 @@ Use the `export` field to automatically generate reports after suite completion.
 ```yaml
 type: suite
 title: CI Suite
-tests:
-  - tests/login.mmt
-  - tests/profile.mmt
 export:
   - ./reports/results.xml     # JUnit XML
   - ./reports/results.html    # HTML report
   - ./reports/results.md      # Markdown report
   - +/reports/results.mmt     # MMT format (project root)
+tests:
+  - tests/login.mmt
+  - tests/profile.mmt
 ```
 
 #### Supported Export Formats
@@ -244,12 +244,12 @@ This design prevents conflicts when suites are composed hierarchically.
 - description: string (supports Markdown)
 - tags: string[]
 - servers: string[] (paths to `type: server` `.mmt` files — started before tests, kept running for the suite)
+- export: string[] (root-only, paths to report files)
 - tests: string[] (paths to `.mmt` files; use `then` to separate sequential stages)
 - environment: object (root-only)
   - preset: string
   - file: string
   - variables: object
-- export: string[] (root-only, paths to report files)
 
 ---
 

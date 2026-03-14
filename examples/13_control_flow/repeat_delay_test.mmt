@@ -1,0 +1,24 @@
+type: test
+title: Control Flow — repeat and delay
+description: Demonstrates repeat (count-based and time-based) and delay steps
+import:
+  echo: ./api/echo.mmt
+steps:
+  - print: Starting repeat 3 times...
+  - repeat: 3
+    steps:
+      - call: echo
+        id: poll
+        inputs:
+          message: polling
+      - check: ${poll.status_code} == 200
+      - delay: 500
+  - print: Starting time-based repeat for 3 seconds...
+  - repeat: 3s
+    steps:
+      - call: echo
+        id: tick
+        inputs:
+          message: Hi
+      - delay: 1s
+  - print: All repeats completed

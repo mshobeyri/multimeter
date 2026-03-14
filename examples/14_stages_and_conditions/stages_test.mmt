@@ -1,0 +1,37 @@
+type: test
+title: Stages and Conditions
+description: Demonstrates parallel stages with after dependencies and conditional execution
+import:
+  login: ./api/login.mmt
+  getProfile: ./api/get_profile.mmt
+  getSettings: ./api/get_settings.mmt
+stages:
+  - id: auth
+    title: Authentication
+    steps:
+      - call: login
+        id: doLogin
+        inputs:
+          username: alice
+          password: secret
+      - assert: ${doLogin.status_code} == 200
+  - id: profile
+    title: Fetch Profile
+    condition: ${doLogin.status_code} == 200
+    after: auth
+    steps:
+      - call: getProfile
+        id: userProfile
+        inputs:
+          token: ${doLogin.token}
+      - check: ${userProfile.status_code} == 200
+  - id: settings
+    title: Fetch Settings
+    condition: ${doLogin.status_code} == 200
+    after: auth
+    steps:
+      - call: getSettings
+        id: userSettings
+        inputs:
+          token: ${doLogin.token}
+      - check: ${userSettings.status_code} == 200

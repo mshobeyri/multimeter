@@ -61,9 +61,9 @@ steps:
     inputs: 
       user: i:user
       pass: i:pass
-  - assert: doLogin.status == 200
+  - assert: ${doLogin.status} == 200
   - set:
-      token: doLogin.token
+      token: ${doLogin.token}
 ```
 UI: The flow is editable/visible in the Flow and Test panels; logs appear in Log.
 Run: Click Run in the Test panel or use CLI (testlight run ...).

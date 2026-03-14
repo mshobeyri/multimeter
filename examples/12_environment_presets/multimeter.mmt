@@ -1,0 +1,22 @@
+type: env
+variables:
+  api_url:
+    local: "https://test.mmt.dev"
+    staging: "https://test.mmt.dev"
+  mode:
+    dev: debug
+    prod: release
+  timeout:
+    - 5000
+    - 10000
+    - 30000
+presets:
+  runner:
+    dev:
+      api_url: local
+      mode: dev
+      timeout: 5000
+    staging:
+      api_url: staging
+      mode: prod
+      timeout: 10000

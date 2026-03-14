@@ -1,0 +1,13 @@
+type: api
+title: Secure API Call
+description: Calls an HTTPS endpoint (certificates configured via env file)
+inputs:
+  message: hello secure
+outputs:
+  status_code: status
+  echoed: body.body.message
+url: <<e:api_url>>/echo
+method: post
+format: json
+body:
+  message: i:message

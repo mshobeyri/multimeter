@@ -229,11 +229,12 @@ type: test
 title: Create User Test
 steps:
   - call: users-api
+    id: createUser
     inputs:
       name: "Test User"
       email: "test@example.com"
-  - assert: status == 201
-  - check: response.id != null
+  - assert: ${createUser.status} == 201
+  - check: ${createUser.id} != null
 ```
 
 **env.mmt**:
@@ -351,9 +352,9 @@ steps:
     id: create
     inputs:
       name: "John"
-  - assert: status == 201
-  - check: response.id != null
-  - assert: response.name == "John"
+  - assert: ${create.status} == 201
+  - check: ${create.id} != null
+  - assert: ${create.name} == "John"
 ```
 
 See also: docs/test-mmt.md

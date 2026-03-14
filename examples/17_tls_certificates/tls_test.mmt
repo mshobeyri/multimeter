@@ -1,0 +1,12 @@
+type: test
+title: TLS Certificate Test
+description: Demonstrates making API calls with certificate configuration
+import:
+  secureEcho: ./api/secure_echo.mmt
+steps:
+  - call: secureEcho
+    id: result
+    inputs:
+      message: hello from TLS test
+    expect:
+      status_code: 200

@@ -33,8 +33,8 @@ steps:
       session: ${login.session}
       user: i:user
   - set:
-      outputs.name: user_info.name
-      outputs.family: user_info.family
+      outputs.name: ${user_info.name}
+      outputs.family: ${user_info.family}
 ```
 
 For the provided MMT, the Test panel shows the generated JavaScript. Click Run to execute the test.
@@ -121,7 +121,7 @@ stages:
       - call: getUser
         id: me
         inputs:
-          token: doLogin.token
+          token: ${doLogin.token}
 ```
 
 ### Steps
@@ -144,7 +144,7 @@ Invoke an imported API or another test; give it an id to reference its outputs l
 - call: getUser
   id: profile
   inputs:
-    token: doLogin.token
+    token: ${doLogin.token}
 ```
 
 ### run
@@ -160,7 +160,7 @@ steps:
   - run: mockApi                       # starts the mock server
   - call: userApi
     id: getUsers
-  - assert: getUsers.status == 200
+  - assert: ${getUsers.status} == 200
 ```
 
 **Behavior:**
@@ -248,32 +248,32 @@ You can write checks and asserts in a concise inline form or in a structured obj
 
 Inline examples
 ```yaml
-- assert: doLogin.status == 200
-- check: profile.name =~ /John/i
+- assert: ${doLogin.status} == 200
+- check: ${profile.name} =~ /John/i
 ```
 
-> **Note:** Input values and check expected values are evaluated as JavaScript template literals.
-> To reference a runtime variable (loop variable, JS `let`/`const`, etc.), wrap it in `${...}`:
+> **Note:** Values referencing step ids, loop variables, or JS-scoped variables must use `${...}` to resolve at runtime:
 > ```yaml
 > - call: myApi
 >   inputs:
 >     name: ${row.name}         # resolves the loop variable
+>     token: ${doLogin.token}   # resolves a step id output
 >   check:
->     - result.name == ${row.expected_name}
+>     - ${result.name} == ${row.expected_name}
 > ```
 > Without `${...}`, the text is treated as a literal string (e.g. `name: row.name` sends the text "row.name").
 
 Object-form examples
 ```yaml
 - check:
-    actual: profile.name
+    actual: ${profile.name}
     expected: "John"
     operator: "=="
     title: "Profile name check"
     details: "Profile name must be John"
 
 - assert:
-    actual: doLogin.status
+    actual: ${doLogin.status}
     expected: 200
     operator: "=="
     title: "Login status"
@@ -317,7 +317,7 @@ Checks, assertions, prints, and errors appear in the Log panel while the flow ru
 ### if, else
 Conditionally run nested steps based on an expression.
 ```yaml
-- if: doLogin.status == 200
+- if: ${doLogin.status} == 200
   steps:
     - call: getUser
       id: me
@@ -337,8 +337,8 @@ The `for` expression is passed directly to JavaScript, so any valid JS for-of/fo
     - call: login
       id: login1
       inputs:
-        username: user.username
-        password: user.password
+        username: ${user.username}
+        password: ${user.password}
 
 # iterate with index
 - for: let i = 0; i < 10; i++
@@ -417,7 +417,7 @@ Create or change variables for later steps. `set` mutates existing (or creates n
 
 ```yaml
 - set:
-    token: doLogin.token   # mutable
+    token: ${doLogin.token}   # mutable
 
 - var:
     attempt: 1
@@ -455,34 +455,6 @@ Bind an imported CSV alias (from the test's import section) into scope for use i
                 #   users: ./users.csv
 ```
 
-## Metrics (load testing)
-The `metrics` field enables load/performance testing by running your test flow with controlled concurrency and duration.
-
-```yaml
-type: test
-title: Load test login
-metrics:
-  repeat: 100        # run the flow 100 times total (or time-based: "30s", "5m", "1h", "inf")
-  threads: 10        # run up to 10 concurrent instances
-  duration: 2m       # overall time limit (optional)
-  rampup: 30s        # gradually increase threads over 30 seconds (optional)
-import:
-  login: ./api/login.mmt
-steps:
-  - call: login
-    id: doLogin
-    inputs:
-      username: r:email
-      password: r:uuid
-  - assert: doLogin.status == 200
-```
-
-Fields:
-- **repeat**: number of iterations or a time string (`30s`, `5m`, `1h`). Use `inf` for infinite.
-- **threads**: number of concurrent instances to run.
-- **duration**: overall time limit for the test. Use `inf` for unlimited. Format: `Ns`, `Nm`, `Nh`.
-- **rampup**: time to gradually increase from 1 thread to the target `threads` count.
-
 ## Stage condition
 Stages support a `condition` field that skips the stage if the condition evaluates to false. The condition uses the same syntax as `assert`/`check` inline expressions.
 
@@ -493,7 +465,7 @@ stages:
       - call: login
         id: doLogin
   - id: profile
-    condition: doLogin.status == 200
+    condition: ${doLogin.status} == 200
     after: login
     steps:
       - call: getProfile
@@ -514,15 +486,15 @@ steps:
     inputs:
       username: i:user
       password: i:pass
-  - assert: doLogin.status == 200
+  - assert: ${doLogin.status} == 200
   - set:
-      token: doLogin.token
+      token: ${doLogin.token}
   - delay: 2s
   - call: getUser
     id: me
     inputs:
-      token: token
-  - check: me.email =~ /@example.com$/
+      token: ${token}
+  - check: ${me.email} =~ /@example.com$/
 ```
 
 ## Reference (types)
@@ -533,7 +505,6 @@ steps:
 - import: record&lt;string, string&gt; (`.mmt`, `.csv`, `.js`/`.cjs`/`.mjs`)
 - inputs: record&lt;string, string | number | boolean | null&gt;
 - outputs: record&lt;string, string | number | boolean | null&gt;
-- metrics: { repeat?, threads?, duration?, rampup? }
 - steps: array of step (alias: `flow`)
 - stages: array of { id, title?, steps, condition?, after? }
 - step types: `call`, `check`, `assert`, `if`, `for`, `repeat`, `delay`, `js`, `print`, `set`, `var`, `const`, `let`, `setenv`, `data`

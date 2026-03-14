@@ -1,0 +1,16 @@
+type: test
+title: Control Flow — if/else
+description: Demonstrates conditional branching with if/else
+import:
+  echo: ./api/echo.mmt
+inputs:
+  message: hello
+steps:
+  - call: echo
+    id: result
+    inputs:
+      message: i:message
+  - if: ${result.status_code} == 200
+    steps:
+      - print: "Success — echoed: ${result.echoed}"
+      - check: ${result.echoed} == <<i:message>>

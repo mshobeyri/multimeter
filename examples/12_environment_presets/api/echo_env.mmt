@@ -1,0 +1,14 @@
+type: api
+title: Echo with Environment
+description: Calls the echo API using environment variables for the base URL
+inputs:
+  message: hello from env
+outputs:
+  echoed_message: body.body.message
+  echoed_mode: body.body.mode
+url: <<e:api_url>>/echo
+method: post
+format: json
+body:
+  message: i:message
+  mode: e:mode
