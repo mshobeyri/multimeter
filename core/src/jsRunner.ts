@@ -136,7 +136,9 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       '__abortSignal', '__fileLoader',
       `${helperDecls}\n${randomDecls}\n` +
       `const report_ = (...args) => mmtHelper.reportWithContext_(__reporter, __runId, __id, ...args);\n` +
-      `const setenv_ = (name, value) => mmtHelper.setenvWithContext_(__reporter, __runId, __id, name, value);\n` +
+      // setenv_ must update the in-scope envVariables object so that
+      // subsequent e: references read the new value within the same run.
+      `const setenv_ = (name, value) => { try { envVariables[name] = value; } catch (_e) {} mmtHelper.setenvWithContext_(__reporter, __runId, __id, name, value); };\n` +
       // Override check_ to pass the closure-based report_ so that under
       // parallel execution each test uses its own reporter/runId/id instead
       // of the shared module-level globals.

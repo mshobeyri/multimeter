@@ -65,3 +65,58 @@ describe('jsRunner reporter propagation', () => {
     expect(typeof scope.__mmtRunId).toBe('string');
   });
 });
+
+describe('jsRunner setenv updates envVariables in scope', () => {
+  const logger = jest.fn();
+
+  afterEach(() => {
+    logger.mockReset();
+  });
+
+  it('setenv_ updates envVariables so subsequent e: reads see the new value', async () => {
+    const events: Record<string, any>[] = [];
+    // The generated code declares envVariables (like rootTestToJsfunc does),
+    // then calls setenv_ to update a key, and returns the live value.
+    const result = await runJSCode({
+      js: `
+        const envVariables = { name: "old_value" };
+        setenv_("name", "new_value");
+        return envVariables.name;
+      `,
+      title: 'setenv-updates-env',
+      logger,
+      runId: 'run-setenv-test',
+      reporter: (event: Record<string, any>) => {
+        events.push(event);
+      },
+    });
+
+    // The envVariables object should have been mutated in place.
+    expect(result).toBe('new_value');
+
+    // A setenv reporter event should also have been emitted.
+    const setenvEvent = events.find(e => e.scope === 'setenv');
+    expect(setenvEvent).toBeDefined();
+    expect(setenvEvent).toMatchObject({
+      scope: 'setenv',
+      name: 'name',
+      value: 'new_value',
+    });
+  });
+
+  it('setenv_ works for adding new env keys', async () => {
+    const result = await runJSCode({
+      js: `
+        const envVariables = {};
+        setenv_("api_key", "secret123");
+        return envVariables.api_key;
+      `,
+      title: 'setenv-new-key',
+      logger,
+      runId: 'run-setenv-new',
+      reporter: () => {},
+    });
+
+    expect(result).toBe('secret123');
+  });
+});
