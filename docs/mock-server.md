@@ -195,27 +195,28 @@ In the Flow panel, click **Add item** and select **Server**. A box appears where
 
 ## Using Mock Servers in Suites
 
-Suites can include `type: server` files in the `tests` array. Servers start before tests in the same stage and stop when the suite completes.
+Use the top-level `servers:` field to list mock server files that should start **before** any tests and remain running for the entire suite duration. They are stopped automatically when the suite finishes.
 
 ### Example
 
 ```yaml
 type: suite
 title: Integration Suite
+servers:
+  - mocks/user-service.mmt
+  - mocks/auth-service.mmt
 tests:
-  - mocks/user-service.mmt    # server starts first
-  - mocks/auth-service.mmt    # runs in parallel with above
-  - then
-  - tests/login.mmt           # tests run after servers are ready
+  - tests/login.mmt
   - tests/profile.mmt
 ```
 
 ### Execution flow
 
-1. Items before the first `then` start in parallel
-2. Server files start; tests wait for servers to be ready
-3. After all items in a stage complete, the next stage begins
-4. When the suite finishes, all servers are stopped
+1. All files listed under `servers:` start before any tests
+2. Tests begin once servers are ready
+3. When the suite finishes, all servers are stopped automatically
+
+You can also include `type: server` files directly in the `tests` array for inline control over when they start relative to other stages.
 
 This lets you set up complex integration environments declaratively, without manual server management.
 

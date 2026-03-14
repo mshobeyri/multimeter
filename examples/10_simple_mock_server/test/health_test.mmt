@@ -1,0 +1,13 @@
+type: test
+title: Health Check Test
+description: Starts the mock server, calls the health endpoint, and verifies the response
+import:
+  server: ../server/mock_server.mmt
+  health: ../api/get_health.mmt
+steps:
+  - run: server
+  - call: health
+    id: result
+    expect:
+      status_field: ok
+    report: all

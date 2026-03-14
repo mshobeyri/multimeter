@@ -1,0 +1,15 @@
+type: test
+title: Search API Test
+description: Tests the GET search endpoint with a query parameter
+import:
+  server: ../server/mock_server.mmt
+  search: ../api/search.mmt
+steps:
+  - run: server
+  - call: search
+    id: result
+    inputs:
+      q: multimeter
+    expect:
+      query: received
+    report: all

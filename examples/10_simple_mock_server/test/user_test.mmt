@@ -1,0 +1,27 @@
+type: test
+title: User API Test
+description: Tests GET user by ID and POST create user against the mock server
+import:
+  server: ../server/mock_server.mmt
+  getUser: ../api/get_user.mmt
+  createUser: ../api/create_user.mmt
+inputs:
+  user_id: "42"
+steps:
+  - run: server
+  - call: getUser
+    id: fetchedUser
+    inputs:
+      user_id: i:user_id
+    expect:
+      id: <<i:user_id>>
+      name: Test User
+    report: all
+  - call: createUser
+    id: newUser
+    inputs:
+      name: Bob
+      email: bob@example.com
+    expect:
+      message: User created
+    report: all
