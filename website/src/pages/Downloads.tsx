@@ -82,6 +82,7 @@ export default function Downloads() {
               <p className="text-slate-400 mb-6 flex-1">
                 Run your .mmt tests in CI/CD pipelines, automation scripts, or from the
                 terminal. Same test files, same results — everywhere.
+                Both <code className="text-accent">testlight</code> and <code className="text-accent">mmt</code> commands are available.
               </p>
 
               {/* Install methods */}
@@ -91,27 +92,41 @@ export default function Downloads() {
                   <div className="flex items-center gap-2">
                     <Package size={14} className="text-slate-500 shrink-0" />
                     <code className="text-sm text-slate-300">
-                      npm install -g testlight
+                      npm install -g mmt-testlight
                     </code>
                   </div>
                 </div>
 
                 <div className="bg-surface border border-border rounded-xl p-4">
-                  <p className="text-xs text-slate-500 mb-2">Run a test:</p>
+                  <p className="text-xs text-slate-500 mb-2">Run without installing:</p>
                   <code className="text-sm text-slate-300">
-                    npx testlight run path/to/test.mmt
+                    npx mmt-testlight run path/to/test.mmt
                   </code>
                 </div>
 
                 <div className="bg-surface border border-border rounded-xl p-4">
                   <p className="text-xs text-slate-500 mb-2">With environment:</p>
                   <code className="text-sm text-slate-300 text-wrap break-all">
-                    npx testlight run test.mmt --env-file .env -e API_URL=https://api.example.com
+                    testlight run test.mmt --env-file .env -e API_URL=https://api.example.com
+                  </code>
+                </div>
+
+                <div className="bg-surface border border-border rounded-xl p-4">
+                  <p className="text-xs text-slate-500 mb-2">One-line binary installer (macOS / Linux):</p>
+                  <code className="text-sm text-slate-300 text-wrap break-all">
+                    curl -fsSL https://raw.githubusercontent.com/mshobeyri/multimeter/main/scripts/install-testlight.sh | bash
+                  </code>
+                </div>
+
+                <div className="bg-surface border border-border rounded-xl p-4">
+                  <p className="text-xs text-slate-500 mb-2">Docker:</p>
+                  <code className="text-sm text-slate-300 text-wrap break-all">
+                    docker run --rm -v "$PWD:/workspace" -w /workspace mshobeyri/testlight run tests/suite.mmt
                   </code>
                 </div>
 
                 <a
-                  href="https://www.npmjs.com/package/testlight"
+                  href="https://www.npmjs.com/package/mmt-testlight"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 border border-border hover:border-slate-500 text-white px-6 py-3 rounded-xl font-semibold transition-colors w-full hover:bg-surface"

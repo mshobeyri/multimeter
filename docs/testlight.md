@@ -9,7 +9,7 @@ Testlight compiles your `.mmt`/YAML tests to JS on the fly and executes them wit
 - Local (via npx):
   - npx testlight run examples/test/login_and_get_user_info.mmt --quiet
 - Binary (recommended for CI):
-  - See mmtcli README for pkg-built binaries under `dist/bin/`
+  - See mmtcli README for pkg-built binaries under `bin/`
 
 ## Commands
 
