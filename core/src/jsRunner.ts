@@ -53,39 +53,24 @@ const applyReporterGlobals = (
     reporter: ((message: any) => void)|undefined, runId: string,
     id?: string): (() => void) => {
   const scope = globalThis as Record<string, any>;
-  const hadReporter = Object.prototype.hasOwnProperty.call(scope, REPORTER_KEY);
-  const hadRunId = Object.prototype.hasOwnProperty.call(scope, RUN_ID_KEY);
-  const hadId = Object.prototype.hasOwnProperty.call(scope, ID_KEY);
-  const previousReporter = scope[REPORTER_KEY];
-  const previousRunId = scope[RUN_ID_KEY];
-  const previousId = scope[ID_KEY];
+  // Set globals for fallback paths that read them when no explicit
+  // closure values are available.  Under parallel execution multiple
+  // tests overwrite these concurrently, so callers should prefer the
+  // closure-captured values (passed via Function parameters).
+  // We no longer attempt save/restore because the interleaved ordering
+  // of parallel tests makes the restore unreliable and can leave stale
+  // values behind.
   if (reporter) {
     scope[REPORTER_KEY] = reporter;
-  } else {
-    delete scope[REPORTER_KEY];
   }
   scope[RUN_ID_KEY] = runId;
   if (typeof id === 'string' && id) {
     scope[ID_KEY] = id;
-  } else {
-    delete scope[ID_KEY];
   }
   return () => {
-    if (hadReporter) {
-      scope[REPORTER_KEY] = previousReporter;
-    } else {
-      delete scope[REPORTER_KEY];
-    }
-    if (hadRunId) {
-      scope[RUN_ID_KEY] = previousRunId;
-    } else if (Object.prototype.hasOwnProperty.call(scope, RUN_ID_KEY)) {
-      delete scope[RUN_ID_KEY];
-    }
-    if (hadId) {
-      scope[ID_KEY] = previousId;
-    } else if (Object.prototype.hasOwnProperty.call(scope, ID_KEY)) {
-      delete scope[ID_KEY];
-    }
+    // Intentional no-op: under parallel execution, restoring previous
+    // globals is unreliable and causes incorrect routing.  The globals
+    // are overwritten by the next test that starts.
   };
 };
 
@@ -135,7 +120,9 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
   try {
     const helperDecls =
           Object.keys(mmtHelper)
-              .filter(name => name !== 'report_' && name !== 'setenv_')
+              .filter(name => name !== 'report_' && name !== 'setenv_' &&
+                             name !== 'checkAbort_' && name !== 'importJsModule_' &&
+                             name !== 'check_')
               .map(name => `const ${name} = mmtHelper["${name}"];`)
               .join('\n');
     const randomDecls =
@@ -146,9 +133,24 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     const fn = new Function(
       'mmtHelper', 'console', 'send_', 'extractOutputs_', 'Random',
       '__reporter', '__runId', '__id', '__mmt_random', '__mmt_current',
+      '__abortSignal', '__fileLoader',
       `${helperDecls}\n${randomDecls}\n` +
       `const report_ = (...args) => mmtHelper.reportWithContext_(__reporter, __runId, __id, ...args);\n` +
       `const setenv_ = (name, value) => mmtHelper.setenvWithContext_(__reporter, __runId, __id, name, value);\n` +
+      // Override check_ to pass the closure-based report_ so that under
+      // parallel execution each test uses its own reporter/runId/id instead
+      // of the shared module-level globals.
+      `const check_ = (passed, type, raw, reportLevel, title, details, actual, expected) => mmtHelper.check_(passed, type, raw, reportLevel, title, details, actual, expected, report_);\n` +
+      // Override checkAbort_ with a closure-based version so parallel tests
+      // each check their own abort signal instead of the global.
+      `const checkAbort_ = () => { if (__abortSignal && __abortSignal.aborted) { const e = new Error('Test run was stopped'); e.name = 'TestAbortError'; throw e; } };\n` +
+      // Override importJsModule_ with a closure-based wrapper that ensures
+      // the file loader is set to this test's loader before each import,
+      // protecting against parallel tests overwriting the global loader.
+      `const importJsModule_ = async (path, opts) => {` +
+      `  if (__fileLoader && mmtHelper.setFileLoader_) { mmtHelper.setFileLoader_(__fileLoader); }` +
+      `  return mmtHelper.importJsModule_(path, opts);` +
+      `};\n` +
       `${code}`);
     // Wrap send_ with trace-level request/response logging for test runs
     const sendFn = context.traceSend ? async (req: any) => {
@@ -165,7 +167,10 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
         throw err;
       }
     } : send;
-    const returnValue = await fn(mmtHelper, customConsole, sendFn, extractOutputs, Random, reporterFn, runId, context.id, mmtRandom, mmtCurrent);
+    const returnValue = await fn(
+        mmtHelper, customConsole, sendFn, extractOutputs, Random,
+        reporterFn, runId, context.id, mmtRandom, mmtCurrent,
+        context.abortSignal, context.fileLoader);
     restoreReporterGlobals();
     const elapsed = Date.now() - startTime;
     lg('info', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
@@ -184,9 +189,13 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     }
     return undefined;
   } finally {
-    // Clear abort signal after run completes.
-    if ('setAbortSignal_' in mmtHelper && typeof (mmtHelper as any).setAbortSignal_ === 'function') {
-      (mmtHelper as any).setAbortSignal_(undefined);
+    // Only clear abort signal if this run owns it.  During parallel suite
+    // execution (skipServerCleanup=true), clearing unconditionally would
+    // remove the signal for concurrent tests that share the global.
+    if (!context.skipServerCleanup) {
+      if ('setAbortSignal_' in mmtHelper && typeof (mmtHelper as any).setAbortSignal_ === 'function') {
+        (mmtHelper as any).setAbortSignal_(undefined);
+      }
     }
     // Stop all servers started during this test run, unless suite runner is handling cleanup.
     if (!context.skipServerCleanup) {

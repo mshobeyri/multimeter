@@ -426,6 +426,9 @@ export const protocolFromUrl_ = (url: string): string => {
  * @param details   - optional details string
  * @param actual    - runtime actual value (for reporting and fail message)
  * @param expected  - runtime expected value (for reporting and fail message)
+ * @param reportFn  - optional report function override (used by suite parallel
+ *                    execution to inject a closure-based reporter instead of
+ *                    relying on the module-level report_ which uses globals)
  */
 export const check_ = (
     passed: boolean,
@@ -436,14 +439,16 @@ export const check_ = (
     details?: string,
     actual?: any,
     expected?: any,
+    reportFn?: (...args: any[]) => void,
 ): void => {
+  const doReport = typeof reportFn === 'function' ? reportFn : report_;
   const label = type === 'check' ? 'Check' : 'Assert';
   const titlePart = title ? `"${title}" - ` : '';
   if (passed) {
     const msg = `${label} ${titlePart}"${raw}" passed`;
     if (reportLevel === 'all') {
       console.log(msg);
-      report_(type, raw, title, details, true);
+      doReport(type, raw, title, details, true);
     } else if (reportLevel === 'fails') {
       console.debug(msg);
     } else {
@@ -457,7 +462,7 @@ export const check_ = (
       console.debug(msg);
     } else {
       console.error(msg);
-      report_(type, raw, title, details, false, actual, expected);
+      doReport(type, raw, title, details, false, actual, expected);
     }
     if (type === 'assert') {
       throw new Error('Assertion failed');

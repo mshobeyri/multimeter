@@ -265,6 +265,13 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                     runIdToEntryId[runId] = entry.id;
                 }
             }
+            // For bundle-based suite runs, suite-item events carry both id
+            // and runId directly. Use these to build the mapping so that
+            // subsequent test-step events (which may only have runId) can
+            // be routed to the correct tree leaf.
+            if (runId && typeof message.id === 'string' && message.id && message.scope === 'suite-item') {
+                runIdToEntryId[runId] = message.id;
+            }
         });
 
         setLastRunIdByEntryId(prev => {
@@ -280,6 +287,11 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                         next[entry.id] = runId;
                     }
                 }
+                // Also register the mapping for bundle-based suite-item events
+                // which carry id directly instead of groupIndex/groupItemIndex.
+                if (runId && typeof message.id === 'string' && message.id && message.scope === 'suite-item') {
+                    next[message.id] = runId;
+                }
             });
             return next;
         });
@@ -290,7 +302,12 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 const runId = typeof message.runId === 'string' ? message.runId : null;
                 const groupIndex = message.groupIndex;
                 const groupItemIndex = message.groupItemIndex;
-                const nextStatus: StepStatus | 'running' = message.status || (message.success ? 'passed' : 'failed');
+                // test-step-run events use 'result' not 'status' or 'success'.
+                const nextStatus: StepStatus | 'running' =
+                    message.status ||
+                    (typeof message.result === 'string' ? message.result : null) ||
+                    (typeof message.success === 'boolean' ? (message.success ? 'passed' : 'failed') : null) ||
+                    'failed';
 
                 if (runId) {
                     next[runId] = nextStatus;

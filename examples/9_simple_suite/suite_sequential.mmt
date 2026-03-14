@@ -1,0 +1,14 @@
+type: suite
+title: Simple Suite
+description: Runs the echo and status tests together
+tags:
+  - example
+  - smoke
+tests:
+  - test/echo_test.mmt
+  - then
+  - test/status_test.mmt
+  - then
+  - test/echo_test_fail.mmt
+  - then
+  - test/status_test_fail.mmt

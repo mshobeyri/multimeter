@@ -330,8 +330,12 @@ function createSuiteReporter(
     webviewPanel.webview.postMessage({
       command: 'runFileReport',
       suiteRunId,
-      id,
       ...msg,
+      // Place id AFTER spread so our resolved value is never overridden by
+      // an undefined msg.id.  This is critical for events (like test-step)
+      // where the core may not set id but the extension resolved it from
+      // the suiteRunIdByChildRunId lookup.
+      id,
     });
   };
 }
@@ -425,8 +429,12 @@ export async function handleRunSuite(
       fileLoader,
       jsRunner: (ctx: any) => runJSCode({
         ...ctx,
-        fileLoader,
-        serverRunner: suiteServerRunner,
+        // Prefer the child-specific fileLoader from the suite bundle runner
+        // (which resolves relative to each child test's directory) over the
+        // suite-level fileLoader.  Only fall back to suite-level if ctx has
+        // no fileLoader at all.
+        fileLoader: ctx.fileLoader || fileLoader,
+        serverRunner: ctx.serverRunner || suiteServerRunner,
       }),
       logger: forwardLog,
       abortSignal: controller.signal,
