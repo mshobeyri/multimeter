@@ -216,8 +216,8 @@ const App: React.FC = () => {
             collapseDescription={collapseDescription}
           />
         </div>
-        <div style={{ height: "100vh", minHeight: 0, display: 'flex', justifyContent: 'center', alignItems: 'flex-start', overflowX: 'auto' }}>
-          <div style={{ width: '100%', height: '100%', maxWidth: 1200, minWidth: 450 }}>
+        <div style={{ height: "100vh", minHeight: 0, overflowX: 'auto' }}>
+          <div style={{ width: '100%', height: '100%', maxWidth: 1200, minWidth: 450, margin: '0 auto' }}>
             {docType === "env" && (
               <EnvironmentPanel content={validContent} setContent={uiSetContent} />
             )}
