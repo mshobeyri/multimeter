@@ -48,7 +48,7 @@
 - `.mmt` is YAML with `type` driving behavior, parsed by `JSer.fileType`:
   - `type: api` → HTTP/WebSocket API definitions (see `docs/api-mmt.md`).
   - `type: test` → executable test flows (`call`, `assert`, `check`, etc.; see `docs/test-mmt.md`).
-  - `type: env` / `type: var` → environment and variable files (see `docs/environment-mmt.md`).
+  - `type: env` → environment and variable files (see `docs/environment-mmt.md`).
 - Converters and docs:
   - `core/src/openapiConvertor.ts`, `postmanConvertor.ts`: turn OpenAPI/Postman into `.mmt` API/test files.
   - `core/src/docHtml.ts`, `docMarkdown.ts`, `docParsePack.ts` and `res/doc-template.html`: generate HTML/Markdown API docs from `.mmt`.

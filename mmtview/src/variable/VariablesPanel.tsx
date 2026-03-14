@@ -30,7 +30,7 @@ function variablesToYaml(variablesData: VariablesData): string {
 
 const VariablesPanel: React.FC<VariablesProps> = ({ content, setContent }) => {
   const [variablesData, setVariablesData] = useState<VariablesData>({
-    type: "var",
+    type: "env",
     variables: [],
   });
   const lastUpdate = useRef<"yaml" | "ui" | null>(null);

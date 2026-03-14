@@ -1,4 +1,4 @@
-export type Type = "var" | "env" | "api" | "test" | "suite" | "doc" | "csv" | "server" | "report" | null;
+export type Type = "env" | "api" | "test" | "suite" | "doc" | "csv" | "server" | "report" | null;
 
 export type Protocol = "http" | "ws";
 export type Format = "json" | "xml" | "text";

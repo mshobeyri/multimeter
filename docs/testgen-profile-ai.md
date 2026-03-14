@@ -33,7 +33,7 @@ Require `api_url`; optional `token`/`api_key`. Default headers: User-Agent, Acce
 ## Generated Artifacts
 
 ### APIs
-- Structure: `type: api`, title, method (HTTP only), url, inputs, body, examples. Protocol is optional (inferred from URL).
+- Structure: `type: api`, title, method (HTTP only), url, format, inputs, body, examples. Protocol is optional (inferred from URL).
 - Inputs: Use primitives or tokens (e.g., `name: r:firstName`). Place after title/description.
 - WebSocket: `protocol: ws` (or use ws:// URL), body as sent message.
 
@@ -83,8 +83,9 @@ For WebSocket: `type: api\nprotocol: ws\nurl: wss://ws.example.com/chat\ninputs:
 ```yaml
 type: api
 title: string
-protocol: http | ws
-method: get|post|...  # HTTP only
+protocol: http | ws            # optional, inferred from URL
+method: get|post|...           # HTTP only
+format: json | xml | text     # affects body encoding
 url: string
 inputs: record<string, primitive>
 body: object|string|null
@@ -95,7 +96,7 @@ examples: Array<{name: string, inputs?: record<string, primitive>}>
 ```yaml
 type: test
 title: string
-steps: Array<call|assert|check>
+steps: Array<call|assert|check|setenv|set|var|const|let|js|print|delay|if|for|repeat|data|run>
 ```
 
 ### Env

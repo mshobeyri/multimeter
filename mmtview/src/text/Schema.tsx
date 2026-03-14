@@ -2,7 +2,7 @@ export const GeneralSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
     properties: {
-        type: { type: 'string', enum: ['api', 'env', 'var', 'test', 'suite', 'doc', 'server', 'report'] },
+        type: { type: 'string', enum: ['api', 'env', 'test', 'suite', 'doc', 'server', 'report'] },
     }
 }
 

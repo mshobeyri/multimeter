@@ -91,10 +91,10 @@ body:
 
 Use these compact prefixes to indicate dynamic values. Generators and AI should prefer them over hard‑coded literals.
 
-- `i:<name>` – Input parameter placeholder (declared under `inputs:` in an API or test). Example: `inputs: { userId: string }` then use `{{userId}}` or `i:userId` depending on context.
+- `i:<name>` – Input parameter placeholder (declared under `inputs:` in an API or test). Example: `inputs: { userId: r:int }` then use `i:userId` in body/headers/url.
 - `e:<VAR>` – Environment variable reference (type‑preserving). Inside strings use `<<e:VAR>>`; standalone use `e:VAR`.
-- `r:<type>` – Random value generator. Common types: `r:uuid`, `r:int`, `r:bool`, `r:email` (if supported). Honors constraints when possible.
-- `c:<name>` – Current/time/system value. Examples: `c:epoch`, `c:date`, `c:millis`.
+- `r:<type>` – Random value generator. Common types: `r:uuid`, `r:int`, `r:bool`, `r:email`, `r:first_name`, `r:full_name`, `r:phone`, `r:city`, `r:country`. Honors constraints when possible.
+- `c:<name>` – Current/time/system value. Examples: `c:epoch`, `c:date`, `c:epoch_ms`, `c:time`, `c:year`.
 
 Guidelines:
 - Prefer `e:` for secrets / deployment specifics, `r:` for variability, `c:` for timestamps, `i:` for test/API parameterization.
@@ -211,8 +211,8 @@ protocol: http
 method: post
 url: https://api.example.com/users
 inputs:
-  name: string
-  email: string
+  name: r:firstName
+  email: r:email
 body:
   name: i:name
   email: i:email
@@ -241,7 +241,9 @@ steps:
 ```yaml
 type: env
 variables:
-  api_url: https://api.example.com
+  api_url:
+    local: http://localhost:8080
+    prod: https://api.example.com
 ```
 
 ## Structures (API, Test, Env, Doc)
@@ -261,7 +263,7 @@ import: record<string,string># optional (alias -> path)
 inputs: record<string, primitive>
 outputs: record<string, string>
 setenv: record<string, string>
-protocol: http | ws          # required
+protocol: http | ws          # optional, inferred from URL
 method: get|post|put|delete|patch|head|options|trace   # HTTP only
 format: json | xml | text    # affects body encoding
 url: string                  # may include query string
@@ -323,7 +325,7 @@ metrics?: { repeat?: string|number, threads?: number, duration?: string, rampup?
 steps?: Step[]               # sequential when at root
 stages?: Array<{            # optional staged/parallel model
   id: string
-  name?: string
+  title?: string
   condition?: string
   after?: string | string[]
   steps: Step[]
@@ -331,9 +333,9 @@ stages?: Array<{            # optional staged/parallel model
 ```
 
 Where a Step is one of:
-- call: { call: string, id?: string, inputs?: record<string, any> }
-- check: string | { expr: string }
-- assert: string | { expr: string }
+- call: { call: string, id?: string, title?: string, inputs?: record<string, any>, expect?: record<string, any>, report?: 'all'|'fails'|'none' }
+- check: string | ComparisonObject
+- assert: string | ComparisonObject
 - if: { if: string, steps: Step[], else?: Step[] }
 - for: { for: string, steps: Step[] }
 - repeat: { repeat: number|string, steps: Step[] }
@@ -342,6 +344,8 @@ Where a Step is one of:
 - print: string
 - set | var | const | let: record<string, any>
 - data: string
+- setenv: record<string, any>
+- run: string
 
 Example:
 ```yaml
@@ -365,7 +369,7 @@ Global variables and optional presets.
 
 ```yaml
 type: env                    # literal
-variables: record<string, primitive | object (choices) | array (allowed)>
+variables: record<string, object (choices) | array (allowed)>
 presets: record<string, record<string, record<string, primitive>>>
 ```
 
@@ -373,13 +377,17 @@ Example:
 ```yaml
 type: env
 variables:
-  api_url: https://api.example.com
-  token: your-token
+  api_url:
+    local: http://localhost:3000
+    prod: https://api.example.com
+  token:
+    - your-token
 presets:
-  dev:
-    api_url: http://localhost:3000
-  prod:
-    api_url: https://prod.api.com
+  runner:
+    dev:
+      api_url: local
+    prod:
+      api_url: prod
 ```
 
 Usage

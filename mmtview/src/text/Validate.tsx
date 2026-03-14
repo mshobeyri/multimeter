@@ -62,8 +62,6 @@ export const validateYamlContent = (content: string): any[] => {
             validate = ajv.compile(APISchema);
         } else if (parsedContent.type && parsedContent.type === 'env') {
             validate = ajv.compile(EnvSchema);
-        } else if (parsedContent.type && parsedContent.type === 'var') {
-            // validate = ajv.compile(VarSchema);
         } else if (parsedContent.type && parsedContent.type === 'test') {
             validate = ajv.compile(TestSchema);
         } else if (parsedContent.type && parsedContent.type === 'suite') {

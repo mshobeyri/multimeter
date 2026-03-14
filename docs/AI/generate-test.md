@@ -63,8 +63,12 @@ Supported step forms:
 # 1) call: invoke another test or an API (imported by alias)
 - call: <alias>
   id: <stepId>                  # REQUIRED, used to reference outputs later
+  title?: string                # optional human-readable label
   inputs?:                      # passed as JSON object
     <name>: <value>
+  expect?:                      # inline assertions (shorthand for assert)
+    <field>: <value>
+  report?: all | fails | none   # controls reporting level
 
 # 2) run: start an imported mock server (type: server file)
 - run: <alias>                  # alias of an imported server file
@@ -116,12 +120,34 @@ Supported step forms:
 
 # 13) data: bind CSV alias (from import)
 - data: <alias>
+
+# 14) setenv: promote values into environment variables
+- setenv:
+    <env_name>: <value>       # e.g. token: ${loginStep.token}
 ```
+
+### Additional `call` fields
+
+Beyond the basic `call`, `id`, and `inputs`, a call step also supports:
+
+```yaml
+- call: <alias>
+  id: <stepId>
+  title?: string              # optional human-readable label for logs/reports
+  inputs?: { ... }
+  expect?:                    # inline assertions on the call result
+    <field>: <value>          # e.g. status: 200, body.name: "John"
+  report?: all | fails | none # controls pass/fail reporting level
+```
+
+`expect` is a shorthand for common assertions — each key is a dotted path into the response, and the value is compared with `==` by default. You can prefix with an operator (e.g. `>= 1`, `!= null`).
+
+---
 
 `<comparison>` is a string expression using operators from `opsList` in `TestData.ts`:
 
 - `<`, `>`, `<=`, `>=`, `==`, `!=`
-- `=@` (contains), `!@` (not contains)
+- `=@` (is at: actual is found within expected), `!@` (is not at)
 - `=^` (starts with), `!^` (not starts with)
 - `=$` (ends with), `!$` (not ends with)
 - `=~` (regex match), `!~` (regex not match)

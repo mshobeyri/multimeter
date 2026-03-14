@@ -98,9 +98,6 @@ export const fileType = (path: string, content: string): Type => {
   if (content.includes('type: suite')) {
     return 'suite';
   }
-  if (content.includes('type: var')) {
-    return 'var';
-  }
   if (content.includes('type: env')) {
     return 'env';
   }

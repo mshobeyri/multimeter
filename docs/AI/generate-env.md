@@ -129,3 +129,21 @@ presets:
 - Prefer explicit URLs and modes instead of opaque values.
 
 When unsure, generate a **small env file** with the most clearly requested variables and a single preset group named `runner` with 1–2 named presets.
+
+---
+
+## Certificates (optional)
+
+Env files can also contain a `certificates` section for SSL/TLS settings. The AI generally does not need to generate this unless the user specifically asks about TLS, mTLS, or client certificates. See `docs/certificates-mmt.md` for full details.
+
+```yaml
+certificates:
+  ca:
+    paths:
+      - ./certs/ca.pem
+  clients:
+    - name: my-client
+      host: api.example.com
+      cert_path: ./certs/client.pem
+      key_path: ./certs/client-key.pem
+```

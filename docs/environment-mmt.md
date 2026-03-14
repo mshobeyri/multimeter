@@ -104,12 +104,10 @@ setenv:
 SSL/TLS certificate settings can be configured in the `certificates` section of the env file. See [Certificates documentation](./certificates-mmt.md) for details on configuring CA certificates, client certificates (mTLS), and SSL validation settings.
 
 ## Reference (types)
-- type: `env` or `var`
+- type: `env`
 - variables: record<string, object (key-value choices) | array (allowed values)>
 - presets: record<string, record<string, record<string, string|number|boolean|null>>>
 - certificates: { ca?, clients?, sslValidation?, allowSelfSigned? }
-
-`type: var` is an alias for `type: env` — both define variables and presets. Use whichever name fits your project conventions.
 
 ## VS Code Settings
 
