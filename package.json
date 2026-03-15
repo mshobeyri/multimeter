@@ -386,7 +386,7 @@
     "regression testing tool",
     "robot framework"
   ],
-  "license": "MIT",
+  "license": "BSL-1.0",
   "workspaces": [
     "core",
     "mmtview"

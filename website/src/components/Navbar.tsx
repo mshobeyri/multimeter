@@ -4,7 +4,6 @@ import { Menu, X, Github, ExternalLink } from 'lucide-react'
 
 const navLinks = [
   { name: 'Features', href: '/#features' },
-  { name: 'Pricing', href: '/pricing' },
   { name: 'Demos', href: '/demos' },
   { name: 'Roadmap', href: '/roadmap' },
   { name: 'Downloads', href: '/downloads' },

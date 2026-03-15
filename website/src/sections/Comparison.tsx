@@ -10,7 +10,8 @@ interface FeatureRow {
 }
 
 const features: FeatureRow[] = [
-  { feature: 'Price', multimeter: 'From $0', postman: '$14/user/mo', bruno: '$6/user/mo', robot: 'Free' },
+  { feature: 'Price', multimeter: 'Free', postman: '$14/user/mo', bruno: '$6/user/mo', robot: 'Free' },
+  { feature: 'Open Source', multimeter: true, postman: false, bruno: 'Partial', robot: true },
   { feature: 'HTTP / REST', multimeter: true, postman: true, bruno: true, robot: true },
   { feature: 'WebSocket', multimeter: true, postman: true, bruno: true, robot: 'Via library' },
   { feature: 'gRPC', multimeter: 'Soon', postman: true, bruno: true, robot: 'Via library' },

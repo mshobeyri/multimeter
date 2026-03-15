@@ -35,7 +35,7 @@ export default function Hero() {
             <div className="inline-flex items-center gap-2 bg-surface-light border border-border rounded-full px-4 py-1.5 mb-8">
               <span className="text-xs font-medium text-accent">VS Code Extension</span>
               <span className="text-xs text-slate-400">•</span>
-              <span className="text-xs text-slate-400">Free for Individuals & Small Teams</span>
+              <span className="text-xs text-slate-400">Free & Open Source</span>
             </div>
           </FadeIn>
 
