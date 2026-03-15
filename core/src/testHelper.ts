@@ -244,7 +244,8 @@ const normalizeTitleDetails = (title: unknown, details: unknown): {
 const emitStep = (event: Record<string, any>) => {
   const reporter = resolveReporter();
   if (!reporter) {
-    console.log('No reporter available to emit step:', event);
+    // No reporter — silently skip. This is normal for plain CLI runs
+    // where no webview or test framework is listening for step events.
     return;
   }
   try {

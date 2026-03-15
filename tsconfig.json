@@ -17,5 +17,5 @@
 		// "noUnusedParameters": true,  /* Report errors on unused parameters. */
 	},
 
-  	"exclude": ["mmtview", "website", "node_modules"]
+  	"exclude": ["mmtview", "mmtcli", "website", "node_modules"]
 }

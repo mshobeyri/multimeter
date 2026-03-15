@@ -6,6 +6,10 @@
 bin/
 src/
 core/src/
+core/scripts/
+core/tsconfig.json
+core/package.json
+core/package-lock.json
 mmtview/src/
 mmtcli/
 out/
@@ -13,6 +17,8 @@ examples/
 screenshots/
 website/
 demos/
+devdocs/
+.github/
 
 # Webview build artifacts (not needed in the vsix)
 mmtview/node_modules/**
@@ -35,7 +41,6 @@ node_modules/**
 
 # Exclude CLI workspace from VSIX (not needed for the extension runtime)
 mmtcli/**
-!mmtcli/README.md
 
 # Git & dev files
 .gitignore
@@ -46,6 +51,7 @@ mmtcli/**
 
 # Build configs not needed in vsix
 tsconfig.json
+tsconfig.jest.json
 tslint.json
 webpack.config.js
 babel.config.js
@@ -56,9 +62,17 @@ vite.config.js
 .prettierrc*
 .eslintrc.json
 **/eslint.config.js
+**/eslint.config.mjs
 esbuild.js
 package-lock.json
 .eslintrc*
+
+# Dev files not needed in vsix
+AGENTS.md
+TODO
+Dockerfile
+multimeter-*.vsix
+multimeter-*/
 
 # Logs & temp files
 **/*.log
@@ -91,6 +105,7 @@ coverage/
 **/*.spec.js
 **/*.d.ts
 !out/**/*.d.ts
+**/*.js.map
 
 # Docs & design assets
 README.dev.md

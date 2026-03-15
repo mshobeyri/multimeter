@@ -389,8 +389,7 @@
   "license": "MIT",
   "workspaces": [
     "core",
-    "mmtview",
-    "mmtcli"
+    "mmtview"
   ],
   "scripts": {
     "buildcore": "npm run build --prefix core",

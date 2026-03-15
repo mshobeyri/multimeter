@@ -90,7 +90,9 @@ function createPkgJsRunner() {
 			}
 			try {
 				const helperDecls = Object.keys(testHelper)
-					.filter((name) => name !== 'report_' && name !== 'setenv_')
+					.filter((name) => name !== 'report_' && name !== 'setenv_' &&
+						name !== 'checkAbort_' && name !== 'importJsModule_' &&
+						name !== 'check_')
 					.map((name) => `const ${name} = mmtHelper["${name}"];`)
 					.join('\n');
 				const randomDecls = Object.keys(Random)
@@ -101,6 +103,15 @@ function createPkgJsRunner() {
 				const reporterFn = typeof reporter === 'function' ? reporter : () => {};
 				const mmtRandom = mmtCore.Random || {};
 				const mmtCurrent = mmtCore.Current || {};
+
+				// Set reporter globals so testHelper's resolveReporter() can find them.
+				if (reporterFn) {
+					globalThis.__mmtReportStep = reporterFn;
+				}
+				globalThis.__mmtRunId = runId || '';
+				if (typeof id === 'string' && id) {
+					globalThis.__mmtId = id;
+				}
 
 				const fn = new Function(
 					'mmtHelper',
@@ -113,9 +124,12 @@ function createPkgJsRunner() {
 					'__id',
 					'__mmt_random',
 					'__mmt_current',
+					'__abortSignal',
 					`${helperDecls}\n${randomDecls}\n` +
 					`const report_ = (...args) => mmtHelper.reportWithContext_ ? mmtHelper.reportWithContext_(__reporter, __runId, __id, ...args) : undefined;\n` +
-					`const setenv_ = (name, value) => mmtHelper.setenvWithContext_ ? mmtHelper.setenvWithContext_(__reporter, __runId, __id, name, value) : undefined;\n` +
+					`const setenv_ = (name, value) => { try { envVariables[name] = value; } catch (_e) {} if (mmtHelper.setenvWithContext_) mmtHelper.setenvWithContext_(__reporter, __runId, __id, name, value); };\n` +
+					`const check_ = (passed, type, raw, reportLevel, title, details, actual, expected) => mmtHelper.check_(passed, type, raw, reportLevel, title, details, actual, expected, report_, console);\n` +
+					`const checkAbort_ = () => { if (__abortSignal && __abortSignal.aborted) { const e = new Error('Test run was stopped'); e.name = 'TestAbortError'; throw e; } };\n` +
 					`${code}`,
 				);
 
@@ -146,6 +160,7 @@ function createPkgJsRunner() {
 					id || '',
 					mmtRandom,
 					mmtCurrent,
+					abortSignal,
 				);
 			} finally {
 				// Clean up
@@ -156,7 +171,7 @@ function createPkgJsRunner() {
 					testHelper.setAbortSignal_(undefined);
 				}
 				const elapsed = Date.now() - startTime;
-				lg('info', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
+				lg('debug', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
 			}
 		},
 		setRunnerNetworkConfig: networkCore.setRunnerNetworkConfig,
@@ -722,7 +737,7 @@ async function main() {
 		// Best-effort: try reading packaged mmtcli package.json.
 		try {
 			// eslint-disable-next-line global-require
-			const pkgJson = require('./package.json');
+			const pkgJson = require('../package.json');
 			process.stdout.write(String(pkgJson.version || '') + '\n');
 		} catch {
 			process.stdout.write('\n');
