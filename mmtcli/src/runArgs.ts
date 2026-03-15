@@ -12,6 +12,42 @@ export type ReportFormat = 'junit' | 'mmt' | 'html' | 'md';
 const {mergeEnv, resolvePresetEnv, resolveEnvFromDoc} =
     ((mmtcore as any).runConfig || {}) as any;
 
+const LOG_LEVEL_PRIORITY: Record<string, number> = {
+  error: 0,
+  warn: 1,
+  info: 2,
+  log: 2,
+  debug: 3,
+  trace: 4,
+};
+
+/* ── ANSI helpers (no external deps, works in binaries too) ── */
+const useColor = process.stdout.isTTY !== false;
+const ANSI_RESET  = useColor ? '\x1b[0m' : '';
+const ANSI_RED    = useColor ? '\x1b[31m' : '';
+const ANSI_GREEN  = useColor ? '\x1b[32m' : '';
+const ANSI_YELLOW = useColor ? '\x1b[33m' : '';
+const ANSI_DIM    = useColor ? '\x1b[2m' : '';
+const ANSI_BOLD   = useColor ? '\x1b[1m' : '';
+
+function colorizeLogLine(level: string, msg: string): string {
+  // Check / Assert results (✓ / ✗ markers emitted by check_)
+  if (msg.startsWith('\u2713')) {
+    return `${ANSI_GREEN}${msg}${ANSI_RESET}`;
+  }
+  if (msg.startsWith('\u2717')) {
+    return `${ANSI_RED}${ANSI_BOLD}${msg}${ANSI_RESET}`;
+  }
+  // Level-based coloring
+  switch (level) {
+    case 'error': return `${ANSI_RED}[${level}] ${msg}${ANSI_RESET}`;
+    case 'warn':  return `${ANSI_YELLOW}[${level}] ${msg}${ANSI_RESET}`;
+    case 'trace': return `${ANSI_DIM}[${level}] ${msg}${ANSI_RESET}`;
+    case 'debug': return `${ANSI_DIM}[${level}] ${msg}${ANSI_RESET}`;
+    default:      return `[${level}] ${msg}`;
+  }
+}
+
 type AnyOpts = Record<string, any>;
 
 function coerceCliValue(v: string): any {
@@ -311,7 +347,11 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
     },
     jsRunner: async () => {},
     logger: (level: any, msg: string) => {
-        console.log(`[${level}] ${msg}`);
+      const maxLevel = LOG_LEVEL_PRIORITY[opts.logLevel ?? 'info'] ?? 2;
+      const msgLevel = LOG_LEVEL_PRIORITY[level] ?? 2;
+      if (msgLevel <= maxLevel) {
+        console.log(colorizeLogLine(level, msg));
+      }
     },
     reporter: (_message: RunReporterMessage) => {},
     projectRoot: findProjectRootForCli(full),

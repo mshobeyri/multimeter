@@ -76,7 +76,7 @@ const applyReporterGlobals = (
 
 export async function runJSCode(context: RunJSCodeContext): Promise<any> {
   const {js: code, title, logger: lg, reporter} = context;
-  lg('info', `Running test: ${title}...`);
+  lg('debug', `Running test: ${title}...`);
   const startTime = Date.now();
   const runId = typeof context?.runId === 'string' ? context.runId : '';
   const reporterFn = typeof reporter === 'function' ? reporter : undefined;
@@ -142,7 +142,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       // Override check_ to pass the closure-based report_ so that under
       // parallel execution each test uses its own reporter/runId/id instead
       // of the shared module-level globals.
-      `const check_ = (passed, type, raw, reportLevel, title, details, actual, expected) => mmtHelper.check_(passed, type, raw, reportLevel, title, details, actual, expected, report_);\n` +
+      `const check_ = (passed, type, raw, reportLevel, title, details, actual, expected) => mmtHelper.check_(passed, type, raw, reportLevel, title, details, actual, expected, report_, console);\n` +
       // Override checkAbort_ with a closure-based version so parallel tests
       // each check their own abort signal instead of the global.
       `const checkAbort_ = () => { if (__abortSignal && __abortSignal.aborted) { const e = new Error('Test run was stopped'); e.name = 'TestAbortError'; throw e; } };\n` +
@@ -175,7 +175,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
         context.abortSignal, context.fileLoader);
     restoreReporterGlobals();
     const elapsed = Date.now() - startTime;
-    lg('info', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
+    lg('debug', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
     return returnValue;
   } catch (e: any) {
     // Suppress noisy error logging for intentional abort.
@@ -185,7 +185,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     }
     restoreReporterGlobals();
     const elapsed = Date.now() - startTime;
-    lg('info', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
+    lg('debug', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
     if (isAbort) {
       throw e;
     }

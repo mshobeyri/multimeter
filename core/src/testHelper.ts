@@ -416,6 +416,47 @@ export const protocolFromUrl_ = (url: string): string => {
 };
 
 /**
+ * Format check/assert details for readable log output.
+ * Tries to parse as JSON and pretty-print, recursively expanding any
+ * string values that are themselves JSON.  Falls back to the raw string
+ * if parsing fails.
+ */
+function formatCheckDetails(raw: string): string {
+  try {
+    const expandJsonStrings = (obj: any): any => {
+      if (typeof obj === 'string') {
+        const trimmed = obj.trim();
+        if ((trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+            (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+          try {
+            return expandJsonStrings(JSON.parse(trimmed));
+          } catch {
+            return obj;
+          }
+        }
+        return obj;
+      }
+      if (Array.isArray(obj)) {
+        return obj.map(expandJsonStrings);
+      }
+      if (obj && typeof obj === 'object') {
+        const result: Record<string, any> = {};
+        for (const [k, v] of Object.entries(obj)) {
+          result[k] = expandJsonStrings(v);
+        }
+        return result;
+      }
+      return obj;
+    };
+    const parsed = JSON.parse(raw);
+    const expanded = expandJsonStrings(parsed);
+    return JSON.stringify(expanded, null, 2);
+  } catch {
+    return raw;
+  }
+}
+
+/**
  * Unified check/assert helper. Handles logging, reporting, and throwing.
  *
  * @param passed    - result of the comparison (e.g. equals_(...))
@@ -440,28 +481,32 @@ export const check_ = (
     actual?: any,
     expected?: any,
     reportFn?: (...args: any[]) => void,
+    consoleFn?: {log: (...a: any[]) => void; debug: (...a: any[]) => void; error: (...a: any[]) => void; trace: (...a: any[]) => void},
 ): void => {
   const doReport = typeof reportFn === 'function' ? reportFn : report_;
+  const c = consoleFn || console;
   const label = type === 'check' ? 'Check' : 'Assert';
   const titlePart = title ? `"${title}" - ` : '';
   if (passed) {
-    const msg = `${label} ${titlePart}"${raw}" passed`;
+    const msg = `\u2713 ${label} ${titlePart}"${raw}" passed`;
     if (reportLevel === 'all') {
-      console.log(msg);
+      c.log(msg);
       doReport(type, raw, title, details, true);
     } else if (reportLevel === 'fails') {
-      console.debug(msg);
+      c.debug(msg);
     } else {
       // reportLevel === 'none'
-      console.trace(msg);
+      c.trace(msg);
     }
   } else {
-    const failSuffix = details ? `\n${details}` : '';
-    const msg = `${label} ${titlePart}"${raw}" failed, as ${actual} is not ${expected}${failSuffix}`;
+    const shortMsg = `\u2717 ${label} ${titlePart}"${raw}" failed, as ${actual} is not ${expected}`;
     if (reportLevel === 'none') {
-      console.debug(msg);
+      c.debug(shortMsg);
     } else {
-      console.error(msg);
+      c.error(shortMsg);
+      if (details) {
+        c.debug(formatCheckDetails(details));
+      }
       doReport(type, raw, title, details, false, actual, expected);
     }
     if (type === 'assert') {

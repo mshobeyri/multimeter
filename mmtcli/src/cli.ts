@@ -159,11 +159,23 @@ program.command('run')
           console.log(js.trim());
         }
         if (!opts.quiet) {
-          console.log(`Success: ${result.success}`);
-          console.log(`Duration: ${mmtcore.CommonData.formatDuration(result.durationMs)}`);
-          if (result.errors.length) {
-            console.log('Errors:');
-            result.errors.forEach((e: any) => console.log(' -', e));
+          const isTTY = process.stdout.isTTY !== false;
+          const R = isTTY ? '\x1b[0m' : '';
+          const red = isTTY ? '\x1b[31m' : '';
+          const green = isTTY ? '\x1b[32m' : '';
+          const bold = isTTY ? '\x1b[1m' : '';
+          const dim = isTTY ? '\x1b[2m' : '';
+          if (result.success) {
+            console.log(`\n${green}${bold}\u2713 Success${R} ${dim}(${mmtcore.CommonData.formatDuration(result.durationMs)})${R}`);
+          } else {
+            console.log(`\n${red}${bold}\u2717 Failed${R} ${dim}(${mmtcore.CommonData.formatDuration(result.durationMs)})${R}`);
+            if (result.errors.length) {
+              console.log(`${red}Errors:${R}`);
+              result.errors.forEach((e: any) => {
+                const msg = String(e).replace(/^\u2717\s*/, '');
+                console.log(`  ${red}\u2717${R} ${msg}`);
+              });
+            }
           }
         }
         if (outFile) {

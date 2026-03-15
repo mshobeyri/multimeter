@@ -48,8 +48,10 @@ async function runSuiteBundleNode(params: {
   suiteLogger: (level: LogLevel, msg: string) => void;
   baseFileLoader: RunFileOptions['fileLoader'];
   nextIndex: () => number;
+  /** When true, buffer child logs and flush them grouped after the item finishes. */
+  bufferChildLogs?: boolean;
 }): Promise<{success: boolean; threw: boolean; status: SuiteStepStatus}> {
-  const {node, bundle, options, runFile, suiteLogger, baseFileLoader, nextIndex} = params;
+  const {node, bundle, options, runFile, suiteLogger, baseFileLoader, nextIndex, bufferChildLogs} = params;
 
   const currentIndex = nextIndex();
   const childFilePath = resolveRelativeTo(node.path, bundle.rootSuitePath);
@@ -59,11 +61,24 @@ async function runSuiteBundleNode(params: {
   const runId = `suite:${sanitizeIdentifier(bundle.rootSuitePath)}:${suiteRunNonce}:${currentIndex}:${sanitizeIdentifier(childFilePath || node.path)}`;
   const id = node.id;
 
+  // When running in parallel, buffer child logs so output is grouped per file.
+  const logBuffer: Array<{level: LogLevel; msg: string}> = [];
+  const childLogger: (level: LogLevel, msg: string) => void = bufferChildLogs
+    ? (level, msg) => { logBuffer.push({level, msg}); }
+    : suiteLogger;
+
+  const flushLogBuffer = () => {
+    for (const entry of logBuffer) {
+      suiteLogger(entry.level, entry.msg);
+    }
+    logBuffer.length = 0;
+  };
+
   try {
     const childRawText = await baseFileLoader(childFilePath);
     const childDocType = detectDocType(childFilePath, childRawText);
 
-    suiteLogger('info', `Running suite item: ${display}`);
+    childLogger('debug', `Running suite item: ${display}`);
     const childFileLoader = async (requestedPath: string) => {
       const resolved = resolveRelativeTo(requestedPath, childFilePath);
       return await baseFileLoader(resolved);
@@ -86,7 +101,7 @@ async function runSuiteBundleNode(params: {
       fileType: 'raw',
       filePath: childFilePath,
       fileLoader: childFileLoader,
-      logger: suiteLogger,
+      logger: childLogger,
       runId,
       id,
       __mmtIsSuiteBundleChildRun: true,
@@ -109,6 +124,9 @@ async function runSuiteBundleNode(params: {
       });
     }
 
+    // Flush buffered logs now that the child is done.
+    flushLogBuffer();
+
     const status: SuiteStepStatus = childRun.result?.success ? 'passed' : 'failed';
 
     options.reporter && options.reporter({
@@ -124,6 +142,7 @@ async function runSuiteBundleNode(params: {
 
     return {success: status === 'passed', threw: childRun.result?.threw === true, status};
   } catch (e: any) {
+    flushLogBuffer();
     const errorMessage = e?.message || String(e);
     suiteLogger('error', `Failed to run suite item: ${display} - ${errorMessage}`);
 
@@ -153,6 +172,8 @@ async function runSuiteGroup(params: {
 }): Promise<{overallSuccess: boolean; anyThrew: boolean}> {
   const {node, bundle, options, runFile, suiteLogger, baseFileLoader, nextIndex, serverCleanups} = params;
 
+  const isParallel = node.children.length > 1;
+
   const results = await Promise.all(node.children.map(async (child) => {
     if (options.abortSignal?.aborted) {
       return {success: false, threw: false, status: 'failed' as SuiteStepStatus};
@@ -167,6 +188,7 @@ async function runSuiteGroup(params: {
         suiteLogger,
         baseFileLoader,
         nextIndex,
+        bufferChildLogs: isParallel,
       });
     }
 

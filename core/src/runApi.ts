@@ -1,6 +1,6 @@
 import {APIData} from './APIData';
 import {yamlToAPI} from './apiParsePack';
-import {formatDuration as formatDurationHuman, LogLevel} from './CommonData';
+import {LogLevel} from './CommonData';
 import * as JSer from './JSer';
 import {isPlainObject, PreparedRun, RunFileResult, runGeneratedJs, sanitizeIdentifier} from './runCommon';
 import {FileLoader, mergeInputs, RunFileOptions} from './runConfig';
@@ -377,7 +377,33 @@ export function createApiLogHelpers(): ApiLogHelpers {
   }
   function formatDuration(value: unknown): ApiLogRawValue {
     if (typeof value === 'number' && Number.isFinite(value)) {
-      return raw(formatDurationHuman(value));
+      // Inline duration formatting – this function is serialized via
+      // toString() and embedded in generated JS executed in a sandbox,
+      // so it must NOT reference any outer-scope imports.
+      const ms = value;
+      let text: string;
+      if (ms < 0) {
+        text = '0ms';
+      } else if (ms < 1000) {
+        text = `${Math.round(ms)}ms`;
+      } else if (ms < 60000) {
+        const s = Math.floor(ms / 1000);
+        const rem = Math.round(ms % 1000);
+        text = rem > 0 ? `${s}s ${rem}ms` : `${s}s`;
+      } else if (ms < 3600000) {
+        const m = Math.floor(ms / 60000);
+        const s = Math.round((ms % 60000) / 1000);
+        text = s > 0 ? `${m}m ${s}s` : `${m}m`;
+      } else if (ms < 86400000) {
+        const h = Math.floor(ms / 3600000);
+        const m = Math.round((ms % 3600000) / 60000);
+        text = m > 0 ? `${h}h ${m}m` : `${h}h`;
+      } else {
+        const d = Math.floor(ms / 86400000);
+        const h = Math.round((ms % 86400000) / 3600000);
+        text = h > 0 ? `${d}d ${h}h` : `${d}d`;
+      }
+      return raw(text);
     }
     return raw('');
   }

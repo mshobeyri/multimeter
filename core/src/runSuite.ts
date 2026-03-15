@@ -71,7 +71,7 @@ export async function executeSuite(
     return true;
   };
 
-  suiteLogger('info', `Running suite: ${suiteDisplayName}`);
+  suiteLogger('debug', `Running suite: ${suiteDisplayName}`);
 
   let overallSuccess = true;
   const serverCleanups: Array<() => void> = [];
@@ -122,8 +122,9 @@ export async function executeSuite(
       break;
     }
     const group = groups[gi];
-    suiteLogger('info', `Running group: ${gi + 1}/${groups.length}`);
+    suiteLogger('debug', `Running group: ${gi + 1}/${groups.length}`);
 
+    const isParallel = group.length > 1;
     const results = await Promise.all(group.map(async (entry, entryIndex) => {
       if (options.abortSignal?.aborted) {
         return {
@@ -144,6 +145,18 @@ export async function executeSuite(
         : resolveRelativeTo(entry, prepared.filePath);
       const display = basename(childFilePath || entry);
       const runId = `suite:${sanitizeIdentifier(prepared.filePath)}:${gi}:${entryIndex}:${sanitizeIdentifier(childFilePath || entry)}`;
+      // Buffer logs per item when running in parallel so output is grouped.
+      const logBuffer: Array<{level: LogLevel; msg: string}> = [];
+      const childLogger: (level: LogLevel, msg: string) => void = isParallel
+        ? (level, msg) => { logBuffer.push({level, msg}); }
+        : suiteLogger;
+      const flushLogBuffer = () => {
+        for (const bufEntry of logBuffer) {
+          suiteLogger(bufEntry.level, bufEntry.msg);
+        }
+        logBuffer.length = 0;
+      };
+
       try {
         const childRawText = await fileLoader(childFilePath);
         const childDocType = detectDocType(childFilePath, childRawText);
@@ -182,7 +195,7 @@ export async function executeSuite(
           id,
         });
 
-        suiteLogger('info', `Running suite item: ${display}`);
+        childLogger('debug', `Running suite item: ${display}`);
 
         const childFileLoader = async (requestedPath: string) => {
           const resolved = isProjectRootImport(requestedPath) && options.projectRoot
@@ -199,11 +212,13 @@ export async function executeSuite(
           filePath: childFilePath,
           manualInputs: mergedInputsUsed,
           fileLoader: childFileLoader,
-          logger: suiteLogger,
+          logger: childLogger,
           id,
           runId,
           skipServerCleanup: true,
         } as any);
+
+        flushLogBuffer();
 
         const status: SuiteStepStatus = childRun.result?.success ? 'passed' : 'failed';
         const result = {
@@ -231,6 +246,7 @@ export async function executeSuite(
 
         return result;
       } catch (e: any) {
+        flushLogBuffer();
         const errorMessage = e?.message || String(e);
         suiteLogger('error', `Failed to run suite item: ${display} - ${errorMessage}`);
 

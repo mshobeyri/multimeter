@@ -679,12 +679,35 @@ function parseLogLevel(argv) {
 function createLevelLogger(minLevel) {
 	const order = { error: 0, warn: 1, info: 2, debug: 3, trace: 4 };
 	const min = order[minLevel] ?? order.info;
+	const isTTY = process.stdout.isTTY !== false;
+	const R  = isTTY ? '\x1b[0m' : '';
+	const red    = isTTY ? '\x1b[31m' : '';
+	const green  = isTTY ? '\x1b[32m' : '';
+	const yellow = isTTY ? '\x1b[33m' : '';
+	const dim    = isTTY ? '\x1b[2m' : '';
+	const bold   = isTTY ? '\x1b[1m' : '';
 	return (level, msg) => {
 		const lvl = order[level] ?? order.info;
 		if (lvl > min) {
 			return;
 		}
-		process.stdout.write(String(msg) + '\n');
+		const s = String(msg);
+		// Check/Assert results (\u2713 / \u2717 markers)
+		if (s.startsWith('\u2713')) {
+			process.stdout.write(`${green}${s}${R}\n`);
+			return;
+		}
+		if (s.startsWith('\u2717')) {
+			process.stdout.write(`${red}${bold}${s}${R}\n`);
+			return;
+		}
+		switch (level) {
+			case 'error': process.stdout.write(`${red}[${level}] ${s}${R}\n`); break;
+			case 'warn':  process.stdout.write(`${yellow}[${level}] ${s}${R}\n`); break;
+			case 'trace': // fallthrough
+			case 'debug': process.stdout.write(`${dim}[${level}] ${s}${R}\n`); break;
+			default:      process.stdout.write(`[${level}] ${s}\n`); break;
+		}
 	};
 }
 
@@ -994,12 +1017,23 @@ async function main() {
 	}
 
 	if (!parsed.opts.quiet) {
+		const isTTY = process.stdout.isTTY !== false;
+		const R  = isTTY ? '\x1b[0m' : '';
+		const red    = isTTY ? '\x1b[31m' : '';
+		const green  = isTTY ? '\x1b[32m' : '';
+		const bold   = isTTY ? '\x1b[1m' : '';
+		const dim    = isTTY ? '\x1b[2m' : '';
 		process.stdout.write(`Loaded: ${filePath}\n`);
-		process.stdout.write(`Success: ${String(res.result?.success)}\n`);
-		if (Array.isArray(res.result?.errors) && res.result.errors.length) {
-			process.stdout.write('Errors:\n');
-			for (const err of res.result.errors) {
-				process.stdout.write(`- ${String(err)}\n`);
+		if (res.result?.success) {
+			process.stdout.write(`\n${green}${bold}\u2713 Success${R} ${dim}(${res.result?.durationMs ?? 0}ms)${R}\n`);
+		} else {
+			process.stdout.write(`\n${red}${bold}\u2717 Failed${R} ${dim}(${res.result?.durationMs ?? 0}ms)${R}\n`);
+			if (Array.isArray(res.result?.errors) && res.result.errors.length) {
+				process.stdout.write(`${red}Errors:${R}\n`);
+				for (const err of res.result.errors) {
+					const msg = String(err).replace(/^\u2717\s*/, '');
+					process.stdout.write(`  ${red}\u2717${R} ${msg}\n`);
+				}
 			}
 		}
 	}
