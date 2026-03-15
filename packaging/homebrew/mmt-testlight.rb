@@ -1,15 +1,15 @@
 # ──────────────────────────────────────────────────────────────────────
-# Homebrew Formula for testlight
+# Homebrew Formula for mmt-testlight
 # ──────────────────────────────────────────────────────────────────────
 # To use as a tap:
-#   brew tap mshobeyri/testlight https://github.com/mshobeyri/homebrew-testlight
-#   brew install testlight
+#   brew tap mshobeyri/multimeter
+#   brew install mmt-testlight
 #
 # Or install directly:
-#   brew install mshobeyri/testlight/testlight
+#   brew install mshobeyri/multimeter/mmt-testlight
 # ──────────────────────────────────────────────────────────────────────
 
-class Testlight < Formula
+class MmtTestlight < Formula
   desc "CLI runner for Multimeter .mmt API tests, suites, and documentation"
   homepage "https://github.com/mshobeyri/multimeter"
   license "MIT"

@@ -8,3 +8,4 @@ mmtview/node_modules
 mmtview/build
 TODO
 *.vsix
+dist-release

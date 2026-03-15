@@ -73,6 +73,9 @@ TODO
 Dockerfile
 multimeter-*.vsix
 multimeter-*/
+dist-release/
+packaging/
+scripts/
 
 # Logs & temp files
 **/*.log
