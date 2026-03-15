@@ -1,6 +1,7 @@
 # Copilot Instructions for `multimeter` (mmt)
 
 ## Project structure & architecture
+- **Website**: https://mmt.dev (NOT multimeter.dev). Test server: https://test.mmt.dev
 - **Monorepo layout**:
   - `core/`: pure TypeScript library with all parsing, execution and network logic (no VS Code, no `fs` – use dependency injection).
   - `mmtview/`: React + VS Code webview UI for editing/running `.mmt` files.

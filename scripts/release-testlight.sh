@@ -177,7 +177,7 @@ fi
 if $PUBLISH_DOCKER; then
   echo ""
   echo "▶ Step 4c: Pushing Docker image..."
-  DOCKER_REPO="${DOCKER_REPO:-mshobeyri/testlight}"
+  DOCKER_REPO="${DOCKER_REPO:-mshobeyri/mmt-testlight}"
   docker tag "testlight:$VERSION" "$DOCKER_REPO:$VERSION"
   docker tag "testlight:$DOCKER_FLOAT_TAG" "$DOCKER_REPO:$DOCKER_FLOAT_TAG"
   docker push "$DOCKER_REPO:$VERSION"

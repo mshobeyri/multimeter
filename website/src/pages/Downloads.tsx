@@ -312,11 +312,20 @@ export default function Downloads() {
                 </div>
               </div>
               <div className="space-y-3 flex-1">
-                <CodeBlock>docker run --rm -v "$PWD:/w" -w /w mshobeyri/testlight run test.mmt</CodeBlock>
+                <CodeBlock>docker run --rm -v "$PWD:/w" -w /w mshobeyri/mmt-testlight run test.mmt</CodeBlock>
                 <p className="text-xs text-slate-500">
                   Mount your project and run any <code className="text-accent">.mmt</code> file.
                 </p>
               </div>
+              <a
+                href="https://hub.docker.com/r/mshobeyri/mmt-testlight"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 mt-4 border border-border hover:border-slate-500 text-slate-300 hover:text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors"
+              >
+                <ExternalLink size={14} />
+                View on Docker Hub
+              </a>
             </div>
           </FadeIn>
 

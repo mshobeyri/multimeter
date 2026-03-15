@@ -2,15 +2,15 @@
 # Dockerfile — testlight CLI
 # ──────────────────────────────────────────────────────────────────────
 # Build:
-#   docker build -t testlight .
+#   docker build -t mshobeyri/mmt-testlight .
 #
 # Run:
-#   docker run --rm -v "$PWD:/workspace" -w /workspace testlight run test.mmt
-#   docker run --rm -v "$PWD:/workspace" -w /workspace testlight doc api.mmt
+#   docker run --rm -v "$PWD:/workspace" -w /workspace mshobeyri/mmt-testlight run test.mmt
+#   docker run --rm -v "$PWD:/workspace" -w /workspace mshobeyri/mmt-testlight doc api.mmt
 #
 # Both `testlight` and `mmt` commands are available:
-#   docker run --rm testlight --version
-#   docker run --rm --entrypoint mmt testlight --version
+#   docker run --rm mshobeyri/mmt-testlight --version
+#   docker run --rm --entrypoint mmt mshobeyri/mmt-testlight --version
 # ──────────────────────────────────────────────────────────────────────
 
 # ── Stage 1: Build ───────────────────────────────────────────────────
@@ -24,15 +24,16 @@ COPY core/package.json core/
 COPY mmtcli/package.json mmtcli/
 
 # Install all workspace dependencies
-RUN npm ci --ignore-scripts 2>/dev/null || npm install --ignore-scripts
+RUN npm ci 2>/dev/null || npm install
 
 # Copy source
 COPY core/ core/
 COPY mmtcli/ mmtcli/
+COPY res/doc-template.html res/doc-template.html
 
 # Build core and CLI
 RUN cd core && npm run build
-RUN cd mmtcli && npm run build
+RUN npm rebuild esbuild && cd mmtcli && npm run build
 
 # ── Stage 2: Runtime ─────────────────────────────────────────────────
 FROM node:18-alpine
