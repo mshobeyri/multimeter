@@ -9,11 +9,12 @@ const qualities = [
   'One Tool',
   'YAML-based',
   'Dev-First',
-  'UI-based',
+  'Drag & Drop',
   'AI-Friendly',
   'CI/CD Ready',
   'Open Source',
-  'Offline',
+  '100% Local',
+  'No Code'
 ]
 
 const features = [
@@ -24,6 +25,7 @@ const features = [
   'Documentation',
   'WebSocket Test',
   'Test Suites',
+  'Test Reports',
 ]
 
 function SlotMachine() {

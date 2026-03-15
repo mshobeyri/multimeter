@@ -8,7 +8,6 @@ const formats = [
     description: 'The universal CI/CD standard. Native support in GitHub Actions, GitLab CI, Jenkins, Azure Pipelines.',
     color: 'text-orange-400',
     bg: 'bg-orange-400/10',
-    icon: '📋',
   },
   {
     ext: '.html',
@@ -16,7 +15,6 @@ const formats = [
     description: 'Self-contained visual report with dark/light themes, pass/fail indicators, and collapsible sections.',
     color: 'text-sky-400',
     bg: 'bg-sky-400/10',
-    icon: '🌐',
   },
   {
     ext: '.md',
@@ -24,7 +22,6 @@ const formats = [
     description: 'GitHub-flavored Markdown tables. Paste directly into PRs, issues, wikis, or README files.',
     color: 'text-green-400',
     bg: 'bg-green-400/10',
-    icon: '📝',
   },
   {
     ext: '.mmt',
@@ -32,7 +29,6 @@ const formats = [
     description: 'Structured YAML report that opens in Multimeter for interactive review and re-export.',
     color: 'text-purple-400',
     bg: 'bg-purple-400/10',
-    icon: '⚡',
   },
 ]
 
@@ -63,9 +59,6 @@ export default function Reports() {
           {formats.map((fmt, index) => (
             <FadeIn key={fmt.ext} delay={index * 100}>
               <div className="bg-surface border border-border rounded-2xl p-6 hover:border-emerald-400/40 transition-all duration-300 hover:-translate-y-1 h-full">
-                <div className={`${fmt.bg} w-12 h-12 rounded-xl flex items-center justify-center mb-4 text-xl`}>
-                  {fmt.icon}
-                </div>
                 <div className="flex items-center gap-2 mb-2">
                   <h3 className="text-lg font-semibold text-white">{fmt.name}</h3>
                   <code className={`${fmt.color} text-xs bg-surface-light px-1.5 py-0.5 rounded`}>{fmt.ext}</code>
