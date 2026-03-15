@@ -4,11 +4,11 @@ import { motion, useReducedMotion } from 'framer-motion'
 /* ── Content constants ────────────────────────────────────────────── */
 
 const COPILOT_PROMPT =
-  '@Multimeter generate a sample login api with username and password. url should be https://mmt.dev/reflect'
+  '@Multimeter generate a sample login api with username and password. url should be https://test.mmt.dev/echo'
 
 const YAML_LINES: { indent: number; keyword: string; value: string }[] = [
   { indent: 0, keyword: 'type', value: 'api' },
-  { indent: 0, keyword: 'url', value: 'https://mmt.dev/reflect' },
+  { indent: 0, keyword: 'url', value: 'https://test.mmt.dev/echo' },
   { indent: 0, keyword: 'method', value: 'post' },
   { indent: 0, keyword: 'format', value: 'json' },
   { indent: 0, keyword: 'body', value: '' },

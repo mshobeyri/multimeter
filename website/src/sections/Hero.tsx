@@ -3,6 +3,109 @@ import { ArrowRight, Download } from 'lucide-react'
 import FadeIn from '../components/FadeIn'
 import HeroIllustration from '../components/HeroIllustration'
 
+const qualities = [
+  'Git-native',
+  'No Lock-in',
+  'One Tool',
+  'YAML-based',
+  'Dev-First',
+  'UI-based',
+  'AI-Friendly',
+  'CI/CD Ready',
+  'Open Source',
+  'Offline',
+]
+
+const features = [
+  'API Test',
+  'Mock Server',
+  'Load Test',
+  'Smoke Tests',
+  'Documentation',
+  'WebSocket Test',
+  'Test Suites',
+]
+
+function SlotMachine() {
+  const [qualityIndex, setQualityIndex] = useState(0)
+  const [featureIndex, setFeatureIndex] = useState(0)
+  const [isSpinning1, setIsSpinning1] = useState(false)
+  const [isSpinning2, setIsSpinning2] = useState(false)
+
+  useEffect(() => {
+    const interval1 = setInterval(() => {
+      setIsSpinning1(true)
+      setTimeout(() => {
+        setQualityIndex((i) => (i + 1) % qualities.length)
+        setIsSpinning1(false)
+      }, 300)
+    }, 3000)
+
+    const interval2 = setInterval(() => {
+      setIsSpinning2(true)
+      setTimeout(() => {
+        setFeatureIndex((i) => (i + 1) % features.length)
+        setIsSpinning2(false)
+      }, 300)
+    }, 2500)
+
+    return () => {
+      clearInterval(interval1)
+      clearInterval(interval2)
+    }
+  }, [])
+
+  return (
+    <h1 className="text-2xl sm:text-4xl md:text-5xl font-extrabold text-white leading-snug mb-4 tracking-tight">
+      {/* Mobile: stacked layout */}
+      <span className="flex flex-col items-center gap-2 sm:hidden">
+        <span className="overflow-hidden h-[1.3em]">
+          <span
+            className={`inline-block whitespace-nowrap transition-all duration-300 ${
+              isSpinning1 ? 'translate-y-full opacity-0' : 'translate-y-0 opacity-100'
+            }`}
+          >
+            <span className="gradient-text">{qualities[qualityIndex]}</span>
+          </span>
+        </span>
+        <span className="overflow-hidden h-[1.3em]">
+          <span
+            className={`inline-block whitespace-nowrap transition-all duration-300 ${
+              isSpinning2 ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'
+            }`}
+          >
+            <span className="text-accent">{features[featureIndex]}</span>
+          </span>
+        </span>
+      </span>
+
+      {/* Desktop: side by side with fixed center pipe */}
+      <span className="hidden sm:grid grid-cols-[1fr_auto_1fr] items-center max-w-4xl mx-auto">
+        <span className="overflow-hidden h-[1.3em] text-right pr-4">
+          <span
+            className={`inline-block whitespace-nowrap transition-all duration-300 ${
+              isSpinning1 ? 'translate-y-full opacity-0' : 'translate-y-0 opacity-100'
+            }`}
+          >
+            <span className="gradient-text">{qualities[qualityIndex]}</span>
+          </span>
+        </span>
+        <span className="text-slate-500 font-light">|</span>
+        <span className="overflow-hidden h-[1.3em] text-left pl-4">
+          <span
+            className={`inline-block whitespace-nowrap transition-all duration-300 ${
+              isSpinning2 ? '-translate-y-full opacity-0' : 'translate-y-0 opacity-100'
+            }`}
+          >
+            <span className="text-accent">{features[featureIndex]}</span>
+          </span>
+        </span>
+      </span>
+      <span className="text-white">right in your repo.</span>
+    </h1>
+  )
+}
+
 export default function Hero() {
   const heroRef = useRef<HTMLDivElement>(null)
   const [spacerH, setSpacerH] = useState(0)
@@ -24,38 +127,24 @@ export default function Hero() {
   return (
     <>
       {/* Fixed background hero text — stays in place while page scrolls over it */}
-      <div ref={heroRef} className="fixed inset-x-0 top-0 z-0 pt-32 sm:pt-40 pb-20 sm:pb-32 overflow-hidden">
+      <div ref={heroRef} className="fixed inset-x-0 top-0 z-0 pt-48 sm:pt-64 pb-32 sm:pb-48 overflow-hidden">
         {/* Background glow */}
         <div className="absolute inset-0 hero-glow pointer-events-none" />
         <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-primary/5 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center py-8">
           <FadeIn>
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 bg-surface-light border border-border rounded-full px-4 py-1.5 mb-8">
-              <span className="text-xs font-medium text-accent">VS Code Extension</span>
-              <span className="text-xs text-slate-400">•</span>
-              <span className="text-xs text-slate-400">Free & Open Source</span>
-            </div>
+            <SlotMachine />
           </FadeIn>
 
           <FadeIn delay={100}>
-            <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold text-white leading-tight mb-6 tracking-tight">
-              All possible tests for
-              <br />
-              your service —{' '}
-              <span className="gradient-text">as code</span>
-            </h1>
-          </FadeIn>
-
-          <FadeIn delay={200}>
             <p className="text-lg sm:text-xl text-slate-400 max-w-3xl mx-auto mb-10 leading-relaxed">
               A VS Code extension for writing, running, and managing structured
               API tests as version-controlled YAML files. No login. No cloud.
             </p>
           </FadeIn>
 
-          <FadeIn delay={300}>
+          <FadeIn delay={200}>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <a
                 href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter"
@@ -84,13 +173,13 @@ export default function Hero() {
       </div>
 
       {/* Spacer matching the fixed hero height so illustration starts right after */}
-      <div style={{ height: spacerH }} />
+      <div style={{ height: spacerH + 80 }} />
 
       {/* Scrollable illustration — scrolls up over the fixed text */}
       <section className="relative z-10 bg-surface">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <FadeIn delay={400}>
-            <div className="relative -mt-8">
+          <FadeIn delay={300}>
+            <div className="relative">
               <HeroIllustration />
             </div>
           </FadeIn>

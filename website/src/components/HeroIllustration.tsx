@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion'
 
 const YAML_LINES = [
   { indent: 0, keyword: 'type', value: 'api' },
-  { indent: 0, keyword: 'url', value: 'https://mmt.dev/reflect' },
+  { indent: 0, keyword: 'url', value: 'https://test.mmt.dev/echo' },
   { indent: 0, keyword: 'method', value: 'post' },
   { indent: 0, keyword: 'format', value: 'json' },
   { indent: 0, keyword: 'body', value: '' },
@@ -95,7 +95,7 @@ function YamlPanel({ reducedMotion }: { reducedMotion: boolean | null }) {
           observer.unobserve(el)
         }
       },
-      { threshold: 0.2 }
+      { threshold: 0.5, rootMargin: '-40% 0px 0px 0px' }
     )
     observer.observe(el)
     return () => { observer.disconnect() }
@@ -163,7 +163,7 @@ function JsonBlock({ lines, baseDelay, reducedMotion }: { lines: string[]; baseD
       {lines.map((line, i) => (
         <motion.div
           key={i}
-          className="whitespace-nowrap overflow-hidden"
+          className="whitespace-pre overflow-hidden"
           initial={reducedMotion ? { opacity: 1 } : { opacity: 0, x: 6 }}
           animate={{ opacity: 1, x: 0 }}
           transition={
@@ -256,7 +256,7 @@ function ApiPanel({ reducedMotion }: { reducedMotion: boolean | null }) {
           POST
         </span>
         <div className="flex-1 bg-surface-light rounded px-2 py-1 text-[10px] sm:text-xs text-slate-400 font-mono truncate">
-          https://mmt.dev/reflect
+          https://test.mmt.dev/echo
         </div>
       </div>
 
