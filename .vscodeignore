@@ -17,7 +17,7 @@ examples/
 screenshots/
 website/
 demos/
-devdocs/
+AI/
 .github/
 
 # Webview build artifacts (not needed in the vsix)
