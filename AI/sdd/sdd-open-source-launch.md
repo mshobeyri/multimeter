@@ -293,3 +293,306 @@ A: Each version automatically converts to Apache 2.0 four years after release.
 
 **Q: Is BSL considered open source?**
 A: BSL is "source-available." It is not OSI-approved open source, but the source code is fully visible and usable. After the change date, it becomes Apache 2.0 (fully OSI-approved).
+
+---
+
+### 7. CI/CD for Open-Source Contributions
+
+The existing GitHub Actions workflow (`release-testlight.yml`) only handles release builds triggered by version tags. For an open-source project, we need a CI workflow that runs on every PR and push to `master`.
+
+#### 7a. PR Validation Workflow
+
+Location: `.github/workflows/ci.yml`
+
+Triggers:
+- `pull_request` targeting `master`
+- `push` to `master`
+
+Steps:
+1. Checkout code
+2. Setup Node.js (match engine from `package.json`)
+3. `npm install`
+4. `npm run compile --silent` — full build (core, webview, types, lint, esbuild)
+5. `npm run test` — Jest tests
+6. `npm run check-types` — TypeScript type checking
+7. `npm run lint` — ESLint
+
+This ensures no PR can be merged without passing the full build and test suite.
+
+#### 7b. Stale Issue / PR Bot (optional)
+
+Consider enabling the `actions/stale` action to automatically label and close issues/PRs with no activity after 60 days. Keeps the tracker manageable.
+
+---
+
+### 8. Source File License Headers
+
+Add a short BSL 1.1 header comment to all source files (`.ts`, `.tsx`). This is standard practice for BSL-licensed projects (HashiCorp, CockroachDB) and serves as a legal notice even when files are viewed in isolation.
+
+#### Header format
+
+```typescript
+// Copyright (c) Mehrdad Shobeyri. All rights reserved.
+// Licensed under the Business Source License 1.1. See LICENCE.md for details.
+```
+
+#### Scope
+
+Add to all files in:
+- `core/src/**/*.ts`
+- `src/**/*.ts`
+- `mmtview/src/**/*.ts`, `mmtview/src/**/*.tsx`
+- `mmtcli/src/**/*.ts`
+
+Skip generated, vendored, and configuration files (`.json`, `.css`, `.html`, build output).
+
+#### Automation
+
+Add a check script or CI step that verifies new files include the header. Can use `grep -rL` to find files missing the header.
+
+---
+
+### 9. Contributor License Agreement (CLA)
+
+Since the project uses BSL 1.1 (not a standard OSI license), a CLA is important. It ensures that:
+- Contributors grant the project the right to use their contributions under the current and future license
+- The licensor can continue to relicense (e.g., the BSL → Apache 2.0 change date mechanism works)
+- There is no ambiguity about IP ownership of contributions
+
+#### Approach: CLA Assistant (lightweight)
+
+Use [CLA Assistant](https://cla-assistant.io/) — a free GitHub App that:
+- Presents a lightweight CLA to first-time contributors via a PR comment
+- Contributors sign by commenting "I agree" or clicking a link
+- Tracks signatures in a public gist
+- Blocks PR merge until CLA is signed
+
+#### CLA Text (summary)
+
+> By submitting a contribution to this project, you agree that:
+> 1. Your contribution is your original work (or you have the right to submit it)
+> 2. You grant the project maintainer a perpetual, irrevocable, worldwide, royalty-free license to use, modify, and distribute your contribution under the project's current or future license terms
+> 3. You understand this project is licensed under BSL 1.1 and may be relicensed under Apache 2.0 per the change date schedule
+
+---
+
+### 10. Dependency License Audit
+
+Before going public, audit all dependencies to ensure compatibility with BSL 1.1 and no copyleft contamination.
+
+#### Current dependencies (root)
+
+| Package | License | Risk |
+|---|---|---|
+| `ajv` | MIT | None |
+| `axios` | MIT | None |
+| `buffer` | MIT | None |
+| `uuid` | MIT | None |
+| `ws` | MIT | None |
+| `xml-js` | MIT | None |
+| `yaml` | ISC | None |
+
+All current production dependencies use permissive licenses (MIT/ISC). No issues.
+
+#### Audit process
+
+1. Run `npx license-checker --production --summary` in each workspace root
+2. Flag any GPL, AGPL, LGPL, or SSPL dependencies
+3. For transitive dependencies, check the full tree: `npx license-checker --production --csv > licenses.csv`
+4. Re-run this audit before each major release
+
+---
+
+### 11. Distribution Channel Updates
+
+Multimeter is distributed through multiple channels. Each needs license metadata updated.
+
+#### 11a. VS Code Marketplace
+
+- The Marketplace listing pulls license from `package.json` → update to `"BSL-1.1"`
+- Add a "License" note in the extension description on the Marketplace explaining BSL in plain language
+- The Marketplace does accept non-OSI licenses — Bruno (MIT), but also Wallaby.js (proprietary) are listed
+
+#### 11b. npm (testlight CLI)
+
+- `mmtcli/package.json` already has a `license` field → update to `"BSL-1.1"`
+- Add a `LICENSE` file in `mmtcli/` or ensure the root `LICENCE.md` is included in the npm package
+- npm renders license badges automatically from `package.json`
+
+#### 11c. Docker Hub
+
+- Update the Docker Hub description (via `scripts/update-dockerhub-readme.sh`) to mention BSL 1.1
+- Add a `LICENCE.md` copy inside the Docker image (already included if `COPY . .` is in Dockerfile)
+
+#### 11d. Homebrew
+
+- Homebrew formula in `packaging/homebrew/` should reference the license
+- Homebrew accepts non-OSI licenses but flags them — set `license "BSL-1.1"` in the formula
+
+#### 11e. GitHub Action
+
+- The custom action in `.github/actions/testlight/` should reference the license in its `action.yml` metadata
+- Users consuming the action in their CI are not redistributing — no license issue
+
+---
+
+### 12. Announcement & Launch Plan
+
+#### 12a. Pre-launch (1–2 weeks before)
+
+- [ ] Finalize all community files (CONTRIBUTING, COC, SECURITY, templates)
+- [ ] Complete secrets audit and repository cleanup
+- [ ] Set up CLA Assistant
+- [ ] Create CI workflow and verify it passes
+- [ ] Prepare announcement blog post for mmt.dev
+- [ ] Prepare social media posts (Twitter/X, LinkedIn, Reddit)
+
+#### 12b. Launch day
+
+- [ ] Flip repository to Public
+- [ ] Publish blog post on mmt.dev: "Multimeter is now source-available"
+- [ ] Post to:
+  - Reddit: r/webdev, r/node, r/programming, r/vscode
+  - Hacker News (Show HN)
+  - Twitter/X with demo GIF/video
+  - LinkedIn
+  - Dev.to article
+- [ ] Update VS Code Marketplace description to mention source-available
+- [ ] Pin an issue: "Welcome! Start here" with links to docs, contributing guide, and discussion board
+
+#### 12c. Post-launch (first 2 weeks)
+
+- [ ] Monitor issues and discussions daily — fast response to early adopters builds trust
+- [ ] Label "good first issue" on 5–10 easy tasks to attract contributors
+- [ ] Respond to HN/Reddit comments
+- [ ] Track GitHub stars, forks, and traffic via Insights
+
+---
+
+### 13. Governance Model
+
+#### Maintainership
+
+- **BDFL (Benevolent Dictator For Life)**: Mehrdad Shobeyri — final authority on merges, releases, and roadmap
+- As the project grows, appoint trusted contributors as **committers** with merge access to specific areas (e.g., `docs/`, `mmtview/`, `mmtcli/`)
+
+#### Decision-making
+
+- Small changes: PR review and merge by any committer
+- Significant changes (new features, breaking changes, architecture): require discussion in a GitHub Discussion or issue before implementation
+- License or governance changes: BDFL decision, with community input period
+
+#### Roadmap visibility
+
+- Maintain a public `ROADMAP.md` or use GitHub Projects board to show planned features
+- Label issues with `roadmap` to indicate planned work vs. community requests
+
+---
+
+### 14. Change Date Tracking
+
+BSL 1.1 requires tracking when each version converts to Apache 2.0. Maintain a change date schedule.
+
+#### Change date table
+
+| Version | Release Date | Change Date (Apache 2.0) |
+|---|---|---|
+| 1.14.3 | 2026-03-15 | 2030-03-15 |
+| *(future versions appended here)* | | |
+
+#### Implementation
+
+- Add a `CHANGE_DATES.md` file to the repo tracking this schedule
+- Automate: update the table as part of the release workflow (the `release-testlight.yml` action can append the new version + date)
+- Include a note in `LICENCE.md` referencing this file
+
+---
+
+## Appendix A: BSL 1.1 Full Text Template
+
+The full BSL 1.1 text to be placed in `LICENCE.md`:
+
+```
+Business Source License 1.1
+
+Parameters
+
+Licensor:             Mehrdad Shobeyri
+Licensed Work:        Multimeter <version>
+                      The Licensed Work is (c) Mehrdad Shobeyri.
+Additional Use Grant: You may use the Licensed Work for any purpose except
+                      offering a commercial product or service that competes
+                      with Multimeter's primary functionality: API testing,
+                      test execution, API documentation generation, or mock
+                      server capabilities. Internal use, CI/CD integration,
+                      and non-competing commercial use are permitted without
+                      restriction.
+Change Date:          Four years from the date of each Licensed Work release.
+Change License:       Apache License, Version 2.0
+
+For information about alternative licensing arrangements for the Licensed Work,
+please contact: mehrdad@mmt.dev
+
+Notice
+
+Business Source License 1.1 (BSL 1.1) is not an Open Source license. However,
+the Licensed Work will eventually be made available under an Open Source License,
+as stated in this License.
+
+<Full BSL 1.1 legal text from https://mariadb.com/bsl11/ inserted here>
+```
+
+---
+
+## Appendix B: Checklist Summary
+
+A single consolidated checklist for the entire launch:
+
+**License**
+- [ ] Replace `LICENCE.md` content with BSL 1.1 text + parameters
+- [ ] Update root `package.json` license to `"BSL-1.1"`
+- [ ] Update `mmtcli/package.json` license to `"BSL-1.1"`
+- [ ] Add license headers to all source files
+- [ ] Create `CHANGE_DATES.md`
+
+**Community**
+- [ ] Create `CONTRIBUTING.md`
+- [ ] Create `CODE_OF_CONDUCT.md` (Contributor Covenant v2.1)
+- [ ] Create `SECURITY.md`
+- [ ] Set up CLA Assistant
+
+**GitHub**
+- [ ] Create `.github/ISSUE_TEMPLATE/bug_report.md`
+- [ ] Create `.github/ISSUE_TEMPLATE/feature_request.md`
+- [ ] Create `.github/PULL_REQUEST_TEMPLATE.md`
+- [ ] Create `.github/workflows/ci.yml` (PR validation)
+- [ ] Set repo description, topics, website, social preview
+- [ ] Enable Discussions
+- [ ] Configure branch protection on `master`
+- [ ] Pin "Welcome" issue
+
+**README**
+- [ ] Add BSL 1.1 license badge
+- [ ] Add Contributing section
+- [ ] Add License section
+
+**Hygiene**
+- [ ] Run secrets audit on full git history
+- [ ] Review `AI/sdd/` content for sensitive strategies
+- [ ] Verify `.gitignore` completeness
+- [ ] Audit dependency licenses
+
+**Distribution**
+- [ ] Update VS Code Marketplace listing
+- [ ] Update npm package license metadata
+- [ ] Update Docker Hub description
+- [ ] Update Homebrew formula license
+- [ ] Update GitHub Action metadata
+
+**Launch**
+- [ ] Prepare blog post for mmt.dev
+- [ ] Prepare social media posts
+- [ ] Flip repo to Public
+- [ ] Post announcements (Reddit, HN, Twitter/X, LinkedIn, Dev.to)
+- [ ] Label 5–10 "good first issue" items
+- [ ] Monitor and respond to early feedback
