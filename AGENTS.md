@@ -8,7 +8,10 @@
   - `mmtcli/`: CLI app; binary is `testlight`, used for CI and local runs.
   - Root `src/`: VS Code extension host code (activation, editor provider, assistant, network bridge).
   - `docs/`: user-facing documentation (API, test, env, suite, CLI, convertor, etc.).
-  - `devdocs/`: internal development docs — SDDs, competitive strategy, architectural decision records. Not shipped to users.
+  - `AI/`: internal AI-assisted development artifacts. Not shipped to users.
+    - `sdd/`: Software Design Documents (SDDs) — architectural decisions, competitive strategy, feature designs.
+    - `skill/`: reusable skill/procedure documents (e.g. release & deploy workflows).
+    - `doc/`: handover and context documents for AI agent sessions.
 - **Single source of truth** for running `.mmt` files is `core/src/runner.ts`:
   - Use `runner.runFile({ rawFile, filePath, inputs, envvar, fileLoader, jsRunner, logger })`.
   - Do **not** reimplement parsing or execution pipelines in the extension or CLI – always go through `runner`.
