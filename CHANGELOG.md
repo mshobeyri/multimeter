@@ -2,6 +2,20 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.14.4]
+
+- Refresh the website for the open source launch, including BSL licensing and updated messaging
+- Improve the website hero, reports, comparison, FAQ, and release/download presentation
+- Fix packaging/build issues and follow-up CLI issues after the last release
+- Update release metadata and supporting docs
+
+## [1.14.3]
+
+- Add npm package distribution
+- Expand docs and examples, including suite and mock server samples
+- Add an open action for exported report types
+- Fix suite parallel execution, panel sizing, imported item titles, and environment variable handling during tests
+
 ## [1.13.0]
 
 - Add `environment` field for suite files to configure presets, env files, and inline variables
