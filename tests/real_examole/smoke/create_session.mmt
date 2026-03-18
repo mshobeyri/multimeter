@@ -1,0 +1,19 @@
+type: test
+title: ""
+import:
+  login: +/api/login.mmt
+inputs:
+  username: mehrdad@gmail.com
+  password: "123456"
+outputs:
+  session: ""
+steps:
+  - call: login
+    inputs:
+      username: i:username
+      password: i:password
+    expect:
+      token: i:username
+    report: all
+  - set:
+      outputs.session: r:uuid

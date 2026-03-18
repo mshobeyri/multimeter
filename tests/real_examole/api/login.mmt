@@ -1,0 +1,14 @@
+type: api
+title: Login
+description: Authenticates a user and returns a session token
+inputs:
+  username: alice@example.com
+  password: secret123
+outputs:
+  token: body.body.username
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  username: i:username
+  password: i:password
