@@ -1,0 +1,16 @@
+{
+  "name": "mmt-playwright-demo",
+  "version": "0.0.0",
+  "private": true,
+  "devDependencies": {
+    "playwright": "^1.44.0"
+  },
+  "scripts": {
+    "demo": "node playwright-demo.js",
+    "demo-desktop": "node playwright-vscode-desktop.js",
+    "api-demo": "node api_demo.js"
+  },
+  "dependencies": {
+    "ghost-cursor-playwright": "^2.1.0"
+  }
+}

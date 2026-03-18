@@ -2,7 +2,7 @@
 .vscode/**
 .vscode-test/**
 
-# Folders
+# Folders]
 bin/
 src/
 core/src/
@@ -17,6 +17,7 @@ examples/
 screenshots/
 website/
 demos/
+playwright-demo/
 AI/
 .github/
 
