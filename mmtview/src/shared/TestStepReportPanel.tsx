@@ -21,14 +21,43 @@ interface CallResultDetails {
   outputs?: Record<string, any>;
   statusCode?: number;
 }
-/** Format a body string (try JSON pretty-print). */
+/** Format a body string (try JSON pretty-print, then XML indent). */
 function tryFormatBody(body: string | undefined): string {
   if (!body) { return ''; }
   try {
     return JSON.stringify(JSON.parse(body), null, 2);
   } catch {
-    return body;
+    // pass
   }
+  if (isXml(body)) {
+    return formatXml(body);
+  }
+  return body;
+}
+
+/** Check whether a string looks like XML. */
+function isXml(s: string): boolean {
+  const trimmed = s.trim();
+  return trimmed.startsWith('<') && trimmed.endsWith('>');
+}
+
+/** Simple XML indenter for display purposes. */
+function formatXml(xml: string): string {
+  let formatted = '';
+  let indent = 0;
+  const parts = xml.replace(/(>)(<)/g, '$1\n$2').split('\n');
+  for (const raw of parts) {
+    const node = raw.trim();
+    if (!node) { continue; }
+    if (node.startsWith('</')) {
+      indent = Math.max(indent - 1, 0);
+    }
+    formatted += '  '.repeat(indent) + node + '\n';
+    if (node.startsWith('<') && !node.startsWith('</') && !node.startsWith('<?') && !node.endsWith('/>') && !node.includes('</')) {
+      indent++;
+    }
+  }
+  return formatted.trimEnd();
 }
 
 /** Unescape common escape sequences for display. */
@@ -67,7 +96,9 @@ const BodyBlock: React.FC<{ label: string; body?: string }> = ({ label, body }) 
   if (!body) { return null; }
   const displayBody = formatted ? tryFormatBody(body) : body;
   const canFormat = (() => {
-    try { JSON.parse(body); return true; } catch { return false; }
+    try { JSON.parse(body); return true; } catch { /* not JSON */ }
+    if (isXml(body)) { return true; }
+    return false;
   })();
   return (
     <div style={{ marginTop: 6 }}>
@@ -413,8 +444,25 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                     aria-label={meta.title}
                   ></span>
                   <div style={{ flex: 1 }}>
-                    <div style={{ marginTop: 2 }}>
-                      {report.title || (report.stepType === 'check' ? 'Check' : 'Assert')}
+                    <div style={{ marginTop: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span style={{ flex: 1 }}>{report.title || (report.stepType === 'check' ? 'Check' : 'Assert')}</span>
+                      {hasDetails && (
+                        <button
+                          className="action-button"
+                          type="button"
+                          onClick={() => setExpandedDetails((prev) => ({ ...prev, [reportKey]: !isDetailsExpanded }))}
+                          style={{
+                            padding: 0,
+                            border: 'none',
+                            background: 'transparent',
+                            cursor: 'pointer',
+                          }}
+                          title={isDetailsExpanded ? 'Hide details' : 'Show details'}
+                        >
+                          <span className={`codicon ${isDetailsExpanded ? 'codicon-circle-filled' : 'codicon-circle-outline'}`} />
+                        </button>
+                      )}
+                      <span style={{ opacity: 0.7, fontSize: 12 }}>{new Date(report.timestamp).toLocaleTimeString()}</span>
                     </div>
 
                     {isDetailsExpanded && (
@@ -459,25 +507,7 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {hasDetails && (
-                      <button
-                        className="action-button"
-                        type="button"
-                        onClick={() => setExpandedDetails((prev) => ({ ...prev, [reportKey]: !isDetailsExpanded }))}
-                        style={{
-                          padding: 0,
-                          border: 'none',
-                          background: 'transparent',
-                          cursor: 'pointer',
-                        }}
-                        title={isDetailsExpanded ? 'Hide details' : 'Show details'}
-                      >
-                        <span className={`codicon ${isDetailsExpanded ? 'codicon-circle-filled' : 'codicon-circle-outline'}`} />
-                      </button>
-                    )}
-                    <div style={{ opacity: 0.7, textAlign: 'right' }}>{new Date(report.timestamp).toLocaleTimeString()}</div>
-                  </div>
+
                 </div>
               );
             })}
