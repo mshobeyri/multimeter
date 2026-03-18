@@ -1205,3 +1205,209 @@ describe('input defaults with e: references', () => {
     expect(js).not.toMatch(/timestamp\s*=\s*`c:epoch`/);
   });
 });
+
+describe('same-name file imports', () => {
+  it('generates correct code when importing a file with the same basename via +/ path', async () => {
+    // Scenario: regression/create_session.mmt imports +/smoke/create_session.mmt
+    // which itself imports +/api/login.mmt
+    const mock = createTestFileLoaderMock({
+      '/project/smoke/create_session.mmt': [
+        'type: test',
+        'title: Create Session',
+        'import:',
+        '  login: +/api/login.mmt',
+        'inputs:',
+        '  username: ""',
+        '  password: ""',
+        'steps:',
+        '  - call: login',
+        '    inputs:',
+        '      username: i:username',
+        '      password: i:password',
+      ].join('\n'),
+      '/project/api/login.mmt': [
+        'type: api',
+        'protocol: http',
+        'method: POST',
+        'url: http://example.com/login',
+      ].join('\n'),
+    });
+    setFileLoader(mock.fileLoader);
+
+    const js = await rootTestToJsfunc({
+      name: 'testflow',
+      test: {
+        import: {create_session: '+/smoke/create_session.mmt'},
+        steps: [
+          {call: 'create_session', inputs: {username: 'user@test.com', password: '123'}} as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/project/regression/create_session.mmt',
+      projectRoot: '/project',
+    });
+
+    // The imported smoke create_session function must be defined
+    expect(js).toContain('const create_session_ = async');
+    // The API login function must be defined
+    expect(js).toContain('const login_ = async');
+    // The root function must wire up the alias correctly
+    expect(js).toContain('const create_session = create_session_');
+    // The login alias inside the smoke test must be wired
+    expect(js).toContain('const login = login_');
+  });
+
+  it('generates distinct function names when two files share the same basename', async () => {
+    const mock = createTestFileLoaderMock({
+      '/project/a/helper.mmt': 'type: test\ntitle: Helper A\nsteps:\n  - print: a\n',
+      '/project/b/helper.mmt': 'type: test\ntitle: Helper B\nsteps:\n  - print: b\n',
+    });
+    setFileLoader(mock.fileLoader);
+
+    const js = await rootTestToJsfunc({
+      name: 'testflow',
+      test: {
+        import: {
+          helperA: '/project/a/helper.mmt',
+          helperB: '/project/b/helper.mmt',
+        },
+        steps: [
+          {call: 'helperA'} as any,
+          {call: 'helperB'} as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/project/main.mmt',
+    });
+
+    // Both functions must exist with distinct names
+    expect(js).toContain('const helper_ = async');
+    expect(js).toContain('const helper_1_ = async');
+    // Aliases must point to the correct distinct functions
+    expect(js).toContain('const helperA = helper_');
+    expect(js).toContain('const helperB = helper_1_');
+  });
+
+  it('resolves nested +/ imports correctly in alias maps', async () => {
+    // Parent imports child via +/, child imports grandchild via +/
+    const mock = createTestFileLoaderMock({
+      '/project/tests/child.mmt': [
+        'type: test',
+        'import:',
+        '  api: +/apis/shared.mmt',
+        'steps:',
+        '  - call: api',
+      ].join('\n'),
+      '/project/apis/shared.mmt': [
+        'type: api',
+        'protocol: http',
+        'method: GET',
+        'url: http://example.com',
+      ].join('\n'),
+    });
+    setFileLoader(mock.fileLoader);
+
+    const js = await rootTestToJsfunc({
+      name: 'testflow',
+      test: {
+        import: {child: '+/tests/child.mmt'},
+        steps: [{call: 'child'} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/project/runner.mmt',
+      projectRoot: '/project',
+    });
+
+    // The API function must be emitted
+    expect(js).toContain('const shared_ = async');
+    // The child test must use the correct alias for the API
+    expect(js).toContain('const api = shared_');
+    // The root must wire up the child alias
+    expect(js).toContain('const child = child_');
+  });
+
+  it('handles files with same titles imported from different directories', async () => {
+    const mock = createTestFileLoaderMock({
+      '/project/auth/login.mmt': [
+        'type: test',
+        'title: Login Flow',
+        'steps:',
+        '  - print: auth login',
+      ].join('\n'),
+      '/project/admin/login.mmt': [
+        'type: test',
+        'title: Login Flow',
+        'steps:',
+        '  - print: admin login',
+      ].join('\n'),
+    });
+    setFileLoader(mock.fileLoader);
+
+    const js = await rootTestToJsfunc({
+      name: 'testflow',
+      test: {
+        import: {
+          authLogin: '/project/auth/login.mmt',
+          adminLogin: '/project/admin/login.mmt',
+        },
+        steps: [
+          {call: 'authLogin'} as any,
+          {call: 'adminLogin'} as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/project/main.mmt',
+    });
+
+    // Both must exist with distinct names (same basename → collision suffix)
+    expect(js).toContain('const login_ = async');
+    expect(js).toContain('const login_1_ = async');
+    // Aliases must be correctly assigned
+    expect(js).toContain('const authLogin = login_');
+    expect(js).toContain('const adminLogin = login_1_');
+  });
+
+  it('handles deeply nested imports where intermediate file shares name with leaf', async () => {
+    // root imports setup.mmt, which imports api/setup.mmt (same basename)
+    const mock = createTestFileLoaderMock({
+      '/project/tests/setup.mmt': [
+        'type: test',
+        'import:',
+        '  api_setup: +/api/setup.mmt',
+        'steps:',
+        '  - call: api_setup',
+      ].join('\n'),
+      '/project/api/setup.mmt': [
+        'type: api',
+        'protocol: http',
+        'method: POST',
+        'url: http://example.com/setup',
+      ].join('\n'),
+    });
+    setFileLoader(mock.fileLoader);
+
+    const js = await rootTestToJsfunc({
+      name: 'testflow',
+      test: {
+        import: {setup: '+/tests/setup.mmt'},
+        steps: [{call: 'setup'} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/project/runner.mmt',
+      projectRoot: '/project',
+    });
+
+    // Both setup files must get distinct function names
+    expect(js).toContain('const setup_ = async');
+    expect(js).toContain('const setup_1_ = async');
+    // The nested alias must point to the correct function
+    expect(js).toContain('const api_setup = setup_1_');
+    // The root alias must point to the test setup
+    expect(js).toContain('const setup = setup_');
+  });
+});

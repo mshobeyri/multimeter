@@ -117,10 +117,8 @@ const buildAliasMaps =
           }
           const requestedPath =
               resolveRequestedAgainst(resolvedPath, requestedPathRaw, projectRoot);
-          const match = resolved.find(
-              r => r.importName === key && r.requestedPath === requestedPath);
-          const fn =
-              match ? publicNameForPath.get(match.resolvedPath) : undefined;
+          // Look up the public function name directly by resolved path
+          const fn = publicNameForPath.get(requestedPath);
           aliasMap[key] =
               fn || defaultFunctionNameForRequestedPath(requestedPath);
         }
@@ -130,7 +128,7 @@ const buildAliasMaps =
 
 const emitResolved = async(
     resolved: any[], publicNameForPath: Map<string, string>,
-    tracker: ImportTracker): Promise<string[]> => {
+    tracker: ImportTracker, projectRoot?: string): Promise<string[]> => {
   const results: string[] = [];
 
   for (const imp of [...resolved].reverse()) {
@@ -156,6 +154,7 @@ const emitResolved = async(
             envVars: {},
             filePath: resolvedPath,
             importTracker: tracker,
+            projectRoot,
           },
           false, tracker);
 
@@ -205,7 +204,7 @@ export const importsToJsfuncDetailed = async(
     const resolved = await resolveImports(imports, rootPath, projectRoot);
     const publicNameForPath = computePublicNames(resolved);
     buildAliasMaps(resolved, publicNameForPath, tracker, projectRoot);
-    const results = await emitResolved(resolved, publicNameForPath, tracker);
+    const results = await emitResolved(resolved, publicNameForPath, tracker, projectRoot);
     const functionNameByResolvedPath = toFunctionNameMap(publicNameForPath);
 
     return {js: results.join('\n'), functionNameByResolvedPath};
