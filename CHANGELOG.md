@@ -2,6 +2,17 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.14.6]
+
+- Finalize the 1.14.6 release metadata and changelog
+
+## [1.14.5]
+
+- Fix XML rendering and report box issues
+- Add and refine the real example project
+- Fix root path handling issues
+- Add Playwright basics example
+
 ## [1.14.4]
 
 - Refresh the website for the open source launch, including BSL licensing and updated messaging
