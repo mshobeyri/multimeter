@@ -161,6 +161,9 @@ const emitResolved = async(
       results.push(flowJs + '\n');
     } else if (type === 'api') {
       const api = yamlToAPI(content);
+      if (!api.url) {
+        throw new Error(`Imported API "${resolvedPath}" is missing the required "url" field`);
+      }
       if (api.title) { tracker.setFileTitle(resolvedPath, api.title); }
       results.push(
           await apiToJSfunc({
@@ -209,8 +212,8 @@ export const importsToJsfuncDetailed = async(
 
     return {js: results.join('\n'), functionNameByResolvedPath};
   } catch (error) {
-    console.error('Error importing functions:', error);
-    return {js: '', functionNameByResolvedPath: {}};
+    const msg = error instanceof Error ? error.message : String(error);
+    throw new Error(`Import error: ${msg}`);
   }
 };
 

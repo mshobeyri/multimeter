@@ -249,35 +249,21 @@ describe('CSV import parsing', () => {
   });
 
 
-  it('detects circular imports and logs error (graceful handling)',
+  it('detects circular imports and throws import error',
      async () => {
-       const errorLogs: any[] = [];
-       const originalError = console.error;
-       console.error = (...args: any[]) => {
-         errorLogs.push(args);
-       };
+       setFileLoader(async (p: string) => {
+         if (p === 'a.mmt') {
+           return 'type: test\nimport:\n  b: b.mmt\n';
+         }
+         if (p === 'b.mmt') {
+           return 'type: test\nimport:\n  a: a.mmt\n';
+         }
+         return '';
+       });
 
-       try {
-         setFileLoader(async (p: string) => {
-           if (p === 'a.mmt') {
-             return 'type: test\nimport:\n  b: b.mmt\n';
-           }
-           if (p === 'b.mmt') {
-             return 'type: test\nimport:\n  a: a.mmt\n';
-           }
-           return '';
-         });
-
-         // Circular import: a -> b -> a
-         const result = await importsToJsfunc({a: 'a.mmt'});
-         expect(result).toBe('');
-         const hasCircular = errorLogs.some(
-             (log: any) => log[0]?.includes('Error importing functions:') &&
-                 log[1]?.message?.includes('Circular import detected'));
-         expect(hasCircular).toBe(true);
-       } finally {
-         console.error = originalError;
-       }
+       // Circular import: a -> b -> a
+       await expect(importsToJsfunc({a: 'a.mmt'}))
+           .rejects.toThrow(/Import error.*Circular import detected/);
      });
 
   it('resolves nested import paths relative to each file', async () => {
@@ -303,31 +289,18 @@ describe('CSV import parsing', () => {
         expect.arrayContaining(['/root/a.mmt', '/b.mmt', '/c.mmt']));
   });
 
-  it('logs missing-file error when import content is empty', async () => {
-    const errorLogs: any[] = [];
-    const originalError = console.error;
-    console.error = (...args: any[]) => {
-      errorLogs.push(args);
-    };
-    try {
-      setFileLoader(async (p: string) => {
-        if (p === 'a.mmt') {
-          return 'type: test\nimport:\n  b: b.mmt\n';
-        }
-        if (p === 'b.mmt') {
-          return '';
-        }
+  it('throws import error when import content is empty', async () => {
+    setFileLoader(async (p: string) => {
+      if (p === 'a.mmt') {
+        return 'type: test\nimport:\n  b: b.mmt\n';
+      }
+      if (p === 'b.mmt') {
         return '';
-      });
-      const bundle = await importsToJsfunc({a: 'a.mmt'});
-      expect(bundle).toBe('');
-      const hasMissing = errorLogs.some(
-          (log: any) => log[0]?.includes('Error importing functions:') &&
-              log[1]?.message?.includes('Imported file not found'));
-      expect(hasMissing).toBe(true);
-    } finally {
-      console.error = originalError;
-    }
+      }
+      return '';
+    });
+    await expect(importsToJsfunc({a: 'a.mmt'}))
+        .rejects.toThrow(/Import error.*Imported file not found/);
   });
 
   it('names imported test functions by title and emits in reverse order',
