@@ -42,27 +42,32 @@ This file at the project root serves two purposes: it defines shared environment
 ```yaml
 type: env
 variables:
-  API_URL:
+  api_url:
     local: http://localhost:3000
     staging: https://staging.petstore.io
     production: https://api.petstore.io
-  ADMIN_USER: admin@petstore.io
-  ADMIN_PASS: secret123
-  DEFAULT_LIMIT: 20
+  admin_user:
+    - admin@petstore.io
+  admin_pass:
+    - secret123
+  default_limit:
+    - 20
+    - 5
+    - 50
 
 presets:
   runner:
     dev:
-      API_URL: local
-      DEFAULT_LIMIT: 5
+      api_url: local
+      default_limit: "5"
     staging:
-      API_URL: staging
+      api_url: staging
     prod:
-      API_URL: production
+      api_url: production
 ```
 
 What you get:
-- `e:API_URL` resolves to the selected URL everywhere
+- `e:api_url` resolves to the selected URL everywhere
 - `presets.runner.dev` switches all variables at once — one flag in the UI or CLI
 - `+/` imports in any file resolve relative to this directory
 
@@ -75,7 +80,7 @@ What you get:
 ```yaml
 type: api
 title: Login
-description: |
+description: |-
   Authenticate a user and receive a JWT token.
 
   <<i:email>> User email address
@@ -87,16 +92,16 @@ tags:
   - auth
   - smoke
 inputs:
-  email: e:ADMIN_USER
-  password: e:ADMIN_PASS
+  email: e:admin_user
+  password: e:admin_pass
 outputs:
   token: body[token]
   userId: body[user][id]
 setenv:
-  TOKEN: token
+  token: token
 method: post
 format: json
-url: <<e:API_URL>>/auth/login
+url: <<e:api_url>>/auth/login
 body:
   email: i:email
   password: i:password
@@ -129,7 +134,7 @@ Features shown:
 ```yaml
 type: api
 title: Create Pet
-description: |
+description: |-
   Add a new pet to the store.
 
   <<i:name>> Pet name
@@ -150,10 +155,9 @@ outputs:
   createdAt: body[createdAt]
 method: post
 format: json
-url: <<e:API_URL>>/pets
+url: <<e:api_url>>/pets
 headers:
-  Authorization: Bearer <<e:TOKEN>>
-body:
+  Authorization: Bearer <<e:token>>
   name: i:name
   species: i:species
   price: i:price
@@ -162,14 +166,14 @@ body:
 
 Features shown:
 - **`r:uuid`** generates a random UUID for each request
-- **Bearer token from environment** via `<<e:TOKEN>>` (set by login's `setenv`)
+- **Bearer token from environment** via `<<e:token>>` (set by login's `setenv`)
 
 ### `apis/pets/get_pet.mmt` — Get a pet by ID
 
 ```yaml
 type: api
 title: Get Pet
-description: |
+description: |-
   Retrieve a pet by its ID.
 
   <<i:petId>> The pet's unique identifier
@@ -187,9 +191,9 @@ outputs:
   price: body[price]
 method: get
 format: json
-url: <<e:API_URL>>/pets/<<i:petId>>
+url: <<e:api_url>>/pets/<<i:petId>>
 headers:
-  Authorization: Bearer <<e:TOKEN>>
+  Authorization: Bearer <<e:token>>
 ```
 
 ### `apis/pets/list_pets.mmt` — List pets
@@ -197,7 +201,7 @@ headers:
 ```yaml
 type: api
 title: List Pets
-description: |
+description: |-
   List all pets with optional filtering.
 
   <<o:total>> Total number of pets matching the query
@@ -208,17 +212,17 @@ outputs:
   firstId: body[items][0][id]
 method: get
 format: json
-url: <<e:API_URL>>/pets
+url: <<e:api_url>>/pets
 headers:
-  Authorization: Bearer <<e:TOKEN>>
+  Authorization: Bearer <<e:token>>
 query:
-  limit: e:DEFAULT_LIMIT
+  limit: e:default_limit
   sort: name
 ```
 
 Features shown:
 - **Query parameters** as a map (merged into the URL)
-- **Environment variable in query** (`e:DEFAULT_LIMIT` preserves its number type)
+- **Environment variable in query** (`e:default_limit` preserves its number type)
 - **Deep output extraction** with bracket path (`body[items][0][id]`)
 
 ### `apis/orders/place_order.mmt` — Place an order
@@ -226,7 +230,7 @@ Features shown:
 ```yaml
 type: api
 title: Place Order
-description: |
+description: |-
   Place an order for a pet.
 
   <<i:petId>> ID of the pet to order
@@ -244,9 +248,9 @@ outputs:
   status: body[status]
 method: post
 format: json
-url: <<e:API_URL>>/orders
+url: <<e:api_url>>/orders
 headers:
-  Authorization: Bearer <<e:TOKEN>>
+  Authorization: Bearer <<e:token>>
   X-Request-Id: r:uuid
 body:
   petId: i:petId
@@ -295,16 +299,16 @@ tags:
 import:
   login: +/apis/auth/login.mmt
 inputs:
-  email: e:ADMIN_USER
-  password: e:ADMIN_PASS
+  email: e:admin_user
+  password: e:admin_pass
 steps:
   - call: login
     id: doLogin
     inputs:
       email: i:email
       password: i:password
-  - assert: doLogin.status == 200
-  - check: doLogin.token != null
+  - assert: ${doLogin.status} == 200
+  - check: ${doLogin.token} != null
   - print: "Logged in, token starts with ${doLogin.token.substring(0, 10)}…"
 ```
 
@@ -332,7 +336,7 @@ steps:
   - call: login
     id: auth
 
-  - assert: auth.status == 200
+  - assert: ${auth.status} == 200
 
   # create a pet
   - call: create
@@ -342,7 +346,7 @@ steps:
       species: dog
       price: 49.99
 
-  - assert: newPet.status == 201
+  - assert: ${newPet.status} == 201
 
   # use JS helper to validate the ID format
   - js: |
@@ -354,12 +358,12 @@ steps:
   - call: get
     id: fetched
     inputs:
-      petId: newPet.id
+      petId: ${newPet.id}
 
-  - assert: fetched.status == 200
-  - check: fetched.name == "Rex"
-  - check: fetched.species == "dog"
-  - check: fetched.price == 49.99
+  - assert: ${fetched.status} == 200
+  - check: ${fetched.name} == "Rex"
+  - check: ${fetched.species} == "dog"
+  - check: ${fetched.price} == 49.99
 
   - print: "Created and verified pet ${newPet.id}"
 ```
@@ -374,7 +378,7 @@ Features shown:
 ```yaml
 type: test
 title: Order Flow
-description: |
+description: |-
   Full flow: login → create pet → place order → verify.
   Uses stages for parallel setup and sequential ordering.
 tags:
@@ -391,11 +395,11 @@ stages:
     steps:
       - call: login
         id: doLogin
-      - assert: doLogin.status == 200
+      - assert: ${doLogin.status} == 200
 
   - id: create_pets
     title: Create Pets from CSV
-    depends_on: auth
+    after: auth
     steps:
       - data: pets_csv
       - for: const pet of pets_csv
@@ -403,32 +407,32 @@ stages:
           - call: create
             id: created
             inputs:
-              name: pet.name
-              species: pet.species
-              price: pet.price
-          - check: created.status == 201
+              name: ${pet.name}
+              species: ${pet.species}
+              price: ${pet.price}
+          - check: ${created.status} == 201
 
       - set:
-          lastPetId: created.id
+          lastPetId: ${created.id}
 
   - id: place_order
     title: Place Order
-    depends_on: create_pets
-    condition: created.status == 201
+    after: create_pets
+    condition: ${created.status} == 201
     steps:
       - call: order
         id: myOrder
         inputs:
-          petId: lastPetId
+          petId: ${lastPetId}
           quantity: 2
-      - assert: myOrder.status == 201
-      - check: myOrder.status == "placed"
+      - assert: ${myOrder.status} == 201
+      - check: ${myOrder.status} == "placed"
 
       - print: "Order ${myOrder.orderId} placed for pet ${lastPetId}"
 ```
 
 Features shown:
-- **Stages** with `depends_on` for sequential ordering
+- **Stages** with `after` for sequential ordering
 - **`condition`** to skip a stage if a previous step failed
 - **CSV data import** and **`for` loop** for data-driven testing
 - **`data`** step binds the CSV into scope
@@ -441,7 +445,7 @@ Features shown:
 ```yaml
 type: doc
 title: Pet Store API
-description: |
+description: |-
   Complete API reference for the Pet Store service.
   Covers authentication, pet management, and order placement.
 logo: https://petstore.io/logo.png
@@ -461,8 +465,8 @@ services:
     sources:
       - +/apis/orders
 env:
-  API_URL: https://api.petstore.io
-  TOKEN: your-token-here
+  api_url: https://api.petstore.io
+  token: your-token-here
 html:
   triable: true
   cors_proxy: "https://corsproxy.io/?"
@@ -470,7 +474,7 @@ html:
 
 Features shown:
 - **Services** group APIs by domain in the rendered HTML
-- **`env`** replaces `e:API_URL` placeholders in the rendered docs
+- **`env`** replaces `e:api_url` placeholders in the rendered docs
 - **`html.triable`** adds interactive "Try" buttons to every endpoint
 - **`cors_proxy`** routes Try-It requests through a CORS proxy
 - **`logo`** and **`description`** render in the HTML header
@@ -506,7 +510,7 @@ All tests run in **parallel** by default. This suite finishes as fast as the slo
 ```yaml
 type: suite
 title: Full Regression
-description: |
+description: |-
   Runs auth first, then CRUD and order tests in parallel.
 tags:
   - regression
@@ -577,40 +581,13 @@ testlight print-js tests/order_flow_test.mmt \
 
 ---
 
-## 7. Load testing with metrics
-
-Add `metrics` to any test to run it under load:
-
-```yaml
-type: test
-title: Login Load Test
-metrics:
-  repeat: 500
-  threads: 20
-  rampup: 10s
-  duration: 2m
-import:
-  login: +/apis/auth/login.mmt
-steps:
-  - call: login
-    id: doLogin
-    inputs:
-      email: r:email
-      password: r:uuid
-  - assert: doLogin.status == 200
-```
-
-This runs 500 iterations across 20 concurrent threads, ramping up over 10 seconds, with a 2-minute time limit. Each iteration gets a random email and password via `r:email` and `r:uuid`.
-
----
-
 ## Feature summary
 
 | Feature | Where it appears |
 |---------|-----------------|
 | Environment variables & presets | `multimeter.mmt` |
 | `e:VAR` / `<<e:VAR>>` tokens | All API files |
-| `r:` random tokens | `create_pet.mmt`, `place_order.mmt`, load test |
+| `r:` random tokens | `create_pet.mmt`, `place_order.mmt` |
 | `c:` current tokens | `place_order.mmt` |
 | Inputs / outputs | All API files |
 | `setenv` (promote to env) | `login.mmt` |
@@ -624,12 +601,11 @@ This runs 500 iterations across 20 concurrent threads, ramping up over 10 second
 | `js` step with helper module | `pet_crud_test.mmt` |
 | `for` loop with CSV data | `order_flow_test.mmt` |
 | `data` step | `order_flow_test.mmt` |
-| Stages with `depends_on` | `order_flow_test.mmt` |
+| Stages with `after` | `order_flow_test.mmt` |
 | Stage `condition` | `order_flow_test.mmt` |
 | `delay` | — (use `- delay: 2s` in any step list) |
 | `if` / `else` | — (use `- if: expr` with nested `steps`) |
 | `repeat` | — (use `- repeat: 3` or `- repeat: 30s`) |
-| Metrics (load testing) | Load test example |
 | Doc with services | `catalog.mmt` |
 | Try It (interactive docs) | `catalog.mmt` |
 | Suite parallel execution | `smoke.mmt` |

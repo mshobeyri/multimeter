@@ -1,0 +1,12 @@
+type: api
+title: Get User by ID
+description: GET request with a path parameter to fetch a user
+inputs:
+  user_id: "42"
+outputs:
+  id: body.id
+  name: body.name
+  email: body.email
+url: http://localhost:9099/users/<<i:user_id>>
+method: get
+format: json

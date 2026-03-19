@@ -1,0 +1,28 @@
+type: test
+title: Test calling imported APIs
+description: |-
+  Imports two APIs using relative paths and calls each one.
+  Shows same-directory and subfolder relative imports.
+import:
+  echo: ../apis/echo_api.mmt
+  greet: ../apis/greet_api.mmt
+inputs:
+  message: hello imports
+  name: multimeter
+steps:
+  - call: echo
+    id: echoResult
+    title: Call echo API (relative import from parent dir)
+    inputs:
+      message: i:message
+    expect:
+      status_code: 200
+      echoed_message: <<i:message>>
+  - call: greet
+    id: greetResult
+    title: Call greet API (relative import from parent dir)
+    inputs:
+      name: i:name
+    expect:
+      status_code: == 200
+      greeted_name: == <<i:name>>

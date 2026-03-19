@@ -9,7 +9,7 @@ Testlight compiles your `.mmt`/YAML tests to JS on the fly and executes them wit
 - Local (via npx):
   - npx testlight run examples/test/login_and_get_user_info.mmt --quiet
 - Binary (recommended for CI):
-  - See mmtcli README for pkg-built binaries under `dist/bin/`
+  - See mmtcli README for pkg-built binaries under `bin/`
 
 ## Commands
 
@@ -57,6 +57,23 @@ Testlight compiles your `.mmt`/YAML tests to JS on the fly and executes them wit
   - Minimal output
 - -o, --out <file>
   - Write result JSON to a file
+- --report <format>
+  - Generate a test report after the run: `junit`, `mmt`, `html`, or `md`
+  - See [reports.md](reports.md) for format details and CI/CD integration
+- --report-file <path>
+  - Custom output path for the report file (default depends on format)
+
+## Environment Priority
+
+When running suite files, environment variables are resolved in this priority order (highest wins):
+
+1. **CLI `-e` flags** — explicit overrides always take precedence
+2. **Suite `environment.variables`** — inline variables in the suite file
+3. **Suite `environment.preset`** — preset from suite's env file or `multimeter.mmt`
+4. **CLI `--env-file` + `--preset`** — external env file settings
+5. **Project defaults** — base values from `multimeter.mmt`
+
+Suite-level environment configuration (from `environment:` field) only applies when the suite is run directly. When imported by another suite, the root suite's environment takes precedence.
 
 ## Examples
 
@@ -97,6 +114,7 @@ Testlight compiles your `.mmt`/YAML tests to JS on the fly and executes them wit
 - Quoted values are kept as strings: `-e port="08080"`.
 - When `--env-file` is relative, it resolves from the shell cwd first, then the test file directory.
 - Use `--out` to capture structured results in CI.
+- Suite files with an `export:` field automatically generate reports after completion—no `--report` flag needed.
 
 ---
 
@@ -106,5 +124,8 @@ Testlight compiles your `.mmt`/YAML tests to JS on the fly and executes them wit
 - [Environment](./environment-mmt.md) — variables and presets (`--env-file`, `--preset`)
 - [Doc](./doc-mmt.md) — author doc files for `testlight doc`
 - [Suite](./suite-mmt.md) — run suites from the CLI
-- [Sample Project](./sample-project.md) — full walkthrough with CLI examples
+- [Reports](./reports.md) — generate JUnit XML, HTML, Markdown, or MMT reports (`--report`)
+- [Mock Server](./mock-server.md) — `type: server` files started by tests/suites during CLI runs
+- [Certificates](./certificates-mmt.md) — SSL/TLS configuration for CLI runs
 - [Logging](./logging.md) — log levels and where logs appear for each entry point
+- [Sample Project](./sample-project.md) — full walkthrough with CLI examples

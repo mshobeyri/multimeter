@@ -29,7 +29,7 @@ import:                        # Optional. Map of aliases to other .mmt files th
 inputs:                        # Optional. Input parameters for this API, with default values.
 	<name>: JSON value           # string | number | boolean | null | object.
 outputs:                       # Optional. Named values extracted from the response (body/headers/cookies).
-	<name>: string               # Extractor expression, e.g. body[token] or regex ...
+	<name>: string               # Extractor expression, e.g. body[token] or body[/regex_pattern/]
 setenv:                        # Optional. Promote outputs into environment variables for later steps/tests.
 	<env_name>: <output_name>    # env_name is snake_case; output_name must exist in outputs.
 

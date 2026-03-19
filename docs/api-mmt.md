@@ -14,11 +14,11 @@ Supported:
 ### HTTP GET
 ```yaml
  type: api
- format: json   # affects default Content-Type and body handling
+ url: <<e:api_url>>/users   # protocol inferred as http from URL
  method: get
- url: <<e:API_URL>>/users   # protocol inferred as http from URL
+ format: json   # affects default Content-Type and body handling
  headers:
-   Session: e:TOKEN
+   Session: e:token
  query:
    limit: "10"
    sort: desc
@@ -37,14 +37,14 @@ See “Dynamic values: random and current” below for details and examples.
 ```yaml
  type: api
  protocol: http
- format: json
+ url: <<e:api_url>>/login
  method: post
- url: <<e:API_URL>>/login
+ format: json
  headers:
    X-App: multimeter
  body:
-   username: e:USER
-   password: e:PASS
+   username: e:user
+   password: e:pass
 ```
 
 Change `format` to `xml` to send an XML body instead of JSON.
@@ -54,18 +54,18 @@ Change `format` to `xml` to send an XML body instead of JSON.
 # text
  type: api
  protocol: http
- format: text
+ url: <<e:api_url>>/echo
  method: post
- url: <<e:API_URL>>/echo
+ format: text
  body: |
    hello world
 
 # xml
  type: api
  protocol: http
- format: xml
+ url: <<e:api_url>>/xml
  method: post
- url: <<e:API_URL>>/xml
+ format: xml
  body: |
    <root>
     <value>42</value>
@@ -76,10 +76,10 @@ Change `format` to `xml` to send an XML body instead of JSON.
 ```yaml
  type: api
  protocol: ws
- format: json
  url: ws://localhost:8080/ws
+ format: json
  headers:
-   X-Auth: e:TOKEN
+   X-Auth: e:token
  # drive messages in tests via call steps
 ```
 Tip: For WS, use tests to send/receive frames with `call` steps that invoke this API.
@@ -99,13 +99,13 @@ The next sections cover each category in detail.
 The following fields make it easy to search, filter, and auto-document APIs:
 - title: API title
 - tags: related tags
-- description: short explanation of the API (supports Markdown formatting: **bold**, *italic*, `code`, lists, headings, and tables)
+- description: short explanation of the API (supports Markdown formatting: **bold**, *italic*, `code`, lists, headings, and tables). For multiline descriptions use `|-` (literal block, strip trailing newline).
 
 Sample:
 ```yaml
 type: api
 title: generate session
-description: |
+description: |-
   Create a session from **username** and **password**.
 
   Returns:
@@ -118,10 +118,10 @@ tags:
 
 ### File references in descriptions
 
-Use the `ref` prefix to link to another file from a description. The path is resolved relative to the current `.mmt` file.
+A description is automatically recognised as a file reference when it is a single token (no spaces), on one line, and contains `.md#`. The path is resolved relative to the current `.mmt` file.
 
 ```yaml
-description: ref README.md#-why-multimeter
+description: README.md#-why-multimeter
 ```
 
 - In the **editor**, the path is highlighted and Ctrl+click (Cmd+click on macOS) opens the referenced file.
@@ -129,19 +129,13 @@ description: ref README.md#-why-multimeter
 - In **generated HTML docs**, it renders as a highlighted link.
 - In **generated Markdown docs**, it renders as a standard markdown link.
 
-You can also use `ref` inline alongside other text:
-
-```yaml
-description: See ref docs/api-mmt.md#inputs for details
-```
-
 ## Request
 - protocol: `http` or `ws` (optional - inferred from URL if not specified)
   - URLs starting with `ws://` or `wss://` default to `ws`
   - All other URLs default to `http`
+- url: server URL
 - method: HTTP method `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
 - format: body format `json` | `xml` | `text`
-- url: server URL
 - headers: HTTP headers
 - query: query parameters for HTTP requests
 - cookies: HTTP cookies
@@ -153,17 +147,17 @@ As noted in the quick start, the body can be raw XML, JSON, or text. It can also
 Sample:
 ```yaml
 protocol: http
-method: get
 url: x.com/blog
+method: get
 headers:
-  Authorization: Bearer <<e:TOKEN>>
+  Authorization: Bearer <<e:token>>
   Accept: application/json
 query:
   limit: "20"
   page: "1"
   # will be converted to x.com/blog?limit=20&page=1
 cookies:
-  session: e:SESSION_ID
+  session: e:session_id
 ```
 
 ### Headers
@@ -210,9 +204,9 @@ You can also write `i:name` if it doesn’t conflict with surrounding text. When
  inputs:
    userId: string
  protocol: http
- format: json
+ url: <<e:api_url>>/users/<<i:userId>>
  method: get
- url: <<e:API_URL>>/users/<<i:userId>>
+ format: json
 ```
 
 Notes
@@ -220,20 +214,55 @@ Notes
 - Declare input names under `inputs:` (string/number/boolean/null)
 
 ### outputs
-Pull fields from the response to populate outputs. Use one of the following per key:
-- A regex applied to the raw response body text: `regex ...`
-- A bracket path starting with `body[...]` to read structured fields
-- `headers[...]` to extract response headers
-- `cookies[...]` to extract response cookies
+Map response data to named output variables. Keys are the exported names (used in tests via `expect` or `id`), values are extraction expressions using these keywords:
+
+| Keyword | Description |
+|---------|-------------|
+| `body` | Full response body, or path into it: `body.field`, `body[field][sub]` |
+| `header` / `headers` | All response headers, or a specific one: `header[Content-Type]`, `headers.Authorization` |
+| `status` | HTTP status code (number, e.g. 200, 404) |
+| `details` | Full request/response details as JSON string |
+| `duration` | Response time in milliseconds (number) |
+| `cookies` | Response cookies: `cookies[name]`, `cookies.name` |
+
+Additional extraction styles:
+- **Dot notation** (preferred): `body.field`, `body.nested.items.0.key` — shorter and easier to read
+- **Bracket notation**: `body[field]`, `body[nested][items][0]` — required when keys contain dots (e.g. `body[my.key.name]`)
+- **Regex extraction**: `body[/pattern/]` or `body./pattern/` — apply a regex to the response body text
+- **Header regex**: `headers[/pattern/]` or `headers./pattern/` — apply a regex to the response headers
+- **Cookie regex**: `cookies[/pattern/]` or `cookies./pattern/` — apply a regex to the response cookies
 - A JSONPath starting with `$` (e.g., `$[body][user][id]` or `$body[user]`)
+
+> **Tip:** Prefer dot notation for readability. Use bracket notation only when a key literally contains a `.` character, since dot notation would interpret it as a path separator.
+
+> **Regex tip:** If the regex contains a capture group `(...)`, the first group is returned. If there is no capture group, the entire match is returned.
 
 Example
 ```yaml
 outputs:
-  name: regex message(.*)
+  # Plain keywords
+  status_code: status
+  response_time: duration
+  req_res_details: details
+
+  # Dot notation (preferred)
+  method: body.method
+  message: body.body.message
+
+  # Bracket notation (needed for keys with dots)
+  weird_key: body[some.dotted.key]
+
+  # Regex extraction from body
+  name: body[/message(.*)/]
+  email: body./"email":\s"([^"]+)"/
+
+  # Regex extraction from headers
+  auth_token: headers[/Bearer (\S+)/]
+
+  # Other extraction styles
   from: body[from][0]
-  method: body[method]
   token: headers[Authorization]
+  content_type: header[Content-Type]
   session: cookies[session_id]
   userId: $[body][user][id]
 ```
@@ -342,11 +371,11 @@ examples:
  outputs:
   total: body[total]
  protocol: http
- format: json
+ url: <<e:api_url>>/users/search
  method: get
- url: <<e:API_URL>>/users/search
+ format: json
  headers:
-   Authorization: Bearer <<e:TOKEN>>
+   Authorization: Bearer <<e:token>>
    X-Client: test
  query:
    q: john
@@ -354,7 +383,7 @@ examples:
  cookies:
    locale: en-US 
  setenv:
-  LAST_TOTAL: total
+  last_total: total
 ```
 
 ### WS
@@ -362,10 +391,10 @@ examples:
  type: api
  title: Notifications stream
  protocol: ws
- format: json
  url: wss://example.com/ws
+ format: json
  headers:
-   X-Auth: e:TOKEN
+   X-Auth: e:token
  # Drive messages in a test using steps
 ```
 
@@ -380,10 +409,10 @@ examples:
 - inputs: record<string, string | number | boolean | null>
 - outputs: record<string, string>
 - setenv: record<string, string>
+- url: string (can contain query string)
 - protocol: `http` or `ws`
 - method: HTTP verbs (HTTP only)
 - format: `json` | `xml` | `text`
-- url: string (can contain query string)
 - headers: record<string, string>
 - query: record<string, string>
 - cookies: record<string, string>
@@ -397,6 +426,9 @@ examples:
 - [Environment](./environment-mmt.md) — define variables and presets used by `e:VAR` tokens
 - [Doc](./doc-mmt.md) — generate browsable HTML documentation from API files
 - [Suite](./suite-mmt.md) — group and run multiple tests and APIs together
+- [Mock Server](./mock-server.md) — point API URLs at a mock server for local development
 - [Testlight CLI](./testlight.md) — run APIs and tests from the command line
-- [Sample Project](./sample-project.md) — full walkthrough with APIs, tests, suites, and docs
+- [Reports](./reports.md) — generate JUnit XML, HTML, Markdown, or MMT reports from test runs
+- [Certificates](./certificates-mmt.md) — SSL/TLS and mTLS configuration
 - [Logging](./logging.md) — log levels for inputs, outputs, requests, and responses
+- [Sample Project](./sample-project.md) — full walkthrough with APIs, tests, suites, and docs

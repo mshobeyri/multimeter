@@ -149,7 +149,7 @@ Example API file:
 ```yaml
 type: api
 title: Create user
-description: |
+description: |-
   Create a new user account.
 
   <<i:username>> The desired username (3-20 characters)
@@ -163,7 +163,7 @@ inputs:
   email: string
   role: viewer
 method: post
-url: <<e:API_URL>>/users
+url: <<e:api_url>>/users
 ```
 
 In the rendered doc, each `<<i:...>>` and `<<o:...>>` annotation appears as a row in the parameter table for that API.
@@ -179,7 +179,7 @@ API `description` fields support a subset of Markdown formatting that renders in
 - `> headings` (blockquote-style headings)
 - Bullet lists (`-` or `*`) and numbered lists (`1.`)
 - Pipe tables (`| col1 | col2 |`)
-- `ref path/to/file.md#section` — file reference link (highlighted in HTML, clickable in editor and preview)
+- `path/to/file.md#section` — file reference link (auto-detected when single token with `.md#`; highlighted in HTML, clickable in editor and preview)
 
 This applies to descriptions in both `type: api` files and the doc-level `description` field.
 
@@ -204,5 +204,7 @@ This applies to descriptions in both `type: api` files and the doc-level `descri
 - [Test](./test-mmt.md) — orchestrate flows calling APIs
 - [Environment](./environment-mmt.md) — variables and presets used by `e:VAR` tokens in docs
 - [Suite](./suite-mmt.md) — group and run multiple tests together
+- [Mock Server](./mock-server.md) — mock server files that can appear alongside APIs
 - [Testlight CLI](./testlight.md) — generate docs from the command line (`testlight doc`)
+- [Convertor](./convertor.md) — import OpenAPI/Postman specs, then document them with `type: doc`
 - [Sample Project](./sample-project.md) — full walkthrough with APIs, tests, suites, and docs

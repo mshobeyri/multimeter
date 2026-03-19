@@ -1,0 +1,13 @@
+type: test
+title: Passing Test
+description: A test that should pass
+import:
+  echo: ../api/echo.mmt
+steps:
+  - call: echo
+    id: result
+    inputs:
+      message: pass test
+    expect:
+      status_code: 200
+  - assert: ${result.status_code} == 200

@@ -1,0 +1,15 @@
+type: test
+title: Test echo API (fail case)
+description: Calls the echo API and expects a wrong message — should fail
+import:
+  echo: ../api/echo_api.mmt
+inputs:
+  message: hello from suite
+steps:
+  - call: echo
+    id: result
+    inputs:
+      message: i:message
+    expect:
+      echoed_message: this will not match
+    report: all

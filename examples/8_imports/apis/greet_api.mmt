@@ -1,0 +1,13 @@
+type: api
+title: Greet API
+description: Posts a name and returns a greeting
+inputs:
+  name: world
+outputs:
+  greeted_name: body.body.name
+  status_code: status
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  name: i:name

@@ -1,0 +1,13 @@
+type: api
+title: Get Profile
+description: Fetches a user profile
+inputs:
+  token: placeholder
+outputs:
+  status_code: status
+  name: body.body.token
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  token: i:token

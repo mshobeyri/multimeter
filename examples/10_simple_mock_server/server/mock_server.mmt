@@ -1,0 +1,44 @@
+type: server
+title: Sample Mock Server
+description: A mock server with GET and POST endpoints
+port: 9099
+cors: true
+endpoints:
+  - method: get
+    path: /health
+    status: 200
+    format: json
+    body:
+      status: ok
+      uptime: 12345
+  - method: get
+    path: /users/:id
+    status: 200
+    format: json
+    body:
+      id: :id
+      name: Test User
+      email: testuser@example.com
+  - method: post
+    path: /users
+    status: 201
+    format: json
+    body:
+      id: r:uuid
+      message: User created
+  - method: get
+    path: /search
+    status: 200
+    format: json
+    body:
+      query: received
+      results:
+        - id: 1
+          title: First result
+        - id: 2
+          title: Second result
+fallback:
+  status: 404
+  format: json
+  body:
+    error: Not Found

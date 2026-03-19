@@ -1,0 +1,15 @@
+type: api
+title: Create User
+description: POST request to create a new user
+inputs:
+  name: Alice
+  email: alice@example.com
+outputs:
+  id: body.id
+  message: body.message
+url: http://localhost:9099/users
+method: post
+format: json
+body:
+  name: i:name
+  email: i:email

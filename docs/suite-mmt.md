@@ -64,6 +64,44 @@ In the example above, the execution flow is as follows:
 4. The suite waits for both `test3.mmt` and `test4.mmt` to complete.
 5. `test5.mmt` is run.
 
+### Mock Servers in Suites
+
+#### Suite-level servers (`servers:` field)
+
+Use the top-level `servers:` field to list mock server files that should start **before** any tests and remain running for the **entire** suite duration. They are stopped automatically when the suite finishes.
+
+> **Note:** `servers` is a **root-only** field — it only takes effect when the suite is run directly. If Suite A imports Suite B, Suite B's `servers` field is ignored. Servers should be declared in the root suite to avoid conflicts.
+
+```yaml
+type: suite
+title: Integration Suite
+servers:
+  - mocks/user-service.mmt
+  - mocks/auth-service.mmt
+tests:
+  - tests/login.mmt
+  - tests/profile.mmt
+```
+
+This is the recommended way to manage mock servers in suites. It is safe even when the same test file appears multiple times, or when multiple tests use the same server — the server is started once and kept alive for all of them.
+
+#### Inline servers in `tests:`
+
+You can also include `type: server` files directly in the `tests` array. Servers start before tests in the same stage and stop automatically when the suite completes.
+
+```yaml
+type: suite
+title: Integration Suite with Inline Mock Server
+tests:
+  - mocks/user-service.mmt    # type: server — starts first
+  - mocks/auth-service.mmt    # runs in parallel with above
+  - then
+  - tests/login.mmt           # tests run after servers are ready
+  - tests/profile.mmt
+```
+
+This lets you set up complex integration environments declaratively, without manual server management. The suite runner ensures servers are running before dependent tests execute.
+
 ## UI and Execution
 
 When you open a suite file, the Multimeter panel displays the items in the suite, grouped by execution stage. Each item is shown with its name and an icon that indicates its type.
@@ -79,6 +117,7 @@ Each item in the suite tree is shown with an icon indicating its type:
 - **API**: HTTP or WebSocket API file
 - **Test**: Test file with steps/stages
 - **Suite**: A nested suite (suites can include other suites recursively)
+- **Server**: Mock server file (`type: server`) — started before tests in the same stage
 - **Missing**: The referenced file could not be found at the specified path
 - **Cycle**: A circular reference was detected (Suite A includes Suite B which includes Suite A)
 
@@ -109,19 +148,117 @@ The suite runner executes stages sequentially. Within each stage (items between 
 
 ---
 
+### Environment Configuration
+
+Use the `environment` field to configure environment variables for suite runs. This is a **root-only** field — it only takes effect when the suite is run directly, not when imported by another suite.
+
+```yaml
+type: suite
+title: Integration Tests
+environment:
+  preset: staging                       # preset from multimeter.mmt
+  file: ./envs/custom.mmt               # optional: use another env file
+  variables:                            # inline variables
+    API_URL: http://localhost:8080
+    TIMEOUT: 30000
+tests:
+  - tests/login.mmt
+  - tests/profile.mmt
+```
+
+#### Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `preset` | `string` | Preset name to select from `multimeter.mmt` (or from `file` if specified) |
+| `file` | `string` | Path to an env file to load (relative to suite or `+/` for project root) |
+| `variables` | `Record<string, any>` | Inline key-value environment variables |
+
+#### Priority Order
+
+Environment variables are resolved with different priority depending on the entry point:
+
+**CLI (testlight):**
+1. CLI `-e` flags (highest)
+2. Suite `environment.variables`
+3. Suite `environment.preset`
+4. CLI `--env-file` + `--preset`
+5. Project defaults (lowest)
+
+**VS Code UI:**
+1. Suite `environment.variables` (highest)
+2. Suite `environment.preset`
+3. VS Code local storage variables
+4. Environment panel settings
+5. Project defaults (lowest)
+
+---
+
+### Exports
+
+Use the `export` field to automatically generate reports after suite completion. This is a **root-only** field — it only takes effect when the suite is run directly.
+
+```yaml
+type: suite
+title: CI Suite
+export:
+  - ./reports/results.xml     # JUnit XML
+  - ./reports/results.html    # HTML report
+  - ./reports/results.md      # Markdown report
+  - +/reports/results.mmt     # MMT format (project root)
+tests:
+  - tests/login.mmt
+  - tests/profile.mmt
+```
+
+#### Supported Export Formats
+
+| Extension | Format | Description |
+|-----------|--------|-------------|
+| `.xml` | JUnit XML | Standard CI format (Jenkins, GitLab, etc.) |
+| `.html` | HTML | Human-readable report with styling |
+| `.md` | Markdown | Plain text report for docs/PRs |
+| `.mmt` | MMT | Structured result data in YAML |
+
+Exports are generated **after the entire suite finishes** (regardless of success or failure). Paths can be relative to the suite file or use `+/` for project root paths. Parent directories are created automatically if they don't exist.
+
+---
+
+### Root-Only Fields
+
+The following fields only take effect when the suite is the **root entry point** (run directly). When Suite A imports Suite B, these fields in Suite B are ignored:
+
+| Field | Behavior |
+|-------|----------|
+| `servers` | Starts mock servers before tests |
+| `environment` | Configures environment variables |
+| `export` | Generates reports after completion |
+
+This design prevents conflicts when suites are composed hierarchically.
+
+---
+
 ## Reference (types)
 - type: `suite`
 - title: string
 - description: string (supports Markdown)
 - tags: string[]
+- servers: string[] (paths to `type: server` `.mmt` files — started before tests, kept running for the suite)
+- export: string[] (root-only, paths to report files)
 - tests: string[] (paths to `.mmt` files; use `then` to separate sequential stages)
+- environment: object (root-only)
+  - preset: string
+  - file: string
+  - variables: object
 
 ---
 
 ## See also
 - [Test](./test-mmt.md) — define test flows that suites can run
 - [API](./api-mmt.md) — define APIs that suites can run directly
+- [Mock Server](./mock-server.md) — define mock servers to include in suites
 - [Environment](./environment-mmt.md) — variables and presets, including `+/` project root imports
+- [Reports](./reports.md) — generate test reports from suite runs
 - [Testlight CLI](./testlight.md) — run suites from the command line
 - [Logging](./logging.md) — log levels for suite items and child test runs
 - [Sample Project](./sample-project.md) — full walkthrough with APIs, tests, suites, and docs

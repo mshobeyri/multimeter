@@ -1,0 +1,15 @@
+type: test
+title: Import test with relative paths
+description: |-
+  Imports a test using a relative path and calls it.
+  The imported test itself imports and calls APIs, so this demonstrates
+  nested test-to-test imports with relative path resolution.
+import:
+  api_test: ./tests/test_api.mmt
+steps:
+  - call: api_test
+    id: result
+    title: Run API test (relative import)
+    inputs:
+      message: from relative import
+      name: relative call

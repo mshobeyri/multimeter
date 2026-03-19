@@ -1,0 +1,25 @@
+type: api
+title: Create user
+description: |
+  Create a new user account with the given details.
+
+  <<i:username>> The desired username (3-20 characters)
+  <<i:email>> User's email address
+  <<i:role>> User role: `admin`, `editor`, or `viewer`
+
+  <<o:echoed_username>> The username as confirmed by the server
+  <<o:method>> HTTP method used (should be POST)
+inputs:
+  username: alice
+  email: alice@example.com
+  role: editor
+outputs:
+  echoed_username: body[body][username]
+  method: body[method]
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  username: i:username
+  email: i:email
+  role: i:role

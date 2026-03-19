@@ -16,18 +16,32 @@ Top-level keys and types:
 ```yaml
 type: suite                      # REQUIRED, must be exactly "suite"
 
-title: string                    # REQUIRED, human-readable suite name
+title: string                    # optional, human-readable suite name
 tags:                            # optional, for grouping
   - string
 
 description: string              # optional, short explanation
+
+servers:                         # optional, root-only: mock servers started before tests
+  - path/to/server.mmt           # type: server files; kept running for the entire suite
 
 tests:                           # REQUIRED, array of files to run
   - path/to/file1.mmt
   - path/to/file2.mmt
   - then
   - path/to/file3.mmt
+
+environment:                     # optional, root-only: configure env for suite runs
+  preset?: string                # preset name from multimeter.mmt (or from file)
+  file?: string                  # path to an env file to load
+  variables?:                    # inline key-value environment variables
+    <name>: <value>
+
+export:                          # optional, root-only: generate reports after completion
+  - path/to/report.xml           # supported: .xml (JUnit), .html, .md, .mmt
 ```
+
+> **Root-only fields**: `servers`, `environment`, and `export` only take effect when the suite is run directly. When imported by another suite, these fields are ignored.
 
 ---
 
@@ -36,6 +50,7 @@ tests:                           # REQUIRED, array of files to run
 The `tests` array defines the execution flow.
 - All files listed between `then` separators (or before the first one) are run in parallel.
 - The groups of files separated by `then` are run sequentially.
+- **Server files** (`type: server`) can be included — they start before tests in the same stage and stop when the suite completes.
 
 Example: `[a, b, then, c]` will run `a` and `b` in parallel, and once both are finished, it will run `c`.
 
@@ -83,6 +98,58 @@ tests:
   - ./tests/test2.mmt
   - then
   - ./tests/test3.mmt
+```
+
+### 4. Suite with mock servers
+
+User asks: "Create a suite that starts a mock server before running integration tests."
+
+```yaml
+type: suite
+title: Integration with Mock Server
+tags: [integration]
+tests:
+  - ./mocks/user-service.mmt    # type: server — starts first
+  - then
+  - ./tests/user_crud.mmt
+  - ./tests/user_auth.mmt
+```
+
+Servers start before tests in the same stage and stop when the suite finishes.
+
+### 5. Suite with top-level servers and environment
+
+User asks: "Create an integration suite with a mock server, using the staging preset."
+
+```yaml
+type: suite
+title: Integration Suite
+tags: [integration]
+servers:
+  - ./mocks/user-service.mmt
+  - ./mocks/auth-service.mmt
+environment:
+  preset: staging
+tests:
+  - ./tests/login.mmt
+  - ./tests/profile.mmt
+```
+
+Using the `servers` field is recommended over placing servers in `tests` — it keeps them running for the entire suite and avoids ordering issues.
+
+### 6. Suite with report exports
+
+User asks: "Create a CI suite that exports JUnit XML and HTML reports."
+
+```yaml
+type: suite
+title: CI Suite
+export:
+  - ./reports/results.xml
+  - ./reports/results.html
+tests:
+  - ./tests/login.mmt
+  - ./tests/profile.mmt
 ```
 
 ---

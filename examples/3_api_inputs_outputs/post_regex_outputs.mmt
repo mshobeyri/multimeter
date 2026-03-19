@@ -1,0 +1,22 @@
+type: api
+title: Extract with regex
+description: |
+  Extract values from the response using regular expressions.
+  Use `body[/pattern/]` or `body./pattern/` to extract from the body.
+  Use `headers[/pattern/]` or `headers./pattern/` to extract from headers.
+  If the regex contains a capture group `(...)`, the first group is returned;
+  otherwise the entire match is returned.
+inputs:
+  username: alice
+  email: alice@example.com
+outputs:
+  extracted_name: body[/"username":\s"(alice)"/]
+  extracted_email: body[/"email":\s"([^"]+)"/]
+  timestamp_date: body./"timestamp":\s"(\d{4}-\d{2}-\d{2})/
+  content_type: headers[/application\/json/]
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  username: i:username
+  email: i:email

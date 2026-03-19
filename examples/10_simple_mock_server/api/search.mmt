@@ -1,0 +1,11 @@
+type: api
+title: Search
+description: GET request with a query parameter
+inputs:
+  q: multimeter
+outputs:
+  query: body.query
+  result_count: body.results.length
+url: http://localhost:9099/search?q=<<i:q>>
+method: get
+format: json

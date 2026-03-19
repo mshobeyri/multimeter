@@ -36,7 +36,7 @@ Other specs (e.g., GraphQL, RAML) not supported; REST APIs only. Tools should at
 
 ### OpenAPI → MMT
 - Base URL: first server url
-- Auth: Not directly supported; handle via custom headers (e.g., `Authorization: Bearer <<e:TOKEN>>`) or JS code in tests.
+- Auth: Not directly supported; handle via custom headers (e.g., `Authorization: Bearer <<e:token>>`) or JS code in tests.
 - URL = path + resolved query params
 - Method = `operationId` if available, else the HTTP method
 - Inputs = union of parameters + requestBody.schema
@@ -52,7 +52,7 @@ Other specs (e.g., GraphQL, RAML) not supported; REST APIs only. Tools should at
 - Generation rules:
   - Do NOT include `method` for `protocol: ws` APIs.
 ### Postman → MMT
-- Base URL: collection variable `API_URL` if present; else inferred
+- Base URL: collection variable `api_url` if present; else inferred
 - Inputs:
   - `url` → `i:url`
   - `headers` → `i:hdr_<headerName>`
@@ -91,10 +91,10 @@ body:
 
 Use these compact prefixes to indicate dynamic values. Generators and AI should prefer them over hard‑coded literals.
 
-- `i:<name>` – Input parameter placeholder (declared under `inputs:` in an API or test). Example: `inputs: { userId: string }` then use `{{userId}}` or `i:userId` depending on context.
+- `i:<name>` – Input parameter placeholder (declared under `inputs:` in an API or test). Example: `inputs: { userId: r:int }` then use `i:userId` in body/headers/url.
 - `e:<VAR>` – Environment variable reference (type‑preserving). Inside strings use `<<e:VAR>>`; standalone use `e:VAR`.
-- `r:<type>` – Random value generator. Common types: `r:uuid`, `r:int`, `r:bool`, `r:email` (if supported). Honors constraints when possible.
-- `c:<name>` – Current/time/system value. Examples: `c:epoch`, `c:date`, `c:millis`.
+- `r:<type>` – Random value generator. Common types: `r:uuid`, `r:int`, `r:bool`, `r:email`, `r:first_name`, `r:full_name`, `r:phone`, `r:city`, `r:country`. Honors constraints when possible.
+- `c:<name>` – Current/time/system value. Examples: `c:epoch`, `c:date`, `c:epoch_ms`, `c:time`, `c:year`.
 
 Guidelines:
 - Prefer `e:` for secrets / deployment specifics, `r:` for variability, `c:` for timestamps, `i:` for test/API parameterization.
@@ -104,7 +104,7 @@ Guidelines:
 
 ## Environment and auth
 
-Expect `API_URL`; optionally `TOKEN`/`API_KEY` depending on the API.
+Expect `api_url`; optionally `token`/`api_key` depending on the API.
 Default headers:
 - User-Agent: Multimeter
 - Accept: */*
@@ -143,7 +143,7 @@ Generation knobs (see YAML profile):
 - naming: patterns for files/suites/examples
 
 ### Environments
-- Expect at least API_URL; TOKEN/API_KEY optional depending on auth
+- Expect at least api_url; token/api_key optional depending on auth
 - Presets (dev/prod) are supported via env files; users can choose at runtime
 - Use `e:VAR` tokens directly in APIs/tests for type-preserving substitution; use `<<e:VAR>>` inside strings
 
@@ -176,7 +176,7 @@ Starter templates are included for quick scaffolding:
 - test
   - Simple flow calling one API and asserting status 200
 - env
-  - Basic environment with `API_URL` and optional `TOKEN`
+  - Basic environment with `api_url` and optional `token`
 - doc
   - Minimal doc pointing to `./examples`
 
@@ -211,8 +211,8 @@ protocol: http
 method: post
 url: https://api.example.com/users
 inputs:
-  name: string
-  email: string
+  name: r:firstName
+  email: r:email
 body:
   name: i:name
   email: i:email
@@ -229,18 +229,21 @@ type: test
 title: Create User Test
 steps:
   - call: users-api
+    id: createUser
     inputs:
       name: "Test User"
       email: "test@example.com"
-  - assert: status == 201
-  - check: response.id != null
+  - assert: ${createUser.status} == 201
+  - check: ${createUser.id} != null
 ```
 
 **env.mmt**:
 ```yaml
 type: env
 variables:
-  API_URL: https://api.example.com
+  api_url:
+    local: http://localhost:8080
+    prod: https://api.example.com
 ```
 
 ## Structures (API, Test, Env, Doc)
@@ -260,7 +263,7 @@ import: record<string,string># optional (alias -> path)
 inputs: record<string, primitive>
 outputs: record<string, string>
 setenv: record<string, string>
-protocol: http | ws          # required
+protocol: http | ws          # optional, inferred from URL
 method: get|post|put|delete|patch|head|options|trace   # HTTP only
 format: json | xml | text    # affects body encoding
 url: string                  # may include query string
@@ -322,17 +325,17 @@ metrics?: { repeat?: string|number, threads?: number, duration?: string, rampup?
 steps?: Step[]               # sequential when at root
 stages?: Array<{            # optional staged/parallel model
   id: string
-  name?: string
+  title?: string
   condition?: string
-  depends_on?: string | string[]
+  after?: string | string[]
   steps: Step[]
 }>
 ```
 
 Where a Step is one of:
-- call: { call: string, id?: string, inputs?: record<string, any> }
-- check: string | { expr: string }
-- assert: string | { expr: string }
+- call: { call: string, id?: string, title?: string, inputs?: record<string, any>, expect?: record<string, any>, report?: 'all'|'fails'|'none' }
+- check: string | ComparisonObject
+- assert: string | ComparisonObject
 - if: { if: string, steps: Step[], else?: Step[] }
 - for: { for: string, steps: Step[] }
 - repeat: { repeat: number|string, steps: Step[] }
@@ -341,6 +344,8 @@ Where a Step is one of:
 - print: string
 - set | var | const | let: record<string, any>
 - data: string
+- setenv: record<string, any>
+- run: string
 
 Example:
 ```yaml
@@ -351,9 +356,9 @@ steps:
     id: create
     inputs:
       name: "John"
-  - assert: status == 201
-  - check: response.id != null
-  - assert: response.name == "John"
+  - assert: ${create.status} == 201
+  - check: ${create.id} != null
+  - assert: ${create.name} == "John"
 ```
 
 See also: docs/test-mmt.md
@@ -364,7 +369,7 @@ Global variables and optional presets.
 
 ```yaml
 type: env                    # literal
-variables: record<string, primitive | object (choices) | array (allowed)>
+variables: record<string, object (choices) | array (allowed)>
 presets: record<string, record<string, record<string, primitive>>>
 ```
 
@@ -372,13 +377,17 @@ Example:
 ```yaml
 type: env
 variables:
-  API_URL: https://api.example.com
-  TOKEN: your-token
+  api_url:
+    local: http://localhost:3000
+    prod: https://api.example.com
+  token:
+    - your-token
 presets:
-  dev:
-    API_URL: http://localhost:3000
-  prod:
-    API_URL: https://prod.api.com
+  runner:
+    dev:
+      api_url: local
+    prod:
+      api_url: prod
 ```
 
 Usage

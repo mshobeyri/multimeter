@@ -44,7 +44,7 @@ stages:                         # parallel/grouped flows
   - id: string
     title?: string
     condition?: string          # optional condition string
-    depends_on?: string | string[]
+    after?: string | string[]
     steps:                      # steps inside this stage
       - <step>
 ```
@@ -63,47 +63,54 @@ Supported step forms:
 # 1) call: invoke another test or an API (imported by alias)
 - call: <alias>
   id: <stepId>                  # REQUIRED, used to reference outputs later
+  title?: string                # optional human-readable label
   inputs?:                      # passed as JSON object
     <name>: <value>
+  expect?:                      # inline assertions (shorthand for assert)
+    <field>: <value>
+  report?: all | fails | none   # controls reporting level
 
-# 2) check: soft assertion (logs failure, continues)
+# 2) run: start an imported mock server (type: server file)
+- run: <alias>                  # alias of an imported server file
+
+# 3) check: soft assertion (logs failure, continues)
 - check: <comparison>
 
-# 3) assert: hard assertion (stops on failure)
+# 4) assert: hard assertion (stops on failure)
 - assert: <comparison>
 
-# 4) if: conditional block
+# 5) if: conditional block
 - if: <comparison>
   steps:
     - <step>
   else?:
     - <step>
 
-# 5) repeat: repeat a block N times or by string
+# 6) repeat: repeat a block N times or by string
 - repeat: <number | string>
   steps:
     - <step>
 
-# 6) for: loop header (JS-style or shorthand)
+# 7) for: loop header (JS-style or shorthand)
 - for: <header or expression>
   steps:
     - <step>
 
-# 7) js: inline JavaScript
+# 8) js: inline JavaScript
 - js: |
     // javascript code
 
-# 8) print: log a message
+# 9) print: log a message
 - print: "text"
 
-# 9) delay: sleep
+# 10) delay: sleep
 - delay: <number | string>      # e.g. 200, "2s", "1m"
 
-# 10) set: assign/update variables
+# 11) set: assign/update variables
 - set:
     <name>: <value>
 
-# 11) var / const / let: JS-style declarations
+# 12) var / const / let: JS-style declarations
 - var:
     <name>: <value>
 - const:
@@ -111,14 +118,36 @@ Supported step forms:
 - let:
     <name>: <value>
 
-# 12) data: bind CSV alias (from import)
+# 13) data: bind CSV alias (from import)
 - data: <alias>
+
+# 14) setenv: promote values into environment variables
+- setenv:
+    <env_name>: <value>       # e.g. token: ${loginStep.token}
 ```
+
+### Additional `call` fields
+
+Beyond the basic `call`, `id`, and `inputs`, a call step also supports:
+
+```yaml
+- call: <alias>
+  id: <stepId>
+  title?: string              # optional human-readable label for logs/reports
+  inputs?: { ... }
+  expect?:                    # inline assertions on the call result
+    <field>: <value>          # e.g. status: 200, body.name: "John"
+  report?: all | fails | none # controls pass/fail reporting level
+```
+
+`expect` is a shorthand for common assertions — each key is a dotted path into the response, and the value is compared with `==` by default. You can prefix with an operator (e.g. `>= 1`, `!= null`).
+
+---
 
 `<comparison>` is a string expression using operators from `opsList` in `TestData.ts`:
 
 - `<`, `>`, `<=`, `>=`, `==`, `!=`
-- `=@` (contains), `!@` (not contains)
+- `=@` (is at: actual is found within expected), `!@` (is not at)
 - `=^` (starts with), `!^` (not starts with)
 - `=$` (ends with), `!$` (not ends with)
 - `=~` (regex match), `!~` (regex not match)
@@ -126,9 +155,9 @@ Supported step forms:
 Example comparisons:
 
 ```yaml
-- assert: login.status == 200
-- check: profile.email =~ /@example.com$/
-- assert: response.body.total >= 1
+- assert: ${login.status} == 200
+- check: ${profile.email} =~ /@example.com$/
+- assert: ${response.body.total} >= 1
 ```
 
 ---
@@ -145,14 +174,14 @@ Example comparisons:
     username: i:username
     password: i:password
 
-- assert: loginStep.status == 200
+- assert: ${loginStep.status} == 200
 ```
 
 - Use `set` to place values into `outputs` if you want the test itself to expose results:
 
 ```yaml
 - set:
-    outputs.token: loginStep.token
+    outputs.token: ${loginStep.token}
 ```
 
 ---
@@ -183,9 +212,9 @@ steps:
     inputs:
       username: i:username
       password: i:password
-  - assert: loginStep.status == 200
+  - assert: ${loginStep.status} == 200
   - set:
-      outputs.token: loginStep.token
+      outputs.token: ${loginStep.token}
 ```
 
 ---
@@ -209,7 +238,7 @@ steps:
     inputs:
       username: i:username
       password: i:password
-  - assert: loginStep.status == 200
+  - assert: ${loginStep.status} == 200
 ```
 
 ### 2. Chained calls: login then get profile
@@ -230,13 +259,13 @@ steps:
     inputs:
       username: i:username
       password: i:password
-  - assert: loginStep.status == 200
+  - assert: ${loginStep.status} == 200
 
   - call: get_profile
     id: profileStep
     inputs:
-      token: loginStep.token
-  - assert: profileStep.status == 200
+      token: ${loginStep.token}
+  - assert: ${profileStep.status} == 200
 ```
 
 ### 3. Data-driven loop over CSV
@@ -256,9 +285,9 @@ steps:
       - call: login
         id: loginStep
         inputs:
-          username: user.username
-          password: user.password
-      - check: loginStep.status == 200
+          username: ${user.username}
+          password: ${user.password}
+      - check: ${loginStep.status} == 200
 ```
 
 ### 4. Conditional flows
@@ -273,12 +302,12 @@ import:
 steps:
   - call: login
     id: login1
-  - if: login1.status != 200
+  - if: ${login1.status} != 200
     steps:
       - print: "Retrying login"
       - call: login
         id: login2
-      - assert: login2.status == 200
+      - assert: ${login2.status} == 200
     else:
       - print: "Login succeeded on first attempt"
 ```

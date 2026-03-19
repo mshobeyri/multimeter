@@ -33,8 +33,8 @@ steps:
       session: ${login.session}
       user: i:user
   - set:
-      outputs.name: user_info.name
-      outputs.family: user_info.family
+      outputs.name: ${user_info.name}
+      outputs.family: ${user_info.family}
 ```
 
 For the provided MMT, the Test panel shows the generated JavaScript. Click Run to execute the test.
@@ -104,7 +104,7 @@ import:
 The project root is detected by walking up directories from the current file until `multimeter.mmt` is found. If no `multimeter.mmt` exists, `+/` paths will fail to resolve.
 
 ### Stages
-Stages let you run groups of steps in parallel. All stages start concurrently; use depends_on to control order. If you have a single linear flow, you can skip stages and place steps at the test root.
+Stages let you run groups of steps in parallel. All stages start concurrently; use `after` to control order. If you have a single linear flow, you can skip stages and place steps at the test root.
 
 ```yaml
 stages:
@@ -114,14 +114,14 @@ stages:
       - call: login
         id: doLogin
   - id: profile
-    depends_on: login   # or
+    after: login   # or
                           #   - login
                           #   - anotherStage
     steps:
       - call: getUser
         id: me
         inputs:
-          token: doLogin.token
+          token: ${doLogin.token}
 ```
 
 ### Steps
@@ -131,7 +131,7 @@ You can visualize and run the flow from the Flow panel; each step here correspon
 ![Flow panel](../screenshots/test_panel_flow.png)
 
 ### call
-Invoke an imported API or another test; give it an id to reference its outputs later.
+Invoke an imported API or another test; give it an id to reference its outputs later. The `call` field must be the first key in the step.
 ```yaml
 # call an API named login
 - call: login
@@ -144,12 +144,35 @@ Invoke an imported API or another test; give it an id to reference its outputs l
 - call: getUser
   id: profile
   inputs:
-    token: doLogin.token
+    token: ${doLogin.token}
 ```
 
-#### Inline check/assert on call
+### run
+Start an imported mock server. The server runs for the duration of the test and stops automatically when the test finishes.
 
-You can add `check` or `assert` directly on a call step to validate its output parameters without a separate step. The left side of the comparison is always an output parameter of the called API/test.
+```yaml
+type: test
+title: Test with Mock Server
+import:
+  mockApi: ./mocks/user-service.mmt   # type: server file
+  userApi: ./apis/user.mmt
+steps:
+  - run: mockApi                       # starts the mock server
+  - call: userApi
+    id: getUsers
+  - assert: ${getUsers.status} == 200
+```
+
+**Behavior:**
+- If the server is already running, `run` does nothing (idempotent)
+- All servers started by `run` stop automatically when the test finishes
+- If the port is already in use, the test fails with an error
+
+Use this to make tests self-contained — no need to manually start servers before running.
+
+#### Inline expect on call
+
+Use `expect` on a call step to validate its output parameters inline, without a separate `check`/`assert` step. Each key is an output field name; each value is the expected result. Expect is non-throwing — it logs failures but continues execution.
 
 **Fields:**
 
@@ -157,83 +180,58 @@ You can add `check` or `assert` directly on a call step to validate its output p
 |-----------|-------------|
 | `call`    | (required) The import alias of the API or test to invoke |
 | `id`      | Assign the call result to a variable for later reference |
-| `title`   | Explicit title for the test box shown in the output panel |
+| `title`   | Short summary shown inline in reports and UI |
 | `inputs`  | Key-value pairs passed as input parameters to the called item |
-| `check`   | One or more comparisons that log failures but continue |
-| `assert`  | One or more comparisons that stop the flow on failure |
-| `report`  | Override the report level (`all`, `fails`, or `none`) |
+| `expect`  | Map of output fields to expected values (non-throwing) |
+| `report`  | Report level: `all`, `fails`, `none`, or object with `internal`/`external` |
 
-**Examples:**
+**Formats:**
 
-Single check:
+Simple equality (default operator is `==`):
 ```yaml
 - call: login
-  check: status == 200
+  expect:
+    status_code: 200
 ```
 
-Multiple checks (array form):
+Explicit operator:
+```yaml
+- call: echo
+  expect:
+    status_code: == 200
+    echoed_message: == <<i:message>>
+```
+
+Multiple checks on the same field (array form):
 ```yaml
 - call: login
-  check:
-    - status == 200
-    - token != null
+  expect:
+    status_code:
+      - == 200
+      - != 500
 ```
 
-Inline assert (stops on failure):
+Nested field access with dot-notation:
+```yaml
+- call: getUser
+  expect:
+    body.user.name: == John
+    body.user.active: true
+```
+
+With title and report:
 ```yaml
 - call: login
-  assert: status == 200
+  title: Login validation
+  expect:
+    status_code: 200
+    token: != null
+  report:
+    internal: all
+    external: fails
 ```
 
-With explicit title:
-```yaml
-- call: login
-  title: Login Verification
-  check: status == 200
-```
-
-You can combine check and assert, and optionally set a `report` level:
-```yaml
-- call: login
-  inputs:
-    username: alice
-  check:
-    - token != null
-  assert: status == 200
-  report: all
-```
-
-#### Test box title priority
-
-When inline `check` or `assert` is used on a call, the title shown in the output panel is resolved using this priority (first non-empty value wins):
-
-1. **`title`** — explicit `title` field on the call step
-2. **Called file title** — the `title` field of the imported `.mmt` file (e.g. if `login` imports `login.mmt` and that file has `title: User Login`, it is used)
-3. **Import key** — the alias used in the `call` field (e.g. `login`)
-4. **Import file name** — the base filename of the imported path (without extension)
-5. **`id`** — the `id` field of the call step
-
-For example, given this import and call:
-```yaml
-import:
-  login: ./auth/user-login.mmt   # user-login.mmt has title: "User Authentication"
-
-steps:
-  - call: login
-    check: status == 200
-```
-The test box title will be **"User Authentication"** (priority 2). If `user-login.mmt` had no title, it would fall back to **"login"** (priority 3, the import key).
-
-To override it explicitly:
-```yaml
-  - call: login
-    title: Auth Check
-    check: status == 200
-```
-Now the title is **"Auth Check"** (priority 1).
-
-- **Details**: defaults to the full output of the call (JSON).
-- **Report**: defaults to standard config; override with `report` on the call step.
+All comparison operators supported by `check`/`assert` are available in `expect` values: `==`, `!=`, `<`, `>`, `<=`, `>=`, `=@`, `!@`, `=^`, `!^`, `=$`, `!$`, `=~`, `!~`.
 
 ### check, assert
 Use check to log a failure and continue; use assert to stop the flow on failure.
@@ -250,21 +248,32 @@ You can write checks and asserts in a concise inline form or in a structured obj
 
 Inline examples
 ```yaml
-- assert: doLogin.status == 200
-- check: profile.name =~ /John/i
+- assert: ${doLogin.status} == 200
+- check: ${profile.name} =~ /John/i
 ```
+
+> **Note:** Values referencing step ids, loop variables, or JS-scoped variables must use `${...}` to resolve at runtime:
+> ```yaml
+> - call: myApi
+>   inputs:
+>     name: ${row.name}         # resolves the loop variable
+>     token: ${doLogin.token}   # resolves a step id output
+>   check:
+>     - ${result.name} == ${row.expected_name}
+> ```
+> Without `${...}`, the text is treated as a literal string (e.g. `name: row.name` sends the text "row.name").
 
 Object-form examples
 ```yaml
 - check:
-    actual: profile.name
+    actual: ${profile.name}
     expected: "John"
     operator: "=="
     title: "Profile name check"
     details: "Profile name must be John"
 
 - assert:
-    actual: doLogin.status
+    actual: ${doLogin.status}
     expected: 200
     operator: "=="
     title: "Login status"
@@ -308,7 +317,7 @@ Checks, assertions, prints, and errors appear in the Log panel while the flow ru
 ### if, else
 Conditionally run nested steps based on an expression.
 ```yaml
-- if: doLogin.status == 200
+- if: ${doLogin.status} == 200
   steps:
     - call: getUser
       id: me
@@ -328,8 +337,8 @@ The `for` expression is passed directly to JavaScript, so any valid JS for-of/fo
     - call: login
       id: login1
       inputs:
-        username: user.username
-        password: user.password
+        username: ${user.username}
+        password: ${user.password}
 
 # iterate with index
 - for: let i = 0; i < 10; i++
@@ -408,7 +417,7 @@ Create or change variables for later steps. `set` mutates existing (or creates n
 
 ```yaml
 - set:
-    token: doLogin.token   # mutable
+    token: ${doLogin.token}   # mutable
 
 - var:
     attempt: 1
@@ -446,34 +455,6 @@ Bind an imported CSV alias (from the test's import section) into scope for use i
                 #   users: ./users.csv
 ```
 
-## Metrics (load testing)
-The `metrics` field enables load/performance testing by running your test flow with controlled concurrency and duration.
-
-```yaml
-type: test
-title: Load test login
-metrics:
-  repeat: 100        # run the flow 100 times total (or time-based: "30s", "5m", "1h", "inf")
-  threads: 10        # run up to 10 concurrent instances
-  duration: 2m       # overall time limit (optional)
-  rampup: 30s        # gradually increase threads over 30 seconds (optional)
-import:
-  login: ./api/login.mmt
-steps:
-  - call: login
-    id: doLogin
-    inputs:
-      username: r:email
-      password: r:uuid
-  - assert: doLogin.status == 200
-```
-
-Fields:
-- **repeat**: number of iterations or a time string (`30s`, `5m`, `1h`). Use `inf` for infinite.
-- **threads**: number of concurrent instances to run.
-- **duration**: overall time limit for the test. Use `inf` for unlimited. Format: `Ns`, `Nm`, `Nh`.
-- **rampup**: time to gradually increase from 1 thread to the target `threads` count.
-
 ## Stage condition
 Stages support a `condition` field that skips the stage if the condition evaluates to false. The condition uses the same syntax as `assert`/`check` inline expressions.
 
@@ -484,8 +465,8 @@ stages:
       - call: login
         id: doLogin
   - id: profile
-    condition: doLogin.status == 200
-    depends_on: login
+    condition: ${doLogin.status} == 200
+    after: login
     steps:
       - call: getProfile
 ```
@@ -505,28 +486,27 @@ steps:
     inputs:
       username: i:user
       password: i:pass
-  - assert: doLogin.status == 200
+  - assert: ${doLogin.status} == 200
   - set:
-      token: doLogin.token
+      token: ${doLogin.token}
   - delay: 2s
   - call: getUser
     id: me
     inputs:
-      token: token
-  - check: me.email =~ /@example.com$/
+      token: ${token}
+  - check: ${me.email} =~ /@example.com$/
 ```
 
 ## Reference (types)
 - type: `test`
 - title: string
 - tags: string[]
-- description: string (supports Markdown)
+- description: string (supports Markdown; use `|-` for multiline)
 - import: record&lt;string, string&gt; (`.mmt`, `.csv`, `.js`/`.cjs`/`.mjs`)
 - inputs: record&lt;string, string | number | boolean | null&gt;
 - outputs: record&lt;string, string | number | boolean | null&gt;
-- metrics: { repeat?, threads?, duration?, rampup? }
 - steps: array of step (alias: `flow`)
-- stages: array of { id, title?, steps, condition?, depends_on? }
+- stages: array of { id, title?, steps, condition?, after? }
 - step types: `call`, `check`, `assert`, `if`, `for`, `repeat`, `delay`, `js`, `print`, `set`, `var`, `const`, `let`, `setenv`, `data`
 
 Notes:
@@ -539,6 +519,9 @@ Notes:
 - [API](./api-mmt.md) — define HTTP/WS requests that tests call
 - [Environment](./environment-mmt.md) — variables and presets consumed by tests
 - [Suite](./suite-mmt.md) — group and run multiple tests together
+- [Mock Server](./mock-server.md) — use `run` step to start servers in tests; define `type: server` files
 - [Testlight CLI](./testlight.md) — run tests from the command line
-- [Sample Project](./sample-project.md) — full walkthrough with APIs, tests, suites, and docs
+- [Reports](./reports.md) — generate test reports (JUnit XML, HTML, Markdown, MMT YAML)
+- [Certificates](./certificates-mmt.md) — SSL/TLS and mTLS configuration
 - [Logging](./logging.md) — log levels for checks, prints, and network calls
+- [Sample Project](./sample-project.md) — full walkthrough with APIs, tests, suites, and docs

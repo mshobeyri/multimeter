@@ -1,0 +1,12 @@
+type: suite
+title: Mock Server Tests
+description: Starts the mock server and runs all API tests against it
+tags:
+  - example
+  - mock
+servers:
+  - server/mock_server.mmt
+tests:
+  - test/health_test.mmt
+  - test/user_test.mmt
+  - test/search_test.mmt

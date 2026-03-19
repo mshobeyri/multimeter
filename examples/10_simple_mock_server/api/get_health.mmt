@@ -1,0 +1,9 @@
+type: api
+title: Health Check
+description: GET request to the health endpoint (no parameters)
+outputs:
+  status_field: body.status
+  uptime: body.uptime
+url: http://localhost:9099/health
+method: get
+format: json

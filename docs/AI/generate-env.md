@@ -23,9 +23,8 @@ type: env                       # REQUIRED, must be exactly "env"
 variables:                      # REQUIRED
   <NAME>:
     # One of:
-    # 1) scalar string (simple default)
-    # 2) mapping of labels -> string values (choices)
-    # 3) array of strings (allowed values)
+    # 1) mapping of labels -> string values (key-value choices)
+    # 2) array of strings (allowed values)
 
 presets?:                       # OPTIONAL
   <presetGroup>:
@@ -35,8 +34,7 @@ presets?:                       # OPTIONAL
 
 Interpretation:
 - `variables[NAME]` can be:
-  - `"value"` → simple scalar value.
-  - `{ dev: "http://localhost:8080", prod: "https://api.example.com" }` → named choices.
+  - `{ dev: "http://localhost:8080", prod: "https://api.example.com" }` → named key-value choices.
   - `["debug", "info", "warn"]` → a list of allowed values.
 - `presets[group][name]` tells the UI what to pick for each variable when that preset is active.
 
@@ -63,8 +61,10 @@ variables:
   api_url:
     local: "http://localhost:8080"
     prod: "https://api.example.com"
-  default_user: "alice@example.com"
-  default_password: "secret"
+  default_user:
+    - "alice@example.com"
+  default_password:
+    - "secret"
   log_level:
     - debug
     - info
@@ -113,9 +113,10 @@ presets:
 ## How the AI should answer env-related questions
 
 - If the user wants to **switch between environments** (local/staging/prod), generate:
-  - Variables with **choice mappings**, e.g. `API_URL: { local: ..., prod: ... }`.
+  - Variables with **key-value choice mappings**, e.g. `API_URL: { local: ..., prod: ... }`.
   - A `runner` preset group with `local`, `staging`, `prod` entries.
 - If the user wants **valid options** for a flag or numeric setting, use **arrays** of strings.
+- If a variable has only a single known value, wrap it in a single-element array (e.g. `token: ["your-token"]`).
 - Always keep values as strings in env files; typing happens when they are read and interpreted.
 
 ---
@@ -128,3 +129,21 @@ presets:
 - Prefer explicit URLs and modes instead of opaque values.
 
 When unsure, generate a **small env file** with the most clearly requested variables and a single preset group named `runner` with 1–2 named presets.
+
+---
+
+## Certificates (optional)
+
+Env files can also contain a `certificates` section for SSL/TLS settings. The AI generally does not need to generate this unless the user specifically asks about TLS, mTLS, or client certificates. See `docs/certificates-mmt.md` for full details.
+
+```yaml
+certificates:
+  ca:
+    paths:
+      - ./certs/ca.pem
+  clients:
+    - name: my-client
+      host: api.example.com
+      cert_path: ./certs/client.pem
+      key_path: ./certs/client-key.pem
+```

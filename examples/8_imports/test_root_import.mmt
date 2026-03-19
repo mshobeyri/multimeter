@@ -1,0 +1,14 @@
+type: test
+title: Import test with project root path
+description: |-
+  Imports a test using the +/ project root path and calls it.
+  The +/ prefix resolves from the directory containing multimeter.mmt.
+import:
+  api_test: +/tests/test_api.mmt
+steps:
+  - call: api_test
+    id: result
+    title: Run API test (+/ project root import)
+    inputs:
+      message: from project root import
+      name: root call

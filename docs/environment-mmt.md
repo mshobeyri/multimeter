@@ -6,30 +6,31 @@ Acts as a global store for variables to read and write across tests. Like any gl
 ```yaml
 type: env
 variables:
-  API_URL: "http://localhost:8080"
-  USER: "alice"
-  PASS: "secret"
-  MODE:
-    dev: "debug"      # map of named choices
+  api_url:
+    local: "http://localhost:8080"      # key-value map (named choices)
+    staging: "https://staging.example.com"
+    prod: "https://api.example.com"
+  mode:
+    dev: "debug"
     prod: "release"
-  TIMEOUTS:
-    - 1000            # list of allowed values (optional)
+  timeouts:
+    - 1000                               # array list (allowed values)
     - 2000
+    - 5000
 presets:
   runner:
     dev:
-      API_URL: dev    # picks choice "dev" when the variable is defined as a mapping
-      MODE: dev
+      api_url: local    # picks choice "local" from the variable map
+      mode: dev
     prod:
-      API_URL: prod
-      MODE: prod
+      api_url: prod
+      mode: prod
 ```
 
 Notes
-- `variables` values can be:
-  - scalar (string/number/bool/null)
-  - object map (named choices)
-  - array list of allowed values
+- `variables` values must be one of:
+  - **key-value map** (named choices) — a preset selects a choice by key
+  - **array list** (allowed values) — a preset or user picks from the list
 - `presets` groups can be hierarchical; `runner.dev` is a common pattern
  
 ## Usage
@@ -50,12 +51,12 @@ Notes
 
 Examples:
 ```yaml
-url: <<e:API_URL>>/login
+url: <<e:api_url>>/login
 headers:
-  Authorization: Bearer <<e:TOKEN>>
+  Authorization: Bearer <<e:token>>
 body:
-  username: e:USER
-  password: e:PASS
+  username: e:user
+  password: e:pass
 ```
 
 ## Using presets and overrides in CLI
@@ -67,11 +68,11 @@ Use preset from env file:
 Override values explicitly (wins over preset):
 ```sh
  testlight run tests/login.mmt --env-file env.mmt --preset runner.dev \
-  -e API_URL http://localhost:8080 -e USER bob
+  -e api_url http://localhost:8080 -e user bob
 ```
 Without env file, pass env directly:
 ```sh
- testlight run tests/login.mmt -e API_URL=http://localhost:8080 -e USER=alice -e PASS='00123'
+ testlight run tests/login.mmt -e api_url=http://localhost:8080 -e user=alice -e pass='00123'
 ```
 
 Typing rules for CLI values
@@ -95,7 +96,7 @@ Typing rules for CLI values
 In API definitions, use `setenv` to capture values from responses for later steps.
 ```yaml
 setenv:
-  TOKEN: body[token]
+  token: body[token]
 ```
 
 ## Certificates
@@ -103,12 +104,10 @@ setenv:
 SSL/TLS certificate settings can be configured in the `certificates` section of the env file. See [Certificates documentation](./certificates-mmt.md) for details on configuring CA certificates, client certificates (mTLS), and SSL validation settings.
 
 ## Reference (types)
-- type: `env` or `var`
-- variables: record<string, string | object (choices) | array (allowed values)>
+- type: `env`
+- variables: record<string, object (key-value choices) | array (allowed values)>
 - presets: record<string, record<string, record<string, string|number|boolean|null>>>
 - certificates: { ca?, clients?, sslValidation?, allowSelfSigned? }
-
-`type: var` is an alias for `type: env` — both define variables and presets. Use whichever name fits your project conventions.
 
 ## VS Code Settings
 
@@ -160,5 +159,7 @@ See [Test documentation](./test-mmt.md#import) for more details on import paths.
 - [Suite](./suite-mmt.md) — pass `--preset` when running suites
 - [Testlight CLI](./testlight.md) — `--env-file`, `--preset`, and `-e` flags
 - [Certificates](./certificates-mmt.md) — SSL/TLS settings in env files
+- [Reports](./reports.md) — generate test reports from your runs
+- [Mock Server](./mock-server.md) — swap between real and mock URLs with presets
 - [Sample Project](./sample-project.md) — full walkthrough showing environment setup
 

@@ -1,0 +1,31 @@
+type: test
+title: JavaScript Helpers
+description: Demonstrates js steps, imported JS modules, and runner globals
+import:
+  helpers: ./helpers/helpers.js
+  echo: ./api/echo.mmt
+steps:
+  # Use an imported JS module function
+  - js: |
+      const greeting = helpers.greet('Multimeter');
+      console.log('Greeting:', greeting);
+  
+  # Use runner globals: Random functions
+  - js: |
+      const randomId = Random.randomUUID();
+      const randomEmail = Random.randomEmail();
+      console.log('Random UUID:', randomId);
+      console.log('Random email:', randomEmail);
+
+  # Use setenv_ to promote a value to an env variable
+  - js: |
+      const token = Random.randomUUID();
+      setenv_('DYNAMIC_TOKEN', token);
+      console.log('Set DYNAMIC_TOKEN to:', token);
+
+  # Use the helpers module for computation
+  - js: |
+      const total = helpers.sum([10, 20, 30]);
+      console.log('Sum:', total);
+      const now = helpers.formatDate(Date.now());
+      console.log('Current time:', now);

@@ -1,0 +1,15 @@
+type: api
+title: Login API
+description: Simulates login and returns a token
+inputs:
+  username: alice
+  password: secret
+outputs:
+  status_code: status
+  token: body.body.username
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  username: i:username
+  password: i:password

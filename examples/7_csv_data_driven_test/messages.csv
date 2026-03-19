@@ -1,0 +1,4 @@
+message,expected_method
+hello world,POST
+goodbye,POST
+test 123,POST
