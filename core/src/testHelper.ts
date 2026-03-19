@@ -192,7 +192,9 @@ const nextStepIndex = (): number => {
   if (currentRunId !== lastRunId) {
     lastRunId = currentRunId;
     stepIndex = 0;
-    stepIndexByRunId.clear();
+    // Don't clear the map — other parallel tests may still be using their
+    // entries.  The map is keyed by runId so stale entries from finished
+    // runs are harmless and will be overwritten on the next suite run.
   }
   stepIndex += 1;
   return stepIndex;

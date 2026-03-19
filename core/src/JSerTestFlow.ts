@@ -191,8 +191,12 @@ export function delayToJSfunc(d: string|number): string {
 
 export const forToJSfunc = (loop: TestFlowLoop, useExternalReport: boolean, importTitleMap?: Record<string, string>): string => {
   const loopBody = flowStepsToJsfunc(loop.steps, true, useExternalReport, importTitleMap);
+  // Ensure the loop variable is declared with `const` so it is block-scoped.
+  // Without a declaration keyword, `for (x of y)` creates an implicit global,
+  // which causes race conditions when tests run in parallel (suite without `then`).
+  const loopExpr = /^\s*(const|let|var)\s/.test(loop.for) ? loop.for : `const ${loop.for}`;
   return `
-for (${loop.for}) {
+for (${loopExpr}) {
   ${indentLines(loopBody)}
 }`;
 };
