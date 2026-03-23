@@ -610,6 +610,83 @@ describe('rootTestToJsfunc + import tracker', () => {
 
     expect(js).toContain('kxxx = txxx_;');
   });
+
+  it('resolves bare subdirectory paths without ./ prefix for mmt imports', async () => {
+    const mock = createTestFileLoaderMock({
+      '/root/tests/api/echo.mmt': 'type: api\nprotocol: http\nmethod: GET\nurl: http://example.com\n',
+    });
+    setFileLoader(mock.fileLoader);
+
+    const js = await rootTestToJsfunc({
+      name: 'barepath',
+      test: {
+        import: {echo: 'api/echo.mmt'},
+        steps: [{call: 'echo'} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/tests/main.mmt',
+    });
+
+    expect(js).toContain('echo = echo_;');
+  });
+
+  it('resolves bare subdirectory paths without ./ prefix for csv imports', async () => {
+    const csv = 'name,age\nalice,30\nbob,25\n';
+    setFileLoader(async (p: string) => {
+      if (p === '/root/tests/data/users.csv') {
+        return csv;
+      }
+      return '';
+    });
+
+    const js = await rootTestToJsfunc({
+      name: 'barecsv',
+      test: {
+        import: {users: 'data/users.csv'},
+        steps: [{print: 'hello'} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/tests/main.mmt',
+    });
+
+    expect(js).toContain('const users_ = [');
+    expect(js).toContain('const users = users_');
+  });
+
+  it('bare and dotslash subdirectory paths produce identical results', async () => {
+    const mock = createTestFileLoaderMock({
+      '/root/tests/api/echo.mmt': 'type: api\nprotocol: http\nmethod: GET\nurl: http://example.com\n',
+    });
+    setFileLoader(mock.fileLoader);
+
+    const jsBare = await rootTestToJsfunc({
+      name: 'bare',
+      test: {
+        import: {echo: 'api/echo.mmt'},
+        steps: [{call: 'echo'} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/tests/main.mmt',
+    });
+
+    const jsDot = await rootTestToJsfunc({
+      name: 'dot',
+      test: {
+        import: {echo: './api/echo.mmt'},
+        steps: [{call: 'echo'} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/tests/main.mmt',
+    });
+
+    // Both should contain the same import alias assignment
+    expect(jsBare).toContain('echo = echo_;');
+    expect(jsDot).toContain('echo = echo_;');
+  });
 });
 
 describe('empty test items are valid', () => {
