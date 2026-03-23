@@ -60,10 +60,6 @@ export const APISchema = {
         title: { type: 'string' },
         description: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
-        import: {
-            type: 'object',
-            additionalProperties: { type: 'string' }
-        },
         inputs: {
             type: 'object',
             additionalProperties: {

@@ -185,16 +185,6 @@ Notes
 ## Reuse and compose
 These fields help you call an API with different inputs and capture outputs.
 
-### import
-The `import` field lets an API reference other `.mmt` files. Each import has an alias (the key) and a file path (the value). Paths can be relative to the current file or use `+/` for project root imports (see [Environment](./environment-mmt.md#project-root-marker)).
-
-```yaml
-type: api
-import:
-  auth: ./auth.mmt            # relative path
-  shared: +/apis/shared.mmt   # project root path
-```
-
 ### inputs
 Declare inputs and reference them with `<<i:key>>` in URL, headers, or body. This lets you reuse the API with different values across tests. Tests have the same structure to chain calls.
 You can also write `i:name` if it doesn’t conflict with surrounding text. When embedded in other text (like inside a URL), use `<<i:name>>`.
@@ -405,7 +395,6 @@ examples:
 - title: string
 - tags: string[]
 - description: string
-- import: record<string, string>
 - inputs: record<string, string | number | boolean | null>
 - outputs: record<string, string>
 - setenv: record<string, string>

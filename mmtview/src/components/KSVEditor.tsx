@@ -19,6 +19,7 @@ interface KSVEditorProps {
   deletable?: boolean;
   expandable?: boolean;
   filePicker?: boolean;
+  filePickerFilters?: Array<{ name?: string; extensions?: string[] }>;
 }
 
 // Utility to ensure an empty key is always at the end
@@ -56,7 +57,8 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   keysDisabled = false,
   deletable = true,
   expandable = true,
-  filePicker = false
+  filePicker = false,
+  filePickerFilters
 }) => {
   // Use an array of entries to preserve order and handle the object format
   const entries = useMemo(() => withTrailingEmptyKey(value, expandable), [value, expandable]);
@@ -66,6 +68,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
 
   // File context (avoid calling hooks inside callbacks)
   const fileCtx = useContext(FileContext);
+  const effectiveFilePickerFilters = filePickerFilters || [{ name: 'MMT files, CSV files', extensions: ['mmt', 'csv'] }];
 
   // Helper to convert entries array back to object
   const toObject = (arr: Array<[string, string]>): Record<string, string> =>
@@ -137,7 +140,9 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                         onChange={newVal => handleValueChange(i, newVal)}
                         onRemovePressed={() => handleRemove(i)}
                         basePath={fileCtx?.mmtFilePath}
-                        filters={[{ name: 'MMT files, CSV files', extensions: ['mmt', 'csv'] }]}
+                        filters={effectiveFilePickerFilters}
+                        showFilePicker={true}
+                        removable={deletable && !deactivated}
                       />
                     ) : safeOptions.length > 0 ? (
                       <SelectWithRemove

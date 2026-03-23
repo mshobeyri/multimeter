@@ -663,13 +663,6 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'Tags for categorizing and organizing APIs. Helps with searchability and filtering.\nExample:\ntags:\n\t- user\n\t- authentication\n\t- v1',
         },
         {
-            label: "import",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "import:\n\t",
-            detail: 'Import external parameters [object of key: value]',
-            documentation: 'Import parameters from external sources or other API definitions. Allows reusing common parameters across multiple APIs.\nExample:\nimport:\n\tbaseUrl: "{{env.API_BASE_URL}}"\n\tauthToken: "{{env.AUTH_TOKEN}}"',
-        },
-        {
             label: "inputs",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "inputs:\n\t",

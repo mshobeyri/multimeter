@@ -69,16 +69,6 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         </div>
       )}
 
-      <KSVEditor
-        label="Import"
-        value={api.import}
-        onChange={kv => {
-          update({ import: kv });
-        }}
-        keyPlaceholder="name"
-        valuePlaceholder="path"
-        filePicker={true}
-      />
       <KVEditor
         label="Inputs"
         value={api.inputs}

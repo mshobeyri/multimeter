@@ -102,7 +102,7 @@ Priority levels:
 |---|------|---------|
 | 25 | **Explain `set` vs `var` vs `const` vs `let` differences** | The section says "set mutates; var/const/let follow JS scoping" but doesn't illustrate when to use each. Add examples showing the practical difference. |
 | 26 | **Clarify `=@` (contains) operator direction** | The implementation checks `b.includes(a)` (right side contains left side). The docs say "contains" which is ambiguous. Clarify which side contains which. |
-| 27 | **`import` annotation `(CSV)` is misleading** | The reference says `import: record<string, string> (CSV)`. The `(CSV)` is misleading — imports support `.mmt` (APIs, tests), `.csv`, and `.js`/`.cjs`/`.mjs`. Fix to `(mmt/csv/js)` or remove the annotation. |
+| 27 | **Remove stale API `import` references** | API files no longer support a top-level `import` block. Any remaining API docs or generated copies that mention `import: record<string, string>` should be removed so only test import behavior is documented. |
 
 ---
 

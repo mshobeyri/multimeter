@@ -15,7 +15,6 @@ export function yamlToAPI(yamlContent: string): APIData {
       title: doc.title || '',
       description: typeof doc.description === 'string' ? doc.description.trimEnd() : '',
       tags: doc.tags,
-      import: doc.import,
       inputs: doc.inputs,
       outputs: doc.outputs,
       setenv: doc.setenv,
@@ -45,9 +44,6 @@ export function apiToYaml(api: APIData): string {
   };
   if (isNonEmptyList(api.tags)) {
     yamlObj.tags = api.tags;
-  };
-  if (isNonEmptyObject(api.import)) {
-    yamlObj.import = api.import;
   };
   if (isNonEmptyObject(api.inputs)) {
     yamlObj.inputs = api.inputs;
