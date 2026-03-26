@@ -11,6 +11,7 @@
     "api-demo": "node api_demo.js"
   },
   "dependencies": {
-    "ghost-cursor-playwright": "^2.1.0"
+    "ghost-cursor-playwright": "^2.1.0",
+    "pngjs": "^7.0.0"
   }
 }

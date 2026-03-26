@@ -6,6 +6,7 @@ mmtcli/dist-cjs
 mmtcli/dist/bin
 mmtview/node_modules
 mmtview/build
+playwright-demo/video/
 TODO
 *.vsix
 dist-release
