@@ -7,26 +7,33 @@ Quick start
 ```bash
 cd playwright-demo
 npm install
-npx playwright install chromium
-npm run demo
+npm run 1_simple_api_test
 ```
 
-Video files will be saved to `playback-videos/` inside this folder.
+Video files are saved to `video/` inside this folder.
 
 Notes
-- Script opens https://vscode.dev in Chromium and records a short clip.
-- For desktop VS Code automation see the project README in the main repo.
+- `npm run demo` and `npm run 1_simple_api_test` run the first example demo.
+- `npm run 2_api_environment_variables` runs the environment-variables example demo.
+- These scripts launch your local VS Code and record the interaction with `ffmpeg`.
 
 Desktop VS Code demo
 
 1. Ensure `ffmpeg` is installed and available in your PATH (Homebrew: `brew install ffmpeg`).
-2. Run the desktop demo (this launches your local VS Code):
+2. Run one of the example demos (this launches your local VS Code):
 
 ```bash
 cd playwright-demo
-npm run demo-desktop
+npm run 1_simple_api_test
 ```
 
-The script will start an `ffmpeg` screen recording, launch VS Code, perform a couple UI actions, then stop and save the recording in `playback-videos/`.
+Or:
 
-If `ffmpeg` cannot find the correct macOS capture device, adjust the `-i '1:none'` argument in `playwright-vscode-desktop.js`.
+```bash
+cd playwright-demo
+npm run 2_api_environment_variables
+```
+
+The script starts an `ffmpeg` screen recording, launches VS Code, performs the demo steps, then saves the recording in `video/`.
+
+If `ffmpeg` cannot find the correct macOS capture device, adjust the `-i '${idx}:none'` input in the demo script you are running.

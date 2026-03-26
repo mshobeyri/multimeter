@@ -6,9 +6,9 @@
     "playwright": "^1.44.0"
   },
   "scripts": {
-    "demo": "node playwright-demo.js",
-    "demo-desktop": "node playwright-vscode-desktop.js",
-    "api-demo": "node api_demo.js"
+    "demo": "node 1_simple_api_test.js",
+    "1_simple_api_test": "node 1_simple_api_test.js",
+    "2_api_environment_variables": "node 2_api_environment_variables.js"
   },
   "dependencies": {
     "ghost-cursor-playwright": "^2.1.0",

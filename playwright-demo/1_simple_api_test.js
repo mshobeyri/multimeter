@@ -147,11 +147,23 @@ function findGreenSendButton(buffer) {
 
 async function run() {
   const home = process.env.HOME || os.homedir();
-  const workspace = path.join(home, 'projects', 'test');
+  const demoName = path.basename(__filename, '.js');
+  const targetFileName = 'post_echo_yaml_body.mmt';
+  const workspace = path.join(home, 'projects', 'test', demoName);
+
+  // Kill orphaned ffmpeg processes from previous runs that may lock video files.
+  try {
+    const { execSync } = require('child_process');
+    const pids = execSync("pgrep -f 'ffmpeg.*avfoundation' 2>/dev/null || true").toString().trim();
+    for (const pid of pids.split('\n').filter(Boolean)) {
+      try { execSync(`kill -9 ${pid} 2>/dev/null`); } catch (e) {}
+    }
+  } catch (e) {}
+
   fs.rmSync(workspace, { recursive: true, force: true });
   fs.mkdirSync(workspace, { recursive: true });
 
-  const filePath = path.join(workspace, 'api.mmt');
+  const filePath = path.join(workspace, targetFileName);
   // Ensure file exists so VS Code opens it in an editor
   if (!fs.existsSync(filePath)) {
     fs.writeFileSync(filePath, '');
@@ -159,13 +171,17 @@ async function run() {
 
   const executablePath = await findExecutable();
   if (!executablePath) {
-    console.error('Could not find VS Code executable. Edit api_demo.js to set `executablePath`.');
+    console.error(`Could not find VS Code executable. Edit ${path.basename(__filename)} to set executablePath.`);
     process.exit(1);
   }
 
+  // Clean VS Code profile to avoid stale state / file lock issues.
   const profileDir = path.join(__dirname, '.vscode-profile');
+  fs.rmSync(profileDir, { recursive: true, force: true });
   // Install local Multimeter VSIX into a temporary extensions directory and launch VS Code with that extensions dir
-  const vsixPath = path.join(path.resolve(__dirname, '..'), 'multimeter-1.15.0.vsix');
+  const parentDir = path.resolve(__dirname, '..');
+  const vsixCandidates = fs.readdirSync(parentDir).filter(f => f.startsWith('multimeter') && f.endsWith('.vsix'));
+  const vsixPath = vsixCandidates.length > 0 ? path.join(parentDir, vsixCandidates[0]) : null;
   const extensionsDir = path.join(__dirname, '.vscode-extensions');
   if (!fs.existsSync(extensionsDir)) {
     fs.mkdirSync(extensionsDir, { recursive: true });
@@ -202,7 +218,7 @@ async function run() {
   };
   fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
   const launchArgs = ['--new-window', workspace, '--user-data-dir', profileDir, '--extensions-dir', extensionsDir, '--disable-workspace-trust'];
-  if (fs.existsSync(vsixPath)) {
+  if (vsixPath && fs.existsSync(vsixPath)) {
     console.log('Ensuring VSIX is extracted to', extensionsDir);
     try {
       const { execSync } = require('child_process');
@@ -211,8 +227,8 @@ async function run() {
     } catch (e) {
       console.warn('Failed to extract VSIX automatically, will continue — you may need to install the extension manually:', e.message);
     }
-  } else {
-    console.warn('Local multimeter vsix not found at', vsixPath, '— extension will not be installed automatically.');
+  } else if (!fs.readdirSync(extensionsDir).some(f => f.startsWith('mshobeyri.multimeter'))) {
+    console.warn('No multimeter vsix found in', parentDir, 'and no extension installed in', extensionsDir);
   }
   const app = await electron.launch({ executablePath, args: launchArgs });
 
@@ -223,6 +239,11 @@ async function run() {
     fs.mkdirSync(videoDir, { recursive: true });
   }
   const outFile = path.join(videoDir, `${path.basename(__filename, '.js')}.mp4`);
+  const tempMkvFile = path.join(videoDir, `${path.basename(__filename, '.js')}.mkv`);
+  // Remove stale video files from previous runs.
+  for (const f of [outFile, tempMkvFile]) {
+    try { fs.unlinkSync(f); } catch (e) {}
+  }
 
   const win = await app.firstWindow();
   await win.waitForLoadState('domcontentloaded');
@@ -326,7 +347,7 @@ async function run() {
       for (const idx of tryIndices) {
         try {
           const ffArgsBase = ['-y', '-f', 'avfoundation', '-framerate', '30', '-i', `${idx}:none`];
-          const ffArgs = cropFilter ? ffArgsBase.concat(['-vf', cropFilter, outFile]) : ffArgsBase.concat([outFile]);
+          const ffArgs = cropFilter ? ffArgsBase.concat(['-vf', cropFilter, tempMkvFile]) : ffArgsBase.concat([tempMkvFile]);
           console.log('Attempting ffmpeg with device index', idx);
           let started = false;
           ffmpegProc = spawn('ffmpeg', ffArgs, { stdio: ['pipe', 'ignore', 'pipe'] });
@@ -343,19 +364,13 @@ async function run() {
             if (!started) {
               console.warn('ffmpeg exited immediately with', code, sig, 'for index', idx);
               ffmpegProc = null;
-            } else {
-              if (sig === 'SIGINT' || sig === 'SIGTERM' || code === 0) {
-                console.log('Recording saved to', outFile);
-              } else {
-                console.warn('ffmpeg exited with', code, sig);
-              }
             }
           });
 
           await new Promise((res) => setTimeout(res, 700));
           if (ffmpegProc && !ffmpegProc.killed) {
             started = true;
-            console.log('Started ffmpeg recording to', outFile, 'using device', idx);
+            console.log('Started ffmpeg recording to', tempMkvFile, 'using device', idx);
             return;
           }
         } catch (e) {
@@ -381,50 +396,33 @@ async function run() {
     const proc = ffmpegProc;
     ffmpegProc = null;
 
+    // ffmpeg avfoundation on macOS ignores stdin/SIGINT/SIGTERM.
+    // We record to MKV (resilient to abrupt termination) and convert to MP4 after.
+    try {
+      proc.stdin.write('q\n');
+    } catch (e) {}
+
     await new Promise((resolve) => {
-      let settled = false;
-      let sigintTimer = null;
-      let sigkillTimer = null;
-      const finish = () => {
-        if (!settled) {
-          if (sigintTimer) {
-            clearTimeout(sigintTimer);
-          }
-          if (sigkillTimer) {
-            clearTimeout(sigkillTimer);
-          }
-          settled = true;
-          resolve();
-        }
-      };
-
-      proc.once('exit', finish);
-
-      try {
-        if (proc.stdin && !proc.stdin.destroyed) {
-          proc.stdin.write('q\n');
-        }
-      } catch (e) {
-        console.warn('Failed to request ffmpeg shutdown via stdin:', e.message);
-      }
-
-      sigintTimer = setTimeout(() => {
-        try {
-          proc.kill('SIGINT');
-        } catch (e) {
-          console.warn('Failed to stop ffmpeg with SIGINT:', e.message);
-        }
-      }, 1500);
-
-      sigkillTimer = setTimeout(() => {
+      proc.once('exit', resolve);
+      setTimeout(() => {
         try {
           proc.kill('SIGKILL');
-        } catch (e) {
-          console.warn('Failed to stop ffmpeg with SIGKILL:', e.message);
-        }
-        finish();
-      }, 5000);
+        } catch (e) {}
+        resolve();
+      }, 1500);
     });
+
+    // Convert MKV → MP4 (re-mux without re-encoding)
+    if (fs.existsSync(tempMkvFile)) {
+      try {
+        const { execSync } = require('child_process');
+        execSync(`ffmpeg -y -i "${tempMkvFile}" -c copy "${outFile}" 2>/dev/null`);
+        fs.unlinkSync(tempMkvFile);
+        console.log('Recording saved to', outFile);
+      } catch (e) {
+        console.warn('MKV→MP4 conversion failed:', e.message);
+      }
+    }
   }
 
   const isMac = process.platform === 'darwin';
@@ -588,21 +586,22 @@ async function run() {
     height: Math.round(window.innerHeight)
   }));
 
-  // Make sure Explorer is visible, then click the api.mmt file row in Explorer.
-  console.log('Opening api.mmt from Explorer...');
+  // Make sure Explorer is visible, then click the target file row in Explorer.
+  console.log(`Opening ${targetFileName} from Explorer...`);
   await win.keyboard.press(`${mod}+Shift+E`);
   await win.waitForTimeout(800);
 
   const workbench = win.frames()[0];
   // Try to find the file row in the Explorer DOM first (more reliable than hard pixels).
   let explorerTarget = null;
+  const explorerFileName = targetFileName.toLowerCase();
   if (workbench) {
     try {
-      explorerTarget = await workbench.evaluate(() => {
+      explorerTarget = await workbench.evaluate((fileName) => {
         const candidates = Array.from(document.querySelectorAll('[role="treeitem"], .monaco-list-row, .explorer-item, .label-name'));
         for (const node of candidates) {
           const txt = (node.textContent || '').trim().toLowerCase();
-          if (txt === 'api.mmt' || txt.endsWith('/api.mmt') || txt.includes('api.mmt')) {
+          if (txt === fileName || txt.endsWith(`/${fileName}`) || txt.includes(fileName)) {
             const rect = node.getBoundingClientRect();
             return {
               x: Math.round(rect.left + rect.width / 2),
@@ -611,7 +610,7 @@ async function run() {
           }
         }
         return null;
-      });
+      }, explorerFileName);
     } catch (e) {
       explorerTarget = null;
     }
@@ -653,11 +652,11 @@ async function run() {
 
   if (!editorFrame) {
     // Fallback: the pixel click likely missed slightly, so reopen by locating the file row.
-    const explorerTarget = await workbench.evaluate(() => {
+    const explorerTarget = await workbench.evaluate((fileName) => {
       const candidates = Array.from(document.querySelectorAll('[role="treeitem"], .monaco-list-row, .explorer-item, .label-name'));
       for (const node of candidates) {
         const txt = (node.textContent || '').trim().toLowerCase();
-        if (txt === 'api.mmt' || txt.endsWith('/api.mmt') || txt.includes('api.mmt')) {
+        if (txt === fileName || txt.endsWith(`/${fileName}`) || txt.includes(fileName)) {
           const rect = node.getBoundingClientRect();
           return {
             x: rect.left + rect.width / 2,
@@ -666,7 +665,7 @@ async function run() {
         }
       }
       return null;
-    });
+    }, explorerFileName);
 
     if (explorerTarget) {
       await moveMouse(explorerTarget);
@@ -693,22 +692,32 @@ async function run() {
     throw new Error('Could not find Monaco editor in MMT view');
   }
 
-  // Animate typing: focus Monaco input, clear, then type character by character.
-  // Press Escape before every Enter to dismiss any autocomplete suggestion first.
+  // Click inside the Monaco editor area to ensure it has keyboard focus.
   const inputArea = editorFrame.locator('textarea.inputarea').first();
-  await inputArea.evaluate((el) => el.focus());
-  await win.waitForTimeout(200);
+  const editorContainer = editorFrame.locator('.monaco-editor').first();
+  const edBox = await editorContainer.boundingBox();
+  if (edBox) {
+    await win.mouse.click(edBox.x + 50, edBox.y + 50);
+    await win.waitForTimeout(300);
+  } else {
+    await inputArea.evaluate((el) => el.focus());
+    await win.waitForTimeout(200);
+  }
   await win.keyboard.press(`${mod}+A`);
   await win.keyboard.press('Backspace');
 
   const yamlLines = [
     'type: api',
+    'title: Post echo',
+    'description: Sends a JSON body and gets it echoed back',
     'url: https://test.mmt.dev/echo',
     'method: post',
     'format: json',
+    'headers:',
+    '  X-Custom: multimeter-example',
     'body:',
-    'username: mehrdad',
-    'password: 123456'
+    '  name: Multimeter',
+    '  message: Hello from mmt!'
   ];
 
   for (let i = 0; i < yamlLines.length; i++) {
@@ -722,6 +731,42 @@ async function run() {
       // Dismiss any open suggestion before pressing Enter to prevent autocomplete acceptance.
       await win.keyboard.press('Escape');
       await win.keyboard.press('Enter');
+      // Monaco may auto-indent the new line. Clear any auto-inserted whitespace
+      // so the next line's own leading spaces are typed from column 0.
+      await win.keyboard.press('Home');
+      await win.keyboard.press('Home');
+      await win.keyboard.press('Shift+End');
+      await win.keyboard.press('Delete');
+    }
+    // After typing the 'type:' line, click Body tab to show the right panel reacting.
+    if (i === 0 && line.startsWith('type: api')) {
+      await win.waitForTimeout(500);
+      for (const frame of win.frames()) {
+        try {
+          const tab = frame.locator('button.tab-button-small', { hasText: 'Body' });
+          const cnt = await tab.count();
+          if (cnt > 0) {
+            const tBox = await tab.first().boundingBox();
+            if (tBox && tBox.width > 0 && tBox.height > 0) {
+              const target = { x: Math.round(tBox.x + tBox.width / 2), y: Math.round(tBox.y + tBox.height / 2) };
+              await moveMouse(target);
+              await win.mouse.click(target.x, target.y);
+              console.log('Clicked Body tab at', target);
+              await win.waitForTimeout(800);
+              break;
+            }
+          }
+        } catch (e) {}
+      }
+      // Click back into the editor to continue typing.
+      const edBox2 = await editorContainer.boundingBox();
+      if (edBox2) {
+        await moveMouse({ x: Math.round(edBox2.x + 50), y: Math.round(edBox2.y + 50) });
+        await win.mouse.click(edBox2.x + 50, edBox2.y + 50);
+        await win.waitForTimeout(300);
+      }
+      // Move cursor to end of document before continuing.
+      await win.keyboard.press(`${mod}+End`);
     }
   }
 
@@ -784,7 +829,7 @@ async function run() {
 
   // Keep recording for two seconds after the send click.
   await win.waitForTimeout(2000);
-  console.log('api_demo completed — opened', filePath, 'and attempted send click.');
+  console.log(`${demoName} completed — opened`, filePath, 'and attempted send click.');
   } finally {
     await stopRecording();
 
@@ -797,6 +842,6 @@ async function run() {
 }
 
 run().catch(err => {
-  console.error('api_demo failed:', err);
+  console.error(`${path.basename(__filename, '.js')} failed:`, err);
   process.exit(1);
 });
