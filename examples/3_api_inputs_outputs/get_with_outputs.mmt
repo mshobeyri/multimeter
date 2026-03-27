@@ -3,7 +3,7 @@ title: Get user info
 description: Fetch a JSON payload and extract fields as outputs
 outputs:
   name: body[name]
-  item_count: body[tags].length
+  tags: body[tags]
   first_tag: body[tags][0]
 url: https://test.mmt.dev/json
 method: get
