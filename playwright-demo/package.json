@@ -8,7 +8,8 @@
   "scripts": {
     "demo": "node 1_simple_api_test.js",
     "1_simple_api_test": "node 1_simple_api_test.js",
-    "2_api_environment_variables": "node 2_api_environment_variables.js"
+    "2_api_environment_variables": "node 2_api_environment_variables.js",
+    "3_api_inputs_outputs": "node 3_api_inputs_outputs.js"
   },
   "dependencies": {
     "ghost-cursor-playwright": "^2.1.0",
