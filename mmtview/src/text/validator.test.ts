@@ -3,6 +3,7 @@ import {
   findTestCallAliasProblems,
   findTestCallInputsProblems,
   findMultilineDescriptionProblems,
+  findStageAfterProblems,
 } from './validator';
 
 describe('validator test call checks', () => {
@@ -93,6 +94,83 @@ describe('findMultilineDescriptionProblems', () => {
       '  second line',
     ].join('\n');
     const problems = findMultilineDescriptionProblems(content);
+    expect(problems).toHaveLength(0);
+  });
+});
+
+describe('findStageAfterProblems', () => {
+  function buildDoc(content: string) {
+    return parseDocument(content);
+  }
+
+  it('flags after referencing a non-existent stage id', () => {
+    const content = [
+      'type: test',
+      'stages:',
+      '  - id: auth',
+      '    steps:',
+      '      - call: login',
+      '  - id: profile',
+      '    after: nonexistent',
+      '    steps:',
+      '      - call: getProfile',
+    ].join('\n');
+    const doc = buildDoc(content);
+    const problems = findStageAfterProblems(content, doc, 'test');
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatchObject({
+      message: '"nonexistent" is not a valid stage id',
+      severity: 'error',
+    });
+  });
+
+  it('does not flag after referencing a valid stage id', () => {
+    const content = [
+      'type: test',
+      'stages:',
+      '  - id: auth',
+      '    steps:',
+      '      - call: login',
+      '  - id: profile',
+      '    after: auth',
+      '    steps:',
+      '      - call: getProfile',
+    ].join('\n');
+    const doc = buildDoc(content);
+    const problems = findStageAfterProblems(content, doc, 'test');
+    expect(problems).toHaveLength(0);
+  });
+
+  it('flags invalid entries in after array', () => {
+    const content = [
+      'type: test',
+      'stages:',
+      '  - id: auth',
+      '    steps:',
+      '      - call: login',
+      '  - id: setup',
+      '    steps:',
+      '      - call: init',
+      '  - id: profile',
+      '    after:',
+      '      - auth',
+      '      - missing',
+      '    steps:',
+      '      - call: getProfile',
+    ].join('\n');
+    const doc = buildDoc(content);
+    const problems = findStageAfterProblems(content, doc, 'test');
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatchObject({
+      message: '"missing" is not a valid stage id',
+      severity: 'error',
+    });
+  });
+
+  it('returns no problems for non-test documents', () => {
+    const content = 'type: api\nurl: http://example.com\n';
+    const doc = buildDoc(content);
+    const problems = findStageAfterProblems(content, doc, 'api');
     expect(problems).toHaveLength(0);
   });
 });

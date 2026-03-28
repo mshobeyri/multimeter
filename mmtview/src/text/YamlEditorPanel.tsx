@@ -26,6 +26,8 @@ import {
   getUndefinedEnvRefDecorations,
   findEnvRefProblems,
   findMultilineDescriptionProblems,
+  computeStageAfterMarkers,
+  getInvalidStageAfterDecorations,
   type ProblemEntry,
 } from "./validator";
 import { useRunGlyphs } from './useRunGlyphs';
@@ -126,6 +128,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const undefinedInputRefDecorationsRef = useRef<string[]>([]);
   const undefinedEnvRefDecorationsRef = useRef<string[]>([]);
   const undefinedOutputValueDecorationsRef = useRef<string[]>([]);
+  const invalidStageAfterDecorationsRef = useRef<string[]>([]);
   const contentRef = useRef(content);
   const [editorReady, setEditorReady] = useState(false);
   const importsMapRef = useRef<Record<string, string>>({});
@@ -147,6 +150,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const [inputRefProblems, setInputRefProblems] = useState<ProblemEntry[]>([]);
   const [envRefProblems, setEnvRefProblems] = useState<ProblemEntry[]>([]);
   const [descriptionProblems, setDescriptionProblems] = useState<ProblemEntry[]>([]);
+  const [stageAfterProblems, setStageAfterProblems] = useState<ProblemEntry[]>([]);
   const [knownEnvNames, setKnownEnvNames] = useState<Set<string>>(new Set());
   // Keep track of whether the editor has detected a canonical key-order issue via markers.
   const shouldShowRunControls = (docType === "test" || docType === "api" || docType === "suite");
@@ -467,6 +471,52 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       undefinedExpectDecos
     );
   }, [content, docType, editorReady, apiInputsByAlias, apiOutputsByAlias]);
+
+  // Validate stage `after` references
+  useEffect(() => {
+    if (!editorReady || !monacoRef.current || !editorRef.current) {
+      return;
+    }
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) {
+      return;
+    }
+
+    let doc: any = null;
+    try {
+      doc = parseYamlDoc(content);
+      if (doc.errors && doc.errors.length > 0) {
+        monaco.editor.setModelMarkers(model, "mmt-stage-after", []);
+        setStageAfterProblems([]);
+        invalidStageAfterDecorationsRef.current = editor.deltaDecorations(invalidStageAfterDecorationsRef.current, []);
+        return;
+      }
+    } catch {
+      monaco.editor.setModelMarkers(model, "mmt-stage-after", []);
+      setStageAfterProblems([]);
+      invalidStageAfterDecorationsRef.current = editor.deltaDecorations(invalidStageAfterDecorationsRef.current, []);
+      return;
+    }
+
+    const { markers, problems } = computeStageAfterMarkers(monaco, model, content, doc, docType);
+    monaco.editor.setModelMarkers(model, "mmt-stage-after", markers);
+    setStageAfterProblems(problems);
+
+    const decos = getInvalidStageAfterDecorations(
+      monaco,
+      model,
+      content,
+      doc,
+      docType,
+      UNDEFINED_INPUT_CLASS
+    );
+    invalidStageAfterDecorationsRef.current = editor.deltaDecorations(
+      invalidStageAfterDecorationsRef.current,
+      decos
+    );
+  }, [content, docType, editorReady]);
 
   // Warn on example input/output keys that don't match API-level inputs/outputs
   useEffect(() => {
@@ -887,12 +937,13 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       ...inputRefProblems,
       ...envRefProblems,
       ...descriptionProblems,
+      ...stageAfterProblems,
     ];
     window.vscode.postMessage({
       command: "updateDocumentProblems",
       problems,
     });
-  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, missingDocFileProblems, exampleKeyProblems, inputRefProblems, envRefProblems, descriptionProblems]);
+  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, missingDocFileProblems, exampleKeyProblems, inputRefProblems, envRefProblems, descriptionProblems, stageAfterProblems]);
 
   return (
     <div style={{ height: "100%" }}>

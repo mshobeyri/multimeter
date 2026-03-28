@@ -422,6 +422,32 @@ export const flowStagesToJsfunc =
         return '';
       };
 
+      // Collect call step IDs from steps (recursively) so they can be
+      // hoisted to the outer scope and shared across stages.
+      function collectCallIds(steps: TestFlowSteps): string[] {
+        const ids: string[] = [];
+        for (const step of (steps ?? [])) {
+          const s = step as any;
+          if (s.call && typeof s.id === 'string' && s.id) {
+            ids.push(s.id);
+          }
+          if (Array.isArray(s.steps)) {
+            ids.push(...collectCallIds(s.steps));
+          }
+          if (Array.isArray(s.else)) {
+            ids.push(...collectCallIds(s.else));
+          }
+        }
+        return ids;
+      }
+
+      const hoistedIds = new Set<string>();
+      for (const stage of flow) {
+        for (const id of collectCallIds(stage.steps ?? [])) {
+          hoistedIds.add(id);
+        }
+      }
+
       // Map stage name to its code and dependencies
       const stageMap = new Map < string, {
         code: string;
@@ -440,12 +466,37 @@ export const flowStagesToJsfunc =
           const cond = conditionalStatementToJSfunc(String(stage.condition));
           code += `if (!(${cond})) {\n  return;\n}\n`;
         }
-        code += flowStepsToJsfunc(stage.steps ?? [], root, useExternalReport, importTitleMap);
+        let stepsCode = flowStepsToJsfunc(stage.steps ?? [], root, useExternalReport, importTitleMap);
+        // Replace const declarations for hoisted IDs with assignments
+        for (const id of hoistedIds) {
+          stepsCode = stepsCode.replace(`const ${id} = `, `${id} = `);
+        }
+        code += stepsCode;
         stageMap.set(stageName, {code, dependsOn});
+      }
+
+      // Validate that all `after` dependencies reference existing stage IDs
+      const allStageIds = new Set(stageMap.keys());
+      for (const [stageName, stage] of stageMap) {
+        if (stage.dependsOn) {
+          for (const dep of stage.dependsOn) {
+            if (!allStageIds.has(dep)) {
+              throw new Error(
+                  `Stage "${stageName}": after references "${dep}" which is not a valid stage id`);
+            }
+          }
+        }
       }
 
       // Helper to generate code for each stage with dependency handling
       const generated: string[] = [];
+
+      // Hoist call step IDs to the outer scope so dependent stages can
+      // access results from earlier stages (e.g. condition: ${doLogin.status_code} == 200).
+      for (const id of hoistedIds) {
+        generated.push(`let ${id};`);
+      }
+
       const launched = new Set<string>();
       const processed = new Set<string>();
 

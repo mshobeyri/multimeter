@@ -1593,3 +1593,160 @@ export function getUndefinedOutputValueDecorations(
 
   return decorations;
 }
+
+// --- Stage `after` validation ---
+
+export type StageAfterSiteInfo = {
+  afterValue: string;
+  line: number;
+  offset: number;
+};
+
+/**
+ * Extract all stage IDs and `after` value sites from a test document's stages.
+ */
+function extractStageAfterInfo(doc: any, content: string): {
+  stageIds: Set<string>;
+  afterSites: StageAfterSiteInfo[];
+} {
+  const stageIds = new Set<string>();
+  const afterSites: StageAfterSiteInfo[] = [];
+
+  const rootItems: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
+  const stagesPair = rootItems.find((item: any) => item?.key?.value === "stages");
+  if (!stagesPair?.value?.items) {
+    return { stageIds, afterSites };
+  }
+
+  const stagesSeq: any[] = Array.isArray(stagesPair.value.items) ? stagesPair.value.items : [];
+
+  for (const stageNode of stagesSeq) {
+    const pairs: any[] = Array.isArray(stageNode?.items) ? stageNode.items : [];
+    const idPair = pairs.find((p: any) => p?.key?.value === "id");
+    const id = idPair?.value?.value;
+    if (typeof id === "string" && id.trim()) {
+      stageIds.add(id);
+    }
+
+    const afterPair = pairs.find((p: any) => p?.key?.value === "after");
+    if (!afterPair) {
+      continue;
+    }
+
+    const afterValue = afterPair?.value;
+    if (!afterValue) {
+      continue;
+    }
+
+    // after can be a single string or an array of strings
+    if (typeof afterValue.value === "string" && afterValue.value.trim()) {
+      const offset = Array.isArray(afterValue.range) ? afterValue.range[0] : -1;
+      const line = typeof offset === "number" && offset >= 0 ? offsetToLineNumber(content, offset) : 1;
+      afterSites.push({ afterValue: afterValue.value, line, offset });
+    } else if (Array.isArray(afterValue.items)) {
+      for (const item of afterValue.items) {
+        const val = item?.value;
+        if (typeof val === "string" && val.trim()) {
+          const offset = Array.isArray(item.range) ? item.range[0] : -1;
+          const line = typeof offset === "number" && offset >= 0 ? offsetToLineNumber(content, offset) : 1;
+          afterSites.push({ afterValue: val, line, offset });
+        }
+      }
+    }
+  }
+
+  return { stageIds, afterSites };
+}
+
+/**
+ * Find problems where `after` references a stage ID that does not exist.
+ */
+export function findStageAfterProblems(
+  content: string,
+  yamlDoc: any,
+  docType: string | null
+): ProblemEntry[] {
+  if (docType !== "test" || !yamlDoc) {
+    return [];
+  }
+
+  const { stageIds, afterSites } = extractStageAfterInfo(yamlDoc, content);
+  return afterSites
+    .filter((site) => !stageIds.has(site.afterValue))
+    .map((site) => ({
+      message: `"${site.afterValue}" is not a valid stage id`,
+      severity: "error" as const,
+      line: site.line,
+      column: 1,
+    }));
+}
+
+/**
+ * Compute Monaco markers for invalid `after` references.
+ */
+export function computeStageAfterMarkers(
+  monaco: any,
+  model: any,
+  content: string,
+  yamlDoc: any,
+  docType: string | null
+): { markers: any[]; problems: ProblemEntry[] } {
+  if (!model || !yamlDoc) {
+    return { markers: [], problems: [] };
+  }
+
+  const problems = findStageAfterProblems(content, yamlDoc, docType);
+  const markers = problems.map((problem) => {
+    const lineNumber = Math.min(Math.max(problem.line ?? 1, 1), model.getLineCount());
+    return {
+      startLineNumber: lineNumber,
+      startColumn: problem.column ?? 1,
+      endLineNumber: lineNumber,
+      endColumn: model.getLineMaxColumn(lineNumber),
+      message: problem.message,
+      severity: monaco.MarkerSeverity.Error,
+    };
+  });
+
+  return { markers, problems };
+}
+
+/**
+ * Create editor decorations (underline) for invalid `after` references.
+ */
+export function getInvalidStageAfterDecorations(
+  monaco: any,
+  model: any,
+  content: string,
+  yamlDoc: any,
+  docType: string | null,
+  inlineClassName: string
+): any[] {
+  if (!model || !yamlDoc || docType !== "test") {
+    return [];
+  }
+
+  const { stageIds, afterSites } = extractStageAfterInfo(yamlDoc, content);
+  const decorations: any[] = [];
+
+  for (const site of afterSites) {
+    if (stageIds.has(site.afterValue)) {
+      continue;
+    }
+    if (site.offset < 0) {
+      continue;
+    }
+    const hoverMessage = { value: `"${site.afterValue}" is not a valid stage id` };
+    const start = model.getPositionAt(site.offset);
+    const end = model.getPositionAt(site.offset + site.afterValue.length);
+    decorations.push({
+      range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column),
+      options: {
+        inlineClassName,
+        hoverMessage,
+      },
+    });
+  }
+
+  return decorations;
+}
