@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="Report Generation Suite" tests="0" failures="0" errors="0" skipped="0" time="0.026" timestamp="2026-03-14T17:55:01.550Z">
-    <testsuite name="Passing Test" tests="0" failures="0" errors="0" skipped="0" time="0.000" file="/Users/mehrdad/projects/mmt/examples/16_report_generation/test/pass_test.mmt">
-    </testsuite>
-    <testsuite name="Failing Test" tests="0" failures="0" errors="0" skipped="0" time="0.000" file="/Users/mehrdad/projects/mmt/examples/16_report_generation/test/fail_test.mmt">
-    </testsuite>
-</testsuites>
