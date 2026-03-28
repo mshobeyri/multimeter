@@ -26,8 +26,8 @@ Shows how to use **environment files**, **presets**, and **project root imports*
 
 - **`type: env`** — defines variables with named choices (key-value map) or allowed values (array).
 - **Presets** — named groups that select specific variable choices. `runner.dev` picks `api_url: local` and `mode: dev`.
-- **`<<e:VAR>>`** — inline string substitution (always a string).
-- **`e:VAR`** — entire-value substitution (preserves type: number, boolean, string).
+- **`<<e:var>>`** — inline string substitution (always a string).
+- **`e:var`** — entire-value substitution (preserves type: number, boolean, string).
 - **`multimeter.mmt`** — acts as the project root marker. Enables `+/` imports that resolve relative to this file.
 - **`+/` imports** — `+/api/echo_env.mmt` resolves relative to where `multimeter.mmt` lives, regardless of directory depth.
 

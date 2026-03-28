@@ -5,11 +5,13 @@ inputs:
   username: alice@example.com
   password: secret123
 outputs:
-  token: body.token
-  user_id: body.user_id
+  token: body.body.token
+  user_id: body.body.user_id
 url: https://test.mmt.dev/echo
 method: post
 format: json
 body:
   username: i:username
   password: i:password
+  token: r:uuid
+  user_id: 1

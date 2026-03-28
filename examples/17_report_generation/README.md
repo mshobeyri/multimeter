@@ -5,7 +5,7 @@ Demonstrates how to generate **test reports** in JUnit XML, HTML, Markdown, and 
 ## Structure
 
 ```
-16_report_generation/
+17_report_generation/
 ├── api/
 │   └── echo.mmt                 # Simple echo API
 ├── test/
@@ -54,34 +54,34 @@ Demonstrates how to generate **test reports** in JUnit XML, HTML, Markdown, and 
 Run the suite with automatic export (uses the `export` field):
 
 ```sh
-npx testlight run examples/16_report_generation/suite.mmt
+npx testlight run examples/17_report_generation/suite.mmt
 ```
 
 Generate a specific report format:
 
 ```sh
 # JUnit XML
-npx testlight run examples/16_report_generation/suite.mmt --report junit
+npx testlight run examples/17_report_generation/suite.mmt --report junit
 
 # HTML
-npx testlight run examples/16_report_generation/suite.mmt --report html
+npx testlight run examples/17_report_generation/suite.mmt --report html
 
 # Markdown
-npx testlight run examples/16_report_generation/suite.mmt --report md
+npx testlight run examples/17_report_generation/suite.mmt --report md
 
 # MMT YAML
-npx testlight run examples/16_report_generation/suite.mmt --report mmt
+npx testlight run examples/17_report_generation/suite.mmt --report mmt
 ```
 
 Custom output path:
 
 ```sh
-npx testlight run examples/16_report_generation/suite.mmt \
+npx testlight run examples/17_report_generation/suite.mmt \
   --report junit --report-file ./my-reports/output.xml
 ```
 
 Run a single test with a report:
 
 ```sh
-npx testlight run examples/16_report_generation/test/pass_test.mmt --report junit
+npx testlight run examples/17_report_generation/test/pass_test.mmt --report junit
 ```

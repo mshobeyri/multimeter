@@ -5,7 +5,7 @@ Demonstrates how to configure **CA certificates** and **client certificates (mTL
 ## Structure
 
 ```
-17_tls_certificates/
+18_tls_certificates/
 ├── env.mmt                      # Environment file with certificates section
 ├── api/
 │   └── secure_echo.mmt          # API that uses <<e:api_url>> (HTTPS)
@@ -101,8 +101,8 @@ openssl pkcs12 -in bundle.pfx -nocerts -out client.key
 export CLIENT_CERT_PASS="secret123"
 
 # Run the test with the env file
-npx testlight run examples/17_tls_certificates/tls_test.mmt \
-  --env-file examples/17_tls_certificates/env.mmt
+npx testlight run examples/18_tls_certificates/tls_test.mmt \
+  --env-file examples/18_tls_certificates/env.mmt
 ```
 
 > **Note:** This example uses `https://test.mmt.dev/echo` which does not require client certificates. To test mTLS, point `api_url` at your own server that requires client certs.

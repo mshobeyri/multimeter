@@ -5,7 +5,7 @@ Demonstrates **parallel stages** with `after` dependencies and **conditional sta
 ## Structure
 
 ```
-14_stages_and_conditions/
+15_stages_and_conditions/
 ├── api/
 │   ├── login.mmt               # Login API
 │   ├── get_profile.mmt         # Profile API
@@ -54,5 +54,5 @@ auth (login)
 ### With the CLI
 
 ```sh
-npx testlight run examples/14_stages_and_conditions/stages_test.mmt
+npx testlight run examples/15_stages_and_conditions/stages_test.mmt
 ```

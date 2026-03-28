@@ -45,7 +45,7 @@ test 123,POST
 import:
   messages: messages.csv
 steps:
-  - data: messages
+  - for: message of messages
 ```
 
 The `data` step binds the imported CSV alias into scope so it can be used in loops and expressions.

@@ -10,4 +10,8 @@ steps:
       message: pass test
     expect:
       status_code: 200
-  - assert: ${result.status_code} == 200
+  - assert:
+      actual: ${result.status_code}
+      operator: ==
+      expected: "200"
+      report: all

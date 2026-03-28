@@ -1,0 +1,21 @@
+type: api
+title: Random Echo
+description: Sends random YAML tokens and extracts the echoed values from the response
+outputs:
+  random_id: body.body.id
+  random_email: body.body.email
+  random_name: body.body.name
+  lucky_number: body.body.lucky_number
+  active: body.body.active
+  request_id: body.body.request_id
+  request_method: body.method
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  id: r:uuid
+  email: r:email
+  name: r:first_name
+  lucky_number: r:int
+  active: r:bool
+  request_id: req-<<r:uuid>>

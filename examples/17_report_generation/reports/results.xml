@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Report Generation Suite" tests="2" failures="1" errors="0" skipped="0" time="0.072" timestamp="2026-03-27T22:21:37.858Z">
+    <testsuite name="Passing Test" tests="1" failures="0" errors="0" skipped="0" time="0.000" file="/Users/mehrdad/projects/multimeter/examples/17_report_generation/test/pass_test.mmt" timestamp="2026-03-27T22:21:37.926Z">
+      <testcase name="step-1" classname="Passing Test" time="0.000"/>
+    </testsuite>
+    <testsuite name="Failing Test" tests="1" failures="1" errors="0" skipped="0" time="0.000" file="/Users/mehrdad/projects/multimeter/examples/17_report_generation/test/fail_test.mmt" timestamp="2026-03-27T22:21:37.930Z">
+      <testcase name="step-1" classname="Failing Test" time="0.000">
+        <failure message="expected: 999, actual: 200, operator: ${result.status_code} == 999" type="check">expected: 999
+actual: 200
+operator: ${result.status_code} == 999</failure>
+      </testcase>
+    </testsuite>
+</testsuites>

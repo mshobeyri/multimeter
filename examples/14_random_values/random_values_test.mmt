@@ -1,0 +1,15 @@
+type: test
+title: Random Values
+description: Calls an API that uses r:xxx tokens and validates the echoed results
+import:
+  randomEcho: ./api/random_echo.mmt
+steps:
+  - call: randomEcho
+    id: result
+    expect:
+      request_method: POST
+      random_id: != null
+      random_email: =~ /@/
+      random_name: != null
+      lucky_number: != null
+      request_id: =^ req-

@@ -5,7 +5,7 @@ Demonstrates **`js` steps**, **imported JS modules**, and **runner globals** lik
 ## Structure
 
 ```
-15_javascript_helpers/
+16_javascript_helpers/
 ├── helpers/
 │   └── helpers.js               # CommonJS module with utility functions
 ├── api/
@@ -56,5 +56,5 @@ Demonstrates **`js` steps**, **imported JS modules**, and **runner globals** lik
 ### With the CLI
 
 ```sh
-npx testlight run examples/15_javascript_helpers/js_test.mmt
+npx testlight run examples/16_javascript_helpers/js_test.mmt
 ```

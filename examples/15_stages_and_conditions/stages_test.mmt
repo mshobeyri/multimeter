@@ -14,7 +14,8 @@ stages:
         inputs:
           username: alice
           password: secret
-      - assert: ${doLogin.status_code} == 200
+        expect: 
+          status_code: 200
   - id: profile
     title: Fetch Profile
     condition: ${doLogin.status_code} == 200
@@ -24,7 +25,8 @@ stages:
         id: userProfile
         inputs:
           token: ${doLogin.token}
-      - check: ${userProfile.status_code} == 200
+        expect: 
+          status_code: 200
   - id: settings
     title: Fetch Settings
     condition: ${doLogin.status_code} == 200
@@ -34,4 +36,5 @@ stages:
         id: userSettings
         inputs:
           token: ${doLogin.token}
-      - check: ${userSettings.status_code} == 200
+        expect: 
+          status_code: 200

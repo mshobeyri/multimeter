@@ -45,8 +45,8 @@ npx testlight run examples/2_api_environment_variables/get_json.mmt \
 
 ## Key concepts
 
-- **`e:VAR`** — reference an env variable as the entire value (preserves type).
-- **`<<e:VAR>>`** — embed an env variable inside a string (e.g., a URL).
+- **`e:var`** — reference an env variable as the entire value (preserves type).
+- **`<<e:var>>`** — embed an env variable inside a string (e.g., a URL).
 - **Presets** — named groups of variable overrides you can switch between.
 
 See [Environment docs](../../docs/environment-mmt.md) for full details.
