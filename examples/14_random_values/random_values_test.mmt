@@ -9,7 +9,7 @@ steps:
     expect:
       request_method: POST
       random_id: != null
-      random_email: =~ /@/
+      random_email: =~ [a-z._]+@[a-z]+\.[a-z]+
       random_name: != null
       lucky_number: != null
       request_id: =^ req-
