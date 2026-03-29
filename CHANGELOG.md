@@ -2,6 +2,20 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.15.1]
+
+- Fix stage issues
+- Fix WebSocket type handling
+- Fix environment example and other example updates
+
+## [1.15.0]
+
+- Show compile errors instead of running code
+- Potential fix for parallel run
+- Add unit tests
+- Remove import of APIs
+- Update examples
+
 ## [1.14.6]
 
 - Finalize the 1.14.6 release metadata and changelog
