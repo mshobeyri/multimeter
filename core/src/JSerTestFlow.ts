@@ -220,9 +220,16 @@ const comparisonToJSfunc = (type: 'check'|'assert', comparison: Comparison, useE
   const conditionStatement = conditionalStatementToJSfunc(raw);
   const finalTitle = typeof title === 'string' ? toTemplateWithVars(title) : undefined;
   const finalDetails = typeof details === 'string' ? toTemplateWithVars(details) : undefined;
-  const finalActual = typeof actual === 'string' ? toTemplateWithVars(actual) : undefined;
+  // For actual: if it's a ${...} variable reference, pass the raw JS expression so
+  // objects preserve their type; otherwise keep as template literal for plain strings.
+  const actualTrimmed = typeof actual === 'string' ? actual.trim() : '';
+  const finalActual = actualTrimmed && /^\$\{.+\}$/.test(actualTrimmed)
+    ? actualTrimmed.slice(2, -1)
+    : (typeof actual === 'string' ? toTemplateWithVars(actual) : undefined);
   const finalExpected = typeof expected === 'string' ? toTemplateWithVars(expected) : undefined;
-  return `check_(${conditionStatement}, '${type}', ${JSON.stringify(raw)}, '${reportLevel}', ${finalTitle}, ${finalDetails}, ${finalActual}, ${finalExpected});\n`;
+  // Strip ${...} from comparison display string so UI shows clean field names
+  const displayRaw = raw.replace(/\$\{([^}]+)\}/g, '$1');
+  return `check_(${conditionStatement}, '${type}', ${JSON.stringify(displayRaw)}, '${reportLevel}', ${finalTitle}, ${finalDetails}, ${finalActual}, ${finalExpected});\n`;
 };
 
 export const checkToJSfunc = (check: Comparison, useExternalReport: boolean): string =>

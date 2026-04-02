@@ -60,14 +60,16 @@ function displayValue(v: any): string {
 function buildStepHtml(step: TestStepResult): string {
   const name = escapeHtml(step.title || `step-${step.stepIndex}`);
   const duration = step.durationMs != null ? ` <span class="duration">(${formatDuration(step.durationMs)})</span>` : '';
-  const icon = step.status === 'passed' ? '✓' : '✗';
+  const iconChar = step.status === 'passed' ? '✓' : '✗';
+  const iconColor = step.status === 'passed' ? 'var(--passed)' : 'var(--failed)';
+  const iconSpan = `<span style="color: ${iconColor}">${iconChar}</span>`;
   const expects = step.expects || [];
 
   if (step.status === 'passed' && expects.length <= 1) {
-    return `        <div class="testcase passed">${icon} ${name}${duration}</div>\n`;
+    return `        <div class="testcase passed">${iconSpan} ${name}${duration}</div>\n`;
   }
 
-  let html = `        <div class="testcase ${step.status === 'passed' ? 'passed' : 'failed'}">${icon} ${name}${duration}\n`;
+  let html = `        <div class="testcase ${step.status === 'passed' ? 'passed' : 'failed'}">${iconSpan} ${name}${duration}\n`;
 
   if (expects.length > 0) {
     html += '          <div class="expects">\n';
@@ -427,10 +429,13 @@ const CSS = `
     font-size: 13px;
     transition: background 0.2s ease;
     border: 1px solid transparent;
+    overflow-wrap: break-word;
+    word-break: break-word;
+    overflow: hidden;
   }
   .testcase.passed { color: var(--passed); }
   .testcase.passed:hover { background: var(--passed-bg); border-color: var(--glass-border); }
-  .testcase.failed { color: var(--failed); }
+  .testcase.failed { color: var(--fg); }
   .testcase.failed:hover { background: var(--failed-bg); border-color: var(--glass-border); }
   .failure {
     margin: 8px 0 4px 24px;
@@ -444,8 +449,8 @@ const CSS = `
     box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
   }
   .failure strong { color: var(--muted); }
-  .expects { margin: 8px 0 4px 24px; font-size: 12px; color: var(--fg); }
-  .expect-got { color: var(--muted); margin-left: 24px; }
+  .expects { margin: 8px 0 4px 24px; font-size: 12px; color: var(--fg); overflow-wrap: break-word; word-break: break-word; }
+  .expect-got { color: var(--muted); margin-left: 24px; display: block; overflow-wrap: break-word; word-break: break-word; max-height: 200px; overflow: auto; }
   .duration { color: var(--muted); font-size: 12px; }
   .empty { color: var(--muted); font-style: italic; font-size: 12px; }
 
@@ -525,7 +530,7 @@ const SCRIPT = `
     (function setupTheme() {
       var toggle = document.getElementById('theme-toggle');
       var root = document.documentElement;
-      var currentTheme = localStorage.getItem('report-theme') || 'dark';
+      var currentTheme = localStorage.getItem('report-theme') || root.getAttribute('data-theme') || 'dark';
       root.setAttribute('data-theme', currentTheme);
       updateThemeIcon(currentTheme);
       toggle.addEventListener('click', function() {

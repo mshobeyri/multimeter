@@ -192,7 +192,7 @@ const StructuredDetails: React.FC<{ callDetails: CallResultDetails }> = ({ callD
   let sectionIdx = 0;
 
   return (
-    <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column' }}>
+    <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Status code */}
       {callDetails.statusCode !== undefined && (() => {
         const first = sectionIdx++ === 0;
@@ -276,7 +276,7 @@ const StructuredDetails: React.FC<{ callDetails: CallResultDetails }> = ({ callD
                 fontSize: 'var(--vscode-editor-font-size, 12px)',
               }}>
                 {callDetails.request.method && callDetails.request.url && (
-                  <div><span style={{ fontWeight: 600 }}>{callDetails.request.method.toUpperCase()}</span> {callDetails.request.url}</div>
+                  <div style={{ wordBreak: 'break-all' }}><span style={{ fontWeight: 600 }}>{callDetails.request.method.toUpperCase()}</span> {callDetails.request.url}</div>
                 )}
               </div>
               <HeadersBlock label="Headers" headers={callDetails.request.headers} />
@@ -432,9 +432,9 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                     style={{ color: meta.color, marginTop: 2 }}
                     aria-label={meta.title}
                   ></span>
-                  <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                     <div style={{ marginTop: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ flex: 1 }}>{report.title || (report.stepType === 'check' ? 'Check' : 'Assert')}</span>
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{report.title || (report.stepType === 'check' ? 'Check' : 'Assert')}</span>
                       {hasDetails && (
                         <button
                           className="action-button"
