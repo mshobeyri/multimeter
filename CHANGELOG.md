@@ -2,6 +2,10 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.15.2]
+
+- Stable release of 1.15.1 fixes
+
 ## [1.15.1]
 
 - Fix stage issues
