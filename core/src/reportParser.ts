@@ -51,16 +51,27 @@ function parseTestEntry(test: any, index: number): TestStepResult {
     stepIndex: index,
     stepType: test.type === 'assert' ? 'assert' : 'check',
     status: test.result === 'failed' ? 'failed' : 'passed',
-    comparison: '',
+    expects: [],
     timestamp: 0,
     durationMs: parseDurationMs(test.duration),
     title: test.name,
   };
 
-  if (test.failure) {
-    step.actual = test.failure.actual;
-    step.expected = test.failure.expected;
-    step.comparison = test.failure.operator || '';
+  if (Array.isArray(test.expects)) {
+    step.expects = test.expects.map((e: any) => ({
+      comparison: typeof e.comparison === 'string' ? e.comparison : '',
+      actual: e.actual,
+      expected: e.expected,
+      status: e.result === 'failed' ? 'failed' as const : 'passed' as const,
+    }));
+  } else if (test.failure) {
+    // Legacy format without expects array — build a single-item expects
+    step.expects = [{
+      comparison: test.failure.operator || '',
+      actual: test.failure.actual,
+      expected: test.failure.expected,
+      status: 'failed' as const,
+    }];
   }
 
   return step;

@@ -122,7 +122,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
           Object.keys(mmtHelper)
               .filter(name => name !== 'report_' && name !== 'setenv_' &&
                              name !== 'checkAbort_' && name !== 'importJsModule_' &&
-                             name !== 'check_')
+                             name !== 'check_' && name !== 'checkExpects_')
               .map(name => `const ${name} = mmtHelper["${name}"];`)
               .join('\n');
     const randomDecls =
@@ -143,6 +143,8 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       // parallel execution each test uses its own reporter/runId/id instead
       // of the shared module-level globals.
       `const check_ = (passed, type, raw, reportLevel, title, details, actual, expected) => mmtHelper.check_(passed, type, raw, reportLevel, title, details, actual, expected, report_, console);\n` +
+      // Override checkExpects_ with a closure-based version for parallel execution.
+      `const checkExpects_ = (items, type, reportLevel, title, details) => mmtHelper.checkExpects_(items, type, reportLevel, title, details, report_, console);\n` +
       // Override checkAbort_ with a closure-based version so parallel tests
       // each check their own abort signal instead of the global.
       `const checkAbort_ = () => { if (__abortSignal && __abortSignal.aborted) { const e = new Error('Test run was stopped'); e.name = 'TestAbortError'; throw e; } };\n` +

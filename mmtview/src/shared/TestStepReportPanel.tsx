@@ -303,15 +303,20 @@ const StructuredDetails: React.FC<{ callDetails: CallResultDetails }> = ({ callD
   );
 };
 
+export interface ExpectReportItem {
+  comparison: string;
+  actual?: any;
+  expected?: any;
+  status: StepStatus;
+}
+
 export interface StepReportItem {
   stepIndex: number;
   stepType: 'check' | 'assert';
   status: StepStatus;
-  comparison: string;
   title?: string;
   details?: string;
-  actual?: any;
-  expected?: any;
+  expects: ExpectReportItem[];
   timestamp: number;
 }
 
@@ -353,23 +358,6 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
     }
     return 'Ready to run';
   }, [runState]);
-
-  const toDisplayText = useCallback((value: unknown): string => {
-    if (value === null) {
-      return 'null';
-    }
-    if (value === undefined) {
-      return '';
-    }
-    if (typeof value === 'string') {
-      return value;
-    }
-    try {
-      return JSON.stringify(value, null, 2);
-    } catch {
-      return String(value);
-    }
-  }, []);
 
   const unescapeCommon = useCallback((s: string): string => {
     if (!s) {
@@ -419,10 +407,11 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
               const meta = statusIconFor(report.status);
               const reportKey = `${report.stepType}-${report.stepIndex}-${report.timestamp}`;
               const callDetails = parseCallDetails(report.details);
+              const hasExpects = report.expects.length > 0;
               const hasDetails = Boolean(
+                hasExpects ||
                 callDetails ||
-                (report.details && report.details.trim().length > 0) ||
-                (report.actual !== undefined && report.expected !== undefined)
+                (report.details && report.details.trim().length > 0)
               );
               const isDetailsExpanded = Boolean(expandedDetails[reportKey]);
               return (
@@ -467,22 +456,32 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
 
                     {isDetailsExpanded && (
                       <div style={{ marginTop: 4 }}>
-                        <div>
-                          <pre
-                            style={{
-                              margin: 0,
-                              whiteSpace: 'pre-wrap',
-                              wordBreak: 'break-word',
-                              fontFamily: 'var(--vscode-editor-font-family, monospace)',
-                              fontSize: 'var(--vscode-editor-font-size, 12px)',
-                            }}
-                          >
-                            {unescapeCommon(toDisplayText(report.comparison))}
-                          </pre>
-                        </div>
-                        {report.actual !== undefined && report.expected !== undefined && (
-                          <div style={{ opacity: 0.85, marginTop: 6 }}>
-                            Left: {String(report.actual)}, Right: {String(report.expected)}
+                        {hasExpects && (
+                          <div>
+                            <SectionTitle label={report.expects.length === 1 ? 'Expect' : 'Expects'} />
+                            <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            {report.expects.map((item, idx) => {
+                              const itemMeta = statusIconFor(item.status);
+                              return (
+                                <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 4 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <span
+                                      className={`codicon ${itemMeta.icon}`}
+                                      style={{ color: itemMeta.color, fontSize: 12 }}
+                                      aria-label={itemMeta.title}
+                                    ></span>
+                                    <span style={{
+                                      fontFamily: 'var(--vscode-editor-font-family, monospace)',
+                                      fontSize: 'var(--vscode-editor-font-size, 12px)',
+                                    }}>{item.comparison}</span>
+                                  </div>
+                                  {item.status === 'failed' && item.actual !== undefined && item.expected !== undefined && (
+                                    <span style={{ opacity: 0.7, fontSize: 12, paddingLeft: 24 }}>got: {typeof item.actual === 'object' ? JSON.stringify(item.actual) : String(item.actual)}</span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
                           </div>
                         )}
                         {callDetails ? (

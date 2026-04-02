@@ -862,7 +862,7 @@ describe('expect on call steps', () => {
     const js = await testToJsfunc(ctx, true);
     expect(js).toContain('const _login_0 = await login(');
     expect(js).toContain('equals_(`${_login_0.status_code}`, `200`)');
-    expect(js).toContain("check_(");
+    expect(js).toContain("checkExpects_(");
   });
 
   it('generates check from string expect with explicit operator', async () => {
@@ -1017,7 +1017,7 @@ describe('expect on call steps', () => {
     };
     const js = await testToJsfunc(ctx, true);
     // expect uses check (non-throwing) behavior, not assert
-    expect(js).toContain("check_(");
+    expect(js).toContain("checkExpects_(");
     expect(js).toContain("'check'");
     expect(js).not.toContain("'assert'");
   });

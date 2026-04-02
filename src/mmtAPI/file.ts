@@ -592,11 +592,14 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
       stepIndex: r.stepIndex ?? i,
       stepType: r.stepType === 'assert' ? 'assert' as const : 'check' as const,
       status: r.status === 'failed' ? 'failed' as const : 'passed' as const,
-      comparison: r.comparison || '',
       title: r.title,
       details: r.details,
-      actual: r.actual,
-      expected: r.expected,
+      expects: Array.isArray(r.expects) ? r.expects.map((e: any) => ({
+        comparison: e.comparison || '',
+        actual: e.actual,
+        expected: e.expected,
+        status: e.status === 'failed' ? 'failed' as const : 'passed' as const,
+      })) : [],
       timestamp: r.timestamp || 0,
     }));
     const run: TestRunResult = {
@@ -621,11 +624,14 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
             stepIndex: r.stepIndex ?? i,
             stepType: r.stepType === 'assert' ? 'assert' as const : 'check' as const,
             status: r.status === 'failed' ? 'failed' as const : 'passed' as const,
-            comparison: r.comparison || '',
             title: r.title,
             details: r.details,
-            actual: r.actual,
-            expected: r.expected,
+            expects: Array.isArray(r.expects) ? r.expects.map((e: any) => ({
+              comparison: e.comparison || '',
+              actual: e.actual,
+              expected: e.expected,
+              status: e.status === 'failed' ? 'failed' as const : 'passed' as const,
+            })) : [],
             timestamp: r.timestamp || 0,
           }),
         );

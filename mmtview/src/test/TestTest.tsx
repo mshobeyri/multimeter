@@ -185,11 +185,9 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                     stepIndex: Number(message.stepIndex) || stepCountRef.current + 1,
                     stepType: message.stepType === 'assert' ? 'assert' : 'check',
                     status: message.status === 'failed' ? 'failed' : 'passed',
-                    comparison: typeof message.comparison === 'string' ? message.comparison : '',
                     title: typeof (message as any).title === 'string' ? (message as any).title : undefined,
                     details: typeof (message as any).details === 'string' ? (message as any).details : undefined,
-                    actual: (message as any).actual,
-                    expected: (message as any).expected,
+                    expects: Array.isArray((message as any).expects) ? (message as any).expects : [],
                     timestamp: typeof message.timestamp === 'number' ? message.timestamp : Date.now(),
                 };
                 appendReport(normalized);

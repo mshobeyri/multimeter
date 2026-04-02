@@ -6,7 +6,7 @@ function makeStep(overrides: Partial<TestStepResult> = {}): TestStepResult {
     stepIndex: 0,
     stepType: 'check',
     status: 'passed',
-    comparison: '==',
+    expects: [],
     timestamp: 1709720000000,
     ...overrides,
   };
@@ -30,7 +30,7 @@ describe('generateReportHtml', () => {
           displayName: 'test.mmt',
           steps: [
             makeStep({ title: 'check-a' }),
-            makeStep({ title: 'check-b', status: 'failed', actual: '1', expected: '2' }),
+            makeStep({ title: 'check-b', status: 'failed', expects: [{ comparison: '==', actual: '1', expected: '2', status: 'failed' }] }),
           ],
         }),
       ],
@@ -82,9 +82,7 @@ describe('generateReportHtml', () => {
             makeStep({
               title: 'name == John',
               status: 'failed',
-              actual: 'Jane',
-              expected: 'John',
-              comparison: '==',
+              expects: [{ comparison: '==', actual: 'Jane', expected: 'John', status: 'failed' }],
             }),
           ],
         }),
@@ -92,10 +90,9 @@ describe('generateReportHtml', () => {
     };
 
     const html = generateReportHtml(results);
-    expect(html).toContain('<div class="failure">');
-    expect(html).toContain('Expected:</strong> John');
-    expect(html).toContain('Actual:</strong> Jane');
-    expect(html).toContain('Operator:</strong> ==');
+    expect(html).toContain('<div class="expects">');
+    expect(html).toContain('>✗</span> ==');
+    expect(html).toContain('got: Jane');
   });
 
   it('escapes special characters in HTML', () => {

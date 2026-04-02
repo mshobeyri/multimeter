@@ -48,17 +48,33 @@ function buildStepRow(step: TestStepResult, index: number): string {
   return `| ${index + 1} | ${name} | ${step.stepType} | ${result} |`;
 }
 
+function displayValue(v: any): string {
+  if (v === null || v === undefined) {
+    return String(v);
+  }
+  if (typeof v === 'object') {
+    try {
+      return JSON.stringify(v);
+    } catch {
+      return String(v);
+    }
+  }
+  return String(v);
+}
+
 function buildFailureDetails(step: TestStepResult): string {
   const name = step.title || `step-${step.stepIndex}`;
   let md = `\n<details>\n<summary>✗ ${name}</summary>\n\n`;
-  if (step.expected != null) {
-    md += `- **Expected:** ${step.expected}\n`;
-  }
-  if (step.actual != null) {
-    md += `- **Actual:** ${step.actual}\n`;
-  }
-  if (step.comparison) {
-    md += `- **Operator:** ${step.comparison}\n`;
+  const expects = step.expects || [];
+  if (expects.length > 0) {
+    for (const e of expects) {
+      const eIcon = e.status === 'passed' ? '✓' : '✗';
+      md += `- ${eIcon} ${e.comparison}`;
+      if (e.status === 'failed' && e.actual != null && e.expected != null) {
+        md += `\n  - got: ${displayValue(e.actual)}`;
+      }
+      md += '\n';
+    }
   }
   // Include request/response details for failed tests
   const reqResp = parseStepCallDetails(step.details);

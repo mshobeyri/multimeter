@@ -8,15 +8,20 @@ import type {
   TestOutputsReporterEvent,
 } from './runConfig';
 
+export interface ExpectItemResult {
+  comparison: string;
+  actual?: any;
+  expected?: any;
+  status: 'passed' | 'failed';
+}
+
 export interface TestStepResult {
   stepIndex: number;
   stepType: 'check' | 'assert';
   status: 'passed' | 'failed';
-  comparison: string;
   title?: string;
   details?: string;
-  actual?: any;
-  expected?: any;
+  expects: ExpectItemResult[];
   timestamp: number;
   durationMs?: number;
 }
@@ -139,11 +144,9 @@ export function createReportCollector() {
         stepIndex: event.stepIndex,
         stepType: event.stepType,
         status: event.status,
-        comparison: event.comparison,
         title: event.title,
         details: event.details,
-        actual: event.actual,
-        expected: event.expected,
+        expects: event.expects,
         timestamp: event.timestamp,
       });
       return;

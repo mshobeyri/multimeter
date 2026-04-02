@@ -29,18 +29,16 @@ describe('jsRunner reporter propagation', () => {
     expect(events[0]).toMatchObject({
       scope: 'test-step',
       stepType: 'check',
-      comparison: 'foo > 1',
       status: 'failed',
       runId: 'run-jsrunner-test',
-      actual: 123,
-      expected: 456,
+      expects: [{ comparison: 'foo > 1', actual: 123, expected: 456, status: 'failed' }],
     });
     expect(events[1]).toMatchObject({
       scope: 'test-step',
       stepType: 'assert',
-      comparison: 'bar === 2',
       details: 'custom',
       status: 'passed',
+      expects: [{ comparison: 'bar === 2', status: 'passed' }],
     });
     expect(events[1].stepIndex).toBeGreaterThan(events[0].stepIndex);
   });

@@ -27,6 +27,20 @@ function isoTimestamp(ts?: number): string {
   return new Date(ts).toISOString();
 }
 
+function displayValue(v: any): string {
+  if (v === null || v === undefined) {
+    return String(v);
+  }
+  if (typeof v === 'object') {
+    try {
+      return JSON.stringify(v);
+    } catch {
+      return String(v);
+    }
+  }
+  return String(v);
+}
+
 function buildTestcase(step: TestStepResult, classname: string): string {
   const name = escapeXml(step.title || `step-${step.stepIndex}`);
   const time = formatTime(step.durationMs);
@@ -34,14 +48,17 @@ function buildTestcase(step: TestStepResult, classname: string): string {
     return `      <testcase name="${name}" classname="${classname}" time="${time}"/>\n`;
   }
   const parts: string[] = [];
-  if (step.expected != null) {
-    parts.push(`expected: ${step.expected}`);
-  }
-  if (step.actual != null) {
-    parts.push(`actual: ${step.actual}`);
-  }
-  if (step.comparison) {
-    parts.push(`operator: ${step.comparison}`);
+  const failed = (step.expects || []).filter(e => e.status === 'failed');
+  for (const e of failed) {
+    if (e.expected != null) {
+      parts.push(`expected: ${displayValue(e.expected)}`);
+    }
+    if (e.actual != null) {
+      parts.push(`actual: ${displayValue(e.actual)}`);
+    }
+    if (e.comparison) {
+      parts.push(`operator: ${e.comparison}`);
+    }
   }
   const failureMessage = escapeXml(parts.join(', ') || 'assertion failed');
   const failureBody = parts.map(p => escapeXml(p)).join('\n');

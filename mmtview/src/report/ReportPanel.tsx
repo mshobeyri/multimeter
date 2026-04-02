@@ -19,11 +19,9 @@ function mapToStepReports(run: TestRunResult): StepReportItem[] {
     stepIndex: step.stepIndex,
     stepType: step.stepType,
     status: step.status as StepStatus,
-    comparison: step.comparison || '',
     title: step.title,
     details: step.details,
-    actual: step.actual,
-    expected: step.expected,
+    expects: (step.expects || []).map(e => ({ ...e, status: e.status as StepStatus })),
     timestamp: step.timestamp,
   }));
 }

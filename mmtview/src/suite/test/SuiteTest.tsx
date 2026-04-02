@@ -364,11 +364,9 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                     stepIndex: Number(message.stepIndex) || 1,
                     stepType: message.stepType === 'assert' ? 'assert' : 'check',
                     status: message.status === 'failed' ? 'failed' : 'passed',
-                    comparison: typeof message.comparison === 'string' ? message.comparison : '',
                     title: typeof message.title === 'string' ? message.title : undefined,
                     details: typeof message.details === 'string' ? message.details : undefined,
-                    actual: message.actual,
-                    expected: message.expected,
+                    expects: Array.isArray(message.expects) ? message.expects : [],
                     timestamp: typeof message.timestamp === 'number' ? message.timestamp : Date.now(),
                 };
                 const existing = next[targetId] || [];

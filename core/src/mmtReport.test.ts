@@ -7,7 +7,7 @@ function makeStep(overrides: Partial<TestStepResult> = {}): TestStepResult {
     stepIndex: 0,
     stepType: 'check',
     status: 'passed',
-    comparison: '==',
+    expects: [],
     timestamp: 1709720000000,
     ...overrides,
   };
@@ -97,9 +97,7 @@ describe('generateMmtReport', () => {
             makeStep({
               title: 'name == John',
               status: 'failed',
-              actual: 'Jane',
-              expected: 'John',
-              comparison: '==',
+              expects: [{ comparison: '==', actual: 'Jane', expected: 'John', status: 'failed' }],
               durationMs: 50,
             }),
           ],
@@ -160,7 +158,7 @@ describe('generateMmtReport', () => {
           durationMs: 500,
           steps: [
             makeStep({ title: 'a', durationMs: 100 }),
-            makeStep({ title: 'b', status: 'failed', actual: '1', expected: '2', durationMs: 200 }),
+            makeStep({ title: 'b', status: 'failed', expects: [{ comparison: '==', actual: '1', expected: '2', status: 'failed' }], durationMs: 200 }),
           ],
         }),
       ],

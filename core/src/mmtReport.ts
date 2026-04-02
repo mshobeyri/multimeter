@@ -6,6 +6,20 @@ export interface MmtReportOptions {
   suiteName?: string;
 }
 
+function displayValue(v: any): string {
+  if (v === null || v === undefined) {
+    return String(v);
+  }
+  if (typeof v === 'object') {
+    try {
+      return JSON.stringify(v);
+    } catch {
+      return String(v);
+    }
+  }
+  return String(v);
+}
+
 function buildStepEntry(step: TestStepResult): Record<string, any> {
   const entry: Record<string, any> = {
     name: step.title || `step-${step.stepIndex}`,
@@ -15,21 +29,46 @@ function buildStepEntry(step: TestStepResult): Record<string, any> {
   if (step.durationMs != null) {
     entry.duration = formatDuration(step.durationMs);
   }
+  if (step.expects && step.expects.length > 0) {
+    entry.expects = step.expects.map(e => {
+      const item: Record<string, any> = {
+        comparison: e.comparison,
+        result: e.status,
+      };
+      if (e.status === 'failed') {
+        if (e.actual != null) {
+          item.actual = displayValue(e.actual);
+        }
+        if (e.expected != null) {
+          item.expected = displayValue(e.expected);
+        }
+      }
+      return item;
+    });
+  }
   if (step.status === 'failed') {
     const failure: Record<string, any> = {};
     const parts: string[] = [];
-    if (step.expected != null) {
-      parts.push(`expected ${step.expected} got ${step.actual}`);
+    const failed = (step.expects || []).filter(e => e.status === 'failed');
+    for (const e of failed) {
+      if (e.expected != null) {
+        parts.push(`${e.comparison}: expected ${displayValue(e.expected)} got ${displayValue(e.actual)}`);
+      } else {
+        parts.push(`${e.comparison}: failed`);
+      }
     }
     failure.message = parts.join(', ') || 'assertion failed';
-    if (step.actual != null) {
-      failure.actual = String(step.actual);
-    }
-    if (step.expected != null) {
-      failure.expected = String(step.expected);
-    }
-    if (step.comparison) {
-      failure.operator = step.comparison;
+    if (failed.length > 0) {
+      const first = failed[0];
+      if (first.actual != null) {
+        failure.actual = displayValue(first.actual);
+      }
+      if (first.expected != null) {
+        failure.expected = displayValue(first.expected);
+      }
+      if (first.comparison) {
+        failure.operator = first.comparison;
+      }
     }
     entry.failure = failure;
   }

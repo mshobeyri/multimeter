@@ -270,14 +270,30 @@ export const reportWithContext_ = (
     stepType: StepType, comparison: unknown, title: unknown,
     details: unknown, passed: boolean, actual?: any, expected?: any) => {
   const resolvedRunId = typeof runId === 'string' ? runId : '';
+
+  // Build the expects array: either from an array (batched expects) or a
+  // single comparison string (regular check/assert).
+  const isExpectsArray = Array.isArray(comparison);
+  const expects = isExpectsArray
+      ? (comparison as any[]).map(i => ({
+          comparison: normalizeComparison(i.comparison),
+          actual: i.actual,
+          expected: i.expected,
+          status: i.passed ? 'passed' : 'failed',
+        }))
+      : [{
+          comparison: normalizeComparison(comparison),
+          actual,
+          expected,
+          status: passed ? 'passed' : 'failed',
+        }];
+
   const payload: Record<string, any> = {
     scope: 'test-step',
     stepType,
-    comparison: normalizeComparison(comparison),
     stepIndex: runId !== undefined ? nextStepIndexFor(resolvedRunId) : nextStepIndex(),
     status: passed ? 'passed' : 'failed',
-    actual,
-    expected,
+    expects,
   };
   if (resolvedRunId) {
     payload.runId = resolvedRunId;
@@ -424,6 +440,21 @@ export const protocolFromUrl_ = (url: string): string => {
  * string values that are themselves JSON.  Falls back to the raw string
  * if parsing fails.
  */
+
+function displayValue(v: any): string {
+  if (v === null || v === undefined) {
+    return String(v);
+  }
+  if (typeof v === 'object') {
+    try {
+      return JSON.stringify(v);
+    } catch {
+      return String(v);
+    }
+  }
+  return String(v);
+}
+
 function formatCheckDetails(raw: string): string {
   try {
     const expandJsonStrings = (obj: any): any => {
@@ -502,7 +533,7 @@ export const check_ = (
       c.trace(msg);
     }
   } else {
-    const shortMsg = `\u2717 ${label} ${titlePart}"${raw}" failed, as ${actual} is not ${expected}`;
+    const shortMsg = `\u2717 ${label} ${titlePart}"${raw}" failed, as ${displayValue(actual)} is not ${displayValue(expected)}`;
     if (reportLevel === 'none') {
       c.debug(shortMsg);
     } else {
@@ -511,6 +542,73 @@ export const check_ = (
         c.debug(formatCheckDetails(details));
       }
       doReport(type, raw, title, details, false, actual, expected);
+    }
+    if (type === 'assert') {
+      throw new Error('Assertion failed');
+    }
+  }
+};
+
+/**
+ * Batched expect check: evaluates a list of expect items and emits a single
+ * report event with an `expects` array. The overall status is 'passed' only if
+ * every individual item passes.
+ *
+ * @param items       - Array of { passed, comparison, actual, expected }
+ * @param type        - 'check' (expects are non-throwing)
+ * @param reportLevel - 'all' | 'fails' | 'none'
+ * @param title       - shared title (typically the call name)
+ * @param details     - shared details (typically the JSON result)
+ * @param reportFn    - optional report function override
+ * @param consoleFn   - optional console override
+ */
+export const checkExpects_ = (
+    items: Array<{ passed: boolean; comparison: string; actual?: any; expected?: any }>,
+    type: 'check' | 'assert',
+    reportLevel: string,
+    title?: string,
+    details?: string,
+    reportFn?: (...args: any[]) => void,
+    consoleFn?: {log: (...a: any[]) => void; debug: (...a: any[]) => void; error: (...a: any[]) => void; trace: (...a: any[]) => void},
+): void => {
+  const doReport = typeof reportFn === 'function' ? reportFn : report_;
+  const c = consoleFn || console;
+  const label = type === 'check' ? 'Check' : 'Assert';
+  const titlePart = title ? `"${title}" - ` : '';
+  const allPassed = items.every(i => i.passed);
+
+  // Log each individual item
+  for (const item of items) {
+    if (item.passed) {
+      const msg = `\u2713 ${label} ${titlePart}"${item.comparison}" passed`;
+      if (reportLevel === 'all') {
+        c.log(msg);
+      } else if (reportLevel === 'fails') {
+        c.debug(msg);
+      } else {
+        c.trace(msg);
+      }
+    } else {
+      const shortMsg = `\u2717 ${label} ${titlePart}"${item.comparison}" failed, as ${displayValue(item.actual)} is not ${displayValue(item.expected)}`;
+      if (reportLevel === 'none') {
+        c.debug(shortMsg);
+      } else {
+        c.error(shortMsg);
+      }
+    }
+  }
+
+  // Report as a single event
+  if (allPassed) {
+    if (reportLevel === 'all') {
+      doReport(type, items, title, details, true);
+    }
+  } else {
+    if (details && reportLevel !== 'none') {
+      c.debug(formatCheckDetails(details));
+    }
+    if (reportLevel !== 'none') {
+      doReport(type, items, title, details, false);
     }
     if (type === 'assert') {
       throw new Error('Assertion failed');

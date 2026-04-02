@@ -6,18 +6,23 @@ export type FileLoader = (path: string) => Promise<string>;
 export type TestStepStatus = 'passed'|'failed';
 export type SuiteStepStatus = 'running'|'passed'|'failed'|'pending';
 
+export interface ExpectItemEvent {
+  comparison: string;
+  actual?: any;
+  expected?: any;
+  status: TestStepStatus;
+}
+
 export interface TestStepReporterEvent {
   scope: 'test-step';
   runId: string;
   stepIndex: number;
   stepType: 'check'|'assert';
   status: TestStepStatus;
-  comparison: string;
   title?: string;
   details?: string;
   timestamp: number;
-  actual?: any;
-  expected?: any;
+  expects: ExpectItemEvent[];
   id?: string;
 }
 

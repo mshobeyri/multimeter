@@ -172,7 +172,7 @@ Use this to make tests self-contained — no need to manually start servers befo
 
 #### Inline expect on call
 
-Use `expect` on a call step to validate its output parameters inline, without a separate `check`/`assert` step. Each key is an output field name; each value is the expected result. Expect is non-throwing — it logs failures but continues execution.
+Use `expect` on a call step to validate its output parameters inline, without a separate `check`/`assert` step. Each key is an output field name; each value is the expected result. All expect entries in a single call are grouped into **one report item** in the report panel, with each individual comparison shown as a sub-item. Expect is non-throwing — it logs failures but continues execution.
 
 **Fields:**
 

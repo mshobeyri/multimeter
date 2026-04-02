@@ -8,7 +8,7 @@ function makeStep(overrides: Partial<TestStepResult> = {}): TestStepResult {
     stepIndex: 0,
     stepType: 'check',
     status: 'passed',
-    comparison: '==',
+    expects: [],
     timestamp: 1709720000000,
     ...overrides,
   };
@@ -65,8 +65,8 @@ describe('parseReportMmt', () => {
     expect(run.steps).toHaveLength(2);
     expect(run.steps[0].status).toBe('passed');
     expect(run.steps[1].status).toBe('failed');
-    expect(run.steps[1].actual).toBe('Jane');
-    expect(run.steps[1].expected).toBe('John');
+    expect(run.steps[1].expects[0].actual).toBe('Jane');
+    expect(run.steps[1].expects[0].expected).toBe('John');
   });
 
   it('parses report with failures correctly', () => {
@@ -93,9 +93,9 @@ describe('parseReportMmt', () => {
     const step = results.testRuns[0].steps[0];
     expect(step.stepType).toBe('assert');
     expect(step.status).toBe('failed');
-    expect(step.actual).toBe('1');
-    expect(step.expected).toBe('2');
-    expect(step.comparison).toBe('==');
+    expect(step.expects[0].actual).toBe('1');
+    expect(step.expects[0].expected).toBe('2');
+    expect(step.expects[0].comparison).toBe('==');
   });
 
   it('handles empty report (no suites)', () => {
@@ -141,9 +141,7 @@ describe('parseReportMmt', () => {
               stepIndex: 1,
               title: 'fail-check',
               status: 'failed',
-              actual: 'Jane',
-              expected: 'John',
-              comparison: '==',
+              expects: [{ comparison: '==', actual: 'Jane', expected: 'John', status: 'failed' }],
               durationMs: 50,
             }),
           ],
@@ -160,8 +158,8 @@ describe('parseReportMmt', () => {
     expect(results.testRuns[0].steps).toHaveLength(2);
     expect(results.testRuns[0].steps[0].status).toBe('passed');
     expect(results.testRuns[0].steps[1].status).toBe('failed');
-    expect(results.testRuns[0].steps[1].actual).toBe('Jane');
-    expect(results.testRuns[0].steps[1].expected).toBe('John');
+    expect(results.testRuns[0].steps[1].expects[0].actual).toBe('Jane');
+    expect(results.testRuns[0].steps[1].expects[0].expected).toBe('John');
     expect(results.testRuns[0].filePath).toBe('tests/test.mmt');
   });
 

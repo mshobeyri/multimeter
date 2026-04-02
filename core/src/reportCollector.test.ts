@@ -18,7 +18,7 @@ describe('reportCollector', () => {
       stepIndex: 0,
       stepType: 'check',
       status: 'passed',
-      comparison: 'status == 200',
+      expects: [{ comparison: 'status == 200', status: 'passed' }],
       title: 'status check',
       timestamp: 1000,
     };
@@ -29,7 +29,7 @@ describe('reportCollector', () => {
     expect(results.testRuns[0].runId).toBe('run1');
     expect(results.testRuns[0].steps).toHaveLength(1);
     expect(results.testRuns[0].steps[0].status).toBe('passed');
-    expect(results.testRuns[0].steps[0].comparison).toBe('status == 200');
+    expect(results.testRuns[0].steps[0].expects[0].comparison).toBe('status == 200');
   });
 
   it('accumulates multiple steps into one test run', () => {
@@ -40,7 +40,7 @@ describe('reportCollector', () => {
       stepIndex: 0,
       stepType: 'check',
       status: 'passed',
-      comparison: 'status == 200',
+      expects: [{ comparison: 'status == 200', status: 'passed' }],
       timestamp: 1000,
     } as TestStepReporterEvent);
     reporter({
@@ -49,16 +49,14 @@ describe('reportCollector', () => {
       stepIndex: 1,
       stepType: 'assert',
       status: 'failed',
-      comparison: 'result.name == John',
-      actual: 'Jane',
-      expected: 'John',
+      expects: [{ comparison: 'result.name == John', actual: 'Jane', expected: 'John', status: 'failed' }],
       timestamp: 1100,
     } as TestStepReporterEvent);
     const results = getResults();
     expect(results.testRuns).toHaveLength(1);
     expect(results.testRuns[0].steps).toHaveLength(2);
     expect(results.testRuns[0].steps[1].status).toBe('failed');
-    expect(results.testRuns[0].steps[1].actual).toBe('Jane');
+    expect(results.testRuns[0].steps[1].expects[0].actual).toBe('Jane');
   });
 
   it('matches events by id when available, falling back to runId', () => {
@@ -70,7 +68,7 @@ describe('reportCollector', () => {
       stepIndex: 0,
       stepType: 'check',
       status: 'passed',
-      comparison: 'x == 1',
+      expects: [{ comparison: 'x == 1', status: 'passed' }],
       timestamp: 1000,
     } as TestStepReporterEvent);
     reporter({
@@ -80,7 +78,7 @@ describe('reportCollector', () => {
       stepIndex: 1,
       stepType: 'check',
       status: 'passed',
-      comparison: 'y == 2',
+      expects: [{ comparison: 'y == 2', status: 'passed' }],
       timestamp: 1100,
     } as TestStepReporterEvent);
     const results = getResults();
@@ -98,7 +96,7 @@ describe('reportCollector', () => {
       stepIndex: 0,
       stepType: 'check',
       status: 'passed',
-      comparison: 'a == b',
+      expects: [{ comparison: 'a == b', status: 'passed' }],
       timestamp: 1000,
     } as TestStepReporterEvent);
     reporter({
@@ -118,7 +116,7 @@ describe('reportCollector', () => {
       stepIndex: 0,
       stepType: 'check',
       status: 'passed',
-      comparison: 'a == b',
+      expects: [{ comparison: 'a == b', status: 'passed' }],
       timestamp: 1000,
     } as TestStepReporterEvent);
     reporter({
@@ -156,7 +154,7 @@ describe('reportCollector', () => {
       stepIndex: 0,
       stepType: 'check',
       status: 'passed',
-      comparison: 's == 200',
+      expects: [{ comparison: 's == 200', status: 'passed' }],
       timestamp: 1100,
     } as TestStepReporterEvent);
 
@@ -216,7 +214,7 @@ describe('reportCollector', () => {
       stepIndex: 0,
       stepType: 'check',
       status: 'passed',
-      comparison: 'ok == true',
+      expects: [{ comparison: 'ok == true', status: 'passed' }],
       timestamp: 1000,
     } as TestStepReporterEvent);
     reporter({

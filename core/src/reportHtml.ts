@@ -43,54 +43,73 @@ function parseStepCallDetails(details?: string): ParsedCallDetails | null {
   }
 }
 
+function displayValue(v: any): string {
+  if (v === null || v === undefined) {
+    return String(v);
+  }
+  if (typeof v === 'object') {
+    try {
+      return JSON.stringify(v);
+    } catch {
+      return String(v);
+    }
+  }
+  return String(v);
+}
+
 function buildStepHtml(step: TestStepResult): string {
   const name = escapeHtml(step.title || `step-${step.stepIndex}`);
   const duration = step.durationMs != null ? ` <span class="duration">(${formatDuration(step.durationMs)})</span>` : '';
   const icon = step.status === 'passed' ? '✓' : '✗';
+  const expects = step.expects || [];
 
-  if (step.status === 'passed') {
+  if (step.status === 'passed' && expects.length <= 1) {
     return `        <div class="testcase passed">${icon} ${name}${duration}</div>\n`;
   }
 
-  let failureHtml = '          <div class="failure">\n';
-  if (step.expected != null) {
-    failureHtml += `            <div><strong>Expected:</strong> ${escapeHtml(String(step.expected))}</div>\n`;
-  }
-  if (step.actual != null) {
-    failureHtml += `            <div><strong>Actual:</strong> ${escapeHtml(String(step.actual))}</div>\n`;
-  }
-  if (step.comparison) {
-    failureHtml += `            <div><strong>Operator:</strong> ${escapeHtml(step.comparison)}</div>\n`;
-  }
-  // Include request/response details for failed tests
-  const reqResp = parseStepCallDetails(step.details);
-  if (reqResp?.request) {
-    const req = reqResp.request;
-    failureHtml += '            <div style="margin-top:8px"><strong>Request:</strong></div>\n';
-    if (req.method && req.url) {
-      failureHtml += `            <div>${escapeHtml(req.method)} ${escapeHtml(req.url)}</div>\n`;
-    }
-    if (req.body) {
-      failureHtml += `            <pre style="margin:4px 0;white-space:pre-wrap;word-break:break-word;">${escapeHtml(tryFormatJson(req.body))}</pre>\n`;
-    }
-  }
-  if (reqResp?.response) {
-    const resp = reqResp.response;
-    failureHtml += '            <div style="margin-top:8px"><strong>Response:</strong></div>\n';
-    if (resp.status !== undefined) {
-      failureHtml += `            <div>Status: ${resp.status}${resp.statusText ? ' ' + escapeHtml(resp.statusText) : ''}</div>\n`;
-    }
-    if (resp.body) {
-      failureHtml += `            <pre style="margin:4px 0;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto;">${escapeHtml(tryFormatJson(resp.body))}</pre>\n`;
-    }
-  }
-  failureHtml += '          </div>\n';
+  let html = `        <div class="testcase ${step.status === 'passed' ? 'passed' : 'failed'}">${icon} ${name}${duration}\n`;
 
-  return (
-    `        <div class="testcase failed">${icon} ${name}${duration}\n` +
-    failureHtml +
-    `        </div>\n`
-  );
+  if (expects.length > 0) {
+    html += '          <div class="expects">\n';
+    for (const e of expects) {
+      const eIcon = e.status === 'passed' ? '✓' : '✗';
+      const iconColor = e.status === 'passed' ? 'var(--passed)' : 'var(--failed)';
+      html += `            <div style="color: var(--fg)"><span style="color: ${iconColor}">${eIcon}</span> ${escapeHtml(e.comparison)}`;
+      if (e.status === 'failed' && e.actual != null && e.expected != null) {
+        html += `<br/><span class="expect-got">got: ${escapeHtml(displayValue(e.actual))}</span>`;
+      }
+      html += `</div>\n`;
+    }
+    html += '          </div>\n';
+  }
+
+  // Include request/response details for failed tests
+  if (step.status === 'failed') {
+    const reqResp = parseStepCallDetails(step.details);
+    if (reqResp?.request) {
+      const req = reqResp.request;
+      html += '            <div style="margin-top:8px"><strong>Request:</strong></div>\n';
+      if (req.method && req.url) {
+        html += `            <div>${escapeHtml(req.method)} ${escapeHtml(req.url)}</div>\n`;
+      }
+      if (req.body) {
+        html += `            <pre style="margin:4px 0;white-space:pre-wrap;word-break:break-word;">${escapeHtml(tryFormatJson(req.body))}</pre>\n`;
+      }
+    }
+    if (reqResp?.response) {
+      const resp = reqResp.response;
+      html += '            <div style="margin-top:8px"><strong>Response:</strong></div>\n';
+      if (resp.status !== undefined) {
+        html += `            <div>Status: ${resp.status}${resp.statusText ? ' ' + escapeHtml(resp.statusText) : ''}</div>\n`;
+      }
+      if (resp.body) {
+        html += `            <pre style="margin:4px 0;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto;">${escapeHtml(tryFormatJson(resp.body))}</pre>\n`;
+      }
+    }
+  }
+
+  html += `        </div>\n`;
+  return html;
 }
 
 function buildSuiteSection(run: TestRunResult, index: number): string {
@@ -425,6 +444,8 @@ const CSS = `
     box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1);
   }
   .failure strong { color: var(--muted); }
+  .expects { margin: 8px 0 4px 24px; font-size: 12px; color: var(--fg); }
+  .expect-got { color: var(--muted); margin-left: 24px; }
   .duration { color: var(--muted); font-size: 12px; }
   .empty { color: var(--muted); font-style: italic; font-size: 12px; }
 

@@ -6,7 +6,7 @@ function makeStep(overrides: Partial<TestStepResult> = {}): TestStepResult {
     stepIndex: 0,
     stepType: 'check',
     status: 'passed',
-    comparison: '==',
+    expects: [],
     timestamp: 1709720000000,
     ...overrides,
   };
@@ -79,9 +79,7 @@ describe('generateReportMarkdown', () => {
             makeStep({
               title: 'name == John',
               status: 'failed',
-              actual: 'Jane',
-              expected: 'John',
-              comparison: '==',
+              expects: [{ comparison: '==', actual: 'Jane', expected: 'John', status: 'failed' }],
             }),
           ],
         }),
@@ -91,9 +89,8 @@ describe('generateReportMarkdown', () => {
     const md = generateReportMarkdown(results);
     expect(md).toContain('<details>');
     expect(md).toContain('<summary>✗ name == John</summary>');
-    expect(md).toContain('**Expected:** John');
-    expect(md).toContain('**Actual:** Jane');
-    expect(md).toContain('**Operator:** ==');
+    expect(md).toContain('✗ ==');
+    expect(md).toContain('got: Jane');
     expect(md).toContain('</details>');
     expect(md).toContain('✗ failed');
   });
@@ -131,7 +128,7 @@ describe('generateReportMarkdown', () => {
         makeRun({
           displayName: 'test.mmt',
           steps: [
-            makeStep({ title: 'fail', status: 'failed', actual: '1', expected: '2' }),
+            makeStep({ title: 'fail', status: 'failed', expects: [{ comparison: '==', actual: '1', expected: '2', status: 'failed' }] }),
           ],
         }),
       ],

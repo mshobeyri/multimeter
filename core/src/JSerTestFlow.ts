@@ -293,14 +293,30 @@ const callToJSfunc = (step: TestFlowCall, useExternalReport: boolean, stepIdx: n
   if (hasExpect) {
     const title = step.title || importTitleMap?.[step.call] || step.call || step.id || 'call';
     const details = `\${JSON.stringify(${resultVar})}`;
+    const reportCfg = normalizeReportConfig(step.report);
+    const reportLevel = useExternalReport ? reportCfg.external : reportCfg.internal;
+    const finalTitle = toTemplateWithVars(title);
+    const finalDetails = toTemplateWithVars(details);
 
+    // Collect all expect items into a single checkExpects_ call
+    const expectItems: string[] = [];
     for (const [field, val] of Object.entries(step.expect!)) {
       const values = Array.isArray(val) ? val : [val];
       for (const v of values) {
-        const transformed = transformExpectEntry(field, v, resultVar!, title, details, step.report);
-        result += '\ncheckAbort_();\n' + comparisonToJSfunc('check', transformed, useExternalReport);
+        const { operator, expected } = parseExpectValue(v);
+        const raw = `\${${resultVar}.${field}} ${operator} ${expected}`;
+        const displayComparison = `${field} ${operator} ${expected}`;
+        const conditionStatement = conditionalStatementToJSfunc(raw);
+        const actualExpr = `${resultVar}.${field}`;
+        const expectedExpr = typeof expected === 'string' ? toTemplateWithVars(expected) : JSON.stringify(expected);
+        expectItems.push(
+          `  { passed: ${conditionStatement}, comparison: ${JSON.stringify(displayComparison)}, actual: ${actualExpr}, expected: ${expectedExpr} }`
+        );
       }
     }
+
+    result += '\ncheckAbort_();\n';
+    result += `checkExpects_([\n${expectItems.join(',\n')}\n], 'check', '${reportLevel}', ${finalTitle}, ${finalDetails});\n`;
   }
 
   return result;
