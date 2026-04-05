@@ -1545,6 +1545,11 @@ function isValidOutputExpression(expr: string): boolean {
     return true;
   }
 
+  // Regex capture group: expression contains (...)
+  if (/\(.*\)/.test(trimmed)) {
+    return true;
+  }
+
   // Extract the base keyword (before any [ or . or whitespace)
   const baseMatch = trimmed.match(/^([a-zA-Z_]+)/);
   if (!baseMatch) {
@@ -1582,7 +1587,7 @@ export function getUndefinedOutputValueDecorations(
       continue;
     }
 
-    const hoverMessage = { value: `"${site.value}" does not start with a valid keyword (body, header, status, details, duration)` };
+    const hoverMessage = { value: `"${site.value}" does not start with a valid keyword (body, header, status, details, duration). If this is a regex extract, wrap the entire regex in parentheses \`()\`` };
     const start = model.getPositionAt(site.offset);
     const end = model.getPositionAt(site.offset + site.value.length);
     decorations.push({

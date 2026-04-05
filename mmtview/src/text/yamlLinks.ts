@@ -5,6 +5,40 @@ export type YamlLinkTarget = { path: string; fragment?: string; range: any } | n
 const FILE_EXT_REGEX = /\.(mmt|svg|png|jpg|jpeg|gif|bmp|tiff|webp|csv)$/i;
 const MD_REF_REGEX = /\S*\.md\/?#\S*/;
 
+/**
+ * Parse the import: block from YAML content and return a map of alias → file path.
+ */
+function parseImportAliases(content: string): Map<string, string> {
+  const imports = new Map<string, string>();
+  const lines = content.split('\n');
+  let inImport = false;
+  let importIndent = -1;
+
+  for (const line of lines) {
+    const trimmed = line.trimStart();
+    if (trimmed === 'import:') {
+      inImport = true;
+      importIndent = line.length - trimmed.length;
+      continue;
+    }
+    if (inImport) {
+      if (trimmed === '' || trimmed.startsWith('#')) {
+        continue;
+      }
+      const currentIndent = line.length - trimmed.length;
+      if (currentIndent <= importIndent) {
+        inImport = false;
+        continue;
+      }
+      const match = trimmed.match(/^(\w[\w.-]*)\s*:\s*(.+)$/);
+      if (match) {
+        imports.set(match[1], match[2].trim());
+      }
+    }
+  }
+  return imports;
+}
+
 export function getFileLinkTargetAtPosition(
   monaco: any,
   model: any,
@@ -19,6 +53,25 @@ export function getFileLinkTargetAtPosition(
   const lineContent: string = model.getLineContent(lineNumber);
   if (!lineContent) {
     return null;
+  }
+
+  // Detect call: alias and resolve via import: block
+  const callMatch = lineContent.match(/^(\s*-?\s*)call\s*:\s*(\S+)/);
+  if (callMatch) {
+    const alias = callMatch[2];
+    const aliasStart = lineContent.indexOf(alias, callMatch[1].length + 4);
+    const startColumn = aliasStart + 1; // Monaco columns are 1-based
+    const endColumn = startColumn + alias.length;
+    if (pos.column >= startColumn && pos.column <= endColumn) {
+      const imports = parseImportAliases(content);
+      const importPath = imports.get(alias);
+      if (importPath) {
+        return {
+          path: importPath,
+          range: new monaco.Range(lineNumber, startColumn, lineNumber, endColumn),
+        };
+      }
+    }
   }
 
   // Detect bare .md# ref pattern (e.g. description: README.md#section)
