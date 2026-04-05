@@ -50,7 +50,7 @@ async function runSuiteBundleNode(params: {
   nextIndex: () => number;
   /** When true, buffer child logs and flush them grouped after the item finishes. */
   bufferChildLogs?: boolean;
-}): Promise<{success: boolean; threw: boolean; status: SuiteStepStatus}> {
+}): Promise<{success: boolean; threw: boolean; cancelled: boolean; status: SuiteStepStatus}> {
   const {node, bundle, options, runFile, suiteLogger, baseFileLoader, nextIndex, bufferChildLogs} = params;
 
   const currentIndex = nextIndex();
@@ -140,7 +140,7 @@ async function runSuiteBundleNode(params: {
       id,
     });
 
-    return {success: status === 'passed', threw: childRun.result?.threw === true, status};
+    return {success: status === 'passed', threw: childRun.result?.threw === true, cancelled: childRun.result?.cancelled === true, status};
   } catch (e: any) {
     flushLogBuffer();
     const errorMessage = e?.message || String(e);
@@ -156,7 +156,7 @@ async function runSuiteBundleNode(params: {
       id,
     });
 
-    return {success: false, threw: true, status: 'failed'};
+    return {success: false, threw: true, cancelled: false, status: 'failed'};
   }
 }
 
@@ -169,14 +169,14 @@ async function runSuiteGroup(params: {
   baseFileLoader: RunFileOptions['fileLoader'];
   nextIndex: () => number;
   serverCleanups: ServerCleanup[];
-}): Promise<{overallSuccess: boolean; anyThrew: boolean}> {
+}): Promise<{overallSuccess: boolean; anyThrew: boolean; anyCancelled: boolean}> {
   const {node, bundle, options, runFile, suiteLogger, baseFileLoader, nextIndex, serverCleanups} = params;
 
   const isParallel = node.children.length > 1;
 
   const results = await Promise.all(node.children.map(async (child) => {
     if (options.abortSignal?.aborted) {
-      return {success: false, threw: false, status: 'failed' as SuiteStepStatus};
+      return {success: false, threw: false, cancelled: false, status: 'failed' as SuiteStepStatus};
     }
 
     if (child.kind === 'test' || child.kind === 'suite') {
@@ -204,7 +204,7 @@ async function runSuiteGroup(params: {
         nextIndex,
         serverCleanups,
       });
-      return {success: childGroup.overallSuccess, threw: childGroup.anyThrew, status: childGroup.overallSuccess ? 'passed' as SuiteStepStatus : 'failed' as SuiteStepStatus};
+      return {success: childGroup.overallSuccess, threw: childGroup.anyThrew, cancelled: childGroup.anyCancelled, status: childGroup.overallSuccess ? 'passed' as SuiteStepStatus : 'failed' as SuiteStepStatus};
     }
 
     if (child.kind === 'server') {
@@ -215,17 +215,18 @@ async function runSuiteGroup(params: {
         suiteLogger,
         serverCleanups,
       });
-      return {success: serverResult.success, threw: false, status: serverResult.success ? 'passed' as SuiteStepStatus : 'failed' as SuiteStepStatus};
+      return {success: serverResult.success, threw: false, cancelled: false, status: serverResult.success ? 'passed' as SuiteStepStatus : 'failed' as SuiteStepStatus};
     }
 
     // missing/cycle are not runnable.
-    return {success: true, threw: false, status: 'passed' as SuiteStepStatus};
+    return {success: true, threw: false, cancelled: false, status: 'passed' as SuiteStepStatus};
   }));
 
   const groupHadAnyFailure = results.some(r => !r || !r.success);
   const groupThrew = results.some(r => !!r && r.threw === true);
+  const groupCancelled = results.some(r => !!r && (r as any).cancelled === true);
 
-  return {overallSuccess: !groupHadAnyFailure, anyThrew: groupThrew};
+  return {overallSuccess: !groupHadAnyFailure, anyThrew: groupThrew, anyCancelled: groupCancelled};
 }
 
 async function startServerNode(params: {
@@ -364,7 +365,9 @@ export async function executeSuiteBundle(params: {
         if (!group.overallSuccess) {
           overallSuccess = false;
         }
-        if (group.anyThrew) {
+        // Only stop the suite for user-initiated abort, not for test
+        // assertion failures which should be reported but not block others.
+        if (group.anyCancelled) {
           return;
         }
         continue;
@@ -399,7 +402,9 @@ export async function executeSuiteBundle(params: {
         if (!r.success) {
           overallSuccess = false;
         }
-        if (r.threw) {
+        // Only stop the suite for user-initiated abort (cancelled), not for
+        // test assertion failures or other test-level errors.
+        if (r.cancelled) {
           return;
         }
         continue;

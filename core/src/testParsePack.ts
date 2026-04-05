@@ -1,4 +1,4 @@
-import parseYaml, {packYaml} from './markupConvertor';
+import parseYaml, {packYaml, parseYamlStrict} from './markupConvertor';
 import {isNonEmptyList, isNonEmptyObject} from './safer';
 import {FlowType, opsList, TestData, TestFlowStep, TestFlowSteps, TestFlowStages} from './TestData';
 
@@ -27,6 +27,32 @@ export const STEP_KEY_ORDER: Record<string, string[]> = {
 
 /** Canonical key order for check/assert object-form (ComparisonObject) values. */
 export const CHECK_ASSERT_VALUE_ORDER = ['title', 'actual', 'operator', 'expected', 'report', 'details'];
+
+/** Valid root-level keys for type: test files. */
+const VALID_TEST_ROOT_KEYS = new Set([
+  'type', 'title', 'description', 'tags', 'import', 'inputs', 'outputs', 'metrics',
+  'steps', 'stages', 'flow',
+]);
+
+/** Valid keys per step type. */
+const VALID_STEP_KEYS: Record<string, Set<string>> = {
+  call:    new Set(['call', 'id', 'title', 'inputs', 'expect', 'debug', 'report', 'interface', 'url', 'headers', 'outputs', 'body']),
+  run:     new Set(['run']),
+  check:   new Set(['check', 'title', 'report', 'details']),
+  assert:  new Set(['assert', 'title', 'report', 'details']),
+  if:      new Set(['if', 'steps', 'else']),
+  for:     new Set(['for', 'steps']),
+  repeat:  new Set(['repeat', 'steps']),
+  delay:   new Set(['delay']),
+  js:      new Set(['js']),
+  print:   new Set(['print']),
+  set:     new Set(['set']),
+  var:     new Set(['var']),
+  const:   new Set(['const']),
+  let:     new Set(['let']),
+  data:    new Set(['data']),
+  setenv:  new Set(['setenv']),
+};
 
 /** Canonical key order for stage items. */
 export const STAGE_KEY_ORDER = ['id', 'title', 'condition', 'after', 'steps'];
@@ -318,4 +344,128 @@ export function getTestFlowStepType(step: TestFlowStep): FlowType|'unknown' {
     return 'steps';
   }
   return 'unknown';
+}
+
+/**
+ * Parse a test YAML strictly: throws on YAML parse errors and validates
+ * the resulting structure. Used in execution paths where errors must
+ * be surfaced clearly.
+ */
+export function yamlToTestStrict(yamlContent: string): TestData {
+  const doc = parseYamlStrict(quoteExpectOperators(yamlContent)) as any;
+  if (!doc || typeof doc !== 'object') {
+    throw new Error('Invalid test file: YAML content is empty or not an object');
+  }
+  if (doc.type !== 'test') {
+    throw new Error(`Invalid test file: expected type "test" but got "${doc.type || '(none)'}"`);
+  }
+  // Backwards compatibility: allow legacy 'flow' key as alias for 'steps'
+  if (!doc.steps && Array.isArray(doc.flow)) {
+    doc.steps = doc.flow;
+  }
+  // Check for unknown root-level keys
+  const unknownRootKeys = Object.keys(doc).filter(k => !VALID_TEST_ROOT_KEYS.has(k));
+  if (unknownRootKeys.length > 0) {
+    throw new Error(`Invalid test file: unknown key(s): ${unknownRootKeys.map(k => `"${k}"`).join(', ')}`);
+  }
+  const test: TestData = {
+    type: doc.type || '',
+    title: doc.title || '',
+    description: doc.description || '',
+    tags: doc.tags,
+    import: doc.import,
+    inputs: doc.inputs,
+    outputs: doc.outputs,
+    metrics: doc.metrics,
+    steps: doc.steps,
+    stages: doc.stages,
+  };
+  const errors = validateTestData(test);
+  if (errors.length > 0) {
+    throw new Error('Invalid test file:\n' + errors.map(e => `  - ${e}`).join('\n'));
+  }
+  return test;
+}
+
+/**
+ * Validate parsed test data for structural errors.
+ * Returns an array of error messages (empty if valid).
+ */
+export function validateTestData(test: TestData): string[] {
+  const errors: string[] = [];
+  const hasSteps = Array.isArray(test.steps);
+  const hasStages = Array.isArray(test.stages) && test.stages.length > 0;
+  const hasImports = test.import && Object.keys(test.import).length > 0;
+
+  if (!hasSteps && !hasStages && !hasImports) {
+    errors.push('Test has no "steps" or "stages" defined');
+  }
+  if (hasSteps && hasStages) {
+    errors.push('Test cannot have both "steps" and "stages"');
+  }
+
+  const importKeys = new Set(Object.keys(test.import ?? {}));
+
+  if (hasSteps && test.steps!.length > 0) {
+    collectStepErrors(test.steps!, importKeys, errors, 'steps');
+  }
+  if (hasStages) {
+    const validStageKeys = new Set(['id', 'title', 'condition', 'after', 'steps']);
+    for (const stage of test.stages!) {
+      if (!stage || typeof stage !== 'object') {
+        errors.push('Stage entry is not a valid object');
+        continue;
+      }
+      if (!stage.id) {
+        errors.push('Stage is missing required "id" field');
+      }
+      const unknownStageKeys = Object.keys(stage).filter(k => !validStageKeys.has(k));
+      if (unknownStageKeys.length > 0) {
+        errors.push(`Stage "${stage.id || '?'}": unknown key(s): ${unknownStageKeys.map(k => `"${k}"`).join(', ')}`);
+      }
+      if (Array.isArray(stage.steps)) {
+        collectStepErrors(stage.steps, importKeys, errors, `stage "${stage.id || '?'}"`);
+      }
+    }
+  }
+
+  return errors;
+}
+
+function collectStepErrors(
+    steps: TestFlowSteps, importKeys: Set<string>,
+    errors: string[], context: string): void {
+  for (let i = 0; i < steps.length; i++) {
+    const step = steps[i];
+    const stepType = getTestFlowStepType(step);
+    if (stepType === 'unknown') {
+      const keys = step && typeof step === 'object' ? Object.keys(step).join(', ') : String(step);
+      errors.push(`Unknown step type at ${context}[${i}] (keys: ${keys})`);
+    }
+    // Check for unknown keys in this step
+    if (stepType !== 'unknown' && step && typeof step === 'object') {
+      const allowed = VALID_STEP_KEYS[stepType];
+      if (allowed) {
+        const unknownKeys = Object.keys(step).filter(k => !allowed.has(k));
+        if (unknownKeys.length > 0) {
+          errors.push(`Step ${context}[${i}] (${stepType}): unknown key(s): ${unknownKeys.map(k => `"${k}"`).join(', ')}`);
+        }
+      }
+    }
+    if (stepType === 'call') {
+      const callStep = step as any;
+      const alias = callStep.call;
+      if (typeof alias === 'string' && alias.trim() && !importKeys.has(alias)) {
+        errors.push(`Step ${context}[${i}]: call target "${alias}" is not imported`);
+      }
+    }
+    // Recurse into nested steps
+    const s = step as any;
+    if (Array.isArray(s?.steps)) {
+      collectStepErrors(s.steps, importKeys, errors, `${context}[${i}].steps`);
+    }
+    if (Array.isArray(s?.else)) {
+      collectStepErrors(s.else, importKeys, errors, `${context}[${i}].else`);
+    }
+  }
 }

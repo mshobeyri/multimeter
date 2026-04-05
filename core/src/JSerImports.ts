@@ -1,4 +1,4 @@
-import {yamlToAPI} from './apiParsePack';
+import {yamlToAPI, yamlToAPIStrict} from './apiParsePack';
 import {csvToJSObj} from './csvConvertor';
 import {dirnamePath, fileUriToPath, isAbsPath, joinPath, resolveDotSegments, resolveRequestedAgainst,} from './fileHelper';
 import {createFileImporter} from './fileImporter';
@@ -7,7 +7,7 @@ import {apiToJSfunc} from './JSerAPI';
 import {readFile} from './JSerFileLoader';
 import {fileType, indentLines, toLowerUnderscore} from './JSerHelper';
 import {testToJsfunc} from './JSerTest';
-import {yamlToTest} from './testParsePack';
+import {yamlToTest, yamlToTestStrict} from './testParsePack';
 
 const basenameNoExt = (p: string): string => {
   const s = String(p ?? '').replace(/\\/g, '/');
@@ -143,8 +143,11 @@ const emitResolved = async(
     tracker.setTestFuncName(resolvedPath, publicName);
 
     if (type === 'test') {
-      const test = yamlToTest(content) as any;
+      const test = yamlToTestStrict(content) as any;
       if (test.title) { tracker.setFileTitle(resolvedPath, test.title); }
+      if (test.inputs && typeof test.inputs === 'object') {
+        tracker.setInputKeys(resolvedPath, Object.keys(test.inputs));
+      }
 
       const flowJs = await testToJsfunc(
           {
@@ -160,11 +163,11 @@ const emitResolved = async(
 
       results.push(flowJs + '\n');
     } else if (type === 'api') {
-      const api = yamlToAPI(content);
-      if (!api.url) {
-        throw new Error(`Imported API "${resolvedPath}" is missing the required "url" field`);
-      }
+      const api = yamlToAPIStrict(content);
       if (api.title) { tracker.setFileTitle(resolvedPath, api.title); }
+      if (api.inputs && typeof api.inputs === 'object') {
+        tracker.setInputKeys(resolvedPath, Object.keys(api.inputs));
+      }
       results.push(
           await apiToJSfunc({
             api,

@@ -109,7 +109,9 @@ export const testToJsfunc = async(
   const useExternalReport = !root || ctx.isExternal === true;
 
   // Build alias → title map so call steps can display the API/test title
+  // Also build alias → inputKeys map for input validation
   const importTitleMap: Record<string, string> = {};
+  const importInputKeysMap: Record<string, Set<string>> = {};
   for (const [alias, requested] of importsEntries) {
     const requestedPathRaw = typeof requested === 'string' ? requested : '';
     const resolvedPath = resolveRequestedAgainst(
@@ -117,6 +119,45 @@ export const testToJsfunc = async(
     const title = ctx.importTracker?.getFileTitle(resolvedPath);
     if (title) {
       importTitleMap[alias] = title;
+    }
+    const inputKeys = ctx.importTracker?.getInputKeys(resolvedPath);
+    if (inputKeys) {
+      importInputKeysMap[alias] = new Set(inputKeys);
+    }
+  }
+
+  // Validate call step inputs match imported file's defined inputs
+  const validateCallInputs = (steps: any[], context: string) => {
+    for (let i = 0; i < steps.length; i++) {
+      const step = steps[i];
+      if (!step || typeof step !== 'object') { continue; }
+      if (step.call && typeof step.call === 'string' && step.inputs && typeof step.inputs === 'object') {
+        const allowed = importInputKeysMap[step.call];
+        if (allowed) {
+          const unknownInputs = Object.keys(step.inputs).filter(k => !allowed.has(k));
+          if (unknownInputs.length > 0) {
+            throw new Error(
+              `${context}[${i}]: call "${step.call}" has undefined input(s): ${unknownInputs.map(k => `"${k}"`).join(', ')}`
+            );
+          }
+        }
+      }
+      if (Array.isArray(step.steps)) {
+        validateCallInputs(step.steps, `${context}[${i}].steps`);
+      }
+      if (Array.isArray(step.else)) {
+        validateCallInputs(step.else, `${context}[${i}].else`);
+      }
+    }
+  };
+  const allSteps = replaced.steps || [];
+  const allStages = replaced.stages || [];
+  if (allSteps.length > 0) {
+    validateCallInputs(allSteps, 'steps');
+  }
+  for (const stage of allStages) {
+    if (stage && Array.isArray(stage.steps)) {
+      validateCallInputs(stage.steps, `stage "${stage.id || '?'}"`);
     }
   }
 

@@ -38,8 +38,8 @@ export async function generateTestJs(opts: GenerateJsOptions): Promise<string> {
       return '';
     }
   });
-  const test =
-      testParsePack.yamlToTest ? testParsePack.yamlToTest(rawText) : {} as any;
+  // Use strict parsing for the root test file to surface YAML/validation errors.
+  const test = testParsePack.yamlToTestStrict(rawText);
   let js = await JSer.rootTestToJsfunc({test, name, inputs, envVars, filePath, projectRoot, isExternal});
   const anyJSer: any = JSer as any;
   if (anyJSer.variableReplacer &&

@@ -14,6 +14,14 @@ function parseYaml(yamlString: string): any {
   }
 }
 
+/**
+ * Parse YAML strictly: throws on parse errors instead of returning null.
+ * Use this in execution paths where errors must be surfaced.
+ */
+function parseYamlStrict(yamlString: string): any {
+  return YAML.parse(yamlString);
+}
+
 function packYaml(obj: any): string {
   try {
     return YAML.stringify(obj, {aliasDuplicateObjects: false});
@@ -126,6 +134,7 @@ function beautifyWithContentType(contentType: string, value: string): string {
 
 export {
   parseYaml,
+  parseYamlStrict,
   parseYamlDoc,
   packYaml,
   formatBody,

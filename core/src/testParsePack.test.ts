@@ -1,4 +1,4 @@
-import { yamlToTest, testToYaml, getTestFlowStepType, quoteExpectOperators } from './testParsePack';
+import { yamlToTest, testToYaml, getTestFlowStepType, quoteExpectOperators, yamlToTestStrict, validateTestData } from './testParsePack';
 import { TestData, TestFlowStep } from './TestData';
 
 describe('testParsePack', () => {
@@ -245,5 +245,94 @@ steps:
     const step = (t as any).steps[0];
     expect(step.expect.status).toBe(200);
     expect(step.expect.name).toBe('hello');
+  });
+});
+
+describe('yamlToTestStrict', () => {
+  it('throws on invalid YAML syntax', () => {
+    const yaml = 'type: test\nsteps:\n  - call: api\n    bad yaml: [unclosed';
+    expect(() => yamlToTestStrict(yaml)).toThrow();
+  });
+
+  it('throws on empty content', () => {
+    expect(() => yamlToTestStrict('')).toThrow(/empty/i);
+  });
+
+  it('throws when type is not test', () => {
+    const yaml = 'type: api\ntitle: wrong';
+    expect(() => yamlToTestStrict(yaml)).toThrow(/expected type "test"/);
+  });
+
+  it('throws when no steps, stages, or imports defined', () => {
+    const yaml = 'type: test\ntitle: empty';
+    expect(() => yamlToTestStrict(yaml)).toThrow(/no "steps" or "stages"/i);
+  });
+
+  it('throws on unknown step type', () => {
+    const yaml = 'type: test\nsteps:\n  - bogus: something';
+    expect(() => yamlToTestStrict(yaml)).toThrow(/unknown step type/i);
+  });
+
+  it('throws when call target is not imported', () => {
+    const yaml = 'type: test\nimport:\n  echo: echo.mmt\nsteps:\n  - call: echos';
+    expect(() => yamlToTestStrict(yaml)).toThrow(/echos.*not imported/i);
+  });
+
+  it('passes for valid test with matching call', () => {
+    const yaml = 'type: test\nimport:\n  echo: echo.mmt\nsteps:\n  - call: echo';
+    expect(() => yamlToTestStrict(yaml)).not.toThrow();
+  });
+
+  it('accepts import-only test files (no steps)', () => {
+    const yaml = 'type: test\nimport:\n  api: api.mmt';
+    expect(() => yamlToTestStrict(yaml)).not.toThrow();
+  });
+
+  it('accepts empty steps array', () => {
+    const yaml = 'type: test\nsteps: []';
+    expect(() => yamlToTestStrict(yaml)).not.toThrow();
+  });
+
+  it('validates nested steps in if/for/repeat', () => {
+    const yaml = `type: test
+import:
+  echo: echo.mmt
+steps:
+  - if: true
+    steps:
+      - call: missing_api`;
+    expect(() => yamlToTestStrict(yaml)).toThrow(/missing_api.*not imported/i);
+  });
+});
+
+describe('validateTestData', () => {
+  it('returns error for test with both steps and stages', () => {
+    const test = {
+      type: 'test', title: '', description: '', tags: [],
+      steps: [{call: 'a'} as any],
+      stages: [{id: 's1', steps: []}],
+    } as any;
+    const errors = validateTestData(test);
+    expect(errors).toContainEqual(expect.stringMatching(/both/i));
+  });
+
+  it('returns error for call target not in imports', () => {
+    const test = {
+      type: 'test', title: '', description: '', tags: [],
+      import: {echo: 'echo.mmt'},
+      steps: [{call: 'wrong'} as any],
+    } as any;
+    const errors = validateTestData(test);
+    expect(errors).toContainEqual(expect.stringMatching(/wrong.*not imported/i));
+  });
+
+  it('returns empty for valid test', () => {
+    const test = {
+      type: 'test', title: '', description: '', tags: [],
+      import: {echo: 'echo.mmt'},
+      steps: [{call: 'echo'} as any],
+    } as any;
+    const errors = validateTestData(test);
+    expect(errors).toHaveLength(0);
   });
 });

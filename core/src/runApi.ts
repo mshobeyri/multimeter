@@ -1,5 +1,5 @@
 import {APIData} from './APIData';
-import {yamlToAPI} from './apiParsePack';
+import {yamlToAPI, yamlToAPIStrict} from './apiParsePack';
 import {LogLevel} from './CommonData';
 import * as JSer from './JSer';
 import {isPlainObject, PreparedRun, RunFileResult, runGeneratedJs, sanitizeIdentifier} from './runCommon';
@@ -59,7 +59,7 @@ export function prepareApiRun(
     rawText: string, manualInputs: Record<string, any>,
     options: {exampleIndex?: number; exampleName?: string},
     log: (level: LogLevel, message: string) => void): Partial<PreparedRun> {
-  const apiDoc = yamlToAPI(rawText);
+  const apiDoc = yamlToAPIStrict(rawText);
   const defaultInputs =
       isPlainObject(apiDoc.inputs) ? apiDoc.inputs as Record<string, any>: {};
   const manualInputsForMerge = {...manualInputs};
