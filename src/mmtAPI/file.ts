@@ -414,14 +414,16 @@ export async function handleOpenRelativeFile(
   const uri = vscode.Uri.file(absolutePath);
   const pathLower: string = absolutePath.toLowerCase();
   const fragment: string | undefined = typeof message.fragment === 'string' ? message.fragment : undefined;
+  const newTab = !!message.newTab;
+  const viewColumn = newTab ? vscode.ViewColumn.Beside : vscode.ViewColumn.Active;
   try {
     // Prefer opening with our custom MMT editor when the file is an
     // .mmt
     if (pathLower.endsWith('.mmt')) {
       await vscode.commands.executeCommand(
-          'vscode.openWith', uri, 'mmt.editor', {preview: false});
+          'vscode.openWith', uri, 'mmt.editor', {preview: false, viewColumn});
     } else {
-      await vscode.commands.executeCommand('vscode.open', uri);
+      await vscode.commands.executeCommand('vscode.open', uri, {viewColumn});
     }
 
     // If a fragment (heading slug) was provided, scroll to it
