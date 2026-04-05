@@ -160,15 +160,17 @@ function findFileLikeValueInLine(lineContent: string, cursorColumn: number): {
   const colonIndex = lineContent.indexOf(":");
   if (colonIndex !== -1 && cursorColumn > colonIndex) {
     const afterColon = lineContent.slice(colonIndex + 1);
-    const valueMatch = afterColon.match(/['"]?([^'"#]+?)['"]?\s*(#.*)?$/);
+    const valueMatch = afterColon.match(/\s*['"]?([^'"#]+?)['"]?\s*(#.*)?$/);
     if (valueMatch) {
-      const value = valueMatch[1];
-      const valueIndex = lineContent.indexOf(value, colonIndex + 1);
-      if (valueIndex !== -1) {
-        const startColumn = valueIndex + 1;
-        const endColumn = startColumn + value.length;
-        if (cursorColumn >= startColumn && cursorColumn <= endColumn) {
-          return { value, startColumn, endColumn };
+      const value = valueMatch[1].trim();
+      if (value) {
+        const valueIndex = lineContent.indexOf(value, colonIndex + 1);
+        if (valueIndex !== -1) {
+          const startColumn = valueIndex + 1;
+          const endColumn = startColumn + value.length;
+          if (cursorColumn >= startColumn && cursorColumn <= endColumn) {
+            return { value, startColumn, endColumn };
+          }
         }
       }
     }
