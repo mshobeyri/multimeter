@@ -1,4 +1,4 @@
-import { replaceInputRefsWithBrace, replaceInputRefsWithNone, replaceAllRefs, normalizeEnvTokens, toTemplateWithEnvVars, replaceEnvTokensPlain, resolveEnvTokenValues } from './variableReplacer';
+import { replaceInputRefsWithBrace, replaceInputRefsWithNone, replaceAllRefs, normalizeEnvTokens, toTemplateWithEnvVars, replaceEnvTokensPlain, resolveEnvTokenValues, collectInputRefsFromObject } from './variableReplacer';
 
 describe('normalizeEnvTokens', () => {
   it('normalizes <<e:VAR>> to envVariables.VAR', () => {
@@ -224,5 +224,57 @@ describe('variableReplacer', () => {
     const out = replaceAllRefs(iface, defaults, inputs, envs);
     expect(out.body.credentials.username).toBe('admin');
     expect(out.body.credentials.password).toBe('secret123');
+  });
+});
+
+describe('collectInputRefsFromObject', () => {
+  it('finds full-string i:name references', () => {
+    const obj = { url: 'i:base_url', method: 'GET' };
+    expect(collectInputRefsFromObject(obj).sort()).toEqual(['base_url']);
+  });
+
+  it('finds brace <<i:name>> references', () => {
+    const obj = { url: 'http://<<i:host>>/api' };
+    expect(collectInputRefsFromObject(obj)).toEqual(['host']);
+  });
+
+  it('finds full-string brace <<i:name>> references', () => {
+    const obj = { token: '<<i:auth_token>>' };
+    expect(collectInputRefsFromObject(obj)).toEqual(['auth_token']);
+  });
+
+  it('finds after-colon-space references', () => {
+    const obj = { body: 'username: i:user' };
+    expect(collectInputRefsFromObject(obj)).toEqual(['user']);
+  });
+
+  it('finds refs in nested objects and arrays', () => {
+    const obj = {
+      steps: [
+        { call: 'myapi', inputs: { host: 'i:base_host' } },
+        { check: { value: '<<i:expected>>' } }
+      ]
+    };
+    expect(collectInputRefsFromObject(obj).sort()).toEqual(['base_host', 'expected']);
+  });
+
+  it('returns empty array when no refs exist', () => {
+    const obj = { url: 'https://example.com', method: 'GET', body: { name: 'test' } };
+    expect(collectInputRefsFromObject(obj)).toEqual([]);
+  });
+
+  it('deduplicates repeated references', () => {
+    const obj = { a: 'i:name', b: '<<i:name>>' };
+    expect(collectInputRefsFromObject(obj)).toEqual(['name']);
+  });
+
+  it('does not match non-input prefixes like e: or r:', () => {
+    const obj = { url: 'e:HOST', token: 'r:uuid' };
+    expect(collectInputRefsFromObject(obj)).toEqual([]);
+  });
+
+  it('skips numbers, booleans, and null', () => {
+    const obj = { port: 8080, verbose: true, data: null };
+    expect(collectInputRefsFromObject(obj)).toEqual([]);
   });
 });

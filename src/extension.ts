@@ -3,6 +3,7 @@ import * as vscode from 'vscode';
 import {connectionTracker} from 'mmt-core/networkCoreNode';
 
 import {setupChatParticipants} from './assistant/assistant';
+import {MmtDocumentLinkProvider} from './mmtDocumentLinkProvider';
 import {MmtEditorProvider} from './mmtEditorProvider';
 import ConnectionsPanel from './panels/ConnectionsPanel';
 import ConvertorPanel from './panels/ConvertorPanel';
@@ -17,6 +18,7 @@ export function activate(context: vscode.ExtensionContext) {
   const mmtviewPanel = new MmtEditorProvider(context, historyManager);
 
   registerEditorProvider(context, mmtviewPanel);
+  registerDocumentLinks(context);
 
   const {historyPanel, environmentPanel, connectionsPanel} =
       registerSidePanels(context, historyManager);
@@ -32,6 +34,13 @@ export function activate(context: vscode.ExtensionContext) {
 // ---------------------------------------------------------------------------
 // Registration helpers
 // ---------------------------------------------------------------------------
+
+function registerDocumentLinks(context: vscode.ExtensionContext): void {
+  const selector: vscode.DocumentSelector = {language: 'mmt', scheme: 'file'};
+  context.subscriptions.push(
+      vscode.languages.registerDocumentLinkProvider(
+          selector, new MmtDocumentLinkProvider()));
+}
 
 function registerEditorProvider(
     context: vscode.ExtensionContext,

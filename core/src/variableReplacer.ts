@@ -258,6 +258,61 @@ function replaceRefs(
   return obj;
 }
 
+/**
+ * Recursively scan an object for `i:name` input references and return the
+ * unique set of referenced input names.
+ * Detects both `<<i:name>>` (brace form) and standalone `i:name` (value form).
+ */
+export function collectInputRefsFromObject(obj: any): string[] {
+  const refs = new Set<string>();
+
+  function extractFromString(value: string): void {
+    // Full-string match: value is exactly `i:name`
+    const fullNone = /^i:([a-zA-Z0-9_]+)$/.exec(value);
+    if (fullNone) {
+      refs.add(fullNone[1]);
+      return;
+    }
+
+    // Full-string brace match: value is exactly `<<i:name>>`
+    const fullBrace = /^<<i:([a-zA-Z0-9_]+)>>$/.exec(value);
+    if (fullBrace) {
+      refs.add(fullBrace[1]);
+      return;
+    }
+
+    // Partial brace matches: <<i:name>> anywhere in string
+    const braceRe = /<<i:([a-zA-Z0-9_]+)>>/g;
+    let m;
+    while ((m = braceRe.exec(value)) !== null) {
+      refs.add(m[1]);
+    }
+
+    // After colon-space: `: i:name` (matches the NONE-mode global pattern)
+    const afterColonRe = /:\si:([a-zA-Z0-9_]+)/g;
+    while ((m = afterColonRe.exec(value)) !== null) {
+      refs.add(m[1]);
+    }
+  }
+
+  function scan(value: any): void {
+    if (typeof value === 'string') {
+      extractFromString(value);
+    } else if (Array.isArray(value)) {
+      for (const item of value) {
+        scan(item);
+      }
+    } else if (value && typeof value === 'object') {
+      for (const v of Object.values(value)) {
+        scan(v);
+      }
+    }
+  }
+
+  scan(obj);
+  return Array.from(refs);
+}
+
 // Specific replacers using flags
 export function replaceInputRefsWithBrace(obj: any, inputs: any, resolver?: DynamicResolver): any {
   return replaceRefs(

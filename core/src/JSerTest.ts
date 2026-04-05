@@ -5,7 +5,7 @@ import {indentLines, toInputsParams, toLowerUnderscore} from './JSerHelper';
 import {importsToJsfunc} from './JSerImports';
 import {flowToJsFunc} from './JSerTestFlow';
 import {TestData} from './TestData';
-import {normalizeEnvTokens, replaceAllRefs} from './variableReplacer';
+import {collectInputRefsFromObject, normalizeEnvTokens, replaceAllRefs} from './variableReplacer';
 
 export interface TestContext {
   test: TestData, name: string, inputs: JSONRecord, envVars: JSONRecord,
@@ -91,6 +91,16 @@ export const testToJsfunc = async(
 
   const paramsAsObj: Record<string, string> = Object.fromEntries(
       Object.keys(ctx.test.inputs ?? {}).map(key => [key, `\${${key}}`]));
+
+  // Validate that all i:xxx references point to declared inputs
+  const declaredInputKeys = new Set(Object.keys(ctx.test.inputs ?? {}));
+  const inputRefs = collectInputRefsFromObject(ctx.test);
+  const undefinedRefs = inputRefs.filter(name => !declaredInputKeys.has(name));
+  if (undefinedRefs.length > 0) {
+    throw new Error(
+      `Undefined input(s): ${undefinedRefs.map(r => `"${r}"`).join(', ')}. Define them in the 'inputs' section of the test file.`
+    );
+  }
 
   let replaced = replaceAllRefs(ctx.test, paramsAsObj, ctx.inputs, {});
 
