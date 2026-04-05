@@ -2,6 +2,20 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.16.0]
+
+- Add debug mode
+- Add progress of mmt test in task bar
+- Add open in new tab mode
+- Show error for inputs that are not valid
+- Show error for invalid data in tests
+- Show invalid tests as invalid in suite run
+- Fix the selected space in imports issues
+- Fix regex validation issue
+- Fix report UI
+- Add expect items to be shown in one item
+- Update docs for preventing YAML comments
+
 ## [1.15.2]
 
 - Stable release of 1.15.1 fixes
