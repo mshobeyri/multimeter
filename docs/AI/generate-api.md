@@ -216,6 +216,6 @@ url: wss://example.com/notifications
 - Avoid trailing spaces.
 - Prefer lower‑case, hyphen‑separated tags (e.g. `smoke`, `auth`, `user-profile`).
 - Keep titles short (3–6 words) and descriptions 1–3 sentences.
-- Do **not** add comments unless the user explicitly asks for explanation.
+- Do **not** add YAML comments (`#`). Multimeter's formatter removes them on reformat, so they will always be lost. Use the `description` field instead.
 
 When unsure, **favor simpler files** with fewer fields rather than guessing complex outputs or headers.

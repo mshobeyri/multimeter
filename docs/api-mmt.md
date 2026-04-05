@@ -340,6 +340,7 @@ examples:
 - For `protocol: http`, `method` is required
 - For `method: post|put|patch`, `body` is required
 - Unknown fields are rejected (strict schema)
+- YAML comments (`#`) are not preserved — the formatter strips them when it reformats the file. Use the `description` field to document your API instead.
 
 ## UI features
 - **Method override button**: Temporarily change the HTTP method from the UI without editing the YAML. Useful for quick testing of the same endpoint with different methods.

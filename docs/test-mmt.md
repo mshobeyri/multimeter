@@ -537,6 +537,7 @@ steps:
 Notes:
 - `flow` is accepted as a backward-compatible alias for `steps`.
 - The YAML editor provides autocomplete for `call` step names, check/assert operators, and input references.
+- YAML comments (`#`) are not preserved — the formatter strips them when it reformats the file. Use `title` on steps or the top-level `description` field to document your test instead.
 
 ---
 

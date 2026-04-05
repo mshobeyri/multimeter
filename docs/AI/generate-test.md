@@ -326,6 +326,5 @@ steps:
 - Prefer small, readable tests focused on a single behavior.
 - Prefer `steps` for simple linear flows; only use `stages` when explicit parallelism is needed.
 - Always include `title` and `tags` (even if tags is a small list like `[smoke]`).
-- Avoid adding `js` steps unless the user needs custom logic that can’t be expressed with other constructs.
-
+- Avoid adding `js` steps unless the user needs custom logic that can’t be expressed with other constructs.- Do **not** add YAML comments (`#`). Multimeter's formatter removes them on reformat, so they will always be lost. Use `title` on steps or the top-level `description` field instead.
 When unsure, generate a **minimal valid test** that clearly calls the described APIs and asserts the most important property (typically HTTP status or a key field in the response).

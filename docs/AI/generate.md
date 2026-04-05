@@ -7,6 +7,7 @@ The AI must:
 - Use the exact structures outlined and never deviate them.
 - Use the fence language identifier yaml (i.e. ```yaml).
 - Do not use stray backticks inside YAML.
+- **Never add YAML comments (`#`)** in generated `.mmt` files. Multimeter's formatter removes all comments, so they will be lost on the first reformat. Use `description`, `title`, or other structured fields to convey information instead.
 
 The only file types are:
 - `type: api` – describe a single HTTP/WebSocket endpoint.
