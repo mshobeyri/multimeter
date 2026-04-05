@@ -97,6 +97,30 @@ export const APISchema = {
                 { type: 'object', additionalProperties: true }
             ]
         },
+        auth: {
+            anyOf: [
+                { type: 'string', enum: ['none'] },
+                {
+                    type: 'object',
+                    properties: {
+                        type: { type: 'string', enum: ['bearer', 'basic', 'api-key', 'oauth2'] },
+                        token: { type: 'string' },
+                        username: { type: 'string' },
+                        password: { type: 'string' },
+                        header: { type: 'string' },
+                        query: { type: 'string' },
+                        value: { type: 'string' },
+                        grant: { type: 'string', enum: ['client_credentials'] },
+                        token_url: { type: 'string' },
+                        client_id: { type: 'string' },
+                        client_secret: { type: 'string' },
+                        scope: { type: 'string' },
+                    },
+                    required: ['type'],
+                    additionalProperties: false
+                }
+            ]
+        },
         examples: {
             type: 'array',
             items: {

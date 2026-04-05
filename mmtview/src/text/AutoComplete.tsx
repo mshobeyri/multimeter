@@ -741,6 +741,13 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'Cookies to include in the request as key-value pairs. These are sent in the Cookie header.\nExample:\ncookies:\n  sessionId: "{{sessionId}}"',
         },
         {
+            label: "auth",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "auth:\n\ttype: ",
+            detail: 'Authentication [bearer, basic, api-key, oauth2]',
+            documentation: 'Configure authentication for this API request.\nSupported types:\n\t- bearer: Token-based auth\n\t- basic: Username/password auth\n\t- api-key: API key via header or query\n\t- oauth2: OAuth 2.0 client credentials\nExample:\nauth:\n  type: bearer\n  token: <<e:token>>',
+        },
+        {
             label: "examples",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "examples:\n\t- name: example1\n\t\tdescription: desc\n\t\tinputs:\n\t\t\tkey1: value1\n\t\t\tkey2: value2\n\t\toutputs:\n\t\t\tstatus_code: 200\n\t\t\tkey1: value1\n",
@@ -1104,6 +1111,26 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'Define expected output values for this example. Used to verify the API response matches expectations.\nExample:\noutputs:\n\tstatus_code: 200\n\tbody: {\"id\": 1}',
         }
     ];
+    const authSuggestions = [
+        { label: 'type', kind: monaco.languages.CompletionItemKind.Property, insertText: 'type: ', detail: 'Auth type [bearer, basic, api-key, oauth2]', documentation: 'The authentication type.\nOptions:\n\t- bearer: Token-based (Authorization: Bearer <token>)\n\t- basic: Username/password (Authorization: Basic <base64>)\n\t- api-key: API key via header or query parameter\n\t- oauth2: OAuth 2.0 client credentials flow' },
+        { label: 'token', kind: monaco.languages.CompletionItemKind.Property, insertText: 'token: ', detail: 'Bearer token [string]', documentation: 'Token value for bearer auth. Supports env variables: <<e:token>>' },
+        { label: 'username', kind: monaco.languages.CompletionItemKind.Property, insertText: 'username: ', detail: 'Basic auth username [string]', documentation: 'Username for basic auth.' },
+        { label: 'password', kind: monaco.languages.CompletionItemKind.Property, insertText: 'password: ', detail: 'Basic auth password [string]', documentation: 'Password for basic auth.' },
+        { label: 'header', kind: monaco.languages.CompletionItemKind.Property, insertText: 'header: ', detail: 'API key header name [string]', documentation: 'Header name for api-key auth (e.g. X-API-Key).' },
+        { label: 'query', kind: monaco.languages.CompletionItemKind.Property, insertText: 'query: ', detail: 'API key query param name [string]', documentation: 'Query parameter name for api-key auth.' },
+        { label: 'value', kind: monaco.languages.CompletionItemKind.Property, insertText: 'value: ', detail: 'API key value [string]', documentation: 'The API key value.' },
+        { label: 'grant', kind: monaco.languages.CompletionItemKind.Property, insertText: 'grant: client_credentials', detail: 'OAuth2 grant type', documentation: 'OAuth2 grant type. Currently only client_credentials is supported.' },
+        { label: 'token_url', kind: monaco.languages.CompletionItemKind.Property, insertText: 'token_url: ', detail: 'OAuth2 token URL [string]', documentation: 'URL to request the access token from.' },
+        { label: 'client_id', kind: monaco.languages.CompletionItemKind.Property, insertText: 'client_id: ', detail: 'OAuth2 client ID [string]', documentation: 'Client ID for OAuth2 client credentials flow.' },
+        { label: 'client_secret', kind: monaco.languages.CompletionItemKind.Property, insertText: 'client_secret: ', detail: 'OAuth2 client secret [string]', documentation: 'Client secret for OAuth2 client credentials flow.' },
+        { label: 'scope', kind: monaco.languages.CompletionItemKind.Property, insertText: 'scope: ', detail: 'OAuth2 scope [string]', documentation: 'Space-separated list of scopes (optional).' },
+    ];
+    const authTypeSuggestions = [
+        { label: 'bearer', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: ' bearer', detail: 'Bearer token auth' },
+        { label: 'basic', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: ' basic', detail: 'Basic username/password auth' },
+        { label: 'api-key', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: ' api-key', detail: 'API key via header or query' },
+        { label: 'oauth2', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: ' oauth2', detail: 'OAuth 2.0 client credentials' },
+    ];
     const servicesSuggestions = [
         { label: 'name', kind: monaco.languages.CompletionItemKind.Property, insertText: 'name: ', detail: 'Service name', documentation: 'Section title for a group of APIs.' },
         { label: 'description', kind: monaco.languages.CompletionItemKind.Property, insertText: 'description: ', detail: 'Service description', documentation: 'Shown under the section title.' },
@@ -1422,6 +1449,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
         stages: stageSuggestions,
         protocol: protocolSuggestion,
         method: methodSuggestions,
+        auth: authSuggestions,
+        'auth-type': authTypeSuggestions,
         format: formatSuggestion,
         outputs: outputsSuggestions,
         check: checkAssertObjectKeySuggestions,

@@ -1,4 +1,4 @@
-import { APIData } from './APIData';
+import { APIData, AuthConfig } from './APIData';
 import { formatBody } from './markupConvertor';
 
 export function openApiToAPI(openApiSpec: any): APIData[] {
@@ -95,6 +95,9 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
 
       const fullUrl = baseUrl + processedPath;
 
+      // Resolve auth from operation or global security + securitySchemes
+      const auth = resolveOpenApiAuth(operation, openApiSpec);
+
       const apiData: APIData = {
         type: 'api',
         title,
@@ -106,6 +109,7 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
         headers: Object.keys(headers).length > 0 ? headers : undefined,
         query: Object.keys(query).length > 0 ? query : undefined,
         body,
+        auth,
       } as APIData;
 
       // Clean up undefined fields
@@ -121,10 +125,59 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
       if (!apiData.body) {
         delete (apiData as any).body;
       }
+      if (!apiData.auth) {
+        delete (apiData as any).auth;
+      }
 
       apis.push(apiData);
     });
   });
 
   return apis;
+}
+
+function resolveOpenApiAuth(operation: any, spec: any): AuthConfig | undefined {
+  const secReqs: any[] = operation.security ?? spec.security;
+  if (!Array.isArray(secReqs) || secReqs.length === 0) {
+    return undefined;
+  }
+  const schemes = spec.components?.securitySchemes || {};
+  // Use the first security requirement's first scheme
+  for (const req of secReqs) {
+    const names = Object.keys(req || {});
+    if (!names.length) {
+      continue;
+    }
+    const schemeName = names[0];
+    const scheme = schemes[schemeName];
+    if (!scheme) {
+      continue;
+    }
+    if (scheme.type === 'http' && scheme.scheme === 'bearer') {
+      return {type: 'bearer', token: 'i:token'};
+    }
+    if (scheme.type === 'http' && scheme.scheme === 'basic') {
+      return {type: 'basic', username: 'i:username', password: 'i:password'};
+    }
+    if (scheme.type === 'apiKey') {
+      const inField = scheme.in === 'query' ? 'query' : 'header';
+      return {
+        type: 'api-key',
+        ...(inField === 'query' ? {query: scheme.name} : {header: scheme.name}),
+        value: 'i:api_key',
+      };
+    }
+    if (scheme.type === 'oauth2' && scheme.flows?.clientCredentials) {
+      const cc = scheme.flows.clientCredentials;
+      return {
+        type: 'oauth2',
+        grant: 'client_credentials',
+        token_url: cc.tokenUrl || '',
+        client_id: 'i:client_id',
+        client_secret: 'i:client_secret',
+        ...(cc.scopes ? {scope: Object.keys(cc.scopes).join(' ')} : {}),
+      };
+    }
+  }
+  return undefined;
 }

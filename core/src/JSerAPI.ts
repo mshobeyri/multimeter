@@ -1,4 +1,4 @@
-import {APIData} from './APIData';
+import {APIData, AuthConfig} from './APIData';
 import {JSONRecord} from './CommonData';
 import {indentLines, toInputsParams} from './JSerHelper';
 import {formatBody} from './markupConvertor';
@@ -75,6 +75,9 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
                           .map(([k, v]) => `"${k}": ${toJsValue(v)}`)
                           .join(', ');
 
+  // Generate auth code that runs inside the async function body
+  const authCode = authToJS(replaced.auth, toTemplateWithEnvs);
+
   // Generate protocol resolution: use explicit protocol if provided,
   // otherwise infer from the resolved URL at runtime
   const explicitProtocol = ctx.api.protocol;
@@ -92,7 +95,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
     headers: ${headers ? '{ ' + headers + ' }' : '{}'},
     body: ${toTemplateWithEnvs(formattedBody)}
   };
-
+${authCode}
   const res_ = await send_(req_);
 
   const output_ = extractOutputs_(
@@ -117,3 +120,53 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   return output_;
 };`;
 };
+
+function authToJS(
+    auth: AuthConfig | undefined,
+    toTpl: (s: string) => string,
+): string {
+  if (!auth || auth === 'none') {
+    return '';
+  }
+  switch (auth.type) {
+    case 'bearer':
+      return `  if (!req_.headers["Authorization"]) { req_.headers["Authorization"] = "Bearer " + ${toTpl(auth.token)}; }`;
+    case 'basic':
+      return `  if (!req_.headers["Authorization"]) { req_.headers["Authorization"] = "Basic " + btoa(${toTpl(auth.username)} + ":" + ${toTpl(auth.password)}); }`;
+    case 'api-key':
+      if (auth.header) {
+        return `  if (!req_.headers[${JSON.stringify(auth.header)}]) { req_.headers[${JSON.stringify(auth.header)}] = ${toTpl(auth.value)}; }`;
+      }
+      if (auth.query) {
+        return `  if (!req_.query[${JSON.stringify(auth.query)}]) { req_.query[${JSON.stringify(auth.query)}] = ${toTpl(auth.value)}; }`;
+      }
+      return '';
+    case 'oauth2':
+      return generateOAuth2JS(auth, toTpl);
+    default:
+      return '';
+  }
+}
+
+function generateOAuth2JS(
+    auth: {token_url: string; client_id: string; client_secret: string; scope?: string},
+    toTpl: (s: string) => string,
+): string {
+  const scopePart = auth.scope
+      ? `\n          scope: ${toTpl(auth.scope)},`
+      : '';
+  return `  if (!req_.headers["Authorization"]) {
+    const _tokenResp = await send_({
+      url: ${toTpl(auth.token_url)},
+      method: "post",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+          grant_type: "client_credentials",
+          client_id: ${toTpl(auth.client_id)},
+          client_secret: ${toTpl(auth.client_secret)},${scopePart}
+      }).toString()
+    });
+    const _tokenData = JSON.parse(_tokenResp.body);
+    req_.headers["Authorization"] = "Bearer " + _tokenData.access_token;
+  }`;
+}

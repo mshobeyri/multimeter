@@ -121,6 +121,12 @@ export function buildDocMarkdown(
     if (outputSource) { lines.push('', '**Outputs**', renderTableFromObject(outputSource, 'Path', { paramDescs: paramDescs.outputs, showDescCol: hasAnyParamDescs })); }
     lines.push('', '---');
     if (api?.url) { lines.push('', `**URL**: \`${String(api.url)}\``); }
+    if (api?.auth && api.auth !== 'none') {
+      const authLabel = typeof api.auth === 'object' ? api.auth.type : '';
+      if (authLabel) {
+        lines.push('', `**Auth**: \`${authLabel}\``);
+      }
+    }
     if (api?.headers && Object.keys(api.headers).length) { lines.push('', '**Headers**', renderTableFromObject(api.headers, 'Default', { showSource: true })); }
     if (api?.cookies && Object.keys(api.cookies).length) { lines.push('', '**Cookies**', renderTableFromObject(api.cookies, 'Default', { showSource: true })); }
     // Body

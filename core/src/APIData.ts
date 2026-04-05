@@ -1,5 +1,34 @@
 import {Format, JSONRecord, Method, MMTFile, Protocol} from './CommonData';
 
+export interface AuthBearer {
+  type: 'bearer';
+  token: string;
+}
+
+export interface AuthBasic {
+  type: 'basic';
+  username: string;
+  password: string;
+}
+
+export interface AuthApiKey {
+  type: 'api-key';
+  header?: string;
+  query?: string;
+  value: string;
+}
+
+export interface AuthOAuth2 {
+  type: 'oauth2';
+  grant: 'client_credentials';
+  token_url: string;
+  client_id: string;
+  client_secret: string;
+  scope?: string;
+}
+
+export type AuthConfig = AuthBearer | AuthBasic | AuthApiKey | AuthOAuth2 | 'none';
+
 export interface ExampleData {
   name?: string;
   description?: string;
@@ -23,6 +52,7 @@ export interface APIData extends MMTFile {
   headers?: Record<string, string>;
   cookies?: Record<string, string>;
   body?: string|object|null;
+  auth?: AuthConfig;
   examples?: Array<ExampleData>;
 }
 

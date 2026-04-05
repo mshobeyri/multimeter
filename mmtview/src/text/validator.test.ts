@@ -4,6 +4,7 @@ import {
   findTestCallInputsProblems,
   findMultilineDescriptionProblems,
   findStageAfterProblems,
+  findAuthProblems,
 } from './validator';
 
 describe('validator test call checks', () => {
@@ -172,5 +173,84 @@ describe('findStageAfterProblems', () => {
     const doc = buildDoc(content);
     const problems = findStageAfterProblems(content, doc, 'api');
     expect(problems).toHaveLength(0);
+  });
+});
+
+describe('findAuthProblems', () => {
+  function buildDoc(content: string) {
+    return parseDocument(content);
+  }
+
+  it('returns no problems when auth is absent', () => {
+    const content = 'type: api\nurl: http://example.com\n';
+    const doc = buildDoc(content);
+    expect(findAuthProblems(content, doc, 'api')).toHaveLength(0);
+  });
+
+  it('returns no problems for auth: none', () => {
+    const content = 'type: api\nurl: http://example.com\nauth: none\n';
+    const doc = buildDoc(content);
+    expect(findAuthProblems(content, doc, 'api')).toHaveLength(0);
+  });
+
+  it('flags invalid string auth value', () => {
+    const content = 'type: api\nurl: http://example.com\nauth: invalid\n';
+    const doc = buildDoc(content);
+    const problems = findAuthProblems(content, doc, 'api');
+    expect(problems).toHaveLength(1);
+    expect(problems[0].severity).toBe('error');
+    expect(problems[0].message).toContain('invalid');
+  });
+
+  it('flags missing type field', () => {
+    const content = 'type: api\nurl: http://example.com\nauth:\n  token: abc\n';
+    const doc = buildDoc(content);
+    const problems = findAuthProblems(content, doc, 'api');
+    expect(problems).toHaveLength(1);
+    expect(problems[0].message).toContain('type');
+  });
+
+  it('flags bearer without token', () => {
+    const content = 'type: api\nurl: http://example.com\nauth:\n  type: bearer\n';
+    const doc = buildDoc(content);
+    const problems = findAuthProblems(content, doc, 'api');
+    expect(problems).toHaveLength(1);
+    expect(problems[0].message).toContain('token');
+  });
+
+  it('returns no problems for valid bearer', () => {
+    const content = 'type: api\nurl: http://example.com\nauth:\n  type: bearer\n  token: abc\n';
+    const doc = buildDoc(content);
+    expect(findAuthProblems(content, doc, 'api')).toHaveLength(0);
+  });
+
+  it('flags basic without username or password', () => {
+    const content = 'type: api\nurl: http://example.com\nauth:\n  type: basic\n  username: user\n';
+    const doc = buildDoc(content);
+    const problems = findAuthProblems(content, doc, 'api');
+    expect(problems).toHaveLength(1);
+    expect(problems[0].message).toContain('password');
+  });
+
+  it('flags api-key with both header and query', () => {
+    const content = 'type: api\nurl: http://example.com\nauth:\n  type: api-key\n  header: X-Key\n  query: key\n  value: abc\n';
+    const doc = buildDoc(content);
+    const problems = findAuthProblems(content, doc, 'api');
+    expect(problems).toHaveLength(1);
+    expect(problems[0].message).toContain('exactly one');
+  });
+
+  it('flags oauth2 without token_url', () => {
+    const content = 'type: api\nurl: http://example.com\nauth:\n  type: oauth2\n  grant: client_credentials\n  client_id: id\n  client_secret: secret\n';
+    const doc = buildDoc(content);
+    const problems = findAuthProblems(content, doc, 'api');
+    expect(problems).toHaveLength(1);
+    expect(problems[0].message).toContain('token_url');
+  });
+
+  it('ignores non-api documents', () => {
+    const content = 'type: test\nauth:\n  type: bearer\n';
+    const doc = buildDoc(content);
+    expect(findAuthProblems(content, doc, 'test')).toHaveLength(0);
   });
 });

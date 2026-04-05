@@ -174,11 +174,27 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `  const __mmt_originalSend = send_;\n` +
       `  send_ = async function(req) {\n` +
       `    const __req = req || {};\n` +
+      `    const __maskedHeaders = {};\n` +
+      `    for (const [k, v] of Object.entries(__req.headers || {})) {\n` +
+      `      const lk = k.toLowerCase();\n` +
+      `      if (lk === 'authorization' && typeof v === 'string') {\n` +
+      `        const sp = v.indexOf(' ');\n` +
+      `        if (sp > 0) {\n` +
+      `          const scheme = v.slice(0, sp);\n` +
+      `          const cred = v.slice(sp + 1);\n` +
+      `          __maskedHeaders[k] = scheme + ' ****' + (cred.length >= 4 ? cred.slice(-4) : '');\n` +
+      `        } else {\n` +
+      `          __maskedHeaders[k] = '****';\n` +
+      `        }\n` +
+      `      } else {\n` +
+      `        __maskedHeaders[k] = v;\n` +
+      `      }\n` +
+      `    }\n` +
       `    const __reqLog = {\n` +
       `      url: __mmt_raw(__req.url || ''),\n` +
       `      method: __mmt_raw((__req.method || '').toUpperCase()),\n` +
       `      protocol: __mmt_raw(__req.protocol || ''),\n` +
-      `      headers: __req.headers || {},\n` +
+      `      headers: __maskedHeaders,\n` +
       `      query: __req.query || {},\n` +
       `      cookies: __req.cookies || {},\n` +
       `      body: __mmt_formatBodyValue(__req.body)\n` +

@@ -860,7 +860,8 @@ export const handleBeforeMount = (monaco: any) => {
                         (key === 'report' && (parentContext === 'steps' || parentContext === 'stages')) ||
                         ((key === 'internal' || key === 'external') && parentContext === 'report')
                     );
-                    const effectiveKey = isReportLevelKey ? 'report-level' : key;
+                    const isAuthTypeKey = key === 'type' && parentContext === 'auth';
+                    const effectiveKey = isReportLevelKey ? 'report-level' : isAuthTypeKey ? 'auth-type' : key;
                     const suggestionList = getValueSuggestions(effectiveKey);
 
                     if (suggestionList.length > 0) {

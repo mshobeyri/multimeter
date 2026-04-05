@@ -599,8 +599,12 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     const queryObj = (api as any)?.query;
     const hasQuery = isNonEmpty(queryObj);
     const query = hasQuery ? renderParamTable(typeof queryObj === 'string' ? (tryParseJson(queryObj) ?? queryObj) : queryObj, 'Default', { showSource: true }) : '';
+    const authBadge = api?.auth && api.auth !== 'none' && typeof api.auth === 'object'
+      ? `<h3>Auth</h3><span class="tag">${escapeHtml(api.auth.type)}</span>`
+      : '';
     const requestMeta = [
       `<h3>URL</h3>\n        <div class="url"><input class="url-input" type="text" id="url-${idx}" value="${escapeHtml(api?.url || '')}" /></div>`,
+      authBadge,
       hasQuery ? `<h3>Query</h3>${query}` : '',
       headers ? `<h3>Headers</h3>${headers}` : '',
       cookies ? `<h3>Cookies</h3>${cookies}` : '',

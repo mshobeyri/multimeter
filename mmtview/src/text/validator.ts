@@ -117,6 +117,7 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "protocol",
         "method",
         "format",
+        "auth",
         "headers",
         "cookies",
         "body",
@@ -1717,6 +1718,100 @@ export function computeStageAfterMarkers(
   });
 
   return { markers, problems };
+}
+
+/**
+ * Validate the `auth` field in an API document.
+ * Returns problems for missing required fields or invalid combinations.
+ */
+export function findAuthProblems(content: string, doc: any, docType: string | null): ProblemEntry[] {
+  if (docType !== 'api' || !doc) {
+    return [];
+  }
+  const rootItems: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
+  const authPair = rootItems.find((item: any) => item?.key?.value === 'auth');
+  if (!authPair || !authPair.value) {
+    return [];
+  }
+  const authOffset = Array.isArray(authPair?.key?.range) ? authPair.key.range[0] : undefined;
+  const authLine = typeof authOffset === 'number' ? offsetToLineNumber(content, authOffset) : 1;
+
+  // String value: only 'none' is valid
+  if (typeof authPair.value?.value === 'string') {
+    if (authPair.value.value !== 'none') {
+      return [{ message: `Invalid auth value "${authPair.value.value}". Expected "none" or an object with a type field.`, severity: 'error', line: authLine }];
+    }
+    return [];
+  }
+
+  // Object value
+  const items: any[] = Array.isArray(authPair.value?.items) ? authPair.value.items : [];
+  if (items.length === 0) {
+    return [{ message: 'Auth must be "none" or an object with a type field.', severity: 'error', line: authLine }];
+  }
+
+  const fields: Record<string, { value: string; line: number }> = {};
+  for (const pair of items) {
+    const k = pair?.key?.value;
+    const v = pair?.value?.value;
+    if (typeof k === 'string') {
+      const pairOffset = Array.isArray(pair?.key?.range) ? pair.key.range[0] : undefined;
+      fields[k] = { value: typeof v === 'string' ? v : String(v ?? ''), line: typeof pairOffset === 'number' ? offsetToLineNumber(content, pairOffset) : authLine };
+    }
+  }
+
+  if (!fields.type) {
+    return [{ message: 'Auth requires a "type" field (bearer, basic, api-key, oauth2).', severity: 'error', line: authLine }];
+  }
+
+  const validTypes = ['bearer', 'basic', 'api-key', 'oauth2'];
+  const authType = fields.type.value;
+  if (!validTypes.includes(authType)) {
+    return [{ message: `Invalid auth type "${authType}". Must be one of: ${validTypes.join(', ')}.`, severity: 'error', line: fields.type.line }];
+  }
+
+  const problems: ProblemEntry[] = [];
+  switch (authType) {
+    case 'bearer':
+      if (!fields.token) {
+        problems.push({ message: 'Bearer auth requires a "token" field.', severity: 'error', line: fields.type.line });
+      }
+      break;
+    case 'basic':
+      if (!fields.username) {
+        problems.push({ message: 'Basic auth requires a "username" field.', severity: 'error', line: fields.type.line });
+      }
+      if (!fields.password) {
+        problems.push({ message: 'Basic auth requires a "password" field.', severity: 'error', line: fields.type.line });
+      }
+      break;
+    case 'api-key':
+      if (!fields.value) {
+        problems.push({ message: 'API key auth requires a "value" field.', severity: 'error', line: fields.type.line });
+      }
+      if (!fields.header && !fields.query) {
+        problems.push({ message: 'API key auth requires either a "header" or "query" field.', severity: 'error', line: fields.type.line });
+      }
+      if (fields.header && fields.query) {
+        problems.push({ message: 'API key auth must have exactly one of "header" or "query", not both.', severity: 'error', line: fields.header.line });
+      }
+      break;
+    case 'oauth2':
+      if (!fields.grant || fields.grant.value !== 'client_credentials') {
+        problems.push({ message: 'OAuth2 auth requires grant: "client_credentials".', severity: 'error', line: fields.type.line });
+      }
+      if (!fields.token_url) {
+        problems.push({ message: 'OAuth2 auth requires a "token_url" field.', severity: 'error', line: fields.type.line });
+      }
+      if (!fields.client_id) {
+        problems.push({ message: 'OAuth2 auth requires a "client_id" field.', severity: 'error', line: fields.type.line });
+      }
+      if (!fields.client_secret) {
+        problems.push({ message: 'OAuth2 auth requires a "client_secret" field.', severity: 'error', line: fields.type.line });
+      }
+      break;
+  }
+  return problems;
 }
 
 /**

@@ -6,7 +6,7 @@ import { formatBody, formattedBodyToYamlObject } from "mmt-core/markupConvertor"
 import BodyView from "../components/BodyView";
 import { safeList, isNonEmptyObject } from "mmt-core/safer";
 import { JSONRecord } from "mmt-core/CommonData";
-import { APIData } from "mmt-core/APIData";
+import { APIData, AuthConfig } from "mmt-core/APIData";
 import { protocolResolver } from "mmt-core";
 
 interface InterfaceEditorProps {
@@ -17,6 +17,8 @@ interface InterfaceEditorProps {
 const protocolOptions: Protocol[] = ["http", "ws"];
 const formatOptions: Format[] = ["json", "xml", "text"];
 const methodOptions: Method[] = ["get", "post", "put", "delete", "patch", "head", "options", "trace"];
+const authTypeOptions = ["none", "bearer", "basic", "api-key", "oauth2"] as const;
+const apiKeyPlacementOptions = ["header", "query"] as const;
 
 const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => {
   // Split url and query string safely
@@ -149,6 +151,153 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
           disabled={effectiveProtocol !== "http"}
         />
       ) : null}
+
+      {/* Auth section */}
+      <div className="label">Auth</div>
+      <div style={{ padding: "5px" }}>
+        <select
+          value={!data.auth ? '' : data.auth === 'none' ? 'none' : data.auth.type}
+          onChange={e => {
+            const val = e.target.value;
+            if (!val) {
+              const { auth: _, ...rest } = data;
+              onChange(rest as APIData);
+            } else if (val === 'none') {
+              onChange({ ...data, auth: 'none' });
+            } else if (val === 'bearer') {
+              onChange({ ...data, auth: { type: 'bearer', token: '' } });
+            } else if (val === 'basic') {
+              onChange({ ...data, auth: { type: 'basic', username: '', password: '' } });
+            } else if (val === 'api-key') {
+              onChange({ ...data, auth: { type: 'api-key', header: '', value: '' } });
+            } else if (val === 'oauth2') {
+              onChange({ ...data, auth: { type: 'oauth2', grant: 'client_credentials', token_url: '', client_id: '', client_secret: '' } });
+            }
+          }}
+          style={{ width: "100%" }}
+        >
+          <option value="">(none)</option>
+          {authTypeOptions.map(opt => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+
+        {data.auth && data.auth !== 'none' && data.auth.type === 'bearer' && (
+          <div style={{ marginTop: 4 }}>
+            <input
+              type="text"
+              placeholder="Token"
+              value={data.auth.token}
+              onChange={e => onChange({ ...data, auth: { ...data.auth as any, token: e.target.value } })}
+              style={{ width: "100%" }}
+            />
+          </div>
+        )}
+
+        {data.auth && data.auth !== 'none' && data.auth.type === 'basic' && (
+          <div style={{ marginTop: 4, display: 'flex', gap: 4 }}>
+            <input
+              type="text"
+              placeholder="Username"
+              value={data.auth.username}
+              onChange={e => onChange({ ...data, auth: { ...data.auth as any, username: e.target.value } })}
+              style={{ flex: 1 }}
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={data.auth.password}
+              onChange={e => onChange({ ...data, auth: { ...data.auth as any, password: e.target.value } })}
+              style={{ flex: 1 }}
+            />
+          </div>
+        )}
+
+        {data.auth && data.auth !== 'none' && data.auth.type === 'api-key' && (
+          <div style={{ marginTop: 4 }}>
+            <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+              <select
+                value={data.auth.header != null ? 'header' : 'query'}
+                onChange={e => {
+                  const placement = e.target.value as 'header' | 'query';
+                  const current = data.auth as { type: 'api-key'; header?: string; query?: string; value: string };
+                  const name = current.header ?? current.query ?? '';
+                  if (placement === 'header') {
+                    onChange({ ...data, auth: { type: 'api-key', header: name, value: current.value } });
+                  } else {
+                    onChange({ ...data, auth: { type: 'api-key', query: name, value: current.value } });
+                  }
+                }}
+                style={{ width: 90 }}
+              >
+                {apiKeyPlacementOptions.map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+              <input
+                type="text"
+                placeholder="Key name"
+                value={data.auth.header ?? data.auth.query ?? ''}
+                onChange={e => {
+                  const current = data.auth as { type: 'api-key'; header?: string; query?: string; value: string };
+                  if (current.header != null) {
+                    onChange({ ...data, auth: { type: 'api-key', header: e.target.value, value: current.value } });
+                  } else {
+                    onChange({ ...data, auth: { type: 'api-key', query: e.target.value, value: current.value } });
+                  }
+                }}
+                style={{ flex: 1 }}
+              />
+            </div>
+            <input
+              type="text"
+              placeholder="Value"
+              value={data.auth.value}
+              onChange={e => onChange({ ...data, auth: { ...data.auth as any, value: e.target.value } })}
+              style={{ width: "100%" }}
+            />
+          </div>
+        )}
+
+        {data.auth && data.auth !== 'none' && data.auth.type === 'oauth2' && (
+          <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <input
+              type="text"
+              placeholder="Token URL"
+              value={data.auth.token_url}
+              onChange={e => onChange({ ...data, auth: { ...data.auth as any, token_url: e.target.value } })}
+              style={{ width: "100%" }}
+            />
+            <div style={{ display: 'flex', gap: 4 }}>
+              <input
+                type="text"
+                placeholder="Client ID"
+                value={data.auth.client_id}
+                onChange={e => onChange({ ...data, auth: { ...data.auth as any, client_id: e.target.value } })}
+                style={{ flex: 1 }}
+              />
+              <input
+                type="password"
+                placeholder="Client Secret"
+                value={data.auth.client_secret}
+                onChange={e => onChange({ ...data, auth: { ...data.auth as any, client_secret: e.target.value } })}
+                style={{ flex: 1 }}
+              />
+            </div>
+            <input
+              type="text"
+              placeholder="Scope (optional)"
+              value={data.auth.scope ?? ''}
+              onChange={e => {
+                const scope = e.target.value || undefined;
+                onChange({ ...data, auth: { ...data.auth as any, scope } });
+              }}
+              style={{ width: "100%" }}
+            />
+          </div>
+        )}
+      </div>
+
       {effectiveProtocol === "http" || isNonEmptyObject(data.headers) ? (
         <KSVEditor
           label="Headers"
@@ -177,6 +326,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
           disabled={effectiveProtocol !== "http"}
         />
       ) : null}
+
       {/* Only show body editor if method is not get */}
       {(effectiveProtocol === "ws" || !data.method || data.method.toLowerCase() !== "get") && (
         <>

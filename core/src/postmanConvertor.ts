@@ -1,4 +1,4 @@
-import { APIData } from './APIData';
+import { APIData, AuthConfig } from './APIData';
 
 // Map Postman dynamic random variables to Multimeter random token names
 // Only include those we support in RANDOM_TOKEN_MAP.
@@ -103,6 +103,9 @@ export function postmanToAPI(postmanJson: any): APIData[] {
       protocol = 'ws';
     }
 
+    // Convert Postman auth to mmt auth field
+    const auth = convertPostmanAuth(request.auth);
+
     const apiData: APIData = {
       type: 'api',
       title: req.name || request.url?.raw || '',
@@ -114,6 +117,7 @@ export function postmanToAPI(postmanJson: any): APIData[] {
       headers,
       query,
       body,
+      auth,
     } as APIData;
 
     // Remove undefined/empty fields to keep the YAML clean
@@ -131,6 +135,9 @@ export function postmanToAPI(postmanJson: any): APIData[] {
     }
     if (!apiData.body) {
       delete (apiData as any).body;
+    }
+    if (!apiData.auth) {
+      delete (apiData as any).auth;
     }
 
     // If Postman item has one or more saved examples with originalRequest,
@@ -301,4 +308,65 @@ export function postmanToAPI(postmanJson: any): APIData[] {
 
     return apiData;
   });
+}
+
+function convertPostmanAuth(pmAuth: any): AuthConfig | undefined {
+  if (!pmAuth || !pmAuth.type) {
+    return undefined;
+  }
+  const getField = (arr: any[] | undefined, key: string): string =>
+      (Array.isArray(arr) ? arr.find((e: any) => e?.key === key)?.value : undefined) ?? '';
+
+  switch (pmAuth.type) {
+    case 'bearer': {
+      const token = getField(pmAuth.bearer, 'token');
+      return token ? {type: 'bearer', token: replacePostmanVars(token)} : undefined;
+    }
+    case 'basic': {
+      const username = getField(pmAuth.basic, 'username');
+      const password = getField(pmAuth.basic, 'password');
+      return (username || password)
+          ? {type: 'basic', username: replacePostmanVars(username), password: replacePostmanVars(password)}
+          : undefined;
+    }
+    case 'apikey': {
+      const value = getField(pmAuth.apikey, 'value');
+      const key = getField(pmAuth.apikey, 'key') || 'X-API-Key';
+      const inField = getField(pmAuth.apikey, 'in');
+      if (!value) {
+        return undefined;
+      }
+      if (inField === 'query') {
+        return {type: 'api-key', query: key, value: replacePostmanVars(value)};
+      }
+      return {type: 'api-key', header: key, value: replacePostmanVars(value)};
+    }
+    case 'oauth2': {
+      const opts = pmAuth.oauth2;
+      if (!Array.isArray(opts)) {
+        return undefined;
+      }
+      const grant = getField(opts, 'grant_type');
+      if (grant !== 'client_credentials') {
+        return undefined;
+      }
+      const tokenUrl = getField(opts, 'accessTokenUrl');
+      const clientId = getField(opts, 'clientId');
+      const clientSecret = getField(opts, 'clientSecret');
+      const scope = getField(opts, 'scope');
+      if (!tokenUrl || !clientId || !clientSecret) {
+        return undefined;
+      }
+      return {
+        type: 'oauth2',
+        grant: 'client_credentials',
+        token_url: replacePostmanVars(tokenUrl),
+        client_id: replacePostmanVars(clientId),
+        client_secret: replacePostmanVars(clientSecret),
+        ...(scope ? {scope: replacePostmanVars(scope)} : {}),
+      };
+    }
+    default:
+      return undefined;
+  }
 }

@@ -26,6 +26,7 @@ import {
   getUndefinedEnvRefDecorations,
   findEnvRefProblems,
   findMultilineDescriptionProblems,
+  findAuthProblems,
   computeStageAfterMarkers,
   getInvalidStageAfterDecorations,
   type ProblemEntry,
@@ -151,6 +152,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const [envRefProblems, setEnvRefProblems] = useState<ProblemEntry[]>([]);
   const [descriptionProblems, setDescriptionProblems] = useState<ProblemEntry[]>([]);
   const [stageAfterProblems, setStageAfterProblems] = useState<ProblemEntry[]>([]);
+  const [authProblems, setAuthProblems] = useState<ProblemEntry[]>([]);
   const [knownEnvNames, setKnownEnvNames] = useState<Set<string>>(new Set());
   // Keep track of whether the editor has detected a canonical key-order issue via markers.
   const shouldShowRunControls = (docType === "test" || docType === "api" || docType === "suite");
@@ -650,6 +652,51 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     monaco.editor.setModelMarkers(model, "mmt-description", markers);
   }, [content, editorReady]);
 
+  // Validate auth field in API documents
+  useEffect(() => {
+    if (!editorReady || !monacoRef.current || !editorRef.current) {
+      setAuthProblems([]);
+      return;
+    }
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) {
+      setAuthProblems([]);
+      return;
+    }
+
+    let doc: any = null;
+    try {
+      doc = parseYamlDoc(content);
+      if (doc.errors && doc.errors.length > 0) {
+        setAuthProblems([]);
+        monaco.editor.setModelMarkers(model, "mmt-auth", []);
+        return;
+      }
+    } catch {
+      setAuthProblems([]);
+      monaco.editor.setModelMarkers(model, "mmt-auth", []);
+      return;
+    }
+
+    const problems = findAuthProblems(content, doc, docType);
+    setAuthProblems(problems);
+
+    const markers = problems.map((p) => {
+      const lineNumber = Math.min(Math.max(p.line ?? 1, 1), model.getLineCount());
+      return {
+        startLineNumber: lineNumber,
+        startColumn: 1,
+        endLineNumber: lineNumber,
+        endColumn: model.getLineMaxColumn(lineNumber),
+        message: p.message,
+        severity: p.severity === 'error' ? monaco.MarkerSeverity.Error : monaco.MarkerSeverity.Warning,
+      };
+    });
+    monaco.editor.setModelMarkers(model, "mmt-auth", markers);
+  }, [content, docType, editorReady]);
+
   // Warn on e:xxx / <<e:xxx>> references to undefined environment variables
   useEffect(() => {
     if (!editorReady || !monacoRef.current || !editorRef.current) {
@@ -938,12 +985,13 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       ...envRefProblems,
       ...descriptionProblems,
       ...stageAfterProblems,
+      ...authProblems,
     ];
     window.vscode.postMessage({
       command: "updateDocumentProblems",
       problems,
     });
-  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, missingDocFileProblems, exampleKeyProblems, inputRefProblems, envRefProblems, descriptionProblems, stageAfterProblems]);
+  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, missingDocFileProblems, exampleKeyProblems, inputRefProblems, envRefProblems, descriptionProblems, stageAfterProblems, authProblems]);
 
   return (
     <div style={{ height: "100%" }}>

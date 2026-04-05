@@ -5,6 +5,7 @@ import { JSONRecord } from "mmt-core/CommonData";
 import { safeList } from "mmt-core/safer";
 import { replaceAllRefs } from "mmt-core/variableReplacer";
 import { formatBody } from "mmt-core/markupConvertor";
+import { applyAuthToRequest } from "mmt-core/apiParsePack";
 import { loadEnvVariables } from "../workspaceStorage";
 import { extractOutputs, extractPathAtPosition, buildBodyExprFromPath } from "mmt-core/outputExtractor";
 import { setEnvironmentVariable, getEnvironmentVariable } from "../environment/environmentUtils";
@@ -108,7 +109,16 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
         api?.inputs ?? {},
         resolvedInputs,
         envParameters
-      ) as Request;
+      ) as Request & { auth?: any };
+
+      if (rface.auth) {
+        const applied = applyAuthToRequest(rface.auth, rface.headers || {}, rface.query);
+        rface.headers = applied.headers;
+        if (applied.query) {
+          rface.query = applied.query;
+        }
+        delete rface.auth;
+      }
 
       if (rface.body && typeof rface.body !== "string") {
         rface.body = formatBody(rface.format || "json", rface.body ?? "");

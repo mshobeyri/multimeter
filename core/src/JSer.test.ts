@@ -1,4 +1,5 @@
 import {yamlToAPI} from './apiParsePack';
+import {validateAuth} from './apiParsePack';
 import {apiToJSfunc, rootTestToJsfunc, testToJsfunc,} from './JSer';
 import {APIContext} from './JSerAPI';
 import {setFileLoader} from './JSerFileLoader';
@@ -1459,5 +1460,191 @@ describe('same-name file imports', () => {
     expect(js).toContain('const api_setup = setup_1_');
     // The root alias must point to the test setup
     expect(js).toContain('const setup = setup_');
+  });
+});
+
+describe('auth field (apiToJSfunc)', () => {
+  it('generates Bearer Authorization header', async () => {
+    const ctx: APIContext = {
+      api: {
+        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        auth: {type: 'bearer', token: 'my-token'},
+      } as any,
+      name: 'myApi', inputs: {}, envVars: {},
+    };
+    const js = await apiToJSfunc(ctx);
+    expect(js).toContain('req_.headers["Authorization"]');
+    expect(js).toContain('Bearer');
+    expect(js).toContain('my-token');
+  });
+
+  it('generates Basic Authorization header', async () => {
+    const ctx: APIContext = {
+      api: {
+        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        auth: {type: 'basic', username: 'user', password: 'pass'},
+      } as any,
+      name: 'myApi', inputs: {}, envVars: {},
+    };
+    const js = await apiToJSfunc(ctx);
+    expect(js).toContain('req_.headers["Authorization"]');
+    expect(js).toContain('Basic');
+    expect(js).toContain('btoa');
+  });
+
+  it('generates API key header', async () => {
+    const ctx: APIContext = {
+      api: {
+        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        auth: {type: 'api-key', header: 'X-API-Key', value: 'secret123'},
+      } as any,
+      name: 'myApi', inputs: {}, envVars: {},
+    };
+    const js = await apiToJSfunc(ctx);
+    expect(js).toContain('req_.headers["X-API-Key"]');
+    expect(js).toContain('secret123');
+  });
+
+  it('generates API key query parameter', async () => {
+    const ctx: APIContext = {
+      api: {
+        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        auth: {type: 'api-key', query: 'api_key', value: 'secret123'},
+      } as any,
+      name: 'myApi', inputs: {}, envVars: {},
+    };
+    const js = await apiToJSfunc(ctx);
+    expect(js).toContain('req_.query["api_key"]');
+    expect(js).toContain('secret123');
+  });
+
+  it('generates OAuth2 client_credentials token fetch', async () => {
+    const ctx: APIContext = {
+      api: {
+        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        auth: {
+          type: 'oauth2', grant: 'client_credentials',
+          token_url: 'https://auth.example.com/token',
+          client_id: 'my_id', client_secret: 'my_secret', scope: 'read write',
+        },
+      } as any,
+      name: 'myApi', inputs: {}, envVars: {},
+    };
+    const js = await apiToJSfunc(ctx);
+    expect(js).toContain('grant_type');
+    expect(js).toContain('client_credentials');
+    expect(js).toContain('auth.example.com/token');
+    expect(js).toContain('_tokenData.access_token');
+  });
+
+  it('does not override explicit Authorization header', async () => {
+    const ctx: APIContext = {
+      api: {
+        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        headers: {Authorization: 'Custom xyz'},
+        auth: {type: 'bearer', token: 'my-token'},
+      } as any,
+      name: 'myApi', inputs: {}, envVars: {},
+    };
+    const js = await apiToJSfunc(ctx);
+    // explicit header is in the initial headers object
+    expect(js).toContain('"Authorization"');
+    expect(js).toContain('Custom xyz');
+    // auth guard: only set if not present
+    expect(js).toContain('if (!req_.headers["Authorization"])');
+  });
+
+  it('auth: none generates no auth code', async () => {
+    const ctx: APIContext = {
+      api: {
+        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        auth: 'none',
+      } as any,
+      name: 'myApi', inputs: {}, envVars: {},
+    };
+    const js = await apiToJSfunc(ctx);
+    expect(js).not.toContain('req_.headers["Authorization"]');
+  });
+
+  it('env variable substitution works in auth token', async () => {
+    const ctx: APIContext = {
+      api: {
+        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        auth: {type: 'bearer', token: '<<e:token>>'},
+      } as any,
+      name: 'myApi', inputs: {}, envVars: {},
+    };
+    const js = await apiToJSfunc(ctx);
+    expect(js).toContain('envVariables.token');
+  });
+});
+
+describe('validateAuth', () => {
+  it('returns undefined for undefined input', () => {
+    expect(validateAuth(undefined)).toBeUndefined();
+  });
+
+  it('returns none for "none" string', () => {
+    expect(validateAuth('none')).toBe('none');
+  });
+
+  it('validates bearer auth', () => {
+    expect(validateAuth({type: 'bearer', token: 'abc'})).toEqual({type: 'bearer', token: 'abc'});
+  });
+
+  it('throws for bearer without token', () => {
+    expect(() => validateAuth({type: 'bearer'})).toThrow('token');
+  });
+
+  it('validates basic auth', () => {
+    expect(validateAuth({type: 'basic', username: 'u', password: 'p'}))
+        .toEqual({type: 'basic', username: 'u', password: 'p'});
+  });
+
+  it('throws for basic without password', () => {
+    expect(() => validateAuth({type: 'basic', username: 'u'})).toThrow('password');
+  });
+
+  it('validates api-key with header', () => {
+    expect(validateAuth({type: 'api-key', header: 'X-Key', value: 'v'}))
+        .toEqual({type: 'api-key', header: 'X-Key', value: 'v'});
+  });
+
+  it('validates api-key with query', () => {
+    expect(validateAuth({type: 'api-key', query: 'key', value: 'v'}))
+        .toEqual({type: 'api-key', query: 'key', value: 'v'});
+  });
+
+  it('throws for api-key with both header and query', () => {
+    expect(() => validateAuth({type: 'api-key', header: 'X', query: 'q', value: 'v'})).toThrow('exactly one');
+  });
+
+  it('throws for api-key without header or query', () => {
+    expect(() => validateAuth({type: 'api-key', value: 'v'})).toThrow('header');
+  });
+
+  it('throws for invalid auth type', () => {
+    expect(() => validateAuth({type: 'unknown'})).toThrow('Must be one of');
+  });
+
+  it('throws for non-object auth', () => {
+    expect(() => validateAuth(42)).toThrow('expected an object');
+  });
+
+  it('validates oauth2', () => {
+    const result = validateAuth({
+      type: 'oauth2', grant: 'client_credentials',
+      token_url: 'https://x', client_id: 'id', client_secret: 's',
+    });
+    expect(result).toEqual({
+      type: 'oauth2', grant: 'client_credentials',
+      token_url: 'https://x', client_id: 'id', client_secret: 's',
+    });
+  });
+
+  it('throws for oauth2 without token_url', () => {
+    expect(() => validateAuth({
+      type: 'oauth2', grant: 'client_credentials', client_id: 'id', client_secret: 's',
+    })).toThrow('token_url');
   });
 });
