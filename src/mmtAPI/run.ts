@@ -214,7 +214,7 @@ export async function handleRunCurrentDocument(
     panelId: getPanelId(webviewPanel),
   };
 
-  onRunStarted(`Running ${fileName}`, () => controller.abort());
+  const statusBarRunId = onRunStarted(`Running ${fileName}`, () => controller.abort());
   const serverRunner = async (alias: string, filePath: string): Promise<() => void> => {
     // filePath is the resolved absolute path to the mock server file
     forwardLog('info', `Starting mock server from ${alias}`);
@@ -303,7 +303,7 @@ export async function handleRunCurrentDocument(
     if (activeTestRun && activeTestRun.controller === controller) {
       activeTestRun = null;
     }
-    onRunFinished();
+    onRunFinished(statusBarRunId);
   }
 }
 
@@ -367,7 +367,7 @@ export async function handleRunSuite(
   };
   suiteRunIdByChildRunId.clear();
 
-  onRunStarted(`Running suite ${fileName}`, () => controller.abort());
+  const statusBarRunId = onRunStarted(`Running suite ${fileName}`, () => controller.abort());
 
   webviewPanel.webview.postMessage({
     command: 'suiteRunStart',
@@ -534,7 +534,7 @@ export async function handleRunSuite(
     if (activeSuiteRun && activeSuiteRun.suiteRunId === suiteRunId) {
       activeSuiteRun = null;
     }
-    onRunFinished();
+    onRunFinished(statusBarRunId);
   }
 }
 

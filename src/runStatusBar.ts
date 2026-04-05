@@ -1,35 +1,55 @@
 import * as vscode from 'vscode';
 
-let statusBarItem: vscode.StatusBarItem;
-let activeAbort: (() => void) | null = null;
-let runLabel: string = '';
+interface ActiveRun {
+  label: string;
+  abort: () => void;
+  statusBarItem: vscode.StatusBarItem;
+}
+
+const activeRuns = new Map<string, ActiveRun>();
+let runCounter = 0;
+let extensionContext: vscode.ExtensionContext;
 
 const COMMAND_ID = 'multimeter.stopActiveRun';
 
 export function registerRunStatusBar(context: vscode.ExtensionContext): void {
+  extensionContext = context;
   context.subscriptions.push(
-    vscode.commands.registerCommand(COMMAND_ID, () => {
-      if (activeAbort) {
-        activeAbort();
+    vscode.commands.registerCommand(COMMAND_ID, (runId?: string) => {
+      if (runId) {
+        const run = activeRuns.get(runId);
+        if (run) {
+          run.abort();
+        }
+      } else {
+        // Stop the most recent run if no runId provided
+        const last = [...activeRuns.values()].pop();
+        if (last) {
+          last.abort();
+        }
       }
     }));
+}
 
-  statusBarItem = vscode.window.createStatusBarItem(
+export function onRunStarted(label: string, abort: () => void): string {
+  const runId = `run-${++runCounter}`;
+  const item = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Left, 0);
-  statusBarItem.command = COMMAND_ID;
-  context.subscriptions.push(statusBarItem);
+  item.command = { command: COMMAND_ID, arguments: [runId], title: 'Stop Run' };
+  item.text = `$(sync~spin) ${label}`;
+  item.tooltip = `${label} — click to stop`;
+  item.show();
+  extensionContext.subscriptions.push(item);
+
+  activeRuns.set(runId, { label, abort, statusBarItem: item });
+  return runId;
 }
 
-export function onRunStarted(label: string, abort: () => void): void {
-  activeAbort = abort;
-  runLabel = label;
-  statusBarItem.text = `$(sync~spin) ${label}`;
-  statusBarItem.tooltip = `${label} — click to stop`;
-  statusBarItem.show();
-}
-
-export function onRunFinished(): void {
-  activeAbort = null;
-  runLabel = '';
-  statusBarItem.hide();
+export function onRunFinished(runId: string): void {
+  const run = activeRuns.get(runId);
+  if (run) {
+    run.statusBarItem.hide();
+    run.statusBarItem.dispose();
+    activeRuns.delete(runId);
+  }
 }
