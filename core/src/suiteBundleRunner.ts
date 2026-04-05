@@ -8,6 +8,21 @@ import {stopAllServers_, registerServer_} from './testHelper';
 /** Cleanup functions for servers started during suite execution. */
 type ServerCleanup = () => void;
 
+/** Patterns that indicate a validation/structural error rather than a runtime failure. */
+const INVALID_ERROR_PATTERNS = [
+  'Invalid test file',
+  'Invalid API file',
+  'Import error',
+  'unknown key(s)',
+  'is not imported',
+  'undefined input(s)',
+  'YAML',
+];
+
+function isValidationError(message: string): boolean {
+  return INVALID_ERROR_PATTERNS.some(p => message.includes(p));
+}
+
 function findNodeById(nodes: readonly SuiteBundleNode[], targetId: string): SuiteBundleNode|undefined {
   const stack: SuiteBundleNode[] = [...nodes];
   while (stack.length) {
@@ -127,7 +142,10 @@ async function runSuiteBundleNode(params: {
     // Flush buffered logs now that the child is done.
     flushLogBuffer();
 
-    const status: SuiteStepStatus = childRun.result?.success ? 'passed' : 'failed';
+    const status: SuiteStepStatus =
+        childRun.result?.success ? 'passed' :
+        childRun.result?.syntaxError ? 'invalid' :
+        'failed';
 
     options.reporter && options.reporter({
       scope: 'suite-item',
@@ -144,11 +162,12 @@ async function runSuiteBundleNode(params: {
   } catch (e: any) {
     flushLogBuffer();
     const errorMessage = e?.message || String(e);
+    const status: SuiteStepStatus = isValidationError(errorMessage) ? 'invalid' : 'failed';
     suiteLogger('error', `Failed to run suite item: ${display} - ${errorMessage}`);
 
     options.reporter && options.reporter({
       scope: 'suite-item',
-      status: 'failed',
+      status,
       runId,
       filePath: childFilePath,
       entry: node.path,
@@ -156,7 +175,7 @@ async function runSuiteBundleNode(params: {
       id,
     });
 
-    return {success: false, threw: true, cancelled: false, status: 'failed'};
+    return {success: false, threw: true, cancelled: false, status};
   }
 }
 

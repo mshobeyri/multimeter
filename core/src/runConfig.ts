@@ -4,7 +4,7 @@ import {RunJSCodeContext} from './jsRunner';
 export type FileLoader = (path: string) => Promise<string>;
 
 export type TestStepStatus = 'passed'|'failed';
-export type SuiteStepStatus = 'running'|'passed'|'failed'|'pending';
+export type SuiteStepStatus = 'running'|'passed'|'failed'|'pending'|'invalid';
 
 export interface ExpectItemEvent {
   comparison: string;

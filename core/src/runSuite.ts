@@ -220,7 +220,10 @@ export async function executeSuite(
 
         flushLogBuffer();
 
-        const status: SuiteStepStatus = childRun.result?.success ? 'passed' : 'failed';
+        const status: SuiteStepStatus =
+            childRun.result?.success ? 'passed' :
+            childRun.result?.syntaxError ? 'invalid' :
+            'failed';
         const result = {
           entry,
           filePath: childFilePath,
@@ -250,7 +253,11 @@ export async function executeSuite(
         const errorMessage = e?.message || String(e);
         suiteLogger('error', `Failed to run suite item: ${display} - ${errorMessage}`);
 
-        const status: SuiteStepStatus = 'failed';
+        const isInvalid = [
+          'Invalid test file', 'Invalid API file', 'Import error',
+          'unknown key(s)', 'is not imported', 'undefined input(s)', 'YAML',
+        ].some(p => errorMessage.includes(p));
+        const status: SuiteStepStatus = isInvalid ? 'invalid' : 'failed';
         const result = {
           entry,
           filePath: childFilePath,

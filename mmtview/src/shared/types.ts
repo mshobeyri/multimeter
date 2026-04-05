@@ -1,2 +1,2 @@
 
-export type StepStatus = 'default' | 'pending' | 'passed' | 'failed' | 'running' | 'cancelled' | 'debug';
+export type StepStatus = 'default' | 'pending' | 'passed' | 'failed' | 'running' | 'cancelled' | 'debug' | 'invalid';

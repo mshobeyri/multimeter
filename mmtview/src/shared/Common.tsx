@@ -14,6 +14,9 @@ export const statusIconFor = (status: StepStatus) => {
     if (status === 'failed') {
         return { icon: 'codicon-error', color: '#f85149', title: 'Failed' };
     }
+    if (status === 'invalid') {
+        return { icon: 'codicon-warning', color: '#f8b449', title: 'Invalid' };
+    }
     if (status === 'pending') {
         return { icon: 'codicon-compass', color: '#3794ff', title: 'Pending' };
     }
@@ -27,6 +30,7 @@ export type SuiteGroupAggregationMode = 'run';
 
 export const aggregateStatuses = (statuses: Array<StepStatus | undefined | null>): StepStatus => {
     let anyFailed = false;
+    let anyInvalid = false;
     let anyCancelled = false;
     let anyRunning = false;
     let anyPending = false;
@@ -43,6 +47,8 @@ export const aggregateStatuses = (statuses: Array<StepStatus | undefined | null>
             anyRunning = true;
         } else if (s === 'failed') {
             anyFailed = true;
+        } else if (s === 'invalid') {
+            anyInvalid = true;
         } else if (s === 'cancelled') {
             anyCancelled = true;
         } else if (s === 'pending') {
@@ -61,6 +67,9 @@ export const aggregateStatuses = (statuses: Array<StepStatus | undefined | null>
     }
     if (anyFailed) {
         return 'failed';
+    }
+    if (anyInvalid) {
+        return 'invalid';
     }
     if (anyPending) {
         return 'pending';

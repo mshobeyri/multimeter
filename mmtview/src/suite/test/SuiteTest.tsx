@@ -340,7 +340,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 if (scope === 'suite-item' && nextStatus === 'running') {
                     next[targetId] = 'running';
                 }
-                if (scope === 'suite-item' && (nextStatus === 'passed' || nextStatus === 'failed')) {
+                if (scope === 'suite-item' && (nextStatus === 'passed' || nextStatus === 'failed' || nextStatus === 'invalid')) {
                     next[targetId] = nextStatus;
                 }
                 if (scope === 'test-step-run' && message.success === false) {
