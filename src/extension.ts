@@ -5,6 +5,7 @@ import {connectionTracker} from 'mmt-core/networkCoreNode';
 import {setupChatParticipants} from './assistant/assistant';
 import {MmtDocumentLinkProvider} from './mmtDocumentLinkProvider';
 import {MmtEditorProvider} from './mmtEditorProvider';
+import {registerRunStatusBar} from './runStatusBar';
 import ConnectionsPanel from './panels/ConnectionsPanel';
 import ConvertorPanel from './panels/ConvertorPanel';
 import EnvironmentPanel from './panels/EnvironmentPanel';
@@ -27,6 +28,8 @@ export function activate(context: vscode.ExtensionContext) {
   registerHistoryCommands(context, historyPanel, historyManager);
   registerEnvironmentCommands(context, environmentPanel, mmtviewPanel);
   registerMiscCommands(context);
+
+  registerRunStatusBar(context);
 
   setupChatParticipants(context);
 }

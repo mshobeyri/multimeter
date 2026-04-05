@@ -14,6 +14,7 @@ import YAML from 'yaml';
 import {readRelativeFileContent} from './file';
 import {startMockServerFromPath} from './mockRunner';
 import {prepareNetworkConfigForFile, parseEnvFileForRun, resolveWorkspaceEnvFilePath} from './network';
+import {onRunStarted, onRunFinished} from '../runStatusBar';
 
 type SuiteEnvironment = SuiteData.SuiteEnvironment;
 
@@ -213,7 +214,7 @@ export async function handleRunCurrentDocument(
     panelId: getPanelId(webviewPanel),
   };
 
-  // Create serverRunner to start mock servers from test `run` steps.
+  onRunStarted(`Running ${fileName}`, () => controller.abort());
   const serverRunner = async (alias: string, filePath: string): Promise<() => void> => {
     // filePath is the resolved absolute path to the mock server file
     forwardLog('info', `Starting mock server from ${alias}`);
@@ -302,6 +303,7 @@ export async function handleRunCurrentDocument(
     if (activeTestRun && activeTestRun.controller === controller) {
       activeTestRun = null;
     }
+    onRunFinished();
   }
 }
 
@@ -364,6 +366,8 @@ export async function handleRunSuite(
     panelId: getPanelId(webviewPanel),
   };
   suiteRunIdByChildRunId.clear();
+
+  onRunStarted(`Running suite ${fileName}`, () => controller.abort());
 
   webviewPanel.webview.postMessage({
     command: 'suiteRunStart',
@@ -530,6 +534,7 @@ export async function handleRunSuite(
     if (activeSuiteRun && activeSuiteRun.suiteRunId === suiteRunId) {
       activeSuiteRun = null;
     }
+    onRunFinished();
   }
 }
 
