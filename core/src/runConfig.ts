@@ -17,7 +17,7 @@ export interface TestStepReporterEvent {
   scope: 'test-step';
   runId: string;
   stepIndex: number;
-  stepType: 'check'|'assert';
+  stepType: 'check'|'assert'|'debug';
   status: TestStepStatus;
   title?: string;
   details?: string;

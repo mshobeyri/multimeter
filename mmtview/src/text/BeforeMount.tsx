@@ -282,12 +282,13 @@ export const handleBeforeMount = (monaco: any) => {
     // --- End of import-aware autocomplete helpers ---
 
     /**
-     * Detect if the cursor is inside the `expect:` block of a `- call:` step.
-     * Returns { alias, field: 'expect' } or null.
+     * Detect if the cursor is inside the `expect:` or `debug:` block of a `- call:` step.
+     * Returns { alias, field: 'expect' | 'debug' } or null.
      */
     const getCallAliasForCheckContext = (lines: string[], lineNumber: number, currentIndent: number): { alias: string; field: string } | null => {
         let foundField = false;
         let fieldIndent = -1;
+        let detectedField = 'expect';
         for (let i = lineNumber - 2; i >= 0; i--) {
             const line = lines[i];
             if (!line.trim()) { continue; }
@@ -295,10 +296,17 @@ export const handleBeforeMount = (monaco: any) => {
             const trimmed = line.trim();
 
             if (!foundField) {
-                // Looking for expect: parent of current line
+                // Looking for expect: or debug: parent of current line
                 if (indent < currentIndent && /^expect:\s*$/.test(trimmed)) {
                     foundField = true;
                     fieldIndent = indent;
+                    detectedField = 'expect';
+                    continue;
+                }
+                if (indent < currentIndent && /^debug:\s*$/.test(trimmed)) {
+                    foundField = true;
+                    fieldIndent = indent;
+                    detectedField = 'debug';
                     continue;
                 }
                 if (indent < currentIndent) {
@@ -307,11 +315,11 @@ export const handleBeforeMount = (monaco: any) => {
                 continue;
             }
 
-            // Found expect, now look for the `- call:` parent
+            // Found expect/debug, now look for the `- call:` parent
             if (indent < fieldIndent) {
                 const callMatch = trimmed.match(/^-\s*call:\s*(.+)$/);
                 if (callMatch) {
-                    return { alias: callMatch[1].trim().replace(/^["']|["']$/g, ''), field: 'expect' };
+                    return { alias: callMatch[1].trim().replace(/^["']|["']$/g, ''), field: detectedField };
                 }
                 return null;
             }
@@ -641,7 +649,7 @@ export const handleBeforeMount = (monaco: any) => {
             //   - call: login
             //     expect:
             //       <here>  ← suggest status_code: , token: , etc.
-            if (firstLine === 'type: test' && parentContext === 'expect') {
+            if (firstLine === 'type: test' && (parentContext === 'expect' || parentContext === 'debug')) {
                 const allLines = model.getLinesContent();
                 const callInfo = getCallAliasForCheckContext(allLines, lineNumber, currentIndent);
                 if (callInfo) {
@@ -652,12 +660,13 @@ export const handleBeforeMount = (monaco: any) => {
                         const suggestionList: any[] = [];
                         if (parsed?.outputs) {
                             for (const [key, rule] of Object.entries(parsed.outputs)) {
+                                const fieldLabel = callInfo.field === 'debug' ? 'Debug' : 'Expect';
                                 suggestionList.push({
                                     label: key,
                                     kind: monaco.languages.CompletionItemKind.Field,
                                     insertText: `${key}: `,
                                     detail: `Output: ${rule || key}`,
-                                    documentation: `Expect output "${key}" from ${callInfo.alias}.\nExtraction rule: ${rule || '(default)'}\nExample:\n  expect:\n    ${key}: == value`,
+                                    documentation: `${fieldLabel} output "${key}" from ${callInfo.alias}.\nExtraction rule: ${rule || '(default)'}\nExample:\n  ${callInfo.field}:\n    ${key}: == value`,
                                     sortText: `0${key}`,
                                 });
                             }

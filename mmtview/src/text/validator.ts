@@ -206,7 +206,7 @@ export function detectOrderingIssue(doc: any, content: string, expectedOrder: st
  * Canonical key orders for step types (must match core/testParsePack).
  */
 const STEP_KEY_ORDER: Record<string, string[]> = {
-  call:   ['call', 'id', 'inputs'],
+  call:   ['call', 'id', 'title', 'inputs', 'expect', 'debug', 'report'],
   check:  ['check'],
   assert: ['assert'],
   if:     ['if', 'steps', 'else'],
@@ -484,22 +484,25 @@ function collectCallExpectKeySitesFromSteps(seqItems: any[], content: string, re
     const callPair = stepPairs.find((pair) => pair?.key?.value === "call");
     const alias = callPair?.value?.value;
     if (typeof alias === "string" && alias.trim()) {
-      const expectPair = stepPairs.find((pair) => pair?.key?.value === "expect");
-      const expectPairs: any[] = Array.isArray(expectPair?.value?.items) ? expectPair.value.items : [];
+      // Collect keys from both expect and debug blocks
+      for (const blockKey of ["expect", "debug"]) {
+        const blockPair = stepPairs.find((pair) => pair?.key?.value === blockKey);
+        const blockPairs: any[] = Array.isArray(blockPair?.value?.items) ? blockPair.value.items : [];
 
-      for (const pair of expectPairs) {
-        const expectKey = pair?.key?.value;
-        if (typeof expectKey !== "string" || !expectKey.trim()) {
-          continue;
+        for (const pair of blockPairs) {
+          const expectKey = pair?.key?.value;
+          if (typeof expectKey !== "string" || !expectKey.trim()) {
+            continue;
+          }
+          const offset =
+            Array.isArray(pair?.key?.range) && typeof pair.key.range[0] === "number"
+              ? pair.key.range[0]
+              : Array.isArray(pair?.range)
+                ? pair.range[0]
+                : undefined;
+          const line = typeof offset === "number" ? offsetToLineNumber(content, offset) : 1;
+          results.push({ alias, expectKey, line, offset: typeof offset === "number" ? offset : -1 });
         }
-        const offset =
-          Array.isArray(pair?.key?.range) && typeof pair.key.range[0] === "number"
-            ? pair.key.range[0]
-            : Array.isArray(pair?.range)
-              ? pair.range[0]
-              : undefined;
-        const line = typeof offset === "number" ? offsetToLineNumber(content, offset) : 1;
-        results.push({ alias, expectKey, line, offset: typeof offset === "number" ? offset : -1 });
       }
     }
     // Recurse into nested steps (repeat, for, if, etc.)

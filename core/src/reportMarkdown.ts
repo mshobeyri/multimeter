@@ -104,18 +104,19 @@ function buildFailureDetails(step: TestStepResult): string {
 
 function buildSuiteSection(run: TestRunResult, index: number, includeDetails: boolean): string {
   const name = run.displayName || run.filePath || `test-${index}`;
+  const steps = run.steps.filter(s => s.stepType !== 'debug');
   let md = `\n## ${name}\n\n`;
   md += `| # | Test | Type | Result |\n`;
   md += `|---|------|------|--------|\n`;
-  for (let i = 0; i < run.steps.length; i++) {
-    md += buildStepRow(run.steps[i], i) + '\n';
+  for (let i = 0; i < steps.length; i++) {
+    md += buildStepRow(steps[i], i) + '\n';
   }
-  if (run.steps.length === 0) {
+  if (steps.length === 0) {
     md += `| | *No test steps* | | |\n`;
   }
 
   if (includeDetails) {
-    const failedSteps = run.steps.filter(s => s.status === 'failed');
+    const failedSteps = steps.filter(s => s.status === 'failed');
     for (const step of failedSteps) {
       md += buildFailureDetails(step);
     }
@@ -128,9 +129,9 @@ export function generateReportMarkdown(results: CollectedResults, options?: Repo
   const runs = results.testRuns;
   const suiteName = options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || results.testRuns[0]?.displayName || 'Test Report';
   const includeDetails = options?.includeDetails !== false;
-  const totalTests = runs.reduce((sum, r) => sum + r.steps.length, 0);
-  const totalPassed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.status === 'passed').length, 0);
-  const totalFailed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.status === 'failed').length, 0);
+  const totalTests = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug').length, 0);
+  const totalPassed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'passed').length, 0);
+  const totalFailed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'failed').length, 0);
   const totalTime = formatDuration(
     results.suiteRun?.durationMs ?? runs.reduce((sum, r) => sum + (r.durationMs || 0), 0)
   );

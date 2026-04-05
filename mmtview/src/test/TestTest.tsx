@@ -183,7 +183,7 @@ const TestTest: React.FC<TestTestProps> = (props) => {
             if (scope === 'test-step') {
                 const normalized: StepReportItem = {
                     stepIndex: Number(message.stepIndex) || stepCountRef.current + 1,
-                    stepType: message.stepType === 'assert' ? 'assert' : 'check',
+                    stepType: message.stepType === 'assert' ? 'assert' : message.stepType === 'debug' ? 'debug' : 'check',
                     status: message.status === 'failed' ? 'failed' : 'passed',
                     title: typeof (message as any).title === 'string' ? (message as any).title : undefined,
                     details: typeof (message as any).details === 'string' ? (message as any).details : undefined,

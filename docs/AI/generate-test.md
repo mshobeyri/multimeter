@@ -68,6 +68,8 @@ Supported step forms:
     <name>: <value>
   expect?:                      # inline assertions (shorthand for assert)
     <field>: <value>
+  debug?:                       # inline debug inspections (same syntax as expect, never fails)
+    <field>: <value>
   report?: all | fails | none   # controls reporting level
 
 # 2) run: start an imported mock server (type: server file)
@@ -137,10 +139,14 @@ Beyond the basic `call`, `id`, and `inputs`, a call step also supports:
   inputs?: { ... }
   expect?:                    # inline assertions on the call result
     <field>: <value>          # e.g. status: 200, body.name: "John"
+  debug?:                     # inline debug inspections (same syntax as expect, never fails)
+    <field>: <value>          # e.g. status: 200, body: ${someVar}
   report?: all | fails | none # controls pass/fail reporting level
 ```
 
 `expect` is a shorthand for common assertions — each key is a dotted path into the response, and the value is compared with `==` by default. You can prefix with an operator (e.g. `>= 1`, `!= null`).
+
+`debug` uses the same syntax as `expect` but never fails the test — it always logs results with a debug icon for troubleshooting. Debug entries are excluded from exported reports.
 
 ---
 

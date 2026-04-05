@@ -116,8 +116,9 @@ function buildStepHtml(step: TestStepResult): string {
 
 function buildSuiteSection(run: TestRunResult, index: number): string {
   const name = escapeHtml(run.displayName || run.filePath || `test-${index}`);
-  const passCount = run.steps.filter(s => s.status === 'passed').length;
-  const failCount = run.steps.filter(s => s.status === 'failed').length;
+  const steps = run.steps.filter(s => s.stepType !== 'debug');
+  const passCount = steps.filter(s => s.status === 'passed').length;
+  const failCount = steps.filter(s => s.status === 'failed').length;
   const badge = failCount > 0
     ? ` <span class="badge failed">${failCount} failed</span>`
     : ` <span class="badge passed">all passed</span>`;
@@ -125,10 +126,10 @@ function buildSuiteSection(run: TestRunResult, index: number): string {
   let html = `      <section class="suite">\n`;
   html += `        <h2><span class="toggle collapsed" id="toggle-${index}" onclick="toggleSuite(${index})" aria-expanded="false"><svg class="chevron" width="10" height="10" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span> ${name}${badge} <span class="suite-count">${passCount + failCount} steps</span></h2>\n`;
   html += `        <div class="suite-steps" id="suite-steps-${index}" style="display: none">\n`;
-  for (const step of run.steps) {
+  for (const step of steps) {
     html += buildStepHtml(step);
   }
-  if (run.steps.length === 0) {
+  if (steps.length === 0) {
     html += `        <div class="empty">No test steps</div>\n`;
   }
   html += `        </div>\n`;
@@ -570,9 +571,9 @@ const SCRIPT = `
 export function generateReportHtml(results: CollectedResults, options?: ReportHtmlOptions): string {
   const runs = results.testRuns;
   const suiteName = escapeHtml(options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || results.testRuns[0]?.displayName || 'Test Report');
-  const totalTests = runs.reduce((sum, r) => sum + r.steps.length, 0);
-  const totalPassed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.status === 'passed').length, 0);
-  const totalFailed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.status === 'failed').length, 0);
+  const totalTests = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug').length, 0);
+  const totalPassed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'passed').length, 0);
+  const totalFailed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'failed').length, 0);
   const totalSuites = runs.length;
   const totalTimeMs = results.suiteRun?.durationMs ?? runs.reduce((sum, r) => sum + (r.durationMs || 0), 0);
   const totalTime = formatDuration(totalTimeMs);

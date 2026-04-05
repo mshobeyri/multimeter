@@ -86,15 +86,15 @@ function buildSuiteEntry(run: TestRunResult): Record<string, any> {
     entry.duration = formatDuration(run.durationMs);
   }
   entry.result = run.result;
-  entry.tests = run.steps.map(buildStepEntry);
+  entry.tests = run.steps.filter(s => s.stepType !== 'debug').map(buildStepEntry);
   return entry;
 }
 
 export function generateMmtReport(results: CollectedResults, options?: MmtReportOptions): string {
   const runs = results.testRuns;
-  const totalTests = runs.reduce((sum, r) => sum + r.steps.length, 0);
-  const totalPassed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.status === 'passed').length, 0);
-  const totalFailed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.status === 'failed').length, 0);
+  const totalTests = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug').length, 0);
+  const totalPassed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'passed').length, 0);
+  const totalFailed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'failed').length, 0);
 
   const report: Record<string, any> = {
     type: 'report',

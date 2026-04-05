@@ -96,6 +96,7 @@ export interface TestFlowCall extends TestFlowBase {
   title?: string;
   inputs?: Record<string, any>;
   expect?: ExpectMap;
+  debug?: ExpectMap | true;
   report?: ReportLevel | ReportConfig;
 }
 

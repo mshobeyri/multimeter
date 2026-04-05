@@ -287,8 +287,9 @@ const callToJSfunc = (step: TestFlowCall, useExternalReport: boolean, stepIdx: n
   }
 
   const hasExpect = !!step.expect;
+  const hasDebug = !!step.debug;
   const safeName = step.call.replace(/[^a-zA-Z0-9_]/g, '_');
-  const resultVar = step.id || (hasExpect ? `_${safeName}_${stepIdx}` : undefined);
+  const resultVar = step.id || ((hasExpect || hasDebug) ? `_${safeName}_${stepIdx}` : undefined);
 
   let callExpr = `await ${step.call}({${inputParams}});`;
   if (resultVar) {
@@ -324,6 +325,38 @@ const callToJSfunc = (step: TestFlowCall, useExternalReport: boolean, stepIdx: n
 
     result += '\ncheckAbort_();\n';
     result += `checkExpects_([\n${expectItems.join(',\n')}\n], 'check', '${reportLevel}', ${finalTitle}, ${finalDetails});\n`;
+  }
+
+  if (hasDebug) {
+    const title = step.title || importTitleMap?.[step.call] || step.call || step.id || 'call';
+    const details = `\${JSON.stringify(${resultVar})}`;
+    const finalTitle = toTemplateWithVars(title);
+    const finalDetails = toTemplateWithVars(details);
+
+    if (step.debug === true) {
+      // debug: true → inspect all output keys at runtime
+      result += '\ncheckAbort_();\n';
+      result += `checkExpects_(Object.keys(${resultVar}).filter(k => k !== '_').map(k => ({ passed: true, comparison: k + ' = ' + JSON.stringify(${resultVar}[k]), actual: ${resultVar}[k], expected: undefined })), 'debug', 'all', ${finalTitle}, ${finalDetails});\n`;
+    } else {
+      const debugItems: string[] = [];
+      for (const [field, val] of Object.entries(step.debug as Record<string, any>)) {
+        const values = Array.isArray(val) ? val : [val];
+        for (const v of values) {
+          const { operator, expected } = parseExpectValue(v);
+          const raw = `\${${resultVar}.${field}} ${operator} ${expected}`;
+          const displayComparison = `${field} ${operator} ${expected}`;
+          const conditionStatement = conditionalStatementToJSfunc(raw);
+          const actualExpr = `${resultVar}.${field}`;
+          const expectedExpr = typeof expected === 'string' ? toTemplateWithVars(expected) : JSON.stringify(expected);
+          debugItems.push(
+            `  { passed: ${conditionStatement}, comparison: ${JSON.stringify(displayComparison)}, actual: ${actualExpr}, expected: ${expectedExpr} }`
+          );
+        }
+      }
+
+      result += '\ncheckAbort_();\n';
+      result += `checkExpects_([\n${debugItems.join(',\n')}\n], 'debug', 'all', ${finalTitle}, ${finalDetails});\n`;
+    }
   }
 
   return result;

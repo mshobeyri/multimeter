@@ -7,7 +7,7 @@ import {FlowType, opsList, TestData, TestFlowStep, TestFlowSteps, TestFlowStages
  * Keys not listed here are appended in original order after the canonical ones.
  */
 export const STEP_KEY_ORDER: Record<string, string[]> = {
-  call:   ['call', 'id', 'title', 'inputs', 'expect', 'report'],
+  call:   ['call', 'id', 'title', 'inputs', 'expect', 'debug', 'report'],
   run:    ['run'],
   check:  ['check'],
   assert: ['assert'],
@@ -64,8 +64,8 @@ export function quoteExpectOperators(yaml: string): string {
     }
     const indent = line.search(/\S/);
 
-    // Detect `expect:` with nothing after the colon (block form)
-    if (/^\s*expect:\s*$/.test(line)) {
+    // Detect `expect:` or `debug:` with nothing after the colon (block form)
+    if (/^\s*(?:expect|debug):\s*$/.test(line)) {
       inExpect = true;
       expectIndent = indent;
       continue;

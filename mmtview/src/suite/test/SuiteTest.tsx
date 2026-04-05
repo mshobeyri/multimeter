@@ -362,7 +362,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 }
                 const normalized: StepReportItem = {
                     stepIndex: Number(message.stepIndex) || 1,
-                    stepType: message.stepType === 'assert' ? 'assert' : 'check',
+                    stepType: message.stepType === 'assert' ? 'assert' : message.stepType === 'debug' ? 'debug' : 'check',
                     status: message.status === 'failed' ? 'failed' : 'passed',
                     title: typeof message.title === 'string' ? message.title : undefined,
                     details: typeof message.details === 'string' ? message.details : undefined,

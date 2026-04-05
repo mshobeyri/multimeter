@@ -165,7 +165,7 @@ declare const __mmtReportStep:|((event: Record<string, any>) => void)|undefined;
 declare const __mmtRunId: string|undefined;
 declare const __mmtId: string|undefined;
 
-type StepType = 'check'|'assert';
+type StepType = 'check'|'assert'|'debug';
 
 const resolveReporter = () =>
     (typeof __mmtReportStep === 'function' ? __mmtReportStep : undefined);
@@ -564,7 +564,7 @@ export const check_ = (
  */
 export const checkExpects_ = (
     items: Array<{ passed: boolean; comparison: string; actual?: any; expected?: any }>,
-    type: 'check' | 'assert',
+    type: 'check' | 'assert' | 'debug',
     reportLevel: string,
     title?: string,
     details?: string,
@@ -573,13 +573,16 @@ export const checkExpects_ = (
 ): void => {
   const doReport = typeof reportFn === 'function' ? reportFn : report_;
   const c = consoleFn || console;
-  const label = type === 'check' ? 'Check' : 'Assert';
+  const label = type === 'check' ? 'Check' : type === 'debug' ? 'Debug' : 'Assert';
   const titlePart = title ? `"${title}" - ` : '';
   const allPassed = items.every(i => i.passed);
 
   // Log each individual item
   for (const item of items) {
-    if (item.passed) {
+    if (type === 'debug') {
+      const icon = item.passed ? '\u2713' : '\u2717';
+      c.debug(`\u{1F41E} ${label} ${titlePart}"${item.comparison}" ${item.passed ? 'passed' : 'failed'}: actual=${displayValue(item.actual)}, expected=${displayValue(item.expected)}`);
+    } else if (item.passed) {
       const msg = `\u2713 ${label} ${titlePart}"${item.comparison}" passed`;
       if (reportLevel === 'all') {
         c.log(msg);
@@ -596,6 +599,12 @@ export const checkExpects_ = (
         c.error(shortMsg);
       }
     }
+  }
+
+  // Debug always reports and never throws
+  if (type === 'debug') {
+    doReport(type, items, title, details, allPassed);
+    return;
   }
 
   // Report as a single event

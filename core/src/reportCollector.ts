@@ -17,7 +17,7 @@ export interface ExpectItemResult {
 
 export interface TestStepResult {
   stepIndex: number;
-  stepType: 'check' | 'assert';
+  stepType: 'check' | 'assert' | 'debug';
   status: 'passed' | 'failed';
   title?: string;
   details?: string;

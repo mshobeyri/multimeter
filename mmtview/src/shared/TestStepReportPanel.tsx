@@ -312,7 +312,7 @@ export interface ExpectReportItem {
 
 export interface StepReportItem {
   stepIndex: number;
-  stepType: 'check' | 'assert';
+  stepType: 'check' | 'assert' | 'debug';
   status: StepStatus;
   title?: string;
   details?: string;
@@ -404,7 +404,8 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {stepReports.map((report) => {
-              const meta = statusIconFor(report.status);
+              const isDebug = report.stepType === 'debug';
+              const meta = isDebug ? statusIconFor('debug') : statusIconFor(report.status);
               const reportKey = `${report.stepType}-${report.stepIndex}-${report.timestamp}`;
               const callDetails = parseCallDetails(report.details);
               const hasExpects = report.expects.length > 0;
@@ -434,7 +435,7 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                   ></span>
                   <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
                     <div style={{ marginTop: 2, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{report.title || (report.stepType === 'check' ? 'Check' : 'Assert')}</span>
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis' }}>{report.title || (isDebug ? 'Debug' : report.stepType === 'check' ? 'Check' : 'Assert')}</span>
                       {hasDetails && (
                         <button
                           className="action-button"
@@ -458,10 +459,10 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                       <div style={{ marginTop: 4 }}>
                         {hasExpects && (
                           <div>
-                            <SectionTitle label={report.expects.length === 1 ? 'Expect' : 'Expects'} />
+                            <SectionTitle label={isDebug ? 'Debug' : (report.expects.length === 1 ? 'Expect' : 'Expects')} />
                             <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
                             {report.expects.map((item, idx) => {
-                              const itemMeta = statusIconFor(item.status);
+                              const itemMeta = isDebug ? statusIconFor('debug') : statusIconFor(item.status);
                               return (
                                 <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 4 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -475,7 +476,7 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                                       fontSize: 'var(--vscode-editor-font-size, 12px)',
                                     }}>{item.comparison}</span>
                                   </div>
-                                  {item.status === 'failed' && item.actual !== undefined && item.expected !== undefined && (
+                                  {!isDebug && item.status === 'failed' && item.actual !== undefined && item.expected !== undefined && (
                                     <span style={{ opacity: 0.7, fontSize: 12, paddingLeft: 24 }}>got: {typeof item.actual === 'object' ? JSON.stringify(item.actual) : String(item.actual)}</span>
                                   )}
                                 </div>

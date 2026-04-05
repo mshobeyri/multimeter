@@ -183,6 +183,7 @@ Use `expect` on a call step to validate its output parameters inline, without a 
 | `title`   | Short summary shown inline in reports and UI |
 | `inputs`  | Key-value pairs passed as input parameters to the called item |
 | `expect`  | Map of output fields to expected values (non-throwing) |
+| `debug`   | Like `expect`, but for debugging — shown in logs/report panel only, excluded from exports |
 | `report`  | Report level: `all`, `fails`, `none`, or object with `internal`/`external` |
 
 **Formats:**
@@ -232,6 +233,30 @@ With title and report:
 ```
 
 All comparison operators supported by `check`/`assert` are available in `expect` values: `==`, `!=`, `<`, `>`, `<=`, `>=`, `=@`, `!@`, `=^`, `!^`, `=$`, `!$`, `=~`, `!~`.
+
+#### Inline debug on call
+
+Use `debug` on a call step to inspect output values during development. It works exactly like `expect` (same syntax, same operators), but results are shown with a **debug icon** instead of pass/fail, and **are not included in exported reports** (HTML, Markdown, MMT report files).
+
+Use this to see the details of sent and received data without affecting test pass/fail status.
+
+```yaml
+- call: login
+  debug:
+    status_code: 200
+    body.token: != null
+```
+
+You can use both `expect` and `debug` on the same call:
+
+```yaml
+- call: login
+  expect:
+    status_code: 200
+  debug:
+    body.token: != null
+    body.expires_in: > 0
+```
 
 ### check, assert
 Use check to log a failure and continue; use assert to stop the flow on failure.

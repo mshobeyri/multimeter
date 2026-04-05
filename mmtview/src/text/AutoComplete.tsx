@@ -260,6 +260,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 '  - id: optional variable name to assign the output',
                 '  - inputs: overrides for API inputs',
                 '  - expect: map of output fields to expected values (non-throwing)',
+                '  - debug: like expect, but for debugging (not included in exports)',
                 'Example:',
                 '- call: get_user',
                 '  id: user',
@@ -1373,6 +1374,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         { label: 'title', kind: monaco.languages.CompletionItemKind.Property, insertText: 'title: ', detail: 'Call step title', documentation: 'Short summary shown inline in reports/UI.\nExample:\n- call: login\n  title: Authenticate user' },
         { label: 'inputs', kind: monaco.languages.CompletionItemKind.Property, insertText: 'inputs:\n\t', detail: 'Override call inputs', documentation: 'Key-value inputs to pass to the called API/test.\nExample:\n- call: login\n  inputs:\n    username: alice' },
         { label: 'expect', kind: monaco.languages.CompletionItemKind.Property, insertText: 'expect:\n\t', detail: 'Map-based output validation', documentation: 'Map of output field names to expected values (non-throwing).\nDefault operator is ==.\nExamples:\n- call: login\n  expect:\n    status_code: 200\n    token: != null\n\nWith explicit operator:\n  expect:\n    status_code: == 200\n\nMultiple checks on same field:\n  expect:\n    status_code:\n      - == 200\n      - != 500' },
+        { label: 'debug', kind: monaco.languages.CompletionItemKind.Property, insertText: 'debug: ', detail: 'Debug output inspection', documentation: 'Inspect call outputs for debugging (not included in exports).\nUse `debug: true` to show all outputs, or specify fields:\n\nExample (all outputs):\n- call: login\n  debug: true\n\nExample (specific fields):\n- call: login\n  debug:\n    status_code: 200\n    body.token: != null' },
         { label: 'report', kind: monaco.languages.CompletionItemKind.Property, insertText: 'report: ', detail: 'Report level', documentation: 'Controls when expect results are reported.\nValues: all, fails, none\nOr object form:\n  report:\n    internal: all\n    external: fails' },
     ];
     const checkAssertSiblings = [

@@ -339,6 +339,32 @@ export const TestSchema = {
                                     ]
                                 }
                             },
+                            debug: {
+                                oneOf: [
+                                    { type: 'boolean', enum: [true] },
+                                    {
+                                        type: 'object',
+                                        description: 'Map of output field names to debug-inspect. Same syntax as expect but never fails.',
+                                        additionalProperties: {
+                                            oneOf: [
+                                                { type: 'string' },
+                                                { type: 'number' },
+                                                { type: 'boolean' },
+                                                {
+                                                    type: 'array',
+                                                    items: {
+                                                        anyOf: [
+                                                            { type: 'string' },
+                                                            { type: 'number' },
+                                                            { type: 'boolean' }
+                                                        ]
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
                             report: {
                                 oneOf: [
                                     { type: 'string', enum: ['all', 'fails', 'none'] },
@@ -759,6 +785,20 @@ export const ReportSchema = {
                                 type: { type: 'string' },
                                 result: { type: 'string' },
                                 duration: { type: 'string' },
+                                expects: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            comparison: { type: 'string' },
+                                            result: { type: 'string' },
+                                            actual: {},
+                                            expected: {},
+                                            status: { type: 'string' }
+                                        },
+                                        additionalProperties: false
+                                    }
+                                },
                                 failure: {
                                     type: 'object',
                                     properties: {

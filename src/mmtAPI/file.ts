@@ -590,7 +590,7 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
   if (data.type === 'test' && Array.isArray(data.stepReports)) {
     const steps: TestStepResult[] = data.stepReports.map((r: any, i: number) => ({
       stepIndex: r.stepIndex ?? i,
-      stepType: r.stepType === 'assert' ? 'assert' as const : 'check' as const,
+      stepType: r.stepType === 'assert' ? 'assert' as const : r.stepType === 'debug' ? 'debug' as const : 'check' as const,
       status: r.status === 'failed' ? 'failed' as const : 'passed' as const,
       title: r.title,
       details: r.details,
@@ -622,7 +622,7 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
         const steps: TestStepResult[] = (Array.isArray(reports) ? reports : []).map(
           (r: any, i: number) => ({
             stepIndex: r.stepIndex ?? i,
-            stepType: r.stepType === 'assert' ? 'assert' as const : 'check' as const,
+            stepType: r.stepType === 'assert' ? 'assert' as const : r.stepType === 'debug' ? 'debug' as const : 'check' as const,
             status: r.status === 'failed' ? 'failed' as const : 'passed' as const,
             title: r.title,
             details: r.details,

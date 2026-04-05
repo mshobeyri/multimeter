@@ -72,14 +72,15 @@ function buildTestcase(step: TestStepResult, classname: string): string {
 function buildTestsuite(run: TestRunResult, index: number): string {
   const name = escapeXml(run.displayName || run.filePath || `test-${index}`);
   const classname = escapeXml(run.displayName || run.filePath || `test-${index}`);
-  const tests = run.steps.length;
-  const failures = run.steps.filter(s => s.status === 'failed').length;
+  const nonDebugSteps = run.steps.filter(s => s.stepType !== 'debug');
+  const tests = nonDebugSteps.length;
+  const failures = nonDebugSteps.filter(s => s.status === 'failed').length;
   const time = formatTime(run.durationMs);
   const file = run.filePath ? ` file="${escapeXml(run.filePath)}"` : '';
-  const timestamp = run.steps.length > 0 ? ` timestamp="${isoTimestamp(run.steps[0].timestamp)}"` : '';
+  const timestamp = nonDebugSteps.length > 0 ? ` timestamp="${isoTimestamp(nonDebugSteps[0].timestamp)}"` : '';
 
   let xml = `    <testsuite name="${name}" tests="${tests}" failures="${failures}" errors="0" skipped="0" time="${time}"${file}${timestamp}>\n`;
-  for (const step of run.steps) {
+  for (const step of nonDebugSteps) {
     xml += buildTestcase(step, classname);
   }
   xml += `    </testsuite>\n`;
@@ -89,8 +90,8 @@ function buildTestsuite(run: TestRunResult, index: number): string {
 export function generateJunitXml(results: CollectedResults, options?: JunitXmlOptions): string {
   const runs = results.testRuns;
   const suiteName = escapeXml(options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || results.testRuns[0]?.displayName || 'Test Report');
-  const totalTests = runs.reduce((sum, r) => sum + r.steps.length, 0);
-  const totalFailures = runs.reduce((sum, r) => sum + r.steps.filter(s => s.status === 'failed').length, 0);
+  const totalTests = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug').length, 0);
+  const totalFailures = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'failed').length, 0);
   const totalTime = formatTime(results.suiteRun?.durationMs ?? runs.reduce((sum, r) => sum + (r.durationMs || 0), 0));
   const timestamp = results.suiteRun?.startedAt
     ? ` timestamp="${isoTimestamp(results.suiteRun.startedAt)}"`
