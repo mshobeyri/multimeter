@@ -579,7 +579,7 @@ export async function send(req: Request): Promise<Response> {
   const protocol = req.protocol || 'http';
   if (protocol === 'ws') {
     return sendWsRequest(req, runnerNetworkConfig);
-  } else if (protocol === 'http') {
+  } else if (protocol === 'http' || protocol === 'graphql') {
     const httpReq: HttpRequest = {
       url: req.url,
       method: req.method,

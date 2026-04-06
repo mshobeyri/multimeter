@@ -3,7 +3,7 @@
 Usage-first guide to write APIs in `.mmt` files. Includes HTTP/WS, params, bodies, env, reuse, and a compact reference at the end.
 
 Supported:
-- Protocols: `http`, `ws`
+- Protocols: `http`, `ws`, `graphql`
 - Formats: `json`, `xml`, `text`
 - Methods: `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
 
@@ -83,6 +83,31 @@ Change `format` to `xml` to send an XML body instead of JSON.
  # drive messages in tests via call steps
 ```
 Tip: For WS, use tests to send/receive frames with `call` steps that invoke this API.
+
+### GraphQL
+```yaml
+ type: api
+ protocol: graphql
+ url: <<e:api_url>>/graphql
+ auth:
+   type: bearer
+   token: <<e:token>>
+ graphql:
+   operation: |
+     query GetUsers($limit: Int) {
+       users(limit: $limit) { id name email }
+     }
+   variables:
+     limit: 10
+   operationName: GetUsers
+ outputs:
+   firstUser: body.data.users[0].name
+```
+Notes
+- `protocol: graphql` is required — it cannot be inferred from the URL
+- The `graphql` block replaces `body`; `method` is always POST and `format` is always JSON
+- Outputs are extracted from the standard `{ data, errors }` response shape
+- If the response contains an `errors` array, the run is marked as failed
 
 ---
 
@@ -235,6 +260,67 @@ At runtime, fetches an access token from `token_url` and sets `Authorization: Be
 Notes
 - All `auth` field values support environment variables (`<<e:var>>`), inputs (`<<i:param>>`), and random tokens (`r:uuid`).
 - Auth headers are masked in logs to prevent accidental credential exposure.
+
+## GraphQL
+
+Set `protocol: graphql` to send GraphQL operations over HTTP POST. The `graphql` block defines the operation and variables — it replaces `body`, `method`, and `format`.
+
+### graphql block
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `operation` | string | Yes | The GraphQL query, mutation, or subscription string |
+| `variables` | object | No | Variables passed to the operation |
+| `operationName` | string | No | Selects a named operation when `operation` contains multiple |
+
+### Inputs and variables
+Use `inputs` with `<<i:name>>` tokens inside `graphql.variables` to parameterize operations:
+```yaml
+ protocol: graphql
+ url: <<e:api_url>>/graphql
+ inputs:
+   userId:
+     type: number
+     default: 1
+   includeEmail:
+     type: boolean
+     default: true
+ graphql:
+   operation: |
+     query GetUser($id: ID!, $withEmail: Boolean!) {
+       user(id: $id) {
+         name
+         email @include(if: $withEmail)
+       }
+     }
+   variables:
+     id: <<i:userId>>
+     withEmail: <<i:includeEmail>>
+```
+
+### Outputs and extraction
+GraphQL responses follow the `{ data, errors }` shape. Extract values using `body.data.*`:
+```yaml
+ outputs:
+   userName: body.data.user.name
+   postCount: body.data.user.posts.length
+   hasErrors: body.errors
+   traceId: headers[x-trace-id]
+   statusCode: status
+   responseTime: duration
+```
+
+### Error handling
+If the response body contains an `errors` array, the run is marked as failed and the errors are logged. This catches GraphQL-level errors even when the HTTP status is 200.
+
+### What the graphql block replaces
+- `body` — ignored; the request body is built from `graphql.operation` + `graphql.variables`
+- `method` — always POST
+- `format` — always JSON
+- `query`, `cookies` — not used (can still be set but are uncommon for GraphQL)
+- `headers`, `auth`, `inputs`, `outputs`, `examples`, `setenv` — work identically to HTTP
+
+---
 
 ## Reuse and compose
 These fields help you call an API with different inputs and capture outputs.
@@ -443,6 +529,56 @@ examples:
  # Drive messages in a test using steps
 ```
 
+### GraphQL
+```yaml
+ type: api
+ title: Get Users
+ tags:
+   - user
+   - graphql
+ description: Fetch paginated users with their posts
+ protocol: graphql
+ url: <<e:api_url>>/graphql
+ auth:
+   type: bearer
+   token: <<e:token>>
+ inputs:
+   limit:
+     type: number
+     default: 10
+   offset:
+     type: number
+     default: 0
+ outputs:
+   userCount: body.data.users.length
+   firstUser: body.data.users[0].name
+ graphql:
+   operation: |
+     query GetUsers($limit: Int, $offset: Int) {
+       users(limit: $limit, offset: $offset) {
+         id
+         name
+         email
+         posts { title }
+       }
+     }
+   variables:
+     limit: <<i:limit>>
+     offset: <<i:offset>>
+   operationName: GetUsers
+ examples:
+   - name: first-page
+     inputs:
+       limit: 5
+       offset: 0
+     outputs:
+       userCount: 5
+   - name: second-page
+     inputs:
+       limit: 5
+       offset: 5
+```
+
 ---
 
 ## Reference (types)
@@ -454,13 +590,14 @@ examples:
 - outputs: record<string, string>
 - setenv: record<string, string>
 - url: string (can contain query string)
-- protocol: `http` or `ws`
+- protocol: `http` | `ws` | `graphql`
 - method: HTTP verbs (HTTP only)
 - format: `json` | `xml` | `text`
 - headers: record<string, string>
 - query: record<string, string>
 - cookies: record<string, string>
-- body: string or object (json/xml/text based on format)
+- body: string or object (json/xml/text based on format; not used with graphql)
+- graphql: { operation: string (required), variables?: object, operationName?: string }
 - auth: `none` | { type: `bearer`, token } | { type: `basic`, username, password } | { type: `api-key`, header|query, value } | { type: `oauth2`, grant, token_url, client_id, client_secret, scope? }
 - examples: array of { name (required), description?, inputs?, outputs? }
 

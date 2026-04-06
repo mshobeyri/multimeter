@@ -1,7 +1,7 @@
 
 export interface Request {
   url?: string;
-  protocol?: "http" | "ws" | undefined;
+  protocol?: "http" | "ws" | "graphql" | undefined;
   format?: "json" | "xml" | "text" | undefined;
   method?: string;
   headers?: Record<string, string> | undefined;

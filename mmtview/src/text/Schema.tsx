@@ -81,7 +81,7 @@ export const APISchema = {
             type: 'object',
             additionalProperties: { type: 'string' }
         },
-        protocol: { type: 'string', enum: ['http', 'ws'] },
+        protocol: { type: 'string', enum: ['http', 'ws', 'graphql'] },
         method: {
             type: 'string',
             enum: ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
@@ -96,6 +96,28 @@ export const APISchema = {
                 { type: 'string' },
                 { type: 'object', additionalProperties: true }
             ]
+        },
+        graphql: {
+            type: 'object',
+            properties: {
+                operation: { type: 'string' },
+                variables: {
+                    type: 'object',
+                    additionalProperties: {
+                        anyOf: [
+                            { type: 'string' },
+                            { type: 'number' },
+                            { type: 'boolean' },
+                            { type: 'object' },
+                            { type: 'array' },
+                            { type: 'null' }
+                        ]
+                    }
+                },
+                operationName: { type: 'string' }
+            },
+            required: ['operation'],
+            additionalProperties: false
         },
         auth: {
             anyOf: [
@@ -188,6 +210,17 @@ export const APISchema = {
             },
             then: {
                 required: ['format']
+            }
+        },
+        {
+            if: {
+                properties: {
+                    protocol: { const: 'graphql' }
+                },
+                required: ['protocol']
+            },
+            then: {
+                required: ['graphql']
             }
         }
     ],

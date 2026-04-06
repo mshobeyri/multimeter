@@ -81,19 +81,56 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   // Generate protocol resolution: use explicit protocol if provided,
   // otherwise infer from the resolved URL at runtime
   const explicitProtocol = ctx.api.protocol;
-  const protocolExpr = explicitProtocol ?
-      `'${explicitProtocol}'` :
-      `protocolFromUrl_(__resolvedUrl)`;
+  const isGraphQL = explicitProtocol === 'graphql';
+  // GraphQL compiles to HTTP transport
+  const protocolExpr = isGraphQL ? `'graphql'` :
+      (explicitProtocol ? `'${explicitProtocol}'` : `protocolFromUrl_(__resolvedUrl)`);
+
+  // GraphQL: override method, headers, and body
+  const effectiveMethod = isGraphQL ? 'post' : (replaced.method || '');
+  if (isGraphQL) {
+    // Ensure Content-Type is set to application/json
+    const hasContentType = Object.keys(replaced.headers || {}).some(
+        k => k.toLowerCase() === 'content-type');
+    if (!hasContentType) {
+      replaced.headers = replaced.headers || {};
+      replaced.headers['Content-Type'] = 'application/json';
+      headers = Object.entries(replaced.headers)
+                    .map(([k, v]) => `"${k}": ${toTemplateWithEnvs(String(v))}`)
+                    .join(', ');
+    }
+  }
+
+  // Build GraphQL body: { query, variables, operationName }
+  let graphqlBodyExpr = '';
+  if (isGraphQL && ctx.api.graphql) {
+    const gql = replaced.graphql || ctx.api.graphql;
+    const operationStr = toTemplateWithEnvs(String(gql.operation || ''));
+    const variablesEntries = Object.entries(gql.variables || {});
+    let variablesExpr = '{}';
+    if (variablesEntries.length > 0) {
+      const varParts = variablesEntries.map(([k, v]) => `"${k}": ${toJsValue(v)}`).join(', ');
+      variablesExpr = `{ ${varParts} }`;
+    }
+    const opNamePart = gql.operationName
+        ? `, operationName: ${toTemplateWithEnvs(gql.operationName)}`
+        : '';
+    graphqlBodyExpr = `JSON.stringify({ query: ${operationStr}, variables: ${variablesExpr}${opNamePart} })`;
+  }
+
+  const bodyExpr = isGraphQL && graphqlBodyExpr
+      ? graphqlBodyExpr
+      : toTemplateWithEnvs(formattedBody);
 
   return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
   const __resolvedUrl = ${toTemplateWithEnvs(String(replaced.url || ''))};
   const req_ = {
     url: __resolvedUrl,
     protocol: ${protocolExpr},
-    method: '${replaced.method}',
+    method: '${effectiveMethod}',
     query: ${queryParams ? '{ ' + queryParams + ' }' : '{}'},
     headers: ${headers ? '{ ' + headers + ' }' : '{}'},
-    body: ${toTemplateWithEnvs(formattedBody)}
+    body: ${bodyExpr}
   };
 ${authCode}
   const res_ = await send_(req_);
@@ -116,7 +153,21 @@ ${authCode}
     status: res_?.status || 0,
     duration: res_?.duration || 0
   };
-
+${isGraphQL ? `
+  // GraphQL error detection: if response contains errors array, mark as failed
+  try {
+    const __gqlBody = typeof res_?.body === 'string' ? JSON.parse(res_.body) : res_?.body;
+    if (__gqlBody && Array.isArray(__gqlBody.errors) && __gqlBody.errors.length > 0) {
+      const __gqlErrors = __gqlBody.errors.map(e => e.message || JSON.stringify(e)).join('; ');
+      console.error('GraphQL Errors:\\n' + __gqlBody.errors.map(e => '  - ' + (e.message || JSON.stringify(e))).join('\\n'));
+      const err = new Error('GraphQL errors: ' + __gqlErrors);
+      err.graphqlErrors = __gqlBody.errors;
+      throw err;
+    }
+  } catch (e) {
+    if (e && e.graphqlErrors) { throw e; }
+  }
+` : ''}
   return output_;
 };`;
 };

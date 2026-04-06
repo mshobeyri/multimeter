@@ -1,4 +1,4 @@
-import {Format, JSONRecord, Method, MMTFile, Protocol} from './CommonData';
+import {Format, JSONRecord, JSONValue, Method, MMTFile, Protocol} from './CommonData';
 
 export interface AuthBearer {
   type: 'bearer';
@@ -37,6 +37,12 @@ export interface ExampleData {
   outputs?: JSONRecord;
 }
 
+export interface GraphQLConfig {
+  operation: string;
+  variables?: Record<string, JSONValue>;
+  operationName?: string;
+}
+
 export interface APIData extends MMTFile {
   title?: string;
   description?: string;
@@ -53,6 +59,7 @@ export interface APIData extends MMTFile {
   cookies?: Record<string, string>;
   body?: string|object|null;
   auth?: AuthConfig;
+  graphql?: GraphQLConfig;
   examples?: Array<ExampleData>;
 }
 

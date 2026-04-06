@@ -1,5 +1,5 @@
 
-import {APIData, AuthConfig} from './APIData';
+import {APIData, AuthConfig, GraphQLConfig} from './APIData';
 import parseYaml, {packYaml, parseYamlStrict} from './markupConvertor';
 import {isNonEmptyList, isNonEmptyObject, safeList} from './safer';
 
@@ -7,8 +7,24 @@ import {isNonEmptyList, isNonEmptyObject, safeList} from './safer';
 const VALID_API_ROOT_KEYS = new Set([
   'type', 'title', 'description', 'tags', 'inputs', 'outputs', 'setenv',
   'url', 'query', 'protocol', 'format', 'method', 'headers', 'cookies',
-  'body', 'auth', 'examples',
+  'body', 'auth', 'graphql', 'examples',
 ]);
+
+function parseGraphQLConfig(raw: any): GraphQLConfig | undefined {
+  if (!raw || typeof raw !== 'object') {
+    return undefined;
+  }
+  const config: GraphQLConfig = {
+    operation: typeof raw.operation === 'string' ? raw.operation : '',
+  };
+  if (raw.variables && typeof raw.variables === 'object') {
+    config.variables = raw.variables;
+  }
+  if (typeof raw.operationName === 'string') {
+    config.operationName = raw.operationName;
+  }
+  return config;
+}
 
 const VALID_AUTH_TYPES = new Set(['bearer', 'basic', 'api-key', 'oauth2']);
 
@@ -150,6 +166,7 @@ export function yamlToAPI(yamlContent: string): APIData {
       query: doc.query || {},
       cookies: doc.cookies || {},
       auth,
+      graphql: parseGraphQLConfig(doc.graphql),
       examples: safeList(doc.examples),
     };
   } catch {
@@ -176,6 +193,19 @@ export function yamlToAPIStrict(yamlContent: string): APIData {
   if (unknownKeys.length > 0) {
     throw new Error(`Invalid API file: unknown key(s): ${unknownKeys.map(k => `"${k}"`).join(', ')}`);
   }
+  // GraphQL protocol validation
+  const graphql = parseGraphQLConfig(doc.graphql);
+  if (doc.protocol === 'graphql') {
+    if (!graphql || !graphql.operation) {
+      throw new Error('Invalid API file: protocol "graphql" requires "graphql.operation" field');
+    }
+    if (doc.body) {
+      throw new Error('Invalid API file: "body" is not valid for protocol "graphql"; use "graphql.operation" and "graphql.variables" instead');
+    }
+  }
+  if (doc.graphql && doc.protocol && doc.protocol !== 'graphql') {
+    throw new Error(`Invalid API file: "graphql" block is ignored for protocol "${doc.protocol}"`);
+  }
   const auth = validateAuth(doc.auth);
   return {
     type: doc.type || '',
@@ -194,6 +224,7 @@ export function yamlToAPIStrict(yamlContent: string): APIData {
     query: doc.query || {},
     cookies: doc.cookies || {},
     auth,
+    graphql,
     examples: safeList(doc.examples),
   };
 }
@@ -245,6 +276,21 @@ export function apiToYaml(api: APIData): string {
   };
   if (api.body && api.body !== '') {
     yamlObj.body = api.body;
+  };
+  if (api.graphql) {
+    const gqlObj: Record<string, any> = {};
+    if (api.graphql.operation) {
+      gqlObj.operation = api.graphql.operation;
+    }
+    if (api.graphql.variables && Object.keys(api.graphql.variables).length > 0) {
+      gqlObj.variables = api.graphql.variables;
+    }
+    if (api.graphql.operationName) {
+      gqlObj.operationName = api.graphql.operationName;
+    }
+    if (Object.keys(gqlObj).length > 0) {
+      yamlObj.graphql = gqlObj;
+    }
   };
   if (isNonEmptyList(api.examples)) {
     yamlObj.examples = api.examples;

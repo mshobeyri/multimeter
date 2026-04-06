@@ -88,6 +88,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
     return protocolResolver.getEffectiveProtocol(protocol, url) === "ws";
   };
 
+  const isGraphQL = requestData?.protocol === "graphql";
+
   const [editorTab, setEditorTabInternal] = useState<EditorTab>(() => {
     const saved = localStorage.getItem("apitest-editor-tab");
     if (saved === "body" || saved === "params" || saved === "headers" || saved === "cookies" || saved === "doc") {
@@ -127,7 +129,14 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
       {/* ── Fixed header: URL bar + tab bar ── */}
       <div className="apitest-fixed-header">
       <div style={{ padding: "8px", display: "flex", alignItems: "stretch", gap: 8 }}>
-        {isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url) ? (
+        {isGraphQL ? (
+          <span
+            className="method-select method-badge"
+            style={{ background: "#e535ab" }}
+          >
+            GQL
+          </span>
+        ) : isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url) ? (
           <span
             className="method-select method-badge"
             style={{ background: methodColor["ws"] }}
@@ -164,7 +173,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
 
       <div style={{ padding: "0 8px 8px" }}>
         <div className="tab-bar" style={{ gap: 8 }}>
-          {TAB_OPTIONS.map(tab => (
+          {TAB_OPTIONS
+            .filter(tab => !isGraphQL || (tab.key !== "body" && tab.key !== "params" && tab.key !== "cookies"))
+            .map(tab => (
             <button
               key={tab.key}
               className={`tab-button-small ${editorTab === tab.key ? "active" : ""}`}

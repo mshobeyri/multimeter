@@ -688,8 +688,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
             label: "protocol",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "protocol: ",
-            detail: 'Communication protocol [http, ws] (optional)',
-            documentation: 'The protocol used for communication (optional - inferred from URL if not specified).\nOptions:\n\t- http: Standard HTTP/HTTPS requests (default)\n\t- ws: WebSocket connections\nNote: If URL starts with ws:// or wss://, protocol defaults to ws.\nExample: protocol: http',
+            detail: 'Communication protocol [http, ws, graphql] (optional)',
+            documentation: 'The protocol used for communication (optional - inferred from URL if not specified).\nOptions:\n\t- http: Standard HTTP/HTTPS requests (default)\n\t- ws: WebSocket connections\n\t- graphql: GraphQL queries/mutations over HTTP\nNote: If URL starts with ws:// or wss://, protocol defaults to ws.\nExample: protocol: graphql',
         },
         {
             label: "method",
@@ -725,6 +725,20 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: "body: ",
             detail: 'Request body [string or object]',
             documentation: 'The request payload/body content. Can be a string, object, or template with variables. Used primarily with POST, PUT, PATCH methods.\nExample:\nbody:\n  username: "{{username}}"\n  email: "{{email}}"\n  password: "{{password}}"',
+        },
+        {
+            label: "graphql",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "graphql:\n\toperation: |\n\t\t",
+            detail: 'GraphQL query/mutation [object]',
+            documentation: 'GraphQL-specific configuration. Used with protocol: graphql.\nFields:\n\t- operation: GraphQL query/mutation/subscription string (required)\n\t- variables: Variables passed to the operation\n\t- operationName: Named operation selector\nExample:\ngraphql:\n  operation: |\n    query GetUsers($limit: Int) {\n      users(limit: $limit) { id name }\n    }\n  variables:\n    limit: 10',
+        },
+        {
+            label: "graphql",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "graphql:\n\toperation: |\n\t\t",
+            detail: 'GraphQL query/mutation [object]',
+            documentation: 'GraphQL-specific configuration. Used with protocol: graphql.\nFields:\n\t- operation: GraphQL query/mutation/subscription string (required)\n\t- variables: Variables passed to the operation\n\t- operationName: Named operation selector\nExample:\ngraphql:\n  operation: |\n    query GetUsers($limit: Int) {\n      users(limit: $limit) { id name }\n    }\n  variables:\n    limit: 10',
         },
         {
             label: "query",
@@ -859,6 +873,13 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: " ws",
             detail: 'WebSocket protocol',
             documentation: 'WebSocket protocol for bidirectional communication.',
+        },
+        {
+            label: "graphql",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " graphql",
+            detail: 'GraphQL protocol',
+            documentation: 'GraphQL queries/mutations over HTTP. Use with the graphql block to define operation, variables, and operationName.',
         },
     ]
     const formatSuggestion = [
@@ -1429,6 +1450,30 @@ export const KeySuggestionsByParent = (monaco: any) => {
         { label: 'none', kind: monaco.languages.CompletionItemKind.EnumMember, insertText: 'none', detail: 'No reporting', documentation: 'Suppress all check/assert reporting.' },
     ];
 
+    const graphqlSuggestions = [
+        {
+            label: "operation",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "operation: |\n\t\t",
+            detail: 'GraphQL query/mutation string (required)',
+            documentation: 'The GraphQL query, mutation, or subscription string.\nExample:\noperation: |\n  query GetUsers($limit: Int) {\n    users(limit: $limit) { id name email }\n  }',
+        },
+        {
+            label: "variables",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "variables:\n\t\t",
+            detail: 'GraphQL variables [object]',
+            documentation: 'Variables passed to the GraphQL operation.\nExample:\nvariables:\n  limit: 10\n  offset: 0',
+        },
+        {
+            label: "operationName",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "operationName: ",
+            detail: 'Named operation selector [string]',
+            documentation: 'Selects the named operation when the operation string contains multiple queries/mutations.\nExample: operationName: GetUsers',
+        },
+    ];
+
     const keySuggestionsByParent: Record<string, any[]> = {
         root: rootSuggestions,
         general: variablesSuggestions,
@@ -1452,6 +1497,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         auth: authSuggestions,
         'auth-type': authTypeSuggestions,
         format: formatSuggestion,
+        graphql: graphqlSuggestions,
         outputs: outputsSuggestions,
         check: checkAssertObjectKeySuggestions,
         assert: checkAssertObjectKeySuggestions,

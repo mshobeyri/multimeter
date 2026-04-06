@@ -1,6 +1,6 @@
 export type Type = "env" | "api" | "test" | "suite" | "doc" | "csv" | "server" | "report" | null;
 
-export type Protocol = "http" | "ws";
+export type Protocol = "http" | "ws" | "graphql";
 export type Format = "json" | "xml" | "text";
 export type Method = "get" | "post" | "put" | "delete" | "patch" | "head" | "options" | "trace";
 

@@ -121,6 +121,7 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "headers",
         "cookies",
         "body",
+        "graphql",
         "examples",
       ];
     case "test":
