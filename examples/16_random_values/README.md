@@ -49,7 +49,7 @@ body:
 ### With the CLI
 
 ```sh
-npx testlight run examples/14_random_values/random_values_test.mmt
+npx testlight run examples/16_random_values/random_values_test.mmt
 ```
 
 ## Next steps

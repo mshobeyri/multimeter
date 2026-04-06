@@ -1,0 +1,25 @@
+type: api
+title: GraphQL query with variables
+description: Fetch a single country by code using GraphQL variables
+url: https://countries.trevorblades.com/graphql
+protocol: graphql
+inputs:
+  countryCode: BR
+graphql:
+  operation: |
+    query GetCountry($code: ID!) {
+      country(code: $code) {
+        name
+        capital
+        currency
+        languages {
+          name
+        }
+      }
+    }
+  variables:
+    code: i:countryCode
+  operationName: GetCountry
+outputs:
+  country_name: body.data.country.name
+  capital: body.data.country.capital

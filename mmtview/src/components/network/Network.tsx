@@ -50,9 +50,9 @@ export function useNetwork(): NetworkAPI {
 
     const effectiveProtocol = getEffectiveProtocol(requestData.protocol as any, requestData.url);
 
-    if (effectiveProtocol === "http") {
+    if (effectiveProtocol === "http" || effectiveProtocol === "graphql") {
       return new Promise<Response | undefined>((resolve) => {
-        const {
+        let {
           url = requestData.url,
           method = requestData.method || "get",
           headers = requestData.headers,
@@ -61,6 +61,19 @@ export function useNetwork(): NetworkAPI {
           cookies = requestData.cookies,
           query = requestData.query,
         } = requestData;
+
+        // For GraphQL, build HTTP POST with GraphQL body
+        if (effectiveProtocol === "graphql") {
+          method = "post";
+          headers = { ...headers, "Content-Type": "application/json" };
+          const gql = requestData.graphql || (requestData as any).graphql;
+          if (gql?.operation) {
+            const gqlBody: any = { query: gql.operation };
+            if (gql.variables) { gqlBody.variables = gql.variables; }
+            if (gql.operationName) { gqlBody.operationName = gql.operationName; }
+            body = JSON.stringify(gqlBody);
+          }
+        }
         // Save request to history
         pushHistory({
           type: "send",
@@ -130,6 +143,75 @@ export function useNetwork(): NetworkAPI {
               duration: error.duration || -1
             });
           }
+        });
+      });
+    } else if (effectiveProtocol === "grpc") {
+      return new Promise<Response | undefined>((resolve) => {
+        const url = requestData.url ?? "";
+        const grpc = requestData.grpc || (requestData as any).grpc;
+        const service = grpc?.service || "";
+        const method = grpc?.method || "";
+        const metadata = requestData.headers || {};
+        const message = grpc?.message;
+
+        pushHistory({
+          type: "send",
+          method: `${service}/${method}`,
+          protocol: "grpc",
+          title: `gRPC ${service}/${method}`,
+          headers: metadata,
+          content: toContentString(message),
+        });
+
+        lastRequestID.current = NetworkNodeApi.sendGrpc({
+          url,
+          proto: grpc?.proto || "",
+          service,
+          method,
+          metadata,
+          message,
+          stream: grpc?.stream,
+          onResponse: (res: any) => {
+            setLoading(false);
+            pushHistory({
+              type: "recv",
+              method: `${service}/${method}`,
+              protocol: "grpc",
+              title: `gRPC ${service}/${method}`,
+              headers: res.metadata || {},
+              content: toContentString(res.body),
+              duration: res.duration || -1,
+              status: res.status || 0,
+            });
+            resolve({
+              body: typeof res.body === "string" ? res.body : JSON.stringify(res.body, null, 2),
+              headers: res.metadata || {},
+              errorMessage: res.statusText || "",
+              status: res.status ?? 0,
+              errorCode: "",
+              duration: res.duration || -1,
+            });
+          },
+          onError: (error: Error) => {
+            setLoading(false);
+            pushHistory({
+              type: "error",
+              method: `${service}/${method}`,
+              protocol: "grpc",
+              title: `gRPC ${service}/${method} Error`,
+              content: toContentString(error),
+              duration: error.duration || -1,
+              status: error.status || -1,
+            });
+            resolve({
+              body: error.body || null,
+              headers: {},
+              errorMessage: error.message ?? "",
+              status: error.status || -1,
+              errorCode: error.code || "GRPC_ERROR",
+              duration: error.duration || -1,
+            });
+          },
         });
       });
     } else {

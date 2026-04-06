@@ -1,0 +1,16 @@
+type: api
+title: GraphQL query
+description: Fetch a list of countries using a public GraphQL API
+url: https://countries.trevorblades.com/graphql
+protocol: graphql
+graphql:
+  operation: |
+    query {
+      countries {
+        code
+        name
+        capital
+      }
+    }
+outputs:
+  first_country: body.data.countries[0].name

@@ -43,18 +43,18 @@ Shows how to use **environment files**, **presets**, and **project root imports*
 
 ```sh
 # Use the dev preset
-npx testlight run examples/12_environment_presets/test/preset_test.mmt \
-  --env-file examples/12_environment_presets/multimeter.mmt \
+npx testlight run examples/14_environment_presets/test/preset_test.mmt \
+  --env-file examples/14_environment_presets/multimeter.mmt \
   --preset runner.dev
 
 # Use the staging preset
-npx testlight run examples/12_environment_presets/test/preset_test.mmt \
-  --env-file examples/12_environment_presets/multimeter.mmt \
+npx testlight run examples/14_environment_presets/test/preset_test.mmt \
+  --env-file examples/14_environment_presets/multimeter.mmt \
   --preset runner.staging
 
 # Override a variable explicitly
-npx testlight run examples/12_environment_presets/test/preset_test.mmt \
-  --env-file examples/12_environment_presets/multimeter.mmt \
+npx testlight run examples/14_environment_presets/test/preset_test.mmt \
+  --env-file examples/14_environment_presets/multimeter.mmt \
   --preset runner.dev \
   -e mode=release
 ```

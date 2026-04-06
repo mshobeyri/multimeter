@@ -21,7 +21,7 @@ Run the same API call for every row in a CSV file and check the results. This is
 ### With the CLI
 
 ```sh
-npx testlight run examples/7_csv_data_driven_test/echo_csv_test.mmt
+npx testlight run examples/9_csv_data_driven_test/echo_csv_test.mmt
 ```
 
 ## How it works

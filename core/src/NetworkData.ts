@@ -1,3 +1,4 @@
+import { GraphQLConfig, GrpcConfig } from './APIData';
 
 export interface Request {
   url?: string;
@@ -8,6 +9,8 @@ export interface Request {
   cookies?: Record<string, string> | undefined;
   query?: Record<string, string> | undefined;
   body?: any;
+  graphql?: GraphQLConfig;
+  grpc?: GrpcConfig;
 }
 
 export interface GrpcRequest {

@@ -38,6 +38,18 @@ type DisconnectWsOptions = {
     wsId: string;
 };
 
+type GrpcOptions = {
+    url: string;
+    proto: string;
+    service: string;
+    method: string;
+    metadata?: Record<string, string>;
+    message?: object;
+    stream?: string;
+    onResponse?: (response: any) => void;
+    onError?: (error: Error) => void;
+};
+
 // Helper to generate a unique request id
 function generateRequestId() {
     return Math.random().toString(36).slice(2) + Date.now();
@@ -123,6 +135,27 @@ export const NetworkNodeApi = {
             wsId: options.wsId,
         });
     },
+
+    sendGrpc: (options: GrpcOptions) => {
+        const requestId = generateRequestId();
+        pendingRequests[requestId] = {
+            onResponse: options.onResponse,
+            onError: options.onError,
+        };
+        window.vscode?.postMessage({
+            command: "network",
+            action: "grpc-send",
+            url: options.url,
+            proto: options.proto,
+            service: options.service,
+            method: options.method,
+            metadata: options.metadata,
+            message: options.message,
+            stream: options.stream,
+            requestId,
+        });
+        return requestId;
+    },
 };
 
 // Listen for messages from node backend
@@ -138,6 +171,21 @@ window.addEventListener("message", (event: MessageEvent) => {
             delete pendingRequests[msg.requestId];
         }
     } else if (msg.action === "http-error" && typeof msg.data !== "undefined") {
+        const cb = pendingRequests[msg.requestId];
+        if (cb && typeof cb.onError === "function") {
+            cb.onError(msg.data);
+            delete pendingRequests[msg.requestId];
+        }
+    }
+
+    // gRPC response
+    if (msg.action === "grpc-response" && typeof msg.data !== "undefined") {
+        const cb = pendingRequests[msg.requestId];
+        if (cb && typeof cb.onResponse === "function") {
+            cb.onResponse(msg.data);
+            delete pendingRequests[msg.requestId];
+        }
+    } else if (msg.action === "grpc-error" && typeof msg.data !== "undefined") {
         const cb = pendingRequests[msg.requestId];
         if (cb && typeof cb.onError === "function") {
             cb.onError(msg.data);

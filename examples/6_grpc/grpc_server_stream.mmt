@@ -1,0 +1,15 @@
+type: api
+title: gRPC server streaming
+description: Open a server-streaming gRPC call to receive multiple responses
+url: grpc://localhost:50051
+protocol: grpc
+grpc:
+  proto: ./greeter.proto
+  service: greeter.Greeter
+  method: SayHelloStream
+  stream: server
+  message:
+    name: Multimeter
+    count: 3
+outputs:
+  first_message: body[0].message

@@ -42,7 +42,7 @@ Demonstrates **if/else** branching, **repeat** (count and time-based), **delay**
 ### With the CLI
 
 ```sh
-npx testlight run examples/13_control_flow/if_else_test.mmt
-npx testlight run examples/13_control_flow/repeat_delay_test.mmt
-npx testlight run examples/13_control_flow/for_loop_test.mmt
+npx testlight run examples/15_control_flow/if_else_test.mmt
+npx testlight run examples/15_control_flow/repeat_delay_test.mmt
+npx testlight run examples/15_control_flow/for_loop_test.mmt
 ```

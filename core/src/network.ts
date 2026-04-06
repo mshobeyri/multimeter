@@ -1,7 +1,8 @@
 import WebSocket = require('ws');
 import {connectionTracker} from './connectionTracker';
 import {addWsConnection, createWebSocket, deleteWsConnection, sendHttpRequest, wsConnections} from './networkCoreNode';
-import {HttpRequest, NetworkConfig} from './NetworkData';
+import {HttpRequest, NetworkConfig, GrpcRequest} from './NetworkData';
+import {sendGrpcRequest} from './grpcCore';
 
 // Map wsId to connection tracker ID
 const wsConnectionTrackerIds: Map<string, string> = new Map();
@@ -40,6 +41,18 @@ export type NetworkMessage =|{
   command: 'network';
   action: 'ws-disconnect';
   wsId: string;
+}
+|{
+  command: 'network';
+  action: 'grpc-send';
+  url: string;
+  proto?: string;
+  service: string;
+  method: string;
+  metadata?: Record<string, string>;
+  message?: object;
+  stream?: string;
+  requestId: string;
 };
 
 // Certificate interfaces
@@ -59,8 +72,12 @@ export interface ClientCertificate {
 
 export type PostMessage = (msg: any) => void;
 
+export interface NetworkHandlerOptions {
+  fileLoader?: (path: string) => Promise<string>;
+}
+
 export function handleNetworkMessage(
-    message: NetworkMessage, config: NetworkConfig, postMessage: PostMessage) {
+    message: NetworkMessage, config: NetworkConfig, postMessage: PostMessage, options?: NetworkHandlerOptions) {
   switch (message.action) {
     case 'http-send':
       (async () => {
@@ -214,6 +231,45 @@ export function handleNetworkMessage(
       }
       break;
     }
+
+    case 'grpc-send':
+      (async () => {
+        const {url, proto, service, method, metadata, message: msg, stream, requestId} = message;
+        try {
+          const grpcReq: GrpcRequest = {
+            url,
+            proto: proto || 'reflect',
+            service,
+            method,
+            metadata,
+            message: msg,
+            stream: stream as any,
+          };
+          const fileLoader = options?.fileLoader || (async () => { throw new Error('File loader not available'); });
+          const response = await sendGrpcRequest(grpcReq, config, fileLoader);
+          postMessage({
+            command: 'network',
+            action: 'grpc-response',
+            data: response,
+            requestId,
+          });
+        } catch (err: any) {
+          postMessage({
+            command: 'network',
+            action: 'grpc-error',
+            data: {
+              body: null,
+              headers: null,
+              status: -1,
+              message: err?.message || String(err),
+              code: err?.code || 'GRPC_ERROR',
+              duration: null,
+            },
+            requestId,
+          });
+        }
+      })();
+      break;
   }
 }
 

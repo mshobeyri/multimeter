@@ -49,8 +49,8 @@ A minimal example of `type: suite` files that run multiple tests together, demon
 
 ```sh
 # Run tests in parallel
-npx testlight run examples/9_simple_suite/suite_parallel.mmt
+npx testlight run examples/11_simple_suite/suite_parallel.mmt
 
 # Run tests sequentially
-npx testlight run examples/9_simple_suite/suite_sequential.mmt
+npx testlight run examples/11_simple_suite/suite_sequential.mmt
 ```

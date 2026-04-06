@@ -39,13 +39,13 @@ Use **bracket notation** when a key contains a dot (e.g. `body[my.key.name]`), s
 ### With the CLI
 
 ```sh
-npx testlight run examples/6_simple_test/echo_test.mmt
+npx testlight run examples/8_simple_test/echo_test.mmt
 ```
 
 Override the input from the command line:
 
 ```sh
-npx testlight run examples/6_simple_test/echo_test.mmt -e message="hi there"
+npx testlight run examples/8_simple_test/echo_test.mmt -e message="hi there"
 ```
 
 ## Key concepts

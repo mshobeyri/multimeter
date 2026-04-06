@@ -248,6 +248,92 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
 
         {shouldShowInputs() && (
           <>
+            {/* GraphQL fields */}
+            {isGraphQL && (
+              <>
+                <div className="label">Operation</div>
+                <div className="apitest-body-wrapper">
+                  <BodyView
+                    value={requestData?.graphql?.operation || api.graphql?.operation || ""}
+                    format="text"
+                    mode="live"
+                    onChange={val => {
+                      updateField("graphql", { ...requestData?.graphql, ...api.graphql, operation: val });
+                    }}
+                  />
+                </div>
+                <div className="label">Variables</div>
+                <div className="apitest-body-wrapper">
+                  <BodyView
+                    value={(() => {
+                      const vars = requestData?.graphql?.variables ?? api.graphql?.variables;
+                      return vars ? JSON.stringify(vars, null, 2) : "";
+                    })()}
+                    format="json"
+                    mode="live"
+                    onChange={val => {
+                      try {
+                        const parsed = val.trim() ? JSON.parse(val) : undefined;
+                        updateField("graphql", { ...requestData?.graphql, ...api.graphql, variables: parsed });
+                      } catch {
+                        // user still typing
+                      }
+                    }}
+                  />
+                </div>
+              </>
+            )}
+
+            {/* gRPC fields */}
+            {isGrpc && (
+              <>
+                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+                  <div style={{ flex: 1 }}>
+                    <div className="label">Service</div>
+                    <input
+                      type="text"
+                      placeholder="package.ServiceName"
+                      value={requestData?.grpc?.service || api.grpc?.service || ""}
+                      onChange={e => {
+                        updateField("grpc", { ...requestData?.grpc, ...api.grpc, service: e.target.value });
+                      }}
+                      style={{ width: "100%" }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div className="label">Method</div>
+                    <input
+                      type="text"
+                      placeholder="MethodName"
+                      value={requestData?.grpc?.method || api.grpc?.method || ""}
+                      onChange={e => {
+                        updateField("grpc", { ...requestData?.grpc, ...api.grpc, method: e.target.value });
+                      }}
+                      style={{ width: "100%" }}
+                    />
+                  </div>
+                </div>
+                <div className="label">Message</div>
+                <div className="apitest-body-wrapper">
+                  <BodyView
+                    value={(() => {
+                      const msg = requestData?.grpc?.message ?? api.grpc?.message;
+                      return msg ? JSON.stringify(msg, null, 2) : "";
+                    })()}
+                    format="json"
+                    mode="live"
+                    onChange={val => {
+                      try {
+                        const parsed = val.trim() ? JSON.parse(val) : undefined;
+                        updateField("grpc", { ...requestData?.grpc, ...api.grpc, message: parsed });
+                      } catch {
+                        // user still typing
+                      }
+                    }}
+                  />
+                </div>
+              </>
+            )}
             {examples.length > 0 && (
               <div style={{ paddingBottom: 20, width: "100%" }}>
                 <div className="label">Predefined inputs</div>

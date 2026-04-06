@@ -56,5 +56,5 @@ Demonstrates **`js` steps**, **imported JS modules**, and **runner globals** lik
 ### With the CLI
 
 ```sh
-npx testlight run examples/16_javascript_helpers/js_test.mmt
+npx testlight run examples/18_javascript_helpers/js_test.mmt
 ```

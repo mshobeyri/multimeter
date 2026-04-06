@@ -47,12 +47,12 @@ Shows how to **chain API calls** — the output of one call feeds into the next.
 ### With the CLI
 
 ```sh
-npx testlight run examples/11_chained_api_calls/chained_test.mmt
+npx testlight run examples/13_chained_api_calls/chained_test.mmt
 ```
 
 Override credentials:
 
 ```sh
-npx testlight run examples/11_chained_api_calls/chained_test.mmt \
+npx testlight run examples/13_chained_api_calls/chained_test.mmt \
   -e username=bob@example.com -e password=hunter2
 ```

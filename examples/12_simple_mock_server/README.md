@@ -73,19 +73,19 @@ A self-contained example that defines a mock server in an `.mmt` file and runs t
 Run individual tests:
 
 ```sh
-npx testlight run examples/10_simple_mock_server/test/health_test.mmt
-npx testlight run examples/10_simple_mock_server/test/user_test.mmt
-npx testlight run examples/10_simple_mock_server/test/search_test.mmt
+npx testlight run examples/12_simple_mock_server/test/health_test.mmt
+npx testlight run examples/12_simple_mock_server/test/user_test.mmt
+npx testlight run examples/12_simple_mock_server/test/search_test.mmt
 ```
 
 Run the full suite:
 
 ```sh
-npx testlight run examples/10_simple_mock_server/suite.mmt
+npx testlight run examples/12_simple_mock_server/suite.mmt
 ```
 
 Override inputs:
 
 ```sh
-npx testlight run examples/10_simple_mock_server/test/user_test.mmt -e user_id=99
+npx testlight run examples/12_simple_mock_server/test/user_test.mmt -e user_id=99
 ```

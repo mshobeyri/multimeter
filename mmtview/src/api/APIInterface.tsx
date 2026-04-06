@@ -156,6 +156,127 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
         />
       ) : null}
 
+      {/* GraphQL section */}
+      {effectiveProtocol === "graphql" && (
+        <>
+          <div className="label">Operation</div>
+          <div style={{ padding: "5px", position: "relative" }}>
+            <BodyView
+              value={data.graphql?.operation || ""}
+              format="text"
+              mode="appliable"
+              onChange={val => {
+                onChange({ ...data, graphql: { ...data.graphql, operation: val } as any });
+              }}
+            />
+          </div>
+          <div className="label">Variables</div>
+          <div style={{ padding: "5px" }}>
+            <BodyView
+              value={data.graphql?.variables ? JSON.stringify(data.graphql.variables, null, 2) : ""}
+              format="json"
+              mode="appliable"
+              onChange={val => {
+                try {
+                  const parsed = val.trim() ? JSON.parse(val) : undefined;
+                  onChange({ ...data, graphql: { ...data.graphql, operation: data.graphql?.operation || "", variables: parsed } });
+                } catch {
+                  // Keep raw value — user is still typing
+                }
+              }}
+            />
+          </div>
+          <div className="label">Operation Name</div>
+          <div style={{ padding: "5px" }}>
+            <input
+              type="text"
+              placeholder="(optional)"
+              value={data.graphql?.operationName || ""}
+              onChange={e => {
+                const operationName = e.target.value || undefined;
+                onChange({ ...data, graphql: { ...data.graphql, operation: data.graphql?.operation || "", operationName } });
+              }}
+              style={{ width: "100%" }}
+            />
+          </div>
+        </>
+      )}
+
+      {/* gRPC section */}
+      {effectiveProtocol === "grpc" && (
+        <>
+          <div className="label">Proto File</div>
+          <div style={{ padding: "5px" }}>
+            <input
+              type="text"
+              placeholder="./path/to/service.proto"
+              value={data.grpc?.proto || ""}
+              onChange={e => {
+                const proto = e.target.value || undefined;
+                onChange({ ...data, grpc: { ...data.grpc, service: data.grpc?.service || "", method: data.grpc?.method || "", proto } });
+              }}
+              style={{ width: "100%" }}
+            />
+          </div>
+          <div className="label">Service</div>
+          <div style={{ padding: "5px" }}>
+            <input
+              type="text"
+              placeholder="package.ServiceName"
+              value={data.grpc?.service || ""}
+              onChange={e => {
+                onChange({ ...data, grpc: { ...data.grpc, method: data.grpc?.method || "", service: e.target.value } });
+              }}
+              style={{ width: "100%" }}
+            />
+          </div>
+          <div className="label">Method</div>
+          <div style={{ padding: "5px" }}>
+            <input
+              type="text"
+              placeholder="MethodName"
+              value={data.grpc?.method || ""}
+              onChange={e => {
+                onChange({ ...data, grpc: { ...data.grpc, service: data.grpc?.service || "", method: e.target.value } });
+              }}
+              style={{ width: "100%" }}
+            />
+          </div>
+          <div className="label">Stream</div>
+          <div style={{ padding: "5px" }}>
+            <select
+              value={data.grpc?.stream || ""}
+              onChange={e => {
+                const stream = e.target.value || undefined;
+                onChange({ ...data, grpc: { ...data.grpc, service: data.grpc?.service || "", method: data.grpc?.method || "", stream } as any });
+              }}
+              style={{ width: "100%" }}
+            >
+              <option value="">(unary - no streaming)</option>
+              <option value="server">Server streaming</option>
+              <option value="client">Client streaming</option>
+              <option value="bidi">Bidirectional streaming</option>
+            </select>
+          </div>
+          <div className="label">Message</div>
+          <div style={{ padding: "5px", position: "relative" }}>
+            <BodyView
+              value={data.grpc?.message ? JSON.stringify(data.grpc.message, null, 2) : ""}
+              format="json"
+              mode="appliable"
+              onChange={val => {
+                try {
+                  const parsed = val.trim() ? JSON.parse(val) : undefined;
+                  onChange({ ...data, grpc: { ...data.grpc, service: data.grpc?.service || "", method: data.grpc?.method || "", message: parsed } });
+                } catch {
+                  // Keep raw value — user is still typing
+                }
+              }}
+            />
+          </div>
+        </>
+      )}
+
       {/* Auth section */}
       <div className="label">Auth</div>
       <div style={{ padding: "5px" }}>

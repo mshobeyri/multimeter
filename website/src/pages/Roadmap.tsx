@@ -90,9 +90,11 @@ const roadmap: RoadmapMonth[] = [
     month: 'April',
     year: 2026,
     items: [
-      { title: 'gRPC protocol support', status: 'in-progress' },
-      { title: 'Proto file import & service discovery', status: 'planned' },
-      { title: 'gRPC streaming (unary, server, client, bidi)', status: 'planned' },
+      { title: 'gRPC protocol support', status: 'done' },
+      { title: 'Proto file import & service discovery', status: 'done' },
+      { title: 'gRPC streaming (unary, server, client, bidi)', status: 'done' },
+      { title: 'GraphQL protocol support', status: 'done' },
+      { title: 'GraphQL operations, variables & response extraction', status: 'done' },
       { title: 'Load testing & performance reports', status: 'planned' },
       { title: 'Test coverage visualization', status: 'planned' },
     ],
@@ -101,7 +103,6 @@ const roadmap: RoadmapMonth[] = [
     month: 'May',
     year: 2026,
     items: [
-      { title: 'GraphQL protocol support', status: 'planned' },
       { title: 'Schema introspection & auto complete', status: 'planned' },
       { title: 'Scheduled test runs', status: 'planned' },
       { title: 'Team collaboration features', status: 'planned' },

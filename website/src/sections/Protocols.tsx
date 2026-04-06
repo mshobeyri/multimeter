@@ -13,9 +13,14 @@ const protocols = [
     description: 'Real-time WebSocket testing with connection management, message sending, and event listening.',
   },
   {
+    name: 'GraphQL',
+    icon: '/icons/graphql.svg',
+    description: 'GraphQL support with operations, variables, and response extraction for queries and mutations.',
+  },
+  {
     name: 'gRPC',
     icon: '/icons/grpc.svg',
-    description: 'gRPC protocol support for testing modern microservice architectures.',
+    description: 'gRPC protocol support with proto files, server reflection, and streaming modes.',
   },
   {
     name: 'SOAP / XML',
@@ -38,13 +43,13 @@ export default function Protocols() {
               Every protocol you need
             </h2>
             <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-              Test REST APIs, WebSocket connections, gRPC services, and SOAP endpoints — all
+              Test REST APIs, WebSocket connections, GraphQL endpoints, gRPC services, and SOAP endpoints — all
               from the same tool.
             </p>
           </div>
         </FadeIn>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
           {protocols.map((protocol, index) => (
             <FadeIn key={protocol.name} delay={index * 100}>
               <div className="bg-surface border border-border rounded-2xl p-6 text-center hover:border-accent/50 transition-all duration-300 hover:-translate-y-1 h-full">

@@ -61,19 +61,19 @@ import:
 Run using relative import:
 
 ```sh
-npx testlight run examples/8_imports/test_relative.mmt --env-file examples/8_imports/multimeter.mmt
+npx testlight run examples/10_imports/test_relative.mmt --env-file examples/10_imports/multimeter.mmt
 ```
 
 Run using project root import:
 
 ```sh
-npx testlight run examples/8_imports/test_root_import.mmt --env-file examples/8_imports/multimeter.mmt
+npx testlight run examples/10_imports/test_root_import.mmt --env-file examples/10_imports/multimeter.mmt
 ```
 
 Run the inner API test directly:
 
 ```sh
-npx testlight run examples/8_imports/tests/test_api.mmt --env-file examples/8_imports/multimeter.mmt
+npx testlight run examples/10_imports/tests/test_api.mmt --env-file examples/10_imports/multimeter.mmt
 ```
 
 ## Key concepts

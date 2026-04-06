@@ -54,5 +54,5 @@ auth (login)
 ### With the CLI
 
 ```sh
-npx testlight run examples/15_stages_and_conditions/stages_test.mmt
+npx testlight run examples/17_stages_and_conditions/stages_test.mmt
 ```

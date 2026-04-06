@@ -407,17 +407,24 @@ export function getPreparedConfig(): NetworkConfig {
 // The VS Code-specific handler
 export function handleNetworkMessage(
     message: NetworkMessage, webviewPanel: vscode.WebviewPanel,
-    context?: vscode.ExtensionContext, envVars?: Record<string, any>) {
+    context?: vscode.ExtensionContext, envVars?: Record<string, any>,
+    documentPath?: string) {
   const envFilePath = resolveWorkspaceEnvFilePath();
   const config = context ?
     getPreparedConfigFromStorage(context, envVars) :
     getPreparedConfig();
 
-  
-
   const postMessage: PostMessage = (msg: any) =>
       webviewPanel.webview.postMessage(msg);
 
+  // Create fileLoader for gRPC proto loading
+  const baseDir = documentPath ? path.dirname(documentPath) :
+    (vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '');
+  const fileLoader = async (relPath: string): Promise<string> => {
+    const absPath = path.isAbsolute(relPath) ? relPath : path.resolve(baseDir, relPath);
+    return fs.readFileSync(absPath, 'utf8');
+  };
+
   // Call the core handler with prepared config and postMessage
-  coreHandleNetworkMessage(message, config, postMessage);
+  coreHandleNetworkMessage(message, config, postMessage, { fileLoader });
 }
