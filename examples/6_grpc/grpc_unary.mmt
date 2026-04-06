@@ -1,6 +1,8 @@
 type: api
 title: gRPC unary call
 description: Send a unary gRPC request to a greeting service
+outputs:
+  greeting: body.message
 url: grpc://localhost:50051
 protocol: grpc
 grpc:
@@ -9,5 +11,3 @@ grpc:
   method: SayHello
   message:
     name: Multimeter
-outputs:
-  greeting: body.message

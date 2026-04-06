@@ -1,6 +1,8 @@
 type: api
 title: gRPC server streaming
 description: Open a server-streaming gRPC call to receive multiple responses
+outputs:
+  first_message: body[0].message
 url: grpc://localhost:50051
 protocol: grpc
 grpc:
@@ -11,5 +13,3 @@ grpc:
   message:
     name: Multimeter
     count: 3
-outputs:
-  first_message: body[0].message

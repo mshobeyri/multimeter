@@ -22,10 +22,12 @@ interface APITestProps {
   rightOfUrlButton?: React.ReactNode;
 }
 
-type EditorTab = "inout" | "body" | "params" | "headers" | "cookies" | "doc";
+type EditorTab = "inout" | "body" | "params" | "headers" | "cookies" | "doc" | "graphql" | "grpc";
 
-const TAB_OPTIONS: Array<{ key: EditorTab; label: string }> = [
+const TAB_OPTIONS: Array<{ key: EditorTab; label: string; protocol?: string }> = [
   { key: "inout", label: "In / Out" },
+  { key: "graphql", label: "GraphQL", protocol: "graphql" },
+  { key: "grpc", label: "gRPC", protocol: "grpc" },
   { key: "body", label: "Body" },
   { key: "params", label: "Params" },
   { key: "headers", label: "Headers" },
@@ -93,7 +95,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
 
   const [editorTab, setEditorTabInternal] = useState<EditorTab>(() => {
     const saved = localStorage.getItem("apitest-editor-tab");
-    if (saved === "body" || saved === "params" || saved === "headers" || saved === "cookies" || saved === "doc") {
+    if (saved === "body" || saved === "params" || saved === "headers" || saved === "cookies" || saved === "doc" || saved === "graphql" || saved === "grpc") {
       return saved;
     }
     return "inout";
@@ -114,6 +116,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
   const shouldShowResponseCookies = () => editorTab === "cookies";
   const shouldShowOutputs = () => editorTab === "inout";
   const shouldShowDoc = () => editorTab === "doc";
+  const shouldShowGraphql = () => editorTab === "graphql";
+  const shouldShowGrpc = () => editorTab === "grpc";
 
   const handleExampleChange = (newIdx: number) => {
     setSelectedExampleIdx(newIdx);
@@ -182,7 +186,18 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
       <div style={{ padding: "0 8px 8px" }}>
         <div className="tab-bar" style={{ gap: 8 }}>
           {TAB_OPTIONS
-            .filter(tab => !(isGraphQL || isGrpc) || (tab.key !== "body" && tab.key !== "params" && tab.key !== "cookies"))
+            .filter(tab => {
+              // Hide body/params/cookies for graphql/grpc protocols
+              if ((isGraphQL || isGrpc) && (tab.key === "body" || tab.key === "params" || tab.key === "cookies")) {
+                return false;
+              }
+              // Only show protocol-specific tabs for matching protocol
+              if (tab.protocol) {
+                if (tab.protocol === "graphql") { return isGraphQL; }
+                if (tab.protocol === "grpc") { return isGrpc; }
+              }
+              return true;
+            })
             .map(tab => (
             <button
               key={tab.key}
@@ -246,94 +261,82 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
           </>
         )}
 
+        {shouldShowGraphql() && (
+          <>
+            <div className="label">Operation</div>
+            <div className="apitest-body-wrapper">
+              <BodyView
+                value={requestData?.graphql?.operation || api.graphql?.operation || ""}
+                format="text"
+                mode="live"
+                onChange={val => {
+                  updateField("graphql", { ...requestData?.graphql, ...api.graphql, operation: val });
+                }}
+              />
+            </div>
+            <KSVEditor
+              label="Variables"
+              value={requestData?.graphql?.variables ?? api.graphql?.variables ?? {}}
+              onChange={variables => {
+                const vars = Object.keys(variables).length ? variables : undefined;
+                updateField("graphql", { ...requestData?.graphql, ...api.graphql, variables: vars });
+              }}
+            />
+          </>
+        )}
+
+        {shouldShowGrpc() && (
+          <>
+            <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+              <div style={{ flex: 1 }}>
+                <div className="label">Service</div>
+                <input
+                  type="text"
+                  placeholder="package.ServiceName"
+                  value={requestData?.grpc?.service || api.grpc?.service || ""}
+                  onChange={e => {
+                    updateField("grpc", { ...requestData?.grpc, ...api.grpc, service: e.target.value });
+                  }}
+                  style={{ width: "100%" }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div className="label">Method</div>
+                <input
+                  type="text"
+                  placeholder="MethodName"
+                  value={requestData?.grpc?.method || api.grpc?.method || ""}
+                  onChange={e => {
+                    updateField("grpc", { ...requestData?.grpc, ...api.grpc, method: e.target.value });
+                  }}
+                  style={{ width: "100%" }}
+                />
+              </div>
+            </div>
+            <div className="label">Message</div>
+            <div className="apitest-body-wrapper">
+              <BodyView
+                value={(() => {
+                  const msg = requestData?.grpc?.message ?? api.grpc?.message;
+                  return msg ? JSON.stringify(msg, null, 2) : "";
+                })()}
+                format="json"
+                mode="live"
+                onChange={val => {
+                  try {
+                    const parsed = val.trim() ? JSON.parse(val) : undefined;
+                    updateField("grpc", { ...requestData?.grpc, ...api.grpc, message: parsed });
+                  } catch {
+                    // user still typing
+                  }
+                }}
+              />
+            </div>
+          </>
+        )}
+
         {shouldShowInputs() && (
           <>
-            {/* GraphQL fields */}
-            {isGraphQL && (
-              <>
-                <div className="label">Operation</div>
-                <div className="apitest-body-wrapper">
-                  <BodyView
-                    value={requestData?.graphql?.operation || api.graphql?.operation || ""}
-                    format="text"
-                    mode="live"
-                    onChange={val => {
-                      updateField("graphql", { ...requestData?.graphql, ...api.graphql, operation: val });
-                    }}
-                  />
-                </div>
-                <div className="label">Variables</div>
-                <div className="apitest-body-wrapper">
-                  <BodyView
-                    value={(() => {
-                      const vars = requestData?.graphql?.variables ?? api.graphql?.variables;
-                      return vars ? JSON.stringify(vars, null, 2) : "";
-                    })()}
-                    format="json"
-                    mode="live"
-                    onChange={val => {
-                      try {
-                        const parsed = val.trim() ? JSON.parse(val) : undefined;
-                        updateField("graphql", { ...requestData?.graphql, ...api.graphql, variables: parsed });
-                      } catch {
-                        // user still typing
-                      }
-                    }}
-                  />
-                </div>
-              </>
-            )}
-
-            {/* gRPC fields */}
-            {isGrpc && (
-              <>
-                <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-                  <div style={{ flex: 1 }}>
-                    <div className="label">Service</div>
-                    <input
-                      type="text"
-                      placeholder="package.ServiceName"
-                      value={requestData?.grpc?.service || api.grpc?.service || ""}
-                      onChange={e => {
-                        updateField("grpc", { ...requestData?.grpc, ...api.grpc, service: e.target.value });
-                      }}
-                      style={{ width: "100%" }}
-                    />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <div className="label">Method</div>
-                    <input
-                      type="text"
-                      placeholder="MethodName"
-                      value={requestData?.grpc?.method || api.grpc?.method || ""}
-                      onChange={e => {
-                        updateField("grpc", { ...requestData?.grpc, ...api.grpc, method: e.target.value });
-                      }}
-                      style={{ width: "100%" }}
-                    />
-                  </div>
-                </div>
-                <div className="label">Message</div>
-                <div className="apitest-body-wrapper">
-                  <BodyView
-                    value={(() => {
-                      const msg = requestData?.grpc?.message ?? api.grpc?.message;
-                      return msg ? JSON.stringify(msg, null, 2) : "";
-                    })()}
-                    format="json"
-                    mode="live"
-                    onChange={val => {
-                      try {
-                        const parsed = val.trim() ? JSON.parse(val) : undefined;
-                        updateField("grpc", { ...requestData?.grpc, ...api.grpc, message: parsed });
-                      } catch {
-                        // user still typing
-                      }
-                    }}
-                  />
-                </div>
-              </>
-            )}
             {examples.length > 0 && (
               <div style={{ paddingBottom: 20, width: "100%" }}>
                 <div className="label">Predefined inputs</div>
@@ -411,7 +414,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
           />
         )}
 
-        {shouldShowResponse() && (
+        {(shouldShowResponse() || shouldShowGraphql() || shouldShowGrpc()) && (
           <>
             <div className="label">Response Body</div>
             <div className="apitest-body-wrapper">
