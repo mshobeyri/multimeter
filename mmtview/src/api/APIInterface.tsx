@@ -14,7 +14,7 @@ interface InterfaceEditorProps {
   onChange: (data: APIData) => void;
 }
 
-const protocolOptions: Protocol[] = ["http", "ws", "graphql"];
+const protocolOptions: Protocol[] = ["http", "ws", "graphql", "grpc"];
 const formatOptions: Format[] = ["json", "xml", "text"];
 const methodOptions: Method[] = ["get", "post", "put", "delete", "patch", "head", "options", "trace"];
 const authTypeOptions = ["none", "bearer", "basic", "api-key", "oauth2"] as const;
@@ -101,7 +101,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
         </select>
       </div>
 
-      {effectiveProtocol !== "graphql" && (
+      {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && (
         <>
           <div className="label">Format</div>
           <div style={{ padding: "5px" }}>
@@ -129,7 +129,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
         />
       </div>
 
-      {effectiveProtocol !== "graphql" && (effectiveProtocol === "http" || data.method) ? (
+      {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && (effectiveProtocol === "http" || data.method) ? (
         <>
           <div className={effectiveProtocol !== "http" ? "label label-disabled" : "label"}>Method</div>
           <div style={{ padding: "5px" }}>
@@ -147,7 +147,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
           </div>
         </>
       ) : null}
-      {effectiveProtocol !== "graphql" && (effectiveProtocol === "http" || isNonEmptyObject(data.query)) ? (
+      {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && (effectiveProtocol === "http" || isNonEmptyObject(data.query)) ? (
         <KSVEditor
           label="Query"
           value={data.query || {}}
@@ -302,9 +302,9 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
         )}
       </div>
 
-      {effectiveProtocol === "http" || effectiveProtocol === "graphql" || isNonEmptyObject(data.headers) ? (
+      {effectiveProtocol === "http" || effectiveProtocol === "graphql" || effectiveProtocol === "grpc" || isNonEmptyObject(data.headers) ? (
         <KSVEditor
-          label="Headers"
+          label={effectiveProtocol === "grpc" ? "Metadata" : "Headers"}
           value={data.headers || {}}
           onChange={headers => {
             const stringHeaders: Record<string, string> = {};
@@ -313,7 +313,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
             });
             onChange({ ...data, headers: stringHeaders });
           }}
-          disabled={effectiveProtocol !== "http" && effectiveProtocol !== "graphql"}
+          disabled={effectiveProtocol !== "http" && effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc"}
         />
       ) : null}
       {effectiveProtocol === "http" || isNonEmptyObject(data.cookies) ? (
@@ -331,8 +331,8 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
         />
       ) : null}
 
-      {/* Only show body editor if method is not get and protocol is not graphql */}
-      {effectiveProtocol !== "graphql" && (effectiveProtocol === "ws" || !data.method || data.method.toLowerCase() !== "get") && (
+      {/* Only show body editor if method is not get and protocol is not graphql/grpc */}
+      {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && (effectiveProtocol === "ws" || !data.method || data.method.toLowerCase() !== "get") && (
         <>
           <div className="label">Body</div>
           <div style={{ padding: "5px", position: "relative" }}>

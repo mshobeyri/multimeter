@@ -122,6 +122,7 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "cookies",
         "body",
         "graphql",
+        "grpc",
         "examples",
       ];
     case "test":

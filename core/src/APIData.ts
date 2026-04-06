@@ -1,4 +1,4 @@
-import {Format, JSONRecord, JSONValue, Method, MMTFile, Protocol} from './CommonData';
+import {Format, GrpcStream, JSONRecord, JSONValue, Method, MMTFile, Protocol} from './CommonData';
 
 export interface AuthBearer {
   type: 'bearer';
@@ -43,6 +43,14 @@ export interface GraphQLConfig {
   operationName?: string;
 }
 
+export interface GrpcConfig {
+  proto?: string;
+  service: string;
+  method: string;
+  message?: object;
+  stream?: GrpcStream;
+}
+
 export interface APIData extends MMTFile {
   title?: string;
   description?: string;
@@ -60,6 +68,7 @@ export interface APIData extends MMTFile {
   body?: string|object|null;
   auth?: AuthConfig;
   graphql?: GraphQLConfig;
+  grpc?: GrpcConfig;
   examples?: Array<ExampleData>;
 }
 

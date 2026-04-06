@@ -1,13 +1,31 @@
 
 export interface Request {
   url?: string;
-  protocol?: "http" | "ws" | "graphql" | undefined;
+  protocol?: "http" | "ws" | "graphql" | "grpc" | undefined;
   format?: "json" | "xml" | "text" | undefined;
   method?: string;
   headers?: Record<string, string> | undefined;
   cookies?: Record<string, string> | undefined;
   query?: Record<string, string> | undefined;
   body?: any;
+}
+
+export interface GrpcRequest {
+  url: string;
+  proto: string;
+  service: string;
+  method: string;
+  metadata?: Record<string, string>;
+  message?: object;
+  stream?: 'server' | 'client' | 'bidi';
+}
+
+export interface GrpcResponse {
+  body: string;
+  metadata: Record<string, string>;
+  status: number;
+  statusText: string;
+  duration: number;
 }
 
 export interface Response {
@@ -33,6 +51,9 @@ export interface NetworkAPI {
   connecting: boolean;
   connected: boolean;
   closeWs: () => void;
+
+  // gRPC
+  sendGrpc?: (request: GrpcRequest) => Promise<GrpcResponse>;
 }
 
 export interface CaCertificate {

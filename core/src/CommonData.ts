@@ -1,8 +1,9 @@
 export type Type = "env" | "api" | "test" | "suite" | "doc" | "csv" | "server" | "report" | null;
 
-export type Protocol = "http" | "ws" | "graphql";
+export type Protocol = "http" | "ws" | "graphql" | "grpc";
 export type Format = "json" | "xml" | "text";
 export type Method = "get" | "post" | "put" | "delete" | "patch" | "head" | "options" | "trace";
+export type GrpcStream = "server" | "client" | "bidi";
 
 export const jsonTypes = [
   "object", "object[]", "string", "string[]", "number", "number[]", "boolean", "boolean[]"

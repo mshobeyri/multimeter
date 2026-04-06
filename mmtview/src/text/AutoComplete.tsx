@@ -741,6 +741,20 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'GraphQL-specific configuration. Used with protocol: graphql.\nFields:\n\t- operation: GraphQL query/mutation/subscription string (required)\n\t- variables: Variables passed to the operation\n\t- operationName: Named operation selector\nExample:\ngraphql:\n  operation: |\n    query GetUsers($limit: Int) {\n      users(limit: $limit) { id name }\n    }\n  variables:\n    limit: 10',
         },
         {
+            label: "grpc",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "grpc:\n\tservice: \n\tmethod: ",
+            detail: 'gRPC call configuration [object]',
+            documentation: 'gRPC-specific configuration. Used with protocol: grpc.\nFields:\n\t- proto: Path to .proto file or "reflect" for server reflection (default: reflect)\n\t- service: Fully-qualified gRPC service name (required)\n\t- method: RPC method name (required)\n\t- stream: Streaming mode (server, client, bidi)\n\t- message: Request message object\nExample:\ngrpc:\n  service: helloworld.Greeter\n  method: SayHello\n  message:\n    name: "World"',
+        },
+        {
+            label: "grpc",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "grpc:\n\tservice: \n\tmethod: ",
+            detail: 'gRPC call configuration [object]',
+            documentation: 'gRPC-specific configuration. Used with protocol: grpc.\nFields:\n\t- proto: Path to .proto file or "reflect" for server reflection (default: reflect)\n\t- service: Fully-qualified gRPC service name (required)\n\t- method: RPC method name (required)\n\t- stream: Streaming mode (server, client, bidi)\n\t- message: Request message object\nExample:\ngrpc:\n  service: helloworld.Greeter\n  method: SayHello\n  message:\n    name: "World"',
+        },
+        {
             label: "query",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "query:\n\t",
@@ -880,6 +894,13 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: " graphql",
             detail: 'GraphQL protocol',
             documentation: 'GraphQL queries/mutations over HTTP. Use with the graphql block to define operation, variables, and operationName.',
+        },
+        {
+            label: "grpc",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " grpc",
+            detail: 'gRPC protocol',
+            documentation: 'gRPC remote procedure calls. Use with the grpc block to define service, method, and message. URL should use grpc:// or grpcs:// scheme.',
         },
     ]
     const formatSuggestion = [
@@ -1474,6 +1495,44 @@ export const KeySuggestionsByParent = (monaco: any) => {
         },
     ];
 
+    const grpcSuggestions = [
+        {
+            label: "proto",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "proto: ",
+            detail: 'Proto file path or "reflect" [string]',
+            documentation: 'Path to .proto file for service definition, or "reflect" to use gRPC server reflection (default: reflect).\nExample: proto: ./protos/greeter.proto',
+        },
+        {
+            label: "service",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "service: ",
+            detail: 'Fully-qualified service name (required) [string]',
+            documentation: 'The fully-qualified gRPC service name including package.\nExample: service: helloworld.Greeter',
+        },
+        {
+            label: "method",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "method: ",
+            detail: 'RPC method name (required) [string]',
+            documentation: 'The RPC method name to call.\nExample: method: SayHello',
+        },
+        {
+            label: "stream",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "stream: ",
+            detail: 'Streaming mode [server|client|bidi]',
+            documentation: 'The streaming mode for the RPC call.\nOptions:\n\t- server: Server-side streaming\n\t- client: Client-side streaming\n\t- bidi: Bidirectional streaming\nOmit for unary (request-response) calls.',
+        },
+        {
+            label: "message",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "message:\n\t\t",
+            detail: 'Request message [object]',
+            documentation: 'The request message object to send to the gRPC service.\nExample:\nmessage:\n  name: "World"\n  greeting: "Hello"',
+        },
+    ];
+
     const keySuggestionsByParent: Record<string, any[]> = {
         root: rootSuggestions,
         general: variablesSuggestions,
@@ -1498,6 +1557,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         'auth-type': authTypeSuggestions,
         format: formatSuggestion,
         graphql: graphqlSuggestions,
+        grpc: grpcSuggestions,
         outputs: outputsSuggestions,
         check: checkAssertObjectKeySuggestions,
         assert: checkAssertObjectKeySuggestions,

@@ -11,6 +11,10 @@ export interface ResponseData {
   status?: number;
   duration?: number;
   details?: string;
+  /** gRPC: deserialized response message (alias for body in gRPC context) */
+  message?: any;
+  /** gRPC: response metadata (alias for headers in gRPC context) */
+  metadata?: Record<string, string>;
 }
 
 export type PathSegment = string|number;
@@ -368,6 +372,12 @@ function resolveJSONPath(response: ResponseData, path: string): any {
       case 'cookies':
         current = response.cookies;
         break;
+      case 'message':
+        current = response.message ?? response.body;
+        break;
+      case 'metadata':
+        current = response.metadata ?? response.headers;
+        break;
       default:
         // Unknown section, return empty
         return '';
@@ -424,6 +434,12 @@ function resolvePath(response: ResponseData, expr: string): any {
       case 'cookies':
         val = response.cookies;
         break;
+      case 'message':
+        val = response.message ?? response.body;
+        break;
+      case 'metadata':
+        val = response.metadata ?? response.headers;
+        break;
       default:
         return '';
     }
@@ -475,6 +491,12 @@ function resolveDotPath(response: ResponseData, expr: string): any {
     case 'cookies':
       val = response.cookies;
       break;
+    case 'message':
+      val = response.message ?? response.body;
+      break;
+    case 'metadata':
+      val = response.metadata ?? response.headers;
+      break;
     default:
       return '';
   }
@@ -511,13 +533,13 @@ export function buildBodyExprFromPath(path: PathSegment[]): string {
 // where section is body, headers, or cookies
 function parseRegexExtraction(expr: string): {section: string; pattern: string}|null {
   // Match bracket notation: body[/pattern/] or headers[/pattern/]
-  const bracketMatch = expr.match(/^(body|headers?|cookies)\[\/(.*)\/\]$/);
+  const bracketMatch = expr.match(/^(body|headers?|cookies|message|metadata)\[\/(.*)\/\]$/);
   if (bracketMatch) {
     return {section: bracketMatch[1], pattern: bracketMatch[2]};
   }
 
   // Match dot notation: body./pattern/ or headers./pattern/
-  const dotMatch = expr.match(/^(body|headers?|cookies)\.\/(.*)\/$/);
+  const dotMatch = expr.match(/^(body|headers?|cookies|message|metadata)\.\/(.*)\/$/);
   if (dotMatch) {
     return {section: dotMatch[1], pattern: dotMatch[2]};
   }
@@ -528,7 +550,8 @@ function parseRegexExtraction(expr: string): {section: string; pattern: string}|
 function sectionToText(
     section: string, bodyText: string,
     headers: Record<string, string>,
-    cookies: Record<string, string>): string {
+    cookies: Record<string, string>,
+    response?: ResponseData): string {
   switch (section) {
     case 'body':
       return bodyText;
@@ -541,6 +564,16 @@ function sectionToText(
       return Object.entries(cookies || {})
           .map(([k, v]) => `${k}: ${v}`)
           .join('\n');
+    case 'message': {
+      const msg = response?.message ?? response?.body;
+      return typeof msg === 'string' ? msg : JSON.stringify(msg);
+    }
+    case 'metadata': {
+      const meta = response?.metadata ?? response?.headers;
+      return Object.entries(meta || {})
+          .map(([k, v]) => `${k}: ${v}`)
+          .join('\n');
+    }
     default:
       return '';
   }
@@ -609,7 +642,7 @@ export function extractOutputs(
       if (regexExtraction) {
         const text = sectionToText(
             regexExtraction.section, bodyText,
-            response.headers, response.cookies);
+            response.headers, response.cookies, response);
         const regex = new RegExp(regexExtraction.pattern);
         const found = text.match(regex);
         if (found) {
@@ -651,6 +684,10 @@ export function extractOutputs(
         extractedValue = response.body;
       } else if (expr === 'header' || expr === 'headers') {
         extractedValue = response.headers;
+      } else if (expr === 'message') {
+        extractedValue = response.message ?? response.body;
+      } else if (expr === 'metadata') {
+        extractedValue = response.metadata ?? response.headers;
       } else if (expr === 'status') {
         extractedValue = response.status ?? 0;
       } else if (expr === 'details') {

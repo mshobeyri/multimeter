@@ -79,6 +79,11 @@
       "require": "./dist/networkCoreNode.js",
       "default": "./dist/networkCoreNode.js"
     },
+    "./grpcCore": {
+      "types": "./dist/grpcCore.d.ts",
+      "require": "./dist/grpcCore.js",
+      "default": "./dist/grpcCore.js"
+    },
     "./fileHelper": {
       "types": "./dist/fileHelper.d.ts",
       "require": "./dist/fileHelper.js",
@@ -133,6 +138,10 @@
   "scripts": {
     "prebuild": "node scripts/gen-doc-template.cjs",
     "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "^1.12.6",
+    "@grpc/proto-loader": "^0.7.13"
   },
   "devDependencies": {
     "@types/node": "^24.3.1"

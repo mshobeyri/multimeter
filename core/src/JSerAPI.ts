@@ -82,6 +82,13 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   // otherwise infer from the resolved URL at runtime
   const explicitProtocol = ctx.api.protocol;
   const isGraphQL = explicitProtocol === 'graphql';
+  const isGrpc = explicitProtocol === 'grpc';
+
+  // gRPC: generate completely different code path
+  if (isGrpc && ctx.api.grpc) {
+    return generateGrpcFunction(ctx, replaced, inputParams, extractRules, toTemplateWithEnvs, toJsValue, authCode, headers);
+  }
+
   // GraphQL compiles to HTTP transport
   const protocolExpr = isGraphQL ? `'graphql'` :
       (explicitProtocol ? `'${explicitProtocol}'` : `protocolFromUrl_(__resolvedUrl)`);
@@ -171,6 +178,86 @@ ${isGraphQL ? `
   return output_;
 };`;
 };
+
+function generateGrpcFunction(
+    ctx: APIContext,
+    replaced: APIData,
+    inputParams: string,
+    extractRules: Record<string, string>,
+    toTpl: (s: string) => string,
+    toJsValue: (v: any) => string,
+    authCode: string,
+    headers: string,
+): string {
+  const grpc = replaced.grpc || ctx.api.grpc!;
+  const protoExpr = grpc.proto ? toTpl(grpc.proto) : `'reflect'`;
+  const serviceExpr = toTpl(grpc.service);
+  const methodExpr = toTpl(grpc.method);
+  const streamExpr = grpc.stream ? `'${grpc.stream}'` : 'undefined';
+
+  // Build message object
+  let messageExpr = '{}';
+  if (grpc.message && typeof grpc.message === 'object') {
+    const msgParts = Object.entries(grpc.message)
+        .map(([k, v]) => `"${k}": ${toJsValue(v)}`)
+        .join(', ');
+    messageExpr = `{ ${msgParts} }`;
+  }
+
+  // For gRPC, headers become metadata
+  // Auth also contributes to metadata via the same authCode
+  return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
+  const __resolvedUrl = ${toTpl(String(replaced.url || ''))};
+  const req_ = {
+    url: __resolvedUrl,
+    protocol: 'grpc',
+    method: 'grpc',
+    query: {},
+    headers: ${headers ? '{ ' + headers + ' }' : '{}'},
+    body: ${messageExpr}
+  };
+${authCode}
+  const __grpcReq = {
+    url: __resolvedUrl,
+    proto: ${protoExpr},
+    service: ${serviceExpr},
+    method: ${methodExpr},
+    metadata: req_.headers,
+    message: ${messageExpr},
+    stream: ${streamExpr}
+  };
+  const __grpcRes = await sendGrpc_(__grpcReq);
+
+  // Parse gRPC response message
+  let __grpcMessage = {};
+  try {
+    __grpcMessage = typeof __grpcRes.body === 'string' ? JSON.parse(__grpcRes.body) : __grpcRes.body;
+  } catch { __grpcMessage = __grpcRes.body; }
+
+  const output_ = extractOutputs_(
+    {
+      type: 'json',
+      body: __grpcMessage,
+      headers: __grpcRes.metadata || {},
+      cookies: {},
+      status: __grpcRes.status || 0,
+      duration: __grpcRes.duration || 0,
+      details: JSON.stringify({ request: __grpcReq, response: __grpcRes }, null, 2),
+      message: __grpcMessage,
+      metadata: __grpcRes.metadata || {}
+    },
+    ${indentLines(indentLines(JSON.stringify(extractRules, null, 2)))}
+  );
+
+  output_['_'] = {
+    details: JSON.stringify({ request: __grpcReq, response: __grpcRes }, null, 2),
+    status: __grpcRes.status || 0,
+    duration: __grpcRes.duration || 0
+  };
+
+  return output_;
+};`;
+}
 
 function authToJS(
     auth: AuthConfig | undefined,

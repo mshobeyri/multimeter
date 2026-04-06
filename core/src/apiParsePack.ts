@@ -1,5 +1,6 @@
 
-import {APIData, AuthConfig, GraphQLConfig} from './APIData';
+import {APIData, AuthConfig, GraphQLConfig, GrpcConfig} from './APIData';
+import {GrpcStream} from './CommonData';
 import parseYaml, {packYaml, parseYamlStrict} from './markupConvertor';
 import {isNonEmptyList, isNonEmptyObject, safeList} from './safer';
 
@@ -7,8 +8,10 @@ import {isNonEmptyList, isNonEmptyObject, safeList} from './safer';
 const VALID_API_ROOT_KEYS = new Set([
   'type', 'title', 'description', 'tags', 'inputs', 'outputs', 'setenv',
   'url', 'query', 'protocol', 'format', 'method', 'headers', 'cookies',
-  'body', 'auth', 'graphql', 'examples',
+  'body', 'auth', 'graphql', 'grpc', 'examples',
 ]);
+
+const VALID_GRPC_STREAM_VALUES = new Set<string>(['server', 'client', 'bidi']);
 
 function parseGraphQLConfig(raw: any): GraphQLConfig | undefined {
   if (!raw || typeof raw !== 'object') {
@@ -22,6 +25,26 @@ function parseGraphQLConfig(raw: any): GraphQLConfig | undefined {
   }
   if (typeof raw.operationName === 'string') {
     config.operationName = raw.operationName;
+  }
+  return config;
+}
+
+function parseGrpcConfig(raw: any): GrpcConfig | undefined {
+  if (!raw || typeof raw !== 'object') {
+    return undefined;
+  }
+  const config: GrpcConfig = {
+    service: typeof raw.service === 'string' ? raw.service : '',
+    method: typeof raw.method === 'string' ? raw.method : '',
+  };
+  if (typeof raw.proto === 'string') {
+    config.proto = raw.proto;
+  }
+  if (raw.message && typeof raw.message === 'object') {
+    config.message = raw.message;
+  }
+  if (typeof raw.stream === 'string' && VALID_GRPC_STREAM_VALUES.has(raw.stream)) {
+    config.stream = raw.stream as GrpcStream;
   }
   return config;
 }
@@ -167,6 +190,7 @@ export function yamlToAPI(yamlContent: string): APIData {
       cookies: doc.cookies || {},
       auth,
       graphql: parseGraphQLConfig(doc.graphql),
+      grpc: parseGrpcConfig(doc.grpc),
       examples: safeList(doc.examples),
     };
   } catch {
@@ -206,6 +230,28 @@ export function yamlToAPIStrict(yamlContent: string): APIData {
   if (doc.graphql && doc.protocol && doc.protocol !== 'graphql') {
     throw new Error(`Invalid API file: "graphql" block is ignored for protocol "${doc.protocol}"`);
   }
+  // gRPC protocol validation
+  const grpc = parseGrpcConfig(doc.grpc);
+  if (doc.protocol === 'grpc') {
+    if (!grpc || !grpc.service) {
+      throw new Error('Invalid API file: protocol "grpc" requires "grpc.service" field');
+    }
+    if (!grpc.method) {
+      throw new Error('Invalid API file: protocol "grpc" requires "grpc.method" field');
+    }
+    if (doc.body) {
+      throw new Error('Invalid API file: "body" is not valid for protocol "grpc"; use "grpc.message" instead');
+    }
+    if (doc.query && Object.keys(doc.query).length > 0) {
+      throw new Error('Invalid API file: "query" is not valid for protocol "grpc"');
+    }
+    if (doc.cookies && Object.keys(doc.cookies).length > 0) {
+      throw new Error('Invalid API file: "cookies" is not valid for protocol "grpc"');
+    }
+  }
+  if (doc.grpc && doc.protocol && doc.protocol !== 'grpc') {
+    throw new Error(`Invalid API file: "grpc" block is ignored for protocol "${doc.protocol}"`);
+  }
   const auth = validateAuth(doc.auth);
   return {
     type: doc.type || '',
@@ -225,6 +271,7 @@ export function yamlToAPIStrict(yamlContent: string): APIData {
     cookies: doc.cookies || {},
     auth,
     graphql,
+    grpc,
     examples: safeList(doc.examples),
   };
 }
@@ -290,6 +337,27 @@ export function apiToYaml(api: APIData): string {
     }
     if (Object.keys(gqlObj).length > 0) {
       yamlObj.graphql = gqlObj;
+    }
+  };
+  if (api.grpc) {
+    const grpcObj: Record<string, any> = {};
+    if (api.grpc.proto) {
+      grpcObj.proto = api.grpc.proto;
+    }
+    if (api.grpc.service) {
+      grpcObj.service = api.grpc.service;
+    }
+    if (api.grpc.method) {
+      grpcObj.method = api.grpc.method;
+    }
+    if (api.grpc.stream) {
+      grpcObj.stream = api.grpc.stream;
+    }
+    if (api.grpc.message && Object.keys(api.grpc.message).length > 0) {
+      grpcObj.message = api.grpc.message;
+    }
+    if (Object.keys(grpcObj).length > 0) {
+      yamlObj.grpc = grpcObj;
     }
   };
   if (isNonEmptyList(api.examples)) {

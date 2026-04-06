@@ -1,7 +1,8 @@
 import {LogLevel} from './CommonData';
+import {GrpcRequest, GrpcResponse} from './NetworkData';
 import {normalizeTokenName} from './JSerHelper';
 // Import your send function from the network core
-import {send, setRunnerNetworkConfig} from './networkCoreNode';
+import {send, setRunnerNetworkConfig, getRunnerNetworkConfig} from './networkCoreNode';
 import {extractOutputs} from './outputExtractor';
 import * as Random from './Random';
 import * as Current from './Current';
@@ -131,7 +132,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
             .map(name => `const ${name} = Random["${name}"];`)
             .join('\n');
     const fn = new Function(
-      'mmtHelper', 'console', 'send_', 'extractOutputs_', 'Random',
+      'mmtHelper', 'console', 'send_', 'sendGrpc_', 'extractOutputs_', 'Random',
       '__reporter', '__runId', '__id', '__mmt_random', '__mmt_current',
       '__abortSignal', '__fileLoader',
       `${helperDecls}\n${randomDecls}\n` +
@@ -171,8 +172,15 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
         throw err;
       }
     } : send;
+    // Create gRPC sender (lazy-loads grpcCore)
+    const sendGrpcFn = async (req: GrpcRequest): Promise<GrpcResponse> => {
+      const {sendGrpcRequest} = await import('./grpcCore.js');
+      const config = getRunnerNetworkConfig();
+      const loader = context.fileLoader || (async () => { throw new Error('File loader not available'); });
+      return sendGrpcRequest(req, config, loader);
+    };
     const returnValue = await fn(
-        mmtHelper, customConsole, sendFn, extractOutputs, Random,
+        mmtHelper, customConsole, sendFn, sendGrpcFn, extractOutputs, Random,
         reporterFn, runId, context.id, mmtRandom, mmtCurrent,
         context.abortSignal, context.fileLoader);
     restoreReporterGlobals();

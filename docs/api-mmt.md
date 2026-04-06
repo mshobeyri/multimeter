@@ -3,7 +3,7 @@
 Usage-first guide to write APIs in `.mmt` files. Includes HTTP/WS, params, bodies, env, reuse, and a compact reference at the end.
 
 Supported:
-- Protocols: `http`, `ws`, `graphql`
+- Protocols: `http`, `ws`, `graphql`, `grpc`
 - Formats: `json`, `xml`, `text`
 - Methods: `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
 
@@ -108,6 +108,28 @@ Notes
 - The `graphql` block replaces `body`; `method` is always POST and `format` is always JSON
 - Outputs are extracted from the standard `{ data, errors }` response shape
 - If the response contains an `errors` array, the run is marked as failed
+
+### gRPC
+```yaml
+ type: api
+ protocol: grpc
+ url: grpc://localhost:50051
+ grpc:
+   service: helloworld.Greeter
+   method: SayHello
+   message:
+     name: "World"
+ outputs:
+   greeting: message.message
+```
+Notes
+- `protocol: grpc` is required — use `grpc://` or `grpcs://` URL schemes
+- The `grpc` block replaces `body`, `method`, `format`, `query`, and `cookies`
+- `grpc.proto` defaults to `reflect` (server reflection); set it to a `.proto` file path for file-based definitions
+- `grpc.stream` supports `server`, `client`, or `bidi` streaming modes; omit for unary calls
+- `headers` are sent as gRPC metadata
+- Outputs use `message.*` (response message) and `metadata.*` (response metadata) extraction roots
+- `auth` maps to metadata: bearer → `authorization: Bearer <token>`, basic → `authorization: Basic <encoded>`
 
 ---
 
@@ -319,6 +341,79 @@ If the response body contains an `errors` array, the run is marked as failed and
 - `format` — always JSON
 - `query`, `cookies` — not used (can still be set but are uncommon for GraphQL)
 - `headers`, `auth`, `inputs`, `outputs`, `examples`, `setenv` — work identically to HTTP
+
+---
+
+## gRPC
+
+Set `protocol: grpc` to make gRPC remote procedure calls. The `grpc` block defines the service, method, and message — it replaces `body`, `method`, `format`, `query`, and `cookies`.
+
+### grpc block
+
+| Field     | Type   | Required | Description |
+|-----------|--------|----------|-------------|
+| `proto`   | string | No       | Path to `.proto` file, or `"reflect"` for server reflection (default: `"reflect"`) |
+| `service` | string | Yes      | Fully-qualified gRPC service name (e.g. `helloworld.Greeter`) |
+| `method`  | string | Yes      | RPC method name (e.g. `SayHello`) |
+| `stream`  | string | No       | Streaming mode: `server`, `client`, or `bidi`. Omit for unary calls |
+| `message` | object | No       | Request message as key-value pairs |
+
+### URL scheme
+
+Use `grpc://host:port` for plaintext or `grpcs://host:port` for TLS connections:
+
+```yaml
+ url: grpc://localhost:50051      # plaintext
+ url: grpcs://api.example.com:443  # TLS
+```
+
+### Service definition
+
+By default, multimeter uses gRPC server reflection to discover service definitions at runtime. To use a `.proto` file instead:
+
+```yaml
+ grpc:
+   proto: ./protos/greeter.proto
+   service: helloworld.Greeter
+   method: SayHello
+```
+
+### Extracting outputs
+
+gRPC responses use `message.*` for the response message and `metadata.*` for trailing metadata:
+
+```yaml
+ outputs:
+   greeting: message.message
+   requestId: metadata.x-request-id
+   responseTime: duration
+   grpcStatus: status
+```
+
+`body.*` and `headers.*` also work and map to `message` and `metadata` respectively.
+
+### Streaming
+
+Set `grpc.stream` for streaming RPCs:
+
+```yaml
+ grpc:
+   service: chat.ChatService
+   method: StreamMessages
+   stream: server
+   message:
+     channel: general
+```
+
+For server streaming, the response `message` contains all collected messages as an array. Client and bidi streaming send the message object as a single frame.
+
+### What the grpc block replaces
+- `body` — ignored; the request payload comes from `grpc.message`
+- `method`, `format` — not applicable to gRPC
+- `query`, `cookies` — not used for gRPC
+- `headers` — sent as gRPC metadata
+- `auth` — maps to metadata (bearer → `authorization` header, basic → `authorization` header)
+- `inputs`, `outputs`, `examples`, `setenv` — work identically to HTTP
 
 ---
 

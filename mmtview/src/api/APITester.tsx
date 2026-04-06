@@ -89,6 +89,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
   };
 
   const isGraphQL = requestData?.protocol === "graphql";
+  const isGrpc = requestData?.protocol === "grpc";
 
   const [editorTab, setEditorTabInternal] = useState<EditorTab>(() => {
     const saved = localStorage.getItem("apitest-editor-tab");
@@ -129,7 +130,14 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
       {/* ── Fixed header: URL bar + tab bar ── */}
       <div className="apitest-fixed-header">
       <div style={{ padding: "8px", display: "flex", alignItems: "stretch", gap: 8 }}>
-        {isGraphQL ? (
+        {isGrpc ? (
+          <span
+            className="method-select method-badge"
+            style={{ background: "#244c5a" }}
+          >
+            gRPC
+          </span>
+        ) : isGraphQL ? (
           <span
             className="method-select method-badge"
             style={{ background: "#e535ab" }}
@@ -174,7 +182,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
       <div style={{ padding: "0 8px 8px" }}>
         <div className="tab-bar" style={{ gap: 8 }}>
           {TAB_OPTIONS
-            .filter(tab => !isGraphQL || (tab.key !== "body" && tab.key !== "params" && tab.key !== "cookies"))
+            .filter(tab => !(isGraphQL || isGrpc) || (tab.key !== "body" && tab.key !== "params" && tab.key !== "cookies"))
             .map(tab => (
             <button
               key={tab.key}

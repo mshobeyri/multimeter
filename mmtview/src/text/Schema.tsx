@@ -81,7 +81,7 @@ export const APISchema = {
             type: 'object',
             additionalProperties: { type: 'string' }
         },
-        protocol: { type: 'string', enum: ['http', 'ws', 'graphql'] },
+        protocol: { type: 'string', enum: ['http', 'ws', 'graphql', 'grpc'] },
         method: {
             type: 'string',
             enum: ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
@@ -117,6 +117,21 @@ export const APISchema = {
                 operationName: { type: 'string' }
             },
             required: ['operation'],
+            additionalProperties: false
+        },
+        grpc: {
+            type: 'object',
+            properties: {
+                proto: { type: 'string' },
+                service: { type: 'string' },
+                method: { type: 'string' },
+                stream: { type: 'string', enum: ['server', 'client', 'bidi'] },
+                message: {
+                    type: 'object',
+                    additionalProperties: true
+                }
+            },
+            required: ['service', 'method'],
             additionalProperties: false
         },
         auth: {
@@ -221,6 +236,17 @@ export const APISchema = {
             },
             then: {
                 required: ['graphql']
+            }
+        },
+        {
+            if: {
+                properties: {
+                    protocol: { const: 'grpc' }
+                },
+                required: ['protocol']
+            },
+            then: {
+                required: ['grpc']
             }
         }
     ],

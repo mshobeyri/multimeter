@@ -4,7 +4,7 @@ interface ResponseStatusProps {
   status?: number;
   errorMessage?: string;
   errorCode?: string | number;
-  protocol?: 'http' | 'ws' | 'graphql';
+  protocol?: 'http' | 'ws' | 'graphql' | 'grpc';
   className?: string;
 }
 
