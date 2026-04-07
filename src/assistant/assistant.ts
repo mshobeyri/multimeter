@@ -117,13 +117,21 @@ async function handleChatRequest(
         const logsBlock = (result.logs && result.logs.length) ?
             `Logs:\n\n\`\`\`\n${result.logs.join('\n')}\n\`\`\`` :
             '';
-        const errorsBlock = (result.errors && result.errors.length) ?
-            ['Errors:', ...result.errors.map((e: any) => ` - ${e}`)].join('\n') :
+        // Separate assertion/check failures from actual errors
+        const allErrors: string[] = result.errors || [];
+        const failures = allErrors.filter((e: string) => /[\u00D7].*failed/.test(e));
+        const errors = allErrors.filter((e: string) => !/[\u00D7].*failed/.test(e));
+        const failuresBlock = failures.length ?
+            ['Failures:', ...failures.map((e: any) => ` - ${e}`)].join('\n') :
+            '';
+        const errorsBlock = errors.length ?
+            ['Errors:', ...errors.map((e: any) => ` - ${e}`)].join('\n') :
             '';
         const out = [
                          `Running ${header}...`, logsBlock,
                          `Success: ${result.success}`,
                          `Duration: ${mmtcore.CommonData.formatDuration(result.durationMs)}`,
+                         failuresBlock,
                          errorsBlock
                        ]
                            .filter(Boolean)

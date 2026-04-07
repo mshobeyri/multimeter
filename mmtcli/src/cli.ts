@@ -168,12 +168,12 @@ program.command('run')
           if (result.success) {
             console.log(`\n${green}${bold}\u2713 Success${R} ${dim}(${mmtcore.CommonData.formatDuration(result.durationMs)})${R}`);
           } else {
-            console.log(`\n${red}${bold}\u2717 Failed${R} ${dim}(${mmtcore.CommonData.formatDuration(result.durationMs)})${R}`);
+            console.log(`\n${red}${bold}\u00D7 Failed${R} ${dim}(${mmtcore.CommonData.formatDuration(result.durationMs)})${R}`);
             if (result.errors.length) {
               console.log(`${red}Errors:${R}`);
               result.errors.forEach((e: any) => {
-                const msg = String(e).replace(/^\u2717\s*/, '');
-                console.log(`  ${red}\u2717${R} ${msg}`);
+                const msg = String(e).replace(/^\u00D7\s*/, '');
+                console.log(`  ${red}\u00D7${R} ${msg}`);
               });
             }
           }

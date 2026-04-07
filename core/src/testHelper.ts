@@ -533,7 +533,7 @@ export const check_ = (
       c.trace(msg);
     }
   } else {
-    const shortMsg = `\u2717 ${label} ${titlePart}"${raw}" failed, as ${displayValue(actual)} is not ${displayValue(expected)}`;
+    const shortMsg = `\u00D7 ${label} ${titlePart}"${raw}" failed, as ${displayValue(actual)} is not ${displayValue(expected)}`;
     if (reportLevel === 'none') {
       c.debug(shortMsg);
     } else {
@@ -580,7 +580,7 @@ export const checkExpects_ = (
   // Log each individual item
   for (const item of items) {
     if (type === 'debug') {
-      const icon = item.passed ? '\u2713' : '\u2717';
+      const icon = item.passed ? '\u2713' : '\u00D7';
       c.debug(`\u{1F41E} ${label} ${titlePart}"${item.comparison}" ${item.passed ? 'passed' : 'failed'}: actual=${displayValue(item.actual)}, expected=${displayValue(item.expected)}`);
     } else if (item.passed) {
       const msg = `\u2713 ${label} ${titlePart}"${item.comparison}" passed`;
@@ -592,7 +592,7 @@ export const checkExpects_ = (
         c.trace(msg);
       }
     } else {
-      const shortMsg = `\u2717 ${label} ${titlePart}"${item.comparison}" failed, as ${displayValue(item.actual)} is not ${displayValue(item.expected)}`;
+      const shortMsg = `\u00D7 ${label} ${titlePart}"${item.comparison}" failed, as ${displayValue(item.actual)} is not ${displayValue(item.expected)}`;
       if (reportLevel === 'none') {
         c.debug(shortMsg);
       } else {

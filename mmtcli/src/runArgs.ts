@@ -35,7 +35,7 @@ function colorizeLogLine(level: string, msg: string): string {
   if (msg.startsWith('\u2713')) {
     return `${ANSI_GREEN}${msg}${ANSI_RESET}`;
   }
-  if (msg.startsWith('\u2717')) {
+  if (msg.startsWith('\u00D7')) {
     return `${ANSI_RED}${ANSI_BOLD}${msg}${ANSI_RESET}`;
   }
   // Level-based coloring

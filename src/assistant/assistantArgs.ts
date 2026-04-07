@@ -1,5 +1,6 @@
 import {RunJSCodeContext} from 'mmt-core/jsRunner';
 import * as runConfig from 'mmt-core/runConfig';
+import {findProjectRootSync, isProjectRootImport, resolveProjectRootImport} from 'mmt-core/fileHelper';
 
 import type {RunFileOptions} from 'mmt-core/runConfig';
 import * as path from 'path';
@@ -140,6 +141,7 @@ export async function parseAssistantRunArgs(
   const fileUri = vscode.Uri.file(
       path.isAbsolute(relPath) ? relPath : path.join(projectRoot, relPath));
   const dir = path.dirname(fileUri.fsPath);
+  const detectedProjectRoot = findProjectRootSync(fileUri.fsPath, fs.existsSync, path.dirname, path.join) ?? undefined;
   const data = await vscode.workspace.fs.readFile(fileUri);
   const rawText = Buffer.from(data).toString('utf8');
 
@@ -222,7 +224,12 @@ export async function parseAssistantRunArgs(
     envvar: mergedBaseEnv,
     manualEnvvars,
     fileLoader: async (p: string) => {
-      const abs = path.isAbsolute(p) ? p : path.join(dir, p);
+      let abs: string;
+      if (isProjectRootImport(p) && detectedProjectRoot) {
+        abs = resolveProjectRootImport(p, detectedProjectRoot);
+      } else {
+        abs = path.isAbsolute(p) ? p : path.join(dir, p);
+      }
       try {
         const buf = await vscode.workspace.fs.readFile(vscode.Uri.file(abs));
         return Buffer.from(buf).toString('utf8');
@@ -230,6 +237,7 @@ export async function parseAssistantRunArgs(
         return '';
       }
     },
+    projectRoot: detectedProjectRoot,
     jsRunner: async () => {},
     logger: logToOutput,
     reporter: (...args: any[]) => {},
