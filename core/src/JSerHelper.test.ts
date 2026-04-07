@@ -1,4 +1,4 @@
-import {normalizeTokenName, timeUnitToMs} from './JSerHelper';
+import {normalizeTokenName, timeUnitToMs, toInputsParams} from './JSerHelper';
 
 describe('normalizeTokenName', () => {
   test('converts camelCase to snake_case', () => {
@@ -56,5 +56,22 @@ describe('timeUnitToMs', () => {
 
   test('defaults to pass-through for unknown units', () => {
     expect(timeUnitToMs(42, 'x')).toBe(42);
+  });
+});
+
+describe('toInputsParams – env token handling', () => {
+  test('two <<e:VAR>> tokens separated by underscore', () => {
+    const result = toInputsParams({message: '<<e:base_url>>_<<e:base_url>>'}, ': ');
+    expect(result).toBe('message: `${envVariables.base_url}_${envVariables.base_url}`');
+  });
+
+  test('single <<e:VAR>> as full value returns bare reference', () => {
+    const result = toInputsParams({host: '<<e:base_url>>'}, ': ');
+    expect(result).toBe('host: envVariables.base_url');
+  });
+
+  test('e:VAR mixed with static text', () => {
+    const result = toInputsParams({url: 'https://<<e:host>>/api'}, ': ');
+    expect(result).toBe('url: `https://${envVariables.host}/api`');
   });
 });

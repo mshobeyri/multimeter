@@ -1,4 +1,4 @@
-import { replaceInputRefsWithBrace, replaceInputRefsWithNone, replaceAllRefs, normalizeEnvTokens, toTemplateWithEnvVars, replaceEnvTokensPlain, resolveEnvTokenValues, collectInputRefsFromObject } from './variableReplacer';
+import { replaceInputRefsWithBrace, replaceInputRefsWithNone, replaceAllRefs, normalizeEnvTokens, toTemplateWithEnvVars, toTemplateValueJs, replaceEnvTokensPlain, resolveEnvTokenValues, collectInputRefsFromObject } from './variableReplacer';
 
 describe('normalizeEnvTokens', () => {
   it('normalizes <<e:VAR>> to envVariables.VAR', () => {
@@ -85,6 +85,39 @@ describe('toTemplateWithEnvVars', () => {
   it('handles null/undefined gracefully', () => {
     expect(toTemplateWithEnvVars(null as any)).toBe('``');
     expect(toTemplateWithEnvVars(undefined as any)).toBe('``');
+  });
+});
+
+describe('toTemplateValueJs', () => {
+  it('full <<e:VAR>> returns bare envVariables reference', () => {
+    expect(toTemplateValueJs('<<e:HOST>>')).toBe('envVariables.HOST');
+  });
+
+  it('full e:VAR returns bare envVariables reference', () => {
+    expect(toTemplateValueJs('e:HOST')).toBe('envVariables.HOST');
+  });
+
+  it('full <<r:VAR>> returns bare random call', () => {
+    expect(toTemplateValueJs('<<r:email>>')).toBe("__mmt_random('email')");
+  });
+
+  it('full <<c:VAR>> returns bare current call', () => {
+    expect(toTemplateValueJs('<<c:timestamp>>')).toBe("__mmt_current('timestamp')");
+  });
+
+  it('two <<e:VAR>> tokens separated by underscore', () => {
+    expect(toTemplateValueJs('<<e:base_url>>_<<e:base_url>>'))
+        .toBe('`${envVariables.base_url}_${envVariables.base_url}`');
+  });
+
+  it('mixed env and static text', () => {
+    expect(toTemplateValueJs('https://<<e:host>>/api'))
+        .toBe('`https://${envVariables.host}/api`');
+  });
+
+  it('mixed e: and r: tokens', () => {
+    const result = toTemplateValueJs('<<e:host>>-<<r:email>>');
+    expect(result).toBe("`${envVariables.host}-${__mmt_random('email')}`");
   });
 });
 
@@ -276,5 +309,49 @@ describe('collectInputRefsFromObject', () => {
   it('skips numbers, booleans, and null', () => {
     const obj = { port: 8080, verbose: true, data: null };
     expect(collectInputRefsFromObject(obj)).toEqual([]);
+  });
+});
+
+describe('multiple template vars in one string', () => {
+  it('replaceAllRefs resolves mixed <<i:>> and <<e:>> in one string', () => {
+    const result = replaceAllRefs(
+      { msg: '<<i:greeting>>_<<e:host>>' },
+      {},
+      { greeting: 'hello' },
+      { host: 'example.com' },
+    );
+    expect(result.msg).toBe('hello_example.com');
+  });
+
+  it('replaceAllRefs preserves unresolved <<e:>> tokens', () => {
+    const result = replaceAllRefs(
+      { msg: '<<i:greeting>>_<<e:missing>>' },
+      {},
+      { greeting: 'hello' },
+      {},
+    );
+    expect(result.msg).toBe('hello_<<e:missing>>');
+  });
+
+  it('normalizeEnvTokens handles e:VAR after underscore', () => {
+    expect(normalizeEnvTokens('${msg}_e:HOST')).toBe('${msg}_envVariables.HOST');
+  });
+
+  it('resolveEnvTokenValues handles e:VAR after underscore', () => {
+    expect(resolveEnvTokenValues('hello_e:HOST', { HOST: 'localhost' })).toBe('hello_localhost');
+  });
+
+  it('replaceEnvTokensPlain handles e:VAR after underscore', () => {
+    expect(replaceEnvTokensPlain('${msg}_e:HOST')).toBe('${msg}_envVariables.HOST');
+  });
+
+  it('replaceAllRefs handles three tokens concatenated', () => {
+    const result = replaceAllRefs(
+      { val: '<<i:a>>-<<e:b>>-<<i:c>>' },
+      {},
+      { a: 'X', c: 'Z' },
+      { b: 'Y' },
+    );
+    expect(result.val).toBe('X-Y-Z');
   });
 });

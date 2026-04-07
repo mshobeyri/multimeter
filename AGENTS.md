@@ -24,8 +24,7 @@
   - `runner.ts`: orchestrates `.mmt` execution, builds API/test runners, and formats logs/docs.
   - `JSer.ts`, `testParsePack.ts`, `apiParsePack.ts`: turn YAML `.mmt` into executable JS flows.
   - `networkCore.ts`, `network.ts`, `NetworkData.ts`: HTTP/WebSocket client, message routing, and shared network config types.
-  - `outputExtractor.ts` + `pathAtPosition.test.ts`: JSON/XML/xpath/jsonpath/regex extraction and “path at cursor” helpers.
-- When extending behavior:
+  - `outputExtractor.ts` + `pathAtPosition.test.ts`: JSON/XML/xpath/jsonpath/regex extraction and “path at cursor” helpers.  - `variableReplacer.ts`: **single source of truth** for all token-matching regex and replacement logic. All regex patterns for `e:`, `i:`, `r:`, `c:` tokens live here. Other modules (`JSerHelper`, `JSerTestFlow`, `JSerAPI`, etc.) import helpers from `variableReplacer` — they must NOT define their own token-matching regexes.- When extending behavior:
   - First update the relevant data model types in `core/src/*Data.ts` (e.g. `APIData`, `TestData`, `NetworkConfig`).
   - Add/adjust unit tests in `core/src/*.test.ts` that cover the new pure logic.
 

@@ -25,7 +25,7 @@ export const normalizeEnvTokens = (s: string): string =>
         .replace(/<\s*e:([A-Za-z_][A-Za-z0-9_]*)\s*>/g, 'envVariables.$1')
         .replace(/\be:\{([A-Za-z_][A-Za-z0-9_]*)\}/g, 'envVariables.$1')
         .replace(
-            /\be:([A-Za-z_][A-Za-z0-9_]*)(?![A-Za-z0-9_])/g,
+            /(?<![a-zA-Z0-9])e:([A-Za-z_][A-Za-z0-9_]*)(?![A-Za-z0-9_])/g,
             'envVariables.$1');
 
 /**
@@ -34,10 +34,75 @@ export const normalizeEnvTokens = (s: string): string =>
  * Useful for short expressions like conditional checks.
  */
 export const replaceEnvTokensPlain = (s: string): string =>
-    s.replace(/\be:([A-Za-z_][A-Za-z0-9_]*)\b/g, 'envVariables.$1');
+    s.replace(/(?<![a-zA-Z0-9])e:([A-Za-z_][A-Za-z0-9_]*)(?![A-Za-z0-9_])/g, 'envVariables.$1');
 
 const escapeBackticks = (s: string): string =>
     String(s ?? '').replace(/`/g, '\\`');
+
+/**
+ * Replace all env-token syntaxes in `s` with `${envVariables.NAME}`.
+ * Order: most-delimited → least-delimited to avoid greedy capture on
+ * adjacent tokens separated by `_` or similar identifier characters.
+ */
+const replaceEnvTokensToJs = (s: string): string =>
+    s.replace(/<<\s*e:([A-Za-z_][A-Za-z0-9_]*)\s*>>/g, '${envVariables.$1}')
+        .replace(/<\s*e:([A-Za-z_][A-Za-z0-9_]*)\s*>/g, '${envVariables.$1}')
+        .replace(/\be:\{([A-Za-z_][A-Za-z0-9_]*)\}/g, '${envVariables.$1}')
+        .replace(
+            /(?<![a-zA-Z0-9])e:([A-Za-z_][A-Za-z0-9_]*)(?![A-Za-z0-9_])/g,
+            '${envVariables.$1}');
+
+/**
+ * Replace all r: / c: token syntaxes in `s` with runtime call expressions.
+ */
+const replaceRandCurrentTokensToJs = (s: string): string =>
+    s.replace(/<<r:([A-Za-z_][A-Za-z0-9_\-]*)>>/g, "${__mmt_random('$1')}")
+        .replace(
+            /\br:([A-Za-z_][A-Za-z0-9_\-]*)(?![A-Za-z0-9_\-])/g,
+            "${__mmt_random('$1')}")
+        .replace(/<<c:([A-Za-z_][A-Za-z0-9_\-]*)>>/g, "${__mmt_current('$1')}")
+        .replace(
+            /\bc:([A-Za-z_][A-Za-z0-9_\-]*)(?![A-Za-z0-9_\-])/g,
+            "${__mmt_current('$1')}");
+
+/**
+ * Convert a string value to a JS expression, resolving e:, r:, and c: tokens.
+ *
+ * If the **entire** string is a single token (e.g. `<<e:HOST>>`, `r:email`),
+ * returns a bare JS expression (`envVariables.HOST`, `__mmt_random('email')`).
+ * Otherwise returns a backtick template literal with `${…}` interpolations.
+ *
+ * Used by code-generation helpers to turn .mmt input values into JS.
+ */
+export function toTemplateValueJs(value: string): string {
+  const s = String(value ?? '');
+
+  // Full-match short-circuits: the entire value is one token → bare expression
+  const fullEnvAngle = /^<<e:([A-Za-z_][A-Za-z0-9_]*)>>$/;
+  const fullEnvPlain = /^e:([A-Za-z_][A-Za-z0-9_]*)$/;
+  const fullRandAngle = /^<<r:([A-Za-z_][A-Za-z0-9_\-]*)>>$/;
+  const fullRandPlain = /^r:([A-Za-z_][A-Za-z0-9_\-]*)$/;
+  const fullCurrAngle = /^<<c:([A-Za-z_][A-Za-z0-9_\-]*)>>$/;
+  const fullCurrPlain = /^c:([A-Za-z_][A-Za-z0-9_\-]*)$/;
+
+  let m = fullEnvAngle.exec(s) || fullEnvPlain.exec(s);
+  if (m && m[1]) {
+    return `envVariables.${m[1]}`;
+  }
+  m = fullRandAngle.exec(s) || fullRandPlain.exec(s);
+  if (m && m[1]) {
+    return `__mmt_random('${m[1]}')`;
+  }
+  m = fullCurrAngle.exec(s) || fullCurrPlain.exec(s);
+  if (m && m[1]) {
+    return `__mmt_current('${m[1]}')`;
+  }
+
+  // Partial occurrences → template literal
+  let result = replaceEnvTokensToJs(s);
+  result = replaceRandCurrentTokensToJs(result);
+  return '`' + escapeBackticks(result) + '`';
+}
 
 /**
  * Build a JS template literal that resolves env tokens at runtime.
@@ -46,22 +111,12 @@ const escapeBackticks = (s: string): string =>
  * - `"hello e:NAME"`   → `` `hello ${envVariables.NAME}` ``
  * - `"<<e:NAME>>"`     → `` `${envVariables.NAME}` ``
  *
- * Handles all env-token syntaxes, avoids double-wrapping of `${…}`, and
- * preserves existing `${…}` expressions (e.g. `${callId.result_code}`).
+ * Handles all env-token syntaxes and preserves existing `${…}` expressions
+ * (e.g. `${callId.result_code}`).
  */
 export const toTemplateWithEnvVars = (s: string): string => {
-  const src = String(s ?? '');
-  // Normalize env tokens to envVariables.NAME first
-  let withEnv = normalizeEnvTokens(src);
-  // Inject ${envVariables.NAME}, avoiding double-wrapping
-  withEnv = withEnv.replace(
-      /envVariables\.([A-Za-z_][A-Za-z0-9_]*)/g, (m, name, offset, str) => {
-        if (offset >= 2 && str[offset - 2] === '$' && str[offset - 1] === '{') {
-          return m;
-        }
-        return '${envVariables.' + name + '}';
-      });
-  // Collapse nested patterns if any
+  let withEnv = replaceEnvTokensToJs(String(s ?? ''));
+  // Collapse nested ${${...}} patterns if any
   withEnv = withEnv.replace(
       /\$\{\s*\$\{\s*envVariables\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\s*\}/g,
       '${envVariables.$1}');
@@ -83,7 +138,7 @@ export const resolveEnvTokenValues =
           .replace(/<<\s*e:([A-Za-z0-9_]+)\s*>>/g, resolver)
           .replace(/<\s*e:([A-Za-z0-9_]+)\s*>/g, resolver)
           .replace(/\be:\{([A-Za-z0-9_]+)\}/g, resolver)
-          .replace(/\be:([A-Za-z0-9_]+)(?![A-Za-z0-9_])/g, resolver);
+          .replace(/(?<![a-zA-Z0-9])e:([A-Za-z0-9_]+)(?![A-Za-z0-9_])/g, resolver);
     };
 
 // Replacement modes enum
@@ -209,8 +264,8 @@ function replaceRefs(
         // Return the original type for complete string replacement
         return found;
       }
-      // If not found, return the key literal
-      return key;
+      // If not found, preserve the original token text
+      return obj;
     }
 
     // For partial replacements or multiple matches, convert to string.
@@ -235,7 +290,7 @@ function replaceRefs(
         found = resolver(key);
       }
       if (found === undefined) {
-        return key;
+        return match;
       }
       return String(found);
     });
