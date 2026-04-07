@@ -24,6 +24,8 @@ export interface RunJSCodeContext {
   serverRunner?: ServerRunner;
   /** When true, do not stop servers after execution. Suite runners set this. */
   skipServerCleanup?: boolean;
+  /** Base directory for resolving relative paths (e.g. gRPC proto files). */
+  basePath?: string;
 }
 
 const REPORTER_KEY = '__mmtReportStep';
@@ -177,7 +179,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       const {sendGrpcRequest} = await import('./grpcCore.js');
       const config = getRunnerNetworkConfig();
       const loader = context.fileLoader || (async () => { throw new Error('File loader not available'); });
-      return sendGrpcRequest(req, config, loader);
+      return sendGrpcRequest(req, config, loader, context.basePath);
     };
     const returnValue = await fn(
         mmtHelper, customConsole, sendFn, sendGrpcFn, extractOutputs, Random,

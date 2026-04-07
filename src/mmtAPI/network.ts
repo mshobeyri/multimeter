@@ -426,5 +426,5 @@ export function handleNetworkMessage(
   };
 
   // Call the core handler with prepared config and postMessage
-  coreHandleNetworkMessage(message, config, postMessage, { fileLoader });
+  coreHandleNetworkMessage(message, config, postMessage, { fileLoader, basePath: baseDir });
 }

@@ -163,7 +163,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
           <div style={{ padding: "5px", position: "relative" }}>
             <BodyView
               value={data.graphql?.operation || ""}
-              format="text"
+              format="graphql"
               mode="appliable"
               onChange={val => {
                 onChange({ ...data, graphql: { ...data.graphql, operation: val } as any });
@@ -258,22 +258,14 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
               <option value="bidi">Bidirectional streaming</option>
             </select>
           </div>
-          <div className="label">Message</div>
-          <div style={{ padding: "5px", position: "relative" }}>
-            <BodyView
-              value={data.grpc?.message ? JSON.stringify(data.grpc.message, null, 2) : ""}
-              format="json"
-              mode="appliable"
-              onChange={val => {
-                try {
-                  const parsed = val.trim() ? JSON.parse(val) : undefined;
-                  onChange({ ...data, grpc: { ...data.grpc, service: data.grpc?.service || "", method: data.grpc?.method || "", message: parsed } });
-                } catch {
-                  // Keep raw value — user is still typing
-                }
-              }}
-            />
-          </div>
+          <KSVEditor
+            label="Message"
+            value={(data.grpc?.message as Record<string, string>) ?? {}}
+            onChange={msg => {
+              const message = Object.keys(msg).length ? msg : undefined;
+              onChange({ ...data, grpc: { ...data.grpc, service: data.grpc?.service || "", method: data.grpc?.method || "", message } });
+            }}
+          />
         </>
       )}
 

@@ -510,7 +510,8 @@ export async function executeApi(
   });
   const result = await runGeneratedJs(
       'run-api', js, displayName, options.logger, jsRunner, undefined,
-      (options as any).id, fileLoader);
+      (options as any).id, fileLoader, undefined, undefined, undefined, undefined,
+      prepared.filePath ? prepared.filePath.split(/[/\\]/).slice(0, -1).join('/') : undefined);
   if (preLogs.length) {
     result.logs = [...preLogs.map(l => l.message), ...(result.logs ?? [])];
   }

@@ -77,7 +77,8 @@ export async function runGeneratedJs(
   reporter?: (event: Record<string, any>) => void,
   abortSignal?: AbortSignal,
   traceSend?: boolean,
-  skipServerCleanup?: boolean): Promise<RunResult> {
+  skipServerCleanup?: boolean,
+  basePath?: string): Promise<RunResult> {
   const start = Date.now();
   const errors: string[] = [];
   const logs: string[] = [];
@@ -112,6 +113,7 @@ export async function runGeneratedJs(
       abortSignal,
       traceSend,
       skipServerCleanup,
+      basePath,
     });
 
     const outputs = returnValue && typeof returnValue === 'object' ? returnValue : undefined;

@@ -20,6 +20,42 @@ interface TextEditorProps {
 
 const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
 
+let graphqlRegistered = false;
+function registerGraphQLLanguage(monaco: any) {
+  if (graphqlRegistered) { return; }
+  graphqlRegistered = true;
+  monaco.languages.register({ id: "graphql" });
+  monaco.languages.setMonarchTokensProvider("graphql", {
+    keywords: ["query", "mutation", "subscription", "fragment", "on", "type", "input", "enum",
+      "scalar", "interface", "union", "extend", "implements", "directive", "schema",
+      "true", "false", "null"],
+    typeKeywords: ["Int", "Float", "String", "Boolean", "ID"],
+    tokenizer: {
+      root: [
+        [/#.*$/, "comment"],
+        [/"([^"\\]|\\.)*"/, "string"],
+        [/"""/, "string", "@blockString"],
+        [/\$\w+/, "variable"],
+        [/@\w+/, "annotation"],
+        [/[{}()\[\]]/, "delimiter.bracket"],
+        [/[!:=|&]/, "delimiter"],
+        [/\b\d+\b/, "number"],
+        [/[a-zA-Z_]\w*/, {
+          cases: {
+            "@keywords": "keyword",
+            "@typeKeywords": "type",
+            "@default": "identifier"
+          }
+        }],
+      ],
+      blockString: [
+        [/"""/, "string", "@pop"],
+        [/./, "string"],
+      ],
+    },
+  });
+}
+
 const TextEditor: React.FC<TextEditorProps> = ({
   content,
   setContent,
@@ -207,6 +243,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
       beforeMount={monaco => {
         monacoRefToUse.current = monaco;
         defineTheme(monaco);
+        registerGraphQLLanguage(monaco);
         beforeMount?.(monaco);
       }}
       onMount={editorDidMount}

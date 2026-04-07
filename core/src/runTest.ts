@@ -104,7 +104,8 @@ export async function executeTest(
     const result = await runGeneratedJs(
       runId, js, displayName, options.logger, options.jsRunner, stepReporter,
       (options as any).id, options.fileLoader, setenvReporter,
-      options.abortSignal, true, options.skipServerCleanup);
+      options.abortSignal, true, options.skipServerCleanup,
+      prepared.filePath ? prepared.filePath.split(/[/\\]/).slice(0, -1).join('/') : undefined);
   if (forwardReporter) {
     if (result.outputs && typeof result.outputs === 'object' && Object.keys(result.outputs).length > 0) {
       const outputsEvent: TestOutputsReporterEvent = {

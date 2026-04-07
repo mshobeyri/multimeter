@@ -16,6 +16,9 @@ export function resolveProtocolFromUrl(url: string|undefined|null): Protocol {
   if (trimmed.startsWith('ws://') || trimmed.startsWith('wss://')) {
     return 'ws';
   }
+  if (trimmed.startsWith('grpc://') || trimmed.startsWith('grpcs://')) {
+    return 'grpc';
+  }
   return 'http';
 }
 

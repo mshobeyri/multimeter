@@ -74,6 +74,7 @@ export type PostMessage = (msg: any) => void;
 
 export interface NetworkHandlerOptions {
   fileLoader?: (path: string) => Promise<string>;
+  basePath?: string;
 }
 
 export function handleNetworkMessage(
@@ -246,7 +247,7 @@ export function handleNetworkMessage(
             stream: stream as any,
           };
           const fileLoader = options?.fileLoader || (async () => { throw new Error('File loader not available'); });
-          const response = await sendGrpcRequest(grpcReq, config, fileLoader);
+          const response = await sendGrpcRequest(grpcReq, config, fileLoader, options?.basePath);
           postMessage({
             command: 'network',
             action: 'grpc-response',

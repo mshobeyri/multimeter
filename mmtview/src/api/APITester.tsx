@@ -267,7 +267,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
             <div className="apitest-body-wrapper">
               <BodyView
                 value={requestData?.graphql?.operation || api.graphql?.operation || ""}
-                format="text"
+                format="graphql"
                 mode="live"
                 onChange={val => {
                   updateField("graphql", { ...requestData?.graphql, ...api.graphql, operation: val });
@@ -313,25 +313,14 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
                 />
               </div>
             </div>
-            <div className="label">Message</div>
-            <div className="apitest-body-wrapper">
-              <BodyView
-                value={(() => {
-                  const msg = requestData?.grpc?.message ?? api.grpc?.message;
-                  return msg ? JSON.stringify(msg, null, 2) : "";
-                })()}
-                format="json"
-                mode="live"
-                onChange={val => {
-                  try {
-                    const parsed = val.trim() ? JSON.parse(val) : undefined;
-                    updateField("grpc", { ...requestData?.grpc, ...api.grpc, message: parsed });
-                  } catch {
-                    // user still typing
-                  }
-                }}
-              />
-            </div>
+            <KSVEditor
+              label="Message"
+              value={(requestData?.grpc?.message ?? api.grpc?.message ?? {}) as Record<string, string>}
+              onChange={msg => {
+                const message = Object.keys(msg).length ? msg : undefined;
+                updateField("grpc", { ...requestData?.grpc, ...api.grpc, message });
+              }}
+            />
           </>
         )}
 

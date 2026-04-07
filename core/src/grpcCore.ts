@@ -1,5 +1,6 @@
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
+import * as path from 'path';
 
 import {GrpcRequest, GrpcResponse, NetworkConfig} from './NetworkData';
 
@@ -282,13 +283,11 @@ function buildPackageDefinitionFromService(
  */
 async function loadProtoFromFile(
   protoPath: string,
-  fileLoader: (path: string) => Promise<string>,
+  basePath?: string,
 ): Promise<protoLoader.PackageDefinition> {
-  // protoLoader.load expects a file system path, but core must be platform-neutral.
-  // The protoPath should be an absolute path resolved by the caller.
-  // We use protoLoader.load directly since it uses fs internally
-  // and the caller (extension/CLI) ensures the path is valid.
-  return protoLoader.load(protoPath, {
+  // Resolve relative paths against the base directory (usually the .mmt file's directory)
+  const resolvedPath = path.isAbsolute(protoPath) ? protoPath : path.resolve(basePath || '.', protoPath);
+  return protoLoader.load(resolvedPath, {
     keepCase: true,
     longs: String,
     enums: String,
@@ -321,6 +320,7 @@ export async function sendGrpcRequest(
   req: GrpcRequest,
   config: NetworkConfig,
   fileLoader: (path: string) => Promise<string>,
+  basePath?: string,
 ): Promise<GrpcResponse> {
   const start = Date.now();
   const { host, port, tls } = parseGrpcUrl(req.url);
@@ -332,7 +332,7 @@ export async function sendGrpcRequest(
   if (protoSource === 'reflect') {
     grpcObj = await reflectServiceDefinition(channel, req.service);
   } else {
-    const pkgDef = await loadProtoFromFile(protoSource, fileLoader);
+    const pkgDef = await loadProtoFromFile(protoSource, basePath);
     grpcObj = grpc.loadPackageDefinition(pkgDef);
   }
 
@@ -341,9 +341,23 @@ export async function sendGrpcRequest(
     throw new Error(`Service "${req.service}" not found in proto definition`);
   }
 
-  const credentials = tls
-    ? grpc.credentials.createSsl()
-    : grpc.credentials.createInsecure();
+  // Build credentials matching what getOrCreateChannel uses
+  let credentials: grpc.ChannelCredentials;
+  if (tls) {
+    const rootCerts = config.ca?.enabled && config.ca.certData
+      ? (Array.isArray(config.ca.certData) ? Buffer.concat(config.ca.certData) : config.ca.certData)
+      : null;
+    const clientCert = config.clients?.find(
+      (c: any) => c.enabled && (c.host === host || host.includes(c.host) || c.host === '*')
+    );
+    if (clientCert?.certData && clientCert?.keyData) {
+      credentials = grpc.credentials.createSsl(rootCerts, clientCert.keyData, clientCert.certData);
+    } else {
+      credentials = grpc.credentials.createSsl(rootCerts);
+    }
+  } else {
+    credentials = grpc.credentials.createInsecure();
+  }
   const client = new ServiceClient(`${host}:${port}`, credentials);
 
   // Build metadata from headers + auth
