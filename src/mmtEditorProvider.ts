@@ -14,6 +14,10 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
       new Map();
   private diagnostics: vscode.DiagnosticCollection;
   public readonly historyManager: HistoryManager;
+  // Tracks pending webview-initiated edits per document URI so that the
+  // onDidChangeTextDocument listener can distinguish external changes (undo,
+  // revert) from changes the webview itself requested.
+  private _webviewEditCount: Map<string, number> = new Map();
 
   // Static method to get the provider instance
   public static getInstance(): MmtEditorProvider|null {
@@ -130,18 +134,56 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
       messageReceived(message, webviewPanel, document, this);
     });
 
+    // Sync external document changes (undo, revert/discard) back to the
+    // webview so it never holds stale content.
+    const changeDocumentSubscription =
+        vscode.workspace.onDidChangeTextDocument(e => {
+          if (e.document.uri.toString() !== document.uri.toString()) {
+            return;
+          }
+          const key = document.uri.toString();
+          const count = this._webviewEditCount.get(key) || 0;
+          if (count > 0) {
+            // This change was initiated by the webview – skip the echo.
+            this._webviewEditCount.set(key, count - 1);
+            return;
+          }
+          // External change (undo, revert, etc.) – push new content.
+          webviewPanel.webview.postMessage({
+            command: 'documentContentChanged',
+            content: document.getText(),
+          });
+        });
+
     const themeListener = vscode.window.onDidChangeActiveColorTheme(() => {
       webviewPanel.webview.postMessage({type: 'vscode:changeColorTheme'});
     });
-    webviewPanel.onDidDispose(() => { themeListener.dispose(); });
+    webviewPanel.onDidDispose(() => {
+      changeDocumentSubscription.dispose();
+      themeListener.dispose();
+    });
   }
 
   updateTextDocument(document: vscode.TextDocument, text: string) {
+    if (document.getText() === text) {
+      return Promise.resolve(true);
+    }
+    const key = document.uri.toString();
+    this._webviewEditCount.set(
+        key, (this._webviewEditCount.get(key) || 0) + 1);
     const edit = new vscode.WorkspaceEdit();
     const fullRange = new vscode.Range(
         document.positionAt(0), document.positionAt(document.getText().length));
     edit.replace(document.uri, fullRange, text);
-    return vscode.workspace.applyEdit(edit);
+    return vscode.workspace.applyEdit(edit).then(applied => {
+      if (!applied) {
+        const current = this._webviewEditCount.get(key) || 0;
+        if (current > 0) {
+          this._webviewEditCount.set(key, current - 1);
+        }
+      }
+      return applied;
+    });
   }
 }
 

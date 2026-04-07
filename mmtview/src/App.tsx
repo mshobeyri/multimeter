@@ -92,6 +92,26 @@ const App: React.FC = () => {
         }
       }
 
+      // External document change (undo / revert) – update content without
+      // echoing an updateDocumentContent message back to the extension.
+      if (message.command === "documentContentChanged") {
+        setContent(prev => {
+          if (prev === message.content) {
+            return prev;
+          }
+          isInitLoad.current = true;
+          return message.content;
+        });
+        try {
+          const parsed = parseYaml(message.content);
+          if (parsed) {
+            setValidContent(message.content);
+          }
+        } catch {
+          // keep previous validContent
+        }
+      }
+
       if (message.command === "multimeter.mmt.show.panel") {
         if (message.panelId === "full") {
           setPanelMode("full");
