@@ -310,57 +310,10 @@ async function handleChatRequest(
     }
   }
 
-  // User-facing docs (paths only, content is not preloaded into the prompt)
-  const docMap: {[key: string]: string} = {
-    testgenai: 'testgen-profile-ai.md',
-    testgen: 'testgen-profile.md',
-    environment: 'environment-mmt.md',
-    api: 'api-mmt.md',
-    doc: 'doc-mmt.md',
-  };
-
-  // AI control docs that are always embedded in the base prompt
-  const aiDocFiles = [
-    'AI/general.md',
-    'AI/generate.md',
-    'AI/generate-api.md',
-    'AI/generate-test.md',
-    'AI/generate-env.md',
-    'AI/generate-doc.md',
-  ];
-
-  const aiDocsContent: {[file: string]: string} = {};
-  for (const rel of aiDocFiles) {
-    const uri = vscode.Uri.joinPath(context.extensionUri, 'docs', rel);
-    try {
-      const data = await vscode.workspace.fs.readFile(uri);
-      aiDocsContent[rel] = Buffer.from(data).toString('utf8');
-    } catch (err) {
-      console.warn(`[multimeter:${id}] failed to read AI doc ${rel}`, err);
-      aiDocsContent[rel] = '';
-    }
-  }
-
-  const aiDocsJoined = Object.entries(aiDocsContent)
-                            .map(([fname, content]) => `--- ${fname} ---\n${content}`)
-                            .join('\n\n');
-
-  const docPathHints = Object.entries(docMap)
-                            .map(([key, file]) => `${key}: docs/${file}`)
-                            .join('\n');
-
   // Base prompt: instruct the model
   const BASE_PROMPT = `
-You are the Multimeter Test Generation Assistant.
-
-You are given the following AI control documents (read them first and follow them strictly):
-${aiDocsJoined}
-
-You also have these user documentation files available by path (content is NOT in the prompt by default):
-${docPathHints}
-
-Use the AI docs to decide how to answer and when to generate or edit .mmt files. Refer to the user docs by path only when deeper prose is truly needed.
-
+You are the Multimeter (.mmt) Test Generation Assistant.
+Multimeter documentation is available at https://github.com/mshobeyri/multimeter/tree/dev/docs. Before answering questions or generating .mmt files, read the relevant docs you need from the repository.
 Please be concise, deterministic, and avoid placeholders unless unavoidable.
 `;
 
