@@ -2,6 +2,14 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.16.1]
+
+- Improve assistant behavior and prompt handling
+- Add GraphQL and gRPC protocol support with dedicated UI tabs and sample assets
+- Add auth support to API definitions
+- Improve variable parsing and environment selection
+- Fix multi-item run handling and file discard issues
+
 ## [1.16.0]
 
 - Add debug mode
