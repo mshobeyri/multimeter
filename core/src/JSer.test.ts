@@ -455,6 +455,17 @@ describe('env token replacements in generated JS', () => {
        expect(out).toContain('envVariables.FLAG');
        expect(out).not.toContain('${envVariables.FLAG}');
      });
+
+  it('supports env accessor syntax inside and outside template literals', () => {
+    const input = [
+      'const a = e:AAA[0:1];',
+      'const b = `X=<<e:FOO[0]>> Y=<<e:BAR[0:2]>>`;'
+    ].join('\n');
+    const out = variableReplacer(input);
+    expect(out).toContain('const a = __mmt_access(envVariables.AAA, "[0:1]");');
+    expect(out).toContain('${__mmt_access(envVariables.FOO, "[0]")}');
+    expect(out).toContain('${__mmt_access(envVariables.BAR, "[0:2]")}');
+  });
 });
 
 describe('toInputsParams env token handling', () => {

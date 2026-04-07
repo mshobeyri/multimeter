@@ -44,19 +44,26 @@ Supported token forms in tests and APIs:
 What to use when
 - Use `<<e:VAR>>` when you want substitution anywhere in a string (inside URLs, headers, or other text).
 - Use `e:VAR` only when it appears as the entire value after `: `; types are preserved (numbers, booleans, strings).
+- You can append **accessors** to either form when you need only part of the value:
+  - `<<e:token[0]>>` — first character / item
+  - `<<e:token[0:6]>>` — string or array slice (end-exclusive)
+  - `<<e:user.name>>` — property access
 
 Notes
 - `e:VAR` is not replaced inside plain text like `hi:e:VAR there`; it must follow `: `.
 - `{{VAR}}` is not supported — use `<<e:VAR>>` or `e:VAR` instead.
+- Slice form `[start:end]` uses normal JS `slice(start, end)` semantics.
 
 Examples:
 ```yaml
 url: <<e:api_url>>/login
 headers:
   Authorization: Bearer <<e:token>>
+  X-Token-Prefix: <<e:token[0:6]>>
 body:
   username: e:user
   password: e:pass
+  first_letter: <<e:user[0]>>
 ```
 
 ## Using presets and overrides in CLI

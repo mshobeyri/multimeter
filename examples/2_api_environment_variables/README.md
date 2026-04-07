@@ -8,7 +8,7 @@ This example shows how to use **environment variables** in `.mmt` API files so y
 |---|---|
 | `multimeter.mmt` | Defines `base_url` and `custom_header` variables with `local` / `cloud` presets |
 | `get_json.mmt` | GET request using `<<e:base_url>>/json` |
-| `post_echo.mmt` | POST request using `<<e:base_url>>/echo` |
+| `post_echo.mmt` | POST request using `<<e:base_url>>/echo` plus env accessors like `<<e:custom_header[0:5]>>` |
 
 ## How to use
 
@@ -47,6 +47,7 @@ npx testlight run examples/2_api_environment_variables/get_json.mmt \
 
 - **`e:var`** — reference an env variable as the entire value (preserves type).
 - **`<<e:var>>`** — embed an env variable inside a string (e.g., a URL).
+- **Accessors** — append `[0]`, `[0:5]`, or `.field` when you need only part of the env value.
 - **Presets** — named groups of variable overrides you can switch between.
 
 See [Environment docs](../../docs/environment-mmt.md) for full details.

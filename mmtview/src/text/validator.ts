@@ -1098,49 +1098,55 @@ export type InputRefSiteInfo = {
   line: number;
 };
 
+// Keep these viewer-side patterns in sync with `core/src/variableReplacer.ts`.
+const TOKEN_NAME_RE = '[A-Za-z_][A-Za-z0-9_\\-]*';
+const ACCESSOR_SEGMENT_RE =
+  '(?:\\.[A-Za-z_][A-Za-z0-9_]*|\\[(?:-?\\d+(?::-?\\d*)?|[A-Za-z_][A-Za-z0-9_]*)\\])';
+const ACCESSOR_PATH_RE = `${ACCESSOR_SEGMENT_RE}*`;
+
+const INPUT_REF_BRACE_RE = new RegExp(`<<\\s*i:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>`, 'g');
+const INPUT_REF_PLAIN_RE = new RegExp(`(?<![A-Za-z0-9])i:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})(?![A-Za-z0-9_])`, 'g');
+const ENV_REF_BRACE_RE = new RegExp(`<<\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>`, 'g');
+const ENV_REF_SINGLE_ANGLE_RE = new RegExp(`<\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>`, 'g');
+const ENV_REF_CURLY_RE = new RegExp(`(?<![A-Za-z0-9])e:\\{(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\}`, 'g');
+const ENV_REF_PLAIN_RE = new RegExp(`(?<![A-Za-z0-9])e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})(?![A-Za-z0-9_])`, 'g');
+
 /**
  * Scan the raw YAML content for `i:xxx` and `<<i:xxx>>` references and
- * return their positions. We match:
- *   - `<<i:name>>` — brace-wrapped form
- *   - `i:name`     — plain form (word-boundary delimited)
+ * return their positions. Accessor forms like `<<i:name[0]>>` and
+ * `i:user.name` are also recognised.
  *
  * Comment lines (starting with `#`) are skipped.
  */
 export function extractInputRefSites(content: string): InputRefSiteInfo[] {
   const results: InputRefSiteInfo[] = [];
 
-  // Match <<i:name>> — capture the full `i:name` and just `name`
-  const braceRe = /<<\s*i:([a-zA-Z_][a-zA-Z0-9_]*)\s*>>/g;
   let m: RegExpExecArray | null;
-  while ((m = braceRe.exec(content)) !== null) {
+  while ((m = INPUT_REF_BRACE_RE.exec(content)) !== null) {
     const name = m[1];
+    const accessor = m[2] || '';
     const fullMatchOffset = m.index;
     const line = offsetToLineNumber(content, fullMatchOffset);
-    // Check if this is on a comment line
     const lineStart = content.lastIndexOf('\n', fullMatchOffset) + 1;
     const linePrefix = content.slice(lineStart, fullMatchOffset).trimStart();
     if (linePrefix.startsWith('#')) {
       continue;
     }
-    // Underline just the `i:name` portion inside `<<i:name>>`
-    const innerOffset = content.indexOf('i:' + name, fullMatchOffset);
+    const tokenText = 'i:' + name + accessor;
+    const innerOffset = content.indexOf(tokenText, fullMatchOffset);
     const underlineOffset = innerOffset >= 0 ? innerOffset : fullMatchOffset;
-    const underlineLength = innerOffset >= 0 ? ('i:' + name).length : m[0].length;
+    const underlineLength = innerOffset >= 0 ? tokenText.length : m[0].length;
     results.push({ name, offset: underlineOffset, length: underlineLength, line });
   }
 
-  // Match plain i:name (word-boundary delimited, not inside << >>)
-  const plainRe = /\bi:([a-zA-Z_][a-zA-Z0-9_]*)\b/g;
-  while ((m = plainRe.exec(content)) !== null) {
+  while ((m = INPUT_REF_PLAIN_RE.exec(content)) !== null) {
     const name = m[1];
     const fullMatchOffset = m.index;
-    // Skip if this is inside a <<...>> (already handled above)
     const before = content.slice(Math.max(0, fullMatchOffset - 10), fullMatchOffset);
     if (/<<\s*$/.test(before)) {
       continue;
     }
     const line = offsetToLineNumber(content, fullMatchOffset);
-    // Check if this is on a comment line
     const lineStart = content.lastIndexOf('\n', fullMatchOffset) + 1;
     const linePrefix = content.slice(lineStart, fullMatchOffset).trimStart();
     if (linePrefix.startsWith('#')) {
@@ -1240,74 +1246,63 @@ export type EnvRefSiteInfo = {
 
 /**
  * Scan the raw YAML content for `e:xxx`, `<<e:xxx>>`, `<e:xxx>`, and `e:{xxx}`
- * references and return their positions.
+ * references and return their positions. Accessor forms like `[0]`, `[0:3]`,
+ * and `.field` are also recognised.
  * Comment lines (starting with `#`) are skipped.
  */
 export function extractEnvRefSites(content: string): EnvRefSiteInfo[] {
   const results: EnvRefSiteInfo[] = [];
-  const seen = new Set<number>(); // track offsets to avoid duplicates
+  const seen = new Set<number>();
 
   function isCommentLine(offset: number): boolean {
     const lineStart = content.lastIndexOf('\n', offset) + 1;
     return content.slice(lineStart, offset).trimStart().startsWith('#');
   }
 
-  // Match <<e:NAME>> — brace-wrapped
-  const braceRe = /<<\s*e:([A-Za-z_][A-Za-z0-9_]*)\s*>>/g;
   let m: RegExpExecArray | null;
-  while ((m = braceRe.exec(content)) !== null) {
+  while ((m = ENV_REF_BRACE_RE.exec(content)) !== null) {
     if (isCommentLine(m.index)) {
       continue;
     }
     const name = m[1];
-    // Underline the `e:NAME` portion
-    const innerOffset = content.indexOf('e:' + name, m.index);
+    const accessor = m[2] || '';
+    const tokenText = 'e:' + name + accessor;
+    const innerOffset = content.indexOf(tokenText, m.index);
     const underlineOffset = innerOffset >= 0 ? innerOffset : m.index;
-    const underlineLength = innerOffset >= 0 ? ('e:' + name).length : m[0].length;
+    const underlineLength = innerOffset >= 0 ? tokenText.length : m[0].length;
     seen.add(underlineOffset);
     results.push({ name, offset: underlineOffset, length: underlineLength, line: offsetToLineNumber(content, m.index) });
   }
 
-  // Match <e:NAME> — single-angle
-  const singleAngleRe = /<\s*e:([A-Za-z_][A-Za-z0-9_]*)\s*>/g;
-  while ((m = singleAngleRe.exec(content)) !== null) {
+  while ((m = ENV_REF_SINGLE_ANGLE_RE.exec(content)) !== null) {
     if (isCommentLine(m.index)) {
       continue;
     }
-    // Skip if already covered by <<...>>
-    const innerOffset = content.indexOf('e:' + m[1], m.index);
+    const name = m[1];
+    const accessor = m[2] || '';
+    const tokenText = 'e:' + name + accessor;
+    const innerOffset = content.indexOf(tokenText, m.index);
     const offset = innerOffset >= 0 ? innerOffset : m.index;
     if (seen.has(offset)) {
       continue;
     }
     seen.add(offset);
-    const underlineLength = innerOffset >= 0 ? ('e:' + m[1]).length : m[0].length;
-    results.push({ name: m[1], offset, length: underlineLength, line: offsetToLineNumber(content, m.index) });
+    const underlineLength = innerOffset >= 0 ? tokenText.length : m[0].length;
+    results.push({ name, offset, length: underlineLength, line: offsetToLineNumber(content, m.index) });
   }
 
-  // Match e:{NAME}
-  const curlyRe = /\be:\{([A-Za-z_][A-Za-z0-9_]*)\}/g;
-  while ((m = curlyRe.exec(content)) !== null) {
-    if (isCommentLine(m.index)) {
-      continue;
-    }
-    if (seen.has(m.index)) {
+  while ((m = ENV_REF_CURLY_RE.exec(content)) !== null) {
+    if (isCommentLine(m.index) || seen.has(m.index)) {
       continue;
     }
     seen.add(m.index);
     results.push({ name: m[1], offset: m.index, length: m[0].length, line: offsetToLineNumber(content, m.index) });
   }
 
-  // Match plain e:NAME (word-boundary delimited)
-  const plainRe = /\be:([A-Za-z_][A-Za-z0-9_]*)\b/g;
-  while ((m = plainRe.exec(content)) !== null) {
-    if (isCommentLine(m.index)) {
+  while ((m = ENV_REF_PLAIN_RE.exec(content)) !== null) {
+    if (isCommentLine(m.index) || seen.has(m.index)) {
       continue;
     }
-    if (seen.has(m.index)) {
-      continue;
-    }
-    // Skip if inside << >> or < > or e:{}
     const before = content.slice(Math.max(0, m.index - 10), m.index);
     if (/<<\s*$/.test(before) || /<\s*$/.test(before)) {
       continue;

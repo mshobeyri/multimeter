@@ -110,6 +110,16 @@ describe('toTemplateValueJs', () => {
         .toBe('`${envVariables.base_url}_${envVariables.base_url}`');
   });
 
+  it('supports env index access in full-token form', () => {
+    expect(toTemplateValueJs('<<e:HOST[0]>>'))
+        .toBe('__mmt_access(envVariables.HOST, "[0]")');
+  });
+
+  it('supports env slice access inside template values', () => {
+    expect(toTemplateValueJs('https://<<e:HOST[0:3]>>/api'))
+        .toBe('`https://${__mmt_access(envVariables.HOST, "[0:3]")}/api`');
+  });
+
   it('mixed env and static text', () => {
     expect(toTemplateValueJs('https://<<e:host>>/api'))
         .toBe('`https://${envVariables.host}/api`');
@@ -154,6 +164,12 @@ describe('resolveEnvTokenValues', () => {
   it('resolves mixed known and unknown tokens', () => {
     const env = { HOST: 'api.local' };
     expect(resolveEnvTokenValues('http://e:HOST:e:PORT/path', env)).toBe('http://api.local:e:PORT/path');
+  });
+
+  it('supports accessor syntax on env values', () => {
+    const env = { TOKEN: 'abcdef', user: {name: 'mehrdad'} } as any;
+    expect(resolveEnvTokenValues('<<e:TOKEN[0:3]>>', env)).toBe('abc');
+    expect(resolveEnvTokenValues('hello <<e:user.name>>', env)).toBe('hello mehrdad');
   });
 });
 
@@ -242,6 +258,28 @@ describe('variableReplacer', () => {
     expect(out.body).toBe('username: envValue');
   });
 
+  it('supports string index and slice access on input values', () => {
+    const defaults = { message: 'hello' } as any;
+    const iface = {
+      first: '<<i:message[0]>>',
+      short: '<<i:message[0:2]>>',
+      body: 'value: i:message[1:4]'
+    } as any;
+    const out = replaceAllRefs(iface, defaults, {}, {} as any);
+    expect(out).toEqual({ first: 'h', short: 'he', body: 'value: ell' });
+  });
+
+  it('supports env index and property access', () => {
+    const envs = { TOKEN: 'abc123', user: {name: 'mehrdad'} } as any;
+    const iface = {
+      first: '<<e:TOKEN[0]>>',
+      prefix: 'Bearer <<e:TOKEN[0:3]>>',
+      userName: '<<e:user.name>>'
+    } as any;
+    const out = replaceAllRefs(iface, {}, {}, envs);
+    expect(out).toEqual({ first: 'a', prefix: 'Bearer abc', userName: 'mehrdad' });
+  });
+
   it('resolves chained i: -> e: in nested objects', () => {
     const defaults = { user: 'e:USER', pass: 'e:PASS' } as any;
     const inputs = {} as any;
@@ -299,6 +337,11 @@ describe('collectInputRefsFromObject', () => {
   it('deduplicates repeated references', () => {
     const obj = { a: 'i:name', b: '<<i:name>>' };
     expect(collectInputRefsFromObject(obj)).toEqual(['name']);
+  });
+
+  it('collects base input names from accessor forms', () => {
+    const obj = { a: '<<i:name[0:1]>>', b: 'user: i:profile.name' };
+    expect(collectInputRefsFromObject(obj).sort()).toEqual(['name', 'profile']);
   });
 
   it('does not match non-input prefixes like e: or r:', () => {

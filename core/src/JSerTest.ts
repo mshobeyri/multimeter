@@ -5,7 +5,12 @@ import {indentLines, toInputsParams, toLowerUnderscore} from './JSerHelper';
 import {importsToJsfunc} from './JSerImports';
 import {flowToJsFunc} from './JSerTestFlow';
 import {TestData} from './TestData';
-import {collectInputRefsFromObject, normalizeEnvTokens, replaceAllRefs} from './variableReplacer';
+import {
+  collectInputRefsFromObject,
+  normalizeEnvTokens,
+  replaceAllRefs,
+  toTemplateWithEnvVars,
+} from './variableReplacer';
 
 export interface TestContext {
   test: TestData, name: string, inputs: JSONRecord, envVars: JSONRecord,
@@ -186,15 +191,8 @@ export const variableReplacer = (full: string): string => {
   const replaceOutside = normalizeEnvTokens;
 
   const replaceInsideTpl = (s: string) => {
-    // Normalize to plain references first, then wrap each in ${…}
-    const normalized = normalizeEnvTokens(s);
-    return normalized.replace(
-        /envVariables\.([A-Za-z_][A-Za-z0-9_]*)/g, (m, name, offset, str) => {
-          if (offset >= 2 && str[offset - 2] === '$' && str[offset - 1] === '{') {
-            return m;
-          }
-          return '${envVariables.' + name + '}';
-        });
+    const templated = toTemplateWithEnvVars(s);
+    return templated.slice(1, -1);
   };
 
   let out = '';

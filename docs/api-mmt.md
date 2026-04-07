@@ -437,6 +437,21 @@ You can also write `i:name` if it doesn’t conflict with surrounding text. When
 Notes
 - `<<i:key>>` can appear inside `url`, `headers`, and `body`
 - Declare input names under `inputs:` (string/number/boolean/null)
+- You can append **accessors** when only part of a value is needed:
+  - `<<i:user.name>>` — property access
+  - `<<i:tags[0]>>` — array/string index access
+  - `<<i:message[0:3]>>` — string/array slice (end-exclusive)
+
+Example:
+```yaml
+inputs:
+  username: alice
+  role: admin
+body:
+  username: i:username
+  user_initial: <<i:username[0]>>
+  role_short: <<i:role[0:3]>>
+```
 
 ### outputs
 Map response data to named output variables. Keys are the exported names (used in tests via `expect` or `id`), values are extraction expressions using these keywords:

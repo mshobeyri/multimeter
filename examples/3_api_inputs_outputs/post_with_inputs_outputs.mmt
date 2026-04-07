@@ -1,12 +1,14 @@
 type: api
 title: Post echo with inputs
-description: Send dynamic values via inputs and extract them from the echoed response
+description: Send dynamic values via inputs, including sliced values, and extract them from the echoed response
 inputs:
   username: alice
   role: admin
 outputs:
   echoed_username: body[body][username]
   echoed_role: body[body][role]
+  echoed_initial: body[body][user_initial]
+  echoed_role_short: body[body][role_short]
   method: body[method]
 url: https://test.mmt.dev/echo
 method: post
@@ -14,3 +16,5 @@ format: json
 body:
   username: i:username
   role: i:role
+  user_initial: <<i:username[0]>>
+  role_short: <<i:role[0:3]>>

@@ -1,11 +1,40 @@
 import {parseDocument} from 'yaml';
 import {
+  extractEnvRefSites,
+  extractInputRefSites,
   findTestCallAliasProblems,
   findTestCallInputsProblems,
   findMultilineDescriptionProblems,
   findStageAfterProblems,
   findAuthProblems,
 } from './validator';
+
+describe('token site extraction', () => {
+  it('extracts input refs with accessor syntax', () => {
+    const content = [
+      'type: api',
+      'body:',
+      '  first: <<i:message[0:1]>>',
+      '  nested: i:profile.name',
+    ].join('\n');
+    const sites = extractInputRefSites(content);
+    expect(sites.map((s) => s.name).sort()).toEqual(['message', 'profile']);
+    expect(sites.some((s) => s.length >= 'i:message[0:1]'.length)).toBe(true);
+  });
+
+  it('extracts env refs with accessor syntax', () => {
+    const content = [
+      'type: api',
+      'url: <<e:base_url[0:8]>>',
+      'headers:',
+      '  X-User: <<e:user.name>>',
+      '  X-Token: e:token[0]'
+    ].join('\n');
+    const sites = extractEnvRefSites(content);
+    expect(sites.map((s) => s.name).sort()).toEqual(['base_url', 'token', 'user']);
+    expect(sites.some((s) => s.length >= 'e:base_url[0:8]'.length)).toBe(true);
+  });
+});
 
 describe('validator test call checks', () => {
   function buildDoc(content: string) {

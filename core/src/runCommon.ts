@@ -55,6 +55,7 @@ export function validateJsSyntax(js: string): string | undefined {
     new Function(
       'mmtHelper', 'console', 'send_', 'extractOutputs_', 'Random',
       '__reporter', '__runId', '__id', '__mmt_random', '__mmt_current',
+      '__mmt_access',
       `return (async () => {\n${js}\n})();`,
     );
     return undefined;

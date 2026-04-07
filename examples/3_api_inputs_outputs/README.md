@@ -8,7 +8,7 @@ This example shows how to use **inputs** and **outputs** in `.mmt` API files. In
 |---|---|
 | `get_with_outputs.mmt` | Bracket-path extraction — `body[name]`, `body[tags][0]`, `body[tags].length` |
 | `get_dot_notation.mmt` | Dot-notation extraction — `body.nested.enabled`, `body.nested.items[0].key` |
-| `post_with_inputs_outputs.mmt` | Inputs + bracket-path outputs from the echoed response |
+| `post_with_inputs_outputs.mmt` | Inputs + bracket-path outputs from the echoed response, including accessor examples like `<<i:username[0]>>` |
 | `post_regex_outputs.mmt` | Regex extraction — `body[/"username":"(.*?)"/]` captures from body, `headers[/pattern/]` from headers |
 
 ## How to use
@@ -36,6 +36,7 @@ npx testlight run examples/3_api_inputs_outputs/post_with_inputs_outputs.mmt \
 ## Key concepts
 
 - **`inputs`** — declare parameters with default values. Reference them with `i:name` (entire value) or `<<i:name>>` (inline in a string).
+- **Accessors on variables** — append `[0]`, `[0:3]`, or `.field` to `i:` / `e:` tokens when you need only part of the value.
 - **`outputs`** — three extraction styles:
   - **Bracket path** — `body[nested][items][0][key]` for structured access
   - **Dot notation** — `body.nested.items[0].key` as a shorter alternative

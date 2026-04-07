@@ -35,6 +35,21 @@ import { useRunGlyphs } from './useRunGlyphs';
 import { useFormatAndOrder } from './useFormatAndOrder';
 // formatting and ordering helper moved to `useFormatAndOrder`
 
+// Keep these viewer-side patterns in sync with `core/src/variableReplacer.ts`.
+const TOKEN_NAME_RE = '[A-Za-z_][A-Za-z0-9_\\-]*';
+const ACCESSOR_SEGMENT_RE =
+  '(?:\\.[A-Za-z_][A-Za-z0-9_]*|\\[(?:-?\\d+(?::-?\\d*)?|[A-Za-z_][A-Za-z0-9_]*)\\])';
+const ACCESSOR_PATH_RE = `${ACCESSOR_SEGMENT_RE}*`;
+
+const INLINE_TOKEN_HIGHLIGHT_RE = new RegExp(
+  `<<[ieorc]:${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}>>|<e:${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}>`,
+  'g'
+);
+const PLAIN_TOKEN_HIGHLIGHT_RE = new RegExp(
+  `:\\s(?:[ieorc]:${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}|e:\\{${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}\\})`,
+  'g'
+);
+
 interface YamlEditorPanelProps {
   content: string;
   setContent: (value: string) => void;
@@ -829,43 +844,37 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
 
     const matches: any[] = [];
     {
-      const regex = [/<<[ieorc]:[a-zA-Z0-9_/-]+>>/g];
       const value = model.getValue();
       let match;
-      for (const re of regex) {
-        while ((match = re.exec(value)) !== null) {
-          const start = model.getPositionAt(match.index);
-          const end = model.getPositionAt(match.index + match[0].length);
-          matches.push({
-            range: new monaco.Range(
-              start.lineNumber,
-              start.column,
-              end.lineNumber,
-              end.column
-            ),
-            options: { inlineClassName: I_PREFIX_CLASS }
-          });
-        }
+      while ((match = INLINE_TOKEN_HIGHLIGHT_RE.exec(value)) !== null) {
+        const start = model.getPositionAt(match.index);
+        const end = model.getPositionAt(match.index + match[0].length);
+        matches.push({
+          range: new monaco.Range(
+            start.lineNumber,
+            start.column,
+            end.lineNumber,
+            end.column
+          ),
+          options: { inlineClassName: I_PREFIX_CLASS }
+        });
       }
     }
     {
-      const regex = [/:\s[ieorc]:[a-zA-Z0-9_/-]+/g];
       const value = model.getValue();
       let match;
-      for (const re of regex) {
-        while ((match = re.exec(value)) !== null) {
-          const start = model.getPositionAt(match.index);
-          const end = model.getPositionAt(match.index + match[0].length);
-          matches.push({
-            range: new monaco.Range(
-              start.lineNumber,
-              start.column+2,
-              end.lineNumber,
-              end.column
-            ),
-            options: { inlineClassName: I_PREFIX_CLASS }
-          });
-        }
+      while ((match = PLAIN_TOKEN_HIGHLIGHT_RE.exec(value)) !== null) {
+        const start = model.getPositionAt(match.index);
+        const end = model.getPositionAt(match.index + match[0].length);
+        matches.push({
+          range: new monaco.Range(
+            start.lineNumber,
+            start.column + 2,
+            end.lineNumber,
+            end.column
+          ),
+          options: { inlineClassName: I_PREFIX_CLASS }
+        });
       }
     }
     {

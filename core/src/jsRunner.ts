@@ -1,6 +1,7 @@
 import {LogLevel} from './CommonData';
 import {GrpcRequest, GrpcResponse} from './NetworkData';
 import {normalizeTokenName} from './JSerHelper';
+import {applyValueAccessor} from './variableReplacer';
 // Import your send function from the network core
 import {send, setRunnerNetworkConfig, getRunnerNetworkConfig} from './networkCoreNode';
 import {extractOutputs} from './outputExtractor';
@@ -50,6 +51,10 @@ function mmtCurrent(name: string): any {
     return `c:${name}`;  // Return original token if not found
   }
   return fn();
+}
+
+function mmtAccess(value: any, accessor: string): any {
+  return applyValueAccessor(value, accessor);
 }
 
 const applyReporterGlobals = (
@@ -136,7 +141,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     const fn = new Function(
       'mmtHelper', 'console', 'send_', 'sendGrpc_', 'extractOutputs_', 'Random',
       '__reporter', '__runId', '__id', '__mmt_random', '__mmt_current',
-      '__abortSignal', '__fileLoader',
+      '__mmt_access', '__abortSignal', '__fileLoader',
       `${helperDecls}\n${randomDecls}\n` +
       `const report_ = (...args) => mmtHelper.reportWithContext_(__reporter, __runId, __id, ...args);\n` +
       // setenv_ must update the in-scope envVariables object so that
@@ -183,7 +188,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     };
     const returnValue = await fn(
         mmtHelper, customConsole, sendFn, sendGrpcFn, extractOutputs, Random,
-        reporterFn, runId, context.id, mmtRandom, mmtCurrent,
+        reporterFn, runId, context.id, mmtRandom, mmtCurrent, mmtAccess,
         context.abortSignal, context.fileLoader);
     restoreReporterGlobals();
     const elapsed = Date.now() - startTime;
