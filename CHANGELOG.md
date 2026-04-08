@@ -2,6 +2,11 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.16.2]
+
+- Fix environment variable extraction issue
+- Update website
+
 ## [1.16.1]
 
 - Improve assistant behavior and prompt handling
