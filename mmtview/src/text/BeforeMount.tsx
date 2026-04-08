@@ -603,12 +603,26 @@ export const handleBeforeMount = (monaco: any) => {
             const currentIndent = lineContent.search(/\S|$/);
             const parentContext = getParentContext(lines, currentIndent, firstLine);
 
+            // Detect whether the cursor is at a value position (after "key: ") on the current line.
+            // When true, skip context-specific key suggestions and fall through to the general
+            // value-suggestion path so that e:/r:/c: token suggestions are available.
+            const cursorAtValuePosition = (() => {
+                const kvMatch = lineContent.match(/^(\s*)-?\s*(\w+):\s/);
+                if (kvMatch) {
+                    const colonIdx = lineContent.indexOf(':', (kvMatch[1]?.length ?? 0));
+                    if (colonIdx >= 0 && position.column > colonIdx + 2) {
+                        return true;
+                    }
+                }
+                return false;
+            })();
+
             // Call inputs autocomplete: when inside inputs: of a call step, suggest the imported API/test's input keys
             // Example:
             //   - call: login
             //     inputs:
             //       <here>  ← suggest username, password, etc. from login.mmt
-            if (firstLine === 'type: test' && parentContext === 'inputs') {
+            if (firstLine === 'type: test' && parentContext === 'inputs' && !cursorAtValuePosition) {
                 const allLines = model.getLinesContent();
                 const callAlias = getCallAliasForInputsContext(allLines, lineNumber, currentIndent);
                 if (callAlias) {
@@ -649,7 +663,7 @@ export const handleBeforeMount = (monaco: any) => {
             //   - call: login
             //     expect:
             //       <here>  ← suggest status_code: , token: , etc.
-            if (firstLine === 'type: test' && (parentContext === 'expect' || parentContext === 'debug')) {
+            if (firstLine === 'type: test' && (parentContext === 'expect' || parentContext === 'debug') && !cursorAtValuePosition) {
                 const allLines = model.getLinesContent();
                 const callInfo = getCallAliasForCheckContext(allLines, lineNumber, currentIndent);
                 if (callInfo) {
@@ -700,7 +714,7 @@ export const handleBeforeMount = (monaco: any) => {
                 const trimmedLine = lineContent.trim();
                 const isDashLine = trimmedLine === '-' || trimmedLine.startsWith('- ');
                 const isBlankLine = trimmedLine === '';
-                if ((parentContext === 'steps' || parentContext === 'stages') && (isDashLine || isBlankLine)) {
+                if ((parentContext === 'steps' || parentContext === 'stages') && (isDashLine || isBlankLine) && !cursorAtValuePosition) {
                     // For blank lines, check if we're at sibling indent of an existing step item
                     // (i.e. deeper than the dash). If so, skip — the sibling block below will handle it.
                     let isAtSiblingIndent = false;
