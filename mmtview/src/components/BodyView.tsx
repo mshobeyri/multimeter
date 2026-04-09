@@ -96,6 +96,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
     useEffect(() => {
         let valid = true;
         let err: string | null = null;
+        const isXmlLike = (format || "").includes("xml");
         if (localValue === "") {
             setIsValid(true);
             return;
@@ -107,7 +108,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                 valid = false;
                 err = e?.message || "Invalid JSON";
             }
-        } else if (format === "xml") {
+        } else if (isXmlLike) {
             try {
                 xml2js(localValue, { compact: true });
             } catch (e: any) {
@@ -118,7 +119,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
         setIsValid(valid);
         setErrorMsg(valid ? null : err);
 
-        if (isValid && valid && beautify(format as "json" | "xml", localValue) !== value) {
+        if (isValid && valid && beautify(format as "json" | "xml" | "xmle" | "text", localValue) !== value) {
             setCanApply(true);
         } else {
             setCanApply(false);
@@ -150,19 +151,19 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                     isUserEditingRef.current = true;
                     setLocalValue(nextValue);
                 }}
-                language={format}
+                language={(format || "").includes("xml") ? "xml" : format}
                 showNumbers={false}
                 fontSize={11}
                 onInspectPosition={onInspectPosition}
                 editorRef={editorRef}
             />
             <div className="bodyview-toolbar">
-                {((format === "json" || format === "xml") && isValid && beautify(format, localValue) !== localValue) && (
+                {((format === "json" || (format || "").includes("xml")) && isValid && beautify(format as "json" | "xml" | "xmle" | "text", localValue) !== localValue) && (
                     <button
                         className="bodyview-btn-icon"
                         title="Beautify"
                         onClick={() => {
-                            const beautified = beautify(format, localValue);
+                            const beautified = beautify(format as "json" | "xml" | "xmle" | "text", localValue);
                             setLocalValue(beautified);
                         }}
                     >
@@ -185,7 +186,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                 {!isValid && (
                     <span
                         className="bodyview-error-indicator"
-                        title={errorMsg || (format === "json" ? "Invalid JSON" : format === "xml" ? "Invalid XML" : "Invalid")}
+                        title={errorMsg || (format === "json" ? "Invalid JSON" : (format || "").includes("xml") ? "Invalid XML" : "Invalid")}
                     >
                         <span className="codicon codicon-error" />
                     </span>

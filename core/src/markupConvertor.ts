@@ -30,9 +30,21 @@ function packYaml(obj: any): string {
   }
 }
 
+function isXmlFormat(format: 'json'|'xml'|'xmle'|'text'): boolean {
+  return format === 'xml' || format === 'xmle';
+}
+
+function formatXmlBody(body: string|object, pretty: boolean, expanded: boolean): string {
+  const xmlObj = typeof body === 'string' ? xml2js(body, {compact: true}) : body;
+  return js2xml(xmlObj, {
+    compact: true,
+    spaces: pretty ? 2 : 0,
+    fullTagEmptyElement: expanded
+  });
+}
 
 function formatBody(
-    format: 'json'|'xml'|'text', body: string|object,
+    format: 'json'|'xml'|'xmle'|'text', body: string|object,
     pretty: boolean = true): string {
   // Normalize empty-ish inputs to empty string for display/editing purposes
   if (body === null || body === undefined) {
@@ -50,11 +62,8 @@ function formatBody(
       }
       return pretty ? JSON.stringify(obj, null, 2) : JSON.stringify(obj);
     }
-    if (format === 'xml') {
-      if (typeof body === 'string') {
-        return body;
-      }
-      return js2xml(body, {compact: true, spaces: pretty ? 2 : 0});
+    if (isXmlFormat(format)) {
+      return formatXmlBody(body, pretty, format === 'xmle');
     }
     if (format === 'text') {
       return typeof body === 'string' ?
@@ -84,12 +93,12 @@ function flattenXmlObj(obj: any): any {
 }
 
 function formattedBodyToYamlObject(
-    format: 'json'|'xml'|'text', body: string): any {
+    format: 'json'|'xml'|'xmle'|'text', body: string): any {
   try {
     if (format === 'json') {
       return JSON.parse(body);
     }
-    if (format === 'xml') {
+    if (isXmlFormat(format)) {
       // Convert XML to JS object, then try to normalize it
       const jsObj = xml2js(body, {compact: true});
       return flattenXmlObj(jsObj);
@@ -102,15 +111,13 @@ function formattedBodyToYamlObject(
   }
 }
 
-function beautify(format: 'json'|'xml'|'text', value: string): string {
+function beautify(format: 'json'|'xml'|'xmle'|'text', value: string): string {
   try {
     if (format === 'json') {
       return JSON.stringify(JSON.parse(value), null, 2);
     }
-    if (format === 'xml') {
-      // Parse and re-stringify with xml-js for pretty output
-      const jsObj = xml2js(value, {compact: true});
-      return js2xml(jsObj, {compact: true, spaces: 2});
+    if (isXmlFormat(format)) {
+      return formatXmlBody(value, true, format === 'xmle');
     }
     // Add YAML or other formats as needed
   } catch {

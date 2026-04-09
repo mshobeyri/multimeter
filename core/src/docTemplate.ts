@@ -1065,7 +1065,7 @@ export const DOC_TEMPLATE_HTML = `
     }
 
     function highlightSyntax(escaped, fmt) {
-      if (fmt === 'xml') {
+      if (fmt === 'xml' || fmt === 'xmle') {
         return escaped
           .replace(/(&lt;\\/?)([\\w:-]+)/g, '$1<span class="hl-tag">$2</span>')
           .replace(/\\b([\\w:-]+)(=)(&quot;[^&]*&quot;)/g, '<span class="hl-attr">$1</span>$2<span class="hl-str">$3</span>');

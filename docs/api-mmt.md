@@ -4,7 +4,7 @@ Usage-first guide to write APIs in `.mmt` files. Includes HTTP/WS, params, bodie
 
 Supported:
 - Protocols: `http`, `ws`, `graphql`, `grpc`
-- Formats: `json`, `xml`, `text`
+- Formats: `json`, `xml`, `xmle`, `text`
 - Methods: `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
 
 ---
@@ -47,7 +47,41 @@ See “Dynamic values: random and current” below for details and examples.
    password: e:pass
 ```
 
-Change `format` to `xml` to send an XML body instead of JSON.
+Change `format` to `xml` to send XML with self-closing empty tags, or `xmle` for expanded XML with explicit closing tags.
+
+Example using the same YAML body:
+
+```yaml
+# self-closing empty tags
+format: xml
+body:
+  user:
+    id: 42
+    meta: {}
+```
+Produces:
+```xml
+<user>
+  <id>42</id>
+  <meta/>
+</user>
+```
+
+```yaml
+# expanded empty tags
+format: xmle
+body:
+  user:
+    id: 42
+    meta: {}
+```
+Produces:
+```xml
+<user>
+  <id>42</id>
+  <meta></meta>
+</user>
+```
 
 ### HTTP raw text or raw XML
 ```yaml
@@ -182,13 +216,13 @@ description: README.md#-why-multimeter
   - All other URLs default to `http`
 - url: server URL
 - method: HTTP method `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
-- format: body format `json` | `xml` | `text`
+- format: body format `json` | `xml` | `xmle` | `text`
 - headers: HTTP headers
 - query: query parameters for HTTP requests
 - cookies: HTTP cookies
 - body: request body (HTTP) or message (WS)
 
-As noted in the quick start, the body can be raw XML, JSON, or text. It can also be a YAML object that’s automatically converted to the specified format.
+As noted in the quick start, the body can be raw XML, JSON, or text. Use `xml` for self-closing empty tags and `xmle` for expanded XML. It can also be a YAML object that’s automatically converted to the specified format.
 
 
 Sample:
@@ -702,7 +736,7 @@ examples:
 - url: string (can contain query string)
 - protocol: `http` | `ws` | `graphql`
 - method: HTTP verbs (HTTP only)
-- format: `json` | `xml` | `text`
+- format: `json` | `xml` | `xmle` | `text`
 - headers: record<string, string>
 - query: record<string, string>
 - cookies: record<string, string>

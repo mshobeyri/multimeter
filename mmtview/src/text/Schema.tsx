@@ -86,7 +86,7 @@ export const APISchema = {
             type: 'string',
             enum: ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
         },
-        format: { type: 'string', enum: ['json', 'xml', 'text'] },
+        format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text'] },
         url: { type: 'string' },
         headers: { type: 'object', additionalProperties: { type: 'string' } },
         query: { type: 'object', additionalProperties: { type: 'string' } },
@@ -805,7 +805,7 @@ export const MockSchema = {
                         additionalProperties: false
                     },
                     status: { type: 'number', minimum: 100, maximum: 599 },
-                    format: { type: 'string', enum: ['json', 'xml', 'text'] },
+                    format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text'] },
                     headers: { type: 'object', additionalProperties: { type: 'string' } },
                     body: {},
                     delay: { type: 'number', minimum: 0 },
@@ -819,7 +819,7 @@ export const MockSchema = {
             type: 'object',
             properties: {
                 status: { type: 'number' },
-                format: { type: 'string', enum: ['json', 'xml', 'text'] },
+                format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text'] },
                 headers: { type: 'object', additionalProperties: { type: 'string' } },
                 body: {}
             },

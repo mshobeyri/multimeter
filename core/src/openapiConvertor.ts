@@ -77,7 +77,7 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
           }
           // For XML with string schema type, try to create a basic structure
           else if (format === 'xml' && contentSpec?.schema?.type === 'string') {
-            body = '<root></root>'; // Fallback XML structure
+            body = '<root/>'; // Fallback XML structure
           }
         }
       }

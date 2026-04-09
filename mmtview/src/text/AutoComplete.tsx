@@ -702,8 +702,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
             label: "format",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "format: ",
-            detail: 'Data format [json, xml, text]',
-            documentation: 'The format of the request and response data. Determines how the body content is parsed and serialized.\nOptions:\n\t- json: JavaScript Object Notation\n\t- xml: Extensible Markup Language\n\t- text: Plain text format\nExample: format: json',
+            detail: 'Data format [json, xml, xmle, text]',
+            documentation: 'The format of the request and response data. Determines how the body content is parsed and serialized.\nOptions:\n\t- json: JavaScript Object Notation\n\t- xml: XML with self-closing empty tags\n\t- xmle: expanded XML with explicit closing tags for empty elements\n\t- text: Plain text format\nExample: format: json',
         },
         {
             label: "url",
@@ -915,8 +915,15 @@ export const KeySuggestionsByParent = (monaco: any) => {
             label: "xml",
             kind: monaco.languages.CompletionItemKind.EnumMember,
             insertText: " xml",
-            detail: 'Define a XML API',
-            documentation: 'XML format for data exchange.',
+            detail: 'XML with self-closing empty tags',
+            documentation: 'XML format using self-closing empty tags for empty elements.\nExample: <item/>',
+        },
+        {
+            label: "xmle",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " xmle",
+            detail: 'Expanded XML with explicit closing tags',
+            documentation: 'XML format using explicit closing tags for empty elements.\nExample: <item></item>',
         },
         {
             label: "text",

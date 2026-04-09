@@ -6,7 +6,7 @@ import { formatBody, formattedBodyToYamlObject } from "mmt-core/markupConvertor"
 import BodyView from "../components/BodyView";
 import { safeList, isNonEmptyObject } from "mmt-core/safer";
 import { JSONRecord } from "mmt-core/CommonData";
-import { APIData, AuthConfig } from "mmt-core/APIData";
+import { APIData } from "mmt-core/APIData";
 import { protocolResolver } from "mmt-core";
 
 interface InterfaceEditorProps {
@@ -15,10 +15,30 @@ interface InterfaceEditorProps {
 }
 
 const protocolOptions: Protocol[] = ["http", "ws", "graphql", "grpc"];
-const formatOptions: Format[] = ["json", "xml", "text"];
+const formatOptions: Format[] = ["json", "xml", "xmle", "text"];
 const methodOptions: Method[] = ["get", "post", "put", "delete", "patch", "head", "options", "trace"];
 const authTypeOptions = ["none", "bearer", "basic", "api-key", "oauth2"] as const;
 const apiKeyPlacementOptions = ["header", "query"] as const;
+
+function getFormatLabel(format: Format): string {
+  if (format === "xml") {
+    return "xml — self-closing";
+  }
+  if (format === "xmle") {
+    return "xmle — expanded";
+  }
+  return format;
+}
+
+function getFormatHelpText(format?: Format): string | null {
+  if (format === "xml") {
+    return "Uses self-closing empty tags such as <item/>.";
+  }
+  if (format === "xmle") {
+    return "Uses expanded empty tags such as <item></item>.";
+  }
+  return null;
+}
 
 const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => {
   // Split url and query string safely
@@ -84,6 +104,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
   }, [data.body]);
 
   const effectiveProtocol = protocolResolver.getEffectiveProtocol(data.protocol as any, data.url);
+  const formatHelpText = getFormatHelpText(data.format);
 
   return (
     <div style={{ width: "100%" }}>
@@ -112,9 +133,14 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
             >
               <option key="" value="" disabled>Select format...</option>
               {safeList(formatOptions).map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
+                <option key={opt} value={opt}>{getFormatLabel(opt)}</option>
               ))}
             </select>
+            {formatHelpText && (
+              <div style={{ marginTop: 6, fontSize: 11, color: "var(--vscode-descriptionForeground)" }}>
+                {formatHelpText}
+              </div>
+            )}
           </div>
         </>
       )}

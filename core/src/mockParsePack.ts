@@ -5,7 +5,7 @@ import {isNonEmptyList, isNonEmptyObject} from './safer';
 
 const VALID_PROTOCOLS: MockProtocol[] = ['http', 'https', 'ws'];
 const VALID_METHODS: Method[] = ['get', 'post', 'put', 'delete', 'patch', 'head', 'options', 'trace'];
-const VALID_FORMATS: Format[] = ['json', 'xml', 'text'];
+const VALID_FORMATS: Format[] = ['json', 'xml', 'xmle', 'text'];
 
 const MOCK_TOP_KEYS = new Set([
   'type', 'title', 'description', 'tags', 'protocol', 'port',

@@ -85,7 +85,7 @@ type: api
 title: string
 protocol: http | ws            # optional, inferred from URL
 method: get|post|...           # HTTP only
-format: json | xml | text     # affects body encoding
+format: json | xml | xmle | text     # affects body encoding
 url: string
 inputs: record<string, primitive>
 body: object|string|null

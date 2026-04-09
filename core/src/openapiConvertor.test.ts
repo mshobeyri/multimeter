@@ -71,7 +71,7 @@ describe('openapiConvertor.openApiToAPI', () => {
     expect(parsed).toEqual({ name: 'Alice', age: 30, active: true });
   });
 
-  it('picks XML format and sets fallback body for string schema', () => {
+  it('picks XML format and sets a self-closing fallback body for string schema', () => {
     const spec = {
       openapi: '3.0.0',
       paths: {
@@ -92,7 +92,7 @@ describe('openapiConvertor.openApiToAPI', () => {
     expect(apis.length).toBe(1);
     const api = apis[0];
     expect(api.format).toBe('xml');
-    expect(api.body).toBe('<root></root>');
+    expect(api.body).toBe('<root/>');
   });
 
   it('generates XML from schema properties when format is xml', () => {

@@ -474,9 +474,17 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
             >
               <option value="">auto</option>
               <option value="json">json</option>
-              <option value="xml">xml</option>
+              <option value="xml">xml — self-closing</option>
+              <option value="xmle">xmle — expanded</option>
               <option value="text">text</option>
             </select>
+            {(mockData.fallback?.format === 'xml' || mockData.fallback?.format === 'xmle') && (
+              <div style={{ marginTop: 6, fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>
+                {mockData.fallback?.format === 'xml'
+                  ? 'Uses self-closing empty tags such as <item/>.'
+                  : 'Uses expanded empty tags such as <item></item>.'}
+              </div>
+            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
             <span style={{ fontSize: 12, color: 'var(--vscode-descriptionForeground)', width: 64, flexShrink: 0, paddingTop: 4 }}>Body</span>
@@ -487,7 +495,7 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
                   if (!raw) { updateFallbackField('body', undefined); return; }
                   try { updateFallbackField('body', JSON.parse(raw)); } catch { updateFallbackField('body', raw); }
                 }}
-                language={(mockData.fallback?.format === 'xml' ? 'xml' : mockData.fallback?.format === 'text' ? 'plaintext' : 'json')}
+                language={((mockData.fallback?.format || '').includes('xml') ? 'xml' : mockData.fallback?.format === 'text' ? 'plaintext' : 'json')}
                 showNumbers={false}
                 fontSize={12}
               />

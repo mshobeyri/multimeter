@@ -14,7 +14,17 @@ interface MockEndpointBoxProps {
 }
 
 const METHODS = ['get', 'post', 'put', 'delete', 'patch', 'head', 'options'] as const;
-const FORMATS = ['json', 'xml', 'text'] as const;
+const FORMATS = ['json', 'xml', 'xmle', 'text'] as const;
+
+function getFormatLabel(format: string): string {
+  if (format === 'xml') {
+    return 'xml — self-closing';
+  }
+  if (format === 'xmle') {
+    return 'xmle — expanded';
+  }
+  return format;
+}
 
 export const METHOD_COLORS: Record<string, string> = {
   get: "#61affe", post: "#49cc90", put: "#fca130", patch: "#e5c07b",
@@ -93,6 +103,11 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
   }), [commit]);
 
   const method = (local.method || 'get').toLowerCase();
+  const formatHelpText = local.format === 'xml'
+    ? 'Self-closing empty tags, for example <item/>.'
+    : local.format === 'xmle'
+      ? 'Expanded empty tags, for example <item></item>.'
+      : null;
 
   /* ─── Context menu (kebab) ─── */
   const Actions = () => {
@@ -260,9 +275,14 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
             style={{ flex: 1, padding: '4px 6px' }}
           >
             <option value="">auto</option>
-            {FORMATS.map(f => <option key={f} value={f}>{f}</option>)}
+            {FORMATS.map(f => <option key={f} value={f}>{getFormatLabel(f)}</option>)}
           </select>
         </div>
+        {formatHelpText && (
+          <div style={{ marginLeft: 64, marginTop: -2, fontSize: 10, color: 'var(--vscode-descriptionForeground)' }}>
+            {formatHelpText}
+          </div>
+        )}
         {/* Name */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Name</span>

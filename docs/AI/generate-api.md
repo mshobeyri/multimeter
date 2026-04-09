@@ -39,7 +39,7 @@ query:                         # Optional. Query parameters appended to url; mer
 	<name>: string               # Value is always a string expression (can contain tokens).
 protocol: http | ws            # Optional. "http" for HTTP(S); "ws" for WebSocket.
                                # Inferred from URL if omitted: ws:// or wss:// → ws, otherwise http.
-format: json | text | xml      # REQUIRED. Controls how body is encoded/decoded (JSON object vs raw text/XML).
+format: json | text | xml | xmle      # REQUIRED. Controls how body is encoded/decoded (JSON object vs raw text/XML).
 method:                        # HTTP method (REQUIRED when protocol is http).
 	get | post | put | delete | patch | head | options | trace
 headers:                       # Optional. HTTP/WS headers to send with the request.
@@ -167,7 +167,7 @@ examples:
 
 ### 3. Raw text or XML body
 
-Use `format: text` or `format: xml` when the user explicitly mentions plain text, HTML, or XML bodies.
+Use `format: text`, `format: xml`, or `format: xmle` when the user explicitly mentions plain text, HTML, or XML bodies. Use `xmle` when expanded empty tags are required.
 
 ```yaml
 type: api

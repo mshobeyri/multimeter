@@ -227,7 +227,7 @@ export function simpleMarkdownToHtml(md: string, headingTag = 'h4'): string {
 }
 
 function highlightSyntax(escaped: string, fmt: string): string {
-  if (fmt === 'xml') {
+  if (fmt === 'xml' || fmt === 'xmle') {
     return escaped
       .replace(/(&lt;\/?)([\w:-]+)/g, '$1<span class="hl-tag">$2</span>')
       .replace(/\b([\w:-]+)(=)(&quot;[^&]*&quot;)/g, '<span class="hl-attr">$1</span>$2<span class="hl-str">$3</span>');
@@ -553,7 +553,7 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     const cookies = api?.cookies && Object.keys(api.cookies).length ? renderParamTable(api.cookies, 'Default', { showSource: true }) : '';
     // Compute body string once – used for both detail panel and Try panel
     const fmtRaw = String(api?.format || 'json').toLowerCase();
-    const fmt = (fmtRaw === 'xml' || fmtRaw === 'json' || fmtRaw === 'text') ? fmtRaw : 'json';
+    const fmt = (fmtRaw === 'xml' || fmtRaw === 'xmle' || fmtRaw === 'json' || fmtRaw === 'text') ? fmtRaw : 'json';
     let bodyStr = '';
     if (api?.body !== undefined && api?.body !== null && String(api.body).length) {
       try {
@@ -565,7 +565,7 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     const bodyResolved = resolveInputDefaults(bodyStr, api?.inputs);
     let body = '';
     if (bodyResolved) {
-      if (fmt === 'json' || fmt === 'xml') {
+      if (fmt === 'json' || fmt === 'xml' || fmt === 'xmle') {
         body = `<pre class="code">${highlightSyntax(escapeHtml(bodyResolved), fmt)}</pre>`;
       } else {
         body = `<span class="value">${escapeHtml(bodyResolved)}</span>`;

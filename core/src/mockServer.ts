@@ -1,4 +1,5 @@
 import {Format, JSONValue} from './CommonData';
+import {formatBody} from './markupConvertor';
 import {MockData, MockEndpoint, MockFallback, MockMatch} from './MockData';
 
 /**
@@ -67,7 +68,9 @@ export function autoDetectFormat(body: any): Format {
 export function contentTypeForFormat(format: Format): string {
   switch (format) {
     case 'json': return 'application/json';
-    case 'xml': return 'application/xml';
+    case 'xml':
+    case 'xmle':
+      return 'application/xml';
     case 'text': return 'text/plain';
     default: return 'text/plain';
   }
@@ -158,8 +161,11 @@ export function serializeBody(body: any, format: Format): string {
   if (body === null || body === undefined) {
     return '';
   }
-  if (format === 'json' && typeof body === 'object') {
-    return JSON.stringify(body, null, 2);
+  if (typeof body === 'object') {
+    return formatBody(format, body, true);
+  }
+  if (format === 'xml' || format === 'xmle') {
+    return formatBody(format, String(body), true);
   }
   return String(body);
 }

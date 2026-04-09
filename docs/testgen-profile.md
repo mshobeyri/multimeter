@@ -265,7 +265,7 @@ outputs: record<string, string>
 setenv: record<string, string>
 protocol: http | ws          # optional, inferred from URL
 method: get|post|put|delete|patch|head|options|trace   # HTTP only
-format: json | xml | text    # affects body encoding
+format: json | xml | xmle | text    # affects body encoding
 url: string                  # may include query string
 headers: record<string,string>
 query: record<string,string>
