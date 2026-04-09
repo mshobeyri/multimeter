@@ -2,6 +2,13 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.17.0]
+
+- Make API `format` field optional with default of `json`
+- Add `xmle` format support (expanded XML with explicit closing tags)
+- Fix auto complete and UI modify behavior of operators
+- Fix `e:` token handling issue
+
 ## [1.16.2]
 
 - Fix environment variable extraction issue
