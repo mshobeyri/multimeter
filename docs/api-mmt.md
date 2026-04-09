@@ -24,7 +24,7 @@ Supported:
    sort: desc
 ```
 Notes
-- `format` sets how the body is encoded/decoded
+- `format` sets how the body is encoded/decoded (defaults to `json` if omitted)
 - `query` merges with any query string in `url`
 - `protocol` is optional - inferred from URL (ws:// or wss:// → ws, otherwise http)
 
@@ -216,7 +216,7 @@ description: README.md#-why-multimeter
   - All other URLs default to `http`
 - url: server URL
 - method: HTTP method `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
-- format: body format `json` | `xml` | `xmle` | `text`
+- format: body format `json` | `xml` | `xmle` | `text` (optional, defaults to `json`)
 - headers: HTTP headers
 - query: query parameters for HTTP requests
 - cookies: HTTP cookies

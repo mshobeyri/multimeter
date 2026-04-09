@@ -61,7 +61,7 @@ export interface APIData extends MMTFile {
   url: string;
   query?: Record<string, string>;
   protocol?: Protocol;
-  format: Format;
+  format?: Format;
   method?: Method;
   headers?: Record<string, string>;
   cookies?: Record<string, string>;

@@ -35,18 +35,21 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
   const url = (data.url || "").split("?")[0];
 
   // State for formatted body
+  const format = data.format || 'json';
+
+  // State for formatted body
   const [formattedBody, setFormattedBody] = useState<string>(
-    formatBody(data.format, data.body || "")
+    formatBody(format, data.body || "")
   );
 
   // Update formattedBody when body or format changes
   useEffect(() => {
     if (data.body) {
-      setFormattedBody(formatBody(data.format, data.body || ""));
+      setFormattedBody(formatBody(format, data.body || ""));
     } else {
       setFormattedBody("");
     }
-  }, [data.body, data.format]);
+  }, [data.body, format]);
 
   // Only call onChange if url value actually changed
   const handleUrlChange = useCallback(
@@ -116,7 +119,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
           <div className="label">Format</div>
           <div style={{ padding: "5px" }}>
             <select
-              value={data.format}
+              value={format}
               onChange={e => onChange({ ...data, format: e.target.value as Format })}
               style={{ width: "100%" }}
             >
@@ -461,11 +464,11 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
           <div style={{ padding: "5px", position: "relative" }}>
             <BodyView
               value={formattedBody === null ? "" : formattedBody}
-              format={data.format}
+              format={format}
               mode="appliable"
               onChange={val => {
                 setFormattedBody(val);
-                const yamlObj = formattedBodyToYamlObject(data.format, val);
+                const yamlObj = formattedBodyToYamlObject(format, val);
                 if (yamlObj !== null) {
                   onChange({ ...data, body: yamlObj });
                 }

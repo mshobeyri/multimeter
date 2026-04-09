@@ -221,14 +221,6 @@ export const APISchema = {
         },
         {
             if: {
-                required: ['body']
-            },
-            then: {
-                required: ['format']
-            }
-        },
-        {
-            if: {
                 properties: {
                     protocol: { const: 'graphql' }
                 },
