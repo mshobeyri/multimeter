@@ -225,8 +225,13 @@ export const opsList: CheckOps[] = [
 ];
 
 export const opsNames = [
-  'less than', 'greater than', 'less or equal than', 'greater or equal than',
-  'is equal', 'is not equal', 'is at', 'is not at', 'starts with',
-  'not starts with', 'ends with', 'not ends with', 'regex match',
-  'regex not match'
+  'less than', 'greater than', 'less than or equal', 'greater than or equal',
+  'equal', 'not equal', 'contains', 'does not contain', 'starts with',
+  'does not start with', 'ends with', 'does not end with', 'matches regex',
+  'does not match regex'
 ];
+
+export function getOpOptionLabel(op: CheckOps): string {
+  const idx = opsList.indexOf(op);
+  return idx >= 0 ? `${op} — ${opsNames[idx]}` : op;
+}

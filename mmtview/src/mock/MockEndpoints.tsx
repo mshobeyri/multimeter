@@ -478,13 +478,6 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
               <option value="xmle">xmle — expanded</option>
               <option value="text">text</option>
             </select>
-            {(mockData.fallback?.format === 'xml' || mockData.fallback?.format === 'xmle') && (
-              <div style={{ marginTop: 6, fontSize: 11, color: 'var(--vscode-descriptionForeground)' }}>
-                {mockData.fallback?.format === 'xml'
-                  ? 'Uses self-closing empty tags such as <item/>.'
-                  : 'Uses expanded empty tags such as <item></item>.'}
-              </div>
-            )}
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
             <span style={{ fontSize: 12, color: 'var(--vscode-descriptionForeground)', width: 64, flexShrink: 0, paddingTop: 4 }}>Body</span>

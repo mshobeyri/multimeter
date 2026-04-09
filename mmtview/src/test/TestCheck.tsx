@@ -1,6 +1,6 @@
 import React from "react";
-import { CheckOps, opsList, opsNames, ReportLevel, ReportConfig } from "mmt-core/TestData";
-import { safeList } from "mmt-core/safer";
+import { CheckOps, ReportLevel, ReportConfig } from "mmt-core/TestData";
+import OperatorSelect from "../components/OperatorSelect";
 
 export type ReportValue = ReportLevel | ReportConfig | undefined;
 
@@ -58,17 +58,12 @@ const TestCheck: React.FC<TestCheckProps> = ({ value, onChange, expanded }) => {
           style={{ width: '100%' }}
           onChange={e => update({ actual: e.target.value })}
         />
-        <select
+        <OperatorSelect
           value={op}
-          onChange={e => update({ op: e.target.value as CheckOps })}
-          style={{ width: 80, flex: '0 0 auto' }}
-        >
-          {safeList(opsList).map((relation, idx) => (
-            <option key={relation} value={safeList(opsList)[idx]} title={safeList(opsNames)[idx]}>
-              {safeList(opsList)[idx]}
-            </option>
-          ))}
-        </select>
+          onChange={nextOp => update({ op: nextOp })}
+          style={{ width: 190, flex: '0 0 auto' }}
+          title="Comparison operator"
+        />
         <input
           value={expected}
           placeholder="expected"

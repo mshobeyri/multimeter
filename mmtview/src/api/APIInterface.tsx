@@ -30,16 +30,6 @@ function getFormatLabel(format: Format): string {
   return format;
 }
 
-function getFormatHelpText(format?: Format): string | null {
-  if (format === "xml") {
-    return "Uses self-closing empty tags such as <item/>.";
-  }
-  if (format === "xmle") {
-    return "Uses expanded empty tags such as <item></item>.";
-  }
-  return null;
-}
-
 const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => {
   // Split url and query string safely
   const url = (data.url || "").split("?")[0];
@@ -104,7 +94,6 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
   }, [data.body]);
 
   const effectiveProtocol = protocolResolver.getEffectiveProtocol(data.protocol as any, data.url);
-  const formatHelpText = getFormatHelpText(data.format);
 
   return (
     <div style={{ width: "100%" }}>
@@ -136,11 +125,6 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
                 <option key={opt} value={opt}>{getFormatLabel(opt)}</option>
               ))}
             </select>
-            {formatHelpText && (
-              <div style={{ marginTop: 6, fontSize: 11, color: "var(--vscode-descriptionForeground)" }}>
-                {formatHelpText}
-              </div>
-            )}
           </div>
         </>
       )}

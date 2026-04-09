@@ -1,6 +1,6 @@
 import React from "react";
-import { CheckOps, opsList, opsNames } from "mmt-core/TestData";
-import { safeList } from "mmt-core/safer";
+import { CheckOps } from "mmt-core/TestData";
+import OperatorSelect from "../components/OperatorSelect";
 
 interface TestIfProps {
   actual: string;
@@ -21,17 +21,12 @@ const TestIf: React.FC<TestIfProps> = ({
       style={{ width: '100%' }}
       onChange={v => onChange({ actual: v.target.value, op, expected })}
     />
-    <select
+    <OperatorSelect
       value={op}
-      onChange={e => onChange({ actual, op: e.target.value as CheckOps, expected })}
-      style={{ width: 80, flex: '0 0 auto' }}
-    >
-      {safeList(opsList).map((relation, idx) => (
-        <option key={relation} value={safeList(opsList)[idx]} title={safeList(opsNames)[idx]}>
-          {safeList(opsList)[idx]}
-        </option>
-      ))}
-    </select>
+      onChange={nextOp => onChange({ actual, op: nextOp, expected })}
+      style={{ width: 190, flex: '0 0 auto' }}
+      title="Comparison operator"
+    />
     <input
       value={expected}
       style={{ width: '100%' }}

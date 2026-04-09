@@ -103,11 +103,6 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
   }), [commit]);
 
   const method = (local.method || 'get').toLowerCase();
-  const formatHelpText = local.format === 'xml'
-    ? 'Self-closing empty tags, for example <item/>.'
-    : local.format === 'xmle'
-      ? 'Expanded empty tags, for example <item></item>.'
-      : null;
 
   /* ─── Context menu (kebab) ─── */
   const Actions = () => {
@@ -278,11 +273,6 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
             {FORMATS.map(f => <option key={f} value={f}>{getFormatLabel(f)}</option>)}
           </select>
         </div>
-        {formatHelpText && (
-          <div style={{ marginLeft: 64, marginTop: -2, fontSize: 10, color: 'var(--vscode-descriptionForeground)' }}>
-            {formatHelpText}
-          </div>
-        )}
         {/* Name */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Name</span>

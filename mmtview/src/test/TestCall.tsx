@@ -1,8 +1,9 @@
 import React from "react";
 import { parseYamlDoc } from "mmt-core/markupConvertor";
 import { findTestCallAliasProblems, findTestCallInputsProblems, type MissingImportEntry, type ProblemEntry } from "../text/validator";
-import { opsList, opsNames, ReportLevel, ReportConfig } from "mmt-core/TestData";
+import { opsList, ReportLevel, ReportConfig } from "mmt-core/TestData";
 import FieldWithRemove from "../components/FieldWithRemove";
+import OperatorSelect from "../components/OperatorSelect";
 
 /** A single row in the expect UI list */
 interface ExpectRow {
@@ -493,16 +494,12 @@ const TestCall: React.FC<TestCallProps> = ({
                           <option key={row.field} value={row.field}>{row.field}</option>
                         )}
                       </select>
-                      <select
-                        value={row.op}
-                        onChange={(e) => handleExpectPartChange(i, 'op', e.target.value)}
+                      <OperatorSelect
+                        value={row.op as any}
+                        onChange={(nextOp) => handleExpectPartChange(i, 'op', nextOp)}
                         style={{ flex: 1, minWidth: 0 }}
                         title="Comparison operator"
-                      >
-                        {opsList.map((op, oi) => (
-                          <option key={op} value={op} title={opsNames[oi]}>{op}</option>
-                        ))}
-                      </select>
+                      />
                       <input
                         type="text"
                         value={row.expected}

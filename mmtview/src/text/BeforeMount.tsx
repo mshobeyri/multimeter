@@ -878,6 +878,11 @@ export const handleBeforeMount = (monaco: any) => {
                     const effectiveKey = isReportLevelKey ? 'report-level' : isAuthTypeKey ? 'auth-type' : key;
                     const suggestionList = getValueSuggestions(effectiveKey);
 
+                    // When inside expect: or debug:, also suggest inline operators (==, !=, etc.)
+                    if (firstLine === 'type: test' && (parentContext === 'expect' || parentContext === 'debug')) {
+                        suggestionList.push(...(keySuggestionsByParent['expect-value'] || []));
+                    }
+
                     if (suggestionList.length > 0) {
                         return {
                             suggestions: suggestionList.map(item => ({
