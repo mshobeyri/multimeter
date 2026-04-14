@@ -141,8 +141,8 @@ export default function Hero() {
 
           <FadeIn delay={100}>
             <p className="text-lg sm:text-xl text-slate-400 max-w-3xl mx-auto mb-10 leading-relaxed">
-              A VS Code extension for writing, running, and managing structured
-              API tests as version-controlled YAML files. No login. No cloud.
+              From Postman-like API design to Robot-like execution, as version-controlled YAML files.
+Built for API teams that want GUI speed and Git-friendly, scalable automation.
             </p>
           </FadeIn>
 
@@ -155,7 +155,7 @@ export default function Hero() {
                 className="group flex items-center gap-2 bg-primary hover:bg-primary-dark text-white px-8 py-3.5 rounded-xl text-base font-semibold transition-all shadow-lg shadow-primary/25 hover:shadow-primary/40"
               >
                 <Download size={18} />
-                Install VS Code Extension
+                Build Your First Flow
                 <ArrowRight
                   size={16}
                   className="group-hover:translate-x-1 transition-transform"
