@@ -455,7 +455,9 @@ function collectStepErrors(
     if (stepType === 'call') {
       const callStep = step as any;
       const alias = callStep.call;
-      if (typeof alias === 'string' && alias.trim() && !importKeys.has(alias)) {
+      if (typeof alias !== 'string' || !alias.trim()) {
+        errors.push(`Step ${context}[${i}]: "call" must be a non-empty string`);
+      } else if (!importKeys.has(alias)) {
         errors.push(`Step ${context}[${i}]: call target "${alias}" is not imported`);
       }
     }

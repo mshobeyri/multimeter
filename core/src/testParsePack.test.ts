@@ -278,6 +278,11 @@ describe('yamlToTestStrict', () => {
     expect(() => yamlToTestStrict(yaml)).toThrow(/echos.*not imported/i);
   });
 
+  it('throws when call value is empty/null', () => {
+    const yaml = 'type: test\nimport:\nsteps:\n  - call: ';
+    expect(() => yamlToTestStrict(yaml)).toThrow(/"call" must be a non-empty string/i);
+  });
+
   it('passes for valid test with matching call', () => {
     const yaml = 'type: test\nimport:\n  echo: echo.mmt\nsteps:\n  - call: echo';
     expect(() => yamlToTestStrict(yaml)).not.toThrow();

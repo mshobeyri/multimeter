@@ -281,6 +281,11 @@ const transformExpectEntry = (
 };
 
 const callToJSfunc = (step: TestFlowCall, useExternalReport: boolean, stepIdx: number, importTitleMap?: Record<string, string>): string => {
+  // Guard against incomplete/partial YAML (e.g. `- call:` while the user is typing)
+  // where `step.call` is null/undefined. Emit nothing so code generation doesn't crash.
+  if (typeof step.call !== 'string' || !step.call.trim()) {
+    return '';
+  }
   let inputParams = toInputsParams(step.inputs || {}, ': ');
   if (inputParams.length > 0) {
     inputParams = ' ' + inputParams + ' ';
