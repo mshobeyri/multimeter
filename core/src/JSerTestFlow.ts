@@ -67,6 +67,10 @@ export const conditionalStatementToJSfunc = (check: string): string => {
       return `isAt_(\`${actual}\`, \`${expected}\`)`;
     case '!@':
       return `isNotAt_(\`${actual}\`, \`${expected}\`)`;
+    case '=C':
+      return `contains_(\`${actual}\`, \`${expected}\`)`;
+    case '!C':
+      return `notContains_(\`${actual}\`, \`${expected}\`)`;
     case '=~':
       return `matches_(\`${actual}\`, \`${expected}\`)`;
     case '!~':

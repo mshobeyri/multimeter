@@ -47,7 +47,7 @@ export function notEquals_(a: any, b: any) {
 }
 
 export function isAt_(a: any, b: any) {
-  // Checks if a is in b (for strings or arrays)
+  // Checks if a is in b (for strings or arrays): b.includes(a)
   if (typeof b === 'string' || Array.isArray(b)) {
     return b.includes(a);
   }
@@ -57,6 +57,21 @@ export function isAt_(a: any, b: any) {
 export function isNotAt_(a: any, b: any) {
   if (typeof b === 'string' || Array.isArray(b)) {
     return !b.includes(a);
+  }
+  return true;
+}
+
+export function contains_(a: any, b: any) {
+  // Checks if a contains b (for strings or arrays): a.includes(b)
+  if (typeof a === 'string' || Array.isArray(a)) {
+    return a.includes(b);
+  }
+  return false;
+}
+
+export function notContains_(a: any, b: any) {
+  if (typeof a === 'string' || Array.isArray(a)) {
+    return !a.includes(b);
   }
   return true;
 }

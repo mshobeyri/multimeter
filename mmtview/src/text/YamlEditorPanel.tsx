@@ -125,7 +125,7 @@ const UNDEFINED_INPUT_CLASS = "mmt-undefined-input-underline";
 const EXPECT_OP_CLASS = "mmt-expect-operator";
 
 /** Known comparison operators, longest first so >= matches before > */
-const EXPECT_OPS = ['==', '!=', '>=', '<=', '=@', '!@', '=~', '!~', '=^', '!^', '=$', '!$', '>', '<'];
+const EXPECT_OPS = ['==', '!=', '>=', '<=', '=@', '!@', '=C', '!C', '=~', '!~', '=^', '!^', '=$', '!$', '>', '<'];
 
 const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   content,

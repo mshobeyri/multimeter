@@ -4,7 +4,7 @@ function keySuggestionLabelsFor(parent: 'check'|'assert'|'operator'): string[] {
   if (parent === 'check' || parent === 'assert') {
     return ['actual', 'expected', 'operator', 'title', 'details', 'report'];
   }
-  return ['==', '!=', '>', '>=', '<', '<=', '=@', '!@', '=~', '!~', '=^', '!^', '=$', '!$'];
+  return ['==', '!=', '>', '>=', '<', '<=', '=@', '!@', '=C', '!C', '=~', '!~', '=^', '!^', '=$', '!$'];
 }
 
 describe('check/assert object-form autocomplete', () => {

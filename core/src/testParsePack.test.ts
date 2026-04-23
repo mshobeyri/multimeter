@@ -101,6 +101,12 @@ describe('quoteExpectOperators', () => {
     expect(result).toContain('body: "!@ error"');
   });
 
+  it('quotes !C operator in expect block', () => {
+    const yaml = 'expect:\n  body: !C error';
+    const result = quoteExpectOperators(yaml);
+    expect(result).toContain('body: "!C error"');
+  });
+
   it('quotes !~ operator in expect block', () => {
     const yaml = 'expect:\n  msg: !~ /fail/';
     const result = quoteExpectOperators(yaml);
@@ -119,8 +125,8 @@ describe('quoteExpectOperators', () => {
     expect(result).toContain('path: "!^ /start"');
   });
 
-  it('does not quote safe operators (==, <, <=, =@, =~, =^, =$)', () => {
-    const yaml = 'expect:\n  a: == 200\n  b: < 100\n  c: <= 50\n  d: =@ ok\n  e: =~ /x/\n  f: =^ start\n  g: =$ end';
+  it('does not quote safe operators (==, <, <=, =@, =C, =~, =^, =$)', () => {
+    const yaml = 'expect:\n  a: == 200\n  b: < 100\n  c: <= 50\n  d: =@ ok\n  e: =~ /x/\n  f: =^ start\n  g: =$ end\n  h: =C ok';
     const result = quoteExpectOperators(yaml);
     expect(result).toBe(yaml);
   });

@@ -836,8 +836,16 @@ describe('parseExpectValue', () => {
     expect(parseExpectValue('>= 100')).toEqual({ operator: '>=', expected: '100' });
   });
 
-  it('parses =@ (contains) operator prefix', () => {
+  it('parses =@ (is in) operator prefix', () => {
     expect(parseExpectValue('=@ success')).toEqual({ operator: '=@', expected: 'success' });
+  });
+
+  it('parses =C (contains) operator prefix', () => {
+    expect(parseExpectValue('=C success')).toEqual({ operator: '=C', expected: 'success' });
+  });
+
+  it('parses !C (not contains) operator prefix', () => {
+    expect(parseExpectValue('!C error')).toEqual({ operator: '!C', expected: 'error' });
   });
 
   it('parses =~ (regex) operator prefix', () => {

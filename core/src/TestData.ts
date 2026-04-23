@@ -217,18 +217,18 @@ export const addableFlowTypes = [
   'for', 'repeat', 'delay', 'setenv', 'stage'
 ] as FlowType[];
 export type CheckOps =
-    '<'|'>'|'<='|'>='|'=='|'!='|'=@'|'!@'|'=^'|'!^'|'=$'|'!$'|'=~'|'!~';
+    '<'|'>'|'<='|'>='|'=='|'!='|'=@'|'!@'|'=C'|'!C'|'=^'|'!^'|'=$'|'!$'|'=~'|'!~';
 
 export const opsList: CheckOps[] = [
-  '<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=^', '!^', '=$', '!$', '=~',
-  '!~'
+  '<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=C', '!C', '=^', '!^', '=$',
+  '!$', '=~', '!~'
 ];
 
 export const opsNames = [
   'less than', 'greater than', 'less than or equal', 'greater than or equal',
-  'equal', 'not equal', 'contains', 'does not contain', 'starts with',
-  'does not start with', 'ends with', 'does not end with', 'matches regex',
-  'does not match regex'
+  'equal', 'not equal', 'is in', 'is not in', 'contains', 'does not contain',
+  'starts with', 'does not start with', 'ends with', 'does not end with',
+  'matches regex', 'does not match regex'
 ];
 
 export function getOpOptionLabel(op: CheckOps): string {

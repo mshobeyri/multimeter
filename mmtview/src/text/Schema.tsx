@@ -481,7 +481,7 @@ export const TestSchema = {
                                             expected: {},
                                             operator: {
                                                 type: 'string',
-                                                enum: ['<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=~', '!~', '=^', '!^', '=$', '!$']
+                                                enum: ['<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=C', '!C', '=~', '!~', '=^', '!^', '=$', '!$']
                                             },
                                             title: { type: 'string' },
                                             details: { type: 'string' },
@@ -522,7 +522,7 @@ export const TestSchema = {
                                             expected: {},
                                             operator: {
                                                 type: 'string',
-                                                enum: ['<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=~', '!~', '=^', '!^', '=$', '!$']
+                                                enum: ['<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=C', '!C', '=~', '!~', '=^', '!^', '=$', '!$']
                                             },
                                             title: { type: 'string' },
                                             details: { type: 'string' },

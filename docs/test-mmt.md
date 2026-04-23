@@ -232,7 +232,7 @@ With title and report:
     external: fails
 ```
 
-All comparison operators supported by `check`/`assert` are available in `expect` values: `==`, `!=`, `<`, `>`, `<=`, `>=`, `=@`, `!@`, `=^`, `!^`, `=$`, `!$`, `=~`, `!~`.
+All comparison operators supported by `check`/`assert` are available in `expect` values: `==`, `!=`, `<`, `>`, `<=`, `>=`, `=@`, `!@`, `=C`, `!C`, `=^`, `!^`, `=$`, `!$`, `=~`, `!~`.
 
 #### Inline debug on call
 
@@ -263,8 +263,10 @@ Use check to log a failure and continue; use assert to stop the flow on failure.
 
 Supported operators
 - `<`, `>`, `<=`, `>=`, `==`, `!=`
-- `=@` (right side contains left side, i.e., `expected.includes(actual)`)
-- `!@` (right side does not contain left side)
+- `=@` (left is in right, i.e., `right.includes(left)`)
+- `!@` (left is not in right)
+- `=C` (left contains right, i.e., `left.includes(right)`)
+- `!C` (left does not contain right)
 - `=^` (starts with), `!^` (not starts with)
 - `=$` (ends with), `!$` (not ends with)
 - `=~` (regex match), `!~` (not regex match)

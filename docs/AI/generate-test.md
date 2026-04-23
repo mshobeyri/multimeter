@@ -153,7 +153,8 @@ Beyond the basic `call`, `id`, and `inputs`, a call step also supports:
 `<comparison>` is a string expression using operators from `opsList` in `TestData.ts`:
 
 - `<`, `>`, `<=`, `>=`, `==`, `!=`
-- `=@` (is at: actual is found within expected), `!@` (is not at)
+- `=@` (is in: left is contained in right), `!@` (is not in)
+- `=C` (contains: left contains right), `!C` (does not contain)
 - `=^` (starts with), `!^` (not starts with)
 - `=$` (ends with), `!$` (not ends with)
 - `=~` (regex match), `!~` (regex not match)
