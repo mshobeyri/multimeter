@@ -2,6 +2,12 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.17.1]
+
+- Fix `contain` and `is in` operator issues
+- Fix empty import issue
+- Update website
+
 ## [1.17.0]
 
 - Make API `format` field optional with default of `json`
