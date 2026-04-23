@@ -1,91 +1,6 @@
-import { Play, ExternalLink } from 'lucide-react'
+import { Play, ExternalLink, Youtube } from 'lucide-react'
 import FadeIn from '../components/FadeIn'
-
-interface Demo {
-  title: string
-  description: string
-  image: string
-  docLink?: string
-  docLabel?: string
-}
-
-const demos: Demo[] = [
-  {
-    title: 'API Testing',
-    description:
-      'Request configuration, method selection, headers, query params, body editing, and response handling with status codes and timing.',
-    image: '/demos/api.gif',
-    docLink:
-      'https://github.com/mshobeyri/multimeter/blob/main/docs/api-mmt.md',
-    docLabel: 'API Docs',
-  },
-  {
-    title: 'Test Flow Editor',
-    description:
-      'Visual test flow editor with step orchestration: call APIs, assert responses, loop over data, set variables, and chain requests.',
-    image: '/screenshots/test_panel_flow.png',
-    docLink:
-      'https://github.com/mshobeyri/multimeter/blob/main/docs/test-mmt.md',
-    docLabel: 'Test Docs',
-  },
-  {
-    title: 'Environment Variables',
-    description:
-      'Environment variable management with presets for dev/staging/production, dynamic value injection, and secure credential handling.',
-    image: '/screenshots/environment.gif',
-    docLink:
-      'https://github.com/mshobeyri/multimeter/blob/main/docs/environment-mmt.md',
-    docLabel: 'Env Docs',
-  },
-  {
-    title: 'Mock Server',
-    description:
-      'Built-in HTTP and WebSocket mock server for simulating API endpoints during development and testing.',
-    image: '/screenshots/mock_server.png',
-    docLink:
-      'https://github.com/mshobeyri/multimeter/blob/main/docs/mock-server.md',
-    docLabel: 'Mock Docs',
-  },
-  {
-    title: 'Test Suites',
-    description:
-      'Group and run multiple tests with sequential and parallel execution. Organize your test strategy with suite files.',
-    image: '/screenshots/suite.png',
-    docLink:
-      'https://github.com/mshobeyri/multimeter/blob/main/docs/suite-mmt.md',
-    docLabel: 'Suite Docs',
-  },
-  {
-    title: 'Import & Convert',
-    description:
-      'Seamlessly import from Postman collections and OpenAPI specifications. Zero-friction migration to Multimeter.',
-    image: '/screenshots/convertor.png',
-    docLink:
-      'https://github.com/mshobeyri/multimeter/blob/main/docs/convertor.md',
-    docLabel: 'Convertor Docs',
-  },
-  {
-    title: 'Test Results & Logs',
-    description:
-      'Detailed test execution logs showing requests, responses, assertions, timing, and pass/fail results.',
-    image: '/screenshots/test_panel_log.png',
-  },
-  {
-    title: 'Test History',
-    description:
-      'Full test execution history stored in your repository. Track test results over time and compare runs.',
-    image: '/screenshots/history.png',
-    docLink:
-      'https://github.com/mshobeyri/multimeter/blob/main/docs/history.md',
-    docLabel: 'History Docs',
-  },
-  {
-    title: 'UI Editor (No-Code)',
-    description:
-      'Visual UI editor for creating and editing tests without writing YAML. Perfect for non-technical team members.',
-    image: '/screenshots/test_panel_test.png',
-  },
-]
+import { PLAYLIST_ID, videos as playlistVideos } from 'virtual:youtube-playlist'
 
 export default function Demos() {
   return (
@@ -107,41 +22,62 @@ export default function Demos() {
         </FadeIn>
       </section>
 
-      {/* Demo grid */}
-      <section className="pb-24 px-4 sm:px-6 lg:px-8">
+      {/* Step-by-step videos */}
+      <section className="pb-16 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
+          <FadeIn>
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-8">
+              <div>
+                <div className="inline-flex items-center gap-2 bg-surface-light border border-border rounded-full px-4 py-1.5 mb-3">
+                  <Youtube size={14} className="text-red-500" />
+                  <span className="text-sm text-slate-400">Step-by-step playlist</span>
+                </div>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white">
+                  Watch Multimeter in <span className="gradient-text">action</span>
+                </h2>
+                <p className="text-slate-400 mt-2 max-w-2xl">
+                  Short, focused videos walking through Multimeter — from install to
+                  environment variables and API testing.
+                </p>
+              </div>
+              <a
+                href={`https://www.youtube.com/playlist?list=${PLAYLIST_ID}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-primary-light hover:text-primary transition-colors"
+              >
+                <ExternalLink size={14} />
+                View full playlist on YouTube
+              </a>
+            </div>
+          </FadeIn>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {demos.map((demo, index) => (
-              <FadeIn key={demo.title} delay={index * 75}>
+            {playlistVideos.map((video, index) => (
+              <FadeIn key={video.id} delay={index * 75}>
                 <div className="group bg-surface-light border border-border rounded-2xl overflow-hidden hover:border-primary/50 transition-all duration-300 hover:-translate-y-1 h-full flex flex-col">
-                  {/* Image */}
-                  <div className="relative overflow-hidden aspect-video bg-surface">
-                    <img
-                      src={demo.image}
-                      alt={demo.title}
-                      className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                  <div className="relative aspect-video bg-surface">
+                    <iframe
+                      className="w-full h-full"
+                      src={`https://www.youtube-nocookie.com/embed/${video.id}?list=${PLAYLIST_ID}`}
+                      title={video.title}
+                      loading="lazy"
+                      allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
                     />
                   </div>
-
-                  {/* Content */}
                   <div className="p-6 flex-1 flex flex-col">
                     <h3 className="text-lg font-semibold text-white mb-2">
-                      {demo.title}
+                      {video.title}
                     </h3>
-                    <p className="text-sm text-slate-400 leading-relaxed flex-1">
-                      {demo.description}
-                    </p>
-                    {demo.docLink && (
-                      <a
-                        href={demo.docLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-sm text-primary-light hover:text-primary mt-4 transition-colors"
-                      >
-                        <ExternalLink size={14} />
-                        {demo.docLabel}
-                      </a>
-                    )}
+                    <a
+                      href={`https://www.youtube.com/watch?v=${video.id}&list=${PLAYLIST_ID}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-sm text-primary-light hover:text-primary mt-auto transition-colors"
+                    >
+                      <Youtube size={14} />
+                      Watch on YouTube
+                    </a>
                   </div>
                 </div>
               </FadeIn>

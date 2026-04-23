@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Github, Linkedin, Mail } from 'lucide-react'
+import { Github, Linkedin, Mail, Youtube } from 'lucide-react'
 
 const footerLinks = {
   Product: [
@@ -17,6 +17,7 @@ const footerLinks = {
   ],
   Community: [
     { name: 'GitHub', href: 'https://github.com/mshobeyri/multimeter', external: true },
+    { name: 'YouTube (@mmt_dev)', href: 'https://www.youtube.com/@mmt_dev', external: true },
     { name: 'VS Code Marketplace', href: 'https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter', external: true },
     { name: 'Report Issue', href: 'https://github.com/mshobeyri/multimeter/issues', external: true },
     { name: 'Request Feature', href: 'https://github.com/mshobeyri/multimeter/issues/new', external: true },
@@ -58,6 +59,15 @@ export default function Footer() {
                 className="text-slate-400 hover:text-white transition-colors"
               >
                 <Linkedin size={20} />
+              </a>
+              <a
+                href="https://www.youtube.com/@mmt_dev"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="YouTube"
+                className="text-slate-400 hover:text-white transition-colors"
+              >
+                <Youtube size={20} />
               </a>
               <a
                 href="mailto:support@mmt.dev"
