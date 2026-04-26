@@ -35,6 +35,8 @@ function matchesSource(filePath: string, src: string): boolean {
   if (!fp || !s) {
     return false;
   }
+  // '.' means current directory — match any file
+  if (s === '.') { return true; }
   if (/\.mmt$/i.test(s)) {
     return fp.endsWith(s) || fp === s;
   }

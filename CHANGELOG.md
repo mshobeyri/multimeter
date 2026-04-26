@@ -2,6 +2,10 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.17.2]
+
+- Fix doc source `.` (current folder) not matching any files
+
 ## [1.17.1]
 
 - Fix `contain` and `is in` operator issues
