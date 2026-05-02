@@ -41,7 +41,7 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({ modifiedY
         <div ref={popupRef} className="unsaved-changes-popup">
           <div className="unsaved-changes-popup-header">
             <span className="codicon codicon-warning unsaved-changes-popup-icon" aria-hidden />
-            <span>Changes won't be saved</span>
+            <span>Temporary changes</span>
             <button
               className="unsaved-changes-popup-close"
               onClick={() => setOpen(false)}
@@ -52,8 +52,7 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({ modifiedY
             </button>
           </div>
           <p className="unsaved-changes-popup-desc">
-            These modifications are temporary and won't be persisted to the file.
-            Some values may contain resolved environment variables or inputs.
+            Modifications are temporary and won't be persisted to the file automatically.
           </p>
           <div className="unsaved-changes-popup-yaml-header">
             <span>Modified API</span>
