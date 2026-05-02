@@ -1,10 +1,12 @@
 import { yamlToAPI, apiToYaml } from "mmt-core/apiParsePack";
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import APIOverview from "./APIOverview";
 import InterfaceEditor from "./APIInterface";
 import APIExample from "./APIExample";
 import APITest from "./APITester";
+import UnsavedChangesWarning from "./UnsavedChangesWarning";
 import { APIData, ExampleData } from "mmt-core/APIData";
+import { Request } from "mmt-core/NetworkData";
 import { safeList, safeListCopy } from "mmt-core/safer";
 
 const LAST_API_TAB_KEY = "mmtview:api:lastTab";
@@ -16,11 +18,11 @@ interface APIsProps {
 }
 
 const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
-  const api = yamlToAPI(content);
-  let setAPI = (newApi: APIData) => {
-    const newYaml = apiToYaml(newApi);
-    setContent(newYaml);
-  };
+  // Memoize the parsed API so its reference is stable across renders.
+  // Without this, every render produces a new object, which makes effects
+  // in useAPITesterLogic (`[api, ...]`) fire constantly and reset
+  // touched fields — wiping the user's tester edits.
+  const api = useMemo<APIData>(() => yamlToAPI(content), [content]);
 
   const [page, setPage] = useState<"test" | "edit">(
     () => (localStorage.getItem(LAST_API_PAGE_KEY) as "test" | "edit") || "test"
@@ -30,6 +32,69 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
   );
   const [showIconsOnly, setShowIconsOnly] = useState(false);
   const tabContainerRef = useRef<HTMLDivElement>(null);
+
+  // Test-mode override tracking. We don't snapshot the API on entry; instead
+  // we ask the tester which fields the user has touched and compare those
+  // values against the current `api`. This way:
+  //  - YAML edits don't trigger the warning (touched fields stay aligned with api)
+  //  - Reverting a touched value back to its api value clears the warning
+  const [testRequestData, setTestRequestData] = useState<Request | undefined>(undefined);
+  const [testTouchedFields, setTestTouchedFields] = useState<Set<keyof Request>>(new Set());
+
+  const handleModificationChange = useCallback(
+    (req: Request | undefined, touched: Set<keyof Request>) => {
+      setTestRequestData(req);
+      setTestTouchedFields(touched);
+    },
+    []
+  );
+
+  const discardRef = useRef<(() => void) | null>(null);
+
+  const handleRequestReset = useCallback((reset: () => void) => {
+    discardRef.current = reset;
+  }, []);
+
+  const setAPI = (newApi: APIData) => {
+    const newYaml = apiToYaml(newApi);
+    setContent(newYaml);
+  };
+
+  // Build the API as it would look with the user's tester overrides applied.
+  // Only fields explicitly touched by the user become overrides.
+  const modifiedApi = useMemo<APIData>(() => {
+    if (!testRequestData || testTouchedFields.size === 0) {
+      return api;
+    }
+    const overrides: Record<string, unknown> = {};
+    testTouchedFields.forEach((field) => {
+      overrides[field as string] = (testRequestData as Record<string, unknown>)[field as string];
+    });
+    return { ...api, ...overrides } as APIData;
+  }, [api, testRequestData, testTouchedFields]);
+
+  const isTestModified = useMemo(() => {
+    if (page !== 'test' || !testRequestData || testTouchedFields.size === 0) {
+      return false;
+    }
+    // True only if at least one touched field actually differs from `api`.
+    let modified = false;
+    testTouchedFields.forEach((field) => {
+      if (modified) { return; }
+      const fieldKey = field as string;
+      const reqVal = (testRequestData as Record<string, unknown>)[fieldKey];
+      const apiVal = (api as unknown as Record<string, unknown>)[fieldKey];
+      if (JSON.stringify(reqVal) !== JSON.stringify(apiVal)) {
+        modified = true;
+      }
+    });
+    return modified;
+  }, [api, page, testRequestData, testTouchedFields]);
+
+  const modifiedYaml = useMemo(
+    () => (isTestModified ? apiToYaml(modifiedApi) : ""),
+    [isTestModified, modifiedApi]
+  );
 
   useEffect(() => {
     localStorage.setItem(LAST_API_PAGE_KEY, page);
@@ -104,16 +169,27 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
                 <APITest
                   api={api}
                   onUpdateApi={update}
+                  onModificationChange={handleModificationChange}
+                  onRequestReset={handleRequestReset}
                   rightOfUrlButton={
-                    <button
-                      className="action-button"
-                      onClick={() => setPage('edit')}
-                      title="Edit API"
-                      type="button"
-                    >
-                      <span className="codicon codicon-edit" aria-hidden />
-                      <span className="api-edit-launcher-text">Edit API</span>
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <button
+                        className="action-button"
+                        onClick={() => setPage('edit')}
+                        title="Edit API"
+                        type="button"
+                      >
+                        <span className="codicon codicon-edit" aria-hidden />
+                        <span className="api-edit-launcher-text">Edit API</span>
+                      </button>
+                      {isTestModified && (
+                        <UnsavedChangesWarning
+                          modifiedYaml={modifiedYaml}
+                          onSave={() => setContent(modifiedYaml)}
+                          onDiscard={() => discardRef.current?.()}
+                        />
+                      )}
+                    </div>
                   }
                 />
               </div>
