@@ -1,5 +1,6 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { parseYaml, parseYamlDoc } from 'mmt-core/markupConvertor';
+import { suiteToYaml, yamlToSuite } from 'mmt-core/suiteParsePack';
 import { SuiteEntry, SuiteGroup } from '../types';
 import SuiteEditTree from './SuiteEditTree';
 import { statusIconFor } from '../../shared/Common';
@@ -71,11 +72,19 @@ const normalizeSuiteGroups = (groups: SuiteGroup[]): SuiteGroup[] => {
   return filtered.map((group, idx) => ({ ...group, label: `Group ${idx + 1}` }));
 };
 
+const canonicalizeSuiteYaml = (content: string): string => {
+  try {
+    return suiteToYaml(yamlToSuite(content));
+  } catch {
+    return content;
+  }
+};
+
 const updateSuiteContentWithGroups = (content: string, groups: SuiteGroup[]): string | null => {
   try {
     const doc = parseYamlDoc(content);
     doc.set('tests', flattenSuiteGroups(groups));
-    return doc.toString();
+    return canonicalizeSuiteYaml(doc.toString());
   } catch {
     return null;
   }
@@ -99,7 +108,7 @@ const updateSuiteContentWithServers = (content: string, servers: string[]): stri
     } else {
       doc.set('servers', servers);
     }
-    return doc.toString();
+    return canonicalizeSuiteYaml(doc.toString());
   } catch {
     return null;
   }
@@ -142,7 +151,7 @@ const updateSuiteContentWithEnvironment = (content: string, env: SuiteEnvironmen
       }
       doc.set('environment', envObj);
     }
-    return doc.toString();
+    return canonicalizeSuiteYaml(doc.toString());
   } catch {
     return null;
   }
@@ -166,7 +175,7 @@ const updateSuiteContentWithExports = (content: string, exports: string[]): stri
     } else {
       doc.set('export', exports);
     }
-    return doc.toString();
+    return canonicalizeSuiteYaml(doc.toString());
   } catch {
     return null;
   }

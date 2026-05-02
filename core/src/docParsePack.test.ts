@@ -28,4 +28,10 @@ describe('docParsePack', () => {
     expect(yaml).toContain('name: n');
     expect(yaml).toContain('- y');
   });
+
+  test('docToYaml does not add title when missing', () => {
+    const yaml = docToYaml({ type: 'doc' });
+    expect(yaml).toContain('type: doc');
+    expect(yaml).not.toContain('title:');
+  });
 });

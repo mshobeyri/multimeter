@@ -1,4 +1,4 @@
-import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
+import {splitSuiteGroups, suiteToYaml, yamlToSuite} from './suiteParsePack';
 
 describe('suiteParsePack', () => {
   it('parses suite and keeps then tokens', () => {
@@ -86,5 +86,11 @@ export: []
 `;
     const suite = yamlToSuite(raw);
     expect(suite.export).toBeUndefined();
+  });
+
+  it('suiteToYaml does not add title when missing', () => {
+    const yaml = suiteToYaml({type: 'suite', tests: ['test.mmt']});
+    expect(yaml).toContain('type: suite');
+    expect(yaml).not.toContain('title:');
   });
 });

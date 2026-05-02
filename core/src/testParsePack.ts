@@ -249,8 +249,10 @@ export function yamlToTest(yamlContent: string): TestData {
 export function testToYaml(test: TestData): string {
   const yamlObj: Record<string, any> = {
     type: test.type,
-    title: test.title,
   };
+  if (test.title) {
+    yamlObj.title = test.title;
+  }
   if (test.description) {
     yamlObj.description = test.description;
   }
