@@ -2,6 +2,12 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.18.0]
+
+- Add temporary API change warning with preview, save, and discard actions in the API tester UI
+- Canonicalize API, suite, and mock YAML output to avoid unwanted empty `title` fields and preserve mock WebSocket messages
+- Improve website community links and replace the demos page with a YouTube playlist-driven experience
+
 ## [1.17.1]
 
 - Fix `contain` and `is in` operator issues
