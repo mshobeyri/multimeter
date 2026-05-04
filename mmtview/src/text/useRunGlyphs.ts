@@ -49,7 +49,7 @@ export function useRunGlyphs(params: {
   }, [content, editorRef, monacoRef]);
 
   const handleRunClick = useCallback(() => {
-    if (docType !== 'test' && docType !== 'api' && docType !== 'suite') {
+    if (docType !== 'test' && docType !== 'api' && docType !== 'suite' && docType !== 'loadtest') {
       return;
     }
     try {

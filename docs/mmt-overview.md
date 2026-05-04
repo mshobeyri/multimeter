@@ -129,10 +129,27 @@ Run: Executes the items in stages. All items before a `then` run in parallel. Th
 
 Deep dive: see [Suite](./suite-mmt.md).
 
+## Load Test (type: loadtest)
+Purpose: Run a single `type: test` file with load configuration such as concurrency, repeat limits, and ramp-up.
+
+Minimal example
+```yaml
+type: loadtest
+title: Login Load Test
+threads: 100
+repeat: 1m
+rampup: 10s
+test: ./tests/login.mmt
+```
+Run: Executes the referenced test file using the loadtest configuration.
+
+Deep dive: see [Load Test](./loadtest-mmt.md).
+
 ## How they fit together
 - Tests import APIs and data; Environments supply variables consumed by both.
 - Inputs (`<<i:key>>`) are test-provided; Envs (`e:VAR`) come from env files/UI.
 - Suites group tests and APIs into staged execution plans.
+- Load tests point at one test file and add load-oriented execution settings.
 - Mock server files (`type: server`) can be started from tests (via `run` step) or suites.
 - Reports are generated after test/suite runs and can be viewed in the editor or consumed by CI/CD tools.
 - The JS that runs is generated automatically from your YAML.

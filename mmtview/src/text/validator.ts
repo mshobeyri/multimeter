@@ -134,7 +134,6 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "import",
         "inputs",
         "outputs",
-        "metrics",
         "steps",
         "stages",
       ];
@@ -148,6 +147,19 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "servers",
         "export",
         "tests",
+      ];
+    case "loadtest":
+      return [
+        "type",
+        "title",
+        "description",
+        "tags",
+        "environment",
+        "threads",
+        "repeat",
+        "rampup",
+        "export",
+        "test",
       ];
     case "doc":
       return ["type", "title", "description", "logo", "sources", "services", "html", "env"];
@@ -840,6 +852,19 @@ export type SuiteTestLineInfo = {
 
 export function extractSuiteTestLineInfo(doc: any, content: string): SuiteTestLineInfo[] {
   const items: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
+  const testPair = items.find((entry) => entry?.key?.value === "test");
+  if (testPair && testPair.value) {
+    const path = typeof testPair.value?.value === 'string' ? testPair.value.value : undefined;
+    if (!path) {
+      return [];
+    }
+    const offset =
+      Array.isArray(testPair?.value?.range) && typeof testPair.value.range[0] === 'number'
+        ? testPair.value.range[0]
+        : undefined;
+    const line = typeof offset === 'number' ? offsetToLineNumber(content, offset) : 1;
+    return [{ path, line }];
+  }
   const testsPair = items.find((entry) => entry?.key?.value === "tests");
   if (!testsPair || !testsPair.value) {
     return [];
@@ -883,7 +908,7 @@ export function computeMissingSuiteFileMarkers(
       startColumn: 1,
       endLineNumber: lineNumber,
       endColumn: model.getLineMaxColumn(lineNumber),
-      message: `Suite file "${path}" was not found.`,
+      message: `Referenced file "${path}" was not found.`,
       severity: monaco.MarkerSeverity.Warning,
     };
   });

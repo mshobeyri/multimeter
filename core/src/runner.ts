@@ -6,6 +6,7 @@ import {basename, detectDocType, PreparedRun, RunFileResult, runGeneratedJs} fro
 import {mergeEnv, RunFileOptions, RunReporterMessage} from './runConfig';
 import {executeSuite, prepareSuiteRun} from './runSuite';
 import {executeSuiteBundle} from './suiteBundleRunner';
+import {executeLoadTest, prepareLoadTestRun} from './runLoadTest';
 import {executeTest, generateTestJs, prepareTestRun} from './runTest';
 
 export {generateTestJs, runGeneratedJs};
@@ -63,6 +64,8 @@ export async function prepareRunFromOptions(
     specific = prepareTestRun(rawText, manualInputs);
   } else if (docType === 'suite') {
     specific = prepareSuiteRun(rawText, manualInputs);
+  } else if (docType === 'loadtest') {
+    specific = prepareLoadTestRun(rawText, manualInputs);
   }
 
   return {
@@ -104,6 +107,10 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
       });
     }
     return executeSuite(prepared, options, preLogs, runFile);
+  }
+
+  if (docType === 'loadtest') {
+    return executeLoadTest(prepared, options, preLogs, runFile);
   }
 
   throw new Error('Run is currently supported for test or api documents only.');

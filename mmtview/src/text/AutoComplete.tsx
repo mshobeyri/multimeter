@@ -44,8 +44,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
             label: "type",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "type: ",
-            detail: 'Type of mmt file [api, env, doc, test, suite, server, report]',
-            documentation: 'Type of mmt file, must be one of: api, env, doc, test, suite, server, report\n\t- api: Define an API\n\t- env: Define environment variables\n\t- doc: Define a documentation page (title/description/sources/theme)\n\t- test: Define a test suite (steps/stages)\n\t- suite: Orchestrate multiple .mmt files in groups split by "then"\n\t- server: Define a mock server\n\t- report: Test/suite run results\nExample: type: suite',
+            detail: 'Type of mmt file [api, env, doc, test, suite, loadtest, server, report]',
+            documentation: 'Type of mmt file, must be one of: api, env, doc, test, suite, loadtest, server, report\n\t- api: Define an API\n\t- env: Define environment variables\n\t- doc: Define a documentation page (title/description/sources/theme)\n\t- test: Define a functional test (steps/stages)\n\t- suite: Orchestrate multiple .mmt files in groups split by "then"\n\t- loadtest: Run one test file with load configuration\n\t- server: Define a mock server\n\t- report: Test/suite run results\nExample: type: loadtest',
         }];
 
     const typeSuggestions = [
@@ -83,6 +83,13 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: " suite",
             detail: 'Define a suite runner',
             documentation: 'Suite definition that runs referenced .mmt files. Uses tests: [path | then | path], runs items in a group in parallel and groups sequentially.',
+        },
+        {
+            label: "Load Test",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " loadtest",
+            detail: 'Define a load test runner',
+            documentation: 'Loadtest definition that runs a single test file with load configuration such as threads, repeat, and rampup.',
         },
         {
             label: "Server",
@@ -202,6 +209,71 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: "tests:\n\t- ",
             detail: 'Suite items [array]',
             documentation: 'List of .mmt paths and the literal "then" barrier. Items in a group run in parallel; groups run sequentially.',
+        },
+    ];
+    const loadtestSuggestions = [
+        {
+            label: "title",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "title: ",
+            detail: 'Load test title [string]',
+            documentation: 'A descriptive title for the load test.',
+        },
+        {
+            label: "description",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "description: ",
+            detail: 'Load test description [string]',
+            documentation: 'Optional description shown under the title.',
+        },
+        {
+            label: "tags",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "tags:\n\t- ",
+            detail: 'Load test tags [array of strings]',
+            documentation: 'Tags for categorizing load tests.',
+        },
+        {
+            label: "environment",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "environment:\n\tpreset: ",
+            detail: 'Load test environment [object]',
+            documentation: 'Optional environment configuration applied when running the referenced test.',
+        },
+        {
+            label: "threads",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "threads: 100",
+            detail: 'Concurrent workers [number]',
+            documentation: 'Target concurrency for the load test.',
+        },
+        {
+            label: "repeat",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "repeat: 1m",
+            detail: 'Duration or iteration limit [string | number]',
+            documentation: 'How long or how many iterations to run. Examples: repeat: 1m or repeat: 1000',
+        },
+        {
+            label: "rampup",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "rampup: 10s",
+            detail: 'Ramp-up duration [string]',
+            documentation: 'How long to take to reach the target thread count.',
+        },
+        {
+            label: "export",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "export:\n\t- ",
+            detail: 'Report export paths [array]',
+            documentation: 'Optional report file paths to generate after the load test completes.',
+        },
+        {
+            label: "test",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "test: ",
+            detail: 'Referenced test file [string]',
+            documentation: 'Path to the single test file executed by this load test.',
         },
     ];
     const reportSuggestions = [
@@ -1571,6 +1643,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         test: testSuggestions,
         suite: suiteSuggestions,
         doc: docSuggestions,
+        loadtest: loadtestSuggestions,
         report: reportSuggestions,
         mock: mockSuggestions,
         services: servicesSuggestions,

@@ -12,6 +12,16 @@ export interface SuiteExportSpec {
   collectedResults: CollectedResults;
 }
 
+export interface LoadTestPreparedConfig {
+  title?: string;
+  test: string;
+  threads?: number;
+  repeat?: string | number;
+  rampup?: string;
+  environment?: import('./SuiteData').SuiteEnvironment;
+  export?: string[];
+}
+
 export interface RunFileResult {
   js: string;
   result: RunResult;
@@ -37,6 +47,7 @@ export interface PreparedRun {
   title?: string;
   exampleName?: string;
   exampleIndex?: number;
+  loadtestConfig?: LoadTestPreparedConfig;
 }
 
 /**

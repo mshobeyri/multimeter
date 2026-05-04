@@ -6,6 +6,7 @@ import APIPanel from "./api/APIPanel";
 import NotypePanel from "./NotypePanel";
 import TestPanel from "./test/TestPanel";
 import SuitePanel from "./suite/SuitePanel";
+import LoadTestPanel from "./loadtest/LoadTestPanel";
 import DocPanel from "./doc/DocPanel";
 import MockPanel from "./mock/MockPanel";
 import ReportPanel from "./report/ReportPanel";
@@ -252,6 +253,9 @@ const App: React.FC = () => {
             )}
             {docType === "suite" && (
               <SuitePanel content={validContent} setContent={uiSetContent} />
+            )}
+            {docType === "loadtest" && (
+              <LoadTestPanel content={validContent} setContent={uiSetContent} />
             )}
             {docType === "server" && (
               <MockPanel content={validContent} setContent={uiSetContent} />

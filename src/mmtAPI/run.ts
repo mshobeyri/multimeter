@@ -257,6 +257,7 @@ export async function handleRunCurrentDocument(
     const label = docType === 'api' ? 'API' :
         docType === 'test'          ? 'Test' :
         docType === 'suite'         ? 'Suite' :
+      docType === 'loadtest'      ? 'Load Test' :
                                       'Document';
 
     if (result.syntaxError) {

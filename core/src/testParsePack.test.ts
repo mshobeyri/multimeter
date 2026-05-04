@@ -41,7 +41,6 @@ flow:
       import: {},
       inputs: {},
       outputs: {},
-      metrics: {},
     } as any;
     const y = testToYaml(td);
     expect(y).toContain('type: test');

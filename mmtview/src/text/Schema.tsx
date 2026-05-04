@@ -2,7 +2,7 @@ export const GeneralSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
     properties: {
-        type: { type: 'string', enum: ['api', 'env', 'test', 'suite', 'doc', 'server', 'report'] },
+        type: { type: 'string', enum: ['api', 'env', 'test', 'suite', 'loadtest', 'doc', 'server', 'report'] },
     }
 }
 
@@ -47,6 +47,50 @@ export const SuiteSchema = {
                 ]
             }
         }
+    },
+    additionalProperties: false
+};
+export const LoadTestSchema = {
+    $schema: 'http://json-schema.org/draft-07/schema#',
+    type: 'object',
+    required: ['type', 'test'],
+    properties: {
+        type: { type: 'string', enum: ['loadtest'] },
+        title: { type: 'string' },
+        description: { type: 'string' },
+        tags: { type: 'array', items: { type: 'string' } },
+        environment: {
+            type: 'object',
+            properties: {
+                preset: { type: 'string' },
+                file: { type: 'string' },
+                variables: {
+                    type: 'object',
+                    additionalProperties: {
+                        anyOf: [
+                            { type: 'string' },
+                            { type: 'number' },
+                            { type: 'boolean' },
+                            { type: 'null' }
+                        ]
+                    }
+                }
+            },
+            additionalProperties: false
+        },
+        threads: { type: 'number' },
+        repeat: {
+            anyOf: [
+                { type: 'number' },
+                { type: 'string' }
+            ]
+        },
+        rampup: { type: 'string' },
+        export: {
+            type: 'array',
+            items: { type: 'string' }
+        },
+        test: { type: 'string' }
     },
     additionalProperties: false
 };

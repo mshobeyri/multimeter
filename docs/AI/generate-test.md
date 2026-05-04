@@ -31,12 +31,6 @@ inputs:                         # input variables with default values
 outputs:                        # top-level outputs for this test
   <name>: string                # expression or literal
 
-metrics:                        # optional performance/load hints
-  repeat?: string | number      # e.g. "10" or "inf"
-  threads?: number
-  duration?: string             # "10s", "1m", "2h", "inf"
-  rampup?: string               # same units as duration
-
 steps:                          # linear flow of steps (no stages)
   - <step>
 

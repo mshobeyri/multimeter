@@ -43,7 +43,7 @@
           }
         },
         {
-          "match": "^(type)\\s*:\\s*(api|env)\\b",
+          "match": "^(type)\\s*:\\s*(api|env|test|suite|loadtest|server|report|doc)\\b",
           "captures": {
             "1": {
               "name": "keyword.control.mmt.type"
