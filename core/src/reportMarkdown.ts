@@ -45,7 +45,7 @@ function buildStepRow(step: TestStepResult, index: number): string {
   const name = escapeMdTable(step.title || `step-${step.stepIndex}`);
   const icon = step.status === 'passed' ? '✓' : '✗';
   const result = `${icon} ${step.status}`;
-  return `| ${index + 1} | ${name} | check | ${result} |`;
+  return `| ${index + 1} | ${name} | ${result} |`;
 }
 
 function displayValue(v: any): string {
@@ -102,21 +102,18 @@ function buildFailureDetails(step: TestStepResult): string {
   return md;
 }
 
-function buildSuiteSection(run: TestRunResult, index: number, includeDetails: boolean): string {
+function buildTestRunSection(run: TestRunResult, index: number, includeDetails: boolean): string {
   const name = run.displayName || run.filePath || `test-${index}`;
   const steps = run.steps.filter(s => s.stepType !== 'debug');
-  if (run.docType === 'suite' && steps.length === 0) {
-    const icon = run.result === 'passed' ? '✓' : '✗';
-    return `\n## ${icon} ${name} — ${run.result}\n`;
+  const icon = run.result === 'passed' ? '✓' : '✗';
+  let md = `**${icon} ${name}** ${run.result}\n`;
+  if (steps.length === 0) {
+    return md;
   }
-  let md = `\n## ${name}\n\n`;
-  md += `| # | Check | Type | Result |\n`;
-  md += `|---|------|------|--------|\n`;
+  md += `\n| # | Check | Result|\n`;
+  md += `|---|------|--------|\n`;
   for (let i = 0; i < steps.length; i++) {
     md += buildStepRow(steps[i], i) + '\n';
-  }
-  if (steps.length === 0) {
-    md += `| | *No test steps* | | |\n`;
   }
 
   if (includeDetails) {
@@ -129,15 +126,39 @@ function buildSuiteSection(run: TestRunResult, index: number, includeDetails: bo
   return md;
 }
 
-function getLoadPoints(results: CollectedResults): Array<{timestamp: string; active_threads?: number; requests?: number; errors?: number; throughput?: number; response_time?: number; error_rate?: number}> {
+function buildFunctionalTestsSection(runs: TestRunResult[], includeDetails: boolean): string {
+  let md = `\n## Tests\n`;
+  if (runs.length === 0) {
+    return md + `\n*No test results in this report.*\n`;
+  }
+  for (let i = 0; i < runs.length; i++) {
+    md += buildTestRunSection(runs[i], i, includeDetails);
+    if (i < runs.length - 1) {
+      md += '\n';
+    }
+  }
+  return md;
+}
+
+function getLoadPoints(results: CollectedResults): Array<{at: number; active_threads?: number; requests?: number; errors?: number; throughput?: number; response_time?: number; error_rate?: number}> {
   const load = results.load;
   if (!load) {
     return [];
   }
   if (Array.isArray(load.snapshots)) {
-    return load.snapshots.map(point => ({...point, timestamp: `${point.at}s`}));
+    return load.snapshots.map(point => ({...point}));
   }
-  return load.series || [];
+  if (!Array.isArray(load.series)) {
+    return [];
+  }
+  const startedAt = results.suiteRun?.startedAt || (load.config?.started_at ? new Date(load.config.started_at).getTime() : undefined);
+  return load.series.map((point, index) => {
+    const pointTime = point.timestamp ? new Date(point.timestamp).getTime() : undefined;
+    const at = startedAt && pointTime && Number.isFinite(pointTime)
+      ? Math.max(0, Math.floor((pointTime - startedAt) / 1000))
+      : index;
+    return {...point, at};
+  });
 }
 
 function buildLoadSection(results: CollectedResults): string {
@@ -172,7 +193,7 @@ function buildLoadSection(results: CollectedResults): string {
     md += buildLoadMermaidCharts(points);
     md += `\n### Snapshots\n\n| At | Threads | Requests | Requests/sec | Response time | Failures | Failure rate |\n|----|---------|----------|--------------|---------------|----------|--------------|\n`;
     for (const point of points) {
-      md += `| ${escapeMdTable(point.timestamp || '')} | ${point.active_threads ?? ''} | ${point.requests ?? ''} | ${point.throughput != null ? point.throughput.toFixed(2) : ''} | ${point.response_time != null ? point.response_time.toFixed(2) : ''} | ${point.errors ?? ''} | ${point.error_rate != null ? `${(point.error_rate * 100).toFixed(2)}%` : ''} |\n`;
+      md += `| ${point.at} | ${point.active_threads ?? ''} | ${point.requests ?? ''} | ${point.throughput != null ? point.throughput.toFixed(2) : ''} | ${point.response_time != null ? point.response_time.toFixed(2) : ''} | ${point.errors ?? ''} | ${point.error_rate != null ? `${(point.error_rate * 100).toFixed(2)}%` : ''} |\n`;
     }
   }
   if (loadData.thresholds && loadData.thresholds.length > 0) {
@@ -194,20 +215,22 @@ function mermaidValues(values: number[]): string {
   return values.map(value => Number.isFinite(value) ? Number(value.toFixed(2)) : 0).join(', ');
 }
 
-function buildLoadMermaidChart(title: string, yAxis: string, labels: string[], firstValues: number[], secondValues: number[]): string {
-  const maxY = Math.max(1, ...firstValues, ...secondValues);
-  return `\n\`\`\`mermaid\nxychart\n    title "${title}"\n    x-axis [${labels.join(', ')}]\n    y-axis "${yAxis}" 0 --> ${Math.ceil(maxY)}\n    line [${mermaidValues(firstValues)}]\n    line [${mermaidValues(secondValues)}]\n\`\`\`\n`;
+function buildLoadMermaidChart(title: string, yAxis: string, labels: string[], values: number[]): string {
+  const maxY = Math.max(1, ...values);
+  return `\n\`\`\`mermaid\nxychart\n    title "${title}"\n    x-axis [${labels.join(', ')}]\n    y-axis "${yAxis}" 0 --> ${Math.ceil(maxY)}\n    line [${mermaidValues(values)}]\n\`\`\`\n`;
 }
 
-function buildLoadMermaidCharts(series: NonNullable<NonNullable<CollectedResults['load']>['series']>): string {
-  const labels = series.map((_point, index) => `t${index + 1}`);
+function buildLoadMermaidCharts(series: ReturnType<typeof getLoadPoints>): string {
+  const labels = series.map(point => String(point.at));
   const throughput = series.map(point => Number(point.throughput || 0));
   const responseTime = series.map(point => Number(point.response_time || 0));
   const failures = series.map(point => Number(point.errors || 0));
   const threads = series.map(point => Number(point.active_threads || 0));
   return `\n### Charts\n` +
-    buildLoadMermaidChart('Requests/sec and Response time (ms) over time', 'Value', labels, throughput, responseTime) +
-    buildLoadMermaidChart('Failures and Threads over time', 'Value', labels, failures, threads);
+    buildLoadMermaidChart('Requests/sec over time', 'Requests/sec', labels, throughput) +
+    buildLoadMermaidChart('Response time over time', 'Milliseconds', labels, responseTime) +
+    buildLoadMermaidChart('Failures over time', 'Failures', labels, failures) +
+    buildLoadMermaidChart('Threads over time', 'Threads', labels, threads);
 }
 
 export function generateReportMarkdown(results: CollectedResults, options?: ReportMarkdownOptions): string {
@@ -244,11 +267,9 @@ export function generateReportMarkdown(results: CollectedResults, options?: Repo
   md += buildLoadSection(results);
 
   if (!isLoad) {
-    for (let i = 0; i < runs.length; i++) {
-      md += buildSuiteSection(runs[i], i, includeDetails);
-    }
+    md += buildFunctionalTestsSection(runs, includeDetails);
   }
 
-  md += `\n---\n*Generated by Multimeter*\n`;
+  md += `\n---\n*Generated by **Multimeter***\n`;
   return md;
 }

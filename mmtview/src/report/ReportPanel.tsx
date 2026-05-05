@@ -119,17 +119,20 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
     totalSub: `${totalTests} check${totalTests !== 1 ? 's' : ''}`,
     durationSub: `${totalSuites} file${totalSuites !== 1 ? 's' : ''}`,
   };
+  const headerIcon = isLoadReport ? 'codicon-graph' : 'codicon-layers';
+  const headerSubtitle = isLoadReport ? 'Load report' : 'Functional report';
 
   return (
     <div style={{ width: 'calc(100% - 16px)', padding: '0 4px', overflow: 'hidden', boxSizing: 'border-box' }}>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 8,
-      }}>
-        <div>{suiteName}</div>
-        <ExportReportButton disabled={false} onExport={handleExportReport} />
+      <div className="api-edit-header" style={{ marginBottom: 12 }}>
+        <div className="tab-bar tab-bar-single" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div className="tab-button active" style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }} title={suiteName}>
+            <span className={`codicon ${headerIcon}`} aria-hidden />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{suiteName}</span>
+            <span style={{ opacity: 0.7, fontSize: '0.85em', marginLeft: 4 }}>({headerSubtitle})</span>
+          </div>
+          <ExportReportButton disabled={false} onExport={handleExportReport} />
+        </div>
       </div>
 
       <OverviewBoxes stats={overviewStats} />
@@ -179,7 +182,13 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
               }}
             >
               {/* Expand/collapse arrow */}
-              {isSuiteOnly ? <span style={{ width: 16 }} /> : (
+              {isSuiteOnly ? (
+                <span
+                  className="codicon codicon-layers"
+                  style={{ width: 16, opacity: 0.75 }}
+                  title="Suite"
+                />
+              ) : (
                 <span
                   className={`codicon ${isExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right'}`}
                   style={{ width: 16, opacity: 0.7 }}

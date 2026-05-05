@@ -260,7 +260,7 @@ const LoadOverviewBoxes: React.FC<{
                     icon="duration"
                 />
                 <LoadOverviewCard
-                    label={isRunning ? 'Active Threads' : 'Threads'}
+                    label="Threads"
                     value={formatLoadNumber(threadValue)}
                     sub={threadSubParts.length ? threadSubParts.join(' · ') : undefined}
                     color="var(--vscode-charts-yellow, #d29922)"

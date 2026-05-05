@@ -87,6 +87,29 @@ function buildTestsuite(run: TestRunResult, index: number): string {
   return xml;
 }
 
+function getLoadSnapshots(results: CollectedResults): Array<Record<string, any>> {
+  const load = results.load;
+  if (!load) {
+    return [];
+  }
+  if (Array.isArray(load.snapshots)) {
+    return load.snapshots.map(point => ({...point}));
+  }
+  if (!Array.isArray(load.series)) {
+    return [];
+  }
+  const startedAt = results.suiteRun?.startedAt || (load.config?.started_at ? new Date(load.config.started_at).getTime() : undefined);
+  return load.series.map((point, index) => {
+    const pointTime = point.timestamp ? new Date(point.timestamp).getTime() : undefined;
+    const at = startedAt && pointTime && Number.isFinite(pointTime)
+      ? Math.max(0, Math.floor((pointTime - startedAt) / 1000))
+      : index;
+    const snapshot: Record<string, any> = {...point, at};
+    delete snapshot.timestamp;
+    return snapshot;
+  });
+}
+
 export function generateJunitXml(results: CollectedResults, options?: JunitXmlOptions): string {
   const runs = results.testRuns;
   const suiteName = escapeXml(options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || results.testRuns[0]?.displayName || 'Test Report');
@@ -107,7 +130,6 @@ export function generateJunitXml(results: CollectedResults, options?: JunitXmlOp
     }
     if (results.load) {
       const loadProps: Array<[string, any]> = [
-        ['load.tool', results.load.tool],
         ['load.threads', results.load.config?.threads],
         ['load.repeat', results.load.config?.repeat],
         ['load.rampup', results.load.config?.rampup],
@@ -121,18 +143,16 @@ export function generateJunitXml(results: CollectedResults, options?: JunitXmlOp
         ['load.latency.p95', results.load.latency?.p95],
         ['load.latency.p99', results.load.latency?.p99],
       ];
-      if (Array.isArray(results.load.series)) {
-        results.load.series.forEach((point, index) => {
-          loadProps.push([`load.series.${index}.timestamp`, point.timestamp]);
-          loadProps.push([`load.series.${index}.active_threads`, point.active_threads]);
-          loadProps.push([`load.series.${index}.requests`, point.requests]);
-          loadProps.push([`load.series.${index}.throughput`, point.throughput]);
-          loadProps.push([`load.series.${index}.response_time`, point.response_time]);
-          loadProps.push([`load.series.${index}.errors`, point.errors]);
-          loadProps.push([`load.series.${index}.error_delta`, point.error_delta]);
-          loadProps.push([`load.series.${index}.error_rate`, point.error_rate]);
-        });
-      }
+      getLoadSnapshots(results).forEach((point, index) => {
+        loadProps.push([`load.snapshots.${index}.at`, point.at]);
+        loadProps.push([`load.snapshots.${index}.active_threads`, point.active_threads]);
+        loadProps.push([`load.snapshots.${index}.requests`, point.requests]);
+        loadProps.push([`load.snapshots.${index}.throughput`, point.throughput]);
+        loadProps.push([`load.snapshots.${index}.response_time`, point.response_time]);
+        loadProps.push([`load.snapshots.${index}.errors`, point.errors]);
+        loadProps.push([`load.snapshots.${index}.error_delta`, point.error_delta]);
+        loadProps.push([`load.snapshots.${index}.error_rate`, point.error_rate]);
+      });
       for (const [name, value] of loadProps) {
         if (value !== undefined && value !== null && value !== '') {
           xml += `        <property name="${escapeXml(name)}" value="${escapeXml(String(value))}"/>\n`;

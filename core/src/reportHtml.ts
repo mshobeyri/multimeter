@@ -114,6 +114,8 @@ function buildStepHtml(step: TestStepResult): string {
   return html;
 }
 
+const ICON_LAYERS_INLINE = `<svg class="suite-layers-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1.4 14.2 4.6 8 7.8 1.8 4.6 8 1.4Zm0 1.8L4.7 4.6 8 6.3l3.3-1.7L8 3.2Zm-5.4 4 1.1-.6L8 8.8l4.3-2.2 1.1.6L8 10 2.6 7.2Zm0 2.6 1.1-.6L8 11.4l4.3-2.2 1.1.6L8 12.6 2.6 9.8Z"/></svg>`;
+
 function buildSuiteSection(run: TestRunResult, index: number): string {
   const name = escapeHtml(run.displayName || run.filePath || `test-${index}`);
   const steps = run.steps.filter(s => s.stepType !== 'debug');
@@ -126,9 +128,7 @@ function buildSuiteSection(run: TestRunResult, index: number): string {
 
   let html = `      <section class="suite">\n`;
   if (isSuiteOnly) {
-    const iconChar = run.result === 'passed' ? '✓' : '✗';
-    const iconColor = run.result === 'passed' ? 'var(--passed)' : 'var(--failed)';
-    html += `        <h2><span style="color: ${iconColor}">${iconChar}</span> ${name}${badge}</h2>\n`;
+    html += `        <h2><span class="suite-icon" title="Suite">${ICON_LAYERS_INLINE}</span> ${name}${badge}</h2>\n`;
     html += `      </section>\n`;
     return html;
   }
@@ -151,7 +151,7 @@ function getLoadPoints(results: CollectedResults): NonNullable<CollectedResults[
     return [];
   }
   if (Array.isArray(load.snapshots)) {
-    return load.snapshots.map(point => ({...point, timestamp: `${point.at}s`}));
+    return load.snapshots.map(point => ({...point, timestamp: String(point.at)}));
   }
   return load.series || [];
 }
@@ -193,12 +193,12 @@ function buildLoadChartSvg(title: string, labels: [string, string], colors: [str
     ].join('\n');
   };
 
-  let html = `      <h3>${escapeHtml(title)}</h3>\n`;
-  html += '      <div class="expects">\n';
+  let html = `      <h3 class="load-chart-title">${escapeHtml(title)}</h3>\n`;
+  html += '      <div class="expects load-chart-legend">\n';
   html += `        <div><strong style="color:${colors[0]}">${escapeHtml(labels[0])}</strong></div>\n`;
   html += `        <div><strong style="color:${colors[1]}">${escapeHtml(labels[1])}</strong></div>\n`;
   html += '      </div>\n';
-  html += `      <svg width="100%" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(title)}">\n`;
+  html += `      <svg class="load-chart" width="100%" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(title)}">\n`;
   html += `        <rect x="${left}" y="${top}" width="${innerWidth}" height="${innerHeight}" fill="transparent" stroke="var(--border)"/>\n`;
   for (const ratio of [0, 0.25, 0.5, 0.75, 1]) {
     const y = top + innerHeight - ratio * innerHeight;
@@ -243,7 +243,7 @@ function buildLoadSection(results: CollectedResults): string {
     ['Latency p99', loadData.latency?.p99 != null ? `${loadData.latency.p99} ms` : undefined],
   ] as Array<[string, any]>).filter(([, value]) => value !== undefined && value !== null && value !== '');
 
-  let html = '    <section class="suite">\n';
+  let html = '    <section class="suite load-section">\n';
   html += '      <h2>Load Metrics</h2>\n';
   html += '      <div class="expects">\n';
   for (const [label, value] of cells) {
@@ -514,6 +514,38 @@ const CSS = `
     margin: 0;
     font-weight: 600;
     cursor: pointer;
+  }
+  .suite-icon {
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+  .suite-layers-icon {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
+  .load-section h2 {
+    margin-bottom: 12px;
+  }
+  .load-chart-title {
+    margin: 22px 0 10px;
+    padding-top: 4px;
+  }
+  .load-chart-legend {
+    margin-top: 0;
+    margin-bottom: 14px;
+  }
+  .load-chart {
+    display: block;
+    margin-bottom: 22px;
+  }
+  .load-section table {
+    margin-top: 10px;
   }
   .suite-count {
     font-size: 11px;

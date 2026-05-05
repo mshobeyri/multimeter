@@ -201,4 +201,26 @@ describe('generateJunitXml', () => {
     const xml = generateJunitXml(results);
     expect(xml).toContain('name="step-3"');
   });
+
+  it('emits load snapshots instead of series properties', () => {
+    const results: CollectedResults = {
+      type: 'loadtest',
+      testRuns: [],
+      load: {
+        summary: {requests: 4, successes: 4, failures: 0},
+        config: {threads: 2, repeat: 2, rampup: '0s'},
+        snapshots: [
+          {at: 0, active_threads: 1, requests: 1, throughput: 1, response_time: 10, errors: 0, error_rate: 0},
+          {at: 1, active_threads: 2, requests: 4, throughput: 3, response_time: 12, errors: 0, error_rate: 0},
+        ],
+      },
+    };
+
+    const xml = generateJunitXml(results);
+    expect(xml).toContain('name="load.snapshots.0.at" value="0"');
+    expect(xml).toContain('name="load.snapshots.1.active_threads" value="2"');
+    expect(xml).not.toContain('load.series');
+    expect(xml).not.toContain('load.tool');
+    expect(xml).not.toContain('timestamp');
+  });
 });

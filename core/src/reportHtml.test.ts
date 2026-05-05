@@ -72,6 +72,20 @@ describe('generateReportHtml', () => {
     expect(html).toContain('<section class="suite">');
   });
 
+  it('uses a suite icon for suite-only rows', () => {
+    const results: CollectedResults = {
+      type: 'suite',
+      testRuns: [
+        makeRun({ displayName: 'nested-suite.mmt', docType: 'suite', steps: [] }),
+      ],
+    };
+
+    const html = generateReportHtml(results);
+    expect(html).toContain('title="Suite"');
+    expect(html).toContain('suite-layers-icon');
+    expect(html).not.toContain('>✓</span> nested-suite.mmt');
+  });
+
   it('includes failure details with actual/expected', () => {
     const results: CollectedResults = {
       type: 'test',
