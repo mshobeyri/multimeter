@@ -662,6 +662,7 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
       },
       testRuns,
       load: isLoadTest ? {
+        ...(data.load || {}),
         tool: 'multimeter',
         scenario: data.suiteName ?? undefined,
         test: data.load?.test,

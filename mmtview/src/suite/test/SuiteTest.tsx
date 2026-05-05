@@ -420,6 +420,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
     const pendingEntriesToCancelRef = useRef<string[] | null>(null);
     const reportQueueRef = useRef<any[]>([]);
     const reportFlushTimerRef = useRef<number | null>(null);
+    const durationTimerRef = useRef<number | null>(null);
 
     const resetLeafState = useCallback((mode: 'all' | readonly string[]) => {
         if (mode === 'all') {
@@ -635,6 +636,27 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
     }, [flushReportQueue]);
 
     useEffect(() => {
+        if (durationTimerRef.current !== null) {
+            window.clearInterval(durationTimerRef.current);
+            durationTimerRef.current = null;
+        }
+        if (suiteRunState !== 'running' || !suiteRunStartTimeRef.current) {
+            return;
+        }
+        durationTimerRef.current = window.setInterval(() => {
+            if (suiteRunStartTimeRef.current) {
+                setSuiteRunDurationMs(Date.now() - suiteRunStartTimeRef.current);
+            }
+        }, 250);
+        return () => {
+            if (durationTimerRef.current !== null) {
+                window.clearInterval(durationTimerRef.current);
+                durationTimerRef.current = null;
+            }
+        };
+    }, [suiteRunState]);
+
+    useEffect(() => {
         const handler = (event: MessageEvent) => {
             const message = event.data;
             if (!message || typeof message !== 'object') {
@@ -824,7 +846,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
         setSuiteRunId(nextSuiteRunId);
         setSuiteRunState('running');
         suiteRunStartTimeRef.current = Date.now();
-        setSuiteRunDurationMs(null);
+        setSuiteRunDurationMs(0);
         pendingLeafResetRef.current = 'all';
         resetLeafState('all');
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId });
@@ -884,6 +906,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
         const nextSuiteRunId = `suite-ui:${Date.now()}`;
         setSuiteRunId(nextSuiteRunId);
         setSuiteRunState('running');
+        suiteRunStartTimeRef.current = Date.now();
+        setSuiteRunDurationMs(0);
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId, target: effectiveTarget });
     }, [resetLeafState, hierarchyByEntryPath]);
 

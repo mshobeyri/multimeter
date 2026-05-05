@@ -53,7 +53,7 @@ export const SuiteSchema = {
 export const LoadTestSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
-    required: ['type', 'test'],
+    required: ['type', 'test', 'repeat'],
     properties: {
         type: { type: 'string', enum: ['loadtest'] },
         title: { type: 'string' },
@@ -78,14 +78,14 @@ export const LoadTestSchema = {
             },
             additionalProperties: false
         },
-        threads: { type: 'number' },
+        threads: { type: 'number', default: 1 },
         repeat: {
             anyOf: [
                 { type: 'number' },
                 { type: 'string' }
             ]
         },
-        rampup: { type: 'string' },
+        rampup: { type: 'string', default: '0s' },
         export: {
             type: 'array',
             items: { type: 'string' }

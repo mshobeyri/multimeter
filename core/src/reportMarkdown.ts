@@ -152,7 +152,8 @@ function buildLoadSection(results: CollectedResults): string {
     }
   }
   if (Array.isArray(load.series) && load.series.length > 0) {
-    md += `\n### Time Series\n\n| Time | Threads | Requests | Requests/sec | Response time | Errors | Error rate |\n|------|---------|----------|--------------|---------------|--------|------------|\n`;
+    md += buildLoadMermaidCharts(load.series);
+    md += `\n### Time Series\n\n| Time | Threads | Requests | Requests/sec | Response time | Failures | Failure rate |\n|------|---------|----------|--------------|---------------|----------|--------------|\n`;
     for (const point of load.series) {
       md += `| ${escapeMdTable(point.timestamp || '')} | ${point.active_threads ?? ''} | ${point.requests ?? ''} | ${point.throughput != null ? point.throughput.toFixed(2) : ''} | ${point.response_time != null ? point.response_time.toFixed(2) : ''} | ${point.errors ?? ''} | ${point.error_rate != null ? `${(point.error_rate * 100).toFixed(2)}%` : ''} |\n`;
     }
@@ -170,6 +171,26 @@ function buildLoadSection(results: CollectedResults): string {
     }
   }
   return md;
+}
+
+function mermaidValues(values: number[]): string {
+  return values.map(value => Number.isFinite(value) ? Number(value.toFixed(2)) : 0).join(', ');
+}
+
+function buildLoadMermaidChart(title: string, yAxis: string, labels: string[], firstValues: number[], secondValues: number[]): string {
+  const maxY = Math.max(1, ...firstValues, ...secondValues);
+  return `\n\`\`\`mermaid\nxychart\n    title "${title}"\n    x-axis [${labels.join(', ')}]\n    y-axis "${yAxis}" 0 --> ${Math.ceil(maxY)}\n    line [${mermaidValues(firstValues)}]\n    line [${mermaidValues(secondValues)}]\n\`\`\`\n`;
+}
+
+function buildLoadMermaidCharts(series: NonNullable<NonNullable<CollectedResults['load']>['series']>): string {
+  const labels = series.map((_point, index) => `t${index + 1}`);
+  const throughput = series.map(point => Number(point.throughput || 0));
+  const responseTime = series.map(point => Number(point.response_time || 0));
+  const failures = series.map(point => Number(point.errors || 0));
+  const threads = series.map(point => Number(point.active_threads || 0));
+  return `\n### Charts\n` +
+    buildLoadMermaidChart('Requests/sec and Response time (ms) over time', 'Value', labels, throughput, responseTime) +
+    buildLoadMermaidChart('Failures and Threads over time', 'Value', labels, failures, threads);
 }
 
 export function generateReportMarkdown(results: CollectedResults, options?: ReportMarkdownOptions): string {

@@ -175,4 +175,24 @@ describe('generateReportHtml', () => {
     expect(html).toContain('Multimeter');
     expect(html).toContain('report-footer');
   });
+
+  it('renders load test charts in HTML reports', () => {
+    const results: CollectedResults = {
+      type: 'loadtest',
+      testRuns: [],
+      load: {
+        summary: {iterations: 2, requests: 4, successes: 2, failures: 0, success_rate: 1, failed_rate: 0},
+        config: {threads: 2, repeat: 2, rampup: '0s'},
+        series: [
+          {timestamp: '2026-05-05T10:00:00.000Z', active_threads: 1, requests: 1, throughput: 1, response_time: 10, errors: 0, error_rate: 0},
+          {timestamp: '2026-05-05T10:00:01.000Z', active_threads: 2, requests: 4, throughput: 3, response_time: 12, errors: 0, error_rate: 0},
+        ],
+      },
+    };
+
+    const html = generateReportHtml(results);
+    expect(html).toContain('Requests per second and Response time over time');
+    expect(html).toContain('Threads and Failures over time');
+    expect(html).toContain('<svg');
+  });
 });

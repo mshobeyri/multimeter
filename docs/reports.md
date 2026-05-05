@@ -159,8 +159,8 @@ suites:
 Format mapping for implementation:
 
 - MMT (`.mmt`): write the full schema above.
-- HTML: show the normal functional summary plus load cards for throughput, error rate, latency percentiles, threshold table, error table, and time-series charts.
-- Markdown: include summary, latency/throughput/threshold/error tables; include series as a compact table.
+- HTML: show the normal functional summary plus load cards for throughput, failure rate, latency percentiles, threshold table, error table, and SVG time-series charts.
+- Markdown: include summary, latency/throughput/threshold/error tables; include Mermaid `xychart` visualizations and series as a compact table.
 - JUnit XML: preserve CI compatibility by keeping normal `<testsuites>`/`<testcase>` output; add load metrics as `<properties>` on `<testsuites>` using names such as `load.threads`, `load.throughput`, `load.latency.p95`, and `load.error_rate`.
 
 ### HTML

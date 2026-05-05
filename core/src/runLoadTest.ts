@@ -100,10 +100,13 @@ export async function executeLoadTest(
   const threads = Math.max(1, Math.floor(loadtest.threads || 1));
   const repeatIterations = parsePositiveInteger(loadtest.repeat);
   const repeatDurationMs = repeatIterations === undefined ? parseDurationMs(loadtest.repeat) : undefined;
+  if (repeatIterations === undefined && repeatDurationMs === undefined) {
+    throw new Error('Loadtest.repeat must be a positive integer or duration string such as 10s, 1m, or 1000');
+  }
   const rampupMs = parseDurationMs(loadtest.rampup) || 0;
   const runStartedAt = Date.now();
   const deadline = repeatDurationMs !== undefined ? runStartedAt + repeatDurationMs : undefined;
-  const maxIterations = repeatIterations ?? (repeatDurationMs !== undefined ? undefined : 1);
+  const maxIterations = repeatIterations;
   const allLogs: string[] = [];
   const allErrors: string[] = [];
   const reportCollector = createReportCollector();

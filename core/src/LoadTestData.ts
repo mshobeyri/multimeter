@@ -9,7 +9,7 @@ export interface LoadTestData extends MMTFile {
   tags?: string[];
   test: string;
   threads?: number;
-  repeat?: Repeat | Timestr | number;
+  repeat: Repeat | Timestr | number;
   rampup?: Timestr;
   environment?: SuiteEnvironment;
   export?: string[];

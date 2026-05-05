@@ -47,9 +47,9 @@ const buildTestFromContent = (content: string): string => {
 const buildLoadConfigFromContent = (content: string): LoadConfig => {
   const parsed = parseYaml(content);
   return {
-    threads: typeof parsed?.threads === 'number' ? parsed.threads : undefined,
+    threads: typeof parsed?.threads === 'number' ? parsed.threads : 1,
     repeat: typeof parsed?.repeat === 'number' || typeof parsed?.repeat === 'string' ? parsed.repeat : undefined,
-    rampup: typeof parsed?.rampup === 'string' ? parsed.rampup : undefined,
+    rampup: typeof parsed?.rampup === 'string' ? parsed.rampup : '0s',
   };
 };
 
@@ -181,7 +181,7 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
   const persistLoad = useCallback((nextLoad: LoadConfig) => {
     setLoad(nextLoad);
     const updated = updateLoadTestContent(content, (doc) => {
-      if (typeof nextLoad.threads === 'number') {
+      if (typeof nextLoad.threads === 'number' && nextLoad.threads !== 1) {
         doc.set('threads', nextLoad.threads);
       } else {
         doc.delete('threads');
@@ -191,7 +191,7 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
       } else {
         doc.delete('repeat');
       }
-      if (nextLoad.rampup) {
+      if (nextLoad.rampup && nextLoad.rampup !== '0s') {
         doc.set('rampup', nextLoad.rampup);
       } else {
         doc.delete('rampup');
@@ -242,8 +242,8 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
 
   const handleThreadsChange = useCallback((value: string) => {
     const trimmed = value.trim();
-    const threads = trimmed ? Number(trimmed) : undefined;
-    persistLoad({ ...load, threads: Number.isFinite(threads) ? threads : undefined });
+    const threads = trimmed ? Number(trimmed) : 1;
+    persistLoad({ ...load, threads: Number.isFinite(threads) ? threads : 1 });
   }, [load, persistLoad]);
 
   const handleRepeatChange = useCallback((value: string) => {
@@ -253,7 +253,7 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
   }, [load, persistLoad]);
 
   const handleRampupChange = useCallback((value: string) => {
-    persistLoad({ ...load, rampup: value.trim() || undefined });
+    persistLoad({ ...load, rampup: value.trim() || '0s' });
   }, [load, persistLoad]);
 
   const handleEnvPresetChange = useCallback((value: string) => {
@@ -337,12 +337,13 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
         className="vscode-input"
         value={load.threads ?? ''}
         onChange={(e) => handleThreadsChange(e.target.value)}
-        placeholder="100"
+        placeholder="1"
         style={{ width: '100%', marginBottom: 12 }}
       />
       <div className="label" style={{ marginBottom: 6 }}>Repeat</div>
       <input
         type="text"
+        required
         className="vscode-input"
         value={load.repeat ?? ''}
         onChange={(e) => handleRepeatChange(e.target.value)}
@@ -355,11 +356,11 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
         className="vscode-input"
         value={load.rampup ?? ''}
         onChange={(e) => handleRampupChange(e.target.value)}
-        placeholder="10s"
+        placeholder="0s"
         style={{ width: '100%', marginBottom: 12 }}
       />
       <div style={{ opacity: 0.7, fontSize: '0.9em' }}>
-        Threads is target concurrency. Repeat can be a duration or iteration count. Ramp-up is the time to reach target concurrency.
+        Threads defaults to 1. Repeat is required and can be a duration or total iteration count. Ramp-up defaults to 0s.
       </div>
     </div>
   );

@@ -28,6 +28,21 @@ function makeOptions(): RunFileOptions {
 }
 
 describe('executeLoadTest', () => {
+  it('requires repeat', async () => {
+    const prepared = makePrepared(`type: loadtest\nthreads: 1\ntest: ./target.mmt\n`);
+    const options = makeOptions();
+
+    await expect(executeLoadTest(prepared, options, [], async () => ({
+      js: '',
+      result: {success: true, durationMs: 1, errors: []},
+      identifier: 'target',
+      displayName: 'target',
+      docType: 'test',
+      inputsUsed: {},
+      envVarsUsed: {},
+    }))).rejects.toThrow(/repeat/i);
+  });
+
   it('runs numeric repeat as total iterations with thread concurrency', async () => {
     const prepared = makePrepared(`type: loadtest\nthreads: 4\nrepeat: 8\ntest: ./target.mmt\n`);
     const options = makeOptions();

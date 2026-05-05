@@ -43,6 +43,10 @@ export function yamlToLoadTest(rawYaml: string): LoadTestData {
   if (!test) {
     throw new Error('Loadtest.test must be a non-empty string');
   }
+  const repeat = typeof doc.repeat === 'number' || typeof doc.repeat === 'string' ? doc.repeat : undefined;
+  if (repeat === undefined || (typeof repeat === 'string' && !repeat.trim())) {
+    throw new Error('Loadtest.repeat is required and must be a number or duration string');
+  }
 
   const tags = Array.isArray(doc.tags)
     ? doc.tags.filter((t: any) => typeof t === 'string').map((t: string) => t.trim()).filter(Boolean)
@@ -56,9 +60,9 @@ export function yamlToLoadTest(rawYaml: string): LoadTestData {
     description: typeof doc.description === 'string' ? doc.description : undefined,
     tags,
     test,
-    threads: typeof doc.threads === 'number' ? doc.threads : undefined,
-    repeat: typeof doc.repeat === 'number' || typeof doc.repeat === 'string' ? doc.repeat : undefined,
-    rampup: typeof doc.rampup === 'string' ? doc.rampup : undefined,
+    threads: typeof doc.threads === 'number' ? doc.threads : 1,
+    repeat,
+    rampup: typeof doc.rampup === 'string' ? doc.rampup : '0s',
     environment,
     export: exportPaths.length > 0 ? exportPaths : undefined,
   };
@@ -94,13 +98,11 @@ export function loadtestToYaml(loadtest: LoadTestData): string {
       yamlObj.environment = env;
     }
   }
-  if (typeof loadtest.threads === 'number') {
+  if (typeof loadtest.threads === 'number' && loadtest.threads !== 1) {
     yamlObj.threads = loadtest.threads;
   }
-  if (loadtest.repeat !== undefined) {
-    yamlObj.repeat = loadtest.repeat;
-  }
-  if (loadtest.rampup) {
+  yamlObj.repeat = loadtest.repeat;
+  if (loadtest.rampup && loadtest.rampup !== '0s') {
     yamlObj.rampup = loadtest.rampup;
   }
   if (loadtest.export && loadtest.export.length > 0) {
