@@ -27,6 +27,8 @@ export interface RunJSCodeContext {
   skipServerCleanup?: boolean;
   /** Base directory for resolving relative paths (e.g. gRPC proto files). */
   basePath?: string;
+  /** True when this JS execution can safely be delegated to an external worker. */
+  workerEligible?: boolean;
 }
 
 const REPORTER_KEY = '__mmtReportStep';

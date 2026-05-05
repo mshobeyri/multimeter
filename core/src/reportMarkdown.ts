@@ -130,43 +130,44 @@ function buildLoadSection(results: CollectedResults): string {
   if (!load) {
     return '';
   }
+  const loadData = load;
   let md = `\n## Load Metrics\n\n`;
   md += `| Metric | Value |\n|--------|-------|\n`;
   const rows = [
-    ['Threads', load.config?.threads],
-    ['Repeat', load.config?.repeat],
-    ['Ramp-up', load.config?.rampup],
-    ['Requests sent', load.summary?.requests],
-    ['Succeeded', load.summary?.successes],
-    ['Failed', load.summary?.failures],
-    ['Success rate', load.summary?.success_rate != null ? `${(load.summary.success_rate * 100).toFixed(2)}%` : undefined],
-    ['Failed rate', load.summary?.failed_rate != null ? `${(load.summary.failed_rate * 100).toFixed(2)}%` : undefined],
-    ['Throughput', load.summary?.throughput != null ? `${load.summary.throughput} req/s` : undefined],
-    ['Error rate', load.summary?.error_rate != null ? `${(load.summary.error_rate * 100).toFixed(2)}%` : undefined],
-    ['Latency p95', load.latency?.p95 != null ? `${load.latency.p95} ms` : undefined],
-    ['Latency p99', load.latency?.p99 != null ? `${load.latency.p99} ms` : undefined],
+    ['Threads', loadData.config?.threads],
+    ['Repeat', loadData.config?.repeat],
+    ['Ramp-up', loadData.config?.rampup],
+    ['Requests sent', loadData.summary?.requests],
+    ['Succeeded', loadData.summary?.successes],
+    ['Failed', loadData.summary?.failures],
+    ['Success rate', loadData.summary?.success_rate != null ? `${(loadData.summary.success_rate * 100).toFixed(2)}%` : undefined],
+    ['Failed rate', loadData.summary?.failed_rate != null ? `${(loadData.summary.failed_rate * 100).toFixed(2)}%` : undefined],
+    ['Throughput', loadData.summary?.throughput != null ? `${loadData.summary.throughput} req/s` : undefined],
+    ['Error rate', loadData.summary?.error_rate != null ? `${(loadData.summary.error_rate * 100).toFixed(2)}%` : undefined],
+    ['Latency p95', loadData.latency?.p95 != null ? `${loadData.latency.p95} ms` : undefined],
+    ['Latency p99', loadData.latency?.p99 != null ? `${loadData.latency.p99} ms` : undefined],
   ] as Array<[string, any]>;
   for (const [name, value] of rows) {
     if (value !== undefined && value !== null && value !== '') {
       md += `| ${escapeMdTable(name)} | ${escapeMdTable(String(value))} |\n`;
     }
   }
-  if (Array.isArray(load.series) && load.series.length > 0) {
-    md += buildLoadMermaidCharts(load.series);
+  if (Array.isArray(loadData.series) && loadData.series.length > 0) {
+    md += buildLoadMermaidCharts(loadData.series);
     md += `\n### Time Series\n\n| Time | Threads | Requests | Requests/sec | Response time | Failures | Failure rate |\n|------|---------|----------|--------------|---------------|----------|--------------|\n`;
-    for (const point of load.series) {
+    for (const point of loadData.series) {
       md += `| ${escapeMdTable(point.timestamp || '')} | ${point.active_threads ?? ''} | ${point.requests ?? ''} | ${point.throughput != null ? point.throughput.toFixed(2) : ''} | ${point.response_time != null ? point.response_time.toFixed(2) : ''} | ${point.errors ?? ''} | ${point.error_rate != null ? `${(point.error_rate * 100).toFixed(2)}%` : ''} |\n`;
     }
   }
-  if (load.thresholds && load.thresholds.length > 0) {
+  if (loadData.thresholds && loadData.thresholds.length > 0) {
     md += `\n### Thresholds\n\n| Name | Expression | Actual | Result |\n|------|------------|--------|--------|\n`;
-    for (const threshold of load.thresholds) {
+    for (const threshold of loadData.thresholds) {
       md += `| ${escapeMdTable(threshold.name)} | ${escapeMdTable(threshold.expression || '')} | ${threshold.actual ?? ''} | ${threshold.result} |\n`;
     }
   }
-  if (load.errors && load.errors.length > 0) {
+  if (loadData.errors && loadData.errors.length > 0) {
     md += `\n### Errors\n\n| Message | Count | Rate |\n|---------|-------|------|\n`;
-    for (const err of load.errors) {
+    for (const err of loadData.errors) {
       md += `| ${escapeMdTable(err.message)} | ${err.count} | ${err.rate ?? ''} |\n`;
     }
   }

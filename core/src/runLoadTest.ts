@@ -153,10 +153,10 @@ export async function executeLoadTest(
       requestFailures += 1;
       return;
     }
-    const responseMatch = msg.match(/^Response:\s+(\d+)/);
+    const responseMatch = msg.match(/^Response:\s+(-?\d+)/);
     if (responseMatch) {
       const status = Number(responseMatch[1]);
-      if (Number.isFinite(status) && status >= 400) {
+      if (Number.isFinite(status) && (status < 0 || status >= 400)) {
         requestFailures += 1;
       }
       if (Number.isFinite(status)) {
@@ -367,6 +367,7 @@ export async function executeLoadTest(
         true,
         options.skipServerCleanup,
         childFilePath ? childFilePath.split(/[/\\]/).slice(0, -1).join('/') : undefined,
+        true,
         true,
       );
       completed += 1;

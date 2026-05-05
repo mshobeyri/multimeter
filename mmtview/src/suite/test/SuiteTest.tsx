@@ -207,12 +207,22 @@ const LoadOverviewBoxes: React.FC<{
     load: LoadRunSummary | null;
     config: LoadTestConfig | null;
     duration?: string;
-}> = ({ load, config, duration }) => {
+    isRunning?: boolean;
+}> = ({ load, config, duration, isRunning }) => {
     const summary = load?.summary || {};
     const requests = Number(summary.requests || 0);
     const successes = Number(summary.successes ?? Math.max(0, requests - Number(summary.failures || 0)));
     const failures = Number(summary.failures || 0);
     const iterations = Number(summary.iterations || 0);
+    const series = load?.series || [];
+    const latestSeriesPoint = series.length > 0 ? series[series.length - 1] : undefined;
+    const activeThreads = Number(latestSeriesPoint?.active_threads || 0);
+    const configuredThreads = Number(load?.config?.threads ?? config?.threads ?? 0);
+    const threadValue = isRunning ? activeThreads : configuredThreads;
+    const threadSubParts = [
+        isRunning && configuredThreads > 0 ? `Configured ${formatLoadNumber(configuredThreads)}` : undefined,
+        load?.config?.rampup || config?.rampup ? `Ramp-up ${load?.config?.rampup || config?.rampup}` : undefined,
+    ].filter(Boolean);
     return (
         <div>
             <div className="label" style={{ marginBottom: 6 }}>Overview</div>
@@ -250,9 +260,9 @@ const LoadOverviewBoxes: React.FC<{
                     icon="duration"
                 />
                 <LoadOverviewCard
-                    label="Threads"
-                    value={formatLoadNumber(load?.config?.threads ?? config?.threads)}
-                    sub={load?.config?.rampup || config?.rampup ? `Ramp-up ${load?.config?.rampup || config?.rampup}` : undefined}
+                    label={isRunning ? 'Active Threads' : 'Threads'}
+                    value={formatLoadNumber(threadValue)}
+                    sub={threadSubParts.length ? threadSubParts.join(' · ') : undefined}
                     color="var(--vscode-charts-yellow, #d29922)"
                     background="rgba(210, 153, 34, 0.15)"
                     icon="threads"
@@ -772,10 +782,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
             }
 
             if (message.command === 'runFileReport') {
-                if (mode === 'loadtest' && (message as any).scope === 'loadtest-summary' && (message as any).load) {
-                    setLoadRunSummary((message as any).load);
-                    return;
-                }
                 const incomingSuiteRunId = typeof (message as any).suiteRunId === 'string' ? (message as any).suiteRunId : null;
                 if (suiteRunId) {
                     // When the UI thinks we have an active suite run, only accept
@@ -788,6 +794,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
                     if (incomingSuiteRunId) {
                         return;
                     }
+                }
+                if (mode === 'loadtest' && (message as any).scope === 'loadtest-summary' && (message as any).load) {
+                    setLoadRunSummary((message as any).load);
+                    return;
                 }
                 reportQueueRef.current.push(message);
                 return;
@@ -1042,7 +1052,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
                 {noItems ? <div style={{ opacity: 0.8 }}>{mode === 'loadtest' ? 'No test file found under `test:`' : 'No suite items found under `tests:`'}</div> : (
                     <>
                         {mode === 'loadtest'
-                            ? <LoadOverviewBoxes load={loadRunSummary} config={loadConfig} duration={suiteRunDurationMs != null ? formatDuration(suiteRunDurationMs) : undefined} />
+                            ? <LoadOverviewBoxes load={loadRunSummary} config={loadConfig} duration={suiteRunDurationMs != null ? formatDuration(suiteRunDurationMs) : undefined} isRunning={suiteRunState === 'running'} />
                             : overviewStats && <OverviewBoxes stats={overviewStats} />}
                         {loadConfig && (
                             <>

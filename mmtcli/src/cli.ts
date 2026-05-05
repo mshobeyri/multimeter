@@ -2,6 +2,7 @@ import {Command} from 'commander';
 import fs from 'fs';
 import yaml from 'js-yaml';
 import * as mmtcore from 'mmt-core';
+import {Worker, isMainThread, parentPort, workerData} from 'worker_threads';
 // Import from mmt-core root exports to avoid subpath resolution issues under
 // pkg
 import {apiParsePack, docHtml, docParsePack, runner} from 'mmt-core';
@@ -72,6 +73,193 @@ function resolveCliVersion(): string {
 }
 const CLI_VERSION = resolveCliVersion();
 
+interface WorkerJsRunnerRequest {
+  id: number;
+  context: Record<string, any>;
+}
+
+interface WorkerJsRunnerTask {
+  request: WorkerJsRunnerRequest;
+  resolve: (value: any) => void;
+  reject: (error: Error) => void;
+  logger: (level: LogLevel, message: string) => void;
+  reporter?: (message: any) => void;
+}
+
+type LogLevel = 'error'|'warn'|'info'|'debug'|'trace'|'log';
+
+function toPlainWorkerContext(context: any): Record<string, any> {
+  return {
+    runId: context.runId,
+    js: context.js,
+    title: context.title,
+    id: context.id,
+    traceSend: context.traceSend,
+    skipServerCleanup: context.skipServerCleanup,
+    basePath: context.basePath,
+  };
+}
+
+async function startJsRunnerWorkerThread(): Promise<void> {
+  if (!parentPort) {
+    return;
+  }
+  const runJSCode = await loadCoreExport<any>('jsRunner', 'runJSCode');
+  if (typeof runJSCode !== 'function') {
+    throw new Error('Internal error: worker runJSCode is not available');
+  }
+  const setRunnerNetworkConfig = await loadCoreExport<any>('jsRunner', 'setRunnerNetworkConfig');
+  if (typeof setRunnerNetworkConfig === 'function' && workerData?.networkConfig) {
+    setRunnerNetworkConfig(workerData.networkConfig);
+  }
+  parentPort.on('message', async (request: WorkerJsRunnerRequest) => {
+    const {id, context} = request;
+    const basePath = typeof context.basePath === 'string' ? context.basePath : process.cwd();
+    const fileLoader = async (requestedPath: string) => {
+      const resolved = path.isAbsolute(requestedPath) ? requestedPath : path.resolve(basePath, requestedPath);
+      if (!fs.existsSync(resolved)) {
+        return '';
+      }
+      return fs.readFileSync(resolved, 'utf8');
+    };
+    try {
+      const result = await runJSCode({
+        ...context,
+        fileLoader,
+        logger: (level: LogLevel, message: string) => {
+          parentPort?.postMessage({type: 'log', id, level, message});
+        },
+        reporter: (message: any) => {
+          parentPort?.postMessage({type: 'report', id, message});
+        },
+      });
+      parentPort?.postMessage({type: 'result', id, result});
+    } catch (e: any) {
+      parentPort?.postMessage({type: 'error', id, message: e?.message || String(e)});
+    }
+  });
+}
+
+function createWorkerBackedJsRunner(localRunJSCode: any, networkConfig: any) {
+  let nextId = 1;
+  const idle: Worker[] = [];
+  const allWorkers = new Set<Worker>();
+  const running = new Map<number, WorkerJsRunnerTask>();
+  const queue: WorkerJsRunnerTask[] = [];
+  const maxWorkers = Math.max(1, Number(process.env.MMT_LOADTEST_WORKERS || 128) || 128);
+
+  const createWorker = () => {
+    const worker = new Worker(process.argv[1], {
+      workerData: {mmtWorker: 'jsRunner', networkConfig},
+    });
+    allWorkers.add(worker);
+    worker.on('message', (message: any) => {
+      if (message.type === 'startup-error') {
+        for (const [id, task] of Array.from(running.entries())) {
+          const assigned = (task as any).__worker as Worker | undefined;
+          if (assigned === worker) {
+            running.delete(id);
+            task.reject(new Error(String(message.message || 'Worker startup failed')));
+          }
+        }
+        worker.terminate().catch(() => undefined);
+        return;
+      }
+      const task = running.get(message.id);
+      if (message.type === 'log' && task) {
+        task.logger(message.level, String(message.message));
+        return;
+      }
+      if (message.type === 'report' && task) {
+        task.reporter && task.reporter(message.message);
+        return;
+      }
+      if (message.type === 'result' && task) {
+        running.delete(message.id);
+        task.resolve(message.result);
+        idle.push(worker);
+        schedule();
+        return;
+      }
+      if (message.type === 'error' && task) {
+        running.delete(message.id);
+        task.reject(new Error(String(message.message || 'Worker execution failed')));
+        idle.push(worker);
+        schedule();
+      }
+    });
+    worker.on('error', (error) => {
+      for (const [id, task] of Array.from(running.entries())) {
+        const assigned = (task as any).__worker as Worker | undefined;
+        if (assigned === worker) {
+          running.delete(id);
+          task.reject(error);
+        }
+      }
+      allWorkers.delete(worker);
+    });
+    worker.on('exit', () => {
+      allWorkers.delete(worker);
+      const index = idle.indexOf(worker);
+      if (index >= 0) {
+        idle.splice(index, 1);
+      }
+    });
+    return worker;
+  };
+
+  const schedule = () => {
+    while (queue.length > 0) {
+      let worker = idle.pop();
+      if (!worker && allWorkers.size < maxWorkers) {
+        worker = createWorker();
+      }
+      if (!worker) {
+        return;
+      }
+      const task = queue.shift()!;
+      (task as any).__worker = worker;
+      running.set(task.request.id, task);
+      worker.postMessage(task.request);
+    }
+  };
+
+  return {
+    run: (context: any) => {
+      if (!context.workerEligible) {
+        return localRunJSCode(context);
+      }
+      const request: WorkerJsRunnerRequest = {
+        id: nextId++,
+        context: toPlainWorkerContext(context),
+      };
+      return new Promise((resolve, reject) => {
+        queue.push({
+          request,
+          resolve,
+          reject,
+          logger: context.logger,
+          reporter: context.reporter,
+        });
+        schedule();
+      });
+    },
+    dispose: async () => {
+      await Promise.all(Array.from(allWorkers).map(worker => worker.terminate().catch(() => undefined)));
+      allWorkers.clear();
+      idle.length = 0;
+      queue.length = 0;
+      running.clear();
+    },
+  };
+}
+
+if (!isMainThread && workerData?.mmtWorker === 'jsRunner') {
+  startJsRunnerWorkerThread().catch((e) => {
+    parentPort?.postMessage({type: 'startup-error', id: 0, message: e?.message || String(e)});
+  });
+}
+
 program.name('multimeter')
     .description('Multimeter CLI runner')
     .version(CLI_VERSION, '-v, --version', 'output the version number');
@@ -107,6 +295,9 @@ program.command('run')
     .option(
       '--report-file <path>',
       'Output path for the report file (default depends on format)')
+    .option(
+      '--no-real-threads',
+      'Run loadtest virtual users in the main Node event loop instead of worker threads')
     .action(async (file: string, opts: {quiet?: boolean; out?: string}) => {
       try {
         const runJSCode = await loadCoreExport<any>('jsRunner', 'runJSCode');
@@ -145,12 +336,16 @@ program.command('run')
           return startMockServerFromPath(filePath, runOpts.envvar || {});
         };
         runOpts.serverRunner = cliServerRunner;
-        runOpts.jsRunner = (ctx: any) =>
-            runJSCode({...ctx, serverRunner: cliServerRunner});
+        const localJsRunner = (ctx: any) => runJSCode({...ctx, serverRunner: cliServerRunner});
+        const workerJsRunner = (opts as any).realThreads === false ? undefined : createWorkerBackedJsRunner(localJsRunner, networkConfig);
+        runOpts.jsRunner = (ctx: any) => workerJsRunner ? workerJsRunner.run(ctx) : localJsRunner(ctx);
         let runOutcome: any;
         try {
           runOutcome = await runner.runFile(runOpts as any);
         } finally {
+          if (workerJsRunner) {
+            await workerJsRunner.dispose();
+          }
           // Always stop mock servers after run completes
           stopAllServers();
         }
@@ -459,4 +654,6 @@ program.command('doc')
       }
     });
 
-program.parseAsync(process.argv);
+if (isMainThread || workerData?.mmtWorker !== 'jsRunner') {
+  program.parseAsync(process.argv);
+}

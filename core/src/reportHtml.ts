@@ -208,19 +208,20 @@ function buildLoadSection(results: CollectedResults): string {
   if (!load) {
     return '';
   }
+  const loadData = load;
   const cells = ([
-    ['Threads', load.config?.threads],
-    ['Repeat', load.config?.repeat],
-    ['Ramp-up', load.config?.rampup],
-    ['Requests Sent', load.summary?.requests],
-    ['Succeeded', load.summary?.successes],
-    ['Failed', load.summary?.failures],
-    ['Success Rate', load.summary?.success_rate != null ? `${(load.summary.success_rate * 100).toFixed(2)}%` : undefined],
-    ['Failed Rate', load.summary?.failed_rate != null ? `${(load.summary.failed_rate * 100).toFixed(2)}%` : undefined],
-    ['Throughput', load.summary?.throughput != null ? `${load.summary.throughput} req/s` : undefined],
-    ['Error Rate', load.summary?.error_rate != null ? `${(load.summary.error_rate * 100).toFixed(2)}%` : undefined],
-    ['Latency p95', load.latency?.p95 != null ? `${load.latency.p95} ms` : undefined],
-    ['Latency p99', load.latency?.p99 != null ? `${load.latency.p99} ms` : undefined],
+    ['Threads', loadData.config?.threads],
+    ['Repeat', loadData.config?.repeat],
+    ['Ramp-up', loadData.config?.rampup],
+    ['Requests Sent', loadData.summary?.requests],
+    ['Succeeded', loadData.summary?.successes],
+    ['Failed', loadData.summary?.failures],
+    ['Success Rate', loadData.summary?.success_rate != null ? `${(loadData.summary.success_rate * 100).toFixed(2)}%` : undefined],
+    ['Failed Rate', loadData.summary?.failed_rate != null ? `${(loadData.summary.failed_rate * 100).toFixed(2)}%` : undefined],
+    ['Throughput', loadData.summary?.throughput != null ? `${loadData.summary.throughput} req/s` : undefined],
+    ['Error Rate', loadData.summary?.error_rate != null ? `${(loadData.summary.error_rate * 100).toFixed(2)}%` : undefined],
+    ['Latency p95', loadData.latency?.p95 != null ? `${loadData.latency.p95} ms` : undefined],
+    ['Latency p99', loadData.latency?.p99 != null ? `${loadData.latency.p99} ms` : undefined],
   ] as Array<[string, any]>).filter(([, value]) => value !== undefined && value !== null && value !== '');
 
   let html = '    <section class="suite">\n';
@@ -230,12 +231,12 @@ function buildLoadSection(results: CollectedResults): string {
     html += `        <div><strong>${escapeHtml(label)}:</strong> ${escapeHtml(String(value))}</div>\n`;
   }
   html += '      </div>\n';
-  if (Array.isArray(load.series) && load.series.length > 0) {
-    html += buildLoadChartSvg('Requests per second and Response time over time', ['Requests/sec', 'Response time (ms)'], ['#58a6ff', '#8b949e'], load.series, 'throughput', 'response_time', true);
-    html += buildLoadChartSvg('Threads and Failures over time', ['Failures', 'Threads'], ['#f85149', '#d29922'], load.series, 'errors', 'active_threads', true);
+  if (Array.isArray(loadData.series) && loadData.series.length > 0) {
+    html += buildLoadChartSvg('Requests per second and Response time over time', ['Requests/sec', 'Response time (ms)'], ['#58a6ff', '#8b949e'], loadData.series, 'throughput', 'response_time', true);
+    html += buildLoadChartSvg('Threads and Failures over time', ['Failures', 'Threads'], ['#f85149', '#d29922'], loadData.series, 'errors', 'active_threads', true);
     html += '      <h3>Time Series</h3>\n';
     html += '      <table><thead><tr><th>Time</th><th>Threads</th><th>Requests</th><th>Requests/sec</th><th>Response time</th><th>Failures</th><th>Failure rate</th></tr></thead><tbody>\n';
-    for (const point of load.series) {
+    for (const point of loadData.series) {
       html += '        <tr>' +
         `<td>${escapeHtml(point.timestamp || '')}</td>` +
         `<td>${escapeHtml(String(point.active_threads ?? ''))}</td>` +

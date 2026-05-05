@@ -1,4 +1,4 @@
-import {validateJsSyntax} from './runCommon';
+import {runGeneratedJs, validateJsSyntax} from './runCommon';
 
 describe('validateJsSyntax', () => {
   it('returns undefined for valid JS', () => {
@@ -59,5 +59,35 @@ describe('validateJsSyntax', () => {
 
   it('returns undefined for empty-ish but non-blank code', () => {
     expect(validateJsSyntax('// just a comment')).toBeUndefined();
+  });
+});
+
+describe('runGeneratedJs', () => {
+  it('passes workerEligible to the JS runner when requested', async () => {
+    const seen: any[] = [];
+    const result = await runGeneratedJs(
+      'run-1',
+      'return {ok: true};',
+      'worker eligible test',
+      () => {},
+      async (context) => {
+        seen.push(context);
+        return {ok: true};
+      },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      false,
+      false,
+      undefined,
+      false,
+      true,
+    );
+
+    expect(result.success).toBe(true);
+    expect(seen).toHaveLength(1);
+    expect(seen[0].workerEligible).toBe(true);
   });
 });

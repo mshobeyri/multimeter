@@ -93,7 +93,8 @@ export async function runGeneratedJs(
   traceSend?: boolean,
   skipServerCleanup?: boolean,
   basePath?: string,
-  skipSyntaxValidation?: boolean): Promise<RunResult> {
+  skipSyntaxValidation?: boolean,
+  workerEligible?: boolean): Promise<RunResult> {
   const start = Date.now();
   const errors: string[] = [];
   const logs: string[] = [];
@@ -131,6 +132,7 @@ export async function runGeneratedJs(
       traceSend,
       skipServerCleanup,
       basePath,
+      workerEligible,
     });
 
     const outputs = returnValue && typeof returnValue === 'object' ? returnValue : undefined;

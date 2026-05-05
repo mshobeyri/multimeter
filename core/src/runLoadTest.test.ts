@@ -131,6 +131,8 @@ describe('executeLoadTest', () => {
       ctx.logger('trace', 'Response: 200 (10ms)');
       ctx.logger('trace', 'Request: GET https://example.test/b');
       ctx.logger('trace', 'Response: 500 (10ms)');
+      ctx.logger('trace', 'Request: GET https://example.test/c');
+      ctx.logger('trace', 'Response: -1 (10ms)');
       return {};
     };
 
@@ -139,16 +141,16 @@ describe('executeLoadTest', () => {
     });
 
     expect(result.suiteExports?.collectedResults.load?.summary?.iterations).toBe(2);
-    expect(result.suiteExports?.collectedResults.load?.summary?.requests).toBe(4);
+    expect(result.suiteExports?.collectedResults.load?.summary?.requests).toBe(6);
     expect(result.suiteExports?.collectedResults.load?.summary?.successes).toBe(2);
     expect(result.suiteExports?.collectedResults.load?.summary?.failures).toBe(0);
     expect(result.suiteExports?.collectedResults.load?.summary?.success_rate).toBe(1);
     expect(result.suiteExports?.collectedResults.load?.summary?.failed_rate).toBe(0);
-    expect(result.suiteExports?.collectedResults.load?.http?.status_codes).toEqual({ '200': 2, '500': 2 });
-    expect(result.suiteExports?.collectedResults.load?.http?.failed_requests).toBe(2);
+    expect(result.suiteExports?.collectedResults.load?.http?.status_codes).toEqual({ '200': 2, '500': 2, '-1': 2 });
+    expect(result.suiteExports?.collectedResults.load?.http?.failed_requests).toBe(4);
     expect(result.suiteExports?.collectedResults.load?.series?.length).toBeGreaterThan(0);
     const series = result.suiteExports?.collectedResults.load?.series || [];
-    expect(series[series.length - 1]?.requests).toBe(4);
+    expect(series[series.length - 1]?.requests).toBe(6);
     expect(series[series.length - 1]?.errors).toBe(0);
     expect(series[series.length - 1]?.response_time).toBe(10);
   });
