@@ -45,7 +45,7 @@ function buildStepRow(step: TestStepResult, index: number): string {
   const name = escapeMdTable(step.title || `step-${step.stepIndex}`);
   const icon = step.status === 'passed' ? '✓' : '✗';
   const result = `${icon} ${step.status}`;
-  return `| ${index + 1} | ${name} | ${step.stepType} | ${result} |`;
+  return `| ${index + 1} | ${name} | check | ${result} |`;
 }
 
 function displayValue(v: any): string {
@@ -105,8 +105,12 @@ function buildFailureDetails(step: TestStepResult): string {
 function buildSuiteSection(run: TestRunResult, index: number, includeDetails: boolean): string {
   const name = run.displayName || run.filePath || `test-${index}`;
   const steps = run.steps.filter(s => s.stepType !== 'debug');
+  if (run.docType === 'suite' && steps.length === 0) {
+    const icon = run.result === 'passed' ? '✓' : '✗';
+    return `\n## ${icon} ${name} — ${run.result}\n`;
+  }
   let md = `\n## ${name}\n\n`;
-  md += `| # | Test | Type | Result |\n`;
+  md += `| # | Check | Type | Result |\n`;
   md += `|---|------|------|--------|\n`;
   for (let i = 0; i < steps.length; i++) {
     md += buildStepRow(steps[i], i) + '\n';
@@ -123,6 +127,17 @@ function buildSuiteSection(run: TestRunResult, index: number, includeDetails: bo
   }
 
   return md;
+}
+
+function getLoadPoints(results: CollectedResults): Array<{timestamp: string; active_threads?: number; requests?: number; errors?: number; throughput?: number; response_time?: number; error_rate?: number}> {
+  const load = results.load;
+  if (!load) {
+    return [];
+  }
+  if (Array.isArray(load.snapshots)) {
+    return load.snapshots.map(point => ({...point, timestamp: `${point.at}s`}));
+  }
+  return load.series || [];
 }
 
 function buildLoadSection(results: CollectedResults): string {
@@ -152,10 +167,11 @@ function buildLoadSection(results: CollectedResults): string {
       md += `| ${escapeMdTable(name)} | ${escapeMdTable(String(value))} |\n`;
     }
   }
-  if (Array.isArray(loadData.series) && loadData.series.length > 0) {
-    md += buildLoadMermaidCharts(loadData.series);
-    md += `\n### Time Series\n\n| Time | Threads | Requests | Requests/sec | Response time | Failures | Failure rate |\n|------|---------|----------|--------------|---------------|----------|--------------|\n`;
-    for (const point of loadData.series) {
+  const points = getLoadPoints(results);
+  if (points.length > 0) {
+    md += buildLoadMermaidCharts(points);
+    md += `\n### Snapshots\n\n| At | Threads | Requests | Requests/sec | Response time | Failures | Failure rate |\n|----|---------|----------|--------------|---------------|----------|--------------|\n`;
+    for (const point of points) {
       md += `| ${escapeMdTable(point.timestamp || '')} | ${point.active_threads ?? ''} | ${point.requests ?? ''} | ${point.throughput != null ? point.throughput.toFixed(2) : ''} | ${point.response_time != null ? point.response_time.toFixed(2) : ''} | ${point.errors ?? ''} | ${point.error_rate != null ? `${(point.error_rate * 100).toFixed(2)}%` : ''} |\n`;
     }
   }
@@ -198,6 +214,7 @@ export function generateReportMarkdown(results: CollectedResults, options?: Repo
   const runs = results.testRuns;
   const suiteName = options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || results.testRuns[0]?.displayName || 'Test Report';
   const includeDetails = options?.includeDetails !== false;
+  const isLoad = results.type === 'loadtest' || !!results.load;
   const totalTests = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug').length, 0);
   const totalPassed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'passed').length, 0);
   const totalFailed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'failed').length, 0);
@@ -207,11 +224,18 @@ export function generateReportMarkdown(results: CollectedResults, options?: Repo
 
   let md = `# Test Report: ${suiteName}\n\n`;
 
+  md += `## Overview\n\n`;
+
   if (results.suiteRun?.startedAt) {
     md += `**Timestamp:** ${new Date(results.suiteRun.startedAt).toISOString()}  \n`;
   }
   md += `**Duration:** ${totalTime}  \n`;
-  md += `**Result:** ${totalPassed} passed, ${totalFailed} failed, ${totalTests} total\n`;
+  if (isLoad) {
+    const summary = results.load?.summary;
+    md += `**Result:** ${summary?.successes ?? 0} passed, ${summary?.failures ?? 0} failed, ${summary?.requests ?? summary?.iterations ?? 0} requests\n`;
+  } else {
+    md += `**Result:** ${totalPassed} passed, ${totalFailed} failed, ${totalTests} total checks\n`;
+  }
 
   if (results.suiteRun?.cancelled) {
     md += `\n> ⚠ **Run was cancelled**\n`;
@@ -219,8 +243,10 @@ export function generateReportMarkdown(results: CollectedResults, options?: Repo
 
   md += buildLoadSection(results);
 
-  for (let i = 0; i < runs.length; i++) {
-    md += buildSuiteSection(runs[i], i, includeDetails);
+  if (!isLoad) {
+    for (let i = 0; i < runs.length; i++) {
+      md += buildSuiteSection(runs[i], i, includeDetails);
+    }
   }
 
   md += `\n---\n*Generated by Multimeter*\n`;

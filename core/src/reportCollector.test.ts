@@ -324,6 +324,7 @@ describe('reportCollector', () => {
       filePath: '/path/to/my-test.mmt',
       entry: 'my-test.mmt',
       title: 'My Custom Test Title',
+      docType: 'test',
     } as SuiteReporterMessage);
     reporter({
       scope: 'suite-item',
@@ -341,5 +342,6 @@ describe('reportCollector', () => {
     const results = getResults();
     expect(results.testRuns[0].filePath).toBe('/path/to/my-test.mmt');
     expect(results.testRuns[0].displayName).toBe('My Custom Test Title');
+    expect(results.testRuns[0].docType).toBe('test');
   });
 });

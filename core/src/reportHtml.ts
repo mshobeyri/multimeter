@@ -117,13 +117,21 @@ function buildStepHtml(step: TestStepResult): string {
 function buildSuiteSection(run: TestRunResult, index: number): string {
   const name = escapeHtml(run.displayName || run.filePath || `test-${index}`);
   const steps = run.steps.filter(s => s.stepType !== 'debug');
+  const isSuiteOnly = run.docType === 'suite' && steps.length === 0;
   const passCount = steps.filter(s => s.status === 'passed').length;
   const failCount = steps.filter(s => s.status === 'failed').length;
   const badge = failCount > 0
     ? ` <span class="badge failed">${failCount} failed</span>`
-    : ` <span class="badge passed">all passed</span>`;
+    : ` <span class="badge passed">${isSuiteOnly ? run.result : 'all passed'}</span>`;
 
   let html = `      <section class="suite">\n`;
+  if (isSuiteOnly) {
+    const iconChar = run.result === 'passed' ? '✓' : '✗';
+    const iconColor = run.result === 'passed' ? 'var(--passed)' : 'var(--failed)';
+    html += `        <h2><span style="color: ${iconColor}">${iconChar}</span> ${name}${badge}</h2>\n`;
+    html += `      </section>\n`;
+    return html;
+  }
   html += `        <h2><span class="toggle collapsed" id="toggle-${index}" onclick="toggleSuite(${index})" aria-expanded="false"><svg class="chevron" width="10" height="10" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span> ${name}${badge} <span class="suite-count">${passCount + failCount} steps</span></h2>\n`;
   html += `        <div class="suite-steps" id="suite-steps-${index}" style="display: none">\n`;
   for (const step of steps) {
@@ -135,6 +143,17 @@ function buildSuiteSection(run: TestRunResult, index: number): string {
   html += `        </div>\n`;
   html += `      </section>\n`;
   return html;
+}
+
+function getLoadPoints(results: CollectedResults): NonNullable<CollectedResults['load']>['series'] {
+  const load = results.load;
+  if (!load) {
+    return [];
+  }
+  if (Array.isArray(load.snapshots)) {
+    return load.snapshots.map(point => ({...point, timestamp: `${point.at}s`}));
+  }
+  return load.series || [];
 }
 
 function buildLoadChartSvg(title: string, labels: [string, string], colors: [string, string], points: NonNullable<CollectedResults['load']>['series'], firstKey: 'active_threads' | 'throughput' | 'errors', secondKey: 'active_threads' | 'errors' | 'response_time', secondAxis = false): string {
@@ -231,12 +250,13 @@ function buildLoadSection(results: CollectedResults): string {
     html += `        <div><strong>${escapeHtml(label)}:</strong> ${escapeHtml(String(value))}</div>\n`;
   }
   html += '      </div>\n';
-  if (Array.isArray(loadData.series) && loadData.series.length > 0) {
-    html += buildLoadChartSvg('Requests per second and Response time over time', ['Requests/sec', 'Response time (ms)'], ['#58a6ff', '#8b949e'], loadData.series, 'throughput', 'response_time', true);
-    html += buildLoadChartSvg('Threads and Failures over time', ['Failures', 'Threads'], ['#f85149', '#d29922'], loadData.series, 'errors', 'active_threads', true);
-    html += '      <h3>Time Series</h3>\n';
-    html += '      <table><thead><tr><th>Time</th><th>Threads</th><th>Requests</th><th>Requests/sec</th><th>Response time</th><th>Failures</th><th>Failure rate</th></tr></thead><tbody>\n';
-    for (const point of loadData.series) {
+  const points = getLoadPoints(results);
+  if (Array.isArray(points) && points.length > 0) {
+    html += buildLoadChartSvg('Requests per second and Response time over time', ['Requests/sec', 'Response time (ms)'], ['#58a6ff', '#8b949e'], points, 'throughput', 'response_time', true);
+    html += buildLoadChartSvg('Threads and Failures over time', ['Failures', 'Threads'], ['#f85149', '#d29922'], points, 'errors', 'active_threads', true);
+    html += '      <h3>Snapshots</h3>\n';
+    html += '      <table><thead><tr><th>At</th><th>Threads</th><th>Requests</th><th>Requests/sec</th><th>Response time</th><th>Failures</th><th>Failure rate</th></tr></thead><tbody>\n';
+    for (const point of points) {
       html += '        <tr>' +
         `<td>${escapeHtml(point.timestamp || '')}</td>` +
         `<td>${escapeHtml(String(point.active_threads ?? ''))}</td>` +
@@ -687,13 +707,20 @@ const SCRIPT = `
 export function generateReportHtml(results: CollectedResults, options?: ReportHtmlOptions): string {
   const runs = results.testRuns;
   const suiteName = escapeHtml(options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || results.testRuns[0]?.displayName || 'Test Report');
+  const isLoad = results.type === 'loadtest' || !!results.load;
   const totalTests = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug').length, 0);
   const totalPassed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'passed').length, 0);
   const totalFailed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'failed').length, 0);
   const totalSuites = runs.length;
   const totalTimeMs = results.suiteRun?.durationMs ?? runs.reduce((sum, r) => sum + (r.durationMs || 0), 0);
   const totalTime = formatDuration(totalTimeMs);
-  const passRate = totalTests > 0 ? ((totalPassed / totalTests) * 100).toFixed(1) + '%' : '-';
+  const loadSummary = results.load?.summary;
+  const summaryPassed = isLoad ? (loadSummary?.successes ?? 0) : totalPassed;
+  const summaryFailed = isLoad ? (loadSummary?.failures ?? 0) : totalFailed;
+  const summaryTotal = isLoad ? (loadSummary?.requests ?? loadSummary?.iterations ?? 0) : totalTests;
+  const passRate = isLoad
+    ? (loadSummary?.success_rate != null ? (loadSummary.success_rate * 100).toFixed(1) + '%' : '-')
+    : (totalTests > 0 ? ((totalPassed / totalTests) * 100).toFixed(1) + '%' : '-');
 
   const theme = options?.theme || 'auto';
   const dataTheme = theme === 'auto' ? 'dark' : theme;
@@ -719,12 +746,13 @@ export function generateReportHtml(results: CollectedResults, options?: ReportHt
     </div>
   </div>
   <div class="report-container">
+    <div class="label" style="margin-bottom: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted);">Overview</div>
     <div class="summary-boxes">
       <div class="summary-box box-passed">
         <div class="box-icon">${ICON_CHECK}</div>
         <div class="box-content">
           <div class="box-label">Passed</div>
-          <div class="box-value">${totalPassed}</div>
+          <div class="box-value">${summaryPassed}</div>
           <div class="box-sub" style="color:var(--passed)">${passRate} pass rate</div>
         </div>
       </div>
@@ -732,16 +760,16 @@ export function generateReportHtml(results: CollectedResults, options?: ReportHt
         <div class="box-icon">${ICON_X}</div>
         <div class="box-content">
           <div class="box-label">Failed</div>
-          <div class="box-value">${totalFailed}</div>
-          <div class="box-sub" style="color:var(--failed)">${totalSuites} suite${totalSuites !== 1 ? 's' : ''}</div>
+          <div class="box-value">${summaryFailed}</div>
+          <div class="box-sub" style="color:var(--failed)">${isLoad ? 'load failures' : `${totalSuites} suite${totalSuites !== 1 ? 's' : ''}`}</div>
         </div>
       </div>
       <div class="summary-box box-total">
         <div class="box-icon">${ICON_LIST}</div>
         <div class="box-content">
-          <div class="box-label">Total Tests</div>
-          <div class="box-value">${totalTests}</div>
-          <div class="box-sub" style="color:var(--total-fg)">${totalTests} checks</div>
+          <div class="box-label">${isLoad ? 'Requests' : 'Total Checks'}</div>
+          <div class="box-value">${summaryTotal}</div>
+          <div class="box-sub" style="color:var(--total-fg)">${isLoad ? `${loadSummary?.iterations ?? 0} iterations` : `${totalTests} checks`}</div>
         </div>
       </div>
       <div class="summary-box box-duration">
@@ -749,7 +777,7 @@ export function generateReportHtml(results: CollectedResults, options?: ReportHt
         <div class="box-content">
           <div class="box-label">Duration</div>
           <div class="box-value">${totalTime}</div>
-          <div class="box-sub" style="color:var(--duration-fg)">${totalSuites} file${totalSuites !== 1 ? 's' : ''}</div>
+          <div class="box-sub" style="color:var(--duration-fg)">${isLoad ? 'load test' : `${totalSuites} file${totalSuites !== 1 ? 's' : ''}`}</div>
         </div>
       </div>
     </div>
@@ -757,8 +785,10 @@ export function generateReportHtml(results: CollectedResults, options?: ReportHt
 
   html += buildLoadSection(results);
 
-  for (let i = 0; i < runs.length; i++) {
-    html += buildSuiteSection(runs[i], i);
+  if (!isLoad) {
+    for (let i = 0; i < runs.length; i++) {
+      html += buildSuiteSection(runs[i], i);
+    }
   }
 
   html += `  </div>

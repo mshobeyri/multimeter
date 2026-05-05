@@ -30,14 +30,15 @@ describe('parseReportMmt', () => {
       name: 'my-suite',
       timestamp: '2026-03-06T10:30:00.000Z',
       duration: '3.456s',
-      summary: { tests: 2, passed: 1, failed: 1, errors: 0, skipped: 0 },
-      suites: [
+      summary: { checks: 2, passed: 1, failed: 1, errors: 0, skipped: 0 },
+      checks: [
         {
           name: 'test-a.mmt',
+          type: 'test',
           file: 'tests/test-a.mmt',
           duration: '1.234s',
           result: 'failed',
-          tests: [
+          checks: [
             { name: 'status == 200', type: 'check', result: 'passed', duration: '0.100s' },
             {
               name: 'name == John',
@@ -102,7 +103,7 @@ describe('parseReportMmt', () => {
     const doc = {
       type: 'report',
       name: 'empty',
-      suites: [],
+      checks: [],
     };
 
     const results = parseReportMmt(doc);
@@ -209,5 +210,28 @@ describe('parseReportMmt', () => {
     expect(results.type).toBe('loadtest');
     expect(results.load?.config?.threads).toBe(100);
     expect(results.load?.latency?.p95).toBe(120);
+  });
+
+  it('parses redesigned load report metadata', () => {
+    const doc = {
+      type: 'report',
+      kind: 'load',
+      name: 'Login Load',
+      timestamp: '2026-05-04T10:30:00.000Z',
+      duration: '60s',
+      test: './tests/login.mmt',
+      config: { threads: 100, repeat: '1m', rampup: '10s' },
+      summary: { requests: 1000, failures: 2, throughput: 50 },
+      latency: { p95: 120 },
+      snapshots: [{at: 1, active_threads: 10, requests: 100}],
+    };
+
+    const results = parseReportMmt(doc);
+
+    expect(results.type).toBe('loadtest');
+    expect(results.load?.config?.threads).toBe(100);
+    expect(results.load?.summary?.throughput).toBe(50);
+    expect(results.load?.snapshots?.[0].at).toBe(1);
+    expect(results.testRuns).toHaveLength(0);
   });
 });

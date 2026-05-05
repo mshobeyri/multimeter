@@ -32,6 +32,7 @@ export interface TestRunResult {
   id?: string;
   filePath?: string;
   displayName?: string;
+  docType?: string;
   result: 'passed' | 'failed';
   durationMs?: number;
   steps: TestStepResult[];
@@ -104,6 +105,17 @@ export interface LoadReportData {
   }>;
   series?: Array<{
     timestamp: string;
+    active_threads?: number;
+    requests?: number;
+    errors?: number;
+    error_delta?: number;
+    throughput?: number;
+    response_time?: number;
+    error_rate?: number;
+    p95?: number;
+  }>;
+  snapshots?: Array<{
+    at: number;
     active_threads?: number;
     requests?: number;
     errors?: number;
@@ -191,10 +203,14 @@ export function createReportCollector() {
         const run = getOrCreateTestRun(key, event.runId || key);
         run.filePath = event.filePath;
         run.displayName = event.title || event.entry;
+        run.docType = event.docType;
       } else if (event.status === 'passed' || event.status === 'failed') {
         const run = testRunsByKey.get(key);
         if (run) {
           run.result = event.status;
+          if (event.docType) {
+            run.docType = event.docType;
+          }
         }
       }
       return;

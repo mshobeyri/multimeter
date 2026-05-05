@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 
 interface LoadSeriesPoint {
   timestamp: string;
+  at?: number;
   active_threads?: number;
   requests?: number;
   errors?: number;
@@ -32,6 +33,7 @@ interface LoadTestReportData {
     failed_requests?: number;
   };
   series?: LoadSeriesPoint[];
+  snapshots?: Array<Omit<LoadSeriesPoint, 'timestamp'> & { at: number }>;
 }
 
 interface LoadTestReportProps {
@@ -195,7 +197,12 @@ function rightSeriesSafeMargin(series: ChartSeries[]): number {
 }
 
 const LoadTestReport: React.FC<LoadTestReportProps> = ({ load }) => {
-  const points = useMemo(() => load?.series || [], [load]);
+  const points = useMemo(() => {
+    if (load?.snapshots) {
+      return load.snapshots.map(point => ({...point, timestamp: `${point.at}s`}));
+    }
+    return load?.series || [];
+  }, [load]);
 
   const activeThreadValues = points.map(p => Number(p.active_threads || 0));
   const errorValues = points.map(p => Number(p.errors || 0));

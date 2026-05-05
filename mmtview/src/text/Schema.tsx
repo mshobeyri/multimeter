@@ -876,16 +876,129 @@ export const ReportSchema = {
         timestamp: { type: 'string' },
         duration: { type: 'string' },
         cancelled: { type: 'boolean' },
-        summary: {
+        overview: {
             type: 'object',
             properties: {
+                timestamp: { type: 'string' },
+                duration: { type: 'string' },
+                checks: { type: 'integer' },
                 tests: { type: 'integer' },
                 passed: { type: 'integer' },
                 failed: { type: 'integer' },
+                iterations: { type: 'integer' },
+                requests: { type: 'integer' },
+                successes: { type: 'integer' },
+                failures: { type: 'integer' },
+                success_rate: { type: 'number' },
+                failed_rate: { type: 'number' },
+                error_rate: { type: 'number' },
+                throughput: { type: 'number' },
+                data_received: { type: 'number' },
+                data_sent: { type: 'number' },
                 errors: { type: 'integer' },
                 skipped: { type: 'integer' }
             },
             additionalProperties: false
+        },
+        summary: {
+            type: 'object',
+            properties: {
+                checks: { type: 'integer' },
+                tests: { type: 'integer' },
+                passed: { type: 'integer' },
+                failed: { type: 'integer' },
+                iterations: { type: 'integer' },
+                requests: { type: 'integer' },
+                successes: { type: 'integer' },
+                failures: { type: 'integer' },
+                success_rate: { type: 'number' },
+                failed_rate: { type: 'number' },
+                error_rate: { type: 'number' },
+                throughput: { type: 'number' },
+                data_received: { type: 'number' },
+                data_sent: { type: 'number' },
+                errors: { type: 'integer' },
+                skipped: { type: 'integer' }
+            },
+            additionalProperties: false
+        },
+        test: { type: 'string' },
+        config: {
+            type: 'object',
+            properties: {
+                threads: { type: 'integer' },
+                repeat: { anyOf: [{ type: 'string' }, { type: 'number' }] },
+                rampup: { type: 'string' }
+            },
+            additionalProperties: false
+        },
+        latency: {
+            type: 'object',
+            properties: {
+                min: { type: 'number' },
+                avg: { type: 'number' },
+                med: { type: 'number' },
+                max: { type: 'number' },
+                p90: { type: 'number' },
+                p95: { type: 'number' },
+                p99: { type: 'number' }
+            },
+            additionalProperties: false
+        },
+        http: {
+            type: 'object',
+            properties: {
+                status_codes: { type: 'object', additionalProperties: { type: 'integer' } },
+                failed_requests: { type: 'integer' },
+                connect_avg: { type: 'number' },
+                receive_avg: { type: 'number' },
+                send_avg: { type: 'number' },
+                waiting_avg: { type: 'number' }
+            },
+            additionalProperties: false
+        },
+        thresholds: {
+            type: 'array',
+            items: {
+                type: 'object',
+                properties: {
+                    name: { type: 'string' },
+                    expression: { type: 'string' },
+                    actual: { type: 'number' },
+                    result: { type: 'string', enum: ['passed', 'failed'] }
+                },
+                additionalProperties: false
+            }
+        },
+        errors: {
+            type: 'array',
+            items: {
+                type: 'object',
+                properties: {
+                    message: { type: 'string' },
+                    count: { type: 'integer' },
+                    rate: { type: 'number' }
+                },
+                additionalProperties: false
+            }
+        },
+        snapshots: {
+            type: 'array',
+            items: {
+                type: 'object',
+                properties: {
+                    at: { type: 'integer' },
+                    active_threads: { type: 'integer' },
+                    requests: { type: 'integer' },
+                    errors: { type: 'integer' },
+                    error_delta: { type: 'integer' },
+                    throughput: { type: 'number' },
+                    response_time: { type: 'number' },
+                    error_rate: { type: 'number' },
+                    p95: { type: 'number' }
+                },
+                additionalProperties: false
+            }
         },
         load: {
             type: 'object',
@@ -990,6 +1103,83 @@ export const ReportSchema = {
                 }
             },
             additionalProperties: false
+        },
+        checks: {
+            type: 'array',
+            items: {
+                type: 'object',
+                properties: {
+                    name: { type: 'string' },
+                    type: { type: 'string', enum: ['suite', 'test', 'check'] },
+                    file: { type: 'string' },
+                    duration: { type: 'string' },
+                    result: { type: 'string', enum: ['passed', 'failed'] },
+                    step: { type: 'string', enum: ['check', 'assert', 'debug'] },
+                    expects: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                comparison: { type: 'string' },
+                                result: { type: 'string', enum: ['passed', 'failed'] },
+                                actual: {},
+                                expected: {},
+                                status: { type: 'string' }
+                            },
+                            additionalProperties: false
+                        }
+                    },
+                    failure: {
+                        type: 'object',
+                        properties: {
+                            message: { type: 'string' },
+                            actual: {},
+                            expected: {},
+                            operator: { type: 'string' }
+                        },
+                        additionalProperties: false
+                    },
+                    checks: {
+                        type: 'array',
+                        items: {
+                            type: 'object',
+                            properties: {
+                                name: { type: 'string' },
+                                type: { type: 'string', enum: ['check'] },
+                                step: { type: 'string', enum: ['check', 'assert', 'debug'] },
+                                result: { type: 'string', enum: ['passed', 'failed'] },
+                                duration: { type: 'string' },
+                                expects: {
+                                    type: 'array',
+                                    items: {
+                                        type: 'object',
+                                        properties: {
+                                            comparison: { type: 'string' },
+                                            result: { type: 'string', enum: ['passed', 'failed'] },
+                                            actual: {},
+                                            expected: {},
+                                            status: { type: 'string' }
+                                        },
+                                        additionalProperties: false
+                                    }
+                                },
+                                failure: {
+                                    type: 'object',
+                                    properties: {
+                                        message: { type: 'string' },
+                                        actual: {},
+                                        expected: {},
+                                        operator: { type: 'string' }
+                                    },
+                                    additionalProperties: false
+                                }
+                            },
+                            additionalProperties: false
+                        }
+                    }
+                },
+                additionalProperties: false
+            }
         },
         suites: {
             type: 'array',

@@ -39,8 +39,8 @@ describe('generateReportMarkdown', () => {
 
     const md = generateReportMarkdown(results);
     expect(md).toContain('# Test Report: test.mmt');
-    expect(md).toContain('2 passed, 0 failed, 2 total');
-    expect(md).toContain('| # | Test | Type | Result |');
+    expect(md).toContain('2 passed, 0 failed, 2 total checks');
+    expect(md).toContain('| # | Check | Type | Result |');
     expect(md).toContain('status == 200');
     expect(md).toContain('✓ passed');
   });
@@ -103,7 +103,7 @@ describe('generateReportMarkdown', () => {
 
     const md = generateReportMarkdown(results);
     expect(md).toContain('*No test steps*');
-    expect(md).toContain('0 passed, 0 failed, 0 total');
+    expect(md).toContain('0 passed, 0 failed, 0 total checks');
   });
 
   it('escapes pipe characters in table cells', () => {
@@ -196,5 +196,6 @@ describe('generateReportMarkdown', () => {
     expect(md).toContain('xychart');
     expect(md).toContain('x-axis [t1, t2]');
     expect(md).toContain('Failures and Threads over time');
+    expect(md).not.toContain('## undefined');
   });
 });

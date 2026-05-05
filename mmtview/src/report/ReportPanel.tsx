@@ -92,6 +92,7 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
   }
 
   const { results } = parsed;
+  const isLoadReport = results.type === 'loadtest' && !!results.load;
   const totalTests = results.testRuns.reduce((s, r) => s + r.steps.length, 0);
   const totalPassed = results.testRuns.reduce((s, r) => s + r.steps.filter(st => st.status === 'passed').length, 0);
   const totalFailed = results.testRuns.reduce((s, r) => s + r.steps.filter(st => st.status === 'failed').length, 0);
@@ -100,6 +101,24 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
   const duration = results.suiteRun?.durationMs != null
     ? formatDuration(results.suiteRun.durationMs)
     : undefined;
+  const loadSummary = results.load?.summary;
+  const overviewStats = isLoadReport ? {
+    passed: loadSummary?.successes ?? 0,
+    failed: loadSummary?.failures ?? 0,
+    total: loadSummary?.requests ?? loadSummary?.iterations ?? 0,
+    duration,
+    failedSub: 'load failures',
+    totalSub: `${loadSummary?.iterations ?? 0} iteration${loadSummary?.iterations === 1 ? '' : 's'}`,
+    durationSub: 'load test',
+  } : {
+    passed: totalPassed,
+    failed: totalFailed,
+    total: totalTests,
+    duration,
+    failedSub: `${totalSuites} suite${totalSuites !== 1 ? 's' : ''}`,
+    totalSub: `${totalTests} check${totalTests !== 1 ? 's' : ''}`,
+    durationSub: `${totalSuites} file${totalSuites !== 1 ? 's' : ''}`,
+  };
 
   return (
     <div style={{ width: 'calc(100% - 16px)', padding: '0 4px', overflow: 'hidden', boxSizing: 'border-box' }}>
@@ -113,24 +132,18 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
         <ExportReportButton disabled={false} onExport={handleExportReport} />
       </div>
 
-      <OverviewBoxes stats={{
-        passed: totalPassed,
-        failed: totalFailed,
-        total: totalTests,
-        duration,
-        failedSub: `${totalSuites} suite${totalSuites !== 1 ? 's' : ''}`,
-        totalSub: `${totalTests} check${totalTests !== 1 ? 's' : ''}`,
-        durationSub: `${totalSuites} file${totalSuites !== 1 ? 's' : ''}`,
-      }} />
+      <OverviewBoxes stats={overviewStats} />
 
-      {results.type === 'loadtest' && results.load && (
+      {isLoadReport && results.load && (
         <LoadTestReport load={results.load} />
       )}
 
-      {/* Report section */}
-      <div className="label" style={{ marginBottom: 10 }}>Report</div>
+      {!isLoadReport && (
+        <>
+          {/* Report section */}
+          <div className="label" style={{ marginBottom: 10 }}>Report</div>
 
-      {results.testRuns.map((run, i) => {
+          {results.testRuns.map((run, i) => {
         const reports = mapToStepReports(run);
         const state = runStateFromResult(run);
         const name = run.displayName || run.filePath || `Test ${i + 1}`;
@@ -138,18 +151,23 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
         const statusIcon = statusIconFor(state);
         const passedCount = reports.filter(r => r.status === 'passed').length;
         const failedCount = reports.filter(r => r.status === 'failed').length;
+        const isSuiteOnly = (run as any).docType === 'suite' && reports.length === 0;
 
         return (
           <div key={run.id || run.runId || i} style={{ marginBottom: 4 }}>
             {/* Tree item header */}
             <div
-              onClick={() => setExpandedSuites(prev => ({ ...prev, [i]: !isExpanded }))}
+              onClick={() => {
+                if (!isSuiteOnly) {
+                  setExpandedSuites(prev => ({ ...prev, [i]: !isExpanded }));
+                }
+              }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
                 padding: '8px 4px',
-                cursor: 'pointer',
+                cursor: isSuiteOnly ? 'default' : 'pointer',
                 borderRadius: 4,
                 background: 'transparent',
               }}
@@ -161,10 +179,12 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
               }}
             >
               {/* Expand/collapse arrow */}
-              <span
-                className={`codicon ${isExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right'}`}
-                style={{ width: 16, opacity: 0.7 }}
-              />
+              {isSuiteOnly ? <span style={{ width: 16 }} /> : (
+                <span
+                  className={`codicon ${isExpanded ? 'codicon-chevron-down' : 'codicon-chevron-right'}`}
+                  style={{ width: 16, opacity: 0.7 }}
+                />
+              )}
               {/* Status icon */}
               <span
                 className={`codicon ${statusIcon.icon}`}
@@ -186,12 +206,12 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
                 opacity: 0.7,
                 whiteSpace: 'nowrap',
               }}>
-                {failedCount > 0 ? `${failedCount} failed` : `${passedCount} passed`}
+                {isSuiteOnly ? state : failedCount > 0 ? `${failedCount} failed` : `${passedCount} passed`}
               </span>
             </div>
 
             {/* Expanded content - check/assert results */}
-            {isExpanded && (
+            {isExpanded && !isSuiteOnly && (
               <div style={{ marginLeft: 24, paddingBottom: 8 }}>
                 <TestStepReportPanel
                   isExpanded={true}
@@ -205,10 +225,12 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
         );
       })}
 
-      {results.testRuns.length === 0 && (
-        <div style={{ opacity: 0.7, fontStyle: 'italic' }}>
-          No test results in this report.
-        </div>
+          {results.testRuns.length === 0 && (
+            <div style={{ opacity: 0.7, fontStyle: 'italic' }}>
+              No test results in this report.
+            </div>
+          )}
+        </>
       )}
     </div>
   );
