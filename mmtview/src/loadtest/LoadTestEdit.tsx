@@ -1,11 +1,12 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { parseYaml, parseYamlDoc } from 'mmt-core/markupConvertor';
 import { loadtestToYaml, yamlToLoadTest } from 'mmt-core/loadtestParsePack';
+import FileOverview from '../shared/FileOverview';
 import FilePickerInput from '../components/FilePickerInput';
 import KSVEditor from '../components/KSVEditor';
 import { FileContext } from '../fileContext';
 
-type LoadTestEditTab = 'test' | 'load' | 'environment' | 'exports';
+type LoadTestEditTab = 'overview' | 'test' | 'load' | 'environment' | 'exports';
 
 interface LoadTestEnvironmentConfig {
   preset?: string;
@@ -22,6 +23,12 @@ interface LoadConfig {
   threads?: number;
   repeat?: string | number;
   rampup?: string;
+}
+
+interface LoadTestOverviewConfig {
+  title?: string;
+  description?: string;
+  tags?: string[];
 }
 
 const canonicalizeLoadTestYaml = (content: string): string => {
@@ -43,6 +50,17 @@ const buildLoadConfigFromContent = (content: string): LoadConfig => {
     threads: typeof parsed?.threads === 'number' ? parsed.threads : undefined,
     repeat: typeof parsed?.repeat === 'number' || typeof parsed?.repeat === 'string' ? parsed.repeat : undefined,
     rampup: typeof parsed?.rampup === 'string' ? parsed.rampup : undefined,
+  };
+};
+
+const buildOverviewFromContent = (content: string): LoadTestOverviewConfig => {
+  const parsed = parseYaml(content);
+  return {
+    title: typeof parsed?.title === 'string' ? parsed.title : undefined,
+    description: typeof parsed?.description === 'string' ? parsed.description : undefined,
+    tags: Array.isArray(parsed?.tags)
+      ? parsed.tags.filter((tag: unknown) => typeof tag === 'string').map((tag: string) => tag.trim()).filter(Boolean)
+      : undefined,
   };
 };
 
@@ -87,7 +105,8 @@ const updateLoadTestContent = (content: string, updater: (doc: any) => void): st
 
 const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
   const fileContext = useContext(FileContext);
-  const [activeTab, setActiveTab] = useState<LoadTestEditTab>('test');
+  const [activeTab, setActiveTab] = useState<LoadTestEditTab>('overview');
+  const [overview, setOverview] = useState<LoadTestOverviewConfig>(() => buildOverviewFromContent(content));
   const [test, setTest] = useState<string>(() => buildTestFromContent(content));
   const [load, setLoad] = useState<LoadConfig>(() => buildLoadConfigFromContent(content));
   const [environment, setEnvironment] = useState<LoadTestEnvironmentConfig | null>(() => buildEnvironmentFromContent(content));
@@ -95,11 +114,37 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
   const [missingFiles, setMissingFiles] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    setOverview(buildOverviewFromContent(content));
     setTest(buildTestFromContent(content));
     setLoad(buildLoadConfigFromContent(content));
     setEnvironment(buildEnvironmentFromContent(content));
     setExports(buildExportsFromContent(content));
   }, [content]);
+
+  const persistOverview = useCallback((patch: LoadTestOverviewConfig) => {
+    const nextOverview = { ...overview, ...patch };
+    setOverview(nextOverview);
+    const updated = updateLoadTestContent(content, (doc) => {
+      if (nextOverview.title) {
+        doc.set('title', nextOverview.title);
+      } else {
+        doc.delete('title');
+      }
+      if (nextOverview.description) {
+        doc.set('description', nextOverview.description);
+      } else {
+        doc.delete('description');
+      }
+      if (nextOverview.tags && nextOverview.tags.length > 0) {
+        doc.set('tags', nextOverview.tags);
+      } else {
+        doc.delete('tags');
+      }
+    });
+    if (updated) {
+      setContent(updated);
+    }
+  }, [content, overview, setContent]);
 
   useEffect(() => {
     if (test) {
@@ -273,6 +318,16 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
     </div>
   );
 
+  const overviewTabContent = (
+    <FileOverview
+      title={overview.title}
+      description={overview.description}
+      tags={overview.tags}
+      onChange={persistOverview}
+      tagSuggestions={['loadtest', 'performance', 'regression', 'user', 'admin']}
+    />
+  );
+
   const loadTabContent = (
     <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
       <div className="label" style={{ marginBottom: 6 }}>Threads</div>
@@ -381,6 +436,10 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
   return (
     <div style={{ overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
       <div className="tab-bar" style={{ flexShrink: 0 }}>
+        <button className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`} onClick={() => setActiveTab('overview')} title="Overview" type="button">
+          <span className="codicon codicon-note tab-button-icon" aria-hidden />
+          Overview
+        </button>
         <button className={`tab-button ${activeTab === 'test' ? 'active' : ''}`} onClick={() => setActiveTab('test')} title="Test" type="button">
           <span className="codicon codicon-beaker tab-button-icon" aria-hidden />
           Test
@@ -399,6 +458,7 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
         </button>
       </div>
       <div className="test-flow-tree" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        {activeTab === 'overview' && overviewTabContent}
         {activeTab === 'test' && testTabContent}
         {activeTab === 'load' && loadTabContent}
         {activeTab === 'environment' && environmentTabContent}

@@ -4,16 +4,23 @@ import { suiteToYaml, yamlToSuite } from 'mmt-core/suiteParsePack';
 import { SuiteEntry, SuiteGroup } from '../types';
 import SuiteEditTree from './SuiteEditTree';
 import { statusIconFor } from '../../shared/Common';
+import FileOverview from '../../shared/FileOverview';
 import FilePickerInput from '../../components/FilePickerInput';
 import KSVEditor from '../../components/KSVEditor';
 import { FileContext } from '../../fileContext';
 
-type SuiteEditTab = 'tests' | 'servers' | 'environment' | 'exports';
+type SuiteEditTab = 'overview' | 'tests' | 'servers' | 'environment' | 'exports';
 
 interface SuiteEnvironmentConfig {
   preset?: string;
   file?: string;
   variables?: Record<string, unknown>;
+}
+
+interface SuiteOverviewConfig {
+  title?: string;
+  description?: string;
+  tags?: string[];
 }
 
 interface SuiteEditProps {
@@ -133,6 +140,41 @@ const buildEnvironmentFromContent = (content: string): SuiteEnvironmentConfig | 
   return Object.keys(result).length > 0 ? result : null;
 };
 
+const buildOverviewFromContent = (content: string): SuiteOverviewConfig => {
+  const parsed = parseYaml(content);
+  return {
+    title: typeof parsed?.title === 'string' ? parsed.title : undefined,
+    description: typeof parsed?.description === 'string' ? parsed.description : undefined,
+    tags: Array.isArray(parsed?.tags)
+      ? parsed.tags.filter((tag: unknown) => typeof tag === 'string').map((tag: string) => tag.trim()).filter(Boolean)
+      : undefined,
+  };
+};
+
+const updateSuiteContentWithOverview = (content: string, overview: SuiteOverviewConfig): string | null => {
+  try {
+    const doc = parseYamlDoc(content);
+    if (overview.title) {
+      doc.set('title', overview.title);
+    } else {
+      doc.delete('title');
+    }
+    if (overview.description) {
+      doc.set('description', overview.description);
+    } else {
+      doc.delete('description');
+    }
+    if (overview.tags && overview.tags.length > 0) {
+      doc.set('tags', overview.tags);
+    } else {
+      doc.delete('tags');
+    }
+    return canonicalizeSuiteYaml(doc.toString());
+  } catch {
+    return null;
+  }
+};
+
 const updateSuiteContentWithEnvironment = (content: string, env: SuiteEnvironmentConfig | null): string | null => {
   try {
     const doc = parseYamlDoc(content);
@@ -189,7 +231,8 @@ const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
 
 const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   const fileContext = useContext(FileContext);
-  const [activeTab, setActiveTab] = useState<SuiteEditTab>('tests');
+  const [activeTab, setActiveTab] = useState<SuiteEditTab>('overview');
+  const [overview, setOverview] = useState<SuiteOverviewConfig>(() => buildOverviewFromContent(content));
   const [groups, setGroups] = useState<SuiteGroup[]>(() => buildSuiteGroupsFromContent(content));
   const [servers, setServers] = useState<string[]>(() => buildServersFromContent(content));
   const [environment, setEnvironment] = useState<SuiteEnvironmentConfig | null>(() => buildEnvironmentFromContent(content));
@@ -202,6 +245,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   const [addMenuPos, setAddMenuPos] = useState<{ left: number; top: number } | null>(null);
 
   useEffect(() => {
+    setOverview(buildOverviewFromContent(content));
     setGroups(buildSuiteGroupsFromContent(content));
     setServers(buildServersFromContent(content));
     setEnvironment(buildEnvironmentFromContent(content));
@@ -219,6 +263,18 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
       }
     },
     [content, setContent]
+  );
+
+  const persistOverview = useCallback(
+    (patch: SuiteOverviewConfig) => {
+      const nextOverview = { ...overview, ...patch };
+      setOverview(nextOverview);
+      const updated = updateSuiteContentWithOverview(content, nextOverview);
+      if (updated) {
+        setContent(updated);
+      }
+    },
+    [content, overview, setContent]
   );
 
   const openAddMenuAtButton = useCallback(() => {
@@ -508,6 +564,16 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
     </div>
   );
 
+  const overviewTabContent = (
+    <FileOverview
+      title={overview.title}
+      description={overview.description}
+      tags={overview.tags}
+      onChange={persistOverview}
+      tagSuggestions={['suite', 'regression', 'smoke', 'user', 'admin']}
+    />
+  );
+
   const serversTabContent = (
     <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
@@ -618,6 +684,15 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
     <div style={{ overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
       <div className="tab-bar" style={{ flexShrink: 0 }}>
         <button
+          className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`}
+          onClick={() => setActiveTab('overview')}
+          title="Overview"
+          type="button"
+        >
+          <span className="codicon codicon-note tab-button-icon" aria-hidden />
+          Overview
+        </button>
+        <button
           className={`tab-button ${activeTab === 'tests' ? 'active' : ''}`}
           onClick={() => setActiveTab('tests')}
           title="Tests"
@@ -655,6 +730,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
         </button>
       </div>
       <div className="test-flow-tree" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+        {activeTab === 'overview' && overviewTabContent}
         {activeTab === 'tests' && testsTabContent}
         {activeTab === 'servers' && serversTabContent}
         {activeTab === 'environment' && environmentTabContent}
