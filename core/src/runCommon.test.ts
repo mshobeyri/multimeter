@@ -90,4 +90,38 @@ describe('runGeneratedJs', () => {
     expect(seen).toHaveLength(1);
     expect(seen[0].workerEligible).toBe(true);
   });
+
+  it('uses reporter failures for success accounting when check logs are silent', async () => {
+    const result = await runGeneratedJs(
+      'run-1',
+      'return {};',
+      'silent failure test',
+      () => {},
+      async (context) => {
+        context.reporter && context.reporter({
+          scope: 'test-step',
+          runId: context.runId,
+          stepIndex: 1,
+          stepType: 'check',
+          status: 'failed',
+          expects: [{comparison: 'a == b', status: 'failed'}],
+        });
+        return {};
+      },
+      undefined,
+      undefined,
+      undefined,
+      () => {},
+      undefined,
+      false,
+      false,
+      undefined,
+      false,
+      false,
+      'none',
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain('Reported failed check');
+  });
 });

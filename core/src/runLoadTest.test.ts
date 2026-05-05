@@ -154,4 +154,69 @@ describe('executeLoadTest', () => {
     expect(series[series.length - 1]?.errors).toBe(0);
     expect(series[series.length - 1]?.response_time).toBe(10);
   });
+
+  it('prints compact load result instead of sampled check logs', async () => {
+    const prepared = makePrepared(`type: loadtest\nthreads: 1\nrepeat: 1\ntest: ./target.mmt\n`);
+    const logs: Array<{level: string; msg: string}> = [];
+    const options = makeOptions();
+    const seenCheckLogModes: any[] = [];
+    options.logger = (level: any, msg: string) => {
+      logs.push({level, msg});
+    };
+    options.jsRunner = async (ctx: any) => {
+      seenCheckLogModes.push(ctx.checkLogMode);
+      ctx.logger('info', '✓ Check "Health Check" - "status_field == ok" passed');
+      ctx.logger('trace', 'Request: GET http://localhost:9099/health');
+      ctx.logger('trace', 'Response: 200 (5ms)');
+      return {};
+    };
+
+    const result = await executeLoadTest(prepared, options, [], async () => {
+      throw new Error('runFile should not be called for optimized loadtest iterations');
+    });
+
+    expect(result.result.success).toBe(true);
+    expect(seenCheckLogModes).toEqual(['none']);
+    expect(logs.some(entry => entry.msg.includes('Check "Health Check"'))).toBe(false);
+    expect(logs.some(entry => entry.msg.startsWith('Load summary:'))).toBe(false);
+    expect(logs.some(entry => entry.msg.startsWith('Load result:'))).toBe(true);
+  });
+
+  it('prints load status every five seconds without printing per-check failures', async () => {
+    let now = 1_000;
+    const nowSpy = jest.spyOn(Date, 'now').mockImplementation(() => now);
+    try {
+      const prepared = makePrepared(`type: loadtest\nthreads: 1\nrepeat: 1\ntest: ./target.mmt\n`);
+      const logs: Array<{level: string; msg: string}> = [];
+      const options = makeOptions();
+      options.logger = (level: any, msg: string) => {
+        logs.push({level, msg});
+      };
+      options.jsRunner = async (ctx: any) => {
+        now += 5_001;
+        ctx.reporter({
+          scope: 'test-step',
+          runId: ctx.runId,
+          stepIndex: 1,
+          stepType: 'check',
+          status: 'failed',
+          title: 'Health Check',
+          expects: [{comparison: 'status_field == ok', status: 'failed'}],
+        });
+        return {};
+      };
+
+      const result = await executeLoadTest(prepared, options, [], async () => {
+        throw new Error('runFile should not be called for optimized loadtest iterations');
+      });
+
+      expect(result.result.success).toBe(false);
+      expect(logs.some(entry => entry.msg.includes('Check "Health Check"'))).toBe(false);
+      expect(logs.some(entry => entry.msg.startsWith('× Check'))).toBe(false);
+      expect(logs.some(entry => entry.msg.startsWith('Load summary:'))).toBe(true);
+      expect(logs.some(entry => entry.msg.startsWith('Load result: success=false'))).toBe(true);
+    } finally {
+      nowSpy.mockRestore();
+    }
+  });
 });

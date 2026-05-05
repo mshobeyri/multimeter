@@ -4,8 +4,24 @@ import {createReportCollector, LoadReportData} from './reportCollector';
 import {basename, PreparedRun, resolveRelativeTo, RunFileResult, runGeneratedJs, sanitizeIdentifier, SuiteExportSpec} from './runCommon';
 import {generateTestJs, prepareTestRun} from './runTest';
 import {RunFileOptions, RunReporterMessage, RunResult, TestOutputsReporterEvent, TestRunSummaryEvent, TestStepReporterEvent} from './runConfig';
+import {formatDuration} from './CommonData';
 
 const LOADTEST_ITEM_ID = 'loadtest-test-0';
+const LOADTEST_STATUS_LOG_INTERVAL_MS = 5000;
+
+function formatLoadSummaryLine(params: {
+  elapsedMs: number;
+  activeThreads: number;
+  configuredThreads: number;
+  completed: number;
+  failed: number;
+  requests: number;
+  throughput: number;
+}): string {
+  const {elapsedMs, activeThreads, configuredThreads, completed, failed, requests, throughput} = params;
+  const passed = Math.max(0, completed - failed);
+  return `Load summary: duration=${formatDuration(elapsedMs)}, active_threads=${activeThreads}/${configuredThreads}, iterations=${completed}, passed=${passed}, failed=${failed}, requests=${requests}, rps=${throughput.toFixed(2)}`;
+}
 
 function parseDurationMs(value: unknown): number | undefined {
   if (typeof value !== 'string') {
@@ -125,6 +141,7 @@ export async function executeLoadTest(
   let childInputsUsed: Record<string, any> = {};
   let childDisplayTitle = childDisplayName;
   let lastSummaryEmitAt = 0;
+  let lastStatusLogAt = runStartedAt;
   let lastSeriesAt = runStartedAt;
   let lastSeriesRequests = 0;
   let lastSeriesFailures = 0;
@@ -249,6 +266,18 @@ export async function executeLoadTest(
       id: LOADTEST_ITEM_ID,
       load: buildLoadResult(now),
     });
+    if (completed > 0 && now - lastStatusLogAt >= LOADTEST_STATUS_LOG_INTERVAL_MS) {
+      lastStatusLogAt = now;
+      loadLogger('info', formatLoadSummaryLine({
+        elapsedMs: Math.max(0, now - runStartedAt),
+        activeThreads,
+        configuredThreads: threads,
+        completed,
+        failed: currentFailures,
+        requests: currentRequests,
+        throughput: requestDelta / elapsedSeconds,
+      }));
+    }
   };
 
   emit({
@@ -327,14 +356,14 @@ export async function executeLoadTest(
       }
       emit({...(message as any), id: LOADTEST_ITEM_ID});
     };
-    const stepReporter = isSample ? (event: TestStepReporterEvent) => {
+    const stepReporter = (event: TestStepReporterEvent) => {
       childReporter({
         ...event,
         runId: event.runId || runId,
         id: LOADTEST_ITEM_ID,
       });
-    } : undefined;
-    const setenvReporter = isSample ? (event: Record<string, any>) => {
+    };
+    const iterationReporter = (event: Record<string, any>) => {
       if (event && event.scope === 'setenv') {
         childReporter({
           ...event,
@@ -345,7 +374,7 @@ export async function executeLoadTest(
         return;
       }
       childReporter(event as any);
-    } : undefined;
+    };
 
     try {
       const childResult = await runGeneratedJs(
@@ -354,21 +383,19 @@ export async function executeLoadTest(
         childDisplayTitle,
         (level, msg) => {
           recordNetworkTrace(msg);
-          if (isSample || level === 'error') {
-            loadLogger(level, msg);
-          }
         },
         options.jsRunner,
         stepReporter,
         LOADTEST_ITEM_ID,
         childFileLoader,
-        setenvReporter,
+        iterationReporter,
         options.abortSignal,
         true,
         options.skipServerCleanup,
         childFilePath ? childFilePath.split(/[/\\]/).slice(0, -1).join('/') : undefined,
         true,
         true,
+        'none',
       );
       completed += 1;
       if (!childResult.success) {
@@ -396,7 +423,7 @@ export async function executeLoadTest(
     } catch (e: any) {
       completed += 1;
       failed += 1;
-      loadLogger('error', `Loadtest worker ${workerIndex + 1}, iteration ${iteration} failed: ${e?.message || String(e)}`);
+      allErrors.push(`Loadtest worker ${workerIndex + 1}, iteration ${iteration} failed: ${e?.message || String(e)}`);
       emitLoadSummary();
     } finally {
     }
@@ -434,6 +461,7 @@ export async function executeLoadTest(
 
   emitLoadSummary(true);
   const load = buildLoadResult(finishedAt);
+  loadLogger('info', `Load result: success=${success}, iterations=${completed}, passed=${Math.max(0, completed - failed)}, failed=${failed}, requests=${load.summary?.requests ?? completed}, avg_rps=${(load.summary?.throughput ?? 0).toFixed(2)}`);
 
   emit({
     scope: 'suite-item',

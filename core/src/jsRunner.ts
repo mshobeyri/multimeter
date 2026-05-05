@@ -29,6 +29,8 @@ export interface RunJSCodeContext {
   basePath?: string;
   /** True when this JS execution can safely be delegated to an external worker. */
   workerEligible?: boolean;
+  /** Controls check/assert console logging without changing report events. */
+  checkLogMode?: 'default'|'failures-only'|'none';
 }
 
 const REPORTER_KEY = '__mmtReportStep';
@@ -150,9 +152,9 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       // Override check_ to pass the closure-based report_ so that under
       // parallel execution each test uses its own reporter/runId/id instead
       // of the shared module-level globals.
-      `const check_ = (passed, type, raw, reportLevel, title, details, actual, expected) => mmtHelper.check_(passed, type, raw, reportLevel, title, details, actual, expected, report_, console);\n` +
+      `const check_ = (passed, type, raw, reportLevel, title, details, actual, expected) => mmtHelper.check_(passed, type, raw, reportLevel, title, details, actual, expected, report_, console, __checkLogMode);\n` +
       // Override checkExpects_ with a closure-based version for parallel execution.
-      `const checkExpects_ = (items, type, reportLevel, title, details) => mmtHelper.checkExpects_(items, type, reportLevel, title, details, report_, console);\n` +
+      `const checkExpects_ = (items, type, reportLevel, title, details) => mmtHelper.checkExpects_(items, type, reportLevel, title, details, report_, console, __checkLogMode);\n` +
       // Override checkAbort_ with a closure-based version so parallel tests
       // each check their own abort signal instead of the global.
       `const checkAbort_ = () => { if (__abortSignal && __abortSignal.aborted) { const e = new Error('Test run was stopped'); e.name = 'TestAbortError'; throw e; } };\n` +
@@ -169,7 +171,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       fn = new Function(
         'mmtHelper', 'console', 'send_', 'sendGrpc_', 'extractOutputs_', 'Random',
         '__reporter', '__runId', '__id', '__mmt_random', '__mmt_current',
-        '__mmt_access', '__abortSignal', '__fileLoader',
+        '__mmt_access', '__abortSignal', '__fileLoader', '__checkLogMode',
         functionBody);
       if (compiledFunctionCache.size >= MAX_COMPILED_FUNCTION_CACHE_SIZE) {
         const firstKey = compiledFunctionCache.keys().next().value;
@@ -204,7 +206,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     const returnValue = await fn(
         mmtHelper, customConsole, sendFn, sendGrpcFn, extractOutputs, Random,
         reporterFn, runId, context.id, mmtRandom, mmtCurrent, mmtAccess,
-        context.abortSignal, context.fileLoader);
+        context.abortSignal, context.fileLoader, context.checkLogMode || 'default');
     restoreReporterGlobals();
     const elapsed = Date.now() - startTime;
     lg('debug', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);

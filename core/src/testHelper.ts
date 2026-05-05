@@ -181,6 +181,7 @@ declare const __mmtRunId: string|undefined;
 declare const __mmtId: string|undefined;
 
 type StepType = 'check'|'assert'|'debug';
+export type CheckLogMode = 'default'|'failures-only'|'none';
 
 const resolveReporter = () =>
     (typeof __mmtReportStep === 'function' ? __mmtReportStep : undefined);
@@ -531,6 +532,7 @@ export const check_ = (
     expected?: any,
     reportFn?: (...args: any[]) => void,
     consoleFn?: {log: (...a: any[]) => void; debug: (...a: any[]) => void; error: (...a: any[]) => void; trace: (...a: any[]) => void},
+    checkLogMode: CheckLogMode = 'default',
 ): void => {
   const doReport = typeof reportFn === 'function' ? reportFn : report_;
   const c = consoleFn || console;
@@ -538,7 +540,15 @@ export const check_ = (
   const titlePart = title ? `"${title}" - ` : '';
   if (passed) {
     const msg = `\u2713 ${label} ${titlePart}"${raw}" passed`;
-    if (reportLevel === 'all') {
+    if (checkLogMode === 'none') {
+      if (reportLevel === 'all') {
+        doReport(type, raw, title, details, true);
+      }
+    } else if (checkLogMode === 'failures-only') {
+      if (reportLevel === 'all') {
+        doReport(type, raw, title, details, true);
+      }
+    } else if (reportLevel === 'all') {
       c.log(msg);
       doReport(type, raw, title, details, true);
     } else if (reportLevel === 'fails') {
@@ -549,7 +559,11 @@ export const check_ = (
     }
   } else {
     const shortMsg = `\u00D7 ${label} ${titlePart}"${raw}" failed, as ${displayValue(actual)} is not ${displayValue(expected)}`;
-    if (reportLevel === 'none') {
+    if (checkLogMode === 'none') {
+      if (reportLevel !== 'none') {
+        doReport(type, raw, title, details, false, actual, expected);
+      }
+    } else if (reportLevel === 'none') {
       c.debug(shortMsg);
     } else {
       c.error(shortMsg);
@@ -585,6 +599,7 @@ export const checkExpects_ = (
     details?: string,
     reportFn?: (...args: any[]) => void,
     consoleFn?: {log: (...a: any[]) => void; debug: (...a: any[]) => void; error: (...a: any[]) => void; trace: (...a: any[]) => void},
+    checkLogMode: CheckLogMode = 'default',
 ): void => {
   const doReport = typeof reportFn === 'function' ? reportFn : report_;
   const c = consoleFn || console;
@@ -596,10 +611,15 @@ export const checkExpects_ = (
   for (const item of items) {
     if (type === 'debug') {
       const icon = item.passed ? '\u2713' : '\u00D7';
-      c.debug(`\u{1F41E} ${label} ${titlePart}"${item.comparison}" ${item.passed ? 'passed' : 'failed'}: actual=${displayValue(item.actual)}, expected=${displayValue(item.expected)}`);
+      if (checkLogMode !== 'none') {
+        c.debug(`\u{1F41E} ${label} ${titlePart}"${item.comparison}" ${item.passed ? 'passed' : 'failed'}: actual=${displayValue(item.actual)}, expected=${displayValue(item.expected)}`);
+      }
     } else if (item.passed) {
       const msg = `\u2713 ${label} ${titlePart}"${item.comparison}" passed`;
-      if (reportLevel === 'all') {
+      if (checkLogMode === 'none' || checkLogMode === 'failures-only') {
+        // Keep passed checks available to reporters below, but do not emit
+        // per-check success lines to the console/log stream.
+      } else if (reportLevel === 'all') {
         c.log(msg);
       } else if (reportLevel === 'fails') {
         c.debug(msg);
@@ -608,7 +628,10 @@ export const checkExpects_ = (
       }
     } else {
       const shortMsg = `\u00D7 ${label} ${titlePart}"${item.comparison}" failed, as ${displayValue(item.actual)} is not ${displayValue(item.expected)}`;
-      if (reportLevel === 'none') {
+      if (checkLogMode === 'none') {
+        // Keep failed checks available to reporters below, but do not emit
+        // per-check failure lines to the console/log stream.
+      } else if (reportLevel === 'none') {
         c.debug(shortMsg);
       } else {
         c.error(shortMsg);
@@ -628,7 +651,7 @@ export const checkExpects_ = (
       doReport(type, items, title, details, true);
     }
   } else {
-    if (details && reportLevel !== 'none') {
+    if (details && reportLevel !== 'none' && checkLogMode !== 'none') {
       c.debug(formatCheckDetails(details));
     }
     if (reportLevel !== 'none') {

@@ -68,7 +68,7 @@ function createPkgJsRunner() {
 	}
 
 	return {
-		runJSCode: async ({ js: code, title, logger, fileLoader, serverRunner, reporter, runId, id, traceSend, abortSignal }) => {
+		runJSCode: async ({ js: code, title, logger, fileLoader, serverRunner, reporter, runId, id, traceSend, abortSignal, checkLogMode }) => {
 			const startTime = Date.now();
 			const lg = (level, msg) => logger(level, msg);
 			const customConsole = {
@@ -92,7 +92,7 @@ function createPkgJsRunner() {
 				const helperDecls = Object.keys(testHelper)
 					.filter((name) => name !== 'report_' && name !== 'setenv_' &&
 						name !== 'checkAbort_' && name !== 'importJsModule_' &&
-						name !== 'check_')
+						name !== 'check_' && name !== 'checkExpects_')
 					.map((name) => `const ${name} = mmtHelper["${name}"];`)
 					.join('\n');
 				const randomDecls = Object.keys(Random)
@@ -125,10 +125,12 @@ function createPkgJsRunner() {
 					'__mmt_random',
 					'__mmt_current',
 					'__abortSignal',
+					'__checkLogMode',
 					`${helperDecls}\n${randomDecls}\n` +
 					`const report_ = (...args) => mmtHelper.reportWithContext_ ? mmtHelper.reportWithContext_(__reporter, __runId, __id, ...args) : undefined;\n` +
 					`const setenv_ = (name, value) => { try { envVariables[name] = value; } catch (_e) {} if (mmtHelper.setenvWithContext_) mmtHelper.setenvWithContext_(__reporter, __runId, __id, name, value); };\n` +
-					`const check_ = (passed, type, raw, reportLevel, title, details, actual, expected) => mmtHelper.check_(passed, type, raw, reportLevel, title, details, actual, expected, report_, console);\n` +
+					`const check_ = (passed, type, raw, reportLevel, title, details, actual, expected) => mmtHelper.check_(passed, type, raw, reportLevel, title, details, actual, expected, report_, console, __checkLogMode);\n` +
+					`const checkExpects_ = (items, type, reportLevel, title, details) => mmtHelper.checkExpects_ ? mmtHelper.checkExpects_(items, type, reportLevel, title, details, report_, console, __checkLogMode) : undefined;\n` +
 					`const checkAbort_ = () => { if (__abortSignal && __abortSignal.aborted) { const e = new Error('Test run was stopped'); e.name = 'TestAbortError'; throw e; } };\n` +
 					`${code}`,
 				);
@@ -161,6 +163,7 @@ function createPkgJsRunner() {
 					mmtRandom,
 					mmtCurrent,
 					abortSignal,
+					checkLogMode || 'default',
 				);
 			} finally {
 				// Clean up
