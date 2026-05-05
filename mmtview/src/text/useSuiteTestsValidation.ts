@@ -8,7 +8,7 @@ function uniqStrings(values: string[]): string[] {
 }
 
 function extractSuiteTestItems(docType: string | null, content: string) {
-  if (docType !== 'suite') {
+  if (docType !== 'suite' && docType !== 'loadtest') {
     return {paths: [] as string[], positions: new Map<string, {line: number; column: number}>()};
   }
 
@@ -20,6 +20,23 @@ function extractSuiteTestItems(docType: string | null, content: string) {
   }
   const root: any = parsed?.contents;
   const rootItems: any[] = Array.isArray(root?.items) ? root.items : [];
+  if (docType === 'loadtest') {
+    const testPair = rootItems.find((item) => item?.key?.value === 'test');
+    const value = typeof testPair?.value?.value === 'string' ? testPair.value.value.trim() : '';
+    const positions = new Map<string, {line: number; column: number}>();
+    if (!value) {
+      return {paths: [] as string[], positions};
+    }
+    const offset = Array.isArray(testPair?.value?.range) && typeof testPair.value.range[0] === 'number' ? testPair.value.range[0] : undefined;
+    if (typeof offset === 'number') {
+      const pre = content.slice(0, offset);
+      const line = pre.split('\n').length;
+      const lastNl = pre.lastIndexOf('\n');
+      const column = lastNl >= 0 ? pre.length - lastNl : pre.length + 1;
+      positions.set(value, {line, column});
+    }
+    return {paths: [value], positions};
+  }
   const testsPair = rootItems.find((item) => item?.key?.value === 'tests');
   const seqItems: any[] = Array.isArray(testsPair?.value?.items) ? testsPair.value.items : [];
 
@@ -60,7 +77,7 @@ export function useSuiteTestsValidation(docType: string | null, content: string)
   const pendingIdRef = useRef<number>(0);
 
   useEffect(() => {
-    if (docType !== 'suite' || !window?.vscode) {
+    if ((docType !== 'suite' && docType !== 'loadtest') || !window?.vscode) {
       setMissingSuiteFiles([]);
       return;
     }

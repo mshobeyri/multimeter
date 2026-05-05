@@ -8,6 +8,7 @@ import type { StepStatus } from '../shared/types';
 import ExportReportButton, { ReportFormat } from '../shared/ExportReportButton';
 import OverviewBoxes from '../shared/OverviewBoxes';
 import { statusIconFor } from '../shared/Common';
+import LoadTestReport from '../loadtest/LoadTestReport';
 
 interface ReportPanelProps {
   content: string;
@@ -121,6 +122,10 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
         totalSub: `${totalTests} check${totalTests !== 1 ? 's' : ''}`,
         durationSub: `${totalSuites} file${totalSuites !== 1 ? 's' : ''}`,
       }} />
+
+      {results.type === 'loadtest' && results.load && (
+        <LoadTestReport load={results.load} />
+      )}
 
       {/* Report section */}
       <div className="label" style={{ marginBottom: 10 }}>Report</div>

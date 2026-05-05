@@ -92,6 +92,7 @@ export async function executeLoadTest(
   runFile: (options: RunFileOptions) => Promise<RunFileResult>,
 ): Promise<RunFileResult> {
   const loadtest = prepared.loadtestConfig ?? yamlToLoadTest(prepared.rawText);
+  const envVars = prepared.envVarsUsed || options.envvar || {};
   const displayName = prepared.title || prepared.baseName;
   const identifier = sanitizeIdentifier(displayName);
   const childFilePath = resolveRelativeTo(loadtest.test, prepared.filePath);
@@ -110,10 +111,20 @@ export async function executeLoadTest(
   let failed = 0;
   let requestsSent = 0;
   let requestFailures = 0;
+  let responseTimeTotal = 0;
+  let responseTimeCount = 0;
+  let activeThreads = 0;
   let claimedIterations = 0;
   let sampleCaptured = false;
   let childRawText = '';
   let lastSummaryEmitAt = 0;
+  let lastSeriesAt = runStartedAt;
+  let lastSeriesRequests = 0;
+  let lastSeriesFailures = 0;
+  let lastSeriesResponseTimeTotal = 0;
+  let lastSeriesResponseTimeCount = 0;
+  const statusCodes: Record<string, number> = {};
+  const series: NonNullable<LoadReportData['series']> = [];
 
   const loadLogger = (level: LogLevel, msg: string) => {
     allLogs.push(String(msg));
@@ -141,6 +152,18 @@ export async function executeLoadTest(
       if (Number.isFinite(status) && status >= 400) {
         requestFailures += 1;
       }
+      if (Number.isFinite(status)) {
+        const key = String(status);
+        statusCodes[key] = (statusCodes[key] || 0) + 1;
+      }
+      const durationMatch = msg.match(/\((\d+(?:\.\d+)?)ms\)/);
+      if (durationMatch) {
+        const duration = Number(durationMatch[1]);
+        if (Number.isFinite(duration) && duration >= 0) {
+          responseTimeTotal += duration;
+          responseTimeCount += 1;
+        }
+      }
     }
   };
 
@@ -154,8 +177,8 @@ export async function executeLoadTest(
   const buildLoadResult = (finishedAt: number): LoadReportData => {
     const durationMs = Math.max(0, finishedAt - runStartedAt);
     const requests = requestsSent > 0 ? requestsSent : completed;
-    const failures = requestsSent > 0 ? requestFailures : failed;
-    const successes = Math.max(0, requests - failures);
+    const failures = failed;
+    const successes = Math.max(0, completed - failures);
     return {
       tool: 'multimeter',
       scenario: loadtest.title || displayName,
@@ -172,11 +195,16 @@ export async function executeLoadTest(
         requests,
         successes,
         failures,
-        success_rate: requests > 0 ? successes / requests : 0,
-        failed_rate: requests > 0 ? failures / requests : 0,
-        error_rate: requests > 0 ? failures / requests : 0,
+        success_rate: completed > 0 ? successes / completed : 0,
+        failed_rate: completed > 0 ? failures / completed : 0,
+        error_rate: completed > 0 ? failures / completed : 0,
         throughput: durationMs > 0 ? requests / (durationMs / 1000) : requests,
       },
+      http: Object.keys(statusCodes).length > 0 ? {
+        status_codes: {...statusCodes},
+        failed_requests: requestFailures,
+      } : undefined,
+      series: [...series],
     };
   };
 
@@ -186,6 +214,28 @@ export async function executeLoadTest(
       return;
     }
     lastSummaryEmitAt = now;
+    const currentRequests = requestsSent > 0 ? requestsSent : completed;
+    const currentFailures = failed;
+    const elapsedSeconds = Math.max(0.001, (now - lastSeriesAt) / 1000);
+    const requestDelta = Math.max(0, currentRequests - lastSeriesRequests);
+    const failureDelta = Math.max(0, currentFailures - lastSeriesFailures);
+    const responseTimeDelta = Math.max(0, responseTimeTotal - lastSeriesResponseTimeTotal);
+    const responseTimeCountDelta = Math.max(0, responseTimeCount - lastSeriesResponseTimeCount);
+    series.push({
+      timestamp: new Date(now).toISOString(),
+      active_threads: activeThreads,
+      requests: currentRequests,
+      errors: currentFailures,
+      error_delta: failureDelta,
+      throughput: requestDelta / elapsedSeconds,
+      response_time: responseTimeCountDelta > 0 ? responseTimeDelta / responseTimeCountDelta : undefined,
+      error_rate: completed > 0 ? currentFailures / completed : 0,
+    });
+    lastSeriesAt = now;
+    lastSeriesRequests = currentRequests;
+    lastSeriesFailures = currentFailures;
+    lastSeriesResponseTimeTotal = responseTimeTotal;
+    lastSeriesResponseTimeCount = responseTimeCount;
     emit({
       scope: 'loadtest-summary',
       runId: rootRunId,
@@ -259,6 +309,7 @@ export async function executeLoadTest(
         file: childRawText,
         fileType: 'raw',
         filePath: childFilePath,
+        envvar: envVars,
         fileLoader: childFileLoader,
         logger: (level, msg) => {
           recordNetworkTrace(msg);
@@ -281,6 +332,7 @@ export async function executeLoadTest(
       failed += 1;
       loadLogger('error', `Loadtest worker ${workerIndex + 1}, iteration ${iteration} failed: ${e?.message || String(e)}`);
       emitLoadSummary();
+    } finally {
     }
   };
 
@@ -288,14 +340,24 @@ export async function executeLoadTest(
     if (rampupMs > 0 && threads > 1) {
       await sleep(Math.round((rampupMs * workerIndex) / Math.max(1, threads - 1)), options.abortSignal);
     }
-    while (!options.abortSignal?.aborted) {
-      const iteration = nextIteration();
-      if (iteration === undefined) {
-        return;
+    if (options.abortSignal?.aborted) {
+      return;
+    }
+    activeThreads += 1;
+    try {
+      while (!options.abortSignal?.aborted) {
+        const iteration = nextIteration();
+        if (iteration === undefined) {
+          return;
+        }
+        await runIteration(workerIndex, iteration);
       }
-      await runIteration(workerIndex, iteration);
+    } finally {
+      activeThreads = Math.max(0, activeThreads - 1);
     }
   };
+
+  emitLoadSummary(true);
 
   loadLogger('info', `Running load test: threads=${threads}, repeat=${String(loadtest.repeat ?? 1)}, rampup=${loadtest.rampup ?? '0s'}`);
   await Promise.all(Array.from({length: threads}, (_, index) => worker(index)));
@@ -303,9 +365,9 @@ export async function executeLoadTest(
   const finishedAt = Date.now();
   const durationMs = finishedAt - runStartedAt;
   const success = failed === 0 && !options.abortSignal?.aborted;
-  const load = buildLoadResult(finishedAt);
 
   emitLoadSummary(true);
+  const load = buildLoadResult(finishedAt);
 
   emit({
     scope: 'suite-item',
@@ -354,7 +416,7 @@ export async function executeLoadTest(
     displayName,
     docType: 'loadtest',
     inputsUsed: options.manualInputs || {},
-    envVarsUsed: options.envvar || {},
+    envVarsUsed: envVars,
     suiteExports,
     loadResult: load,
   };

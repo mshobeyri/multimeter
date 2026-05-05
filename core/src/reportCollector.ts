@@ -6,6 +6,7 @@ import type {
   SuiteRunStartEvent,
   SuiteRunFinishedEvent,
   TestOutputsReporterEvent,
+  LoadTestSummaryEvent,
 } from './runConfig';
 
 export interface ExpectItemResult {
@@ -105,7 +106,10 @@ export interface LoadReportData {
     timestamp: string;
     active_threads?: number;
     requests?: number;
+    errors?: number;
+    error_delta?: number;
     throughput?: number;
+    response_time?: number;
     error_rate?: number;
     p95?: number;
   }>;
@@ -126,6 +130,7 @@ export function createReportCollector() {
   const testRunsByKey = new Map<string, TestRunResult>();
   let suiteRun: SuiteRunResult | undefined;
   let hasSuiteEvents = false;
+  let load: LoadReportData | undefined;
 
   function getOrCreateTestRun(key: string, runId: string): TestRunResult {
     let run = testRunsByKey.get(key);
@@ -239,10 +244,28 @@ export function createReportCollector() {
       }
       return;
     }
+
+    if (scope === 'loadtest-summary') {
+      const event = message as LoadTestSummaryEvent;
+      load = event.load;
+      return;
+    }
   }
 
   function getResults(): CollectedResults {
     const allRuns = Array.from(testRunsByKey.values());
+
+    if (load) {
+      if (hasSuiteEvents && suiteRun) {
+        suiteRun.testRuns = allRuns;
+      }
+      return {
+        type: 'loadtest',
+        suiteRun,
+        testRuns: allRuns,
+        load,
+      };
+    }
 
     if (hasSuiteEvents && suiteRun) {
       suiteRun.testRuns = allRuns;

@@ -228,6 +228,31 @@ describe('reportCollector', () => {
     expect(results.testRuns).toHaveLength(1);
   });
 
+  it('returns loadtest results when load summary events are reported', () => {
+    const {reporter, getResults} = createReportCollector();
+    reporter({
+      scope: 'suite-run-start',
+      runId: 'load1',
+      suitePath: '/path/to/load.mmt',
+      startedAt: 1000,
+      totalRunnable: 1,
+    } as SuiteRunStartEvent);
+    reporter({
+      scope: 'loadtest-summary',
+      runId: 'load1',
+      load: {
+        tool: 'multimeter',
+        summary: {iterations: 10, requests: 20, successes: 10, failures: 0},
+        series: [],
+      },
+    } as any);
+
+    const results = getResults();
+    expect(results.type).toBe('loadtest');
+    expect(results.load?.summary?.requests).toBe(20);
+    expect(results.suiteRun?.totalRunnable).toBe(1);
+  });
+
   it('ignores null or non-object messages', () => {
     const {reporter, getResults} = createReportCollector();
     reporter(null as any);

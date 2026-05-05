@@ -140,7 +140,10 @@ load:
     - timestamp: "2026-05-04T10:30:10.000Z"
       active_threads: 20
       requests: 500
+      errors: 0
+      error_delta: 0
       throughput: 50
+      response_time: 48.2
       error_rate: 0
       p95: 110
 suites:
@@ -156,8 +159,8 @@ suites:
 Format mapping for implementation:
 
 - MMT (`.mmt`): write the full schema above.
-- HTML: show the normal functional summary plus load cards for throughput, error rate, latency percentiles, status-code distribution, threshold table, error table, and time-series charts.
-- Markdown: include summary and latency/throughput/threshold/error tables; include series as an optional compact table.
+- HTML: show the normal functional summary plus load cards for throughput, error rate, latency percentiles, threshold table, error table, and time-series charts.
+- Markdown: include summary, latency/throughput/threshold/error tables; include series as a compact table.
 - JUnit XML: preserve CI compatibility by keeping normal `<testsuites>`/`<testcase>` output; add load metrics as `<properties>` on `<testsuites>` using names such as `load.threads`, `load.throughput`, `load.latency.p95`, and `load.error_rate`.
 
 ### HTML

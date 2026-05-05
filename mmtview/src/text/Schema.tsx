@@ -978,7 +978,10 @@ export const ReportSchema = {
                             timestamp: { type: 'string' },
                             active_threads: { type: 'integer' },
                             requests: { type: 'integer' },
+                            errors: { type: 'integer' },
+                            error_delta: { type: 'integer' },
                             throughput: { type: 'number' },
+                            response_time: { type: 'number' },
                             error_rate: { type: 'number' },
                             p95: { type: 'number' }
                         },

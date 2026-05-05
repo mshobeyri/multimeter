@@ -1,6 +1,8 @@
 import {LogLevel} from './CommonData';
 import {RunJSCodeContext} from './jsRunner';
 import type {LoadReportData} from './reportCollector';
+import {dirnamePath, joinPath, resolveRequestedAgainst} from './fileHelper';
+import parseYaml from './markupConvertor';
 
 export type FileLoader = (path: string) => Promise<string>;
 
@@ -339,4 +341,74 @@ export function mergeSuiteEnv(params: MergeSuiteEnvParams): Record<string, any> 
     // VS Code: suite variables > suite preset > base (no CLI manual env)
     return {...baseEnv, ...suitePresetEnv, ...suiteVariables};
   }
+}
+
+export interface ResolveDocumentEnvParams {
+  documentEnv?: SuiteEnvironment;
+  filePath: string;
+  projectRoot?: string;
+  baseEnvVars?: Record<string, any>;
+  manualEnvvars?: Record<string, any>;
+  fileLoader: FileLoader;
+  logger?: (level: LogLevel, message: string) => void;
+  cliOverridesSuiteEnv?: boolean;
+}
+
+/**
+ * Resolve suite/loadtest `environment:` settings without depending on Node fs.
+ * Callers provide file loading; core resolves `environment.file`, project-root
+ * `+/` paths, default `multimeter.mmt`, presets, variables, and manual envs.
+ */
+export async function resolveDocumentEnvVars(params: ResolveDocumentEnvParams): Promise<Record<string, any>> {
+  const {
+    documentEnv,
+    filePath,
+    projectRoot,
+    baseEnvVars = {},
+    manualEnvvars = {},
+    fileLoader,
+    logger,
+    cliOverridesSuiteEnv = true,
+  } = params;
+
+  if (!documentEnv) {
+    return mergeEnv({envvar: baseEnvVars, manualEnvvars});
+  }
+
+  let envFilePath: string | undefined;
+  if (documentEnv.file) {
+    try {
+      envFilePath = resolveRequestedAgainst(filePath, documentEnv.file, projectRoot);
+    } catch (e: any) {
+      logger?.('warn', `Failed to resolve environment file '${documentEnv.file}': ${e?.message || String(e)}`);
+    }
+  } else if (documentEnv.preset && projectRoot) {
+    envFilePath = joinPath(projectRoot, 'multimeter.mmt');
+  } else if (documentEnv.preset) {
+    envFilePath = joinPath(dirnamePath(filePath), 'multimeter.mmt');
+  }
+
+  let suitePresetEnv: Record<string, any> = {};
+  if (documentEnv.preset && envFilePath) {
+    try {
+      const raw = await fileLoader(envFilePath);
+      const doc = parseYaml(raw);
+      if (doc && typeof doc === 'object') {
+        suitePresetEnv = resolvePresetEnv(
+          {variables: (doc as any).variables, presets: (doc as any).presets},
+          documentEnv.preset,
+        );
+      }
+    } catch (e: any) {
+      logger?.('warn', `Failed to resolve preset '${documentEnv.preset}' from '${envFilePath}': ${e?.message || String(e)}`);
+    }
+  }
+
+  return mergeSuiteEnv({
+    baseEnv: baseEnvVars,
+    suiteEnv: documentEnv,
+    suitePresetEnv,
+    manualEnvvars,
+    cliOverridesSuiteEnv,
+  });
 }

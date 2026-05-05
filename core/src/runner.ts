@@ -3,7 +3,7 @@ import docHtml from './docHtml';
 import docMarkdown from './docMarkdown';
 import {executeApi, prepareApiRun} from './runApi';
 import {basename, detectDocType, PreparedRun, RunFileResult, runGeneratedJs} from './runCommon';
-import {mergeEnv, RunFileOptions, RunReporterMessage} from './runConfig';
+import {mergeEnv, resolveDocumentEnvVars, RunFileOptions, RunReporterMessage} from './runConfig';
 import {executeSuite, prepareSuiteRun} from './runSuite';
 import {executeSuiteBundle} from './suiteBundleRunner';
 import {executeLoadTest, prepareLoadTestRun} from './runLoadTest';
@@ -68,12 +68,26 @@ export async function prepareRunFromOptions(
     specific = prepareLoadTestRun(rawText, manualInputs);
   }
 
+  let resolvedEnvVarsUsed = envVarsUsed;
+  if (docType === 'loadtest') {
+    resolvedEnvVarsUsed = await resolveDocumentEnvVars({
+      documentEnv: (specific as any)?.loadtestConfig?.environment,
+      filePath,
+      projectRoot: options.projectRoot,
+      baseEnvVars: options.envvar || {},
+      manualEnvvars: options.manualEnvvars || {},
+      fileLoader: options.fileLoader,
+      logger: log,
+      cliOverridesSuiteEnv: true,
+    });
+  }
+
   return {
     rawText,
     filePath,
     baseName,
     docType,
-    envVarsUsed,
+    envVarsUsed: resolvedEnvVarsUsed,
     inputsUsed: manualInputs,
     ...specific,
   };

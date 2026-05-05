@@ -16,6 +16,7 @@ import { statusIconFor } from '../../shared/Common';
 import ExportReportButton, { ReportFormat } from '../../shared/ExportReportButton';
 import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
 import { FileContext } from '../../fileContext';
+import LoadTestReport from '../../loadtest/LoadTestReport';
 
 /** Get basename from a file path. */
 function basename(p: string): string {
@@ -108,7 +109,158 @@ interface LoadRunSummary {
         error_rate?: number;
         throughput?: number;
     };
+    http?: {
+        status_codes?: Record<string, number>;
+        failed_requests?: number;
+    };
+    series?: Array<{
+        timestamp: string;
+        active_threads?: number;
+        requests?: number;
+        errors?: number;
+        error_delta?: number;
+        throughput?: number;
+        response_time?: number;
+        error_rate?: number;
+    }>;
 }
+
+const overviewBoxStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: '10px 12px',
+    borderRadius: 10,
+    background: 'var(--vscode-editor-background, rgba(40,40,40,0.8))',
+    border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.1))',
+    minWidth: 0,
+};
+
+const overviewIconStyle: React.CSSProperties = {
+    width: 34,
+    height: 34,
+    borderRadius: 9,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+};
+
+const overviewLabelStyle: React.CSSProperties = {
+    fontSize: 9,
+    fontWeight: 500,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    opacity: 0.6,
+};
+
+const overviewValueStyle: React.CSSProperties = {
+    fontSize: 18,
+    fontWeight: 700,
+    lineHeight: 1.2,
+};
+
+const overviewSubStyle: React.CSSProperties = {
+    fontSize: 9,
+};
+
+function formatLoadPercent(value: number | undefined): string {
+    return typeof value === 'number' && Number.isFinite(value) ? `${(value * 100).toFixed(1)}%` : '-';
+}
+
+function formatLoadNumber(value: number | undefined, fractionDigits = 0): string {
+    return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(fractionDigits) : '-';
+}
+
+const LoadOverviewCard: React.FC<{
+    label: string;
+    value: string;
+    sub?: string;
+    color: string;
+    background: string;
+    icon: 'passed' | 'failed' | 'total' | 'duration' | 'threads';
+}> = ({ label, value, sub, color, background, icon }) => {
+    const iconSvg = icon === 'passed'
+        ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        : icon === 'failed'
+            ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            : icon === 'duration'
+                ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                : icon === 'threads'
+                    ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="8" y1="9" x2="16" y2="9"></line><line x1="8" y1="13" x2="14" y2="13"></line><line x1="8" y1="17" x2="12" y2="17"></line></svg>;
+    return (
+        <div style={overviewBoxStyle}>
+            <div style={{ ...overviewIconStyle, background, color }}>
+                {iconSvg}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                <span style={overviewLabelStyle}>{label}</span>
+                <span style={{ ...overviewValueStyle, color }}>{value}</span>
+                {sub && <span style={{ ...overviewSubStyle, color }}>{sub}</span>}
+            </div>
+        </div>
+    );
+};
+
+const LoadOverviewBoxes: React.FC<{
+    load: LoadRunSummary | null;
+    config: LoadTestConfig | null;
+    duration?: string;
+}> = ({ load, config, duration }) => {
+    const summary = load?.summary || {};
+    const requests = Number(summary.requests || 0);
+    const successes = Number(summary.successes ?? Math.max(0, requests - Number(summary.failures || 0)));
+    const failures = Number(summary.failures || 0);
+    const iterations = Number(summary.iterations || 0);
+    return (
+        <div>
+            <div className="label" style={{ marginBottom: 6 }}>Overview</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8, marginBottom: 14 }}>
+                <LoadOverviewCard
+                    label="Passed"
+                    value={formatLoadPercent(summary.success_rate)}
+                    sub={`${formatLoadNumber(successes)} succeeded`}
+                    color="var(--vscode-testing-iconPassed, #3fb950)"
+                    background="rgba(63, 185, 80, 0.15)"
+                    icon="passed"
+                />
+                <LoadOverviewCard
+                    label="Failed"
+                    value={formatLoadPercent(summary.error_rate ?? summary.failed_rate)}
+                    sub={`${formatLoadNumber(failures)} failed`}
+                    color="var(--vscode-testing-iconFailed, #f85149)"
+                    background="rgba(248, 81, 73, 0.15)"
+                    icon="failed"
+                />
+                <LoadOverviewCard
+                    label="Total"
+                    value={formatLoadNumber(requests)}
+                    sub={`${formatLoadNumber(iterations)} iterations`}
+                    color="var(--vscode-textLink-foreground, #58a6ff)"
+                    background="rgba(88, 166, 255, 0.15)"
+                    icon="total"
+                />
+                <LoadOverviewCard
+                    label="Duration"
+                    value={duration || '-'}
+                    sub={summary.throughput != null ? `${formatLoadNumber(summary.throughput, 2)} req/s` : undefined}
+                    color="var(--vscode-descriptionForeground, #8b949e)"
+                    background="rgba(139, 148, 158, 0.15)"
+                    icon="duration"
+                />
+                <LoadOverviewCard
+                    label="Threads"
+                    value={formatLoadNumber(load?.config?.threads ?? config?.threads)}
+                    sub={load?.config?.rampup || config?.rampup ? `Ramp-up ${load?.config?.rampup || config?.rampup}` : undefined}
+                    color="var(--vscode-charts-yellow, #d29922)"
+                    background="rgba(210, 153, 34, 0.15)"
+                    icon="threads"
+                />
+            </div>
+        </div>
+    );
+};
 
 const buildSuiteGroupsFromContent = (content: string, mode: 'suite' | 'loadtest' = 'suite'): SuiteGroup[] => {
     const parsed = parseYaml(content);
@@ -526,6 +678,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
                 // Derive pass/fail from the current leaf statuses
                 if (cancelled) {
                     setSuiteRunState('cancelled');
+                } else if (mode === 'loadtest' && typeof (message as any).success === 'boolean') {
+                    setSuiteRunState((message as any).success ? 'passed' : 'failed');
                 } else {
                     setStepStatuses(prev => {
                         const vals = Object.values(prev);
@@ -863,11 +1017,30 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
                 </div>
                 {noItems ? <div style={{ opacity: 0.8 }}>{mode === 'loadtest' ? 'No test file found under `test:`' : 'No suite items found under `tests:`'}</div> : (
                     <>
-                        {overviewStats && <OverviewBoxes stats={overviewStats} />}
+                        {mode === 'loadtest'
+                            ? <LoadOverviewBoxes load={loadRunSummary} config={loadConfig} duration={suiteRunDurationMs != null ? formatDuration(suiteRunDurationMs) : undefined} />
+                            : overviewStats && <OverviewBoxes stats={overviewStats} />}
                         {loadConfig && (
                             <>
                                 <div className="label" style={{ marginBottom: 6 }}>Load</div>
                                 <div style={{ marginBottom: 12, paddingLeft: 8 }}>
+                                    {mode === 'loadtest' && groups[0]?.entries[0]?.path && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
+                                            <span className="codicon codicon-beaker" style={{ fontSize: 14 }} aria-hidden />
+                                            <span>Test: </span>
+                                            <span
+                                                title="Ctrl/Cmd+click to open test file"
+                                                style={{ cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 2 }}
+                                                onClick={(event) => {
+                                                    if (event.ctrlKey || event.metaKey) {
+                                                        window.vscode?.postMessage({ command: 'openRelativeFile', filename: groups[0]?.entries[0]?.path });
+                                                    }
+                                                }}
+                                            >
+                                                <code>{groups[0].entries[0].path}</code>
+                                            </span>
+                                        </div>
+                                    )}
                                     {loadConfig.threads != null && (
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
                                             <span className="codicon codicon-dashboard" style={{ fontSize: 14 }} aria-hidden />
@@ -952,8 +1125,17 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
                                 </div>
                             </>
                         )}
-                        <div className="label" style={{ marginBottom: 10 }}>{mode === 'loadtest' ? 'Test' : 'Tests'}</div>
-                        {tree}
+                        {mode === 'loadtest' ? (
+                            <LoadTestReport
+                                load={loadRunSummary}
+                                config={loadConfig || undefined}
+                            />
+                        ) : (
+                            <>
+                                <div className="label" style={{ marginBottom: 10 }}>Tests</div>
+                                {tree}
+                            </>
+                        )}
                     </>
                 )}
             </div>

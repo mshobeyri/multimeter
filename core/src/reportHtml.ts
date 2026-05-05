@@ -137,6 +137,72 @@ function buildSuiteSection(run: TestRunResult, index: number): string {
   return html;
 }
 
+function buildLoadChartSvg(title: string, labels: [string, string], colors: [string, string], points: NonNullable<CollectedResults['load']>['series'], firstKey: 'active_threads' | 'throughput' | 'errors', secondKey: 'active_threads' | 'errors' | 'response_time', secondAxis = false): string {
+  if (!Array.isArray(points) || points.length === 0) {
+    return '';
+  }
+  const width = 720;
+  const height = 220;
+  const left = 46;
+  const right = secondAxis ? 58 : 28;
+  const top = 22;
+  const bottom = 34;
+  const innerWidth = width - left - right;
+  const innerHeight = height - top - bottom;
+  const valuesA = points.map(point => Number(point[firstKey] || 0));
+  const valuesB = points.map(point => Number(point[secondKey] || 0));
+  const maxLeftY = Math.max(1, ...valuesA);
+  const maxRightY = Math.max(1, ...valuesB);
+  const maxY = secondAxis ? maxLeftY : Math.max(maxLeftY, maxRightY);
+  const count = Math.max(1, points.length - 1);
+  const xFor = (index: number) => left + (index / count) * innerWidth;
+  const yFor = (value: number, axis: 'left' | 'right' = 'left') => {
+    const axisMax = secondAxis && axis === 'right' ? maxRightY : maxY;
+    return top + innerHeight - (Math.max(0, value) / axisMax) * innerHeight;
+  };
+  const pathFor = (values: number[], axis: 'left' | 'right' = 'left') => values.map((value, index) => `${index === 0 ? 'M' : 'L'} ${xFor(index).toFixed(2)} ${yFor(value, axis).toFixed(2)}`).join(' ');
+  const start = points[0]?.timestamp || '';
+  const end = points[points.length - 1]?.timestamp || '';
+  const pointTitle = (index: number) => {
+    const point = points[index];
+    return [
+      point?.timestamp || '',
+      `Threads: ${point?.active_threads ?? '-'}`,
+      `Failures: ${point?.errors ?? '-'}`,
+      `Requests/sec: ${point?.throughput != null ? point.throughput.toFixed(2) : '-'}`,
+      `Response time: ${point?.response_time != null ? point.response_time.toFixed(2) : '-'} ms`,
+    ].join('\n');
+  };
+
+  let html = `      <h3>${escapeHtml(title)}</h3>\n`;
+  html += '      <div class="expects">\n';
+  html += `        <div><strong style="color:${colors[0]}">${escapeHtml(labels[0])}</strong></div>\n`;
+  html += `        <div><strong style="color:${colors[1]}">${escapeHtml(labels[1])}</strong></div>\n`;
+  html += '      </div>\n';
+  html += `      <svg width="100%" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(title)}">\n`;
+  html += `        <rect x="${left}" y="${top}" width="${innerWidth}" height="${innerHeight}" fill="transparent" stroke="var(--border)"/>\n`;
+  for (const ratio of [0, 0.25, 0.5, 0.75, 1]) {
+    const y = top + innerHeight - ratio * innerHeight;
+    html += `        <line x1="${left}" x2="${left + innerWidth}" y1="${y}" y2="${y}" stroke="var(--border)" stroke-dasharray="3 4"/>\n`;
+    html += `        <text x="${left - 8}" y="${y + 4}" text-anchor="end" font-size="10" fill="var(--muted)">${Math.round(maxY * ratio)}</text>\n`;
+    if (secondAxis) {
+      html += `        <text x="${left + innerWidth + 8}" y="${y + 4}" text-anchor="start" font-size="10" fill="var(--muted)">${Math.round(maxRightY * ratio)}</text>\n`;
+    }
+  }
+  html += `        <path d="${pathFor(valuesA)}" fill="none" stroke="${colors[0]}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>\n`;
+  html += `        <path d="${pathFor(valuesB, secondAxis ? 'right' : 'left')}" fill="none" stroke="${colors[1]}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>\n`;
+  const bandWidth = points.length <= 1 ? innerWidth : innerWidth / Math.max(1, points.length - 1);
+  points.forEach((_, index) => {
+    const x = Math.max(left, xFor(index) - bandWidth / 2);
+    const maxWidth = left + innerWidth - x;
+    html += `        <rect x="${x.toFixed(2)}" y="${top}" width="${Math.max(6, Math.min(bandWidth, maxWidth)).toFixed(2)}" height="${innerHeight}" fill="transparent"><title>${escapeHtml(pointTitle(index))}</title></rect>\n`;
+  });
+  html += `        <text x="${left}" y="${height - 10}" font-size="10" fill="var(--muted)">${escapeHtml(start)}</text>\n`;
+  html += `        <text x="${left + innerWidth}" y="${height - 10}" text-anchor="end" font-size="10" fill="var(--muted)">${escapeHtml(end)}</text>\n`;
+  html += '      </svg>\n';
+  return html;
+}
+
 function buildLoadSection(results: CollectedResults): string {
   const load = results.load;
   if (!load) {
@@ -164,6 +230,24 @@ function buildLoadSection(results: CollectedResults): string {
     html += `        <div><strong>${escapeHtml(label)}:</strong> ${escapeHtml(String(value))}</div>\n`;
   }
   html += '      </div>\n';
+  if (Array.isArray(load.series) && load.series.length > 0) {
+    html += buildLoadChartSvg('Requests per second and Response time over time', ['Requests/sec', 'Response time (ms)'], ['#58a6ff', '#8b949e'], load.series, 'throughput', 'response_time', true);
+    html += buildLoadChartSvg('Threads and Failures over time', ['Failures', 'Threads'], ['#f85149', '#d29922'], load.series, 'errors', 'active_threads', true);
+    html += '      <h3>Time Series</h3>\n';
+    html += '      <table><thead><tr><th>Time</th><th>Threads</th><th>Requests</th><th>Requests/sec</th><th>Response time</th><th>Failures</th><th>Failure rate</th></tr></thead><tbody>\n';
+    for (const point of load.series) {
+      html += '        <tr>' +
+        `<td>${escapeHtml(point.timestamp || '')}</td>` +
+        `<td>${escapeHtml(String(point.active_threads ?? ''))}</td>` +
+        `<td>${escapeHtml(String(point.requests ?? ''))}</td>` +
+        `<td>${escapeHtml(point.throughput != null ? point.throughput.toFixed(2) : '')}</td>` +
+        `<td>${escapeHtml(point.response_time != null ? point.response_time.toFixed(2) : '')}</td>` +
+        `<td>${escapeHtml(String(point.errors ?? ''))}</td>` +
+        `<td>${escapeHtml(point.error_rate != null ? `${(point.error_rate * 100).toFixed(2)}%` : '')}</td>` +
+        '</tr>\n';
+    }
+    html += '      </tbody></table>\n';
+  }
   html += '    </section>\n';
   return html;
 }

@@ -109,7 +109,29 @@ describe('executeLoadTest', () => {
     expect(result.suiteExports?.collectedResults.load?.summary?.failed_rate).toBe(0.5);
   });
 
-  it('uses traced HTTP request counts when available', async () => {
+  it('passes resolved environment variables to child test runs', async () => {
+    const prepared = makePrepared(`type: loadtest\nthreads: 1\nrepeat: 1\ntest: ./target.mmt\n`);
+    prepared.envVarsUsed = {baseUrl: 'https://example.test'};
+    const options = makeOptions();
+    let childEnv: Record<string, any> | undefined;
+
+    await executeLoadTest(prepared, options, [], async (childOptions) => {
+      childEnv = childOptions.envvar;
+      return {
+        js: '',
+        result: {success: true, durationMs: 1, errors: []},
+        identifier: 'target',
+        displayName: 'target',
+        docType: 'test',
+        inputsUsed: {},
+        envVarsUsed: {},
+      };
+    });
+
+    expect(childEnv).toEqual({baseUrl: 'https://example.test'});
+  });
+
+  it('keeps iteration pass rate separate from traced HTTP request failures', async () => {
     const prepared = makePrepared(`type: loadtest\nthreads: 1\nrepeat: 2\nexport:\n  - ./report.mmt\ntest: ./target.mmt\n`);
     const options = makeOptions();
 
@@ -132,8 +154,15 @@ describe('executeLoadTest', () => {
     expect(result.suiteExports?.collectedResults.load?.summary?.iterations).toBe(2);
     expect(result.suiteExports?.collectedResults.load?.summary?.requests).toBe(4);
     expect(result.suiteExports?.collectedResults.load?.summary?.successes).toBe(2);
-    expect(result.suiteExports?.collectedResults.load?.summary?.failures).toBe(2);
-    expect(result.suiteExports?.collectedResults.load?.summary?.success_rate).toBe(0.5);
-    expect(result.suiteExports?.collectedResults.load?.summary?.failed_rate).toBe(0.5);
+    expect(result.suiteExports?.collectedResults.load?.summary?.failures).toBe(0);
+    expect(result.suiteExports?.collectedResults.load?.summary?.success_rate).toBe(1);
+    expect(result.suiteExports?.collectedResults.load?.summary?.failed_rate).toBe(0);
+    expect(result.suiteExports?.collectedResults.load?.http?.status_codes).toEqual({ '200': 2, '500': 2 });
+    expect(result.suiteExports?.collectedResults.load?.http?.failed_requests).toBe(2);
+    expect(result.suiteExports?.collectedResults.load?.series?.length).toBeGreaterThan(0);
+    const series = result.suiteExports?.collectedResults.load?.series || [];
+    expect(series[series.length - 1]?.requests).toBe(4);
+    expect(series[series.length - 1]?.errors).toBe(0);
+    expect(series[series.length - 1]?.response_time).toBe(10);
   });
 });

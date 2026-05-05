@@ -170,7 +170,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const [authProblems, setAuthProblems] = useState<ProblemEntry[]>([]);
   const [knownEnvNames, setKnownEnvNames] = useState<Set<string>>(new Set());
   // Keep track of whether the editor has detected a canonical key-order issue via markers.
-  const shouldShowRunControls = (docType === "test" || docType === "api" || docType === "suite");
+  const shouldShowRunControls = (docType === "test" || docType === "api" || docType === "suite" || docType === "loadtest");
 
   // Load environment variable names and listen for refresh events
   useEffect(() => {

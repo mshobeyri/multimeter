@@ -151,6 +151,12 @@ function buildLoadSection(results: CollectedResults): string {
       md += `| ${escapeMdTable(name)} | ${escapeMdTable(String(value))} |\n`;
     }
   }
+  if (Array.isArray(load.series) && load.series.length > 0) {
+    md += `\n### Time Series\n\n| Time | Threads | Requests | Requests/sec | Response time | Errors | Error rate |\n|------|---------|----------|--------------|---------------|--------|------------|\n`;
+    for (const point of load.series) {
+      md += `| ${escapeMdTable(point.timestamp || '')} | ${point.active_threads ?? ''} | ${point.requests ?? ''} | ${point.throughput != null ? point.throughput.toFixed(2) : ''} | ${point.response_time != null ? point.response_time.toFixed(2) : ''} | ${point.errors ?? ''} | ${point.error_rate != null ? `${(point.error_rate * 100).toFixed(2)}%` : ''} |\n`;
+    }
+  }
   if (load.thresholds && load.thresholds.length > 0) {
     md += `\n### Thresholds\n\n| Name | Expression | Actual | Result |\n|------|------------|--------|--------|\n`;
     for (const threshold of load.thresholds) {

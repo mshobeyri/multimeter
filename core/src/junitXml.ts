@@ -121,6 +121,18 @@ export function generateJunitXml(results: CollectedResults, options?: JunitXmlOp
         ['load.latency.p95', results.load.latency?.p95],
         ['load.latency.p99', results.load.latency?.p99],
       ];
+      if (Array.isArray(results.load.series)) {
+        results.load.series.forEach((point, index) => {
+          loadProps.push([`load.series.${index}.timestamp`, point.timestamp]);
+          loadProps.push([`load.series.${index}.active_threads`, point.active_threads]);
+          loadProps.push([`load.series.${index}.requests`, point.requests]);
+          loadProps.push([`load.series.${index}.throughput`, point.throughput]);
+          loadProps.push([`load.series.${index}.response_time`, point.response_time]);
+          loadProps.push([`load.series.${index}.errors`, point.errors]);
+          loadProps.push([`load.series.${index}.error_delta`, point.error_delta]);
+          loadProps.push([`load.series.${index}.error_rate`, point.error_rate]);
+        });
+      }
       for (const [name, value] of loadProps) {
         if (value !== undefined && value !== null && value !== '') {
           xml += `        <property name="${escapeXml(name)}" value="${escapeXml(String(value))}"/>\n`;

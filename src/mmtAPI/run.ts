@@ -1,4 +1,4 @@
-import {runner, suiteHierarchy, suiteBundle, runConfig, SuiteData, loadtestParsePack} from 'mmt-core';
+import {runner, suiteHierarchy, suiteBundle, runConfig, SuiteData} from 'mmt-core';
 import {LogLevel} from 'mmt-core/CommonData';
 import {findProjectRootSync} from 'mmt-core/fileHelper';
 import {generateJunitXml} from 'mmt-core/junitXml';
@@ -450,18 +450,11 @@ export async function handleRunSuite(
     const isLoadTest = /^\s*type\s*:\s*loadtest\b/m.test(rawSuite);
 
     if (isLoadTest) {
-      const loadtest = loadtestParsePack.yamlToLoadTest(rawSuite);
       const projectRootLoadTest = findProjectRoot(runFilePath);
-      const mergedEnvVars = resolveSuiteEnvVars({
-        suiteEnv: loadtest.environment,
-        suiteFilePath: runFilePath,
-        projectRoot: projectRootLoadTest,
-        baseEnvVars: envVars,
-      });
       const fileLoader = createFileLoader(runFilePath);
       const suiteServerRunner = async (alias: string, filePath: string): Promise<() => void> => {
         forwardLog('info', `Starting mock server from ${alias}`);
-        return startMockServerFromPath(filePath, mergedEnvVars);
+        return startMockServerFromPath(filePath, envVars);
       };
 
       const runOutcome = await runner.runFile({
@@ -470,7 +463,7 @@ export async function handleRunSuite(
         filePath: runFilePath,
         exampleIndex: message?.inputs?.exampleIndex,
         manualInputs: {},
-        envvar: mergedEnvVars,
+        envvar: envVars,
         manualEnvvars: {},
         fileLoader,
         jsRunner: (ctx: any) => runJSCode({
@@ -499,6 +492,7 @@ export async function handleRunSuite(
         filePath: document.uri.fsPath,
         netConfigApplied,
         cancelled: controller.signal.aborted,
+        success: Boolean((runOutcome as any)?.result?.success),
         load: (runOutcome as any)?.loadResult,
       });
       return;
