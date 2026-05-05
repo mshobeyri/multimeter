@@ -98,6 +98,7 @@ export function generateMmtReport(results: CollectedResults, options?: MmtReport
 
   const report: Record<string, any> = {
     type: 'report',
+    kind: results.type === 'loadtest' || results.load ? 'load' : 'functional',
     name: options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || results.testRuns[0]?.displayName || 'Test Report',
   };
 
@@ -119,6 +120,10 @@ export function generateMmtReport(results: CollectedResults, options?: MmtReport
 
   if (results.suiteRun?.cancelled) {
     report.cancelled = true;
+  }
+
+  if (results.load) {
+    report.load = results.load;
   }
 
   report.suites = runs.map(buildSuiteEntry);

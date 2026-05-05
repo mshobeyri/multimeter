@@ -40,3 +40,4 @@ test: ./tests/login.mmt
 
 - The referenced file should remain type: test.
 - Functional test reports and load test reports may diverge in payload shape even though both are exported as type: report files.
+- Load test report exports should use `type: report` with `kind: load` and a top-level `load` section for throughput, latency percentiles, errors, thresholds, and time-series data. See [Reports](./reports.md#load-test-report-schema).

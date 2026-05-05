@@ -137,6 +137,37 @@ function buildSuiteSection(run: TestRunResult, index: number): string {
   return html;
 }
 
+function buildLoadSection(results: CollectedResults): string {
+  const load = results.load;
+  if (!load) {
+    return '';
+  }
+  const cells = ([
+    ['Threads', load.config?.threads],
+    ['Repeat', load.config?.repeat],
+    ['Ramp-up', load.config?.rampup],
+    ['Requests Sent', load.summary?.requests],
+    ['Succeeded', load.summary?.successes],
+    ['Failed', load.summary?.failures],
+    ['Success Rate', load.summary?.success_rate != null ? `${(load.summary.success_rate * 100).toFixed(2)}%` : undefined],
+    ['Failed Rate', load.summary?.failed_rate != null ? `${(load.summary.failed_rate * 100).toFixed(2)}%` : undefined],
+    ['Throughput', load.summary?.throughput != null ? `${load.summary.throughput} req/s` : undefined],
+    ['Error Rate', load.summary?.error_rate != null ? `${(load.summary.error_rate * 100).toFixed(2)}%` : undefined],
+    ['Latency p95', load.latency?.p95 != null ? `${load.latency.p95} ms` : undefined],
+    ['Latency p99', load.latency?.p99 != null ? `${load.latency.p99} ms` : undefined],
+  ] as Array<[string, any]>).filter(([, value]) => value !== undefined && value !== null && value !== '');
+
+  let html = '    <section class="suite">\n';
+  html += '      <h2>Load Metrics</h2>\n';
+  html += '      <div class="expects">\n';
+  for (const [label, value] of cells) {
+    html += `        <div><strong>${escapeHtml(label)}:</strong> ${escapeHtml(String(value))}</div>\n`;
+  }
+  html += '      </div>\n';
+  html += '    </section>\n';
+  return html;
+}
+
 /* Multimeter logo as a simplified inline SVG */
 const MULTIMETER_LOGO_SVG = `<svg width="28" height="28" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="m317.1 944.3c-33.7-5.2-64.6-21.1-88.6-45.4-23.5-23.9-37.6-51.2-43.5-84.5-1.7-9.3-1.7-21.6-1.7-302.5 0-280.9.1-293.2 1.7-302.5 6-33.4 20-60.7 43.5-84.5 22.2-22.6 49.2-37.2 81.7-44.3 9.6-2.1 9.6-2.1 201.8-2.1 192.2 0 192.2 0 202 2.1 64.5 14 111.6 61.1 124.6 124.4 2.1 10.4 2.1 10.4 2.1 306.9s0 296.5-2.1 306.9c-2.9 13.9-6.7 25.4-12.8 37.9-21.7 44.7-60.7 75-111.3 86.4-9.4 2.1-9.4 2.1-199.2 2.3-158.1.1-191.2 0-198.1-1.1zm383.8-43.5c49.5-7.9 87.4-46 94.9-95.4 2.1-13.8 2.1-573.4 0-587.2-6.5-42.7-35.6-77.2-76.3-90.7-19.7-6.5-8.1-6.2-211.8-5.9-183.2.3-183.3.3-191.2 2.3-42.9 10.6-74.1 40.7-85.9 82.6-2.5 8.8-2.5 8.8-2.5 305.3s0 296.5 2.5 305.3c8.9 31.8 29.8 57.8 57.9 72.1 13.4 6.8 25.5 10.6 39.7 12.4 1.5.2 84 .4 183.3.5 158.5.1 181.6 0 189.4-1.3zM491 864.3c-36.8-5-70.5-19.6-98.4-42.7-41-34-65.3-77.4-71.4-127.4-1.4-11.1-1.2-33.9.4-45.5 5.5-41.1 24.8-79.5 54.4-108.6 29.1-28.6 65.1-46.4 106.6-52.7 13.8-2.1 40.3-2.1 54.2 0 43.3 6.6 79.1 25 110.9 57 16.4 16.5 27.6 31.8 36.9 50.4 30.2 60.7 25.5 131.8-12.5 187.9-28.8 42.5-72.6 70.7-125.1 80.4-9.7 1.8-45.8 2.6-55.8 1.3zm51.9-45.1c10.3-2.1 23-6.2 32.3-10.3 6.8-3 20.9-11.1 20.9-12-.02-1-230.2-138.1-230.8-137.4-1.2 1.1-1.3 19.9-.2 29.2 3 25.5 12.7 49.9 27.9 70.3 6.9 9.3 27.9 29.7 37.4 36.4 19.1 13.4 44.7 23.1 68.5 26 8.1 1 35.3-.3 44-2.1zm85.9-71.7c4.1-6.8 7.8-13 8.1-13.8.4-1.1-25.3-16.8-116-70.5-64.1-38-117-68.9-117.7-68.6-.6.2-4.4 6.2-8.5 13.2-5.6 9.8-7 12.9-6.1 13.5.7.4 53 31.7 116.3 69.6 63.3 37.9 115.3 68.9 115.7 69 .4 0 4-5.5 8.2-12.3zm30.7-72.5c-.5-19.3-1.8-26.8-6.8-42.3-3.6-10.9-12.6-28.4-19.8-38.4-8.1-11.3-27.3-30.2-38.6-38.2-16.4-11.5-37.4-20.4-57.5-24.5-11.9-2.4-42.3-2.4-54.2 0-17.7 3.5-36.6 10.9-50.1 19.6-5.1 3.3-6.5 4.6-5.5 5.2.7.4 52.9 31.4 115.9 68.8 63 37.4 115.1 68 115.8 68 1.1 0 1.2-3.1.8-18.2zM367 430.5c-38.7-4.5-70.7-34.6-76.7-72.3-.8-4.8-1-23.6-.7-63.2.3-55.6.4-56.5 2.5-63.3 10-32.5 35.1-55.7 67.2-62.2 8.3-1.7 14.7-1.7 156.2-1.5 147.5.2 147.5.2 155.8 2.8 32.1 10 54.6 33.8 62.2 65.9 1.3 5.7 1.5 13.8 1.5 62.9 0 56.3 0 56.5-2.2 64.8-9.5 36.1-38.6 61.6-75.4 66-9.8 1.2-280.3 1.2-290.4.1zm298.8-47.5c9.8-4.8 16.2-11.2 20.8-20.6 3.5-7.2 3.5-7.2 3.5-63.2s0-56-3.5-63c-5.9-12-17.7-21.2-30.5-23.8-3.5-.7-45.5-1-144.5-1-152 0-144.3-.3-155.1 5.2-6.2 3.1-14.8 11.6-17.9 17.7-5.2 10.1-5.2 11.2-5.2 65.4 0 53.2.1 54.6 4.7 63.9 2.7 5.4 11.2 14.6 16.5 17.7 2.3 1.3 6.5 3.1 9.4 4.1 5.1 1.6 12 1.7 149.9 1.5 144.5-.2 144.5-.2 152-3.8z" fill="currentColor"/></svg>`;
 
@@ -638,6 +669,8 @@ export function generateReportHtml(results: CollectedResults, options?: ReportHt
       </div>
     </div>
 `;
+
+  html += buildLoadSection(results);
 
   for (let i = 0; i < runs.length; i++) {
     html += buildSuiteSection(runs[i], i);

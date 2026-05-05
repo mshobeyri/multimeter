@@ -616,8 +616,9 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
     return {type: 'test', testRuns: [run]};
   }
 
-  // Suite view sends: { type: 'suite', leafReportsById, leafRunStateById, displayNameById, ... }
-  if (data.type === 'suite' && data.leafReportsById) {
+  // Suite/loadtest views send: { type: 'suite'|'loadtest', leafReportsById, leafRunStateById, displayNameById, ... }
+  if ((data.type === 'suite' || data.type === 'loadtest') && data.leafReportsById) {
+    const isLoadTest = data.type === 'loadtest';
     const displayNameById: Record<string, string> = data.displayNameById || {};
     const testRuns: TestRunResult[] = Object.entries(data.leafReportsById).map(
       ([id, reports]: [string, any]) => {
@@ -648,7 +649,7 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
       },
     );
     return {
-      type: 'suite',
+      type: isLoadTest ? 'loadtest' : 'suite',
       suiteRun: {
         runId: 'export',
         startedAt: Date.now(),
@@ -660,6 +661,17 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
         suitePath: data.filePath ? path.basename(data.filePath) : undefined,
       },
       testRuns,
+      load: isLoadTest ? {
+        tool: 'multimeter',
+        scenario: data.suiteName ?? undefined,
+        test: data.load?.test,
+        config: data.load?.config || {
+          threads: data.load?.threads,
+          repeat: data.load?.repeat,
+          rampup: data.load?.rampup,
+        },
+        summary: data.load?.summary,
+      } : undefined,
     };
   }
 

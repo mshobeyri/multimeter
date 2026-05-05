@@ -181,4 +181,33 @@ describe('parseReportMmt', () => {
     expect(results.suiteRun).toBeUndefined();
     expect(results.testRuns).toHaveLength(1);
   });
+
+  it('parses load report metadata', () => {
+    const doc = {
+      type: 'report',
+      kind: 'load',
+      name: 'Login Load',
+      timestamp: '2026-05-04T10:30:00.000Z',
+      duration: '60s',
+      load: {
+        tool: 'multimeter',
+        test: './tests/login.mmt',
+        config: { threads: 100, repeat: '1m', rampup: '10s' },
+        latency: { p95: 120 },
+      },
+      suites: [
+        {
+          name: 'login.mmt',
+          result: 'passed',
+          tests: [{ name: 'status', type: 'check', result: 'passed' }],
+        },
+      ],
+    };
+
+    const results = parseReportMmt(doc);
+
+    expect(results.type).toBe('loadtest');
+    expect(results.load?.config?.threads).toBe(100);
+    expect(results.load?.latency?.p95).toBe(120);
+  });
 });

@@ -871,6 +871,7 @@ export const ReportSchema = {
     required: ['type'],
     properties: {
         type: { type: 'string', enum: ['report'] },
+        kind: { type: 'string', enum: ['functional', 'load'] },
         name: { type: 'string' },
         timestamp: { type: 'string' },
         duration: { type: 'string' },
@@ -883,6 +884,107 @@ export const ReportSchema = {
                 failed: { type: 'integer' },
                 errors: { type: 'integer' },
                 skipped: { type: 'integer' }
+            },
+            additionalProperties: false
+        },
+        load: {
+            type: 'object',
+            properties: {
+                tool: { type: 'string' },
+                scenario: { type: 'string' },
+                test: { type: 'string' },
+                config: {
+                    type: 'object',
+                    properties: {
+                        threads: { type: 'integer' },
+                        repeat: { anyOf: [{ type: 'string' }, { type: 'number' }] },
+                        rampup: { type: 'string' },
+                        started_at: { type: 'string' },
+                        finished_at: { type: 'string' }
+                    },
+                    additionalProperties: false
+                },
+                summary: {
+                    type: 'object',
+                    properties: {
+                        iterations: { type: 'integer' },
+                        requests: { type: 'integer' },
+                        successes: { type: 'integer' },
+                        failures: { type: 'integer' },
+                        success_rate: { type: 'number' },
+                        failed_rate: { type: 'number' },
+                        error_rate: { type: 'number' },
+                        throughput: { type: 'number' },
+                        data_received: { type: 'number' },
+                        data_sent: { type: 'number' }
+                    },
+                    additionalProperties: false
+                },
+                latency: {
+                    type: 'object',
+                    properties: {
+                        min: { type: 'number' },
+                        avg: { type: 'number' },
+                        med: { type: 'number' },
+                        max: { type: 'number' },
+                        p90: { type: 'number' },
+                        p95: { type: 'number' },
+                        p99: { type: 'number' }
+                    },
+                    additionalProperties: false
+                },
+                http: {
+                    type: 'object',
+                    properties: {
+                        status_codes: { type: 'object', additionalProperties: { type: 'integer' } },
+                        failed_requests: { type: 'integer' },
+                        connect_avg: { type: 'number' },
+                        receive_avg: { type: 'number' },
+                        send_avg: { type: 'number' },
+                        waiting_avg: { type: 'number' }
+                    },
+                    additionalProperties: false
+                },
+                thresholds: {
+                    type: 'array',
+                    items: {
+                        type: 'object',
+                        properties: {
+                            name: { type: 'string' },
+                            expression: { type: 'string' },
+                            actual: { type: 'number' },
+                            result: { type: 'string', enum: ['passed', 'failed'] }
+                        },
+                        additionalProperties: false
+                    }
+                },
+                errors: {
+                    type: 'array',
+                    items: {
+                        type: 'object',
+                        properties: {
+                            message: { type: 'string' },
+                            count: { type: 'integer' },
+                            rate: { type: 'number' }
+                        },
+                        additionalProperties: false
+                    }
+                },
+                series: {
+                    type: 'array',
+                    items: {
+                        type: 'object',
+                        properties: {
+                            timestamp: { type: 'string' },
+                            active_threads: { type: 'integer' },
+                            requests: { type: 'integer' },
+                            throughput: { type: 'number' },
+                            error_rate: { type: 'number' },
+                            p95: { type: 'number' }
+                        },
+                        additionalProperties: false
+                    }
+                }
             },
             additionalProperties: false
         },

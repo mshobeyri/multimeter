@@ -202,4 +202,27 @@ describe('generateMmtReport', () => {
 
     expect(parsed.name).toBe('My Suite');
   });
+
+  it('includes load report metadata', () => {
+    const results: CollectedResults = {
+      type: 'loadtest',
+      load: {
+        tool: 'multimeter',
+        scenario: 'Login load',
+        test: './tests/login.mmt',
+        config: { threads: 100, repeat: '1m', rampup: '10s' },
+        summary: { requests: 1000, failures: 2, error_rate: 0.002, throughput: 50 },
+        latency: { avg: 42, p95: 120, p99: 240 },
+      },
+      testRuns: [makeRun({ displayName: 'login.mmt', steps: [makeStep({ title: 'status == 200' })] })],
+    };
+
+    const output = generateMmtReport(results);
+    const parsed = YAML.parse(output);
+
+    expect(parsed.kind).toBe('load');
+    expect(parsed.load.config.threads).toBe(100);
+    expect(parsed.load.summary.throughput).toBe(50);
+    expect(parsed.load.latency.p95).toBe(120);
+  });
 });

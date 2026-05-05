@@ -25,10 +25,10 @@ export function parseReportMmt(doc: Record<string, any>): CollectedResults {
       totalRunnable: testRuns.length,
       testRuns,
     };
-    return { type: 'suite', suiteRun, testRuns };
+    return { type: doc.kind === 'load' ? 'loadtest' : 'suite', suiteRun, testRuns, load: doc.kind === 'load' ? doc.load : undefined };
   }
 
-  return { type: 'test', testRuns };
+  return { type: doc.kind === 'load' ? 'loadtest' : 'test', testRuns, load: doc.kind === 'load' ? doc.load : undefined };
 }
 
 function parseSuiteEntry(suite: any, index: number): TestRunResult {

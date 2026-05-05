@@ -1,5 +1,6 @@
 import {LogLevel} from './CommonData';
 import {RunJSCodeContext} from './jsRunner';
+import type {LoadReportData} from './reportCollector';
 
 export type FileLoader = (path: string) => Promise<string>;
 
@@ -82,10 +83,17 @@ export interface TestOutputsReporterEvent {
   id?: string;
 }
 
+export interface LoadTestSummaryEvent {
+  scope: 'loadtest-summary';
+  runId: string;
+  load: LoadReportData;
+  id?: string;
+}
+
 export type RunReporterMessage =
   SuiteReporterMessage|TestStepReporterEvent|TestRunSummaryEvent|
   SuiteRunStartEvent|SuiteRunFinishedEvent|SetEnvReporterEvent|
-  TestOutputsReporterEvent;
+  TestOutputsReporterEvent|LoadTestSummaryEvent;
 
 export interface RunResult {
   success: boolean;

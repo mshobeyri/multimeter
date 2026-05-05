@@ -53,8 +53,8 @@ export function useRunGlyphs(params: {
       return;
     }
     try {
-      if (docType === 'suite') {
-        // Suite files use the dedicated runSuite handler for server/export support
+      if (docType === 'suite' || docType === 'loadtest') {
+        // Suite and loadtest files use the dedicated runSuite handler for lifecycle/export support.
         const suiteRunId = `suite-glyph:${Date.now()}`;
         window.vscode?.postMessage({command: 'runSuite', suiteRunId});
       } else {

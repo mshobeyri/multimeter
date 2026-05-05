@@ -125,6 +125,47 @@ function buildSuiteSection(run: TestRunResult, index: number, includeDetails: bo
   return md;
 }
 
+function buildLoadSection(results: CollectedResults): string {
+  const load = results.load;
+  if (!load) {
+    return '';
+  }
+  let md = `\n## Load Metrics\n\n`;
+  md += `| Metric | Value |\n|--------|-------|\n`;
+  const rows = [
+    ['Threads', load.config?.threads],
+    ['Repeat', load.config?.repeat],
+    ['Ramp-up', load.config?.rampup],
+    ['Requests sent', load.summary?.requests],
+    ['Succeeded', load.summary?.successes],
+    ['Failed', load.summary?.failures],
+    ['Success rate', load.summary?.success_rate != null ? `${(load.summary.success_rate * 100).toFixed(2)}%` : undefined],
+    ['Failed rate', load.summary?.failed_rate != null ? `${(load.summary.failed_rate * 100).toFixed(2)}%` : undefined],
+    ['Throughput', load.summary?.throughput != null ? `${load.summary.throughput} req/s` : undefined],
+    ['Error rate', load.summary?.error_rate != null ? `${(load.summary.error_rate * 100).toFixed(2)}%` : undefined],
+    ['Latency p95', load.latency?.p95 != null ? `${load.latency.p95} ms` : undefined],
+    ['Latency p99', load.latency?.p99 != null ? `${load.latency.p99} ms` : undefined],
+  ] as Array<[string, any]>;
+  for (const [name, value] of rows) {
+    if (value !== undefined && value !== null && value !== '') {
+      md += `| ${escapeMdTable(name)} | ${escapeMdTable(String(value))} |\n`;
+    }
+  }
+  if (load.thresholds && load.thresholds.length > 0) {
+    md += `\n### Thresholds\n\n| Name | Expression | Actual | Result |\n|------|------------|--------|--------|\n`;
+    for (const threshold of load.thresholds) {
+      md += `| ${escapeMdTable(threshold.name)} | ${escapeMdTable(threshold.expression || '')} | ${threshold.actual ?? ''} | ${threshold.result} |\n`;
+    }
+  }
+  if (load.errors && load.errors.length > 0) {
+    md += `\n### Errors\n\n| Message | Count | Rate |\n|---------|-------|------|\n`;
+    for (const err of load.errors) {
+      md += `| ${escapeMdTable(err.message)} | ${err.count} | ${err.rate ?? ''} |\n`;
+    }
+  }
+  return md;
+}
+
 export function generateReportMarkdown(results: CollectedResults, options?: ReportMarkdownOptions): string {
   const runs = results.testRuns;
   const suiteName = options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || results.testRuns[0]?.displayName || 'Test Report';
@@ -147,6 +188,8 @@ export function generateReportMarkdown(results: CollectedResults, options?: Repo
   if (results.suiteRun?.cancelled) {
     md += `\n> ⚠ **Run was cancelled**\n`;
   }
+
+  md += buildLoadSection(results);
 
   for (let i = 0; i < runs.length; i++) {
     md += buildSuiteSection(runs[i], i, includeDetails);

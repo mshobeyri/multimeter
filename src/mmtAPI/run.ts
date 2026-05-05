@@ -1,4 +1,4 @@
-import {runner, suiteHierarchy, suiteBundle, runConfig, SuiteData} from 'mmt-core';
+import {runner, suiteHierarchy, suiteBundle, runConfig, SuiteData, loadtestParsePack} from 'mmt-core';
 import {LogLevel} from 'mmt-core/CommonData';
 import {findProjectRootSync} from 'mmt-core/fileHelper';
 import {generateJunitXml} from 'mmt-core/junitXml';
@@ -94,6 +94,72 @@ export function showLogOutputChannel() {
   const config = vscode.workspace.getConfiguration('multimeter');
   if (config.get<boolean>('showLogOnRun', true)) {
     logOutputChannel.show(true);
+  }
+}
+
+async function writeRunExports(params: {
+  suiteExports: any;
+  runFilePath: string;
+  projectRoot?: string;
+  forwardLog: (level: LogLevel, message: string) => void;
+}) {
+  const {suiteExports, runFilePath, projectRoot, forwardLog} = params;
+  if (!suiteExports || !Array.isArray(suiteExports.paths) || !suiteExports.collectedResults) {
+    return;
+  }
+  const suiteDir = path.dirname(runFilePath);
+  for (const exportPath of suiteExports.paths) {
+    try {
+      let resolvedPath: string;
+      if (exportPath.startsWith('+/')) {
+        if (projectRoot) {
+          resolvedPath = path.resolve(projectRoot, exportPath.slice(2));
+        } else {
+          forwardLog('warn', `Cannot resolve +/ path without project root: ${exportPath}`);
+          continue;
+        }
+      } else {
+        resolvedPath = path.resolve(suiteDir, exportPath);
+      }
+
+      const ext = path.extname(resolvedPath).toLowerCase();
+      const formatForExt: Record<string, string> = {
+        '.xml': 'junit',
+        '.html': 'html',
+        '.md': 'md',
+        '.mmt': 'mmt',
+      };
+      const format = formatForExt[ext];
+      if (!format) {
+        forwardLog('warn', `Unknown export format for extension ${ext}: ${exportPath}`);
+        continue;
+      }
+
+      const exportSerializers: Record<string, ((r: any, o?: any) => string) | undefined> = {
+        junit: generateJunitXml,
+        mmt: generateMmtReport,
+        html: generateReportHtml,
+        md: generateReportMarkdown,
+      };
+      const serializer = exportSerializers[format];
+      if (typeof serializer !== 'function') {
+        forwardLog('warn', `Export serializer not available for format: ${format}`);
+        continue;
+      }
+
+      forwardLog('info', `Exporting results to ${resolvedPath}`);
+      const content = serializer(suiteExports.collectedResults);
+
+      const parentDir = path.dirname(resolvedPath);
+      if (!fs.existsSync(parentDir)) {
+        fs.mkdirSync(parentDir, {recursive: true});
+      }
+
+      fs.writeFileSync(resolvedPath, content, 'utf8');
+      forwardLog('info', `Suite export written: ${resolvedPath}`);
+    } catch (exportErr: any) {
+      forwardLog('error', `Failed to write export ${exportPath}: ${exportErr?.message || String(exportErr)}`);
+    }
   }
 }
 
@@ -381,6 +447,62 @@ export async function handleRunSuite(
     const target = typeof message?.target === 'string' ? message.target : undefined;
     const rawSuite = document.getText();
     const runFilePath = document.uri.fsPath;
+    const isLoadTest = /^\s*type\s*:\s*loadtest\b/m.test(rawSuite);
+
+    if (isLoadTest) {
+      const loadtest = loadtestParsePack.yamlToLoadTest(rawSuite);
+      const projectRootLoadTest = findProjectRoot(runFilePath);
+      const mergedEnvVars = resolveSuiteEnvVars({
+        suiteEnv: loadtest.environment,
+        suiteFilePath: runFilePath,
+        projectRoot: projectRootLoadTest,
+        baseEnvVars: envVars,
+      });
+      const fileLoader = createFileLoader(runFilePath);
+      const suiteServerRunner = async (alias: string, filePath: string): Promise<() => void> => {
+        forwardLog('info', `Starting mock server from ${alias}`);
+        return startMockServerFromPath(filePath, mergedEnvVars);
+      };
+
+      const runOutcome = await runner.runFile({
+        file: rawSuite,
+        fileType: 'raw',
+        filePath: runFilePath,
+        exampleIndex: message?.inputs?.exampleIndex,
+        manualInputs: {},
+        envvar: mergedEnvVars,
+        manualEnvvars: {},
+        fileLoader,
+        jsRunner: (ctx: any) => runJSCode({
+          ...ctx,
+          fileLoader: ctx.fileLoader || fileLoader,
+          serverRunner: ctx.serverRunner || suiteServerRunner,
+        }),
+        logger: forwardLog,
+        abortSignal: controller.signal,
+        suiteRunId,
+        projectRoot: projectRootLoadTest,
+        reporter: createSuiteReporter(webviewPanel, suiteRunId, controller),
+        serverRunner: suiteServerRunner,
+      });
+
+      await writeRunExports({
+        suiteExports: (runOutcome as any)?.suiteExports,
+        runFilePath,
+        projectRoot: projectRootLoadTest,
+        forwardLog,
+      });
+
+      webviewPanel.webview.postMessage({
+        command: 'suiteRunEnd',
+        suiteRunId,
+        filePath: document.uri.fsPath,
+        netConfigApplied,
+        cancelled: controller.signal.aborted,
+        load: (runOutcome as any)?.loadResult,
+      });
+      return;
+    }
 
     const bundleTarget = typeof target === 'string' && target ? target : undefined;
     const fileLoader = createFileLoader(runFilePath);
@@ -450,68 +572,12 @@ export async function handleRunSuite(
       serverRunner: suiteServerRunner,
     });
 
-    // Process suite exports if configured
-    const suiteExports = (runOutcome as any)?.suiteExports;
-    if (suiteExports && Array.isArray(suiteExports.paths) && suiteExports.collectedResults) {
-      const suiteDir = path.dirname(runFilePath);
-      for (const exportPath of suiteExports.paths) {
-        try {
-          // Resolve path relative to suite file or +/ project root
-          let resolvedPath: string;
-          if (exportPath.startsWith('+/')) {
-            if (projectRootSuite) {
-              resolvedPath = path.resolve(projectRootSuite, exportPath.slice(2));
-            } else {
-              forwardLog('warn', `Cannot resolve +/ path without project root: ${exportPath}`);
-              continue;
-            }
-          } else {
-            resolvedPath = path.resolve(suiteDir, exportPath);
-          }
-
-          // Determine format from extension
-          const ext = path.extname(resolvedPath).toLowerCase();
-          const formatForExt: Record<string, string> = {
-            '.xml': 'junit',
-            '.html': 'html',
-            '.md': 'md',
-            '.mmt': 'mmt',
-          };
-          const format = formatForExt[ext];
-          if (!format) {
-            forwardLog('warn', `Unknown export format for extension ${ext}: ${exportPath}`);
-            continue;
-          }
-
-          // Generate report content
-          const exportSerializers: Record<string, ((r: any, o?: any) => string) | undefined> = {
-            junit: generateJunitXml,
-            mmt: generateMmtReport,
-            html: generateReportHtml,
-            md: generateReportMarkdown,
-          };
-          const serializer = exportSerializers[format];
-          if (typeof serializer !== 'function') {
-            forwardLog('warn', `Export serializer not available for format: ${format}`);
-            continue;
-          }
-
-          forwardLog('info', `Exporting results to ${resolvedPath}`);
-          const content = serializer(suiteExports.collectedResults);
-
-          // Create parent directories if they don't exist
-          const parentDir = path.dirname(resolvedPath);
-          if (!fs.existsSync(parentDir)) {
-            fs.mkdirSync(parentDir, {recursive: true});
-          }
-
-          fs.writeFileSync(resolvedPath, content, 'utf8');
-          forwardLog('info', `Suite export written: ${resolvedPath}`);
-        } catch (exportErr: any) {
-          forwardLog('error', `Failed to write export ${exportPath}: ${exportErr?.message || String(exportErr)}`);
-        }
-      }
-    }
+    await writeRunExports({
+      suiteExports: (runOutcome as any)?.suiteExports,
+      runFilePath,
+      projectRoot: projectRootSuite,
+      forwardLog,
+    });
 
     webviewPanel.webview.postMessage({
       command: 'suiteRunEnd',

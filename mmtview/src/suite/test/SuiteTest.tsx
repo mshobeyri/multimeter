@@ -84,10 +84,38 @@ function buildDisplayNamesFromHierarchy(
 
 interface SuiteTestProps {
     content: string;
+    mode?: 'suite' | 'loadtest';
 }
 
-const buildSuiteGroupsFromContent = (content: string): SuiteGroup[] => {
+interface LoadTestConfig {
+    threads?: number;
+    repeat?: string | number;
+    rampup?: string;
+}
+
+interface LoadRunSummary {
+    tool?: string;
+    scenario?: string;
+    test?: string;
+    config?: LoadTestConfig & { started_at?: string; finished_at?: string };
+    summary?: {
+        iterations?: number;
+        requests?: number;
+        successes?: number;
+        failures?: number;
+        success_rate?: number;
+        failed_rate?: number;
+        error_rate?: number;
+        throughput?: number;
+    };
+}
+
+const buildSuiteGroupsFromContent = (content: string, mode: 'suite' | 'loadtest' = 'suite'): SuiteGroup[] => {
     const parsed = parseYaml(content);
+    if (mode === 'loadtest') {
+        const test = typeof parsed?.test === 'string' ? parsed.test.trim() : '';
+        return test ? [{ label: 'Test', entries: [{ id: 'loadtest-test-0', path: test }] }] : [];
+    }
     const tests: string[] = Array.isArray(parsed?.tests)
         ? parsed.tests.map((value: any) => (typeof value === 'string' ? value.trim() : '').trim()).filter(Boolean)
         : [];
@@ -179,18 +207,37 @@ const buildExportsFromContent = (content: string): string[] => {
         .filter(Boolean);
 };
 
+const buildLoadTestConfigFromContent = (content: string): LoadTestConfig | null => {
+    const parsed = parseYaml(content);
+    if (!parsed || typeof parsed !== 'object') {
+        return null;
+    }
+    const config: LoadTestConfig = {};
+    if (typeof parsed.threads === 'number') {
+        config.threads = parsed.threads;
+    }
+    if (typeof parsed.repeat === 'number' || typeof parsed.repeat === 'string') {
+        config.repeat = parsed.repeat;
+    }
+    if (typeof parsed.rampup === 'string') {
+        config.rampup = parsed.rampup;
+    }
+    return Object.keys(config).length > 0 ? config : null;
+};
+
 const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
     const allPaths: string[] = [];
     groups.forEach((group) => group.entries.forEach((entry) => allPaths.push(entry.path)));
     return allPaths;
 };
 
-const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
+const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
     const { mmtFilePath } = useContext(FileContext);
-    const groups = useMemo(() => buildSuiteGroupsFromContent(content), [content]);
-    const servers = useMemo(() => buildServersFromContent(content), [content]);
+    const groups = useMemo(() => buildSuiteGroupsFromContent(content, mode), [content, mode]);
+    const servers = useMemo(() => mode === 'loadtest' ? [] : buildServersFromContent(content), [content, mode]);
     const environment = useMemo(() => buildEnvironmentFromContent(content), [content]);
     const suiteExports = useMemo(() => buildExportsFromContent(content), [content]);
+    const loadConfig = useMemo(() => mode === 'loadtest' ? buildLoadTestConfigFromContent(content) : null, [content, mode]);
     const suiteTitle = useMemo(() => {
         try {
             const parsed = parseYaml(content);
@@ -212,6 +259,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
 
     const [suiteRunId, setSuiteRunId] = useState<string | null>(null);
     const [suiteRunState, setSuiteRunState] = useState<StepStatus>('default');
+    const [loadRunSummary, setLoadRunSummary] = useState<LoadRunSummary | null>(null);
     const [leafReportsById, setLeafReportsById] = useState<Record<string, StepReportItem[]>>({});
     const [leafRunStateById, setLeafRunStateById] = useState<Record<string, StepStatus>>({});
     const suiteRunStartTimeRef = useRef<number | null>(null);
@@ -413,6 +461,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
         setStepStatuses({});
         setSuiteRunId(null);
         setSuiteRunState('default');
+        setLoadRunSummary(null);
         pendingLeafResetRef.current = null;
         reportQueueRef.current = [];
         resetLeafState('all');
@@ -452,6 +501,9 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 lastRunIdByEntryIdRef.current = {};
                 setSuiteRunId(nextSuiteRunId);
                 setSuiteRunState('running');
+                if (mode === 'loadtest') {
+                    setLoadRunSummary(null);
+                }
                 const hint = pendingLeafResetRef.current;
                 pendingLeafResetRef.current = null;
                 if (hint === 'all') {
@@ -485,6 +537,9 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 if (suiteRunStartTimeRef.current) {
                     setSuiteRunDurationMs(Date.now() - suiteRunStartTimeRef.current);
                     suiteRunStartTimeRef.current = null;
+                }
+                if (mode === 'loadtest' && (message as any).load) {
+                    setLoadRunSummary((message as any).load);
                 }
                 return;
             }
@@ -541,6 +596,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
             }
 
             if (message.command === 'runFileReport') {
+                if (mode === 'loadtest' && (message as any).scope === 'loadtest-summary' && (message as any).load) {
+                    setLoadRunSummary((message as any).load);
+                    return;
+                }
                 const incomingSuiteRunId = typeof (message as any).suiteRunId === 'string' ? (message as any).suiteRunId : null;
                 if (suiteRunId) {
                     // When the UI thinks we have an active suite run, only accept
@@ -564,7 +623,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
         };
         window.addEventListener('message', handler);
         return () => window.removeEventListener('message', handler);
-    }, [groups, suiteRunId, resetLeafState, flushReportQueue]);
+    }, [groups, suiteRunId, resetLeafState, flushReportQueue, mode]);
 
     useEffect(() => {
         if (allPaths.length > 0) {
@@ -690,7 +749,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
             command: 'exportReport',
             format,
             data: {
-                type: 'suite',
+                type: mode === 'loadtest' ? 'loadtest' : 'suite',
                 leafReportsById,
                 leafRunStateById,
                 stepStatuses,
@@ -699,13 +758,38 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                 displayNameById,
                 suiteName: suiteTitle,
                 filePath: mmtFilePath,
+                load: mode === 'loadtest'
+                    ? (loadRunSummary || (loadConfig ? { config: loadConfig, test: groups[0]?.entries[0]?.path } : undefined))
+                    : undefined,
             },
         });
-    }, [leafReportsById, leafRunStateById, stepStatuses, suiteRunState, suiteRunDurationMs, displayNameById, suiteTitle, mmtFilePath]);
+    }, [leafReportsById, leafRunStateById, stepStatuses, suiteRunState, suiteRunDurationMs, displayNameById, suiteTitle, mmtFilePath, mode, loadConfig, groups, loadRunSummary]);
 
-    const suiteExportDisabled = suiteRunState === 'running' || Object.keys(leafReportsById).length === 0;
+    const suiteExportDisabled = suiteRunState === 'running' || (mode === 'loadtest' ? !loadRunSummary : Object.keys(leafReportsById).length === 0);
+    const runLabel = mode === 'loadtest' ? 'Run load test' : 'Run suite';
+    const stopLabel = mode === 'loadtest' ? 'Stop load test' : 'Stop suite';
 
     const overviewStats = useMemo((): OverviewStats | null => {
+        if (mode === 'loadtest') {
+            if (!loadRunSummary && suiteRunState === 'default') {
+                return null;
+            }
+            const requests = Number(loadRunSummary?.summary?.requests || 0);
+            const failures = Number(loadRunSummary?.summary?.failures || 0);
+            const successes = Number(loadRunSummary?.summary?.successes ?? Math.max(0, requests - failures));
+            const failedRate = requests > 0 ? ((failures / requests) * 100).toFixed(1) : '0.0';
+            const throughput = loadRunSummary?.summary?.throughput;
+            const duration = suiteRunDurationMs != null ? formatDuration(suiteRunDurationMs) : undefined;
+            return {
+                passed: successes,
+                failed: failures,
+                total: requests,
+                duration,
+                failedSub: `${failedRate}% failed`,
+                totalSub: `${requests} requests sent`,
+                durationSub: throughput != null ? `${throughput.toFixed(2)} req/s` : undefined,
+            };
+        }
         const allReports = Object.values(leafReportsById).flat();
         if (allReports.length === 0 && suiteRunState === 'default') {
             return null;
@@ -724,7 +808,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
             totalSub: `${total} check${total !== 1 ? 's' : ''}`,
             durationSub: `${fileCount} file${fileCount !== 1 ? 's' : ''}`,
         };
-    }, [leafReportsById, suiteRunState, suiteRunDurationMs]);
+    }, [leafReportsById, suiteRunState, suiteRunDurationMs, mode, loadRunSummary]);
 
     const tree = (
         <SuiteTestTree
@@ -758,7 +842,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                             <button
                                 className="button-icon"
                                 onClick={onStopSuite}
-                                title="Stop suite"
+                                title={stopLabel}
                             >
                                 <span className="codicon codicon-debug-stop" aria-hidden />
                                 Stop
@@ -768,18 +852,43 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                                 className="button-icon"
                                 disabled={!canRun}
                                 onClick={onRunSuite}
-                                title={!canRun ? 'No suite files to run' : 'Run suite'}
+                                title={!canRun ? (mode === 'loadtest' ? 'No test file to run' : 'No suite files to run') : runLabel}
                             >
                                 <span className="codicon codicon-run" aria-hidden />
-                                Run suite
+                                {runLabel}
                             </button>
                         )}
                         <ExportReportButton disabled={suiteExportDisabled} onExport={handleExportReport} />
                     </div>
                 </div>
-                {noItems ? <div style={{ opacity: 0.8 }}>No suite items found under `tests:`</div> : (
+                {noItems ? <div style={{ opacity: 0.8 }}>{mode === 'loadtest' ? 'No test file found under `test:`' : 'No suite items found under `tests:`'}</div> : (
                     <>
                         {overviewStats && <OverviewBoxes stats={overviewStats} />}
+                        {loadConfig && (
+                            <>
+                                <div className="label" style={{ marginBottom: 6 }}>Load</div>
+                                <div style={{ marginBottom: 12, paddingLeft: 8 }}>
+                                    {loadConfig.threads != null && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
+                                            <span className="codicon codicon-dashboard" style={{ fontSize: 14 }} aria-hidden />
+                                            <span>Threads: <code>{loadConfig.threads}</code></span>
+                                        </div>
+                                    )}
+                                    {loadConfig.repeat != null && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
+                                            <span className="codicon codicon-sync" style={{ fontSize: 14 }} aria-hidden />
+                                            <span>Repeat: <code>{String(loadConfig.repeat)}</code></span>
+                                        </div>
+                                    )}
+                                    {loadConfig.rampup && (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '2px 0', opacity: 0.9 }}>
+                                            <span className="codicon codicon-graph-line" style={{ fontSize: 14 }} aria-hidden />
+                                            <span>Ramp-up: <code>{loadConfig.rampup}</code></span>
+                                        </div>
+                                    )}
+                                </div>
+                            </>
+                        )}
                         {environment && (
                             <>
                                 <div className="label" style={{ marginBottom: 6 }}>Environment</div>
@@ -843,7 +952,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content }) => {
                                 </div>
                             </>
                         )}
-                        <div className="label" style={{ marginBottom: 10 }}>Tests</div>
+                        <div className="label" style={{ marginBottom: 10 }}>{mode === 'loadtest' ? 'Test' : 'Tests'}</div>
                         {tree}
                     </>
                 )}

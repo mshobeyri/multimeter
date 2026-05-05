@@ -32,6 +32,7 @@ A multimeter-native YAML format with `type: report`. Human-readable, easy to dif
 
 ```yaml
 type: report
+kind: functional
 name: suite.mmt
 timestamp: "2026-03-06T10:30:00.000Z"
 duration: 1.234s
@@ -61,6 +62,103 @@ suites:
           expected: John
           operator: "=="
 ```
+
+## Load Test Report Schema
+
+Load test reports should still use `type: report`, but they must set `kind: load` and add a top-level `load` section. The schema is intentionally close to well-known load tools:
+
+- k6: checks, thresholds, rates, `http_req_duration` percentiles.
+- JMeter: samples, average/min/max, throughput, error percentage.
+- Gatling: requests, groups, percentiles, active users, failures.
+
+Canonical MMT shape:
+
+```yaml
+type: report
+kind: load
+name: Login Load Test
+timestamp: "2026-05-04T10:30:00.000Z"
+duration: 1m
+summary:
+  tests: 1000
+  passed: 995
+  failed: 5
+  errors: 0
+  skipped: 0
+load:
+  tool: multimeter
+  scenario: Login Load Test
+  test: ./tests/login.mmt
+  config:
+    threads: 100
+    repeat: 1m
+    rampup: 10s
+    started_at: "2026-05-04T10:30:00.000Z"
+    finished_at: "2026-05-04T10:31:00.000Z"
+  summary:
+    iterations: 1000
+    requests: 3000
+    successes: 2995
+    failures: 5
+    success_rate: 0.9983
+    failed_rate: 0.0017
+    error_rate: 0.0017
+    throughput: 50.0        # requests/second
+    data_received: 10485760 # bytes
+    data_sent: 524288       # bytes
+  latency:                 # milliseconds
+    min: 12
+    avg: 48.2
+    med: 41
+    max: 880
+    p90: 92
+    p95: 120
+    p99: 310
+  http:
+    status_codes:
+      "200": 2995
+      "500": 5
+    failed_requests: 5
+    connect_avg: 3.2
+    send_avg: 1.1
+    waiting_avg: 42.8
+    receive_avg: 1.4
+  thresholds:
+    - name: p95 latency
+      expression: p95 < 200
+      actual: 120
+      result: passed
+    - name: error rate
+      expression: error_rate < 0.01
+      actual: 0.005
+      result: passed
+  errors:
+    - message: HTTP 500
+      count: 5
+      rate: 0.005
+  series:
+    - timestamp: "2026-05-04T10:30:10.000Z"
+      active_threads: 20
+      requests: 500
+      throughput: 50
+      error_rate: 0
+      p95: 110
+suites:
+  - name: login.mmt
+    file: ./tests/login.mmt
+    result: failed
+    tests:
+      - name: status == 200
+        type: check
+        result: failed
+```
+
+Format mapping for implementation:
+
+- MMT (`.mmt`): write the full schema above.
+- HTML: show the normal functional summary plus load cards for throughput, error rate, latency percentiles, status-code distribution, threshold table, error table, and time-series charts.
+- Markdown: include summary and latency/throughput/threshold/error tables; include series as an optional compact table.
+- JUnit XML: preserve CI compatibility by keeping normal `<testsuites>`/`<testcase>` output; add load metrics as `<properties>` on `<testsuites>` using names such as `load.threads`, `load.throughput`, `load.latency.p95`, and `load.error_rate`.
 
 ### HTML
 

@@ -63,7 +63,7 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
       command: 'exportReport',
       format,
       data: {
-        type: parsed.results.type === 'suite' ? 'suite' : 'test',
+        type: parsed.results.type === 'loadtest' ? 'loadtest' : parsed.results.type === 'suite' ? 'suite' : 'test',
         leafReportsById,
         leafRunStateById,
         stepStatuses: leafRunStateById,
@@ -71,6 +71,7 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
         stepReports: runs.length === 1 ? mapToStepReports(runs[0]) : [],
         runState: runs.length === 1 ? runStateFromResult(runs[0]) : 'passed',
         outputs: {},
+        load: parsed.results.load,
       },
     });
   }, [parsed.results]);

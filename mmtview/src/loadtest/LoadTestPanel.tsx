@@ -1,56 +1,68 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { parseYaml } from 'mmt-core/markupConvertor';
+import SuiteTest from '../suite/test/SuiteTest';
+import LoadTestEdit from './LoadTestEdit';
 
 interface LoadTestPanelProps {
   content: string;
   setContent: (value: string) => void;
 }
 
-const cardStyle: React.CSSProperties = {
-  border: '1px solid var(--vscode-panel-border)',
-  borderRadius: 8,
-  padding: 16,
-  background: 'var(--vscode-editorWidget-background)',
-};
-
-const mutedStyle: React.CSSProperties = {
-  opacity: 0.8,
-  fontSize: 13,
-};
-
-const LoadTestPanel: React.FC<LoadTestPanelProps> = ({ content }) => {
-  const parsed = useMemo(() => {
-    try {
-      return parseYaml(content) as Record<string, unknown>;
-    } catch {
-      return {};
-    }
+const LoadTestPanel: React.FC<LoadTestPanelProps> = ({ content, setContent }) => {
+  const [page, setPage] = useState<'test' | 'edit'>('test');
+  const loadTestTitle = useMemo(() => {
+    const parsed = parseYaml(content);
+    return (parsed && typeof parsed.title === 'string') ? parsed.title : 'Load Test';
   }, [content]);
-
-  const title = typeof parsed?.title === 'string' ? parsed.title : 'Load Test';
-  const target = typeof parsed?.test === 'string' ? parsed.test : 'No test selected';
-  const threads = typeof parsed?.threads === 'number' ? String(parsed.threads) : 'Not set';
-  const repeat = parsed?.repeat != null ? String(parsed.repeat) : 'Not set';
-  const rampup = typeof parsed?.rampup === 'string' ? parsed.rampup : 'Not set';
 
   return (
     <div className="panel">
-      <div className="panel-box" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div style={cardStyle}>
-          <div className="api-edit-title" style={{ marginBottom: 8 }}>{title}</div>
-          <div style={mutedStyle}>Load tests run one referenced type: test file with load configuration from the YAML editor.</div>
-        </div>
-        <div style={cardStyle}>
-          <div className="label" style={{ marginBottom: 8 }}>Configuration</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '140px 1fr', rowGap: 8, columnGap: 12 }}>
-            <div style={mutedStyle}>Test</div>
-            <div>{target}</div>
-            <div style={mutedStyle}>Threads</div>
-            <div>{threads}</div>
-            <div style={mutedStyle}>Repeat</div>
-            <div>{repeat}</div>
-            <div style={mutedStyle}>Ramp-up</div>
-            <div>{rampup}</div>
+      <div className="panel-box" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, minWidth: 0 }}>
+        <div className="api-swipe-root" style={{ flex: 1, minHeight: 0 }}>
+          <div
+            className="api-swipe-track"
+            style={{ transform: page === 'test' ? 'translateX(0%)' : 'translateX(-50%)' }}
+          >
+            <div className="api-swipe-page api-swipe-page--test">
+              <div style={{ flex: 1, minHeight: 0, display: 'flex', minWidth: 0, overflow: 'hidden', flexDirection: 'column' }}>
+                <div className="api-edit-header">
+                  <div className="tab-bar tab-bar-single" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div className="tab-button active" style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span className="codicon codicon-dashboard" aria-hidden />
+                      {loadTestTitle}
+                    </div>
+                    <button
+                      className="action-button api-edit-launcher"
+                      onClick={() => setPage('edit')}
+                      title="Edit Load Test"
+                      type="button"
+                    >
+                      <span className="codicon codicon-edit" aria-hidden />
+                      <span className="api-edit-launcher-text">Edit Load Test</span>
+                    </button>
+                  </div>
+                </div>
+                <SuiteTest content={content} mode="loadtest" />
+              </div>
+            </div>
+
+            <div className="api-swipe-page api-swipe-page--edit">
+              <div className="api-edit-header">
+                <div className="api-edit-header-row">
+                  <button
+                    className="action-button"
+                    onClick={() => setPage('test')}
+                    title="Back to Load Test"
+                    type="button"
+                  >
+                    <span className="codicon codicon-arrow-left" aria-hidden />
+                  </button>
+                  <div className="api-edit-title">Edit Load Test</div>
+                </div>
+              </div>
+
+              <LoadTestEdit content={content} setContent={setContent} />
+            </div>
           </div>
         </div>
       </div>

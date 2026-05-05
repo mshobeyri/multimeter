@@ -2,7 +2,7 @@ import {APIData} from './APIData';
 import {LogLevel, Type} from './CommonData';
 import * as JSer from './JSer';
 import {RunJSCodeContext} from './jsRunner';
-import type {CollectedResults} from './reportCollector';
+import type {CollectedResults, LoadReportData} from './reportCollector';
 import {RunResult, TestStepReporterEvent} from './runConfig';
 
 export interface SuiteExportSpec {
@@ -34,6 +34,8 @@ export interface RunFileResult {
   exampleIndex?: number;
   /** Export specifications for suite runs (only set when `bundle.export` is defined). */
   suiteExports?: SuiteExportSpec;
+  /** Aggregated load-test metrics for UI/report consumers. */
+  loadResult?: LoadReportData;
 }
 
 export interface PreparedRun {
