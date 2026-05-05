@@ -1,8 +1,9 @@
 import {LogLevel} from './CommonData';
 import {yamlToLoadTest} from './loadtestParsePack';
 import {createReportCollector, LoadReportData} from './reportCollector';
-import {basename, PreparedRun, resolveRelativeTo, RunFileResult, sanitizeIdentifier, SuiteExportSpec} from './runCommon';
-import {RunFileOptions, RunReporterMessage, RunResult} from './runConfig';
+import {basename, PreparedRun, resolveRelativeTo, RunFileResult, runGeneratedJs, sanitizeIdentifier, SuiteExportSpec} from './runCommon';
+import {generateTestJs, prepareTestRun} from './runTest';
+import {RunFileOptions, RunReporterMessage, RunResult, TestOutputsReporterEvent, TestRunSummaryEvent, TestStepReporterEvent} from './runConfig';
 
 const LOADTEST_ITEM_ID = 'loadtest-test-0';
 
@@ -120,6 +121,9 @@ export async function executeLoadTest(
   let claimedIterations = 0;
   let sampleCaptured = false;
   let childRawText = '';
+  let childJs = '';
+  let childInputsUsed: Record<string, any> = {};
+  let childDisplayTitle = childDisplayName;
   let lastSummaryEmitAt = 0;
   let lastSeriesAt = runStartedAt;
   let lastSeriesRequests = 0;
@@ -273,6 +277,29 @@ export async function executeLoadTest(
     throw new Error(`Failed to load loadtest target ${loadtest.test}: ${e?.message || String(e)}`);
   }
 
+  const childFileLoader = async (requestedPath: string) => {
+    const resolved = resolveRelativeTo(requestedPath, childFilePath);
+    return await options.fileLoader(resolved);
+  };
+
+  try {
+    const childPrepared = prepareTestRun(childRawText, options.manualInputs || {});
+    childInputsUsed = childPrepared.inputsUsed || options.manualInputs || {};
+    childDisplayTitle = childPrepared.title || childDisplayName;
+    childJs = await generateTestJs({
+      rawText: childRawText,
+      name: sanitizeIdentifier(childDisplayTitle),
+      inputs: childInputsUsed,
+      envVars,
+      fileLoader: childFileLoader,
+      filePath: childFilePath,
+      projectRoot: options.projectRoot,
+      isExternal: true,
+    });
+  } catch (e: any) {
+    throw new Error(`Failed to prepare loadtest target ${loadtest.test}: ${e?.message || String(e)}`);
+  }
+
   const nextIteration = (): number | undefined => {
     if (options.abortSignal?.aborted) {
       return undefined;
@@ -294,40 +321,75 @@ export async function executeLoadTest(
       sampleCaptured = true;
     }
 
-    const childFileLoader = async (requestedPath: string) => {
-      const resolved = resolveRelativeTo(requestedPath, childFilePath);
-      return await options.fileLoader(resolved);
-    };
-
     const childReporter = (message: RunReporterMessage) => {
       if (!isSample) {
         return;
       }
       emit({...(message as any), id: LOADTEST_ITEM_ID});
     };
+    const stepReporter = isSample ? (event: TestStepReporterEvent) => {
+      childReporter({
+        ...event,
+        runId: event.runId || runId,
+        id: LOADTEST_ITEM_ID,
+      });
+    } : undefined;
+    const setenvReporter = isSample ? (event: Record<string, any>) => {
+      if (event && event.scope === 'setenv') {
+        childReporter({
+          ...event,
+          runId: (event as any).runId || runId,
+          id: LOADTEST_ITEM_ID,
+          testTitle: childDisplayTitle,
+        } as any);
+        return;
+      }
+      childReporter(event as any);
+    } : undefined;
 
     try {
-      const childRun = await runFile({
-        ...options,
-        file: childRawText,
-        fileType: 'raw',
-        filePath: childFilePath,
-        envvar: envVars,
-        fileLoader: childFileLoader,
-        logger: (level, msg) => {
+      const childResult = await runGeneratedJs(
+        runId,
+        childJs,
+        childDisplayTitle,
+        (level, msg) => {
           recordNetworkTrace(msg);
           if (isSample || level === 'error') {
             loadLogger(level, msg);
           }
         },
-        reporter: childReporter,
-        runId,
-        id: LOADTEST_ITEM_ID,
-        __mmtIsSuiteBundleChildRun: true,
-      });
+        options.jsRunner,
+        stepReporter,
+        LOADTEST_ITEM_ID,
+        childFileLoader,
+        setenvReporter,
+        options.abortSignal,
+        true,
+        options.skipServerCleanup,
+        childFilePath ? childFilePath.split(/[/\\]/).slice(0, -1).join('/') : undefined,
+        true,
+      );
       completed += 1;
-      if (!childRun.result?.success) {
+      if (!childResult.success) {
         failed += 1;
+      }
+      if (isSample) {
+        if (childResult.outputs && typeof childResult.outputs === 'object' && Object.keys(childResult.outputs).length > 0) {
+          const outputsEvent: TestOutputsReporterEvent = {
+            scope: 'test-outputs',
+            runId,
+            outputs: childResult.outputs,
+            id: LOADTEST_ITEM_ID,
+          };
+          childReporter(outputsEvent);
+        }
+        const summary: TestRunSummaryEvent = {
+          scope: 'test-step-run',
+          runId,
+          result: childResult.success ? 'passed' : 'failed',
+          id: LOADTEST_ITEM_ID,
+        };
+        childReporter(summary);
       }
       emitLoadSummary();
     } catch (e: any) {
@@ -413,12 +475,12 @@ export async function executeLoadTest(
   }
 
   return {
-    js: '',
+    js: childJs,
     result,
     identifier,
     displayName,
     docType: 'loadtest',
-    inputsUsed: options.manualInputs || {},
+    inputsUsed: childInputsUsed,
     envVarsUsed: envVars,
     suiteExports,
     loadResult: load,

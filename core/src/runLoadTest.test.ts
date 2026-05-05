@@ -49,25 +49,18 @@ describe('executeLoadTest', () => {
     let calls = 0;
     let active = 0;
     let maxActive = 0;
-
-    const runFile = async (): Promise<RunFileResult> => {
+    options.jsRunner = async () => {
       calls += 1;
       active += 1;
       maxActive = Math.max(maxActive, active);
       await new Promise(resolve => setTimeout(resolve, 5));
       active -= 1;
-      return {
-        js: '',
-        result: {success: true, durationMs: 1, errors: []},
-        identifier: 'target',
-        displayName: 'target',
-        docType: 'test',
-        inputsUsed: {},
-        envVarsUsed: {},
-      };
+      return {};
     };
 
-    const result = await executeLoadTest(prepared, options, [], runFile);
+    const result = await executeLoadTest(prepared, options, [], async () => {
+      throw new Error('runFile should not be called for optimized loadtest iterations');
+    });
 
     expect(result.result.success).toBe(true);
     expect(calls).toBe(8);
@@ -77,16 +70,11 @@ describe('executeLoadTest', () => {
   it('adds load summary to auto exports', async () => {
     const prepared = makePrepared(`type: loadtest\nthreads: 2\nrepeat: 3\nrampup: 1ms\nexport:\n  - ./report.mmt\ntest: ./target.mmt\n`);
     const options = makeOptions();
+    options.jsRunner = async () => ({});
 
-    const result = await executeLoadTest(prepared, options, [], async () => ({
-      js: '',
-      result: {success: true, durationMs: 1, errors: []},
-      identifier: 'target',
-      displayName: 'target',
-      docType: 'test',
-      inputsUsed: {},
-      envVarsUsed: {},
-    }));
+    const result = await executeLoadTest(prepared, options, [], async () => {
+      throw new Error('runFile should not be called for optimized loadtest iterations');
+    });
 
     expect(result.suiteExports?.collectedResults.type).toBe('loadtest');
     expect(result.suiteExports?.collectedResults.load?.config?.threads).toBe(2);
@@ -102,18 +90,16 @@ describe('executeLoadTest', () => {
     const prepared = makePrepared(`type: loadtest\nthreads: 2\nrepeat: 4\nexport:\n  - ./report.mmt\ntest: ./target.mmt\n`);
     const options = makeOptions();
     let calls = 0;
+    options.jsRunner = async (ctx: any) => {
+      calls += 1;
+      if (calls % 2 === 0) {
+        ctx.logger('error', 'simulated iteration failure');
+      }
+      return {};
+    };
 
     const result = await executeLoadTest(prepared, options, [], async () => {
-      calls += 1;
-      return {
-        js: '',
-        result: {success: calls % 2 === 1, durationMs: 1, errors: []},
-        identifier: 'target',
-        displayName: 'target',
-        docType: 'test',
-        inputsUsed: {},
-        envVarsUsed: {},
-      };
+      throw new Error('runFile should not be called for optimized loadtest iterations');
     });
 
     expect(result.result.success).toBe(false);
@@ -128,42 +114,28 @@ describe('executeLoadTest', () => {
     const prepared = makePrepared(`type: loadtest\nthreads: 1\nrepeat: 1\ntest: ./target.mmt\n`);
     prepared.envVarsUsed = {baseUrl: 'https://example.test'};
     const options = makeOptions();
-    let childEnv: Record<string, any> | undefined;
+    options.jsRunner = async () => ({});
 
-    await executeLoadTest(prepared, options, [], async (childOptions) => {
-      childEnv = childOptions.envvar;
-      return {
-        js: '',
-        result: {success: true, durationMs: 1, errors: []},
-        identifier: 'target',
-        displayName: 'target',
-        docType: 'test',
-        inputsUsed: {},
-        envVarsUsed: {},
-      };
+    const result = await executeLoadTest(prepared, options, [], async () => {
+      throw new Error('runFile should not be called for optimized loadtest iterations');
     });
 
-    expect(childEnv).toEqual({baseUrl: 'https://example.test'});
+    expect(result.envVarsUsed).toEqual({baseUrl: 'https://example.test'});
   });
 
   it('keeps iteration pass rate separate from traced HTTP request failures', async () => {
     const prepared = makePrepared(`type: loadtest\nthreads: 1\nrepeat: 2\nexport:\n  - ./report.mmt\ntest: ./target.mmt\n`);
     const options = makeOptions();
+    options.jsRunner = async (ctx: any) => {
+      ctx.logger('trace', 'Request: GET https://example.test/a');
+      ctx.logger('trace', 'Response: 200 (10ms)');
+      ctx.logger('trace', 'Request: GET https://example.test/b');
+      ctx.logger('trace', 'Response: 500 (10ms)');
+      return {};
+    };
 
-    const result = await executeLoadTest(prepared, options, [], async (childOptions) => {
-      childOptions.logger('trace', 'Request: GET https://example.test/a');
-      childOptions.logger('trace', 'Response: 200 (10ms)');
-      childOptions.logger('trace', 'Request: GET https://example.test/b');
-      childOptions.logger('trace', 'Response: 500 (10ms)');
-      return {
-        js: '',
-        result: {success: true, durationMs: 1, errors: []},
-        identifier: 'target',
-        displayName: 'target',
-        docType: 'test',
-        inputsUsed: {},
-        envVarsUsed: {},
-      };
+    const result = await executeLoadTest(prepared, options, [], async () => {
+      throw new Error('runFile should not be called for optimized loadtest iterations');
     });
 
     expect(result.suiteExports?.collectedResults.load?.summary?.iterations).toBe(2);

@@ -32,6 +32,8 @@ export interface RunJSCodeContext {
 const REPORTER_KEY = '__mmtReportStep';
 const RUN_ID_KEY = '__mmtRunId';
 const ID_KEY = '__mmtId';
+const compiledFunctionCache = new Map<string, Function>();
+const MAX_COMPILED_FUNCTION_CACHE_SIZE = 64;
 
 // Runtime helper to get random value by token name
 function mmtRandom(name: string): any {
@@ -138,11 +140,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
             .filter(name => typeof (Random as any)[name] === 'function')
             .map(name => `const ${name} = Random["${name}"];`)
             .join('\n');
-    const fn = new Function(
-      'mmtHelper', 'console', 'send_', 'sendGrpc_', 'extractOutputs_', 'Random',
-      '__reporter', '__runId', '__id', '__mmt_random', '__mmt_current',
-      '__mmt_access', '__abortSignal', '__fileLoader',
-      `${helperDecls}\n${randomDecls}\n` +
+    const functionBody = `${helperDecls}\n${randomDecls}\n` +
       `const report_ = (...args) => mmtHelper.reportWithContext_(__reporter, __runId, __id, ...args);\n` +
       // setenv_ must update the in-scope envVariables object so that
       // subsequent e: references read the new value within the same run.
@@ -163,7 +161,22 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       `  if (__fileLoader && mmtHelper.setFileLoader_) { mmtHelper.setFileLoader_(__fileLoader); }` +
       `  return mmtHelper.importJsModule_(path, opts);` +
       `};\n` +
-      `${code}`);
+      `${code}`;
+    let fn = compiledFunctionCache.get(functionBody);
+    if (!fn) {
+      fn = new Function(
+        'mmtHelper', 'console', 'send_', 'sendGrpc_', 'extractOutputs_', 'Random',
+        '__reporter', '__runId', '__id', '__mmt_random', '__mmt_current',
+        '__mmt_access', '__abortSignal', '__fileLoader',
+        functionBody);
+      if (compiledFunctionCache.size >= MAX_COMPILED_FUNCTION_CACHE_SIZE) {
+        const firstKey = compiledFunctionCache.keys().next().value;
+        if (firstKey) {
+          compiledFunctionCache.delete(firstKey);
+        }
+      }
+      compiledFunctionCache.set(functionBody, fn);
+    }
     // Wrap send_ with trace-level request/response logging for test runs
     const sendFn = context.traceSend ? async (req: any) => {
       const reqSummary = req ? `${(req.method || 'GET').toUpperCase()} ${req.url || ''}` : 'unknown';

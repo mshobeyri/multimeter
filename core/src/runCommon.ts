@@ -92,7 +92,8 @@ export async function runGeneratedJs(
   abortSignal?: AbortSignal,
   traceSend?: boolean,
   skipServerCleanup?: boolean,
-  basePath?: string): Promise<RunResult> {
+  basePath?: string,
+  skipSyntaxValidation?: boolean): Promise<RunResult> {
   const start = Date.now();
   const errors: string[] = [];
   const logs: string[] = [];
@@ -110,11 +111,13 @@ export async function runGeneratedJs(
     }
     // Syntax-check the generated JS before execution so malformed .mmt
     // files surface a clear error instead of silently failing.
-    const syntaxError = validateJsSyntax(js);
-    if (syntaxError) {
-      errors.push(syntaxError);
-      forward('error', syntaxError);
-      return {success: false, durationMs: Date.now() - start, errors, logs, syntaxError: true};
+    if (!skipSyntaxValidation) {
+      const syntaxError = validateJsSyntax(js);
+      if (syntaxError) {
+        errors.push(syntaxError);
+        forward('error', syntaxError);
+        return {success: false, durationMs: Date.now() - start, errors, logs, syntaxError: true};
+      }
     }
     const returnValue = await jsRunner({
       runId,
