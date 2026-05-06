@@ -7,6 +7,7 @@ import {
   Server,
   FileText,
   Repeat,
+  Gauge,
 } from 'lucide-react'
 import FadeIn from '../components/FadeIn'
 
@@ -39,7 +40,7 @@ const features = [
     icon: Layers,
     title: 'One Tool Replaces Many',
     description:
-      'API testing, load testing, mock servers, documentation — one tool instead of Postman, JMeter, and more.',
+      'API testing, beta load testing, mock servers, documentation — one tool instead of Postman, JMeter, and more.',
     color: 'text-blue-400',
     bg: 'bg-blue-400/10',
   },
@@ -66,6 +67,14 @@ const features = [
       'Generate beautiful HTML or Markdown API documentation directly from your .mmt test files.',
     color: 'text-amber-400',
     bg: 'bg-amber-400/10',
+  },
+  {
+    icon: Gauge,
+    title: 'Load Testing (Beta)',
+    description:
+      'Run one .mmt test scenario with threads, ramp-up, repeat limits, and load-oriented reports.',
+    color: 'text-red-400',
+    bg: 'bg-red-400/10',
   },
   {
     icon: Repeat,

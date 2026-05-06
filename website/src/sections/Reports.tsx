@@ -47,8 +47,8 @@ export default function Reports() {
               <span className="gradient-text">workflow</span>
             </h2>
             <p className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
-              Generate structured test reports from every run — in the IDE, from the CLI,
-              or automatically via suite <code className="text-accent bg-accent/10 px-1.5 py-0.5 rounded text-sm">export</code> fields.
+              Generate structured functional and beta load test reports from every run — in the IDE,
+              from the CLI, or automatically via suite and load test <code className="text-accent bg-accent/10 px-1.5 py-0.5 rounded text-sm">export</code> fields.
               Four formats, zero extra tooling.
             </p>
           </div>

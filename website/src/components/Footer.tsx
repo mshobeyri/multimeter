@@ -12,6 +12,7 @@ const footerLinks = {
     { name: 'Documentation', href: 'https://github.com/mshobeyri/multimeter/tree/master/docs', external: true },
     { name: 'API Testing Guide', href: 'https://github.com/mshobeyri/multimeter/blob/main/docs/api-mmt.md', external: true },
     { name: 'Test Flow Guide', href: 'https://github.com/mshobeyri/multimeter/blob/main/docs/test-mmt.md', external: true },
+    { name: 'Load Testing Guide', href: 'https://github.com/mshobeyri/multimeter/blob/main/docs/loadtest-mmt.md', external: true },
     { name: 'MMT Overview', href: 'https://github.com/mshobeyri/multimeter/blob/main/docs/mmt-overview.md', external: true },
     { name: 'Test Server', href: '/test-server' },
   ],
@@ -41,7 +42,7 @@ export default function Footer() {
               <span className="text-xl font-bold text-white">Multimeter</span>
             </Link>
             <p className="text-sm text-slate-400 mb-6">
-              All possible tests for your service — as code. API testing for VS Code.
+              All possible tests for your service — as code. API, mock, suite, and beta load testing for VS Code.
             </p>
             <div className="flex items-center gap-4">
               <a

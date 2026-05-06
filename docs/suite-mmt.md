@@ -256,6 +256,7 @@ This design prevents conflicts when suites are composed hierarchically.
 ## See also
 - [Test](./test-mmt.md) — define test flows that suites can run
 - [API](./api-mmt.md) — define APIs that suites can run directly
+- [Load Test](./loadtest-mmt.md) — run one test scenario repeatedly under load (beta)
 - [Mock Server](./mock-server.md) — define mock servers to include in suites
 - [Environment](./environment-mmt.md) — variables and presets, including `+/` project root imports
 - [Reports](./reports.md) — generate test reports from suite runs

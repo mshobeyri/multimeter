@@ -11,11 +11,12 @@ Multimeter uses YAML-based `.mmt` files with a `type` field at the top. The `typ
 | `env` | Variables, presets, and certificate config | [Environment](./environment-mmt.md) |
 | `doc` | Generate API documentation from `.mmt` files | [Doc](./doc-mmt.md) |
 | `suite` | Group and run multiple tests/APIs/suites | [Suite](./suite-mmt.md) |
+| `loadtest` | Run one test scenario with concurrency, ramp-up, and load reports (beta) | [Load Test](./loadtest-mmt.md) |
 | `server` | Define mock server endpoints with routing | [Mock Server Files](./mock-server.md#mmt-mock-server-files) |
 | `report` | Structured test results (generated, viewable) | [Reports](./reports.md) |
 
 For full details, see the references:
-- **MMT File Types:** [API](./api-mmt.md) · [Test](./test-mmt.md) · [Environment](./environment-mmt.md) · [Doc](./doc-mmt.md) · [Suite](./suite-mmt.md) · [Mock Server Files](./mock-server.md#mmt-mock-server-files) · [Reports](./reports.md)
+- **MMT File Types:** [API](./api-mmt.md) · [Test](./test-mmt.md) · [Environment](./environment-mmt.md) · [Doc](./doc-mmt.md) · [Suite](./suite-mmt.md) · [Load Test](./loadtest-mmt.md) · [Mock Server Files](./mock-server.md#mmt-mock-server-files) · [Reports](./reports.md)
 - **VS Code Panels:** [Mock Server Panel](./mock-server.md) · [Convertor](./convertor.md) · [History](./history.md) · [Certificates](./certificates-mmt.md)
 - **Running & CI/CD:** [Testlight CLI](./testlight.md) · [Reports](./reports.md) · [Logging](./logging.md)
 - [Sample Project](./sample-project.md) · [Changelog](../CHANGELOG.md)
@@ -188,17 +189,22 @@ Purpose: Structured test results generated after running tests or suites. Openin
 ```yaml
 type: report
 name: suite.mmt
-timestamp: "2026-03-06T10:30:00.000Z"
-duration: 1.234s
-summary:
-  tests: 4
+kind: functional
+overview:
+  timestamp: "2026-03-06T10:30:00.000Z"
+  duration: 1.234s
+  checks: 4
   passed: 3
   failed: 1
   errors: 0
   skipped: 0
+checks:
+  - name: login_test.mmt
+    type: test
+    result: passed
 ```
 
-Reports can also be exported as JUnit XML, HTML, or Markdown for CI/CD integration.
+Functional and load reports can also be exported as JUnit XML, HTML, or Markdown for CI/CD integration.
 
 Deep dive: see [Reports](./reports.md).
 

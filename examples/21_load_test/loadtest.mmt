@@ -1,0 +1,15 @@
+type: loadtest
+title: Echo Load Test
+description: A small beta load test example that runs the echo scenario with multiple workers.
+tags:
+  - load
+  - beta
+threads: 5
+repeat: 10s
+rampup: 2s
+export:
+  - ./reports/echo-load.mmt
+  - ./reports/echo-load.html
+  - ./reports/echo-load.md
+  - ./reports/echo-load.xml
+test: ./echo_test.mmt
