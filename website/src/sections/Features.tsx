@@ -8,8 +8,20 @@ import {
   FileText,
   Repeat,
   Gauge,
+  MousePointer2,
+  Terminal,
 } from 'lucide-react'
 import FadeIn from '../components/FadeIn'
+
+function VSCodeLogo({ size = 24 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M246.94 27.638 194.193 2.241a15.947 15.947 0 0 0-18.194 3.3L2.453 159.039a10.667 10.667 0 0 0 .005 15.931l17.511 15.986a10.667 10.667 0 0 0 13.625.975L237.054 18.2a10.666 10.666 0 0 1 16.946 8.63v-1.205a16 16 0 0 0-7.06-7.988Z" fill="#0065A9"/>
+      <path d="M246.94 228.362 194.193 253.76a15.946 15.946 0 0 1-18.194-3.3L2.453 96.961A10.667 10.667 0 0 1 2.458 81.03l17.511-15.986a10.666 10.666 0 0 1 13.625-.975l203.46 173.731a10.667 10.667 0 0 0 16.946-8.63v1.205a16.001 16.001 0 0 1-7.06 7.987Z" fill="#007ACC"/>
+      <path d="M194.196 253.763A15.955 15.955 0 0 1 176 250.461c5.9 5.9 16 1.722 16-6.627V12.166c0-8.349-10.1-12.528-16-6.627a15.955 15.955 0 0 1 18.196-3.302l52.746 25.399A16 16 0 0 1 256 42.056v171.888a16 16 0 0 1-9.058 14.42l-52.746 25.399Z" fill="#1F9CF0"/>
+    </svg>
+  )
+}
 
 const features = [
   {
@@ -37,6 +49,14 @@ const features = [
     bg: 'bg-purple-400/10',
   },
   {
+    icon: MousePointer2,
+    title: 'Drag & Drop Test Builder',
+    description:
+      'Build functional test flows visually with calls, asserts, checks, delays, and conditions — no scripting required.',
+    color: 'text-lime-400',
+    bg: 'bg-lime-400/10',
+  },
+  {
     icon: Layers,
     title: 'One Tool Replaces Many',
     description:
@@ -61,6 +81,14 @@ const features = [
     bg: 'bg-pink-400/10',
   },
   {
+    icon: Terminal,
+    title: 'CI/CD Ready',
+    description:
+      'Run the same .mmt files in pipelines with testlight, export reports, and keep automation version-controlled.',
+    color: 'text-emerald-400',
+    bg: 'bg-emerald-400/10',
+  },
+  {
     icon: FileText,
     title: 'Auto-Generated Docs',
     description:
@@ -75,6 +103,14 @@ const features = [
       'Run one .mmt test scenario with threads, ramp-up, repeat limits, and load-oriented reports.',
     color: 'text-red-400',
     bg: 'bg-red-400/10',
+  },
+  {
+    icon: VSCodeLogo,
+    title: 'VS Code Native',
+    description:
+      'Design, run, debug, and review API tests inside VS Code with native panels and Git-friendly files.',
+    color: 'text-sky-400',
+    bg: 'bg-sky-400/10',
   },
   {
     icon: Repeat,

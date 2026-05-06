@@ -3,9 +3,9 @@ import { Network } from 'lucide-react'
 
 const protocols = [
   {
-    name: 'HTTP / REST',
+    name: 'HTTP / REST / SOAP',
     icon: '/icons/http.svg',
-    description: 'Full HTTP support with all methods, headers, auth, body formats, and response validation.',
+    description: 'Full HTTP / REST / SOAP support with all methods, headers, auth, JSON / XML body formats.',
   },
   {
     name: 'WebSocket',
@@ -21,12 +21,7 @@ const protocols = [
     name: 'gRPC',
     icon: '/icons/grpc.svg',
     description: 'gRPC protocol support with proto files, server reflection, and streaming modes.',
-  },
-  {
-    name: 'SOAP / XML',
-    icon: '/icons/http.svg',
-    description: 'Full XML body handling, parsing, validation, and pretty-printing for SOAP services.',
-  },
+  }
 ]
 
 export default function Protocols() {
@@ -49,7 +44,7 @@ export default function Protocols() {
           </div>
         </FadeIn>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {protocols.map((protocol, index) => (
             <FadeIn key={protocol.name} delay={index * 100}>
               <div className="bg-surface border border-border rounded-2xl p-6 text-center hover:border-accent/50 transition-all duration-300 hover:-translate-y-1 h-full">
