@@ -1,6 +1,7 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { parseYaml } from 'mmt-core/markupConvertor';
 import { formatDuration } from 'mmt-core/CommonData';
+import { formatReportRelativeTime } from 'mmt-core/reportFormat';
 import { splitSuiteGroups } from 'mmt-core/suiteParsePack';
 import { createSuiteNodeId } from 'mmt-core/suiteNodeId';
 import { StepStatus } from '../../shared/types';
@@ -16,7 +17,7 @@ import { statusIconFor } from '../../shared/Common';
 import ExportReportButton, { ReportFormat } from '../../shared/ExportReportButton';
 import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
 import { FileContext } from '../../fileContext';
-import LoadTestReport from '../../loadtest/LoadTestReport';
+import LoadTestReport, { LoadMetricsOverview } from '../../loadtest/LoadTestReport';
 
 /** Get basename from a file path. */
 function basename(p: string): string {
@@ -172,6 +173,13 @@ function formatLoadNumber(value: number | undefined, fractionDigits = 0): string
     return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(fractionDigits) : '-';
 }
 
+function formatOverviewRelativeTime(value: number | string | null | undefined): string | undefined {
+    if (value === undefined || value === null || value === '') {
+        return undefined;
+    }
+    return formatReportRelativeTime(value);
+}
+
 const LoadOverviewCard: React.FC<{
     label: string;
     value: string;
@@ -218,11 +226,11 @@ const LoadOverviewBoxes: React.FC<{
     const latestSeriesPoint = series.length > 0 ? series[series.length - 1] : undefined;
     const activeThreads = Number(latestSeriesPoint?.active_threads || 0);
     const configuredThreads = Number(load?.config?.threads ?? config?.threads ?? 0);
+    const rampup = load?.config?.rampup || config?.rampup;
     const threadValue = isRunning ? activeThreads : configuredThreads;
-    const threadSubParts = [
-        isRunning && configuredThreads > 0 ? `Configured ${formatLoadNumber(configuredThreads)}` : undefined,
-        load?.config?.rampup || config?.rampup ? `Ramp-up ${load?.config?.rampup || config?.rampup}` : undefined,
-    ].filter(Boolean);
+    const threadSub = isRunning
+        ? (configuredThreads > 0 ? `/${formatLoadNumber(configuredThreads)}` : undefined)
+        : (rampup ? `Ramp-up ${rampup}` : undefined);
     return (
         <div>
             <div className="label" style={{ marginBottom: 6 }}>Overview</div>
@@ -230,7 +238,7 @@ const LoadOverviewBoxes: React.FC<{
                 <LoadOverviewCard
                     label="Passed"
                     value={formatLoadPercent(summary.success_rate)}
-                    sub={`${formatLoadNumber(successes)} succeeded`}
+                    sub={`${formatLoadNumber(successes)}`}
                     color="var(--vscode-testing-iconPassed, #3fb950)"
                     background="rgba(63, 185, 80, 0.15)"
                     icon="passed"
@@ -238,7 +246,7 @@ const LoadOverviewBoxes: React.FC<{
                 <LoadOverviewCard
                     label="Failed"
                     value={formatLoadPercent(summary.error_rate ?? summary.failed_rate)}
-                    sub={`${formatLoadNumber(failures)} failed`}
+                    sub={`${formatLoadNumber(failures)}`}
                     color="var(--vscode-testing-iconFailed, #f85149)"
                     background="rgba(248, 81, 73, 0.15)"
                     icon="failed"
@@ -254,7 +262,7 @@ const LoadOverviewBoxes: React.FC<{
                 <LoadOverviewCard
                     label="Duration"
                     value={duration || '-'}
-                    sub={summary.throughput != null ? `${formatLoadNumber(summary.throughput, 2)} req/s` : undefined}
+                    sub={formatOverviewRelativeTime(load?.config?.started_at)}
                     color="var(--vscode-descriptionForeground, #8b949e)"
                     background="rgba(139, 148, 158, 0.15)"
                     icon="duration"
@@ -262,7 +270,7 @@ const LoadOverviewBoxes: React.FC<{
                 <LoadOverviewCard
                     label="Threads"
                     value={formatLoadNumber(threadValue)}
-                    sub={threadSubParts.length ? threadSubParts.join(' · ') : undefined}
+                    sub={threadSub}
                     color="var(--vscode-charts-yellow, #d29922)"
                     background="rgba(210, 153, 34, 0.15)"
                     icon="threads"
@@ -425,6 +433,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
     const [leafReportsById, setLeafReportsById] = useState<Record<string, StepReportItem[]>>({});
     const [leafRunStateById, setLeafRunStateById] = useState<Record<string, StepStatus>>({});
     const suiteRunStartTimeRef = useRef<number | null>(null);
+    const [suiteRunStartedAt, setSuiteRunStartedAt] = useState<number | null>(null);
     const [suiteRunDurationMs, setSuiteRunDurationMs] = useState<number | null>(null);
     const pendingLeafResetRef = useRef<'all' | string[] | null>(null);
     const pendingEntriesToCancelRef = useRef<string[] | null>(null);
@@ -625,6 +634,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
         setSuiteRunId(null);
         setSuiteRunState('default');
         setLoadRunSummary(null);
+        setSuiteRunStartedAt(null);
         pendingLeafResetRef.current = null;
         reportQueueRef.current = [];
         resetLeafState('all');
@@ -685,6 +695,9 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
                 lastRunIdByEntryIdRef.current = {};
                 setSuiteRunId(nextSuiteRunId);
                 setSuiteRunState('running');
+                const startedAt = typeof (message as any).startedAt === 'number' ? (message as any).startedAt : Date.now();
+                suiteRunStartTimeRef.current = startedAt;
+                setSuiteRunStartedAt(startedAt);
                 if (mode === 'loadtest') {
                     setLoadRunSummary(null);
                 }
@@ -853,9 +866,11 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
         );
         setStepStatuses(next);
         const nextSuiteRunId = `suite-ui:${Date.now()}`;
+        const startedAt = Date.now();
         setSuiteRunId(nextSuiteRunId);
         setSuiteRunState('running');
-        suiteRunStartTimeRef.current = Date.now();
+        suiteRunStartTimeRef.current = startedAt;
+        setSuiteRunStartedAt(startedAt);
         setSuiteRunDurationMs(0);
         pendingLeafResetRef.current = 'all';
         resetLeafState('all');
@@ -914,9 +929,11 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
         resetLeafState([effectiveTarget]);
 
         const nextSuiteRunId = `suite-ui:${Date.now()}`;
+        const startedAt = Date.now();
         setSuiteRunId(nextSuiteRunId);
         setSuiteRunState('running');
-        suiteRunStartTimeRef.current = Date.now();
+        suiteRunStartTimeRef.current = startedAt;
+        setSuiteRunStartedAt(startedAt);
         setSuiteRunDurationMs(0);
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId, target: effectiveTarget });
     }, [resetLeafState, hierarchyByEntryPath]);
@@ -942,6 +959,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
                 leafRunStateById,
                 stepStatuses,
                 suiteRunState,
+                startedAt: suiteRunStartedAt,
                 durationMs: suiteRunDurationMs,
                 displayNameById,
                 suiteName: suiteTitle,
@@ -951,7 +969,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
                     : undefined,
             },
         });
-    }, [leafReportsById, leafRunStateById, stepStatuses, suiteRunState, suiteRunDurationMs, displayNameById, suiteTitle, mmtFilePath, mode, loadConfig, groups, loadRunSummary]);
+    }, [leafReportsById, leafRunStateById, stepStatuses, suiteRunState, suiteRunStartedAt, suiteRunDurationMs, displayNameById, suiteTitle, mmtFilePath, mode, loadConfig, groups, loadRunSummary]);
 
     const suiteExportDisabled = suiteRunState === 'running' || (mode === 'loadtest' ? !loadRunSummary : Object.keys(leafReportsById).length === 0);
     const runLabel = mode === 'loadtest' ? 'Run load test' : 'Run suite';
@@ -966,16 +984,15 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
             const failures = Number(loadRunSummary?.summary?.failures || 0);
             const successes = Number(loadRunSummary?.summary?.successes ?? Math.max(0, requests - failures));
             const failedRate = requests > 0 ? ((failures / requests) * 100).toFixed(1) : '0.0';
-            const throughput = loadRunSummary?.summary?.throughput;
             const duration = suiteRunDurationMs != null ? formatDuration(suiteRunDurationMs) : undefined;
             return {
                 passed: successes,
                 failed: failures,
                 total: requests,
                 duration,
-                failedSub: `${failedRate}% failed`,
+                failedSub: `${failedRate}%`,
                 totalSub: `${requests} requests sent`,
-                durationSub: throughput != null ? `${throughput.toFixed(2)} req/s` : undefined,
+                            durationSub: formatOverviewRelativeTime(loadRunSummary?.config?.started_at || suiteRunStartedAt),
             };
         }
         const allReports = Object.values(leafReportsById).flat();
@@ -992,11 +1009,11 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
             failed,
             total,
             duration,
-            failedSub: `${fileCount} file${fileCount !== 1 ? 's' : ''}`,
-            totalSub: `${total} check${total !== 1 ? 's' : ''}`,
-            durationSub: `${fileCount} file${fileCount !== 1 ? 's' : ''}`,
+            failedSub: total > 0 ? `${((failed / total) * 100).toFixed(1)}%` : '-',
+            totalSub: `${fileCount} test${fileCount !== 1 ? 's' : ''}`,
+                    durationSub: formatOverviewRelativeTime(suiteRunStartedAt),
         };
-    }, [leafReportsById, suiteRunState, suiteRunDurationMs, mode, loadRunSummary]);
+    }, [leafReportsById, suiteRunState, suiteRunDurationMs, suiteRunStartedAt, mode, loadRunSummary]);
 
     const tree = (
         <SuiteTestTree
@@ -1052,7 +1069,14 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
                 {noItems ? <div style={{ opacity: 0.8 }}>{mode === 'loadtest' ? 'No test file found under `test:`' : 'No suite items found under `tests:`'}</div> : (
                     <>
                         {mode === 'loadtest'
-                            ? <LoadOverviewBoxes load={loadRunSummary} config={loadConfig} duration={suiteRunDurationMs != null ? formatDuration(suiteRunDurationMs) : undefined} isRunning={suiteRunState === 'running'} />
+                            ? <>
+                                <LoadOverviewBoxes load={loadRunSummary} config={loadConfig} duration={suiteRunDurationMs != null ? formatDuration(suiteRunDurationMs) : undefined} isRunning={suiteRunState === 'running'} />
+                                <LoadMetricsOverview
+                                    load={loadRunSummary}
+                                    startedAt={loadRunSummary?.config?.started_at ?? suiteRunStartedAt ?? undefined}
+                                    endedAt={loadRunSummary?.config?.finished_at ?? (suiteRunState !== 'running' && suiteRunStartedAt != null && suiteRunDurationMs != null ? suiteRunStartedAt + suiteRunDurationMs : undefined)}
+                                />
+                            </>
                             : overviewStats && <OverviewBoxes stats={overviewStats} />}
                         {loadConfig && (
                             <>

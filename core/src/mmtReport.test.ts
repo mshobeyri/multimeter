@@ -85,7 +85,10 @@ describe('generateMmtReport', () => {
     expect(parsed.checks).toHaveLength(2);
     expect(parsed.checks[0].name).toBe('test-a.mmt');
     expect(parsed.checks[1].name).toBe('test-b.mmt');
-    expect(parsed.overview.timestamp).toBeDefined();
+    expect(parsed.overview.started_at).toBeDefined();
+    expect(parsed.overview.timestamp).toBeUndefined();
+    expect(parsed.overview.finished_at).toBe(new Date(1709720003456).toISOString());
+    expect(parsed.overview.started).toBeUndefined();
     expect(parsed.timestamp).toBeUndefined();
   });
 
@@ -225,6 +228,7 @@ describe('generateMmtReport', () => {
         runId: 'load-1',
         suitePath: './load.mmt',
         startedAt: new Date('2026-05-05T10:00:00.000Z').getTime(),
+        finishedAt: new Date('2026-05-05T10:00:10.500Z').getTime(),
         success: true,
         totalRunnable: 1,
         testRuns: [],
@@ -250,7 +254,11 @@ describe('generateMmtReport', () => {
 
     expect(parsed.kind).toBe('load');
     expect(parsed.config.threads).toBe(100);
+    expect(parsed.overview.started_at).toBe('2026-05-05T10:00:00.000Z');
+    expect(parsed.overview.timestamp).toBeUndefined();
     expect(parsed.overview.throughput).toBe(50);
+    expect(parsed.overview.finished_at).toBe('2026-05-05T10:00:10.500Z');
+    expect(parsed.overview.started).toBeUndefined();
     expect(parsed.latency.p95).toBe(120);
     expect(parsed.tool).toBeUndefined();
     expect(parsed.scenario).toBeUndefined();

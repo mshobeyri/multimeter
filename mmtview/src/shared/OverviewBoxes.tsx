@@ -6,7 +6,7 @@ export interface OverviewStats {
   total: number;
   /** e.g. "0.123s" */
   duration?: string;
-  /** Sub-label under the failed count, e.g. "2 suites" */
+  /** Sub-label under the failed count, e.g. "25%" */
   failedSub?: string;
   /** Sub-label under the total count, e.g. "5 checks" */
   totalSub?: string;
@@ -76,6 +76,7 @@ const OverviewBoxes: React.FC<{ stats: OverviewStats }> = ({ stats }) => {
 
   const { passed, failed, total, duration, failedSub, totalSub, durationSub } = stats;
   const passRate = total > 0 ? ((passed / total) * 100).toFixed(1) + '%' : '-';
+  const failRate = total > 0 ? ((failed / total) * 100).toFixed(1) + '%' : '-';
 
   return (
     <div ref={containerRef}>
@@ -98,7 +99,7 @@ const OverviewBoxes: React.FC<{ stats: OverviewStats }> = ({ stats }) => {
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
             <span style={labelStyle}>Passed</span>
             <span style={{ ...valueStyle, color: 'var(--vscode-testing-iconPassed, #3fb950)' }}>{passed}</span>
-            <span style={{ ...subStyle, color: 'var(--vscode-testing-iconPassed, #3fb950)' }}>{passRate} pass rate</span>
+            <span style={{ ...subStyle, color: 'var(--vscode-testing-iconPassed, #3fb950)' }}>{passRate}</span>
           </div>
         </div>
 
@@ -114,7 +115,7 @@ const OverviewBoxes: React.FC<{ stats: OverviewStats }> = ({ stats }) => {
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
             <span style={labelStyle}>Failed</span>
             <span style={{ ...valueStyle, color: 'var(--vscode-testing-iconFailed, #f85149)' }}>{failed}</span>
-            {failedSub && <span style={{ ...subStyle, color: 'var(--vscode-testing-iconFailed, #f85149)' }}>{failedSub}</span>}
+            <span style={{ ...subStyle, color: 'var(--vscode-testing-iconFailed, #f85149)' }}>{failedSub || failRate}</span>
           </div>
         </div>
 

@@ -435,11 +435,13 @@ export async function handleRunSuite(
   suiteRunIdByChildRunId.clear();
 
   const statusBarRunId = onRunStarted(`Running suite ${fileName}`, () => controller.abort());
+  const startedAt = Date.now();
 
   webviewPanel.webview.postMessage({
     command: 'suiteRunStart',
     suiteRunId,
     filePath: document.uri.fsPath,
+    startedAt,
   });
   forwardLog('debug', `handleRunSuite: started suiteRunId=${suiteRunId} file=${document.uri.fsPath} target=${String(message?.target)}`);
 

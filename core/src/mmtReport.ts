@@ -1,6 +1,7 @@
 import YAML from 'yaml';
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
 import { formatDuration } from './CommonData';
+import {roundReportNumbersDeep} from './reportFormat';
 
 export interface MmtReportOptions {
   suiteName?: string;
@@ -103,7 +104,7 @@ function buildLoadSnapshots(results: CollectedResults): Array<Record<string, any
     return undefined;
   }
   if (Array.isArray(load.snapshots)) {
-    return load.snapshots.map(point => ({...point}));
+    return load.snapshots.map(point => roundReportNumbersDeep({...point}));
   }
   if (!Array.isArray(load.series)) {
     return undefined;
@@ -118,7 +119,7 @@ function buildLoadSnapshots(results: CollectedResults): Array<Record<string, any
       ? Math.floor((pointTime - startedAt) / 1000)
       : index;
     snapshot.at = Math.max(0, elapsed || 0);
-    snapshotsBySecond.set(snapshot.at, snapshot);
+    snapshotsBySecond.set(snapshot.at, roundReportNumbersDeep(snapshot));
   });
   return Array.from(snapshotsBySecond.values()).sort((a, b) => Number(a.at || 0) - Number(b.at || 0));
 }
@@ -138,7 +139,10 @@ export function generateMmtReport(results: CollectedResults, options?: MmtReport
 
   const overview: Record<string, any> = {};
   if (results.suiteRun?.startedAt) {
-    overview.timestamp = new Date(results.suiteRun.startedAt).toISOString();
+    overview.started_at = new Date(results.suiteRun.startedAt).toISOString();
+  }
+  if (results.suiteRun?.finishedAt) {
+    overview.finished_at = new Date(results.suiteRun.finishedAt).toISOString();
   }
   overview.duration = formatDuration(
     results.suiteRun?.durationMs ?? runs.reduce((sum, r) => sum + (r.durationMs || 0), 0)
@@ -147,7 +151,7 @@ export function generateMmtReport(results: CollectedResults, options?: MmtReport
   if (isLoad && results.load) {
     report.overview = {
       ...overview,
-      ...(results.load.summary || {}),
+      ...roundReportNumbersDeep(results.load.summary || {}),
       errors: 0,
       skipped: 0,
     };
@@ -156,10 +160,10 @@ export function generateMmtReport(results: CollectedResults, options?: MmtReport
       const {started_at: _startedAt, finished_at: _finishedAt, ...config} = results.load.config;
       report.config = config;
     }
-    if (results.load.latency) { report.latency = results.load.latency; }
-    if (results.load.http) { report.http = results.load.http; }
-    if (results.load.thresholds) { report.thresholds = results.load.thresholds; }
-    if (results.load.errors) { report.errors = results.load.errors; }
+    if (results.load.latency) { report.latency = roundReportNumbersDeep(results.load.latency); }
+    if (results.load.http) { report.http = roundReportNumbersDeep(results.load.http); }
+    if (results.load.thresholds) { report.thresholds = roundReportNumbersDeep(results.load.thresholds); }
+    if (results.load.errors) { report.errors = roundReportNumbersDeep(results.load.errors); }
     const snapshots = buildLoadSnapshots(results);
     if (snapshots && snapshots.length > 0) {
       report.snapshots = snapshots;

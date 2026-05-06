@@ -103,7 +103,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.EnumMember,
             insertText: " report",
             detail: 'Test/suite run results',
-            documentation: 'Report file generated from test or suite runs. Contains summary (tests, passed, failed, errors, skipped), timestamp, duration, and per-suite/test step results.',
+            documentation: 'Report file generated from test or suite runs. Contains summary (tests, passed, failed, errors, skipped), started_at, duration, and per-suite/test step results.',
         },
     ]
     const testSuggestions = [
@@ -285,11 +285,11 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'Name of the report. Defaults to the suite path or "multimeter".',
         },
         {
-            label: "timestamp",
+            label: "started_at",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "timestamp: ",
-            detail: 'Run timestamp [ISO 8601]',
-            documentation: 'ISO 8601 timestamp of when the run started.\nExample: timestamp: 2026-03-07T08:04:43.553Z',
+            insertText: "started_at: ",
+            detail: 'Run start time [ISO 8601]',
+            documentation: 'ISO 8601 UTC time of when the run started.\nExample: started_at: 2026-03-07T08:04:43.553Z',
         },
         {
             label: "duration",

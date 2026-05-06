@@ -873,13 +873,17 @@ export const ReportSchema = {
         type: { type: 'string', enum: ['report'] },
         kind: { type: 'string', enum: ['functional', 'load'] },
         name: { type: 'string' },
+        started_at: { type: 'string' },
         timestamp: { type: 'string' },
         duration: { type: 'string' },
         cancelled: { type: 'boolean' },
         overview: {
             type: 'object',
             properties: {
+            started_at: { type: 'string' },
                 timestamp: { type: 'string' },
+            finished_at: { type: 'string' },
+            ended_at: { type: 'string' },
                 duration: { type: 'string' },
                 checks: { type: 'integer' },
                 tests: { type: 'integer' },
@@ -903,6 +907,10 @@ export const ReportSchema = {
         summary: {
             type: 'object',
             properties: {
+                started_at: { type: 'string' },
+                timestamp: { type: 'string' },
+                finished_at: { type: 'string' },
+                ended_at: { type: 'string' },
                 checks: { type: 'integer' },
                 tests: { type: 'integer' },
                 passed: { type: 'integer' },

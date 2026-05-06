@@ -205,8 +205,56 @@ describe('generateReportHtml', () => {
     };
 
     const html = generateReportHtml(results);
+    const reportIndex = html.indexOf('<div class="section-label report-section">Report</div>');
+    const metricsIndex = html.indexOf('Requests Sent:');
+    const chartsIndex = html.indexOf('Requests per second and Response time over time');
+    expect(metricsIndex).toBeGreaterThanOrEqual(0);
+    expect(reportIndex).toBeGreaterThan(metricsIndex);
+    expect(chartsIndex).toBeGreaterThan(metricsIndex);
+    expect(chartsIndex).toBeGreaterThan(reportIndex);
+    expect(html).toContain('<div class="section-label">Overview</div>');
+    expect(html).not.toContain('Load Metrics');
     expect(html).toContain('Requests per second and Response time over time');
     expect(html).toContain('Threads and Failures over time');
     expect(html).toContain('<svg');
+  });
+
+  it('shows start and end time in report overview and relative time in duration subtitle', () => {
+    const startedAt = Date.now() - (60 * 60 * 1000);
+    const finishedAt = startedAt + 3000;
+    const results: CollectedResults = {
+      type: 'suite',
+      suiteRun: {
+        runId: 'suite-1',
+        suitePath: 'suite.mmt',
+        startedAt,
+        finishedAt,
+        durationMs: 3000,
+        success: true,
+        totalRunnable: 1,
+        testRuns: [],
+      },
+      testRuns: [
+        makeRun({ displayName: 'test-a.mmt', steps: [makeStep({ title: 'a' })] }),
+      ],
+    };
+
+    const html = generateReportHtml(results);
+    const reportIndex = html.indexOf('<div class="section-label report-section">Report</div>');
+    const detailIndex = html.indexOf('Started at:');
+    const suiteIndex = html.indexOf('test-a.mmt');
+    expect(reportIndex).toBeGreaterThan(detailIndex);
+    expect(suiteIndex).toBeGreaterThan(reportIndex);
+    expect(html).toContain('<div class="section-label">Overview</div>');
+    expect(html).not.toContain('Overview Details');
+    expect(html).toContain('Started at:');
+    expect(html).toContain('Ended at:');
+    expect(html).toContain('Total checks:');
+    expect(html).toContain('Tests:');
+    expect(html).toContain(new Date(startedAt).toISOString());
+    expect(html).toContain(new Date(finishedAt).toISOString());
+    expect(html).toContain(`data-relative-time="${new Date(startedAt).toISOString()}"`);
+    expect(html).not.toContain(`data-relative-time="${startedAt}"`);
+    expect(html).toContain('ago');
   });
 });

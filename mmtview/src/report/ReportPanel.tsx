@@ -2,13 +2,14 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { parseYaml } from 'mmt-core/markupConvertor';
 import { formatDuration } from 'mmt-core/CommonData';
 import { parseReportMmt } from 'mmt-core/reportParser';
+import { formatReportRelativeTime } from 'mmt-core/reportFormat';
 import type { CollectedResults, TestRunResult } from 'mmt-core/reportCollector';
 import TestStepReportPanel, { StepReportItem } from '../shared/TestStepReportPanel';
 import type { StepStatus } from '../shared/types';
 import ExportReportButton, { ReportFormat } from '../shared/ExportReportButton';
 import OverviewBoxes from '../shared/OverviewBoxes';
 import { statusIconFor } from '../shared/Common';
-import LoadTestReport from '../loadtest/LoadTestReport';
+import LoadTestReport, { LoadMetricsOverview } from '../loadtest/LoadTestReport';
 
 interface ReportPanelProps {
   content: string;
@@ -29,6 +30,24 @@ function mapToStepReports(run: TestRunResult): StepReportItem[] {
 
 function runStateFromResult(run: TestRunResult): 'passed' | 'failed' {
   return run.result === 'passed' ? 'passed' : 'failed';
+}
+
+function formatOverviewDateTime(value: number | string | undefined): string | undefined {
+  if (value === undefined || value === '') {
+    return undefined;
+  }
+  const date = typeof value === 'number' ? new Date(value) : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+  return date.toISOString();
+}
+
+function formatOverviewRelativeTime(value: number | string | undefined): string | undefined {
+  if (value === undefined || value === '') {
+    return undefined;
+  }
+  return formatReportRelativeTime(value);
 }
 
 const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
@@ -73,6 +92,9 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
         runState: runs.length === 1 ? runStateFromResult(runs[0]) : 'passed',
         outputs: {},
         load: parsed.results.load,
+        startedAt: parsed.results.suiteRun?.startedAt,
+        durationMs: parsed.results.suiteRun?.durationMs,
+        suiteName: parsed.results.suiteRun?.suiteTitle || parsed.results.suiteRun?.suitePath,
       },
     });
   }, [parsed.results]);
@@ -102,24 +124,38 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
     ? formatDuration(results.suiteRun.durationMs)
     : undefined;
   const loadSummary = results.load?.summary;
+  const loadFailedRate = loadSummary?.requests ? (((loadSummary.failures ?? 0) / loadSummary.requests) * 100).toFixed(1) : '0.0';
+  const failedRate = totalTests > 0 ? ((totalFailed / totalTests) * 100).toFixed(1) : '0.0';
+  const startedAtText = formatOverviewDateTime(results.suiteRun?.startedAt || results.load?.config?.started_at);
+  const endedAtText = formatOverviewDateTime(results.suiteRun?.finishedAt || results.load?.config?.finished_at);
+  const startedAtRelative = formatOverviewRelativeTime(results.suiteRun?.startedAt || results.load?.config?.started_at);
   const overviewStats = isLoadReport ? {
     passed: loadSummary?.successes ?? 0,
     failed: loadSummary?.failures ?? 0,
     total: loadSummary?.requests ?? loadSummary?.iterations ?? 0,
     duration,
-    failedSub: 'load failures',
+    failedSub: `${loadFailedRate}%`,
     totalSub: `${loadSummary?.iterations ?? 0} iteration${loadSummary?.iterations === 1 ? '' : 's'}`,
-    durationSub: 'load test',
+    durationSub: startedAtRelative,
   } : {
     passed: totalPassed,
     failed: totalFailed,
     total: totalTests,
     duration,
-    failedSub: `${totalSuites} suite${totalSuites !== 1 ? 's' : ''}`,
-    totalSub: `${totalTests} check${totalTests !== 1 ? 's' : ''}`,
-    durationSub: `${totalSuites} file${totalSuites !== 1 ? 's' : ''}`,
+    failedSub: `${failedRate}%`,
+    totalSub: `${totalSuites} test${totalSuites !== 1 ? 's' : ''}`,
+    durationSub: startedAtRelative,
   };
-  const headerIcon = isLoadReport ? 'codicon-graph' : 'codicon-layers';
+  const overviewDetails = ([
+    ['Started at', startedAtText],
+    ['Ended at', endedAtText],
+    ['Duration', duration],
+    ['Passed', String(totalPassed)],
+    ['Failed', String(totalFailed)],
+    ['Total checks', String(totalTests)],
+    ['Tests', String(totalSuites)],
+  ] as Array<[string, string | undefined]>).filter(([, value]) => value !== undefined && value !== '');
+  const headerIcon = 'codicon-file-text';
   const headerSubtitle = isLoadReport ? 'Load report' : 'Functional report';
 
   return (
@@ -136,6 +172,31 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
       </div>
 
       <OverviewBoxes stats={overviewStats} />
+      {isLoadReport && results.load && (
+        <LoadMetricsOverview
+          load={results.load}
+          startedAt={results.suiteRun?.startedAt || results.load?.config?.started_at}
+          endedAt={results.suiteRun?.finishedAt || results.load?.config?.finished_at}
+        />
+      )}
+      {overviewDetails.length > 0 && !isLoadReport && (
+        <div style={{
+          borderRadius: 10,
+          background: 'var(--vscode-editor-background, rgba(40,40,40,0.8))',
+          border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.1))',
+          padding: 12,
+          margin: '-6px 0 12px',
+        }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
+            {overviewDetails.map(([label, value]) => (
+              <div key={label}>
+                <div style={{ fontSize: 10, opacity: 0.65, textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</div>
+                <div style={{ fontSize: 12, overflowWrap: 'anywhere' }}>{value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {isLoadReport && results.load && (
         <LoadTestReport load={results.load} />
@@ -227,6 +288,7 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
                   stepReports={reports}
                   runState={state}
                   showHeader={false}
+                  showTimestamps={false}
                 />
               </div>
             )}

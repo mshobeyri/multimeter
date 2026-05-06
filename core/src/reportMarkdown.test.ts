@@ -192,8 +192,19 @@ describe('generateReportMarkdown', () => {
   });
 
   it('renders load test Mermaid xy charts in Markdown reports', () => {
+    const startedAt = new Date('2026-05-05T10:00:00.000Z').getTime();
+    const finishedAt = new Date('2026-05-05T10:00:02.000Z').getTime();
     const results: CollectedResults = {
       type: 'loadtest',
+      suiteRun: {
+        runId: 'load-1',
+        startedAt,
+        finishedAt,
+        durationMs: 2000,
+        success: true,
+        totalRunnable: 1,
+        testRuns: [],
+      },
       testRuns: [],
       load: {
         summary: {iterations: 2, requests: 4, successes: 2, failures: 0, success_rate: 1, failed_rate: 0},
@@ -213,7 +224,35 @@ describe('generateReportMarkdown', () => {
     expect(md).toContain('Response time over time');
     expect(md).toContain('Failures over time');
     expect(md).toContain('Threads over time');
-    expect(md).toContain('| 0 | 1 | 1 | 1.00 | 10.00 | 0 | 0.00% |');
+    expect(md).toContain('| Started at | 2026-05-05T10:00:00.000Z |');
+    expect(md).toContain('| Ended at | 2026-05-05T10:00:02.000Z |');
+    expect(md).toContain('| 0 | 1 | 1 | 1 | 10 | 0 | 0% |');
     expect(md).not.toContain('## undefined');
+  });
+
+  it('shows absolute start and end time in overview', () => {
+    const startedAt = Date.now() - (60 * 60 * 1000);
+    const finishedAt = startedAt + 3000;
+    const results: CollectedResults = {
+      type: 'suite',
+      suiteRun: {
+        runId: 'suite-1',
+        suitePath: 'suite.mmt',
+        startedAt,
+        finishedAt,
+        durationMs: 3000,
+        success: true,
+        totalRunnable: 1,
+        testRuns: [],
+      },
+      testRuns: [
+        makeRun({ displayName: 'test-a.mmt', steps: [makeStep({ title: 'a' })] }),
+      ],
+    };
+
+    const md = generateReportMarkdown(results);
+    expect(md).toContain(`**Started at:** ${new Date(startedAt).toISOString()}`);
+    expect(md).toContain(`**Ended at:** ${new Date(finishedAt).toISOString()}`);
+    expect(md).not.toContain('**Started:**');
   });
 });

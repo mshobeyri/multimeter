@@ -17,6 +17,8 @@ interface LoadTestReportData {
     threads?: number;
     repeat?: string | number;
     rampup?: string;
+    started_at?: string;
+    finished_at?: string;
   };
   summary?: {
     iterations?: number;
@@ -27,6 +29,17 @@ interface LoadTestReportData {
     failed_rate?: number;
     error_rate?: number;
     throughput?: number;
+    data_received?: number;
+    data_sent?: number;
+  };
+  latency?: {
+    min?: number;
+    avg?: number;
+    med?: number;
+    max?: number;
+    p90?: number;
+    p95?: number;
+    p99?: number;
   };
   http?: {
     status_codes?: Record<string, number>;
@@ -53,12 +66,34 @@ function formatNumber(value: number | undefined, fractionDigits = 0): string {
   return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(fractionDigits) : '-';
 }
 
+function formatMetricNumber(value: number | undefined): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return '-';
+  }
+  return Number.isInteger(value) ? String(value) : value.toFixed(3);
+}
+
+function formatPercent(value: number | undefined): string {
+  return typeof value === 'number' && Number.isFinite(value) ? `${formatMetricNumber(value * 100)}%` : '-';
+}
+
+function formatDateTime(value: string | number | undefined): string {
+  if (!value) {
+    return '';
+  }
+  const date = typeof value === 'number' ? new Date(value) : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+  return date.toISOString();
+}
+
 function timeLabel(timestamp: string): string {
   const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) {
     return timestamp;
   }
-  return date.toLocaleTimeString([], { hour12: false, minute: '2-digit', second: '2-digit' });
+  return `${date.toISOString().slice(11, 19)}Z`;
 }
 
 interface ChartSeries {
@@ -196,6 +231,46 @@ function rightSeriesSafeMargin(series: ChartSeries[]): number {
   return series.some(item => item.axis === 'right') ? 58 : 28;
 }
 
+export const LoadMetricsOverview: React.FC<{ load: LoadTestReportData | null; startedAt?: number | string; endedAt?: number | string }> = ({ load, startedAt, endedAt }) => {
+  const summary = load?.summary || {};
+  const latency = load?.latency || {};
+  const rows = ([
+    ['Started at', formatDateTime(startedAt ?? load?.config?.started_at) || '-'],
+    ['Ended at', formatDateTime(endedAt ?? load?.config?.finished_at) || '-'],
+    ['Threads', formatMetricNumber(load?.config?.threads)],
+    ['Repeat', load?.config?.repeat != null ? String(load.config.repeat) : '-'],
+    ['Ramp-up', load?.config?.rampup || '-'],
+    ['Requests sent', formatMetricNumber(summary.requests)],
+    ['Iterations', formatMetricNumber(summary.iterations)],
+    ['Succeeded', formatMetricNumber(summary.successes)],
+    ['Failed', formatMetricNumber(summary.failures)],
+    ['Success rate', formatPercent(summary.success_rate)],
+    ['Failed rate', formatPercent(summary.failed_rate)],
+    ['Throughput', summary.throughput != null ? `${formatMetricNumber(summary.throughput)} req/s` : '-'],
+    ['Error rate', formatPercent(summary.error_rate)],
+    ['Latency avg', latency.avg != null ? `${formatMetricNumber(latency.avg)} ms` : '-'],
+    ['Latency p95', latency.p95 != null ? `${formatMetricNumber(latency.p95)} ms` : '-'],
+    ['Latency p99', latency.p99 != null ? `${formatMetricNumber(latency.p99)} ms` : '-'],
+  ] as Array<[string, string]>).filter(([, value]) => value !== '-');
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  return (
+    <div style={{ ...cardStyle, marginBottom: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
+        {rows.map(([label, value]) => (
+          <div key={label} style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 10, opacity: 0.65, textTransform: 'uppercase', letterSpacing: 0.4 }}>{label}</div>
+            <div style={{ fontSize: 12, overflowWrap: 'anywhere' }}>{value}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const LoadTestReport: React.FC<LoadTestReportProps> = ({ load }) => {
   const points = useMemo(() => {
     if (load?.snapshots) {
@@ -211,7 +286,7 @@ const LoadTestReport: React.FC<LoadTestReportProps> = ({ load }) => {
 
   return (
     <div style={{ marginTop: 4 }}>
-      <div className="label" style={{ marginBottom: 8 }}>Load Report</div>
+      <div className="label" style={{ marginBottom: 8 }}>Report</div>
       <LoadLineChart
         title="Requests per second and Response time over time"
         points={points}

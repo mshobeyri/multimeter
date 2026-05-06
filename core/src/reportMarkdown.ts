@@ -1,5 +1,6 @@
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
 import { formatDuration } from './CommonData';
+import {formatReportDateTime, formatReportNumber, formatReportPercent} from './reportFormat';
 
 export interface ReportMarkdownOptions {
   suiteName?: string;
@@ -167,21 +168,25 @@ function buildLoadSection(results: CollectedResults): string {
     return '';
   }
   const loadData = load;
+  const startedAt = results.suiteRun?.startedAt ?? loadData.config?.started_at;
+  const endedAt = results.suiteRun?.finishedAt ?? loadData.config?.finished_at;
   let md = `\n## Load Metrics\n\n`;
   md += `| Metric | Value |\n|--------|-------|\n`;
   const rows = [
+    ['Started at', formatReportDateTime(startedAt)],
+    ['Ended at', formatReportDateTime(endedAt)],
     ['Threads', loadData.config?.threads],
     ['Repeat', loadData.config?.repeat],
     ['Ramp-up', loadData.config?.rampup],
     ['Requests sent', loadData.summary?.requests],
     ['Succeeded', loadData.summary?.successes],
     ['Failed', loadData.summary?.failures],
-    ['Success rate', loadData.summary?.success_rate != null ? `${(loadData.summary.success_rate * 100).toFixed(2)}%` : undefined],
-    ['Failed rate', loadData.summary?.failed_rate != null ? `${(loadData.summary.failed_rate * 100).toFixed(2)}%` : undefined],
-    ['Throughput', loadData.summary?.throughput != null ? `${loadData.summary.throughput} req/s` : undefined],
-    ['Error rate', loadData.summary?.error_rate != null ? `${(loadData.summary.error_rate * 100).toFixed(2)}%` : undefined],
-    ['Latency p95', loadData.latency?.p95 != null ? `${loadData.latency.p95} ms` : undefined],
-    ['Latency p99', loadData.latency?.p99 != null ? `${loadData.latency.p99} ms` : undefined],
+    ['Success rate', loadData.summary?.success_rate != null ? formatReportPercent(loadData.summary.success_rate) : undefined],
+    ['Failed rate', loadData.summary?.failed_rate != null ? formatReportPercent(loadData.summary.failed_rate) : undefined],
+    ['Throughput', loadData.summary?.throughput != null ? `${formatReportNumber(loadData.summary.throughput)} req/s` : undefined],
+    ['Error rate', loadData.summary?.error_rate != null ? formatReportPercent(loadData.summary.error_rate) : undefined],
+    ['Latency p95', loadData.latency?.p95 != null ? `${formatReportNumber(loadData.latency.p95)} ms` : undefined],
+    ['Latency p99', loadData.latency?.p99 != null ? `${formatReportNumber(loadData.latency.p99)} ms` : undefined],
   ] as Array<[string, any]>;
   for (const [name, value] of rows) {
     if (value !== undefined && value !== null && value !== '') {
@@ -193,26 +198,26 @@ function buildLoadSection(results: CollectedResults): string {
     md += buildLoadMermaidCharts(points);
     md += `\n### Snapshots\n\n| At | Threads | Requests | Requests/sec | Response time | Failures | Failure rate |\n|----|---------|----------|--------------|---------------|----------|--------------|\n`;
     for (const point of points) {
-      md += `| ${point.at} | ${point.active_threads ?? ''} | ${point.requests ?? ''} | ${point.throughput != null ? point.throughput.toFixed(2) : ''} | ${point.response_time != null ? point.response_time.toFixed(2) : ''} | ${point.errors ?? ''} | ${point.error_rate != null ? `${(point.error_rate * 100).toFixed(2)}%` : ''} |\n`;
+      md += `| ${point.at} | ${point.active_threads ?? ''} | ${point.requests ?? ''} | ${point.throughput != null ? formatReportNumber(point.throughput) : ''} | ${point.response_time != null ? formatReportNumber(point.response_time) : ''} | ${point.errors ?? ''} | ${point.error_rate != null ? formatReportPercent(point.error_rate) : ''} |\n`;
     }
   }
   if (loadData.thresholds && loadData.thresholds.length > 0) {
     md += `\n### Thresholds\n\n| Name | Expression | Actual | Result |\n|------|------------|--------|--------|\n`;
     for (const threshold of loadData.thresholds) {
-      md += `| ${escapeMdTable(threshold.name)} | ${escapeMdTable(threshold.expression || '')} | ${threshold.actual ?? ''} | ${threshold.result} |\n`;
+      md += `| ${escapeMdTable(threshold.name)} | ${escapeMdTable(threshold.expression || '')} | ${typeof threshold.actual === 'number' ? formatReportNumber(threshold.actual) : threshold.actual ?? ''} | ${threshold.result} |\n`;
     }
   }
   if (loadData.errors && loadData.errors.length > 0) {
     md += `\n### Errors\n\n| Message | Count | Rate |\n|---------|-------|------|\n`;
     for (const err of loadData.errors) {
-      md += `| ${escapeMdTable(err.message)} | ${err.count} | ${err.rate ?? ''} |\n`;
+      md += `| ${escapeMdTable(err.message)} | ${err.count} | ${typeof err.rate === 'number' ? formatReportNumber(err.rate) : err.rate ?? ''} |\n`;
     }
   }
   return md;
 }
 
 function mermaidValues(values: number[]): string {
-  return values.map(value => Number.isFinite(value) ? Number(value.toFixed(2)) : 0).join(', ');
+  return values.map(value => Number.isFinite(value) ? Number(formatReportNumber(value)) : 0).join(', ');
 }
 
 function buildLoadMermaidChart(title: string, yAxis: string, labels: string[], values: number[]): string {
@@ -244,13 +249,18 @@ export function generateReportMarkdown(results: CollectedResults, options?: Repo
   const totalTime = formatDuration(
     results.suiteRun?.durationMs ?? runs.reduce((sum, r) => sum + (r.durationMs || 0), 0)
   );
+  const timestamp = results.suiteRun?.startedAt ?? results.load?.config?.started_at;
+  const endedAt = results.suiteRun?.finishedAt ?? results.load?.config?.finished_at;
 
   let md = `# Test Report: ${suiteName}\n\n`;
 
   md += `## Overview\n\n`;
 
-  if (results.suiteRun?.startedAt) {
-    md += `**Timestamp:** ${new Date(results.suiteRun.startedAt).toISOString()}  \n`;
+  if (timestamp) {
+    md += `**Started at:** ${formatReportDateTime(timestamp)}  \n`;
+  }
+  if (endedAt) {
+    md += `**Ended at:** ${formatReportDateTime(endedAt)}  \n`;
   }
   md += `**Duration:** ${totalTime}  \n`;
   if (isLoad) {

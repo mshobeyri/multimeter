@@ -329,10 +329,11 @@ interface TestStepReportPanelProps {
   runButtonLabel?: string;
   disabledRun?: boolean;
   showHeader?: boolean;
+  showTimestamps?: boolean;
 }
 
 const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
-  const { isExpanded, stepReports, runState, onRun, runButtonLabel, disabledRun, showHeader = true } = props;
+  const { isExpanded, stepReports, runState, onRun, runButtonLabel, disabledRun, showHeader = true, showTimestamps = true } = props;
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
   const stepCountRef = useRef(0);
 
@@ -452,7 +453,7 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                           <span className={`codicon ${isDetailsExpanded ? 'codicon-circle-filled' : 'codicon-circle-outline'}`} />
                         </button>
                       )}
-                      <span style={{ opacity: 0.7, fontSize: 12 }}>{new Date(report.timestamp).toLocaleTimeString()}</span>
+                      {showTimestamps && <span style={{ opacity: 0.7, fontSize: 12 }}>{new Date(report.timestamp).toLocaleTimeString()}</span>}
                     </div>
 
                     {isDetailsExpanded && (

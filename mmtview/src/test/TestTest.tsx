@@ -1,6 +1,7 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { TestData } from 'mmt-core/TestData';
 import { JSONRecord, formatDuration } from 'mmt-core/CommonData';
+import { formatReportRelativeTime } from 'mmt-core/reportFormat';
 import { resolveEnvTokenValues } from 'mmt-core/variableReplacer';
 
 import { FileContext } from '../fileContext';
@@ -29,6 +30,7 @@ const TestTest: React.FC<TestTestProps> = (props) => {
     const currentInputsRef = useRef<JSONRecord>({});
     const [outputs, setOutputs] = useState<JSONRecord>({});
     const runStartTimeRef = useRef<number | null>(null);
+    const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
     const [runDurationMs, setRunDurationMs] = useState<number | null>(null);
 
     const inputKeys = useMemo(() => {
@@ -104,7 +106,9 @@ const TestTest: React.FC<TestTestProps> = (props) => {
         setStepReports([]);
         setOutputs({});
         setRunState('running');
-        runStartTimeRef.current = Date.now();
+        const startedAt = Date.now();
+        runStartTimeRef.current = startedAt;
+        setRunStartedAt(startedAt);
         setRunDurationMs(null);
         window.vscode?.postMessage({
             command: 'runCurrentDocument',
@@ -253,10 +257,11 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                 outputs,
                 filePath: mmtFilePath,
                 durationMs: runDurationMs,
+                startedAt: runStartedAt,
                 testTitle: props.testData.title,
             },
         });
-    }, [stepReports, runState, outputs, mmtFilePath, runDurationMs, props.testData.title]);
+    }, [stepReports, runState, outputs, mmtFilePath, runStartedAt, runDurationMs, props.testData.title]);
 
     const exportDisabled = runState === 'running' || stepReports.length === 0;
 
@@ -283,14 +288,16 @@ const TestTest: React.FC<TestTestProps> = (props) => {
         const failed = stepReports.filter(r => r.status === 'failed').length;
         const total = stepReports.length;
         const duration = runDurationMs != null ? formatDuration(runDurationMs) : undefined;
+        const date = runStartedAt != null ? formatReportRelativeTime(runStartedAt) : undefined;
         return {
             passed,
             failed,
             total,
             duration,
             totalSub: `${total} check${total !== 1 ? 's' : ''}`,
+            durationSub: date,
         };
-    }, [stepReports, runState, runDurationMs]);
+    }, [stepReports, runState, runStartedAt, runDurationMs]);
 
     return (
         <div style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>

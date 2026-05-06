@@ -13,14 +13,16 @@ export function parseReportMmt(doc: Record<string, any>): CollectedResults {
   const testRuns: TestRunResult[] = checkEntries.map((suite, i) => parseSuiteEntry(suite, i));
   const load = doc.kind === 'load' ? parseLoadData(doc) : undefined;
   const overview = doc.overview && typeof doc.overview === 'object' ? doc.overview : (doc.summary || {});
+  const startedAtValue = overview.started_at ?? overview.timestamp ?? doc.started_at ?? doc.timestamp;
 
-  const hasSuiteMeta = overview.timestamp != null || doc.timestamp != null || overview.duration != null || doc.duration != null || checkEntries.length > 1;
+  const hasSuiteMeta = startedAtValue != null || overview.duration != null || doc.duration != null || overview.finished_at != null || overview.ended_at != null || checkEntries.length > 1;
 
   if (hasSuiteMeta || checkEntries.length > 1) {
     const suiteRun: SuiteRunResult = {
       runId: 'report',
       suitePath: doc.name,
-      startedAt: overview.timestamp ? new Date(overview.timestamp).getTime() : doc.timestamp ? new Date(doc.timestamp).getTime() : 0,
+      startedAt: startedAtValue ? new Date(startedAtValue).getTime() : 0,
+      finishedAt: overview.finished_at ? new Date(overview.finished_at).getTime() : overview.ended_at ? new Date(overview.ended_at).getTime() : undefined,
       durationMs: parseDurationMs(overview.duration ?? doc.duration),
       success: overview ? (overview.failed || overview.failures || 0) === 0 : testRuns.every(r => r.result === 'passed'),
       cancelled: doc.cancelled === true ? true : undefined,
@@ -97,7 +99,7 @@ function parseLoadData(doc: Record<string, any>): CollectedResults['load'] {
   if (doc.errors) { load.errors = doc.errors; }
   if (Array.isArray(doc.snapshots)) {
     load.snapshots = doc.snapshots;
-    const startValue = overview?.timestamp || doc.timestamp;
+    const startValue = overview?.started_at || overview?.timestamp || doc.started_at || doc.timestamp;
     const start = startValue ? new Date(startValue).getTime() : undefined;
     load.series = doc.snapshots.map((snapshot: any) => {
       const at = Number(snapshot.at || 0);

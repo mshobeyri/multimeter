@@ -5,6 +5,7 @@ import {basename, PreparedRun, resolveRelativeTo, RunFileResult, runGeneratedJs,
 import {generateTestJs, prepareTestRun} from './runTest';
 import {RunFileOptions, RunReporterMessage, RunResult, TestOutputsReporterEvent, TestRunSummaryEvent, TestStepReporterEvent} from './runConfig';
 import {formatDuration} from './CommonData';
+import {roundReportNumber} from './reportFormat';
 
 const LOADTEST_ITEM_ID = 'loadtest-test-0';
 const LOADTEST_STATUS_LOG_INTERVAL_MS = 5000;
@@ -20,7 +21,7 @@ function formatLoadSummaryLine(params: {
 }): string {
   const {elapsedMs, activeThreads, configuredThreads, completed, failed, requests, throughput} = params;
   const passed = Math.max(0, completed - failed);
-  return `Load summary: duration=${formatDuration(elapsedMs)}, active_threads=${activeThreads}/${configuredThreads}, iterations=${completed}, passed=${passed}, failed=${failed}, requests=${requests}, rps=${throughput.toFixed(2)}`;
+  return `Load summary: duration=${formatDuration(elapsedMs)}, active_threads=${activeThreads}/${configuredThreads}, iterations=${completed}, passed=${passed}, failed=${failed}, requests=${requests}, rps=${roundReportNumber(throughput).toFixed(3)}`;
 }
 
 function parseDurationMs(value: unknown): number | undefined {
@@ -219,10 +220,10 @@ export async function executeLoadTest(
         requests,
         successes,
         failures,
-        success_rate: completed > 0 ? successes / completed : 0,
-        failed_rate: completed > 0 ? failures / completed : 0,
-        error_rate: completed > 0 ? failures / completed : 0,
-        throughput: durationMs > 0 ? requests / (durationMs / 1000) : requests,
+        success_rate: roundReportNumber(completed > 0 ? successes / completed : 0),
+        failed_rate: roundReportNumber(completed > 0 ? failures / completed : 0),
+        error_rate: roundReportNumber(completed > 0 ? failures / completed : 0),
+        throughput: roundReportNumber(durationMs > 0 ? requests / (durationMs / 1000) : requests),
       },
       http: Object.keys(statusCodes).length > 0 ? {
         status_codes: {...statusCodes},
@@ -251,9 +252,9 @@ export async function executeLoadTest(
       requests: currentRequests,
       errors: currentFailures,
       error_delta: failureDelta,
-      throughput: requestDelta / elapsedSeconds,
-      response_time: responseTimeCountDelta > 0 ? responseTimeDelta / responseTimeCountDelta : undefined,
-      error_rate: completed > 0 ? currentFailures / completed : 0,
+      throughput: roundReportNumber(requestDelta / elapsedSeconds),
+      response_time: responseTimeCountDelta > 0 ? roundReportNumber(responseTimeDelta / responseTimeCountDelta) : undefined,
+      error_rate: roundReportNumber(completed > 0 ? currentFailures / completed : 0),
     });
     lastSeriesAt = now;
     lastSeriesRequests = currentRequests;
@@ -275,7 +276,7 @@ export async function executeLoadTest(
         completed,
         failed: currentFailures,
         requests: currentRequests,
-        throughput: requestDelta / elapsedSeconds,
+        throughput: roundReportNumber(requestDelta / elapsedSeconds),
       }));
     }
   };
@@ -461,7 +462,7 @@ export async function executeLoadTest(
 
   emitLoadSummary(true);
   const load = buildLoadResult(finishedAt);
-  loadLogger('info', `Load result: success=${success}, iterations=${completed}, passed=${Math.max(0, completed - failed)}, failed=${failed}, requests=${load.summary?.requests ?? completed}, avg_rps=${(load.summary?.throughput ?? 0).toFixed(2)}`);
+  loadLogger('info', `Load result: success=${success}, iterations=${completed}, passed=${Math.max(0, completed - failed)}, failed=${failed}, requests=${load.summary?.requests ?? completed}, avg_rps=${(load.summary?.throughput ?? 0).toFixed(3)}`);
 
   emit({
     scope: 'suite-item',

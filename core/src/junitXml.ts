@@ -1,4 +1,5 @@
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
+import {formatReportNumber, roundReportNumbersDeep} from './reportFormat';
 
 export function escapeXml(s: string): string {
   return String(s)
@@ -93,7 +94,7 @@ function getLoadSnapshots(results: CollectedResults): Array<Record<string, any>>
     return [];
   }
   if (Array.isArray(load.snapshots)) {
-    return load.snapshots.map(point => ({...point}));
+    return load.snapshots.map(point => roundReportNumbersDeep({...point}));
   }
   if (!Array.isArray(load.series)) {
     return [];
@@ -106,7 +107,7 @@ function getLoadSnapshots(results: CollectedResults): Array<Record<string, any>>
       : index;
     const snapshot: Record<string, any> = {...point, at};
     delete snapshot.timestamp;
-    return snapshot;
+    return roundReportNumbersDeep(snapshot);
   });
 }
 
@@ -155,7 +156,8 @@ export function generateJunitXml(results: CollectedResults, options?: JunitXmlOp
       });
       for (const [name, value] of loadProps) {
         if (value !== undefined && value !== null && value !== '') {
-          xml += `        <property name="${escapeXml(name)}" value="${escapeXml(String(value))}"/>\n`;
+          const formattedValue = typeof value === 'number' ? formatReportNumber(value) : String(value);
+          xml += `        <property name="${escapeXml(name)}" value="${escapeXml(formattedValue)}"/>\n`;
         }
       }
     }
