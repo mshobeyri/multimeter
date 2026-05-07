@@ -7,6 +7,7 @@ import {
   findMultilineDescriptionProblems,
   findStageAfterProblems,
   findAuthProblems,
+  extractSuiteTestLineInfo,
 } from './validator';
 
 describe('token site extraction', () => {
@@ -74,6 +75,25 @@ describe('validator test call checks', () => {
     const doc = buildDoc(content);
     const problems = findTestCallInputsProblems(content, doc, 'test', {foo: ['id']});
     expect(problems).toHaveLength(0);
+  });
+});
+
+describe('suite file reference extraction', () => {
+  it('extracts suite-level servers and tests for missing file markers', () => {
+    const content = [
+      'type: suite',
+      'servers:',
+      '  - mocks/missing-server.mmt',
+      'tests:',
+      '  - then',
+      '  - tests/login.mmt',
+    ].join('\n');
+    const doc = parseDocument(content);
+    const refs = extractSuiteTestLineInfo(doc, content);
+    expect(refs).toEqual([
+      {path: 'mocks/missing-server.mmt', line: 3},
+      {path: 'tests/login.mmt', line: 6},
+    ]);
   });
 });
 

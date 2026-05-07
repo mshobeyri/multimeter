@@ -850,6 +850,34 @@ export type SuiteTestLineInfo = {
   line: number;
 };
 
+function extractStringSequenceLineInfo(
+  doc: any,
+  content: string,
+  key: string,
+  options?: {skipThen?: boolean}
+): SuiteTestLineInfo[] {
+  const items: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
+  const pair = items.find((entry) => entry?.key?.value === key);
+  if (!pair || !pair.value) {
+    return [];
+  }
+  const seqItems: any[] = Array.isArray(pair.value.items) ? pair.value.items : [];
+  return seqItems
+    .map((item) => {
+      const path = typeof item?.value === "string" ? item.value : undefined;
+      if (!path || (options?.skipThen && path === 'then')) {
+        return null;
+      }
+      const offset =
+        Array.isArray(item?.range) && typeof item.range[0] === "number"
+          ? item.range[0]
+          : undefined;
+      const line = typeof offset === "number" ? offsetToLineNumber(content, offset) : 1;
+      return { path, line } as SuiteTestLineInfo;
+    })
+    .filter(Boolean) as SuiteTestLineInfo[];
+}
+
 export function extractSuiteTestLineInfo(doc: any, content: string): SuiteTestLineInfo[] {
   const items: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
   const testPair = items.find((entry) => entry?.key?.value === "test");
@@ -865,25 +893,10 @@ export function extractSuiteTestLineInfo(doc: any, content: string): SuiteTestLi
     const line = typeof offset === 'number' ? offsetToLineNumber(content, offset) : 1;
     return [{ path, line }];
   }
-  const testsPair = items.find((entry) => entry?.key?.value === "tests");
-  if (!testsPair || !testsPair.value) {
-    return [];
-  }
-  const seqItems: any[] = Array.isArray(testsPair.value.items) ? testsPair.value.items : [];
-  return seqItems
-    .map((item) => {
-      const path = typeof item?.value === "string" ? item.value : undefined;
-      if (!path || path === 'then') {
-        return null;
-      }
-      const offset =
-        Array.isArray(item?.range) && typeof item.range[0] === "number"
-          ? item.range[0]
-          : undefined;
-      const line = typeof offset === "number" ? offsetToLineNumber(content, offset) : 1;
-      return { path, line } as SuiteTestLineInfo;
-    })
-    .filter(Boolean) as SuiteTestLineInfo[];
+  return [
+    ...extractStringSequenceLineInfo(doc, content, "servers"),
+    ...extractStringSequenceLineInfo(doc, content, "tests", {skipThen: true}),
+  ];
 }
 
 

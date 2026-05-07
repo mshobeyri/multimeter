@@ -7,6 +7,51 @@ function uniqStrings(values: string[]): string[] {
   return Array.from(new Set(values));
 }
 
+function collectStringSequenceItems(
+  rootItems: any[],
+  content: string,
+  key: string,
+  options?: {skipThen?: boolean}
+) {
+  const pair = rootItems.find((item) => item?.key?.value === key);
+  const seqItems: any[] = Array.isArray(pair?.value?.items) ? pair.value.items : [];
+  const positions = new Map<string, {line: number; column: number}>();
+  const paths: string[] = [];
+
+  for (const entry of seqItems) {
+    const value = entry?.value;
+    if (typeof value !== 'string') {
+      continue;
+    }
+    const trimmed = value.trim();
+    if (!trimmed || (options?.skipThen && trimmed === 'then')) {
+      continue;
+    }
+    paths.push(trimmed);
+
+    const offset = Array.isArray(entry?.range) && typeof entry.range[0] === 'number' ? entry.range[0] : undefined;
+    if (typeof offset === 'number') {
+      const pre = content.slice(0, offset);
+      const line = pre.split('\n').length;
+      const lastNl = pre.lastIndexOf('\n');
+      const column = lastNl >= 0 ? pre.length - lastNl : pre.length + 1;
+      if (!positions.has(trimmed)) {
+        positions.set(trimmed, {line, column});
+      }
+    }
+  }
+
+  return {paths, positions};
+}
+
+function mergePositions(target: Map<string, {line: number; column: number}>, source: Map<string, {line: number; column: number}>) {
+  source.forEach((position, path) => {
+    if (!target.has(path)) {
+      target.set(path, position);
+    }
+  });
+}
+
 function extractSuiteTestItems(docType: string | null, content: string) {
   if (docType !== 'suite' && docType !== 'loadtest') {
     return {paths: [] as string[], positions: new Map<string, {line: number; column: number}>()};
@@ -37,34 +82,13 @@ function extractSuiteTestItems(docType: string | null, content: string) {
     }
     return {paths: [value], positions};
   }
-  const testsPair = rootItems.find((item) => item?.key?.value === 'tests');
-  const seqItems: any[] = Array.isArray(testsPair?.value?.items) ? testsPair.value.items : [];
-
   const positions = new Map<string, {line: number; column: number}>();
   const paths: string[] = [];
-
-  for (const entry of seqItems) {
-    const value = entry?.value;
-    if (typeof value !== 'string') {
-      continue;
-    }
-    const trimmed = value.trim();
-    if (!trimmed || trimmed === 'then') {
-      continue;
-    }
-    paths.push(trimmed);
-
-    const offset = Array.isArray(entry?.range) && typeof entry.range[0] === 'number' ? entry.range[0] : undefined;
-    if (typeof offset === 'number') {
-      const pre = content.slice(0, offset);
-      const line = pre.split('\n').length;
-      const lastNl = pre.lastIndexOf('\n');
-      const column = lastNl >= 0 ? pre.length - lastNl : pre.length + 1;
-      if (!positions.has(trimmed)) {
-        positions.set(trimmed, {line, column});
-      }
-    }
-  }
+  const serverItems = collectStringSequenceItems(rootItems, content, 'servers');
+  const testItems = collectStringSequenceItems(rootItems, content, 'tests', {skipThen: true});
+  paths.push(...serverItems.paths, ...testItems.paths);
+  mergePositions(positions, serverItems.positions);
+  mergePositions(positions, testItems.positions);
 
   return {paths: uniqStrings(paths), positions};
 }
@@ -85,9 +109,7 @@ export function useSuiteTestsValidation(docType: string | null, content: string)
       setMissingSuiteFiles([]);
       return;
     }
-
-    const requestId = Date.now();
-    pendingIdRef.current = requestId;
+    const vscodeApi = window.vscode;
 
     const listener = (event: MessageEvent) => {
       const message = event.data;
@@ -115,14 +137,22 @@ export function useSuiteTestsValidation(docType: string | null, content: string)
       setMissingSuiteFiles(formatted);
     };
 
+    const requestValidation = () => {
+      const requestId = pendingIdRef.current + 1;
+      pendingIdRef.current = requestId;
+      vscodeApi.postMessage({
+        command: 'validateFilesExist',
+        requestId,
+        files: paths,
+      });
+    };
+
     window.addEventListener('message', listener);
-    window.vscode.postMessage({
-      command: 'validateFilesExist',
-      requestId,
-      files: paths,
-    });
+    requestValidation();
+    const intervalId = window.setInterval(requestValidation, 300);
 
     return () => {
+      window.clearInterval(intervalId);
       window.removeEventListener('message', listener);
     };
   }, [docType, paths, positions]);
