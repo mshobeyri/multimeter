@@ -1,4 +1,5 @@
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
+import {formatReportNumber, roundReportNumbersDeep} from './reportFormat';
 
 export function escapeXml(s: string): string {
   return String(s)
@@ -87,6 +88,29 @@ function buildTestsuite(run: TestRunResult, index: number): string {
   return xml;
 }
 
+function getLoadSnapshots(results: CollectedResults): Array<Record<string, any>> {
+  const load = results.load;
+  if (!load) {
+    return [];
+  }
+  if (Array.isArray(load.snapshots)) {
+    return load.snapshots.map(point => roundReportNumbersDeep({...point}));
+  }
+  if (!Array.isArray(load.series)) {
+    return [];
+  }
+  const startedAt = results.suiteRun?.startedAt || (load.config?.started_at ? new Date(load.config.started_at).getTime() : undefined);
+  return load.series.map((point, index) => {
+    const pointTime = point.timestamp ? new Date(point.timestamp).getTime() : undefined;
+    const at = startedAt && pointTime && Number.isFinite(pointTime)
+      ? Math.max(0, Math.floor((pointTime - startedAt) / 1000))
+      : index;
+    const snapshot: Record<string, any> = {...point, at};
+    delete snapshot.timestamp;
+    return roundReportNumbersDeep(snapshot);
+  });
+}
+
 export function generateJunitXml(results: CollectedResults, options?: JunitXmlOptions): string {
   const runs = results.testRuns;
   const suiteName = escapeXml(options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || results.testRuns[0]?.displayName || 'Test Report');
@@ -100,9 +124,43 @@ export function generateJunitXml(results: CollectedResults, options?: JunitXmlOp
   let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
   xml += `<testsuites name="${suiteName}" tests="${totalTests}" failures="${totalFailures}" errors="0" skipped="0" time="${totalTime}"${timestamp}>\n`;
 
-  if (results.suiteRun?.cancelled) {
+  if (results.suiteRun?.cancelled || results.load) {
     xml += `    <properties>\n`;
-    xml += `        <property name="cancelled" value="true"/>\n`;
+    if (results.suiteRun?.cancelled) {
+      xml += `        <property name="cancelled" value="true"/>\n`;
+    }
+    if (results.load) {
+      const loadProps: Array<[string, any]> = [
+        ['load.threads', results.load.config?.threads],
+        ['load.repeat', results.load.config?.repeat],
+        ['load.rampup', results.load.config?.rampup],
+        ['load.requests', results.load.summary?.requests],
+        ['load.successes', results.load.summary?.successes],
+        ['load.failures', results.load.summary?.failures],
+        ['load.success_rate', results.load.summary?.success_rate],
+        ['load.failed_rate', results.load.summary?.failed_rate],
+        ['load.throughput', results.load.summary?.throughput],
+        ['load.error_rate', results.load.summary?.error_rate],
+        ['load.latency.p95', results.load.latency?.p95],
+        ['load.latency.p99', results.load.latency?.p99],
+      ];
+      getLoadSnapshots(results).forEach((point, index) => {
+        loadProps.push([`load.snapshots.${index}.at`, point.at]);
+        loadProps.push([`load.snapshots.${index}.active_threads`, point.active_threads]);
+        loadProps.push([`load.snapshots.${index}.requests`, point.requests]);
+        loadProps.push([`load.snapshots.${index}.throughput`, point.throughput]);
+        loadProps.push([`load.snapshots.${index}.response_time`, point.response_time]);
+        loadProps.push([`load.snapshots.${index}.errors`, point.errors]);
+        loadProps.push([`load.snapshots.${index}.error_delta`, point.error_delta]);
+        loadProps.push([`load.snapshots.${index}.error_rate`, point.error_rate]);
+      });
+      for (const [name, value] of loadProps) {
+        if (value !== undefined && value !== null && value !== '') {
+          const formattedValue = typeof value === 'number' ? formatReportNumber(value) : String(value);
+          xml += `        <property name="${escapeXml(name)}" value="${escapeXml(formattedValue)}"/>\n`;
+        }
+      }
+    }
     xml += `    </properties>\n`;
   }
 

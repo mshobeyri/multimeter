@@ -72,6 +72,20 @@ describe('generateReportHtml', () => {
     expect(html).toContain('<section class="suite">');
   });
 
+  it('uses a suite icon for suite-only rows', () => {
+    const results: CollectedResults = {
+      type: 'suite',
+      testRuns: [
+        makeRun({ displayName: 'nested-suite.mmt', docType: 'suite', steps: [] }),
+      ],
+    };
+
+    const html = generateReportHtml(results);
+    expect(html).toContain('title="Suite"');
+    expect(html).toContain('suite-layers-icon');
+    expect(html).not.toContain('>✓</span> nested-suite.mmt');
+  });
+
   it('includes failure details with actual/expected', () => {
     const results: CollectedResults = {
       type: 'test',
@@ -174,5 +188,73 @@ describe('generateReportHtml', () => {
     expect(html).toContain('Powered by');
     expect(html).toContain('Multimeter');
     expect(html).toContain('report-footer');
+  });
+
+  it('renders load test charts in HTML reports', () => {
+    const results: CollectedResults = {
+      type: 'loadtest',
+      testRuns: [],
+      load: {
+        summary: {iterations: 2, requests: 4, successes: 2, failures: 0, success_rate: 1, failed_rate: 0},
+        config: {threads: 2, repeat: 2, rampup: '0s'},
+        series: [
+          {timestamp: '2026-05-05T10:00:00.000Z', active_threads: 1, requests: 1, throughput: 1, response_time: 10, errors: 0, error_rate: 0},
+          {timestamp: '2026-05-05T10:00:01.000Z', active_threads: 2, requests: 4, throughput: 3, response_time: 12, errors: 0, error_rate: 0},
+        ],
+      },
+    };
+
+    const html = generateReportHtml(results);
+    const reportIndex = html.indexOf('<div class="section-label report-section">Report</div>');
+    const metricsIndex = html.indexOf('Requests Sent:');
+    const chartsIndex = html.indexOf('Requests per second and Response time over time');
+    expect(metricsIndex).toBeGreaterThanOrEqual(0);
+    expect(reportIndex).toBeGreaterThan(metricsIndex);
+    expect(chartsIndex).toBeGreaterThan(metricsIndex);
+    expect(chartsIndex).toBeGreaterThan(reportIndex);
+    expect(html).toContain('<div class="section-label">Overview</div>');
+    expect(html).not.toContain('Load Metrics');
+    expect(html).toContain('Requests per second and Response time over time');
+    expect(html).toContain('Threads and Failures over time');
+    expect(html).toContain('<svg');
+  });
+
+  it('shows start and end time in report overview and relative time in duration subtitle', () => {
+    const startedAt = Date.now() - (60 * 60 * 1000);
+    const finishedAt = startedAt + 3000;
+    const results: CollectedResults = {
+      type: 'suite',
+      suiteRun: {
+        runId: 'suite-1',
+        suitePath: 'suite.mmt',
+        startedAt,
+        finishedAt,
+        durationMs: 3000,
+        success: true,
+        totalRunnable: 1,
+        testRuns: [],
+      },
+      testRuns: [
+        makeRun({ displayName: 'test-a.mmt', steps: [makeStep({ title: 'a' })] }),
+      ],
+    };
+
+    const html = generateReportHtml(results);
+    const reportIndex = html.indexOf('<div class="section-label report-section">Report</div>');
+    const detailIndex = html.indexOf('Started at:');
+    const suiteIndex = html.indexOf('test-a.mmt');
+    expect(reportIndex).toBeGreaterThan(detailIndex);
+    expect(suiteIndex).toBeGreaterThan(reportIndex);
+    expect(html).toContain('<div class="section-label">Overview</div>');
+    expect(html).not.toContain('Overview Details');
+    expect(html).toContain('Started at:');
+    expect(html).toContain('Ended at:');
+    expect(html).toContain('Total checks:');
+    expect(html).toContain('Tests:');
+    expect(html).toContain(new Date(startedAt).toISOString());
+    expect(html).toContain(new Date(finishedAt).toISOString());
+    expect(html).toContain(`data-relative-time="${new Date(startedAt).toISOString()}"`);
+    expect(html).not.toContain(`data-relative-time="${startedAt}"`);
+    expect(html).toContain('ago');
   });
 });

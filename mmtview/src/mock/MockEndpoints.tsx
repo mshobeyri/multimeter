@@ -4,6 +4,7 @@ import { parseYamlDoc } from "mmt-core/markupConvertor";
 import MockEndpointBox, { METHOD_COLORS } from "./MockEndpointBox";
 import TextEditor from "../text/TextEditor";
 import { ControlledTreeEnvironment, Tree, DraggingPosition, DraggingPositionBetweenItems } from 'react-complex-tree';
+import { canonicalizeMockYaml } from "./mockYaml";
 
 // Transparent drag image to remove native ghost preview while preserving drop lines
 let dragPreviewEl: HTMLDivElement | null = null;
@@ -101,7 +102,7 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
       } else {
         fb.set(key, value);
       }
-      setContent(doc.toString());
+      setContent(canonicalizeMockYaml(doc.toString()));
     } catch { /* ignore */ }
   }, [content, setContent]);
   const contentRef = React.useRef(content);
@@ -154,7 +155,7 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
       const doc = parseYamlDoc(contentRef.current);
       doc.set('endpoints', doc.createNode(newEndpoints));
       internalChangeRef.current = true;
-      setContent(doc.toString());
+      setContent(canonicalizeMockYaml(doc.toString()));
     } catch (e) {
       console.error('Failed to commit endpoints:', e);
     }

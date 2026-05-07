@@ -79,3 +79,15 @@ See also: [API Testing Documentation](api-mmt.md)
 Demonstrates using the Test Generation Reference to scaffold API and test files via AI assistance, converting descriptions or external specs (OpenAPI/Postman) into runnable `.mmt` artifacts.
 
 See also: [Test Generation Reference](testgen-profile.md)
+
+## Load Testing (Beta)
+
+The [21_load_test](../examples/21_load_test/) example shows how to wrap a normal `type: test` scenario in a `type: loadtest` file with `threads`, `repeat`, `rampup`, and report exports.
+
+Run it with:
+
+```sh
+npx testlight run examples/21_load_test/loadtest.mmt
+```
+
+See also: [Load Test](loadtest-mmt.md) and [Reports](reports.md#load-test-report-schema)

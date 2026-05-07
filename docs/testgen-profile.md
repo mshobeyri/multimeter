@@ -321,7 +321,7 @@ description: string
 import: record<string,string>   # alias -> path (CSV or .mmt)
 inputs: record<string, primitive>
 outputs: record<string, primitive>
-metrics?: { repeat?: string|number, threads?: number, duration?: string, rampup?: string }
+loadtest?: { threads?: number, repeat?: string|number, rampup?: string }
 steps?: Step[]               # sequential when at root
 stages?: Array<{            # optional staged/parallel model
   id: string

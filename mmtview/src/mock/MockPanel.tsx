@@ -5,6 +5,7 @@ import { parseYaml, parseYamlDoc } from "mmt-core/markupConvertor";
 import { loadEnvVariables } from "../workspaceStorage";
 import MockOverview from "./MockOverview";
 import MockEndpoints from "./MockEndpoints";
+import { canonicalizeMockYaml } from "./mockYaml";
 
 interface MockPanelProps {
   content: string;
@@ -94,7 +95,7 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
       } else {
         doc.set(key, value);
       }
-      setContent(doc.toString());
+      setContent(canonicalizeMockYaml(doc.toString()));
     } catch { /* ignore */ }
   }, [content, setContent]);
 

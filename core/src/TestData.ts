@@ -75,13 +75,6 @@ export interface TestImportItem {
   [key: string]: string;
 }
 
-export interface TestMetric {
-  repeat?: Repeat;
-  threads?: number;
-  duration?: Timestr;
-  rampup?: Timestr;
-}
-
 export type FlowType =
     'stages'|'steps'|'stage'|'step'|'call'|'run'|'check'|'assert'|'if'|'for'|'repeat'|
     'delay'|'js'|'print'|'end'|'set'|'var'|'const'|'let'|'data'|'setenv';
@@ -192,7 +185,6 @@ export interface TestDataBase extends MMTFile {
 import?: Record<string, string>;
   inputs?: Record<string, string>;
   outputs?: Record<string, string>;
-  metrics?: TestMetric;
   steps?: TestFlowSteps;
   stages?: TestFlowStages;
 }

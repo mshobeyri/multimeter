@@ -1,4 +1,4 @@
-import {validateJsSyntax} from './runCommon';
+import {runGeneratedJs, validateJsSyntax} from './runCommon';
 
 describe('validateJsSyntax', () => {
   it('returns undefined for valid JS', () => {
@@ -59,5 +59,69 @@ describe('validateJsSyntax', () => {
 
   it('returns undefined for empty-ish but non-blank code', () => {
     expect(validateJsSyntax('// just a comment')).toBeUndefined();
+  });
+});
+
+describe('runGeneratedJs', () => {
+  it('passes workerEligible to the JS runner when requested', async () => {
+    const seen: any[] = [];
+    const result = await runGeneratedJs(
+      'run-1',
+      'return {ok: true};',
+      'worker eligible test',
+      () => {},
+      async (context) => {
+        seen.push(context);
+        return {ok: true};
+      },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      false,
+      false,
+      undefined,
+      false,
+      true,
+    );
+
+    expect(result.success).toBe(true);
+    expect(seen).toHaveLength(1);
+    expect(seen[0].workerEligible).toBe(true);
+  });
+
+  it('uses reporter failures for success accounting when check logs are silent', async () => {
+    const result = await runGeneratedJs(
+      'run-1',
+      'return {};',
+      'silent failure test',
+      () => {},
+      async (context) => {
+        context.reporter && context.reporter({
+          scope: 'test-step',
+          runId: context.runId,
+          stepIndex: 1,
+          stepType: 'check',
+          status: 'failed',
+          expects: [{comparison: 'a == b', status: 'failed'}],
+        });
+        return {};
+      },
+      undefined,
+      undefined,
+      undefined,
+      () => {},
+      undefined,
+      false,
+      false,
+      undefined,
+      false,
+      false,
+      'none',
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.errors).toContain('Reported failed check');
   });
 });

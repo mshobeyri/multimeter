@@ -28,6 +28,17 @@ const features = [
   'Test Reports',
 ]
 
+const toolLogos = [
+  { name: 'Postman', logo: '/competitors/postman.svg', color: 'bg-orange-500/10 text-orange-200 border-orange-400/25' },
+  { name: 'Insomnia', logo: '/competitors/insomnia.svg', color: 'bg-purple-500/10 text-purple-200 border-purple-400/25' },
+  { name: 'Bruno', logo: '/competitors/bruno.svg', color: 'bg-yellow-500/10 text-yellow-100 border-yellow-400/25' },
+  { name: 'Robot Framework', logo: '/competitors/robotframework.svg', color: 'bg-slate-500/10 text-slate-200 border-slate-400/25' },
+  { name: 'Cucumber', logo: '/competitors/cucumber.svg', color: 'bg-green-500/10 text-green-200 border-green-400/25' },
+  { name: 'JMeter', logo: '/competitors/jmeter.svg', color: 'bg-red-500/10 text-red-200 border-red-400/25' },
+  { name: 'NeoLoad', logo: '/competitors/neoload.svg', color: 'bg-blue-500/10 text-blue-200 border-blue-400/25' },
+  { name: 'Karate', logo: '/competitors/karate.svg', color: 'bg-cyan-500/10 text-cyan-200 border-cyan-400/25' },
+]
+
 function SlotMachine() {
   const [qualityIndex, setQualityIndex] = useState(0)
   const [featureIndex, setFeatureIndex] = useState(0)
@@ -140,10 +151,11 @@ export default function Hero() {
           </FadeIn>
 
           <FadeIn delay={100}>
-            <p className="text-lg sm:text-xl text-slate-400 max-w-3xl mx-auto mb-10 leading-relaxed">
-              From Postman-like API design to Robot-like execution, as version-controlled YAML files.
-Built for API teams that want GUI speed and Git-friendly, scalable automation.
-            </p>
+            <div className="max-w-4xl mx-auto mb-10 pt-8 sm:pt-10">
+              <p className="text-lg sm:text-xl text-white font-semibold mb-4">
+                Functional, Automation And Performance Testing. All in one tool...
+              </p>
+            </div>
           </FadeIn>
 
           <FadeIn delay={200}>

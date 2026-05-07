@@ -6,6 +6,7 @@ import type {
   SuiteRunStartEvent,
   SuiteRunFinishedEvent,
   TestOutputsReporterEvent,
+  LoadTestSummaryEvent,
 } from './runConfig';
 
 export interface ExpectItemResult {
@@ -31,6 +32,7 @@ export interface TestRunResult {
   id?: string;
   filePath?: string;
   displayName?: string;
+  docType?: string;
   result: 'passed' | 'failed';
   durationMs?: number;
   steps: TestStepResult[];
@@ -50,10 +52,86 @@ export interface SuiteRunResult {
   testRuns: TestRunResult[];
 }
 
+export interface LoadReportData {
+  tool?: string;
+  scenario?: string;
+  test?: string;
+  config?: {
+    threads?: number;
+    repeat?: string | number;
+    rampup?: string;
+    started_at?: string;
+    finished_at?: string;
+  };
+  summary?: {
+    iterations?: number;
+    requests?: number;
+    successes?: number;
+    failures?: number;
+    success_rate?: number;
+    failed_rate?: number;
+    error_rate?: number;
+    throughput?: number;
+    data_received?: number;
+    data_sent?: number;
+  };
+  latency?: {
+    min?: number;
+    avg?: number;
+    med?: number;
+    max?: number;
+    p90?: number;
+    p95?: number;
+    p99?: number;
+  };
+  http?: {
+    status_codes?: Record<string, number>;
+    failed_requests?: number;
+    connect_avg?: number;
+    receive_avg?: number;
+    send_avg?: number;
+    waiting_avg?: number;
+  };
+  thresholds?: Array<{
+    name: string;
+    expression?: string;
+    actual?: number;
+    result: 'passed' | 'failed';
+  }>;
+  errors?: Array<{
+    message: string;
+    count: number;
+    rate?: number;
+  }>;
+  series?: Array<{
+    timestamp: string;
+    active_threads?: number;
+    requests?: number;
+    errors?: number;
+    error_delta?: number;
+    throughput?: number;
+    response_time?: number;
+    error_rate?: number;
+    p95?: number;
+  }>;
+  snapshots?: Array<{
+    at: number;
+    active_threads?: number;
+    requests?: number;
+    errors?: number;
+    error_delta?: number;
+    throughput?: number;
+    response_time?: number;
+    error_rate?: number;
+    p95?: number;
+  }>;
+}
+
 export interface CollectedResults {
-  type: 'test' | 'suite';
+  type: 'test' | 'suite' | 'loadtest';
   suiteRun?: SuiteRunResult;
   testRuns: TestRunResult[];
+  load?: LoadReportData;
 }
 
 function getEventKey(event: {id?: string; runId?: string}): string | undefined {
@@ -64,6 +142,7 @@ export function createReportCollector() {
   const testRunsByKey = new Map<string, TestRunResult>();
   let suiteRun: SuiteRunResult | undefined;
   let hasSuiteEvents = false;
+  let load: LoadReportData | undefined;
 
   function getOrCreateTestRun(key: string, runId: string): TestRunResult {
     let run = testRunsByKey.get(key);
@@ -124,10 +203,14 @@ export function createReportCollector() {
         const run = getOrCreateTestRun(key, event.runId || key);
         run.filePath = event.filePath;
         run.displayName = event.title || event.entry;
+        run.docType = event.docType;
       } else if (event.status === 'passed' || event.status === 'failed') {
         const run = testRunsByKey.get(key);
         if (run) {
           run.result = event.status;
+          if (event.docType) {
+            run.docType = event.docType;
+          }
         }
       }
       return;
@@ -177,10 +260,28 @@ export function createReportCollector() {
       }
       return;
     }
+
+    if (scope === 'loadtest-summary') {
+      const event = message as LoadTestSummaryEvent;
+      load = event.load;
+      return;
+    }
   }
 
   function getResults(): CollectedResults {
     const allRuns = Array.from(testRunsByKey.values());
+
+    if (load) {
+      if (hasSuiteEvents && suiteRun) {
+        suiteRun.testRuns = allRuns;
+      }
+      return {
+        type: 'loadtest',
+        suiteRun,
+        testRuns: allRuns,
+        load,
+      };
+    }
 
     if (hasSuiteEvents && suiteRun) {
       suiteRun.testRuns = allRuns;

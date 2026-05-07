@@ -372,6 +372,7 @@ export const handleBeforeMount = (monaco: any) => {
             if (firstLine === "type: doc") return "doc";
             if (firstLine === "type: test") return "test";
             if (firstLine === "type: suite") return "suite";
+            if (firstLine === "type: loadtest") return "loadtest";
             if (firstLine === "type: server") return "server";
             if (firstLine === "type: report") return "report";
         }

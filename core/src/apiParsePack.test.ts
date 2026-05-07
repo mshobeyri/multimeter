@@ -33,6 +33,17 @@ describe('apiParsePack', () => {
     expect(yaml).toContain('inputs:');
     expect(yaml).not.toContain('import:');
   });
+
+  it('apiToYaml does not add title when missing', () => {
+    const yaml = apiToYaml({
+      type: 'api',
+      url: 'https://example.com',
+      format: 'json',
+    } as any);
+
+    expect(yaml).toContain('type: api');
+    expect(yaml).not.toContain('title:');
+  });
 });
 
 describe('yamlToAPIStrict', () => {

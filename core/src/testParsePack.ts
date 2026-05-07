@@ -30,7 +30,7 @@ export const CHECK_ASSERT_VALUE_ORDER = ['title', 'actual', 'operator', 'expecte
 
 /** Valid root-level keys for type: test files. */
 const VALID_TEST_ROOT_KEYS = new Set([
-  'type', 'title', 'description', 'tags', 'import', 'inputs', 'outputs', 'metrics',
+  'type', 'title', 'description', 'tags', 'import', 'inputs', 'outputs',
   'steps', 'stages', 'flow',
 ]);
 
@@ -237,7 +237,6 @@ export function yamlToTest(yamlContent: string): TestData {
       import: doc.import,
       inputs: doc.inputs,
       outputs: doc.outputs,
-      metrics: doc.metrics,
       steps: doc.steps,
       stages: doc.stages,
     };
@@ -249,8 +248,10 @@ export function yamlToTest(yamlContent: string): TestData {
 export function testToYaml(test: TestData): string {
   const yamlObj: Record<string, any> = {
     type: test.type,
-    title: test.title,
   };
+  if (test.title) {
+    yamlObj.title = test.title;
+  }
   if (test.description) {
     yamlObj.description = test.description;
   }
@@ -265,9 +266,6 @@ export function testToYaml(test: TestData): string {
   }
   if (isNonEmptyObject(test.outputs)) {
     yamlObj.outputs = test.outputs;
-  }
-  if (isNonEmptyObject(test.metrics)) {
-    yamlObj.metrics = test.metrics;
   }
   if (test.steps) {
     yamlObj.steps = reorderSteps(test.steps);
@@ -376,7 +374,6 @@ export function yamlToTestStrict(yamlContent: string): TestData {
     import: doc.import,
     inputs: doc.inputs,
     outputs: doc.outputs,
-    metrics: doc.metrics,
     steps: doc.steps,
     stages: doc.stages,
   };

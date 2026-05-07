@@ -1,0 +1,14 @@
+type: test
+title: Echo Scenario
+description: Scenario used by the load test. Each iteration calls the echo API and validates the response.
+import:
+  echo: echo_api.mmt
+inputs:
+  message: load-test
+steps:
+  - call: echo
+    id: result
+    inputs:
+      message: i:message
+    expect:
+      echoed_message: <<i:message>>

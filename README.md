@@ -63,13 +63,14 @@ Here is a how you can run the test in VSCode;
  - 🔄 Support Postman and OpenAPI collection convert. <a href="https://github.com/mshobeyri/multimeter/blob/master/docs/demos.md#postman-import"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
  - 🪞 Server mocking. <a href="https://github.com/mshobeyri/multimeter/blob/master/docs/demos.md#mock-server"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
  - 📃 Auto documentation: generate HTML and MD docs from API. <a href="https://github.com/mshobeyri/multimeter/blob/master/docs/demos.md#documentation-generation"><img src="https://img.shields.io/badge/►-demo-green?style=flat-square" height="14" /></a>
+- 🏋 Load testing in beta mode with HTML, Markdown, JUnit, and MMT reports. <a href="https://github.com/mshobeyri/multimeter/blob/master/docs/loadtest-mmt.md"><img src="https://img.shields.io/badge/docs-loadtest-blue?style=flat-square" height="14" /></a>
 
  <a href="https://github.com/mshobeyri/multimeter/blob/master/docs/demos.md" >
   ▸ See ALL Demos!
 </a>
 
 ## 🎯 Upcoming Features
-- 🏋 Load testing.
+- 📊 Advanced load testing controls and distributed load execution.
 
 ## 📚 Documentation
 
@@ -81,6 +82,7 @@ Here is a how you can run the test in VSCode;
 - [Environment (`type: env`)](docs/environment-mmt.md) — variables, presets, and certificates
 - [Doc (`type: doc`)](docs/doc-mmt.md) — generate API documentation from your `.mmt` files
 - [Suite (`type: suite`)](docs/suite-mmt.md) — group and run tests, APIs, or other suites
+- [Load Test (`type: loadtest`)](docs/loadtest-mmt.md) — run one test scenario with concurrency, ramp-up, and load reports (beta)
 - [Mock Server (`type: server`)](docs/mock-server.md#mmt-mock-server-files) — define mock endpoints with routing, matching, and dynamic responses
 - [Report (`type: report`)](docs/reports.md#mmt-report-yaml) — structured test results viewable in the editor
 
@@ -93,6 +95,7 @@ Here is a how you can run the test in VSCode;
 **Running & CI/CD:**
 - [Testlight CLI](docs/testlight.md) — run tests, suites, and generate docs from the command line
 - [Reports](docs/reports.md) — JUnit XML, HTML, Markdown, and MMT YAML test reports
+- [Load Test](docs/loadtest-mmt.md) — beta load tests and load-oriented report exports
 - [Logging](docs/logging.md) — log levels and where logs appear
 
 **Guides & Reference:**

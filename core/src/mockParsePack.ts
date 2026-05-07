@@ -175,7 +175,7 @@ export function parseMockData(yaml: any): {data: MockData | null; errors: ParseE
 }
 
 function parseEndpoint(ep: any): MockEndpoint {
-  return {
+  const endpoint: MockEndpoint & {messages?: any[]} = {
     method: ep.method || undefined,
     path: String(ep.path || '/'),
     name: ep.name ? String(ep.name) : undefined,
@@ -191,6 +191,10 @@ function parseEndpoint(ep: any): MockEndpoint {
     delay: ep.delay,
     reflect: !!ep.reflect
   };
+  if (Array.isArray(ep.messages)) {
+    endpoint.messages = ep.messages;
+  }
+  return endpoint;
 }
 
 export function yamlToMock(yamlContent: string): MockData | null {

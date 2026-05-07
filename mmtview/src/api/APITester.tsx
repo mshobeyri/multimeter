@@ -1,6 +1,7 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { APIData } from "mmt-core/APIData";
 import { JSONRecord, Method, Protocol } from "mmt-core/CommonData";
+import { Request } from "mmt-core/NetworkData";
 import KSVEditor from "../components/KSVEditor";
 import BodyView from "../components/BodyView";
 import { formatBody } from "mmt-core/markupConvertor";
@@ -19,6 +20,8 @@ import MdViewer from "../components/MdViewer";
 interface APITestProps {
   api: APIData;
   onUpdateApi?: (patch: Partial<APIData>) => void;
+  onModificationChange?: (requestData: Request | undefined, touchedFields: Set<keyof Request>) => void;
+  onRequestReset?: (reset: () => void) => void;
   rightOfUrlButton?: React.ReactNode;
 }
 
@@ -58,10 +61,11 @@ const methodColor: Record<string, string> = {
   ws: "#888",
 };
 
-const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton }) => {
+const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChange, onRequestReset, rightOfUrlButton }) => {
   const { mmtFilePath } = useContext(FileContext);
   const {
     requestData,
+    touchedFields,
     responseData,
     responseRevision,
     selectedExampleIdx,
@@ -83,6 +87,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, rightOfUrlButton })
     network,
     examples
   } = useAPITesterLogic({ api, onUpdateApi, filePath: mmtFilePath });
+
+  useEffect(() => {
+    onModificationChange?.(requestData, touchedFields);
+  }, [requestData, touchedFields, onModificationChange]);
+
+  useEffect(() => {
+    if (!onRequestReset) { return; }
+    onRequestReset(() => prepareRequestData(undefined, { forceReset: true }));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onRequestReset]);
 
   // Based on the displayed URL (not resolved inputs/env)
   const isDisplayedUrlWebSocket = (protocol: Protocol | undefined, url: string | undefined

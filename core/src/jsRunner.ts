@@ -27,11 +27,17 @@ export interface RunJSCodeContext {
   skipServerCleanup?: boolean;
   /** Base directory for resolving relative paths (e.g. gRPC proto files). */
   basePath?: string;
+  /** True when this JS execution can safely be delegated to an external worker. */
+  workerEligible?: boolean;
+  /** Controls check/assert console logging without changing report events. */
+  checkLogMode?: 'default'|'failures-only'|'none';
 }
 
 const REPORTER_KEY = '__mmtReportStep';
 const RUN_ID_KEY = '__mmtRunId';
 const ID_KEY = '__mmtId';
+const compiledFunctionCache = new Map<string, Function>();
+const MAX_COMPILED_FUNCTION_CACHE_SIZE = 64;
 
 // Runtime helper to get random value by token name
 function mmtRandom(name: string): any {
@@ -138,11 +144,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
             .filter(name => typeof (Random as any)[name] === 'function')
             .map(name => `const ${name} = Random["${name}"];`)
             .join('\n');
-    const fn = new Function(
-      'mmtHelper', 'console', 'send_', 'sendGrpc_', 'extractOutputs_', 'Random',
-      '__reporter', '__runId', '__id', '__mmt_random', '__mmt_current',
-      '__mmt_access', '__abortSignal', '__fileLoader',
-      `${helperDecls}\n${randomDecls}\n` +
+    const functionBody = `${helperDecls}\n${randomDecls}\n` +
       `const report_ = (...args) => mmtHelper.reportWithContext_(__reporter, __runId, __id, ...args);\n` +
       // setenv_ must update the in-scope envVariables object so that
       // subsequent e: references read the new value within the same run.
@@ -150,9 +152,9 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       // Override check_ to pass the closure-based report_ so that under
       // parallel execution each test uses its own reporter/runId/id instead
       // of the shared module-level globals.
-      `const check_ = (passed, type, raw, reportLevel, title, details, actual, expected) => mmtHelper.check_(passed, type, raw, reportLevel, title, details, actual, expected, report_, console);\n` +
+      `const check_ = (passed, type, raw, reportLevel, title, details, actual, expected) => mmtHelper.check_(passed, type, raw, reportLevel, title, details, actual, expected, report_, console, __checkLogMode);\n` +
       // Override checkExpects_ with a closure-based version for parallel execution.
-      `const checkExpects_ = (items, type, reportLevel, title, details) => mmtHelper.checkExpects_(items, type, reportLevel, title, details, report_, console);\n` +
+      `const checkExpects_ = (items, type, reportLevel, title, details) => mmtHelper.checkExpects_(items, type, reportLevel, title, details, report_, console, __checkLogMode);\n` +
       // Override checkAbort_ with a closure-based version so parallel tests
       // each check their own abort signal instead of the global.
       `const checkAbort_ = () => { if (__abortSignal && __abortSignal.aborted) { const e = new Error('Test run was stopped'); e.name = 'TestAbortError'; throw e; } };\n` +
@@ -163,7 +165,22 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       `  if (__fileLoader && mmtHelper.setFileLoader_) { mmtHelper.setFileLoader_(__fileLoader); }` +
       `  return mmtHelper.importJsModule_(path, opts);` +
       `};\n` +
-      `${code}`);
+      `${code}`;
+    let fn = compiledFunctionCache.get(functionBody);
+    if (!fn) {
+      fn = new Function(
+        'mmtHelper', 'console', 'send_', 'sendGrpc_', 'extractOutputs_', 'Random',
+        '__reporter', '__runId', '__id', '__mmt_random', '__mmt_current',
+        '__mmt_access', '__abortSignal', '__fileLoader', '__checkLogMode',
+        functionBody);
+      if (compiledFunctionCache.size >= MAX_COMPILED_FUNCTION_CACHE_SIZE) {
+        const firstKey = compiledFunctionCache.keys().next().value;
+        if (firstKey) {
+          compiledFunctionCache.delete(firstKey);
+        }
+      }
+      compiledFunctionCache.set(functionBody, fn);
+    }
     // Wrap send_ with trace-level request/response logging for test runs
     const sendFn = context.traceSend ? async (req: any) => {
       const reqSummary = req ? `${(req.method || 'GET').toUpperCase()} ${req.url || ''}` : 'unknown';
@@ -189,7 +206,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     const returnValue = await fn(
         mmtHelper, customConsole, sendFn, sendGrpcFn, extractOutputs, Random,
         reporterFn, runId, context.id, mmtRandom, mmtCurrent, mmtAccess,
-        context.abortSignal, context.fileLoader);
+        context.abortSignal, context.fileLoader, context.checkLogMode || 'default');
     restoreReporterGlobals();
     const elapsed = Date.now() - startTime;
     lg('debug', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);

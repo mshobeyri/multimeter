@@ -3,9 +3,10 @@ import docHtml from './docHtml';
 import docMarkdown from './docMarkdown';
 import {executeApi, prepareApiRun} from './runApi';
 import {basename, detectDocType, PreparedRun, RunFileResult, runGeneratedJs} from './runCommon';
-import {mergeEnv, RunFileOptions, RunReporterMessage} from './runConfig';
+import {mergeEnv, resolveDocumentEnvVars, RunFileOptions, RunReporterMessage} from './runConfig';
 import {executeSuite, prepareSuiteRun} from './runSuite';
 import {executeSuiteBundle} from './suiteBundleRunner';
+import {executeLoadTest, prepareLoadTestRun} from './runLoadTest';
 import {executeTest, generateTestJs, prepareTestRun} from './runTest';
 
 export {generateTestJs, runGeneratedJs};
@@ -63,6 +64,22 @@ export async function prepareRunFromOptions(
     specific = prepareTestRun(rawText, manualInputs);
   } else if (docType === 'suite') {
     specific = prepareSuiteRun(rawText, manualInputs);
+  } else if (docType === 'loadtest') {
+    specific = prepareLoadTestRun(rawText, manualInputs);
+  }
+
+  let resolvedEnvVarsUsed = envVarsUsed;
+  if (docType === 'loadtest') {
+    resolvedEnvVarsUsed = await resolveDocumentEnvVars({
+      documentEnv: (specific as any)?.loadtestConfig?.environment,
+      filePath,
+      projectRoot: options.projectRoot,
+      baseEnvVars: options.envvar || {},
+      manualEnvvars: options.manualEnvvars || {},
+      fileLoader: options.fileLoader,
+      logger: log,
+      cliOverridesSuiteEnv: true,
+    });
   }
 
   return {
@@ -70,7 +87,7 @@ export async function prepareRunFromOptions(
     filePath,
     baseName,
     docType,
-    envVarsUsed,
+    envVarsUsed: resolvedEnvVarsUsed,
     inputsUsed: manualInputs,
     ...specific,
   };
@@ -104,6 +121,10 @@ export async function runFile(options: RunFileOptions): Promise<RunFileResult> {
       });
     }
     return executeSuite(prepared, options, preLogs, runFile);
+  }
+
+  if (docType === 'loadtest') {
+    return executeLoadTest(prepared, options, preLogs, runFile);
   }
 
   throw new Error('Run is currently supported for test or api documents only.');

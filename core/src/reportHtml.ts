@@ -1,5 +1,6 @@
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
 import { formatDuration } from './CommonData';
+import {formatReportDateTime, formatReportNumber, formatReportPercent, formatReportRelativeTime} from './reportFormat';
 
 export interface ReportHtmlOptions {
   suiteName?: string;
@@ -10,6 +11,10 @@ function escapeHtml(s: string): string {
   return String(s).replace(/[&<>"]/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' } as Record<string, string>)[c]
   );
+}
+
+function hasValue<T>(value: T | null | undefined): value is T {
+  return value !== null && value !== undefined;
 }
 
 interface ParsedCallDetails {
@@ -59,7 +64,7 @@ function displayValue(v: any): string {
 
 function buildStepHtml(step: TestStepResult): string {
   const name = escapeHtml(step.title || `step-${step.stepIndex}`);
-  const duration = step.durationMs != null ? ` <span class="duration">(${formatDuration(step.durationMs)})</span>` : '';
+  const duration = hasValue(step.durationMs) ? ` <span class="duration">(${formatDuration(step.durationMs)})</span>` : '';
   const iconChar = step.status === 'passed' ? '✓' : '✗';
   const iconColor = step.status === 'passed' ? 'var(--passed)' : 'var(--failed)';
   const iconSpan = `<span style="color: ${iconColor}">${iconChar}</span>`;
@@ -77,7 +82,7 @@ function buildStepHtml(step: TestStepResult): string {
       const eIcon = e.status === 'passed' ? '✓' : '✗';
       const iconColor = e.status === 'passed' ? 'var(--passed)' : 'var(--failed)';
       html += `            <div style="color: var(--fg)"><span style="color: ${iconColor}">${eIcon}</span> ${escapeHtml(e.comparison)}`;
-      if (e.status === 'failed' && e.actual != null && e.expected != null) {
+      if (e.status === 'failed' && hasValue(e.actual) && hasValue(e.expected)) {
         html += `<br/><span class="expect-got">got: ${escapeHtml(displayValue(e.actual))}</span>`;
       }
       html += `</div>\n`;
@@ -114,16 +119,24 @@ function buildStepHtml(step: TestStepResult): string {
   return html;
 }
 
+const ICON_LAYERS_INLINE = `<svg class="suite-layers-icon" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 1.4 14.2 4.6 8 7.8 1.8 4.6 8 1.4Zm0 1.8L4.7 4.6 8 6.3l3.3-1.7L8 3.2Zm-5.4 4 1.1-.6L8 8.8l4.3-2.2 1.1.6L8 10 2.6 7.2Zm0 2.6 1.1-.6L8 11.4l4.3-2.2 1.1.6L8 12.6 2.6 9.8Z"/></svg>`;
+
 function buildSuiteSection(run: TestRunResult, index: number): string {
   const name = escapeHtml(run.displayName || run.filePath || `test-${index}`);
   const steps = run.steps.filter(s => s.stepType !== 'debug');
+  const isSuiteOnly = run.docType === 'suite' && steps.length === 0;
   const passCount = steps.filter(s => s.status === 'passed').length;
   const failCount = steps.filter(s => s.status === 'failed').length;
   const badge = failCount > 0
     ? ` <span class="badge failed">${failCount} failed</span>`
-    : ` <span class="badge passed">all passed</span>`;
+    : ` <span class="badge passed">${isSuiteOnly ? run.result : 'all passed'}</span>`;
 
   let html = `      <section class="suite">\n`;
+  if (isSuiteOnly) {
+    html += `        <h2><span class="suite-icon" title="Suite">${ICON_LAYERS_INLINE}</span> ${name}${badge}</h2>\n`;
+    html += `      </section>\n`;
+    return html;
+  }
   html += `        <h2><span class="toggle collapsed" id="toggle-${index}" onclick="toggleSuite(${index})" aria-expanded="false"><svg class="chevron" width="10" height="10" viewBox="0 0 10 10"><path d="M3 1l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span> ${name}${badge} <span class="suite-count">${passCount + failCount} steps</span></h2>\n`;
   html += `        <div class="suite-steps" id="suite-steps-${index}" style="display: none">\n`;
   for (const step of steps) {
@@ -134,6 +147,170 @@ function buildSuiteSection(run: TestRunResult, index: number): string {
   }
   html += `        </div>\n`;
   html += `      </section>\n`;
+  return html;
+}
+
+function getLoadPoints(results: CollectedResults): NonNullable<CollectedResults['load']>['series'] {
+  const load = results.load;
+  if (!load) {
+    return [];
+  }
+  if (Array.isArray(load.snapshots)) {
+    return load.snapshots.map(point => ({...point, timestamp: String(point.at)}));
+  }
+  return load.series || [];
+}
+
+function buildLoadChartSvg(title: string, labels: [string, string], colors: [string, string], points: NonNullable<CollectedResults['load']>['series'], firstKey: 'active_threads' | 'throughput' | 'errors', secondKey: 'active_threads' | 'errors' | 'response_time', secondAxis = false): string {
+  if (!Array.isArray(points) || points.length === 0) {
+    return '';
+  }
+  const width = 720;
+  const height = 220;
+  const left = 46;
+  const right = secondAxis ? 58 : 28;
+  const top = 22;
+  const bottom = 34;
+  const innerWidth = width - left - right;
+  const innerHeight = height - top - bottom;
+  const valuesA = points.map(point => Number(point[firstKey] || 0));
+  const valuesB = points.map(point => Number(point[secondKey] || 0));
+  const maxLeftY = Math.max(1, ...valuesA);
+  const maxRightY = Math.max(1, ...valuesB);
+  const maxY = secondAxis ? maxLeftY : Math.max(maxLeftY, maxRightY);
+  const count = Math.max(1, points.length - 1);
+  const xFor = (index: number) => left + (index / count) * innerWidth;
+  const yFor = (value: number, axis: 'left' | 'right' = 'left') => {
+    const axisMax = secondAxis && axis === 'right' ? maxRightY : maxY;
+    return top + innerHeight - (Math.max(0, value) / axisMax) * innerHeight;
+  };
+  const pathFor = (values: number[], axis: 'left' | 'right' = 'left') => values.map((value, index) => `${index === 0 ? 'M' : 'L'} ${xFor(index).toFixed(2)} ${yFor(value, axis).toFixed(2)}`).join(' ');
+  const start = points[0]?.timestamp || '';
+  const end = points[points.length - 1]?.timestamp || '';
+  const pointTitle = (index: number) => {
+    const point = points[index];
+    return [
+      point?.timestamp || '',
+      `Threads: ${point?.active_threads ?? '-'}`,
+      `Failures: ${point?.errors ?? '-'}`,
+      `Requests/sec: ${hasValue(point?.throughput) ? formatReportNumber(point.throughput) : '-'}`,
+      `Response time: ${hasValue(point?.response_time) ? formatReportNumber(point.response_time) : '-'} ms`,
+    ].join('\n');
+  };
+
+  let html = `      <h3 class="load-chart-title">${escapeHtml(title)}</h3>\n`;
+  html += '      <div class="expects load-chart-legend">\n';
+  html += `        <div><strong style="color:${colors[0]}">${escapeHtml(labels[0])}</strong></div>\n`;
+  html += `        <div><strong style="color:${colors[1]}">${escapeHtml(labels[1])}</strong></div>\n`;
+  html += '      </div>\n';
+  html += `      <svg class="load-chart" width="100%" viewBox="0 0 ${width} ${height}" role="img" aria-label="${escapeHtml(title)}">\n`;
+  html += `        <rect x="${left}" y="${top}" width="${innerWidth}" height="${innerHeight}" fill="transparent" stroke="var(--border)"/>\n`;
+  for (const ratio of [0, 0.25, 0.5, 0.75, 1]) {
+    const y = top + innerHeight - ratio * innerHeight;
+    html += `        <line x1="${left}" x2="${left + innerWidth}" y1="${y}" y2="${y}" stroke="var(--border)" stroke-dasharray="3 4"/>\n`;
+    html += `        <text x="${left - 8}" y="${y + 4}" text-anchor="end" font-size="10" fill="var(--muted)">${Math.round(maxY * ratio)}</text>\n`;
+    if (secondAxis) {
+      html += `        <text x="${left + innerWidth + 8}" y="${y + 4}" text-anchor="start" font-size="10" fill="var(--muted)">${Math.round(maxRightY * ratio)}</text>\n`;
+    }
+  }
+  html += `        <path d="${pathFor(valuesA)}" fill="none" stroke="${colors[0]}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>\n`;
+  html += `        <path d="${pathFor(valuesB, secondAxis ? 'right' : 'left')}" fill="none" stroke="${colors[1]}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>\n`;
+  const bandWidth = points.length <= 1 ? innerWidth : innerWidth / Math.max(1, points.length - 1);
+  points.forEach((_, index) => {
+    const x = Math.max(left, xFor(index) - bandWidth / 2);
+    const maxWidth = left + innerWidth - x;
+    html += `        <rect x="${x.toFixed(2)}" y="${top}" width="${Math.max(6, Math.min(bandWidth, maxWidth)).toFixed(2)}" height="${innerHeight}" fill="transparent"><title>${escapeHtml(pointTitle(index))}</title></rect>\n`;
+  });
+  html += `        <text x="${left}" y="${height - 10}" font-size="10" fill="var(--muted)">${escapeHtml(start)}</text>\n`;
+  html += `        <text x="${left + innerWidth}" y="${height - 10}" text-anchor="end" font-size="10" fill="var(--muted)">${escapeHtml(end)}</text>\n`;
+  html += '      </svg>\n';
+  return html;
+}
+
+function buildLoadSection(results: CollectedResults): string {
+  const load = results.load;
+  if (!load) {
+    return '';
+  }
+  const loadData = load;
+  const startedAt = results.suiteRun?.startedAt ?? loadData.config?.started_at;
+  const endedAt = results.suiteRun?.finishedAt ?? loadData.config?.finished_at;
+  const cells = ([
+    ['Started at', formatReportDateTime(startedAt)],
+    ['Ended at', formatReportDateTime(endedAt)],
+    ['Threads', loadData.config?.threads],
+    ['Repeat', loadData.config?.repeat],
+    ['Ramp-up', loadData.config?.rampup],
+    ['Requests Sent', loadData.summary?.requests],
+    ['Succeeded', loadData.summary?.successes],
+    ['Failed', loadData.summary?.failures],
+    ['Success Rate', hasValue(loadData.summary?.success_rate) ? formatReportPercent(loadData.summary.success_rate) : undefined],
+    ['Failed Rate', hasValue(loadData.summary?.failed_rate) ? formatReportPercent(loadData.summary.failed_rate) : undefined],
+    ['Throughput', hasValue(loadData.summary?.throughput) ? `${formatReportNumber(loadData.summary.throughput)} req/s` : undefined],
+    ['Error Rate', hasValue(loadData.summary?.error_rate) ? formatReportPercent(loadData.summary.error_rate) : undefined],
+    ['Latency p95', hasValue(loadData.latency?.p95) ? `${formatReportNumber(loadData.latency.p95)} ms` : undefined],
+    ['Latency p99', hasValue(loadData.latency?.p99) ? `${formatReportNumber(loadData.latency.p99)} ms` : undefined],
+  ] as Array<[string, any]>).filter(([, value]) => value !== undefined && value !== null && value !== '');
+
+  let html = '    <section class="suite load-section">\n';
+  html += '      <div class="expects">\n';
+  for (const [label, value] of cells) {
+    html += `        <div><strong>${escapeHtml(label)}:</strong> ${escapeHtml(String(value))}</div>\n`;
+  }
+  html += '      </div>\n';
+  html += '    </section>\n';
+
+  const points = getLoadPoints(results);
+  if (!Array.isArray(points) || points.length === 0) {
+    return html;
+  }
+
+  html += '    <div class="section-label report-section">Report</div>\n';
+  html += '    <section class="suite load-section">\n';
+  html += buildLoadChartSvg('Requests per second and Response time over time', ['Requests/sec', 'Response time (ms)'], ['#58a6ff', '#8b949e'], points, 'throughput', 'response_time', true);
+  html += buildLoadChartSvg('Threads and Failures over time', ['Failures', 'Threads'], ['#f85149', '#d29922'], points, 'errors', 'active_threads', true);
+  html += '      <h3>Snapshots</h3>\n';
+  html += '      <table><thead><tr><th>At</th><th>Threads</th><th>Requests</th><th>Requests/sec</th><th>Response time</th><th>Failures</th><th>Failure rate</th></tr></thead><tbody>\n';
+  for (const point of points) {
+    html += '        <tr>' +
+      `<td>${escapeHtml(point.timestamp || '')}</td>` +
+      `<td>${escapeHtml(String(point.active_threads ?? ''))}</td>` +
+      `<td>${escapeHtml(String(point.requests ?? ''))}</td>` +
+      `<td>${escapeHtml(hasValue(point.throughput) ? formatReportNumber(point.throughput) : '')}</td>` +
+      `<td>${escapeHtml(hasValue(point.response_time) ? formatReportNumber(point.response_time) : '')}</td>` +
+      `<td>${escapeHtml(String(point.errors ?? ''))}</td>` +
+      `<td>${escapeHtml(hasValue(point.error_rate) ? formatReportPercent(point.error_rate) : '')}</td>` +
+      '</tr>\n';
+  }
+  html += '      </tbody></table>\n';
+  html += '    </section>\n';
+  return html;
+}
+
+function buildFunctionalOverviewSection(results: CollectedResults, totalPassed: number, totalFailed: number, totalTests: number, totalSuites: number, totalTime: string): string {
+  const timestamp = results.suiteRun?.startedAt;
+  const endedAt = results.suiteRun?.finishedAt;
+  const rows = ([
+    ['Started at', formatReportDateTime(timestamp)],
+    ['Ended at', formatReportDateTime(endedAt)],
+    ['Duration', totalTime],
+    ['Passed', totalPassed],
+    ['Failed', totalFailed],
+    ['Total checks', totalTests],
+    ['Tests', totalSuites],
+  ] as Array<[string, any]>).filter(([, value]) => value !== undefined && value !== null && value !== '');
+  if (rows.length === 0) {
+    return '';
+  }
+  let html = `    <section class="suite load-section">
+      <div class="expects">
+`;
+  for (const [label, value] of rows) {
+    html += `        <div><strong>${escapeHtml(label)}:</strong> ${escapeHtml(String(value))}</div>\n`;
+  }
+  html += `      </div>
+    </section>
+`;
   return html;
 }
 
@@ -200,6 +377,17 @@ const CSS = `
     transition: background 0.3s ease, color 0.3s ease;
   }
   .report-container { max-width: 1000px; margin: 0 auto; padding: 16px; }
+  .section-label {
+    margin: 0 0 10px;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+  }
+  .section-label.report-section {
+    padding-top: 10px;
+  }
 
   /* Sticky header */
   .report-header {
@@ -379,6 +567,38 @@ const CSS = `
     font-weight: 600;
     cursor: pointer;
   }
+  .suite-icon {
+    color: var(--muted);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+  .suite-layers-icon {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
+  .load-section h2 {
+    margin-bottom: 12px;
+  }
+  .load-chart-title {
+    margin: 22px 0 10px;
+    padding-top: 4px;
+  }
+  .load-chart-legend {
+    margin-top: 0;
+    margin-bottom: 14px;
+  }
+  .load-chart {
+    display: block;
+    margin-bottom: 22px;
+  }
+  .load-section table {
+    margin-top: 10px;
+  }
   .suite-count {
     font-size: 11px;
     color: var(--muted);
@@ -547,6 +767,71 @@ const SCRIPT = `
         toggle.innerHTML = theme === 'dark' ? sunIcon : moonIcon;
       }
     })();
+    function formatRelativeTime(timestamp, now) {
+      if (timestamp === undefined || timestamp === null || timestamp === '') {
+        return '';
+      }
+      var date;
+      if (typeof timestamp === 'number') {
+        date = new Date(timestamp);
+      } else if (String(timestamp).trim() !== '' && isFinite(Number(timestamp))) {
+        date = new Date(Number(timestamp));
+      } else {
+        date = new Date(timestamp);
+      }
+      if (isNaN(date.getTime())) {
+        return String(timestamp);
+      }
+      var diffMs = now - date.getTime();
+      var isFuture = diffMs < 0;
+      var absoluteMinutes = Math.abs(diffMs) / 60000;
+      if (absoluteMinutes < 1) {
+        return 'now';
+      }
+      var units = [
+        { label: 'y', minutes: 60 * 24 * 365 },
+        { label: 'd', minutes: 60 * 24 },
+        { label: 'h', minutes: 60 },
+        { label: 'm', minutes: 1 },
+      ];
+      var remainingMinutes = Math.floor(absoluteMinutes);
+      var parts = [];
+      for (var i = 0; i < units.length; i++) {
+        var unit = units[i];
+        if (remainingMinutes < unit.minutes) {
+          continue;
+        }
+        var value = Math.floor(remainingMinutes / unit.minutes);
+        remainingMinutes -= value * unit.minutes;
+        parts.push(String(value) + unit.label);
+        if (parts.length === 2) {
+          break;
+        }
+      }
+      if (parts.length === 0) {
+        return 'now';
+      }
+      return isFuture ? parts.join('') + ' from now' : parts.join('') + ' ago';
+    }
+    (function setupDynamicRelativeTimes() {
+      var nodes = document.querySelectorAll('[data-relative-time]');
+      if (!nodes.length) {
+        return;
+      }
+      function updateRelativeTimes() {
+        var now = Date.now();
+        for (var i = 0; i < nodes.length; i++) {
+          var node = nodes[i];
+          var source = node.getAttribute('data-relative-time');
+          if (!source) {
+            continue;
+          }
+          node.textContent = formatRelativeTime(source, now);
+        }
+      }
+      updateRelativeTimes();
+      window.setInterval(updateRelativeTimes, 30000);
+    })();
     document.addEventListener('keydown', function(e) {
       if (!(e.metaKey || e.ctrlKey)) { return; }
       var key = e.key && e.key.toLowerCase();
@@ -571,13 +856,25 @@ const SCRIPT = `
 export function generateReportHtml(results: CollectedResults, options?: ReportHtmlOptions): string {
   const runs = results.testRuns;
   const suiteName = escapeHtml(options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || results.testRuns[0]?.displayName || 'Test Report');
+  const isLoad = results.type === 'loadtest' || !!results.load;
   const totalTests = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug').length, 0);
   const totalPassed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'passed').length, 0);
   const totalFailed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'failed').length, 0);
   const totalSuites = runs.length;
   const totalTimeMs = results.suiteRun?.durationMs ?? runs.reduce((sum, r) => sum + (r.durationMs || 0), 0);
   const totalTime = formatDuration(totalTimeMs);
-  const passRate = totalTests > 0 ? ((totalPassed / totalTests) * 100).toFixed(1) + '%' : '-';
+  const loadSummary = results.load?.summary;
+  const summaryPassed = isLoad ? (loadSummary?.successes ?? 0) : totalPassed;
+  const summaryFailed = isLoad ? (loadSummary?.failures ?? 0) : totalFailed;
+  const summaryTotal = isLoad ? (loadSummary?.requests ?? loadSummary?.iterations ?? 0) : totalTests;
+  const passRate = isLoad
+    ? formatReportPercent(loadSummary?.success_rate)
+    : (totalTests > 0 ? formatReportPercent(totalPassed / totalTests) : '-');
+  const failRate = isLoad
+    ? formatReportPercent(loadSummary?.failed_rate ?? loadSummary?.error_rate)
+    : (totalTests > 0 ? formatReportPercent(totalFailed / totalTests) : '-');
+  const timestamp = results.suiteRun?.startedAt ?? results.load?.config?.started_at;
+  const durationSub = formatReportRelativeTime(timestamp);
 
   const theme = options?.theme || 'auto';
   const dataTheme = theme === 'auto' ? 'dark' : theme;
@@ -603,29 +900,30 @@ export function generateReportHtml(results: CollectedResults, options?: ReportHt
     </div>
   </div>
   <div class="report-container">
+    <div class="section-label">Overview</div>
     <div class="summary-boxes">
       <div class="summary-box box-passed">
         <div class="box-icon">${ICON_CHECK}</div>
         <div class="box-content">
           <div class="box-label">Passed</div>
-          <div class="box-value">${totalPassed}</div>
-          <div class="box-sub" style="color:var(--passed)">${passRate} pass rate</div>
+          <div class="box-value">${summaryPassed}</div>
+          <div class="box-sub" style="color:var(--passed)">${passRate}</div>
         </div>
       </div>
       <div class="summary-box box-failed">
         <div class="box-icon">${ICON_X}</div>
         <div class="box-content">
           <div class="box-label">Failed</div>
-          <div class="box-value">${totalFailed}</div>
-          <div class="box-sub" style="color:var(--failed)">${totalSuites} suite${totalSuites !== 1 ? 's' : ''}</div>
+          <div class="box-value">${summaryFailed}</div>
+          <div class="box-sub" style="color:var(--failed)">${failRate}</div>
         </div>
       </div>
       <div class="summary-box box-total">
         <div class="box-icon">${ICON_LIST}</div>
         <div class="box-content">
-          <div class="box-label">Total Tests</div>
-          <div class="box-value">${totalTests}</div>
-          <div class="box-sub" style="color:var(--total-fg)">${totalTests} checks</div>
+          <div class="box-label">Total</div>
+          <div class="box-value">${summaryTotal}</div>
+          <div class="box-sub" style="color:var(--total-fg)">${isLoad ? `${loadSummary?.iterations ?? 0} iterations` : `${totalSuites} test${totalSuites !== 1 ? 's' : ''}`}</div>
         </div>
       </div>
       <div class="summary-box box-duration">
@@ -633,14 +931,23 @@ export function generateReportHtml(results: CollectedResults, options?: ReportHt
         <div class="box-content">
           <div class="box-label">Duration</div>
           <div class="box-value">${totalTime}</div>
-          <div class="box-sub" style="color:var(--duration-fg)">${totalSuites} file${totalSuites !== 1 ? 's' : ''}</div>
+          <div class="box-sub" style="color:var(--duration-fg)"${timestamp ? ` data-relative-time="${escapeHtml(formatReportDateTime(timestamp))}"` : ''}>${durationSub || '-'}</div>
         </div>
       </div>
     </div>
 `;
 
-  for (let i = 0; i < runs.length; i++) {
-    html += buildSuiteSection(runs[i], i);
+  if (!isLoad) {
+    html += buildFunctionalOverviewSection(results, totalPassed, totalFailed, totalTests, totalSuites, totalTime);
+    html += '    <div class="section-label report-section">Report</div>\n';
+  }
+
+  html += buildLoadSection(results);
+
+  if (!isLoad) {
+    for (let i = 0; i < runs.length; i++) {
+      html += buildSuiteSection(runs[i], i);
+    }
   }
 
   html += `  </div>

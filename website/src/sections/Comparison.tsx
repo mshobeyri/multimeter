@@ -1,51 +1,150 @@
 import { Check, X } from 'lucide-react'
 import FadeIn from '../components/FadeIn'
 
+type ToolKey = 'multimeter' | 'postman' | 'insomnia' | 'bruno' | 'robot' | 'cucumber' | 'jmeter' | 'neoload'
+type Cell = boolean | string
+
 interface FeatureRow {
   feature: string
-  multimeter: boolean | string
-  postman: boolean | string
-  bruno: boolean | string
-  robot: boolean | string
+  values: Record<ToolKey, Cell>
 }
 
-const features: FeatureRow[] = [
-  { feature: 'Price', multimeter: 'Free', postman: '$14/user/mo', bruno: '$6/user/mo', robot: 'Free' },
-  { feature: 'Open Source', multimeter: true, postman: false, bruno: 'Partial', robot: true },
-  { feature: 'HTTP / REST', multimeter: true, postman: true, bruno: true, robot: true },
-  { feature: 'CI/CD CLI', multimeter: true, postman: true, bruno: true, robot: true },
-  { feature: 'WebSocket / gRPC / GraphQL', multimeter: true, postman: true, bruno: true, robot: 'Via library' },
-  { feature: 'Git-Native Files', multimeter: true, postman: false, bruno: true, robot: true },
-  { feature: 'Drag & Drop Test Builder', multimeter: true, postman: false, bruno: false, robot: false },
-  { feature: 'Test Suites (Parallel / Sequential)', multimeter: true, postman: 'Sequential', bruno: false, robot: true },
-  { feature: 'Reusing / Chaining Tests', multimeter: true, postman: false, bruno: false, robot: true },
-  { feature: 'Data Extraction (JSONPath/XPath/Regex)', multimeter: true, postman: 'Scripting', bruno: 'Scripting', robot: 'Via library' },
-  { feature: 'AI Test Generation', multimeter: true, postman: true, bruno: false, robot: false },
-  { feature: 'Declarative Test Flows (YAML)', multimeter: true, postman: false, bruno: false, robot: false },
-  { feature: 'Interactive API Docs (HTML)', multimeter: true, postman: false, bruno: false, robot: false },
-  { feature: 'Mock Server', multimeter: true, postman: 'Cloud only', bruno: false, robot: false },
-  { feature: 'Environment Variables / Presets', multimeter: true, postman: true, bruno: true, robot: 'Variables' },
-  { feature: 'Dynamic Tokens (random, date, uuid)', multimeter: true, postman: true, bruno: false, robot: 'Via library' },
-  { feature: 'JS Helper Module Imports', multimeter: true, postman: false, bruno: false, robot: false },
-  { feature: 'CSV Data-Driven Testing', multimeter: true, postman: true, bruno: false, robot: true },
-  { feature: 'HTML / Markdown / JUnit Reports', multimeter: true, postman: true, bruno: false, robot: true },
-  { feature: 'Fully Offline', multimeter: true, postman: false, bruno: true, robot: true },
+const tools: Array<{ key: ToolKey; name: string; logo: string; highlight?: boolean }> = [
+  { key: 'multimeter', name: 'Multimeter', logo: '/logo.svg', highlight: true },
+  { key: 'postman', name: 'Postman', logo: '/competitors/postman.svg' },
+  { key: 'insomnia', name: 'Insomnia', logo: '/competitors/insomnia.svg' },
+  { key: 'bruno', name: 'Bruno', logo: '/competitors/bruno.svg' },
+  { key: 'robot', name: 'Robot Framework', logo: '/competitors/robotframework.svg' },
+  { key: 'cucumber', name: 'Cucumber', logo: '/competitors/cucumber.svg' },
+  { key: 'jmeter', name: 'JMeter', logo: '/competitors/jmeter.svg' },
+  { key: 'neoload', name: 'NeoLoad', logo: '/competitors/neoload.svg' },
 ]
 
-function CellValue({ value }: { value: boolean | string }) {
+const features: FeatureRow[] = [
+  {
+    feature: 'Price',
+    values: { multimeter: 'Free', postman: '$14/user/mo', insomnia: '$12/user/mo', bruno: '$6/user/mo', robot: 'Free', cucumber: 'Free', jmeter: 'Free', neoload: 'Enterprise' },
+  },
+  {
+    feature: 'Open Source',
+    values: { multimeter: true, postman: false, insomnia: 'Partial', bruno: 'Partial', robot: true, cucumber: true, jmeter: true, neoload: false },
+  },
+  {
+    feature: 'HTTP / REST',
+    values: { multimeter: true, postman: true, insomnia: true, bruno: true, robot: true, cucumber: 'Via code', jmeter: true, neoload: true },
+  },
+  {
+    feature: 'WebSocket',
+    values: { multimeter: true, postman: true, insomnia: true, bruno: 'Partial', robot: 'Via library', cucumber: 'Via code', jmeter: 'Plugins', neoload: 'Partial' },
+  },
+  {
+    feature: 'GraphQL',
+    values: { multimeter: true, postman: true, insomnia: true, bruno: true, robot: 'Via library', cucumber: 'Via code', jmeter: 'Plugins', neoload: 'Partial' },
+  },
+  {
+    feature: 'gRPC',
+    values: { multimeter: true, postman: true, insomnia: true, bruno: false, robot: 'Via library', cucumber: 'Via code', jmeter: 'Plugins', neoload: 'Partial' },
+  },
+  {
+    feature: 'CI/CD CLI',
+    values: { multimeter: true, postman: true, insomnia: true, bruno: true, robot: true, cucumber: true, jmeter: true, neoload: true },
+  },
+  {
+    feature: 'Load Testing',
+    values: { multimeter: 'Beta', postman: 'Limited', insomnia: false, bruno: false, robot: 'Via library', cucumber: 'Via code', jmeter: true, neoload: true },
+  },
+  {
+    feature: 'Git-Native Files',
+    values: { multimeter: true, postman: false, insomnia: false, bruno: true, robot: true, cucumber: true, jmeter: 'XML', neoload: false },
+  },
+  {
+    feature: 'Drag & Drop Test Builder',
+    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: true, neoload: true },
+  },
+  {
+    feature: 'Functional Test Flows',
+    values: { multimeter: true, postman: 'Scripts', insomnia: 'Scripts', bruno: 'Scripts', robot: true, cucumber: true, jmeter: true, neoload: true },
+  },
+  {
+    feature: 'Test Suites (Parallel / Sequential)',
+    values: { multimeter: true, postman: 'Sequential', insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: true, neoload: true },
+  },
+  {
+    feature: 'Reusing / Chaining Tests',
+    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: true, neoload: true },
+  },
+  {
+    feature: 'Data Extraction (JSONPath/XPath/Regex)',
+    values: { multimeter: true, postman: 'Scripting', insomnia: 'Scripting', bruno: 'Scripting', robot: 'Via library', cucumber: 'Via code', jmeter: true, neoload: true },
+  },
+  {
+    feature: 'AI Test Generation',
+    values: { multimeter: true, postman: true, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: false },
+  },
+  {
+    feature: 'Declarative Test Flows (YAML)',
+    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: false },
+  },
+  {
+    feature: 'BDD / Human-Readable Specs',
+    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: false, neoload: false },
+  },
+  {
+    feature: 'Interactive API Docs (HTML)',
+    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: false },
+  },
+  {
+    feature: 'Mock Server',
+    values: { multimeter: true, postman: 'Cloud only', insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: false },
+  },
+  {
+    feature: 'Environment Variables / Presets',
+    values: { multimeter: true, postman: true, insomnia: true, bruno: true, robot: 'Variables', cucumber: 'Via code', jmeter: true, neoload: true },
+  },
+  {
+    feature: 'Dynamic Tokens (random, date, uuid)',
+    values: { multimeter: true, postman: true, insomnia: false, bruno: false, robot: 'Via library', cucumber: 'Via code', jmeter: true, neoload: true },
+  },
+  {
+    feature: 'JS Helper Module Imports',
+    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: false },
+  },
+  {
+    feature: 'CSV Data-Driven Testing',
+    values: { multimeter: true, postman: true, insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: true, neoload: true },
+  },
+  {
+    feature: 'HTML Report',
+    values: { multimeter: true, postman: true, insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: true, neoload: true },
+  },
+  {
+    feature: 'Markdown Report',
+    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: true, jmeter: false, neoload: false },
+  },
+  {
+    feature: 'JUnit Report',
+    values: { multimeter: true, postman: true, insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: true, neoload: true },
+  },
+  {
+    feature: 'Fully Offline',
+    values: { multimeter: true, postman: false, insomnia: true, bruno: true, robot: true, cucumber: true, jmeter: true, neoload: true },
+  },
+]
+
+function CellValue({ value }: { value: Cell }) {
   if (typeof value === 'string') {
-    return <span className="text-sm">{value}</span>
+    return <span className="text-[10px] leading-tight">{value}</span>
   }
   if (value) {
-    return <Check size={18} className="text-green-400 mx-auto" />
+    return <Check size={14} className="text-green-400 mx-auto" />
   }
-  return <X size={18} className="text-red-400/60 mx-auto" />
+  return <X size={14} className="text-red-400/60 mx-auto" />
 }
 
 export default function Comparison() {
   return (
     <section className="py-24 px-4 sm:px-6 lg:px-8 bg-surface-light/30">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-7xl mx-auto">
         <FadeIn>
           <div className="text-center mb-12">
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
@@ -59,29 +158,22 @@ export default function Comparison() {
 
         <FadeIn delay={200}>
           <div className="overflow-x-auto rounded-2xl border border-border">
-            <table className="w-full">
+            <table className="w-full min-w-[1080px]">
               <thead>
                 <tr className="bg-surface border-b border-border">
-                  <th className="text-left px-6 py-4 text-sm font-medium text-slate-400">
+                  <th className="sticky left-0 z-10 bg-surface text-left px-3 py-2.5 text-xs font-medium text-slate-400 min-w-44">
                     Feature
                   </th>
-                  <th className="px-6 py-4 text-center">
-                    <div className="flex flex-col items-center gap-1">
-                      <img src="/logo.svg" alt="Multimeter" className="w-6 h-6" />
-                      <span className="text-sm font-semibold text-primary-light">
-                        Multimeter
-                      </span>
-                    </div>
-                  </th>
-                  <th className="px-6 py-4 text-sm font-medium text-slate-400 text-center">
-                    Postman
-                  </th>
-                  <th className="px-6 py-4 text-sm font-medium text-slate-400 text-center">
-                    Bruno
-                  </th>
-                  <th className="px-6 py-4 text-sm font-medium text-slate-400 text-center">
-                    Robot Framework
-                  </th>
+                  {tools.map((tool) => (
+                    <th key={tool.key} className="px-2 py-2.5 text-center min-w-24">
+                      <div className="flex flex-col items-center gap-1">
+                        <img src={tool.logo} alt={tool.name} className="w-4 h-4 object-contain" />
+                        <span className={`text-[10px] font-semibold leading-tight ${tool.highlight ? 'text-primary-light' : 'text-slate-400'}`}>
+                          {tool.name}
+                        </span>
+                      </div>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
@@ -92,21 +184,19 @@ export default function Comparison() {
                       index % 2 === 0 ? 'bg-surface-light/30' : 'bg-surface/50'
                     }`}
                   >
-                    <td className="px-6 py-3.5 text-sm text-slate-300">
+                    <td className={`sticky left-0 z-10 px-3 py-2 text-xs text-slate-300 ${
+                      index % 2 === 0 ? 'bg-surface-light' : 'bg-surface'
+                    }`}>
                       {row.feature}
                     </td>
-                    <td className="px-6 py-3.5 text-center text-green-400 font-medium">
-                      <CellValue value={row.multimeter} />
-                    </td>
-                    <td className="px-6 py-3.5 text-center text-slate-400">
-                      <CellValue value={row.postman} />
-                    </td>
-                    <td className="px-6 py-3.5 text-center text-slate-400">
-                      <CellValue value={row.bruno} />
-                    </td>
-                    <td className="px-6 py-3.5 text-center text-slate-400">
-                      <CellValue value={row.robot} />
-                    </td>
+                    {tools.map((tool) => (
+                      <td
+                        key={tool.key}
+                        className={`px-2 py-2 text-center ${tool.highlight ? 'text-green-400 font-medium' : 'text-slate-400'}`}
+                      >
+                        <CellValue value={row.values[tool.key]} />
+                      </td>
+                    ))}
                   </tr>
                 ))}
               </tbody>

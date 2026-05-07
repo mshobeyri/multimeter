@@ -41,12 +41,20 @@ flow:
       import: {},
       inputs: {},
       outputs: {},
-      metrics: {},
     } as any;
     const y = testToYaml(td);
     expect(y).toContain('type: test');
     expect(y).not.toContain('import:');
     expect(y).not.toContain('inputs:');
+  });
+
+  it('testToYaml does not add title when missing', () => {
+    const y = testToYaml({
+      type: 'test',
+      steps: [{ print: 'hello' } as any],
+    } as any);
+    expect(y).toContain('type: test');
+    expect(y).not.toContain('title:');
   });
 
   it('getTestFlowStepType detects each known type including data', () => {

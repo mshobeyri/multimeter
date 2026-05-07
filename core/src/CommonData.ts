@@ -1,4 +1,4 @@
-export type Type = "env" | "api" | "test" | "suite" | "doc" | "csv" | "server" | "report" | null;
+export type Type = "env" | "api" | "test" | "suite" | "loadtest" | "doc" | "csv" | "server" | "report" | null;
 
 export type Protocol = "http" | "ws" | "graphql" | "grpc";
 export type Format = "json" | "xml" | "xmle" | "text";
@@ -14,6 +14,7 @@ export const typeOptions = [
   { value: "env", label: "Environment" },
   { value: "test", label: "Test" },
   { value: "suite", label: "Suite" },
+  { value: "loadtest", label: "Load Test" },
   { value: "doc", label: "Documentation" },
   { value: "server", label: "Mock Server" },
   { value: "report", label: "Report" }

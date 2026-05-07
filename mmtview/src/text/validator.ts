@@ -134,7 +134,6 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "import",
         "inputs",
         "outputs",
-        "metrics",
         "steps",
         "stages",
       ];
@@ -148,6 +147,19 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "servers",
         "export",
         "tests",
+      ];
+    case "loadtest":
+      return [
+        "type",
+        "title",
+        "description",
+        "tags",
+        "environment",
+        "threads",
+        "repeat",
+        "rampup",
+        "export",
+        "test",
       ];
     case "doc":
       return ["type", "title", "description", "logo", "sources", "services", "html", "env"];
@@ -838,17 +850,22 @@ export type SuiteTestLineInfo = {
   line: number;
 };
 
-export function extractSuiteTestLineInfo(doc: any, content: string): SuiteTestLineInfo[] {
+function extractStringSequenceLineInfo(
+  doc: any,
+  content: string,
+  key: string,
+  options?: {skipThen?: boolean}
+): SuiteTestLineInfo[] {
   const items: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
-  const testsPair = items.find((entry) => entry?.key?.value === "tests");
-  if (!testsPair || !testsPair.value) {
+  const pair = items.find((entry) => entry?.key?.value === key);
+  if (!pair || !pair.value) {
     return [];
   }
-  const seqItems: any[] = Array.isArray(testsPair.value.items) ? testsPair.value.items : [];
+  const seqItems: any[] = Array.isArray(pair.value.items) ? pair.value.items : [];
   return seqItems
     .map((item) => {
       const path = typeof item?.value === "string" ? item.value : undefined;
-      if (!path || path === 'then') {
+      if (!path || (options?.skipThen && path === 'then')) {
         return null;
       }
       const offset =
@@ -859,6 +876,27 @@ export function extractSuiteTestLineInfo(doc: any, content: string): SuiteTestLi
       return { path, line } as SuiteTestLineInfo;
     })
     .filter(Boolean) as SuiteTestLineInfo[];
+}
+
+export function extractSuiteTestLineInfo(doc: any, content: string): SuiteTestLineInfo[] {
+  const items: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
+  const testPair = items.find((entry) => entry?.key?.value === "test");
+  if (testPair && testPair.value) {
+    const path = typeof testPair.value?.value === 'string' ? testPair.value.value : undefined;
+    if (!path) {
+      return [];
+    }
+    const offset =
+      Array.isArray(testPair?.value?.range) && typeof testPair.value.range[0] === 'number'
+        ? testPair.value.range[0]
+        : undefined;
+    const line = typeof offset === 'number' ? offsetToLineNumber(content, offset) : 1;
+    return [{ path, line }];
+  }
+  return [
+    ...extractStringSequenceLineInfo(doc, content, "servers"),
+    ...extractStringSequenceLineInfo(doc, content, "tests", {skipThen: true}),
+  ];
 }
 
 
@@ -883,7 +921,7 @@ export function computeMissingSuiteFileMarkers(
       startColumn: 1,
       endLineNumber: lineNumber,
       endColumn: model.getLineMaxColumn(lineNumber),
-      message: `Suite file "${path}" was not found.`,
+      message: `Referenced file "${path}" was not found.`,
       severity: monaco.MarkerSeverity.Warning,
     };
   });

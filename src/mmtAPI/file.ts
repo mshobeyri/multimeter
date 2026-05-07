@@ -590,6 +590,11 @@ const reportDefaults: Record<ReportFormat, {name: string; filters: Record<string
 function webviewDataToCollectedResults(data: any): CollectedResults {
   // Test view sends: { type: 'test', stepReports, runState, outputs, filePath }
   if (data.type === 'test' && Array.isArray(data.stepReports)) {
+    const finishedAt = typeof data.finishedAt === 'number'
+      ? data.finishedAt
+      : typeof data.startedAt === 'number' && typeof data.durationMs === 'number'
+        ? data.startedAt + data.durationMs
+        : undefined;
     const steps: TestStepResult[] = data.stepReports.map((r: any, i: number) => ({
       stepIndex: r.stepIndex ?? i,
       stepType: r.stepType === 'assert' ? 'assert' as const : r.stepType === 'debug' ? 'debug' as const : 'check' as const,
@@ -613,11 +618,31 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
       outputs: data.outputs,
       durationMs: data.durationMs ?? undefined,
     };
-    return {type: 'test', testRuns: [run]};
+    return {
+      type: 'test',
+      suiteRun: typeof data.startedAt === 'number' ? {
+        runId: 'export',
+        startedAt: data.startedAt,
+        finishedAt,
+        success: data.runState === 'passed',
+        totalRunnable: 1,
+        testRuns: [run],
+        durationMs: data.durationMs ?? undefined,
+        suiteTitle: data.testTitle,
+        suitePath: data.filePath ? path.basename(data.filePath) : undefined,
+      } : undefined,
+      testRuns: [run],
+    };
   }
 
-  // Suite view sends: { type: 'suite', leafReportsById, leafRunStateById, displayNameById, ... }
-  if (data.type === 'suite' && data.leafReportsById) {
+  // Suite/loadtest views send: { type: 'suite'|'loadtest', leafReportsById, leafRunStateById, displayNameById, ... }
+  if ((data.type === 'suite' || data.type === 'loadtest') && data.leafReportsById) {
+    const isLoadTest = data.type === 'loadtest';
+    const finishedAt = typeof data.finishedAt === 'number'
+      ? data.finishedAt
+      : typeof data.startedAt === 'number' && typeof data.durationMs === 'number'
+        ? data.startedAt + data.durationMs
+        : undefined;
     const displayNameById: Record<string, string> = data.displayNameById || {};
     const testRuns: TestRunResult[] = Object.entries(data.leafReportsById).map(
       ([id, reports]: [string, any]) => {
@@ -648,10 +673,11 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
       },
     );
     return {
-      type: 'suite',
+      type: isLoadTest ? 'loadtest' : 'suite',
       suiteRun: {
         runId: 'export',
-        startedAt: Date.now(),
+        startedAt: typeof data.startedAt === 'number' ? data.startedAt : Date.now(),
+        finishedAt,
         success: data.suiteRunState === 'passed',
         totalRunnable: testRuns.length,
         testRuns,
@@ -660,6 +686,18 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
         suitePath: data.filePath ? path.basename(data.filePath) : undefined,
       },
       testRuns,
+      load: isLoadTest ? {
+        ...(data.load || {}),
+        tool: 'multimeter',
+        scenario: data.suiteName ?? undefined,
+        test: data.load?.test,
+        config: data.load?.config || {
+          threads: data.load?.threads,
+          repeat: data.load?.repeat,
+          rampup: data.load?.rampup,
+        },
+        summary: data.load?.summary,
+      } : undefined,
     };
   }
 

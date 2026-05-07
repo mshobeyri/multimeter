@@ -20,9 +20,9 @@ export default function CICDReady() {
               <div className="p-6 font-mono text-sm space-y-3">
                 <div>
                   <span className="text-green-400">$</span>{' '}
-                  <span className="text-slate-300">npm install -g testlight</span>
+                  <span className="text-slate-300">npm install -g mmt-testlight</span>
                 </div>
-                <div className="text-slate-500">✓ installed testlight@1.9.2</div>
+                <div className="text-slate-500">✓ installed mmt-testlight@0.4.0</div>
                 <div className="mt-4">
                   <span className="text-green-400">$</span>{' '}
                   <span className="text-slate-300">

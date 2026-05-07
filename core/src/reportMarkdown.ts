@@ -1,5 +1,6 @@
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
 import { formatDuration } from './CommonData';
+import {formatReportDateTime, formatReportNumber, formatReportPercent} from './reportFormat';
 
 export interface ReportMarkdownOptions {
   suiteName?: string;
@@ -45,7 +46,7 @@ function buildStepRow(step: TestStepResult, index: number): string {
   const name = escapeMdTable(step.title || `step-${step.stepIndex}`);
   const icon = step.status === 'passed' ? '✓' : '✗';
   const result = `${icon} ${step.status}`;
-  return `| ${index + 1} | ${name} | ${step.stepType} | ${result} |`;
+  return `| ${index + 1} | ${name} | ${result} |`;
 }
 
 function displayValue(v: any): string {
@@ -102,17 +103,18 @@ function buildFailureDetails(step: TestStepResult): string {
   return md;
 }
 
-function buildSuiteSection(run: TestRunResult, index: number, includeDetails: boolean): string {
+function buildTestRunSection(run: TestRunResult, index: number, includeDetails: boolean): string {
   const name = run.displayName || run.filePath || `test-${index}`;
   const steps = run.steps.filter(s => s.stepType !== 'debug');
-  let md = `\n## ${name}\n\n`;
-  md += `| # | Test | Type | Result |\n`;
-  md += `|---|------|------|--------|\n`;
+  const icon = run.result === 'passed' ? '✓' : '✗';
+  let md = `**${icon} ${name}** ${run.result}\n`;
+  if (steps.length === 0) {
+    return md;
+  }
+  md += `\n| # | Check | Result|\n`;
+  md += `|---|------|--------|\n`;
   for (let i = 0; i < steps.length; i++) {
     md += buildStepRow(steps[i], i) + '\n';
-  }
-  if (steps.length === 0) {
-    md += `| | *No test steps* | | |\n`;
   }
 
   if (includeDetails) {
@@ -125,33 +127,159 @@ function buildSuiteSection(run: TestRunResult, index: number, includeDetails: bo
   return md;
 }
 
+function buildFunctionalTestsSection(runs: TestRunResult[], includeDetails: boolean): string {
+  let md = `\n## Tests\n`;
+  if (runs.length === 0) {
+    return md + `\n*No test results in this report.*\n`;
+  }
+  for (let i = 0; i < runs.length; i++) {
+    md += buildTestRunSection(runs[i], i, includeDetails);
+    if (i < runs.length - 1) {
+      md += '\n';
+    }
+  }
+  return md;
+}
+
+function getLoadPoints(results: CollectedResults): Array<{at: number; active_threads?: number; requests?: number; errors?: number; throughput?: number; response_time?: number; error_rate?: number}> {
+  const load = results.load;
+  if (!load) {
+    return [];
+  }
+  if (Array.isArray(load.snapshots)) {
+    return load.snapshots.map(point => ({...point}));
+  }
+  if (!Array.isArray(load.series)) {
+    return [];
+  }
+  const startedAt = results.suiteRun?.startedAt || (load.config?.started_at ? new Date(load.config.started_at).getTime() : undefined);
+  return load.series.map((point, index) => {
+    const pointTime = point.timestamp ? new Date(point.timestamp).getTime() : undefined;
+    const at = startedAt && pointTime && Number.isFinite(pointTime)
+      ? Math.max(0, Math.floor((pointTime - startedAt) / 1000))
+      : index;
+    return {...point, at};
+  });
+}
+
+function buildLoadSection(results: CollectedResults): string {
+  const load = results.load;
+  if (!load) {
+    return '';
+  }
+  const loadData = load;
+  const startedAt = results.suiteRun?.startedAt ?? loadData.config?.started_at;
+  const endedAt = results.suiteRun?.finishedAt ?? loadData.config?.finished_at;
+  let md = `\n## Load Metrics\n\n`;
+  md += `| Metric | Value |\n|--------|-------|\n`;
+  const rows = [
+    ['Started at', formatReportDateTime(startedAt)],
+    ['Ended at', formatReportDateTime(endedAt)],
+    ['Threads', loadData.config?.threads],
+    ['Repeat', loadData.config?.repeat],
+    ['Ramp-up', loadData.config?.rampup],
+    ['Requests sent', loadData.summary?.requests],
+    ['Succeeded', loadData.summary?.successes],
+    ['Failed', loadData.summary?.failures],
+    ['Success rate', loadData.summary?.success_rate != null ? formatReportPercent(loadData.summary.success_rate) : undefined],
+    ['Failed rate', loadData.summary?.failed_rate != null ? formatReportPercent(loadData.summary.failed_rate) : undefined],
+    ['Throughput', loadData.summary?.throughput != null ? `${formatReportNumber(loadData.summary.throughput)} req/s` : undefined],
+    ['Error rate', loadData.summary?.error_rate != null ? formatReportPercent(loadData.summary.error_rate) : undefined],
+    ['Latency p95', loadData.latency?.p95 != null ? `${formatReportNumber(loadData.latency.p95)} ms` : undefined],
+    ['Latency p99', loadData.latency?.p99 != null ? `${formatReportNumber(loadData.latency.p99)} ms` : undefined],
+  ] as Array<[string, any]>;
+  for (const [name, value] of rows) {
+    if (value !== undefined && value !== null && value !== '') {
+      md += `| ${escapeMdTable(name)} | ${escapeMdTable(String(value))} |\n`;
+    }
+  }
+  const points = getLoadPoints(results);
+  if (points.length > 0) {
+    md += buildLoadMermaidCharts(points);
+    md += `\n### Snapshots\n\n| At | Threads | Requests | Requests/sec | Response time | Failures | Failure rate |\n|----|---------|----------|--------------|---------------|----------|--------------|\n`;
+    for (const point of points) {
+      md += `| ${point.at} | ${point.active_threads ?? ''} | ${point.requests ?? ''} | ${point.throughput != null ? formatReportNumber(point.throughput) : ''} | ${point.response_time != null ? formatReportNumber(point.response_time) : ''} | ${point.errors ?? ''} | ${point.error_rate != null ? formatReportPercent(point.error_rate) : ''} |\n`;
+    }
+  }
+  if (loadData.thresholds && loadData.thresholds.length > 0) {
+    md += `\n### Thresholds\n\n| Name | Expression | Actual | Result |\n|------|------------|--------|--------|\n`;
+    for (const threshold of loadData.thresholds) {
+      md += `| ${escapeMdTable(threshold.name)} | ${escapeMdTable(threshold.expression || '')} | ${typeof threshold.actual === 'number' ? formatReportNumber(threshold.actual) : threshold.actual ?? ''} | ${threshold.result} |\n`;
+    }
+  }
+  if (loadData.errors && loadData.errors.length > 0) {
+    md += `\n### Errors\n\n| Message | Count | Rate |\n|---------|-------|------|\n`;
+    for (const err of loadData.errors) {
+      md += `| ${escapeMdTable(err.message)} | ${err.count} | ${typeof err.rate === 'number' ? formatReportNumber(err.rate) : err.rate ?? ''} |\n`;
+    }
+  }
+  return md;
+}
+
+function mermaidValues(values: number[]): string {
+  return values.map(value => Number.isFinite(value) ? Number(formatReportNumber(value)) : 0).join(', ');
+}
+
+function buildLoadMermaidChart(title: string, yAxis: string, labels: string[], values: number[]): string {
+  const maxY = Math.max(1, ...values);
+  return `\n\`\`\`mermaid\nxychart\n    title "${title}"\n    x-axis [${labels.join(', ')}]\n    y-axis "${yAxis}" 0 --> ${Math.ceil(maxY)}\n    line [${mermaidValues(values)}]\n\`\`\`\n`;
+}
+
+function buildLoadMermaidCharts(series: ReturnType<typeof getLoadPoints>): string {
+  const labels = series.map(point => String(point.at));
+  const throughput = series.map(point => Number(point.throughput || 0));
+  const responseTime = series.map(point => Number(point.response_time || 0));
+  const failures = series.map(point => Number(point.errors || 0));
+  const threads = series.map(point => Number(point.active_threads || 0));
+  return `\n### Charts\n` +
+    buildLoadMermaidChart('Requests/sec over time', 'Requests/sec', labels, throughput) +
+    buildLoadMermaidChart('Response time over time', 'Milliseconds', labels, responseTime) +
+    buildLoadMermaidChart('Failures over time', 'Failures', labels, failures) +
+    buildLoadMermaidChart('Threads over time', 'Threads', labels, threads);
+}
+
 export function generateReportMarkdown(results: CollectedResults, options?: ReportMarkdownOptions): string {
   const runs = results.testRuns;
   const suiteName = options?.suiteName || results.suiteRun?.suiteTitle || results.suiteRun?.suitePath || results.testRuns[0]?.displayName || 'Test Report';
   const includeDetails = options?.includeDetails !== false;
+  const isLoad = results.type === 'loadtest' || !!results.load;
   const totalTests = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug').length, 0);
   const totalPassed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'passed').length, 0);
   const totalFailed = runs.reduce((sum, r) => sum + r.steps.filter(s => s.stepType !== 'debug' && s.status === 'failed').length, 0);
   const totalTime = formatDuration(
     results.suiteRun?.durationMs ?? runs.reduce((sum, r) => sum + (r.durationMs || 0), 0)
   );
+  const timestamp = results.suiteRun?.startedAt ?? results.load?.config?.started_at;
+  const endedAt = results.suiteRun?.finishedAt ?? results.load?.config?.finished_at;
 
   let md = `# Test Report: ${suiteName}\n\n`;
 
-  if (results.suiteRun?.startedAt) {
-    md += `**Timestamp:** ${new Date(results.suiteRun.startedAt).toISOString()}  \n`;
+  md += `## Overview\n\n`;
+
+  if (timestamp) {
+    md += `**Started at:** ${formatReportDateTime(timestamp)}  \n`;
+  }
+  if (endedAt) {
+    md += `**Ended at:** ${formatReportDateTime(endedAt)}  \n`;
   }
   md += `**Duration:** ${totalTime}  \n`;
-  md += `**Result:** ${totalPassed} passed, ${totalFailed} failed, ${totalTests} total\n`;
+  if (isLoad) {
+    const summary = results.load?.summary;
+    md += `**Result:** ${summary?.successes ?? 0} passed, ${summary?.failures ?? 0} failed, ${summary?.requests ?? summary?.iterations ?? 0} requests\n`;
+  } else {
+    md += `**Result:** ${totalPassed} passed, ${totalFailed} failed, ${totalTests} total checks\n`;
+  }
 
   if (results.suiteRun?.cancelled) {
     md += `\n> ⚠ **Run was cancelled**\n`;
   }
 
-  for (let i = 0; i < runs.length; i++) {
-    md += buildSuiteSection(runs[i], i, includeDetails);
+  md += buildLoadSection(results);
+
+  if (!isLoad) {
+    md += buildFunctionalTestsSection(runs, includeDetails);
   }
 
-  md += `\n---\n*Generated by Multimeter*\n`;
+  md += `\n---\n*Generated by **Multimeter***\n`;
   return md;
 }

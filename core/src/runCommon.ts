@@ -2,7 +2,7 @@ import {APIData} from './APIData';
 import {LogLevel, Type} from './CommonData';
 import * as JSer from './JSer';
 import {RunJSCodeContext} from './jsRunner';
-import type {CollectedResults} from './reportCollector';
+import type {CollectedResults, LoadReportData} from './reportCollector';
 import {RunResult, TestStepReporterEvent} from './runConfig';
 
 export interface SuiteExportSpec {
@@ -10,6 +10,16 @@ export interface SuiteExportSpec {
   paths: string[];
   /** Collected results from the suite run for generating reports. */
   collectedResults: CollectedResults;
+}
+
+export interface LoadTestPreparedConfig {
+  title?: string;
+  test: string;
+  threads?: number;
+  repeat?: string | number;
+  rampup?: string;
+  environment?: import('./SuiteData').SuiteEnvironment;
+  export?: string[];
 }
 
 export interface RunFileResult {
@@ -24,6 +34,8 @@ export interface RunFileResult {
   exampleIndex?: number;
   /** Export specifications for suite runs (only set when `bundle.export` is defined). */
   suiteExports?: SuiteExportSpec;
+  /** Aggregated load-test metrics for UI/report consumers. */
+  loadResult?: LoadReportData;
 }
 
 export interface PreparedRun {
@@ -37,6 +49,7 @@ export interface PreparedRun {
   title?: string;
   exampleName?: string;
   exampleIndex?: number;
+  loadtestConfig?: LoadTestPreparedConfig;
 }
 
 /**
@@ -79,10 +92,29 @@ export async function runGeneratedJs(
   abortSignal?: AbortSignal,
   traceSend?: boolean,
   skipServerCleanup?: boolean,
-  basePath?: string): Promise<RunResult> {
+  basePath?: string,
+  skipSyntaxValidation?: boolean,
+  workerEligible?: boolean,
+  checkLogMode?: 'default'|'failures-only'|'none'): Promise<RunResult> {
   const start = Date.now();
   const errors: string[] = [];
   const logs: string[] = [];
+  const recordReportedFailure = (event: Record<string, any>) => {
+    if (!event || typeof event !== 'object') {
+      return;
+    }
+    const hasFailedStatus = event.status === 'failed' || event.result === 'failed';
+    const hasFailedExpect = Array.isArray((event as any).expects) &&
+      (event as any).expects.some((item: any) => item && item.status === 'failed');
+    if (!hasFailedStatus && !hasFailedExpect) {
+      return;
+    }
+    const title = typeof event.title === 'string' && event.title ? ` ${event.title}` : '';
+    const message = `Reported failed ${event.stepType || event.scope || 'step'}${title}`;
+    if (!errors.includes(message)) {
+      errors.push(message);
+    }
+  };
   const forward = (level: LogLevel, msg: string) => {
     if (level === 'error') {
       errors.push(msg);
@@ -97,24 +129,35 @@ export async function runGeneratedJs(
     }
     // Syntax-check the generated JS before execution so malformed .mmt
     // files surface a clear error instead of silently failing.
-    const syntaxError = validateJsSyntax(js);
-    if (syntaxError) {
-      errors.push(syntaxError);
-      forward('error', syntaxError);
-      return {success: false, durationMs: Date.now() - start, errors, logs, syntaxError: true};
+    if (!skipSyntaxValidation) {
+      const syntaxError = validateJsSyntax(js);
+      if (syntaxError) {
+        errors.push(syntaxError);
+        forward('error', syntaxError);
+        return {success: false, durationMs: Date.now() - start, errors, logs, syntaxError: true};
+      }
     }
+    const effectiveReporter = reporter ?? stepReporter;
+    const wrappedReporter = typeof effectiveReporter === 'function'
+      ? (event: Record<string, any>) => {
+          recordReportedFailure(event);
+          return (effectiveReporter as any)(event);
+        }
+      : undefined;
     const returnValue = await jsRunner({
       runId,
       js,
       title: name,
       logger: forward,
       fileLoader,
-      reporter: reporter ?? stepReporter,
+      reporter: wrappedReporter,
       id,
       abortSignal,
       traceSend,
       skipServerCleanup,
       basePath,
+      workerEligible,
+      checkLogMode,
     });
 
     const outputs = returnValue && typeof returnValue === 'object' ? returnValue : undefined;

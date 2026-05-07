@@ -280,7 +280,9 @@ export function apiToYaml(api: APIData): string {
   // Directly map APIField fields to YAML
   const yamlObj: Record<string, any> = {
     type: api.type,
-    title: api.title,
+  };
+  if (api.title) {
+    yamlObj.title = api.title;
   };
   if (api.description) {
     yamlObj.description = api.description;

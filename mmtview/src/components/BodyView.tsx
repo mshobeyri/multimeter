@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { xml2js } from "xml-js";
 import { beautify } from "mmt-core/markupConvertor";
 import { extractPathAtPosition, PathSegment } from "mmt-core/outputExtractor";
@@ -141,7 +142,21 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
         return () => window.removeEventListener("keydown", onKeyDown);
     }, [isFullscreen]);
 
-    return (
+    useEffect(() => {
+        if (!isFullscreen) {
+            return;
+        }
+
+        const { body } = document;
+        const previousOverflow = body.style.overflow;
+        body.style.overflow = "hidden";
+
+        return () => {
+            body.style.overflow = previousOverflow;
+        };
+    }, [isFullscreen]);
+
+    const content = (
         <div
             className={`bodyview${isFullscreen ? " bodyview-fullscreen" : ""}`}
         >
@@ -221,6 +236,8 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
             </div>
         </div>
     );
+
+    return isFullscreen ? createPortal(content, document.body) : content;
 };
 
 export default BodyView;

@@ -4,6 +4,7 @@ import { yamlToTest, testToYaml } from 'mmt-core/testParsePack';
 import { yamlToDoc, docToYaml } from 'mmt-core/docParsePack';
 import { yamlToMock, mockToYaml } from 'mmt-core/mockParsePack';
 import { yamlToSuite, suiteToYaml } from 'mmt-core/suiteParsePack';
+import { yamlToLoadTest, loadtestToYaml } from 'mmt-core/loadtestParsePack';
 import { parseReportMmt } from 'mmt-core/reportParser';
 import { generateMmtReport } from 'mmt-core/mmtReport';
 import YAML from 'yaml';
@@ -78,6 +79,14 @@ export function buildCanonicalYaml(content: string, docType: string | null): str
           return null;
         }
         return suiteToYaml(suiteData);
+      }
+      case 'loadtest': {
+        const loadtestData = yamlToLoadTest(content);
+        if (!loadtestData || typeof loadtestData !== 'object') {
+          showVSCodeMessage('error', 'Document is not a valid YAML.');
+          return null;
+        }
+        return loadtestToYaml(loadtestData);
       }
       case 'server': {
         const mockData = yamlToMock(content);

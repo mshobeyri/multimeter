@@ -33,6 +33,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
   const [currentInputs, setCurrentInputs] = useState<JSONRecord>({});
   const currentInputsRef = useRef<JSONRecord>({});
   const touchedFieldsRef = useRef<Set<keyof Request>>(new Set());
+  const [touchedFields, setTouchedFields] = useState<Set<keyof Request>>(new Set());
   const [autoFormatBody, setAutoFormatBodyState] = useState<boolean>(false);
   const [outputs, setOutputs] = useState<JSONRecord>({});
 
@@ -51,11 +52,17 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
   }, [api]);
 
   const markFieldTouched = useCallback((field: keyof Request) => {
-    touchedFieldsRef.current.add(field);
+    if (!touchedFieldsRef.current.has(field)) {
+      touchedFieldsRef.current.add(field);
+      setTouchedFields(new Set(touchedFieldsRef.current));
+    }
   }, []);
 
   const resetTouchedFields = useCallback(() => {
-    touchedFieldsRef.current.clear();
+    if (touchedFieldsRef.current.size > 0) {
+      touchedFieldsRef.current.clear();
+      setTouchedFields(new Set());
+    }
   }, []);
 
   const updateField = useCallback((field: keyof Request, value: unknown) => {
@@ -68,12 +75,13 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
 
   const handleUrlChange = useCallback((newUrl: string) => {
     if (newUrl !== requestData?.url) {
+      markFieldTouched("url");
       setRequestData(prev => ({
         ...(prev ?? {}),
         url: newUrl
       } as Request));
     }
-  }, [requestData?.url]);
+  }, [requestData?.url, markFieldTouched]);
 
   const handleQueryChange = useCallback((query: Record<string, string>) => {
     const prevQuery = JSON.stringify(requestData?.query || {});
@@ -316,6 +324,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
 
   return {
     requestData,
+    touchedFields,
     responseData,
     responseRevision,
     selectedExampleIdx,
