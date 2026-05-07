@@ -2,6 +2,15 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.19.0]
+
+- Add `loadtest` file support with reporting and validation
+- Add test UI plus suite and load test overview improvements
+- Improve test execution by compiling tests once and updating worker execution
+- Refine report, suite, and load test UI and report schema handling
+- Fix load testing logs, report issues, full screen button behavior, and server-related issues
+- Update docs and website
+
 ## [1.18.0]
 
 - Add temporary API change warning with preview, save, and discard actions in the API tester UI
