@@ -9,7 +9,7 @@
     <a href="#-documentation"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-      <a href="https://github.com/mshobeyri/multimeter/blob/master/docs/demos.md"><img src="res/demo.png" alt="Demo" width="16" height="16" style="vertical-align: text-bottom;"/> View Demo</a>
+      <a href="https://www.youtube.com/@mmt_dev"><img src="res/demo.png" alt="Demo" width="16" height="16" style="vertical-align: text-bottom;"/> View Demo</a>
     &middot;
       <a href="https://github.com/mshobeyri/multimeter/issues/new?labels=enhancement&template=feature-request---.md"><img src="res/request_feature.png" alt="Request Feature" width="16" height="16" style="vertical-align: text-bottom;"/> Request Feature</a>
   </p>
