@@ -214,7 +214,7 @@ Ensure these are ignored:
 After making public:
 
 - [ ] **Visibility**: Set to Public
-- [ ] **Description**: "All possible tests for your service as code — API testing, documentation, and mocking in VS Code"
+- [ ] **Description**: "Functional, Automation And Performance Testing. All as code..."
 - [ ] **Topics**: `api-testing`, `vscode-extension`, `test-automation`, `http-testing`, `websocket`, `yaml`, `cli`, `mock-server`, `api-documentation`, `ci-cd`
 - [ ] **Website**: `https://mmt.dev`
 - [ ] **Social preview**: Upload a branded image (1280x640px) — the logo + tagline

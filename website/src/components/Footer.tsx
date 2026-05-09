@@ -42,7 +42,7 @@ export default function Footer() {
               <span className="text-xl font-bold text-white">Multimeter</span>
             </Link>
             <p className="text-sm text-slate-400 mb-6">
-              All possible tests for your service — as code. API, mock, suite, and beta load testing for VS Code.
+              Functional, Automation And Performance Testing. All as code...
             </p>
             <div className="flex items-center gap-4">
               <a
