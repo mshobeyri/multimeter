@@ -2,6 +2,11 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.19.1]
+
+- Fix documentation generation for current-folder sources
+- Update Testlight release metadata and website download copy
+
 ## [1.19.0]
 
 - Add `loadtest` file support with reporting and validation
