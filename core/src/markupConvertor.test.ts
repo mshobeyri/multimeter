@@ -1,4 +1,4 @@
-import {beautify, formatBody, formattedBodyToYamlObject} from './markupConvertor';
+import {beautify, beautifyWithContentType, formatBody, formattedBodyToYamlObject} from './markupConvertor';
 
 describe('markupConvertor XML formats', () => {
   it('keeps normal xml self-closing for empty elements', () => {
@@ -29,5 +29,11 @@ describe('markupConvertor XML formats', () => {
 
     const parsed = formattedBodyToYamlObject('xmle', beautified);
     expect(parsed).toEqual({root: {name: 'Alice', empty: {}}});
+  });
+
+  it('detects JSON content after leading whitespace', () => {
+    expect(beautifyWithContentType('', '  {"ok":true}')).toBe('{' +
+      '\n  "ok": true' +
+      '\n}');
   });
 });

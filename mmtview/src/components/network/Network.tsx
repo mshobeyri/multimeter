@@ -1,17 +1,22 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NetworkAPI, Request, Response } from "mmt-core/NetworkData";
 import { NetworkNodeApi, Error } from "./NetworkNodeApi";
 import { pushHistory } from "../../vsAPI";
 import { beautifyWithContentType } from "mmt-core/markupConvertor";
 import { getEffectiveProtocol } from "mmt-core/protocolResolver";
 
-export function useNetwork(): NetworkAPI {
+export function useNetwork(autoFormatBody = false): NetworkAPI {
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [wsId, setWsId] = useState<string | null>(null);
+  const autoFormatBodyRef = useRef(autoFormatBody);
 
   let lastRequestID = useRef<string | null>(null);
+
+  useEffect(() => {
+    autoFormatBodyRef.current = autoFormatBody;
+  }, [autoFormatBody]);
 
   const parseSetCookie = (setCookie: string[] | string | undefined): Record<string, string> => {
     if (!setCookie) return {};
@@ -258,9 +263,10 @@ export function useNetwork(): NetworkAPI {
           wsId: wsId || "",
           data: toContentString(body),
           onResponse: (res: any) => {
+            const body = autoFormatBodyRef.current ? beautifyWithContentType("", res) : res;
             setLoading(false);
             resolve({
-              body: res,
+              body,
               errorMessage: "",
               status: 204,
               errorCode: "WS_MESSAGE",
@@ -320,17 +326,18 @@ export function useNetwork(): NetworkAPI {
         },
 
         onMessage: (data: string) => {
+          const body = autoFormatBodyRef.current ? beautifyWithContentType("", data) : data;
           setLoading(false);
           pushHistory({
             type: "recv",
             method: "recv",
             protocol: "ws",
             title: `recv ${url}`,
-            content: data
+            content: body
           });
           // Optionally resolve here if you want to return on first message
           resolve({
-            body: data,
+            body,
             errorMessage: "",
             status: 204,
             errorCode: "WS_MESSAGE",

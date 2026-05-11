@@ -75,6 +75,7 @@ export type PostMessage = (msg: any) => void;
 export interface NetworkHandlerOptions {
   fileLoader?: (path: string) => Promise<string>;
   basePath?: string;
+  getConfig?: () => NetworkConfig;
 }
 
 export function handleNetworkMessage(
@@ -187,13 +188,14 @@ export function handleNetworkMessage(
         });
       });
       ws.on('message', (data: WebSocket.RawData) => {
+        const currentConfig = options?.getConfig ? options.getConfig() : config;
         connectionTracker.activity(connId, {incrementRequests: true});
         postMessage({
           command: 'network',
           action: 'ws-message',
           wsId,
           data: data.toString(),
-          autoformat: config.autoFormat,
+          autoformat: currentConfig.autoFormat,
         });
       });
       break;
