@@ -25,12 +25,20 @@ export interface BuildDocMdOptions {
 }
 
 function cleanPath(p: string): string {
-  const x = String(p || '').replace(/\\/g, '/');
+  const x = String(p || '').replace(/\\/g, '/').replace(/\/+$/, '');
   return x.replace(/^\.\/+/, '');
+}
+
+function isCurrentDirSource(src: string): boolean {
+  const s = String(src || '').trim().replace(/\\/g, '/');
+  return s === '.' || s === './';
 }
 
 function matchesSource(filePath: string, src: string): boolean {
   const fp = cleanPath(filePath);
+  if (fp && isCurrentDirSource(src)) {
+    return true;
+  }
   const s = cleanPath(src);
   if (!fp || !s) {
     return false;

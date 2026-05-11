@@ -55,6 +55,11 @@ function renderDescriptionParts(desc: string, inputs?: JSONRecord, outputs?: Rec
 
 const MdViewer: React.FC<MdViewerProps> = ({ description, inputs, outputs, basePath }) => {
   const ref = useMemo(() => parseRefDescription(description), [description]);
+  const resolvedRefHref = useMemo(() => {
+    if (!ref) { return ''; }
+    const resolvedPath = resolveRefPath(ref.path, basePath);
+    return `${resolvedPath}#${ref.fragment}`;
+  }, [ref, basePath]);
   const [resolvedDesc, setResolvedDesc] = useState<string | null>(null);
 
   useEffect(() => {
@@ -125,7 +130,7 @@ const MdViewer: React.FC<MdViewerProps> = ({ description, inputs, outputs, baseP
             >
               <a
                 className="desc-ref"
-                href={refLabel.replace(/^ref\s+/, '')}
+                href={resolvedRefHref}
                 title={refLabel}
                 style={{
                   color: 'var(--vscode-textLink-foreground, #3794ff)',

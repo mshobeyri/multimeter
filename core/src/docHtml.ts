@@ -31,8 +31,7 @@ export function parseRefDescription(desc: string): { path: string; fragment: str
  */
 export function resolveRefPath(refPath: string, basePath?: string): string {
   if (!basePath) { return refPath; }
-  // Only resolve paths that look relative (start with ./ or ../)
-  if (!refPath.startsWith('./') && !refPath.startsWith('../')) { return refPath; }
+  if (refPath.startsWith('+/') || refPath.startsWith('/') || /^[a-z]+:\/\//i.test(refPath)) { return refPath; }
   // basePath may be a file path — extract its directory
   const baseDir = basePath.replace(/[\/][^\/]*$/, '');
   // Join baseDir + refPath and normalize
@@ -450,11 +449,16 @@ export interface BuildDocHtmlOptions {
 }
 
 function cleanPath(p: string): string {
-  const x = String(p || '').replace(/\\/g, '/');
+  const x = String(p || '').replace(/\\/g, '/').replace(/\/+$/, '');
   return x.replace(/^\.\/+/, ''); // strip leading ./
+}
+function isCurrentDirSource(src: string): boolean {
+  const s = String(src || '').trim().replace(/\\/g, '/');
+  return s === '.' || s === './';
 }
 function matchesSource(filePath: string, src: string): boolean {
   const fp = cleanPath(filePath);
+  if (fp && isCurrentDirSource(src)) { return true; }
   const s = cleanPath(src);
   if (!fp || !s) { return false; }
   if (/\.mmt$/i.test(s)) {
