@@ -2,7 +2,20 @@ import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-const PLAYLIST_ID = 'PL_GvdPBZ-KR4nlMq1dE8BryC75z8jzTfL'
+const PLAYLISTS = [
+  {
+    id: 'PL_GvdPBZ-KR6cTAyzewASaUDbZt_B9POH',
+    eyebrow: 'Feature demos',
+    title: 'Short Multimeter feature demos',
+    description: 'Quick, focused videos showing Multimeter features in action.',
+  },
+  {
+    id: 'PL_GvdPBZ-KR4nlMq1dE8BryC75z8jzTfL',
+    eyebrow: 'Step-by-step playlist',
+    title: 'Watch Multimeter in action',
+    description: 'Guided walkthroughs covering Multimeter from install to environment variables and API testing.',
+  },
+] as const
 const VIRTUAL_MODULE_ID = 'virtual:youtube-playlist'
 const RESOLVED_ID = '\0' + VIRTUAL_MODULE_ID
 
@@ -11,8 +24,8 @@ interface PlaylistVideo {
   title: string
 }
 
-async function fetchPlaylistVideos(): Promise<PlaylistVideo[]> {
-  const url = `https://www.youtube.com/feeds/videos.xml?playlist_id=${PLAYLIST_ID}`
+async function fetchPlaylistVideos(playlistId: string): Promise<PlaylistVideo[]> {
+  const url = `https://www.youtube.com/feeds/videos.xml?playlist_id=${playlistId}`
   try {
     const res = await fetch(url)
     if (!res.ok) {
@@ -32,22 +45,29 @@ async function fetchPlaylistVideos(): Promise<PlaylistVideo[]> {
     }
     return videos
   } catch (err) {
-    console.warn('[youtube-playlist] Failed to fetch playlist, using empty list:', err)
+    console.warn(`[youtube-playlist] Failed to fetch playlist ${playlistId}, using empty list:`, err)
     return []
   }
 }
 
 function youtubePlaylistPlugin(): Plugin {
-  let videos: PlaylistVideo[] = []
+  let playlists: Array<(typeof PLAYLISTS)[number] & { videos: PlaylistVideo[] }> = []
   let fetched = false
 
   return {
     name: 'youtube-playlist',
     async buildStart() {
       if (!fetched) {
-        videos = await fetchPlaylistVideos()
+        playlists = await Promise.all(
+          PLAYLISTS.map(async (playlist) => ({
+            ...playlist,
+            videos: await fetchPlaylistVideos(playlist.id),
+          })),
+        )
         fetched = true
-        console.log(`[youtube-playlist] Loaded ${videos.length} videos from playlist ${PLAYLIST_ID}`)
+        for (const playlist of playlists) {
+          console.log(`[youtube-playlist] Loaded ${playlist.videos.length} videos from playlist ${playlist.id}`)
+        }
       }
     },
     resolveId(id) {
@@ -57,8 +77,7 @@ function youtubePlaylistPlugin(): Plugin {
     },
     load(id) {
       if (id === RESOLVED_ID) {
-        return `export const PLAYLIST_ID = ${JSON.stringify(PLAYLIST_ID)};
-export const videos = ${JSON.stringify(videos)};`
+        return `export const playlists = ${JSON.stringify(playlists)};`
       }
     },
   }

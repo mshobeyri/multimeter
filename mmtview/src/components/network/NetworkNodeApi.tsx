@@ -22,7 +22,7 @@ type HttpOptions = {
 type WsOptions = {
     url: string;
     onOpen?: () => void;
-    onMessage?: (data: string) => void;
+    onMessage?: (data: string, info?: { autoformat?: boolean }) => void;
     onClose?: (info?: { code?: number; reason?: string }) => void;
     onError?: (error: { message: string; code?: string }) => void;
 };
@@ -30,7 +30,7 @@ type WsOptions = {
 type SendWsOptions = {
     wsId: string;
     data: string;
-    onResponse?: (response: any) => void;
+    onResponse?: (response: any, info?: { autoformat?: boolean }) => void;
     onError?: (error: Error) => void;
 };
 
@@ -59,7 +59,7 @@ function generateRequestId() {
 const pendingRequests: Record<
     string,
     {
-        onResponse?: (response: any) => void;
+        onResponse?: (response: any, info?: { autoformat?: boolean }) => void;
         onError?: (error: Error) => void;
     }
 > = {};
@@ -68,7 +68,7 @@ const openWebsockets: Record<
     string,
     {
         onOpen?: () => void;
-        onMessage?: (data: string) => void;
+        onMessage?: (data: string, info?: { autoformat?: boolean }) => void;
         onClose?: (info?: { code?: number; reason?: string }) => void;
         onError?: (error: { message: string; code?: string }) => void;
     }
@@ -200,11 +200,11 @@ window.addEventListener("message", (event: MessageEvent) => {
         if (msg.action === "ws-message") {
             const cb = pendingRequests[msg.wsId];
             if (cb && typeof cb.onResponse === "function") {
-                cb.onResponse(msg.data);
+                cb.onResponse(msg.data, { autoformat: msg.autoformat });
                 delete pendingRequests[msg.wsId];
             }
             if(wsListener.onMessage){
-                wsListener.onMessage(msg.data);
+                wsListener.onMessage(msg.data, { autoformat: msg.autoformat });
             }
         }
         if (msg.action === "ws-close" && wsListener.onClose) {

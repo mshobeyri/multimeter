@@ -127,6 +127,10 @@ const App: React.FC = () => {
       }
 
       if (message.command === "config") {
+        if (typeof message.bodyAutoFormat === "boolean") {
+          (window as any).__mmtBodyAutoFormat = message.bodyAutoFormat;
+          window.dispatchEvent(new CustomEvent("multimeter.config", { detail: message }));
+        }
         const size = Number(message.editorFontSize);
         if (Number.isFinite(size) && size > 0) {
           setYamlFontSize(size);

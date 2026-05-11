@@ -1,4 +1,9 @@
 declare module 'virtual:youtube-playlist' {
-  export const PLAYLIST_ID: string
-  export const videos: Array<{ id: string; title: string }>
+  export const playlists: Array<{
+    id: string
+    eyebrow: string
+    title: string
+    description: string
+    videos: Array<{ id: string; title: string }>
+  }>
 }

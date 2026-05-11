@@ -128,11 +128,12 @@ function beautify(format: 'json'|'xml'|'xmle'|'text', value: string): string {
 }
 
 function beautifyWithContentType(contentType: string, value: string): string {
-  if ((contentType && contentType.includes('json')) || value.startsWith('{') ||
-      value.startsWith('[')) {
+  const trimmedValue = value.trimStart();
+  if ((contentType && contentType.includes('json')) || trimmedValue.startsWith('{') ||
+      trimmedValue.startsWith('[')) {
     return beautify('json', value);
   } else if (
-      (contentType && contentType.includes('xml')) || value.startsWith('<')) {
+      (contentType && contentType.includes('xml')) || trimmedValue.startsWith('<')) {
     return beautify('xml', value);
   } else {
     return value;

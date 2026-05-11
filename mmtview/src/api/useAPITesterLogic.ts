@@ -24,7 +24,8 @@ interface UseAPITesterLogicParams {
 }
 
 export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLogicParams) {
-  const network = useNetwork();
+  const [autoFormatBody, setAutoFormatBodyState] = useState<boolean>(() => getInitialBodyAutoFormat());
+  const network = useNetwork(autoFormatBody);
   const apiRef = useRef<APIData>(api);
   const [requestData, setRequestData] = useState<Request>();
   const [responseData, setResponseData] = useState<Response>();
@@ -34,7 +35,6 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
   const currentInputsRef = useRef<JSONRecord>({});
   const touchedFieldsRef = useRef<Set<keyof Request>>(new Set());
   const [touchedFields, setTouchedFields] = useState<Set<keyof Request>>(new Set());
-  const [autoFormatBody, setAutoFormatBodyState] = useState<boolean>(false);
   const [outputs, setOutputs] = useState<JSONRecord>({});
 
   const examples = useMemo(() => safeList(api.examples), [api.examples]);
@@ -270,6 +270,13 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
   }, []);
 
   useEffect(() => {
+    const handleConfig = (message: any) => {
+      if (typeof message.bodyAutoFormat === "boolean") {
+        setAutoFormatBodyState(message.bodyAutoFormat);
+        prepareRequestData(undefined, { forceReset: true });
+      }
+    };
+
     const handleMessage = (event: MessageEvent) => {
       const message = event.data;
       if (!message) return;
@@ -278,15 +285,19 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
           prepareRequestData(undefined, { forceReset: true });
           break;
         case "config":
-          if (typeof message.bodyAutoFormat === "boolean") {
-            setAutoFormatBodyState(message.bodyAutoFormat);
-            prepareRequestData(undefined, { forceReset: true });
-          }
+          handleConfig(message);
           break;
       }
     };
+    const handleConfigEvent = (event: Event) => {
+      handleConfig((event as CustomEvent).detail);
+    };
     window.addEventListener("message", handleMessage);
-    return () => window.removeEventListener("message", handleMessage);
+    window.addEventListener("multimeter.config", handleConfigEvent);
+    return () => {
+      window.removeEventListener("message", handleMessage);
+      window.removeEventListener("multimeter.config", handleConfigEvent);
+    };
   }, [prepareRequestData]);
 
   useEffect(() => {
@@ -347,6 +358,10 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     examples,
     resetTouchedFields
   };
+}
+
+function getInitialBodyAutoFormat(): boolean {
+  return (window as any).__mmtBodyAutoFormat === true;
 }
 
 function cloneInputs(source?: JSONRecord): JSONRecord {

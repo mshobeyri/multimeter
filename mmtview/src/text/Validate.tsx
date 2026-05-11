@@ -44,6 +44,36 @@ const findFirstOccurrence = (content: string, searchText: string): { line: numbe
     return { line: 1, column: 1, found: false };
 };
 
+const isHttpApiDocument = (parsedContent: any): boolean => {
+    if (!parsedContent || parsedContent.type !== 'api') {
+        return false;
+    }
+    if (parsedContent.protocol) {
+        return parsedContent.protocol === 'http';
+    }
+    const url = typeof parsedContent.url === 'string' ? parsedContent.url.trim().toLowerCase() : '';
+    return !/^(wss?|grpcs?):\/\//.test(url);
+};
+
+const isTopLevelMethodRequiredError = (error: any): boolean => {
+    return error?.keyword === 'required' && error?.params?.missingProperty === 'method' &&
+        ((error as any).instancePath || (error as any).dataPath || '') === '';
+};
+
+const isTopLevelGraphqlRequiredError = (error: any): boolean => {
+    return error?.keyword === 'required' && error?.params?.missingProperty === 'graphql' &&
+        ((error as any).instancePath || (error as any).dataPath || '') === '';
+};
+
+const isSchemaBranchError = (error: any): boolean => {
+    return error?.keyword === 'if';
+};
+
+const formatValidationMessage = (path: string, message: string | undefined): string => {
+    const text = message || 'is invalid';
+    return path ? `${path}: ${text}` : text;
+};
+
 export const validateYamlContent = (content: string): any[] => {
     const errors: any[] = [];
 
@@ -78,6 +108,25 @@ export const validateYamlContent = (content: string): any[] => {
 
         if (!isValid && validate.errors) {
             validate.errors.forEach(error => {
+                if (isSchemaBranchError(error)) {
+                    return;
+                }
+                if (isTopLevelMethodRequiredError(error) && !isHttpApiDocument(parsedContent)) {
+                    return;
+                }
+                if (isTopLevelGraphqlRequiredError(error) && parsedContent?.protocol === 'graphql') {
+                    const line = getLineNumberFromPath(content, 'protocol');
+                    errors.push({
+                        severity: 8,
+                        startLineNumber: line,
+                        startColumn: 1,
+                        endLineNumber: line,
+                        endColumn: 100,
+                        message: 'protocol "graphql" requires a graphql.operation block; body is not used for GraphQL requests',
+                        source: 'mmt-validation'
+                    });
+                    return;
+                }
                 if (
                     error.keyword === "additionalProperties" &&
                     typeof (error.params as any).additionalProperty === "string"
@@ -112,7 +161,7 @@ export const validateYamlContent = (content: string): any[] => {
                         startColumn: 1,
                         endLineNumber: line,
                         endColumn: 100,
-                        message: `${path}: ${error.message}`,
+                        message: formatValidationMessage(path, error.message),
                         source: 'mmt-validation'
                     });
                 }

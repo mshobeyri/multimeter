@@ -409,10 +409,10 @@ export function handleNetworkMessage(
     message: NetworkMessage, webviewPanel: vscode.WebviewPanel,
     context?: vscode.ExtensionContext, envVars?: Record<string, any>,
     documentPath?: string) {
-  const envFilePath = resolveWorkspaceEnvFilePath();
-  const config = context ?
-    getPreparedConfigFromStorage(context, envVars) :
+  const getConfig = () => context ?
+    getPreparedConfigFromStorage(context, envVars, documentPath) :
     getPreparedConfig();
+  const config = getConfig();
 
   const postMessage: PostMessage = (msg: any) =>
       webviewPanel.webview.postMessage(msg);
@@ -426,5 +426,5 @@ export function handleNetworkMessage(
   };
 
   // Call the core handler with prepared config and postMessage
-  coreHandleNetworkMessage(message, config, postMessage, { fileLoader, basePath: baseDir });
+  coreHandleNetworkMessage(message, config, postMessage, { fileLoader, basePath: baseDir, getConfig });
 }

@@ -487,7 +487,13 @@ describe('resolveRefPath', () => {
 
   test('returns absolute-like paths as-is', () => {
     expect(resolveRefPath('+/docs/doc.md', 'api/api1.mmt')).toBe('+/docs/doc.md');
-    expect(resolveRefPath('docs/doc.md', 'api/api1.mmt')).toBe('docs/doc.md');
+    expect(resolveRefPath('/docs/doc.md', 'api/api1.mmt')).toBe('/docs/doc.md');
+    expect(resolveRefPath('https://example.com/docs/doc.md', 'api/api1.mmt')).toBe('https://example.com/docs/doc.md');
+  });
+
+  test('resolves bare markdown refs relative to API file', () => {
+    expect(resolveRefPath('overview.md', 'markdown_api/health_check.mmt')).toBe('markdown_api/overview.md');
+    expect(resolveRefPath('docs/doc.md', 'api/api1.mmt')).toBe('api/docs/doc.md');
   });
 
   test('resolves relative ref from API file in subfolder', () => {
@@ -606,5 +612,19 @@ describe('service grouping with overlapping directory names', () => {
     expect(groupBIdx).toBeGreaterThan(-1);
     const healthIdx = md.indexOf('Health Check');
     expect(healthIdx).toBeGreaterThan(groupBIdx);
+  });
+
+  test('source "." matches collected API files in HTML and Markdown docs', () => {
+    const apis = [
+      { title: 'Health Check', method: 'GET', url: '/health', format: 'json', __file: 'markdown_api/health_check.mmt' },
+      { title: 'Get Users', method: 'GET', url: '/users', format: 'json', __file: 'api/get_users.mmt' },
+    ];
+    const html = buildDocHtml(apis, { title: 'Test', sources: ['.'] });
+    expect(html).toContain('Health Check');
+    expect(html).toContain('Get Users');
+
+    const md = buildDocMarkdown(apis, { title: 'Test', sources: ['.'] });
+    expect(md).toContain('Health Check');
+    expect(md).toContain('Get Users');
   });
 });

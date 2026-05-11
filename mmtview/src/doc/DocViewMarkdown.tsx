@@ -3,6 +3,7 @@ import { DocData } from 'mmt-core/DocData';
 import { yamlToAPI } from 'mmt-core/apiParsePack';
 import parseYaml from 'mmt-core/markupConvertor';
 import * as mmtcore from 'mmt-core';
+import { parseRefDescription, extractMarkdownSection, resolveRefPath } from 'mmt-core/docHtml';
 import { readFile, readFileAsDataUrl } from '../vsAPI';
 
 interface DocViewProps { doc: DocData; }
@@ -80,6 +81,28 @@ const DocViewMarkdown: React.FC<DocViewProps> = ({ doc }) => {
           }
         } catch { }
       }
+      for (const api of apis) {
+        if (typeof api.description === 'string') {
+          const ref = parseRefDescription(api.description);
+          if (ref) {
+            try {
+              const resolvedPath = resolveRefPath(ref.path, api.__file);
+              const content = await readFile(resolvedPath, { silent: true });
+              api.description = extractMarkdownSection(content, ref.fragment) || api.description;
+            } catch { }
+          }
+        }
+      }
+      let resolvedDocDescription = docDescription;
+      if (typeof docDescription === 'string') {
+        const ref = parseRefDescription(docDescription);
+        if (ref) {
+          try {
+            const content = await readFile(ref.path, { silent: true });
+            resolvedDocDescription = extractMarkdownSection(content, ref.fragment) || docDescription;
+          } catch { }
+        }
+      }
       let logoDataUrl: string | undefined = undefined;
       const theme: any = docTheme;
       if (theme && theme.logo && typeof theme.logo === 'string') {
@@ -92,7 +115,7 @@ const DocViewMarkdown: React.FC<DocViewProps> = ({ doc }) => {
       }
   if (!cancelled) setMd((mmtcore as any).docMarkdown.buildDocMarkdown(apis, {
         title: docTitle,
-        description: docDescription,
+        description: resolvedDocDescription,
         theme: docTheme,
         logoDataUrl,
         sources: docSources,

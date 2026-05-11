@@ -959,6 +959,12 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: " ws",
             detail: 'WebSocket protocol',
             documentation: 'WebSocket protocol for bidirectional communication.',
+        }, {
+            label: "wss",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " wss",
+            detail: 'WebSocket secure protocol',
+            documentation: 'WebSocket protocol for bidirectional communication.',
         },
         {
             label: "graphql",
@@ -973,6 +979,12 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: " grpc",
             detail: 'gRPC protocol',
             documentation: 'gRPC remote procedure calls. Use with the grpc block to define service, method, and message. URL should use grpc:// or grpcs:// scheme.',
+        }, {
+            label: "grpcs",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " grpcs",
+            detail: 'gRPC secure protocol',
+            documentation: 'gRPC remote procedure calls over TLS. Use with the grpc block to define service, method, and message. URL should use grpcs:// scheme.',
         },
     ]
     const formatSuggestion = [
