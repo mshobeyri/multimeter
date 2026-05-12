@@ -20,8 +20,14 @@ export interface InlinedTestGraph {
  * If `parentId` is provided, every emitted node is tagged with that parent
  * so React Flow lays it out inside the container.
  */
-export function inlineTestGraph(test: TestData, idPrefix: string, filePath?: string, parentId?: string): InlinedTestGraph {
-  const raw = buildTestGraph({ test, filePath });
+export function inlineTestGraph(
+  test: TestData,
+  idPrefix: string,
+  filePath?: string,
+  parentId?: string,
+  callTitleByAlias?: Record<string, string | undefined>,
+): InlinedTestGraph {
+  const raw = buildTestGraph({ test, filePath, callTitleByAlias });
 
   const startId = 'n-start';
   const endId = 'n-end';

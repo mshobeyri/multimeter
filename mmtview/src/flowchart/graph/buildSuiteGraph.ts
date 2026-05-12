@@ -14,6 +14,8 @@ export interface BuildSuiteGraphInput {
   missingFiles?: Set<string>;
   /** Parsed TestData by absolute path for inlining test flows. */
   testDataByPath?: Record<string, TestData | undefined>;
+  /** Per-test imported call alias -> imported API/test title. */
+  callTitleByTestPath?: Record<string, Record<string, string | undefined> | undefined>;
 }
 
 /**
@@ -197,7 +199,7 @@ function buildTestEntry(
     return [containerId];
   }
 
-  const inlined = inlineTestGraph(testData, containerId, path, containerId);
+  const inlined = inlineTestGraph(testData, containerId, path, containerId, ctx.input.callTitleByTestPath?.[path]);
   if (inlined.nodes.length === 0) {
     return [containerId];
   }

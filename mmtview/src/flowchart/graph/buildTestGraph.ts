@@ -6,11 +6,13 @@ export interface BuildTestGraphInput {
   test: TestData;
   /** Absolute or workspace-relative path to the test file. */
   filePath?: string;
+  /** Imported call alias -> imported API/test title. */
+  callTitleByAlias?: Record<string, string | undefined>;
 }
 
 /** Build a flow graph for a single test file. */
 export function buildTestGraph(input: BuildTestGraphInput): FlowGraph {
-  const builder = new TestGraphBuilder(input.filePath);
+  const builder = new TestGraphBuilder(input.filePath, input.callTitleByAlias ?? {});
   builder.startNode();
   const stages = (input.test as any).stages as TestFlowStage[] | undefined;
   if (Array.isArray(stages) && stages.length > 0) {
@@ -31,7 +33,10 @@ class TestGraphBuilder {
   endId = 'n-end';
   private counter = 0;
   private passthroughEdges = new Map<string, { label: string; kind: FlowEdge['kind'] }>();
-  constructor(private readonly filePath?: string) {}
+  constructor(
+    private readonly filePath?: string,
+    private readonly callTitleByAlias: Record<string, string | undefined> = {},
+  ) {}
 
   toGraph(): FlowGraph {
     return { nodes: this.nodes, edges: this.edges };
@@ -70,7 +75,7 @@ class TestGraphBuilder {
       return this.buildLoop(step as any, kind, prevTails);
     }
     const nodeId = this.nextId(kind);
-    const { mappedKind, label, detail } = mapLeaf(step, kind);
+    const { mappedKind, label, detail } = mapLeaf(step, kind, this.callTitleByAlias);
     this.pushNode({
       id: nodeId,
       kind: mappedKind,
@@ -87,7 +92,7 @@ class TestGraphBuilder {
   private buildIf(step: any, prevTails: string[]): string[] {
     const id = this.nextId('if');
     const condition = describeComparison(step.if);
-    this.pushNode({ id, kind: 'if', label: 'if', detail: condition, sourceFile: this.filePath });
+    this.pushNode({ id, kind: 'if', label: condition || 'if', sourceFile: this.filePath });
     for (const t of prevTails) {
       this.connect(t, id);
     }
@@ -133,8 +138,7 @@ class TestGraphBuilder {
     this.pushNode({
       id,
       kind: kind === 'for' ? 'loop' : 'repeat',
-      label: kind === 'for' ? 'for' : 'repeat',
-      detail,
+      label: detail || (kind === 'for' ? 'for' : 'repeat'),
       sourceFile: this.filePath,
     });
     for (const t of prevTails) {
@@ -249,34 +253,35 @@ interface LeafMapping {
   detail?: string;
 }
 
-function mapLeaf(step: any, kind: string): LeafMapping {
+function mapLeaf(step: any, kind: string, callTitleByAlias: Record<string, string | undefined>): LeafMapping {
   switch (kind) {
     case 'call': {
-      const label = (step.id as string) || (step.call as string) || 'call';
+      const alias = step.call as string;
+      const label = callTitleByAlias[alias] || alias || (step.id as string) || 'call';
       const detail = describeCall(step);
       return { mappedKind: 'call', label, detail };
     }
     case 'run':
-      return { mappedKind: 'run', label: 'run', detail: String(step.run ?? '') };
+      return { mappedKind: 'run', label: String(step.run ?? 'run') };
     case 'assert':
-      return { mappedKind: 'assert', label: 'assert', detail: describeComparison(step.assert) };
+      return { mappedKind: 'assert', label: describeComparison(step.assert) || 'assert' };
     case 'check':
-      return { mappedKind: 'check', label: 'check', detail: describeComparison(step.check) };
+      return { mappedKind: 'check', label: describeComparison(step.check) || 'check' };
     case 'delay':
-      return { mappedKind: 'sleep', label: 'sleep', detail: String(step.delay ?? '') };
+      return { mappedKind: 'sleep', label: String(step.delay ?? 'sleep') };
     case 'print':
-      return { mappedKind: 'print', label: 'print', detail: truncate(String(step.print ?? ''), 60) };
+      return { mappedKind: 'print', label: truncate(String(step.print ?? 'print'), 60) };
     case 'js':
-      return { mappedKind: 'js', label: 'js', detail: truncate(String(step.js ?? ''), 60) };
+      return { mappedKind: 'js', label: truncate(String(step.js ?? 'js'), 60) };
     case 'set':
     case 'var':
     case 'const':
     case 'let':
-      return { mappedKind: 'set', label: kind, detail: describeAssignments(step[kind]) };
+      return { mappedKind: 'set', label: describeAssignments(step[kind]) || kind };
     case 'data':
-      return { mappedKind: 'data', label: 'data', detail: String(step.data ?? '') };
+      return { mappedKind: 'data', label: String(step.data ?? 'data') };
     case 'setenv':
-      return { mappedKind: 'setenv', label: 'setenv', detail: describeAssignments(step.setenv) };
+      return { mappedKind: 'setenv', label: describeAssignments(step.setenv) || 'setenv' };
     default:
       return { mappedKind: 'message', label: kind || 'step' };
   }
@@ -300,6 +305,18 @@ function describeComparison(value: unknown): string | undefined {
 }
 
 function describeCall(step: any): string | undefined {
+  const parts: string[] = [];
+  const inputs = describeObjectKeys(step.inputs);
+  const outputs = describeObjectKeys(step.outputs);
+  if (inputs) {
+    parts.push(`inputs: ${inputs}`);
+  }
+  if (outputs) {
+    parts.push(`outputs: ${outputs}`);
+  }
+  if (parts.length > 0) {
+    return parts.join('\n');
+  }
   if (step.url) {
     return truncate(String(step.url), 80);
   }
@@ -307,6 +324,17 @@ function describeCall(step: any): string | undefined {
     return truncate(String(step.interface), 80);
   }
   return undefined;
+}
+
+function describeObjectKeys(value: unknown): string | undefined {
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+  const keys = Object.keys(value as Record<string, unknown>);
+  if (keys.length === 0) {
+    return undefined;
+  }
+  return truncate(keys.join(', '), 60);
 }
 
 function describeAssignments(value: unknown): string | undefined {

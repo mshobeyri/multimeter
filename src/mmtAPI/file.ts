@@ -185,11 +185,11 @@ export async function handleGetFileContent(
     const content =
         await readRelativeFileContent(document.uri.fsPath, message.filename);
     webviewPanel.webview.postMessage(
-        {command: 'fileContent', content, filename: message.filename});
+      {command: 'fileContent', requestId: message.requestId, content, filename: message.filename});
   } catch (err) {
     // Always send error back so the webview promise can reject
     webviewPanel.webview.postMessage(
-        {command: 'fileContent', error: String((err as any)?.message || err), filename: message.filename});
+      {command: 'fileContent', requestId: message.requestId, error: String((err as any)?.message || err), filename: message.filename});
 
     // Skip popup for silent reads (e.g. ref description resolution)
     if (message.silent) { return; }

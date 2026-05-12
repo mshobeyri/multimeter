@@ -87,7 +87,7 @@ const detailStyle: React.CSSProperties = {
   opacity: 0.7,
   fontStyle: 'italic',
   marginTop: 4,
-  whiteSpace: 'nowrap',
+  whiteSpace: 'pre-line',
   overflow: 'hidden',
   textOverflow: 'ellipsis',
 };

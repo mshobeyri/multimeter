@@ -20,6 +20,7 @@ import { openRelativeFile } from '../vsAPI';
 import { SuiteGroup } from '../suite/types';
 import { SuiteTreeNode } from '../suite/test/suiteHierarchy';
 import { useSuiteTestData } from './useSuiteTestData';
+import { buildSingleTestTitleSpecs, buildSuiteTitleSpecs, useFlowchartCallTitles } from './useFlowchartCallTitles';
 
 export type FlowchartSource =
   | {
@@ -117,10 +118,21 @@ const FlowchartView: React.FC<FlowchartViewProps> = ({ source, onBack, title }) 
   const test = source.kind === 'test' ? source.test : undefined;
   const testFilePath = source.kind === 'test' ? source.filePath : undefined;
   const testDataByPath = useSuiteTestData(suiteGroups, suiteHierarchy, source.kind === 'suite');
+  const titleSpecs = useMemo(
+    () => source.kind === 'test'
+      ? buildSingleTestTitleSpecs(test, testFilePath)
+      : buildSuiteTitleSpecs(testDataByPath),
+    [source.kind, test, testFilePath, testDataByPath],
+  );
+  const callTitleByTestPath = useFlowchartCallTitles(titleSpecs, source.kind === 'test' || Object.keys(testDataByPath).length > 0);
 
   const graph = useMemo<FlowGraph>(() => {
     if (source.kind === 'test') {
-      return buildTestGraph({ test: test!, filePath: testFilePath });
+      return buildTestGraph({
+        test: test!,
+        filePath: testFilePath,
+        callTitleByAlias: callTitleByTestPath[testFilePath || '__current__'],
+      });
     }
     return buildSuiteGraph({
       rootTitle: suiteRootTitle,
@@ -129,8 +141,9 @@ const FlowchartView: React.FC<FlowchartViewProps> = ({ source, onBack, title }) 
       hierarchyByEntryPath: suiteHierarchy,
       missingFiles: suiteMissingFiles,
       testDataByPath,
+      callTitleByTestPath,
     });
-  }, [source.kind, test, testFilePath, suiteRootTitle, suiteRootPath, suiteGroups, suiteHierarchy, suiteMissingFiles, testDataByPath]);
+  }, [source.kind, test, testFilePath, suiteRootTitle, suiteRootPath, suiteGroups, suiteHierarchy, suiteMissingFiles, testDataByPath, callTitleByTestPath]);
 
   const rfNodes = useMemo(() => toRFNodes(graph), [graph]);
   const rfEdges = useMemo(() => toRFEdges(graph), [graph]);
