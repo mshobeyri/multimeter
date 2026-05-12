@@ -79,11 +79,7 @@ export function applyLayout(graph: FlowGraph, options: LayoutOptions = {}): Reco
 
   // 2) Lay out top-level nodes.
   const topNodes = childrenByParent.get(undefined) ?? [];
-  const topEdges = graph.edges.filter((e) => {
-    const sParent = findNode(graph, e.source)?.parentId;
-    const tParent = findNode(graph, e.target)?.parentId;
-    return !sParent && !tParent;
-  });
+  const topEdges = normalizeTopEdges(graph);
   const topPositions = layoutFlat(topNodes, topEdges, { rankSpacing, nodeSpacing });
   for (const n of topNodes) {
     const p = topPositions[n.id];
@@ -95,6 +91,33 @@ export function applyLayout(graph: FlowGraph, options: LayoutOptions = {}): Reco
 
 function findNode(graph: FlowGraph, id: string): FlowNode | undefined {
   return graph.nodes.find((n) => n.id === id);
+}
+
+function normalizeTopEdges(graph: FlowGraph): FlowEdge[] {
+  const nodeById = new Map(graph.nodes.map((n) => [n.id, n]));
+  const topOwner = (id: string): string | undefined => {
+    const node = nodeById.get(id);
+    if (!node) {
+      return undefined;
+    }
+    return node.parentId ?? node.id;
+  };
+  const seen = new Set<string>();
+  const edges: FlowEdge[] = [];
+  for (const e of graph.edges) {
+    const source = topOwner(e.source);
+    const target = topOwner(e.target);
+    if (!source || !target || source === target) {
+      continue;
+    }
+    const key = `${source}->${target}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    edges.push({ ...e, source, target });
+  }
+  return edges;
 }
 
 function boundingBox(
@@ -135,6 +158,9 @@ function layoutFlat(
   const ids = new Set(nodes.map((n) => n.id));
   const inEdges = new Map<string, string[]>();
   for (const e of edges) {
+    if (e.kind === 'loop-back') {
+      continue;
+    }
     if (!ids.has(e.source) || !ids.has(e.target)) {
       continue;
     }

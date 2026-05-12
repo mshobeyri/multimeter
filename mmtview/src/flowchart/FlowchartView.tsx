@@ -15,6 +15,7 @@ import { buildSuiteGraph } from './graph/buildSuiteGraph';
 import { applyLayout } from './graph/layout';
 import { FlowGraph, FlowNode } from './graph/types';
 import { nodeTypes } from './nodes/nodeRegistry';
+import { edgeTypes } from './edges/edgeRegistry';
 import { openRelativeFile } from '../vsAPI';
 import { SuiteGroup } from '../suite/types';
 import { SuiteTreeNode } from '../suite/test/suiteHierarchy';
@@ -40,6 +41,8 @@ interface FlowchartViewProps {
   onBack: () => void;
   title?: string;
 }
+
+const EMPTY_SUITE_GROUPS: SuiteGroup[] = [];
 
 function toRFNodes(graph: FlowGraph): RFNode[] {
   const positions = applyLayout(graph);
@@ -81,44 +84,63 @@ function toRFNodes(graph: FlowGraph): RFNode[] {
 }
 
 function toRFEdges(graph: FlowGraph): RFEdge[] {
-  return graph.edges.map((e) => ({
-    id: e.id,
-    source: e.source,
-    target: e.target,
-    label: e.label,
-    type: 'smoothstep',
-    style: { strokeDasharray: '5 5', stroke: 'var(--vscode-descriptionForeground, #6e7781)' },
-    labelStyle: { fill: 'var(--vscode-descriptionForeground, #6e7781)', fontSize: 11 },
-    animated: false,
-  }));
+  return graph.edges.map((e) => {
+    const color = e.kind === 'branch-true'
+      ? '#3fb950'
+      : e.kind === 'branch-false'
+        ? '#f0883e'
+        : 'var(--vscode-descriptionForeground, #6e7781)';
+    return {
+      id: e.id,
+      source: e.source,
+      target: e.target,
+      label: e.label,
+      type: 'flowEdge',
+      data: { kind: e.kind },
+      style: { strokeDasharray: '5 5', stroke: color },
+      labelStyle: { fill: color, fontSize: 11, fontWeight: 700 },
+      labelBgStyle: {
+        fill: 'var(--vscode-editor-background, #1f2428)',
+        fillOpacity: 0.92,
+      },
+      animated: false,
+    } as RFEdge;
+  });
 }
 
 const FlowchartView: React.FC<FlowchartViewProps> = ({ source, onBack, title }) => {
-  const suiteGroups = source.kind === 'suite' ? source.groups : [];
+  const suiteGroups = source.kind === 'suite' ? source.groups : EMPTY_SUITE_GROUPS;
   const suiteHierarchy = source.kind === 'suite' ? source.hierarchyByEntryPath : undefined;
+  const suiteMissingFiles = source.kind === 'suite' ? source.missingFiles : undefined;
+  const suiteRootTitle = source.kind === 'suite' ? source.rootTitle : undefined;
+  const suiteRootPath = source.kind === 'suite' ? source.rootPath : undefined;
+  const test = source.kind === 'test' ? source.test : undefined;
+  const testFilePath = source.kind === 'test' ? source.filePath : undefined;
   const testDataByPath = useSuiteTestData(suiteGroups, suiteHierarchy, source.kind === 'suite');
 
   const graph = useMemo<FlowGraph>(() => {
     if (source.kind === 'test') {
-      return buildTestGraph({ test: source.test, filePath: source.filePath });
+      return buildTestGraph({ test: test!, filePath: testFilePath });
     }
     return buildSuiteGraph({
-      rootTitle: source.rootTitle,
-      rootPath: source.rootPath,
-      groups: source.groups,
-      hierarchyByEntryPath: source.hierarchyByEntryPath,
-      missingFiles: source.missingFiles,
+      rootTitle: suiteRootTitle,
+      rootPath: suiteRootPath,
+      groups: suiteGroups,
+      hierarchyByEntryPath: suiteHierarchy,
+      missingFiles: suiteMissingFiles,
       testDataByPath,
     });
-  }, [source, testDataByPath]);
+  }, [source.kind, test, testFilePath, suiteRootTitle, suiteRootPath, suiteGroups, suiteHierarchy, suiteMissingFiles, testDataByPath]);
 
   const rfNodes = useMemo(() => toRFNodes(graph), [graph]);
   const rfEdges = useMemo(() => toRFEdges(graph), [graph]);
 
   const handleNodeClick = React.useCallback<NodeMouseHandler>((_event, node) => {
-    const data = node.data as { sourceFile?: string };
-    if (data?.sourceFile) {
-      openRelativeFile(data.sourceFile);
+    const data = node.data as { kind?: string; sourceFile?: string };
+    const sourceFile = data?.sourceFile;
+    const openable = sourceFile && data.kind !== 'group' && data.kind !== 'start' && data.kind !== 'end';
+    if (openable) {
+      openRelativeFile(sourceFile);
     }
   }, []);
 
@@ -146,6 +168,7 @@ const FlowchartView: React.FC<FlowchartViewProps> = ({ source, onBack, title }) 
             nodes={rfNodes}
             edges={rfEdges}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             fitView
             fitViewOptions={{ padding: 0.2 }}
             nodesDraggable={false}

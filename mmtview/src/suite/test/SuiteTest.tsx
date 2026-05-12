@@ -18,7 +18,6 @@ import ExportReportButton, { ReportFormat } from '../../shared/ExportReportButto
 import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
 import { FileContext } from '../../fileContext';
 import LoadTestReport, { LoadMetricsOverview } from '../../loadtest/LoadTestReport';
-import { FlowchartButton, FlowchartView } from '../../flowchart';
 
 /** Get basename from a file path. */
 function basename(p: string): string {
@@ -88,6 +87,14 @@ function buildDisplayNamesFromHierarchy(
 interface SuiteTestProps {
     content: string;
     mode?: 'suite' | 'loadtest';
+    onFlowchartStateChange?: (state: SuiteFlowchartState) => void;
+}
+
+export interface SuiteFlowchartState {
+    groups: SuiteGroup[];
+    hierarchyByEntryPath: Record<string, SuiteTreeNode>;
+    missingFiles: Set<string>;
+    noItems: boolean;
 }
 
 interface LoadTestConfig {
@@ -402,7 +409,7 @@ const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
     return allPaths;
 };
 
-const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
+const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowchartStateChange }) => {
     const { mmtFilePath } = useContext(FileContext);
     const groups = useMemo(() => buildSuiteGroupsFromContent(content, mode), [content, mode]);
     const servers = useMemo(() => mode === 'loadtest' ? [] : buildServersFromContent(content), [content, mode]);
@@ -441,7 +448,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
     const reportQueueRef = useRef<any[]>([]);
     const reportFlushTimerRef = useRef<number | null>(null);
     const durationTimerRef = useRef<number | null>(null);
-    const [showFlowchart, setShowFlowchart] = useState(false);
 
     const resetLeafState = useCallback((mode: 'all' | readonly string[]) => {
         if (mode === 'all') {
@@ -603,6 +609,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
     }, [groups]);
 
     const [hierarchyByEntryPath, setHierarchyByEntryPath] = useState<Record<string, SuiteTreeNode>>({});
+
+    useEffect(() => {
+        onFlowchartStateChange?.({ groups, hierarchyByEntryPath, missingFiles, noItems });
+    }, [groups, hierarchyByEntryPath, missingFiles, noItems, onFlowchartStateChange]);
 
     useEffect(() => {
         let cancelled = false;
@@ -1031,23 +1041,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
         />
     );
 
-    if (showFlowchart) {
-        return (
-            <FlowchartView
-                source={{
-                    kind: 'suite',
-                    rootTitle: suiteTitle,
-                    rootPath: mmtFilePath,
-                    groups,
-                    hierarchyByEntryPath,
-                    missingFiles,
-                }}
-                onBack={() => setShowFlowchart(false)}
-                title={suiteTitle || 'Suite'}
-            />
-        );
-    }
-
     return (
         <div style={{ overflow: 'auto', flex: 1, width: '100%' }}>
             <div className="test-flow-tree" style={{ paddingTop: 4 }}>
@@ -1083,9 +1076,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
                             </button>
                         )}
                         <ExportReportButton disabled={suiteExportDisabled} onExport={handleExportReport} />
-                        {mode !== 'loadtest' && (
-                            <FlowchartButton onClick={() => setShowFlowchart(true)} disabled={noItems} />
-                        )}
                     </div>
                 </div>
                 {noItems ? <div style={{ opacity: 0.8 }}>{mode === 'loadtest' ? 'No test file found under `test:`' : 'No suite items found under `tests:`'}</div> : (

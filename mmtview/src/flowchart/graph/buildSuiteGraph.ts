@@ -49,7 +49,6 @@ export function buildSuiteGraph(input: BuildSuiteGraphInput): FlowGraph {
       id: groupNodeId,
       kind: 'group',
       label: group.label,
-      sourceFile: input.rootPath,
     });
     for (const t of previousTails) {
       ctx.connect(graph, t, groupNodeId);
@@ -153,7 +152,6 @@ function buildSuiteEntry(
         id: groupId,
         kind: 'group',
         label: child.label,
-        sourceFile: hierarchy.path,
       });
       connectAll(graph, ctx, tails, groupId);
       const groupTails: string[] = [];
@@ -193,9 +191,9 @@ function buildTestEntry(
     sourceFile: path,
     isContainer: Boolean(testData),
   });
-  connectAll(graph, ctx, predecessors, containerId);
 
   if (!testData) {
+    connectAll(graph, ctx, predecessors, containerId);
     return [containerId];
   }
 
@@ -204,12 +202,17 @@ function buildTestEntry(
     return [containerId];
   }
   appendGraph(graph, { nodes: inlined.nodes, edges: inlined.edges });
-  return [containerId];
+  const entries = inlined.entries.length > 0 ? inlined.entries : inlined.nodes.slice(0, 1).map((n) => n.id);
+  connectAll(graph, ctx, predecessors, entries);
+  return inlined.exits.length > 0 ? inlined.exits : entries;
 }
 
-function connectAll(graph: FlowGraph, ctx: BuildCtx, sources: string[], target: string): void {
-  for (const s of sources) {
-    ctx.connect(graph, s, target);
+function connectAll(graph: FlowGraph, ctx: BuildCtx, sources: string[], targets: string | string[]): void {
+  const targetList = Array.isArray(targets) ? targets : [targets];
+  for (const source of sources) {
+    for (const target of targetList) {
+      ctx.connect(graph, source, target);
+    }
   }
 }
 

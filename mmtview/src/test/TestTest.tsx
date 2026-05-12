@@ -15,7 +15,6 @@ import { loadEnvVariables } from '../workspaceStorage';
 
 interface TestTestProps {
     testData: TestData;
-    onOpenFlowchart?: () => void;
 }
 
 const TestTest: React.FC<TestTestProps> = (props) => {
@@ -331,18 +330,6 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                         </button>
                     )}
                     <ExportReportButton disabled={exportDisabled} onExport={handleExportReport} />
-                    {props.onOpenFlowchart && (
-                        <button
-                            type="button"
-                            className="button-icon"
-                            onClick={props.onOpenFlowchart}
-                            title="Open flow chart"
-                            style={{ display: 'flex', alignItems: 'center', gap: 4 }}
-                        >
-                            <span className="codicon codicon-type-hierarchy-sub" aria-hidden />
-                            Flow chart
-                        </button>
-                    )}
                 </div>
             </div>
             {hasInputs && (

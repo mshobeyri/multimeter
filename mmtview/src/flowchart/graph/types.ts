@@ -44,7 +44,7 @@ export interface FlowNode {
   isContainer?: boolean;
 }
 
-export type EdgeKind = 'sequence' | 'branch-true' | 'branch-false' | 'parallel';
+export type EdgeKind = 'sequence' | 'branch-true' | 'branch-false' | 'parallel' | 'loop-back';
 
 export interface FlowEdge {
   id: string;

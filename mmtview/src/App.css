@@ -642,12 +642,20 @@ button:focus {
   min-width: 0;
 }
 
+.api-swipe-track--three {
+  width: 300%;
+}
+
 .api-swipe-page {
   flex: 0 0 50%;
   height: 100%;
   min-height: 0;
   min-width: 0;
   overflow: hidden;
+}
+
+.api-swipe-track--three .api-swipe-page {
+  flex-basis: 33.333333%;
 }
 
 .api-swipe-page--test {
@@ -658,6 +666,13 @@ button:focus {
 }
 
 .api-swipe-page--edit {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.api-swipe-page--flow {
   display: flex;
   flex-direction: column;
   min-height: 0;

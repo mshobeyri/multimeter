@@ -96,6 +96,8 @@ const FlowNodeCard: React.FC<NodeProps> = ({ data }) => {
   const d = data as unknown as FlowNodeData;
   const style = KIND_STYLES[d.kind] || KIND_STYLES.message;
   const isTerminal = !!style.isTerminal;
+  const isOpenable = Boolean(d.sourceFile && d.kind !== 'group' && d.kind !== 'start' && d.kind !== 'end');
+  const cursor = isOpenable ? 'pointer' : 'default';
 
   if (d.isContainer && d.width && d.height) {
     const containerStyle: React.CSSProperties = {
@@ -106,14 +108,13 @@ const FlowNodeCard: React.FC<NodeProps> = ({ data }) => {
       borderRadius: 12,
       padding: 0,
       fontFamily: 'var(--vscode-font-family, "Segoe UI", system-ui, sans-serif)',
-      cursor: 'pointer',
+      cursor,
       color: 'var(--vscode-foreground)',
       position: 'relative',
       boxSizing: 'border-box',
     };
     return (
       <div style={containerStyle} title={d.sourceFile}>
-        <Handle type="target" position={Position.Left} style={{ background: style.color }} />
         <div
           style={{
             position: 'absolute',
@@ -132,12 +133,11 @@ const FlowNodeCard: React.FC<NodeProps> = ({ data }) => {
           </div>
           <div style={{ ...labelStyle, fontSize: 13 }}>{d.label}</div>
         </div>
-        <Handle type="source" position={Position.Right} style={{ background: style.color }} />
       </div>
     );
   }
 
-  const rootStyle: React.CSSProperties = isTerminal ? pillBase : cardBase;
+  const rootStyle: React.CSSProperties = { ...(isTerminal ? pillBase : cardBase), cursor };
 
   return (
     <div style={rootStyle} title={d.sourceFile}>

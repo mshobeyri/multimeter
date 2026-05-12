@@ -30,6 +30,7 @@ class TestGraphBuilder {
   startId = 'n-start';
   endId = 'n-end';
   private counter = 0;
+  private passthroughEdges = new Map<string, { label: string; kind: FlowEdge['kind'] }>();
   constructor(private readonly filePath?: string) {}
 
   toGraph(): FlowGraph {
@@ -101,7 +102,7 @@ class TestGraphBuilder {
       const beforeEdgeCount = this.edges.length;
       const trueTail = this.buildSteps(thenSteps, [id]);
       if (this.edges.length > beforeEdgeCount) {
-        this.edges[beforeEdgeCount].label = 'then';
+        this.edges[beforeEdgeCount].label = 'yes';
         this.edges[beforeEdgeCount].kind = 'branch-true';
       }
       tails.push(...trueTail);
@@ -113,12 +114,14 @@ class TestGraphBuilder {
       const beforeEdgeCount = this.edges.length;
       const falseTail = this.buildSteps(elseSteps, [id]);
       if (this.edges.length > beforeEdgeCount) {
-        this.edges[beforeEdgeCount].label = 'else';
+        this.edges[beforeEdgeCount].label = 'no';
         this.edges[beforeEdgeCount].kind = 'branch-false';
       }
       tails.push(...falseTail);
     } else {
-      // No else branch: the if itself is a possible passthrough.
+      // No else branch: the if itself is a possible passthrough. The next
+      // outgoing edge from the if node represents the `no` path.
+      this.passthroughEdges.set(id, { label: 'no', kind: 'branch-false' });
       tails.push(id);
     }
     return tails;
@@ -138,55 +141,65 @@ class TestGraphBuilder {
       this.connect(t, id);
     }
     const bodyTail = this.buildSteps((step.steps as TestFlowSteps) ?? [], [id]);
+    for (const tail of bodyTail) {
+      if (tail !== id) {
+        this.connect(tail, id, 'loop', 'loop-back');
+      }
+    }
     return bodyTail.length ? bodyTail : [id];
   }
 
   buildStages(stages: TestFlowStage[]): void {
-    // Map stage id -> {entryId, exitTails}
-    const stageInfo = new Map<string, { entry: string; tails: string[] }>();
+    const stageInfos: Array<{ key: string; id: string; entry: string; tails: string[] }> = [];
+    const stageKeysById = new Map<string, string[]>();
     // First pass: emit a stage node per stage and build its body.
-    for (const stage of stages) {
+    stages.forEach((stage, index) => {
       const stageId = this.nextId('stage');
+      const userStageId = stage.id || `stage_${index + 1}`;
+      const key = `${userStageId}#${index}`;
       this.pushNode({
         id: stageId,
         kind: 'stage',
-        label: stage.title || stage.id,
+        label: stage.title || userStageId,
         detail: stage.condition ? describeComparison(stage.condition) : undefined,
         sourceFile: this.filePath,
       });
       const tails = this.buildSteps(stage.steps ?? [], [stageId]);
-      stageInfo.set(stage.id, { entry: stageId, tails });
-    }
-    // Second pass: connect predecessors based on `after`.
-    const afterMap = new Map<string, string[]>();
-    for (const stage of stages) {
-      const after = normalizeAfter(stage.after);
-      afterMap.set(stage.id, after);
-    }
+      stageInfos.push({ key, id: userStageId, entry: stageId, tails });
+      const keys = stageKeysById.get(userStageId) ?? [];
+      keys.push(key);
+      stageKeysById.set(userStageId, keys);
+    });
+
+    const stageInfoByKey = new Map(stageInfos.map((info) => [info.key, info]));
     const allFinalTails: string[] = [];
     const hasSuccessor = new Set<string>();
-    for (const stage of stages) {
-      const after = afterMap.get(stage.id) ?? [];
-      const info = stageInfo.get(stage.id)!;
+    stages.forEach((stage, index) => {
+      const userStageId = stage.id || `stage_${index + 1}`;
+      const key = `${userStageId}#${index}`;
+      const after = normalizeAfter(stage.after);
+      const info = stageInfoByKey.get(key)!;
       if (after.length === 0) {
         this.connect(this.startId, info.entry);
       } else {
         for (const predId of after) {
-          const pred = stageInfo.get(predId);
-          if (!pred) {
-            continue;
-          }
-          hasSuccessor.add(predId);
-          for (const t of pred.tails) {
-            this.connect(t, info.entry);
+          const predKeys = stageKeysById.get(predId) ?? [];
+          for (const predKey of predKeys) {
+            const pred = stageInfoByKey.get(predKey);
+            if (!pred) {
+              continue;
+            }
+            hasSuccessor.add(predKey);
+            for (const t of pred.tails) {
+              this.connect(t, info.entry);
+            }
           }
         }
       }
-    }
+    });
     // Collect tails of stages with no successor → connect to END.
-    for (const stage of stages) {
-      if (!hasSuccessor.has(stage.id)) {
-        const info = stageInfo.get(stage.id)!;
+    for (const info of stageInfos) {
+      if (!hasSuccessor.has(info.key)) {
         allFinalTails.push(...info.tails);
       }
     }
@@ -202,13 +215,17 @@ class TestGraphBuilder {
     this.nodes.push(node);
   }
 
-  private connect(source: string, target: string, label?: string): void {
+  private connect(source: string, target: string, label?: string, kind?: FlowEdge['kind']): void {
+    const passthrough = this.passthroughEdges.get(source);
+    if (passthrough) {
+      this.passthroughEdges.delete(source);
+    }
     this.edges.push({
       id: `e-${this.edges.length}-${source}-${target}`,
       source,
       target,
-      label,
-      kind: 'sequence',
+      label: label ?? passthrough?.label,
+      kind: kind ?? passthrough?.kind ?? 'sequence',
     });
   }
 }

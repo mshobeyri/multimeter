@@ -16,6 +16,17 @@ interface TestPanelProps {
 
 const LAST_TAB_KEY = "mmtview:lastTab";
 const LAST_TEST_PAGE_KEY = "mmtview:test:lastPage";
+type TestPage = "test" | "edit" | "flow";
+
+function pageTranslate(page: TestPage): string {
+  if (page === "edit") {
+    return "translateX(-33.333333%)";
+  }
+  if (page === "flow") {
+    return "translateX(-66.666667%)";
+  }
+  return "translateX(0%)";
+}
 
 const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
   const test = React.useMemo(() => yamlToTest(content), [content]);
@@ -58,15 +69,14 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
   const { missingImports, inputsByAlias, outputsByAlias } = useImportValidation(importsMap);
 
   // Restore last selected tab from localStorage, default to "overview"
-  const [page, setPage] = useState<"test" | "edit">(
-    () => (localStorage.getItem(LAST_TEST_PAGE_KEY) as "test" | "edit") || "test"
+  const [page, setPage] = useState<TestPage>(
+    () => (localStorage.getItem(LAST_TEST_PAGE_KEY) as TestPage) || "test"
   );
   const [tab, setTab] = useState<"overview" | "flow" | "code">(
     () => (localStorage.getItem(LAST_TAB_KEY) as "overview" | "flow" | "code") || "overview"
   );
   const [showIconsOnly, setShowIconsOnly] = useState(false);
   const tabContainerRef = useRef<HTMLDivElement>(null);
-  const [showFlowchart, setShowFlowchart] = useState(false);
   const { mmtFilePath } = React.useContext(FileContext);
 
   // Save tab selection to localStorage whenever it changes
@@ -116,17 +126,10 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
   return (
     <div className="panel">
       <div className="panel-box" style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
-        {showFlowchart ? (
-          <FlowchartView
-            source={{ kind: 'test', test, filePath: mmtFilePath }}
-            onBack={() => setShowFlowchart(false)}
-            title={test.title || 'Test'}
-          />
-        ) : (
         <div className="api-swipe-root" style={{ flex: 1, minHeight: 0 }}>
           <div
-            className="api-swipe-track"
-            style={{ transform: page === 'test' ? 'translateX(0%)' : 'translateX(-50%)' }}
+            className="api-swipe-track api-swipe-track--three"
+            style={{ transform: pageTranslate(page) }}
           >
             <div className="api-swipe-page api-swipe-page--test">
               <div style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden", flexDirection: 'column' }}>
@@ -136,21 +139,31 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
                       <span className="codicon codicon-beaker" aria-hidden />
                       {test.title || 'Test'}
                     </div>
-                    <button
-                      className="action-button api-edit-launcher"
-                      onClick={() => setPage('edit')}
-                      title="Edit Test"
-                      type="button"
-                    >
-                      <span className="codicon codicon-edit" aria-hidden />
-                      <span className="api-edit-launcher-text">Edit Test</span>
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <button
+                        className="action-button api-edit-launcher"
+                        onClick={() => setPage('flow')}
+                        title="Flow chart"
+                        type="button"
+                      >
+                        <span className="codicon codicon-type-hierarchy-sub" aria-hidden />
+                        <span className="api-edit-launcher-text">Flow chart</span>
+                      </button>
+                      <button
+                        className="action-button api-edit-launcher"
+                        onClick={() => setPage('edit')}
+                        title="Edit Test"
+                        type="button"
+                      >
+                        <span className="codicon codicon-edit" aria-hidden />
+                        <span className="api-edit-launcher-text">Edit Test</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
                   <TestTest
                     testData={test}
-                    onOpenFlowchart={() => setShowFlowchart(true)}
                   />
                 </div>
               </div>
@@ -231,9 +244,16 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
                 {tab === "code" && <TestCode testData={test} />}
               </div>
             </div>
+
+            <div className="api-swipe-page api-swipe-page--flow">
+              <FlowchartView
+                source={{ kind: 'test', test, filePath: mmtFilePath }}
+                onBack={() => setPage('test')}
+                title={test.title || 'Test'}
+              />
+            </div>
           </div>
         </div>
-        )}
       </div>
     </div>
   );
