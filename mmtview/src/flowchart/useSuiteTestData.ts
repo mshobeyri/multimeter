@@ -14,6 +14,7 @@ export function useSuiteTestData(
   groups: SuiteGroup[],
   hierarchyByEntryPath: Record<string, SuiteTreeNode | undefined> | undefined,
   enabled: boolean,
+  refreshKey = 0,
 ): Record<string, TestData | undefined> {
   const [data, setData] = useState<Record<string, TestData | undefined>>({});
 
@@ -55,7 +56,7 @@ export function useSuiteTestData(
     return () => {
       cancelled = true;
     };
-  }, [groups, hierarchyByEntryPath, enabled]);
+  }, [groups, hierarchyByEntryPath, enabled, refreshKey]);
 
   return data;
 }

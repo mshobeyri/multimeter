@@ -11,9 +11,13 @@ export interface LayoutOptions {
   rankSpacing?: number;
   /** Vertical spacing between siblings on the same rank. */
   nodeSpacing?: number;
+  /** Horizontal spacing inside container nodes. */
+  innerRankSpacing?: number;
+  /** Vertical spacing inside container nodes. */
+  innerNodeSpacing?: number;
 }
 
-const DEFAULTS = { rankSpacing: 260, nodeSpacing: 130 };
+const DEFAULTS = { rankSpacing: 170, nodeSpacing: 82, innerRankSpacing: 150, innerNodeSpacing: 70 };
 
 /** Approximate render footprint for non-container nodes. */
 const DEFAULT_NODE_WIDTH = 200;
@@ -33,6 +37,8 @@ const CONTAINER_PADDING_BOTTOM = 24;
 export function applyLayout(graph: FlowGraph, options: LayoutOptions = {}): Record<string, LaidOutNode> {
   const rankSpacing = options.rankSpacing ?? DEFAULTS.rankSpacing;
   const nodeSpacing = options.nodeSpacing ?? DEFAULTS.nodeSpacing;
+  const innerRankSpacing = options.innerRankSpacing ?? DEFAULTS.innerRankSpacing;
+  const innerNodeSpacing = options.innerNodeSpacing ?? DEFAULTS.innerNodeSpacing;
 
   const childrenByParent = new Map<string | undefined, FlowNode[]>();
   for (const n of graph.nodes) {
@@ -62,7 +68,7 @@ export function applyLayout(graph: FlowGraph, options: LayoutOptions = {}): Reco
       const tParent = findNode(graph, e.target)?.parentId;
       return sParent === node.id && tParent === node.id;
     });
-    const childPositions = layoutFlat(children, innerEdges, { rankSpacing, nodeSpacing });
+    const childPositions = layoutFlat(children, innerEdges, { rankSpacing: innerRankSpacing, nodeSpacing: innerNodeSpacing });
     const bbox = boundingBox(children, childPositions);
     const dx = CONTAINER_PADDING_X - bbox.minX;
     const dy = CONTAINER_PADDING_TOP - bbox.minY;

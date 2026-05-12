@@ -12,7 +12,7 @@ interface TestTitleSpec {
   filePath?: string;
 }
 
-export function useFlowchartCallTitles(specs: TestTitleSpec[], enabled: boolean): CallTitleMapByTestPath {
+export function useFlowchartCallTitles(specs: TestTitleSpec[], enabled: boolean, refreshKey = 0): CallTitleMapByTestPath {
   const [titles, setTitles] = useState<CallTitleMapByTestPath>({});
 
   useEffect(() => {
@@ -61,7 +61,7 @@ export function useFlowchartCallTitles(specs: TestTitleSpec[], enabled: boolean)
     return () => {
       cancelled = true;
     };
-  }, [enabled, specs]);
+  }, [enabled, specs, refreshKey]);
 
   return titles;
 }

@@ -1,13 +1,57 @@
 import React from 'react';
-import { BaseEdge, EdgeLabelRenderer, EdgeProps, getSmoothStepPath } from '@xyflow/react';
+import { BaseEdge, EdgeLabelRenderer, EdgeProps } from '@xyflow/react';
 import { EdgeKind } from '../graph/types';
 
 interface FlowEdgeData {
   kind?: EdgeKind;
+  loopBounds?: {
+    top: number;
+    bottom: number;
+  };
 }
 
-function labelPosition(sourceX: number, sourceY: number, targetX: number, targetY: number): { x: number; y: number } {
-  return { x: (sourceX + targetX) / 2, y: (sourceY + targetY) / 2 };
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function cleanStepPath(sourceX: number, sourceY: number, targetX: number, targetY: number): [string, number, number] {
+  const dx = targetX - sourceX;
+  const dy = targetY - sourceY;
+  if (Math.abs(dy) < 6) {
+    return [`M ${sourceX} ${sourceY} L ${targetX} ${targetY}`, (sourceX + targetX) / 2, sourceY];
+  }
+
+  const direction = dx >= 0 ? 1 : -1;
+  const gap = Math.abs(dx);
+  const stub = clamp(gap * 0.28, 28, 82);
+  const sourceTurnX = sourceX + direction * stub;
+  const targetTurnX = targetX - direction * stub;
+  const midY = sourceY + dy / 2;
+  const radius = Math.min(10, Math.abs(dy) / 2, Math.max(4, gap / 10));
+
+  if (direction * (targetTurnX - sourceTurnX) < 0) {
+    const midX = sourceX + dx / 2;
+    const path = [
+      `M ${sourceX} ${sourceY}`,
+      `L ${midX} ${sourceY}`,
+      `L ${midX} ${targetY}`,
+      `L ${targetX} ${targetY}`,
+    ].join(' ');
+    return [path, midX, midY];
+  }
+
+  const ySign = dy >= 0 ? 1 : -1;
+  const path = [
+    `M ${sourceX} ${sourceY}`,
+    `L ${sourceTurnX - direction * radius} ${sourceY}`,
+    `Q ${sourceTurnX} ${sourceY} ${sourceTurnX} ${sourceY + ySign * radius}`,
+    `L ${sourceTurnX} ${targetY - ySign * radius}`,
+    `Q ${sourceTurnX} ${targetY} ${sourceTurnX + direction * radius} ${targetY}`,
+    `L ${targetTurnX - direction * radius} ${targetY}`,
+    `Q ${targetTurnX} ${targetY} ${targetTurnX + direction * radius} ${targetY}`,
+    `L ${targetX} ${targetY}`,
+  ].join(' ');
+  return [path, (sourceTurnX + targetTurnX) / 2, targetY];
 }
 
 function routedBranchFalsePath(sourceX: number, sourceY: number, targetX: number, targetY: number): [string, number, number] {
@@ -31,14 +75,24 @@ function routedBranchFalsePath(sourceX: number, sourceY: number, targetX: number
   return [path, (startX + endX) / 2, routeY];
 }
 
-function loopBackPath(sourceX: number, sourceY: number, targetX: number, targetY: number): [string, number, number] {
-  const gap = 96;
-  const routeY = Math.max(sourceY, targetY) + gap;
+function loopBackPath(
+  sourceX: number,
+  sourceY: number,
+  targetX: number,
+  targetY: number,
+  bounds?: { top: number; bottom: number },
+): [string, number, number] {
+  const preferredY = Math.max(sourceY, targetY) + 42;
+  const routeY = bounds
+    ? clamp(preferredY, bounds.top + 76, bounds.bottom - 18)
+    : preferredY;
+  const sourceControlX = sourceX + 56;
+  const targetControlX = targetX - 56;
   const path = [
     `M ${sourceX} ${sourceY}`,
-    `C ${sourceX + 80} ${sourceY} ${sourceX + 80} ${routeY} ${sourceX} ${routeY}`,
+    `C ${sourceControlX} ${sourceY} ${sourceControlX} ${routeY} ${sourceX} ${routeY}`,
     `L ${targetX} ${routeY}`,
-    `C ${targetX - 80} ${routeY} ${targetX - 80} ${targetY} ${targetX} ${targetY}`,
+    `C ${targetControlX} ${routeY} ${targetControlX} ${targetY} ${targetX} ${targetY}`,
   ].join(' ');
   return [path, (sourceX + targetX) / 2, routeY];
 }
@@ -49,8 +103,6 @@ const FlowEdgeLine: React.FC<EdgeProps> = ({
   sourceY,
   targetX,
   targetY,
-  sourcePosition,
-  targetPosition,
   style,
   label,
   markerEnd,
@@ -64,12 +116,9 @@ const FlowEdgeLine: React.FC<EdgeProps> = ({
   if (edgeData?.kind === 'branch-false' && Math.abs(targetX - sourceX) > 260) {
     [path, labelX, labelY] = routedBranchFalsePath(sourceX, sourceY, targetX, targetY);
   } else if (edgeData?.kind === 'loop-back') {
-    [path, labelX, labelY] = loopBackPath(sourceX, sourceY, targetX, targetY);
+    [path, labelX, labelY] = loopBackPath(sourceX, sourceY, targetX, targetY, edgeData.loopBounds);
   } else {
-    const smooth = getSmoothStepPath({ sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition });
-    path = smooth[0];
-    labelX = smooth[1] ?? labelPosition(sourceX, sourceY, targetX, targetY).x;
-    labelY = smooth[2] ?? labelPosition(sourceX, sourceY, targetX, targetY).y;
+    [path, labelX, labelY] = cleanStepPath(sourceX, sourceY, targetX, targetY);
   }
 
   return (

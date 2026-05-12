@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -7,6 +7,7 @@ import {
   Node as RFNode,
   Edge as RFEdge,
   NodeMouseHandler,
+  MarkerType,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { TestData } from 'mmt-core/TestData';
@@ -45,8 +46,7 @@ interface FlowchartViewProps {
 
 const EMPTY_SUITE_GROUPS: SuiteGroup[] = [];
 
-function toRFNodes(graph: FlowGraph): RFNode[] {
-  const positions = applyLayout(graph);
+function toRFNodes(graph: FlowGraph, positions: ReturnType<typeof applyLayout>): RFNode[] {
   // Sort so parent containers appear before their children — React Flow
   // requires this in order to position children relative to a parent.
   const sortedNodes = [...graph.nodes].sort((a, b) => {
@@ -84,21 +84,38 @@ function toRFNodes(graph: FlowGraph): RFNode[] {
   });
 }
 
-function toRFEdges(graph: FlowGraph): RFEdge[] {
+function toRFEdges(graph: FlowGraph, positions: ReturnType<typeof applyLayout>): RFEdge[] {
+  const nodeById = new Map(graph.nodes.map((n) => [n.id, n]));
   return graph.edges.map((e) => {
     const color = e.kind === 'branch-true'
       ? '#3fb950'
       : e.kind === 'branch-false'
         ? '#f0883e'
         : 'var(--vscode-descriptionForeground, #6e7781)';
+    const sourceNode = nodeById.get(e.source);
+    const targetNode = nodeById.get(e.target);
+    const parentNode = sourceNode?.parentId && sourceNode.parentId === targetNode?.parentId
+      ? nodeById.get(sourceNode.parentId)
+      : undefined;
+    const parentPosition = parentNode ? positions[parentNode.id] : undefined;
+    const loopBounds = e.kind === 'loop-back' && parentNode && parentPosition && parentNode.height
+      ? {
+        top: parentPosition.y,
+        bottom: parentPosition.y + parentNode.height,
+      }
+      : undefined;
+    const edgeStyle = { stroke: color, strokeDasharray: e.kind === 'sequence' ? undefined : '5 5' };
     return {
       id: e.id,
       source: e.source,
       target: e.target,
       label: e.label,
       type: 'flowEdge',
-      data: { kind: e.kind },
-      style: { strokeDasharray: '5 5', stroke: color },
+      data: { kind: e.kind, loopBounds },
+      style: edgeStyle,
+      markerEnd: e.kind === 'loop-back'
+        ? { type: MarkerType.ArrowClosed, color, width: 14, height: 14 }
+        : undefined,
       labelStyle: { fill: color, fontSize: 11, fontWeight: 700 },
       labelBgStyle: {
         fill: 'var(--vscode-editor-background, #1f2428)',
@@ -110,6 +127,7 @@ function toRFEdges(graph: FlowGraph): RFEdge[] {
 }
 
 const FlowchartView: React.FC<FlowchartViewProps> = ({ source, onBack, title }) => {
+  const [refreshVersion, setRefreshVersion] = useState(0);
   const suiteGroups = source.kind === 'suite' ? source.groups : EMPTY_SUITE_GROUPS;
   const suiteHierarchy = source.kind === 'suite' ? source.hierarchyByEntryPath : undefined;
   const suiteMissingFiles = source.kind === 'suite' ? source.missingFiles : undefined;
@@ -117,14 +135,14 @@ const FlowchartView: React.FC<FlowchartViewProps> = ({ source, onBack, title }) 
   const suiteRootPath = source.kind === 'suite' ? source.rootPath : undefined;
   const test = source.kind === 'test' ? source.test : undefined;
   const testFilePath = source.kind === 'test' ? source.filePath : undefined;
-  const testDataByPath = useSuiteTestData(suiteGroups, suiteHierarchy, source.kind === 'suite');
+  const testDataByPath = useSuiteTestData(suiteGroups, suiteHierarchy, source.kind === 'suite', refreshVersion);
   const titleSpecs = useMemo(
     () => source.kind === 'test'
       ? buildSingleTestTitleSpecs(test, testFilePath)
       : buildSuiteTitleSpecs(testDataByPath),
     [source.kind, test, testFilePath, testDataByPath],
   );
-  const callTitleByTestPath = useFlowchartCallTitles(titleSpecs, source.kind === 'test' || Object.keys(testDataByPath).length > 0);
+  const callTitleByTestPath = useFlowchartCallTitles(titleSpecs, source.kind === 'test' || Object.keys(testDataByPath).length > 0, refreshVersion);
 
   const graph = useMemo<FlowGraph>(() => {
     if (source.kind === 'test') {
@@ -145,8 +163,13 @@ const FlowchartView: React.FC<FlowchartViewProps> = ({ source, onBack, title }) 
     });
   }, [source.kind, test, testFilePath, suiteRootTitle, suiteRootPath, suiteGroups, suiteHierarchy, suiteMissingFiles, testDataByPath, callTitleByTestPath]);
 
-  const rfNodes = useMemo(() => toRFNodes(graph), [graph]);
-  const rfEdges = useMemo(() => toRFEdges(graph), [graph]);
+  const positions = useMemo(() => applyLayout(graph), [graph]);
+  const rfNodes = useMemo(() => toRFNodes(graph, positions), [graph, positions]);
+  const rfEdges = useMemo(() => toRFEdges(graph, positions), [graph, positions]);
+
+  const handleRefresh = React.useCallback(() => {
+    setRefreshVersion((value) => value + 1);
+  }, []);
 
   const handleNodeClick = React.useCallback<NodeMouseHandler>((_event, node) => {
     const data = node.data as { kind?: string; sourceFile?: string };
@@ -173,11 +196,21 @@ const FlowchartView: React.FC<FlowchartViewProps> = ({ source, onBack, title }) 
             <span className="codicon codicon-type-hierarchy-sub" aria-hidden style={{ marginRight: 6 }} />
             {title || 'Flow chart'}
           </div>
+          <button
+            className="action-button"
+            onClick={handleRefresh}
+            title="Refresh flow chart"
+            type="button"
+            style={{ marginLeft: 'auto' }}
+          >
+            <span className="codicon codicon-refresh" aria-hidden />
+          </button>
         </div>
       </div>
       <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
         <ReactFlowProvider>
           <ReactFlow
+            key={refreshVersion}
             nodes={rfNodes}
             edges={rfEdges}
             nodeTypes={nodeTypes}
