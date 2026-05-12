@@ -35,6 +35,13 @@ export interface FlowNode {
   detail?: string;
   /** File path opened when the user clicks the node. */
   sourceFile?: string;
+  /** If set, this node is laid out inside its parent (container). */
+  parentId?: string;
+  /** Explicit width/height for container-style nodes. Filled in by the layout step. */
+  width?: number;
+  height?: number;
+  /** True if this node visually contains other nodes (e.g. test bodies). */
+  isContainer?: boolean;
 }
 
 export type EdgeKind = 'sequence' | 'branch-true' | 'branch-false' | 'parallel';

@@ -18,6 +18,7 @@ import { nodeTypes } from './nodes/nodeRegistry';
 import { openRelativeFile } from '../vsAPI';
 import { SuiteGroup } from '../suite/types';
 import { SuiteTreeNode } from '../suite/test/suiteHierarchy';
+import { useSuiteTestData } from './useSuiteTestData';
 
 export type FlowchartSource =
   | {
@@ -42,9 +43,16 @@ interface FlowchartViewProps {
 
 function toRFNodes(graph: FlowGraph): RFNode[] {
   const positions = applyLayout(graph);
-  return graph.nodes.map((n: FlowNode) => {
+  // Sort so parent containers appear before their children — React Flow
+  // requires this in order to position children relative to a parent.
+  const sortedNodes = [...graph.nodes].sort((a, b) => {
+    const ap = a.parentId ? 1 : 0;
+    const bp = b.parentId ? 1 : 0;
+    return ap - bp;
+  });
+  return sortedNodes.map((n: FlowNode) => {
     const pos = positions[n.id] ?? { x: 0, y: 0 };
-    return {
+    const rfNode: RFNode = {
       id: n.id,
       type: 'flowCard',
       position: { x: pos.x, y: pos.y },
@@ -53,11 +61,22 @@ function toRFNodes(graph: FlowGraph): RFNode[] {
         label: n.label,
         detail: n.detail,
         sourceFile: n.sourceFile,
+        isContainer: Boolean(n.isContainer),
+        width: n.width,
+        height: n.height,
       },
       draggable: false,
       selectable: true,
       connectable: false,
-    } as RFNode;
+    };
+    if (n.parentId) {
+      rfNode.parentId = n.parentId;
+      rfNode.extent = 'parent';
+    }
+    if (n.isContainer && n.width && n.height) {
+      rfNode.style = { width: n.width, height: n.height };
+    }
+    return rfNode;
   });
 }
 
@@ -75,6 +94,10 @@ function toRFEdges(graph: FlowGraph): RFEdge[] {
 }
 
 const FlowchartView: React.FC<FlowchartViewProps> = ({ source, onBack, title }) => {
+  const suiteGroups = source.kind === 'suite' ? source.groups : [];
+  const suiteHierarchy = source.kind === 'suite' ? source.hierarchyByEntryPath : undefined;
+  const testDataByPath = useSuiteTestData(suiteGroups, suiteHierarchy, source.kind === 'suite');
+
   const graph = useMemo<FlowGraph>(() => {
     if (source.kind === 'test') {
       return buildTestGraph({ test: source.test, filePath: source.filePath });
@@ -85,8 +108,9 @@ const FlowchartView: React.FC<FlowchartViewProps> = ({ source, onBack, title }) 
       groups: source.groups,
       hierarchyByEntryPath: source.hierarchyByEntryPath,
       missingFiles: source.missingFiles,
+      testDataByPath,
     });
-  }, [source]);
+  }, [source, testDataByPath]);
 
   const rfNodes = useMemo(() => toRFNodes(graph), [graph]);
   const rfEdges = useMemo(() => toRFEdges(graph), [graph]);

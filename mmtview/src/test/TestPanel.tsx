@@ -7,7 +7,7 @@ import TestCode from "./TestCode";
 import { useImportValidation } from "../text/useImportValidation";
 import TestTest from "./TestTest";
 import { FileContext } from "../fileContext";
-import { FlowchartButton, FlowchartView } from "../flowchart";
+import { FlowchartView } from "../flowchart";
 
 interface TestPanelProps {
   content: string;
@@ -136,23 +136,21 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
                       <span className="codicon codicon-beaker" aria-hidden />
                       {test.title || 'Test'}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <FlowchartButton onClick={() => setShowFlowchart(true)} />
-                      <button
-                        className="action-button api-edit-launcher"
-                        onClick={() => setPage('edit')}
-                        title="Edit Test"
-                        type="button"
-                      >
-                        <span className="codicon codicon-edit" aria-hidden />
-                        <span className="api-edit-launcher-text">Edit Test</span>
-                      </button>
-                    </div>
+                    <button
+                      className="action-button api-edit-launcher"
+                      onClick={() => setPage('edit')}
+                      title="Edit Test"
+                      type="button"
+                    >
+                      <span className="codicon codicon-edit" aria-hidden />
+                      <span className="api-edit-launcher-text">Edit Test</span>
+                    </button>
                   </div>
                 </div>
                 <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
                   <TestTest
                     testData={test}
+                    onOpenFlowchart={() => setShowFlowchart(true)}
                   />
                 </div>
               </div>

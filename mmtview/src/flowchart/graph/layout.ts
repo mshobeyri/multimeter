@@ -1,4 +1,4 @@
-import { FlowGraph } from './types';
+import { FlowEdge, FlowGraph, FlowNode } from './types';
 
 export interface LaidOutNode {
   id: string;
@@ -15,29 +15,135 @@ export interface LayoutOptions {
 
 const DEFAULTS = { rankSpacing: 260, nodeSpacing: 130 };
 
+/** Approximate render footprint for non-container nodes. */
+const DEFAULT_NODE_WIDTH = 200;
+const DEFAULT_NODE_HEIGHT = 90;
+
+/** Padding applied inside container nodes. */
+const CONTAINER_PADDING_X = 24;
+const CONTAINER_PADDING_TOP = 64; // room for the header
+const CONTAINER_PADDING_BOTTOM = 24;
+
 /**
- * Simple left-to-right rank-based layout. Ranks are computed by the longest
- * incoming path length so branches stay vertically separated. Nodes within
- * the same rank are stacked and vertically centered.
+ * Compute positions for every node in the graph. Container nodes
+ * (`isContainer: true`) get their `width`/`height` mutated in place so they
+ * are large enough to wrap their children. Children with a `parentId` are
+ * returned with coordinates relative to their parent (as React Flow expects).
  */
 export function applyLayout(graph: FlowGraph, options: LayoutOptions = {}): Record<string, LaidOutNode> {
   const rankSpacing = options.rankSpacing ?? DEFAULTS.rankSpacing;
   const nodeSpacing = options.nodeSpacing ?? DEFAULTS.nodeSpacing;
 
+  const childrenByParent = new Map<string | undefined, FlowNode[]>();
+  for (const n of graph.nodes) {
+    const key = n.parentId;
+    if (!childrenByParent.has(key)) {
+      childrenByParent.set(key, []);
+    }
+    childrenByParent.get(key)!.push(n);
+  }
+
+  const positions: Record<string, LaidOutNode> = {};
+
+  // 1) Lay out each container's children first (relative coordinates) and
+  // size the container based on the bounding box of its children.
+  for (const node of graph.nodes) {
+    if (!node.isContainer) {
+      continue;
+    }
+    const children = childrenByParent.get(node.id) ?? [];
+    if (children.length === 0) {
+      node.width = node.width ?? DEFAULT_NODE_WIDTH;
+      node.height = node.height ?? DEFAULT_NODE_HEIGHT;
+      continue;
+    }
+    const innerEdges = graph.edges.filter((e) => {
+      const sParent = findNode(graph, e.source)?.parentId;
+      const tParent = findNode(graph, e.target)?.parentId;
+      return sParent === node.id && tParent === node.id;
+    });
+    const childPositions = layoutFlat(children, innerEdges, { rankSpacing, nodeSpacing });
+    const bbox = boundingBox(children, childPositions);
+    const dx = CONTAINER_PADDING_X - bbox.minX;
+    const dy = CONTAINER_PADDING_TOP - bbox.minY;
+    for (const child of children) {
+      const p = childPositions[child.id];
+      positions[child.id] = { id: child.id, x: p.x + dx, y: p.y + dy };
+    }
+    node.width = Math.max(DEFAULT_NODE_WIDTH, bbox.maxX - bbox.minX + CONTAINER_PADDING_X * 2);
+    node.height = Math.max(
+      DEFAULT_NODE_HEIGHT,
+      bbox.maxY - bbox.minY + CONTAINER_PADDING_TOP + CONTAINER_PADDING_BOTTOM,
+    );
+  }
+
+  // 2) Lay out top-level nodes.
+  const topNodes = childrenByParent.get(undefined) ?? [];
+  const topEdges = graph.edges.filter((e) => {
+    const sParent = findNode(graph, e.source)?.parentId;
+    const tParent = findNode(graph, e.target)?.parentId;
+    return !sParent && !tParent;
+  });
+  const topPositions = layoutFlat(topNodes, topEdges, { rankSpacing, nodeSpacing });
+  for (const n of topNodes) {
+    const p = topPositions[n.id];
+    positions[n.id] = { id: n.id, x: p.x, y: p.y };
+  }
+
+  return positions;
+}
+
+function findNode(graph: FlowGraph, id: string): FlowNode | undefined {
+  return graph.nodes.find((n) => n.id === id);
+}
+
+function boundingBox(
+  nodes: FlowNode[],
+  positions: Record<string, LaidOutNode>,
+): { minX: number; minY: number; maxX: number; maxY: number } {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const n of nodes) {
+    const p = positions[n.id];
+    if (!p) {
+      continue;
+    }
+    const w = n.width ?? DEFAULT_NODE_WIDTH;
+    const h = n.height ?? DEFAULT_NODE_HEIGHT;
+    minX = Math.min(minX, p.x);
+    minY = Math.min(minY, p.y);
+    maxX = Math.max(maxX, p.x + w);
+    maxY = Math.max(maxY, p.y + h);
+  }
+  if (!isFinite(minX)) {
+    return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+  }
+  return { minX, minY, maxX, maxY };
+}
+
+/**
+ * Simple left-to-right rank-based layout for a flat set of nodes/edges.
+ * Returns positions where (x, y) is the top-left of the node's box.
+ */
+function layoutFlat(
+  nodes: FlowNode[],
+  edges: FlowEdge[],
+  opts: { rankSpacing: number; nodeSpacing: number },
+): Record<string, LaidOutNode> {
+  const ids = new Set(nodes.map((n) => n.id));
   const inEdges = new Map<string, string[]>();
-  const outEdges = new Map<string, string[]>();
-  for (const e of graph.edges) {
+  for (const e of edges) {
+    if (!ids.has(e.source) || !ids.has(e.target)) {
+      continue;
+    }
     if (!inEdges.has(e.target)) {
       inEdges.set(e.target, []);
     }
     inEdges.get(e.target)!.push(e.source);
-    if (!outEdges.has(e.source)) {
-      outEdges.set(e.source, []);
-    }
-    outEdges.get(e.source)!.push(e.target);
   }
 
-  // Compute rank as longest path from any source (node with no incoming edges).
   const rank = new Map<string, number>();
   const visiting = new Set<string>();
   const visit = (id: string): number => {
@@ -45,7 +151,6 @@ export function applyLayout(graph: FlowGraph, options: LayoutOptions = {}): Reco
       return rank.get(id)!;
     }
     if (visiting.has(id)) {
-      // Cycle guard.
       return 0;
     }
     visiting.add(id);
@@ -58,29 +163,42 @@ export function applyLayout(graph: FlowGraph, options: LayoutOptions = {}): Reco
     rank.set(id, r);
     return r;
   };
-  for (const n of graph.nodes) {
+  for (const n of nodes) {
     visit(n.id);
   }
 
-  // Bucket nodes by rank in declaration order.
-  const buckets = new Map<number, string[]>();
-  for (const n of graph.nodes) {
+  const buckets = new Map<number, FlowNode[]>();
+  for (const n of nodes) {
     const r = rank.get(n.id) ?? 0;
     if (!buckets.has(r)) {
       buckets.set(r, []);
     }
-    buckets.get(r)!.push(n.id);
+    buckets.get(r)!.push(n);
+  }
+  const sortedRanks = Array.from(buckets.keys()).sort((a, b) => a - b);
+
+  // Column x: cursor advances by max column width + spacing.
+  const colX: Record<number, number> = {};
+  let cursorX = 0;
+  for (const r of sortedRanks) {
+    colX[r] = cursorX;
+    const colW = Math.max(
+      DEFAULT_NODE_WIDTH,
+      ...buckets.get(r)!.map((n) => n.width ?? DEFAULT_NODE_WIDTH),
+    );
+    cursorX += colW + opts.rankSpacing;
   }
 
-  // Vertically center each bucket around y=0.
   const positions: Record<string, LaidOutNode> = {};
-  buckets.forEach((ids, r) => {
-    const count = ids.length;
-    const totalHeight = (count - 1) * nodeSpacing;
-    const top = -totalHeight / 2;
-    ids.forEach((id, idx) => {
-      positions[id] = { id, x: r * rankSpacing, y: top + idx * nodeSpacing };
+  for (const r of sortedRanks) {
+    const list = buckets.get(r)!;
+    const heights = list.map((n) => n.height ?? DEFAULT_NODE_HEIGHT);
+    const totalHeight = heights.reduce((a, b) => a + b, 0) + opts.nodeSpacing * Math.max(0, list.length - 1);
+    let y = -totalHeight / 2;
+    list.forEach((n, idx) => {
+      positions[n.id] = { id: n.id, x: colX[r], y };
+      y += heights[idx] + opts.nodeSpacing;
     });
-  });
+  }
   return positions;
 }

@@ -7,6 +7,9 @@ export interface FlowNodeData {
   label: string;
   detail?: string;
   sourceFile?: string;
+  isContainer?: boolean;
+  width?: number;
+  height?: number;
 }
 
 interface KindStyle {
@@ -93,6 +96,47 @@ const FlowNodeCard: React.FC<NodeProps> = ({ data }) => {
   const d = data as unknown as FlowNodeData;
   const style = KIND_STYLES[d.kind] || KIND_STYLES.message;
   const isTerminal = !!style.isTerminal;
+
+  if (d.isContainer && d.width && d.height) {
+    const containerStyle: React.CSSProperties = {
+      width: d.width,
+      height: d.height,
+      background: 'var(--vscode-editorWidget-background, rgba(110, 118, 129, 0.08))',
+      border: `1px dashed ${style.color}`,
+      borderRadius: 12,
+      padding: 0,
+      fontFamily: 'var(--vscode-font-family, "Segoe UI", system-ui, sans-serif)',
+      cursor: 'pointer',
+      color: 'var(--vscode-foreground)',
+      position: 'relative',
+      boxSizing: 'border-box',
+    };
+    return (
+      <div style={containerStyle} title={d.sourceFile}>
+        <Handle type="target" position={Position.Left} style={{ background: style.color }} />
+        <div
+          style={{
+            position: 'absolute',
+            top: 8,
+            left: 14,
+            right: 14,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 2,
+            pointerEvents: 'none',
+          }}
+        >
+          <div style={{ ...tagStyle, color: style.color, marginBottom: 0 }}>
+            <span className={`codicon codicon-${style.icon}`} aria-hidden />
+            {style.tag}
+          </div>
+          <div style={{ ...labelStyle, fontSize: 13 }}>{d.label}</div>
+        </div>
+        <Handle type="source" position={Position.Right} style={{ background: style.color }} />
+      </div>
+    );
+  }
+
   const rootStyle: React.CSSProperties = isTerminal ? pillBase : cardBase;
 
   return (
