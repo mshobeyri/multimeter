@@ -8,6 +8,7 @@
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
     "@rexxars/react-split-pane": "^1.0.0",
+    "@xyflow/react": "^12.3.5",
     "mmt-core": "file:../core/dist",
     "monaco-editor": "^0.52.2",
     "monaco-yaml": "^5.4.0",

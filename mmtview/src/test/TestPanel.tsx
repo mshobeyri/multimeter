@@ -6,6 +6,8 @@ import { yamlToTest, testToYaml } from "mmt-core/testParsePack";
 import TestCode from "./TestCode";
 import { useImportValidation } from "../text/useImportValidation";
 import TestTest from "./TestTest";
+import { FileContext } from "../fileContext";
+import { FlowchartButton, FlowchartView } from "../flowchart";
 
 interface TestPanelProps {
   content: string;
@@ -64,6 +66,8 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
   );
   const [showIconsOnly, setShowIconsOnly] = useState(false);
   const tabContainerRef = useRef<HTMLDivElement>(null);
+  const [showFlowchart, setShowFlowchart] = useState(false);
+  const { mmtFilePath } = React.useContext(FileContext);
 
   // Save tab selection to localStorage whenever it changes
   useEffect(() => {
@@ -112,6 +116,13 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
   return (
     <div className="panel">
       <div className="panel-box" style={{ display: "flex", flexDirection: "column", height: "100%", minHeight: 0 }}>
+        {showFlowchart ? (
+          <FlowchartView
+            source={{ kind: 'test', test, filePath: mmtFilePath }}
+            onBack={() => setShowFlowchart(false)}
+            title={test.title || 'Test'}
+          />
+        ) : (
         <div className="api-swipe-root" style={{ flex: 1, minHeight: 0 }}>
           <div
             className="api-swipe-track"
@@ -125,15 +136,18 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
                       <span className="codicon codicon-beaker" aria-hidden />
                       {test.title || 'Test'}
                     </div>
-                    <button
-                      className="action-button api-edit-launcher"
-                      onClick={() => setPage('edit')}
-                      title="Edit Test"
-                      type="button"
-                    >
-                      <span className="codicon codicon-edit" aria-hidden />
-                      <span className="api-edit-launcher-text">Edit Test</span>
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <FlowchartButton onClick={() => setShowFlowchart(true)} />
+                      <button
+                        className="action-button api-edit-launcher"
+                        onClick={() => setPage('edit')}
+                        title="Edit Test"
+                        type="button"
+                      >
+                        <span className="codicon codicon-edit" aria-hidden />
+                        <span className="api-edit-launcher-text">Edit Test</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
@@ -221,6 +235,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   );
