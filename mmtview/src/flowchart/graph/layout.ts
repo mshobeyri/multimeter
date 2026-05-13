@@ -68,11 +68,7 @@ export function applyLayout(graph: FlowGraph, options: LayoutOptions = {}): Reco
       node.height = node.height ?? DEFAULT_NODE_HEIGHT;
       continue;
     }
-    const innerEdges = graph.edges.filter((e) => {
-      const sParent = nodeById.get(e.source)?.parentId;
-      const tParent = nodeById.get(e.target)?.parentId;
-      return sParent === node.id && tParent === node.id;
-    });
+    const innerEdges = normalizeContainerEdges(graph.edges, node.id, nodeById);
     const childPositions = layoutFlat(children, innerEdges, { rankSpacing: innerRankSpacing, nodeSpacing: innerNodeSpacing });
     const bbox = boundingBox(children, childPositions);
     const dx = CONTAINER_PADDING_X - bbox.minX;
@@ -108,6 +104,44 @@ function parentDepth(node: FlowNode, nodeById: Map<string, FlowNode>): number {
     current = current.parentId ? nodeById.get(current.parentId) : undefined;
   }
   return depth;
+}
+
+function normalizeContainerEdges(
+  graphEdges: FlowEdge[],
+  containerId: string,
+  nodeById: Map<string, FlowNode>,
+): FlowEdge[] {
+  const seen = new Set<string>();
+  const edges: FlowEdge[] = [];
+  for (const edge of graphEdges) {
+    const source = directChildOwner(edge.source, containerId, nodeById);
+    const target = directChildOwner(edge.target, containerId, nodeById);
+    if (!source || !target || source === target) {
+      continue;
+    }
+    const key = `${source}->${target}`;
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    edges.push({ ...edge, source, target });
+  }
+  return edges;
+}
+
+function directChildOwner(
+  nodeId: string,
+  containerId: string,
+  nodeById: Map<string, FlowNode>,
+): string | undefined {
+  let current = nodeById.get(nodeId);
+  while (current) {
+    if (current.parentId === containerId) {
+      return current.id;
+    }
+    current = current.parentId ? nodeById.get(current.parentId) : undefined;
+  }
+  return undefined;
 }
 
 function normalizeTopEdges(graph: FlowGraph): FlowEdge[] {
