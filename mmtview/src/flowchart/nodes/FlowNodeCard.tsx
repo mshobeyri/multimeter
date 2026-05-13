@@ -1,6 +1,7 @@
 import React from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { NodeKind } from '../graph/types';
+import { codiconForStepType, displayNameForStepType } from '../../test/stepPresentation';
 
 export interface FlowNodeData {
   kind: NodeKind;
@@ -22,20 +23,20 @@ interface KindStyle {
 const KIND_STYLES: Record<NodeKind, KindStyle> = {
   start: { icon: 'play-circle', color: '#2ea043', tag: 'START TRIGGER', isTerminal: true },
   end: { icon: 'flag', color: '#cf222e', tag: 'END POINT', isTerminal: true },
-  call: { icon: 'arrow-swap', color: '#1f6feb', tag: 'API CALL' },
-  run: { icon: 'server-process', color: '#1f6feb', tag: 'RUN SERVER' },
-  assert: { icon: 'shield', color: '#bc4c00', tag: 'ASSERT' },
-  check: { icon: 'check-all', color: '#3fb950', tag: 'CHECK' },
-  set: { icon: 'symbol-variable', color: '#8957e5', tag: 'SET' },
-  sleep: { icon: 'watch', color: '#8957e5', tag: 'SLEEP' },
-  print: { icon: 'output', color: '#6e7781', tag: 'PRINT' },
-  js: { icon: 'symbol-method', color: '#8957e5', tag: 'JS' },
-  if: { icon: 'git-compare', color: '#bf8700', tag: 'IF' },
-  loop: { icon: 'sync', color: '#bf8700', tag: 'FOR' },
-  repeat: { icon: 'sync', color: '#bf8700', tag: 'REPEAT' },
-  data: { icon: 'database', color: '#1f6feb', tag: 'DATA' },
-  setenv: { icon: 'gear', color: '#8957e5', tag: 'SETENV' },
-  stage: { icon: 'layers', color: '#1f6feb', tag: 'STAGE' },
+  call: { icon: codiconForStepType('call'), color: '#1f6feb', tag: displayNameForStepType('call').toUpperCase() },
+  run: { icon: codiconForStepType('run'), color: '#1f6feb', tag: displayNameForStepType('run').toUpperCase() },
+  assert: { icon: codiconForStepType('assert'), color: '#bc4c00', tag: displayNameForStepType('assert').toUpperCase() },
+  check: { icon: codiconForStepType('check'), color: '#3fb950', tag: displayNameForStepType('check').toUpperCase() },
+  set: { icon: codiconForStepType('set'), color: '#8957e5', tag: displayNameForStepType('set').toUpperCase() },
+  sleep: { icon: codiconForStepType('delay'), color: '#8957e5', tag: displayNameForStepType('delay').toUpperCase() },
+  print: { icon: codiconForStepType('print'), color: '#6e7781', tag: displayNameForStepType('print').toUpperCase() },
+  js: { icon: codiconForStepType('js'), color: '#8957e5', tag: displayNameForStepType('js').toUpperCase() },
+  if: { icon: codiconForStepType('if'), color: '#bf8700', tag: displayNameForStepType('if').toUpperCase() },
+  loop: { icon: codiconForStepType('for'), color: '#bf8700', tag: displayNameForStepType('for').toUpperCase() },
+  repeat: { icon: codiconForStepType('repeat'), color: '#bf8700', tag: displayNameForStepType('repeat').toUpperCase() },
+  data: { icon: codiconForStepType('data'), color: '#1f6feb', tag: displayNameForStepType('data').toUpperCase() },
+  setenv: { icon: codiconForStepType('setenv'), color: '#8957e5', tag: displayNameForStepType('setenv').toUpperCase() },
+  stage: { icon: codiconForStepType('stage'), color: '#1f6feb', tag: displayNameForStepType('stage').toUpperCase() },
   group: { icon: 'folder', color: '#6e7781', tag: 'GROUP' },
   suite: { icon: 'list-tree', color: '#1f6feb', tag: 'SUITE' },
   'test-ref': { icon: 'beaker', color: '#1f6feb', tag: 'TEST' },
