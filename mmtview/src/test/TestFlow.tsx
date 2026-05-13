@@ -4,6 +4,7 @@ import TestFlowBox from "./TestFlowBox";
 import { getTestFlowStepType } from "mmt-core/testParsePack";
 import { ControlledTreeEnvironment, Tree, DraggingPosition, DraggingPositionItem, DraggingPositionBetweenItems } from 'react-complex-tree';
 import { type MissingImportEntry } from "../text/validator";
+import { codiconForStepType } from "./stepPresentation";
 
 // Transparent drag image to remove native ghost preview while preserving drop lines
 let dragPreviewEl: HTMLDivElement | null = null;
@@ -33,46 +34,6 @@ interface TestFlowProps {
     update?: (patch: { steps?: any[]; stages?: any[] }) => void;
     importValidation?: ImportValidationInfo;
 }
-
-// Map flow step types to specific codicons for non-folder items
-const codiconForType = (t?: string): string => {
-    switch (t) {
-        case 'print':
-            return 'codicon-output';
-        case 'js':
-            return 'codicon-code';
-        case 'call':
-            return 'codicon-symbol-method';
-        case 'data':
-            return 'codicon-database';
-        case 'delay':
-            return 'codicon-debug-pause';
-        case 'set':
-            return 'codicon-symbol-constant';
-        case 'const':
-        case 'var':
-        case 'let':
-            return 'codicon-symbol-variable';
-        case 'check':
-            return 'codicon-check';
-        case 'assert':
-            return 'codicon-pass';
-        case 'if':
-            return 'codicon-question';
-        case 'for':
-            return 'codicon-sync';
-        case 'repeat':
-            return 'codicon-debug-restart';
-        case 'setenv':
-            return 'codicon-globe';
-        case 'stage':
-            return 'codicon-layers';
-        case 'run':
-            return 'codicon-server-process';
-        default:
-            return 'codicon-file';
-    }
-};
 
 const collectFolderIds = (items: Record<string, any>, includeEmpty = true): string[] =>
     Object.values(items)
@@ -365,7 +326,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                                 disabled={t === 'stage' && !multiStage}
                                 title={(t === 'stage' && !multiStage) ? 'Enable Multistage to add a stage' : `Add ${t}`}
                             >
-                                <span className={`codicon ${codiconForType(t)}`} style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
+                                <span className={`codicon codicon-${codiconForStepType(t)}`} style={{ fontSize: 14, opacity: 0.85 }} aria-hidden />
                                 <span>{t}</span>
                             </button>
                         ))}
@@ -413,7 +374,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                                 const parsed = JSON.parse(item.data as string);
                                 t = parsed?.type;
                             } catch { }
-                            const ico = codiconForType(t);
+                            const ico = `codicon-${codiconForStepType(t)}`;
                             return (
                                 <span
                                     style={{

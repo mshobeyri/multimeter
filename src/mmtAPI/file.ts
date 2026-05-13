@@ -185,11 +185,11 @@ export async function handleGetFileContent(
     const content =
         await readRelativeFileContent(document.uri.fsPath, message.filename);
     webviewPanel.webview.postMessage(
-        {command: 'fileContent', content, filename: message.filename});
+      {command: 'fileContent', requestId: message.requestId, content, filename: message.filename});
   } catch (err) {
     // Always send error back so the webview promise can reject
     webviewPanel.webview.postMessage(
-        {command: 'fileContent', error: String((err as any)?.message || err), filename: message.filename});
+      {command: 'fileContent', requestId: message.requestId, error: String((err as any)?.message || err), filename: message.filename});
 
     // Skip popup for silent reads (e.g. ref description resolution)
     if (message.silent) { return; }
@@ -410,7 +410,10 @@ export function handleValidateFilesExist(
 export async function handleOpenRelativeFile(
     message: any, document: vscode.TextDocument) {
   const projectRoot = findProjectRoot(document.uri.fsPath);
-  const absolutePath = resolveImportPath(document.uri.fsPath, message.filename, projectRoot);
+  const filename = normalizeWebviewPath(typeof message.filename === 'string' ? message.filename : '');
+  const absolutePath = path.isAbsolute(filename)
+      ? filename
+      : resolveImportPath(document.uri.fsPath, filename, projectRoot);
   const uri = vscode.Uri.file(absolutePath);
   const pathLower: string = absolutePath.toLowerCase();
   const fragment: string | undefined = typeof message.fragment === 'string' ? message.fragment : undefined;

@@ -1,7 +1,7 @@
 import { Check, X } from 'lucide-react'
 import FadeIn from '../components/FadeIn'
 
-type ToolKey = 'multimeter' | 'postman' | 'insomnia' | 'bruno' | 'robot' | 'cucumber' | 'jmeter' | 'neoload'
+type ToolKey = 'multimeter' | 'postman' | 'insomnia' | 'bruno' | 'robot' | 'cucumber' | 'jmeter' | 'neoload' | 'playwright'
 type Cell = boolean | string
 
 interface FeatureRow {
@@ -18,116 +18,125 @@ const tools: Array<{ key: ToolKey; name: string; logo: string; highlight?: boole
   { key: 'cucumber', name: 'Cucumber', logo: '/competitors/cucumber.svg' },
   { key: 'jmeter', name: 'JMeter', logo: '/competitors/jmeter.svg' },
   { key: 'neoload', name: 'NeoLoad', logo: '/competitors/neoload.svg' },
+  { key: 'playwright', name: 'Playwright', logo: '/competitors/playwright.svg' },
 ]
 
 const features: FeatureRow[] = [
   {
     feature: 'Price',
-    values: { multimeter: 'Free', postman: '$14/user/mo', insomnia: '$12/user/mo', bruno: '$6/user/mo', robot: 'Free', cucumber: 'Free', jmeter: 'Free', neoload: 'Enterprise' },
+    values: { multimeter: 'Free', postman: '$14/user/mo', insomnia: '$12/user/mo', bruno: '$6/user/mo', robot: 'Free', cucumber: 'Free', jmeter: 'Free', neoload: 'Enterprise', playwright: 'Free' },
   },
   {
     feature: 'Open Source',
-    values: { multimeter: true, postman: false, insomnia: 'Partial', bruno: 'Partial', robot: true, cucumber: true, jmeter: true, neoload: false },
+    values: { multimeter: true, postman: false, insomnia: 'Partial', bruno: 'Partial', robot: true, cucumber: true, jmeter: true, neoload: false, playwright: true },
   },
   {
     feature: 'HTTP / REST',
-    values: { multimeter: true, postman: true, insomnia: true, bruno: true, robot: true, cucumber: 'Via code', jmeter: true, neoload: true },
+    values: { multimeter: true, postman: true, insomnia: true, bruno: true, robot: true, cucumber: 'Via code', jmeter: true, neoload: true, playwright: true },
   },
   {
     feature: 'WebSocket',
-    values: { multimeter: true, postman: true, insomnia: true, bruno: 'Partial', robot: 'Via library', cucumber: 'Via code', jmeter: 'Plugins', neoload: 'Partial' },
+    values: { multimeter: true, postman: true, insomnia: true, bruno: 'Partial', robot: 'Via library', cucumber: 'Via code', jmeter: 'Plugins', neoload: 'Partial', playwright: 'Via browser' },
   },
   {
     feature: 'GraphQL',
-    values: { multimeter: true, postman: true, insomnia: true, bruno: true, robot: 'Via library', cucumber: 'Via code', jmeter: 'Plugins', neoload: 'Partial' },
+    values: { multimeter: true, postman: true, insomnia: true, bruno: true, robot: 'Via library', cucumber: 'Via code', jmeter: 'Plugins', neoload: 'Partial', playwright: 'Via API' },
   },
   {
     feature: 'gRPC',
-    values: { multimeter: true, postman: true, insomnia: true, bruno: false, robot: 'Via library', cucumber: 'Via code', jmeter: 'Plugins', neoload: 'Partial' },
+    values: { multimeter: true, postman: true, insomnia: true, bruno: false, robot: 'Via library', cucumber: 'Via code', jmeter: 'Plugins', neoload: 'Partial', playwright: false },
   },
   {
     feature: 'CI/CD CLI',
-    values: { multimeter: true, postman: true, insomnia: true, bruno: true, robot: true, cucumber: true, jmeter: true, neoload: true },
+    values: { multimeter: true, postman: true, insomnia: true, bruno: true, robot: true, cucumber: true, jmeter: true, neoload: true, playwright: true },
   },
   {
     feature: 'Load Testing',
-    values: { multimeter: 'Beta', postman: 'Limited', insomnia: false, bruno: false, robot: 'Via library', cucumber: 'Via code', jmeter: true, neoload: true },
+    values: { multimeter: 'Beta', postman: 'Limited', insomnia: false, bruno: false, robot: 'Via library', cucumber: 'Via code', jmeter: true, neoload: true, playwright: false },
   },
   {
     feature: 'Git-Native Files',
-    values: { multimeter: true, postman: false, insomnia: false, bruno: true, robot: true, cucumber: true, jmeter: 'XML', neoload: false },
+    values: { multimeter: true, postman: false, insomnia: false, bruno: true, robot: true, cucumber: true, jmeter: 'XML', neoload: false, playwright: true },
   },
   {
     feature: 'Drag & Drop Test Builder',
-    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: true, neoload: true },
+    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: true, neoload: true, playwright: false },
+  },
+  {
+    feature: 'Test Flow Flowchart View',
+    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: 'Partial', playwright: false },
   },
   {
     feature: 'Functional Test Flows',
-    values: { multimeter: true, postman: 'Scripts', insomnia: 'Scripts', bruno: 'Scripts', robot: true, cucumber: true, jmeter: true, neoload: true },
+    values: { multimeter: true, postman: 'Scripts', insomnia: 'Scripts', bruno: 'Scripts', robot: true, cucumber: true, jmeter: true, neoload: true, playwright: true },
+  },
+  {
+    feature: 'UI Testing',
+    values: { multimeter: false, postman: false, insomnia: false, bruno: false, robot: 'Via library', cucumber: 'Via code', jmeter: false, neoload: true, playwright: true },
   },
   {
     feature: 'Test Suites (Parallel / Sequential)',
-    values: { multimeter: true, postman: 'Sequential', insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: true, neoload: true },
+    values: { multimeter: true, postman: 'Sequential', insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: true, neoload: true, playwright: true },
   },
   {
     feature: 'Reusing / Chaining Tests',
-    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: true, neoload: true },
+    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: true, neoload: true, playwright: true },
   },
   {
     feature: 'Data Extraction (JSONPath/XPath/Regex)',
-    values: { multimeter: true, postman: 'Scripting', insomnia: 'Scripting', bruno: 'Scripting', robot: 'Via library', cucumber: 'Via code', jmeter: true, neoload: true },
+    values: { multimeter: true, postman: 'Scripting', insomnia: 'Scripting', bruno: 'Scripting', robot: 'Via library', cucumber: 'Via code', jmeter: true, neoload: true, playwright: 'Via code' },
   },
   {
     feature: 'AI Test Generation',
-    values: { multimeter: true, postman: true, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: false },
+    values: { multimeter: true, postman: true, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: false, playwright: false },
   },
   {
     feature: 'Declarative Test Flows (YAML)',
-    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: false },
+    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: false, playwright: false },
   },
   {
     feature: 'BDD / Human-Readable Specs',
-    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: false, neoload: false },
+    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: false, neoload: false, playwright: false },
   },
   {
     feature: 'Interactive API Docs (HTML)',
-    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: false },
+    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: false, playwright: false },
   },
   {
     feature: 'Mock Server',
-    values: { multimeter: true, postman: 'Cloud only', insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: false },
+    values: { multimeter: true, postman: 'Cloud only', insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: false, playwright: false },
   },
   {
     feature: 'Environment Variables / Presets',
-    values: { multimeter: true, postman: true, insomnia: true, bruno: true, robot: 'Variables', cucumber: 'Via code', jmeter: true, neoload: true },
+    values: { multimeter: true, postman: true, insomnia: true, bruno: true, robot: 'Variables', cucumber: 'Via code', jmeter: true, neoload: true, playwright: true },
   },
   {
     feature: 'Dynamic Tokens (random, date, uuid)',
-    values: { multimeter: true, postman: true, insomnia: false, bruno: false, robot: 'Via library', cucumber: 'Via code', jmeter: true, neoload: true },
+    values: { multimeter: true, postman: true, insomnia: false, bruno: false, robot: 'Via library', cucumber: 'Via code', jmeter: true, neoload: true, playwright: 'Via code' },
   },
   {
     feature: 'JS Helper Module Imports',
-    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: false },
+    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: false, neoload: false, playwright: true },
   },
   {
     feature: 'CSV Data-Driven Testing',
-    values: { multimeter: true, postman: true, insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: true, neoload: true },
+    values: { multimeter: true, postman: true, insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: true, neoload: true, playwright: 'Via code' },
   },
   {
     feature: 'HTML Report',
-    values: { multimeter: true, postman: true, insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: true, neoload: true },
+    values: { multimeter: true, postman: true, insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: true, neoload: true, playwright: true },
   },
   {
     feature: 'Markdown Report',
-    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: true, jmeter: false, neoload: false },
+    values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: true, jmeter: false, neoload: false, playwright: false },
   },
   {
     feature: 'JUnit Report',
-    values: { multimeter: true, postman: true, insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: true, neoload: true },
+    values: { multimeter: true, postman: true, insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: true, neoload: true, playwright: true },
   },
   {
     feature: 'Fully Offline',
-    values: { multimeter: true, postman: false, insomnia: true, bruno: true, robot: true, cucumber: true, jmeter: true, neoload: true },
+    values: { multimeter: true, postman: false, insomnia: true, bruno: true, robot: true, cucumber: true, jmeter: true, neoload: true, playwright: true },
   },
 ]
 
@@ -158,7 +167,7 @@ export default function Comparison() {
 
         <FadeIn delay={200}>
           <div className="overflow-x-auto rounded-2xl border border-border">
-            <table className="w-full min-w-[1080px]">
+            <table className="w-full min-w-[1180px]">
               <thead>
                 <tr className="bg-surface border-b border-border">
                   <th className="sticky left-0 z-10 bg-surface text-left px-3 py-2.5 text-xs font-medium text-slate-400 min-w-44">

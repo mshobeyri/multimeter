@@ -105,6 +105,7 @@ const roadmap: RoadmapMonth[] = [
       { title: 'Load testing beta (type: loadtest)', status: 'done' },
       { title: 'Load reports in MMT, HTML, Markdown, and JUnit XML', status: 'done' },
       { title: 'Load report viewer with metrics and charts', status: 'done' },
+      { title: 'Test flow as flowchart view', status: 'done' },
       { title: 'Schema introspection & auto complete', status: 'planned' },
       { title: 'Advanced load thresholds and distributed execution', status: 'planned' },
       { title: 'Scheduled test runs', status: 'planned' },

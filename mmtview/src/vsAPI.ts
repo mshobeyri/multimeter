@@ -5,6 +5,8 @@ let lastFileContentResolver: ((content: string) => void)|null = null;
 let lastFileContentRejecter: ((error: any) => void)|null = null;
 let lastFileDataUrlResolver: ((dataUrl: string) => void)|null = null;
 let lastFileDataUrlRejecter: ((error: any) => void)|null = null;
+const fileContentResolvers: Map<string, (content: string) => void> = new Map();
+const fileContentRejecters: Map<string, (error: any) => void> = new Map();
 const osFilePickerResolvers: Map<string, (value: any) => void> = new Map();
 const osFilePickerRejecters: Map<string, (err: any) => void> = new Map();
 
@@ -17,13 +19,28 @@ if (typeof window !== 'undefined' &&
   window.addEventListener('message', (event: MessageEvent) => {
     const message = event.data;
     if (message.command === 'fileContent') {
-      if (message.error && lastFileContentRejecter) {
-        lastFileContentRejecter(message.error);
-      } else if (lastFileContentResolver) {
-        lastFileContentResolver(message.content);
+      const id = message?.requestId;
+      if (id && fileContentResolvers.has(id)) {
+        const resolve = fileContentResolvers.get(id)!;
+        const reject = fileContentRejecters.get(id);
+        fileContentResolvers.delete(id);
+        fileContentRejecters.delete(id);
+        if (message.error && reject) {
+          reject(message.error);
+        } else if (message.error) {
+          resolve('');
+        } else {
+          resolve(message.content);
+        }
+      } else {
+        if (message.error && lastFileContentRejecter) {
+          lastFileContentRejecter(message.error);
+        } else if (lastFileContentResolver) {
+          lastFileContentResolver(message.content);
+        }
+        lastFileContentResolver = null;
+        lastFileContentRejecter = null;
       }
-      lastFileContentResolver = null;
-      lastFileContentRejecter = null;
     } else if (message.command === 'fileDataUrl') {
       if (message.error && lastFileDataUrlRejecter) {
         lastFileDataUrlRejecter(message.error);
@@ -74,10 +91,18 @@ if (typeof window !== 'undefined' &&
 }
 
 export function readFile(filename: string, options?: { silent?: boolean }): Promise<string> {
+  const requestId = `file-content-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
   return new Promise((resolve, reject) => {
-    lastFileContentResolver = resolve;
-    lastFileContentRejecter = reject;
-    window.vscode?.postMessage({command: 'getFileContent', filename, silent: options?.silent});
+    fileContentResolvers.set(requestId, resolve);
+    fileContentRejecters.set(requestId, reject);
+    window.vscode?.postMessage({command: 'getFileContent', requestId, filename, silent: options?.silent});
+    setTimeout(() => {
+      if (fileContentResolvers.has(requestId)) {
+        fileContentResolvers.delete(requestId);
+        fileContentRejecters.delete(requestId);
+        reject(new Error(`Timed out reading file: ${filename}`));
+      }
+    }, 2 * 60 * 1000);
   });
 }
 
@@ -211,8 +236,23 @@ duration?: number
   };
 
   export function openRelativeFile(filename: string, fragment?: string, newTab?: boolean) {
-    window.vscode?.postMessage({command: 'openRelativeFile', filename, fragment, newTab});
+    window.vscode?.postMessage({command: 'openRelativeFile', filename: normalizeOpenFilePath(filename), fragment, newTab});
   }
+
+function normalizeOpenFilePath(filename: string): string {
+  const raw = (filename || '').trim();
+  if (!raw) {
+    return raw;
+  }
+  if (/^file:/i.test(raw)) {
+    try {
+      return new URL(raw).pathname;
+    } catch {
+      return raw.replace(/^file:\/*/i, '/');
+    }
+  }
+  return raw;
+}
 
   export function showHistoryPanel() {
     window.vscode?.postMessage({command: 'openHistoryPanel'});

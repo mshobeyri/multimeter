@@ -21,14 +21,15 @@ export default function BuiltForVSCode() {
               </h2>
               <p className="text-lg text-slate-400 mb-6 leading-relaxed">
                 Chain API calls, assertions, loops, and delays into complete
-                test flows. Write them in YAML or build them visually with
-                drag-and-drop — either way you get portable <code className="text-accent bg-accent/10 px-1.5 py-0.5 rounded text-sm">.mmt</code> files
+                test flows. Write them in YAML, build them with drag-and-drop,
+                or inspect the same logic as a flowchart — either way you get portable <code className="text-accent bg-accent/10 px-1.5 py-0.5 rounded text-sm">.mmt</code> files
                 that run inside VS Code, in CI pipelines with <code className="text-accent bg-accent/10 px-1.5 py-0.5 rounded text-sm">testlight</code>,
                 or anywhere Node runs.
               </p>
               <ul className="space-y-4">
                 {[
                   'Compose flows from reusable API definitions — call, assert, loop, branch',
+                  'Switch to a flowchart view to review paths, branches, and loops at a glance',
                   'Import other tests and CSV data to build complex scenarios',
                   'Run locally in VS Code or in CI/CD with a single CLI command',
                   'Simpler than JMeter or Postman Runner — no GUI required in pipelines',

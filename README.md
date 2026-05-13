@@ -49,7 +49,7 @@ Ask the built-in AI assistant to generate tests from descriptions, OpenAPI specs
 **Drag & Drop Test Builder**
 Build functional test flows visually with calls, asserts, checks, delays, and conditions — no scripting required.
 
-**One Tool Replaces Many**
+**One Replaces Many**
 API testing, beta load testing, mock servers, documentation — one tool instead of Postman, JMeter, and more.
 
 **Secure & Private**

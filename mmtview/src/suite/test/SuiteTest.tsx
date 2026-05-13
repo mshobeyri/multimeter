@@ -87,6 +87,14 @@ function buildDisplayNamesFromHierarchy(
 interface SuiteTestProps {
     content: string;
     mode?: 'suite' | 'loadtest';
+    onFlowchartStateChange?: (state: SuiteFlowchartState) => void;
+}
+
+export interface SuiteFlowchartState {
+    groups: SuiteGroup[];
+    hierarchyByEntryPath: Record<string, SuiteTreeNode>;
+    missingFiles: Set<string>;
+    noItems: boolean;
 }
 
 interface LoadTestConfig {
@@ -401,7 +409,7 @@ const collectSuitePaths = (groups: SuiteGroup[]): string[] => {
     return allPaths;
 };
 
-const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
+const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowchartStateChange }) => {
     const { mmtFilePath } = useContext(FileContext);
     const groups = useMemo(() => buildSuiteGroupsFromContent(content, mode), [content, mode]);
     const servers = useMemo(() => mode === 'loadtest' ? [] : buildServersFromContent(content), [content, mode]);
@@ -601,6 +609,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite' }) => {
     }, [groups]);
 
     const [hierarchyByEntryPath, setHierarchyByEntryPath] = useState<Record<string, SuiteTreeNode>>({});
+
+    useEffect(() => {
+        onFlowchartStateChange?.({ groups, hierarchyByEntryPath, missingFiles, noItems });
+    }, [groups, hierarchyByEntryPath, missingFiles, noItems, onFlowchartStateChange]);
 
     useEffect(() => {
         let cancelled = false;
