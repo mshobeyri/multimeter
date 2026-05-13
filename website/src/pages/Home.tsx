@@ -6,7 +6,6 @@ import Protocols from '../sections/Protocols'
 import MockServer from '../sections/MockServer'
 import AITestGen from '../sections/AITestGen'
 import CICDReady from '../sections/CICDReady'
-import Reports from '../sections/Reports'
 import Documentation from '../sections/Documentation'
 import Comparison from '../sections/Comparison'
 import FAQ from '../components/FAQ'
@@ -24,7 +23,6 @@ export default function Home() {
         <AITestGen />
         <MockServer />
         <CICDReady />
-        <Reports />
         <Documentation />
         <Comparison />
         <FAQ />
