@@ -70,7 +70,7 @@ function toRFNodes(graph: FlowGraph, positions: ReturnType<typeof applyLayout>):
         height: n.height,
       },
       draggable: false,
-      selectable: true,
+      selectable: false,
       connectable: false,
     };
     if (n.parentId) {
@@ -86,7 +86,7 @@ function toRFNodes(graph: FlowGraph, positions: ReturnType<typeof applyLayout>):
 
 function toRFEdges(graph: FlowGraph, positions: ReturnType<typeof applyLayout>): RFEdge[] {
   const nodeById = new Map(graph.nodes.map((n) => [n.id, n]));
-  return graph.edges.map((e) => {
+  return graph.edges.filter((e) => e.kind !== 'layout').map((e) => {
     const color = e.kind === 'branch-true'
       ? '#3fb950'
       : e.kind === 'branch-false'
@@ -219,7 +219,7 @@ const FlowchartView: React.FC<FlowchartViewProps> = ({ source, onBack, title }) 
             fitViewOptions={{ padding: 0.2 }}
             nodesDraggable={false}
             nodesConnectable={false}
-            elementsSelectable
+            elementsSelectable={false}
             zoomOnDoubleClick={false}
             onNodeClick={handleNodeClick}
             proOptions={{ hideAttribution: true }}

@@ -3,6 +3,8 @@
  * imports here so this file is trivially unit-testable.
  */
 
+import type { TestData } from 'mmt-core/TestData';
+
 export type NodeKind =
   | 'start'
   | 'end'
@@ -44,7 +46,7 @@ export interface FlowNode {
   isContainer?: boolean;
 }
 
-export type EdgeKind = 'sequence' | 'branch-true' | 'branch-false' | 'parallel' | 'loop-back';
+export type EdgeKind = 'sequence' | 'branch-true' | 'branch-false' | 'parallel' | 'loop-back' | 'layout';
 
 export interface FlowEdge {
   id: string;
@@ -58,3 +60,13 @@ export interface FlowGraph {
   nodes: FlowNode[];
   edges: FlowEdge[];
 }
+
+export interface FlowCallImportInfo {
+  kind: 'api' | 'test';
+  title?: string;
+  filePath?: string;
+  test?: TestData;
+  callImportByAlias?: Record<string, FlowCallImportInfo | undefined>;
+}
+
+export type FlowCallImportMap = Record<string, FlowCallImportInfo | undefined>;

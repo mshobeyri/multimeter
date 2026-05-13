@@ -43,15 +43,13 @@ function cleanStepPath(sourceX: number, sourceY: number, targetX: number, target
   const ySign = dy >= 0 ? 1 : -1;
   const path = [
     `M ${sourceX} ${sourceY}`,
-    `L ${sourceTurnX - direction * radius} ${sourceY}`,
-    `Q ${sourceTurnX} ${sourceY} ${sourceTurnX} ${sourceY + ySign * radius}`,
-    `L ${sourceTurnX} ${targetY - ySign * radius}`,
-    `Q ${sourceTurnX} ${targetY} ${sourceTurnX + direction * radius} ${targetY}`,
-    `L ${targetTurnX - direction * radius} ${targetY}`,
+    `L ${targetTurnX - direction * radius} ${sourceY}`,
+    `Q ${targetTurnX} ${sourceY} ${targetTurnX} ${sourceY + ySign * radius}`,
+    `L ${targetTurnX} ${targetY - ySign * radius}`,
     `Q ${targetTurnX} ${targetY} ${targetTurnX + direction * radius} ${targetY}`,
     `L ${targetX} ${targetY}`,
   ].join(' ');
-  return [path, (sourceTurnX + targetTurnX) / 2, targetY];
+  return [path, targetTurnX, midY];
 }
 
 function routedBranchFalsePath(sourceX: number, sourceY: number, targetX: number, targetY: number): [string, number, number] {

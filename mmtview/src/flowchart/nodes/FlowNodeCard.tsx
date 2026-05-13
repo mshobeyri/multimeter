@@ -104,7 +104,7 @@ const FlowNodeCard: React.FC<NodeProps> = ({ data }) => {
       width: d.width,
       height: d.height,
       background: 'var(--vscode-editorWidget-background, rgba(110, 118, 129, 0.08))',
-      border: `1px dashed ${style.color}`,
+      border: '1px solid var(--vscode-widget-border, rgba(255,255,255,0.12))',
       borderRadius: 12,
       padding: 0,
       fontFamily: 'var(--vscode-font-family, "Segoe UI", system-ui, sans-serif)',

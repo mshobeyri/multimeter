@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import { parseYaml } from 'mmt-core/markupConvertor';
 import { TestData } from 'mmt-core/TestData';
+import { yamlToTest } from 'mmt-core/testParsePack';
 import { readFile } from '../vsAPI';
+import { FlowCallImportMap } from './graph/types';
 
-export type CallTitleMap = Record<string, string>;
-export type CallTitleMapByTestPath = Record<string, CallTitleMap | undefined>;
+export type CallTitleMap = FlowCallImportMap;
+export type CallTitleMapByTestPath = Record<string, FlowCallImportMap | undefined>;
 
 interface TestTitleSpec {
   key: string;
@@ -21,49 +23,65 @@ export function useFlowchartCallTitles(specs: TestTitleSpec[], enabled: boolean,
       return;
     }
 
-    let cancelled = false;
+    const cancelState = { cancelled: false };
     (async () => {
       const next: CallTitleMapByTestPath = {};
-      // readFile uses a single shared resolver in vsAPI, so keep requests serialized.
       for (const spec of specs) {
-        if (cancelled) {
+        if (cancelState.cancelled) {
           return;
         }
-        const imports = sanitizeImports((spec.test as any).import);
-        const map: CallTitleMap = {};
-        for (const [alias, requested] of Object.entries(imports)) {
-          if (cancelled) {
-            return;
-          }
-          try {
-            const raw = await readFile(resolveImportForWebview(spec.filePath, requested), { silent: true });
-            const doc = parseYaml(raw) as any;
-            if (!doc || doc.type !== 'api') {
-              continue;
-            }
-            if (typeof doc.title === 'string' && doc.title.trim()) {
-              map[alias] = doc.title.trim();
-            }
-          } catch {
-            // Best-effort display metadata; fall back to the alias if unreadable.
-          }
-        }
+        const map = await loadCallImports(spec.test, spec.filePath, cancelState, new Set<string>());
         next[spec.key] = map;
         if (spec.filePath && spec.filePath !== spec.key) {
           next[spec.filePath] = map;
         }
       }
-      if (!cancelled) {
+      if (!cancelState.cancelled) {
         setTitles(next);
       }
     })();
 
     return () => {
-      cancelled = true;
+      cancelState.cancelled = true;
     };
   }, [enabled, specs, refreshKey]);
 
   return titles;
+}
+
+async function loadCallImports(
+  test: TestData,
+  filePath: string | undefined,
+  cancelState: { cancelled: boolean },
+  visited: Set<string>,
+): Promise<FlowCallImportMap> {
+  const imports = sanitizeImports((test as any).import);
+  const map: FlowCallImportMap = {};
+  for (const [alias, requested] of Object.entries(imports)) {
+    if (cancelState.cancelled) {
+      return map;
+    }
+    const resolved = resolveImportForWebview(filePath, requested);
+    try {
+      const raw = await readFile(resolved, { silent: true });
+      const doc = parseYaml(raw) as any;
+      const title = typeof doc?.title === 'string' && doc.title.trim() ? doc.title.trim() : undefined;
+      if (doc?.type === 'api') {
+        map[alias] = { kind: 'api', title, filePath: resolved };
+      } else if (doc?.type === 'test') {
+        const parsed = yamlToTest(raw);
+        const nextVisited = new Set(visited);
+        nextVisited.add(resolved);
+        const nestedImports = visited.has(resolved)
+          ? {}
+          : await loadCallImports(parsed, resolved, cancelState, nextVisited);
+        map[alias] = { kind: 'test', title, filePath: resolved, test: parsed, callImportByAlias: nestedImports };
+      }
+    } catch {
+      // Best-effort display metadata; fall back to the alias if unreadable.
+    }
+  }
+  return map;
 }
 
 export function buildSingleTestTitleSpecs(test: TestData | undefined, filePath?: string): TestTitleSpec[] {

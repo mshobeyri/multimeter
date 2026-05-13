@@ -2,7 +2,7 @@ import { TestData } from 'mmt-core/TestData';
 import { SuiteGroup } from '../../suite/types';
 import { SuiteTreeNode } from '../../suite/test/suiteHierarchy';
 import { appendGraph, inlineTestGraph } from './inlineTestGraph';
-import { FlowGraph } from './types';
+import { FlowCallImportMap, FlowGraph } from './types';
 
 export interface BuildSuiteGraphInput {
   rootTitle?: string;
@@ -14,8 +14,8 @@ export interface BuildSuiteGraphInput {
   missingFiles?: Set<string>;
   /** Parsed TestData by absolute path for inlining test flows. */
   testDataByPath?: Record<string, TestData | undefined>;
-  /** Per-test imported call alias -> imported API/test title. */
-  callTitleByTestPath?: Record<string, Record<string, string | undefined> | undefined>;
+  /** Per-test imported call alias -> imported API/test metadata. */
+  callTitleByTestPath?: Record<string, FlowCallImportMap | undefined>;
 }
 
 /**

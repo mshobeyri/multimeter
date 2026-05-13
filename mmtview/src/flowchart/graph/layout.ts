@@ -53,7 +53,12 @@ export function applyLayout(graph: FlowGraph, options: LayoutOptions = {}): Reco
 
   // 1) Lay out each container's children first (relative coordinates) and
   // size the container based on the bounding box of its children.
-  for (const node of graph.nodes) {
+  const nodeById = new Map(graph.nodes.map((node) => [node.id, node]));
+  const containers = graph.nodes
+    .filter((node) => node.isContainer)
+    .sort((a, b) => parentDepth(b, nodeById) - parentDepth(a, nodeById));
+
+  for (const node of containers) {
     if (!node.isContainer) {
       continue;
     }
@@ -64,8 +69,8 @@ export function applyLayout(graph: FlowGraph, options: LayoutOptions = {}): Reco
       continue;
     }
     const innerEdges = graph.edges.filter((e) => {
-      const sParent = findNode(graph, e.source)?.parentId;
-      const tParent = findNode(graph, e.target)?.parentId;
+      const sParent = nodeById.get(e.source)?.parentId;
+      const tParent = nodeById.get(e.target)?.parentId;
       return sParent === node.id && tParent === node.id;
     });
     const childPositions = layoutFlat(children, innerEdges, { rankSpacing: innerRankSpacing, nodeSpacing: innerNodeSpacing });
@@ -95,8 +100,14 @@ export function applyLayout(graph: FlowGraph, options: LayoutOptions = {}): Reco
   return positions;
 }
 
-function findNode(graph: FlowGraph, id: string): FlowNode | undefined {
-  return graph.nodes.find((n) => n.id === id);
+function parentDepth(node: FlowNode, nodeById: Map<string, FlowNode>): number {
+  let depth = 0;
+  let current = node.parentId ? nodeById.get(node.parentId) : undefined;
+  while (current) {
+    depth += 1;
+    current = current.parentId ? nodeById.get(current.parentId) : undefined;
+  }
+  return depth;
 }
 
 function normalizeTopEdges(graph: FlowGraph): FlowEdge[] {

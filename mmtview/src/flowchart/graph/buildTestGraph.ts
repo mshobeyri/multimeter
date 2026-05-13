@@ -1,13 +1,13 @@
 import { TestData, TestFlowStep, TestFlowSteps, TestFlowStage } from 'mmt-core/TestData';
 import { getTestFlowStepType } from 'mmt-core/testParsePack';
-import { FlowEdge, FlowGraph, FlowNode, NodeKind } from './types';
+import { FlowCallImportInfo, FlowCallImportMap, FlowEdge, FlowGraph, FlowNode, NodeKind } from './types';
 
 export interface BuildTestGraphInput {
   test: TestData;
   /** Absolute or workspace-relative path to the test file. */
   filePath?: string;
   /** Imported call alias -> imported API/test title. */
-  callTitleByAlias?: Record<string, string | undefined>;
+  callTitleByAlias?: FlowCallImportMap;
 }
 
 /** Build a flow graph for a single test file. */
@@ -35,7 +35,7 @@ class TestGraphBuilder {
   private passthroughEdges = new Map<string, { label: string; kind: FlowEdge['kind'] }>();
   constructor(
     private readonly filePath?: string,
-    private readonly callTitleByAlias: Record<string, string | undefined> = {},
+    private readonly callTitleByAlias: FlowCallImportMap = {},
   ) {}
 
   toGraph(): FlowGraph {
@@ -74,6 +74,13 @@ class TestGraphBuilder {
     if (kind === 'for' || kind === 'repeat') {
       return this.buildLoop(step as any, kind, prevTails);
     }
+    if (kind === 'call') {
+      const alias = (step as any).call as string;
+      const imported = this.callTitleByAlias[alias];
+      if (imported?.kind === 'test' && imported.test) {
+        return this.buildImportedTestCall(step as any, alias, imported, prevTails);
+      }
+    }
     const nodeId = this.nextId(kind);
     const { mappedKind, label, detail } = mapLeaf(step, kind, this.callTitleByAlias);
     this.pushNode({
@@ -87,6 +94,41 @@ class TestGraphBuilder {
       this.connect(t, nodeId);
     }
     return [nodeId];
+  }
+
+  private buildImportedTestCall(
+    step: any,
+    alias: string,
+    imported: FlowCallImportInfo,
+    prevTails: string[],
+  ): string[] {
+    const containerId = this.nextId('test');
+    this.pushNode({
+      id: containerId,
+      kind: 'test-ref',
+      label: imported.title || alias || (step.id as string) || 'test',
+      detail: imported.filePath,
+      sourceFile: imported.filePath || this.filePath,
+      isContainer: true,
+    });
+
+    const raw = buildTestGraph({
+      test: imported.test!,
+      filePath: imported.filePath,
+      callTitleByAlias: imported.callImportByAlias,
+    });
+    const inlined = inlineBuiltTestGraph(raw, containerId);
+    this.nodes.push(...inlined.nodes);
+    this.edges.push(...inlined.edges);
+
+    const entries = inlined.entries.length > 0 ? inlined.entries : [containerId];
+    for (const t of prevTails) {
+      this.connect(t, containerId, undefined, 'layout');
+      for (const entry of entries) {
+        this.connect(t, entry);
+      }
+    }
+    return inlined.exits.length > 0 ? inlined.exits : entries;
   }
 
   private buildIf(step: any, prevTails: string[]): string[] {
@@ -221,14 +263,14 @@ class TestGraphBuilder {
 
   private connect(source: string, target: string, label?: string, kind?: FlowEdge['kind']): void {
     const passthrough = this.passthroughEdges.get(source);
-    if (passthrough) {
+    if (passthrough && kind !== 'layout') {
       this.passthroughEdges.delete(source);
     }
     this.edges.push({
       id: `e-${this.edges.length}-${source}-${target}`,
       source,
       target,
-      label: label ?? passthrough?.label,
+      label: kind === 'layout' ? undefined : label ?? passthrough?.label,
       kind: kind ?? passthrough?.kind ?? 'sequence',
     });
   }
@@ -253,11 +295,12 @@ interface LeafMapping {
   detail?: string;
 }
 
-function mapLeaf(step: any, kind: string, callTitleByAlias: Record<string, string | undefined>): LeafMapping {
+function mapLeaf(step: any, kind: string, callTitleByAlias: FlowCallImportMap): LeafMapping {
   switch (kind) {
     case 'call': {
       const alias = step.call as string;
-      const label = callTitleByAlias[alias] || alias || (step.id as string) || 'call';
+      const imported = callTitleByAlias[alias];
+      const label = imported?.title || alias || (step.id as string) || 'call';
       const detail = describeCall(step);
       return { mappedKind: 'call', label, detail };
     }
@@ -285,6 +328,46 @@ function mapLeaf(step: any, kind: string, callTitleByAlias: Record<string, strin
     default:
       return { mappedKind: 'message', label: kind || 'step' };
   }
+}
+
+function inlineBuiltTestGraph(raw: FlowGraph, parentId: string): {
+  nodes: FlowNode[];
+  edges: FlowEdge[];
+  entries: string[];
+  exits: string[];
+} {
+  const startId = 'n-start';
+  const endId = 'n-end';
+  const prefix = (id: string) => `${parentId}:${id}`;
+  const entries: string[] = [];
+  const exits: string[] = [];
+  for (const edge of raw.edges) {
+    if (edge.source === startId) {
+      entries.push(prefix(edge.target));
+    }
+    if (edge.target === endId) {
+      exits.push(prefix(edge.source));
+    }
+  }
+  return {
+    nodes: raw.nodes
+      .filter((node) => node.id !== startId && node.id !== endId)
+      .map((node) => ({
+        ...node,
+        id: prefix(node.id),
+        parentId: node.parentId ? prefix(node.parentId) : parentId,
+      })),
+    edges: raw.edges
+      .filter((edge) => edge.source !== startId && edge.target !== endId)
+      .map((edge) => ({
+        ...edge,
+        id: `${parentId}:${edge.id}`,
+        source: prefix(edge.source),
+        target: prefix(edge.target),
+      })),
+    entries,
+    exits,
+  };
 }
 
 function describeComparison(value: unknown): string | undefined {

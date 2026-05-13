@@ -1,6 +1,6 @@
 import { TestData } from 'mmt-core/TestData';
 import { buildTestGraph } from './buildTestGraph';
-import { FlowEdge, FlowGraph, FlowNode } from './types';
+import { FlowCallImportMap, FlowEdge, FlowGraph, FlowNode } from './types';
 
 export interface InlinedTestGraph {
   /** Nodes of the test's flow, excluding start/end terminals. */
@@ -25,7 +25,7 @@ export function inlineTestGraph(
   idPrefix: string,
   filePath?: string,
   parentId?: string,
-  callTitleByAlias?: Record<string, string | undefined>,
+  callTitleByAlias?: FlowCallImportMap,
 ): InlinedTestGraph {
   const raw = buildTestGraph({ test, filePath, callTitleByAlias });
 
@@ -47,7 +47,11 @@ export function inlineTestGraph(
 
   const nodes: FlowNode[] = raw.nodes
     .filter((n) => n.id !== startId && n.id !== endId)
-    .map((n) => ({ ...n, id: prefix(n.id), parentId: parentId ?? n.parentId }));
+    .map((n) => ({
+      ...n,
+      id: prefix(n.id),
+      parentId: n.parentId ? prefix(n.parentId) : parentId,
+    }));
 
   const edges: FlowEdge[] = raw.edges
     .filter((e) => e.source !== startId && e.target !== endId)
