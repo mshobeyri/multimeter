@@ -2,6 +2,14 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.20.0]
+
+- Add flowchart views for tests and suites
+- Render imported tests as nested test boxes inside flowcharts
+- Improve flowchart layout, edge routing, refresh behavior, and click navigation
+- Align flowchart step icons and names with the test editor
+- Update flowchart design notes and website content
+
 ## [1.19.1]
 
 - Fix documentation generation for current-folder sources
