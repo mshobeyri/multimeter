@@ -51,6 +51,7 @@ export function inlineTestGraph(
       ...n,
       id: prefix(n.id),
       parentId: n.parentId ? prefix(n.parentId) : parentId,
+      sourceFile: n.sourceFile || (parentId && n.kind !== 'call' ? filePath : undefined),
     }));
 
   const edges: FlowEdge[] = raw.edges

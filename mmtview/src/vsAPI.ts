@@ -236,8 +236,23 @@ duration?: number
   };
 
   export function openRelativeFile(filename: string, fragment?: string, newTab?: boolean) {
-    window.vscode?.postMessage({command: 'openRelativeFile', filename, fragment, newTab});
+    window.vscode?.postMessage({command: 'openRelativeFile', filename: normalizeOpenFilePath(filename), fragment, newTab});
   }
+
+function normalizeOpenFilePath(filename: string): string {
+  const raw = (filename || '').trim();
+  if (!raw) {
+    return raw;
+  }
+  if (/^file:/i.test(raw)) {
+    try {
+      return new URL(raw).pathname;
+    } catch {
+      return raw.replace(/^file:\/*/i, '/');
+    }
+  }
+  return raw;
+}
 
   export function showHistoryPanel() {
     window.vscode?.postMessage({command: 'openHistoryPanel'});

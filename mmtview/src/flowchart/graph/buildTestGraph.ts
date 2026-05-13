@@ -88,7 +88,9 @@ class TestGraphBuilder {
       kind: mappedKind,
       label,
       detail,
-      sourceFile: this.filePath,
+      sourceFile: kind === 'call'
+        ? this.callTitleByAlias[(step as any).call as string]?.filePath
+        : undefined,
     });
     for (const t of prevTails) {
       this.connect(t, nodeId);
@@ -117,7 +119,7 @@ class TestGraphBuilder {
       filePath: imported.filePath,
       callTitleByAlias: imported.callImportByAlias,
     });
-    const inlined = inlineBuiltTestGraph(raw, containerId);
+    const inlined = inlineBuiltTestGraph(raw, containerId, imported.filePath);
     this.nodes.push(...inlined.nodes);
     this.edges.push(...inlined.edges);
 
@@ -134,7 +136,7 @@ class TestGraphBuilder {
   private buildIf(step: any, prevTails: string[]): string[] {
     const id = this.nextId('if');
     const condition = describeComparison(step.if);
-    this.pushNode({ id, kind: 'if', label: condition || 'if', sourceFile: this.filePath });
+    this.pushNode({ id, kind: 'if', label: condition || 'if' });
     for (const t of prevTails) {
       this.connect(t, id);
     }
@@ -181,7 +183,6 @@ class TestGraphBuilder {
       id,
       kind: kind === 'for' ? 'loop' : 'repeat',
       label: detail || (kind === 'for' ? 'for' : 'repeat'),
-      sourceFile: this.filePath,
     });
     for (const t of prevTails) {
       this.connect(t, id);
@@ -208,7 +209,6 @@ class TestGraphBuilder {
         kind: 'stage',
         label: stage.title || userStageId,
         detail: stage.condition ? describeComparison(stage.condition) : undefined,
-        sourceFile: this.filePath,
       });
       const tails = this.buildSteps(stage.steps ?? [], [stageId]);
       stageInfos.push({ key, id: userStageId, entry: stageId, tails });
@@ -330,7 +330,7 @@ function mapLeaf(step: any, kind: string, callTitleByAlias: FlowCallImportMap): 
   }
 }
 
-function inlineBuiltTestGraph(raw: FlowGraph, parentId: string): {
+function inlineBuiltTestGraph(raw: FlowGraph, parentId: string, parentFilePath?: string): {
   nodes: FlowNode[];
   edges: FlowEdge[];
   entries: string[];
@@ -356,6 +356,7 @@ function inlineBuiltTestGraph(raw: FlowGraph, parentId: string): {
         ...node,
         id: prefix(node.id),
         parentId: node.parentId ? prefix(node.parentId) : parentId,
+        sourceFile: node.sourceFile || (node.kind !== 'call' ? parentFilePath : undefined),
       })),
     edges: raw.edges
       .filter((edge) => edge.source !== startId && edge.target !== endId)
