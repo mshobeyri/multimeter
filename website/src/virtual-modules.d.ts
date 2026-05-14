@@ -4,6 +4,6 @@ declare module 'virtual:youtube-playlist' {
     eyebrow: string
     title: string
     description: string
-    videos: Array<{ id: string; title: string }>
+    videos: Array<{ id: string; title: string; description: string }>
   }>
 }

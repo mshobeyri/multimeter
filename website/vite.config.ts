@@ -22,28 +22,104 @@ const RESOLVED_ID = '\0' + VIRTUAL_MODULE_ID
 interface PlaylistVideo {
   id: string
   title: string
+  description: string
+}
+
+function stripHashtags(value: string): string {
+  return value
+    .split(/\r?\n/)
+    .map((line) => line.replace(/#[\p{L}\p{N}_-]+/gu, ' ').replace(/\s+/g, ' ').trim())
+    .filter((line) => line.length > 0 && !line.startsWith('#'))
+    .join('\n')
+    .trim()
+}
+
+function readText(value: unknown): string {
+  if (typeof value === 'string') {
+    return value
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => readText(item)).join('').trim()
+  }
+
+  if (!value || typeof value !== 'object') {
+    return ''
+  }
+
+  const record = value as Record<string, unknown>
+
+  if (typeof record.simpleText === 'string') {
+    return record.simpleText
+  }
+
+  if (Array.isArray(record.runs)) {
+    return record.runs.map((item) => readText(item)).join('').trim()
+  }
+
+  if (typeof record.text === 'string') {
+    return record.text
+  }
+
+  return ''
+}
+
+function decodeJsonString(value: string): string {
+  return JSON.parse(`"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`) as string
+}
+
+async function fetchVideoDescription(videoId: string): Promise<string> {
+  const url = `https://www.youtube.com/watch?v=${videoId}`
+  const res = await fetch(url)
+  if (!res.ok) {
+    throw new Error(`HTTP ${res.status}`)
+  }
+  const html = await res.text()
+  const match = html.match(/"shortDescription":"((?:\\.|[^"])*)"/)
+  if (!match) {
+    return ''
+  }
+
+  return stripHashtags(readText(decodeJsonString(match[1])))
 }
 
 async function fetchPlaylistVideos(playlistId: string): Promise<PlaylistVideo[]> {
-  const url = `https://www.youtube.com/feeds/videos.xml?playlist_id=${playlistId}`
+  const url = `https://www.youtube.com/playlist?list=${playlistId}`
   try {
     const res = await fetch(url)
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}`)
     }
-    const xml = await res.text()
-    const videos: PlaylistVideo[] = []
-    const entryRegex = /<entry>([\s\S]*?)<\/entry>/g
+    const html = await res.text()
+    const compactHtml = html.replace(/\n/g, '')
+    const videoRegex = /"playlistVideoRenderer":\{"videoId":"([^"]+)"[\s\S]*?"title":\{"runs":\[\{"text":"((?:\\.|[^"])*)"\}\]/g
+    const baseVideos: PlaylistVideo[] = []
+    const seen = new Set<string>()
     let match: RegExpExecArray | null
-    while ((match = entryRegex.exec(xml)) !== null) {
-      const entry = match[1]
-      const idMatch = entry.match(/<yt:videoId>([^<]+)<\/yt:videoId>/)
-      const titleMatch = entry.match(/<title>([^<]+)<\/title>/)
-      if (idMatch && titleMatch) {
-        videos.push({ id: idMatch[1], title: titleMatch[1] })
+
+    while ((match = videoRegex.exec(compactHtml)) !== null) {
+      const id = match[1]
+      const title = readText(decodeJsonString(match[2]))
+      if (id && title && !seen.has(id)) {
+        seen.add(id)
+        baseVideos.push({ id, title, description: '' })
       }
     }
-    return videos
+
+    const descriptions = await Promise.all(
+      baseVideos.map(async (video) => {
+        try {
+          return await fetchVideoDescription(video.id)
+        } catch {
+          return ''
+        }
+      }),
+    )
+
+    return baseVideos.map((video, index) => ({
+      ...video,
+      description: descriptions[index],
+    }))
   } catch (err) {
     console.warn(`[youtube-playlist] Failed to fetch playlist ${playlistId}, using empty list:`, err)
     return []
