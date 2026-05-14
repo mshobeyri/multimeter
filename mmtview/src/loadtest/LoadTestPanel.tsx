@@ -11,14 +11,15 @@ interface LoadTestPanelProps {
 }
 
 type LoadTestPage = 'test' | 'edit' | 'flow';
-const EMPTY_MISSING_FILES = new Set<string>();
+const NO_MISSING_FILES = new Set<string>();
+const PAGE_WIDTH_PERCENTAGE = 100 / 3;
 
 function pageTranslate(page: LoadTestPage): string {
   if (page === 'edit') {
-    return 'translateX(-33.333333%)';
+    return `translateX(-${PAGE_WIDTH_PERCENTAGE}%)`;
   }
   if (page === 'flow') {
-    return 'translateX(-66.666667%)';
+    return `translateX(-${PAGE_WIDTH_PERCENTAGE * 2}%)`;
   }
   return 'translateX(0%)';
 }
@@ -101,7 +102,7 @@ const LoadTestPanel: React.FC<LoadTestPanelProps> = ({ content, setContent }) =>
                   rootPath: mmtFilePath,
                   groups: flowchartState?.groups ?? [],
                   hierarchyByEntryPath: flowchartState?.hierarchyByEntryPath ?? {},
-                  missingFiles: flowchartState?.missingFiles ?? EMPTY_MISSING_FILES,
+                  missingFiles: flowchartState?.missingFiles ?? NO_MISSING_FILES,
                 }}
                 onBack={() => setPage('test')}
                 title={loadTestTitle || 'Load Test'}
