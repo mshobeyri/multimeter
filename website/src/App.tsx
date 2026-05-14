@@ -3,6 +3,7 @@ import Layout from './components/Layout'
 import Home from './pages/Home'
 import Downloads from './pages/Downloads'
 import Demos from './pages/Demos'
+import Tutorials from './pages/Tutorials'
 import Roadmap from './pages/Roadmap'
 import TestServer from './pages/TestServer'
 
@@ -13,6 +14,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/downloads" element={<Downloads />} />
         <Route path="/demos" element={<Demos />} />
+        <Route path="/tutorials" element={<Tutorials />} />
         <Route path="/roadmap" element={<Roadmap />} />
         <Route path="/test-server" element={<TestServer />} />
       </Route>
