@@ -547,7 +547,7 @@ export default function PlaylistShowcase({
               ref={(element) => {
                 rowRefs.current[group.key] = element
               }}
-              className="-mx-2 flex snap-x snap-mandatory gap-6 overflow-x-auto px-2 pb-3 [&::-webkit-scrollbar]:hidden"
+              className="-mx-2 flex snap-x snap-mandatory gap-6 overflow-x-auto overflow-y-hidden px-2 pb-3 overscroll-y-none [touch-action:pan-x] [&::-webkit-scrollbar]:hidden"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
               {group.videos.map(({ video, meta }, videoIndex) => {
@@ -555,9 +555,9 @@ export default function PlaylistShowcase({
                 const cardSizeClass = 'h-[40rem] lg:h-[31.2rem]'
 
                 return (
-                  <FadeIn key={video.id} delay={groupIndex * 90 + videoIndex * 60}>
+                  <FadeIn key={video.id} delay={0} direction="none">
                     <div
-                      className={`w-[min(98vw,77rem)] shrink-0 snap-start overflow-hidden rounded-[30px] border bg-slate-900/60 transition-all duration-300 hover:bg-slate-900/82 sm:w-[72.5rem] ${cardSizeClass} ${getGroupCardStyle(group.key)}`}
+                      className={`w-[min(98vw,77rem)] shrink-0 snap-start overflow-hidden rounded-[30px] border bg-slate-900/60 transition-colors duration-300 hover:bg-slate-900/82 sm:w-[72.5rem] ${cardSizeClass} ${getGroupCardStyle(group.key)}`}
                     >
                       <div className="grid h-full grid-cols-[minmax(0,1.2fr)_minmax(24rem,1.8fr)] gap-0">
                         <div className="grid h-full min-h-0 grid-rows-[auto_1fr] p-6 sm:p-7 xl:p-8">
