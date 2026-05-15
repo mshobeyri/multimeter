@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react'
-import { MonitorPlay, ArrowRight } from 'lucide-react'
+import { useRef, type ReactNode } from 'react'
+import { ArrowRight } from 'lucide-react'
 import FadeIn from '../components/FadeIn'
 
 interface PlaylistVideo {
@@ -13,6 +13,17 @@ interface PlaylistData {
   title: string
   description: string
   videos: PlaylistVideo[]
+}
+
+interface GroupMeta {
+  label: string
+  title: string
+  description: string
+}
+
+interface GroupedVideo {
+  video: PlaylistVideo
+  meta: ReturnType<typeof titleMeta>
 }
 
 const prefixKeywords = [
@@ -29,6 +40,130 @@ const prefixKeywords = [
   'Suite',
   'Report',
 ]
+
+const groupDescriptions: Record<string, GroupMeta> = {
+  api: {
+    label: 'API',
+    title: 'API Files',
+    description: 'API files define reusable HTTP, WebSocket, GraphQL, or gRPC requests in Multimeter, including inputs, outputs, examples, and protocol-specific details.',
+  },
+  test: {
+    label: 'TEST',
+    title: 'Test Flows',
+    description: 'Test files connect API calls into executable flows with assertions, checks, conditions, loops, and reusable steps that stay readable in Git.',
+  },
+  environment: {
+    label: 'ENV VAR',
+    title: 'Environment Variables',
+    description: 'Environment files keep variables and presets together so the same APIs and tests can run cleanly across local, staging, and production setups.',
+  },
+  documentation: {
+    label: 'DOCUMENT',
+    title: 'Documentation Files',
+    description: 'Documentation files turn your Multimeter APIs into shareable HTML or Markdown references generated from the same source files you already maintain.',
+  },
+  suite: {
+    label: 'SUITE',
+    title: 'Suite Files',
+    description: 'Suite files bundle tests, servers, environment settings, and exports so larger scenarios can run as a coordinated workflow.',
+  },
+  'mock server': {
+    label: 'MOCK SERVER',
+    title: 'Mock Server Files',
+    description: 'Mock server files describe HTTP and WebSocket endpoints directly in Multimeter so frontend and integration work can start before real services are ready.',
+  },
+  'load test': {
+    label: 'LOAD TEST',
+    title: 'Load Test Files',
+    description: 'Load test files wrap a normal Multimeter test with concurrency, repeat, and ramp-up settings to measure performance without a separate toolchain.',
+  },
+  websocket: {
+    label: 'WEBSOCKET',
+    title: 'WebSocket Workflows',
+    description: 'WebSocket workflows show how Multimeter handles connection-based APIs with the same YAML-first approach used for the rest of the platform.',
+  },
+  graphql: {
+    label: 'GRAPHQL',
+    title: 'GraphQL Workflows',
+    description: 'GraphQL examples show how queries, mutations, variables, and assertions fit into Multimeter without switching to a separate editor or runtime.',
+  },
+  grpc: {
+    label: 'GRPC',
+    title: 'gRPC Workflows',
+    description: 'gRPC examples cover service calls and protocol-specific setup while still using the same Multimeter file model and execution flow.',
+  },
+  flow: {
+    label: 'FLOW',
+    title: 'Flow Design',
+    description: 'Flow-focused videos show how Multimeter represents branching, stages, and reusable execution paths as structured test logic instead of opaque scripts.',
+  },
+  report: {
+    label: 'REPORT',
+    title: 'Report Outputs',
+    description: 'Report outputs let Multimeter runs produce CI-friendly, shareable, or interactive artifacts without maintaining separate reporting definitions.',
+  },
+  tutorial: {
+    label: 'TUTORIAL',
+    title: 'General Tutorials',
+    description: 'General tutorials cover cross-cutting Multimeter workflows that span multiple file types and day-to-day usage patterns.',
+  },
+  video: {
+    label: 'VIDEO',
+    title: 'More Videos',
+    description: 'Additional walkthroughs covering Multimeter features and practical workflows.',
+  },
+}
+
+const groupOrder = [
+  'api',
+  'test',
+  'documentation',
+  'environment',
+  'suite',
+  'mock server',
+  'load test',
+  'websocket',
+  'graphql',
+  'grpc',
+  'flow',
+  'report',
+  'tutorial',
+  'video',
+]
+
+const groupFrameStyles: Record<string, string> = {
+  api: 'border-sky-400/35 bg-[linear-gradient(180deg,rgba(14,165,233,0.08),rgba(15,23,42,0.82))] shadow-[0_16px_60px_rgba(14,165,233,0.08)]',
+  test: 'border-emerald-400/35 bg-[linear-gradient(180deg,rgba(16,185,129,0.08),rgba(15,23,42,0.82))] shadow-[0_16px_60px_rgba(16,185,129,0.08)]',
+  environment: 'border-amber-400/35 bg-[linear-gradient(180deg,rgba(245,158,11,0.08),rgba(15,23,42,0.82))] shadow-[0_16px_60px_rgba(245,158,11,0.08)]',
+  suite: 'border-fuchsia-400/35 bg-[linear-gradient(180deg,rgba(217,70,239,0.08),rgba(15,23,42,0.82))] shadow-[0_16px_60px_rgba(217,70,239,0.08)]',
+  documentation: 'border-violet-400/35 bg-[linear-gradient(180deg,rgba(167,139,250,0.08),rgba(15,23,42,0.82))] shadow-[0_16px_60px_rgba(167,139,250,0.08)]',
+  'mock server': 'border-rose-400/35 bg-[linear-gradient(180deg,rgba(251,113,133,0.08),rgba(15,23,42,0.82))] shadow-[0_16px_60px_rgba(251,113,133,0.08)]',
+  'load test': 'border-red-400/35 bg-[linear-gradient(180deg,rgba(248,113,113,0.08),rgba(15,23,42,0.82))] shadow-[0_16px_60px_rgba(248,113,113,0.08)]',
+  websocket: 'border-cyan-400/35 bg-[linear-gradient(180deg,rgba(34,211,238,0.08),rgba(15,23,42,0.82))] shadow-[0_16px_60px_rgba(34,211,238,0.08)]',
+  graphql: 'border-indigo-400/35 bg-[linear-gradient(180deg,rgba(129,140,248,0.08),rgba(15,23,42,0.82))] shadow-[0_16px_60px_rgba(129,140,248,0.08)]',
+  grpc: 'border-blue-400/35 bg-[linear-gradient(180deg,rgba(96,165,250,0.08),rgba(15,23,42,0.82))] shadow-[0_16px_60px_rgba(96,165,250,0.08)]',
+  flow: 'border-teal-400/35 bg-[linear-gradient(180deg,rgba(45,212,191,0.08),rgba(15,23,42,0.82))] shadow-[0_16px_60px_rgba(45,212,191,0.08)]',
+  report: 'border-orange-400/35 bg-[linear-gradient(180deg,rgba(251,146,60,0.08),rgba(15,23,42,0.82))] shadow-[0_16px_60px_rgba(251,146,60,0.08)]',
+  tutorial: 'border-lime-400/35 bg-[linear-gradient(180deg,rgba(163,230,53,0.08),rgba(15,23,42,0.82))] shadow-[0_16px_60px_rgba(163,230,53,0.08)]',
+  video: 'border-slate-300/25 bg-[linear-gradient(180deg,rgba(148,163,184,0.08),rgba(15,23,42,0.82))] shadow-[0_16px_60px_rgba(148,163,184,0.06)]',
+}
+
+const groupCardStyles: Record<string, string> = {
+  api: 'border-sky-400/35 hover:border-sky-400/55',
+  test: 'border-emerald-400/35 hover:border-emerald-400/55',
+  environment: 'border-amber-400/35 hover:border-amber-400/55',
+  suite: 'border-fuchsia-400/35 hover:border-fuchsia-400/55',
+  documentation: 'border-violet-400/35 hover:border-violet-400/55',
+  'mock server': 'border-rose-400/35 hover:border-rose-400/55',
+  'load test': 'border-red-400/35 hover:border-red-400/55',
+  websocket: 'border-cyan-400/35 hover:border-cyan-400/55',
+  graphql: 'border-indigo-400/35 hover:border-indigo-400/55',
+  grpc: 'border-blue-400/35 hover:border-blue-400/55',
+  flow: 'border-teal-400/35 hover:border-teal-400/55',
+  report: 'border-orange-400/35 hover:border-orange-400/55',
+  tutorial: 'border-lime-400/35 hover:border-lime-400/55',
+  video: 'border-slate-300/25 hover:border-slate-300/40',
+}
 
 function normalizeSpacing(value: string): string {
   return value.replace(/\s+/g, ' ').trim()
@@ -72,6 +207,90 @@ function titleMeta(title: string): { prefix: string; title: string } {
     prefix: 'Video',
     title: withoutBrand,
   }
+}
+
+function normalizeGroupKey(prefix: string): string {
+  const normalized = prefix.trim().toLowerCase()
+
+  if (
+    normalized === 'env' ||
+    normalized.includes('preset') ||
+    normalized.includes('variable') ||
+    normalized.includes('env var') ||
+    normalized.includes('environment')
+  ) {
+    return 'environment'
+  }
+
+  if (
+    normalized === 'document' ||
+    normalized === 'doc' ||
+    normalized === 'docs' ||
+    normalized.includes('documentation')
+  ) {
+    return 'documentation'
+  }
+
+  if (normalized.includes('api')) {
+    return 'api'
+  }
+
+  if (normalized.includes('test')) {
+    return 'test'
+  }
+
+  return normalized
+}
+
+function getGroupMeta(prefix: string): GroupMeta {
+  const key = normalizeGroupKey(prefix)
+  return groupDescriptions[key] || {
+    label: prefix.toUpperCase(),
+    title: `${prefix} Videos`,
+    description: 'Videos for this area of Multimeter.',
+  }
+}
+
+function getGroupFrameStyle(groupKey: string): string {
+  return groupFrameStyles[groupKey] || groupFrameStyles.video
+}
+
+function getGroupCardStyle(groupKey: string): string {
+  return groupCardStyles[groupKey] || groupCardStyles.video
+}
+
+function groupVideos(videos: PlaylistVideo[]): Array<{ key: string; meta: GroupMeta; videos: GroupedVideo[] }> {
+  const grouped = new Map<string, { key: string; meta: GroupMeta; videos: GroupedVideo[] }>()
+
+  for (const video of videos) {
+    const meta = titleMeta(video.title)
+    const key = normalizeGroupKey(meta.prefix)
+    const existing = grouped.get(key)
+
+    if (existing) {
+      existing.videos.push({ video, meta })
+      continue
+    }
+
+    grouped.set(key, {
+      key,
+      meta: getGroupMeta(meta.prefix),
+      videos: [{ video, meta }],
+    })
+  }
+
+  return [...grouped.values()].sort((left, right) => {
+    const leftIndex = groupOrder.indexOf(left.key)
+    const rightIndex = groupOrder.indexOf(right.key)
+    const safeLeft = leftIndex === -1 ? Number.MAX_SAFE_INTEGER : leftIndex
+    const safeRight = rightIndex === -1 ? Number.MAX_SAFE_INTEGER : rightIndex
+
+    if (safeLeft !== safeRight) {
+      return safeLeft - safeRight
+    }
+
+    return left.meta.title.localeCompare(right.meta.title)
+  })
 }
 
 function renderInlineMarkdown(text: string, keyPrefix: string): ReactNode[] {
@@ -277,102 +496,116 @@ function renderMarkdown(description: string): ReactNode[] {
   ]
 }
 
-function shouldCollapseDescription(description: string): boolean {
-  const normalized = description
-    .replace(/\\r\\n/g, '\n')
-    .replace(/\\n/g, '\n')
-    .replace(/\r\n/g, '\n')
-
-  return normalized.length > 260 || normalized.split('\n').length > 8
-}
-
 interface PlaylistShowcaseProps {
   playlist: PlaylistData
   reverseVideos?: boolean
   useRawTitles?: boolean
-  showPrefixBadge?: boolean
 }
 
 export default function PlaylistShowcase({
   playlist,
   reverseVideos = false,
   useRawTitles = false,
-  showPrefixBadge = true,
 }: PlaylistShowcaseProps) {
-  const [expandedVideos, setExpandedVideos] = useState<Record<string, boolean>>({})
+  const rowRefs = useRef<Record<string, HTMLDivElement | null>>({})
   const videos = reverseVideos ? [...playlist.videos].reverse() : playlist.videos
+  const groupedVideos = groupVideos(videos)
 
-  const toggleExpanded = (videoId: string) => {
-    setExpandedVideos((current) => ({
-      ...current,
-      [videoId]: !current[videoId],
-    }))
+  const scrollRowRight = (groupKey: string) => {
+    const row = rowRefs.current[groupKey]
+    if (!row) {
+      return
+    }
+
+    row.scrollBy({
+      left: Math.max(row.clientWidth * 0.85, 320),
+      behavior: 'smooth',
+    })
   }
 
   return (
     <div className="space-y-8">
-      {videos.map((video, videoIndex) => {
-        const meta = titleMeta(video.title)
-        const isExpanded = !!expandedVideos[video.id]
-        const canCollapse = shouldCollapseDescription(video.description)
-        const displayTitle = useRawTitles ? video.title : meta.title
-
-        return (
-          <FadeIn key={video.id} delay={videoIndex * 75}>
-            <div className="overflow-hidden rounded-[30px] border border-white/10 bg-slate-900/60 transition-all duration-300">
-              <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-0">
-                <div className="flex flex-col justify-between p-7 sm:p-8 xl:p-10">
-                  <div>
-                    {showPrefixBadge && (
-                      <div className="inline-flex items-center gap-2 rounded-full border border-sky-400/20 bg-sky-400/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-sky-200">
-                        <MonitorPlay size={12} />
-                        {meta.prefix}
-                      </div>
-                    )}
-                    <h3 className="mt-5 text-2xl sm:text-3xl font-bold text-white leading-tight">
-                      {displayTitle}
-                    </h3>
-                    <div className="mt-5">
-                      <div className={`relative pr-1 ${canCollapse && !isExpanded ? 'max-h-[18rem] overflow-hidden' : ''}`}>
-                        <div className="space-y-4 text-sm">
-                          {renderMarkdown(video.description)}
-                        </div>
-                        {canCollapse && !isExpanded && (
-                          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-slate-900/95 via-slate-900/70 to-transparent" />
-                        )}
-                      </div>
-                      {canCollapse && (
-                        <button
-                          type="button"
-                          onClick={() => toggleExpanded(video.id)}
-                          className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-sky-300 transition-colors hover:text-sky-200"
-                        >
-                          {isExpanded ? 'See less' : 'See more'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border-t border-white/8 lg:border-t-0 lg:border-l border-white/8 bg-slate-950/65 p-4 sm:p-5">
-                  <div className="overflow-hidden rounded-[24px] border border-white/10 bg-slate-950 shadow-[0_16px_50px_rgba(2,12,27,0.45)]">
-                    <div className="relative aspect-video bg-slate-950">
-                      <iframe
-                        className="h-full w-full"
-                        src={`https://www.youtube-nocookie.com/embed/${video.id}?rel=0&modestbranding=1&list=${playlist.id}`}
-                        title={video.title}
-                        loading="lazy"
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
-                    </div>
-                  </div>
-                </div>
+      {groupedVideos.map((group, groupIndex) => (
+        <section
+          key={group.key}
+          className={`space-y-6 rounded-[34px] border px-5 py-6 sm:px-6 sm:py-7 ${getGroupFrameStyle(group.key)}`}
+        >
+          <FadeIn delay={groupIndex * 60}>
+            <div className="px-2 sm:px-3">
+              <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-slate-300/90">
+                {group.meta.label}
               </div>
+              <h2 className="mt-3 text-2xl font-semibold text-white sm:text-[2rem]">{group.meta.title}</h2>
+              <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-300 sm:text-[0.98rem]">
+                {group.meta.description}
+              </p>
             </div>
           </FadeIn>
-        )
-      })}
+
+          <div className="relative px-1 sm:px-2">
+            <div
+              ref={(element) => {
+                rowRefs.current[group.key] = element
+              }}
+              className="-mx-2 flex snap-x snap-mandatory gap-6 overflow-x-auto px-2 pb-3 [&::-webkit-scrollbar]:hidden"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+              {group.videos.map(({ video, meta }, videoIndex) => {
+                const displayTitle = useRawTitles ? video.title : meta.title
+                const cardSizeClass = 'h-[40rem] lg:h-[31.2rem]'
+
+                return (
+                  <FadeIn key={video.id} delay={groupIndex * 90 + videoIndex * 60}>
+                    <div
+                      className={`w-[min(98vw,77rem)] shrink-0 snap-start overflow-hidden rounded-[30px] border bg-slate-900/60 transition-all duration-300 hover:bg-slate-900/82 sm:w-[72.5rem] ${cardSizeClass} ${getGroupCardStyle(group.key)}`}
+                    >
+                      <div className="grid h-full grid-cols-[minmax(0,1.2fr)_minmax(24rem,1.8fr)] gap-0">
+                        <div className="grid h-full min-h-0 grid-rows-[auto_1fr] p-6 sm:p-7 xl:p-8">
+                          <h3 className="max-w-[18ch] text-3xl font-bold leading-tight text-white sm:text-[2.2rem]">
+                            {displayTitle}
+                          </h3>
+
+                          <div className="mt-6 min-h-0 overflow-hidden">
+                            <div className="relative h-full min-h-0 overflow-y-auto px-5 py-5 pr-3 [scrollbar-gutter:stable]">
+                              <div className="space-y-4 text-base leading-7 pr-1">
+                                {renderMarkdown(video.description)}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex h-full items-center justify-center pr-[26px]">
+                          <div className="w-full overflow-hidden rounded-[25px] shadow-[0_16px_50px_rgba(2,12,27,0.45)]">
+                            <div className="relative h-[14.5rem] sm:h-[16.5rem] lg:h-[25rem]">
+                              <iframe
+                                className="h-full w-full"
+                                src={`https://www.youtube-nocookie.com/embed/${video.id}?rel=0&modestbranding=1&list=${playlist.id}`}
+                                title={video.title}
+                                loading="lazy"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </FadeIn>
+                )
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => scrollRowRight(group.key)}
+              className="absolute right-2 top-1/2 z-10 hidden -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-slate-950/85 p-3 text-white shadow-[0_12px_30px_rgba(2,12,27,0.4)] backdrop-blur transition-colors hover:border-sky-400/40 hover:text-sky-200 md:inline-flex"
+              aria-label={`Scroll ${group.meta.title} to the right`}
+            >
+              <ArrowRight size={18} />
+            </button>
+          </div>
+        </section>
+      ))}
 
       <section className="px-4 sm:px-0 lg:px-0">
         <FadeIn>

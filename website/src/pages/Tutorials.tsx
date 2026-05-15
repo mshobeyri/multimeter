@@ -16,7 +16,6 @@ export default function Tutorials() {
             playlist={tutorialPlaylist}
             reverseVideos={true}
             useRawTitles={true}
-            showPrefixBadge={false}
           />
         </div>
       </section>
