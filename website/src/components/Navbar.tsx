@@ -4,11 +4,8 @@ import { Menu, X, Github, ExternalLink } from 'lucide-react'
 
 const navLinks = [
   { name: 'Features', href: '/#features' },
-  { name: 'Test Flows', href: '/#test-flows' },
-  { name: 'Protocols', href: '/#protocols' },
   { name: 'Demos', href: '/demos' },
   { name: 'Tutorials', href: '/tutorials' },
-  { name: 'Compare', href: '/#comparison' },
   { name: 'Roadmap', href: '/roadmap' },
   { name: 'Downloads', href: '/downloads' },
   {
@@ -54,7 +51,7 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop links */}
-          <div className="hidden md:flex items-center gap-5">
+          <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) =>
               link.external ? (
                 <a
