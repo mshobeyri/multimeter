@@ -4,11 +4,20 @@ import { Github, Linkedin, Mail, Youtube } from 'lucide-react'
 const footerLinks = {
   Product: [
     { name: 'Features', href: '/#features' },
+    { name: 'Test Flows', href: '/#test-flows' },
+    { name: 'Protocols', href: '/#protocols' },
+    { name: 'Mock Server', href: '/#mock-server' },
+    { name: 'Comparison', href: '/#comparison' },
     { name: 'Downloads', href: '/downloads' },
     { name: 'Demos', href: '/demos' },
     { name: 'CLI (testlight)', href: 'https://www.npmjs.com/package/testlight', external: true },
   ],
   Resources: [
+    { name: 'Git-Native Files', href: '/#git-native' },
+    { name: 'AI Test Generation', href: '/#ai-test-generation' },
+    { name: 'CI/CD', href: '/#ci-cd' },
+    { name: 'Website Documentation', href: '/#documentation' },
+    { name: 'FAQ', href: '/#faq' },
     { name: 'Documentation', href: 'https://github.com/mshobeyri/multimeter/tree/master/docs', external: true },
     { name: 'API Testing Guide', href: 'https://github.com/mshobeyri/multimeter/blob/main/docs/api-mmt.md', external: true },
     { name: 'Test Flow Guide', href: 'https://github.com/mshobeyri/multimeter/blob/main/docs/test-mmt.md', external: true },

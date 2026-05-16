@@ -59,7 +59,7 @@ export default function Navbar() {
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-slate-300 hover:text-white transition-colors flex items-center gap-1"
+                  className="text-sm text-slate-300 hover:text-white transition-colors flex items-center gap-1 whitespace-nowrap"
                 >
                   {link.name}
                   <ExternalLink size={12} />
@@ -68,7 +68,7 @@ export default function Navbar() {
                 <Link
                   key={link.name}
                   to={link.href}
-                  className="text-sm text-slate-300 hover:text-white transition-colors"
+                  className="text-sm text-slate-300 hover:text-white transition-colors whitespace-nowrap"
                 >
                   {link.name}
                 </Link>
