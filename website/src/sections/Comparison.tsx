@@ -152,7 +152,7 @@ function CellValue({ value }: { value: Cell }) {
 
 export default function Comparison() {
   return (
-    <section className="py-24 px-4 sm:px-6 lg:px-8 bg-surface-light/30">
+    <section id="comparison" className="py-24 px-4 sm:px-6 lg:px-8 bg-surface-light/30">
       <div className="max-w-7xl mx-auto">
         <FadeIn>
           <div className="text-center mb-12">
