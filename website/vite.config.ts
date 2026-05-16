@@ -1,6 +1,7 @@
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { playlistSnapshot } from './playlistSnapshot'
 
 const PLAYLISTS = [
   {
@@ -23,6 +24,28 @@ interface PlaylistVideo {
   id: string
   title: string
   description: string
+}
+
+type PlaylistEntry = (typeof PLAYLISTS)[number] & { videos: PlaylistVideo[] }
+
+function withFallbackVideos(playlist: PlaylistEntry): PlaylistEntry {
+  if (playlist.videos.length > 0) {
+    return playlist
+  }
+
+  const snapshot = playlistSnapshot.find((item) => item.id === playlist.id)
+  if (!snapshot) {
+    return playlist
+  }
+
+  console.warn(
+    `[youtube-playlist] Using snapshot fallback for playlist ${playlist.id} with ${snapshot.videos.length} videos`,
+  )
+
+  return {
+    ...playlist,
+    videos: snapshot.videos.map((video) => ({ ...video })),
+  }
 }
 
 function stripHashtags(value: string): string {
@@ -127,7 +150,7 @@ async function fetchPlaylistVideos(playlistId: string): Promise<PlaylistVideo[]>
 }
 
 function youtubePlaylistPlugin(): Plugin {
-  let playlists: Array<(typeof PLAYLISTS)[number] & { videos: PlaylistVideo[] }> = []
+  let playlists: PlaylistEntry[] = []
   let fetched = false
 
   return {
@@ -135,10 +158,12 @@ function youtubePlaylistPlugin(): Plugin {
     async buildStart() {
       if (!fetched) {
         playlists = await Promise.all(
-          PLAYLISTS.map(async (playlist) => ({
-            ...playlist,
-            videos: await fetchPlaylistVideos(playlist.id),
-          })),
+          PLAYLISTS.map(async (playlist) =>
+            withFallbackVideos({
+              ...playlist,
+              videos: await fetchPlaylistVideos(playlist.id),
+            }),
+          ),
         )
         fetched = true
         for (const playlist of playlists) {
