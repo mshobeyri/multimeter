@@ -4,7 +4,7 @@ import { Workflow } from 'lucide-react'
 
 export default function BuiltForVSCode() {
   return (
-    <section className="py-24 px-4 sm:px-6 lg:px-8 bg-surface-light/30">
+    <section id="test-flows" className="scroll-mt-20 py-24 px-4 sm:px-6 lg:px-8 bg-surface-light/30">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Text */}

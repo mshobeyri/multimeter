@@ -4,7 +4,7 @@ import { Sparkles } from 'lucide-react'
 
 export default function AITestGen() {
   return (
-    <section className="py-24 px-4 sm:px-6 lg:px-8">
+    <section id="ai-test-generation" className="scroll-mt-20 py-24 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Heading */}
         <FadeIn direction="up">

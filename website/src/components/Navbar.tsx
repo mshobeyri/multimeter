@@ -4,8 +4,11 @@ import { Menu, X, Github, ExternalLink } from 'lucide-react'
 
 const navLinks = [
   { name: 'Features', href: '/#features' },
+  { name: 'Test Flows', href: '/#test-flows' },
+  { name: 'Protocols', href: '/#protocols' },
   { name: 'Demos', href: '/demos' },
   { name: 'Tutorials', href: '/tutorials' },
+  { name: 'Compare', href: '/#comparison' },
   { name: 'Roadmap', href: '/roadmap' },
   { name: 'Downloads', href: '/downloads' },
   {
@@ -51,7 +54,7 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop links */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-5">
             {navLinks.map((link) =>
               link.external ? (
                 <a
@@ -59,7 +62,7 @@ export default function Navbar() {
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm text-slate-300 hover:text-white transition-colors flex items-center gap-1"
+                  className="text-sm text-slate-300 hover:text-white transition-colors flex items-center gap-1 whitespace-nowrap"
                 >
                   {link.name}
                   <ExternalLink size={12} />
@@ -68,7 +71,7 @@ export default function Navbar() {
                 <Link
                   key={link.name}
                   to={link.href}
-                  className="text-sm text-slate-300 hover:text-white transition-colors"
+                  className="text-sm text-slate-300 hover:text-white transition-colors whitespace-nowrap"
                 >
                   {link.name}
                 </Link>

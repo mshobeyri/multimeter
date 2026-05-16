@@ -140,19 +140,19 @@ const features: FeatureRow[] = [
   },
 ]
 
-function CellValue({ value }: { value: Cell }) {
+function CellValue({ value, compact = false }: { value: Cell; compact?: boolean }) {
   if (typeof value === 'string') {
-    return <span className="text-[10px] leading-tight">{value}</span>
+    return <span className={`${compact ? 'text-[11px]' : 'text-[10px]'} leading-tight`}>{value}</span>
   }
   if (value) {
-    return <Check size={14} className="text-green-400 mx-auto" />
+    return <Check size={compact ? 16 : 14} className="text-green-400 mx-auto" />
   }
-  return <X size={14} className="text-red-400/60 mx-auto" />
+  return <X size={compact ? 16 : 14} className="text-red-400/60 mx-auto" />
 }
 
 export default function Comparison() {
   return (
-    <section id="comparison" className="py-24 px-4 sm:px-6 lg:px-8 bg-surface-light/30">
+    <section id="comparison" className="scroll-mt-20 py-24 px-4 sm:px-6 lg:px-8 bg-surface-light/30">
       <div className="max-w-7xl mx-auto">
         <FadeIn>
           <div className="text-center mb-12">
@@ -166,7 +166,35 @@ export default function Comparison() {
         </FadeIn>
 
         <FadeIn delay={200}>
-          <div className="overflow-x-auto rounded-2xl border border-border">
+          <div className="md:hidden space-y-4">
+            {features.map((row) => (
+              <div key={row.feature} className="rounded-lg border border-border bg-surface/70 p-4">
+                <h3 className="text-sm font-semibold text-white mb-4">{row.feature}</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {tools.map((tool) => (
+                    <div
+                      key={tool.key}
+                      className={`min-h-16 rounded-lg border px-3 py-2 ${
+                        tool.highlight
+                          ? 'border-primary/40 bg-primary/10 text-green-300'
+                          : 'border-border/70 bg-surface-light/50 text-slate-300'
+                      }`}
+                    >
+                      <div className="mb-2 flex min-w-0 items-center gap-2">
+                        <img src={tool.logo} alt="" className="h-4 w-4 shrink-0 object-contain" />
+                        <span className="min-w-0 truncate text-[11px] font-semibold">{tool.name}</span>
+                      </div>
+                      <div className="flex h-5 items-center justify-center text-center">
+                        <CellValue value={row.values[tool.key]} compact />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">
             <table className="w-full min-w-[1180px]">
               <thead>
                 <tr className="bg-surface border-b border-border">

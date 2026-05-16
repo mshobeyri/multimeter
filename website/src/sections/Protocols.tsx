@@ -26,7 +26,7 @@ const protocols = [
 
 export default function Protocols() {
   return (
-    <section className="py-24 px-4 sm:px-6 lg:px-8 bg-surface-light/30">
+    <section id="protocols" className="scroll-mt-20 py-24 px-4 sm:px-6 lg:px-8 bg-surface-light/30">
       <div className="max-w-7xl mx-auto">
         <FadeIn>
           <div className="text-center mb-16">
