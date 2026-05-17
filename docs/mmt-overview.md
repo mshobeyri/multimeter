@@ -45,7 +45,7 @@ Use from Tests: tests import APIs and call them with inputs.
 Deep dive: see [API](./api-mmt.md).
 
 ## Test (type: test)
-Purpose: Orchestrate flows using steps/stages; call APIs/tests, assert, loop, and set outputs.
+Purpose: Orchestrate flows using steps/stages; call APIs/tests, send one-off inline HTTP requests, assert, loop, and set outputs.
 
 Minimal example for calling login and making sure the response is correct.
 ```yaml
@@ -68,6 +68,15 @@ steps:
 ```
 UI: The flow is editable/visible in the Flow and Test panels; logs appear in Log.
 Run: Click Run in the Test panel or use CLI (testlight run ...).
+
+For one-off requests, tests can also skip `import` and send HTTP directly:
+```yaml
+steps:
+  - http: https://example.com/health
+    id: health
+    method: get
+  - assert: ${health.status} == 200
+```
 
 Deep dive: see [Test](./test-mmt.md).
 

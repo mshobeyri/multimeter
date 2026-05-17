@@ -125,7 +125,7 @@ stages:
 ```
 
 ### Steps
-Steps are the building blocks of a test. When placed at the test root, they run sequentially. Inside stages, steps run within that stage; parallelism is controlled by the stages.
+Steps are the building blocks of a test. When placed at the test root, they run sequentially. Inside stages, steps run within that stage; parallelism is controlled by the stages. Use `call` when the request or flow already lives in a reusable imported file, and use `http` when you want to send a one-off HTTP request directly from the test.
 You can visualize and run the flow from the Flow panel; each step here corresponds to a UI block in that panel.
 
 ![Flow panel](../screenshots/test_panel_flow.png)
@@ -145,6 +145,44 @@ Invoke an imported API or another test; give it an id to reference its outputs l
   id: profile
   inputs:
     token: ${doLogin.token}
+```
+
+### http
+Send an HTTP request directly from the test without importing a separate `type: api` file. This is useful for setup, teardown, health checks, or small one-off requests that you do not want to reuse elsewhere.
+
+```yaml
+- http: https://example.com/users/<<i:userId>>
+  id: getUser
+  method: get
+  format: json
+  headers:
+    Authorization: Bearer <<e:token>>
+  expect:
+    status: 200
+    body.name: != null
+```
+
+Direct HTTP steps use the same HTTP request fields as API files where they make sense: `query`, `method`, `format`, `headers`, and `body`.
+
+Notes:
+- `http` is the request URL and is required.
+- `method` defaults to `get` if omitted.
+- `id` is optional, but recommended when you want to reference the response in later steps.
+- Inline `expect`, `debug`, and `report` work the same way as on `call` steps.
+- The response exposed through `id` includes `body`, `headers`, `cookies`, `status`, and `duration`.
+
+Example using the response later in the flow:
+
+```yaml
+steps:
+  - http: <<e:api_url>>/health
+    id: health
+    method: get
+    expect:
+      status: 200
+  - if: ${health.status} == 200
+    steps:
+      - print: Service is healthy
 ```
 
 ### run
@@ -534,7 +572,7 @@ steps:
 - outputs: record&lt;string, string | number | boolean | null&gt;
 - steps: array of step (alias: `flow`)
 - stages: array of { id, title?, steps, condition?, after? }
-- step types: `call`, `check`, `assert`, `if`, `for`, `repeat`, `delay`, `js`, `print`, `set`, `var`, `const`, `let`, `setenv`, `data`
+- step types: `call`, `http`, `check`, `assert`, `if`, `for`, `repeat`, `delay`, `js`, `print`, `set`, `var`, `const`, `let`, `setenv`, `data`, `run`
 
 Notes:
 - `flow` is accepted as a backward-compatible alias for `steps`.
