@@ -166,32 +166,50 @@ export default function Comparison() {
         </FadeIn>
 
         <FadeIn delay={200}>
-          <div className="md:hidden space-y-4">
-            {features.map((row) => (
-              <div key={row.feature} className="rounded-lg border border-border bg-surface/70 p-4">
-                <h3 className="text-sm font-semibold text-white mb-4">{row.feature}</h3>
-                <div className="grid grid-cols-2 gap-2">
+          <div className="overflow-x-auto rounded-lg border border-border md:hidden">
+            <table className="w-full min-w-[760px]">
+              <thead>
+                <tr className="bg-surface border-b border-border">
+                  <th className="sticky left-0 z-10 bg-surface text-left px-2 py-2 text-[11px] font-medium text-slate-400 min-w-36">
+                    Feature
+                  </th>
                   {tools.map((tool) => (
-                    <div
-                      key={tool.key}
-                      className={`min-h-16 rounded-lg border px-3 py-2 ${
-                        tool.highlight
-                          ? 'border-primary/40 bg-primary/10 text-green-300'
-                          : 'border-border/70 bg-surface-light/50 text-slate-300'
-                      }`}
-                    >
-                      <div className="mb-2 flex min-w-0 items-center gap-2">
-                        <img src={tool.logo} alt="" className="h-4 w-4 shrink-0 object-contain" />
-                        <span className="min-w-0 truncate text-[11px] font-semibold">{tool.name}</span>
+                    <th key={tool.key} className="px-1.5 py-2 text-center min-w-16">
+                      <div className="flex flex-col items-center gap-1">
+                        <img src={tool.logo} alt={tool.name} className="w-3.5 h-3.5 object-contain" />
+                        <span className={`text-[9px] font-semibold leading-tight ${tool.highlight ? 'text-primary-light' : 'text-slate-400'}`}>
+                          {tool.name}
+                        </span>
                       </div>
-                      <div className="flex h-5 items-center justify-center text-center">
-                        <CellValue value={row.values[tool.key]} compact />
-                      </div>
-                    </div>
+                    </th>
                   ))}
-                </div>
-              </div>
-            ))}
+                </tr>
+              </thead>
+              <tbody>
+                {features.map((row, index) => (
+                  <tr
+                    key={row.feature}
+                    className={`border-b border-border/50 ${
+                      index % 2 === 0 ? 'bg-surface-light/30' : 'bg-surface/50'
+                    }`}
+                  >
+                    <td className={`sticky left-0 z-10 px-2 py-1.5 text-[11px] leading-tight text-slate-300 ${
+                      index % 2 === 0 ? 'bg-surface-light' : 'bg-surface'
+                    }`}>
+                      {row.feature}
+                    </td>
+                    {tools.map((tool) => (
+                      <td
+                        key={tool.key}
+                        className={`px-1.5 py-1.5 text-center ${tool.highlight ? 'text-green-400 font-medium' : 'text-slate-400'}`}
+                      >
+                        <CellValue value={row.values[tool.key]} />
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
 
           <div className="hidden overflow-x-auto rounded-2xl border border-border md:block">

@@ -383,7 +383,7 @@ function renderMarkdown(description: string): ReactNode[] {
 
     const text = normalizeSpacing(paragraphLines.join(' '))
     blocks.push(
-      <p key={`p-${blocks.length}`} className="text-base leading-relaxed text-slate-300">
+      <p key={`p-${blocks.length}`} className="text-sm leading-6 text-slate-300 sm:text-base sm:leading-relaxed">
         {renderInlineMarkdown(text, `p-${blocks.length}`)}
       </p>,
     )
@@ -400,7 +400,7 @@ function renderMarkdown(description: string): ReactNode[] {
     blocks.push(
       <ListTag
         key={`list-${blocks.length}`}
-        className={kind === 'ol' ? 'ml-5 list-decimal space-y-2 text-slate-300' : 'ml-5 list-disc space-y-2 text-slate-300'}
+        className={kind === 'ol' ? 'ml-5 list-decimal space-y-2 text-sm text-slate-300 sm:text-base' : 'ml-5 list-disc space-y-2 text-sm text-slate-300 sm:text-base'}
       >
         {listItems.map((item, index) => (
           <li key={`item-${index}`}>{renderInlineMarkdown(item.text, `list-${blocks.length}-${index}`)}</li>
@@ -418,7 +418,7 @@ function renderMarkdown(description: string): ReactNode[] {
     blocks.push(
       <pre
         key={`code-${blocks.length}`}
-        className="overflow-x-auto rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-4 text-[13px] leading-6 text-sky-100"
+        className="overflow-x-auto rounded-xl border border-white/10 bg-slate-950/80 px-3 py-3 text-[12px] leading-5 text-sky-100 sm:rounded-2xl sm:px-4 sm:py-4 sm:text-[13px] sm:leading-6"
       >
         <code>{codeFence.lines.join('\n')}</code>
       </pre>,
@@ -524,14 +524,14 @@ export default function PlaylistShowcase({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {groupedVideos.map((group, groupIndex) => (
         <section
           key={group.key}
-          className={`space-y-6 rounded-[34px] border px-5 py-6 sm:px-6 sm:py-7 ${getGroupFrameStyle(group.key)}`}
+          className={`space-y-4 rounded-2xl border px-3 py-4 sm:space-y-6 sm:rounded-[34px] sm:px-6 sm:py-7 ${getGroupFrameStyle(group.key)}`}
         >
           <FadeIn delay={groupIndex * 60}>
-            <div className="px-2 sm:px-3">
+            <div className="px-1 sm:px-3">
               <div className="text-[11px] font-medium uppercase tracking-[0.24em] text-slate-300/90">
                 {group.meta.label}
               </div>
@@ -542,41 +542,41 @@ export default function PlaylistShowcase({
             </div>
           </FadeIn>
 
-          <div className="relative px-1 sm:px-2">
+          <div className="relative sm:px-2">
             <div
               ref={(element) => {
                 rowRefs.current[group.key] = element
               }}
-              className="-mx-2 flex snap-x snap-mandatory gap-6 overflow-x-auto overflow-y-hidden px-2 pb-3 overscroll-y-none [touch-action:pan-x] [&::-webkit-scrollbar]:hidden"
+              className="flex flex-col gap-4 overflow-visible pb-2 sm:-mx-2 sm:flex-row sm:snap-x sm:snap-mandatory sm:gap-6 sm:overflow-x-auto sm:overflow-y-hidden sm:px-2 sm:pb-3 sm:overscroll-y-none sm:[touch-action:pan-x] [&::-webkit-scrollbar]:hidden"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
               {group.videos.map(({ video, meta }, videoIndex) => {
                 const displayTitle = useRawTitles ? video.title : meta.title
-                const cardSizeClass = 'h-[40rem] lg:h-[31.2rem]'
+                const cardSizeClass = 'h-auto lg:h-[31.2rem]'
 
                 return (
-                  <FadeIn key={video.id} delay={0} direction="none">
+                  <FadeIn key={video.id} delay={0} direction="none" className="w-full sm:w-[72.5rem] sm:shrink-0 sm:snap-start">
                     <div
-                      className={`w-[min(98vw,77rem)] shrink-0 snap-start overflow-hidden rounded-[30px] border bg-slate-900/60 transition-colors duration-300 hover:bg-slate-900/82 sm:w-[72.5rem] ${cardSizeClass} ${getGroupCardStyle(group.key)}`}
+                      className={`w-full overflow-hidden rounded-2xl border bg-slate-900/60 transition-colors duration-300 hover:bg-slate-900/82 sm:rounded-[30px] ${cardSizeClass} ${getGroupCardStyle(group.key)}`}
                     >
-                      <div className="grid h-full grid-cols-[minmax(0,1.2fr)_minmax(24rem,1.8fr)] gap-0">
-                        <div className="grid h-full min-h-0 grid-rows-[auto_1fr] p-6 sm:p-7 xl:p-8">
-                          <h3 className="max-w-[18ch] text-3xl font-bold leading-tight text-white sm:text-[2.2rem]">
+                      <div className="grid h-full grid-cols-1 gap-0 lg:grid-cols-[minmax(0,1.2fr)_minmax(24rem,1.8fr)]">
+                        <div className="grid min-h-0 grid-rows-[auto_1fr] p-4 sm:p-7 xl:p-8">
+                          <h3 className="text-xl font-bold leading-tight text-white sm:max-w-[18ch] sm:text-[2.2rem]">
                             {displayTitle}
                           </h3>
 
-                          <div className="mt-6 min-h-0 overflow-hidden">
-                            <div className="relative h-full min-h-0 overflow-y-auto px-5 py-5 pr-3 [scrollbar-gutter:stable]">
-                              <div className="space-y-4 text-base leading-7 pr-1">
+                          <div className="mt-4 min-h-0 overflow-hidden sm:mt-6">
+                            <div className="relative max-h-64 min-h-0 overflow-y-auto rounded-xl bg-slate-950/20 px-3 py-3 [scrollbar-gutter:stable] sm:h-full sm:max-h-none sm:bg-transparent sm:px-5 sm:py-5 sm:pr-3">
+                              <div className="space-y-3 text-sm leading-6 sm:space-y-4 sm:text-base sm:leading-7 sm:pr-1">
                                 {renderMarkdown(video.description)}
                               </div>
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex h-full items-center justify-center pr-[26px]">
-                          <div className="w-full overflow-hidden rounded-[25px] shadow-[0_16px_50px_rgba(2,12,27,0.45)]">
-                            <div className="relative h-[14.5rem] sm:h-[16.5rem] lg:h-[25rem]">
+                        <div className="flex h-full items-center justify-center px-4 pb-4 sm:px-7 sm:pb-7 lg:pr-[26px] lg:pl-0 lg:pb-0">
+                          <div className="w-full overflow-hidden rounded-2xl shadow-[0_16px_50px_rgba(2,12,27,0.45)] sm:rounded-[25px]">
+                            <div className="relative aspect-video lg:h-[25rem] lg:aspect-auto">
                               <iframe
                                 className="h-full w-full"
                                 src={`https://www.youtube-nocookie.com/embed/${video.id}?rel=0&modestbranding=1&list=${playlist.id}`}
@@ -607,20 +607,20 @@ export default function PlaylistShowcase({
         </section>
       ))}
 
-      <section className="px-4 sm:px-0 lg:px-0">
+      <section className="px-0 sm:px-0 lg:px-0">
         <FadeIn>
-          <div className="max-w-4xl mx-auto text-center rounded-[32px] border border-white/10 bg-[linear-gradient(135deg,rgba(14,165,233,0.16),rgba(99,102,241,0.14),rgba(15,23,42,0.88))] p-12 shadow-[0_20px_80px_rgba(2,12,27,0.35)]">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">
+          <div className="max-w-4xl mx-auto text-center rounded-2xl border border-white/10 bg-[linear-gradient(135deg,rgba(14,165,233,0.16),rgba(99,102,241,0.14),rgba(15,23,42,0.88))] p-6 shadow-[0_20px_80px_rgba(2,12,27,0.35)] sm:rounded-[32px] sm:p-12">
+            <h2 className="text-xl sm:text-3xl font-bold text-white mb-4">
               Want to run these flows in your own repo?
             </h2>
-            <p className="text-slate-400 mb-8">
+            <p className="text-sm text-slate-400 mb-6 sm:mb-8 sm:text-base">
               Install Multimeter, open one of the sample projects, and start building API and test flows without leaving VS Code.
             </p>
             <a
               href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-primary hover:bg-primary-dark text-white px-8 py-3.5 rounded-xl text-base font-semibold transition-all shadow-lg shadow-primary/25"
+              className="inline-flex items-center gap-2 bg-primary hover:bg-primary-dark text-white px-5 py-3 rounded-xl text-sm font-semibold transition-all shadow-lg shadow-primary/25 sm:px-8 sm:py-3.5 sm:text-base"
             >
               Install VS Code Extension
               <ArrowRight size={16} />
