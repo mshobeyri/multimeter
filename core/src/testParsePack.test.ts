@@ -62,6 +62,7 @@ flow:
       [{ stage: { id: 's', steps: [] } } as any, 'stage'],
       [{ step: { steps: [] } } as any, 'step'],
       [{ call: 'api.x' } as any, 'call'],
+      [{ http: 'https://example.com' } as any, 'http'],
       [{ check: 'a==b' } as any, 'check'],
       [{ assert: 'a==b' } as any, 'assert'],
       [{ if: 'a==b', then: [], else: [] } as any, 'if'],
@@ -294,7 +295,32 @@ describe('yamlToTestStrict', () => {
 
   it('throws when call value is empty/null', () => {
     const yaml = 'type: test\nimport:\nsteps:\n  - call: ';
-    expect(() => yamlToTestStrict(yaml)).toThrow(/"call" must be a non-empty string/i);
+    expect(() => yamlToTestStrict(yaml)).toThrow(/call is missing required target/i);
+  });
+
+  it('accepts http request steps', () => {
+    const yaml = [
+      'type: test',
+      'inputs:',
+      '  userId: 42',
+      'steps:',
+      '  - http: https://example.com/users/<<i:userId>>',
+      '    id: getUser',
+      '    method: get',
+      '    expect:',
+      '      body.message: hello',
+    ].join('\n');
+    expect(() => yamlToTestStrict(yaml)).not.toThrow();
+  });
+
+  it('throws when http request is missing a URL', () => {
+    const yaml = [
+      'type: test',
+      'steps:',
+      '  - http: ""',
+      '    method: get',
+    ].join('\n');
+    expect(() => yamlToTestStrict(yaml)).toThrow(/http is missing required URL/i);
   });
 
   it('passes for valid test with matching call', () => {
@@ -343,6 +369,15 @@ describe('validateTestData', () => {
     } as any;
     const errors = validateTestData(test);
     expect(errors).toContainEqual(expect.stringMatching(/wrong.*not imported/i));
+  });
+
+  it('returns empty for valid http request step', () => {
+    const test = {
+      type: 'test', title: '', description: '', tags: [],
+      steps: [{http: 'https://example.com', method: 'get'} as any],
+    } as any;
+    const errors = validateTestData(test);
+    expect(errors).toHaveLength(0);
   });
 
   it('returns empty for valid test', () => {

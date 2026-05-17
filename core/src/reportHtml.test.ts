@@ -109,6 +109,48 @@ describe('generateReportHtml', () => {
     expect(html).toContain('got: Jane');
   });
 
+  it('renders response headers and object bodies as JSON in failure details', () => {
+    const details = JSON.stringify({
+      _: {
+        details: JSON.stringify({
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            headers: { Accept: 'application/json' },
+          },
+          response: {
+            status: 400,
+            statusText: 'Bad Request',
+            headers: { 'content-type': 'application/json' },
+            body: { error: 'bad', headers: { nested: true } },
+          },
+        }),
+      },
+    });
+    const results: CollectedResults = {
+      type: 'test',
+      testRuns: [
+        makeRun({
+          displayName: 'test.mmt',
+          steps: [
+            makeStep({
+              title: 'failing call',
+              status: 'failed',
+              details,
+              expects: [{ comparison: '==', actual: '400', expected: '200', status: 'failed' }],
+            }),
+          ],
+        }),
+      ],
+    };
+
+    const html = generateReportHtml(results);
+    expect(html).toContain('Headers:');
+    expect(html).toContain('&quot;content-type&quot;: &quot;application/json&quot;');
+    expect(html).toContain('&quot;nested&quot;: true');
+    expect(html).not.toContain('[object Object]');
+  });
+
   it('escapes special characters in HTML', () => {
     const results: CollectedResults = {
       type: 'test',

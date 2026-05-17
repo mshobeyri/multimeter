@@ -304,6 +304,11 @@ function mapLeaf(step: any, kind: string, callTitleByAlias: FlowCallImportMap): 
       const detail = describeCall(step);
       return { mappedKind: 'call', label, detail };
     }
+    case 'http': {
+      const method = String(step.method || 'get').toUpperCase();
+      const url = String(step.http || 'http');
+      return { mappedKind: 'call', label: `${method} ${truncate(url, 48)}`, detail: url };
+    }
     case 'run':
       return { mappedKind: 'run', label: String(step.run ?? 'run') };
     case 'assert':

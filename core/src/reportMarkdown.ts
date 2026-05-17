@@ -8,16 +8,31 @@ export interface ReportMarkdownOptions {
 }
 
 interface ParsedCallDetails {
-  request?: { method?: string; url?: string; body?: string };
-  response?: { status?: number; statusText?: string; body?: string };
+  request?: { method?: string; url?: string; body?: any; headers?: Record<string, any> };
+  response?: { status?: number; statusText?: string; body?: any; headers?: Record<string, any> };
 }
 
-function tryFormatJson(s: string): string {
+function tryFormatJson(value: any): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (typeof value !== 'string') {
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return String(value);
+    }
+  }
+  const s = value;
   try {
     return JSON.stringify(JSON.parse(s), null, 2);
   } catch {
     return s;
   }
+}
+
+function hasEntries(value: Record<string, any> | undefined): boolean {
+  return !!value && typeof value === 'object' && Object.keys(value).length > 0;
 }
 
 function parseStepCallDetails(details?: string): ParsedCallDetails | null {
@@ -85,6 +100,9 @@ function buildFailureDetails(step: TestStepResult): string {
     if (req.method && req.url) {
       md += `\`${req.method} ${req.url}\`\n`;
     }
+    if (hasEntries(req.headers)) {
+      md += `\nHeaders:\n\n\`\`\`json\n${tryFormatJson(req.headers)}\n\`\`\`\n`;
+    }
     if (req.body) {
       md += `\n\`\`\`json\n${tryFormatJson(req.body)}\n\`\`\`\n`;
     }
@@ -94,6 +112,9 @@ function buildFailureDetails(step: TestStepResult): string {
     md += `\n**Response:**\n`;
     if (resp.status !== undefined) {
       md += `Status: ${resp.status}${resp.statusText ? ' ' + resp.statusText : ''}\n`;
+    }
+    if (hasEntries(resp.headers)) {
+      md += `\nHeaders:\n\n\`\`\`json\n${tryFormatJson(resp.headers)}\n\`\`\`\n`;
     }
     if (resp.body) {
       md += `\n\`\`\`json\n${tryFormatJson(resp.body)}\n\`\`\`\n`;

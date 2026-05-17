@@ -109,6 +109,48 @@ describe('generateReportMarkdown', () => {
     expect(md).toContain('✗ failed');
   });
 
+  it('renders response headers and object bodies as JSON in failure details', () => {
+    const details = JSON.stringify({
+      _: {
+        details: JSON.stringify({
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            headers: { Accept: 'application/json' },
+          },
+          response: {
+            status: 400,
+            statusText: 'Bad Request',
+            headers: { 'content-type': 'application/json' },
+            body: { error: 'bad', headers: { nested: true } },
+          },
+        }),
+      },
+    });
+    const results: CollectedResults = {
+      type: 'test',
+      testRuns: [
+        makeRun({
+          displayName: 'test.mmt',
+          steps: [
+            makeStep({
+              title: 'failing call',
+              status: 'failed',
+              details,
+              expects: [{ comparison: '==', actual: '400', expected: '200', status: 'failed' }],
+            }),
+          ],
+        }),
+      ],
+    };
+
+    const md = generateReportMarkdown(results);
+    expect(md).toContain('Headers:');
+    expect(md).toContain('"content-type": "application/json"');
+    expect(md).toContain('"nested": true');
+    expect(md).not.toContain('[object Object]');
+  });
+
   it('handles empty test (no steps)', () => {
     const results: CollectedResults = {
       type: 'test',

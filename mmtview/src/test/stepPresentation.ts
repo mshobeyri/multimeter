@@ -6,6 +6,8 @@ export function codiconForStepType(type?: string): string {
       return 'code';
     case 'call':
       return 'symbol-method';
+    case 'http':
+      return 'globe';
     case 'data':
       return 'database';
     case 'delay':
@@ -47,6 +49,8 @@ export function displayNameForStepType(type?: string): string {
       return 'repeat';
     case 'call':
       return 'call';
+    case 'http':
+      return 'http';
     case 'run':
       return 'run';
     case 'assert':

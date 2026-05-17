@@ -3,6 +3,7 @@ import ReactDOM from "react-dom";
 import { FlowType, CheckOps } from "mmt-core/TestData";
 import TestCheck, { ReportValue } from "./TestCheck";
 import TestCall from "./TestCall";
+import TestHttp from "./TestHttp";
 import TestFlowVar from "./TestFlowVar";
 import TestFlowCSV from "./TestFlowCSV";
 import { type MissingImportEntry } from "../text/validator";
@@ -146,6 +147,14 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             importedOutputsByAlias={importValidation?.outputsByAlias}
             onChange={callObj => onChange({ ...callObj })}
             placeholder="select a call"
+          />
+        );
+      case 'http':
+        return (
+          <TestHttp
+            value={stepData}
+            expanded={expanded}
+            onChange={httpObj => onChange({ ...httpObj })}
           />
         );
       case 'data':

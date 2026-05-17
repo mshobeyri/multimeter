@@ -1,6 +1,6 @@
 
 
-import {MMTFile} from './CommonData';
+import {Format, Method, MMTFile, Protocol} from './CommonData';
 
 export type Timestr = `${number}s`|`${number}m`|`${number}h`|'inf';
 export type Repeat = `${number}`|'inf';
@@ -76,7 +76,7 @@ export interface TestImportItem {
 }
 
 export type FlowType =
-    'stages'|'steps'|'stage'|'step'|'call'|'run'|'check'|'assert'|'if'|'for'|'repeat'|
+  'stages'|'steps'|'stage'|'step'|'call'|'http'|'run'|'check'|'assert'|'if'|'for'|'repeat'|
     'delay'|'js'|'print'|'end'|'set'|'var'|'const'|'let'|'data'|'setenv';
 
 export interface TestFlowBase {
@@ -84,10 +84,25 @@ export interface TestFlowBase {
 }
 
 export interface TestFlowCall extends TestFlowBase {
-  call: string;
-  id: string;
+  call?: string;
+  id?: string;
   title?: string;
   inputs?: Record<string, any>;
+  outputs?: Record<string, any>;
+  expect?: ExpectMap;
+  debug?: ExpectMap | true;
+  report?: ReportLevel | ReportConfig;
+}
+
+export interface TestFlowHttp extends TestFlowBase {
+  http?: string;
+  id?: string;
+  title?: string;
+  query?: Record<string, string>;
+  method?: Method;
+  format?: Format;
+  headers?: Record<string, string>;
+  body?: string|object|null;
   expect?: ExpectMap;
   debug?: ExpectMap | true;
   report?: ReportLevel | ReportConfig;
@@ -159,7 +174,7 @@ export interface TestFlowSetEnv extends TestFlowBase {
 export interface TestFlowRun extends TestFlowBase {
   run: string;  // alias of an imported server file
 }
-export type TestFlowStep = TestFlowCallTest|TestFlowCallAPI|TestFlowCheck|
+export type TestFlowStep = TestFlowCallTest|TestFlowCallAPI|TestFlowHttp|TestFlowCheck|
     TestFlowAssert|TestFlowCondition|TestFlowRepeat|TestFlowLoop|TestFlowJS|
     TestFlowPrint|TestFlowDelay|TestFlowSet|TestFlowVar|TestFlowConst|
     TestFlowLet|TestFlowData|TestFlowSetEnv|TestFlowRun;
@@ -199,13 +214,13 @@ export interface TestDataStages extends TestDataBase {
 export type TestData = TestDataSteps|TestDataStages;
 
 export const flowTypeOptions = [
-  'call', 'run', 'check', 'assert', 'if', 'for', 'repeat', 'delay', 'end', 'js',
+  'call', 'http', 'run', 'check', 'assert', 'if', 'for', 'repeat', 'delay', 'end', 'js',
   'print', 'data', 'set', 'var', 'const', 'let', 'setenv'
 ] as FlowType[];
 
 // Flow types that the UI can add as individual steps/folders
 export const addableFlowTypes = [
-  'print', 'call', 'run', 'js', 'set', 'var', 'const', 'let', 'assert', 'check', 'if',
+  'print', 'call', 'http', 'run', 'js', 'set', 'var', 'const', 'let', 'assert', 'check', 'if',
   'for', 'repeat', 'delay', 'setenv', 'stage'
 ] as FlowType[];
 export type CheckOps =

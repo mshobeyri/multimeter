@@ -7,7 +7,13 @@ import {FlowType, opsList, TestData, TestFlowStep, TestFlowSteps, TestFlowStages
  * Keys not listed here are appended in original order after the canonical ones.
  */
 export const STEP_KEY_ORDER: Record<string, string[]> = {
-  call:   ['call', 'id', 'title', 'inputs', 'expect', 'debug', 'report'],
+  call:   [
+    'call', 'id', 'title', 'inputs', 'outputs', 'expect', 'debug', 'report'
+  ],
+  http:   [
+    'http', 'id', 'title', 'query', 'method', 'format', 'headers', 'body',
+    'expect', 'debug', 'report'
+  ],
   run:    ['run'],
   check:  ['check'],
   assert: ['assert'],
@@ -36,7 +42,14 @@ const VALID_TEST_ROOT_KEYS = new Set([
 
 /** Valid keys per step type. */
 const VALID_STEP_KEYS: Record<string, Set<string>> = {
-  call:    new Set(['call', 'id', 'title', 'inputs', 'expect', 'debug', 'report', 'interface', 'url', 'headers', 'outputs', 'body']),
+  call:    new Set([
+    'call', 'id', 'title', 'inputs', 'outputs', 'expect', 'debug', 'report',
+    'interface'
+  ]),
+  http:    new Set([
+    'http', 'id', 'title', 'query', 'method', 'format', 'headers', 'body',
+    'expect', 'debug', 'report'
+  ]),
   run:     new Set(['run']),
   check:   new Set(['check', 'title', 'report', 'details']),
   assert:  new Set(['assert', 'title', 'report', 'details']),
@@ -289,6 +302,9 @@ export function getTestFlowStepType(step: TestFlowStep): FlowType|'unknown' {
   if ('call' in step) {
     return 'call';
   }
+  if ('http' in step) {
+    return 'http';
+  }
   if ('run' in step) {
     return 'run';
   }
@@ -452,10 +468,18 @@ function collectStepErrors(
     if (stepType === 'call') {
       const callStep = step as any;
       const alias = callStep.call;
-      if (typeof alias !== 'string' || !alias.trim()) {
-        errors.push(`Step ${context}[${i}]: "call" must be a non-empty string`);
-      } else if (!importKeys.has(alias)) {
-        errors.push(`Step ${context}[${i}]: call target "${alias}" is not imported`);
+      if (typeof alias === 'string' && alias.trim()) {
+        if (!importKeys.has(alias)) {
+          errors.push(`Step ${context}[${i}]: call target "${alias}" is not imported`);
+        }
+      } else {
+        errors.push(`Step ${context}[${i}]: call is missing required target`);
+      }
+    }
+    if (stepType === 'http') {
+      const httpStep = step as any;
+      if (typeof httpStep.http !== 'string' || !httpStep.http.trim()) {
+        errors.push(`Step ${context}[${i}]: http is missing required URL`);
       }
     }
     // Recurse into nested steps

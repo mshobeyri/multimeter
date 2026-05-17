@@ -98,7 +98,7 @@ export const testToJsfunc = async(
       Object.keys(ctx.test.inputs ?? {}).map(key => [key, `\${${key}}`]));
 
   // Validate that all i:xxx references point to declared inputs
-  const declaredInputKeys = new Set(Object.keys(ctx.test.inputs ?? {}));
+  const declaredInputKeys = new Set(Object.keys(paramsAsObj));
   const inputRefs = collectInputRefsFromObject(ctx.test);
   const undefinedRefs = inputRefs.filter(name => !declaredInputKeys.has(name));
   if (undefinedRefs.length > 0) {
@@ -176,7 +176,7 @@ export const testToJsfunc = async(
     }
   }
 
-  flow += flowToJsFunc(replaced, root, useExternalReport, importTitleMap);
+  flow += await flowToJsFunc(replaced, root, useExternalReport, importTitleMap);
 
   return `${jsImportsHoisted ? jsImportsHoisted + '\n\n' : ''}const ${toLowerUnderscore(ctx.name)}${root ? '_' : ''} = async ({ ${
       inputParams}} = {}) => {

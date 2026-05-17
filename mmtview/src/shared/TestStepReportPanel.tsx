@@ -4,16 +4,17 @@ import { statusIconFor } from './Common';
 
 /** Parsed call result details extracted from the `_` field of an API call output. */
 interface CallResultDetails {
+  stepKind?: string;
   request?: {
     url?: string;
     method?: string;
-    headers?: Record<string, string>;
-    body?: string;
-    query?: Record<string, string>;
+    headers?: Record<string, any>;
+    body?: any;
+    query?: Record<string, any>;
   };
   response?: {
-    body?: string;
-    headers?: Record<string, string>;
+    body?: any;
+    headers?: Record<string, any>;
     status?: number;
     statusText?: string;
     duration?: number;
@@ -21,9 +22,26 @@ interface CallResultDetails {
   outputs?: Record<string, any>;
   statusCode?: number;
 }
+function formatStructuredValue(value: any, pretty?: boolean): string {
+  if (value === undefined || value === null) {
+    return '';
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  try {
+    return JSON.stringify(value, null, pretty ? 2 : 0);
+  } catch {
+    return String(value);
+  }
+}
+
 /** Format a body string (try JSON pretty-print, then XML indent). */
-function tryFormatBody(body: string | undefined): string {
+function tryFormatBody(body: any): string {
   if (!body) { return ''; }
+  if (typeof body !== 'string') {
+    return formatStructuredValue(body, true);
+  }
   try {
     return JSON.stringify(JSON.parse(body), null, 2);
   } catch {
@@ -67,7 +85,7 @@ function unescapeForDisplay(s: string): string {
 }
 
 /** Render headers as a compact key: value list. */
-const HeadersBlock: React.FC<{ label: string; headers?: Record<string, string> }> = ({ label, headers }) => {
+const HeadersBlock: React.FC<{ label: string; headers?: Record<string, any> }> = ({ label, headers }) => {
   if (!headers || Object.keys(headers).length === 0) { return null; }
   return (
     <div style={{ marginTop: 6 }}>
@@ -82,7 +100,7 @@ const HeadersBlock: React.FC<{ label: string; headers?: Record<string, string> }
         {Object.entries(headers).map(([k, v]) => (
           <div key={k} style={{ display: 'flex', gap: 4 }}>
             <span style={{ opacity: 0.7 }}>{k}:</span>
-            <span style={{ wordBreak: 'break-all' }}>{v}</span>
+            <span style={{ wordBreak: 'break-all' }}>{formatStructuredValue(v)}</span>
           </div>
         ))}
       </div>
@@ -91,11 +109,13 @@ const HeadersBlock: React.FC<{ label: string; headers?: Record<string, string> }
 };
 
 /** A pre block with optional "Format" button for body content. */
-const BodyBlock: React.FC<{ label: string; body?: string }> = ({ label, body }) => {
+const BodyBlock: React.FC<{ label: string; body?: any }> = ({ label, body }) => {
   const [formatted, setFormatted] = useState(false);
   if (!body) { return null; }
-  const displayBody = formatted ? tryFormatBody(body) : body;
+  const rawBody = typeof body === 'string' ? body : formatStructuredValue(body, true);
+  const displayBody = formatted ? tryFormatBody(body) : rawBody;
   const canFormat = (() => {
+    if (typeof body !== 'string') { return true; }
     try { JSON.parse(body); return true; } catch { /* not JSON */ }
     if (isXml(body)) { return true; }
     return false;
@@ -147,6 +167,9 @@ function parseCallDetails(details: string | undefined): CallResultDetails | null
       return null;
     }
     const result: CallResultDetails = {};
+    if (typeof underscore.stepKind === 'string') {
+      result.stepKind = underscore.stepKind;
+    }
     if (underscore.status !== undefined) {
       result.statusCode = underscore.status;
     }
@@ -154,6 +177,9 @@ function parseCallDetails(details: string | undefined): CallResultDetails | null
       try {
         const inner = JSON.parse(underscore.details);
         if (inner && typeof inner === 'object') {
+          if (typeof (inner as any).stepKind === 'string') {
+            result.stepKind = (inner as any).stepKind;
+          }
           if (inner.request) { result.request = inner.request; }
           if (inner.response) { result.response = inner.response; }
         }
@@ -190,6 +216,7 @@ const SectionTitle: React.FC<{ label: string; first?: boolean }> = ({ label, fir
 /** Render the structured call details. */
 const StructuredDetails: React.FC<{ callDetails: CallResultDetails }> = ({ callDetails }) => {
   let sectionIdx = 0;
+  const showStepIo = callDetails.stepKind !== 'http';
 
   return (
     <div style={{ marginTop: 6, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -218,7 +245,7 @@ const StructuredDetails: React.FC<{ callDetails: CallResultDetails }> = ({ callD
       })()}
 
       {/* Inputs (query parameters from the request) */}
-      {callDetails.request?.query && Object.keys(callDetails.request.query).length > 0 && (() => {
+      {showStepIo && callDetails.request?.query && Object.keys(callDetails.request.query).length > 0 && (() => {
         const first = sectionIdx++ === 0;
         return (
           <div>
@@ -232,7 +259,7 @@ const StructuredDetails: React.FC<{ callDetails: CallResultDetails }> = ({ callD
               {Object.entries(callDetails.request.query).map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', gap: 4 }}>
                   <span style={{ opacity: 0.7 }}>{k}:</span>
-                  <span style={{ wordBreak: 'break-all' }}>{v}</span>
+                  <span style={{ wordBreak: 'break-all' }}>{formatStructuredValue(v)}</span>
                 </div>
               ))}
             </div>
@@ -241,7 +268,7 @@ const StructuredDetails: React.FC<{ callDetails: CallResultDetails }> = ({ callD
       })()}
 
       {/* Outputs */}
-      {callDetails.outputs && Object.keys(callDetails.outputs).length > 0 && (() => {
+      {showStepIo && callDetails.outputs && Object.keys(callDetails.outputs).length > 0 && (() => {
         const first = sectionIdx++ === 0;
         return (
           <div>
@@ -255,7 +282,7 @@ const StructuredDetails: React.FC<{ callDetails: CallResultDetails }> = ({ callD
               {Object.entries(callDetails.outputs).map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', gap: 4 }}>
                   <span style={{ opacity: 0.7 }}>{k}:</span>
-                  <span style={{ wordBreak: 'break-all' }}>{typeof v === 'string' ? v : JSON.stringify(v)}</span>
+                  <span style={{ wordBreak: 'break-all' }}>{formatStructuredValue(v)}</span>
                 </div>
               ))}
             </div>

@@ -29,7 +29,7 @@ describe('normalizeReportConfig', () => {
 });
 
 describe('flowStagesToJsfunc', () => {
-  it('generates parallel execution for independent stages', () => {
+  it('generates parallel execution for independent stages', async () => {
     const stages = [
       {
         id: 'stage1',
@@ -44,13 +44,13 @@ describe('flowStagesToJsfunc', () => {
         ],
       },
     ];
-    const js = flowStagesToJsfunc(stages as any, true);
+    const js = await flowStagesToJsfunc(stages as any, true);
     expect(js).toContain('const stage1Promise = (async () =>');
     expect(js).toContain('const stage2Promise = (async () =>');
     expect(js).toContain('await Promise.all([stage1Promise, stage2Promise]);');
   });
 
-  it('generates dependency handling for dependent stages', () => {
+  it('generates dependency handling for dependent stages', async () => {
     const stages = [
       {
         id: 'stage1',
@@ -66,13 +66,13 @@ describe('flowStagesToJsfunc', () => {
         ],
       },
     ];
-    const js = flowStagesToJsfunc(stages as any, true);
+    const js = await flowStagesToJsfunc(stages as any, true);
     expect(js).toContain('await Promise.all([stage1Promise]);');
     expect(js).toContain('const stage2Promise = (async () =>');
     expect(js).toContain('await Promise.all([stage1Promise, stage2Promise]);');
   });
 
-  it('handles multiple dependencies', () => {
+  it('handles multiple dependencies', async () => {
     const stages = [
       {
         id: 'stage1',
@@ -94,14 +94,14 @@ describe('flowStagesToJsfunc', () => {
         ],
       },
     ];
-    const js = flowStagesToJsfunc(stages as any, true);
+    const js = await flowStagesToJsfunc(stages as any, true);
     expect(js).toContain('await Promise.all([stage1Promise, stage2Promise]);');
     expect(js).toContain('const stage3Promise = (async () =>');
     expect(js).toContain(
         'await Promise.all([stage1Promise, stage2Promise, stage3Promise]);');
   });
 
-  it('injects early return when stage condition exists', () => {
+  it('injects early return when stage condition exists', async () => {
     const stages = [
       {
         id: 'stage1',
@@ -117,7 +117,7 @@ describe('flowStagesToJsfunc', () => {
         ],
       },
     ];
-    const js = flowStagesToJsfunc(stages as any, true);
+    const js = await flowStagesToJsfunc(stages as any, true);
     expect(js).toContain('const stage1Promise = (async () =>');
     // Presence of condition should introduce an early-return guard
     expect(js).toContain('if (!(');
@@ -126,7 +126,7 @@ describe('flowStagesToJsfunc', () => {
     expect(js).toContain('await Promise.all([stage1Promise, stage2Promise]);');
   });
 
-  it('defaults to no condition (treated as true) when absent', () => {
+  it('defaults to no condition (treated as true) when absent', async () => {
     const stages = [
       {
         id: 'stage1',
@@ -141,7 +141,7 @@ describe('flowStagesToJsfunc', () => {
         ],
       },
     ];
-    const js = flowStagesToJsfunc(stages as any, true);
+    const js = await flowStagesToJsfunc(stages as any, true);
     expect(js).toContain('const stage1Promise = (async () =>');
     // No condition means no early-return guard injected
     expect(js.includes('if (!(')).toBe(false);
@@ -702,6 +702,38 @@ describe('rootTestToJsfunc + import tracker', () => {
 });
 
 describe('empty test items are valid', () => {
+  it('generates http request steps from test flow', async () => {
+    const ctx: TestContext = {
+      name: 'httpStepTest',
+      test: {
+        inputs: {userId: '42'},
+        steps: [{
+          http: 'https://example.com/users/<<i:userId>>',
+          id: 'getUser',
+          title: 'Get User',
+          method: 'get',
+          format: 'json',
+          expect: {'body.body.xxx': 'sss'},
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+
+    const js = await testToJsfunc(ctx, true);
+
+    expect(js).toContain('const __http_0 = async');
+    expect(js).toContain('const getUser = await __http_0({});');
+    expect(js).toContain('https://example.com/users/${userId}');
+    expect(js).toContain('extractOutputs_');
+    expect(js).toContain('"body.body.xxx": "body.body.xxx"');
+    expect(js).toContain('getUser["body.body.xxx"]');
+    expect(js).toContain('body.body.xxx == sss');
+    expect(js).toContain("getUser._.stepKind = 'http';");
+    expect(js).toContain('getUser.body = JSON.parse(getUser.body);');
+    expect(js).toContain('checkExpects_');
+  });
+
   it('handles empty assert without throwing and generates no code',
      async () => {
        const ctx: TestContext = {
