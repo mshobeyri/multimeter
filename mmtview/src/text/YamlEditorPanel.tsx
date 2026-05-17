@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
+import { apiToYaml } from "mmt-core/apiParsePack";
+import { curlToAPI, isCurlCommand } from "mmt-core/curlConvertor";
 import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./BeforeMount";
 import { safeList } from "mmt-core/safer";
@@ -212,6 +214,17 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   });
 
   const { reorderDocument } = useFormatAndOrder({ contentRef, docType, setContent });
+
+  const transformPastedText = (text: string): string | null => {
+    if (!isCurlCommand(text)) {
+      return null;
+    }
+    try {
+      return apiToYaml(curlToAPI(text));
+    } catch {
+      return null;
+    }
+  };
 
 
 
@@ -1014,6 +1027,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         setEditorReady={setEditorReady}
         onFocusChange={onFocusChange}
         onToggleRunButton={handleRunClick}
+        onPasteTextTransform={transformPastedText}
         showGlyphMargin={true}
         fontSize={fontSize}
       />

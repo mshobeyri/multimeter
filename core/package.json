@@ -59,6 +59,11 @@
       "require": "./dist/testParsePack.js",
       "default": "./dist/testParsePack.js"
     },
+    "./curlConvertor": {
+      "types": "./dist/curlConvertor.d.ts",
+      "require": "./dist/curlConvertor.js",
+      "default": "./dist/curlConvertor.js"
+    },
     "./postmanConvertor": {
       "types": "./dist/postmanConvertor.d.ts",
       "require": "./dist/postmanConvertor.js",
