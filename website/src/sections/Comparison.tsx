@@ -59,6 +59,10 @@ const features: FeatureRow[] = [
     values: { multimeter: true, postman: false, insomnia: false, bruno: true, robot: true, cucumber: true, jmeter: 'XML', neoload: false, playwright: true },
   },
   {
+    feature: '.http File Support',
+    values: { multimeter: true, postman: false, insomnia: false, bruno: true, robot: false, cucumber: false, jmeter: false, neoload: false, playwright: false },
+  },
+  {
     feature: 'Drag & Drop Test Builder',
     values: { multimeter: true, postman: false, insomnia: false, bruno: false, robot: false, cucumber: false, jmeter: true, neoload: true, playwright: false },
   },

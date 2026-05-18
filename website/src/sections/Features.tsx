@@ -13,6 +13,7 @@ import {
   Workflow,
   ClipboardCheck,
   FlaskConical,
+  Braces,
 } from 'lucide-react'
 import FadeIn from '../components/FadeIn'
 
@@ -77,6 +78,14 @@ const features = [
     bg: 'bg-blue-400/10',
   },
   {
+    icon: Braces,
+    title: '.http File Support',
+    description:
+      'Open, run, import, and convert REST Client / JetBrains-style .http files without taking over your existing workflow.',
+    color: 'text-cyan-400',
+    bg: 'bg-cyan-400/10',
+  },
+  {
     icon: Shield,
     title: 'Secure & Private',
     description:
@@ -96,7 +105,7 @@ const features = [
     icon: Terminal,
     title: 'CI/CD Ready',
     description:
-      'Run the same .mmt files in pipelines with testlight, export reports, and keep automation version-controlled.',
+      'Run the same .mmt and .http-backed flows in pipelines with testlight, export reports, and keep automation version-controlled.',
     color: 'text-emerald-400',
     bg: 'bg-emerald-400/10',
   },
@@ -107,14 +116,6 @@ const features = [
       'Export runs as HTML, Markdown, JUnit XML, or MMT reports depending on whether you need CI output, shareable docs, or interactive review.',
     color: 'text-amber-400',
     bg: 'bg-amber-400/10',
-  },
-  {
-    icon: FlaskConical,
-    title: 'Native Fuzzy Tests',
-    description:
-      'Create variation-heavy API and flow checks directly in Multimeter instead of bolting fuzz-style coverage onto a separate toolchain.',
-    color: 'text-fuchsia-400',
-    bg: 'bg-fuchsia-400/10',
   },
   {
     icon: FileText,
@@ -144,7 +145,7 @@ const features = [
     icon: Repeat,
     title: 'Import & Convert',
     description:
-      'Seamlessly import from Postman collections and OpenAPI specifications. Zero-friction migration.',
+      'Seamlessly import from Postman collections, OpenAPI specifications, and existing .http request files.',
     color: 'text-indigo-400',
     bg: 'bg-indigo-400/10',
   },

@@ -21,17 +21,17 @@ const faqItems: FAQItem[] = [
   {
     question: 'How does collaboration work?',
     answer:
-      'Your tests are plain YAML files (.mmt) stored in your Git repository alongside your code. Collaboration works exactly like code collaboration — through pull requests, code reviews, branches, and merges. No proprietary sync needed.',
+      'Your tests are plain YAML files (.mmt), and you can also reuse existing .http request files, stored in your Git repository alongside your code. Collaboration works exactly like code collaboration — through pull requests, code reviews, branches, and merges. No proprietary sync needed.',
   },
   {
     question: 'How do I use Multimeter in CI/CD?',
     answer:
-      'Use the testlight CLI tool. Install it via npm (npm install -g testlight), then run your tests with "npx testlight run path/to/test.mmt". It integrates with any CI/CD system — GitHub Actions, Jenkins, GitLab CI, Azure DevOps, and more.',
+      'Use the testlight CLI tool. Install it via npm (npm install -g testlight), then run your tests with "npx testlight run path/to/test.mmt" or run .http files that Multimeter converts to test flows. It integrates with any CI/CD system — GitHub Actions, Jenkins, GitLab CI, Azure DevOps, and more.',
   },
   {
     question: 'What formats can I import from?',
     answer:
-      'Multimeter can import from Postman collections and OpenAPI (Swagger) specifications. The built-in convertor panel makes migration seamless — just drag and drop your existing files.',
+      'Multimeter can import from Postman collections, OpenAPI (Swagger) specifications, and .http / .https request files. Use .http files directly from Open With, import them into .mmt tests, or save them as editable MMT tests.',
   },
   {
     question: 'Does Multimeter upload any data externally?',
@@ -41,7 +41,7 @@ const faqItems: FAQItem[] = [
   {
     question: 'What protocols are supported?',
     answer:
-      'Multimeter supports HTTP/REST, WebSocket, SOAP/XML, and gRPC protocols. You can test any API endpoint with full control over headers, body, authentication, and response validation.',
+      'Multimeter supports HTTP/REST, WebSocket, SOAP/XML, GraphQL, and gRPC protocols. You can test any API endpoint with full control over headers, body, authentication, response validation, and existing .http file workflows.',
   },
   {
     question: 'What report formats are available?',
