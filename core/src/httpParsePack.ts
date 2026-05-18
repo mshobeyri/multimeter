@@ -281,7 +281,7 @@ const addExpectValue = (expect: NonNullable<TestFlowHttp['expect']>, key: string
 
 const extractResponseScriptExpects = (script: string): TestFlowHttp['expect'] | undefined => {
   const expect: NonNullable<TestFlowHttp['expect']> = {};
-  const assertPattern = /client\.assert\(\s*response\.([A-Za-z_$][A-Za-z0-9_$]*(?:(?:\.[A-Za-z_$][A-Za-z0-9_$]*)|(?:\[['"][^'"]+['"]\])|(?:\[\d+\]))*)\s*(===|!==|==|!=|>=|<=|>|<)\s*((?:client\.(?:global|environment)\.get\(\s*(['"])[^'"]+\4\s*\))|(?:(['"])(?:\\.|(?!\5).)*\5)|[^,;)]+)(?:\s*\|\|\s*response\.[^,)]+)?)(?:\s*,[\s\S]*?)?\)/g;
+  const assertPattern = /client\.assert\(\s*response\.([A-Za-z_$][A-Za-z0-9_$]*(?:(?:\.[A-Za-z_$][A-Za-z0-9_$]*)|(?:\[['"][^'"]+['"]\])|(?:\[\d+\]))*)\s*(===|!==|==|!=|>=|<=|>|<)\s*((?:client\.(?:global|environment)\.get\(\s*['"][^'"]+['"]\s*\))|(?:"[^"]*")|(?:'[^']*')|[^,;)]+(?:\s*\|\|\s*response\.[^,)]+)?)(?:\s*,[\s\S]*?)?\)/g;
   let match: RegExpExecArray | null;
   while ((match = assertPattern.exec(script)) !== null) {
     const key = responsePathToExpectKey(match[1]);
@@ -432,6 +432,9 @@ const parseRequestBlock = (
       if (/%}\s*$/.test(trimmed)) {
         flushScript();
       }
+      continue;
+    }
+    if (responseHandlerScript && (!trimmed || isCommentLine(line.text))) {
       continue;
     }
     bodyLines.push(line.text);

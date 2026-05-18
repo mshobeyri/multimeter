@@ -1,0 +1,74 @@
+@baseUrl = https://jsonplaceholder.typicode.com
+@title = Hello World
+@userId = 1
+
+########################################
+### 1. CREATE POST
+########################################
+POST {{baseUrl}}/posts
+Content-Type: application/json
+
+{
+  "title": "{{title}}",
+  "body": "This is a test post",
+  "userId": {{userId}}
+}
+
+> {%
+  client.test("Post created", function () {
+    client.assert(response.status === 201);
+  });
+
+  client.test("Title matches input", function () {
+    client.assert(response.body.title === "Hello World");
+  });
+
+  client.global.set("postId", response.body.id);
+%}
+
+
+########################################
+### 2. FETCH CREATED POST
+########################################
+GET {{baseUrl}}/posts/{{postId}}
+
+> {%
+  client.test("Post fetched", function () {
+    client.assert(response.status === 200);
+  });
+
+  client.test("ID matches", function () {
+    client.assert(response.body.id === client.global.get("postId"));
+  });
+%}
+
+
+########################################
+### 3. SEARCH POSTS BY USER
+########################################
+GET {{baseUrl}}/posts?userId={{userId}}
+
+> {%
+  client.test("Has posts", function () {
+    client.assert(Array.isArray(response.body));
+    client.assert(response.body.length > 0);
+  });
+
+  client.test("All belong to user", function () {
+    response.body.forEach(p => {
+      client.assert(p.userId === {{userId}});
+    });
+  });
+%}
+
+
+########################################
+### 4. DELETE POST
+########################################
+DELETE {{baseUrl}}/posts/{{postId}}
+
+> {%
+  client.test("Delete executed", function () {
+    client.assert(response.status === 200 || response.status === 204);
+  });
+%}
