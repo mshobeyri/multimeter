@@ -32,12 +32,14 @@ Authorization: Bearer {{login.response.body.$.token}}
       id: 'login',
       method: 'post',
       format: 'json',
+      report: 'all',
       headers: {'Content-Type': 'application/json'},
       body: {user: 'jane', trace: 'r:uuid'},
     });
     expect(test.steps?.[1]).toMatchObject({
       http: 'https://api.example.com/me',
       id: 'profile',
+      report: 'all',
       headers: {Authorization: 'Bearer ${login.body.token}'},
     });
   });

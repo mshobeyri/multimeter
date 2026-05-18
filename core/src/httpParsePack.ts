@@ -513,6 +513,7 @@ const requestToSteps = (request: HttpRequestBlock, index: number): TestFlowStep[
     title: request.title || request.name,
     method: request.method,
     format,
+    report: 'all',
   };
   if (Object.keys(request.headers).length > 0) {
     step.headers = request.headers;
