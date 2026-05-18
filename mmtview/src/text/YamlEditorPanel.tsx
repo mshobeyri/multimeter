@@ -128,7 +128,7 @@ const UNDEFINED_INPUT_CLASS = "mmt-undefined-input-underline";
 const EXPECT_OP_CLASS = "mmt-expect-operator";
 
 /** Known comparison operators, longest first so >= matches before > */
-const EXPECT_OPS = ['==', '!=', '>=', '<=', '=@', '!@', '=C', '!C', '=~', '!~', '=^', '!^', '=$', '!$', '>', '<'];
+const EXPECT_OPS = ['==', '!=', '>=', '<=', '=@', '!@', '=C', '!C', '=*', '!*', '=~', '!~', '=#', '!#', '=%', '!%', '=^', '!^', '=$', '!$', '>', '<'];
 
 const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   content,
@@ -968,6 +968,19 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
               if (rest[0] === '"' || rest[0] === "'") {
                 afterQuote = rest.slice(1);
                 opStartCol += 1;
+              }
+
+              const fuzzyPercentMatch = afterQuote.match(/^([=!](?:0|[1-9][0-9]?|100)%)(?:\s|["']|$)/);
+              if (fuzzyPercentMatch) {
+                const op = fuzzyPercentMatch[1];
+                matches.push({
+                  range: new monaco.Range(
+                    i + 1, opStartCol + 1,
+                    i + 1, opStartCol + op.length + 1
+                  ),
+                  options: { inlineClassName: EXPECT_OP_CLASS }
+                });
+                continue;
               }
 
               for (const op of EXPECT_OPS) {

@@ -280,7 +280,7 @@ With title and report:
     external: fails
 ```
 
-All comparison operators supported by `check`/`assert` are available in `expect` values: `==`, `!=`, `<`, `>`, `<=`, `>=`, `=@`, `!@`, `=C`, `!C`, `=^`, `!^`, `=$`, `!$`, `=~`, `!~`.
+All comparison operators supported by `check`/`assert` are available in `expect` values: `==`, `!=`, `<`, `>`, `<=`, `>=`, `=@`, `!@`, `=C`, `!C`, `=^`, `!^`, `=$`, `!$`, `=*`, `!*`, `=#`, `!#`, `=N%`, `!N%`. Legacy regex operators `=~` and `!~` are still accepted.
 
 #### Inline debug on call
 
@@ -317,14 +317,18 @@ Supported operators
 - `!C` (left does not contain right)
 - `=^` (starts with), `!^` (not starts with)
 - `=$` (ends with), `!$` (not ends with)
-- `=~` (regex match), `!~` (not regex match)
+- `=*` (regex match), `!*` (not regex match). Legacy `=~` and `!~` still work.
+- `=#` (string/number character length equals), `!#` (not equal)
+- `=N%`(fuzzy match at least N% similar), `!N%` (not fuzzy match at N%). Any whole percent from 0 to 100 can be used, for example `=80%`. In the visual UI these appear as `=%` and `!%` with a separate percentage selector.
 
 You can write checks and asserts in a concise inline form or in a structured object form with explicit `actual`, `expected`, `operator`, and an optional `title` or `details`.
 
 Inline examples
 ```yaml
 - assert: ${doLogin.status} == 200
-- check: ${profile.name} =~ /John/i
+- check: ${profile.name} =* /John/i
+- check: ${profile.name} =80% Jon
+- check: ${profile.roles} =# 2
 ```
 
 > **Note:** Values referencing step ids, loop variables, or JS-scoped variables must use `${...}` to resolve at runtime:
@@ -569,7 +573,7 @@ steps:
     id: me
     inputs:
       token: ${token}
-  - check: ${me.email} =~ /@example.com$/
+  - check: ${me.email} =* /@example.com$/
 ```
 
 ## Reference (types)

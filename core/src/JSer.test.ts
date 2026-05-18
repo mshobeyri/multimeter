@@ -5,7 +5,7 @@ import {APIContext} from './JSerAPI';
 import {setFileLoader} from './JSerFileLoader';
 import {importsToJsfunc} from './JSerImports';
 import {TestContext, variableReplacer} from './JSerTest';
-import {assertToJSfunc, checkToJSfunc, flowStagesToJsfunc, parseExpectValue} from './JSerTestFlow';
+import {assertToJSfunc, checkToJSfunc, conditionalStatementToJSfunc, flowStagesToJsfunc, parseExpectValue} from './JSerTestFlow';
 import {createTestFileLoaderMock} from './testFileLoaderMock';
 import {normalizeReportConfig} from './TestData';
 
@@ -924,6 +924,18 @@ describe('parseExpectValue', () => {
     expect(parseExpectValue('=~ /ok/i')).toEqual({ operator: '=~', expected: '/ok/i' });
   });
 
+  it('parses new regex, count, and fuzzy operators', () => {
+    expect(parseExpectValue('=* /ok/i')).toEqual({ operator: '=*', expected: '/ok/i' });
+    expect(parseExpectValue('!* /fail/')).toEqual({ operator: '!*', expected: '/fail/' });
+    expect(parseExpectValue('=# 3')).toEqual({ operator: '=#', expected: '3' });
+    expect(parseExpectValue('!# 0')).toEqual({ operator: '!#', expected: '0' });
+    expect(parseExpectValue('=% John')).toEqual({ operator: '=%', expected: 'John' });
+    expect(parseExpectValue('=0% John')).toEqual({ operator: '=0%', expected: 'John' });
+    expect(parseExpectValue('=10% John')).toEqual({ operator: '=10%', expected: 'John' });
+    expect(parseExpectValue('!75% admin')).toEqual({ operator: '!75%', expected: 'admin' });
+    expect(parseExpectValue('!100% admin')).toEqual({ operator: '!100%', expected: 'admin' });
+  });
+
   it('handles expected value with spaces', () => {
     expect(parseExpectValue('== hello world')).toEqual({ operator: '==', expected: 'hello world' });
   });
@@ -935,6 +947,20 @@ describe('parseExpectValue', () => {
   it('unquotes empty string markers', () => {
     expect(parseExpectValue("== ''")).toEqual({ operator: '==', expected: '' });
     expect(parseExpectValue('== ""')).toEqual({ operator: '==', expected: '' });
+  });
+});
+
+describe('conditionalStatementToJSfunc', () => {
+  it('parses fuzzy operators after multi-word actual values', () => {
+    expect(conditionalStatementToJSfunc('mehrdad zahra =100% mehrdad sahar'))
+        .toBe('fuzzyMatch_(`mehrdad zahra`, `mehrdad sahar`, 100)');
+  });
+
+  it('uses 80 percent as the default fuzzy threshold for =%', () => {
+    expect(conditionalStatementToJSfunc('name =% Jon'))
+        .toBe('fuzzyMatch_(`name`, `Jon`, 80)');
+    expect(conditionalStatementToJSfunc('name !% admin'))
+        .toBe('notFuzzyMatch_(`name`, `admin`, 80)');
   });
 });
 

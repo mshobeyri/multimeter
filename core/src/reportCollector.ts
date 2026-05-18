@@ -14,6 +14,7 @@ export interface ExpectItemResult {
   actual?: any;
   expected?: any;
   status: 'passed' | 'failed';
+  similarity?: number;
 }
 
 export interface TestStepResult {

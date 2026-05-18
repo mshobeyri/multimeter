@@ -1,5 +1,5 @@
 import React from "react";
-import { opsList, ReportConfig, ReportLevel } from "mmt-core/TestData";
+import { ReportConfig, ReportLevel, splitCheckOperatorPrefix } from "mmt-core/TestData";
 import KSVEditor from "../components/KSVEditor";
 import OperatorSelect from "../components/OperatorSelect";
 
@@ -29,13 +29,11 @@ const expectMapToRows = (map: Record<string, any> | undefined): ExpectRow[] => {
     const values = Array.isArray(val) ? val : [val];
     for (const v of values) {
       const s = String(v ?? '').trim();
+      const prefixed = splitCheckOperatorPrefix(s);
       let matched = false;
-      for (const op of opsList) {
-        if (s.startsWith(op + ' ') || s === op) {
-          rows.push({ field, op, expected: s.slice(op.length).trim() });
-          matched = true;
-          break;
-        }
+      if (prefixed) {
+        rows.push({ field, op: prefixed.operator, expected: prefixed.expected });
+        matched = true;
       }
       if (!matched) {
         rows.push({ field, op: '==', expected: s });

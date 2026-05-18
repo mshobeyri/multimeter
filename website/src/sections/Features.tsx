@@ -78,14 +78,6 @@ const features = [
     bg: 'bg-blue-400/10',
   },
   {
-    icon: Braces,
-    title: '.http File Support',
-    description:
-      'Open, run, import, and convert REST Client / JetBrains-style .http files without taking over your existing workflow.',
-    color: 'text-cyan-400',
-    bg: 'bg-cyan-400/10',
-  },
-  {
     icon: Shield,
     title: 'Secure & Private',
     description:
@@ -118,6 +110,14 @@ const features = [
     bg: 'bg-amber-400/10',
   },
   {
+    icon: FlaskConical,
+    title: 'Native Fuzzy Tests',
+    description:
+      'Create variation-heavy API and flow checks directly in Multimeter instead of bolting fuzz-style coverage onto a separate toolchain.',
+    color: 'text-fuchsia-400',
+    bg: 'bg-fuchsia-400/10',
+  },
+  {
     icon: FileText,
     title: 'Auto-Generated Docs',
     description:
@@ -143,9 +143,9 @@ const features = [
   },
   {
     icon: Repeat,
-    title: 'Import & Convert',
+    title: 'Other tools support',
     description:
-      'Seamlessly import from Postman collections, OpenAPI specifications, and existing .http request files.',
+      'Seamlessly import from Postman collections, OpenAPI specifications, existing .http request files and curl.',
     color: 'text-indigo-400',
     bg: 'bg-indigo-400/10',
   },

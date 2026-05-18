@@ -1,7 +1,7 @@
 import {APIData} from './APIData';
 import {apiToJSfunc} from './JSerAPI';
 import {indentLines, timeUnitToMs, toInputsParams} from './JSerHelper';
-import {Comparison, ComparisonObject, ExpectMap, ExpectValue, normalizeReportConfig, opsList, ReportConfig, ReportLevel, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
+import {Comparison, ComparisonObject, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, normalizeReportConfig, opsList, ReportConfig, ReportLevel, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
 import {getTestFlowStepType} from './testParsePack';
 import {replaceEnvTokensPlain, toTemplateWithEnvVars} from './variableReplacer';
 
@@ -20,27 +20,41 @@ const unquoteEmpty = (s: string): string => {
   return t;
 };
 
-/**
- * Parse a comparison string "actual operator expected" where the expected
- * part may contain spaces. Only the first two space-delimited tokens (actual
- * and operator) are split; everything after the operator is the expected value.
- */
+const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const comparisonOperatorPattern = [
+  '[=!](?:0|[1-9][0-9]?|100)%',
+  ...opsList
+      .slice()
+      .sort((a, b) => b.length - a.length)
+      .map(escapeRegExp),
+].join('|');
+
+/** Parse a comparison string "actual operator expected" where either side may contain spaces. */
 const parseComparisonParts = (comp: string): { actual: string; operator: string; expected: string } | null => {
   const trimmed = comp.trim();
-  const firstSpace = trimmed.indexOf(' ');
-  if (firstSpace === -1) {
-    return null;
+  const operatorRe = new RegExp(`(?:^|\\s)(${comparisonOperatorPattern})(?=\\s|$)`, 'g');
+  let match: RegExpExecArray | null;
+  while ((match = operatorRe.exec(trimmed))) {
+    const operator = match[1];
+    const operatorStart = match.index + match[0].length - operator.length;
+    const actual = trimmed.slice(0, operatorStart).trim();
+    if (!actual) {
+      continue;
+    }
+    const expected = trimmed.slice(operatorStart + operator.length).trim();
+    return { actual, operator, expected };
   }
-  const actual = trimmed.slice(0, firstSpace);
-  const afterActual = trimmed.slice(firstSpace + 1);
-  const secondSpace = afterActual.indexOf(' ');
-  if (secondSpace === -1) {
-    // "actual operator" with no expected value
-    return { actual, operator: afterActual, expected: '' };
+  return null;
+};
+
+const toTemplateArg = (value: string): string => `\`${value}\``;
+
+const toRuntimeArg = (value: string): string => {
+  const trimmed = value.trim();
+  if (/^\$\{.+\}$/.test(trimmed)) {
+    return trimmed.slice(2, -1);
   }
-  const operator = afterActual.slice(0, secondSpace);
-  const expected = afterActual.slice(secondSpace + 1);
-  return { actual, operator, expected };
+  return toTemplateArg(value);
 };
 
 export const conditionalStatementToJSfunc = (check: string): string => {
@@ -52,39 +66,52 @@ export const conditionalStatementToJSfunc = (check: string): string => {
   }
   const { actual, operator } = parsed;
   const expected = unquoteEmpty(parsed.expected);
+  const actualTemplate = toTemplateArg(actual);
+  const expectedTemplate = toTemplateArg(expected);
+  if (isFuzzyPercentOperator(operator) || isFuzzyPercentSelectOperator(operator)) {
+    const percent = isFuzzyPercentOperator(operator) ? Number(operator.slice(1, -1)) : DEFAULT_FUZZY_PERCENT;
+    const helper = operator.startsWith('!') ? 'notFuzzyMatch_' : 'fuzzyMatch_';
+    return `${helper}(${actualTemplate}, ${expectedTemplate}, ${percent})`;
+  }
   switch (operator) {
     case '<':
-      return `less_(\`${actual}\`, \`${expected}\`)`;
+      return `less_(${actualTemplate}, ${expectedTemplate})`;
     case '>':
-      return `greater_(\`${actual}\`, \`${expected}\`)`;
+      return `greater_(${actualTemplate}, ${expectedTemplate})`;
     case '<=':
-      return `lessOrEqual_(\`${actual}\`, \`${expected}\`)`;
+      return `lessOrEqual_(${actualTemplate}, ${expectedTemplate})`;
     case '>=':
-      return `greaterOrEqual_(\`${actual}\`, \`${expected}\`)`;
+      return `greaterOrEqual_(${actualTemplate}, ${expectedTemplate})`;
     case '==':
-      return `equals_(\`${actual}\`, \`${expected}\`)`;
+      return `equals_(${actualTemplate}, ${expectedTemplate})`;
     case '!=':
-      return `notEquals_(\`${actual}\`, \`${expected}\`)`;
+      return `notEquals_(${actualTemplate}, ${expectedTemplate})`;
     case '=@':
-      return `isAt_(\`${actual}\`, \`${expected}\`)`;
+      return `isAt_(${actualTemplate}, ${expectedTemplate})`;
     case '!@':
-      return `isNotAt_(\`${actual}\`, \`${expected}\`)`;
+      return `isNotAt_(${actualTemplate}, ${expectedTemplate})`;
     case '=C':
-      return `contains_(\`${actual}\`, \`${expected}\`)`;
+      return `contains_(${actualTemplate}, ${expectedTemplate})`;
     case '!C':
-      return `notContains_(\`${actual}\`, \`${expected}\`)`;
+      return `notContains_(${actualTemplate}, ${expectedTemplate})`;
+    case '=*':
     case '=~':
-      return `matches_(\`${actual}\`, \`${expected}\`)`;
+      return `matches_(${actualTemplate}, ${expectedTemplate})`;
+    case '!*':
     case '!~':
-      return `notMatches_(\`${actual}\`, \`${expected}\`)`;
+      return `notMatches_(${actualTemplate}, ${expectedTemplate})`;
     case '=^':
-      return `startsWith_(\`${actual}\`, \`${expected}\`)`;
+      return `startsWith_(${actualTemplate}, ${expectedTemplate})`;
     case '!^':
-      return `notStartsWith_(\`${actual}\`, \`${expected}\`)`;
+      return `notStartsWith_(${actualTemplate}, ${expectedTemplate})`;
     case '=$':
-      return `endsWith_(\`${actual}\`, \`${expected}\`)`;
+      return `endsWith_(${actualTemplate}, ${expectedTemplate})`;
     case '!$':
-      return `notEndsWith_(\`${actual}\`, \`${expected}\`)`;
+      return `notEndsWith_(${actualTemplate}, ${expectedTemplate})`;
+    case '=#':
+      return `lengthEquals_(${toRuntimeArg(actual)}, ${expectedTemplate})`;
+    case '!#':
+      return `notLengthEquals_(${toRuntimeArg(actual)}, ${expectedTemplate})`;
     default:
       return 'true';
   }
@@ -255,12 +282,9 @@ export const parseExpectValue = (value: ExpectValue): { operator: string; expect
     return { operator: '==', expected: String(value) };
   }
   const trimmed = String(value).trim();
-  // Try to match a known operator at the start of the string
-  for (const op of opsList) {
-    if (trimmed.startsWith(op + ' ') || trimmed === op) {
-      const expected = trimmed.slice(op.length).trim();
-      return { operator: op, expected: unquoteEmpty(expected) };
-    }
+  const prefixed = splitCheckOperatorPrefix(trimmed);
+  if (prefixed) {
+    return { operator: prefixed.operator, expected: unquoteEmpty(prefixed.expected) };
   }
   // No operator prefix found → default to equality
   return { operator: '==', expected: trimmed };
