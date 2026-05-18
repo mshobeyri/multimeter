@@ -56,6 +56,7 @@ interface YamlEditorPanelProps {
   content: string;
   setContent: (value: string) => void;
   language?: string;
+  sourceFormat?: "mmt" | "http";
   showNumbers?: boolean;
   fontSize?: number;
   collapseDescription?: boolean;
@@ -134,7 +135,9 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   setContent,
   onFocusChange, // <-- receive it as a prop
   fontSize,
-  collapseDescription
+  collapseDescription,
+  language = "yaml",
+  sourceFormat = "mmt"
 }) => {
   const monacoRef = useRef<any>(null);
   const editorRef = useRef<any>(null);
@@ -211,6 +214,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     editorReady,
     docType,
     shouldShowRunControls,
+    sourceFormat,
   });
 
   const { reorderDocument } = useFormatAndOrder({ contentRef, docType, setContent });
@@ -266,6 +270,12 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     const model = editor.getModel();
     if (!model) return;
 
+    if (sourceFormat === "http") {
+      monaco.editor.setModelMarkers(model, "yaml", []);
+      setYamlProblems([]);
+      return;
+    }
+
     try {
       const yamlDoc = parseYamlDoc(content);
       let markers = [];
@@ -300,7 +310,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         severity: "error",
       }]);
     }
-  }, [content, editorReady]);
+  }, [content, editorReady, sourceFormat]);
 
   // Parse imports map whenever content changes
   useEffect(() => {
@@ -1018,7 +1028,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   return (
     <div style={{ height: "100%" }}>
       <TextEditor
-        language={"yaml"}
+        language={language}
         content={content}
         setContent={setContent}
         beforeMount={handleBeforeMount}

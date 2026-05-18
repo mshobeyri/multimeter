@@ -61,7 +61,7 @@ export async function prepareRunFromOptions(
         {exampleIndex: options.exampleIndex, exampleName: options.exampleName},
         log);
   } else if (docType === 'test') {
-    specific = prepareTestRun(rawText, manualInputs);
+    specific = prepareTestRun(rawText, manualInputs, filePath);
   } else if (docType === 'suite') {
     specific = prepareSuiteRun(rawText, manualInputs);
   } else if (docType === 'loadtest') {

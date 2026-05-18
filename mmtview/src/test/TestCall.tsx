@@ -55,6 +55,7 @@ const TestCall: React.FC<TestCallProps> = ({
     const bc = b && typeof b === 'object' ? b : {};
     if ((ac.call || '') !== (bc.call || '')) return false;
     if ((ac.id || '') !== (bc.id || '')) return false;
+    if ((ac.title || '') !== (bc.title || '')) return false;
     const ai = ac.inputs && typeof ac.inputs === 'object' ? ac.inputs : {};
     const bi = bc.inputs && typeof bc.inputs === 'object' ? bc.inputs : {};
     if (stableStringify(ai) !== stableStringify(bi)) return false;
@@ -89,6 +90,9 @@ const TestCall: React.FC<TestCallProps> = ({
   const currentId = local && typeof local === 'object' && typeof (local as any).id === 'string'
     ? (local as any).id
     : (value && typeof value === 'object' && typeof (value as any).id === 'string' ? (value as any).id : '');
+  const currentTitle = local && typeof local === 'object' && typeof (local as any).title === 'string'
+    ? (local as any).title
+    : (value && typeof value === 'object' && typeof (value as any).title === 'string' ? (value as any).title : '');
 
   // Keep local in sync if parent changes externally (avoid stomping during our own edits by shallow check)
   React.useEffect(() => {
@@ -181,17 +185,19 @@ const TestCall: React.FC<TestCallProps> = ({
 
   /** Build the full call object from current state */
   const buildCallObj = (overrides?: {
-    alias?: string; id?: string; inputs?: Record<string, any>;
+    alias?: string; id?: string; title?: string; inputs?: Record<string, any>;
     expect?: ExpectRow[]; report?: any;
   }) => {
     const alias = overrides?.alias ?? currentAlias;
     const id = overrides?.id ?? currentId;
+    const title = overrides?.title ?? currentTitle;
     const inp = overrides?.inputs ?? inputs;
     const exp = overrides?.expect ?? expectList;
     const rep = overrides?.report !== undefined ? overrides.report : callReport;
     if (!alias) { return {}; }
     const obj: any = { call: alias };
     if (id && id.trim().length > 0) { obj.id = id; }
+    if (title && title.trim().length > 0) { obj.title = title; }
     obj.inputs = inp;
     const expectMap = rowsToExpectMap(exp);
     if (expectMap) { obj.expect = expectMap; }
@@ -333,6 +339,14 @@ const TestCall: React.FC<TestCallProps> = ({
     scheduleEmit(next);
   };
 
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const titleVal = e.target.value;
+    if (!currentAlias) return;
+    const next = buildCallObj({ title: titleVal });
+    setLocal(next);
+    scheduleEmit(next);
+  };
+
   const handleRemoveExpect = (index: number) => {
     const next = buildCallObj({ expect: expectList.filter((_, i) => i !== index) });
     setLocal(next);
@@ -414,6 +428,18 @@ const TestCall: React.FC<TestCallProps> = ({
           disabled={!currentAlias}
           style={{ width: '100%' }}
           placeholder="Optional id to capture call result"
+        />
+      </div>
+
+      <div className="label">Title</div>
+      <div style={{ padding: "5px" }}>
+        <input
+          type="text"
+          value={currentTitle}
+          onChange={handleTitleChange}
+          disabled={!currentAlias}
+          style={{ width: '100%' }}
+          placeholder="Optional display title"
         />
       </div>
 

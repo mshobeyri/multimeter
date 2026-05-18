@@ -103,6 +103,7 @@ export interface TestFlowHttp extends TestFlowBase {
   format?: Format;
   headers?: Record<string, string>;
   body?: string|object|null;
+  outputs?: Record<string, string>;
   expect?: ExpectMap;
   debug?: ExpectMap | true;
   report?: ReportLevel | ReportConfig;

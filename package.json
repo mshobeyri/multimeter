@@ -165,6 +165,23 @@
           "light": "res/activity.png",
           "dark": "res/activity.png"
         }
+      },
+      {
+        "viewType": "mmt.httpEditor",
+        "displayName": "Multimeter HTTP Test Editor",
+        "selector": [
+          {
+            "filenamePattern": "file:/**/*.http"
+          },
+          {
+            "filenamePattern": "file:/**/*.https"
+          }
+        ],
+        "priority": "option",
+        "icon": {
+          "light": "res/activity.png",
+          "dark": "res/activity.png"
+        }
       }
     ],
     "commands": [

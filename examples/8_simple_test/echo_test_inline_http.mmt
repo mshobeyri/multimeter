@@ -1,3 +1,18 @@
-curl -H "Authorization: Bearer TOKEN" \
-     -H "Accept: application/json" \
-     https://api.example.com/users
+type: test
+title: Test echo inline http call
+description: Calls the echo API with directly
+import:
+  echo: echo_api.mmt
+inputs:
+  message: hello world
+steps:
+  - http: https://test.mmt.dev/echo
+    title: Inline Call
+    method: post
+    body: |-
+      {
+        "message": "hi"
+      }
+    expect:
+      body.body.message: hi
+    report: all

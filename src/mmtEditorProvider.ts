@@ -151,6 +151,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
           // External change (undo, revert, etc.) – push new content.
           webviewPanel.webview.postMessage({
             command: 'documentContentChanged',
+            uri: document.uri.toString(),
             content: document.getText(),
           });
         });

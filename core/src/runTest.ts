@@ -3,6 +3,7 @@ import * as JSer from './JSer';
 import {isPlainObject, PreparedRun, RunFileResult, runGeneratedJs, sanitizeIdentifier} from './runCommon';
 import {GenerateJsOptions, mergeInputs, RunFileOptions, TestOutputsReporterEvent, TestRunSummaryEvent, TestStepReporterEvent} from './runConfig';
 import * as testParsePack from './testParsePack';
+import {httpToTest, httpToTestStrict, isHttpFilePath} from './httpParsePack';
 
 const createRunId = (): string => {
   return `${Date.now().toString(36)}-${
@@ -12,9 +13,10 @@ const createRunId = (): string => {
 export const __testOnlyCreateRunId = createRunId;
 
 export function prepareTestRun(
-    rawText: string, manualInputs: Record<string, any>): Partial<PreparedRun> {
+    rawText: string, manualInputs: Record<string, any>, filePath = ''): Partial<PreparedRun> {
   const testDoc =
-      testParsePack.yamlToTest ? testParsePack.yamlToTest(rawText) : {} as any;
+      isHttpFilePath(filePath) ? httpToTest(rawText, filePath) :
+      (testParsePack.yamlToTest ? testParsePack.yamlToTest(rawText) : {} as any);
   const defaultInputs = isPlainObject(testDoc?.inputs) ?
       testDoc.inputs as Record<string, any>:
       {};
@@ -39,7 +41,10 @@ export async function generateTestJs(opts: GenerateJsOptions): Promise<string> {
     }
   });
   // Use strict parsing for the root test file to surface YAML/validation errors.
-  const test = testParsePack.yamlToTestStrict(rawText);
+  const sourceFilePath = filePath || '';
+  const test = isHttpFilePath(sourceFilePath) ?
+      httpToTestStrict(rawText, sourceFilePath) :
+      testParsePack.yamlToTestStrict(rawText);
   let js = await JSer.rootTestToJsfunc({test, name, inputs, envVars, filePath, projectRoot, isExternal});
   const anyJSer: any = JSer as any;
   if (anyJSer.variableReplacer &&

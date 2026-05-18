@@ -136,6 +136,10 @@ export const messageReceived = async (
       file.handleUpdateDocumentContent(message, document, mmtProvider);
       break;
 
+    case 'saveContentAsMmt':
+      await file.handleSaveContentAsMmt(message, document);
+      break;
+
     case 'updateWorkspaceState':
       await handleUpdateWorkspaceState(message, mmtProvider);
       break;

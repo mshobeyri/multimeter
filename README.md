@@ -87,6 +87,9 @@ Seamlessly import from Postman collections and OpenAPI specifications. Zero-fric
 - [Mock Server (`type: server`)](docs/mock-server.md#mmt-mock-server-files) — define mock endpoints with routing, matching, and dynamic responses
 - [Report (`type: report`)](docs/reports.md#mmt-report-yaml) — structured test results viewable in the editor
 
+**Other supports**
+- [HTTP files (`.http`, `.https`)](docs/http-files.md) — run REST Client / JetBrains-style HTTP files as test flows via Open With
+
 **VS Code Panels & Features:**
 - [Mock Server Panel](docs/mock-server.md) — start HTTP/HTTPS/WS mock servers from the UI
 - [Convertor](docs/convertor.md) — import OpenAPI and Postman collections into `.mmt`

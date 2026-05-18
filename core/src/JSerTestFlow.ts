@@ -302,6 +302,9 @@ const collectHttpOutputPaths = (step: TestFlowHttp): Record<string, string> => {
       outputs[key] = key;
     }
   };
+  for (const [key, value] of Object.entries(step.outputs || {})) {
+    outputs[key] = value;
+  }
   addMapKeys(step.expect);
   addMapKeys(step.debug);
   return outputs;

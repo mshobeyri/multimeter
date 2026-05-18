@@ -121,6 +121,28 @@ export function handleUpdateDocumentContent(
   mmtProvider.updateTextDocument(document, message.text);
 }
 
+export async function handleSaveContentAsMmt(
+    message: any, document: vscode.TextDocument) {
+  const text = typeof message?.text === 'string' ? message.text : '';
+  if (!text.trim()) {
+    vscode.window.showWarningMessage('No MMT content to save.');
+    return;
+  }
+  const parsed = path.parse(document.uri.fsPath);
+  const defaultUri = vscode.Uri.file(path.join(parsed.dir, `${parsed.name}.mmt`));
+  const target = await vscode.window.showSaveDialog({
+    defaultUri,
+    filters: {MMT: ['mmt']},
+    saveLabel: 'Save as MMT',
+  });
+  if (!target) {
+    return;
+  }
+  await vscode.workspace.fs.writeFile(target, Buffer.from(text, 'utf8'));
+  await vscode.commands.executeCommand(
+      'vscode.openWith', target, 'mmt.editor', {preview: false});
+}
+
 export async function readFileContent(filename: string): Promise<string> {
   try {
     // filename should be a filesystem path here
@@ -153,6 +175,8 @@ export async function handleLoadDocumentContent(
 
   // Resolve project root for +/ imports (same logic used by run)
   const projectRoot = findProjectRoot(document.uri.fsPath);
+  const lowerPath = document.uri.fsPath.toLowerCase();
+  const sourceFormat = lowerPath.endsWith('.http') || lowerPath.endsWith('.https') ? 'http' : 'mmt';
 
   // Send document data to the current panel
   webviewPanel.webview.postMessage({
@@ -162,7 +186,8 @@ export async function handleLoadDocumentContent(
     mode: vscode.window.tabGroups.activeTabGroup.activeTab?.input ? 'normal' :
                                                                     'compare',
     viewMode: lastViewMode,
-    projectRoot
+    projectRoot,
+    sourceFormat
   });
 
   // Send initial configuration values (e.g., body auto format)

@@ -166,6 +166,17 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
             />
           </div>
 
+          <div className="label">Title</div>
+          <div style={{ padding: "5px" }}>
+            <input
+              type="text"
+              value={step.title || ''}
+              onChange={e => emit({ title: e.target.value })}
+              style={{ width: '100%' }}
+              placeholder="Optional display title"
+            />
+          </div>
+
           <div className="label">Method</div>
           <div style={{ padding: "5px" }}>
             <select

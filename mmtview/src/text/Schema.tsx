@@ -536,6 +536,10 @@ export const TestSchema = {
                                     { type: 'null' }
                                 ]
                             },
+                            outputs: {
+                                type: 'object',
+                                additionalProperties: { type: 'string' }
+                            },
                             expect: {
                                 type: 'object',
                                 description: 'Map of response paths (for example body.message) to expected values. Non-throwing — logs failures but continues.',

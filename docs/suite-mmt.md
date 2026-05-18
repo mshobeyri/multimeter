@@ -25,7 +25,7 @@ You can use these fields for documentation and to help with searching and filter
 - `tags`: An array of strings to categorize the suite.
 
 ### tests
-The `tests` property is an array of strings, where each string is a path to a `.mmt` file. A suite can run any combination of APIs, tests, or even other suites.
+The `tests` property is an array of strings, where each string is a path to a `.mmt`, `.http`, or `.https` file. A suite can run any combination of APIs, tests, HTTP files, or other suites.
 
 Paths can be:
 - **Relative** to the suite file's location (e.g., `../tests/login.mmt`)
@@ -35,6 +35,7 @@ Paths can be:
 tests:
   - ../apis/login.mmt
   - ../tests/login_and_get_user_info.mmt
+  - ../requests/profile.http
   - +/tests/shared/setup.mmt           # project root import
   - ../suites/smoke_tests.mmt
 ```

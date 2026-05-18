@@ -19,6 +19,7 @@ export function useRunGlyphs(params: {
   editorReady: boolean;
   docType: string | null;
   shouldShowRunControls: boolean;
+  sourceFormat?: 'mmt' | 'http';
 }) {
   const {
     monacoRef,
@@ -26,7 +27,8 @@ export function useRunGlyphs(params: {
     content,
     editorReady,
     docType,
-    shouldShowRunControls
+    shouldShowRunControls,
+    sourceFormat = 'mmt'
   } = params;
 
   const runGlyphDecorationsRef = useRef<string[]>([]);
@@ -39,6 +41,12 @@ export function useRunGlyphs(params: {
       return;
     }
     try {
+      if (sourceFormat === 'http') {
+        const lines = content.split('\n');
+        const requestLine = lines.findIndex(line => /^\s*(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE)\s+\S+/i.test(line));
+        runGlyphLineRef.current = requestLine >= 0 ? requestLine + 1 : 1;
+        return;
+      }
       const doc = parseYamlDoc(content);
       const rootKeys = extractRootKeyInfo(doc, content);
       const typeKey = rootKeys.find(k => k.key === 'type');
@@ -46,7 +54,7 @@ export function useRunGlyphs(params: {
       runGlyphLineRef.current = runLine;
     } catch { /* ignore */
     }
-  }, [content, editorRef, monacoRef]);
+  }, [content, editorRef, monacoRef, sourceFormat]);
 
   const handleRunClick = useCallback(() => {
     if (docType !== 'test' && docType !== 'api' && docType !== 'suite' && docType !== 'loadtest') {

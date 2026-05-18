@@ -52,6 +52,10 @@ function registerEditorProvider(
       vscode.window.registerCustomEditorProvider('mmt.editor', mmtviewPanel, {
         webviewOptions: {retainContextWhenHidden: true, enableFindWidget: true}
       }));
+  context.subscriptions.push(
+      vscode.window.registerCustomEditorProvider('mmt.httpEditor', mmtviewPanel, {
+        webviewOptions: {retainContextWhenHidden: true, enableFindWidget: true}
+      }));
 
   context.subscriptions.push(
       vscode.workspace.onDidChangeConfiguration(event => {
@@ -182,8 +186,9 @@ function registerMiscCommands(context: vscode.ExtensionContext): void {
   context.subscriptions.push(vscode.commands.registerCommand(
       'multimeter.mmt.show.as.text', async (uri?: vscode.Uri) => {
         const targetUri = uri || vscode.window.activeTextEditor?.document.uri;
-        if (!targetUri || !targetUri.path.endsWith('.mmt')) {
-          vscode.window.showErrorMessage('Please select an MMT file');
+        const lowerPath = targetUri?.path.toLowerCase() || '';
+        if (!targetUri || (!lowerPath.endsWith('.mmt') && !lowerPath.endsWith('.http') && !lowerPath.endsWith('.https'))) {
+          vscode.window.showErrorMessage('Please select an MMT or HTTP file');
           return;
         }
         const tabs =
@@ -202,6 +207,8 @@ function registerMiscCommands(context: vscode.ExtensionContext): void {
           preview: false,
           preserveFocus: false,
         });
-        await vscode.languages.setTextDocumentLanguage(document, 'mmt');
+        if (lowerPath.endsWith('.mmt')) {
+          await vscode.languages.setTextDocumentLanguage(document, 'mmt');
+        }
       }));
 }

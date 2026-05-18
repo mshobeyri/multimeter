@@ -2,6 +2,8 @@
 
 Use `type: test` to define a test MMT file. You can build complex flows with the elements below. Under the hood, Multimeter compiles your MMT to JavaScript and runs it inside VS Code or in CI with `testlight`.
 
+Multimeter can also run `.http` and `.https` files as test flows through the optional VS Code **Open With...** editor. See [HTTP Files](./http-files.md) for the supported REST Client / JetBrains syntax and save behavior.
+
 Example:
 
 ```yaml

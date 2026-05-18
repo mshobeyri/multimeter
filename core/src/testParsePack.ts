@@ -12,7 +12,7 @@ export const STEP_KEY_ORDER: Record<string, string[]> = {
   ],
   http:   [
     'http', 'id', 'title', 'query', 'method', 'format', 'headers', 'body',
-    'expect', 'debug', 'report'
+    'outputs', 'expect', 'debug', 'report'
   ],
   run:    ['run'],
   check:  ['check'],
@@ -48,7 +48,7 @@ const VALID_STEP_KEYS: Record<string, Set<string>> = {
   ]),
   http:    new Set([
     'http', 'id', 'title', 'query', 'method', 'format', 'headers', 'body',
-    'expect', 'debug', 'report'
+    'outputs', 'expect', 'debug', 'report'
   ]),
   run:     new Set(['run']),
   check:   new Set(['check', 'title', 'report', 'details']),
