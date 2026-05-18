@@ -176,7 +176,8 @@ export const testToJsfunc = async(
     }
   }
 
-  flow += await flowToJsFunc(replaced, root, useExternalReport, importTitleMap);
+  const emitSetenv = root || (Array.isArray(ctx.test.tags) && ctx.test.tags.includes('http'));
+  flow += await flowToJsFunc(replaced, root, useExternalReport, importTitleMap, emitSetenv);
 
   return `${jsImportsHoisted ? jsImportsHoisted + '\n\n' : ''}const ${toLowerUnderscore(ctx.name)}${root ? '_' : ''} = async ({ ${
       inputParams}} = {}) => {

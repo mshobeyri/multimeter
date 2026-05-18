@@ -46,14 +46,22 @@ For the provided MMT, the Test panel shows the generated JavaScript. Click Run t
 The `test` type also supports documentation fields (title, tags, description) and reuse/compose elements (import, inputs, outputs). See the API doc for details. The sections below cover flow elements.
 
 ### import
-The `import` section lets you bring in other `.mmt` files (APIs, tests, or CSVs) to use in your test. Each import has an alias (the key) and a file path (the value).
+The `import` section lets you bring in other `.mmt` files (APIs or tests), `.http` / `.https` files, CSVs, or JavaScript helpers to use in your test. Each import has an alias (the key) and a file path (the value).
 
 ```yaml
 import:
   login: login.mmt           # relative to current file
+  requests: requests.http    # HTTP Client file, converted to a test flow
   users: ../data/users.csv   # relative path
   api: +/apis/userApi.mmt    # project root path
   helpers: ./helpers/xxx.js  # JS helper module (CommonJS)
+```
+
+HTTP files imported this way are converted internally to test flows and can be called like normal test imports:
+
+```yaml
+steps:
+  - call: requests
 ```
 
 **JS helper modules**

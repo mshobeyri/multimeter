@@ -77,8 +77,14 @@ const TestCall: React.FC<TestCallProps> = ({
     typeof value === 'string' ? value
       : value && typeof value === 'object' && typeof (value as any).call === 'string' ? (value as any).call
         : '';
-  const mmtImports: Record<string, string> | undefined = imports ? Object.fromEntries(Object.entries(imports).filter(([_, p]) => typeof p === 'string' && p.endsWith('.mmt'))) as Record<string, string> : undefined;
-  const aliases = mmtImports ? Object.keys(mmtImports) : [];
+  const callableImports: Record<string, string> | undefined = imports ? Object.fromEntries(Object.entries(imports).filter(([_, p]) => {
+    if (typeof p !== 'string') {
+      return false;
+    }
+    const lower = p.toLowerCase();
+    return lower.endsWith('.mmt') || lower.endsWith('.http') || lower.endsWith('.https');
+  })) as Record<string, string> : undefined;
+  const aliases = callableImports ? Object.keys(callableImports) : [];
   const currentAlias = aliases.includes(aliasFromValue)
     ? aliasFromValue
     : (
@@ -253,7 +259,7 @@ const TestCall: React.FC<TestCallProps> = ({
     if (!aliasForValidation) {
       return { aliasProblems: [] as ProblemEntry[], inputProblems: [] as ProblemEntry[] };
     }
-    const importsMap = mmtImports || {};
+    const importsMap = callableImports || {};
     const lines: string[] = ['type: test'];
     const importEntries = Object.entries(importsMap);
     if (importEntries.length) {
@@ -282,7 +288,7 @@ const TestCall: React.FC<TestCallProps> = ({
     } catch {
       return { aliasProblems: [], inputProblems: [] };
     }
-  }, [aliasForValidation, importedInputsByAlias, inputs, keys, mmtImports]);
+  }, [aliasForValidation, importedInputsByAlias, inputs, keys, callableImports]);
 
   const missingImportWarnings: ProblemEntry[] = React.useMemo(() => {
     if (!aliasForValidation || !Array.isArray(missingImports)) {

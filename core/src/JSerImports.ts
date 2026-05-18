@@ -7,6 +7,7 @@ import {apiToJSfunc} from './JSerAPI';
 import {readFile} from './JSerFileLoader';
 import {fileType, indentLines, toLowerUnderscore} from './JSerHelper';
 import {testToJsfunc} from './JSerTest';
+import {httpToTest, httpToTestStrict, isHttpFilePath} from './httpParsePack';
 import {yamlToTest, yamlToTestStrict} from './testParsePack';
 
 const basenameNoExt = (p: string): string => {
@@ -24,9 +25,17 @@ const isValidJsIdentifier = (name: string): boolean => {
   return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name);
 };
 
-const extractImportsFromMmt = (content: string): Record<string, string> => {
+const parseTestContent = (content: string, resolvedPath: string): any => {
+  return isHttpFilePath(resolvedPath) ? httpToTest(content, resolvedPath) : yamlToTest(content);
+};
+
+const parseTestContentStrict = (content: string, resolvedPath: string): any => {
+  return isHttpFilePath(resolvedPath) ? httpToTestStrict(content, resolvedPath) : yamlToTestStrict(content);
+};
+
+const extractImportsFromTestContent = (content: string, resolvedPath = ''): Record<string, string> => {
   try {
-    const obj: any = yamlToTest(content) as any;
+    const obj: any = parseTestContent(content, resolvedPath) as any;
     const imp = obj?.import;
     if (!imp || typeof imp !== 'object' || Array.isArray(imp)) {
       return {};
@@ -54,7 +63,7 @@ const resolveImports =
     fileLoader: readFile,
     rootPath: rootPath,
     projectRoot: projectRoot,
-    getImportsFromContent: (content: string) => extractImportsFromMmt(content),
+    getImportsFromContent: (content: string, resolvedPath?: string) => extractImportsFromTestContent(content, resolvedPath),
   });
   return await importer.resolveAll(imports);
 };
@@ -107,7 +116,7 @@ const buildAliasMaps =
           continue;
         }
 
-        const test = yamlToTest(content) as any;
+        const test = parseTestContent(content, resolvedPath) as any;
         const importMap = (test?.import ?? {}) as Record<string, string>;
         const aliasMap: Record<string, string> = {};
         for (const [key, requestedPathRaw] of Object.entries(importMap || {})) {
@@ -143,7 +152,7 @@ const emitResolved = async(
     tracker.setTestFuncName(resolvedPath, publicName);
 
     if (type === 'test') {
-      const test = yamlToTestStrict(content) as any;
+      const test = parseTestContentStrict(content, resolvedPath) as any;
       if (test.title) { tracker.setFileTitle(resolvedPath, test.title); }
       if (test.inputs && typeof test.inputs === 'object') {
         tracker.setInputKeys(resolvedPath, Object.keys(test.inputs));

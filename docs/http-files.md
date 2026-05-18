@@ -4,6 +4,8 @@ Multimeter can open `.http` and `.https` files as test flows. This is intended f
 
 Multimeter does not take ownership of `.http` files by default. In VS Code, use **Open With...** and choose **Multimeter HTTP Test Editor** when you want to run a `.http` file with Multimeter.
 
+You can also import `.http` and `.https` files from `type: test` `.mmt` files. Multimeter converts the HTTP file to a test flow internally, so the alias can be used with a normal `call` step.
+
 ## Supported Syntax
 
 The first implementation targets the shared syntax used by VS Code REST Client and JetBrains HTTP Client:

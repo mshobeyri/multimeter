@@ -1,0 +1,8 @@
+type: test
+title: Import HTTP file in test
+description: Runs an imported .http file as a normal test call.
+import:
+  posts: jsonplaceholder_posts.http
+steps:
+  - call: posts
+    title: Run JSONPlaceholder HTTP flow

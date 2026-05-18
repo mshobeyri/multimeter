@@ -519,7 +519,13 @@ export const handleBeforeMount = (monaco: any) => {
         }
         return deduplicateSuggestions(
             files
-                .filter((p) => typeof p === 'string' && (p.toLowerCase().endsWith('.mmt') || p.toLowerCase().endsWith('.csv')))
+                .filter((p) => {
+                    if (typeof p !== 'string') {
+                        return false;
+                    }
+                    const lower = p.toLowerCase();
+                    return lower.endsWith('.mmt') || lower.endsWith('.http') || lower.endsWith('.https') || lower.endsWith('.csv');
+                })
                 .filter((p) => {
                     const fileName = String(p).split('/').pop() ?? '';
                     return !partial || fileName.toLowerCase().startsWith(partial.toLowerCase());
@@ -529,7 +535,7 @@ export const handleBeforeMount = (monaco: any) => {
                     label: p,
                     kind: monaco.languages.CompletionItemKind.File,
                     insertText: ` ${p}`,
-                    detail: 'MMT or CSV file',
+                    detail: 'MMT, HTTP, or CSV file',
                     documentation: `Import from ${p}`,
                 }))
         );

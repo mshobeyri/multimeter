@@ -141,7 +141,13 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
         return (
           <TestCall
             value={stepData}
-            imports={testData?.import && typeof testData.import === 'object' ? (Object.fromEntries(Object.entries(testData.import).filter(([_, p]) => typeof p === 'string' && (p as string).endsWith('.mmt'))) as Record<string, string>) : undefined}
+            imports={testData?.import && typeof testData.import === 'object' ? (Object.fromEntries(Object.entries(testData.import).filter(([_, p]) => {
+              if (typeof p !== 'string') {
+                return false;
+              }
+              const lower = p.toLowerCase();
+              return lower.endsWith('.mmt') || lower.endsWith('.http') || lower.endsWith('.https');
+            })) as Record<string, string>) : undefined}
             missingImports={importValidation?.missingImports}
             importedInputsByAlias={importValidation?.inputsByAlias}
             importedOutputsByAlias={importValidation?.outputsByAlias}

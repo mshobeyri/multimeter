@@ -497,7 +497,7 @@ export const runToJSfunc = (step: TestFlowRun): string => {
 
 export const flowStepsToJsfunc = async (
     flow: TestFlowSteps, root: boolean, useExternalReport: boolean = !root,
-    importTitleMap?: Record<string, string>): Promise<string> => {
+  importTitleMap?: Record<string, string>, emitSetenv: boolean = root): Promise<string> => {
       const generated: string[] = [];
       for (let idx = 0; idx < (flow ?? []).length; idx++) {
             const step = (flow ?? [])[idx];
@@ -553,7 +553,7 @@ export const flowStepsToJsfunc = async (
                 stepJs = varToJSfunc('let ', (step as any).let);
                 break;
               case 'setenv':
-                stepJs = setenvToJSfunc((step as any).setenv, root);
+                stepJs = setenvToJSfunc((step as any).setenv, emitSetenv);
                 break;
               default:
                 stepJs = '';
@@ -568,7 +568,7 @@ export const flowStepsToJsfunc = async (
 
 export const flowStagesToJsfunc = async (
     flow: TestFlowStages, root: boolean, useExternalReport: boolean = !root,
-    importTitleMap?: Record<string, string>): Promise<string> => {
+  importTitleMap?: Record<string, string>, emitSetenv: boolean = root): Promise<string> => {
       if (!flow || flow.length === 0) {
         return '';
       };
@@ -617,7 +617,7 @@ export const flowStagesToJsfunc = async (
           const cond = conditionalStatementToJSfunc(String(stage.condition));
           code += `if (!(${cond})) {\n  return;\n}\n`;
         }
-        let stepsCode = await flowStepsToJsfunc(stage.steps ?? [], root, useExternalReport, importTitleMap);
+        let stepsCode = await flowStepsToJsfunc(stage.steps ?? [], root, useExternalReport, importTitleMap, emitSetenv);
         // Replace const declarations for hoisted IDs with assignments
         for (const id of hoistedIds) {
           stepsCode = stepsCode.replace(`const ${id} = `, `${id} = `);
@@ -687,12 +687,12 @@ export const flowStagesToJsfunc = async (
       return generated.join('\n');
     };
 
-export const flowToJsFunc = async (testData: TestData, root: boolean, useExternalReport: boolean = !root, importTitleMap?: Record<string, string>): Promise<string> => {
+export const flowToJsFunc = async (testData: TestData, root: boolean, useExternalReport: boolean = !root, importTitleMap?: Record<string, string>, emitSetenv: boolean = root): Promise<string> => {
   let flow = '';
   if (testData.stages && testData.stages.length > 0) {
-    flow += await flowStagesToJsfunc(testData.stages, root, useExternalReport, importTitleMap);
+    flow += await flowStagesToJsfunc(testData.stages, root, useExternalReport, importTitleMap, emitSetenv);
   } else if (testData.steps && testData.steps.length > 0) {
-    flow += await flowStepsToJsfunc(testData.steps, root, useExternalReport, importTitleMap);
+    flow += await flowStepsToJsfunc(testData.steps, root, useExternalReport, importTitleMap, emitSetenv);
   }
   return flow;
 };

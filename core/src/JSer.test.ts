@@ -623,6 +623,46 @@ describe('rootTestToJsfunc + import tracker', () => {
     expect(js).toContain('kxxx = txxx_;');
   });
 
+  it('converts imported .http files into callable test functions', async () => {
+    const mock = createTestFileLoaderMock({
+      '/root/requests.http': `### Login
+POST https://api.example.com/login
+Content-Type: application/json
+
+{"username":"ada"}
+
+> {%
+  client.global.set("token", response.body.token);
+%}
+
+### Profile
+GET https://api.example.com/me
+Authorization: Bearer {{token}}
+`,
+    });
+    setFileLoader(mock.fileLoader);
+
+    const js = await rootTestToJsfunc({
+      name: 'http_import_test',
+      test: {
+        import: {requests: './requests.http'},
+        steps: [{call: 'requests'} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/main.mmt',
+    });
+
+    expect(js).toContain('const requests_ = async');
+    expect(js).toContain('const requests = requests_;');
+    expect(js).toContain('https://api.example.com/login');
+    expect(js).toContain('https://api.example.com/me');
+    expect(js).toContain('setenv_("token"');
+    expect(js).toContain('request_1');
+    expect(js).toContain('Bearer');
+    expect(js).toContain('envVariables.token');
+  });
+
   it('resolves bare subdirectory paths without ./ prefix for mmt imports', async () => {
     const mock = createTestFileLoaderMock({
       '/root/tests/api/echo.mmt': 'type: api\nprotocol: http\nmethod: GET\nurl: http://example.com\n',

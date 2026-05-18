@@ -1,6 +1,7 @@
 import {markupConvertor} from 'mmt-core';
 const {parseYaml} = markupConvertor;
 import {findProjectRootSync} from 'mmt-core/fileHelper';
+import {httpToTest, isHttpFilePath} from 'mmt-core/httpParsePack';
 import {generateJunitXml} from 'mmt-core/junitXml';
 import {generateMmtReport} from 'mmt-core/mmtReport';
 import {generateReportHtml} from 'mmt-core/reportHtml';
@@ -298,7 +299,7 @@ export async function handleValidateImports(
         const raw =
             await vscode.workspace.fs.readFile(vscode.Uri.file(absolutePath));
         const text = Buffer.from(raw).toString('utf8');
-        const js: any = parseYaml(text);
+        const js: any = isHttpFilePath(absolutePath) ? httpToTest(text, absolutePath) : parseYaml(text);
         const inputsObj = js && js.inputs;
         if (inputsObj && typeof inputsObj === 'object' &&
             !Array.isArray(inputsObj)) {
