@@ -1,0 +1,30 @@
+meta {
+  name: Delete User API Key
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/echo/{{apiKeyId}}
+  body: none
+  auth: apikey
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+  apiKeyId: key_12345
+}
+
+headers {
+  Accept: application/json
+}
+
+auth:apikey {
+  key: X-API-Key
+  value: {{adminApiKey}}
+  placement: header
+}
+
+tests {
+  expect(res.status).to.equal(200);
+}

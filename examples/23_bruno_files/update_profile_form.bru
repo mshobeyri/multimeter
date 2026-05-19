@@ -1,0 +1,33 @@
+meta {
+  name: Update Profile Form
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/echo
+  body: form-urlencoded
+  auth: bearer
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Accept: application/json
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:form-urlencoded {
+  displayName: Grace Hopper
+  timezone: UTC
+  newsletter: true
+}
+
+tests {
+  expect(res.status).to.equal(200);
+}

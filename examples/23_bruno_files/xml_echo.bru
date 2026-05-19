@@ -1,0 +1,31 @@
+meta {
+  name: XML Echo
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/echo
+  body: text
+  auth: none
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Content-Type: application/xml
+  Accept: application/xml
+}
+
+body:text {
+  <profile>
+    <name>Alan Turing</name>
+    <role>researcher</role>
+  </profile>
+}
+
+tests {
+  expect(res.status).to.equal(200);
+}

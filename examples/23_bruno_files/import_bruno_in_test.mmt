@@ -5,6 +5,14 @@ tags: [bruno, import]
 
 import:
   profile: get_profile.bru
+  createUser: create_user_json.bru
+  updateProfile: update_profile_form.bru
+  deleteApiKey: delete_user_api_key.bru
+  xmlEcho: xml_echo.bru
 
 steps:
   - call: profile
+  - call: createUser
+  - call: updateProfile
+  - call: deleteApiKey
+  - call: xmlEcho
