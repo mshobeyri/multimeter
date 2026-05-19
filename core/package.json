@@ -64,6 +64,11 @@
       "require": "./dist/httpParsePack.js",
       "default": "./dist/httpParsePack.js"
     },
+    "./brunoParsePack": {
+      "types": "./dist/brunoParsePack.d.ts",
+      "require": "./dist/brunoParsePack.js",
+      "default": "./dist/brunoParsePack.js"
+    },
     "./curlConvertor": {
       "types": "./dist/curlConvertor.d.ts",
       "require": "./dist/curlConvertor.js",

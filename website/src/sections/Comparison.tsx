@@ -59,7 +59,7 @@ const features: FeatureRow[] = [
     values: { multimeter: true, postman: false, insomnia: false, bruno: true, robot: true, cucumber: true, jmeter: 'XML', neoload: false, playwright: true },
   },
   {
-    feature: '.http File Support',
+    feature: '.http / Bruno File Support',
     values: { multimeter: true, postman: false, insomnia: false, bruno: true, robot: false, cucumber: false, jmeter: false, neoload: false, playwright: false },
   },
   {

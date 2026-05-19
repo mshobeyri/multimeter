@@ -97,7 +97,7 @@ const features = [
     icon: Terminal,
     title: 'CI/CD Ready',
     description:
-      'Run the same .mmt and .http-backed flows in pipelines with testlight, export reports, and keep automation version-controlled.',
+      'Run the same .mmt, .http-backed, and Bruno-backed flows in pipelines with testlight, export reports, and keep automation version-controlled.',
     color: 'text-emerald-400',
     bg: 'bg-emerald-400/10',
   },
@@ -145,7 +145,7 @@ const features = [
     icon: Repeat,
     title: 'Other tools support',
     description:
-      'Seamlessly import from Postman collections, OpenAPI specifications, existing .http request files and curl.',
+      'Seamlessly import from Postman collections, OpenAPI specifications, existing .http and Bruno request files, and curl.',
     color: 'text-indigo-400',
     bg: 'bg-indigo-400/10',
   },

@@ -56,6 +56,10 @@ function registerEditorProvider(
       vscode.window.registerCustomEditorProvider('mmt.httpEditor', mmtviewPanel, {
         webviewOptions: {retainContextWhenHidden: true, enableFindWidget: true}
       }));
+  context.subscriptions.push(
+      vscode.window.registerCustomEditorProvider('mmt.brunoEditor', mmtviewPanel, {
+        webviewOptions: {retainContextWhenHidden: true, enableFindWidget: true}
+      }));
 
   context.subscriptions.push(
       vscode.workspace.onDidChangeConfiguration(event => {
@@ -187,8 +191,8 @@ function registerMiscCommands(context: vscode.ExtensionContext): void {
       'multimeter.mmt.show.as.text', async (uri?: vscode.Uri) => {
         const targetUri = uri || vscode.window.activeTextEditor?.document.uri;
         const lowerPath = targetUri?.path.toLowerCase() || '';
-        if (!targetUri || (!lowerPath.endsWith('.mmt') && !lowerPath.endsWith('.http') && !lowerPath.endsWith('.https'))) {
-          vscode.window.showErrorMessage('Please select an MMT or HTTP file');
+        if (!targetUri || (!lowerPath.endsWith('.mmt') && !lowerPath.endsWith('.http') && !lowerPath.endsWith('.https') && !lowerPath.endsWith('.bru'))) {
+          vscode.window.showErrorMessage('Please select an MMT, HTTP, or Bruno file');
           return;
         }
         const tabs =

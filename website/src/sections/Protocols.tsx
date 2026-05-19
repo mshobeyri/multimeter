@@ -5,7 +5,7 @@ const protocols = [
   {
     name: 'HTTP / REST / SOAP',
     icon: '/icons/http.svg',
-    description: 'Full HTTP / REST / SOAP support with all methods, headers, auth, JSON / XML bodies, and .http file compatibility.',
+    description: 'Full HTTP / REST / SOAP support with all methods, headers, auth, JSON / XML bodies, and .http / Bruno file compatibility.',
   },
   {
     name: 'WebSocket',
@@ -39,7 +39,7 @@ export default function Protocols() {
             </h2>
             <p className="text-lg text-slate-400 max-w-2xl mx-auto">
               Test REST APIs, WebSocket connections, GraphQL endpoints, gRPC services, and SOAP endpoints — all
-              from the same tool. Existing .http request files can run as test flows too.
+              from the same tool. Existing .http and Bruno request files can run as test flows too.
             </p>
           </div>
         </FadeIn>

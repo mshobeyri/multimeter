@@ -4,6 +4,7 @@ import {dirnamePath, fileUriToPath, isAbsPath, joinPath, resolveDotSegments, res
 import {createFileImporter} from './fileImporter';
 import {ImportTracker} from './importTracker';
 import {apiToJSfunc} from './JSerAPI';
+import {brunoToTest, brunoToTestStrict, isBrunoFilePath} from './brunoParsePack';
 import {readFile} from './JSerFileLoader';
 import {fileType, indentLines, toLowerUnderscore} from './JSerHelper';
 import {testToJsfunc} from './JSerTest';
@@ -26,11 +27,13 @@ const isValidJsIdentifier = (name: string): boolean => {
 };
 
 const parseTestContent = (content: string, resolvedPath: string): any => {
-  return isHttpFilePath(resolvedPath) ? httpToTest(content, resolvedPath) : yamlToTest(content);
+  return isHttpFilePath(resolvedPath) ? httpToTest(content, resolvedPath) :
+    isBrunoFilePath(resolvedPath) ? brunoToTest(content, resolvedPath) : yamlToTest(content);
 };
 
 const parseTestContentStrict = (content: string, resolvedPath: string): any => {
-  return isHttpFilePath(resolvedPath) ? httpToTestStrict(content, resolvedPath) : yamlToTestStrict(content);
+  return isHttpFilePath(resolvedPath) ? httpToTestStrict(content, resolvedPath) :
+    isBrunoFilePath(resolvedPath) ? brunoToTestStrict(content, resolvedPath) : yamlToTestStrict(content);
 };
 
 const extractImportsFromTestContent = (content: string, resolvedPath = ''): Record<string, string> => {

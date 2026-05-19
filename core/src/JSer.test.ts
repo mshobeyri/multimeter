@@ -663,6 +663,37 @@ Authorization: Bearer {{token}}
     expect(js).toContain('envVariables.token');
   });
 
+  it('converts imported .bru files into callable test functions', async () => {
+    const mock = createTestFileLoaderMock({
+      '/root/requests.bru': `meta {
+  name: Get Profile
+}
+
+get {
+  url: https://api.example.com/me
+  body: none
+  auth: none
+}
+`,
+    });
+    setFileLoader(mock.fileLoader);
+
+    const js = await rootTestToJsfunc({
+      name: 'bruno_import_test',
+      test: {
+        import: {requests: './requests.bru'},
+        steps: [{call: 'requests'} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/main.mmt',
+    });
+
+    expect(js).toContain('const requests_ = async');
+    expect(js).toContain('const requests = requests_;');
+    expect(js).toContain('https://api.example.com/me');
+  });
+
   it('resolves bare subdirectory paths without ./ prefix for mmt imports', async () => {
     const mock = createTestFileLoaderMock({
       '/root/tests/api/echo.mmt': 'type: api\nprotocol: http\nmethod: GET\nurl: http://example.com\n',

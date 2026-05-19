@@ -3,6 +3,7 @@ import {SuiteEnvironment} from './SuiteData';
 import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
 import {createSuiteNodeId} from './suiteNodeId';
 import {yamlToTest} from './testParsePack';
+import {brunoToTest, isBrunoFilePath} from './brunoParsePack';
 import {httpToTest, isHttpFilePath} from './httpParsePack';
 
 export type SuiteHierarchyNode =
@@ -112,7 +113,8 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
     if (type === 'test') {
       let title: string | undefined;
       try {
-        const testDoc = isHttpFilePath(resolvedPath) ? httpToTest(raw, resolvedPath) : yamlToTest(raw);
+        const testDoc = isHttpFilePath(resolvedPath) ? httpToTest(raw, resolvedPath) :
+          isBrunoFilePath(resolvedPath) ? brunoToTest(raw, resolvedPath) : yamlToTest(raw);
         if (typeof testDoc?.title === 'string' && testDoc.title.trim()) {
           title = testDoc.title.trim();
         }

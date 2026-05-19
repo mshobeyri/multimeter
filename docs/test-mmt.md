@@ -2,7 +2,7 @@
 
 Use `type: test` to define a test MMT file. You can build complex flows with the elements below. Under the hood, Multimeter compiles your MMT to JavaScript and runs it inside VS Code or in CI with `testlight`.
 
-Multimeter can also run `.http` and `.https` files as test flows through the optional VS Code **Open With...** editor. See [HTTP Files](./http-files.md) for the supported REST Client / JetBrains syntax and save behavior.
+Multimeter can also run `.http`, `.https`, and `.bru` files as test flows through the optional VS Code **Open With...** editors. See [HTTP Files](./http-files.md) and [Bruno Files](./bruno-files.md) for the supported syntax and save behavior.
 
 Example:
 
@@ -46,18 +46,19 @@ For the provided MMT, the Test panel shows the generated JavaScript. Click Run t
 The `test` type also supports documentation fields (title, tags, description) and reuse/compose elements (import, inputs, outputs). See the API doc for details. The sections below cover flow elements.
 
 ### import
-The `import` section lets you bring in other `.mmt` files (APIs or tests), `.http` / `.https` files, CSVs, or JavaScript helpers to use in your test. Each import has an alias (the key) and a file path (the value).
+The `import` section lets you bring in other `.mmt` files (APIs or tests), `.http` / `.https` files, `.bru` files, CSVs, or JavaScript helpers to use in your test. Each import has an alias (the key) and a file path (the value).
 
 ```yaml
 import:
   login: login.mmt           # relative to current file
   requests: requests.http    # HTTP Client file, converted to a test flow
+  profile: profile.bru       # Bruno request file, converted to a test flow
   users: ../data/users.csv   # relative path
   api: +/apis/userApi.mmt    # project root path
   helpers: ./helpers/xxx.js  # JS helper module (CommonJS)
 ```
 
-HTTP files imported this way are converted internally to test flows and can be called like normal test imports:
+HTTP and Bruno files imported this way are converted internally to test flows and can be called like normal test imports:
 
 ```yaml
 steps:

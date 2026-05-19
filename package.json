@@ -182,6 +182,20 @@
           "light": "res/activity.png",
           "dark": "res/activity.png"
         }
+      },
+      {
+        "viewType": "mmt.brunoEditor",
+        "displayName": "Multimeter Bruno Test Editor",
+        "selector": [
+          {
+            "filenamePattern": "file:/**/*.bru"
+          }
+        ],
+        "priority": "option",
+        "icon": {
+          "light": "res/activity.png",
+          "dark": "res/activity.png"
+        }
       }
     ],
     "commands": [

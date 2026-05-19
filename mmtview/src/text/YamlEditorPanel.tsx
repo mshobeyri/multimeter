@@ -56,7 +56,7 @@ interface YamlEditorPanelProps {
   content: string;
   setContent: (value: string) => void;
   language?: string;
-  sourceFormat?: "mmt" | "http";
+  sourceFormat?: "mmt" | "http" | "bruno";
   showNumbers?: boolean;
   fontSize?: number;
   collapseDescription?: boolean;
@@ -270,7 +270,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     const model = editor.getModel();
     if (!model) return;
 
-    if (sourceFormat === "http") {
+    if (sourceFormat === "http" || sourceFormat === "bruno") {
       monaco.editor.setModelMarkers(model, "yaml", []);
       setYamlProblems([]);
       return;

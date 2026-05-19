@@ -3,6 +3,7 @@ import * as JSer from './JSer';
 import {isPlainObject, PreparedRun, RunFileResult, runGeneratedJs, sanitizeIdentifier} from './runCommon';
 import {GenerateJsOptions, mergeInputs, RunFileOptions, TestOutputsReporterEvent, TestRunSummaryEvent, TestStepReporterEvent} from './runConfig';
 import * as testParsePack from './testParsePack';
+import {brunoToTest, brunoToTestStrict, isBrunoFilePath} from './brunoParsePack';
 import {httpToTest, httpToTestStrict, isHttpFilePath} from './httpParsePack';
 
 const createRunId = (): string => {
@@ -16,6 +17,7 @@ export function prepareTestRun(
     rawText: string, manualInputs: Record<string, any>, filePath = ''): Partial<PreparedRun> {
   const testDoc =
       isHttpFilePath(filePath) ? httpToTest(rawText, filePath) :
+      isBrunoFilePath(filePath) ? brunoToTest(rawText, filePath) :
       (testParsePack.yamlToTest ? testParsePack.yamlToTest(rawText) : {} as any);
   const defaultInputs = isPlainObject(testDoc?.inputs) ?
       testDoc.inputs as Record<string, any>:
@@ -44,6 +46,8 @@ export async function generateTestJs(opts: GenerateJsOptions): Promise<string> {
   const sourceFilePath = filePath || '';
   const test = isHttpFilePath(sourceFilePath) ?
       httpToTestStrict(rawText, sourceFilePath) :
+      isBrunoFilePath(sourceFilePath) ?
+      brunoToTestStrict(rawText, sourceFilePath) :
       testParsePack.yamlToTestStrict(rawText);
   let js = await JSer.rootTestToJsfunc({test, name, inputs, envVars, filePath, projectRoot, isExternal});
   const anyJSer: any = JSer as any;

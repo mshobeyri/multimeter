@@ -11,6 +11,7 @@ export * as apiParsePack from "./apiParsePack";
 export * as curlConvertor from "./curlConvertor";
 export * as testParsePack from "./testParsePack";
 export * as httpParsePack from "./httpParsePack";
+export * as brunoParsePack from "./brunoParsePack";
 export * as docParsePack from "./docParsePack";
 export * as markupConvertor from "./markupConvertor";
 export * as variableReplacer from "./variableReplacer";

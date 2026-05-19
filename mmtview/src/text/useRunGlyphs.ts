@@ -19,7 +19,7 @@ export function useRunGlyphs(params: {
   editorReady: boolean;
   docType: string | null;
   shouldShowRunControls: boolean;
-  sourceFormat?: 'mmt' | 'http';
+  sourceFormat?: 'mmt' | 'http' | 'bruno';
 }) {
   const {
     monacoRef,
@@ -41,7 +41,7 @@ export function useRunGlyphs(params: {
       return;
     }
     try {
-      if (sourceFormat === 'http') {
+      if (sourceFormat === 'http' || sourceFormat === 'bruno') {
         const lines = content.split('\n');
         const requestLine = lines.findIndex(line => /^\s*(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE)\s+\S+/i.test(line));
         runGlyphLineRef.current = requestLine >= 0 ? requestLine + 1 : 1;

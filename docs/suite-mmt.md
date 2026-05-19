@@ -25,7 +25,7 @@ You can use these fields for documentation and to help with searching and filter
 - `tags`: An array of strings to categorize the suite.
 
 ### tests
-The `tests` property is an array of strings, where each string is a path to a `.mmt`, `.http`, or `.https` file. A suite can run any combination of APIs, tests, HTTP files, or other suites.
+The `tests` property is an array of strings, where each string is a path to a `.mmt`, `.http`, `.https`, or `.bru` file. A suite can run any combination of APIs, tests, HTTP files, Bruno files, or other suites.
 
 Paths can be:
 - **Relative** to the suite file's location (e.g., `../tests/login.mmt`)

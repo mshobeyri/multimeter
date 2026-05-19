@@ -524,7 +524,7 @@ export const handleBeforeMount = (monaco: any) => {
                         return false;
                     }
                     const lower = p.toLowerCase();
-                    return lower.endsWith('.mmt') || lower.endsWith('.http') || lower.endsWith('.https') || lower.endsWith('.csv');
+                    return lower.endsWith('.mmt') || lower.endsWith('.http') || lower.endsWith('.https') || lower.endsWith('.bru') || lower.endsWith('.csv');
                 })
                 .filter((p) => {
                     const fileName = String(p).split('/').pop() ?? '';
@@ -535,7 +535,7 @@ export const handleBeforeMount = (monaco: any) => {
                     label: p,
                     kind: monaco.languages.CompletionItemKind.File,
                     insertText: ` ${p}`,
-                    detail: 'MMT, HTTP, or CSV file',
+                    detail: 'MMT, HTTP, Bruno, or CSV file',
                     documentation: `Import from ${p}`,
                 }))
         );

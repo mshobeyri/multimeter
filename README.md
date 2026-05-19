@@ -89,6 +89,7 @@ Seamlessly import from Postman collections and OpenAPI specifications. Zero-fric
 
 **Other supports**
 - [HTTP files (`.http`, `.https`)](docs/http-files.md) — run REST Client / JetBrains-style HTTP files as test flows via Open With
+- [Bruno files (`.bru`)](docs/bruno-files.md) — run Bruno request files as test flows via Open With
 
 **VS Code Panels & Features:**
 - [Mock Server Panel](docs/mock-server.md) — start HTTP/HTTPS/WS mock servers from the UI

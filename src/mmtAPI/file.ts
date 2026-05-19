@@ -1,6 +1,7 @@
 import {markupConvertor} from 'mmt-core';
 const {parseYaml} = markupConvertor;
 import {findProjectRootSync} from 'mmt-core/fileHelper';
+import {brunoToTest, isBrunoFilePath} from 'mmt-core/brunoParsePack';
 import {httpToTest, isHttpFilePath} from 'mmt-core/httpParsePack';
 import {generateJunitXml} from 'mmt-core/junitXml';
 import {generateMmtReport} from 'mmt-core/mmtReport';
@@ -177,7 +178,8 @@ export async function handleLoadDocumentContent(
   // Resolve project root for +/ imports (same logic used by run)
   const projectRoot = findProjectRoot(document.uri.fsPath);
   const lowerPath = document.uri.fsPath.toLowerCase();
-  const sourceFormat = lowerPath.endsWith('.http') || lowerPath.endsWith('.https') ? 'http' : 'mmt';
+  const sourceFormat = lowerPath.endsWith('.http') || lowerPath.endsWith('.https') ? 'http' :
+    lowerPath.endsWith('.bru') ? 'bruno' : 'mmt';
 
   // Send document data to the current panel
   webviewPanel.webview.postMessage({
@@ -299,7 +301,8 @@ export async function handleValidateImports(
         const raw =
             await vscode.workspace.fs.readFile(vscode.Uri.file(absolutePath));
         const text = Buffer.from(raw).toString('utf8');
-        const js: any = isHttpFilePath(absolutePath) ? httpToTest(text, absolutePath) : parseYaml(text);
+        const js: any = isHttpFilePath(absolutePath) ? httpToTest(text, absolutePath) :
+          isBrunoFilePath(absolutePath) ? brunoToTest(text, absolutePath) : parseYaml(text);
         const inputsObj = js && js.inputs;
         if (inputsObj && typeof inputsObj === 'object' &&
             !Array.isArray(inputsObj)) {
@@ -351,7 +354,10 @@ export async function handleGetSuiteImportTree(
     return resolveImportPath(rootAbs, rel, projectRoot);
   };
 
-  const detectType = (text: string): SuiteTreeNodeInfo['docType'] => {
+  const detectType = (text: string, filePath = ''): SuiteTreeNodeInfo['docType'] => {
+    if (isHttpFilePath(filePath) || isBrunoFilePath(filePath)) {
+      return 'test';
+    }
     try {
       const js: any = parseYaml(text);
       const t = js?.type;
@@ -379,7 +385,7 @@ export async function handleGetSuiteImportTree(
     try {
       const raw = await vscode.workspace.fs.readFile(vscode.Uri.file(abs));
       const text = Buffer.from(raw).toString('utf8');
-      const docType = detectType(text);
+      const docType = detectType(text, abs);
       if (docType === 'suite') {
         const js: any = parseYaml(text);
         const tests: any[] = Array.isArray(js?.tests) ? js.tests : [];
