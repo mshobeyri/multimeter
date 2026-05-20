@@ -1,0 +1,36 @@
+meta {
+  name: Create User JSON
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/echo
+  body: json
+  auth: bearer
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Content-Type: application/json
+  Accept: application/json
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:json {
+  {
+    "name": "Ada Lovelace",
+    "email": "ada@example.com",
+    "role": "admin"
+  }
+}
+
+tests {
+  expect(res.status).to.equal(200);
+}

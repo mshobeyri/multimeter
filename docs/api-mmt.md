@@ -33,6 +33,8 @@ Tip: You can use dynamic tokens anywhere in url/headers/body/query/cookies.
 - Current: `c:<name>` (e.g., `c:date`, `c:epoch`)
 See “Dynamic values: random and current” below for details and examples.
 
+Side note: if you paste a `curl ...` command into an API editor, Multimeter can convert it into `type: api` YAML for you. For HTTP APIs, the toolbar can also run the current request in a terminal using `curl`.
+
 ### HTTP POST JSON or XML
 ```yaml
  type: api

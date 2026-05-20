@@ -1,0 +1,31 @@
+meta {
+  name: Get Profile
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/echo
+  body: none
+  auth: bearer
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Accept: application/json
+}
+
+params:query {
+  trace: {{$uuid}}
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+tests {
+  expect(res.status).to.equal(200);
+}

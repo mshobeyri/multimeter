@@ -76,10 +76,19 @@ export function notContains_(a: any, b: any) {
   return true;
 }
 
+function regexFrom_(pattern: any): RegExp {
+  const source = String(pattern ?? '');
+  const literal = source.match(/^\/(.*)\/([dgimsuvy]*)$/);
+  if (literal) {
+    return new RegExp(literal[1], literal[2]);
+  }
+  return new RegExp(source);
+}
+
 export function matches_(a: any, b: any) {
-  // b is a regex string, e.g. "^foo.*"
+  // b is a regex string, e.g. "^foo.*" or "/foo/i"
   try {
-    const re = new RegExp(b);
+    const re = regexFrom_(b);
     return re.test(a);
   } catch {
     return false;
@@ -88,11 +97,89 @@ export function matches_(a: any, b: any) {
 
 export function notMatches_(a: any, b: any) {
   try {
-    const re = new RegExp(b);
+    const re = regexFrom_(b);
     return !re.test(a);
   } catch {
     return true;
   }
+}
+
+function lengthOf_(value: any): number {
+  if (Array.isArray(value)) {
+    return value.length;
+  }
+  if (value && typeof value === 'object') {
+    // For plain objects, =# counts root-level entries only.
+    return Object.keys(value).length;
+  }
+  return String(value ?? '').length;
+}
+
+export function lengthEquals_(actual: any, expected: any) {
+  return lengthOf_(actual) === Number(expected);
+}
+
+export function notLengthEquals_(actual: any, expected: any) {
+  return !lengthEquals_(actual, expected);
+}
+
+function similarityRatio_(actual: any, expected: any): number {
+  const actualText = String(actual ?? '');
+  const expectedText = String(expected ?? '');
+  const actualLength = actualText.length;
+  const expectedLength = expectedText.length;
+  const maxLength = Math.max(actualLength, expectedLength);
+  if (maxLength === 0) {
+    return 1;
+  }
+  const distances: number[][] = Array.from({ length: actualLength + 1 }, () => Array(expectedLength + 1).fill(0));
+  for (let actualIndex = 0; actualIndex <= actualLength; actualIndex++) {
+    distances[actualIndex][0] = actualIndex;
+  }
+  for (let expectedIndex = 0; expectedIndex <= expectedLength; expectedIndex++) {
+    distances[0][expectedIndex] = expectedIndex;
+  }
+  for (let actualIndex = 1; actualIndex <= actualLength; actualIndex++) {
+    for (let expectedIndex = 1; expectedIndex <= expectedLength; expectedIndex++) {
+      const cost = actualText[actualIndex - 1] === expectedText[expectedIndex - 1] ? 0 : 1;
+      distances[actualIndex][expectedIndex] = Math.min(
+        distances[actualIndex - 1][expectedIndex] + 1,
+        distances[actualIndex][expectedIndex - 1] + 1,
+        distances[actualIndex - 1][expectedIndex - 1] + cost,
+      );
+    }
+  }
+  return (maxLength - distances[actualLength][expectedLength]) / maxLength;
+}
+
+export function similarityPercent_(actual: any, expected: any): number {
+  return Math.round(similarityRatio_(actual, expected) * 100);
+}
+
+export function fuzzyMatch_(actual: any, expected: any, percent: any) {
+  const threshold = Number(percent);
+  if (!Number.isFinite(threshold)) {
+    return false;
+  }
+  return similarityPercent_(actual, expected) >= threshold;
+}
+
+export function notFuzzyMatch_(actual: any, expected: any, percent: any) {
+  return !fuzzyMatch_(actual, expected, percent);
+}
+
+function extractComparisonOperator_(comparison: string): string | undefined {
+  const trimmed = String(comparison ?? '').trim();
+  const match = /(?:^|\s)([=!](?:%|0|[1-9][0-9]?|100)%)(?=\s|$)/.exec(trimmed);
+  return match?.[1];
+}
+
+function similarityForComparison_(comparison: string, actual: any, expected: any): number | undefined {
+  const operator = extractComparisonOperator_(comparison);
+  if (!operator || !/^[=!](?:%|0|[1-9][0-9]?|100)%$/.test(operator)) {
+    return undefined;
+  }
+  return similarityPercent_(actual, expected);
 }
 
 export function startsWith_(a: any, b: any) {
@@ -296,12 +383,14 @@ export const reportWithContext_ = (
           actual: i.actual,
           expected: i.expected,
           status: i.passed ? 'passed' : 'failed',
+          similarity: similarityForComparison_(normalizeComparison(i.comparison), i.actual, i.expected),
         }))
       : [{
           comparison: normalizeComparison(comparison),
           actual,
           expected,
           status: passed ? 'passed' : 'failed',
+          similarity: similarityForComparison_(normalizeComparison(comparison), actual, expected),
         }];
 
   const payload: Record<string, any> = {

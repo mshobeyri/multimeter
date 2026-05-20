@@ -19,6 +19,41 @@ async function listFiles(folder: string, recursive = true): Promise<string[]> {
 export const handleBeforeMount = (monaco: any) => {
     const keySuggestionsByParent = KeySuggestionsByParent(monaco);
 
+    if (!monaco.languages.getLanguages().some((language: any) => language.id === 'http')) {
+        monaco.languages.register({ id: 'http' });
+    }
+    monaco.languages.setMonarchTokensProvider('http', {
+        defaultToken: '',
+        tokenPostfix: '.http',
+        keywords: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE'],
+        tokenizer: {
+            root: [
+                [/^\s*###.*$/, 'keyword'],
+                [/^\s*(?:#|\/\/|;)\s*@(?:name|title|note|prompt|no-cookie-jar|no-redirect|no-log)\b.*$/, 'annotation'],
+                [/^\s*(?:#|\/\/|;).*$/, 'comment'],
+                [/^\s*@[A-Za-z_][A-Za-z0-9_.-]*\s*=.*/, 'variable'],
+                [/\{\{[^}]+\}\}/, 'variable.predefined'],
+                [/^\s*(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE)(\s+)(\S+)/, ['keyword', '', 'string.link']],
+                [/^\s*[A-Za-z0-9-]+(?=\s*:)/, 'type.identifier'],
+                [/>\s*\{%/, 'delimiter', '@script'],
+                [/<\s*\{%/, 'delimiter', '@script'],
+                [/"([^"\\]|\\.)*$/, 'string.invalid'],
+                [/"([^"\\]|\\.)*"/, 'string'],
+                [/'([^'\\]|\\.)*'/, 'string'],
+                [/\b\d+(?:\.\d+)?\b/, 'number'],
+            ],
+            script: [
+                [/%\}/, 'delimiter', '@pop'],
+                [/client\.(?:test|assert|global|environment|variables|log)\b/, 'keyword'],
+                [/response\.(?:status|body|headers|cookies)\b/, 'variable.predefined'],
+                [/function|const|let|var|return|if|else|true|false|null|undefined/, 'keyword'],
+                [/"([^"\\]|\\.)*"/, 'string'],
+                [/'([^'\\]|\\.)*'/, 'string'],
+                [/\b\d+(?:\.\d+)?\b/, 'number'],
+            ],
+        },
+    });
+
     const splitPathPrefix = (raw: string): { folder: string; partial: string } => {
         const v = String(raw ?? '');
         // trim leading spaces and optional opening quote
@@ -484,7 +519,13 @@ export const handleBeforeMount = (monaco: any) => {
         }
         return deduplicateSuggestions(
             files
-                .filter((p) => typeof p === 'string' && (p.toLowerCase().endsWith('.mmt') || p.toLowerCase().endsWith('.csv')))
+                .filter((p) => {
+                    if (typeof p !== 'string') {
+                        return false;
+                    }
+                    const lower = p.toLowerCase();
+                    return lower.endsWith('.mmt') || lower.endsWith('.http') || lower.endsWith('.https') || lower.endsWith('.bru') || lower.endsWith('.csv');
+                })
                 .filter((p) => {
                     const fileName = String(p).split('/').pop() ?? '';
                     return !partial || fileName.toLowerCase().startsWith(partial.toLowerCase());
@@ -494,7 +535,7 @@ export const handleBeforeMount = (monaco: any) => {
                     label: p,
                     kind: monaco.languages.CompletionItemKind.File,
                     insertText: ` ${p}`,
-                    detail: 'MMT or CSV file',
+                    detail: 'MMT, HTTP, Bruno, or CSV file',
                     documentation: `Import from ${p}`,
                 }))
         );

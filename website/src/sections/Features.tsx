@@ -13,6 +13,7 @@ import {
   Workflow,
   ClipboardCheck,
   FlaskConical,
+  Braces,
 } from 'lucide-react'
 import FadeIn from '../components/FadeIn'
 
@@ -96,7 +97,7 @@ const features = [
     icon: Terminal,
     title: 'CI/CD Ready',
     description:
-      'Run the same .mmt files in pipelines with testlight, export reports, and keep automation version-controlled.',
+      'Run the same .mmt, .http-backed, and Bruno-backed flows in pipelines with testlight, export reports, and keep automation version-controlled.',
     color: 'text-emerald-400',
     bg: 'bg-emerald-400/10',
   },
@@ -142,9 +143,9 @@ const features = [
   },
   {
     icon: Repeat,
-    title: 'Import & Convert',
+    title: 'Other tools support',
     description:
-      'Seamlessly import from Postman collections and OpenAPI specifications. Zero-friction migration.',
+      'Seamlessly import from Postman collections, OpenAPI specifications, existing .http and Bruno request files, and curl.',
     color: 'text-indigo-400',
     bg: 'bg-indigo-400/10',
   },

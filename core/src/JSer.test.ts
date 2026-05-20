@@ -5,7 +5,7 @@ import {APIContext} from './JSerAPI';
 import {setFileLoader} from './JSerFileLoader';
 import {importsToJsfunc} from './JSerImports';
 import {TestContext, variableReplacer} from './JSerTest';
-import {assertToJSfunc, checkToJSfunc, flowStagesToJsfunc, parseExpectValue} from './JSerTestFlow';
+import {assertToJSfunc, checkToJSfunc, conditionalStatementToJSfunc, flowStagesToJsfunc, parseExpectValue} from './JSerTestFlow';
 import {createTestFileLoaderMock} from './testFileLoaderMock';
 import {normalizeReportConfig} from './TestData';
 
@@ -29,7 +29,7 @@ describe('normalizeReportConfig', () => {
 });
 
 describe('flowStagesToJsfunc', () => {
-  it('generates parallel execution for independent stages', () => {
+  it('generates parallel execution for independent stages', async () => {
     const stages = [
       {
         id: 'stage1',
@@ -44,13 +44,13 @@ describe('flowStagesToJsfunc', () => {
         ],
       },
     ];
-    const js = flowStagesToJsfunc(stages as any, true);
+    const js = await flowStagesToJsfunc(stages as any, true);
     expect(js).toContain('const stage1Promise = (async () =>');
     expect(js).toContain('const stage2Promise = (async () =>');
     expect(js).toContain('await Promise.all([stage1Promise, stage2Promise]);');
   });
 
-  it('generates dependency handling for dependent stages', () => {
+  it('generates dependency handling for dependent stages', async () => {
     const stages = [
       {
         id: 'stage1',
@@ -66,13 +66,13 @@ describe('flowStagesToJsfunc', () => {
         ],
       },
     ];
-    const js = flowStagesToJsfunc(stages as any, true);
+    const js = await flowStagesToJsfunc(stages as any, true);
     expect(js).toContain('await Promise.all([stage1Promise]);');
     expect(js).toContain('const stage2Promise = (async () =>');
     expect(js).toContain('await Promise.all([stage1Promise, stage2Promise]);');
   });
 
-  it('handles multiple dependencies', () => {
+  it('handles multiple dependencies', async () => {
     const stages = [
       {
         id: 'stage1',
@@ -94,14 +94,14 @@ describe('flowStagesToJsfunc', () => {
         ],
       },
     ];
-    const js = flowStagesToJsfunc(stages as any, true);
+    const js = await flowStagesToJsfunc(stages as any, true);
     expect(js).toContain('await Promise.all([stage1Promise, stage2Promise]);');
     expect(js).toContain('const stage3Promise = (async () =>');
     expect(js).toContain(
         'await Promise.all([stage1Promise, stage2Promise, stage3Promise]);');
   });
 
-  it('injects early return when stage condition exists', () => {
+  it('injects early return when stage condition exists', async () => {
     const stages = [
       {
         id: 'stage1',
@@ -117,7 +117,7 @@ describe('flowStagesToJsfunc', () => {
         ],
       },
     ];
-    const js = flowStagesToJsfunc(stages as any, true);
+    const js = await flowStagesToJsfunc(stages as any, true);
     expect(js).toContain('const stage1Promise = (async () =>');
     // Presence of condition should introduce an early-return guard
     expect(js).toContain('if (!(');
@@ -126,7 +126,7 @@ describe('flowStagesToJsfunc', () => {
     expect(js).toContain('await Promise.all([stage1Promise, stage2Promise]);');
   });
 
-  it('defaults to no condition (treated as true) when absent', () => {
+  it('defaults to no condition (treated as true) when absent', async () => {
     const stages = [
       {
         id: 'stage1',
@@ -141,7 +141,7 @@ describe('flowStagesToJsfunc', () => {
         ],
       },
     ];
-    const js = flowStagesToJsfunc(stages as any, true);
+    const js = await flowStagesToJsfunc(stages as any, true);
     expect(js).toContain('const stage1Promise = (async () =>');
     // No condition means no early-return guard injected
     expect(js.includes('if (!(')).toBe(false);
@@ -623,6 +623,77 @@ describe('rootTestToJsfunc + import tracker', () => {
     expect(js).toContain('kxxx = txxx_;');
   });
 
+  it('converts imported .http files into callable test functions', async () => {
+    const mock = createTestFileLoaderMock({
+      '/root/requests.http': `### Login
+POST https://api.example.com/login
+Content-Type: application/json
+
+{"username":"ada"}
+
+> {%
+  client.global.set("token", response.body.token);
+%}
+
+### Profile
+GET https://api.example.com/me
+Authorization: Bearer {{token}}
+`,
+    });
+    setFileLoader(mock.fileLoader);
+
+    const js = await rootTestToJsfunc({
+      name: 'http_import_test',
+      test: {
+        import: {requests: './requests.http'},
+        steps: [{call: 'requests'} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/main.mmt',
+    });
+
+    expect(js).toContain('const requests_ = async');
+    expect(js).toContain('const requests = requests_;');
+    expect(js).toContain('https://api.example.com/login');
+    expect(js).toContain('https://api.example.com/me');
+    expect(js).toContain('setenv_("token"');
+    expect(js).toContain('request_1');
+    expect(js).toContain('Bearer');
+    expect(js).toContain('envVariables.token');
+  });
+
+  it('converts imported .bru files into callable test functions', async () => {
+    const mock = createTestFileLoaderMock({
+      '/root/requests.bru': `meta {
+  name: Get Profile
+}
+
+get {
+  url: https://api.example.com/me
+  body: none
+  auth: none
+}
+`,
+    });
+    setFileLoader(mock.fileLoader);
+
+    const js = await rootTestToJsfunc({
+      name: 'bruno_import_test',
+      test: {
+        import: {requests: './requests.bru'},
+        steps: [{call: 'requests'} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/main.mmt',
+    });
+
+    expect(js).toContain('const requests_ = async');
+    expect(js).toContain('const requests = requests_;');
+    expect(js).toContain('https://api.example.com/me');
+  });
+
   it('resolves bare subdirectory paths without ./ prefix for mmt imports', async () => {
     const mock = createTestFileLoaderMock({
       '/root/tests/api/echo.mmt': 'type: api\nprotocol: http\nmethod: GET\nurl: http://example.com\n',
@@ -702,6 +773,38 @@ describe('rootTestToJsfunc + import tracker', () => {
 });
 
 describe('empty test items are valid', () => {
+  it('generates http request steps from test flow', async () => {
+    const ctx: TestContext = {
+      name: 'httpStepTest',
+      test: {
+        inputs: {userId: '42'},
+        steps: [{
+          http: 'https://example.com/users/<<i:userId>>',
+          id: 'getUser',
+          title: 'Get User',
+          method: 'get',
+          format: 'json',
+          expect: {'body.body.xxx': 'sss'},
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+
+    const js = await testToJsfunc(ctx, true);
+
+    expect(js).toContain('const __http_0 = async');
+    expect(js).toContain('const getUser = await __http_0({});');
+    expect(js).toContain('https://example.com/users/${userId}');
+    expect(js).toContain('extractOutputs_');
+    expect(js).toContain('"body.body.xxx": "body.body.xxx"');
+    expect(js).toContain('getUser["body.body.xxx"]');
+    expect(js).toContain('body.body.xxx == sss');
+    expect(js).toContain("getUser._.stepKind = 'http';");
+    expect(js).toContain('getUser.body = JSON.parse(getUser.body);');
+    expect(js).toContain('checkExpects_');
+  });
+
   it('handles empty assert without throwing and generates no code',
      async () => {
        const ctx: TestContext = {
@@ -852,6 +955,18 @@ describe('parseExpectValue', () => {
     expect(parseExpectValue('=~ /ok/i')).toEqual({ operator: '=~', expected: '/ok/i' });
   });
 
+  it('parses new regex, count, and fuzzy operators', () => {
+    expect(parseExpectValue('=* /ok/i')).toEqual({ operator: '=*', expected: '/ok/i' });
+    expect(parseExpectValue('!* /fail/')).toEqual({ operator: '!*', expected: '/fail/' });
+    expect(parseExpectValue('=# 3')).toEqual({ operator: '=#', expected: '3' });
+    expect(parseExpectValue('!# 0')).toEqual({ operator: '!#', expected: '0' });
+    expect(parseExpectValue('=% John')).toEqual({ operator: '=%', expected: 'John' });
+    expect(parseExpectValue('=0% John')).toEqual({ operator: '=0%', expected: 'John' });
+    expect(parseExpectValue('=10% John')).toEqual({ operator: '=10%', expected: 'John' });
+    expect(parseExpectValue('!75% admin')).toEqual({ operator: '!75%', expected: 'admin' });
+    expect(parseExpectValue('!100% admin')).toEqual({ operator: '!100%', expected: 'admin' });
+  });
+
   it('handles expected value with spaces', () => {
     expect(parseExpectValue('== hello world')).toEqual({ operator: '==', expected: 'hello world' });
   });
@@ -863,6 +978,20 @@ describe('parseExpectValue', () => {
   it('unquotes empty string markers', () => {
     expect(parseExpectValue("== ''")).toEqual({ operator: '==', expected: '' });
     expect(parseExpectValue('== ""')).toEqual({ operator: '==', expected: '' });
+  });
+});
+
+describe('conditionalStatementToJSfunc', () => {
+  it('parses fuzzy operators after multi-word actual values', () => {
+    expect(conditionalStatementToJSfunc('mehrdad zahra =100% mehrdad sahar'))
+        .toBe('fuzzyMatch_(`mehrdad zahra`, `mehrdad sahar`, 100)');
+  });
+
+  it('uses 80 percent as the default fuzzy threshold for =%', () => {
+    expect(conditionalStatementToJSfunc('name =% Jon'))
+        .toBe('fuzzyMatch_(`name`, `Jon`, 80)');
+    expect(conditionalStatementToJSfunc('name !% admin'))
+        .toBe('notFuzzyMatch_(`name`, `admin`, 80)');
   });
 });
 

@@ -2,6 +2,14 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.21.0]
+
+- Add Bruno file support, examples, and import flows
+- Add `.http` file support, inline HTTP calls, and curl paste conversion
+- Add fuzzy comparison support and report-all handling improvements
+- Improve flowchart, demo/tutorial, and website navigation behavior
+- Update docs, roadmap, and sample content for the new request-file workflows
+
 ## [1.20.0]
 
 - Add flowchart views for tests and suites

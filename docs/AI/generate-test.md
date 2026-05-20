@@ -151,13 +151,15 @@ Beyond the basic `call`, `id`, and `inputs`, a call step also supports:
 - `=C` (contains: left contains right), `!C` (does not contain)
 - `=^` (starts with), `!^` (not starts with)
 - `=$` (ends with), `!$` (not ends with)
-- `=~` (regex match), `!~` (regex not match)
+- `=*` (regex match), `!*` (regex not match). Legacy `=~` and `!~` still work.
+- `=#` (string/number character length equals), `!#` (not equal)
+- `=N%`(fuzzy match at least N% similar), `!N%` (not fuzzy match at N%). Any whole percent from 0 to 100 can be used, for example `=80%`. In the visual UI these appear as `=%` and `!%` with a separate percentage selector.
 
 Example comparisons:
 
 ```yaml
 - assert: ${login.status} == 200
-- check: ${profile.email} =~ /@example.com$/
+- check: ${profile.email} =* /@example.com$/
 - assert: ${response.body.total} >= 1
 ```
 

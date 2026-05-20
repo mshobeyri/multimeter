@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
+import { apiToYaml } from "mmt-core/apiParsePack";
+import { curlToAPI, isCurlCommand } from "mmt-core/curlConvertor";
 import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./BeforeMount";
 import { safeList } from "mmt-core/safer";
@@ -54,6 +56,7 @@ interface YamlEditorPanelProps {
   content: string;
   setContent: (value: string) => void;
   language?: string;
+  sourceFormat?: "mmt" | "http" | "bruno";
   showNumbers?: boolean;
   fontSize?: number;
   collapseDescription?: boolean;
@@ -125,14 +128,16 @@ const UNDEFINED_INPUT_CLASS = "mmt-undefined-input-underline";
 const EXPECT_OP_CLASS = "mmt-expect-operator";
 
 /** Known comparison operators, longest first so >= matches before > */
-const EXPECT_OPS = ['==', '!=', '>=', '<=', '=@', '!@', '=C', '!C', '=~', '!~', '=^', '!^', '=$', '!$', '>', '<'];
+const EXPECT_OPS = ['==', '!=', '>=', '<=', '=@', '!@', '=C', '!C', '=*', '!*', '=~', '!~', '=#', '!#', '=%', '!%', '=^', '!^', '=$', '!$', '>', '<'];
 
 const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   content,
   setContent,
   onFocusChange, // <-- receive it as a prop
   fontSize,
-  collapseDescription
+  collapseDescription,
+  language = "yaml",
+  sourceFormat = "mmt"
 }) => {
   const monacoRef = useRef<any>(null);
   const editorRef = useRef<any>(null);
@@ -209,9 +214,21 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     editorReady,
     docType,
     shouldShowRunControls,
+    sourceFormat,
   });
 
   const { reorderDocument } = useFormatAndOrder({ contentRef, docType, setContent });
+
+  const transformPastedText = (text: string): string | null => {
+    if (!isCurlCommand(text)) {
+      return null;
+    }
+    try {
+      return apiToYaml(curlToAPI(text));
+    } catch {
+      return null;
+    }
+  };
 
 
 
@@ -253,6 +270,12 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     const model = editor.getModel();
     if (!model) return;
 
+    if (sourceFormat === "http" || sourceFormat === "bruno") {
+      monaco.editor.setModelMarkers(model, "yaml", []);
+      setYamlProblems([]);
+      return;
+    }
+
     try {
       const yamlDoc = parseYamlDoc(content);
       let markers = [];
@@ -287,7 +310,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         severity: "error",
       }]);
     }
-  }, [content, editorReady]);
+  }, [content, editorReady, sourceFormat]);
 
   // Parse imports map whenever content changes
   useEffect(() => {
@@ -947,6 +970,19 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
                 opStartCol += 1;
               }
 
+              const fuzzyPercentMatch = afterQuote.match(/^([=!](?:0|[1-9][0-9]?|100)%)(?:\s|["']|$)/);
+              if (fuzzyPercentMatch) {
+                const op = fuzzyPercentMatch[1];
+                matches.push({
+                  range: new monaco.Range(
+                    i + 1, opStartCol + 1,
+                    i + 1, opStartCol + op.length + 1
+                  ),
+                  options: { inlineClassName: EXPECT_OP_CLASS }
+                });
+                continue;
+              }
+
               for (const op of EXPECT_OPS) {
                 if (
                   afterQuote.startsWith(op + ' ') ||
@@ -1005,7 +1041,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   return (
     <div style={{ height: "100%" }}>
       <TextEditor
-        language={"yaml"}
+        language={language}
         content={content}
         setContent={setContent}
         beforeMount={handleBeforeMount}
@@ -1014,6 +1050,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
         setEditorReady={setEditorReady}
         onFocusChange={onFocusChange}
         onToggleRunButton={handleRunClick}
+        onPasteTextTransform={transformPastedText}
         showGlyphMargin={true}
         fontSize={fontSize}
       />

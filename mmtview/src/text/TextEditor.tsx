@@ -15,6 +15,7 @@ interface TextEditorProps {
   onFocusChange?: (focused: boolean) => void;
   onInspectPosition?: (info: { line: number; column: number; text: string }) => void;
   onToggleRunButton?: () => void;
+  onPasteTextTransform?: (text: string) => string | null | undefined;
   showGlyphMargin?: boolean;
 }
 
@@ -69,10 +70,12 @@ const TextEditor: React.FC<TextEditorProps> = ({
   onFocusChange,
   onInspectPosition,
   onToggleRunButton,
+  onPasteTextTransform,
   showGlyphMargin = false,
 }) => {
   const localMonacoRef = useRef<any>(null);
   const localEditorRef = useRef<any>(null);
+  const applyingPasteTransformRef = useRef(false);
 
   // Use passed refs if provided, else fallback to local refs
   const monacoRefToUse = monacoRef || localMonacoRef;
@@ -87,6 +90,11 @@ const TextEditor: React.FC<TextEditorProps> = ({
   useEffect(() => {
     inspectPositionRef.current = onInspectPosition;
   }, [onInspectPosition]);
+
+  const pasteTextTransformRef = useRef(onPasteTextTransform);
+  useEffect(() => {
+    pasteTextTransformRef.current = onPasteTextTransform;
+  }, [onPasteTextTransform]);
 
   // Listen for VS Code theme changes and update Monaco theme
   useEffect(() => {
@@ -229,6 +237,42 @@ const TextEditor: React.FC<TextEditorProps> = ({
         },
       });
     }
+    editor.onDidChangeModelContent?.((event: any) => {
+      if (applyingPasteTransformRef.current) {
+        return;
+      }
+      const transformer = pasteTextTransformRef.current;
+      const model = editor.getModel?.();
+      const monaco = monacoRefToUse.current;
+      if (!transformer || !model || !monaco?.Range || !Array.isArray(event?.changes)) {
+        return;
+      }
+      const edits = event.changes
+          .map((change: any) => {
+            const raw = typeof change.text === 'string' ? change.text : '';
+            const transformed = raw ? transformer(raw) : null;
+            if (transformed === null || transformed === undefined || transformed === raw) {
+              return null;
+            }
+            const start = model.getPositionAt(change.rangeOffset);
+            const end = model.getPositionAt(change.rangeOffset + raw.length);
+            return {
+              range: new monaco.Range(start.lineNumber, start.column, end.lineNumber, end.column),
+              text: transformed,
+              forceMoveMarkers: true,
+            };
+          })
+          .filter(Boolean);
+      if (edits.length === 0) {
+        return;
+      }
+      applyingPasteTransformRef.current = true;
+      try {
+        editor.executeEdits('mmt-paste-transform', edits);
+      } finally {
+        applyingPasteTransformRef.current = false;
+      }
+    });
     // Mark editor as ready for consumers like YamlEditorPanel effects
     setEditorReady?.(true);
   };

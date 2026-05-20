@@ -3,7 +3,7 @@
   "publisher": "mshobeyri",
   "displayName": "Multimeter",
   "description": "API test tools",
-  "version": "1.20.0",
+  "version": "1.21.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git"
@@ -161,6 +161,37 @@
             "filenamePattern": "file:/**/*.mmt"
           }
         ],
+        "icon": {
+          "light": "res/activity.png",
+          "dark": "res/activity.png"
+        }
+      },
+      {
+        "viewType": "mmt.httpEditor",
+        "displayName": "Multimeter HTTP Test Editor",
+        "selector": [
+          {
+            "filenamePattern": "file:/**/*.http"
+          },
+          {
+            "filenamePattern": "file:/**/*.https"
+          }
+        ],
+        "priority": "option",
+        "icon": {
+          "light": "res/activity.png",
+          "dark": "res/activity.png"
+        }
+      },
+      {
+        "viewType": "mmt.brunoEditor",
+        "displayName": "Multimeter Bruno Test Editor",
+        "selector": [
+          {
+            "filenamePattern": "file:/**/*.bru"
+          }
+        ],
+        "priority": "option",
         "icon": {
           "light": "res/activity.png",
           "dark": "res/activity.png"

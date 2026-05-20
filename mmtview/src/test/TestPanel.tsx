@@ -12,6 +12,8 @@ import { FlowchartView } from "../flowchart";
 interface TestPanelProps {
   content: string;
   setContent: (value: string) => void;
+  parseTest?: (value: string) => TestData;
+  onSaveAsMmt?: (test: TestData) => void;
 }
 
 const LAST_TAB_KEY = "mmtview:lastTab";
@@ -28,10 +30,11 @@ function pageTranslate(page: TestPage): string {
   return "translateX(0%)";
 }
 
-const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
-  const test = React.useMemo(() => yamlToTest(content), [content]);
+const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = yamlToTest, onSaveAsMmt }) => {
+  const test = React.useMemo(() => parseTest(content), [content, parseTest]);
   const testRef = React.useRef<TestData>(test);
   const contentRef = React.useRef(content);
+  const isReadOnly = !!onSaveAsMmt;
 
   useEffect(() => {
     testRef.current = test;
@@ -88,18 +91,27 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
     localStorage.setItem(LAST_TEST_PAGE_KEY, page);
   }, [page]);
 
+  useEffect(() => {
+    if (isReadOnly && page === 'edit') {
+      setPage('test');
+    }
+  }, [page, isReadOnly]);
+
   // Listen for extension command to switch to the Code tab (e.g. on syntax error)
   useEffect(() => {
     const handler = (event: MessageEvent) => {
       const msg = event.data;
       if (msg && typeof msg === 'object' && msg.command === 'switchToCodeTab') {
+        if (isReadOnly) {
+          return;
+        }
         setPage('edit');
         setTab('code');
       }
     };
     window.addEventListener('message', handler);
     return () => window.removeEventListener('message', handler);
-  }, []);
+  }, [isReadOnly]);
 
   useEffect(() => {
     const checkTabWidth = () => {
@@ -149,15 +161,27 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
                         <span className="codicon codicon-type-hierarchy-sub" aria-hidden />
                         <span className="api-edit-launcher-text">Flow chart</span>
                       </button>
-                      <button
-                        className="action-button api-edit-launcher"
-                        onClick={() => setPage('edit')}
-                        title="Edit Test"
-                        type="button"
-                      >
-                        <span className="codicon codicon-edit" aria-hidden />
-                        <span className="api-edit-launcher-text">Edit Test</span>
-                      </button>
+                      {onSaveAsMmt ? (
+                        <button
+                          className="action-button api-edit-launcher"
+                          onClick={() => onSaveAsMmt(test)}
+                          title="Save as MMT"
+                          type="button"
+                        >
+                          <span className="codicon codicon-save-as" aria-hidden />
+                          <span className="api-edit-launcher-text">Save as MMT</span>
+                        </button>
+                      ) : (
+                        <button
+                          className="action-button api-edit-launcher"
+                          onClick={() => setPage('edit')}
+                          title="Edit Test"
+                          type="button"
+                        >
+                          <span className="codicon codicon-edit" aria-hidden />
+                          <span className="api-edit-launcher-text">Edit Test</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -215,14 +239,14 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
               </div>
 
               <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
-                {tab === "overview" && (
+                {!isReadOnly && tab === "overview" && (
                   <TestOverview
                     test={test}
                     update={(patch) => setTest(prev => ({ ...prev, ...patch }))}
                     missingImports={missingImports}
                 />
               )}
-              {tab === "flow" && (
+              {!isReadOnly && tab === "flow" && (
                 <TestFlow
                   testData={test}
                   importValidation={{ missingImports, inputsByAlias, outputsByAlias }}
@@ -241,7 +265,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent }) => {
                   }}
                 />
               )}
-                {tab === "code" && <TestCode testData={test} />}
+                {!isReadOnly && tab === "code" && <TestCode testData={test} />}
               </div>
             </div>
 

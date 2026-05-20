@@ -59,6 +59,21 @@
       "require": "./dist/testParsePack.js",
       "default": "./dist/testParsePack.js"
     },
+    "./httpParsePack": {
+      "types": "./dist/httpParsePack.d.ts",
+      "require": "./dist/httpParsePack.js",
+      "default": "./dist/httpParsePack.js"
+    },
+    "./brunoParsePack": {
+      "types": "./dist/brunoParsePack.d.ts",
+      "require": "./dist/brunoParsePack.js",
+      "default": "./dist/brunoParsePack.js"
+    },
+    "./curlConvertor": {
+      "types": "./dist/curlConvertor.d.ts",
+      "require": "./dist/curlConvertor.js",
+      "default": "./dist/curlConvertor.js"
+    },
     "./postmanConvertor": {
       "types": "./dist/postmanConvertor.d.ts",
       "require": "./dist/postmanConvertor.js",

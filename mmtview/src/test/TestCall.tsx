@@ -55,6 +55,7 @@ const TestCall: React.FC<TestCallProps> = ({
     const bc = b && typeof b === 'object' ? b : {};
     if ((ac.call || '') !== (bc.call || '')) return false;
     if ((ac.id || '') !== (bc.id || '')) return false;
+    if ((ac.title || '') !== (bc.title || '')) return false;
     const ai = ac.inputs && typeof ac.inputs === 'object' ? ac.inputs : {};
     const bi = bc.inputs && typeof bc.inputs === 'object' ? bc.inputs : {};
     if (stableStringify(ai) !== stableStringify(bi)) return false;
@@ -76,8 +77,14 @@ const TestCall: React.FC<TestCallProps> = ({
     typeof value === 'string' ? value
       : value && typeof value === 'object' && typeof (value as any).call === 'string' ? (value as any).call
         : '';
-  const mmtImports: Record<string, string> | undefined = imports ? Object.fromEntries(Object.entries(imports).filter(([_, p]) => typeof p === 'string' && p.endsWith('.mmt'))) as Record<string, string> : undefined;
-  const aliases = mmtImports ? Object.keys(mmtImports) : [];
+  const callableImports: Record<string, string> | undefined = imports ? Object.fromEntries(Object.entries(imports).filter(([_, p]) => {
+    if (typeof p !== 'string') {
+      return false;
+    }
+    const lower = p.toLowerCase();
+    return lower.endsWith('.mmt') || lower.endsWith('.http') || lower.endsWith('.https') || lower.endsWith('.bru');
+  })) as Record<string, string> : undefined;
+  const aliases = callableImports ? Object.keys(callableImports) : [];
   const currentAlias = aliases.includes(aliasFromValue)
     ? aliasFromValue
     : (
@@ -89,6 +96,9 @@ const TestCall: React.FC<TestCallProps> = ({
   const currentId = local && typeof local === 'object' && typeof (local as any).id === 'string'
     ? (local as any).id
     : (value && typeof value === 'object' && typeof (value as any).id === 'string' ? (value as any).id : '');
+  const currentTitle = local && typeof local === 'object' && typeof (local as any).title === 'string'
+    ? (local as any).title
+    : (value && typeof value === 'object' && typeof (value as any).title === 'string' ? (value as any).title : '');
 
   // Keep local in sync if parent changes externally (avoid stomping during our own edits by shallow check)
   React.useEffect(() => {
@@ -181,17 +191,19 @@ const TestCall: React.FC<TestCallProps> = ({
 
   /** Build the full call object from current state */
   const buildCallObj = (overrides?: {
-    alias?: string; id?: string; inputs?: Record<string, any>;
+    alias?: string; id?: string; title?: string; inputs?: Record<string, any>;
     expect?: ExpectRow[]; report?: any;
   }) => {
     const alias = overrides?.alias ?? currentAlias;
     const id = overrides?.id ?? currentId;
+    const title = overrides?.title ?? currentTitle;
     const inp = overrides?.inputs ?? inputs;
     const exp = overrides?.expect ?? expectList;
     const rep = overrides?.report !== undefined ? overrides.report : callReport;
     if (!alias) { return {}; }
     const obj: any = { call: alias };
     if (id && id.trim().length > 0) { obj.id = id; }
+    if (title && title.trim().length > 0) { obj.title = title; }
     obj.inputs = inp;
     const expectMap = rowsToExpectMap(exp);
     if (expectMap) { obj.expect = expectMap; }
@@ -247,7 +259,7 @@ const TestCall: React.FC<TestCallProps> = ({
     if (!aliasForValidation) {
       return { aliasProblems: [] as ProblemEntry[], inputProblems: [] as ProblemEntry[] };
     }
-    const importsMap = mmtImports || {};
+    const importsMap = callableImports || {};
     const lines: string[] = ['type: test'];
     const importEntries = Object.entries(importsMap);
     if (importEntries.length) {
@@ -276,7 +288,7 @@ const TestCall: React.FC<TestCallProps> = ({
     } catch {
       return { aliasProblems: [], inputProblems: [] };
     }
-  }, [aliasForValidation, importedInputsByAlias, inputs, keys, mmtImports]);
+  }, [aliasForValidation, importedInputsByAlias, inputs, keys, callableImports]);
 
   const missingImportWarnings: ProblemEntry[] = React.useMemo(() => {
     if (!aliasForValidation || !Array.isArray(missingImports)) {
@@ -329,6 +341,14 @@ const TestCall: React.FC<TestCallProps> = ({
   const handleAddExpect = () => {
     const defaultField = availableOutputs[0] || '';
     const next = buildCallObj({ expect: [...expectList, { field: defaultField, op: '==', expected: '' }] });
+    setLocal(next);
+    scheduleEmit(next);
+  };
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const titleVal = e.target.value;
+    if (!currentAlias) return;
+    const next = buildCallObj({ title: titleVal });
     setLocal(next);
     scheduleEmit(next);
   };
@@ -414,6 +434,18 @@ const TestCall: React.FC<TestCallProps> = ({
           disabled={!currentAlias}
           style={{ width: '100%' }}
           placeholder="Optional id to capture call result"
+        />
+      </div>
+
+      <div className="label">Title</div>
+      <div style={{ padding: "5px" }}>
+        <input
+          type="text"
+          value={currentTitle}
+          onChange={handleTitleChange}
+          disabled={!currentAlias}
+          style={{ width: '100%' }}
+          placeholder="Optional display title"
         />
       </div>
 

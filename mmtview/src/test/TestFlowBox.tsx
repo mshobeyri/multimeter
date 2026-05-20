@@ -3,6 +3,7 @@ import ReactDOM from "react-dom";
 import { FlowType, CheckOps } from "mmt-core/TestData";
 import TestCheck, { ReportValue } from "./TestCheck";
 import TestCall from "./TestCall";
+import TestHttp from "./TestHttp";
 import TestFlowVar from "./TestFlowVar";
 import TestFlowCSV from "./TestFlowCSV";
 import { type MissingImportEntry } from "../text/validator";
@@ -140,12 +141,26 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
         return (
           <TestCall
             value={stepData}
-            imports={testData?.import && typeof testData.import === 'object' ? (Object.fromEntries(Object.entries(testData.import).filter(([_, p]) => typeof p === 'string' && (p as string).endsWith('.mmt'))) as Record<string, string>) : undefined}
+            imports={testData?.import && typeof testData.import === 'object' ? (Object.fromEntries(Object.entries(testData.import).filter(([_, p]) => {
+              if (typeof p !== 'string') {
+                return false;
+              }
+              const lower = p.toLowerCase();
+              return lower.endsWith('.mmt') || lower.endsWith('.http') || lower.endsWith('.https') || lower.endsWith('.bru');
+            })) as Record<string, string>) : undefined}
             missingImports={importValidation?.missingImports}
             importedInputsByAlias={importValidation?.inputsByAlias}
             importedOutputsByAlias={importValidation?.outputsByAlias}
             onChange={callObj => onChange({ ...callObj })}
             placeholder="select a call"
+          />
+        );
+      case 'http':
+        return (
+          <TestHttp
+            value={stepData}
+            expanded={expanded}
+            onChange={httpObj => onChange({ ...httpObj })}
           />
         );
       case 'data':

@@ -8,16 +8,31 @@ export interface ReportMarkdownOptions {
 }
 
 interface ParsedCallDetails {
-  request?: { method?: string; url?: string; body?: string };
-  response?: { status?: number; statusText?: string; body?: string };
+  request?: { method?: string; url?: string; body?: any; headers?: Record<string, any> };
+  response?: { status?: number; statusText?: string; body?: any; headers?: Record<string, any> };
 }
 
-function tryFormatJson(s: string): string {
+function tryFormatJson(value: any): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (typeof value !== 'string') {
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return String(value);
+    }
+  }
+  const s = value;
   try {
     return JSON.stringify(JSON.parse(s), null, 2);
   } catch {
     return s;
   }
+}
+
+function hasEntries(value: Record<string, any> | undefined): boolean {
+  return !!value && typeof value === 'object' && Object.keys(value).length > 0;
 }
 
 function parseStepCallDetails(details?: string): ParsedCallDetails | null {
@@ -63,16 +78,24 @@ function displayValue(v: any): string {
   return String(v);
 }
 
-function buildFailureDetails(step: TestStepResult): string {
+function stepHasSimilarity(step: TestStepResult): boolean {
+  return (step.expects || []).some(e => typeof e.similarity === 'number');
+}
+
+function buildStepDetails(step: TestStepResult): string {
   const name = step.title || `step-${step.stepIndex}`;
-  let md = `\n<details>\n<summary>✗ ${name}</summary>\n\n`;
+  const stepIcon = step.status === 'passed' ? '✓' : '✗';
+  let md = `\n<details>\n<summary>${stepIcon} ${name}</summary>\n\n`;
   const expects = step.expects || [];
   if (expects.length > 0) {
     for (const e of expects) {
       const eIcon = e.status === 'passed' ? '✓' : '✗';
       md += `- ${eIcon} ${e.comparison}`;
-      if (e.status === 'failed' && e.actual != null && e.expected != null) {
+      if ((e.status === 'failed' || typeof e.similarity === 'number') && e.actual != null && e.expected != null) {
         md += `\n  - got: ${displayValue(e.actual)}`;
+        if (typeof e.similarity === 'number') {
+          md += `\n  - similarity: ${e.similarity}%`;
+        }
       }
       md += '\n';
     }
@@ -85,6 +108,9 @@ function buildFailureDetails(step: TestStepResult): string {
     if (req.method && req.url) {
       md += `\`${req.method} ${req.url}\`\n`;
     }
+    if (hasEntries(req.headers)) {
+      md += `\nHeaders:\n\n\`\`\`json\n${tryFormatJson(req.headers)}\n\`\`\`\n`;
+    }
     if (req.body) {
       md += `\n\`\`\`json\n${tryFormatJson(req.body)}\n\`\`\`\n`;
     }
@@ -94,6 +120,9 @@ function buildFailureDetails(step: TestStepResult): string {
     md += `\n**Response:**\n`;
     if (resp.status !== undefined) {
       md += `Status: ${resp.status}${resp.statusText ? ' ' + resp.statusText : ''}\n`;
+    }
+    if (hasEntries(resp.headers)) {
+      md += `\nHeaders:\n\n\`\`\`json\n${tryFormatJson(resp.headers)}\n\`\`\`\n`;
     }
     if (resp.body) {
       md += `\n\`\`\`json\n${tryFormatJson(resp.body)}\n\`\`\`\n`;
@@ -118,9 +147,9 @@ function buildTestRunSection(run: TestRunResult, index: number, includeDetails: 
   }
 
   if (includeDetails) {
-    const failedSteps = steps.filter(s => s.status === 'failed');
-    for (const step of failedSteps) {
-      md += buildFailureDetails(step);
+    const detailedSteps = steps.filter(s => s.status === 'failed' || stepHasSimilarity(s));
+    for (const step of detailedSteps) {
+      md += buildStepDetails(step);
     }
   }
 

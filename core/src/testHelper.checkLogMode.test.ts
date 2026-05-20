@@ -1,4 +1,4 @@
-import {check_, checkExpects_} from './testHelper';
+import {check_, checkExpects_, fuzzyMatch_, lengthEquals_, matches_, notFuzzyMatch_, notLengthEquals_, notMatches_, reportWithContext_, similarityPercent_} from './testHelper';
 
 describe('testHelper checkLogMode', () => {
   function makeConsole() {
@@ -108,5 +108,59 @@ describe('testHelper checkLogMode', () => {
     expect(consoleFn.trace).not.toHaveBeenCalled();
     expect(consoleFn.error).not.toHaveBeenCalled();
     expect(reportFn).toHaveBeenCalledWith('check', expects, 'Health Check', 'details', false);
+  });
+});
+
+describe('testHelper comparison helpers', () => {
+  it('checks length and item count equality', () => {
+    expect(lengthEquals_([1, 2, 3], 3)).toBe(true);
+    expect(lengthEquals_({a: 1, b: 2}, 2)).toBe(true);
+    expect(lengthEquals_({a: {id: 1}, b: {id: 2}, c: 'x'}, 3)).toBe(true);
+    expect(lengthEquals_('abcd', 4)).toBe(true);
+    expect(lengthEquals_(1234, 4)).toBe(true);
+    expect(notLengthEquals_([1, 2], 3)).toBe(true);
+  });
+
+  it('checks fuzzy percentage similarity', () => {
+    expect(fuzzyMatch_('John', 'Jon', 70)).toBe(true);
+    expect(fuzzyMatch_('John', 'admin', 80)).toBe(false);
+    expect(notFuzzyMatch_('John', 'admin', 80)).toBe(true);
+    expect(similarityPercent_('John', 'Jon')).toBeGreaterThan(0);
+    expect(similarityPercent_('mehrdad zahra', 'mehrdad sahar')).toBe(77);
+    expect(fuzzyMatch_('mehrdad zahra', 'mehrdad sahar', 77)).toBe(true);
+    expect(notFuzzyMatch_('mehrdad zahra', 'mehrdad sahar', 77)).toBe(false);
+    expect(fuzzyMatch_('mehrdad zahra', 'mehrdad sahar', 78)).toBe(false);
+    expect(fuzzyMatch_('mehrdad zahra', 'mehrdad sahar', 100)).toBe(false);
+  });
+
+  it('reports similarity for passed fuzzy comparisons with spaces', () => {
+    const reporter = jest.fn();
+
+    reportWithContext_(
+      reporter,
+      'run-1',
+      'node-1',
+      'check',
+      'mehrdad zahra =80% mehrdad sahar',
+      'fuzzy name',
+      undefined,
+      true,
+      'mehrdad zahra',
+      'mehrdad sahar',
+    );
+
+    expect(reporter).toHaveBeenCalledTimes(1);
+    expect(reporter.mock.calls[0][0].expects[0]).toMatchObject({
+      status: 'passed',
+      actual: 'mehrdad zahra',
+      expected: 'mehrdad sahar',
+      similarity: 77,
+    });
+  });
+
+  it('checks regex strings and slash literals', () => {
+    expect(matches_('John', '/john/i')).toBe(true);
+    expect(matches_('john@example.com', '@example\\.com$')).toBe(true);
+    expect(notMatches_('admin', '/^user/')).toBe(true);
   });
 });

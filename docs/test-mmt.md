@@ -2,6 +2,8 @@
 
 Use `type: test` to define a test MMT file. You can build complex flows with the elements below. Under the hood, Multimeter compiles your MMT to JavaScript and runs it inside VS Code or in CI with `testlight`.
 
+Multimeter can also run `.http`, `.https`, and `.bru` files as test flows through the optional VS Code **Open With...** editors. See [HTTP Files](./http-files.md) and [Bruno Files](./bruno-files.md) for the supported syntax and save behavior.
+
 Example:
 
 ```yaml
@@ -44,14 +46,23 @@ For the provided MMT, the Test panel shows the generated JavaScript. Click Run t
 The `test` type also supports documentation fields (title, tags, description) and reuse/compose elements (import, inputs, outputs). See the API doc for details. The sections below cover flow elements.
 
 ### import
-The `import` section lets you bring in other `.mmt` files (APIs, tests, or CSVs) to use in your test. Each import has an alias (the key) and a file path (the value).
+The `import` section lets you bring in other `.mmt` files (APIs or tests), `.http` / `.https` files, `.bru` files, CSVs, or JavaScript helpers to use in your test. Each import has an alias (the key) and a file path (the value).
 
 ```yaml
 import:
   login: login.mmt           # relative to current file
+  requests: requests.http    # HTTP Client file, converted to a test flow
+  profile: profile.bru       # Bruno request file, converted to a test flow
   users: ../data/users.csv   # relative path
   api: +/apis/userApi.mmt    # project root path
   helpers: ./helpers/xxx.js  # JS helper module (CommonJS)
+```
+
+HTTP and Bruno files imported this way are converted internally to test flows and can be called like normal test imports:
+
+```yaml
+steps:
+  - call: requests
 ```
 
 **JS helper modules**
@@ -125,7 +136,7 @@ stages:
 ```
 
 ### Steps
-Steps are the building blocks of a test. When placed at the test root, they run sequentially. Inside stages, steps run within that stage; parallelism is controlled by the stages.
+Steps are the building blocks of a test. When placed at the test root, they run sequentially. Inside stages, steps run within that stage; parallelism is controlled by the stages. Use `call` when the request or flow already lives in a reusable imported file, and use `http` when you want to send a one-off HTTP request directly from the test.
 You can visualize and run the flow from the Flow panel; each step here corresponds to a UI block in that panel.
 
 ![Flow panel](../screenshots/test_panel_flow.png)
@@ -145,6 +156,44 @@ Invoke an imported API or another test; give it an id to reference its outputs l
   id: profile
   inputs:
     token: ${doLogin.token}
+```
+
+### http
+Send an HTTP request directly from the test without importing a separate `type: api` file. This is useful for setup, teardown, health checks, or small one-off requests that you do not want to reuse elsewhere.
+
+```yaml
+- http: https://example.com/users/<<i:userId>>
+  id: getUser
+  method: get
+  format: json
+  headers:
+    Authorization: Bearer <<e:token>>
+  expect:
+    status: 200
+    body.name: != null
+```
+
+Direct HTTP steps use the same HTTP request fields as API files where they make sense: `query`, `method`, `format`, `headers`, and `body`.
+
+Notes:
+- `http` is the request URL and is required.
+- `method` defaults to `get` if omitted.
+- `id` is optional, but recommended when you want to reference the response in later steps.
+- Inline `expect`, `debug`, and `report` work the same way as on `call` steps.
+- The response exposed through `id` includes `body`, `headers`, `cookies`, `status`, and `duration`.
+
+Example using the response later in the flow:
+
+```yaml
+steps:
+  - http: <<e:api_url>>/health
+    id: health
+    method: get
+    expect:
+      status: 200
+  - if: ${health.status} == 200
+    steps:
+      - print: Service is healthy
 ```
 
 ### run
@@ -232,7 +281,7 @@ With title and report:
     external: fails
 ```
 
-All comparison operators supported by `check`/`assert` are available in `expect` values: `==`, `!=`, `<`, `>`, `<=`, `>=`, `=@`, `!@`, `=C`, `!C`, `=^`, `!^`, `=$`, `!$`, `=~`, `!~`.
+All comparison operators supported by `check`/`assert` are available in `expect` values: `==`, `!=`, `<`, `>`, `<=`, `>=`, `=@`, `!@`, `=C`, `!C`, `=^`, `!^`, `=$`, `!$`, `=*`, `!*`, `=#`, `!#`, `=N%`, `!N%`. Legacy regex operators `=~` and `!~` are still accepted.
 
 #### Inline debug on call
 
@@ -269,14 +318,18 @@ Supported operators
 - `!C` (left does not contain right)
 - `=^` (starts with), `!^` (not starts with)
 - `=$` (ends with), `!$` (not ends with)
-- `=~` (regex match), `!~` (not regex match)
+- `=*` (regex match), `!*` (not regex match). Legacy `=~` and `!~` still work.
+- `=#` (string/number character length equals), `!#` (not equal)
+- `=N%`(fuzzy match at least N% similar), `!N%` (not fuzzy match at N%). Any whole percent from 0 to 100 can be used, for example `=80%`. In the visual UI these appear as `=%` and `!%` with a separate percentage selector.
 
 You can write checks and asserts in a concise inline form or in a structured object form with explicit `actual`, `expected`, `operator`, and an optional `title` or `details`.
 
 Inline examples
 ```yaml
 - assert: ${doLogin.status} == 200
-- check: ${profile.name} =~ /John/i
+- check: ${profile.name} =* /John/i
+- check: ${profile.name} =80% Jon
+- check: ${profile.roles} =# 2
 ```
 
 > **Note:** Values referencing step ids, loop variables, or JS-scoped variables must use `${...}` to resolve at runtime:
@@ -521,7 +574,7 @@ steps:
     id: me
     inputs:
       token: ${token}
-  - check: ${me.email} =~ /@example.com$/
+  - check: ${me.email} =* /@example.com$/
 ```
 
 ## Reference (types)
@@ -534,7 +587,7 @@ steps:
 - outputs: record&lt;string, string | number | boolean | null&gt;
 - steps: array of step (alias: `flow`)
 - stages: array of { id, title?, steps, condition?, after? }
-- step types: `call`, `check`, `assert`, `if`, `for`, `repeat`, `delay`, `js`, `print`, `set`, `var`, `const`, `let`, `setenv`, `data`
+- step types: `call`, `http`, `check`, `assert`, `if`, `for`, `repeat`, `delay`, `js`, `print`, `set`, `var`, `const`, `let`, `setenv`, `data`, `run`
 
 Notes:
 - `flow` is accepted as a backward-compatible alias for `steps`.

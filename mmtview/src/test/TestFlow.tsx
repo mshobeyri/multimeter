@@ -228,6 +228,7 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
         switch (type) {
             case 'print': return { print: '' };
             case 'call': return { call: '', id: '', inputs: {} };
+            case 'http': return { http: '', method: 'get', format: 'json' };
             case 'js': return { js: '' };
             case 'set': return { set: {} };
             case 'var': return { var: {} };
@@ -660,7 +661,7 @@ const isTypeFolder = (type: FlowType | unknown): boolean => {
 }
 
 const isExpandable = (type: FlowType | unknown): boolean => {
-    return type === "print" || type === "js" || type === "call" || type === "check" || type === "assert" || type === 'setenv' || type === 'stage';
+    return type === "print" || type === "js" || type === "call" || type === "http" || type === "check" || type === "assert" || type === 'setenv' || type === 'stage';
 }
 
 export default TestFlow;

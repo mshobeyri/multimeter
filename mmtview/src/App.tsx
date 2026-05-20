@@ -5,12 +5,16 @@ import './App.css';
 import APIPanel from "./api/APIPanel";
 import NotypePanel from "./NotypePanel";
 import TestPanel from "./test/TestPanel";
+import BrunoTestPanel from "./bruno/BrunoTestPanel";
+import HttpTestPanel from "./http/HttpTestPanel";
 import SuitePanel from "./suite/SuitePanel";
 import LoadTestPanel from "./loadtest/LoadTestPanel";
 import DocPanel from "./doc/DocPanel";
 import MockPanel from "./mock/MockPanel";
 import ReportPanel from "./report/ReportPanel";
 import parseYaml from "mmt-core/markupConvertor";
+import { isBrunoFilePath, parseBrunoDocument } from "mmt-core/brunoParsePack";
+import { isHttpFilePath, parseHttpDocument } from "mmt-core/httpParsePack";
 import YamlEditorPanel from "./text/YamlEditorPanel";
 import { FileContext } from "./fileContext";
 
@@ -30,6 +34,7 @@ const App: React.FC = () => {
   const [content, setContent] = useState("");
   const [validContent, setValidContent] = useState("");
   const [docType, setDocType] = useState<string | null>(null);
+  const [sourceFormat, setSourceFormat] = useState<"mmt" | "http" | "bruno">("mmt");
   const [mmtFilePath, setMmtFilePath] = useState<string | undefined>(undefined);
   const [projectRoot, setProjectRoot] = useState<string | undefined>(undefined);
   const [yamlFontSize, setYamlFontSize] = useState<number>(12);
@@ -52,6 +57,20 @@ const App: React.FC = () => {
       setValidContent(content);
       return;
     }
+    if (sourceFormat === "http") {
+      const parsed = parseHttpDocument(content);
+      if (parsed.requests.length > 0) {
+        setValidContent(content);
+      }
+      return;
+    }
+    if (sourceFormat === "bruno") {
+      const parsed = parseBrunoDocument(content);
+      if (parsed.blocks.length > 0) {
+        setValidContent(content);
+      }
+      return;
+    }
     try {
       const parsed = parseYaml(content);
       // Only update validContent when YAML parses and has no validation errors
@@ -68,18 +87,33 @@ const App: React.FC = () => {
       const message = event.data;
       if (message.command === "viewDocumentContent") {
         isInitLoad.current = true;
+        const nextSourceFormat = message.sourceFormat === "http" || isHttpFilePath(message.uri || "") ? "http" :
+          message.sourceFormat === "bruno" || isBrunoFilePath(message.uri || "") ? "bruno" : "mmt";
+        setSourceFormat(nextSourceFormat);
         setContent(message.content);
 
         // Only seed validContent if the initial document is valid;
         // otherwise leave it as-is (so UI doesn't see "{}" or "")
-        try {
-          const parsed = parseYaml(message.content);
-          if (parsed) {
+        if (nextSourceFormat === "http") {
+          const parsed = parseHttpDocument(message.content);
+          if (parsed.requests.length > 0) {
             setValidContent(message.content);
           }
-          // else: do nothing, keep previous validContent
-        } catch {
-          // parsing failed: keep previous validContent
+        } else if (nextSourceFormat === "bruno") {
+          const parsed = parseBrunoDocument(message.content);
+          if (parsed.blocks.length > 0) {
+            setValidContent(message.content);
+          }
+        } else {
+          try {
+            const parsed = parseYaml(message.content);
+            if (parsed) {
+              setValidContent(message.content);
+            }
+            // else: do nothing, keep previous validContent
+          } catch {
+            // parsing failed: keep previous validContent
+          }
         }
 
         if (message.uri) setMmtFilePath(message.uri);
@@ -96,6 +130,9 @@ const App: React.FC = () => {
       // External document change (undo / revert) – update content without
       // echoing an updateDocumentContent message back to the extension.
       if (message.command === "documentContentChanged") {
+        const nextSourceFormat = message.sourceFormat === "http" || isHttpFilePath(message.uri || mmtFilePath || "") ? "http" :
+          message.sourceFormat === "bruno" || isBrunoFilePath(message.uri || mmtFilePath || "") ? "bruno" : sourceFormat;
+        setSourceFormat(nextSourceFormat);
         setContent(prev => {
           if (prev === message.content) {
             return prev;
@@ -103,13 +140,25 @@ const App: React.FC = () => {
           isInitLoad.current = true;
           return message.content;
         });
-        try {
-          const parsed = parseYaml(message.content);
-          if (parsed) {
+        if (nextSourceFormat === "http") {
+          const parsed = parseHttpDocument(message.content);
+          if (parsed.requests.length > 0) {
             setValidContent(message.content);
           }
-        } catch {
-          // keep previous validContent
+        } else if (nextSourceFormat === "bruno") {
+          const parsed = parseBrunoDocument(message.content);
+          if (parsed.blocks.length > 0) {
+            setValidContent(message.content);
+          }
+        } else {
+          try {
+            const parsed = parseYaml(message.content);
+            if (parsed) {
+              setValidContent(message.content);
+            }
+          } catch {
+            // keep previous validContent
+          }
         }
       }
 
@@ -161,6 +210,10 @@ const App: React.FC = () => {
   }, [setContent]);
 
   useEffect(() => {
+    if (sourceFormat === "http" || sourceFormat === "bruno") {
+      setDocType(validContent.trim() ? "test" : null);
+      return;
+    }
     try {
       const parsed = parseYaml(validContent);
       if (parsed && typeof parsed === "object" && "type" in parsed) {
@@ -171,7 +224,7 @@ const App: React.FC = () => {
     } catch {
       setDocType(null);
     }
-  }, [validContent]);
+  }, [validContent, sourceFormat]);
 
   useEffect(() => {
     if (isInitLoad.current) {
@@ -239,6 +292,8 @@ const App: React.FC = () => {
             onFocusChange={setYamlEditorFocused}
             fontSize={yamlFontSize}
             collapseDescription={collapseDescription}
+            language={sourceFormat === "http" || sourceFormat === "bruno" ? "http" : "yaml"}
+            sourceFormat={sourceFormat}
           />
         </div>
         <div style={{ height: "100vh", minHeight: 0, overflowX: 'auto' }}>
@@ -253,7 +308,11 @@ const App: React.FC = () => {
               <DocPanel content={validContent} setContent={uiSetContent} />
             )}
             {docType === "test" && (
-              <TestPanel content={validContent} setContent={uiSetContent} />
+              sourceFormat === "http" ?
+                <HttpTestPanel content={validContent} setContent={uiSetContent} /> :
+                sourceFormat === "bruno" ?
+                <BrunoTestPanel content={validContent} setContent={uiSetContent} /> :
+                <TestPanel content={validContent} setContent={uiSetContent} />
             )}
             {docType === "suite" && (
               <SuitePanel content={validContent} setContent={uiSetContent} />

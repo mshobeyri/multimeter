@@ -1,22 +1,9 @@
 import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
-import { playlistSnapshot } from './playlistSnapshot'
+import { demoPlaylist } from './demoPlaylist'
+import { tutorialPlaylist } from './tutorialPlaylist'
 
-const PLAYLISTS = [
-  {
-    id: 'PL_GvdPBZ-KR6cTAyzewASaUDbZt_B9POH',
-    eyebrow: 'Feature demos',
-    title: 'Short Multimeter feature demos',
-    description: 'Quick, focused videos showing Multimeter features in action.',
-  },
-  {
-    id: 'PL_GvdPBZ-KR4nlMq1dE8BryC75z8jzTfL',
-    eyebrow: 'Step-by-step playlist',
-    title: 'Watch Multimeter in action',
-    description: 'Guided walkthroughs covering Multimeter from install to environment variables and API testing.',
-  },
-] as const
 const VIRTUAL_MODULE_ID = 'virtual:youtube-playlist'
 const RESOLVED_ID = '\0' + VIRTUAL_MODULE_ID
 
@@ -26,25 +13,55 @@ interface PlaylistVideo {
   description: string
 }
 
-type PlaylistEntry = (typeof PLAYLISTS)[number] & { videos: PlaylistVideo[] }
+interface StoredPlaylist {
+  id: string
+  eyebrow: string
+  title: string
+  description: string
+  videos: readonly PlaylistVideo[]
+}
 
-function withFallbackVideos(playlist: PlaylistEntry): PlaylistEntry {
-  if (playlist.videos.length > 0) {
-    return playlist
-  }
+type PlaylistEntry = Omit<StoredPlaylist, 'videos'> & { videos: PlaylistVideo[] }
 
-  const snapshot = playlistSnapshot.find((item) => item.id === playlist.id)
+const PLAYLISTS: readonly StoredPlaylist[] = [demoPlaylist, tutorialPlaylist]
+
+function withStoredPlaylistData(playlist: PlaylistEntry): PlaylistEntry {
+  const snapshot = PLAYLISTS.find((item) => item.id === playlist.id)
   if (!snapshot) {
     return playlist
   }
 
-  console.warn(
-    `[youtube-playlist] Using snapshot fallback for playlist ${playlist.id} with ${snapshot.videos.length} videos`,
-  )
+  if (playlist.videos.length === 0) {
+    console.warn(
+      `[youtube-playlist] Using stored fallback for playlist ${playlist.id} with ${snapshot.videos.length} videos`,
+    )
+
+    return {
+      ...snapshot,
+      videos: snapshot.videos.map((video) => ({ ...video })),
+    }
+  }
+
+  const storedVideos = new Map(snapshot.videos.map((video) => [video.id, video]))
+  const videos = playlist.videos.map((video) => {
+    const storedVideo = storedVideos.get(video.id)
+
+    return {
+      ...video,
+      description: video.description || storedVideo?.description || '',
+    }
+  })
+
+  const restoredDescriptions = videos.filter((video, index) => !playlist.videos[index].description && video.description).length
+  if (restoredDescriptions > 0) {
+    console.warn(
+      `[youtube-playlist] Restored ${restoredDescriptions} descriptions from stored playlist data for ${playlist.id}`,
+    )
+  }
 
   return {
     ...playlist,
-    videos: snapshot.videos.map((video) => ({ ...video })),
+    videos,
   }
 }
 
@@ -159,7 +176,7 @@ function youtubePlaylistPlugin(): Plugin {
       if (!fetched) {
         playlists = await Promise.all(
           PLAYLISTS.map(async (playlist) =>
-            withFallbackVideos({
+            withStoredPlaylistData({
               ...playlist,
               videos: await fetchPlaylistVideos(playlist.id),
             }),

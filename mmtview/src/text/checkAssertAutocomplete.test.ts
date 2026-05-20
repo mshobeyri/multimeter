@@ -4,7 +4,7 @@ function keySuggestionLabelsFor(parent: 'check'|'assert'|'operator'): string[] {
   if (parent === 'check' || parent === 'assert') {
     return ['actual', 'expected', 'operator', 'title', 'details', 'report'];
   }
-  return ['==', '!=', '>', '>=', '<', '<=', '=@', '!@', '=C', '!C', '=~', '!~', '=^', '!^', '=$', '!$'];
+  return ['==', '!=', '>', '>=', '<', '<=', '=@', '!@', '=C', '!C', '=*', '!*', '=#', '!#', '=%', '!%', '=^', '!^', '=$', '!$'];
 }
 
 describe('check/assert object-form autocomplete', () => {
@@ -20,7 +20,9 @@ describe('check/assert object-form autocomplete', () => {
   it('offers known operators', () => {
     const labels = new Set(keySuggestionLabelsFor('operator'));
     expect(labels.has('==')).toBe(true);
-    expect(labels.has('=~')).toBe(true);
+    expect(labels.has('=*')).toBe(true);
+    expect(labels.has('=#')).toBe(true);
+    expect(labels.has('=%')).toBe(true);
     expect(labels.has('=@')).toBe(true);
   });
 

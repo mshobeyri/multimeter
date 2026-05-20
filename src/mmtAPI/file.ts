@@ -1,6 +1,8 @@
 import {markupConvertor} from 'mmt-core';
 const {parseYaml} = markupConvertor;
 import {findProjectRootSync} from 'mmt-core/fileHelper';
+import {brunoToTest, isBrunoFilePath} from 'mmt-core/brunoParsePack';
+import {httpToTest, isHttpFilePath} from 'mmt-core/httpParsePack';
 import {generateJunitXml} from 'mmt-core/junitXml';
 import {generateMmtReport} from 'mmt-core/mmtReport';
 import {generateReportHtml} from 'mmt-core/reportHtml';
@@ -121,6 +123,28 @@ export function handleUpdateDocumentContent(
   mmtProvider.updateTextDocument(document, message.text);
 }
 
+export async function handleSaveContentAsMmt(
+    message: any, document: vscode.TextDocument) {
+  const text = typeof message?.text === 'string' ? message.text : '';
+  if (!text.trim()) {
+    vscode.window.showWarningMessage('No MMT content to save.');
+    return;
+  }
+  const parsed = path.parse(document.uri.fsPath);
+  const defaultUri = vscode.Uri.file(path.join(parsed.dir, `${parsed.name}.mmt`));
+  const target = await vscode.window.showSaveDialog({
+    defaultUri,
+    filters: {MMT: ['mmt']},
+    saveLabel: 'Save as MMT',
+  });
+  if (!target) {
+    return;
+  }
+  await vscode.workspace.fs.writeFile(target, Buffer.from(text, 'utf8'));
+  await vscode.commands.executeCommand(
+      'vscode.openWith', target, 'mmt.editor', {preview: false});
+}
+
 export async function readFileContent(filename: string): Promise<string> {
   try {
     // filename should be a filesystem path here
@@ -153,6 +177,9 @@ export async function handleLoadDocumentContent(
 
   // Resolve project root for +/ imports (same logic used by run)
   const projectRoot = findProjectRoot(document.uri.fsPath);
+  const lowerPath = document.uri.fsPath.toLowerCase();
+  const sourceFormat = lowerPath.endsWith('.http') || lowerPath.endsWith('.https') ? 'http' :
+    lowerPath.endsWith('.bru') ? 'bruno' : 'mmt';
 
   // Send document data to the current panel
   webviewPanel.webview.postMessage({
@@ -162,7 +189,8 @@ export async function handleLoadDocumentContent(
     mode: vscode.window.tabGroups.activeTabGroup.activeTab?.input ? 'normal' :
                                                                     'compare',
     viewMode: lastViewMode,
-    projectRoot
+    projectRoot,
+    sourceFormat
   });
 
   // Send initial configuration values (e.g., body auto format)
@@ -273,7 +301,8 @@ export async function handleValidateImports(
         const raw =
             await vscode.workspace.fs.readFile(vscode.Uri.file(absolutePath));
         const text = Buffer.from(raw).toString('utf8');
-        const js: any = parseYaml(text);
+        const js: any = isHttpFilePath(absolutePath) ? httpToTest(text, absolutePath) :
+          isBrunoFilePath(absolutePath) ? brunoToTest(text, absolutePath) : parseYaml(text);
         const inputsObj = js && js.inputs;
         if (inputsObj && typeof inputsObj === 'object' &&
             !Array.isArray(inputsObj)) {
@@ -325,7 +354,10 @@ export async function handleGetSuiteImportTree(
     return resolveImportPath(rootAbs, rel, projectRoot);
   };
 
-  const detectType = (text: string): SuiteTreeNodeInfo['docType'] => {
+  const detectType = (text: string, filePath = ''): SuiteTreeNodeInfo['docType'] => {
+    if (isHttpFilePath(filePath) || isBrunoFilePath(filePath)) {
+      return 'test';
+    }
     try {
       const js: any = parseYaml(text);
       const t = js?.type;
@@ -353,7 +385,7 @@ export async function handleGetSuiteImportTree(
     try {
       const raw = await vscode.workspace.fs.readFile(vscode.Uri.file(abs));
       const text = Buffer.from(raw).toString('utf8');
-      const docType = detectType(text);
+      const docType = detectType(text, abs);
       if (docType === 'suite') {
         const js: any = parseYaml(text);
         const tests: any[] = Array.isArray(js?.tests) ? js.tests : [];
@@ -608,6 +640,7 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
         comparison: e.comparison || '',
         actual: e.actual,
         expected: e.expected,
+        similarity: typeof e.similarity === 'number' ? e.similarity : undefined,
         status: e.status === 'failed' ? 'failed' as const : 'passed' as const,
       })) : [],
       timestamp: r.timestamp || 0,
@@ -660,6 +693,7 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
               comparison: e.comparison || '',
               actual: e.actual,
               expected: e.expected,
+              similarity: typeof e.similarity === 'number' ? e.similarity : undefined,
               status: e.status === 'failed' ? 'failed' as const : 'passed' as const,
             })) : [],
             timestamp: r.timestamp || 0,

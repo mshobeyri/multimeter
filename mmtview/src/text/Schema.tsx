@@ -430,12 +430,12 @@ export const TestSchema = {
             type: 'array',
             items: {
                 anyOf: [
-                    // call step
+                    // imported call step
                     {
                         type: 'object',
                         required: ['call'],
                         properties: {
-                            call: { type: 'string' },
+                            call: { type: 'string', minLength: 1 },
                             id: { type: 'string' },
                             title: { type: 'string' },
                             inputs: {
@@ -514,6 +514,75 @@ export const TestSchema = {
                         },
                         additionalProperties: false
                     },
+                    // inline HTTP request step
+                    {
+                        type: 'object',
+                        required: ['http'],
+                        properties: {
+                            http: { type: 'string', minLength: 1 },
+                            id: { type: 'string' },
+                            title: { type: 'string' },
+                            method: {
+                                type: 'string',
+                                enum: ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
+                            },
+                            format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text'] },
+                            headers: { type: 'object', additionalProperties: { type: 'string' } },
+                            query: { type: 'object', additionalProperties: { type: 'string' } },
+                            body: {
+                                anyOf: [
+                                    { type: 'string' },
+                                    { type: 'object', additionalProperties: true },
+                                    { type: 'null' }
+                                ]
+                            },
+                            outputs: {
+                                type: 'object',
+                                additionalProperties: { type: 'string' }
+                            },
+                            expect: {
+                                type: 'object',
+                                description: 'Map of response paths (for example body.message) to expected values. Non-throwing — logs failures but continues.',
+                                additionalProperties: {
+                                    oneOf: [
+                                        { type: 'string' },
+                                        { type: 'number' },
+                                        { type: 'boolean' },
+                                        {
+                                            type: 'array',
+                                            items: {
+                                                anyOf: [
+                                                    { type: 'string' },
+                                                    { type: 'number' },
+                                                    { type: 'boolean' }
+                                                ]
+                                            }
+                                        }
+                                    ]
+                                }
+                            },
+                            debug: {
+                                oneOf: [
+                                    { type: 'boolean', enum: [true] },
+                                    { type: 'object', additionalProperties: true }
+                                ]
+                            },
+                            report: {
+                                oneOf: [
+                                    { type: 'string', enum: ['all', 'fails', 'none'] },
+                                    {
+                                        type: 'object',
+                                        properties: {
+                                            internal: { type: 'string', enum: ['all', 'fails', 'none'] },
+                                            external: { type: 'string', enum: ['all', 'fails', 'none'] }
+                                        },
+                                        additionalProperties: false
+                                    }
+                                ]
+                            },
+                        },
+                        additionalProperties: false
+                    },
                     // data step
                     {
                         type: 'object',
@@ -539,7 +608,10 @@ export const TestSchema = {
                                             expected: {},
                                             operator: {
                                                 type: 'string',
-                                                enum: ['<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=C', '!C', '=~', '!~', '=^', '!^', '=$', '!$']
+                                                anyOf: [
+                                                    { enum: ['<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=C', '!C', '=*', '!*', '=~', '!~', '=#', '!#', '=%', '!%', '=^', '!^', '=$', '!$'] },
+                                                    { pattern: '^[=!]([0-9]|[1-9][0-9]|100)%$' }
+                                                ]
                                             },
                                             title: { type: 'string' },
                                             details: { type: 'string' },
@@ -580,7 +652,10 @@ export const TestSchema = {
                                             expected: {},
                                             operator: {
                                                 type: 'string',
-                                                enum: ['<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=C', '!C', '=~', '!~', '=^', '!^', '=$', '!$']
+                                                anyOf: [
+                                                    { enum: ['<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=C', '!C', '=*', '!*', '=~', '!~', '=#', '!#', '=%', '!%', '=^', '!^', '=$', '!$'] },
+                                                    { pattern: '^[=!]([0-9]|[1-9][0-9]|100)%$' }
+                                                ]
                                             },
                                             title: { type: 'string' },
                                             details: { type: 'string' },

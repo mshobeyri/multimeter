@@ -93,7 +93,7 @@ describe('generateReportMarkdown', () => {
             makeStep({
               title: 'name == John',
               status: 'failed',
-              expects: [{ comparison: '==', actual: 'Jane', expected: 'John', status: 'failed' }],
+              expects: [{ comparison: 'name =80% John', actual: 'Jane', expected: 'John', similarity: 25, status: 'failed' }],
             }),
           ],
         }),
@@ -103,10 +103,77 @@ describe('generateReportMarkdown', () => {
     const md = generateReportMarkdown(results);
     expect(md).toContain('<details>');
     expect(md).toContain('<summary>✗ name == John</summary>');
-    expect(md).toContain('✗ ==');
+    expect(md).toContain('✗ name =80% John');
     expect(md).toContain('got: Jane');
+    expect(md).toContain('similarity: 25%');
     expect(md).toContain('</details>');
     expect(md).toContain('✗ failed');
+  });
+
+  it('includes passed fuzzy details with got and similarity', () => {
+    const results: CollectedResults = {
+      type: 'test',
+      testRuns: [
+        makeRun({
+          displayName: 'test.mmt',
+          steps: [
+            makeStep({
+              title: 'name =80% John',
+              status: 'passed',
+              expects: [{ comparison: 'name =80% Jon', actual: 'John', expected: 'Jon', similarity: 75, status: 'passed' }],
+            }),
+          ],
+        }),
+      ],
+    };
+
+    const md = generateReportMarkdown(results);
+    expect(md).toContain('<summary>✓ name =80% John</summary>');
+    expect(md).toContain('✓ name =80% Jon');
+    expect(md).toContain('got: John');
+    expect(md).toContain('similarity: 75%');
+  });
+
+  it('renders response headers and object bodies as JSON in failure details', () => {
+    const details = JSON.stringify({
+      _: {
+        details: JSON.stringify({
+          request: {
+            method: 'GET',
+            url: 'https://example.com',
+            headers: { Accept: 'application/json' },
+          },
+          response: {
+            status: 400,
+            statusText: 'Bad Request',
+            headers: { 'content-type': 'application/json' },
+            body: { error: 'bad', headers: { nested: true } },
+          },
+        }),
+      },
+    });
+    const results: CollectedResults = {
+      type: 'test',
+      testRuns: [
+        makeRun({
+          displayName: 'test.mmt',
+          steps: [
+            makeStep({
+              title: 'failing call',
+              status: 'failed',
+              details,
+              expects: [{ comparison: '==', actual: '400', expected: '200', status: 'failed' }],
+            }),
+          ],
+        }),
+      ],
+    };
+
+    const md = generateReportMarkdown(results);
+    expect(md).toContain('Headers:');
+    expect(md).toContain('"content-type": "application/json"');
+    expect(md).toContain('"nested": true');
+    expect(md).not.toContain('[object Object]');
   });
 
   it('handles empty test (no steps)', () => {

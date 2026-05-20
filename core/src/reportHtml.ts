@@ -18,16 +18,31 @@ function hasValue<T>(value: T | null | undefined): value is T {
 }
 
 interface ParsedCallDetails {
-  request?: { method?: string; url?: string; body?: string };
-  response?: { status?: number; statusText?: string; body?: string };
+  request?: { method?: string; url?: string; body?: any; headers?: Record<string, any> };
+  response?: { status?: number; statusText?: string; body?: any; headers?: Record<string, any> };
 }
 
-function tryFormatJson(s: string): string {
+function tryFormatJson(value: any): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (typeof value !== 'string') {
+    try {
+      return JSON.stringify(value, null, 2);
+    } catch {
+      return String(value);
+    }
+  }
+  const s = value;
   try {
     return JSON.stringify(JSON.parse(s), null, 2);
   } catch {
     return s;
   }
+}
+
+function hasEntries(value: Record<string, any> | undefined): boolean {
+  return !!value && typeof value === 'object' && Object.keys(value).length > 0;
 }
 
 function parseStepCallDetails(details?: string): ParsedCallDetails | null {
@@ -69,8 +84,9 @@ function buildStepHtml(step: TestStepResult): string {
   const iconColor = step.status === 'passed' ? 'var(--passed)' : 'var(--failed)';
   const iconSpan = `<span style="color: ${iconColor}">${iconChar}</span>`;
   const expects = step.expects || [];
+  const hasSimilarity = expects.some(e => typeof e.similarity === 'number');
 
-  if (step.status === 'passed' && expects.length <= 1) {
+  if (step.status === 'passed' && expects.length <= 1 && !hasSimilarity) {
     return `        <div class="testcase passed">${iconSpan} ${name}${duration}</div>\n`;
   }
 
@@ -82,8 +98,11 @@ function buildStepHtml(step: TestStepResult): string {
       const eIcon = e.status === 'passed' ? '✓' : '✗';
       const iconColor = e.status === 'passed' ? 'var(--passed)' : 'var(--failed)';
       html += `            <div style="color: var(--fg)"><span style="color: ${iconColor}">${eIcon}</span> ${escapeHtml(e.comparison)}`;
-      if (e.status === 'failed' && hasValue(e.actual) && hasValue(e.expected)) {
+      if ((e.status === 'failed' || typeof e.similarity === 'number') && hasValue(e.actual) && hasValue(e.expected)) {
         html += `<br/><span class="expect-got">got: ${escapeHtml(displayValue(e.actual))}</span>`;
+        if (typeof e.similarity === 'number') {
+          html += `<br/><span class="expect-got">similarity: ${escapeHtml(String(e.similarity))}%</span>`;
+        }
       }
       html += `</div>\n`;
     }
@@ -99,6 +118,10 @@ function buildStepHtml(step: TestStepResult): string {
       if (req.method && req.url) {
         html += `            <div>${escapeHtml(req.method)} ${escapeHtml(req.url)}</div>\n`;
       }
+      if (hasEntries(req.headers)) {
+        html += `            <div>Headers:</div>\n`;
+        html += `            <pre style="margin:4px 0;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto;">${escapeHtml(tryFormatJson(req.headers))}</pre>\n`;
+      }
       if (req.body) {
         html += `            <pre style="margin:4px 0;white-space:pre-wrap;word-break:break-word;">${escapeHtml(tryFormatJson(req.body))}</pre>\n`;
       }
@@ -108,6 +131,10 @@ function buildStepHtml(step: TestStepResult): string {
       html += '            <div style="margin-top:8px"><strong>Response:</strong></div>\n';
       if (resp.status !== undefined) {
         html += `            <div>Status: ${resp.status}${resp.statusText ? ' ' + escapeHtml(resp.statusText) : ''}</div>\n`;
+      }
+      if (hasEntries(resp.headers)) {
+        html += `            <div>Headers:</div>\n`;
+        html += `            <pre style="margin:4px 0;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto;">${escapeHtml(tryFormatJson(resp.headers))}</pre>\n`;
       }
       if (resp.body) {
         html += `            <pre style="margin:4px 0;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto;">${escapeHtml(tryFormatJson(resp.body))}</pre>\n`;
