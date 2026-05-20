@@ -30,7 +30,7 @@ export const fileType = (path: string, content: string): Type => {
     return 'csv';
   }
 
-  if (path.endsWith('.http') || path.endsWith('.https') || path.endsWith('.bru')) {
+  if (path.endsWith('.http') || path.endsWith('.https') || path.endsWith('.bru') || path.endsWith('.bruno')) {
     return 'test';
   }
 

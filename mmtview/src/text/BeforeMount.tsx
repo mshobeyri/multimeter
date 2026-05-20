@@ -524,7 +524,7 @@ export const handleBeforeMount = (monaco: any) => {
                         return false;
                     }
                     const lower = p.toLowerCase();
-                    return lower.endsWith('.mmt') || lower.endsWith('.http') || lower.endsWith('.https') || lower.endsWith('.bru') || lower.endsWith('.csv');
+                    return lower.endsWith('.mmt') || lower.endsWith('.http') || lower.endsWith('.https') || lower.endsWith('.bru') || lower.endsWith('.bruno') || lower.endsWith('.csv');
                 })
                 .filter((p) => {
                     const fileName = String(p).split('/').pop() ?? '';

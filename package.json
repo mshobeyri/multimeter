@@ -189,6 +189,9 @@
         "selector": [
           {
             "filenamePattern": "file:/**/*.bru"
+          },
+          {
+            "filenamePattern": "file:/**/*.bruno"
           }
         ],
         "priority": "option",

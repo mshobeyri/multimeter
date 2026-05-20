@@ -179,7 +179,7 @@ export async function handleLoadDocumentContent(
   const projectRoot = findProjectRoot(document.uri.fsPath);
   const lowerPath = document.uri.fsPath.toLowerCase();
   const sourceFormat = lowerPath.endsWith('.http') || lowerPath.endsWith('.https') ? 'http' :
-    lowerPath.endsWith('.bru') ? 'bruno' : 'mmt';
+    isBrunoFilePath(lowerPath) ? 'bruno' : 'mmt';
 
   // Send document data to the current panel
   webviewPanel.webview.postMessage({

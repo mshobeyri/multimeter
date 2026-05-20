@@ -82,7 +82,7 @@ const TestCall: React.FC<TestCallProps> = ({
       return false;
     }
     const lower = p.toLowerCase();
-    return lower.endsWith('.mmt') || lower.endsWith('.http') || lower.endsWith('.https') || lower.endsWith('.bru');
+    return lower.endsWith('.mmt') || lower.endsWith('.http') || lower.endsWith('.https') || lower.endsWith('.bru') || lower.endsWith('.bruno');
   })) as Record<string, string> : undefined;
   const aliases = callableImports ? Object.keys(callableImports) : [];
   const currentAlias = aliases.includes(aliasFromValue)
