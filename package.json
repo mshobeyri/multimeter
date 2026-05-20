@@ -400,9 +400,9 @@
   "keywords": [
     "test",
     "testing",
+    ".http file",
     "postman",
-    "jmeter",
-    "neoload",
+    "bruno",
     "smoke test",
     "performance test",
     "api test",
@@ -415,7 +415,9 @@
     "regression",
     "regression test tool",
     "regression testing tool",
-    "robot framework"
+    "robot framework",
+    "jmeter",
+    "neoload"
   ],
   "license": "BSL-1.0",
   "workspaces": [
