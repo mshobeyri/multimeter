@@ -9,7 +9,7 @@
     &middot;
       <a href="https://mmt.dev"><img src="res/website.png" alt="mmt.dev" width="16" height="16" style="vertical-align: text-bottom;"/> Website</a>  
     &middot;
-      <a href="https://github.com/mshobeyri/multimeter/issues/new?labels=enhancement&template=feature-request---.md"><img src="res/request_feature.png" alt="Request Feature" width="16" height="16" style="vertical-align: text-bottom;"/> Request Feature</a>
+      <a href="https://github.com/mshobeyri/multimeter/issues/new?labels=enhancement&template=feature-request.md"><img src="res/request_feature.png" alt="Request Feature" width="16" height="16" style="vertical-align: text-bottom;"/> Request Feature</a>
   </p>
 </div>
 
@@ -29,7 +29,7 @@ This leads to:
 - inconsistent workflows
 - poor reproducibility across environments
 
----
+
 
 ## 💡 Idea
 
@@ -41,13 +41,13 @@ It should be a single Git-native workflow where:
 - results are versioned in Git
 - the same workflow runs in UI, CLI, and CI
 
----
+
 
 ## ⚙️ What Multimeter Is
 
 Multimeter is a unified test workflow system that executes and synchronizes tests across UI, CLI, and CI using a single source-of-truth model.
 
----
+
 
 ## 🥂 Code + UI  System
 
@@ -59,7 +59,7 @@ Multimeter provides a real-time bi-directional system between YAML and UI.
 
 There is no separation between “code” and “UI” — both are views of the same system.
 
----
+
 
 ## ✨ Features
 
@@ -75,7 +75,7 @@ There is no separation between “code” and “UI” — both are views of the
 
 [Browse more features](https://mmt.dev/#features)
 
----
+
 
 ## 🤖 AI-Friendly Design
 
@@ -87,7 +87,7 @@ All tests are stored as structured YAML files in Git:
 
 This makes Multimeter naturally compatible with AI-assisted testing workflows.
 
----
+
 ## 📦 Examples
 
 ### API Definition
@@ -119,7 +119,7 @@ steps:
 
 [Browse more examples](./examples)
 
----
+
 
 
 ## 🎬 Demo
@@ -129,4 +129,5 @@ steps:
 </br>
 
 [Browse more demos](https://mmt.dev/demos)
+
 [Browse documents](./docs/toc.md)
