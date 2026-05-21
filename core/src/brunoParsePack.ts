@@ -24,7 +24,8 @@ export interface BrunoDocument {
 }
 
 export function isBrunoFilePath(filePath: string): boolean {
-  return String(filePath || '').toLowerCase().endsWith('.bru');
+  const lower = String(filePath || '').toLowerCase();
+  return lower.endsWith('.bru') || lower.endsWith('.bruno');
 }
 
 const lineForOffset = (content: string, offset: number): number => {

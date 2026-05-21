@@ -3,9 +3,11 @@ import {generateTestJs} from './runTest';
 import {brunoToTest, isBrunoFilePath, validateBrunoDocument} from './brunoParsePack';
 
 describe('brunoParsePack', () => {
-  it('detects .bru files as test documents', () => {
+  it('detects .bru and .bruno files as test documents', () => {
     expect(isBrunoFilePath('/tmp/get_user.bru')).toBe(true);
+    expect(isBrunoFilePath('/tmp/get_user.bruno')).toBe(true);
     expect(detectDocType('/tmp/get_user.bru', 'meta {\n  name: Get user\n}\nget {\n  url: https://example.com\n}\n')).toBe('test');
+    expect(detectDocType('/tmp/get_user.bruno', 'meta {\n  name: Get user\n}\nget {\n  url: https://example.com\n}\n')).toBe('test');
   });
 
   it('converts a Bruno request into a test flow', () => {

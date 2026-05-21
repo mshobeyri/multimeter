@@ -191,7 +191,7 @@ function registerMiscCommands(context: vscode.ExtensionContext): void {
       'multimeter.mmt.show.as.text', async (uri?: vscode.Uri) => {
         const targetUri = uri || vscode.window.activeTextEditor?.document.uri;
         const lowerPath = targetUri?.path.toLowerCase() || '';
-        if (!targetUri || (!lowerPath.endsWith('.mmt') && !lowerPath.endsWith('.http') && !lowerPath.endsWith('.https') && !lowerPath.endsWith('.bru'))) {
+        if (!targetUri || (!lowerPath.endsWith('.mmt') && !lowerPath.endsWith('.http') && !lowerPath.endsWith('.https') && !lowerPath.endsWith('.bru') && !lowerPath.endsWith('.bruno'))) {
           vscode.window.showErrorMessage('Please select an MMT, HTTP, or Bruno file');
           return;
         }

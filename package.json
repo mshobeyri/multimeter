@@ -3,7 +3,7 @@
   "publisher": "mshobeyri",
   "displayName": "Multimeter",
   "description": "API test tools",
-  "version": "1.21.0",
+  "version": "1.21.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git"
@@ -189,6 +189,9 @@
         "selector": [
           {
             "filenamePattern": "file:/**/*.bru"
+          },
+          {
+            "filenamePattern": "file:/**/*.bruno"
           }
         ],
         "priority": "option",
@@ -400,9 +403,9 @@
   "keywords": [
     "test",
     "testing",
+    ".http file",
     "postman",
-    "jmeter",
-    "neoload",
+    "bruno",
     "smoke test",
     "performance test",
     "api test",
@@ -415,9 +418,11 @@
     "regression",
     "regression test tool",
     "regression testing tool",
-    "robot framework"
+    "robot framework",
+    "jmeter",
+    "neoload"
   ],
-  "license": "BSL-1.0",
+  "license": "BUSL-1.1",
   "workspaces": [
     "core",
     "mmtview"

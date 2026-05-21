@@ -2,6 +2,12 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.21.1]
+
+- Add support for `.bruno` files across parsing and editor flows
+- Remove the red outline from auto-complete suggestions
+- Update extension keywords for Bruno and `.http` discovery
+
 ## [1.21.0]
 
 - Add Bruno file support, examples, and import flows

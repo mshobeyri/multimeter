@@ -108,7 +108,7 @@ export const defineTheme = (monaco: any) => {
 
       // Suggest widget
       "editorSuggestWidget.background": cssVar('--vscode-editorSuggestWidget-background', "#252526"),
-      "editorSuggestWidget.border": cssVar('--vscode-editorSuggestWidget-border', "#454545"),
+      "editorSuggestWidget.border": "#00000000",
       "editorSuggestWidget.foreground": cssVar('--vscode-editorSuggestWidget-foreground', "#d4d4d4"),
       "editorSuggestWidget.selectedForeground": cssVar('--vscode-editorSuggestWidget-selectedForeground', "#d4d4d4"),
       "editorSuggestWidget.selectedBackground": cssVar('--vscode-editorSuggestWidget-selectedBackground', "#2c2c2c"),

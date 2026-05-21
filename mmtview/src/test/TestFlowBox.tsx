@@ -146,7 +146,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
                 return false;
               }
               const lower = p.toLowerCase();
-              return lower.endsWith('.mmt') || lower.endsWith('.http') || lower.endsWith('.https') || lower.endsWith('.bru');
+              return lower.endsWith('.mmt') || lower.endsWith('.http') || lower.endsWith('.https') || lower.endsWith('.bru') || lower.endsWith('.bruno');
             })) as Record<string, string>) : undefined}
             missingImports={importValidation?.missingImports}
             importedInputsByAlias={importValidation?.inputsByAlias}
