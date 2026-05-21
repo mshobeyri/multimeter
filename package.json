@@ -3,7 +3,7 @@
   "publisher": "mshobeyri",
   "displayName": "Multimeter",
   "description": "API test tools",
-  "version": "1.21.0",
+  "version": "1.21.1",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git"
@@ -422,7 +422,7 @@
     "jmeter",
     "neoload"
   ],
-  "license": "BSL-1.0",
+  "license": "BUSL-1.1",
   "workspaces": [
     "core",
     "mmtview"
