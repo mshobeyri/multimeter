@@ -4,12 +4,8 @@
     <img src="res/logo.png" alt="Logo" width="120" height="115">
   </a>
   <p align="center">
-    <h4>Functional, Automation And Performance Testing. All as code...</h4>
-    <br />
-    <a href="#-documentation"><strong>Explore the docs »</strong></a>
-    <br />
-    <br />
-      <a href="https://www.youtube.com/@mmt_dev"><img src="res/demo.png" alt="Demo" width="16" height="16" style="vertical-align: text-bottom;"/> View Demo</a>
+    <h4>A Git-native system for defining, running, and versioning API test workflows.</h4>
+      <a href="https://mmt.dev/demos"><img src="res/demo.png" alt="Demo" width="16" height="16" style="vertical-align: text-bottom;"/> View Demo</a>
     &middot;
       <a href="https://mmt.dev"><img src="res/website.png" alt="mmt.dev" width="16" height="16" style="vertical-align: text-bottom;"/> Website</a>  
     &middot;
@@ -17,96 +13,120 @@
   </p>
 </div>
 
-**Multimeter** simplifies the process of writing, running, and managing structured HTTP/WebSocket tests directly within Visual Studio Code. The idea is coming from the Docker world, where the complexity of managing machines is now simple YAML files. Here also, tests will be stored in your application's repository as version-controlled YAML-based files.
-## Getting started
+
+## 🚨 Problem
+
+API testing is fragmented across multiple tools:
+
+- UI tools (like Postman) for manual testing
+- Scripts for automation
+- CI pipelines for regression testing
+- Separate formats for reporting and sharing
+
+This leads to:
+- duplicated test logic
+- hidden test state
+- inconsistent workflows
+- poor reproducibility across environments
+
+---
+
+## 💡 Idea
+
+API testing should not be split across tools.
+
+It should be a single Git-native workflow where:
+- tests are stored as simple files
+- execution is deterministic and reproducible
+- results are versioned in Git
+- the same workflow runs in UI, CLI, and CI
+
+---
+
+## ⚙️ What Multimeter Is
+
+Multimeter is a unified test workflow system that executes and synchronizes tests across UI, CLI, and CI using a single source-of-truth model.
+
+---
+
+## 🥂 Code + UI  System
+
+Multimeter provides a real-time bi-directional system between YAML and UI.
+
+- Editing YAML updates the UI instantly
+- Editing UI updates YAML instantly
+- Both represent the same underlying test state
+
+There is no separation between “code” and “UI” — both are views of the same system.
+
+---
+
+## ✨ Features
+
+- 📁 Git-native test definitions
+- 🔁 Real-time YAML ↔ UI synchronization
+- 🧪 Smoke and regression testing support
+- ⚙️ CLI engine for automation and CI
+- 🚀 CI/CD pipeline integration
+- 🧾 Versioned test results in Git
+- 📊 Multi-format reporting (HTML, JSON, JUnit, Markdown)
+- 🧩 VS Code extension for visual workflows
+- 🌐 HTTP API testing support
+
+[Browse more features](https://mmt.dev/#features)
+
+---
+
+## 🤖 AI-Friendly Design
+
+All tests are stored as structured YAML files in Git:
+
+- Easy to read and modify for AI systems
+- Can be generated or updated automatically
+- Fully version-controlled and reproducible
+
+This makes Multimeter naturally compatible with AI-assisted testing workflows.
+
+---
+## 📦 Examples
+
+### API Definition
 
 ```yaml
 type: api
-protocol: http
-url: http://localhost:8080
+url: https://test.mmt.dev/echo
 method: post
-format: json
-body: 
-  username: mehrdad
-  password: 123456
+body: |-
+  {
+    "name": "Multimeter",
+    "message": "Hello from mmt!"
+  }
 ```
-</br>
-Here is a how you can run the test in VSCode;
-</br></br>
+
+### Test Flow
+```yaml
+type: test
+steps:
+  - http: https://test.mmt.dev/echo
+    method: post
+    body: |-
+      {
+        "message": "Hi mmt!"
+      }
+    expect:
+      body.body.message: hi mmt
+```
+
+[Browse more examples](./examples)
+
+---
+
+
+## 🎬 Demo
+
 <img src="res/api.gif" alt="Multimeter sample post" style="max-width: 100%; height: auto;" />
-</br></br>
+</br>
+</br>
 
-## 🤔 Why Multimeter?
-
-**Free & Open Source** 100% free and open source under BSL license. No subscriptions, no feature gates, no restrictions. 
-
-**Git-Native & YAML**
-Tests are plain YAML files versioned in Git alongside your code. PRs, reviews, and diffs work naturally.
-
-**AI Test Generation**
-Ask the built-in AI assistant to generate tests from descriptions, OpenAPI specs, or existing APIs.
-
-**Drag & Drop Test Builder**
-Build functional test flows visually with calls, asserts, checks, delays, and conditions — no scripting required.
-
-**One Replaces Many**
-API testing, beta load testing, mock servers, documentation — one tool instead of Postman, JMeter, and more.
-
-**Secure & Private**
-Everything stays local. No cloud sync, no data collection, no external uploads. Your credentials are safe.
-
-**Built-in Mock Server**
-Spin up HTTP and WebSocket mock servers instantly. Perfect for frontend development and integration testing.
-
-**CI/CD Ready**
-Run the same .mmt files in pipelines with testlight, export reports, and keep automation version-controlled.
-
-**Auto-Generated Docs**
-Generate beautiful HTML or Markdown API documentation directly from your .mmt test files.
-
-**Load Testing (Beta)**
-Run one .mmt test scenario with threads, ramp-up, repeat limits, and load-oriented reports.
-
-**VS Code Native**
-Design, run, debug, and review API tests inside VS Code with native panels and Git-friendly files.
-
-**Import & Convert**
-Seamlessly import from Postman collections and OpenAPI specifications. Zero-friction migration.
-
-## 📚 Documentation
-
-#### [MMT Overview](docs/mmt-overview.md)
-
-**MMT File Types** — YAML files you create and version-control:
-- [API (`type: api`)](docs/api-mmt.md) — define HTTP/WebSocket requests
-- [Test (`type: test`)](docs/test-mmt.md) — orchestrate flows with steps, assertions, and loops
-- [Environment (`type: env`)](docs/environment-mmt.md) — variables, presets, and certificates
-- [Doc (`type: doc`)](docs/doc-mmt.md) — generate API documentation from your `.mmt` files
-- [Suite (`type: suite`)](docs/suite-mmt.md) — group and run tests, APIs, or other suites
-- [Load Test (`type: loadtest`)](docs/loadtest-mmt.md) — run one test scenario with concurrency, ramp-up, and load reports (beta)
-- [Mock Server (`type: server`)](docs/mock-server.md#mmt-mock-server-files) — define mock endpoints with routing, matching, and dynamic responses
-- [Report (`type: report`)](docs/reports.md#mmt-report-yaml) — structured test results viewable in the editor
-
-**Other supports**
-- [HTTP files (`.http`, `.https`)](docs/http-files.md) — run REST Client / JetBrains-style HTTP files as test flows via Open With
-- [Bruno files (`.bru`)](docs/bruno-files.md) — run Bruno request files as test flows via Open With
-
-**VS Code Panels & Features:**
-- [Mock Server Panel](docs/mock-server.md) — start HTTP/HTTPS/WS mock servers from the UI
-- [Convertor](docs/convertor.md) — import OpenAPI and Postman collections into `.mmt`
-- [History](docs/history.md) — inspect recent requests and responses
-- [Certificates](docs/certificates-mmt.md) — SSL/TLS, mTLS, and CA certificate configuration
-
-**Running & CI/CD:**
-- [Testlight CLI](docs/testlight.md) — run tests, suites, and generate docs from the command line
-- [Reports](docs/reports.md) — JUnit XML, HTML, Markdown, and MMT YAML test reports
-- [Load Test](docs/loadtest-mmt.md) — beta load tests and load-oriented report exports
-- [Logging](docs/logging.md) — log levels and where logs appear
-
-**Guides & Reference:**
-- [Sample Project](docs/sample-project.md) — full walkthrough with APIs, tests, suites, docs, and CLI
-- [Test Generation Profile (cheat sheet)](docs/testgen-profile.md) — AI/tool guidance for generating `.mmt` files
-- [Demos](docs/demos.md) — animated feature demos
-
-## 💬 Communcations
-- [Contanct](mehrdad.shobeyri@gmail.com)
+[Browse more demos](https://mmt.dev/demos)
+[Browse documents](./docs/toc.md)
