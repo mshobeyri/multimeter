@@ -26,6 +26,8 @@ export * as docHtml from "./docHtml";
 export * as docMarkdown from "./docMarkdown";
 export * as postmanConvertor from "./postmanConvertor";
 export * as openapiConvertor from "./openapiConvertor";
+export * as wsdlConvertor from "./wsdlConvertor";
+export * as importConvertor from "./importConvertor";
 export * as Random from "./Random";
 export * as Current from "./Current";
 export * as runner from "./runner";

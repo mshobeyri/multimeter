@@ -1,0 +1,21 @@
+type: api
+title: Ping
+inputs:
+  message: string
+url: https://soap.example.com/convert
+protocol: http
+method: post
+format: xml
+headers:
+  Content-Type: text/xml; charset=utf-8
+  SOAPAction: urn:Ping
+body: |-
+  <?xml version="1.0" encoding="utf-8"?>
+  <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:tns="urn:convert">
+    <soapenv:Header/>
+    <soapenv:Body>
+      <tns:Ping>
+          <tns:message><<i:message>></tns:message>
+      </tns:Ping>
+    </soapenv:Body>
+  </soapenv:Envelope>

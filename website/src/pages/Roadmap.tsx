@@ -25,7 +25,7 @@ const roadmap: RoadmapMonth[] = [
       { title: 'Test flows with call, assert, check, delay', status: 'done' },
       { title: 'Input / output extraction (JSONPath, XPath, Regex)', status: 'done' },
       { title: 'Environment variables & presets', status: 'done' },
-      { title: 'Import Postman collections & OpenAPI specs', status: 'done' },
+      { title: 'Import Postman collections, OpenAPI specs, WSDL, Bruno, and .http files', status: 'done' },
       { title: 'Auto-generated API documentation (HTML & Markdown)', status: 'done' },
     ],
   },

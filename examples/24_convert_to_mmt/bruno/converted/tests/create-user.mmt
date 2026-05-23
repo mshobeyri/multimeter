@@ -1,0 +1,15 @@
+type: test
+title: Create user
+tags:
+  - bruno
+steps:
+  - http: https://api.example.com/users
+    id: Create_user
+    title: Create user
+    method: post
+    format: json
+    headers:
+      Content-Type: application/json
+    body:
+      name: Ada
+    report: all

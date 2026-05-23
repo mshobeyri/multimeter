@@ -1,0 +1,15 @@
+openapi: 3.0.0
+info:
+  title: Convert Example API
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+paths:
+  /ping:
+    get:
+      summary: Get Ping
+      parameters:
+        - name: trace
+          in: header
+          schema:
+            example: demo

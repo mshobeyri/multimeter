@@ -1,0 +1,6 @@
+@host = https://api.example.com
+
+###
+# @name ping
+GET {{host}}/ping
+Accept: application/json

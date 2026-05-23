@@ -1,0 +1,17 @@
+type: api
+title: Ping
+outputs:
+  status: status
+  statusCode: status
+  ok: body.ok
+url: https://api.example.com/ping
+method: get
+format: json
+headers:
+  Accept: application/json
+examples:
+  - name: pong
+    outputs:
+      status: 200
+      statusCode: 200
+      ok: true

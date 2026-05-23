@@ -41,16 +41,143 @@ function transformRecordValues(obj: Record<string, string> | undefined): Record<
 }
 
 // Helper to extract key-value pairs from Postman format and convert to object
-function extractKeyValue(arr: any[] = []): Record<string, string> {
+function extractKeyValue(arr: any[] | string | Record<string, any> = []): Record<string, string> {
   const obj: Record<string, string> = {};
+  if (typeof arr === 'string') {
+    for (const line of arr.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n')) {
+      const match = /^([^:\s][^:]*?)\s*:\s*(.*)$/.exec(line.trim());
+      if (match && match[1]) {
+        obj[match[1].trim()] = match[2] || '';
+      }
+    }
+    return obj;
+  }
   if (Array.isArray(arr)) {
     arr.forEach((item) => {
       if (item && item.key && typeof item.value !== 'undefined') {
         obj[item.key] = String(item.value);
       }
     });
+    return obj;
+  }
+  if (arr && typeof arr === 'object') {
+    for (const [key, value] of Object.entries(arr)) {
+      if (value !== undefined && value !== null && typeof value !== 'object') {
+        obj[key] = String(value);
+      }
+    }
   }
   return obj;
+}
+
+function normalizePostmanRequest(request: any): any {
+  if (typeof request === 'string') {
+    return {method: 'GET', url: request};
+  }
+  return request || {};
+}
+
+function normalizePostmanUrl(url: any): string {
+  if (typeof url === 'string') {
+    return replacePostmanVars(url);
+  }
+  if (!url || typeof url !== 'object') {
+    return '';
+  }
+  if (typeof url.raw === 'string' && url.raw.trim()) {
+    return replacePostmanVars(url.raw);
+  }
+  const protocol = url.protocol || 'https';
+  const host = Array.isArray(url.host) ? url.host.join('.') : String(url.host || '');
+  const port = url.port ? `:${url.port}` : '';
+  const path = Array.isArray(url.path) ? url.path.join('/') : String(url.path || '').replace(/^\/+/, '');
+  const query = extractKeyValue(url.query);
+  const queryString = Object.keys(query).length > 0 ? '?' + new URLSearchParams(query).toString() : '';
+  const base = host ? `${protocol}://${host}${port}` : '';
+  const slash = base && path ? '/' : '';
+  return replacePostmanVars(`${base}${slash}${path}${queryString}`);
+}
+
+function normalizePostmanDescription(description: any): {description?: string; tags?: string[]} {
+  if (!description) {
+    return {};
+  }
+  if (typeof description === 'string') {
+    return {description: blockFriendlyDescription(description)};
+  }
+  if (typeof description === 'object') {
+    const tags: string[] = [];
+    if (description.version) {
+      tags.push(String(description.version));
+    }
+    return {
+      description: typeof description.content === 'string' ? blockFriendlyDescription(description.content) : undefined,
+      tags,
+    };
+  }
+  return {description: blockFriendlyDescription(String(description))};
+}
+
+function blockFriendlyDescription(description: string): string {
+  const normalized = String(description || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  if (normalized.includes('\n') || normalized.length <= 80) {
+    return normalized;
+  }
+  const lines: string[] = [];
+  let current = '';
+  for (const word of normalized.split(/\s+/)) {
+    if (!current) {
+      current = word;
+      continue;
+    }
+    if (`${current} ${word}`.length > 80) {
+      lines.push(current);
+      current = word;
+    } else {
+      current += ` ${word}`;
+    }
+  }
+  if (current) {
+    lines.push(current);
+  }
+  return lines.join('\n');
+}
+
+function responseToOutputs(response: any): {apiOutputs: Record<string, string>; exampleOutputs: Record<string, any>} {
+  const apiOutputs: Record<string, string> = {};
+  const exampleOutputs: Record<string, any> = {};
+  if (typeof response?.code === 'number') {
+    apiOutputs.status = 'status';
+    apiOutputs.statusCode = 'status';
+    exampleOutputs.status = response.code;
+    exampleOutputs.statusCode = response.code;
+  }
+  if (typeof response?.body === 'string' && response.body.length > 0) {
+    try {
+      const parsed = JSON.parse(response.body);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        for (const [key, value] of Object.entries(parsed)) {
+          apiOutputs[key] = `body.${key}`;
+          exampleOutputs[key] = value;
+        }
+      } else {
+        apiOutputs.body = 'body';
+        exampleOutputs.body = parsed;
+      }
+    } catch {
+      apiOutputs.body = 'body';
+      exampleOutputs.body = response.body;
+    }
+  }
+  return {apiOutputs, exampleOutputs};
+}
+
+function mergeOutputs(target: Record<string, string> | undefined, next: Record<string, string>): Record<string, string> | undefined {
+  const merged = {...(target || {})};
+  for (const [key, value] of Object.entries(next)) {
+    merged[key] = value;
+  }
+  return Object.keys(merged).length > 0 ? merged : undefined;
 }
 
 function flattenItems(items: any[]): any[] {
@@ -65,9 +192,9 @@ export function postmanToAPI(postmanJson: any): APIData[] {
   const requests = flattenItems(postmanJson.item);
 
   return requests.map((req: any) => {
-    const request = req.request || {};
-    const rawUrl = typeof request.url === 'string' ? request.url : request.url?.raw || '';
-    const url = replacePostmanVars(rawUrl);
+    const request = normalizePostmanRequest(req.request);
+    const url = normalizePostmanUrl(request.url);
+    const descriptionInfo = normalizePostmanDescription(req.description || request.description);
 
     // Convert Postman headers array to object
   const headers = transformRecordValues(extractKeyValue(request.header));
@@ -109,11 +236,12 @@ export function postmanToAPI(postmanJson: any): APIData[] {
     const apiData: APIData = {
       type: 'api',
       title: req.name || request.url?.raw || '',
-      description: req.description || undefined,
+      description: descriptionInfo.description,
+      tags: descriptionInfo.tags,
       protocol,
       format,
       url,
-      method: request.method?.toLowerCase() as APIData['method'],
+      method: (request.method || (url ? 'GET' : undefined))?.toLowerCase() as APIData['method'],
       headers,
       query,
       body,
@@ -123,6 +251,9 @@ export function postmanToAPI(postmanJson: any): APIData[] {
     // Remove undefined/empty fields to keep the YAML clean
     if (!apiData.description) {
       delete (apiData as any).description;
+    }
+    if (!apiData.tags || apiData.tags.length === 0) {
+      delete (apiData as any).tags;
     }
     if (!apiData.protocol) {
       delete (apiData as any).protocol;
@@ -144,8 +275,13 @@ export function postmanToAPI(postmanJson: any): APIData[] {
     // expose url, headers, and body as inputs and create example overrides.
     try {
       const pmResponses: any[] = Array.isArray(req.response) ? req.response : [];
+      for (const response of pmResponses) {
+        const responseOutputs = responseToOutputs(response);
+        apiData.outputs = mergeOutputs(apiData.outputs, responseOutputs.apiOutputs);
+      }
       const exampleRequests = pmResponses
           .map(r => r && (r.originalRequest || r.request))
+          .map(normalizePostmanRequest)
           .filter(rq => rq && (rq.url || rq.body || rq.header));
 
       if (exampleRequests.length > 0) {
@@ -185,9 +321,9 @@ export function postmanToAPI(postmanJson: any): APIData[] {
         }
 
         // Body as input(s)
-        if (typeof body === 'string' || body === undefined) {
-          // Treat raw/undefined body as a single string input
-          inputs['body'] = typeof body === 'string' ? body : '';
+        if (typeof body === 'string') {
+          // Treat raw body as a single string input
+          inputs['body'] = body;
           apiData.body = '<<i:body>>';
         } else if (body && typeof body === 'object') {
           // urlencoded/formdata style: parameterize each field; union keys across examples
@@ -227,7 +363,7 @@ export function postmanToAPI(postmanJson: any): APIData[] {
 
         // Build examples overriding only changed inputs
         const examples = pmResponses.map((resp, idx) => {
-          const or = resp && (resp.originalRequest || resp.request);
+          const or = normalizePostmanRequest(resp && (resp.originalRequest || resp.request));
           const example: any = {
             name: resp?.name || `example_${idx + 1}`,
             description: resp?.description || undefined,
@@ -238,26 +374,30 @@ export function postmanToAPI(postmanJson: any): APIData[] {
           }
 
           // URL override
-          const exRawUrl = typeof or.url === 'string' ? or.url : or.url?.raw || '';
-          const exUrl = replacePostmanVars(exRawUrl);
+          const exUrl = normalizePostmanUrl(or.url);
           if (typeof exUrl === 'string' && exUrl !== inputs['url']) {
             example.inputs!['url'] = exUrl;
           }
 
           // Header overrides
-          const exHeaders = transformRecordValues(extractKeyValue(or.header));
-          for (const hk of Array.from(headerKeys)) {
-            const inputKey = `hdr_${norm(hk)}`;
-            const exVal = (exHeaders as any)?.[hk] ?? '';
-            const normExVal = typeof exVal === 'string' ? exVal : String(exVal ?? '');
-            if (normExVal !== inputs[inputKey]) {
-              example.inputs![inputKey] = normExVal;
+          if (Object.prototype.hasOwnProperty.call(or, 'header')) {
+            const exHeaders = transformRecordValues(extractKeyValue(or.header));
+            for (const hk of Array.from(headerKeys)) {
+              const inputKey = `hdr_${norm(hk)}`;
+              const exVal = (exHeaders as any)?.[hk] ?? '';
+              const normExVal = typeof exVal === 'string' ? exVal : String(exVal ?? '');
+              if (normExVal !== inputs[inputKey]) {
+                example.inputs![inputKey] = normExVal;
+              }
             }
           }
 
           // Body overrides
           const mode = or.body?.mode;
-          if (apiData.body === '<<i:body>>') {
+          if (!Object.prototype.hasOwnProperty.call(or, 'body')) {
+            // Saved examples may only carry an originalRequest URL. In that case,
+            // keep the base request body instead of overriding it to empty values.
+          } else if (apiData.body === '<<i:body>>') {
             // single body input
             const exBodyVal = mode === 'raw' ? (typeof or.body?.raw === 'string' ? replacePostmanVars(or.body?.raw) : or.body?.raw) : '';
             const normExBody = typeof exBodyVal === 'string' ? exBodyVal : String(exBodyVal ?? '');
@@ -289,6 +429,10 @@ export function postmanToAPI(postmanJson: any): APIData[] {
           if (!example.description) {
             delete example.description;
           }
+          const responseOutputs = responseToOutputs(resp);
+          if (Object.keys(responseOutputs.exampleOutputs).length > 0) {
+            example.outputs = responseOutputs.exampleOutputs;
+          }
           return example;
         });
 
@@ -298,7 +442,13 @@ export function postmanToAPI(postmanJson: any): APIData[] {
       // Fallback: responses exist but no originalRequest/request examples captured
       if (!apiData.examples && pmResponses.length > 0) {
         apiData.examples = pmResponses
-            .map((resp, idx) => ({ name: resp?.name || `example_${idx + 1}` }))
+            .map((resp, idx) => {
+              const responseOutputs = responseToOutputs(resp);
+              return {
+                name: resp?.name || `example_${idx + 1}`,
+                ...(Object.keys(responseOutputs.exampleOutputs).length > 0 ? {outputs: responseOutputs.exampleOutputs} : {}),
+              };
+            })
             .filter(ex => ex.name);
       }
     } catch (e) {
@@ -314,8 +464,16 @@ function convertPostmanAuth(pmAuth: any): AuthConfig | undefined {
   if (!pmAuth || !pmAuth.type) {
     return undefined;
   }
-  const getField = (arr: any[] | undefined, key: string): string =>
-      (Array.isArray(arr) ? arr.find((e: any) => e?.key === key)?.value : undefined) ?? '';
+  const getField = (arr: any[] | Record<string, any> | undefined, key: string): string => {
+    if (Array.isArray(arr)) {
+      return arr.find((e: any) => e?.key === key)?.value ?? '';
+    }
+    if (arr && typeof arr === 'object') {
+      const value = (arr as any)[key];
+      return value === undefined || value === null ? '' : String(value);
+    }
+    return '';
+  };
 
   switch (pmAuth.type) {
     case 'bearer': {

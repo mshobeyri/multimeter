@@ -145,7 +145,7 @@ const features = [
     icon: Repeat,
     title: 'Other tools support',
     description:
-      'Seamlessly import from Postman collections, OpenAPI specifications, existing .http and Bruno request files, and curl.',
+      'Convert or reuse Postman, OpenAPI / Swagger, WSDL / SOAP, Bruno, .http / .rest request files, and curl commands.',
     color: 'text-indigo-400',
     bg: 'bg-indigo-400/10',
   },

@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="urn:convert">
+  <types>
+    <xsd:schema targetNamespace="urn:convert">
+      <xsd:element name="Ping">
+        <xsd:complexType><xsd:sequence><xsd:element name="message" type="xsd:string" /></xsd:sequence></xsd:complexType>
+      </xsd:element>
+    </xsd:schema>
+  </types>
+  <message name="PingRequest"><part name="parameters" element="tns:Ping" /></message>
+  <portType name="ConvertPort"><operation name="Ping"><input message="tns:PingRequest" /></operation></portType>
+  <binding name="ConvertBinding" type="tns:ConvertPort"><soap:binding transport="http://schemas.xmlsoap.org/soap/http" /><operation name="Ping"><soap:operation soapAction="urn:Ping" /></operation></binding>
+  <service name="ConvertService"><port name="ConvertPort" binding="tns:ConvertBinding"><soap:address location="https://soap.example.com/convert" /></port></service>
+</definitions>
