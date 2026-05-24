@@ -1,0 +1,16 @@
+type: test
+title: Convert Example
+description: Generated from Postman collection folder "Convert Example".
+tags:
+  - postman
+import:
+  ping: ../api/ping.mmt
+steps:
+  - call: ping
+    id: ping
+    expect:
+      status: == 200
+  - js: |-
+      // Original Postman test script. Review before relying on it at runtime.
+      pm.response.to.have.status(200);
+      pm.require("manual-package");

@@ -84,6 +84,16 @@
       "require": "./dist/openapiConvertor.js",
       "default": "./dist/openapiConvertor.js"
     },
+    "./wsdlConvertor": {
+      "types": "./dist/wsdlConvertor.d.ts",
+      "require": "./dist/wsdlConvertor.js",
+      "default": "./dist/wsdlConvertor.js"
+    },
+    "./importConvertor": {
+      "types": "./dist/importConvertor.d.ts",
+      "require": "./dist/importConvertor.js",
+      "default": "./dist/importConvertor.js"
+    },
     "./runConfig": {
       "types": "./dist/runConfig.d.ts",
       "require": "./dist/runConfig.js",

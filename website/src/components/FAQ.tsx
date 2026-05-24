@@ -31,7 +31,7 @@ const faqItems: FAQItem[] = [
   {
     question: 'What formats can I import from?',
     answer:
-      'Multimeter can import from Postman collections, OpenAPI (Swagger) specifications, .http / .https request files, and Bruno .bru files. Use external request files directly from Open With, import them into .mmt tests, or save them as editable MMT tests.',
+      'Multimeter can import or convert Postman collections, OpenAPI / Swagger specifications, WSDL / SOAP definitions, .http / .https request files, Bruno .bru / .bruno files, and curl commands. Use external request files directly from Open With, or convert them into editable MMT tests and APIs.',
   },
   {
     question: 'Does Multimeter upload any data externally?',

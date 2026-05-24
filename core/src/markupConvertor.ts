@@ -24,7 +24,10 @@ function parseYamlStrict(yamlString: string): any {
 
 function packYaml(obj: any): string {
   try {
-    return YAML.stringify(obj, {aliasDuplicateObjects: false});
+    return YAML.stringify(obj, {
+      aliasDuplicateObjects: false,
+      blockQuote: 'literal',
+    });
   } catch (e) {
     return '';
   }

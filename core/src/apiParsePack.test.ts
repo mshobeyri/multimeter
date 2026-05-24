@@ -44,6 +44,20 @@ describe('apiParsePack', () => {
     expect(yaml).toContain('type: api');
     expect(yaml).not.toContain('title:');
   });
+
+  it('serializes multiline description as a literal block', () => {
+    const yaml = apiToYaml({
+      type: 'api',
+      title: 'Example API',
+      description: 'line one\nline two',
+      url: 'https://example.com',
+      format: 'json',
+    } as any);
+
+    expect(yaml).toContain('description: |-');
+    expect(yaml).toContain('  line one');
+    expect(yaml).toContain('  line two');
+  });
 });
 
 describe('yamlToAPIStrict', () => {

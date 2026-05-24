@@ -7,11 +7,11 @@ import {MmtDocumentLinkProvider} from './mmtDocumentLinkProvider';
 import {MmtEditorProvider} from './mmtEditorProvider';
 import {registerRunStatusBar} from './runStatusBar';
 import ConnectionsPanel from './panels/ConnectionsPanel';
-import ConvertorPanel from './panels/ConvertorPanel';
 import EnvironmentPanel from './panels/EnvironmentPanel';
 import HistoryPanel from './panels/HistoryPanel';
 import MockServerPanel from './panels/MockServerPanel';
 import {HistoryManager} from './historyManager';
+import {convertUriToMmt} from './mmtAPI/convertToMmt';
 import {loadWorkspaceEnvFile} from './workspaceEnvLoader';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -89,10 +89,6 @@ function registerSidePanels(context: vscode.ExtensionContext, historyManager: Hi
   environmentPanel: EnvironmentPanel;
   connectionsPanel: ConnectionsPanel;
 } {
-  context.subscriptions.push(vscode.window.registerWebviewViewProvider(
-      'multimeter.convertor', new ConvertorPanel(context),
-      {webviewOptions: {retainContextWhenHidden: true}}));
-
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(
       'multimeter.mock.server', new MockServerPanel(context, historyManager),
       {webviewOptions: {retainContextWhenHidden: true}}));
@@ -187,6 +183,11 @@ function registerEnvironmentCommands(
 }
 
 function registerMiscCommands(context: vscode.ExtensionContext): void {
+  context.subscriptions.push(vscode.commands.registerCommand(
+      'multimeter.convert.toMmt', async (uri?: vscode.Uri) => {
+        await convertUriToMmt(uri);
+      }));
+
   context.subscriptions.push(vscode.commands.registerCommand(
       'multimeter.mmt.show.as.text', async (uri?: vscode.Uri) => {
         const targetUri = uri || vscode.window.activeTextEditor?.document.uri;

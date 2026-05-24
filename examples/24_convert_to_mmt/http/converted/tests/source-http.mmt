@@ -1,0 +1,13 @@
+type: test
+title: source.http
+tags:
+  - http
+steps:
+  - http: https://api.example.com/ping
+    id: ping
+    title: ping
+    method: get
+    format: text
+    headers:
+      Accept: application/json
+    report: all

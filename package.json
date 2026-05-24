@@ -243,6 +243,12 @@
         "category": "Multimeter"
       },
       {
+        "command": "multimeter.convert.toMmt",
+        "title": "Convert to MMT...",
+        "category": "Multimeter",
+        "icon": "$(export)"
+      },
+      {
         "command": "multimeter.environment.focus",
         "title": "Focus Environment Variables",
         "category": "Multimeter"
@@ -292,12 +298,6 @@
     },
     "views": {
       "multimeter-activitybar": [
-        {
-          "id": "multimeter.convertor",
-          "name": "Convertor",
-          "icon": "res/activity.png",
-          "type": "webview"
-        },
         {
           "id": "multimeter.mock.server",
           "name": "Mock Server",
@@ -378,12 +378,20 @@
       ],
       "explorer/context": [
         {
+          "command": "multimeter.convert.toMmt",
+          "when": "resourceExtname =~ /\\.(json|yaml|yml|xml|wsdl|http|https|bru|bruno)$/i",
+          "group": "navigation@50"
+        },
+        {
           "command": "multimeter.mmt.show.as.text",
           "when": "resourceExtname == .mmt",
           "group": "navigation"
         }
       ],
       "commandPalette": [
+        {
+          "command": "multimeter.convert.toMmt"
+        },
         {
           "command": "multimeter.mmt.show.as.text",
           "when": "resourceExtname == .mmt"
