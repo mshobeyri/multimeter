@@ -2,6 +2,11 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.22.0]
+
+- Redefine the convertor as a VS Code native flow and add WSDL support
+- Update the OpenAPI sample and refresh README content
+
 ## [1.21.1]
 
 - Add support for `.bruno` files across parsing and editor flows
