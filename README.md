@@ -78,6 +78,7 @@ One tool. One file format. Runs everywhere.
 | Same file runs in UI + CI | ❌ | ⚠️ partial | ❌ | ✅ |
 | Code ↔ UI live sync | ❌ | ✅  | ❌ | ✅  |
 | Test suites | ⚠️ collections | ⚠️ collections | ⚠️ collections | ✅ |
+| Reusable tests (imports) | ⚠️ partial | ⚠️ partial | ⚠️ partial | ✅ |
 | Load testing | ⚠️ paid add-on | ❌ | ❌ | ✅ |
 | Drag & drop test builder | ❌ | ❌ | ❌ | ✅ |
 | Built-in mock server | ❌ | ❌ | ❌ | ✅ |
