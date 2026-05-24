@@ -68,6 +68,25 @@ One tool. One file format. Runs everywhere.
 - Results are versioned, reproducible, and reviewable in pull requests
 - Plain YAML is easy for AI to read, generate, and modify — fits naturally into AI-assisted workflows
 
+## 🆚 Why Not Postman, Bruno, or Insomnia?
+
+| | Postman | Bruno | Insomnia | **Multimeter** |
+|---|---|---|---|---|
+| **Price** | $19+/user/mo | $19+/user/mo | $16+/user/mo | **Free** |
+| Git-native (plain files) | ❌ | ✅ | ❌ | ✅ |
+| Offline & fully private | ⚠️ cloud sync | ✅ | ⚠️ cloud sync | ✅ |
+| Same file runs in UI + CI | ❌ | ⚠️ partial | ❌ | ✅ |
+| Code ↔ UI live sync | ❌ | ✅  | ❌ | ✅  |
+| Test suites | ⚠️ collections | ⚠️ collections | ⚠️ collections | ✅ |
+| Load testing | ⚠️ paid add-on | ❌ | ❌ | ✅ |
+| Drag & drop test builder | ❌ | ❌ | ❌ | ✅ |
+| Built-in mock server | ❌ | ❌ | ❌ | ✅ |
+| AI test generation | ❌ | ❌ | ❌ | ✅ |
+| Flowchart test view | ❌ | ❌ | ❌ | ✅ |
+| Auto-generated API docs | ❌ | ❌ | ❌ | ✅ |
+
+[See full comparison →](https://mmt.dev/#comparison)
+
 ## ✨ Features
 
 - **Real-time YAML ↔ UI sync** — no separation between "code" and "visual" modes
@@ -84,8 +103,7 @@ One tool. One file format. Runs everywhere.
 - **Fully offline & private** — nothing leaves your machine
 
 
-- [Click for other features...](https://mmt.dev/#features) 
-- [Compare with Postman, Bruno & others...](https://mmt.dev/#comparison)
+[See all features →](https://mmt.dev/#features)
 
 ## 📦 Examples
 
@@ -120,8 +138,7 @@ steps:
     expect:
       body.body.message: hi mmt
 ```
-
-[Click for more examples](./examples)
+[See all examples →](./examples)
 
 ---
 
