@@ -136,7 +136,7 @@ steps:
         "message": "Hi mmt!"
       }
     expect:
-      body.body.message: hi mmt
+      body.body.message: Hi mmt!
 ```
 [See all examples →](./examples)
 
