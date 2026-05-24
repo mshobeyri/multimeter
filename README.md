@@ -83,8 +83,9 @@ One tool. One file format. Runs everywhere.
 - **Auto-generated API docs** — HTML and Markdown from the same YAML you already write
 - **Fully offline & private** — nothing leaves your machine
 
-**See Also:**
-[Other features](https://mmt.dev/#features) · [Compare with Postman, Bruno & others...](https://mmt.dev/#comparison)
+
+- [Click for other features...](https://mmt.dev/#features) 
+- [Compare with Postman, Bruno & others...](https://mmt.dev/#comparison)
 
 ## 📦 Examples
 
