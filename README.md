@@ -10,11 +10,11 @@
     <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter">
       <img src="https://vsmarketplacebadges.dev/version-short/mshobeyri.multimeter.svg" alt="Version"/>
     </a>
-    <a href="https://github.com/mshobeyri/multimeter/stargazers">
-      <img src="https://img.shields.io/github/stars/mshobeyri/multimeter?style=social" alt="GitHub Stars"/>
-    </a>
     <a href="https://github.com/mshobeyri/multimeter/blob/main/LICENCE.md">
       <img src="https://img.shields.io/badge/license-BSL-green" alt="License"/>
+    </a>
+    <a href="https://github.com/mshobeyri/multimeter/stargazers">
+      <img src="https://img.shields.io/github/stars/mshobeyri/multimeter?style=social" alt="GitHub Stars"/>
     </a>
   </p>
   <p>
@@ -49,14 +49,23 @@ Or [Download CLI](https://mmt.dev/downloads) app for your platform.
 
 ## 🚨 Problem
 
-API testing is fragmented across multiple tools:
+API testing is fragmented.
 
-- UI tools (like Postman) for manual testing
-- Scripts for automation
-- CI pipelines for regression testing
-- Separate formats for reporting and sharing
+Teams are forced to split their workflow across multiple tools: one for manual exploration, another for CI automation, another for load testing, and separate systems for reporting.
 
-This leads to duplicated test logic, hidden test state, inconsistent workflows, and poor reproducibility across environments.
+This fragmentation creates a predictable outcome:
+
+- Test logic gets duplicated across tools
+- Manual and automated tests drift out of sync
+- Ownership becomes unclear
+- CI failures become harder to debug
+- AI assistants can’t reason about hidden scripts, cloud-locked state, or fragmented definitions
+
+**The root problem is simple: the test is not a file.**
+
+It lives in cloud accounts, buried in scripts, or trapped in proprietary formats instead of your repository.
+
+And if a test isn’t a plain, versioned, reviewable file, it can never become the single source of truth.
 
 ## 💡 Solution
 
