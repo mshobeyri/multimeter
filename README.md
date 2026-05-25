@@ -10,7 +10,7 @@
     <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter">
       <img src="https://vsmarketplacebadges.dev/version-short/mshobeyri.multimeter.svg" alt="Version"/>
     </a>
-    <a href="https://github.com/mshobeyri/multimeter/blob/main/LICENCE.md">
+    <a href="https://github.com/mshobeyri/multimeter/blob/main/LICENSE.md">
       <img src="https://img.shields.io/badge/license-BSL-green" alt="License"/>
     </a>
     <a href="https://github.com/mshobeyri/multimeter/stargazers">
