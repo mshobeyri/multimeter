@@ -127,6 +127,7 @@ export const testToJsfunc = async(
   // Also build alias → inputKeys map for input validation
   const importTitleMap: Record<string, string> = {};
   const importInputKeysMap: Record<string, Set<string>> = {};
+  const importOutputKeysMap: Record<string, Set<string>> = {};
   for (const [alias, requested] of importsEntries) {
     const requestedPathRaw = typeof requested === 'string' ? requested : '';
     const resolvedPath = resolveRequestedAgainst(
@@ -139,10 +140,14 @@ export const testToJsfunc = async(
     if (inputKeys) {
       importInputKeysMap[alias] = new Set(inputKeys);
     }
+    const outputKeys = ctx.importTracker?.getOutputKeys(resolvedPath);
+    if (outputKeys) {
+      importOutputKeysMap[alias] = new Set(outputKeys);
+    }
   }
 
   // Validate call step inputs match imported file's defined inputs
-  const validateCallInputs = (steps: any[], context: string) => {
+  const validateCallContracts = (steps: any[], context: string) => {
     for (let i = 0; i < steps.length; i++) {
       const step = steps[i];
       if (!step || typeof step !== 'object') { continue; }
@@ -157,22 +162,40 @@ export const testToJsfunc = async(
           }
         }
       }
+      if (step.call && typeof step.call === 'string') {
+        const allowedOutputs = importOutputKeysMap[step.call];
+        const validateOutputMap = (map: Record<string, unknown> | undefined, label: 'expect' | 'debug') => {
+          if (!allowedOutputs || !map || typeof map !== 'object' || Array.isArray(map)) {
+            return;
+          }
+          const unknownOutputs = Object.keys(map).filter(k => !allowedOutputs.has(k));
+          if (unknownOutputs.length > 0) {
+            throw new Error(
+              `${context}[${i}]: call "${step.call}" has undefined output(s) in ${label}: ${unknownOutputs.map(k => `"${k}"`).join(', ')}`
+            );
+          }
+        };
+        validateOutputMap(step.expect, 'expect');
+        if (step.debug !== true) {
+          validateOutputMap(step.debug, 'debug');
+        }
+      }
       if (Array.isArray(step.steps)) {
-        validateCallInputs(step.steps, `${context}[${i}].steps`);
+        validateCallContracts(step.steps, `${context}[${i}].steps`);
       }
       if (Array.isArray(step.else)) {
-        validateCallInputs(step.else, `${context}[${i}].else`);
+        validateCallContracts(step.else, `${context}[${i}].else`);
       }
     }
   };
   const allSteps = replaced.steps || [];
   const allStages = replaced.stages || [];
   if (allSteps.length > 0) {
-    validateCallInputs(allSteps, 'steps');
+    validateCallContracts(allSteps, 'steps');
   }
   for (const stage of allStages) {
     if (stage && Array.isArray(stage.steps)) {
-      validateCallInputs(stage.steps, `stage "${stage.id || '?'}"`);
+      validateCallContracts(stage.steps, `stage "${stage.id || '?'}"`);
     }
   }
 

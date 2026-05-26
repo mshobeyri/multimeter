@@ -160,6 +160,9 @@ const emitResolved = async(
       if (test.inputs && typeof test.inputs === 'object') {
         tracker.setInputKeys(resolvedPath, Object.keys(test.inputs));
       }
+      if (test.outputs && typeof test.outputs === 'object') {
+        tracker.setOutputKeys(resolvedPath, Object.keys(test.outputs));
+      }
 
       const flowJs = await testToJsfunc(
           {
@@ -179,6 +182,9 @@ const emitResolved = async(
       if (api.title) { tracker.setFileTitle(resolvedPath, api.title); }
       if (api.inputs && typeof api.inputs === 'object') {
         tracker.setInputKeys(resolvedPath, Object.keys(api.inputs));
+      }
+      if (api.outputs && typeof api.outputs === 'object') {
+        tracker.setOutputKeys(resolvedPath, Object.keys(api.outputs));
       }
       results.push(
           await apiToJSfunc({

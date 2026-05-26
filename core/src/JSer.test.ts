@@ -304,6 +304,84 @@ describe('CSV import parsing', () => {
         .rejects.toThrow(/Import error.*Imported file not found/);
   });
 
+  it('throws when call expect references output not defined by imported API', async () => {
+    const mock = createTestFileLoaderMock({
+      '/root/main.mmt': [
+        'type: test',
+        'import:',
+        '  echo: /root/echo.mmt',
+        'steps:',
+        '  - call: echo',
+        '    expect:',
+        '      missing_value: null',
+      ].join('\n'),
+      '/root/echo.mmt': [
+        'type: api',
+        'url: https://example.com',
+        'format: json',
+        'outputs:',
+        '  declared_value: body.value',
+      ].join('\n'),
+    });
+    setFileLoader(mock.fileLoader);
+
+    await expect(rootTestToJsfunc({
+      name: 'main',
+      test: {
+        type: 'test',
+        import: { echo: '/root/echo.mmt' },
+        steps: [
+          {
+            call: 'echo',
+            expect: { missing_value: 'null' },
+          } as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/main.mmt',
+    })).rejects.toThrow(/undefined output\(s\) in expect: "missing_value"/i);
+  });
+
+  it('throws when call debug references output not defined by imported test', async () => {
+    const mock = createTestFileLoaderMock({
+      '/root/main.mmt': [
+        'type: test',
+        'import:',
+        '  child: /root/child.mmt',
+        'steps:',
+        '  - call: child',
+        '    debug:',
+        '      missing_value: == 1',
+      ].join('\n'),
+      '/root/child.mmt': [
+        'type: test',
+        'outputs:',
+        '  declared_value: 1',
+        'steps:',
+        '  - print: hello',
+      ].join('\n'),
+    });
+    setFileLoader(mock.fileLoader);
+
+    await expect(rootTestToJsfunc({
+      name: 'main',
+      test: {
+        type: 'test',
+        import: { child: '/root/child.mmt' },
+        steps: [
+          {
+            call: 'child',
+            debug: { missing_value: '== 1' },
+          } as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/main.mmt',
+    })).rejects.toThrow(/undefined output\(s\) in debug: "missing_value"/i);
+  });
+
   it('names imported test functions by title and emits in reverse order',
      async () => {
        const mock = createTestFileLoaderMock({

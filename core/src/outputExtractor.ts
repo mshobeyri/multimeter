@@ -379,15 +379,15 @@ function resolveJSONPath(response: ResponseData, path: string): any {
         current = response.metadata ?? response.headers;
         break;
       default:
-        // Unknown section, return empty
-        return '';
+        // Unknown section, return null
+        return null;
     }
   }
 
   // Navigate through the parts
   for (let part of parts) {
     if (current === null || current === undefined) {
-      return '';
+      return null;
     }
 
     // Check if it's a numeric index for arrays
@@ -396,7 +396,7 @@ function resolveJSONPath(response: ResponseData, path: string): any {
       if (Array.isArray(current)) {
         current = current[index];
       } else {
-        return '';
+        return null;
       }
     }
     // Property access
@@ -405,11 +405,11 @@ function resolveJSONPath(response: ResponseData, path: string): any {
     }
 
     if (current === undefined || current === null) {
-      return '';
+      return null;
     }
   }
 
-  return current ?? '';
+  return current ?? null;
 }
 
 function resolvePath(response: ResponseData, expr: string): any {
@@ -418,7 +418,7 @@ function resolvePath(response: ResponseData, expr: string): any {
     const {section, parts} = parseBracketPath(expr);
 
     if (!section) {
-      return '';
+      return null;
     }
 
     // Get the initial value based on section
@@ -441,13 +441,13 @@ function resolvePath(response: ResponseData, expr: string): any {
         val = response.metadata ?? response.headers;
         break;
       default:
-        return '';
+        return null;
     }
 
     // Process the bracket parts
     for (let part of parts) {
       if (val === undefined || val === null) {
-        return '';
+        return null;
       }
 
       // Check if it's a numeric index
@@ -456,7 +456,7 @@ function resolvePath(response: ResponseData, expr: string): any {
         if (Array.isArray(val)) {
           val = val[index];
         } else {
-          return '';
+          return null;
         }
       }
       // Property access
@@ -465,17 +465,17 @@ function resolvePath(response: ResponseData, expr: string): any {
       }
     }
 
-    return val ?? '';
+    return val ?? null;
   }
 
   // If not bracket notation, try dot notation
-  return '';
+  return null;
 }
 
 function resolveDotPath(response: ResponseData, expr: string): any {
   const parts = expr.split('.');
   if (parts.length < 2) {
-    return '';
+    return null;
   }
 
   const section = parts[0];
@@ -498,12 +498,12 @@ function resolveDotPath(response: ResponseData, expr: string): any {
       val = response.metadata ?? response.headers;
       break;
     default:
-      return '';
+      return null;
   }
 
   for (let i = 1; i < parts.length; i++) {
     if (val === undefined || val === null) {
-      return '';
+      return null;
     }
     const part = parts[i];
     // Check if it's a numeric index for arrays
@@ -512,14 +512,14 @@ function resolveDotPath(response: ResponseData, expr: string): any {
       if (Array.isArray(val)) {
         val = val[index];
       } else {
-        return '';
+        return null;
       }
     } else {
       val = val[part];
     }
   }
 
-  return val ?? '';
+  return val ?? null;
 }
 
 export function buildBodyExprFromPath(path: PathSegment[]): string {
@@ -630,11 +630,11 @@ export function extractOutputs(
 
   for (const [key, expr] of Object.entries(outputsDef)) {
     if (typeof expr !== 'string') {
-      result[key] = '';
+      result[key] = null;
       continue;
     }
 
-    let extractedValue: any = '';
+    let extractedValue: any = null;
 
     try {
       // New regex syntax: section[/pattern/] or section./pattern/
@@ -697,14 +697,14 @@ export function extractOutputs(
       }
       // No recognized pattern: return empty
       else {
-        extractedValue = '';
+        extractedValue = null;
       }
 
     } catch (error) {
       console.warn(
           `Failed to extract output "${key}" with expression "${expr}":`,
           error);
-      extractedValue = '';
+      extractedValue = null;
     }
 
     // Preserve type for bracket notation, JSONPath, and dot notation extractions
@@ -720,7 +720,7 @@ export function extractOutputs(
       // Regex and legacy: always string
       result[key] = String(extractedValue);
     } else {
-      result[key] = '';
+      result[key] = null;
     }
   }
 
