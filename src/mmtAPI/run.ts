@@ -239,9 +239,12 @@ function extractEnvVars(mmtProvider: any): Record<string, any> {
 }
 
 /** Apply network/certificate config for a file. Returns true if applied. */
-function applyNetworkConfig(filePath: string, envVars: Record<string, any>): boolean {
+function applyNetworkConfig(
+    filePath: string,
+    envVars: Record<string, any>,
+    context: vscode.ExtensionContext): boolean {
   try {
-    const netConfig = prepareNetworkConfigForFile(filePath, envVars);
+    const netConfig = prepareNetworkConfigForFile(filePath, envVars, context);
     setRunnerNetworkConfig(netConfig);
     return true;
   } catch (err: any) {
@@ -272,7 +275,7 @@ export async function handleRunCurrentDocument(
 
   const envVars = extractEnvVars(mmtProvider);
   const projectRoot = findProjectRoot(document.uri.fsPath);
-  applyNetworkConfig(document.uri.fsPath, envVars);
+  applyNetworkConfig(document.uri.fsPath, envVars, mmtProvider.context);
 
   const controller = new AbortController();
   activeTestRun = {
@@ -419,7 +422,8 @@ export async function handleRunSuite(
 
   const envVars = extractEnvVars(mmtProvider);
   const projectRoot = findProjectRoot(document.uri.fsPath);
-  const netConfigApplied = applyNetworkConfig(document.uri.fsPath, envVars);
+  const netConfigApplied = applyNetworkConfig(
+      document.uri.fsPath, envVars, mmtProvider.context);
 
   const suiteRunId =
       typeof message?.suiteRunId === 'string' && message.suiteRunId ?

@@ -372,7 +372,11 @@ export function prepareNetworkConfigFromProjectFile(
 export function prepareNetworkConfigForFile(
     baseFilePath: string,
     overrideEnvVars?: Record<string, any>,
+    context?: vscode.ExtensionContext,
 ): NetworkConfig {
+  if (context) {
+    return getPreparedConfigFromStorage(context, overrideEnvVars, baseFilePath);
+  }
   const projectFilePath = resolveWorkspaceEnvFilePath(baseFilePath);
   if (projectFilePath) {
     return prepareNetworkConfigFromProjectFile(projectFilePath, overrideEnvVars);

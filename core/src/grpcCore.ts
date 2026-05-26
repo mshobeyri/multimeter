@@ -2,7 +2,12 @@ import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
 import * as path from 'path';
 
-import {GrpcRequest, GrpcResponse, NetworkConfig} from './NetworkData';
+import {
+  findMatchingClientCertificate,
+  GrpcRequest,
+  GrpcResponse,
+  NetworkConfig,
+} from './NetworkData';
 
 // gRPC status code → HTTP status code mapping
 const GRPC_TO_HTTP_STATUS: Record<number, number> = {
@@ -95,9 +100,8 @@ function getOrCreateChannel(
 
     // Find matching client cert for mTLS
     const hostname = host;
-    const clientCert = config.clients?.find(
-      c => c.enabled && (c.host === hostname || hostname.includes(c.host) || c.host === '*')
-    );
+    const clientCert = findMatchingClientCertificate(
+        config.clients || [], hostname, String(port), 'grpcs:');
 
     if (clientCert?.certData && clientCert?.keyData) {
       credentials = grpc.credentials.createSsl(
@@ -347,9 +351,8 @@ export async function sendGrpcRequest(
     const rootCerts = config.ca?.enabled && config.ca.certData
       ? (Array.isArray(config.ca.certData) ? Buffer.concat(config.ca.certData) : config.ca.certData)
       : null;
-    const clientCert = config.clients?.find(
-      (c: any) => c.enabled && (c.host === host || host.includes(c.host) || c.host === '*')
-    );
+    const clientCert = findMatchingClientCertificate(
+        config.clients || [], host, String(port), 'grpcs:');
     if (clientCert?.certData && clientCert?.keyData) {
       credentials = grpc.credentials.createSsl(rootCerts, clientCert.keyData, clientCert.certData);
     } else {

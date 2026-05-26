@@ -8,7 +8,15 @@ import * as https from 'https';
 import WebSocket from 'ws';
 
 import {connectionTracker} from './connectionTracker';
-import {ClientCertificate, DEFAULT_NETWORK_CONFIG, HttpRequest, HttpResponse, NetworkConfig, Request, Response} from './NetworkData';
+import {
+  DEFAULT_NETWORK_CONFIG,
+  findMatchingClientCertificate,
+  HttpRequest,
+  HttpResponse,
+  NetworkConfig,
+  Request,
+  Response,
+} from './NetworkData';
 
 // Re-export connectionTracker for use by extension
 export {connectionTracker} from './connectionTracker';
@@ -22,22 +30,16 @@ const httpsAgentPool: Map<string, https.Agent> = new Map();
 const socketConnectionIds = new WeakMap<any, string>();
 const trackedSockets = new WeakSet<any>();
 
-/**
- * Find the first enabled client certificate whose host matches the given hostname.
- * Matches exactly, as a substring, or via wildcard '*'.
- */
-function findMatchingClientCert(
-    clients: ClientCertificate[], hostname: string): ClientCertificate|undefined {
-  return clients.find(
-      cert => cert.enabled &&
-          (cert.host === hostname || hostname.includes(cert.host) ||
-           cert.host === '*'));
-}
-
-function getAgentKey(hostname: string, config: NetworkConfig, skipValidation: boolean): string {
+function getAgentKey(
+    hostname: string,
+    port: string | undefined,
+    protocol: string | undefined,
+    config: NetworkConfig,
+    skipValidation: boolean): string {
   // Create a key that uniquely identifies the agent configuration
-  const clientCertHost = findMatchingClientCert(config.clients, hostname)?.host || '';
-  return `${hostname}:${config.sslValidation}:${skipValidation}:${config.ca.enabled}:${clientCertHost}`;
+  const clientCertHost = findMatchingClientCertificate(
+      config.clients, hostname, port, protocol)?.host || '';
+  return `${hostname}:${port || ''}:${config.sslValidation}:${skipValidation}:${config.ca.enabled}:${clientCertHost}`;
 }
 
 function trackSocketForAgent(socket: any, host: string, protocol: 'http' | 'https'): void {
@@ -92,10 +94,13 @@ function trackSocketForAgent(socket: any, host: string, protocol: 'http' | 'http
 }
 
 export function createHttpsAgentWithCertificates(
-    hostname: string, config: NetworkConfig,
+    hostname: string,
+    port: string | undefined,
+    protocol: string | undefined,
+    config: NetworkConfig,
     opts?: {skipCertificateValidation?: boolean}): https.Agent {
   const skipValidation = opts?.skipCertificateValidation ?? false;
-  const agentKey = getAgentKey(hostname, config, skipValidation);
+  const agentKey = getAgentKey(hostname, port, protocol, config, skipValidation);
 
   // Check for existing agent in pool
   const existingAgent = httpsAgentPool.get(agentKey);
@@ -117,7 +122,8 @@ export function createHttpsAgentWithCertificates(
       agentOptions.ca = [config.ca.certData];
     }
   }
-  const matchingClientCert = findMatchingClientCert(config.clients, hostname);
+    const matchingClientCert = findMatchingClientCertificate(
+      config.clients, hostname, port, protocol);
   if (matchingClientCert && matchingClientCert.certData &&
       matchingClientCert.keyData) {
     agentOptions.cert = matchingClientCert.certData;
@@ -291,7 +297,7 @@ export async function sendHttpRequest(
     const isHttps = parsedUrl.protocol === 'https:';
     const httpsAgent = isHttps ?
         createHttpsAgentWithCertificates(
-            hostname, config,
+        hostname, parsedUrl.port, parsedUrl.protocol, config,
             {skipCertificateValidation: skipValidation}) :
         undefined;
     const httpAgent = !isHttps ? createHttpAgentWithTracking(hostname) : undefined;
@@ -403,7 +409,8 @@ export async function sendWsRequest(
     const hostname = parsedUrl.hostname;
     let wsOptions = {};
     if (parsedUrl.protocol === 'wss:') {
-      wsOptions = createWebSocketOptionsWithCertificates(hostname, config);
+      wsOptions = createWebSocketOptionsWithCertificates(
+          hostname, parsedUrl.port, parsedUrl.protocol, config);
     }
     const ws = new WebSocket(url, wsOptions);
     const start = Date.now();
@@ -513,14 +520,18 @@ export function createWebSocket(
   const hostname = parsedUrl.hostname;
   let wsOptions = {};
   if (parsedUrl.protocol === 'wss:') {
-    wsOptions = createWebSocketOptionsWithCertificates(hostname, config);
+    wsOptions = createWebSocketOptionsWithCertificates(
+        hostname, parsedUrl.port, parsedUrl.protocol, config);
   }
   const ws = new WebSocket(url, wsOptions);
   return {ws, wsId};
 }
 
 export function createWebSocketOptionsWithCertificates(
-    hostname: string, config: NetworkConfig,
+    hostname: string,
+    port: string | undefined,
+    protocol: string | undefined,
+    config: NetworkConfig,
     opts?: {skipCertificateValidation?: boolean}) {
   const rejectUnauthorized = opts?.skipCertificateValidation ? false :
       (config.allowSelfSigned ? false : config.sslValidation);
@@ -533,7 +544,8 @@ export function createWebSocketOptionsWithCertificates(
       wsOptions.ca = [config.ca.certData];
     }
   }
-  const matchingClientCert = findMatchingClientCert(config.clients, hostname);
+    const matchingClientCert = findMatchingClientCertificate(
+      config.clients, hostname, port, protocol);
   if (matchingClientCert && matchingClientCert.certData &&
       matchingClientCert.keyData) {
     wsOptions.cert = matchingClientCert.certData;

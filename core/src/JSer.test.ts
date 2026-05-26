@@ -4,6 +4,7 @@ import {apiToJSfunc, rootTestToJsfunc, testToJsfunc,} from './JSer';
 import {APIContext} from './JSerAPI';
 import {setFileLoader} from './JSerFileLoader';
 import {importsToJsfunc} from './JSerImports';
+import {runJSCode} from './jsRunner';
 import {TestContext, variableReplacer} from './JSerTest';
 import {assertToJSfunc, checkToJSfunc, conditionalStatementToJSfunc, flowStagesToJsfunc, parseExpectValue} from './JSerTestFlow';
 import {createTestFileLoaderMock} from './testFileLoaderMock';
@@ -302,6 +303,84 @@ describe('CSV import parsing', () => {
     });
     await expect(importsToJsfunc({a: 'a.mmt'}))
         .rejects.toThrow(/Import error.*Imported file not found/);
+  });
+
+  it('throws when call expect references output not defined by imported API', async () => {
+    const mock = createTestFileLoaderMock({
+      '/root/main.mmt': [
+        'type: test',
+        'import:',
+        '  echo: /root/echo.mmt',
+        'steps:',
+        '  - call: echo',
+        '    expect:',
+        '      missing_value: null',
+      ].join('\n'),
+      '/root/echo.mmt': [
+        'type: api',
+        'url: https://example.com',
+        'format: json',
+        'outputs:',
+        '  declared_value: body.value',
+      ].join('\n'),
+    });
+    setFileLoader(mock.fileLoader);
+
+    await expect(rootTestToJsfunc({
+      name: 'main',
+      test: {
+        type: 'test',
+        import: { echo: '/root/echo.mmt' },
+        steps: [
+          {
+            call: 'echo',
+            expect: { missing_value: 'null' },
+          } as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/main.mmt',
+    })).rejects.toThrow(/undefined output\(s\) in expect: "missing_value"/i);
+  });
+
+  it('throws when call debug references output not defined by imported test', async () => {
+    const mock = createTestFileLoaderMock({
+      '/root/main.mmt': [
+        'type: test',
+        'import:',
+        '  child: /root/child.mmt',
+        'steps:',
+        '  - call: child',
+        '    debug:',
+        '      missing_value: == 1',
+      ].join('\n'),
+      '/root/child.mmt': [
+        'type: test',
+        'outputs:',
+        '  declared_value: 1',
+        'steps:',
+        '  - print: hello',
+      ].join('\n'),
+    });
+    setFileLoader(mock.fileLoader);
+
+    await expect(rootTestToJsfunc({
+      name: 'main',
+      test: {
+        type: 'test',
+        import: { child: '/root/child.mmt' },
+        steps: [
+          {
+            call: 'child',
+            debug: { missing_value: '== 1' },
+          } as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/main.mmt',
+    })).rejects.toThrow(/undefined output\(s\) in debug: "missing_value"/i);
   });
 
   it('names imported test functions by title and emits in reverse order',
@@ -903,12 +982,18 @@ describe('call steps without expect', () => {
 
 describe('parseExpectValue', () => {
   it('defaults plain number to == operator', () => {
-    expect(parseExpectValue(200)).toEqual({ operator: '==', expected: '200' });
+    expect(parseExpectValue(200)).toEqual({ operator: '==', expected: 200 });
   });
 
   it('defaults plain boolean to == operator', () => {
-    expect(parseExpectValue(true)).toEqual({ operator: '==', expected: 'true' });
-    expect(parseExpectValue(false)).toEqual({ operator: '==', expected: 'false' });
+    expect(parseExpectValue(true)).toEqual({ operator: '==', expected: true });
+    expect(parseExpectValue(false)).toEqual({ operator: '==', expected: false });
+  });
+
+  it('defaults null, object, and array to deep equality', () => {
+    expect(parseExpectValue(null)).toEqual({ operator: '==', expected: null });
+    expect(parseExpectValue({ message: 'hello' } as any)).toEqual({ operator: '==', expected: { message: 'hello' } });
+    expect(parseExpectValue(['a', 'b'] as any)).toEqual({ operator: '==', expected: ['a', 'b'] });
   });
 
   it('defaults plain string to == operator', () => {
@@ -1061,6 +1146,77 @@ describe('expect on call steps', () => {
     const js = await testToJsfunc(ctx, true);
     expect(js).toContain('equals_(`${_login_0.status_code}`, `200`)');
     expect(js).toContain('notEquals_(`${_login_0.status_code}`, `500`)');
+  });
+
+  it('generates deep object equality for call expect values', async () => {
+    const ctx: TestContext = {
+      name: 'objectExpect',
+      test: {
+        steps: [
+          {call: 'echo', id: 'result', expect: { body: { message: 'hello worlds' } }} as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('equals_(result.body, {"message":"hello worlds"})');
+  });
+
+  it('generates deep array equality for call expect values', async () => {
+    const ctx: TestContext = {
+      name: 'arrayExpect',
+      test: {
+        steps: [
+          {call: 'echo', id: 'result', expect: { items: ['a', 'b'] }} as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('equals_(result.items, ["a","b"])');
+  });
+
+  it('reports failed object expect comparisons at execution time', async () => {
+    const events: Record<string, any>[] = [];
+    const js = await rootTestToJsfunc({
+      name: 'objectExpectRun',
+      test: {
+        type: 'test',
+        steps: [
+          {
+            call: 'echo',
+            id: 'result',
+            expect: { body: { message: 'hello worlds' } },
+          } as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    });
+
+    await runJSCode({
+      js: `
+        const echo = async () => ({ body: { message: 'hello world' } });
+        ${js}
+      `,
+      title: 'object-expect-runtime',
+      logger: jest.fn(),
+      runId: 'run-object-expect',
+      reporter: (event: Record<string, any>) => {
+        events.push(event);
+      },
+    });
+
+    const failedStep = events.find((event) => event.scope === 'test-step' && event.status === 'failed');
+    expect(failedStep).toBeDefined();
+    expect(failedStep?.expects?.[0]).toMatchObject({
+      status: 'failed',
+      comparison: 'body == {"message":"hello worlds"}',
+      actual: { message: 'hello world' },
+      expected: { message: 'hello worlds' },
+    });
   });
 
   it('generates checks for multiple fields', async () => {

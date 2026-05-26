@@ -245,7 +245,7 @@ describe('outputExtractor', () => {
     expect(res.sid).toBe('S-77');
   });
 
-  it('returns empty string for missing dot notation path', () => {
+  it('returns null for missing dot notation path', () => {
     const response: ResponseData = {
       type: 'json',
       body: { user: { id: 1 } },
@@ -253,7 +253,18 @@ describe('outputExtractor', () => {
       cookies: {}
     } as any;
     const res = extractOutputs(response, { nope: 'body.user.missing.deep' });
-    expect(res.nope).toBe('');
+    expect(res.nope).toBeNull();
+  });
+
+  it('returns null for missing JSONPath value', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: { user: { id: 1 } },
+      headers: {},
+      cookies: {}
+    } as any;
+    const res = extractOutputs(response, { nope: '$body[user][missing]' });
+    expect(res.nope).toBeNull();
   });
 
   it('extracts primitives with correct types via dot notation', () => {

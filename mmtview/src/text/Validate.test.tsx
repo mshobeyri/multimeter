@@ -118,4 +118,68 @@ describe('validateYamlContent API method requirements', () => {
     expect(messages.some(message => message.includes('then'))).toBe(false);
     expect(messages.some(message => message.startsWith(':'))).toBe(false);
   });
+
+  it('accepts null as a direct call expect value', () => {
+    const errors = validateYamlContent([
+      'type: test',
+      'title: Test echo API',
+      'import:',
+      '  echo: echo_api.mmt',
+      'steps:',
+      '  - call: echo',
+      '    expect:',
+      '      echoed_message: hello',
+      '      xxx: null',
+    ].join('\n'));
+
+    expect(errors.some(error => String(error.message).includes(".steps[0].expect['xxx']"))).toBe(false);
+  });
+
+  it('accepts null as a direct http expect value', () => {
+    const errors = validateYamlContent([
+      'type: test',
+      'title: HTTP inline test',
+      'steps:',
+      '  - http: https://example.com',
+      '    method: get',
+      '    expect:',
+      '      body.token: null',
+    ].join('\n'));
+
+    expect(errors.some(error => String(error.message).includes(".steps[0].expect['body.token']"))).toBe(false);
+  });
+
+  it('accepts arrays as direct call expect values', () => {
+    const errors = validateYamlContent([
+      'type: test',
+      'title: Test echo API',
+      'import:',
+      '  echo: echo_api.mmt',
+      'steps:',
+      '  - call: echo',
+      '    expect:',
+      '      echoed_message:',
+      '        - a',
+      '        - b',
+      '      xxx: !# 3',
+    ].join('\n'));
+
+    expect(errors.some(error => String(error.message).includes(".steps[0].expect['echoed_message']"))).toBe(false);
+  });
+
+  it('accepts arrays as direct http expect values', () => {
+    const errors = validateYamlContent([
+      'type: test',
+      'title: HTTP inline test',
+      'steps:',
+      '  - http: https://example.com',
+      '    method: get',
+      '    expect:',
+      '      body.items:',
+      '        - a',
+      '        - b',
+    ].join('\n'));
+
+    expect(errors.some(error => String(error.message).includes(".steps[0].expect['body.items']"))).toBe(false);
+  });
 });

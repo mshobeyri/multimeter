@@ -2,6 +2,12 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.22.1]
+
+- Fix certificate matching and loading for mTLS, including wildcard and `host:port` host patterns plus file-run certificate toggle handling
+- Fix array handling and preserve `null` placeholders for missing values
+- Refresh README, contribution, and license/project metadata
+
 ## [1.22.0]
 
 - Redefine the convertor as a VS Code native flow and add WSDL support

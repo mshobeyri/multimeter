@@ -1,7 +1,12 @@
 import WebSocket = require('ws');
 import {connectionTracker} from './connectionTracker';
 import {addWsConnection, createWebSocket, deleteWsConnection, sendHttpRequest, wsConnections} from './networkCoreNode';
-import {HttpRequest, NetworkConfig, GrpcRequest} from './NetworkData';
+import {
+  findMatchingClientCertificate,
+  HttpRequest,
+  NetworkConfig,
+  GrpcRequest,
+} from './NetworkData';
 import {sendGrpcRequest} from './grpcCore';
 
 // Map wsId to connection tracker ID
@@ -282,10 +287,11 @@ export function getCertificateStatusForUrl(url: string, config: NetworkConfig) {
     const parsedUrl = new URL(url);
     const hostname = parsedUrl.hostname;
 
-    const hasMatchingClientCert = config.clients.some(
-        cert => cert.enabled &&
-            (cert.host === hostname || hostname.includes(cert.host) ||
-             cert.host === '*'));
+    const hasMatchingClientCert = !!findMatchingClientCertificate(
+        config.clients,
+        hostname,
+        parsedUrl.port,
+        parsedUrl.protocol);
 
     return {
       protocol: parsedUrl.protocol,

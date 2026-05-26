@@ -1,4 +1,4 @@
-import {check_, checkExpects_, fuzzyMatch_, lengthEquals_, matches_, notFuzzyMatch_, notLengthEquals_, notMatches_, reportWithContext_, similarityPercent_} from './testHelper';
+import {check_, checkExpects_, equals_, fuzzyMatch_, lengthEquals_, matches_, notEquals_, notFuzzyMatch_, notLengthEquals_, notMatches_, reportWithContext_, similarityPercent_} from './testHelper';
 
 describe('testHelper checkLogMode', () => {
   function makeConsole() {
@@ -162,5 +162,12 @@ describe('testHelper comparison helpers', () => {
     expect(matches_('John', '/john/i')).toBe(true);
     expect(matches_('john@example.com', '@example\\.com$')).toBe(true);
     expect(notMatches_('admin', '/^user/')).toBe(true);
+  });
+
+  it('deeply compares objects and arrays for equality', () => {
+    expect(equals_({ message: 'hello', meta: { ok: true } }, { message: 'hello', meta: { ok: true } })).toBe(true);
+    expect(equals_([1, { id: 2 }, 3], [1, { id: 2 }, 3])).toBe(true);
+    expect(notEquals_({ message: 'hello' }, { message: 'bye' })).toBe(true);
+    expect(notEquals_([1, 2], [2, 1])).toBe(true);
   });
 });

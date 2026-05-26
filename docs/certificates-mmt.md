@@ -58,7 +58,7 @@ certificates:
 |-------|-------------|
 | `ca.paths` | Array of paths to CA certificate files (relative to env file or absolute) |
 | `clients[].name` | Display name for the client certificate |
-| `clients[].host` | Host pattern (e.g., `*.api.example.com` or `*` for all) |
+| `clients[].host` | Host pattern (e.g., `*.api.example.com`, `api.example.com:8443`, or `*:8443`) |
 | `clients[].cert_path` | Path to client certificate file |
 | `clients[].key_path` | Path to private key file |
 | `clients[].passphrase_plain` | Passphrase in plain text (avoid in shared configs) |
@@ -109,6 +109,15 @@ In the env file editor, switch to the **Certificates** tab to:
 - Configure SSL validation settings (stored locally)
 - Add/remove CA certificate paths (stored in YAML)
 - Manage client certificates for mTLS (paths in YAML, enable/disable locally)
+
+## Host matching rules
+
+Client certificate selection is based on the request host, with optional port matching:
+
+- `example.com` matches `example.com` and subdomains like `api.example.com`
+- `*.api.example.com` matches subdomains like `v1.api.example.com`
+- `api.example.com:8443` restricts the match to that port
+- `*:8085` matches any host on port `8085`
 
 ## Migration from VS Code settings
 

@@ -459,13 +459,18 @@ export const TestSchema = {
                                         { type: 'string' },
                                         { type: 'number' },
                                         { type: 'boolean' },
+                                        { type: 'null' },
+                                        { type: 'object' },
                                         {
                                             type: 'array',
                                             items: {
                                                 anyOf: [
                                                     { type: 'string' },
                                                     { type: 'number' },
-                                                    { type: 'boolean' }
+                                                    { type: 'boolean' },
+                                                    { type: 'object' },
+                                                    { type: 'array' },
+                                                    { type: 'null' }
                                                 ]
                                             }
                                         }
@@ -548,13 +553,18 @@ export const TestSchema = {
                                         { type: 'string' },
                                         { type: 'number' },
                                         { type: 'boolean' },
+                                        { type: 'null' },
+                                        { type: 'object' },
                                         {
                                             type: 'array',
                                             items: {
                                                 anyOf: [
                                                     { type: 'string' },
                                                     { type: 'number' },
-                                                    { type: 'boolean' }
+                                                    { type: 'boolean' },
+                                                    { type: 'object' },
+                                                    { type: 'array' },
+                                                    { type: 'null' }
                                                 ]
                                             }
                                         }
@@ -969,10 +979,10 @@ export const ReportSchema = {
         overview: {
             type: 'object',
             properties: {
-            started_at: { type: 'string' },
+                started_at: { type: 'string' },
                 timestamp: { type: 'string' },
-            finished_at: { type: 'string' },
-            ended_at: { type: 'string' },
+                finished_at: { type: 'string' },
+                ended_at: { type: 'string' },
                 duration: { type: 'string' },
                 checks: { type: 'integer' },
                 tests: { type: 'integer' },
