@@ -2,7 +2,7 @@
   "name": "multimeter",
   "publisher": "mshobeyri",
   "displayName": "Multimeter",
-  "description": "API test tools",
+  "description": "git-native system for defining, running, and versioning API test workflows",
   "version": "1.22.0",
   "repository": {
     "type": "git",

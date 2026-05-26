@@ -1,4 +1,9 @@
-import {resolvePassphrase, DEFAULT_NETWORK_CONFIG, DEFAULT_CERT_SETTINGS} from './NetworkData';
+import {
+  resolvePassphrase,
+  DEFAULT_NETWORK_CONFIG,
+  DEFAULT_CERT_SETTINGS,
+  matchesCertificateHost,
+} from './NetworkData';
 
 describe('resolvePassphrase', () => {
   it('returns plain passphrase when provided', () => {
@@ -55,5 +60,30 @@ describe('DEFAULT_CERT_SETTINGS', () => {
     expect(DEFAULT_CERT_SETTINGS.allowSelfSigned).toBe(false);
     expect(DEFAULT_CERT_SETTINGS.caEnabled).toBe(false);
     expect(DEFAULT_CERT_SETTINGS.clientsEnabled).toEqual({});
+  });
+});
+
+describe('matchesCertificateHost', () => {
+  it('matches bare domains against exact hosts and subdomains', () => {
+    expect(matchesCertificateHost('example.com', 'example.com', '443', 'https:')).toBe(true);
+    expect(matchesCertificateHost('example.com', 'api.example.com', '443', 'https:')).toBe(true);
+    expect(matchesCertificateHost('example.com', 'other.com', '443', 'https:')).toBe(false);
+  });
+
+  it('matches wildcard subdomains without matching the root domain', () => {
+    expect(matchesCertificateHost('*.api.example.com', 'v1.api.example.com', '443', 'https:')).toBe(true);
+    expect(matchesCertificateHost('*.api.example.com', 'api.example.com', '443', 'https:')).toBe(false);
+  });
+
+  it('matches host-port patterns including any-host on a fixed port', () => {
+    expect(matchesCertificateHost('*:8085', 'service.local', '8085', 'https:')).toBe(true);
+    expect(matchesCertificateHost('*:8085', 'service.local', '8086', 'https:')).toBe(false);
+    expect(matchesCertificateHost('secure.example.com:8085', 'secure.example.com', '8085', 'https:')).toBe(true);
+    expect(matchesCertificateHost('secure.example.com:8085', 'api.secure.example.com', '8085', 'https:')).toBe(true);
+  });
+
+  it('uses protocol default ports when the URL omits one', () => {
+    expect(matchesCertificateHost('*:443', 'secure.example.com', '', 'https:')).toBe(true);
+    expect(matchesCertificateHost('*:80', 'secure.example.com', '', 'https:')).toBe(false);
   });
 });

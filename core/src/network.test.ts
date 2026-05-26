@@ -45,6 +45,20 @@ describe('network helpers', () => {
     expect(s).toMatchObject({ protocol: 'ws:', hostname: 'host.other', hasClientCert: false, isSecure: false });
   });
 
+  it('matches client certs using host-port patterns', () => {
+    const cfg: NetworkConfig = {
+      ...baseCfg,
+      clients: [
+        { id: '1', name: 'port-cert', host: '*:8085', enabled: true },
+      ] as any,
+    } as any;
+
+    expect(getCertificateStatusForUrl('https://api.example.com:8085/users', cfg))
+        .toMatchObject({ hasClientCert: true });
+    expect(getCertificateStatusForUrl('https://api.example.com:8086/users', cfg))
+        .toMatchObject({ hasClientCert: false });
+  });
+
   it('returns null for invalid URL', () => {
     expect(getCertificateStatusForUrl('not a url', baseCfg)).toBeNull();
   });

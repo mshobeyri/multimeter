@@ -151,6 +151,108 @@ export const DEFAULT_CERT_SETTINGS: CertificateSettings = {
   clientsEnabled: {},
 };
 
+function splitCertificateHostPattern(pattern: string): {
+  hostPattern: string;
+  portPattern?: string;
+} {
+  const trimmedPattern = pattern.trim();
+  if (!trimmedPattern) {
+    return {hostPattern: ''};
+  }
+  if (trimmedPattern.startsWith('[')) {
+    const portSepIndex = trimmedPattern.lastIndexOf(']:');
+    if (portSepIndex >= 0) {
+      return {
+        hostPattern: trimmedPattern.slice(1, portSepIndex),
+        portPattern: trimmedPattern.slice(portSepIndex + 2),
+      };
+    }
+    if (trimmedPattern.endsWith(']')) {
+      return {hostPattern: trimmedPattern.slice(1, -1)};
+    }
+  }
+
+  const colonCount = (trimmedPattern.match(/:/g) || []).length;
+  if (colonCount === 1) {
+    const sepIndex = trimmedPattern.lastIndexOf(':');
+    return {
+      hostPattern: trimmedPattern.slice(0, sepIndex),
+      portPattern: trimmedPattern.slice(sepIndex + 1),
+    };
+  }
+
+  return {hostPattern: trimmedPattern};
+}
+
+function hostPatternToRegex(hostPattern: string): RegExp {
+  const escapedPattern = hostPattern
+      .replace(/[|\\{}()[\]^$+?.]/g, '\\$&')
+      .replace(/\*/g, '.*');
+  return new RegExp(`^${escapedPattern}$`, 'i');
+}
+
+export function getDefaultPortForProtocol(protocol?: string): string|undefined {
+  switch ((protocol || '').toLowerCase()) {
+    case 'https:':
+    case 'wss:':
+    case 'grpcs:':
+      return '443';
+    case 'http:':
+    case 'ws:':
+    case 'grpc:':
+      return '80';
+    default:
+      return undefined;
+  }
+}
+
+export function matchesCertificateHost(
+    certificateHostPattern: string,
+    hostname: string,
+    port?: string,
+    protocol?: string): boolean {
+  const normalizedHostname = hostname.trim().toLowerCase();
+  if (!certificateHostPattern || !normalizedHostname) {
+    return false;
+  }
+
+  const {hostPattern, portPattern} = splitCertificateHostPattern(
+      certificateHostPattern.toLowerCase());
+  if (!hostPattern) {
+    return false;
+  }
+
+  const resolvedPort = (port || getDefaultPortForProtocol(protocol) || '').trim();
+  if (portPattern) {
+    if (!resolvedPort) {
+      return false;
+    }
+    if (portPattern !== '*' && portPattern !== resolvedPort) {
+      return false;
+    }
+  }
+
+  if (hostPattern === '*') {
+    return true;
+  }
+  if (hostPattern.includes('*')) {
+    return hostPatternToRegex(hostPattern).test(normalizedHostname);
+  }
+
+  return normalizedHostname === hostPattern ||
+      normalizedHostname.endsWith(`.${hostPattern}`);
+}
+
+export function findMatchingClientCertificate(
+    clients: ClientCertificate[],
+    hostname: string,
+    port?: string,
+    protocol?: string): ClientCertificate|undefined {
+  return clients.find(
+      cert => cert.enabled &&
+          matchesCertificateHost(cert.host, hostname, port, protocol));
+}
+
 /**
  * Resolve a passphrase from a plain-text value, an environment variable name,
  * or a combination of env-var maps.
