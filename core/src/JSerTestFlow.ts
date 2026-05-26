@@ -1,7 +1,7 @@
 import {APIData} from './APIData';
 import {apiToJSfunc} from './JSerAPI';
 import {indentLines, timeUnitToMs, toInputsParams} from './JSerHelper';
-import {Comparison, ComparisonObject, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, normalizeReportConfig, opsList, ReportConfig, ReportLevel, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
+import {Comparison, ComparisonObject, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, ScalarExpectValue, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, normalizeReportConfig, opsList, ReportConfig, ReportLevel, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
 import {getTestFlowStepType} from './testParsePack';
 import {replaceEnvTokensPlain, toTemplateWithEnvVars} from './variableReplacer';
 
@@ -277,9 +277,12 @@ export const assertToJSfunc = (assert: Comparison, useExternalReport: boolean): 
  * - Plain string without operator prefix (e.g. 'hello'): defaults to '==' operator.
  * - Number or boolean: converted to string, defaults to '==' operator.
  */
-export const parseExpectValue = (value: ExpectValue): { operator: string; expected: string } => {
+export const parseExpectValue = (value: ExpectValue): { operator: string; expected: ExpectValue } => {
+  if (value === null || Array.isArray(value) || typeof value === 'object') {
+    return { operator: '==', expected: value };
+  }
   if (typeof value === 'number' || typeof value === 'boolean') {
-    return { operator: '==', expected: String(value) };
+    return { operator: '==', expected: value };
   }
   const trimmed = String(value).trim();
   const prefixed = splitCheckOperatorPrefix(trimmed);
@@ -288,6 +291,76 @@ export const parseExpectValue = (value: ExpectValue): { operator: string; expect
   }
   // No operator prefix found → default to equality
   return { operator: '==', expected: trimmed };
+};
+
+const isStructuredExpectValue = (value: ExpectValue): value is Exclude<ExpectValue, ScalarExpectValue> => {
+  return value === null || Array.isArray(value) || typeof value === 'object';
+};
+
+const isExplicitMultiCheckArray = (value: unknown): value is ScalarExpectValue[] => {
+  return Array.isArray(value) &&
+      value.length > 0 &&
+      value.every(item => typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean') &&
+      value.some(item => typeof item === 'string' && !!splitCheckOperatorPrefix(item.trim()));
+};
+
+const expectValueToDisplay = (value: ExpectValue): string => {
+  return typeof value === 'string' ? value : JSON.stringify(value);
+};
+
+const expectValueToJs = (value: ExpectValue): string => {
+  return typeof value === 'string' ? toTemplateWithVars(value) : JSON.stringify(value);
+};
+
+const comparisonFromPartsToJSfunc = (actualExpr: string, operator: string, expected: ExpectValue): string => {
+  const expectedExpr = expectValueToJs(expected);
+  if (isFuzzyPercentOperator(operator) || isFuzzyPercentSelectOperator(operator)) {
+    const percent = isFuzzyPercentOperator(operator) ? Number(operator.slice(1, -1)) : DEFAULT_FUZZY_PERCENT;
+    const helper = operator.startsWith('!') ? 'notFuzzyMatch_' : 'fuzzyMatch_';
+    return `${helper}(${actualExpr}, ${expectedExpr}, ${percent})`;
+  }
+  switch (operator) {
+    case '<':
+      return `less_(${actualExpr}, ${expectedExpr})`;
+    case '>':
+      return `greater_(${actualExpr}, ${expectedExpr})`;
+    case '<=':
+      return `lessOrEqual_(${actualExpr}, ${expectedExpr})`;
+    case '>=':
+      return `greaterOrEqual_(${actualExpr}, ${expectedExpr})`;
+    case '==':
+      return `equals_(${actualExpr}, ${expectedExpr})`;
+    case '!=':
+      return `notEquals_(${actualExpr}, ${expectedExpr})`;
+    case '=@':
+      return `isAt_(${actualExpr}, ${expectedExpr})`;
+    case '!@':
+      return `isNotAt_(${actualExpr}, ${expectedExpr})`;
+    case '=C':
+      return `contains_(${actualExpr}, ${expectedExpr})`;
+    case '!C':
+      return `notContains_(${actualExpr}, ${expectedExpr})`;
+    case '=*':
+    case '=~':
+      return `matches_(${actualExpr}, ${expectedExpr})`;
+    case '!*':
+    case '!~':
+      return `notMatches_(${actualExpr}, ${expectedExpr})`;
+    case '=^':
+      return `startsWith_(${actualExpr}, ${expectedExpr})`;
+    case '!^':
+      return `notStartsWith_(${actualExpr}, ${expectedExpr})`;
+    case '=$':
+      return `endsWith_(${actualExpr}, ${expectedExpr})`;
+    case '!$':
+      return `notEndsWith_(${actualExpr}, ${expectedExpr})`;
+    case '=#':
+      return `lengthEquals_(${actualExpr}, ${expectedExpr})`;
+    case '!#':
+      return `notLengthEquals_(${actualExpr}, ${expectedExpr})`;
+    default:
+      return 'true';
+  }
 };
 
 /**
@@ -363,14 +436,16 @@ const appendExpectAndDebugChecks = (
 
     const expectItems: string[] = [];
     for (const [field, val] of Object.entries(step.expect)) {
-      const values = Array.isArray(val) ? val : [val];
+      const values = isExplicitMultiCheckArray(val) ? val : [val];
       for (const v of values) {
         const { operator, expected } = parseExpectValue(v);
         const actualExpr = actualForField(resultVar, field);
-        const raw = `\${${actualExpr}} ${operator} ${expected}`;
-        const displayComparison = `${field} ${operator} ${expected}`;
-        const conditionStatement = conditionalStatementToJSfunc(raw);
-        const expectedExpr = typeof expected === 'string' ? toTemplateWithVars(expected) : JSON.stringify(expected);
+        const displayExpected = expectValueToDisplay(expected);
+        const displayComparison = `${field} ${operator} ${displayExpected}`;
+        const conditionStatement = isStructuredExpectValue(expected)
+            ? comparisonFromPartsToJSfunc(actualExpr, operator, expected)
+            : conditionalStatementToJSfunc(`\${${actualExpr}} ${operator} ${displayExpected}`);
+        const expectedExpr = expectValueToJs(expected);
         expectItems.push(
           `  { passed: ${conditionStatement}, comparison: ${JSON.stringify(displayComparison)}, actual: ${actualExpr}, expected: ${expectedExpr} }`
         );
@@ -392,14 +467,16 @@ const appendExpectAndDebugChecks = (
     } else {
       const debugItems: string[] = [];
       for (const [field, val] of Object.entries(step.debug as Record<string, any>)) {
-        const values = Array.isArray(val) ? val : [val];
+        const values = isExplicitMultiCheckArray(val) ? val : [val];
         for (const v of values) {
           const { operator, expected } = parseExpectValue(v);
           const actualExpr = actualForField(resultVar, field);
-          const raw = `\${${actualExpr}} ${operator} ${expected}`;
-          const displayComparison = `${field} ${operator} ${expected}`;
-          const conditionStatement = conditionalStatementToJSfunc(raw);
-          const expectedExpr = typeof expected === 'string' ? toTemplateWithVars(expected) : JSON.stringify(expected);
+          const displayExpected = expectValueToDisplay(expected);
+          const displayComparison = `${field} ${operator} ${displayExpected}`;
+          const conditionStatement = isStructuredExpectValue(expected)
+              ? comparisonFromPartsToJSfunc(actualExpr, operator, expected)
+              : conditionalStatementToJSfunc(`\${${actualExpr}} ${operator} ${displayExpected}`);
+          const expectedExpr = expectValueToJs(expected);
           debugItems.push(
             `  { passed: ${conditionStatement}, comparison: ${JSON.stringify(displayComparison)}, actual: ${actualExpr}, expected: ${expectedExpr} }`
           );

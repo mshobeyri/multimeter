@@ -148,4 +148,38 @@ describe('validateYamlContent API method requirements', () => {
 
     expect(errors.some(error => String(error.message).includes(".steps[0].expect['body.token']"))).toBe(false);
   });
+
+  it('accepts arrays as direct call expect values', () => {
+    const errors = validateYamlContent([
+      'type: test',
+      'title: Test echo API',
+      'import:',
+      '  echo: echo_api.mmt',
+      'steps:',
+      '  - call: echo',
+      '    expect:',
+      '      echoed_message:',
+      '        - a',
+      '        - b',
+      '      xxx: !# 3',
+    ].join('\n'));
+
+    expect(errors.some(error => String(error.message).includes(".steps[0].expect['echoed_message']"))).toBe(false);
+  });
+
+  it('accepts arrays as direct http expect values', () => {
+    const errors = validateYamlContent([
+      'type: test',
+      'title: HTTP inline test',
+      'steps:',
+      '  - http: https://example.com',
+      '    method: get',
+      '    expect:',
+      '      body.items:',
+      '        - a',
+      '        - b',
+    ].join('\n'));
+
+    expect(errors.some(error => String(error.message).includes(".steps[0].expect['body.items']"))).toBe(false);
+  });
 });

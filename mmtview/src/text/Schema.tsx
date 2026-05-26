@@ -461,7 +461,6 @@ export const TestSchema = {
                                         { type: 'boolean' },
                                         { type: 'null' },
                                         { type: 'object' },
-                                        { type: 'array' },
                                         {
                                             type: 'array',
                                             items: {
@@ -556,7 +555,6 @@ export const TestSchema = {
                                         { type: 'boolean' },
                                         { type: 'null' },
                                         { type: 'object' },
-                                        { type: 'array' },
                                         {
                                             type: 'array',
                                             items: {

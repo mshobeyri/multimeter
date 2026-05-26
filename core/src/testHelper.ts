@@ -38,12 +38,49 @@ export function greaterOrEqual_(a: any, b: any) {
   return a >= b;
 }
 
+function deepEquals_(a: any, b: any): boolean {
+  if (a === b) {
+    return true;
+  }
+  if (a === null || b === null || a === undefined || b === undefined) {
+    return false;
+  }
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) {
+      return false;
+    }
+    for (let i = 0; i < a.length; i++) {
+      if (!deepEquals_(a[i], b[i])) {
+        return false;
+      }
+    }
+    return true;
+  }
+  if (typeof a === 'object' && typeof b === 'object') {
+    const aKeys = Object.keys(a);
+    const bKeys = Object.keys(b);
+    if (aKeys.length !== bKeys.length) {
+      return false;
+    }
+    for (const key of aKeys) {
+      if (!Object.prototype.hasOwnProperty.call(b, key)) {
+        return false;
+      }
+      if (!deepEquals_(a[key], b[key])) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
 export function equals_(a: any, b: any) {
-  return a === b;
+  return deepEquals_(a, b);
 }
 
 export function notEquals_(a: any, b: any) {
-  return a !== b;
+  return !equals_(a, b);
 }
 
 export function isAt_(a: any, b: any) {
