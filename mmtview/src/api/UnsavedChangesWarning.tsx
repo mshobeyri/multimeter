@@ -32,10 +32,10 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({ modifiedY
         ref={buttonRef}
         className="action-button unsaved-warning-btn"
         onClick={() => setOpen(v => !v)}
-        title="These changes are temporary and won't be saved to the file"
+        title="Save or discard temporary changes"
         type="button"
       >
-        <span className="codicon codicon-warning" aria-hidden />
+        <span className="codicon codicon-save" aria-hidden />
       </button>
       {open && (
         <div ref={popupRef} className="unsaved-changes-popup">
