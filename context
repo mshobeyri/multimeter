@@ -1,0 +1,135 @@
+🧠 Multimeter چیست (درک کلی)
+
+Multimeter یک Git-native API testing system است که API تست‌ها را نه به عنوان requestهای پراکنده یا اسکریپت‌های دستی، بلکه به عنوان یک سیستم اجرایی قابل‌کامپایل و deterministic برای رفتار API مدل می‌کند.
+
+⚙️ مدل ذهنی اصلی
+
+به جای اینکه API testing این باشد:
+
+request → response
+script → assertion
+collection → run
+
+Multimeter این را تبدیل می‌کند به:
+
+declarative spec → compile/validate → deterministic execution runtime
+
+🧩 ساختار سیستم
+1. HTTP primitive layer
+type: http
+url: ...
+method: ...
+ساده‌ترین سطح
+فقط اجرای request
+بدون state یا test logic
+2. Test layer
+type: test
+steps:
+  - http: ...
+    expect: ...
+ترکیب چند request
+assertionهای declarative
+تبدیل به execution plan
+3. Suite layer
+مجموعه تست‌ها
+اجرای batch
+isolation بین تست‌ها
+fault-tolerant execution (ادامه اجرا بعد از fail)
+orchestration کامل
+4. Runtime capabilities inside suite
+mock server داخلی
+execution engine
+result tracking
+output export (JSON / CI artifacts / reports)
+🧠 ویژگی‌های کلیدی سیستم
+✔ Git-native
+تست‌ها فایل هستند
+diff قابل review
+versioning کامل behavior API
+✔ Compile / validation step
+قبل از اجرا:
+schema check
+type validation
+structural validation
+جلوگیری از ورود تست خراب به runtime
+✔ Deterministic execution
+خروجی قابل پیش‌بینی
+مناسب CI/CD
+بدون side-effectهای غیرقابل کنترل
+✔ Fault tolerant suite execution
+اگر یک test fail شود:
+کل suite نمی‌خوابد
+ادامه اجرا انجام می‌شود
+report کامل تولید می‌شود
+🧠 ایده اصلی محصول
+
+Multimeter روی این ایده ساخته شده:
+
+API testing نباید مجموعه‌ای از اسکریپت‌های شکننده باشد،
+بلکه باید یک سیستم نسخه‌بندی‌شده برای رفتار API باشد.
+
+⚖️ تفاوت با ابزارهای موجود
+🟢 Bruno (Bruno)
+request-centric
+ساده و local-first
+script-based validation (اختیاری)
+مناسب debugging و exploration
+
+👉 unit of value = request
+
+🟢 Postman (Postman)
+workspace + collection + cloud ecosystem
+script-heavy در test automation
+collaboration-oriented
+UI-driven
+
+👉 unit of value = request/collection/test script
+
+🔵 Multimeter
+behavior-centric
+Git-native execution system
+compile + deterministic runtime
+suite-based orchestration
+mock + reporting + execution در یک سیستم
+
+👉 unit of value = API behavior over time (versioned execution)
+
+🧠 تفاوت اصلی فلسفی
+Bruno:
+
+“I help you send and debug API requests”
+
+Postman:
+
+“I help you build and share API workflows”
+
+Multimeter:
+
+“I execute and validate API behavior as a versioned system”
+
+🚀 ارزش واقعی Multimeter
+کاهش flaky API tests در CI
+حذف script complexity برای تست‌های معمول
+reproducible API behavior across environments
+scalable test architecture برای پروژه‌های بزرگ
+unified execution environment (test + mock + report)
+🧠 جایگاه واقعی محصول
+
+Multimeter نه فقط:
+
+API client ❌
+testing tool ❌
+collection runner ❌
+
+بلکه:
+
+A deterministic, Git-native execution runtime for API workflows
+
+💡 خلاصه خیلی کوتاه
+
+Multimeter یک سیستم تست API است که:
+
+تست‌ها را declarative تعریف می‌کند
+قبل از اجرا validate می‌کند
+در یک runtime deterministic اجرا می‌کند
+نتایج را قابل versioning و CI-friendly ذخیره می‌کند

@@ -153,7 +153,7 @@ export default function Hero() {
           <FadeIn delay={100}>
             <div className="max-w-4xl mx-auto mb-10 pt-8 sm:pt-10">
               <p className="text-lg sm:text-xl text-white font-semibold mb-4">
-                Start with simple API tests, Scale to full API behaviour simulation.
+                Start with a request. Grow into a testing platform. Never switch tools.
               </p>
             </div>
           </FadeIn>
