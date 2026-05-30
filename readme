@@ -1,0 +1,86 @@
+وکی، این هم سه نسخه‌ای که گفتی — از “خیلی کوتاه و خفن” تا “GitHub README + conversion messaging”:
+
+🚀 1) One-liner (Hero header)
+
+Multimeter is a Git-native API testing system that runs deterministic, script-free API workflows — replacing flaky Postman scripts and unscalable test collections.
+
+یا نسخه تهاجمی‌تر:
+
+Replace flaky API testing with a deterministic, Git-native execution system for APIs.
+
+🧪 2) GitHub README (Hero section)
+Multimeter
+
+Multimeter is a Git-native API testing system designed to replace fragile Postman collections and script-heavy API testing workflows with a deterministic execution runtime for API behavior.
+
+Instead of managing scattered requests, scripts, and CI hacks, you define API behavior as structured, version-controlled files that run consistently across environments.
+
+Why Multimeter?
+
+Modern API testing breaks at scale:
+
+Postman collections become hard to maintain in CI
+Scripts introduce flakiness and hidden logic
+Test setups differ across environments
+API behavior is not tracked over time
+
+Multimeter solves this by introducing a deterministic, file-based execution model for API workflows.
+
+Core idea
+
+API testing should be reproducible, versioned, and execution-consistent — not script-dependent or UI-driven.
+
+Example
+type: test
+steps:
+  - http: https://api.example.com/login
+    method: POST
+    body:
+      user: admin
+      pass: admin
+    expect:
+      status: 200
+
+Run it locally or in CI — the result is always deterministic.
+
+Key benefits
+⚡ Faster than Postman for CI-ready testing workflows
+🟢 Easier to scale than Bruno-style request collections
+🔁 Deterministic execution with no flaky test behavior
+🧪 Script-free testing for most API use cases
+📦 Git-native versioning of API behavior
+Multimeter is not
+Not just an API client
+Not just a test runner
+Not a UI-driven workspace
+
+It is a deterministic execution system for API workflows
+
+🔥 3) Conversion messaging (Bruno / Postman users)
+
+این قسمت مهم‌ترین بخش growth است:
+
+For Postman users
+
+Postman works for exploration — Multimeter is built for CI-grade API testing that doesn’t break at scale.
+
+Stop dealing with:
+
+flaky test scripts
+workspace sync issues
+inconsistent CI behavior
+
+Move to a Git-native system where API tests are deterministic and reproducible by design.
+
+For Bruno users
+
+Bruno is great for simple API requests — Multimeter extends that simplicity into full test automation without losing Git-native control.
+
+When your API testing grows beyond manual requests:
+
+organize tests automatically by type
+run full suites deterministically
+eliminate script-based complexity
+The shift
+
+From request-driven debugging → to behavior-driven API execution

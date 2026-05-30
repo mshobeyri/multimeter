@@ -7,6 +7,7 @@ import APITest from "./APITester";
 import UnsavedChangesWarning from "./UnsavedChangesWarning";
 import { APIData, ExampleData } from "mmt-core/APIData";
 import { Request } from "mmt-core/NetworkData";
+import { protocolResolver } from "mmt-core";
 import { safeList, safeListCopy } from "mmt-core/safer";
 
 const LAST_API_TAB_KEY = "mmtview:api:lastTab";
@@ -73,6 +74,14 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     return { ...api, ...overrides } as APIData;
   }, [api, testRequestData, testTouchedFields]);
 
+  const savedModifiedApi = useMemo<APIData>(() => {
+    const effectiveProtocol = protocolResolver.getEffectiveProtocol(modifiedApi.protocol, modifiedApi.url);
+    if (effectiveProtocol !== 'http' || modifiedApi.method) {
+      return modifiedApi;
+    }
+    return { ...modifiedApi, method: 'get' } as APIData;
+  }, [modifiedApi]);
+
   const isTestModified = useMemo(() => {
     if (page !== 'test' || !testRequestData || testTouchedFields.size === 0) {
       return false;
@@ -92,8 +101,8 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
   }, [api, page, testRequestData, testTouchedFields]);
 
   const modifiedYaml = useMemo(
-    () => (isTestModified ? apiToYaml(modifiedApi) : ""),
-    [isTestModified, modifiedApi]
+    () => (isTestModified ? apiToYaml(savedModifiedApi) : ""),
+    [isTestModified, savedModifiedApi]
   );
 
   useEffect(() => {
@@ -185,7 +194,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
                       {isTestModified && (
                         <UnsavedChangesWarning
                           modifiedYaml={modifiedYaml}
-                          onSave={() => setContent(modifiedYaml)}
+                          onSave={() => setAPI(savedModifiedApi)}
                           onDiscard={() => discardRef.current?.()}
                         />
                       )}
