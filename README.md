@@ -2,7 +2,7 @@
   <a href="https://mmt.dev">
     <img src="res/logo.png" alt="Logo" width="115" height="115">
   </a>
-  <h4>A Git-native system for defining, running, and versioning API test workflows.</h4>
+  <h4> Start with a request. Grow into a testing platform. Never switch tools.</h4>
   <p>
     <a href="https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter">
       <img src="https://vsmarketplacebadges.dev/installs-short/mshobeyri.multimeter.svg" alt="VS Code Installs"/>
@@ -28,129 +28,175 @@
 
 <img src="res/api.gif" alt="Multimeter in action" style="max-width: 100%; height: auto;" />
 
----
-
-## 🚀 Get Started in Seconds
-
-1. Open VS Code
-2. Search for **Multimeter** in the Extensions panel
-3. Click **Install**
-
-No account. No config. No CLI required.
-
-**CI/CD?** 
-`npm install -g mmt-testlight` 
-runs the same `.mmt` files in any pipeline.
-
-Or [Download CLI](https://mmt.dev/downloads) app for your platform. 
 
 
----
+## 🚀 The simplicity of Bruno. The power of Postman.
 
-## 🚨 Problem
+**Multimeter** combines the simplicity of Git-native tools with the power of a complete API testing platform.
 
-API testing is fragmented.
+Start with a single HTTP request.
 
-Teams are forced to split their workflow across multiple tools: one for manual exploration, another for CI automation, another for load testing, and separate systems for reporting.
+Grow into tests, suites, mocks, reports, auto-generated documentation, and CI workflows when you need them.
 
-This fragmentation creates a predictable outcome:
+All in the same tool. No migration required.
 
-- Test logic gets duplicated across tools
-- Manual and automated tests drift out of sync
-- Ownership becomes unclear
-- CI failures become harder to debug
-- AI assistants can’t reason about hidden scripts, cloud-locked state, or fragmented definitions
+## 😩 Tired of fighting your API testing tools?
 
-**The root problem is simple: the test is not a file.**
 
-It lives in cloud accounts, buried in scripts, or trapped in proprietary formats instead of your repository.
+### Coming from Postman?
 
-And if a test isn’t a plain, versioned, reviewable file, it can never become the single source of truth.
+- ✅ Powerful ecosystem
+- ✅ Rich API tooling
+- ✅ Collaboration features
 
-## 💡 Solution
+- ❌ Huge collections
+- ❌ JavaScript test scripts everywhere
+- ❌ CI pipelines behaving differently than local runs
+- ❌ Environment sprawl
+- ❌ Tests tied to a platform
+- ❌ Hidden state scattered across workspaces
 
-One tool. One file format. Runs everywhere.
+### Coming from Bruno?
 
-- Tests are plain YAML files stored in Git alongside your code
-- The same `.mmt` file runs in VS Code UI, the `testlight` CLI, and CI pipelines
-- Edit YAML and the UI updates instantly — edit the UI and YAML updates instantly
-- Results are versioned, reproducible, and reviewable in pull requests
-- Plain YAML is easy for AI to read, generate, and modify — fits naturally into AI-assisted workflows
+- ✅ Git-native
+- ✅ Lightweight
+- ✅ Simple
 
-## 🆚 Why Not Postman, Bruno, or Insomnia?
+- ❌ Repeated request definitions
+- ❌ Multi-step API workflows
+- ❌ Large test suites
+- ❌ Keeping mocks in sync
+- ❌ CI reports
+- ❌ Generated documentation
 
-| | Postman | Bruno | Insomnia | **Multimeter** |
-|---|---|---|---|---|
-| **Price** | $19+/user/mo | $19+/user/mo | $16+/user/mo | **Free** |
-| Git-native (plain files) | ❌ | ✅ | ❌ | ✅ |
-| Offline & fully private | ⚠️ cloud sync | ✅ | ⚠️ cloud sync | ✅ |
-| Same file runs in UI + CI | ❌ | ⚠️ partial | ❌ | ✅ |
-| Code ↔ UI live sync | ❌ | ✅  | ❌ | ✅  |
-| Test suites | ⚠️ collections | ⚠️ collections | ⚠️ collections | ✅ |
-| Reusable tests (imports) | ⚠️ partial | ⚠️ partial | ⚠️ partial | ✅ |
-| Load testing | ⚠️ paid add-on | ❌ | ❌ | ✅ |
-| Drag & drop test builder | ❌ | ❌ | ❌ | ✅ |
-| Built-in mock server | ❌ | ❌ | ❌ | ✅ |
-| AI test generation | ❌ | ❌ | ❌ | ✅ |
-| Flowchart test view | ❌ | ❌ | ❌ | ✅ |
-| Auto-generated API docs | ❌ | ❌ | ❌ | ✅ |
+## 🎯 Why Multimeter?
 
-[See full comparison →](https://mmt.dev/#comparison)
 
-## ✨ Features
+**Everything developers love about Bruno**
 
-- **Real-time YAML ↔ UI sync** — no separation between "code" and "visual" modes
-- **Git-native** — tests live in your repo, reviewed in PRs like any other file
-- **Flowchart test view** — see branches, loops, and assertions as a diagram
-- **Multi-protocol** — HTTP/REST, WebSocket, GraphQL, gRPC, SOAP
-- **Built-in mock server** — spin up HTTP/WS mocks from YAML in milliseconds
-- **AI test generation** — `@Multimeter` VS Code chat participant generates complete test flows from natural language, OpenAPI specs, or existing API definitions
-- **Import from Postman, OpenAPI, .http, Bruno** — no rewrite needed
-- **Multi-format reports** — HTML, JUnit XML, Markdown, MMT
-- **Load testing (beta)** — threads, ramp-up, repeat limits
-- **Drag & drop test builder** — build flows visually without scripting
-- **Auto-generated API docs** — HTML and Markdown from the same YAML you already write
-- **Fully offline & private** — nothing leaves your machine
+- ✅ Git-native
+- ✅ File-based
+- ✅ Lightweight
+- ✅ No cloud lock-in
 
+**Everything teams eventually need as projects grow**
+
+- ✅ API testing
+- ✅ Test suites
+- ✅ Mock servers
+- ✅ Documentation
+- ✅ Reports
+- ✅ CI workflows
+
+**Without switching tools. Without the usual tradeoff.**
+
+| Tool | Tradeoff |
+|--------|--------|
+| Postman | Powerful but heavy |
+| Bruno | Simple but limited |
+| Multimeter | Simple by default. Powerful when needed. |
 
 [See all features →](https://mmt.dev/#features)
 
-## 📦 Examples
 
-### API Definition
+## ⚡ Start simple
 
-This is the same file shown in the demo above — a simple POST request defined as a plain YAML file.
+Multimeter is a VS Code-native extension. All you need:
+- Click Install button in [Multimeter VS Code Extension](https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter)
+- Create a `.mmt` file
+- Type:
 
 ```yaml
 type: api
 url: https://test.mmt.dev/echo
-method: post
-body: |-
-  {
-    "name": "Multimeter",
-    "message": "Hello from mmt!"
-  }
+method: get
 ```
 
-### Test Flow
+That's enough.
 
-Chain multiple API calls with assertions. This test calls the same echo endpoint and verifies the response body.
+- No suites.
+- No mocks.
+- No workflows.
+- No complexity.
+
+
+## 🧪 Need tests?
 
 ```yaml
 type: test
 steps:
   - http: https://test.mmt.dev/echo
-    method: post
-    body: |-
-      {
-        "message": "Hi mmt!"
-      }
+    method: get
     expect:
-      body.body.message: Hi mmt!
+      status: 200
 ```
+
+- Still simple.
+- Still Git-native.
+- Still easy to review.
+
+
+## 🚀 Scale without switching tools
+
+As your project grows, Multimeter grows with it.
+
+Add:
+
+- Test suites
+- Mock servers
+- Documentation
+- Workflow execution
+- Structured reporting
+- CI artifacts
+
+**Only when you need them.**
+
+Everything stays in the same ecosystem.
+
 [See all examples →](./examples)
+
+
+## 🔁 Built for reliable CI
+
+Multimeter validates test definitions before execution.
+
+That means:
+
+- ✅ Earlier feedback
+- ✅ More deterministic execution
+- ✅ Fewer surprises in CI
+- ✅ Easier debugging
+- ✅ Reproducible results
+
+
+## 📦 Everything stays in Git
+
+Your code, tests, mocks, documentation, reports, and environment settings live in the same repository.
+
+- ✅ Version controlled
+- ✅ Code and tests evolve together
+- ✅ Reviewable through pull requests
+- ✅ Easy to move and share
+- ✅ No platform lock-in
+- ✅ AI can update code and tests together
+- ✅ Environment variables never go missing
+- ✅ Historical test results stay with the project
+
+
+## 🧠 Philosophy
+
+Most API tools focus on requests.
+
+Multimeter focuses on behavior.
+
+Instead of asking:
+
+> "Did this request return the expected response?"
+
+Multimeter helps you answer:
+
+> "Does this system still behave correctly?"
 
 ---
 
-**See Also:** 
 [Demos](https://mmt.dev/demos) · [Documentation](./docs/toc.md) · [Website](https://mmt.dev) · [GitHub](https://github.com/mshobeyri/multimeter)
