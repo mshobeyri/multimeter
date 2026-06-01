@@ -240,13 +240,17 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const handleResize = () => {
+      const newWidth = window.innerWidth;
+      // Skip resize when the webview is hidden (width too small to be usable)
+      if (newWidth < 100) {
+        return;
+      }
       if (panelMode === "full") {
-        const newWidth = window.innerWidth;
         const min = 300;
         const max = Math.max(newWidth - 300, min);
         setPanelSize(prevSize => {
           const prevWidth = lastWindowWidthRef.current || newWidth;
-          if (prevWidth === 0) {
+          if (prevWidth < 100) {
             const fallback = Math.round(newWidth / 2);
             return Math.min(Math.max(fallback, min), max);
           }
@@ -257,7 +261,7 @@ const App: React.FC = () => {
         });
         lastWindowWidthRef.current = newWidth;
       } else if (panelMode === "yaml") {
-        setPanelSize(window.innerWidth);
+        setPanelSize(newWidth);
       } else if (panelMode === "ui") {
         setPanelSize(0);
       }
