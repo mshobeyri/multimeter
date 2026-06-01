@@ -63,8 +63,8 @@ These settings are NOT stored in the YAML file. They are managed via the UI and 
 | Setting | Default | Description |
 |---------|---------|-------------|
 | SSL Validation | `true` | Verify SSL certificates |
-| Allow Self-Signed | `false` | Trust self-signed certificates |
-| Server CA Enabled | `false` | Enable custom server CA certificates |
+| Allow Untrusted Self-Signed | `false` | Retry self-signed HTTPS requests without certificate validation when no trusted CA path is available |
+| Server CA Enabled | `false` | Use configured server CA certificates |
 | Client Enabled | `true` | Enable/disable individual client certificates |
 
 For CLI usage, sensible defaults are applied:
@@ -73,7 +73,7 @@ For CLI usage, sensible defaults are applied:
 - All configured certificates are enabled
 
 ### Self-signed certificate auto-retry
-When "Allow Self-Signed" is enabled, Multimeter automatically retries failed HTTPS requests with SSL validation disabled if the error matches specific TLS error codes (such as `SELF_SIGNED_CERT_IN_CHAIN` or `DEPTH_ZERO_SELF_SIGNED_CERT`). This makes it easier to work with development servers using self-signed certificates without manually disabling validation globally.
+When "Allow Untrusted Self-Signed" is enabled, Multimeter automatically retries failed HTTPS requests with SSL validation disabled if the error matches specific TLS error codes (such as `SELF_SIGNED_CERT_IN_CHAIN` or `DEPTH_ZERO_SELF_SIGNED_CERT`). If the server certificate is trusted through `certificates.server_ca`, this setting is not needed.
 
 ## Passphrase handling
 
