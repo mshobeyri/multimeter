@@ -2,6 +2,14 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.23.0]
+
+- Export API outputs by default, including `body`, `headers`, `cookies`, `status`, and `duration`
+- Improve certificate handling and examples, and refresh self-signed certificate documentation
+- Refine mock server UX with a dedicated status bar entry and UI improvements
+- Show reported count values for `=#` and `!#` comparisons alongside fuzzy similarity details
+- Fix split panel sync and transient page jump issues, and refresh README and website content
+
 ## [1.22.1]
 
 - Fix certificate matching and loading for mTLS, including wildcard and `host:port` host patterns plus file-run certificate toggle handling
