@@ -269,7 +269,7 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                                 </td>
                             </tr>
                             <tr>
-                                <td className="environment-table-name">Custom CA Certificates</td>
+                                <td className="environment-table-name">Server CA Certificates</td>
                                 <td>
                                     <input
                                         type="checkbox"

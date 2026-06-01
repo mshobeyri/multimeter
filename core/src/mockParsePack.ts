@@ -1,15 +1,16 @@
-import {MockData, MockEndpoint, MockFallback, MockProtocol, MockTlsConfig} from './MockData';
+import {MockConnectionConfig, MockConnectionMode, MockData, MockEndpoint, MockFallback, MockProtocol} from './MockData';
 import {Format, Method} from './CommonData';
 import parseYaml, {packYaml} from './markupConvertor';
 import {isNonEmptyList, isNonEmptyObject} from './safer';
 
 const VALID_PROTOCOLS: MockProtocol[] = ['http', 'https', 'ws'];
+const VALID_CONNECTION_MODES: MockConnectionMode[] = ['plain', 'tls', 'mtls'];
 const VALID_METHODS: Method[] = ['get', 'post', 'put', 'delete', 'patch', 'head', 'options', 'trace'];
 const VALID_FORMATS: Format[] = ['json', 'xml', 'xmle', 'text'];
 
 const MOCK_TOP_KEYS = new Set([
   'type', 'title', 'description', 'tags', 'protocol', 'port',
-  'tls', 'cors', 'delay', 'headers', 'endpoints', 'proxy', 'fallback'
+  'connection', 'cors', 'delay', 'headers', 'endpoints', 'proxy', 'fallback'
 ]);
 
 const ENDPOINT_KEYS = new Set([
@@ -52,34 +53,13 @@ export function parseMockData(yaml: any): {data: MockData | null; errors: ParseE
   }
 
   // Protocol
-  const protocol: MockProtocol = yaml.protocol || 'http';
+  const rawProtocol = String(yaml.protocol || 'http');
+  const protocol = normalizeMockProtocol(rawProtocol);
   if (!VALID_PROTOCOLS.includes(protocol)) {
     errors.push({message: `protocol must be one of: ${VALID_PROTOCOLS.join(', ')}`, severity: 'error'});
   }
 
-  // TLS
-  let tls: MockTlsConfig | undefined;
-  if (yaml.tls) {
-    if (typeof yaml.tls !== 'object') {
-      errors.push({message: 'tls must be an object', severity: 'error'});
-    } else {
-      if (!yaml.tls.cert) {
-        errors.push({message: 'tls.cert is required', severity: 'error'});
-      }
-      if (!yaml.tls.key) {
-        errors.push({message: 'tls.key is required', severity: 'error'});
-      }
-      tls = {
-        cert: String(yaml.tls.cert || ''),
-        key: String(yaml.tls.key || ''),
-        ca: yaml.tls.ca ? String(yaml.tls.ca) : undefined,
-        requestCert: !!yaml.tls.requestCert
-      };
-    }
-  }
-  if (protocol === 'https' && !tls) {
-    errors.push({message: 'tls section is required when protocol is https', severity: 'error'});
-  }
+  const connection = parseConnectionConfig(yaml, protocol, errors);
 
   // Endpoints (required)
   if (!Array.isArray(yaml.endpoints)) {
@@ -162,7 +142,7 @@ export function parseMockData(yaml: any): {data: MockData | null; errors: ParseE
     tags: Array.isArray(yaml.tags) ? yaml.tags.filter((t: any) => t != null).map(String) : undefined,
     protocol,
     port: yaml.port,
-    tls,
+    connection,
     cors: !!yaml.cors,
     delay: typeof yaml.delay === 'number' ? yaml.delay : 0,
     headers: yaml.headers && typeof yaml.headers === 'object' ? yaml.headers : undefined,
@@ -208,14 +188,9 @@ export function yamlToMock(yamlContent: string): MockData | null {
     title: yaml.title ? String(yaml.title) : undefined,
     description: yaml.description ? String(yaml.description) : undefined,
     tags: Array.isArray(yaml.tags) ? yaml.tags.filter((t: any) => t != null).map(String) : undefined,
-    protocol: yaml.protocol || 'http',
+    protocol: normalizeMockProtocol(String(yaml.protocol || 'http')),
     port: typeof yaml.port === 'number' ? yaml.port : (yaml.port || 0),
-    tls: yaml.tls && typeof yaml.tls === 'object' ? {
-      cert: String(yaml.tls.cert || ''),
-      key: String(yaml.tls.key || ''),
-      ca: yaml.tls.ca ? String(yaml.tls.ca) : undefined,
-      requestCert: !!yaml.tls.requestCert,
-    } : undefined,
+    connection: parseConnectionConfig(yaml, normalizeMockProtocol(String(yaml.protocol || 'http')), []),
     cors: !!yaml.cors,
     delay: typeof yaml.delay === 'number' ? yaml.delay : 0,
     headers: yaml.headers && typeof yaml.headers === 'object' ? yaml.headers : undefined,
@@ -231,6 +206,51 @@ export function yamlToMock(yamlContent: string): MockData | null {
   return data;
 }
 
+function normalizeMockProtocol(protocol: string): MockProtocol {
+  return protocol as MockProtocol;
+}
+
+function normalizeConnectionMode(rawMode: string | undefined, protocol: MockProtocol): MockConnectionMode {
+  if (rawMode && VALID_CONNECTION_MODES.includes(rawMode as MockConnectionMode)) {
+    return rawMode as MockConnectionMode;
+  }
+  if (protocol === 'https') {
+    return 'tls';
+  }
+  return 'plain';
+}
+
+function parseConnectionConfig(
+    yaml: any,
+    protocol: MockProtocol,
+    errors: ParseError[]): MockConnectionConfig | undefined {
+  const rawConnection = yaml.connection && typeof yaml.connection === 'object' ? yaml.connection : undefined;
+  if (yaml.connection && typeof yaml.connection !== 'object') {
+    errors.push({message: 'connection must be an object', severity: 'error'});
+  }
+  const rawMode = rawConnection?.mode ? String(rawConnection.mode) : undefined;
+  if (rawMode && !VALID_CONNECTION_MODES.includes(rawMode as MockConnectionMode)) {
+    errors.push({message: `connection.mode must be one of: ${VALID_CONNECTION_MODES.join(', ')}`, severity: 'error'});
+  }
+  const mode = normalizeConnectionMode(rawMode, protocol);
+  const connection: MockConnectionConfig = {
+    mode,
+    cert: rawConnection?.cert ? String(rawConnection.cert) : undefined,
+    key: rawConnection?.key ? String(rawConnection.key) : undefined,
+    client_ca: rawConnection?.client_ca ? String(rawConnection.client_ca) : undefined,
+  };
+  if (mode !== 'plain' && protocol !== 'https') {
+    errors.push({message: 'protocol must be https when connection.mode is tls or mtls', severity: 'error'});
+  }
+  if (mode === 'mtls' && !connection.client_ca) {
+    errors.push({message: 'connection.client_ca is required when connection.mode is mtls', severity: 'error'});
+  }
+  if (mode === 'plain' && !connection.cert && !connection.key && !connection.client_ca && !rawConnection) {
+    return undefined;
+  }
+  return connection;
+}
+
 export function mockToYaml(mock: MockData): string {
   const obj: Record<string, any> = {
     type: mock.type,
@@ -240,7 +260,9 @@ export function mockToYaml(mock: MockData): string {
   if (isNonEmptyList(mock.tags)) { obj.tags = mock.tags; }
   if (mock.protocol && mock.protocol !== 'http') { obj.protocol = mock.protocol; }
   obj.port = mock.port;
-  if (mock.tls) { obj.tls = mock.tls; }
+  if (mock.connection && (mock.connection.mode !== 'plain' || mock.connection.cert || mock.connection.key || mock.connection.client_ca)) {
+    obj.connection = mock.connection;
+  }
   if (mock.cors) { obj.cors = mock.cors; }
   if (mock.delay) { obj.delay = mock.delay; }
   if (isNonEmptyObject(mock.headers)) { obj.headers = mock.headers; }

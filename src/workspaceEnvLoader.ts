@@ -22,14 +22,15 @@ interface EnvCaCertificate {
 interface EnvClientCertificate {
   name: string;
   host: string;
-  cert_path: string;
-  key_path: string;
+  cert?: string;
+  key?: string;
+  pfx?: string;
   passphrase_plain?: string;
   passphrase_env?: string;
 }
 
 interface EnvCertificates {
-  ca?: EnvCaCertificate;
+  server_ca?: EnvCaCertificate;
   clients?: EnvClientCertificate[];
 }
 
@@ -95,7 +96,7 @@ export async function loadWorkspaceEnvFile(
       // Check if certificates already exist
       const existingCerts = context.workspaceState.get<EnvCertificates>('multimeter.certificates.storage');
       const hasExistingCerts = existingCerts && typeof existingCerts === 'object' && 
-        (existingCerts.ca || (existingCerts.clients && existingCerts.clients.length > 0));
+        (existingCerts.server_ca || (existingCerts.clients && existingCerts.clients.length > 0));
 
       // Only set certificates if no existing values (or force is true)
       if ((force || !hasExistingCerts) && yaml.certificates && typeof yaml.certificates === 'object') {
@@ -233,13 +234,13 @@ function parseEnvVariables(variablesObj: Record<string, any> | undefined): EnvVa
 function parseCertificates(certsObj: any): EnvCertificates {
   const result: EnvCertificates = {};
 
-  if (certsObj.ca) {
-    if (Array.isArray(certsObj.ca)) {
-      result.ca = {paths: certsObj.ca};
-    } else if (certsObj.ca.paths && Array.isArray(certsObj.ca.paths)) {
-      result.ca = {paths: certsObj.ca.paths};
-    } else if (typeof certsObj.ca === 'string') {
-      result.ca = {paths: [certsObj.ca]};
+  if (certsObj.server_ca) {
+    if (Array.isArray(certsObj.server_ca)) {
+      result.server_ca = {paths: certsObj.server_ca};
+    } else if (certsObj.server_ca.paths && Array.isArray(certsObj.server_ca.paths)) {
+      result.server_ca = {paths: certsObj.server_ca.paths};
+    } else if (typeof certsObj.server_ca === 'string') {
+      result.server_ca = {paths: [certsObj.server_ca]};
     }
   }
 
@@ -247,8 +248,9 @@ function parseCertificates(certsObj: any): EnvCertificates {
     result.clients = certsObj.clients.map((client: any) => ({
       name: client.name || '',
       host: client.host || '',
-      cert_path: client.cert_path || '',
-      key_path: client.key_path || '',
+      cert: client.cert || undefined,
+      key: client.key || undefined,
+      pfx: client.pfx || undefined,
       passphrase_plain: client.passphrase_plain,
       passphrase_env: client.passphrase_env
     }));
@@ -261,7 +263,7 @@ function initCertificateSettings(certs: EnvCertificates): CertificateSettings {
   const settings: CertificateSettings = {...DEFAULT_CERT_SETTINGS};
 
   // Enable CA if paths are defined
-  if (certs.ca && certs.ca.paths && certs.ca.paths.length > 0) {
+  if (certs.server_ca && certs.server_ca.paths && certs.server_ca.paths.length > 0) {
     settings.caEnabled = true;
   }
 

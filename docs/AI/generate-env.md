@@ -138,12 +138,12 @@ Env files can also contain a `certificates` section for SSL/TLS settings. The AI
 
 ```yaml
 certificates:
-  ca:
+  server_ca:
     paths:
       - ./certs/ca.pem
   clients:
     - name: my-client
       host: api.example.com
-      cert_path: ./certs/client.pem
-      key_path: ./certs/client-key.pem
+      cert: ./certs/client.pem
+      key: ./certs/client-key.pem
 ```

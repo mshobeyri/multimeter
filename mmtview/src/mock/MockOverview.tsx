@@ -3,6 +3,8 @@ import { MockData } from "mmt-core/MockData";
 import SearchableTagInput from "../components/SearchableTagInput";
 import KSVEditor from "../components/KSVEditor";
 import DescriptionEditor from "../components/DescriptionEditor";
+import { parseYamlDoc } from "mmt-core/markupConvertor";
+import { canonicalizeMockYaml } from "./mockYaml";
 
 interface MockOverviewProps {
   data: MockData;
@@ -12,8 +14,27 @@ interface MockOverviewProps {
 }
 
 const PROTOCOLS = ['http', 'https', 'ws'] as const;
+const CONNECTION_MODES = ['plain', 'tls', 'mtls'] as const;
 
 const MockOverview: React.FC<MockOverviewProps> = ({ data, updateField, content, setContent }) => {
+  const connection = data.connection;
+  const connectionMode = connection?.mode || (data.protocol === 'https' ? 'tls' : 'plain');
+
+  const updateConnectionMode = (mode: string) => {
+    try {
+      const doc = parseYamlDoc(content);
+      if (mode === 'plain') {
+        doc.delete('connection');
+      } else {
+        doc.set('protocol', 'https');
+        doc.set('connection', {...(connection || {}), mode});
+      }
+      setContent(canonicalizeMockYaml(doc.toString()));
+    } catch {
+      updateField('connection', mode === 'plain' ? undefined : {...(connection || {}), mode});
+    }
+  };
+
   return (
     <div style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
       <div className="label">Title</div>
@@ -66,6 +87,16 @@ const MockOverview: React.FC<MockOverviewProps> = ({ data, updateField, content,
             style={{ flex: 1, padding: '4px 6px' }}
           >
             {PROTOCOLS.map(p => <option key={p} value={p}>{p.toUpperCase()}</option>)}
+          </select>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 12, color: 'var(--vscode-descriptionForeground)', width: 64, flexShrink: 0 }}>Connection</span>
+          <select
+            value={connectionMode}
+            onChange={e => updateConnectionMode(e.target.value)}
+            style={{ flex: 1, padding: '4px 6px' }}
+          >
+            {CONNECTION_MODES.map(mode => <option key={mode} value={mode}>{mode === 'mtls' ? 'mTLS' : mode.toUpperCase()}</option>)}
           </select>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

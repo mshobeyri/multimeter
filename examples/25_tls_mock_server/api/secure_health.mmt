@@ -1,0 +1,11 @@
+type: api
+title: TLS Mock Health
+description: Client call to the local TLS mock server
+outputs:
+  status_code: status
+  status_field: body.status
+  transport: body.transport
+  message: body.message
+url: https://localhost:29443/health
+method: get
+format: json

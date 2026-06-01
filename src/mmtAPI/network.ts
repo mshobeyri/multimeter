@@ -14,14 +14,15 @@ interface StoredCaCertificate {
 interface StoredClientCertificate {
   name: string;
   host: string;
-  cert_path: string;
-  key_path: string;
+  cert?: string;
+  key?: string;
+  pfx?: string;
   passphrase_plain?: string;
   passphrase_env?: string;
 }
 
 interface StoredCertificates {
-  ca?: StoredCaCertificate;
+  server_ca?: StoredCaCertificate;
   clients?: StoredClientCertificate[];
 }
 
@@ -33,6 +34,27 @@ interface EnvVariableEntry {
 interface ParsedEnvFile {
   envVars: Record<string, any>;
   certificates: StoredCertificates;
+}
+
+function hasStoredCertificatePaths(certs?: StoredCertificates): boolean {
+  return Boolean(
+      certs &&
+      ((certs.server_ca && certs.server_ca.paths && certs.server_ca.paths.length > 0) ||
+       (certs.clients && certs.clients.length > 0)));
+}
+
+function createDefaultCertificateSettings(certs?: StoredCertificates): CertificateSettings {
+  const settings: CertificateSettings = {
+    ...DEFAULT_CERT_SETTINGS,
+    clientsEnabled: {},
+  };
+  if (certs?.server_ca?.paths?.length) {
+    settings.caEnabled = true;
+  }
+  for (const client of certs?.clients || []) {
+    settings.clientsEnabled[clientKey(client)] = true;
+  }
+  return settings;
 }
 
 function tryParseEnvCertificatesFromFile(filePath: string): StoredCertificates|undefined {
@@ -51,14 +73,14 @@ function tryParseEnvCertificatesFromFile(filePath: string): StoredCertificates|u
     }
 
     const result: StoredCertificates = {};
-    const caObj = (certsObj as any).ca;
+    const caObj = (certsObj as any).server_ca;
     if (caObj) {
       if (Array.isArray(caObj)) {
-        result.ca = {paths: caObj as any};
+        result.server_ca = {paths: caObj as any};
       } else if (typeof caObj === 'string') {
-        result.ca = {paths: [caObj]};
+        result.server_ca = {paths: [caObj]};
       } else if (caObj.paths && Array.isArray(caObj.paths)) {
-        result.ca = {paths: caObj.paths};
+        result.server_ca = {paths: caObj.paths};
       }
     }
 
@@ -67,8 +89,9 @@ function tryParseEnvCertificatesFromFile(filePath: string): StoredCertificates|u
       result.clients = clientsObj.map((client: any) => ({
         name: client?.name || '',
         host: client?.host || '',
-        cert_path: client?.cert_path || '',
-        key_path: client?.key_path || '',
+        cert: client?.cert || undefined,
+        key: client?.key || undefined,
+        pfx: client?.pfx || undefined,
         passphrase_plain: client?.passphrase_plain,
         passphrase_env: client?.passphrase_env,
       }));
@@ -83,11 +106,8 @@ function tryParseEnvCertificatesFromFile(filePath: string): StoredCertificates|u
 export function resolveWorkspaceEnvFilePath(baseFilePath?: string): string|undefined {
   const config = vscode.workspace.getConfiguration('multimeter');
   const envRelPath = config.get<string>('workspaceEnvFile', '');
-  
-  // Default filename to search for if no config is set
-  const defaultEnvFile = 'multimeter.mmt';
-  
-  
+
+  const defaultEnvFiles = ['multimeter.mmt', 'env.mmt'];
 
   // If config specifies a path, use it directly
   if (envRelPath) {
@@ -99,24 +119,28 @@ export function resolveWorkspaceEnvFilePath(baseFilePath?: string): string|undef
     }
   }
 
-  // No config set - search for default file in workspace roots
-  for (const folder of vscode.workspace.workspaceFolders || []) {
-    const candidate = path.join(folder.uri.fsPath, defaultEnvFile);
-    if (fs.existsSync(candidate)) {
-      return candidate;
+  // No config set - search for default files in workspace roots
+  for (const fileName of defaultEnvFiles) {
+    for (const folder of vscode.workspace.workspaceFolders || []) {
+      const candidate = path.join(folder.uri.fsPath, fileName);
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
     }
   }
 
   // If baseFilePath provided, walk up directory tree looking for the env file
   if (baseFilePath) {
-    const searchName = envRelPath || defaultEnvFile;
+    const searchNames = envRelPath ? [envRelPath] : defaultEnvFiles;
     let currentDir = path.dirname(baseFilePath);
     const visited = new Set<string>();
     while (currentDir && !visited.has(currentDir)) {
       visited.add(currentDir);
-      const candidate = path.join(currentDir, searchName);
-      if (fs.existsSync(candidate)) {
-        return candidate;
+      for (const searchName of searchNames) {
+        const candidate = path.join(currentDir, searchName);
+        if (fs.existsSync(candidate)) {
+          return candidate;
+        }
       }
       const parentDir = path.dirname(currentDir);
       if (parentDir === currentDir) {
@@ -211,25 +235,28 @@ export function getPreparedConfigFromStorage(
     ...(parsed?.envVars || {}),
     ...(envVars || {}),
   };
+  const parsedCerts = parsed?.certificates;
+  const hasParsedCerts = hasStoredCertificatePaths(parsedCerts);
   const storedCerts: StoredCertificates =
-    (parsed?.certificates &&
-     ((parsed.certificates.ca && parsed.certificates.ca.paths && parsed.certificates.ca.paths.length) ||
-      (parsed.certificates.clients && parsed.certificates.clients.length)))
-      ? parsed.certificates
+    hasParsedCerts
+      ? parsedCerts as StoredCertificates
       : context.workspaceState.get('multimeter.certificates.storage', {});
-  const certSettings: CertificateSettings =
-      context.workspaceState.get('multimeter.certificates.settings', DEFAULT_CERT_SETTINGS);
+  const certBaseFilePath = hasParsedCerts && envFileAbsPath ? envFileAbsPath : baseFilePath;
+    const storedCertSettings = context.workspaceState.get<CertificateSettings | undefined>(
+      'multimeter.certificates.settings');
+    const certSettings: CertificateSettings = storedCertSettings ||
+      createDefaultCertificateSettings(storedCerts);
   const config = vscode.workspace.getConfiguration('multimeter');
 
   // Load CA cert data (multiple paths)
   const caCertDataList: Buffer[] = [];
-  const ca = storedCerts.ca || {paths: []};
+  const ca = storedCerts.server_ca || {paths: []};
   const caPaths = ca.paths || [];
   if (certSettings.caEnabled && caPaths.length > 0) {
     for (const caPath of caPaths) {
       if (caPath) {
         try {
-          const resolvedPath = resolveCertPath(caPath, baseFilePath);
+          const resolvedPath = resolveCertPath(caPath, certBaseFilePath);
           caCertDataList.push(fs.readFileSync(resolvedPath));
         } catch (e) {
           vscode.window.showErrorMessage(`Failed to load CA certificate from ${caPath}: ${e}`);
@@ -245,15 +272,26 @@ export function getPreparedConfigFromStorage(
     const isEnabled = certSettings.clientsEnabled[key] !== false;  // Default true
     let certData: Buffer|undefined = undefined;
     let keyData: Buffer|undefined = undefined;
-    if (isEnabled && client.cert_path && client.key_path) {
-      try {
-        const certResolvedPath = resolveCertPath(client.cert_path, baseFilePath);
-        const keyResolvedPath = resolveCertPath(client.key_path, baseFilePath);
-        certData = fs.readFileSync(certResolvedPath);
-        keyData = fs.readFileSync(keyResolvedPath);
-      } catch (e) {
-        vscode.window.showErrorMessage(
-            `Failed to load client certificate for ${client.host}: ${e}`);
+    let pfxData: Buffer|undefined = undefined;
+    const crtSrc = client.cert || '';
+    const keySrc = client.key || '';
+    const pfxSrc = client.pfx || '';
+    if (isEnabled) {
+      if (pfxSrc) {
+        try {
+          pfxData = fs.readFileSync(resolveCertPath(pfxSrc, certBaseFilePath));
+        } catch (e) {
+          vscode.window.showErrorMessage(
+              `Failed to load PFX for ${client.host}: ${e}`);
+        }
+      } else if (crtSrc && keySrc) {
+        try {
+          certData = fs.readFileSync(resolveCertPath(crtSrc, certBaseFilePath));
+          keyData = fs.readFileSync(resolveCertPath(keySrc, certBaseFilePath));
+        } catch (e) {
+          vscode.window.showErrorMessage(
+              `Failed to load client certificate for ${client.host}: ${e}`);
+        }
       }
     }
     const passphrase = resolvePassphrase(
@@ -262,11 +300,10 @@ export function getPreparedConfigFromStorage(
       id: `client-${idx}`,
       name: client.name,
       host: client.host,
-      cert_path: client.cert_path,
-      key_path: client.key_path,
       passphrase_plain: passphrase,
       certData,
       keyData,
+      pfxData,
       enabled: isEnabled,
     };
   });
@@ -314,7 +351,7 @@ export function prepareNetworkConfigFromProjectFile(
   const projectDir = path.dirname(projectFilePath);
 
   const caCertDataList: Buffer[] = [];
-  const ca = storedCerts.ca || {paths: []};
+  const ca = storedCerts.server_ca || {paths: []};
   const caPaths = ca.paths || [];
   // Always load CA certs if present (no toggle needed for file-driven runs)
   for (const caPath of caPaths) {
@@ -331,10 +368,20 @@ export function prepareNetworkConfigFromProjectFile(
   const clientsWithData = clients.map((client, idx) => {
     let certData: Buffer|undefined = undefined;
     let keyData: Buffer|undefined = undefined;
-    if (client.cert_path && client.key_path) {
+    let pfxData: Buffer|undefined = undefined;
+    const crtSrc = client.cert || '';
+    const keySrc = client.key || '';
+    const pfxSrc = client.pfx || '';
+    if (pfxSrc) {
       try {
-        const certResolvedPath = path.isAbsolute(client.cert_path) ? client.cert_path : path.resolve(projectDir, client.cert_path);
-        const keyResolvedPath = path.isAbsolute(client.key_path) ? client.key_path : path.resolve(projectDir, client.key_path);
+        const pfxResolvedPath = path.isAbsolute(pfxSrc) ? pfxSrc : path.resolve(projectDir, pfxSrc);
+        pfxData = fs.readFileSync(pfxResolvedPath);
+      } catch {
+      }
+    } else if (crtSrc && keySrc) {
+      try {
+        const certResolvedPath = path.isAbsolute(crtSrc) ? crtSrc : path.resolve(projectDir, crtSrc);
+        const keyResolvedPath = path.isAbsolute(keySrc) ? keySrc : path.resolve(projectDir, keySrc);
         certData = fs.readFileSync(certResolvedPath);
         keyData = fs.readFileSync(keyResolvedPath);
       } catch {
@@ -346,11 +393,10 @@ export function prepareNetworkConfigFromProjectFile(
       id: `client-${idx}`,
       name: client.name,
       host: client.host,
-      cert_path: client.cert_path,
-      key_path: client.key_path,
       passphrase_plain: passphrase,
       certData,
       keyData,
+      pfxData,
       enabled: true,
     };
   });

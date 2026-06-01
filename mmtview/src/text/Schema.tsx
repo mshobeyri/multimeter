@@ -353,13 +353,13 @@ export const EnvSchema = {
         certificates: {
             type: 'object',
             properties: {
-                ca: {
+                server_ca: {
                     type: 'object',
                     properties: {
                         paths: {
                             type: 'array',
                             items: { type: 'string' },
-                            description: 'Paths to CA certificate files'
+                            description: 'Paths to server CA certificate files'
                         }
                     },
                     additionalProperties: false
@@ -371,8 +371,9 @@ export const EnvSchema = {
                         properties: {
                             name: { type: 'string', description: 'Certificate name' },
                             host: { type: 'string', description: 'Host pattern (e.g., *.example.com)' },
-                            cert_path: { type: 'string', description: 'Path to client certificate' },
-                            key_path: { type: 'string', description: 'Path to private key' },
+                            cert: { type: 'string', description: 'Path to client certificate file (.pem, .crt, .cer)' },
+                            key: { type: 'string', description: 'Path to client private key file (.key, .pem)' },
+                            pfx: { type: 'string', description: 'Path to client PFX/P12 bundle file (.pfx, .p12)' },
                             passphrase_plain: { type: 'string', description: 'Plain text passphrase' },
                             passphrase_env: { type: 'string', description: 'Environment variable for passphrase' }
                         },
@@ -907,15 +908,14 @@ export const MockSchema = {
         tags: { type: 'array', items: { type: 'string' } },
         protocol: { type: 'string', enum: ['http', 'https', 'ws'] },
         port: { type: 'number', minimum: 1, maximum: 65535 },
-        tls: {
+        connection: {
             type: 'object',
             properties: {
+                mode: { type: 'string', enum: ['plain', 'tls', 'mtls'], default: 'plain' },
                 cert: { type: 'string' },
                 key: { type: 'string' },
-                ca: { type: 'string' },
-                requestCert: { type: 'boolean' }
+                client_ca: { type: 'string' }
             },
-            required: ['cert', 'key'],
             additionalProperties: false
         },
         cors: { type: 'boolean' },

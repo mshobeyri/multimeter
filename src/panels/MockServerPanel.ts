@@ -6,7 +6,7 @@ import * as vscode from 'vscode';
 import WebSocket = require('ws');
 
 import {HistoryManager} from '../historyManager';
-import {startMockServerFromPath} from '../mmtAPI/mockRunner';
+import {DEFAULT_MOCK_SERVER_CERT, DEFAULT_MOCK_SERVER_KEY, startMockServerFromPath} from '../mmtAPI/mockRunner';
 
 type ServerType = 'http' | 'https' | 'ws' | 'mmt';
 
@@ -229,7 +229,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
     if (this.serverType === 'http' || this.serverType === 'https') {
       const createHandler = () => (req: http.IncomingMessage, res: http.ServerResponse) => {
         const method = String(req.method || 'GET').toUpperCase();
-        const scheme = this.serverType === 'https' ? 'https' : 'http';
+        const scheme = this.serverType === 'http' ? 'http' : 'https';
         const url = `${scheme}://127.0.0.1:${this.port}${req.url || ''}`;
 
         const titleBase = `${method} ${url}`;
@@ -308,13 +308,15 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
 
       const certPath = this.resolvePathMaybeRelative(this.httpsCertPath);
       const keyPath = this.resolvePathMaybeRelative(this.httpsKeyPath);
-      if (!certPath || !keyPath) {
+      if ((certPath && !keyPath) || (!certPath && keyPath)) {
         vscode.window.showErrorMessage(
-            'HTTPS requires a server certificate and key. Use "Choose cert…" and "Choose key…" in the panel.');
+            'HTTPS custom certificates require both a server certificate and key. Choose both files or leave both empty to use the built-in self-signed certificate.');
         return;
       }
       try {
-        const {cert, key, passphrase} = this.loadServerCertificate({certPath, keyPath});
+        const {cert, key, passphrase} = certPath && keyPath ?
+          this.loadServerCertificate({certPath, keyPath}) :
+          {cert: DEFAULT_MOCK_SERVER_CERT, key: DEFAULT_MOCK_SERVER_KEY, passphrase: undefined};
         const httpsOptions: https.ServerOptions = {cert, key, passphrase};
         if (this.httpsRequestCert) {
           const clientCaPath = this.resolvePathMaybeRelative(this.httpsClientCaPath);
@@ -336,7 +338,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
         this.httpsServer.listen(this.port, '127.0.0.1');
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        vscode.window.showErrorMessage('HTTPS server could not be started: ' + message);
+        vscode.window.showErrorMessage('TLS server could not be started: ' + message);
       }
     } else {
       try {
@@ -482,6 +484,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
     const logHistoryChecked = logHistory ? 'checked' : '';
     const responseDisabled = reflect ? 'disabled' : '';
     const httpsSectionHidden = serverType === 'https' ? '' : 'hidden';
+    const mtlsControlsHidden = '';
     const mmtSectionHidden = serverType === 'mmt' ? '' : 'hidden';
     const responseSectionHidden = serverType === 'mmt' ? 'hidden' : '';
     const simpleMockSectionStyle = serverType === 'mmt' ? 'display:none' : '';
@@ -509,6 +512,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
         .replace(/\${httpsKeyPath}/g, httpsKeyPath)
         .replace(/\${httpsClientCaPath}/g, httpsClientCaPath)
         .replace(/\${httpsRequestCertChecked}/g, httpsRequestCert ? 'checked' : '')
+        .replace(/\${mtlsControlsHidden}/g, mtlsControlsHidden)
         .replace(/\${mmtFilePath}/g, mmtFilePath)
         .replace(/\${simpleMockSectionStyle}/g, simpleMockSectionStyle);
   }
@@ -555,8 +559,8 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
 
   private async pickHttpsFile(kind: 'cert'|'key'|'clientCa') {
     const titles: Record<typeof kind, string> = {
-      cert: 'Select HTTPS server certificate',
-      key: 'Select HTTPS server key',
+      cert: 'Select TLS server certificate',
+      key: 'Select TLS server key',
       clientCa: 'Select Client CA certificate (for mTLS)'
     };
     const uris = await vscode.window.showOpenDialog({

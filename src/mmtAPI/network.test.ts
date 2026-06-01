@@ -87,14 +87,14 @@ describe('prepareNetworkConfigForFile certificate settings', () => {
           'variables:',
           '  CERT_PASS: from-file',
           'certificates:',
-          '  ca:',
+          '  server_ca:',
           '    paths:',
           '      - ./certs/ca.cer',
           '  clients:',
           '    - name: mtls',
           '      host: "*:8085"',
-          '      cert_path: ./certs/client.cer',
-          '      key_path: ./certs/client.key',
+          '      cert: ./certs/client.cer',
+          '      key: ./certs/client.key',
           '      passphrase_env: CERT_PASS',
         ].join('\n'),
     );
@@ -107,8 +107,8 @@ describe('prepareNetworkConfigForFile certificate settings', () => {
           clientsEnabled: {'mtls:*:8085': true},
         },
         {
-          ca: {paths: ['/tmp/storage-ca.cer']},
-          clients: [{name: 'storage', host: '*', cert_path: '/tmp/storage-cert', key_path: '/tmp/storage-key'}],
+          server_ca: {paths: ['/tmp/storage-ca.cer']},
+          clients: [{name: 'storage', host: '*', cert: '/tmp/storage-cert', key: '/tmp/storage-key'}],
         },
     );
 
@@ -144,14 +144,14 @@ describe('prepareNetworkConfigForFile certificate settings', () => {
         [
           'type: env',
           'certificates:',
-          '  ca:',
+          '  server_ca:',
           '    paths:',
           '      - ./certs/ca.cer',
           '  clients:',
           '    - name: mtls',
           '      host: api.example.com',
-          '      cert_path: ./certs/client.cer',
-          '      key_path: ./certs/client.key',
+          '      cert: ./certs/client.cer',
+          '      key: ./certs/client.key',
         ].join('\n'),
     );
 
@@ -170,5 +170,42 @@ describe('prepareNetworkConfigForFile certificate settings', () => {
     expect(config.clients[0].enabled).toBe(false);
     expect(config.clients[0].certData).toBeUndefined();
     expect(config.clients[0].keyData).toBeUndefined();
+  });
+
+  it('discovers nearest env.mmt and enables file certificates when no local toggles exist', () => {
+    const dir = createTempDir();
+    (vscode.workspace.workspaceFolders as any) = [{uri: {fsPath: dir}}];
+
+    const apiFilePath = path.join(dir, 'examples', 'mtls_mock_server', 'test', 'secure_health_test.mmt');
+    const exampleRoot = path.dirname(path.dirname(apiFilePath));
+    writeFile(apiFilePath, 'type: test\nname: secure health');
+    writeFile(path.join(exampleRoot, 'certs', 'ca.crt'), 'env-ca');
+    writeFile(path.join(exampleRoot, 'certs', 'client.crt'), 'env-cert');
+    writeFile(path.join(exampleRoot, 'certs', 'client.key'), 'env-key');
+    writeFile(
+        path.join(exampleRoot, 'env.mmt'),
+        [
+          'type: env',
+          'certificates:',
+          '  server_ca:',
+          '    paths:',
+          '      - ./certs/ca.crt',
+          '  clients:',
+          '    - name: mock-client',
+          '      host: localhost:9444',
+          '      cert: ./certs/client.crt',
+          '      key: ./certs/client.key',
+        ].join('\n'),
+    );
+
+    const context = createContext(undefined);
+    const config = prepareNetworkConfigForFile(apiFilePath, undefined, context);
+
+    expect(config.ca.enabled).toBe(true);
+    expect(config.ca.certData?.[0].toString('utf8')).toBe('env-ca');
+    expect(config.clients).toHaveLength(1);
+    expect(config.clients[0].enabled).toBe(true);
+    expect(config.clients[0].certData?.toString('utf8')).toBe('env-cert');
+    expect(config.clients[0].keyData?.toString('utf8')).toBe('env-key');
   });
 });

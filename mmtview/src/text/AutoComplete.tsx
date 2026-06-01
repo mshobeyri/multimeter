@@ -96,7 +96,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.EnumMember,
             insertText: " server",
             detail: 'Define a mock server',
-            documentation: 'Local mock server with configurable endpoints, route matching, conditional responses, and dynamic tokens. Supports HTTP, HTTPS, and WebSocket protocols.',
+            documentation: 'Local mock server with configurable endpoints, route matching, conditional responses, and dynamic tokens. Supports HTTP, HTTPS, mTLS, and WebSocket protocols.',
         },
         {
             label: "Report",
@@ -875,23 +875,23 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "certificates:\n\t",
             detail: 'Certificate settings [object]',
-            documentation: 'Configure SSL/TLS certificates for secure API connections.\nExample:\ncertificates:\n\tca:\n\t\tpaths:\n\t\t\t- ./certs/ca.pem\n\tclients:\n\t\t- name: api-cert\n\t\t\thost: "*.api.example.com"\n\t\t\tcert_path: ./certs/client.pem\n\t\t\tkey_path: ./certs/client.key',
+            documentation: 'Configure SSL/TLS certificates for secure API connections.\nExample:\ncertificates:\n\tserver_ca:\n\t\tpaths:\n\t\t\t- ./certs/ca.pem\n\tclients:\n\t\t- name: api-cert\n\t\t\thost: "*.api.example.com"\n\t\t\tcert: ./certs/client.pem\n\t\t\tkey: ./certs/client.key',
         },
     ];
     const envCertificatesSuggestions = [
         {
-            label: "ca",
+            label: "server_ca",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "ca:\n\t\tpaths:\n\t\t\t- ",
-            detail: 'CA certificates [object]',
-            documentation: 'Configure custom Certificate Authority certificates.\nExample:\nca:\n\tpaths:\n\t\t- ./certs/ca.pem\n\t\t- ./certs/intermediate.pem',
+            insertText: "server_ca:\n\t\tpaths:\n\t\t\t- ",
+            detail: 'Server CA certificates [object]',
+            documentation: 'Configure Certificate Authority certificates used to verify servers.\nExample:\nserver_ca:\n\tpaths:\n\t\t- ./certs/ca.pem\n\t\t- ./certs/intermediate.pem',
         },
         {
             label: "clients",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "clients:\n\t\t- name: \n\t\t\thost: \"*\"\n\t\t\tcert_path: \n\t\t\tkey_path: ",
+            insertText: "clients:\n\t\t- name: \n\t\t\thost: \"*\"\n\t\t\tcert: \n\t\t\tkey: ",
             detail: 'Client certificates [array]',
-            documentation: 'Configure client certificates for mutual TLS.\nExample:\nclients:\n\t- name: api-cert\n\t\thost: "*.api.example.com"\n\t\tcert_path: ./certs/client.pem\n\t\tkey_path: ./certs/client.key',
+            documentation: 'Configure client certificates for mutual TLS.\nExample:\nclients:\n\t- name: api-cert\n\t\thost: "*.api.example.com"\n\t\tcert: ./certs/client.pem\n\t\tkey: ./certs/client.key',
         },
     ];
     const envCaClientSuggestions = [
@@ -910,18 +910,25 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'Host pattern to match for this certificate. Use * for wildcard.\nExample: *.api.example.com',
         },
         {
-            label: "cert_path",
+            label: "cert",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "cert_path: ",
-            detail: 'Certificate path [string]',
-            documentation: 'Path to the client certificate file (PEM format).',
+            insertText: "cert: ",
+            detail: 'Certificate file path [string]',
+            documentation: 'Path to the client certificate file (.pem, .crt, .cer).',
         },
         {
-            label: "key_path",
+            label: "key",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "key_path: ",
-            detail: 'Key path [string]',
-            documentation: 'Path to the private key file (PEM format).',
+            insertText: "key: ",
+            detail: 'Private key file path [string]',
+            documentation: 'Path to the private key file (.key, .pem).',
+        },
+        {
+            label: "pfx",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "pfx: ",
+            detail: 'PFX file path [string]',
+            documentation: 'Path to PKCS#12 bundle file (.pfx, .p12).',
         },
         {
             label: "passphrase_plain",
@@ -1372,7 +1379,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "protocol: ",
             detail: 'Server protocol [http, https, ws]',
-            documentation: 'Server protocol. Defaults to http.\nOptions:\n\t- http: Plain HTTP server\n\t- https: HTTPS server (requires tls config)\n\t- ws: WebSocket server'
+            documentation: 'Server protocol. Defaults to http. Use protocol: https with connection.mode for TLS or mTLS.\nOptions:\n\t- http: Plain HTTP server\n\t- https: HTTPS server\n\t- ws: WebSocket server'
         },
         {
             label: "port",
@@ -1382,11 +1389,11 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'Port number the mock server will listen on.\nExample: port: 3000'
         },
         {
-            label: "tls",
+            label: "connection",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "tls:\n\tcert: \n\tkey: ",
-            detail: 'TLS configuration [object]',
-            documentation: 'TLS certificate configuration for HTTPS. Requires cert and key paths.\nExample:\ntls:\n  cert: ./certs/server.crt\n  key: ./certs/server.key'
+            insertText: "connection:\n\tmode: tls",
+            detail: 'Connection security [object]',
+            documentation: 'Connection security configuration. mode can be plain, tls, or mtls. TLS can use built-in self-signed certs when cert/key are omitted. mTLS requires client_ca.\nExample:\nconnection:\n  mode: mtls\n  cert: ./certs/server.crt\n  key: ./certs/server.key\n  client_ca: ./certs/ca.crt'
         },
         {
             label: "cors",
@@ -1526,34 +1533,34 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'Match specific query string parameters.\nExample:\nmatch:\n  query:\n    page: "1"\n    sort: name'
         },
     ];
-    const mockTlsSuggestions = [
+    const mockConnectionSuggestions = [
+        {
+            label: "mode",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "mode: tls",
+            detail: 'Connection mode [plain, tls, mtls]',
+            documentation: 'plain is the default. tls starts an HTTPS server. mtls starts an HTTPS server and requires client_ca.'
+        },
         {
             label: "cert",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "cert: ",
             detail: 'Certificate path [string]',
-            documentation: 'Path to the TLS certificate file (PEM format).\nExample: cert: ./certs/server.crt'
+            documentation: 'Optional path to the server certificate file (PEM format). If omitted for TLS, Multimeter uses built-in self-signed certs.\nExample: cert: ./certs/server.crt'
         },
         {
             label: "key",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "key: ",
             detail: 'Private key path [string]',
-            documentation: 'Path to the TLS private key file (PEM format).\nExample: key: ./certs/server.key'
+            documentation: 'Optional path to the server private key file (PEM format). Must be provided with cert.\nExample: key: ./certs/server.key'
         },
         {
-            label: "ca",
+            label: "client_ca",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "ca: ",
+            insertText: "client_ca: ",
             detail: 'CA certificate path [string]',
-            documentation: 'Path to CA certificate for client verification.\nExample: ca: ./certs/ca.pem'
-        },
-        {
-            label: "requestCert",
-            kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "requestCert: true",
-            detail: 'Request client certificate [boolean]',
-            documentation: 'When true, the server requests a client certificate for mutual TLS.'
+            documentation: 'Path to the CA certificate used to verify client certificates. Required when mode is mtls.\nExample: client_ca: ./certs/ca.pem'
         },
     ];
     const mockFallbackSuggestions = [
@@ -1714,7 +1721,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         operator: operatorValueSuggestions,
         endpoints: mockEndpointSuggestions,
         match: mockMatchSuggestions,
-        tls: mockTlsSuggestions,
+        connection: mockConnectionSuggestions,
         fallback: mockFallbackSuggestions,
         'step-call': callSiblings,
         'step-check': checkAssertSiblings,

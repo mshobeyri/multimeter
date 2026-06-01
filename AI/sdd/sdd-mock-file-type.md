@@ -54,12 +54,12 @@ tags:
 protocol: http          # http | https | ws
 port: 8081
 
-# Optional: TLS config (for protocol: https)
-tls:
+# Optional: connection security (for protocol: https)
+connection:
+  mode: tls             # plain | tls | mtls
   cert: ./certs/server.crt
   key: ./certs/server.key
-  ca: ./certs/ca.crt            # optional client CA for mTLS
-  requestCert: false
+  client_ca: ./certs/ca.crt     # required for mode: mtls
 
 # Global settings
 cors: true                       # add CORS headers to all responses
@@ -162,7 +162,7 @@ fallback:
 | `tags` | string[] | no | — | Tags for organization |
 | `protocol` | `"http"` \| `"https"` \| `"ws"` | no | `"http"` | Server protocol |
 | `port` | number | yes | — | Port to listen on (1–65535) |
-| `tls` | object | no | — | TLS config (required when `protocol: https`) |
+| `connection` | object | no | — | Connection mode and optional certificate paths |
 | `cors` | boolean | no | `false` | Add CORS headers to all responses |
 | `delay` | number | no | `0` | Global response delay in ms |
 | `headers` | record | no | — | Global response headers added to all endpoints |
@@ -170,14 +170,14 @@ fallback:
 | `proxy` | string | no | — | Forward unmatched requests to this URL |
 | `fallback` | object | no | `{status: 404}` | Response for unmatched routes (ignored when `proxy` is set) |
 
-#### `tls` fields
+#### `connection` fields
 
 | Field | Type | Required | Default | Description |
 |---|---|---|---|---|
-| `cert` | string | yes | — | Path to server certificate (relative or absolute) |
-| `key` | string | yes | — | Path to server private key |
-| `ca` | string | no | — | Client CA certificate (for mTLS) |
-| `requestCert` | boolean | no | `false` | Require client certificate |
+| `mode` | `"plain"` \| `"tls"` \| `"mtls"` | no | `"plain"` | Connection security mode |
+| `cert` | string | no | built-in self-signed cert | Optional path to server certificate |
+| `key` | string | no | built-in self-signed key | Optional path to server private key |
+| `client_ca` | string | yes for mTLS | — | Client CA certificate for `mode: mtls` |
 
 #### Endpoint fields
 
@@ -297,11 +297,13 @@ Define TypeScript interfaces:
 ```typescript
 import {Format, JSONRecord, JSONValue, Method, MMTFile} from './CommonData';
 
-export interface MockTlsConfig {
-  cert: string;
-  key: string;
-  ca?: string;
-  requestCert?: boolean;
+export type MockConnectionMode = 'plain' | 'tls' | 'mtls';
+
+export interface MockConnectionConfig {
+  mode?: MockConnectionMode;
+  cert?: string;
+  key?: string;
+  client_ca?: string;
 }
 
 export interface MockMatch {
@@ -352,7 +354,7 @@ export interface MockData extends MMTFile {
   tags?: string[];
   protocol?: 'http' | 'https' | 'ws';
   port: number;
-  tls?: MockTlsConfig;
+  connection?: MockConnectionConfig;
   cors?: boolean;
   delay?: number;
   headers?: Record<string, string>;
@@ -474,7 +476,7 @@ Main UI panel for `type: mock` files. Sections:
 - Toggle: auto-scroll on/off
 
 **Server info bar**
-- Protocol badge (HTTP/HTTPS/WS)
+- Protocol badge (HTTP/TLS/mTLS/WS)
 - CORS indicator
 - Global delay indicator
 - Proxy target (if set)
@@ -525,15 +527,14 @@ export const MockSchema = {
         tags: { type: 'array', items: { type: 'string' } },
         protocol: { type: 'string', enum: ['http', 'https', 'ws'] },
         port: { type: 'number', minimum: 1, maximum: 65535 },
-        tls: {
+        connection: {
             type: 'object',
             properties: {
+            mode: { type: 'string', enum: ['plain', 'tls', 'mtls'] },
                 cert: { type: 'string' },
                 key: { type: 'string' },
-                ca: { type: 'string' },
-                requestCert: { type: 'boolean' }
-            },
-            required: ['cert', 'key']
+            client_ca: { type: 'string' }
+          }
         },
         cors: { type: 'boolean' },
         delay: { type: 'number', minimum: 0 },
@@ -624,9 +625,9 @@ mockEndpointSiblings = [
 mockMatchSiblings = ['body', 'headers', 'query']
 ```
 
-**TLS-level siblings (inside `tls:`):**
+**Connection-level siblings (inside `connection:`):**
 ```
-mockTlsSiblings = ['cert', 'key', 'ca', 'requestCert']
+mockConnectionSiblings = ['mode', 'cert', 'key', 'client_ca']
 ```
 
 **Fallback-level siblings (inside `fallback:`):**
@@ -651,7 +652,7 @@ Wire `mockParsePack` validation into the diagnostics system:
 - Missing required fields (port, endpoints)
 - Invalid port range
 - Duplicate endpoint name
-- `protocol: https` without `tls` section
+- `connection.mode: mtls` without `connection.client_ca`
 - Endpoint missing `method` when protocol is http
 - Invalid status codes
 

@@ -1,0 +1,15 @@
+type: test
+title: TLS Mock Server Test
+description: Starts a TLS mock server and calls it with the configured CA certificate
+import:
+  server: ../server/mock_server.mmt
+  health: ../api/secure_health.mmt
+steps:
+  - run: server
+  - call: health
+    id: result
+    expect:
+      status_code: 200
+      status_field: ok
+      transport: tls
+    report: all

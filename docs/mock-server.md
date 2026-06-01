@@ -5,7 +5,7 @@ Multimeter provides two ways to mock APIs:
 1. **Mock Server Panel** (VS Code sidebar) — a lightweight server for quick prototyping with reflect mode and custom status codes.
 2. **MMT Mock Server Files** (`type: server`) — fully-featured mock definitions in YAML with routing, matching, dynamic responses, and proxy forwarding.
 
-Both approaches support HTTP, HTTPS (with TLS/mTLS), and WebSocket.
+Both approaches support HTTP, HTTPS, mTLS, and WebSocket.
 
 ---
 
@@ -25,6 +25,7 @@ Use it during development to inspect requests, echo (reflect) them back, and sim
 
 ## Supported protocols
 - HTTP: receive requests on a local port and reply with a simple body/status
+- HTTPS: receive secure requests on a local port; mTLS can be enabled with client certificate verification
 - WebSocket: accept connections and echo frames (useful for client wiring and quick payload checks)
 
 ## Controls in the panel
@@ -60,19 +61,18 @@ This is useful for verifying that your client sends the correct payloads without
 
 ---
 
-## HTTPS / TLS
+## HTTPS and mTLS
 
 The Mock Server panel can run an HTTPS server on localhost.
 
 - Set **Server Type** to **HTTPS**.
-- Select a **server certificate** file (PEM/CRT).
-- Select a **server key** file (PEM/KEY).
+- Optionally select a **server certificate** file (PEM/CRT) and matching **server key** file (PEM/KEY). If no cert/key is provided for TLS mode in a `.mmt` mock server file, Multimeter uses built-in self-signed certs.
 
 ### mTLS (client certificate verification)
 
 To require clients to present a valid certificate (mutual TLS):
 
-- Enable **Require client certificate (mTLS)**.
+- Set **Server Type** to **HTTPS** and enable **Require client certificate (mTLS)**.
 - Select a **Client CA** file (PEM) that signed the client certificates you want to accept.
 
 When mTLS is enabled:
@@ -98,13 +98,13 @@ curl --cacert certs-test/ca.crt \
 - The server binds to `127.0.0.1`.
 - Certificate file paths are stored in VS Code workspace state and persist across restarts.
 - Only PEM format is supported (`.pem`, `.crt`, `.cer`, `.key`).
-- Most HTTP clients will need to trust the server certificate (add the CA to `certificates.ca` or disable validation where appropriate).
+- Most HTTP clients will need to trust the server certificate (add the CA to `certificates.server_ca` or disable validation where appropriate).
 
 ---
 
 ## MMT Mock Server Files
 
-In addition to the basic mock server modes (HTTP, HTTPS, WebSocket), you can define fully-featured mock servers in `.mmt` files with `type: server`. These files support:
+In addition to the basic mock server modes (HTTP, HTTPS, mTLS, WebSocket), you can define fully-featured mock servers in `.mmt` files with `type: server`. These files support:
 
 - Multiple endpoints with different paths and methods
 - Request matching (body, headers, query parameters)
@@ -119,6 +119,7 @@ In addition to the basic mock server modes (HTTP, HTTPS, WebSocket), you can def
 ```yaml
 type: server
 title: User Service Mock
+protocol: http
 port: 8081
 cors: true
 
@@ -149,6 +150,43 @@ fallback:
   status: 404
   body:
     error: Not Found
+```
+
+### HTTPS and mTLS server files
+
+Mock server file protocols are `http`, `https`, or `ws`. The `connection` block controls whether the HTTP connection is plain, TLS, or mTLS:
+
+```yaml
+type: server
+protocol: https
+port: 8443
+connection:
+  mode: tls
+  cert: ./certs/server.crt
+  key: ./certs/server.key
+endpoints:
+  - method: get
+    path: /health
+    status: 200
+    body: OK
+```
+
+For mTLS, `connection.client_ca` is required:
+
+```yaml
+type: server
+protocol: https
+port: 8444
+connection:
+  mode: mtls
+  cert: ./certs/server.crt
+  key: ./certs/server.key
+  client_ca: ./certs/ca.crt
+endpoints:
+  - method: get
+    path: /secure
+    status: 200
+    body: OK
 ```
 
 ### Running from the Mock Server panel
@@ -227,7 +265,7 @@ This lets you set up complex integration environments declaratively, without man
 - [Test](./test-mmt.md) — use `run` step to start mock servers in tests
 - [Suite](./suite-mmt.md) — include `type: server` files in suite execution
 - [Environment](./environment-mmt.md) — swap between real and mock URLs with presets
-- [Certificates](./certificates-mmt.md) — configure TLS certificates for HTTPS mocking
+- [Certificates](./certificates-mmt.md) — configure TLS certificates for secure mock clients
 - [Reports](./reports.md) — generate test reports from runs that use mocks
 - [Testlight CLI](./testlight.md) — run tests and suites (including mock servers) from the command line
 - [Sample Project](./sample-project.md) — full walkthrough of a Multimeter project

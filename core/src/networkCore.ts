@@ -124,10 +124,13 @@ export function createHttpsAgentWithCertificates(
   }
     const matchingClientCert = findMatchingClientCertificate(
       config.clients, hostname, port, protocol);
-  if (matchingClientCert && matchingClientCert.certData &&
-      matchingClientCert.keyData) {
-    agentOptions.cert = matchingClientCert.certData;
-    agentOptions.key = matchingClientCert.keyData;
+  if (matchingClientCert) {
+    if (matchingClientCert.pfxData) {
+      agentOptions.pfx = matchingClientCert.pfxData;
+    } else if (matchingClientCert.certData && matchingClientCert.keyData) {
+      agentOptions.cert = matchingClientCert.certData;
+      agentOptions.key = matchingClientCert.keyData;
+    }
     if (matchingClientCert.passphrase_plain) {
       agentOptions.passphrase = matchingClientCert.passphrase_plain;
     }
@@ -546,10 +549,13 @@ export function createWebSocketOptionsWithCertificates(
   }
     const matchingClientCert = findMatchingClientCertificate(
       config.clients, hostname, port, protocol);
-  if (matchingClientCert && matchingClientCert.certData &&
-      matchingClientCert.keyData) {
-    wsOptions.cert = matchingClientCert.certData;
-    wsOptions.key = matchingClientCert.keyData;
+  if (matchingClientCert) {
+    if (matchingClientCert.pfxData) {
+      wsOptions.pfx = matchingClientCert.pfxData;
+    } else if (matchingClientCert.certData && matchingClientCert.keyData) {
+      wsOptions.cert = matchingClientCert.certData;
+      wsOptions.key = matchingClientCert.keyData;
+    }
     if (matchingClientCert.passphrase_plain) {
       wsOptions.passphrase = matchingClientCert.passphrase_plain;
     }

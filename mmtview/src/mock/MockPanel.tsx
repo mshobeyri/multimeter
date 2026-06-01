@@ -108,8 +108,10 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
   }
 
   const protocol = mockData.protocol || "http";
-  const baseUrl = `${protocol === "ws" ? "ws" : protocol}://localhost:${mockData.port}`;
+  const urlScheme = protocol === "ws" ? "ws" : protocol === "https" ? "https" : "http";
+  const baseUrl = `${urlScheme}://localhost:${mockData.port}`;
   const endpointCount = mockData.endpoints?.length || 0;
+  const connection = mockData.connection;
 
   return (
     <div className="panel">
@@ -163,7 +165,7 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
                     <span className="mock-info-chip mock-info-chip--url">{baseUrl}</span>
                     <span className="mock-info-chip">{protocol.toUpperCase()}</span>
                     {mockData.cors && <span className="mock-info-chip">CORS</span>}
-                    {mockData.tls && <span className="mock-info-chip">TLS</span>}
+                    {connection?.mode && connection.mode !== 'plain' && <span className="mock-info-chip">{connection.mode.toUpperCase()}</span>}
                     {mockData.delay && <span className="mock-info-chip">delay: {mockData.delay}ms</span>}
                   </div>
 
