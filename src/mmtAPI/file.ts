@@ -172,9 +172,6 @@ export async function readRelativeFileContent(
 export async function handleLoadDocumentContent(
     webviewPanel: vscode.WebviewPanel, document: vscode.TextDocument,
     mmtProvider: any) {
-  // Get the last saved view mode
-  const lastViewMode = mmtProvider.getLastViewMode();
-
   // Resolve project root for +/ imports (same logic used by run)
   const projectRoot = findProjectRoot(document.uri.fsPath);
   const lowerPath = document.uri.fsPath.toLowerCase();
@@ -186,9 +183,6 @@ export async function handleLoadDocumentContent(
     command: 'viewDocumentContent',
     uri: document.uri.toString(),
     content: document.getText(),
-    mode: vscode.window.tabGroups.activeTabGroup.activeTab?.input ? 'normal' :
-                                                                    'compare',
-    viewMode: lastViewMode,
     projectRoot,
     sourceFormat
   });
