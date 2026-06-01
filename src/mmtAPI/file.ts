@@ -1,4 +1,4 @@
-import {markupConvertor} from 'mmt-core';
+import {markupConvertor, outputExtractor} from 'mmt-core';
 const {parseYaml} = markupConvertor;
 import {findProjectRootSync} from 'mmt-core/fileHelper';
 import {brunoToTest, isBrunoFilePath} from 'mmt-core/brunoParsePack';
@@ -13,6 +13,9 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 
 import {resolveWorkspaceEnvFilePath} from './network';
+
+const DEFAULT_OUTPUT_KEYS = Array.isArray(outputExtractor.DEFAULT_OUTPUT_KEYS) ?
+  outputExtractor.DEFAULT_OUTPUT_KEYS : ['body', 'headers', 'cookies', 'status', 'duration'];
 
 async function showExportedNotification(message: string, uri: vscode.Uri): Promise<void> {
   const ext = path.extname(uri.fsPath).toLowerCase();
@@ -305,9 +308,12 @@ export async function handleValidateImports(
           apiInputsByAlias[alias] = [];
         }
         const outputsObj = js && js.outputs;
-        if (outputsObj && typeof outputsObj === 'object' &&
-            !Array.isArray(outputsObj)) {
-          apiOutputsByAlias[alias] = Object.keys(outputsObj);
+        const userOutputKeys = outputsObj && typeof outputsObj === 'object' &&
+            !Array.isArray(outputsObj) ? Object.keys(outputsObj) : [];
+        if (js?.type === 'api') {
+          apiOutputsByAlias[alias] = [...new Set([...DEFAULT_OUTPUT_KEYS, ...userOutputKeys])];
+        } else if (userOutputKeys.length > 0) {
+          apiOutputsByAlias[alias] = userOutputKeys;
         } else {
           apiOutputsByAlias[alias] = [];
         }

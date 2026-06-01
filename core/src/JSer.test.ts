@@ -344,6 +344,47 @@ describe('CSV import parsing', () => {
     })).rejects.toThrow(/undefined output\(s\) in expect: "missing_value"/i);
   });
 
+  it('allows hidden default output paths for imported APIs', async () => {
+    const mock = createTestFileLoaderMock({
+      '/root/main.mmt': [
+        'type: test',
+        'import:',
+        '  echo: /root/echo.mmt',
+        'steps:',
+        '  - call: echo',
+        '    expect:',
+        '      _.body.body.message: hello',
+        '      _.status: 200',
+      ].join('\n'),
+      '/root/echo.mmt': [
+        'type: api',
+        'url: https://example.com',
+        'format: json',
+      ].join('\n'),
+    });
+    setFileLoader(mock.fileLoader);
+
+    await expect(rootTestToJsfunc({
+      name: 'main',
+      test: {
+        type: 'test',
+        import: { echo: '/root/echo.mmt' },
+        steps: [
+          {
+            call: 'echo',
+            expect: {
+              '_.body.body.message': 'hello',
+              '_.status': 200,
+            },
+          } as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/main.mmt',
+    })).resolves.toContain('_.body.body.message == hello');
+  });
+
   it('throws when call debug references output not defined by imported test', async () => {
     const mock = createTestFileLoaderMock({
       '/root/main.mmt': [
@@ -876,11 +917,11 @@ describe('empty test items are valid', () => {
     expect(js).toContain('const getUser = await __http_0({});');
     expect(js).toContain('https://example.com/users/${userId}');
     expect(js).toContain('extractOutputs_');
-    expect(js).toContain('"body.body.xxx": "body.body.xxx"');
-    expect(js).toContain('getUser["body.body.xxx"]');
+    expect(js).not.toContain('"body.body.xxx": "body.body.xxx"');
+    expect(js).toContain('getUser._ ? getUser._["body"] : undefined');
     expect(js).toContain('body.body.xxx == sss');
     expect(js).toContain("getUser._.stepKind = 'http';");
-    expect(js).toContain('getUser.body = JSON.parse(getUser.body);');
+    expect(js).toContain('getUser._.body = JSON.parse(getUser._.body);');
     expect(js).toContain('checkExpects_');
   });
 
@@ -973,7 +1014,7 @@ describe('call steps without expect', () => {
     const js = await testToJsfunc(ctx, true);
     // First call at index 0
     expect(js).toContain('const _login_0 = await login(');
-    expect(js).toContain('equals_(`${_login_0.status}`, `200`)');
+    expect(js).toContain('Object.prototype.hasOwnProperty.call(_login_0, "status")');
     // Second call at index 1 — different variable name
     expect(js).toContain('const _login_1 = await login(');
     expect(js).toContain('equals_(`${_login_1.name}`, `ok`)');
@@ -1160,7 +1201,8 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('equals_(result.body, {"message":"hello worlds"})');
+    expect(js).toContain('Object.prototype.hasOwnProperty.call(result, "body")');
+    expect(js).toContain('{"message":"hello worlds"}');
   });
 
   it('generates deep array equality for call expect values', async () => {
@@ -1249,7 +1291,48 @@ describe('expect on call steps', () => {
       envVars: {},
     };
     const js = await testToJsfunc(ctx, true);
-    expect(js).toContain('equals_(`${_getUser_0.body.user.name}`, `John`)');
+    expect(js).toContain('Object.prototype.hasOwnProperty.call(_getUser_0, "body")');
+    expect(js).toContain('__mmt_access((Object.prototype.hasOwnProperty.call(_getUser_0, "body")');
+    expect(js).toContain('equals_(`${__mmt_access(');
+  });
+
+  it('falls back to hidden default outputs for body and status at execution time', async () => {
+    const events: Record<string, any>[] = [];
+    const js = await rootTestToJsfunc({
+      name: 'hiddenDefaultsRun',
+      test: {
+        type: 'test',
+        steps: [
+          {
+            call: 'echo',
+            expect: {
+              'body.message': 'hello world',
+              status: 200,
+              '_.status': 200,
+            },
+          } as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    });
+
+    await runJSCode({
+      js: `
+        const echo = async () => ({ _: { body: { message: 'hello world' }, status: 200 } });
+        ${js}
+      `,
+      title: 'hidden-defaults-runtime',
+      logger: jest.fn(),
+      runId: 'run-hidden-defaults',
+      reporter: (event: Record<string, any>) => {
+        events.push(event);
+      },
+    });
+
+    const step = events.find((event) => event.scope === 'test-step');
+    expect(step).toMatchObject({status: 'passed'});
+    expect(step?.expects).toHaveLength(3);
   });
 
   it('supports template expressions in expected value', async () => {
