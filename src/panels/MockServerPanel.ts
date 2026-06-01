@@ -7,6 +7,7 @@ import WebSocket = require('ws');
 
 import {HistoryManager} from '../historyManager';
 import {DEFAULT_MOCK_SERVER_CERT, DEFAULT_MOCK_SERVER_KEY, startMockServerFromPath} from '../mmtAPI/mockRunner';
+import {onRunFinished, onRunStarted} from '../runStatusBar';
 
 type ServerType = 'http' | 'https' | 'ws' | 'mmt';
 
@@ -33,6 +34,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
   private logHistory: boolean = false;
   private mmtFilePath: string = '';
   private mmtServerCleanup?: () => void;
+  private statusBarRunId?: string;
   private disposables: vscode.Disposable[] = [];
 
   constructor(
@@ -183,6 +185,9 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
   private _doStartServer() {
     const updateAndNotify = () => {
       this.running = true;
+      if (this.serverType !== 'mmt') {
+        this.startPanelServerStatus();
+      }
       this.updateViewHtml();
     };
 
@@ -300,6 +305,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
       this.httpServer.on('listening', updateAndNotify);
       this.httpServer.on('close', () => {
         this.running = false;
+        this.finishPanelServerStatus();
         this.updateViewHtml();
       });
       this.httpServer.listen(this.port, '127.0.0.1');
@@ -333,6 +339,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
         this.httpsServer.on('listening', updateAndNotify);
         this.httpsServer.on('close', () => {
           this.running = false;
+          this.finishPanelServerStatus();
           this.updateViewHtml();
         });
         this.httpsServer.listen(this.port, '127.0.0.1');
@@ -395,6 +402,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
         this.wsServer.on('listening', updateAndNotify);
         this.wsServer.on('close', () => {
           this.running = false;
+          this.finishPanelServerStatus();
           this.updateViewHtml();
         });
       } catch (err) {
@@ -407,6 +415,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
   private stopServer() {
     const finalize = () => {
       this.running = false;
+      this.finishPanelServerStatus();
       this.updateViewHtml();
     };
     if (this.httpServer) {
@@ -449,6 +458,20 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
       finalize();
     } else {
       finalize();
+    }
+  }
+
+  private startPanelServerStatus(): void {
+    this.finishPanelServerStatus();
+    const scheme = this.serverType === 'https' ? 'https' : this.serverType === 'ws' ? 'ws' : 'http';
+    const label = `Mock server ${scheme}://localhost:${this.port}`;
+    this.statusBarRunId = onRunStarted(label, () => this.stopServer(), 'server');
+  }
+
+  private finishPanelServerStatus(): void {
+    if (this.statusBarRunId) {
+      onRunFinished(this.statusBarRunId);
+      this.statusBarRunId = undefined;
     }
   }
 

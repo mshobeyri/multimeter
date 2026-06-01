@@ -31,12 +31,12 @@ export function registerRunStatusBar(context: vscode.ExtensionContext): void {
     }));
 }
 
-export function onRunStarted(label: string, abort: () => void): string {
+export function onRunStarted(label: string, abort: () => void, icon = 'sync~spin'): string {
   const runId = `run-${++runCounter}`;
   const item = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Left, 0);
   item.command = { command: COMMAND_ID, arguments: [runId], title: 'Stop Run' };
-  item.text = `$(sync~spin) ${label}`;
+  item.text = `$(${icon}) ${label}`;
   item.tooltip = `${label} — click to stop`;
   item.show();
   extensionContext.subscriptions.push(item);

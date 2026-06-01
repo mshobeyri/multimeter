@@ -6,12 +6,15 @@ import * as vscode from 'vscode';
 import YAML from 'yaml';
 import { mockParsePack, mockServer, variableReplacer, MockData as MockDataNS } from 'mmt-core';
 
+import {onRunFinished, onRunStarted} from '../runStatusBar';
+
 type MockData = MockDataNS.MockData;
 
 interface MockServerHandle {
   server: http.Server | https.Server;
   port: number;
   dispose: () => void;
+  statusBarRunId?: string;
 }
 
 const activeServers = new Map<string, MockServerHandle>();
@@ -113,14 +116,27 @@ export function stopMockServer(documentUri: string): void {
   const handle = activeServers.get(documentUri);
   if (handle) {
     handle.dispose();
-    activeServers.delete(documentUri);
+    if (activeServers.get(documentUri) === handle) {
+      activeServers.delete(documentUri);
+      finishMockServerStatus(handle);
+    }
+  }
+}
+
+function finishMockServerStatus(handle: MockServerHandle): void {
+  if (handle.statusBarRunId) {
+    onRunFinished(handle.statusBarRunId);
+    handle.statusBarRunId = undefined;
   }
 }
 
 export function stopAll(): void {
   for (const [uri, handle] of activeServers) {
     handle.dispose();
-    activeServers.delete(uri);
+    if (activeServers.get(uri) === handle) {
+      activeServers.delete(uri);
+      finishMockServerStatus(handle);
+    }
   }
 }
 
@@ -330,6 +346,8 @@ export async function startMockServer(
           }
         },
       };
+      const label = `Mock server ${getMockUrlScheme(protocol)}://localhost:${data.port}`;
+      handle.statusBarRunId = onRunStarted(label, () => stopMockServer(documentUri), 'server');
       activeServers.set(documentUri, handle);
 
       webviewPanel.webview.postMessage({
@@ -343,7 +361,11 @@ export async function startMockServer(
     });
 
     server.on('close', () => {
+      const handle = activeServers.get(documentUri);
       activeServers.delete(documentUri);
+      if (handle) {
+        finishMockServerStatus(handle);
+      }
       try {
         webviewPanel.webview.postMessage({
           command: 'mockServerStatus',
@@ -355,7 +377,11 @@ export async function startMockServer(
     });
 
     server.on('error', (err: any) => {
+      const handle = activeServers.get(documentUri);
       activeServers.delete(documentUri);
+      if (handle) {
+        finishMockServerStatus(handle);
+      }
       if (err.code === 'EADDRINUSE') {
         vscode.window.showErrorMessage(`Mock server: port ${data.port} is already in use.`);
       } else {
@@ -527,7 +553,11 @@ export async function startMockServerFromPath(
         } catch {
           // ignore
         }
-        activeServers.delete(documentUri);
+        const handle = activeServers.get(documentUri);
+        if (handle) {
+          activeServers.delete(documentUri);
+          finishMockServerStatus(handle);
+        }
       };
 
       const handle: MockServerHandle = {
@@ -535,17 +565,28 @@ export async function startMockServerFromPath(
         port: data.port,
         dispose,
       };
+      const protocol = data.protocol || 'http';
+      const label = `Mock server ${getMockUrlScheme(protocol)}://localhost:${data.port}`;
+      handle.statusBarRunId = onRunStarted(label, () => stopMockServer(documentUri), 'server');
       activeServers.set(documentUri, handle);
       resolve(dispose);
     });
 
     server.on('close', () => {
+      const handle = activeServers.get(documentUri);
       activeServers.delete(documentUri);
+      if (handle) {
+        finishMockServerStatus(handle);
+      }
       onClose?.();
     });
 
     server.on('error', (err: any) => {
+      const handle = activeServers.get(documentUri);
       activeServers.delete(documentUri);
+      if (handle) {
+        finishMockServerStatus(handle);
+      }
       if (err.code === 'EADDRINUSE') {
         reject(new Error(`Mock server: port ${data.port} is already in use.`));
       } else {
