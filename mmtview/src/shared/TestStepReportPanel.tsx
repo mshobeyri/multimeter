@@ -185,9 +185,12 @@ function parseCallDetails(details: string | undefined): CallResultDetails | null
         }
       } catch { /* ignore nested parse failure */ }
     }
+    const reportOutputKeys = Array.isArray((underscore as any).reportOutputKeys)
+      ? new Set((underscore as any).reportOutputKeys.filter((key: any) => typeof key === 'string'))
+      : null;
     const outputs: Record<string, any> = {};
     for (const [k, v] of Object.entries(parsed)) {
-      if (k !== '_') {
+      if (k !== '_' && (!reportOutputKeys || reportOutputKeys.has(k))) {
         outputs[k] = v;
       }
     }

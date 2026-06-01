@@ -50,6 +50,39 @@ describe('API default outputs in generated code', () => {
     expect(js).toContain('"userId"');
     expect(js).toContain('body.token');
     expect(js).toContain('body.user.id');
+    expect(js).toContain('reportOutputKeys: ["token","userId"]');
+  });
+
+  it('generated API function marks only explicit output keys for reports', async () => {
+    const withoutExplicitOutputs = await apiToJSfunc({
+      api: {
+        type: 'api',
+        title: 'Test API',
+        url: 'http://example.com',
+        method: 'get',
+        protocol: 'http',
+      } as any,
+      name: 'test_api',
+      envVars: {},
+      inputs: {},
+    });
+
+    const withOverrides = await apiToJSfunc({
+      api: {
+        type: 'api',
+        title: 'Test API',
+        url: 'http://example.com',
+        method: 'get',
+        protocol: 'http',
+        outputs: {body: 'body.data', status: 'body.code'},
+      } as any,
+      name: 'test_api',
+      envVars: {},
+      inputs: {},
+    });
+
+    expect(withoutExplicitOutputs).toContain('reportOutputKeys: []');
+    expect(withOverrides).toContain('reportOutputKeys: ["body","status"]');
   });
 
   it('user output overrides default when same key name is used', async () => {

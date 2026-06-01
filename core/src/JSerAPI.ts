@@ -2,11 +2,12 @@ import {APIData, AuthConfig} from './APIData';
 import {JSONRecord} from './CommonData';
 import {indentLines, toInputsParams} from './JSerHelper';
 import {formatBody} from './markupConvertor';
-import {mergeWithDefaultExtractionRules} from './outputExtractor';
+import {DEFAULT_EXTRACTION_RULES} from './outputExtractor';
 import {replaceAllRefs, toTemplateWithEnvVars} from './variableReplacer';
 
 export interface APIContext {
-  api: APIData, name: string, inputs: JSONRecord, envVars: JSONRecord
+  api: APIData, name: string, inputs: JSONRecord, envVars: JSONRecord,
+  reportOutputKeys?: string[]
 }
 
 export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
@@ -15,7 +16,14 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   const paramsAsObj: Record<string, string> = Object.fromEntries(
       Object.keys(ctx.api.inputs ?? {}).map(key => [key, `\${${key}}`]));
 
-  const extractRules = mergeWithDefaultExtractionRules(ctx.api.outputs);
+  const userExtractRules = ctx.api.outputs && typeof ctx.api.outputs === 'object' && !Array.isArray(ctx.api.outputs)
+    ? ctx.api.outputs
+    : {};
+  const reportOutputKeys = Array.isArray(ctx.reportOutputKeys)
+    ? ctx.reportOutputKeys
+    : ctx.api.outputs && typeof ctx.api.outputs === 'object' && !Array.isArray(ctx.api.outputs)
+      ? Object.keys(ctx.api.outputs)
+      : [];
 
   let replaced =
       replaceAllRefs(ctx.api, paramsAsObj, ctx.inputs, ctx.envVars ?? {});
@@ -87,7 +95,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
 
   // gRPC: generate completely different code path
   if (isGrpc && ctx.api.grpc) {
-    return generateGrpcFunction(ctx, replaced, inputParams, extractRules, toTemplateWithEnvs, toJsValue, authCode, headers);
+    return generateGrpcFunction(ctx, replaced, inputParams, userExtractRules, toTemplateWithEnvs, toJsValue, authCode, headers, reportOutputKeys);
   }
 
   // GraphQL compiles to HTTP transport
@@ -143,8 +151,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
 ${authCode}
   const res_ = await send_(req_);
 
-  const output_ = extractOutputs_(
-    {
+  const __extractSource_ = {
       type: 'auto',
       body: res_?.body,
       headers: res_?.headers || {},
@@ -152,14 +159,22 @@ ${authCode}
       status: res_?.status || 0,
       duration: res_?.duration || 0,
       details: JSON.stringify({ request: req_, response: res_ }, null, 2)
-    },
-    ${indentLines(indentLines(JSON.stringify(extractRules, null, 2)))}
+    };
+  const __defaultOutput_ = extractOutputs_(
+    __extractSource_,
+    ${indentLines(indentLines(JSON.stringify(DEFAULT_EXTRACTION_RULES, null, 2)))}
+  );
+  const output_ = extractOutputs_(
+    __extractSource_,
+    ${indentLines(indentLines(JSON.stringify(userExtractRules, null, 2)))}
   );
 
   output_['_'] = {
+    ...__defaultOutput_,
     details: JSON.stringify({ request: req_, response: res_ }, null, 2),
     status: res_?.status || 0,
-    duration: res_?.duration || 0
+    duration: res_?.duration || 0,
+    reportOutputKeys: ${JSON.stringify(reportOutputKeys)}
   };
 ${isGraphQL ? `
   // GraphQL error detection: if response contains errors array, mark as failed
@@ -184,11 +199,12 @@ function generateGrpcFunction(
     ctx: APIContext,
     replaced: APIData,
     inputParams: string,
-    extractRules: Record<string, string>,
+    userExtractRules: Record<string, string>,
     toTpl: (s: string) => string,
     toJsValue: (v: any) => string,
     authCode: string,
     headers: string,
+    reportOutputKeys: string[],
 ): string {
   const grpc = replaced.grpc || ctx.api.grpc!;
   const protoExpr = grpc.proto ? toTpl(grpc.proto) : `'reflect'`;
@@ -235,8 +251,7 @@ ${authCode}
     __grpcMessage = typeof __grpcRes.body === 'string' ? JSON.parse(__grpcRes.body) : __grpcRes.body;
   } catch { __grpcMessage = __grpcRes.body; }
 
-  const output_ = extractOutputs_(
-    {
+  const __extractSource_ = {
       type: 'json',
       body: __grpcMessage,
       headers: __grpcRes.metadata || {},
@@ -246,14 +261,22 @@ ${authCode}
       details: JSON.stringify({ request: __grpcReq, response: __grpcRes }, null, 2),
       message: __grpcMessage,
       metadata: __grpcRes.metadata || {}
-    },
-    ${indentLines(indentLines(JSON.stringify(extractRules, null, 2)))}
+    };
+  const __defaultOutput_ = extractOutputs_(
+    __extractSource_,
+    ${indentLines(indentLines(JSON.stringify(DEFAULT_EXTRACTION_RULES, null, 2)))}
+  );
+  const output_ = extractOutputs_(
+    __extractSource_,
+    ${indentLines(indentLines(JSON.stringify(userExtractRules, null, 2)))}
   );
 
   output_['_'] = {
+    ...__defaultOutput_,
     details: JSON.stringify({ request: __grpcReq, response: __grpcRes }, null, 2),
     status: __grpcRes.status || 0,
-    duration: __grpcRes.duration || 0
+    duration: __grpcRes.duration || 0,
+    reportOutputKeys: ${JSON.stringify(reportOutputKeys)}
   };
 
   return output_;

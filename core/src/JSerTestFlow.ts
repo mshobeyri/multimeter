@@ -3,6 +3,7 @@ import {apiToJSfunc} from './JSerAPI';
 import {indentLines, timeUnitToMs, toInputsParams} from './JSerHelper';
 import {Comparison, ComparisonObject, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, ScalarExpectValue, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, normalizeReportConfig, opsList, ReportConfig, ReportLevel, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
 import {getTestFlowStepType} from './testParsePack';
+import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
 import {replaceEnvTokensPlain, toTemplateWithEnvVars} from './variableReplacer';
 
 function randomName(): string {
@@ -12,6 +13,7 @@ function randomName(): string {
 
 const replaceEnvTokens = replaceEnvTokensPlain;
 const toTemplateWithVars = toTemplateWithEnvVars;
+const DEFAULT_OUTPUT_KEY_SET = new Set(DEFAULT_OUTPUT_KEYS);
 
 /** Strip empty-string markers: '' and "" both mean empty string in comparison expressions. */
 const unquoteEmpty = (s: string): string => {
@@ -384,18 +386,16 @@ const transformExpectEntry = (
 };
 
 const collectHttpOutputPaths = (step: TestFlowHttp): Record<string, string> => {
-  const outputs: Record<string, string> = {
-    body: 'body',
-    headers: 'headers',
-    cookies: 'cookies',
-    status: 'status',
-    duration: 'duration',
-  };
+  const outputs: Record<string, string> = {};
   const addMapKeys = (map: ExpectMap | true | undefined) => {
     if (!map || map === true) {
       return;
     }
     for (const key of Object.keys(map)) {
+      const root = key.split('.', 1)[0];
+      if (DEFAULT_OUTPUT_KEY_SET.has(root) || root === '_') {
+        continue;
+      }
       outputs[key] = key;
     }
   };
@@ -423,7 +423,7 @@ const httpStepToApiData = (step: TestFlowHttp): APIData => ({
 const appendExpectAndDebugChecks = (
     result: string, step: {expect?: ExpectMap; debug?: ExpectMap | true; report?: ReportLevel | ReportConfig; title?: string; id?: string},
   resultVar: string | undefined, title: string, useExternalReport: boolean,
-  actualForField: (resultVar: string, field: string) => string = (rv, field) => `${rv}.${field}`): string => {
+  actualForField: (resultVar: string, field: string) => string = outputAccessExpression): string => {
   if (!resultVar) {
     return result;
   }
@@ -491,6 +491,22 @@ const appendExpectAndDebugChecks = (
   return result;
 };
 
+function outputAccessExpression(resultVar: string, field: string): string {
+  const normalized = String(field || '');
+  if (!normalized) {
+    return resultVar;
+  }
+  const dotIndex = normalized.indexOf('.');
+  const root = dotIndex >= 0 ? normalized.slice(0, dotIndex) : normalized;
+  const accessor = dotIndex >= 0 ? normalized.slice(dotIndex) : '';
+  if (DEFAULT_OUTPUT_KEY_SET.has(root)) {
+    const rootLiteral = JSON.stringify(root);
+    const base = `(Object.prototype.hasOwnProperty.call(${resultVar}, ${rootLiteral}) ? ${resultVar}[${rootLiteral}] : (${resultVar}._ ? ${resultVar}._[${rootLiteral}] : undefined))`;
+    return accessor ? `__mmt_access(${base}, ${JSON.stringify(accessor)})` : base;
+  }
+  return `${resultVar}.${normalized}`;
+}
+
 const callToJSfunc = async (step: TestFlowCall, useExternalReport: boolean, stepIdx: number, importTitleMap?: Record<string, string>): Promise<string> => {
   // Guard against incomplete/partial YAML (e.g. `- call:` while the user is typing)
   // where `step.call` is null/undefined. Emit nothing so code generation doesn't crash.
@@ -527,7 +543,13 @@ const httpToJSfunc = async (step: TestFlowHttp, useExternalReport: boolean, step
   const hasDebug = !!step.debug;
   const resultVar = step.id || ((hasExpect || hasDebug) ? `_http_${stepIdx}` : undefined);
   const httpFunctionName = `__http_${stepIdx}`;
-  const httpFunction = await apiToJSfunc({api: httpStepToApiData(step), name: httpFunctionName, inputs: {}, envVars: {}}) + '\n';
+  const httpFunction = await apiToJSfunc({
+    api: httpStepToApiData(step),
+    name: httpFunctionName,
+    inputs: {},
+    envVars: {},
+    reportOutputKeys: Object.keys(step.outputs || {}),
+  }) + '\n';
   let callExpr = `await ${httpFunctionName}({});`;
   if (resultVar) {
     callExpr = `const ${resultVar} = ` + callExpr;
@@ -543,12 +565,14 @@ try {
   if (typeof ${resultVar}.body === 'string') {
     ${resultVar}.body = JSON.parse(${resultVar}.body);
   }
+  if (${resultVar}._ && typeof ${resultVar}._.body === 'string') {
+    ${resultVar}._.body = JSON.parse(${resultVar}._.body);
+  }
 } catch {}`;
   }
   const title = step.title || step.id || `${step.method || 'get'} ${step.http}`;
   result = appendExpectAndDebugChecks(
-      result, step, resultVar, title, useExternalReport,
-      (rv, field) => `${rv}[${JSON.stringify(field)}]`);
+      result, step, resultVar, title, useExternalReport);
   return result;
 };
 

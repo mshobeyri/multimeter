@@ -4,6 +4,7 @@ import {ImportTracker} from './importTracker';
 import {indentLines, toInputsParams, toLowerUnderscore} from './JSerHelper';
 import {importsToJsfunc} from './JSerImports';
 import {flowToJsFunc} from './JSerTestFlow';
+import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
 import {TestData} from './TestData';
 import {
   collectInputRefsFromObject,
@@ -23,6 +24,26 @@ export interface TestContext {
        * Set when running from a suite or imported into another test.
        */
       isExternal?: boolean
+}
+
+const SCALAR_DEFAULT_OUTPUT_KEYS = new Set(['status', 'duration']);
+
+function isAllowedOutputKeyReference(outputKey: string, allowedOutputs: Set<string>): boolean {
+  if (allowedOutputs.has(outputKey)) {
+    return true;
+  }
+  if (outputKey.startsWith('_.')) {
+    const hiddenKey = outputKey.slice(2);
+    const dotIdx = hiddenKey.indexOf('.');
+    const rootKey = dotIdx >= 0 ? hiddenKey.slice(0, dotIdx) : hiddenKey;
+    const hasAccessor = dotIdx >= 0;
+    return DEFAULT_OUTPUT_KEYS.includes(rootKey) && (!hasAccessor || !SCALAR_DEFAULT_OUTPUT_KEYS.has(rootKey));
+  }
+  const dotIdx = outputKey.indexOf('.');
+  if (dotIdx > 0 && allowedOutputs.has(outputKey.slice(0, dotIdx))) {
+    return true;
+  }
+  return false;
 }
 
 
@@ -168,14 +189,7 @@ export const testToJsfunc = async(
           if (!allowedOutputs || !map || typeof map !== 'object' || Array.isArray(map)) {
             return;
           }
-          const unknownOutputs = Object.keys(map).filter(k => {
-            // Direct match
-            if (allowedOutputs.has(k)) { return false; }
-            // Dot-notation: root segment must be a valid output key (e.g. body.message → body)
-            const dotIdx = k.indexOf('.');
-            if (dotIdx > 0 && allowedOutputs.has(k.slice(0, dotIdx))) { return false; }
-            return true;
-          });
+          const unknownOutputs = Object.keys(map).filter(k => !isAllowedOutputKeyReference(k, allowedOutputs));
           if (unknownOutputs.length > 0) {
             throw new Error(
               `${context}[${i}]: call "${step.call}" has undefined output(s) in ${label}: ${unknownOutputs.map(k => `"${k}"`).join(', ')}`

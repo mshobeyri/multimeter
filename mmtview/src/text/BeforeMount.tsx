@@ -1,6 +1,16 @@
 import { validateYamlContent } from './Validate';
 import { KeySuggestionsByParent } from './AutoComplete';
 import { readFile } from '../vsAPI';
+import { outputExtractor } from 'mmt-core';
+
+const DEFAULT_EXTRACTION_RULES: Record<string, string> =
+    outputExtractor.DEFAULT_EXTRACTION_RULES || {
+        body: 'body',
+        headers: 'headers',
+        cookies: 'cookies',
+        status: 'status',
+        duration: 'duration',
+    };
 
 async function listFiles(folder: string, recursive = true): Promise<string[]> {
     return new Promise((resolve) => {
@@ -259,6 +269,13 @@ export const handleBeforeMount = (monaco: any) => {
                                 target[m[1]] = m[2].trim().replace(/^["']|["']$/g, '');
                             }
                         }
+                    }
+                }
+            }
+            if (fileType === 'api') {
+                for (const [key, rule] of Object.entries(DEFAULT_EXTRACTION_RULES)) {
+                    if (!Object.prototype.hasOwnProperty.call(outputs, key)) {
+                        outputs[key] = rule;
                     }
                 }
             }

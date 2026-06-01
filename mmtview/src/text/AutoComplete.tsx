@@ -747,7 +747,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "outputs:\n\t",
             detail: 'Output extraction [object of key: expression]',
-            documentation: 'Define how to extract values from API responses. Keys are exported names, values are extraction expressions.\nValid keywords: body, header, status, details, duration\nExample:\noutputs:\n\tmessage: body[data][message]\n\tstatus_code: status\n\tresponse_time: duration',
+            documentation: 'Define how to extract values from API responses. Keys are exported names, values are extraction expressions.\nValid keywords: body, headers, cookies, status, duration, details\nExample:\noutputs:\n\tmessage: body[data][message]\n\tstatus_code: status\n\tresponse_time: duration',
         },
         {
             label: "setenv",
@@ -1085,12 +1085,52 @@ export const KeySuggestionsByParent = (monaco: any) => {
             sortText: '0body',
         },
         {
+            label: "body.*",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " body.",
+            detail: 'Response body path',
+            documentation: 'Access a field from the response body.\nExample:\n  user_id: body.user.id',
+            sortText: '0bodypath',
+        },
+        {
+            label: "headers",
+            kind: monaco.languages.CompletionItemKind.Keyword,
+            insertText: " headers",
+            detail: 'Response headers (full or specific)',
+            documentation: 'Extract values from response headers.\nPlain: headers (returns all headers)\nPath: headers[Content-Type], headers.Content-Type\nExample:\n  content_type: headers[Content-Type]\n  all_headers: headers',
+            sortText: '1header',
+        },
+        {
+            label: "headers.*",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " headers.",
+            detail: 'Response header path',
+            documentation: 'Access a response header by name.\nExample:\n  content_type: headers.Content-Type',
+            sortText: '1headerspath',
+        },
+        {
+            label: "cookies",
+            kind: monaco.languages.CompletionItemKind.Keyword,
+            insertText: " cookies",
+            detail: 'Response cookies',
+            documentation: 'Returns response cookies.\nExample:\n  session: cookies.sessionId',
+            sortText: '1cookies',
+        },
+        {
+            label: "cookies.*",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " cookies.",
+            detail: 'Response cookie path',
+            documentation: 'Access a response cookie by name.\nExample:\n  session: cookies.sessionId',
+            sortText: '1cookiespath',
+        },
+        {
             label: "header",
             kind: monaco.languages.CompletionItemKind.Keyword,
             insertText: " header",
-            detail: 'Response headers (full or specific)',
-            documentation: 'Extract values from response headers.\nPlain: header (returns all headers)\nPath: header[Content-Type], header.Content-Type\nExample:\n  content_type: header[Content-Type]\n  all_headers: header',
-            sortText: '1header',
+            detail: 'Legacy response header alias',
+            documentation: 'Legacy alias for response headers in extraction expressions. Prefer headers for default exported outputs.',
+            sortText: '1legacyheader',
         },
         {
             label: "status",
@@ -1123,20 +1163,6 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'regex expression to extract data from response body [regex]',
             documentation: 'Extracts data from the response body using a regular expression. The regex should match the desired content and can include capture groups to extract specific values.\nExample: regex <data>(.*)</data>',
         },
-        {
-            label: "body.",
-            kind: monaco.languages.CompletionItemKind.EnumMember,
-            insertText: " body.",
-            detail: 'Extract data from response body [JSONPath]',
-            documentation: 'Extracts data from the response body using JSONPath expressions. This allows you to navigate the JSON structure and extract specific fields.\nExample: body.data[0].user.id. This also works for XML contents.',
-        },
-        {
-            label: "headers.",
-            kind: monaco.languages.CompletionItemKind.EnumMember,
-            insertText: " headers.",
-            detail: 'Extract data from response headers [JSONPath]',
-            documentation: 'Extracts data from the response headers using header name.',
-        }
     ];
 
     const checkAssertObjectKeySuggestions = [
