@@ -2,6 +2,7 @@ import {APIData, AuthConfig} from './APIData';
 import {JSONRecord} from './CommonData';
 import {indentLines, toInputsParams} from './JSerHelper';
 import {formatBody} from './markupConvertor';
+import {mergeWithDefaultExtractionRules} from './outputExtractor';
 import {replaceAllRefs, toTemplateWithEnvVars} from './variableReplacer';
 
 export interface APIContext {
@@ -14,7 +15,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   const paramsAsObj: Record<string, string> = Object.fromEntries(
       Object.keys(ctx.api.inputs ?? {}).map(key => [key, `\${${key}}`]));
 
-  const extractRules = ctx.api.outputs || ctx.api.outputs || {};
+  const extractRules = mergeWithDefaultExtractionRules(ctx.api.outputs);
 
   let replaced =
       replaceAllRefs(ctx.api, paramsAsObj, ctx.inputs, ctx.envVars ?? {});
