@@ -18,12 +18,12 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
   const fileCtx = React.useContext(FileContext);
   const safeCerts: EnvCertificates = certificates || {};
   const clients = safeList(safeCerts.clients || []);
-  const ca: EnvCaCertificate = safeCerts.ca || { paths: [] };
+  const ca: EnvCaCertificate = safeCerts.server_ca || { paths: [] };
 
   const handleCaPathsChange = (paths: string[]) => {
     onChange({
       ...safeCerts,
-      ca: { paths },
+      server_ca: { paths },
     });
   };
 
@@ -40,8 +40,6 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
     const newClient: EnvClientCertificate = {
       name: "",
       host: "*",
-      cert_path: "",
-      key_path: "",
     };
     onChange({ ...safeCerts, clients: [...clients, newClient] });
   };
@@ -49,13 +47,13 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
   return (
     <div>
       <div className="inner-box">
-        <div className="label">CA Certificate Paths</div>
+        <div className="label">Server CA Certificate Paths</div>
         <div style={{ padding: "5px" }}>
           <LEditor
             label=""
             value={safeList(ca.paths || [])}
             onChange={(paths) => handleCaPathsChange(paths)}
-            placeholder="CA cert path"
+            placeholder="Server CA cert path"
             filePicker
             filePickerFilters={[{ name: "Certificate files", extensions: ["pem", "crt", "cer", "p12", "pfx"] }]}
           />
@@ -90,26 +88,38 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
             </div>
 
             <div style={{ marginTop: "8px" }}>
-              <div className="label" style={{ fontSize: "12px" }}>Certificate Path</div>
+              <div className="label" style={{ fontSize: "12px" }}>CRT File</div>
               <FilePickerInput
-                value={client.cert_path}
-                onChange={(v) => handleClientChange(idx, { cert_path: v })}
-                onEnterPressed={(v) => handleClientChange(idx, { cert_path: v })}
+                value={client.cert || ""}
+                onChange={(v) => handleClientChange(idx, { cert: v || undefined })}
+                onEnterPressed={(v) => handleClientChange(idx, { cert: v || undefined })}
                 basePath={fileCtx?.mmtFilePath}
                 showFilePicker
-                filters={[{ name: 'Certificate files', extensions: ['pem', 'crt', 'cer', 'p12', 'pfx'] }]}
+                filters={[{ name: 'Certificate files', extensions: ['pem', 'crt', 'cer'] }]}
               />
             </div>
 
             <div style={{ marginTop: "8px" }}>
-              <div className="label" style={{ fontSize: "12px" }}>Key Path</div>
+              <div className="label" style={{ fontSize: "12px" }}>KEY File</div>
               <FilePickerInput
-                value={client.key_path}
-                onChange={(v) => handleClientChange(idx, { key_path: v })}
-                onEnterPressed={(v) => handleClientChange(idx, { key_path: v })}
+                value={client.key || ""}
+                onChange={(v) => handleClientChange(idx, { key: v || undefined })}
+                onEnterPressed={(v) => handleClientChange(idx, { key: v || undefined })}
                 basePath={fileCtx?.mmtFilePath}
                 showFilePicker
                 filters={[{ name: 'Key files', extensions: ['key', 'pem'] }]}
+              />
+            </div>
+
+            <div style={{ marginTop: "8px" }}>
+              <div className="label" style={{ fontSize: "12px" }}>PFX File</div>
+              <FilePickerInput
+                value={client.pfx || ""}
+                onChange={(v) => handleClientChange(idx, { pfx: v || undefined })}
+                onEnterPressed={(v) => handleClientChange(idx, { pfx: v || undefined })}
+                basePath={fileCtx?.mmtFilePath}
+                showFilePicker
+                filters={[{ name: 'PFX/P12 files', extensions: ['pfx', 'p12'] }]}
               />
             </div>
 

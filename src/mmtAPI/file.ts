@@ -1,4 +1,4 @@
-import {markupConvertor} from 'mmt-core';
+import {markupConvertor, outputExtractor} from 'mmt-core';
 const {parseYaml} = markupConvertor;
 import {findProjectRootSync} from 'mmt-core/fileHelper';
 import {brunoToTest, isBrunoFilePath} from 'mmt-core/brunoParsePack';
@@ -13,6 +13,9 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 
 import {resolveWorkspaceEnvFilePath} from './network';
+
+const DEFAULT_OUTPUT_KEYS = Array.isArray(outputExtractor.DEFAULT_OUTPUT_KEYS) ?
+  outputExtractor.DEFAULT_OUTPUT_KEYS : ['body', 'headers', 'cookies', 'status', 'duration'];
 
 async function showExportedNotification(message: string, uri: vscode.Uri): Promise<void> {
   const ext = path.extname(uri.fsPath).toLowerCase();
@@ -172,9 +175,6 @@ export async function readRelativeFileContent(
 export async function handleLoadDocumentContent(
     webviewPanel: vscode.WebviewPanel, document: vscode.TextDocument,
     mmtProvider: any) {
-  // Get the last saved view mode
-  const lastViewMode = mmtProvider.getLastViewMode();
-
   // Resolve project root for +/ imports (same logic used by run)
   const projectRoot = findProjectRoot(document.uri.fsPath);
   const lowerPath = document.uri.fsPath.toLowerCase();
@@ -186,9 +186,6 @@ export async function handleLoadDocumentContent(
     command: 'viewDocumentContent',
     uri: document.uri.toString(),
     content: document.getText(),
-    mode: vscode.window.tabGroups.activeTabGroup.activeTab?.input ? 'normal' :
-                                                                    'compare',
-    viewMode: lastViewMode,
     projectRoot,
     sourceFormat
   });
@@ -311,9 +308,12 @@ export async function handleValidateImports(
           apiInputsByAlias[alias] = [];
         }
         const outputsObj = js && js.outputs;
-        if (outputsObj && typeof outputsObj === 'object' &&
-            !Array.isArray(outputsObj)) {
-          apiOutputsByAlias[alias] = Object.keys(outputsObj);
+        const userOutputKeys = outputsObj && typeof outputsObj === 'object' &&
+            !Array.isArray(outputsObj) ? Object.keys(outputsObj) : [];
+        if (js?.type === 'api') {
+          apiOutputsByAlias[alias] = [...new Set([...DEFAULT_OUTPUT_KEYS, ...userOutputKeys])];
+        } else if (userOutputKeys.length > 0) {
+          apiOutputsByAlias[alias] = userOutputKeys;
         } else {
           apiOutputsByAlias[alias] = [];
         }
@@ -641,6 +641,7 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
         actual: e.actual,
         expected: e.expected,
         similarity: typeof e.similarity === 'number' ? e.similarity : undefined,
+        count: typeof e.count === 'number' ? e.count : undefined,
         status: e.status === 'failed' ? 'failed' as const : 'passed' as const,
       })) : [],
       timestamp: r.timestamp || 0,
@@ -694,6 +695,7 @@ function webviewDataToCollectedResults(data: any): CollectedResults {
               actual: e.actual,
               expected: e.expected,
               similarity: typeof e.similarity === 'number' ? e.similarity : undefined,
+              count: typeof e.count === 'number' ? e.count : undefined,
               status: e.status === 'failed' ? 'failed' as const : 'passed' as const,
             })) : [],
             timestamp: r.timestamp || 0,

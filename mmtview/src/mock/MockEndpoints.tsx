@@ -2,7 +2,6 @@ import React from "react";
 import { MockData, MockEndpoint } from "mmt-core/MockData";
 import { parseYamlDoc } from "mmt-core/markupConvertor";
 import MockEndpointBox, { METHOD_COLORS } from "./MockEndpointBox";
-import TextEditor from "../text/TextEditor";
 import { ControlledTreeEnvironment, Tree, DraggingPosition, DraggingPositionBetweenItems } from 'react-complex-tree';
 import { canonicalizeMockYaml } from "./mockYaml";
 
@@ -89,19 +88,15 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
   const [shortTree, setShortTree] = React.useState(() => endpointsToTree(endpoints));
 
   /* ─── Fallback helpers ─── */
-  const updateFallbackField = React.useCallback((key: string, value: any) => {
+  const updateFallback = React.useCallback((fallbackEndpoint: MockEndpoint) => {
     try {
       const doc = parseYamlDoc(content);
-      let fb = doc.get('fallback') as any;
-      if (!fb || typeof fb !== 'object') {
-        doc.set('fallback', {});
-        fb = doc.get('fallback');
-      }
-      if (value === '' || value === undefined || value === null) {
-        if (fb.delete) { fb.delete(key); }
-      } else {
-        fb.set(key, value);
-      }
+      const fallback: Record<string, any> = {};
+      fallback.status = fallbackEndpoint.status ?? 404;
+      if (fallbackEndpoint.format) { fallback.format = fallbackEndpoint.format; }
+      if (fallbackEndpoint.headers && Object.keys(fallbackEndpoint.headers).length > 0) { fallback.headers = fallbackEndpoint.headers; }
+      if (fallbackEndpoint.body !== undefined && fallbackEndpoint.body !== null && fallbackEndpoint.body !== '') { fallback.body = fallbackEndpoint.body; }
+      doc.set('fallback', doc.createNode(fallback));
       setContent(canonicalizeMockYaml(doc.toString()));
     } catch { /* ignore */ }
   }, [content, setContent]);
@@ -110,6 +105,7 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
   const internalChangeRef = React.useRef(false);
   const [expandedItems, setExpandedItems] = React.useState<string[]>([]);
   const [openEditors, setOpenEditors] = React.useState<Record<string, boolean>>({});
+  const [fallbackOpen, setFallbackOpen] = React.useState(false);
   const [addMenuOpen, setAddMenuOpen] = React.useState(false);
   const addBtnRef = React.useRef<HTMLButtonElement | null>(null);
 
@@ -309,7 +305,7 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
           title="Add endpoint"
         >
           <span className="codicon codicon-add" aria-hidden />
-          Add
+          Add endpoint
         </button>
         {addMenuOpen && (
           <div
@@ -453,48 +449,30 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
         <Tree treeId="mock-tree" rootItem="root" treeLabel="Mock Endpoints" />
       </ControlledTreeEnvironment>
 
-      {/* Fallback */}
-      <div className="label">Fallback</div>
-      <div style={{ padding: '5px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 12, color: 'var(--vscode-descriptionForeground)', width: 64, flexShrink: 0 }}>Status</span>
-            <input
-              type="number"
-              value={mockData.fallback?.status ?? 404}
-              onChange={e => updateFallbackField('status', parseInt(e.target.value, 10) || 404)}
-              min={100} max={599}
-              style={{ flex: 1, width: '100%' }}
+      <div className={`tree-view-box mock-fallback-editor${fallbackOpen ? ' active' : ''}`} style={{ alignItems: 'flex-start', marginTop: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', height: 32, flexShrink: 0 }}>
+          <span style={{ display: 'inline-flex', alignSelf: 'center', width: 16, justifyContent: 'center' }} aria-hidden>
+            <span className="codicon codicon-circle-slash" style={{ fontSize: 14, opacity: 0.8, color: 'var(--vscode-descriptionForeground)' }} />
+          </span>
+        </div>
+        <NoTreeInterference>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <MockEndpointBox
+              endpoint={{
+                path: '/?',
+                status: mockData.fallback?.status ?? 404,
+                format: mockData.fallback?.format,
+                headers: mockData.fallback?.headers,
+                body: mockData.fallback?.body,
+              }}
+              onChange={updateFallback}
+              showExpand={true}
+              expanded={fallbackOpen}
+              onToggleExpand={() => setFallbackOpen(value => !value)}
+              variant="fallback"
             />
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 12, color: 'var(--vscode-descriptionForeground)', width: 64, flexShrink: 0 }}>Format</span>
-            <select
-              value={mockData.fallback?.format || ''}
-              onChange={e => updateFallbackField('format', e.target.value || undefined)}
-              style={{ flex: 1, padding: '4px 6px' }}
-            >
-              <option value="">auto</option>
-              <option value="json">json</option>
-              <option value="xml">xml — self-closing</option>
-              <option value="xmle">xmle — expanded</option>
-              <option value="text">text</option>
-            </select>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-            <span style={{ fontSize: 12, color: 'var(--vscode-descriptionForeground)', width: 64, flexShrink: 0, paddingTop: 4 }}>Body</span>
-            <div style={{ flex: 1, minWidth: 0, height: 120, border: '1px solid var(--vscode-editorWidget-border, #333)', borderRadius: 4, overflow: 'hidden' }}>
-              <TextEditor
-                content={typeof mockData.fallback?.body === 'string' ? mockData.fallback.body : (mockData.fallback?.body != null ? JSON.stringify(mockData.fallback.body, null, 2) : '')}
-                setContent={raw => {
-                  if (!raw) { updateFallbackField('body', undefined); return; }
-                  try { updateFallbackField('body', JSON.parse(raw)); } catch { updateFallbackField('body', raw); }
-                }}
-                language={((mockData.fallback?.format || '').includes('xml') ? 'xml' : mockData.fallback?.format === 'text' ? 'plaintext' : 'json')}
-                showNumbers={false}
-                fontSize={12}
-              />
-            </div>
-          </div>
+        </NoTreeInterference>
       </div>
     </div>
   );

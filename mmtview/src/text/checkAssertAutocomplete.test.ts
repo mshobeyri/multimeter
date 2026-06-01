@@ -1,42 +1,67 @@
-import {describe, expect, it} from '@jest/globals';
+import { describe, expect, it, jest } from "@jest/globals";
 
-function keySuggestionLabelsFor(parent: 'check'|'assert'|'operator'): string[] {
-  if (parent === 'check' || parent === 'assert') {
-    return ['actual', 'expected', 'operator', 'title', 'details', 'report'];
+function keySuggestionLabelsFor(
+  parent: "check" | "assert" | "operator",
+): string[] {
+  if (parent === "check" || parent === "assert") {
+    return ["actual", "expected", "operator", "title", "details", "report"];
   }
-  return ['==', '!=', '>', '>=', '<', '<=', '=@', '!@', '=C', '!C', '=*', '!*', '=#', '!#', '=%', '!%', '=^', '!^', '=$', '!$'];
+  return [
+    "==",
+    "!=",
+    ">",
+    ">=",
+    "<",
+    "<=",
+    "=@",
+    "!@",
+    "=C",
+    "!C",
+    "=*",
+    "!*",
+    "=#",
+    "!#",
+    "=%",
+    "!%",
+    "=^",
+    "!^",
+    "=$",
+    "!$",
+  ];
 }
 
-describe('check/assert object-form autocomplete', () => {
-  it('offers actual/expected/operator/title/details/report under check/assert', () => {
-    expect(new Set(keySuggestionLabelsFor('check')).has('actual')).toBe(true);
-    expect(new Set(keySuggestionLabelsFor('check')).has('expected')).toBe(true);
-    expect(new Set(keySuggestionLabelsFor('assert')).has('operator')).toBe(true);
-    expect(new Set(keySuggestionLabelsFor('assert')).has('title')).toBe(true);
-    expect(new Set(keySuggestionLabelsFor('assert')).has('details')).toBe(true);
-    expect(new Set(keySuggestionLabelsFor('assert')).has('report')).toBe(true);
+describe("check/assert object-form autocomplete", () => {
+  it("offers actual/expected/operator/title/details/report under check/assert", () => {
+    expect(new Set(keySuggestionLabelsFor("check")).has("actual")).toBe(true);
+    expect(new Set(keySuggestionLabelsFor("check")).has("expected")).toBe(true);
+    expect(new Set(keySuggestionLabelsFor("assert")).has("operator")).toBe(
+      true,
+    );
+    expect(new Set(keySuggestionLabelsFor("assert")).has("title")).toBe(true);
+    expect(new Set(keySuggestionLabelsFor("assert")).has("details")).toBe(true);
+    expect(new Set(keySuggestionLabelsFor("assert")).has("report")).toBe(true);
   });
 
-  it('offers known operators', () => {
-    const labels = new Set(keySuggestionLabelsFor('operator'));
-    expect(labels.has('==')).toBe(true);
-    expect(labels.has('=*')).toBe(true);
-    expect(labels.has('=#')).toBe(true);
-    expect(labels.has('=%')).toBe(true);
-    expect(labels.has('=@')).toBe(true);
+  it("offers known operators", () => {
+    const labels = new Set(keySuggestionLabelsFor("operator"));
+    expect(labels.has("==")).toBe(true);
+    expect(labels.has("=*")).toBe(true);
+    expect(labels.has("=#")).toBe(true);
+    expect(labels.has("=%")).toBe(true);
+    expect(labels.has("=@")).toBe(true);
   });
 
-  it('detects - check: as the container for nested keys', () => {
+  it("detects - check: as the container for nested keys", () => {
     const lines = [
-      'type: test',
-      'steps:',
-      '  - call: xsd',
-      '  - check:',
-      '      ',
+      "type: test",
+      "steps:",
+      "  - call: xsd",
+      "  - check:",
+      "      ",
     ];
     // This mimics the scan added in BeforeMount: walk up to find "- check:".
     const currentIndent = 6; // indentation on the blank nested line
-    let found: string|null = null;
+    let found: string | null = null;
     for (let i = lines.length - 2; i >= 0; i--) {
       const l = lines[i];
       if (!l.trim()) {
@@ -52,40 +77,53 @@ describe('check/assert object-form autocomplete', () => {
       }
       break;
     }
-    expect(found).toBe('check');
+    expect(found).toBe("check");
   });
 });
+
 /**
  * Replicate getCallAliasForCheckContext from BeforeMount.tsx for testing.
  * Detects if cursor is inside check:/assert:/expect: block of a call step.
  */
 function getCallAliasForCheckContext(
-    lines: string[], lineNumber: number, currentIndent: number
+  lines: string[],
+  lineNumber: number,
+  currentIndent: number,
 ): { alias: string; field: string } | null {
   let foundField = false;
   let fieldIndent = -1;
-  let field = '';
+  let field = "";
   for (let i = lineNumber - 2; i >= 0; i--) {
     const line = lines[i];
-    if (!line.trim()) { continue; }
+    if (!line.trim()) {
+      continue;
+    }
     const indent = line.search(/\S|$/);
     const trimmed = line.trim();
 
     if (!foundField) {
-      if (indent < currentIndent && /^(check|assert|expect):\s*$/.test(trimmed)) {
+      if (
+        indent < currentIndent &&
+        /^(check|assert|expect):\s*$/.test(trimmed)
+      ) {
         foundField = true;
         fieldIndent = indent;
-        field = trimmed.replace(/:.*/, '');
+        field = trimmed.replace(/:.*/, "");
         continue;
       }
-      if (indent < currentIndent) { return null; }
+      if (indent < currentIndent) {
+        return null;
+      }
       continue;
     }
 
     if (indent < fieldIndent) {
       const callMatch = trimmed.match(/^-\s*call:\s*(.+)$/);
       if (callMatch) {
-        return { alias: callMatch[1].trim().replace(/^["']|["']$/g, ''), field };
+        return {
+          alias: callMatch[1].trim().replace(/^["']|["']$/g, ""),
+          field,
+        };
       }
       return null;
     }
@@ -93,106 +131,140 @@ function getCallAliasForCheckContext(
   return null;
 }
 
-describe('inline call check/assert autocomplete context', () => {
-  it('detects check: under a call step', () => {
+describe("inline call check/assert autocomplete context", () => {
+  it("detects check: under a call step", () => {
     const lines = [
-      'type: test',
-      'steps:',
-      '  - call: login',
-      '    check:',
-      '      - ',
+      "type: test",
+      "steps:",
+      "  - call: login",
+      "    check:",
+      "      - ",
     ];
     // lineNumber is 1-based; line 5 is the cursor line
     const result = getCallAliasForCheckContext(lines, 5, 8);
-    expect(result).toEqual({ alias: 'login', field: 'check' });
+    expect(result).toEqual({ alias: "login", field: "check" });
   });
 
-  it('detects assert: under a call step', () => {
+  it("detects assert: under a call step", () => {
     const lines = [
-      'type: test',
-      'steps:',
-      '  - call: getUser',
-      '    inputs:',
-      '      id: 123',
-      '    assert:',
-      '      - ',
+      "type: test",
+      "steps:",
+      "  - call: getUser",
+      "    inputs:",
+      "      id: 123",
+      "    assert:",
+      "      - ",
     ];
     const result = getCallAliasForCheckContext(lines, 7, 8);
-    expect(result).toEqual({ alias: 'getUser', field: 'assert' });
+    expect(result).toEqual({ alias: "getUser", field: "assert" });
   });
 
-  it('returns null when check: is under a standalone check step', () => {
-    const lines = [
-      'type: test',
-      'steps:',
-      '  - check:',
-      '      ',
-    ];
+  it("returns null when check: is under a standalone check step", () => {
+    const lines = ["type: test", "steps:", "  - check:", "      "];
     // check: at indent 4 → looking for call above it, no call found
     const result = getCallAliasForCheckContext(lines, 4, 6);
     expect(result).toBeNull();
   });
 
-  it('returns null when not under a call step', () => {
+  it("returns null when not under a call step", () => {
     const lines = [
-      'type: test',
-      'steps:',
-      '  - print: hello',
-      '    check:',
-      '      - ',
+      "type: test",
+      "steps:",
+      "  - print: hello",
+      "    check:",
+      "      - ",
     ];
     // print step doesn't have call:
     const result = getCallAliasForCheckContext(lines, 5, 8);
     expect(result).toBeNull();
   });
 
-  it('handles call alias with quotes', () => {
+  it("handles call alias with quotes", () => {
     const lines = [
-      'type: test',
-      'steps:',
+      "type: test",
+      "steps:",
       '  - call: "my_api"',
-      '    check:',
-      '      - ',
+      "    check:",
+      "      - ",
     ];
     const result = getCallAliasForCheckContext(lines, 5, 8);
-    expect(result).toEqual({ alias: 'my_api', field: 'check' });
+    expect(result).toEqual({ alias: "my_api", field: "check" });
   });
 
-  it('detects expect: under a call step', () => {
+  it("detects expect: under a call step", () => {
     const lines = [
-      'type: test',
-      'steps:',
-      '  - call: login',
-      '    expect:',
-      '      ',
+      "type: test",
+      "steps:",
+      "  - call: login",
+      "    expect:",
+      "      ",
     ];
     const result = getCallAliasForCheckContext(lines, 5, 6);
-    expect(result).toEqual({ alias: 'login', field: 'expect' });
+    expect(result).toEqual({ alias: "login", field: "expect" });
   });
 
-  it('detects expect: with inputs above', () => {
+  it("detects expect: with inputs above", () => {
     const lines = [
-      'type: test',
-      'steps:',
-      '  - call: getUser',
-      '    inputs:',
-      '      id: 123',
-      '    expect:',
-      '      ',
+      "type: test",
+      "steps:",
+      "  - call: getUser",
+      "    inputs:",
+      "      id: 123",
+      "    expect:",
+      "      ",
     ];
     const result = getCallAliasForCheckContext(lines, 7, 6);
-    expect(result).toEqual({ alias: 'getUser', field: 'expect' });
+    expect(result).toEqual({ alias: "getUser", field: "expect" });
   });
 
-  it('returns null for expect: under a non-call step', () => {
+  it("returns null for expect: under a non-call step", () => {
     const lines = [
-      'type: test',
-      'steps:',
-      '  - print: hello',
-      '    expect:',
-      '      ',
+      "type: test",
+      "steps:",
+      "  - print: hello",
+      "    expect:",
+      "      ",
     ];
     const result = getCallAliasForCheckContext(lines, 5, 6);
     expect(result).toBeNull();
+  });
+});
+
+describe("API output expression autocomplete", () => {
+  it("offers default response output expressions", () => {
+    jest.resetModules();
+    jest.doMock("../workspaceStorage", () => ({
+      loadEnvVariables: jest.fn(),
+    }));
+    (global as any).window = {
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      vscode: { postMessage: jest.fn() },
+    };
+    const { KeySuggestionsByParent } = require("./AutoComplete");
+    const monaco = {
+      languages: {
+        CompletionItemKind: {
+          Keyword: 1,
+          Function: 2,
+          EnumMember: 3,
+          Property: 4,
+          Variable: 5,
+        },
+      },
+    };
+
+    const labels = new Set(
+      KeySuggestionsByParent(monaco).outputs.map((item: any) => item.label),
+    );
+
+    expect(labels.has("status")).toBe(true);
+    expect(labels.has("body")).toBe(true);
+    expect(labels.has("body.*")).toBe(true);
+    expect(labels.has("headers")).toBe(true);
+    expect(labels.has("headers.*")).toBe(true);
+    expect(labels.has("cookies")).toBe(true);
+    expect(labels.has("cookies.*")).toBe(true);
+    expect(labels.has("duration")).toBe(true);
   });
 });

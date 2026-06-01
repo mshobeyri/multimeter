@@ -681,9 +681,11 @@ export function extractOutputs(
       }
       // Plain keyword resolution
       else if (expr === 'body') {
-        extractedValue = response.body;
+        extractedValue = bodyObject;
       } else if (expr === 'header' || expr === 'headers') {
         extractedValue = response.headers;
+      } else if (expr === 'cookies') {
+        extractedValue = response.cookies;
       } else if (expr === 'message') {
         extractedValue = response.message ?? response.body;
       } else if (expr === 'metadata') {
@@ -707,12 +709,13 @@ export function extractOutputs(
       extractedValue = null;
     }
 
-    // Preserve type for bracket notation, JSONPath, and dot notation extractions
+    // Preserve type for bracket notation, JSONPath, dot notation, and plain keyword extractions
     // (but not when the expression is a regex extraction via section[/pattern/] or section./pattern/)
     const isRegexExpr = !!parseRegexExtraction(expr) || expr.startsWith('regex ') ||
         (expr.includes('(') && expr.includes(')') && !expr.includes('['));
+    const isPlainKeyword = /^(body|headers?|cookies?|status|duration|details|message|metadata)$/.test(expr);
     if (!isRegexExpr &&
-        (expr.startsWith('$') || (expr.includes('[') && expr.includes(']')) || expr.includes('.')) &&
+        (isPlainKeyword || expr.startsWith('$') || (expr.includes('[') && expr.includes(']')) || expr.includes('.')) &&
         extractedValue !== null && extractedValue !== undefined) {
       // Preserve the native type (object, array, number, boolean, string)
       result[key] = extractedValue;
@@ -725,4 +728,28 @@ export function extractOutputs(
   }
 
   return result;
+}
+
+/**
+ * Default extraction rules that are always available in API outputs.
+ * User-defined outputs with the same name will override these defaults.
+ */
+export const DEFAULT_EXTRACTION_RULES: Record<string, string> = {
+  body: 'body',
+  headers: 'headers',
+  cookies: 'cookies',
+  status: 'status',
+  duration: 'duration',
+};
+
+/** The list of default output key names. */
+export const DEFAULT_OUTPUT_KEYS: string[] = Object.keys(DEFAULT_EXTRACTION_RULES);
+
+/**
+ * Merge user-defined output rules with defaults.
+ * User rules take priority over defaults.
+ */
+export function mergeWithDefaultExtractionRules(
+    userOutputs: Record<string, string>|undefined): Record<string, string> {
+  return {...DEFAULT_EXTRACTION_RULES, ...(userOutputs || {})};
 }

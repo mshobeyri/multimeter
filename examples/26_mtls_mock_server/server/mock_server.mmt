@@ -1,0 +1,24 @@
+type: server
+title: mTLS Mock Server
+description: Local mock server requiring a client certificate signed by the example CA
+protocol: https
+port: 29444
+connection:
+  mode: mtls
+  cert: ../certs/server.crt
+  key: ../certs/server.key
+  client_ca: ../certs/ca.crt
+endpoints:
+  - method: get
+    path: /health
+    status: 200
+    format: json
+    body:
+      status: ok
+      transport: mtls
+      message: hello from mtls mock
+fallback:
+  status: 404
+  format: json
+  body:
+    error: not found

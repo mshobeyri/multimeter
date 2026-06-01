@@ -1,0 +1,23 @@
+type: server
+title: TLS Mock Server
+description: Local mock server using TLS with a trusted example CA
+protocol: https
+port: 29443
+connection:
+  mode: tls
+  cert: ../certs/server.crt
+  key: ../certs/server.key
+endpoints:
+  - method: get
+    path: /health
+    status: 200
+    format: json
+    body:
+      status: ok
+      transport: tls
+      message: hello from tls mock
+fallback:
+  status: 404
+  format: json
+  body:
+    error: not found

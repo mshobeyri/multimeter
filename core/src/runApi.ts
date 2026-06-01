@@ -262,6 +262,16 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `      }\n` +
       `      const copy = { ...result };\n` +
       `      delete copy['_'];\n` +
+      `      const __reportOutputKeys = Array.isArray(result && result._ && result._.reportOutputKeys) ? result._.reportOutputKeys : null;\n` +
+      `      if (__reportOutputKeys) {\n` +
+      `        const filtered = {};\n` +
+      `        for (const key of __reportOutputKeys) {\n` +
+      `          if (typeof key === 'string' && Object.prototype.hasOwnProperty.call(copy, key)) {\n` +
+      `            filtered[key] = copy[key];\n` +
+      `          }\n` +
+      `        }\n` +
+      `        return filtered;\n` +
+      `      }\n` +
       `      if (typeof copy.response_time === 'number' && Number.isFinite(copy.response_time)) {\n` +
       `        copy.response_time = __mmt_raw(copy.response_time + ' ms');\n` +
       `      }\n` +

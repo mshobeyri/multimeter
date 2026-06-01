@@ -1,10 +1,11 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { MockData, MockEndpoint } from "mmt-core/MockData";
 import { resolveEnvTokenValues } from "mmt-core/variableReplacer";
 import { parseYaml, parseYamlDoc } from "mmt-core/markupConvertor";
 import { loadEnvVariables } from "../workspaceStorage";
 import MockOverview from "./MockOverview";
 import MockEndpoints from "./MockEndpoints";
+import MockServerSettings from "./MockServerSettings";
 import { canonicalizeMockYaml } from "./mockYaml";
 
 interface MockPanelProps {
@@ -21,8 +22,11 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
   const [page, setPage] = useState<'test' | 'edit'>(
     () => (localStorage.getItem(LAST_MOCK_PAGE_KEY) as 'test' | 'edit') || 'test'
   );
-  const [tab, setTab] = useState<'overview' | 'endpoints'>(
-    () => (localStorage.getItem(LAST_MOCK_TAB_KEY) as 'overview' | 'endpoints') || 'overview'
+  const [tab, setTab] = useState<'overview' | 'server' | 'endpoints'>(
+    () => {
+      const savedTab = localStorage.getItem(LAST_MOCK_TAB_KEY);
+      return savedTab === 'server' || savedTab === 'endpoints' || savedTab === 'overview' ? savedTab : 'overview';
+    }
   );
   const [showIconsOnly, setShowIconsOnly] = useState(false);
   const [envParams, setEnvParams] = useState<Record<string, any>>({});
@@ -108,8 +112,10 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
   }
 
   const protocol = mockData.protocol || "http";
-  const baseUrl = `${protocol === "ws" ? "ws" : protocol}://localhost:${mockData.port}`;
+  const urlScheme = protocol === "ws" ? "ws" : protocol === "https" ? "https" : "http";
+  const baseUrl = `${urlScheme}://localhost:${mockData.port}`;
   const endpointCount = mockData.endpoints?.length || 0;
+  const connection = mockData.connection;
 
   return (
     <div className="panel">
@@ -163,7 +169,7 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
                     <span className="mock-info-chip mock-info-chip--url">{baseUrl}</span>
                     <span className="mock-info-chip">{protocol.toUpperCase()}</span>
                     {mockData.cors && <span className="mock-info-chip">CORS</span>}
-                    {mockData.tls && <span className="mock-info-chip">TLS</span>}
+                    {connection?.mode && connection.mode !== 'plain' && <span className="mock-info-chip">{connection.mode.toUpperCase()}</span>}
                     {mockData.delay && <span className="mock-info-chip">delay: {mockData.delay}ms</span>}
                   </div>
 
@@ -204,13 +210,12 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
                   {/* Fallback */}
                   {mockData.fallback && (
                     <div style={{ marginTop: 4 }}>
-                      <div className="label">Fallback</div>
                       <div className="mock-ep-row mock-ep-row--fallback">
                         <span className="mock-ep-icon" aria-hidden>
                           <span className="codicon codicon-circle-slash" style={{ color: "var(--vscode-descriptionForeground)" }} />
                         </span>
-                        <span className="mock-ep-method" style={{ color: "var(--vscode-descriptionForeground)" }}>ANY</span>
-                        <span className="mock-ep-path">*</span>
+                        <span className="mock-ep-method mock-ep-method--fallback" style={{ color: "var(--vscode-descriptionForeground)" }}>FALLBACK</span>
+                        <span className="mock-ep-path">/?</span>
                         <span className="mock-ep-tags" />
                         <span className="mock-ep-right">
                           <span className="mock-ep-status">{mockData.fallback.status || 404}</span>
@@ -231,7 +236,7 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
               </div>
             </div>
 
-            {/* ── Edit page (tabs: Overview / Endpoints) ── */}
+            {/* ── Edit page (tabs: Overview / Server / Endpoints) ── */}
             <div className="api-swipe-page api-swipe-page--edit">
               <div className="api-edit-header" ref={tabContainerRef}>
                 <div className="api-edit-header-row">
@@ -257,6 +262,15 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
                     {!showIconsOnly && "Overview"}
                   </button>
                   <button
+                    onClick={() => setTab('server')}
+                    className={`tab-button ${tab === 'server' ? 'active' : ''}`}
+                    title={showIconsOnly ? "Server" : undefined}
+                    type="button"
+                  >
+                    <span className="codicon codicon-server-environment tab-button-icon" />
+                    {!showIconsOnly && "Server"}
+                  </button>
+                  <button
                     onClick={() => setTab('endpoints')}
                     className={`tab-button ${tab === 'endpoints' ? 'active' : ''}`}
                     title={showIconsOnly ? "Endpoints" : undefined}
@@ -270,7 +284,10 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
 
               <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
                 {tab === 'overview' && (
-                  <MockOverview data={mockData} updateField={updateField} content={content} setContent={setContent} />
+                  <MockOverview data={mockData} updateField={updateField} />
+                )}
+                {tab === 'server' && (
+                  <MockServerSettings data={mockData} updateField={updateField} content={content} setContent={setContent} />
                 )}
                 {tab === 'endpoints' && (
                   <MockEndpoints content={content} setContent={setContent} mockData={mockData} />

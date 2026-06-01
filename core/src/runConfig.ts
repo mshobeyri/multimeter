@@ -15,6 +15,7 @@ export interface ExpectItemEvent {
   expected?: any;
   status: TestStepStatus;
   similarity?: number;
+  count?: number;
 }
 
 export interface TestStepReporterEvent {

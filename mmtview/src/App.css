@@ -1159,6 +1159,10 @@ button:focus {
   font-size: 12px;
 }
 
+.mock-ep-method--fallback {
+  flex-basis: 76px;
+}
+
 .mock-ep-path {
   flex: 1 1 auto;
   font-size: 12px;
@@ -1236,6 +1240,28 @@ button:focus {
   font-size: 12px;
   font-family: var(--vscode-editor-font-family, monospace);
   color: var(--vscode-descriptionForeground);
+}
+
+.mock-edit-tab-content {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 16px 16px;
+}
+
+.mock-server-cert-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.mock-server-checkbox-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: var(--vscode-foreground);
+  font-size: var(--vscode-font-size, 13px);
 }
 
 @media (max-width: 300px) {

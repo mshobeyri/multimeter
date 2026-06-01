@@ -1,3 +1,5 @@
+import {outputExtractor} from 'mmt-core';
+
 export type MissingImportEntry = { alias: string; path: string };
 
 export type ProblemEntry = {
@@ -26,6 +28,29 @@ type ImportLineInfo = {
   path?: string;
   line: number;
 };
+
+const DEFAULT_OUTPUT_KEYS = Array.isArray(outputExtractor.DEFAULT_OUTPUT_KEYS) ?
+  outputExtractor.DEFAULT_OUTPUT_KEYS : ['body', 'headers', 'cookies', 'status', 'duration'];
+const SCALAR_DEFAULT_OUTPUT_KEYS = new Set(['status', 'duration']);
+
+function isAllowedOutputKeyReference(outputKey: string, allowedKeys: Set<string>): boolean {
+  if (allowedKeys.has(outputKey)) {
+    return true;
+  }
+  if (outputKey.startsWith('_.')) {
+    const hiddenKey = outputKey.slice(2);
+    const dotIdx = hiddenKey.indexOf('.');
+    const rootKey = dotIdx >= 0 ? hiddenKey.slice(0, dotIdx) : hiddenKey;
+    const hasAccessor = dotIdx >= 0;
+    return DEFAULT_OUTPUT_KEYS.includes(rootKey) && (!hasAccessor || !SCALAR_DEFAULT_OUTPUT_KEYS.has(rootKey));
+  }
+  const accessorMatch = outputKey.match(/^([^.[\s]+)(?:\.|\[)/);
+  if (!accessorMatch) {
+    return false;
+  }
+  const rootKey = accessorMatch[1];
+  return allowedKeys.has(rootKey) && !SCALAR_DEFAULT_OUTPUT_KEYS.has(rootKey);
+}
 
 export type CallSiteInfo = {
   alias: string;
@@ -568,7 +593,8 @@ export function getUndefinedExpectKeyDecorations(
   const decorations: any[] = [];
 
   for (const site of keySites) {
-    if (!allowedByAlias.has(site.alias) || allowedByAlias.get(site.alias)!.has(site.expectKey)) {
+    const allowedKeys = allowedByAlias.get(site.alias);
+    if (!allowedKeys || isAllowedOutputKeyReference(site.expectKey, allowedKeys)) {
       continue;
     }
     if (site.offset < 0) {
@@ -1516,7 +1542,8 @@ export function computeMissingDocFileMarkers(
 
 /** Valid base keywords for the right-hand side of output mapping expressions. */
 const VALID_OUTPUT_KEYWORDS = new Set([
-  "body", "header", "headers", "status", "details", "duration", "cookies",
+  ...DEFAULT_OUTPUT_KEYS,
+  "header", "details",
 ]);
 
 export type OutputValueSiteInfo = {

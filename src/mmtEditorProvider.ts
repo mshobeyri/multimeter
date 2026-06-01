@@ -5,8 +5,6 @@ import * as vscode from 'vscode';
 import {HistoryManager} from './historyManager';
 import {messageReceived} from './mmtAPI/mmtAPI';
 
-const LAST_VIEW_MODE = 'mmtview:view:selectedViewMode';
-
 export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   private static instance: MmtEditorProvider|null = null;
   private activeWebviewPanels: Set<vscode.WebviewPanel> = new Set();
@@ -75,9 +73,6 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   }
 
   public showPanel(panelId: 'full'|'ui'|'yaml') {
-    // Save the view mode
-    this.context.globalState.update(LAST_VIEW_MODE, panelId);
-
     const message = {command: 'multimeter.mmt.show.panel', panelId};
 
     // Prefer sending to the active panel only
@@ -89,11 +84,6 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
       // Fallback to broadcasting when no active panel is found
       this.sendMessageToAllPanels(message);
     }
-  }
-
-  // Method to get the last saved view mode
-  private getLastViewMode(): 'full'|'ui'|'yaml' {
-    return this.context.globalState.get(LAST_VIEW_MODE, 'full');
   }
 
   public async resolveCustomTextEditor(

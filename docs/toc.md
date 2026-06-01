@@ -19,7 +19,7 @@
 - [Bruno files (`.bru`)](docs/bruno-files.md) — run Bruno request files as test flows via Open With
 
 **VS Code Panels & Features:**
-- [Mock Server Panel](docs/mock-server.md) — start HTTP/HTTPS/WS mock servers from the UI
+- [Mock Server Panel](docs/mock-server.md) — start HTTP/TLS/mTLS/WS mock servers from the UI
 - [Convertor](docs/convertor.md) — import OpenAPI and Postman collections into `.mmt`
 - [History](docs/history.md) — inspect recent requests and responses
 - [Certificates](docs/certificates-mmt.md) — SSL/TLS, mTLS, and CA certificate configuration

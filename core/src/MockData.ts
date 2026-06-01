@@ -1,10 +1,12 @@
 import {Format, JSONValue, Method, MMTFile} from './CommonData';
 
-export interface MockTlsConfig {
-  cert: string;
-  key: string;
-  ca?: string;
-  requestCert?: boolean;
+export type MockConnectionMode = 'plain' | 'tls' | 'mtls';
+
+export interface MockConnectionConfig {
+  mode?: MockConnectionMode;
+  cert?: string;
+  key?: string;
+  client_ca?: string;
 }
 
 export interface MockMatch {
@@ -57,7 +59,7 @@ export interface MockData extends MMTFile {
   tags?: string[];
   protocol?: MockProtocol;
   port: number;
-  tls?: MockTlsConfig;
+  connection?: MockConnectionConfig;
   cors?: boolean;
   delay?: number;
   headers?: Record<string, string>;

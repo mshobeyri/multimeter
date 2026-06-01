@@ -8,20 +8,12 @@ This separation allows certificate file paths to be version-controlled while kee
 
 ## Supported certificate formats
 
-Multimeter supports **PEM format only** for all certificate types:
-- CA certificates: `.pem`, `.crt`, `.cer`
-- Client certificates: `.pem`, `.crt`
-- Private keys: `.pem`, `.key`
+Multimeter supports these certificate file references:
 
-PKCS#12 (`.pfx`, `.p12`) bundles are not currently supported. Convert them to PEM format before use:
-
-```sh
-# Extract certificate from PFX
-openssl pkcs12 -in bundle.pfx -clcerts -nokeys -out client.crt
-
-# Extract key from PFX
-openssl pkcs12 -in bundle.pfx -nocerts -out client.key
-```
+- **Client certificate** (`cert`): Client certificate in PEM format (`.pem`, `.crt`, `.cer`)
+- **Private key** (`key`): Private key in PEM format (`.pem`, `.key`)
+- **PFX bundle** (`pfx`): PKCS#12 bundle (`.pfx`, `.p12`) — alternative to `cert` + `key`
+- **Server CA certificates** (`server_ca`): CA certificate files used to verify servers (`.pem`, `.crt`, `.cer`)
 
 ## Example certificate configuration
 
@@ -31,8 +23,8 @@ variables:
   API_URL: "https://api.example.com"
 
 certificates:
-  # CA Certificates (multiple paths supported)
-  ca:
+  # Server CA certificates (multiple paths supported)
+  server_ca:
     paths:
       - "./certs/ca.pem"           # Path relative to env file
       - "./certs/intermediate.pem"
@@ -41,14 +33,13 @@ certificates:
   clients:
     - name: "Production API"
       host: "*.api.example.com"    # Host pattern to match
-      cert_path: "./certs/client.pem"
-      key_path: "./certs/client.key"
+      cert: "./certs/client.pem"
+      key: "./certs/client.key"
       passphrase_env: "CERT_PASS"  # Optional: env variable containing passphrase
     
-    - name: "Internal API"
+    - name: "PFX Bundle"
       host: "internal.example.com"
-      cert_path: "./certs/internal.pem"
-      key_path: "./certs/internal.key"
+      pfx: "./certs/bundle.pfx"
       passphrase_plain: "secret"   # Optional: plaintext passphrase (avoid in shared configs)
 ```
 
@@ -56,11 +47,12 @@ certificates:
 
 | Field | Description |
 |-------|-------------|
-| `ca.paths` | Array of paths to CA certificate files (relative to env file or absolute) |
+| `server_ca.paths` | Array of paths to server CA certificate files (relative to env file or absolute) |
 | `clients[].name` | Display name for the client certificate |
 | `clients[].host` | Host pattern (e.g., `*.api.example.com`, `api.example.com:8443`, or `*:8443`) |
-| `clients[].cert_path` | Path to client certificate file |
-| `clients[].key_path` | Path to private key file |
+| `clients[].cert` | Path to client certificate file (PEM/CRT format) |
+| `clients[].key` | Path to private key file |
+| `clients[].pfx` | Path to PKCS#12 bundle file (alternative to `cert` + `key`) |
 | `clients[].passphrase_plain` | Passphrase in plain text (avoid in shared configs) |
 | `clients[].passphrase_env` | Environment variable name containing passphrase |
 
@@ -71,8 +63,8 @@ These settings are NOT stored in the YAML file. They are managed via the UI and 
 | Setting | Default | Description |
 |---------|---------|-------------|
 | SSL Validation | `true` | Verify SSL certificates |
-| Allow Self-Signed | `false` | Trust self-signed certificates |
-| CA Enabled | `false` | Enable custom CA certificates |
+| Allow Untrusted Self-Signed | `false` | Retry self-signed HTTPS requests without certificate validation when no trusted CA path is available |
+| Server CA Enabled | `false` | Use configured server CA certificates |
 | Client Enabled | `true` | Enable/disable individual client certificates |
 
 For CLI usage, sensible defaults are applied:
@@ -81,7 +73,7 @@ For CLI usage, sensible defaults are applied:
 - All configured certificates are enabled
 
 ### Self-signed certificate auto-retry
-When "Allow Self-Signed" is enabled, Multimeter automatically retries failed HTTPS requests with SSL validation disabled if the error matches specific TLS error codes (such as `SELF_SIGNED_CERT_IN_CHAIN` or `DEPTH_ZERO_SELF_SIGNED_CERT`). This makes it easier to work with development servers using self-signed certificates without manually disabling validation globally.
+When "Allow Untrusted Self-Signed" is enabled, Multimeter automatically retries failed HTTPS requests with SSL validation disabled if the error matches specific TLS error codes (such as `SELF_SIGNED_CERT_IN_CHAIN` or `DEPTH_ZERO_SELF_SIGNED_CERT`). If the server certificate is trusted through `certificates.server_ca`, this setting is not needed.
 
 ## Passphrase handling
 
@@ -91,8 +83,8 @@ For security, you can store passphrases in environment variables instead of the 
 clients:
   - name: "Secure API"
     host: "secure.api.com"
-    cert_path: "./certs/client.pem"
-    key_path: "./certs/client.key"
+    cert: "./certs/client.pem"
+    key: "./certs/client.key"
     passphrase_env: "MY_CERT_PASSPHRASE"  # Will read from $MY_CERT_PASSPHRASE
 ```
 
@@ -107,7 +99,7 @@ testlight run test.mmt --env-file env.mmt
 
 In the env file editor, switch to the **Certificates** tab to:
 - Configure SSL validation settings (stored locally)
-- Add/remove CA certificate paths (stored in YAML)
+- Add/remove server CA certificate paths (stored in YAML)
 - Manage client certificates for mTLS (paths in YAML, enable/disable locally)
 
 ## Host matching rules
@@ -129,3 +121,4 @@ Previously, certificate settings were stored in VS Code workspace settings. Thes
 4. Toggle enable/disable settings as needed (saved locally)
 
 This ensures that certificate file paths are portable and can be version-controlled, while local preferences remain workspace-specific.
+

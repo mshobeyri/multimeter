@@ -82,6 +82,10 @@ function stepHasSimilarity(step: TestStepResult): boolean {
   return (step.expects || []).some(e => typeof e.similarity === 'number');
 }
 
+function stepHasCount(step: TestStepResult): boolean {
+  return (step.expects || []).some(e => typeof e.count === 'number');
+}
+
 function buildStepDetails(step: TestStepResult): string {
   const name = step.title || `step-${step.stepIndex}`;
   const stepIcon = step.status === 'passed' ? '✓' : '✗';
@@ -91,10 +95,13 @@ function buildStepDetails(step: TestStepResult): string {
     for (const e of expects) {
       const eIcon = e.status === 'passed' ? '✓' : '✗';
       md += `- ${eIcon} ${e.comparison}`;
-      if ((e.status === 'failed' || typeof e.similarity === 'number') && e.actual != null && e.expected != null) {
+      if ((e.status === 'failed' || typeof e.similarity === 'number' || typeof e.count === 'number') && e.actual != null && e.expected != null) {
         md += `\n  - got: ${displayValue(e.actual)}`;
         if (typeof e.similarity === 'number') {
           md += `\n  - similarity: ${e.similarity}%`;
+        }
+        if (typeof e.count === 'number') {
+          md += `\n  - count: ${e.count}`;
         }
       }
       md += '\n';
@@ -147,7 +154,7 @@ function buildTestRunSection(run: TestRunResult, index: number, includeDetails: 
   }
 
   if (includeDetails) {
-    const detailedSteps = steps.filter(s => s.status === 'failed' || stepHasSimilarity(s));
+    const detailedSteps = steps.filter(s => s.status === 'failed' || stepHasSimilarity(s) || stepHasCount(s));
     for (const step of detailedSteps) {
       md += buildStepDetails(step);
     }

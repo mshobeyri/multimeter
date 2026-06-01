@@ -6,21 +6,106 @@ import * as vscode from 'vscode';
 import YAML from 'yaml';
 import { mockParsePack, mockServer, variableReplacer, MockData as MockDataNS } from 'mmt-core';
 
+import {onRunFinished, onRunStarted} from '../runStatusBar';
+
 type MockData = MockDataNS.MockData;
 
 interface MockServerHandle {
   server: http.Server | https.Server;
   port: number;
   dispose: () => void;
+  statusBarRunId?: string;
 }
 
 const activeServers = new Map<string, MockServerHandle>();
+
+export const DEFAULT_MOCK_SERVER_CERT = `-----BEGIN CERTIFICATE-----
+MIIC4zCCAcugAwIBAgIUVlsDC13DzCkayR1TWv3h1BHhQY8wDQYJKoZIhvcNAQEL
+BQAwITEfMB0GA1UEAwwWTXVsdGltZXRlciBUTFMgTW9jayBDQTAgFw0yNjA2MDEy
+MDM0NDVaGA8yMTI2MDUwODIwMzQ0NVowFDESMBAGA1UEAwwJbG9jYWxob3N0MIIB
+IjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv4F5aSMjBojiR8CCaPs8/rDC
+wggcNGR0LavGUX4vV2bzixZxhcoM+Df/Y6rTM6rxax8yuc78eKev4FvvnwIU8TnN
+36r4cco2SuuiaaKMAo+3l3Yl+Ost0FDBI5GnLXo9Yu12onhnngit/iHmM10FgwNG
+eii7W+214RWpvU5nJ1w4vaUTB/1FD0tQXBKPvAfDKhvps3tYiSjyEiec9Sb2Mhfz
+vP6/RAhWqAs9uT3IEeIymAzMDjNNYqyNT6tYaQZ0ldqvObxGvTjx+vKkvsaR/7eU
+pfcXpIR549mHIYO0pu/PyBd2ZTAJQt/9OZAhBsPRR6zP6OU/dw82k8/zRMkoOQID
+AQABox4wHDAaBgNVHREEEzARgglsb2NhbGhvc3SHBH8AAAEwDQYJKoZIhvcNAQEL
+BQADggEBAIAtJrSrVgYqlakijqldEoP/Dz8SJ8Qe6GEyjCGeDn87gHo/C39hweXp
+9M5zjo3dLi23x49nngOSRNjIqcWriz++S7Uh1y0pwC+1HeYsS7JAsjgtW8xU2R1Z
+mt+rDRadzUwjJGjgN6y/IvnwfKJZwK6qKPi83ru+JKHdVqr8UAvzXcz6IeUh4Dvh
+GtYvrZqjtxTosjwvRi3O0Mk9sJTD5FkxFkKRnbGrO/NlsoFAX3E3u8Y0paA6As6m
+I40bnh1BDp96T4750bniurTU/rxxd/bqwUxnuGo+lS8vviJ43tAuNK/ZC2i7qFDV
+wooUTE4McJHKAjEIrJHg2m4ZKOm4Uoo=
+-----END CERTIFICATE-----`;
+
+export const DEFAULT_MOCK_SERVER_KEY = `-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC/gXlpIyMGiOJH
+wIJo+zz+sMLCCBw0ZHQtq8ZRfi9XZvOLFnGFygz4N/9jqtMzqvFrHzK5zvx4p6/g
+W++fAhTxOc3fqvhxyjZK66JpoowCj7eXdiX46y3QUMEjkactej1i7XaieGeeCK3+
+IeYzXQWDA0Z6KLtb7bXhFam9TmcnXDi9pRMH/UUPS1BcEo+8B8MqG+mze1iJKPIS
+J5z1JvYyF/O8/r9ECFaoCz25PcgR4jKYDMwOM01irI1Pq1hpBnSV2q85vEa9OPH6
+8qS+xpH/t5Sl9xekhHnj2Ychg7Sm78/IF3ZlMAlC3/05kCEGw9FHrM/o5T93DzaT
+z/NEySg5AgMBAAECggEAU1XdZpIiwMo6ZezxEwwZe9+hsNvkoiwAnos8juPxaABm
+BOWsWwMU58M+gLmqlLZTvkDiSxc2qK6YC3MWcERwppR38VguKx5KyAmIMJ3Kfaba
+xq9kUNDOq/MoSPkuHc0u/2jEkmkA9jViuc84pKtbJar8NVaaSaPE3QEXT0jZ/LcU
+ts2+30/u41IElJslpkSWM+g3Mk0PhE2O/iaeBZZakp9NnheBQj0RJAKQ9WJbjs8y
+7mapJW/vMqTNltmPupctA2N1NlHGhT5eVRtm9z8WDN+pKaoIPVLawPJvupqqmjy+
+zsFFTEZZEUznHSyGe6WogBw7VeDT73CbApZukLvK8QKBgQDvJZxvJRiQB86691Sz
+V5STcBH3Dj+wbPuLitHAbJL6NBFEujlnt1AFRDZRL0XsVv+WupR9Y/8XS5JXCojg
+n469H0ipIHbWXSa/8KJjtWulQxrNaT8idN5tz+wAim9LVecG759Tp8bsRDHiImld
+qyD5FzimWTtGuyMHQEbt8H8KtQKBgQDNAGGQY44OMwFkMBjaZVhw+OW3xen/1XgQ
+a4MHjk+HQOSZCrbFILZQEdos7Xg0VdSLiBJLMvWz0YjjydLQglIr79IC/q7cLrp4
+4ybKg61Vx6EPSdTamDlCuCsripuc99Bk2if5r4JcarG6hVdB0SMJQboVxquZGKmj
+Y+5ooCDl9QKBgFiC0yNP14d3XExWvkKiZ5sqH3wRCgGCVJeRCZDunnd8TefiBN0e
+O7+3P2NM29RdXruq0sqV+BPnJIKSo5Z/d5UHvxzZpyIv1+eyaGf+/Zhs/b6I9ZUL
+LEf4bKDGm+qGILuwdIfB0R4hH1VS5yyD6fBHZ/AplobXPF+yqo3mNR8BAoGAaC3O
+ZwtA0NR424pZxvsD0/2Y+Ch6/0ljh6yrXPakUc7XnTLFqS4zmENKRdS0ZpxLtFEF
+QvP1y1kroN8a5F2mFq/8YQs+n6SbnP2K5BXAy7v0jIlvw1rilpZzUeBRrpZ9cBMx
+h4D61a5e/bPvoQIANR8Syyg4YkgXRXJuYPsnXNUCgYEAjNBtFhzYaElJR30MyaOX
+wtNm7vIFVTP4l/IdpKTAiOZxWVQ6IgJanPngchH4pgm/7qbTqqOPQr8DYaNWCohl
+bN9h59Ls8pcfXiAOdrV9npwlr6xwVbCWHyEbOEv3hSJmR1RYM3iVBSM9rdOXuvQ1
+FXcutxDssTQVi/uiW1UMhMs=
+-----END PRIVATE KEY-----`;
 
 function resolveFilePath(filePath: string, basePath: string): string {
   if (path.isAbsolute(filePath)) {
     return filePath;
   }
   return path.resolve(path.dirname(basePath), filePath);
+}
+
+function isSecureMockProtocol(protocol: string): boolean {
+  return protocol === 'https';
+}
+
+function getMockUrlScheme(protocol: string): 'http' | 'https' {
+  return isSecureMockProtocol(protocol) ? 'https' : 'http';
+}
+
+function createHttpsMockServer(
+    data: MockData,
+    filePath: string,
+    requestHandler: http.RequestListener): https.Server {
+  const connection = data.connection || {};
+  const hasCustomCert = !!connection.cert || !!connection.key;
+  if (hasCustomCert && (!connection.cert || !connection.key)) {
+    throw new Error('connection.cert and connection.key must be provided together');
+  }
+  const tlsOptions: https.ServerOptions = {
+    cert: connection.cert ? fs.readFileSync(resolveFilePath(connection.cert, filePath)) : DEFAULT_MOCK_SERVER_CERT,
+    key: connection.key ? fs.readFileSync(resolveFilePath(connection.key, filePath)) : DEFAULT_MOCK_SERVER_KEY,
+  };
+  if (connection.client_ca) {
+    tlsOptions.ca = fs.readFileSync(resolveFilePath(connection.client_ca, filePath));
+  }
+  if (connection.mode === 'mtls') {
+    if (!connection.client_ca) {
+      throw new Error('connection.client_ca is required when connection.mode is mtls');
+    }
+    tlsOptions.requestCert = true;
+    tlsOptions.rejectUnauthorized = true;
+  }
+  return https.createServer(tlsOptions, requestHandler);
 }
 
 export function isRunning(documentUri: string): boolean {
@@ -31,14 +116,27 @@ export function stopMockServer(documentUri: string): void {
   const handle = activeServers.get(documentUri);
   if (handle) {
     handle.dispose();
-    activeServers.delete(documentUri);
+    if (activeServers.get(documentUri) === handle) {
+      activeServers.delete(documentUri);
+      finishMockServerStatus(handle);
+    }
+  }
+}
+
+function finishMockServerStatus(handle: MockServerHandle): void {
+  if (handle.statusBarRunId) {
+    onRunFinished(handle.statusBarRunId);
+    handle.statusBarRunId = undefined;
   }
 }
 
 export function stopAll(): void {
   for (const [uri, handle] of activeServers) {
     handle.dispose();
-    activeServers.delete(uri);
+    if (activeServers.get(uri) === handle) {
+      activeServers.delete(uri);
+      finishMockServerStatus(handle);
+    }
   }
 }
 
@@ -229,21 +327,8 @@ export async function startMockServer(
   let server: http.Server | https.Server;
   const protocol = data.protocol || 'http';
 
-  if (protocol === 'https' && data.tls) {
-    const certPath = resolveFilePath(data.tls.cert, filePath);
-    const keyPath = resolveFilePath(data.tls.key, filePath);
-    const tlsOptions: https.ServerOptions = {
-      cert: fs.readFileSync(certPath),
-      key: fs.readFileSync(keyPath),
-    };
-    if (data.tls.ca) {
-      tlsOptions.ca = fs.readFileSync(resolveFilePath(data.tls.ca, filePath));
-    }
-    if (data.tls.requestCert) {
-      tlsOptions.requestCert = true;
-      tlsOptions.rejectUnauthorized = false;
-    }
-    server = https.createServer(tlsOptions, requestHandler);
+  if (isSecureMockProtocol(protocol)) {
+    server = createHttpsMockServer(data, filePath, requestHandler);
   } else {
     server = http.createServer(requestHandler);
   }
@@ -261,6 +346,8 @@ export async function startMockServer(
           }
         },
       };
+      const label = `Mock server ${getMockUrlScheme(protocol)}://localhost:${data.port}`;
+      handle.statusBarRunId = onRunStarted(label, () => stopMockServer(documentUri), 'server');
       activeServers.set(documentUri, handle);
 
       webviewPanel.webview.postMessage({
@@ -269,12 +356,16 @@ export async function startMockServer(
         port: data.port,
       });
 
-      vscode.window.showInformationMessage(`Mock server running on ${protocol}://localhost:${data.port}`);
+      vscode.window.showInformationMessage(`Mock server running on ${getMockUrlScheme(protocol)}://localhost:${data.port}`);
       resolve();
     });
 
     server.on('close', () => {
+      const handle = activeServers.get(documentUri);
       activeServers.delete(documentUri);
+      if (handle) {
+        finishMockServerStatus(handle);
+      }
       try {
         webviewPanel.webview.postMessage({
           command: 'mockServerStatus',
@@ -286,7 +377,11 @@ export async function startMockServer(
     });
 
     server.on('error', (err: any) => {
+      const handle = activeServers.get(documentUri);
       activeServers.delete(documentUri);
+      if (handle) {
+        finishMockServerStatus(handle);
+      }
       if (err.code === 'EADDRINUSE') {
         vscode.window.showErrorMessage(`Mock server: port ${data.port} is already in use.`);
       } else {
@@ -444,21 +539,8 @@ export async function startMockServerFromPath(
   let server: http.Server | https.Server;
   const protocol = data.protocol || 'http';
 
-  if (protocol === 'https' && data.tls) {
-    const certPath = resolveFilePath(data.tls.cert, filePath);
-    const keyPath = resolveFilePath(data.tls.key, filePath);
-    const tlsOptions: https.ServerOptions = {
-      cert: fs.readFileSync(certPath),
-      key: fs.readFileSync(keyPath),
-    };
-    if (data.tls.ca) {
-      tlsOptions.ca = fs.readFileSync(resolveFilePath(data.tls.ca, filePath));
-    }
-    if (data.tls.requestCert) {
-      tlsOptions.requestCert = true;
-      tlsOptions.rejectUnauthorized = false;
-    }
-    server = https.createServer(tlsOptions, requestHandler);
+  if (isSecureMockProtocol(protocol)) {
+    server = createHttpsMockServer(data, filePath, requestHandler);
   } else {
     server = http.createServer(requestHandler);
   }
@@ -471,7 +553,11 @@ export async function startMockServerFromPath(
         } catch {
           // ignore
         }
-        activeServers.delete(documentUri);
+        const handle = activeServers.get(documentUri);
+        if (handle) {
+          activeServers.delete(documentUri);
+          finishMockServerStatus(handle);
+        }
       };
 
       const handle: MockServerHandle = {
@@ -479,17 +565,28 @@ export async function startMockServerFromPath(
         port: data.port,
         dispose,
       };
+      const protocol = data.protocol || 'http';
+      const label = `Mock server ${getMockUrlScheme(protocol)}://localhost:${data.port}`;
+      handle.statusBarRunId = onRunStarted(label, () => stopMockServer(documentUri), 'server');
       activeServers.set(documentUri, handle);
       resolve(dispose);
     });
 
     server.on('close', () => {
+      const handle = activeServers.get(documentUri);
       activeServers.delete(documentUri);
+      if (handle) {
+        finishMockServerStatus(handle);
+      }
       onClose?.();
     });
 
     server.on('error', (err: any) => {
+      const handle = activeServers.get(documentUri);
       activeServers.delete(documentUri);
+      if (handle) {
+        finishMockServerStatus(handle);
+      }
       if (err.code === 'EADDRINUSE') {
         reject(new Error(`Mock server: port ${data.port} is already in use.`));
       } else {

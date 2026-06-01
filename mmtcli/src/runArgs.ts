@@ -9,7 +9,7 @@ import path from 'path';
 
 export type ReportFormat = 'junit' | 'mmt' | 'html' | 'md';
 
-const {mergeEnv, resolvePresetEnv, resolveEnvFromDoc} =
+const {mergeEnv, resolvePresetEnv} =
     ((mmtcore as any).runConfig || {}) as any;
 
 const LOG_LEVEL_PRIORITY: Record<string, number> = {
@@ -117,6 +117,24 @@ function loadEnvDoc(envPath: string): EnvDocResult {
   }
 }
 
+function resolveDefaultEnvVariables(variables: Record<string, any> | undefined): Record<string, any> {
+  const env: Record<string, any> = {};
+  if (!variables || typeof variables !== 'object') {
+    return env;
+  }
+  for (const [name, value] of Object.entries(variables)) {
+    if (Array.isArray(value)) {
+      env[name] = value.length > 0 ? value[0] : '';
+    } else if (value && typeof value === 'object') {
+      const entries = Object.entries(value);
+      env[name] = entries.length > 0 ? entries[0][1] : '';
+    } else {
+      env[name] = value;
+    }
+  }
+  return env;
+}
+
 // Resolve certificate path relative to env file directory
 function resolveCertPath(certPath: string, envFileDir: string): string {
   if (!certPath) {
@@ -141,7 +159,7 @@ export function buildNetworkConfigFromEnv(
 
   // Load CA certs (multiple paths)
   const caCertDataList: Buffer[] = [];
-  const caPaths = certSettings.ca?.paths || [];
+  const caPaths = certSettings.server_ca?.paths || [];
   // CA is enabled if there are paths defined
   const caEnabled = caPaths.length > 0;
   for (const caPath of caPaths) {
@@ -155,20 +173,25 @@ export function buildNetworkConfigFromEnv(
     }
   }
 
-  // Load client certs (use snake_case fields from YAML)
   const clients = (certSettings.clients || []).map((client, idx) => {
     let certData: Buffer | undefined = undefined;
     let keyData: Buffer | undefined = undefined;
+    let pfxData: Buffer | undefined = undefined;
     // Client is enabled by default (boolean not in YAML)
     const clientEnabled = true;
-    const certPath = client.cert_path || '';
-    const keyPath = client.key_path || '';
-    if (certPath && keyPath) {
+    const crtSrc = client.cert || '';
+    const keySrc = client.key || '';
+    const pfxSrc = client.pfx || '';
+    if (pfxSrc) {
       try {
-        const certResolvedPath = resolveCertPath(certPath, envFileDir);
-        const keyResolvedPath = resolveCertPath(keyPath, envFileDir);
-        certData = fs.readFileSync(certResolvedPath);
-        keyData = fs.readFileSync(keyResolvedPath);
+        pfxData = fs.readFileSync(resolveCertPath(pfxSrc, envFileDir));
+      } catch (e) {
+        console.warn(`Failed to load PFX for ${client.host || 'unknown'}: ${e}`);
+      }
+    } else if (crtSrc && keySrc) {
+      try {
+        certData = fs.readFileSync(resolveCertPath(crtSrc, envFileDir));
+        keyData = fs.readFileSync(resolveCertPath(keySrc, envFileDir));
       } catch (e) {
         console.warn(`Failed to load client certificate for ${client.host || 'unknown'}: ${e}`);
       }
@@ -179,11 +202,10 @@ export function buildNetworkConfigFromEnv(
       id: `client-${idx}`,
       name: client.name || '',
       host: client.host || '*',
-      cert_path: certPath,
-      key_path: keyPath,
       passphrase_plain: passphrase,
       certData,
       keyData,
+      pfxData,
       enabled: clientEnabled,
     };
   });
@@ -204,6 +226,26 @@ export function buildNetworkConfigFromEnv(
  */
 function findProjectRootForCli(startPath: string): string | undefined {
   return findProjectRootSync(startPath, fs.existsSync, path.dirname, path.join) ?? undefined;
+}
+
+function findNearestEnvFileForCli(startPath: string): string | undefined {
+  let currentDir = fs.statSync(startPath).isDirectory() ? startPath : path.dirname(startPath);
+  const visited = new Set<string>();
+  while (currentDir && !visited.has(currentDir)) {
+    visited.add(currentDir);
+    for (const fileName of ['multimeter.mmt', 'env.mmt']) {
+      const candidate = path.join(currentDir, fileName);
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
+    }
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir) {
+      break;
+    }
+    currentDir = parentDir;
+  }
+  return undefined;
 }
 
 export interface ParsedCliRunArgs {
@@ -258,8 +300,9 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
     // Not valid YAML or not a suite, continue normally
   }
 
-  if (envFileOpt) {
-    let p = String(envFileOpt);
+  const autoEnvFile = envFileOpt ? undefined : findNearestEnvFileForCli(full);
+  if (envFileOpt || autoEnvFile) {
+    let p = envFileOpt ? String(envFileOpt) : String(autoEnvFile);
     if (!path.isAbsolute(p)) {
       const fromCwd = path.resolve(process.cwd(), p);
       if (fs.existsSync(fromCwd)) {
@@ -270,12 +313,9 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
     }
     envFileDir = path.dirname(p);
     const doc = loadEnvDoc(p);
-    if (typeof resolveEnvFromDoc === 'function') {
-      envvar = resolveEnvFromDoc({doc, presetName, manualEnvvars});
-    } else {
-      const presetEnv = resolvePresetEnv(doc, presetName);
-      envvar = mergeEnv({envvar: presetEnv, manualEnvvars});
-    }
+    const defaultEnv = resolveDefaultEnvVariables(doc.variables);
+    const presetEnv = resolvePresetEnv(doc, presetName);
+    envvar = mergeEnv({baseEnv: defaultEnv, envvar: presetEnv, manualEnvvars});
     // Build network config from certificates in env file
     if (doc.certificates) {
       networkConfig = buildNetworkConfigFromEnv(doc.certificates, envFileDir, envvar);

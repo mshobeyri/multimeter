@@ -1,17 +1,17 @@
 
 import { JSONValue } from "mmt-core/CommonData";
 
-// Client certificate entry in env file (YAML uses snake_case)
 export interface EnvClientCertificate {
   name: string;
   host: string;
-  cert_path: string;
-  key_path: string;
+  cert?: string;
+  key?: string;
+  pfx?: string;
   passphrase_plain?: string;
   passphrase_env?: string;
 }
 
-// CA certificate in env file (YAML uses snake_case)
+// Server CA certificate in env file (YAML uses snake_case)
 export interface EnvCaCertificate {
   paths: string[];  // Multiple CA cert file paths
 }
@@ -19,7 +19,7 @@ export interface EnvCaCertificate {
 // Certificate settings section in env file
 // Note: Boolean flags are NOT stored in YAML - they go to localStorage
 export interface EnvCertificates {
-  ca?: EnvCaCertificate;
+  server_ca?: EnvCaCertificate;
   clients?: EnvClientCertificate[];
 }
 

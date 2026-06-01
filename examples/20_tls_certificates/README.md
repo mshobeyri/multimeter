@@ -33,7 +33,7 @@ The `certificates` section in `env.mmt` has two parts:
 
 ```yaml
 certificates:
-  ca:
+  server_ca:
     paths:
       - "./certs/ca.crt"
       - "./certs/intermediate.pem"
@@ -48,8 +48,8 @@ certificates:
   clients:
     - name: "Example API"
       host: "*.example.com"
-      cert_path: "./certs/client.crt"
-      key_path: "./certs/client.key"
+      cert: "./certs/client.crt"
+      key: "./certs/client.key"
       passphrase_env: "CLIENT_CERT_PASS"
 ```
 
@@ -57,8 +57,8 @@ certificates:
 |---|---|
 | `name` | Display name for the certificate |
 | `host` | Host pattern to match (e.g., `*.api.example.com` or `*` for all) |
-| `cert_path` | Path to client certificate file (PEM) |
-| `key_path` | Path to private key file (PEM) |
+| `cert` | Path to client certificate file (PEM) |
+| `key` | Path to private key file (PEM) |
 | `passphrase_env` | Environment variable name containing the key passphrase |
 | `passphrase_plain` | Plain text passphrase (avoid in shared configs) |
 

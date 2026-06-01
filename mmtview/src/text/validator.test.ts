@@ -8,6 +8,7 @@ import {
   findStageAfterProblems,
   findAuthProblems,
   extractSuiteTestLineInfo,
+  getUndefinedExpectKeyDecorations,
 } from './validator';
 
 describe('token site extraction', () => {
@@ -75,6 +76,163 @@ describe('validator test call checks', () => {
     const doc = buildDoc(content);
     const problems = findTestCallInputsProblems(content, doc, 'test', {foo: ['id']});
     expect(problems).toHaveLength(0);
+  });
+
+  it('does not warn for default response outputs or paths below them', () => {
+    const content = [
+      'type: test',
+      'import:',
+      '  login: ./login.api.mmt',
+      'steps:',
+      '  - call: login',
+      '    expect:',
+      '      status: 200',
+      '      body.user.id: 123',
+      '      headers.Content-Type: application/json',
+      '      cookies.sessionId: != null',
+    ].join('\n');
+    const doc = buildDoc(content);
+    const monaco = {
+      Range: class Range {
+        constructor(
+            public startLineNumber: number,
+            public startColumn: number,
+            public endLineNumber: number,
+            public endColumn: number) {}
+      },
+    };
+    const model = {
+      getPositionAt: (offset: number) => {
+        const before = content.slice(0, offset).split('\n');
+        return {
+          lineNumber: before.length,
+          column: before[before.length - 1].length + 1,
+        };
+      },
+    };
+
+    const decorations = getUndefinedExpectKeyDecorations(
+        monaco, model, content, doc, 'test',
+        {login: ['body', 'headers', 'cookies', 'status', 'duration']},
+        'warning');
+
+    expect(decorations).toHaveLength(0);
+  });
+
+  it('allows hidden default output paths', () => {
+    const content = [
+      'type: test',
+      'import:',
+      '  login: ./login.api.mmt',
+      'steps:',
+      '  - call: login',
+      '    expect:',
+      '      _.body.body.message: hello',
+      '      _.status: 200',
+    ].join('\n');
+    const doc = buildDoc(content);
+    const monaco = {
+      Range: class Range {
+        constructor(
+            public startLineNumber: number,
+            public startColumn: number,
+            public endLineNumber: number,
+            public endColumn: number) {}
+      },
+    };
+    const model = {
+      getPositionAt: (offset: number) => {
+        const before = content.slice(0, offset).split('\n');
+        return {
+          lineNumber: before.length,
+          column: before[before.length - 1].length + 1,
+        };
+      },
+    };
+
+    const decorations = getUndefinedExpectKeyDecorations(
+        monaco, model, content, doc, 'test',
+        {login: ['body', 'headers', 'cookies', 'status', 'duration']},
+        'warning');
+
+    expect(decorations).toHaveLength(0);
+  });
+
+  it('still warns for output paths with an unknown root', () => {
+    const content = [
+      'type: test',
+      'import:',
+      '  login: ./login.api.mmt',
+      'steps:',
+      '  - call: login',
+      '    expect:',
+      '      unknown.value: true',
+    ].join('\n');
+    const doc = buildDoc(content);
+    const monaco = {
+      Range: class Range {
+        constructor(
+            public startLineNumber: number,
+            public startColumn: number,
+            public endLineNumber: number,
+            public endColumn: number) {}
+      },
+    };
+    const model = {
+      getPositionAt: (offset: number) => {
+        const before = content.slice(0, offset).split('\n');
+        return {
+          lineNumber: before.length,
+          column: before[before.length - 1].length + 1,
+        };
+      },
+    };
+
+    const decorations = getUndefinedExpectKeyDecorations(
+        monaco, model, content, doc, 'test',
+        {login: ['body', 'headers', 'cookies', 'status', 'duration']},
+        'warning');
+
+    expect(decorations).toHaveLength(1);
+  });
+
+  it('still warns for paths below scalar default outputs', () => {
+    const content = [
+      'type: test',
+      'import:',
+      '  login: ./login.api.mmt',
+      'steps:',
+      '  - call: login',
+      '    expect:',
+      '      status.code: 200',
+      '      duration.ms: 20',
+    ].join('\n');
+    const doc = buildDoc(content);
+    const monaco = {
+      Range: class Range {
+        constructor(
+            public startLineNumber: number,
+            public startColumn: number,
+            public endLineNumber: number,
+            public endColumn: number) {}
+      },
+    };
+    const model = {
+      getPositionAt: (offset: number) => {
+        const before = content.slice(0, offset).split('\n');
+        return {
+          lineNumber: before.length,
+          column: before[before.length - 1].length + 1,
+        };
+      },
+    };
+
+    const decorations = getUndefinedExpectKeyDecorations(
+        monaco, model, content, doc, 'test',
+        {login: ['body', 'headers', 'cookies', 'status', 'duration']},
+        'warning');
+
+    expect(decorations).toHaveLength(2);
   });
 });
 

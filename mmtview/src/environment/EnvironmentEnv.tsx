@@ -259,7 +259,7 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                                 </td>
                             </tr>
                             <tr>
-                                <td className="environment-table-name">Allow Self-Signed Certificates</td>
+                                <td className="environment-table-name">Allow Untrusted Self-Signed Certificates</td>
                                 <td>
                                     <input
                                         type="checkbox"
@@ -269,7 +269,7 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                                 </td>
                             </tr>
                             <tr>
-                                <td className="environment-table-name">Custom CA Certificates</td>
+                                <td className="environment-table-name">Use Server CA Certificates</td>
                                 <td>
                                     <input
                                         type="checkbox"
