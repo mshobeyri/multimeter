@@ -9,6 +9,7 @@ import {readFile} from './JSerFileLoader';
 import {fileType, indentLines, toLowerUnderscore} from './JSerHelper';
 import {testToJsfunc} from './JSerTest';
 import {httpToTest, httpToTestStrict, isHttpFilePath} from './httpParsePack';
+import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
 import {yamlToTest, yamlToTestStrict} from './testParsePack';
 
 const basenameNoExt = (p: string): string => {
@@ -184,7 +185,11 @@ const emitResolved = async(
         tracker.setInputKeys(resolvedPath, Object.keys(api.inputs));
       }
       if (api.outputs && typeof api.outputs === 'object') {
-        tracker.setOutputKeys(resolvedPath, Object.keys(api.outputs));
+        const userKeys = Object.keys(api.outputs);
+        const allKeys = [...new Set([...DEFAULT_OUTPUT_KEYS, ...userKeys])];
+        tracker.setOutputKeys(resolvedPath, allKeys);
+      } else {
+        tracker.setOutputKeys(resolvedPath, [...DEFAULT_OUTPUT_KEYS]);
       }
       results.push(
           await apiToJSfunc({

@@ -168,7 +168,14 @@ export const testToJsfunc = async(
           if (!allowedOutputs || !map || typeof map !== 'object' || Array.isArray(map)) {
             return;
           }
-          const unknownOutputs = Object.keys(map).filter(k => !allowedOutputs.has(k));
+          const unknownOutputs = Object.keys(map).filter(k => {
+            // Direct match
+            if (allowedOutputs.has(k)) { return false; }
+            // Dot-notation: root segment must be a valid output key (e.g. body.message → body)
+            const dotIdx = k.indexOf('.');
+            if (dotIdx > 0 && allowedOutputs.has(k.slice(0, dotIdx))) { return false; }
+            return true;
+          });
           if (unknownOutputs.length > 0) {
             throw new Error(
               `${context}[${i}]: call "${step.call}" has undefined output(s) in ${label}: ${unknownOutputs.map(k => `"${k}"`).join(', ')}`

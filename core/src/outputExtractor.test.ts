@@ -1,4 +1,4 @@
-import { extractOutputs, buildBodyExprFromPath, ResponseData } from './outputExtractor';
+import { extractOutputs, buildBodyExprFromPath, ResponseData, DEFAULT_EXTRACTION_RULES, DEFAULT_OUTPUT_KEYS, mergeWithDefaultExtractionRules } from './outputExtractor';
 
 describe('outputExtractor', () => {
   it('extracts with explicit regex prefix (legacy)', () => {
@@ -414,5 +414,150 @@ describe('buildBodyExprFromPath', () => {
 
   it('handles mixed string and numeric segments', () => {
     expect(buildBodyExprFromPath(['data', 2, 'tags', 0])).toBe('body.data.2.tags.0');
+  });
+});
+
+describe('DEFAULT_EXTRACTION_RULES', () => {
+  it('contains body, headers, cookies, status, duration', () => {
+    expect(DEFAULT_EXTRACTION_RULES).toEqual({
+      body: 'body',
+      headers: 'headers',
+      cookies: 'cookies',
+      status: 'status',
+      duration: 'duration',
+    });
+  });
+});
+
+describe('DEFAULT_OUTPUT_KEYS', () => {
+  it('contains all default key names', () => {
+    expect(DEFAULT_OUTPUT_KEYS).toContain('body');
+    expect(DEFAULT_OUTPUT_KEYS).toContain('headers');
+    expect(DEFAULT_OUTPUT_KEYS).toContain('cookies');
+    expect(DEFAULT_OUTPUT_KEYS).toContain('status');
+    expect(DEFAULT_OUTPUT_KEYS).toContain('duration');
+    expect(DEFAULT_OUTPUT_KEYS).toHaveLength(5);
+  });
+});
+
+describe('mergeWithDefaultExtractionRules', () => {
+  it('returns defaults when user outputs are undefined', () => {
+    const result = mergeWithDefaultExtractionRules(undefined);
+    expect(result).toEqual(DEFAULT_EXTRACTION_RULES);
+  });
+
+  it('returns defaults when user outputs are empty', () => {
+    const result = mergeWithDefaultExtractionRules({});
+    expect(result).toEqual(DEFAULT_EXTRACTION_RULES);
+  });
+
+  it('user outputs override defaults with same name', () => {
+    const result = mergeWithDefaultExtractionRules({ body: 'body.data', status: 'body.statusCode' });
+    expect(result.body).toBe('body.data');
+    expect(result.status).toBe('body.statusCode');
+    // other defaults remain
+    expect(result.headers).toBe('headers');
+    expect(result.cookies).toBe('cookies');
+    expect(result.duration).toBe('duration');
+  });
+
+  it('user outputs add new keys alongside defaults', () => {
+    const result = mergeWithDefaultExtractionRules({ token: 'body.token', userId: 'body.user.id' });
+    expect(result.token).toBe('body.token');
+    expect(result.userId).toBe('body.user.id');
+    // defaults still present
+    expect(result.body).toBe('body');
+    expect(result.headers).toBe('headers');
+    expect(result.cookies).toBe('cookies');
+    expect(result.status).toBe('status');
+    expect(result.duration).toBe('duration');
+  });
+
+  it('user outputs can override some defaults and add new keys', () => {
+    const result = mergeWithDefaultExtractionRules({ status: 'body.code', message: 'body.message' });
+    expect(result.status).toBe('body.code');
+    expect(result.message).toBe('body.message');
+    expect(result.body).toBe('body');
+  });
+});
+
+describe('extractOutputs with default rules', () => {
+  it('extracts body, headers, cookies, status, duration with default rules', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: { message: 'hello', id: 42 },
+      headers: { 'Content-Type': 'application/json' },
+      cookies: { session: 'abc123' },
+      status: 200,
+      duration: 150,
+    } as any;
+    const result = extractOutputs(response, DEFAULT_EXTRACTION_RULES);
+    expect(result.body).toEqual({ message: 'hello', id: 42 });
+    expect(result.headers).toEqual({ 'Content-Type': 'application/json' });
+    expect(result.cookies).toEqual({ session: 'abc123' });
+    expect(result.status).toBe(200);
+    expect(result.duration).toBe(150);
+  });
+
+  it('extracts defaults plus user-defined outputs', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: { message: 'success', token: 'xyz' },
+      headers: { 'Content-Type': 'application/json' },
+      cookies: {},
+      status: 201,
+      duration: 80,
+    } as any;
+    const rules = mergeWithDefaultExtractionRules({ token: 'body.token', msg: 'body.message' });
+    const result = extractOutputs(response, rules);
+    expect(result.body).toEqual({ message: 'success', token: 'xyz' });
+    expect(result.status).toBe(201);
+    expect(result.duration).toBe(80);
+    expect(result.token).toBe('xyz');
+    expect(result.msg).toBe('success');
+  });
+
+  it('user override replaces default extraction for same key', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: { data: { items: [1, 2, 3] }, raw: 'test' },
+      headers: { 'X-Custom': 'val' },
+      cookies: {},
+      status: 200,
+      duration: 50,
+    } as any;
+    // User overrides body to extract only body.data
+    const rules = mergeWithDefaultExtractionRules({ body: 'body.data' });
+    const result = extractOutputs(response, rules);
+    expect(result.body).toEqual({ items: [1, 2, 3] });
+    expect(result.status).toBe(200);
+  });
+
+  it('status defaults to 0 when not present in response', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: {},
+      headers: {},
+      cookies: {},
+    };
+    const result = extractOutputs(response, DEFAULT_EXTRACTION_RULES);
+    expect(result.status).toBe(0);
+    expect(result.duration).toBe(0);
+  });
+
+  it('supports dot-notation paths for nested body access', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: { user: { name: 'mehrdad', age: 30 } },
+      headers: {},
+      cookies: {},
+      status: 200,
+      duration: 100,
+    } as any;
+    const rules = mergeWithDefaultExtractionRules({ 'userName': 'body.user.name' });
+    const result = extractOutputs(response, rules);
+    expect(result.userName).toBe('mehrdad');
+    expect(result.body).toEqual({ user: { name: 'mehrdad', age: 30 } });
+    expect(result.status).toBe(200);
   });
 });
