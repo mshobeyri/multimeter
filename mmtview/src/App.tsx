@@ -120,10 +120,13 @@ const App: React.FC = () => {
         if (message.projectRoot) setProjectRoot(message.projectRoot);
         if (message.mode) {
           if (message.mode === "compare") {
+            setPanelMode("yaml");
             setPanelSize(window.innerWidth);
           } else {
+            setPanelMode("full");
             setPanelSize(window.innerWidth / 2);
           }
+          lastWindowWidthRef.current = window.innerWidth;
         }
       }
 
@@ -173,6 +176,7 @@ const App: React.FC = () => {
           setPanelMode("ui");
           setPanelSize(0);
         }
+        lastWindowWidthRef.current = window.innerWidth;
       }
 
       if (message.command === "config") {
@@ -198,6 +202,7 @@ const App: React.FC = () => {
             setPanelMode("ui");
             setPanelSize(0);
           }
+          lastWindowWidthRef.current = window.innerWidth;
         }
         if (typeof message.collapseDescription === "boolean") {
           setCollapseDescription(message.collapseDescription);
