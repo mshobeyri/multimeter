@@ -11,6 +11,7 @@ interface MockEndpointBoxProps {
   showExpand?: boolean;
   expanded?: boolean;
   onToggleExpand?: () => void;
+  variant?: 'endpoint' | 'fallback';
 }
 
 const METHODS = ['get', 'post', 'put', 'delete', 'patch', 'head', 'options'] as const;
@@ -32,7 +33,7 @@ export const METHOD_COLORS: Record<string, string> = {
 };
 
 const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
-  endpoint, onChange, onDuplicate, onRemove, showExpand, expanded, onToggleExpand,
+  endpoint, onChange, onDuplicate, onRemove, showExpand, expanded, onToggleExpand, variant = 'endpoint',
 }) => {
   /* ─── Local state: commit only on blur / Enter ─── */
   const bodyToStr = (b: any) =>
@@ -103,6 +104,9 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
   }), [commit]);
 
   const method = (local.method || 'get').toLowerCase();
+  const isFallback = variant === 'fallback';
+  const summaryLabel = isFallback ? 'FALLBACK' : method.toUpperCase();
+  const summaryPath = isFallback ? '/?' : local.path;
 
   /* ─── Context menu (kebab) ─── */
   const Actions = () => {
@@ -168,13 +172,15 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
 
     return (
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'flex-start', pointerEvents: 'auto', gap: 0 }}>
-        <button ref={btnRef} className="action-button" type="button"
-          onPointerDown={e => e.stopPropagation()}
-          onPointerUp={e => { e.stopPropagation(); setOpenMenu(v => { if (!v) { openAtButton(); } return !v; }); }}
-          draggable={false} tabIndex={0} aria-haspopup="menu" aria-expanded={openMenu} title="More actions"
-        >
-          <span className="codicon codicon-kebab-vertical" />
-        </button>
+        {(onDuplicate || onRemove) && (
+          <button ref={btnRef} className="action-button" type="button"
+            onPointerDown={e => e.stopPropagation()}
+            onPointerUp={e => { e.stopPropagation(); setOpenMenu(v => { if (!v) { openAtButton(); } return !v; }); }}
+            draggable={false} tabIndex={0} aria-haspopup="menu" aria-expanded={openMenu} title="More actions"
+          >
+            <span className="codicon codicon-kebab-vertical" />
+          </button>
+        )}
         {showExpand && (
           <button className="action-button" type="button"
             onPointerDown={e => e.stopPropagation()}
@@ -192,12 +198,12 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
   /* ─── Collapsed summary row ─── */
   const summary = (
     <div className="test-flow-box-items" style={{ alignItems: 'center' }}>
-      <span style={{ flex: '0 1 60px', maxWidth: 60, minWidth: 0, fontWeight: 700, fontSize: 12, color: METHOD_COLORS[method] || 'inherit' }}>
-        {method.toUpperCase()}
+      <span style={{ flex: `0 1 ${isFallback ? 76 : 60}px`, maxWidth: isFallback ? 76 : 60, minWidth: 0, fontWeight: 700, fontSize: 12, color: isFallback ? 'var(--vscode-descriptionForeground)' : METHOD_COLORS[method] || 'inherit' }}>
+        {summaryLabel}
       </span>
       <div style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{ fontSize: 12, fontFamily: 'var(--vscode-editor-font-family, monospace)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {local.path}
+          {summaryPath}
         </span>
         {local.name && (
           <span style={{ fontSize: 10, padding: '1px 5px', borderRadius: 3, backgroundColor: 'var(--vscode-badge-background)', color: 'var(--vscode-badge-foreground)', whiteSpace: 'nowrap' }}>
@@ -205,8 +211,8 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
           </span>
         )}
       </div>
-      {local.match && <span style={{ fontSize: 10, fontStyle: 'italic', color: 'var(--vscode-descriptionForeground)' }}>match</span>}
-      {local.reflect ? (
+      {!isFallback && local.match && <span style={{ fontSize: 10, fontStyle: 'italic', color: 'var(--vscode-descriptionForeground)' }}>match</span>}
+      {!isFallback && local.reflect ? (
         <span style={{ fontSize: 10, fontStyle: 'italic', color: 'var(--vscode-descriptionForeground)' }}>reflect</span>
       ) : (
         <span style={{ color: 'var(--vscode-descriptionForeground)', fontSize: 12, minWidth: 28, textAlign: 'right' }}>{local.status ?? 200}</span>
@@ -228,27 +234,31 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
       {summary}
       <div style={{ padding: '8px 0 4px 0', display: 'flex', flexDirection: 'column', gap: 6 }}>
         {/* Method */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Method</span>
-          <select
-            value={method}
-            onChange={e => commitWith({ method: e.target.value as any })}
-            style={{ flex: 1, padding: '4px 6px' }}
-          >
-            {METHODS.map(m => <option key={m} value={m}>{m.toUpperCase()}</option>)}
-          </select>
-        </div>
+        {!isFallback && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Method</span>
+            <select
+              value={method}
+              onChange={e => commitWith({ method: e.target.value as any })}
+              style={{ flex: 1, padding: '4px 6px' }}
+            >
+              {METHODS.map(m => <option key={m} value={m}>{m.toUpperCase()}</option>)}
+            </select>
+          </div>
+        )}
         {/* Path */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Path</span>
-          <input
-            value={local.path || ''}
-            onChange={e => setField({ path: e.target.value })}
-            {...blurOrEnter}
-            placeholder="/path/:param"
-            style={{ flex: 1, width: '100%' }}
-          />
-        </div>
+        {!isFallback && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Path</span>
+            <input
+              value={local.path || ''}
+              onChange={e => setField({ path: e.target.value })}
+              {...blurOrEnter}
+              placeholder="/path/:param"
+              style={{ flex: 1, width: '100%' }}
+            />
+          </div>
+        )}
         {/* Status */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Status</span>
@@ -274,39 +284,45 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
           </select>
         </div>
         {/* Name */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Name</span>
-          <input
-            value={local.name || ''}
-            onChange={e => setField({ name: e.target.value || undefined })}
-            {...blurOrEnter}
-            placeholder="optional"
-            style={{ flex: 1, width: '100%' }}
-          />
-        </div>
+        {!isFallback && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Name</span>
+            <input
+              value={local.name || ''}
+              onChange={e => setField({ name: e.target.value || undefined })}
+              {...blurOrEnter}
+              placeholder="optional"
+              style={{ flex: 1, width: '100%' }}
+            />
+          </div>
+        )}
         {/* Delay */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Delay</span>
-          <input
-            type="number"
-            value={local.delay ?? ''}
-            onChange={e => setField({ delay: parseInt(e.target.value, 10) || undefined })}
-            {...blurOrEnter}
-            min={0}
-            placeholder="inherited"
-            style={{ flex: 1, width: '100%' }}
-          />
-          <span style={{ fontSize: 10, color: 'var(--vscode-descriptionForeground)' }}>ms</span>
-        </div>
+        {!isFallback && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Delay</span>
+            <input
+              type="number"
+              value={local.delay ?? ''}
+              onChange={e => setField({ delay: parseInt(e.target.value, 10) || undefined })}
+              {...blurOrEnter}
+              min={0}
+              placeholder="inherited"
+              style={{ flex: 1, width: '100%' }}
+            />
+            <span style={{ fontSize: 10, color: 'var(--vscode-descriptionForeground)' }}>ms</span>
+          </div>
+        )}
         {/* Reflect */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Reflect</span>
-          <input
-            type="checkbox"
-            checked={!!local.reflect}
-            onChange={e => commitWith({ reflect: e.target.checked || undefined })}
-          />
-        </div>
+        {!isFallback && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0 }}>Reflect</span>
+            <input
+              type="checkbox"
+              checked={!!local.reflect}
+              onChange={e => commitWith({ reflect: e.target.checked || undefined })}
+            />
+          </div>
+        )}
         {/* Body */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
           <span style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', width: 56, flexShrink: 0, paddingTop: 4 }}>Body</span>

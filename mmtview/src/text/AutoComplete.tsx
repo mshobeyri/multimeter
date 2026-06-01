@@ -1391,9 +1391,9 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "connection",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "connection:\n\tmode: tls",
+            insertText: "connection:\n\tmode: tls\n\tcert: ./certs/server.crt\n\tkey: ./certs/server.key",
             detail: 'Connection security [object]',
-            documentation: 'Connection security configuration. mode can be plain, tls, or mtls. TLS can use built-in self-signed certs when cert/key are omitted. mTLS requires client_ca.\nExample:\nconnection:\n  mode: mtls\n  cert: ./certs/server.crt\n  key: ./certs/server.key\n  client_ca: ./certs/ca.crt'
+            documentation: 'Connection security configuration. mode can be plain, tls, or mtls. cert, key, and client_ca are file paths resolved relative to the server .mmt file. TLS can use built-in self-signed certs when cert/key are omitted. mTLS requires client_ca.\nExample:\nconnection:\n  mode: mtls\n  cert: ./certs/server.crt\n  key: ./certs/server.key\n  client_ca: ./certs/ca.crt'
         },
         {
             label: "cors",

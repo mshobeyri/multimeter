@@ -156,6 +156,8 @@ fallback:
 
 Mock server file protocols are `http`, `https`, or `ws`. The `connection` block controls whether the HTTP connection is plain, TLS, or mTLS:
 
+Certificate paths in `connection.cert`, `connection.key`, and `connection.client_ca` are resolved relative to the `.mmt` server file. The visual mock editor exposes these in the **Server** tab, including file pickers for certificate/key paths.
+
 ```yaml
 type: server
 protocol: https
