@@ -141,7 +141,7 @@ export function notMatches_(a: any, b: any) {
   }
 }
 
-function lengthOf_(value: any): number {
+export function lengthOf_(value: any): number {
   if (Array.isArray(value)) {
     return value.length;
   }
@@ -217,6 +217,13 @@ function similarityForComparison_(comparison: string, actual: any, expected: any
     return undefined;
   }
   return similarityPercent_(actual, expected);
+}
+
+function countForComparison_(comparison: string, actual: any): number | undefined {
+  if (!/[=!]#/.test(String(comparison ?? ''))) {
+    return undefined;
+  }
+  return lengthOf_(actual);
 }
 
 export function startsWith_(a: any, b: any) {
@@ -421,6 +428,7 @@ export const reportWithContext_ = (
           expected: i.expected,
           status: i.passed ? 'passed' : 'failed',
           similarity: similarityForComparison_(normalizeComparison(i.comparison), i.actual, i.expected),
+          count: countForComparison_(normalizeComparison(i.comparison), i.actual),
         }))
       : [{
           comparison: normalizeComparison(comparison),
@@ -428,6 +436,7 @@ export const reportWithContext_ = (
           expected,
           status: passed ? 'passed' : 'failed',
           similarity: similarityForComparison_(normalizeComparison(comparison), actual, expected),
+          count: countForComparison_(normalizeComparison(comparison), actual),
         }];
 
   const payload: Record<string, any> = {

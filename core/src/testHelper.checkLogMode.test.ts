@@ -1,4 +1,4 @@
-import {check_, checkExpects_, equals_, fuzzyMatch_, lengthEquals_, matches_, notEquals_, notFuzzyMatch_, notLengthEquals_, notMatches_, reportWithContext_, similarityPercent_} from './testHelper';
+import {check_, checkExpects_, equals_, fuzzyMatch_, lengthEquals_, lengthOf_, matches_, notEquals_, notFuzzyMatch_, notLengthEquals_, notMatches_, reportWithContext_, similarityPercent_} from './testHelper';
 
 describe('testHelper checkLogMode', () => {
   function makeConsole() {
@@ -119,6 +119,56 @@ describe('testHelper comparison helpers', () => {
     expect(lengthEquals_('abcd', 4)).toBe(true);
     expect(lengthEquals_(1234, 4)).toBe(true);
     expect(notLengthEquals_([1, 2], 3)).toBe(true);
+    expect(lengthOf_({a: 1, b: 2})).toBe(2);
+  });
+
+  it('reports count for passed length/count comparisons', () => {
+    const reporter = jest.fn();
+
+    reportWithContext_(
+      reporter,
+      'run-1',
+      'node-1',
+      'check',
+      'users =# 3',
+      'user count',
+      undefined,
+      true,
+      ['a', 'b', 'c'],
+      3,
+    );
+
+    expect(reporter).toHaveBeenCalledTimes(1);
+    expect(reporter.mock.calls[0][0].expects[0]).toMatchObject({
+      status: 'passed',
+      actual: ['a', 'b', 'c'],
+      expected: 3,
+      count: 3,
+    });
+  });
+
+  it('reports count for passed negative length/count comparisons', () => {
+    const reporter = jest.fn();
+
+    reportWithContext_(
+      reporter,
+      'run-1',
+      'node-1',
+      'check',
+      'users !# 0',
+      'user count',
+      undefined,
+      true,
+      {a: 1, b: 2},
+      0,
+    );
+
+    expect(reporter.mock.calls[0][0].expects[0]).toMatchObject({
+      status: 'passed',
+      actual: {a: 1, b: 2},
+      expected: 0,
+      count: 2,
+    });
   });
 
   it('checks fuzzy percentage similarity', () => {

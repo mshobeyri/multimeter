@@ -339,6 +339,7 @@ export interface ExpectReportItem {
   expected?: any;
   status: StepStatus;
   similarity?: number;
+  count?: number;
 }
 
 export interface StepReportItem {
@@ -495,7 +496,7 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                             <div style={{ marginTop: 4, display: 'flex', flexDirection: 'column', gap: 8 }}>
                             {report.expects.map((item, idx) => {
                               const itemMeta = isDebug ? statusIconFor('debug') : statusIconFor(item.status);
-                              const showActualDetails = !isDebug && typeof item.similarity === 'number' && item.actual !== undefined && item.expected !== undefined;
+                              const showActualDetails = !isDebug && (typeof item.similarity === 'number' || typeof item.count === 'number') && item.actual !== undefined && item.expected !== undefined;
                               const showFailureDetails = !isDebug && item.status === 'failed' && item.actual !== undefined && item.expected !== undefined;
                               return (
                                 <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 2, paddingLeft: 4 }}>
@@ -515,6 +516,9 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
                                       <span style={{ opacity: 0.7, fontSize: 12, paddingLeft: 24 }}>got: {typeof item.actual === 'object' ? JSON.stringify(item.actual) : String(item.actual)}</span>
                                       {typeof item.similarity === 'number' && (
                                         <span style={{ opacity: 0.7, fontSize: 12, paddingLeft: 24 }}>similarity: {item.similarity}%</span>
+                                      )}
+                                      {typeof item.count === 'number' && (
+                                        <span style={{ opacity: 0.7, fontSize: 12, paddingLeft: 24 }}>count: {item.count}</span>
                                       )}
                                     </>
                                   )}

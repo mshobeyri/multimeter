@@ -134,6 +134,30 @@ describe('generateReportMarkdown', () => {
     expect(md).toContain('similarity: 75%');
   });
 
+  it('includes passed length/count details with got and count', () => {
+    const results: CollectedResults = {
+      type: 'test',
+      testRuns: [
+        makeRun({
+          displayName: 'test.mmt',
+          steps: [
+            makeStep({
+              title: 'users =# 3',
+              status: 'passed',
+              expects: [{ comparison: 'users =# 3', actual: ['a', 'b', 'c'], expected: 3, count: 3, status: 'passed' }],
+            }),
+          ],
+        }),
+      ],
+    };
+
+    const md = generateReportMarkdown(results);
+    expect(md).toContain('<summary>✓ users =# 3</summary>');
+    expect(md).toContain('✓ users =# 3');
+    expect(md).toContain('got: ["a","b","c"]');
+    expect(md).toContain('count: 3');
+  });
+
   it('renders response headers and object bodies as JSON in failure details', () => {
     const details = JSON.stringify({
       _: {
