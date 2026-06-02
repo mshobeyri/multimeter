@@ -1,6 +1,7 @@
 import {Format, JSONValue} from './CommonData';
-import {formatBody} from './markupConvertor';
+import {formatBody, formattedBodyToYamlObject} from './markupConvertor';
 import {MockData, MockEndpoint, MockFallback, MockMatch} from './MockData';
+import {applyValueAccessor} from './variableReplacer';
 
 /**
  * Platform-neutral mock request router.
@@ -129,31 +130,120 @@ function matchCondition(match: MockMatch, req: MockRequest): boolean {
   return true;
 }
 
-/** Replace :param references in a value tree with actual path params. */
-function replacePathParams(value: any, params: Record<string, string>): any {
+export interface MockRequestContext {
+  url: Record<string, string>;
+  body: any;
+  header: Record<string, string>;
+  query: Record<string, string>;
+}
+
+const MOCK_REF_RE = /\$\{(url|body|header|query)\.([^}]+)\}/g;
+
+/** Infer request body format from Content-Type and body shape. */
+export function inferRequestBodyFormat(
+    headers: Record<string, string>, rawBody: string): 'json'|'xml'|'text' {
+  const contentTypeKey = Object.keys(headers).find(k => k.toLowerCase() === 'content-type');
+  const contentType = contentTypeKey ? headers[contentTypeKey].toLowerCase() : '';
+  if (contentType.includes('json')) {
+    return 'json';
+  }
+  if (contentType.includes('xml')) {
+    return 'xml';
+  }
+  const trimmed = rawBody.trim();
+  if ((trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+      (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+    return 'json';
+  }
+  if (trimmed.startsWith('<')) {
+    return 'xml';
+  }
+  return 'text';
+}
+
+/** Parse a raw HTTP request body into an object (JSON or XML) when possible. */
+export function parseRequestBody(rawBody: string, headers: Record<string, string>): any {
+  if (!rawBody || !rawBody.trim()) {
+    return undefined;
+  }
+  const format = inferRequestBodyFormat(headers, rawBody);
+  if (format === 'json' || format === 'xml') {
+    const parsed = formattedBodyToYamlObject(format, rawBody);
+    return parsed ?? rawBody;
+  }
+  return rawBody;
+}
+
+/** Build the substitution context for ${url.*}, ${body.*}, ${header.*}, ${query.*}. */
+export function buildRequestContext(
+    req: MockRequest, pathParams: Record<string, string>): MockRequestContext {
+  const pathOnly = req.path.split('?')[0];
+  return {
+    url: {...pathParams, path: pathOnly},
+    body: req.body,
+    header: req.headers,
+    query: req.query,
+  };
+}
+
+function lookupHeader(headers: Record<string, string>, name: string): string | undefined {
+  const key = Object.keys(headers).find(k => k.toLowerCase() === name.toLowerCase());
+  return key ? headers[key] : undefined;
+}
+
+function resolveMockRef(namespace: string, path: string, ctx: MockRequestContext): any {
+  switch (namespace) {
+    case 'url':
+      return applyValueAccessor(ctx.url, path.startsWith('.') ? path : `.${path}`);
+    case 'body':
+      return applyValueAccessor(ctx.body, path.startsWith('.') ? path : `.${path}`);
+    case 'header':
+      return lookupHeader(ctx.header, path);
+    case 'query':
+      return applyValueAccessor(ctx.query, path.startsWith('.') ? path : `.${path}`);
+    default:
+      return undefined;
+  }
+}
+
+/** Replace ${url.*}, ${body.*}, ${header.*}, ${query.*} references in a value tree. */
+export function replaceRequestRefs(value: any, ctx: MockRequestContext): any {
   if (typeof value === 'string') {
-    // Exact match: ":id" → params.id
-    if (value.startsWith(':') && params[value.slice(1)] !== undefined) {
-      return params[value.slice(1)];
+    const exactMatch = value.match(/^\$\{(url|body|header|query)\.([^}]+)\}$/);
+    if (exactMatch) {
+      const resolved = resolveMockRef(exactMatch[1], exactMatch[2], ctx);
+      return resolved !== undefined ? resolved : value;
     }
-    // Inline replacement: "user-:id" → "user-42"
-    let result = value;
-    for (const [k, v] of Object.entries(params)) {
-      result = result.replace(new RegExp(`:${k}\\b`, 'g'), v);
-    }
-    return result;
+    return value.replace(MOCK_REF_RE, (match, ns: string, path: string) => {
+      const resolved = resolveMockRef(ns, path, ctx);
+      return resolved !== undefined ? String(resolved) : match;
+    });
   }
   if (Array.isArray(value)) {
-    return value.map(item => replacePathParams(item, params));
+    return value.map(item => replaceRequestRefs(item, ctx));
   }
   if (value && typeof value === 'object') {
     const out: Record<string, any> = {};
     for (const [k, v] of Object.entries(value)) {
-      out[k] = replacePathParams(v, params);
+      out[k] = replaceRequestRefs(v, ctx);
     }
     return out;
   }
   return value;
+}
+
+/** Extract Express-style :param names from endpoint path patterns. */
+export function extractPathParamNames(paths: string[]): string[] {
+  const names = new Set<string>();
+  for (const pattern of paths) {
+    const parts = pattern.split('/');
+    for (const part of parts) {
+      if (part.startsWith(':')) {
+        names.add(part.slice(1));
+      }
+    }
+  }
+  return [...names];
 }
 
 /** Serialize body based on format. */
@@ -254,8 +344,8 @@ export function buildResponse(
   const format = endpoint.format || autoDetectFormat(endpoint.body);
   let body = endpoint.body;
 
-  // Replace path params in body
-  body = replacePathParams(body, pathParams);
+  // Substitute ${url.*}, ${body.*}, ${header.*}, ${query.*} from the request
+  body = replaceRequestRefs(body, buildRequestContext(req, pathParams));
 
   // Resolve tokens (r:, c:, e:)
   if (tokenResolver) {
@@ -301,8 +391,7 @@ export function buildFallbackResponse(
   const format = fallback.format || autoDetectFormat(fallback.body);
   let body = fallback.body;
 
-  // Replace :path with the actual unmatched path
-  body = replacePathParams(body, {path: req.path});
+  body = replaceRequestRefs(body, buildRequestContext(req, {}));
 
   if (tokenResolver) {
     body = tokenResolver(body);

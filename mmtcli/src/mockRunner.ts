@@ -184,12 +184,7 @@ export async function startMockServerFromPath(
         searchParams.forEach((v, k) => { queryObj[k] = v; });
       }
 
-      let parsedBody: any;
-      try {
-        parsedBody = JSON.parse(body);
-      } catch {
-        parsedBody = body || undefined;
-      }
+      const parsedBody = mockServer.parseRequestBody(body, (req.headers || {}) as Record<string, string>);
 
       const mockReq = {
         method,

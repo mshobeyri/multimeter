@@ -185,7 +185,7 @@ endpoints:
     status: 200
     format: json
     body:
-      id: ":id"
+      id: "${url.id}"
       name: Test User
 ```
 Run: Start from the Mock Server panel, from a test using the `run` step, or include in a suite.

@@ -1493,7 +1493,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "body: ",
             detail: 'Response body [any]',
-            documentation: 'Response body content. Supports JSON objects, strings, or any YAML value.\nTokens like <<r:uuid>>, <<c:timestamp>>, <<e:VAR>> are resolved at runtime.\nPath parameters like :id are substituted from the request URL.'
+            documentation: 'Response body content. Supports JSON objects, strings, or any YAML value.\nTokens like <<r:uuid>>, <<c:timestamp>>, <<e:VAR>> are resolved at runtime.\nEcho request data with ${url.id}, ${body.name}, ${header.authorization}, or ${query.page}.'
         },
         {
             label: "delay",

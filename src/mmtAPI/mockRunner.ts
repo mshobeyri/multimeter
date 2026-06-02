@@ -245,13 +245,8 @@ export async function startMockServer(
         searchParams.forEach((v, k) => { queryObj[k] = v; });
       }
 
-      // Parse request body
-      let parsedBody: any;
-      try {
-        parsedBody = JSON.parse(body);
-      } catch {
-        parsedBody = body || undefined;
-      }
+      // Parse request body (JSON or XML)
+      const parsedBody = mockServer.parseRequestBody(body, (req.headers || {}) as Record<string, string>);
 
       const mockReq = {
         method,
@@ -483,13 +478,8 @@ export async function startMockServerFromPath(
         searchParams.forEach((v, k) => { queryObj[k] = v; });
       }
 
-      // Parse request body
-      let parsedBody: any;
-      try {
-        parsedBody = JSON.parse(body);
-      } catch {
-        parsedBody = body || undefined;
-      }
+      // Parse request body (JSON or XML)
+      const parsedBody = mockServer.parseRequestBody(body, (req.headers || {}) as Record<string, string>);
 
       const mockReq = {
         method,

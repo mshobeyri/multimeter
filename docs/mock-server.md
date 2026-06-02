@@ -108,7 +108,8 @@ In addition to the basic mock server modes (HTTP, HTTPS, mTLS, WebSocket), you c
 
 - Multiple endpoints with different paths and methods
 - Request matching (body, headers, query parameters)
-- Path parameters (e.g., `/users/:id`)
+- Path parameters (e.g., `/users/:id`) — echo with `${url.id}` in response values
+- Request body, header, and query echo via `${body.field}`, `${header.name}`, `${query.param}`
 - Dynamic response values (`r:uuid`, `c:date`, `e:VAR`)
 - Response delays and global headers
 - Proxy forwarding for unmatched routes
@@ -134,7 +135,7 @@ endpoints:
     status: 200
     format: json
     body:
-      id: ":id"
+      id: "${url.id}"
       name: Test User
       created: c:date
 
@@ -144,6 +145,8 @@ endpoints:
     format: json
     body:
       id: r:uuid
+      name: "${body.name}"
+      email: "${body.email}"
       message: User created
 
 fallback:
@@ -151,6 +154,33 @@ fallback:
   body:
     error: Not Found
 ```
+
+### Echoing request data in responses
+
+Use `${namespace.field}` placeholders in response `body` values (and inside strings) to echo data from the incoming request:
+
+| Namespace | Syntax | Source |
+|-----------|--------|--------|
+| URL | `${url.id}` | Path parameters from route patterns like `/users/:id` |
+| URL | `${url.path}` | Full request path (without query string) |
+| Body | `${body.name}` | Parsed request body (JSON or XML → object) |
+| Header | `${header.authorization}` | Incoming request headers (case-insensitive) |
+| Query | `${query.page}` | Query string parameters |
+
+Examples:
+
+```yaml
+body:
+  id: "${url.id}"
+  received_name: "${body.name}"
+  client_key: "${header.x-api-key}"
+  page: "${query.page}"
+  message: "Created user ${body.name} with id ${url.id}"
+```
+
+Request bodies are parsed automatically from JSON or XML (based on `Content-Type` or body shape). Nested fields use dot notation: `${body.user.email}`.
+
+In the YAML editor, type `${` to get autocomplete for `url.`, `body.`, `header.`, and `query.` — including path parameter names from your endpoint paths.
 
 ### HTTPS and mTLS server files
 
