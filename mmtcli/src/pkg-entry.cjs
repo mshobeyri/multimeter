@@ -199,52 +199,50 @@ function createPkgServerRunner(envVars) {
 	}
 
 	const activeServers = new Map();
-	const DEFAULT_MOCK_SERVER_CERT = `-----BEGIN CERTIFICATE-----
-MIIC4zCCAcugAwIBAgIUVlsDC13DzCkayR1TWv3h1BHhQY8wDQYJKoZIhvcNAQEL
-BQAwITEfMB0GA1UEAwwWTXVsdGltZXRlciBUTFMgTW9jayBDQTAgFw0yNjA2MDEy
-MDM0NDVaGA8yMTI2MDUwODIwMzQ0NVowFDESMBAGA1UEAwwJbG9jYWxob3N0MIIB
-IjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAv4F5aSMjBojiR8CCaPs8/rDC
-wggcNGR0LavGUX4vV2bzixZxhcoM+Df/Y6rTM6rxax8yuc78eKev4FvvnwIU8TnN
-36r4cco2SuuiaaKMAo+3l3Yl+Ost0FDBI5GnLXo9Yu12onhnngit/iHmM10FgwNG
-eii7W+214RWpvU5nJ1w4vaUTB/1FD0tQXBKPvAfDKhvps3tYiSjyEiec9Sb2Mhfz
-vP6/RAhWqAs9uT3IEeIymAzMDjNNYqyNT6tYaQZ0ldqvObxGvTjx+vKkvsaR/7eU
-pfcXpIR549mHIYO0pu/PyBd2ZTAJQt/9OZAhBsPRR6zP6OU/dw82k8/zRMkoOQID
-AQABox4wHDAaBgNVHREEEzARgglsb2NhbGhvc3SHBH8AAAEwDQYJKoZIhvcNAQEL
-BQADggEBAIAtJrSrVgYqlakijqldEoP/Dz8SJ8Qe6GEyjCGeDn87gHo/C39hweXp
-9M5zjo3dLi23x49nngOSRNjIqcWriz++S7Uh1y0pwC+1HeYsS7JAsjgtW8xU2R1Z
-mt+rDRadzUwjJGjgN6y/IvnwfKJZwK6qKPi83ru+JKHdVqr8UAvzXcz6IeUh4Dvh
-GtYvrZqjtxTosjwvRi3O0Mk9sJTD5FkxFkKRnbGrO/NlsoFAX3E3u8Y0paA6As6m
-I40bnh1BDp96T4750bniurTU/rxxd/bqwUxnuGo+lS8vviJ43tAuNK/ZC2i7qFDV
-wooUTE4McJHKAjEIrJHg2m4ZKOm4Uoo=
------END CERTIFICATE-----`;
-	const DEFAULT_MOCK_SERVER_KEY = `-----BEGIN PRIVATE KEY-----
-MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC/gXlpIyMGiOJH
-wIJo+zz+sMLCCBw0ZHQtq8ZRfi9XZvOLFnGFygz4N/9jqtMzqvFrHzK5zvx4p6/g
-W++fAhTxOc3fqvhxyjZK66JpoowCj7eXdiX46y3QUMEjkactej1i7XaieGeeCK3+
-IeYzXQWDA0Z6KLtb7bXhFam9TmcnXDi9pRMH/UUPS1BcEo+8B8MqG+mze1iJKPIS
-J5z1JvYyF/O8/r9ECFaoCz25PcgR4jKYDMwOM01irI1Pq1hpBnSV2q85vEa9OPH6
-8qS+xpH/t5Sl9xekhHnj2Ychg7Sm78/IF3ZlMAlC3/05kCEGw9FHrM/o5T93DzaT
-z/NEySg5AgMBAAECggEAU1XdZpIiwMo6ZezxEwwZe9+hsNvkoiwAnos8juPxaABm
-BOWsWwMU58M+gLmqlLZTvkDiSxc2qK6YC3MWcERwppR38VguKx5KyAmIMJ3Kfaba
-xq9kUNDOq/MoSPkuHc0u/2jEkmkA9jViuc84pKtbJar8NVaaSaPE3QEXT0jZ/LcU
-ts2+30/u41IElJslpkSWM+g3Mk0PhE2O/iaeBZZakp9NnheBQj0RJAKQ9WJbjs8y
-7mapJW/vMqTNltmPupctA2N1NlHGhT5eVRtm9z8WDN+pKaoIPVLawPJvupqqmjy+
-zsFFTEZZEUznHSyGe6WogBw7VeDT73CbApZukLvK8QKBgQDvJZxvJRiQB86691Sz
-V5STcBH3Dj+wbPuLitHAbJL6NBFEujlnt1AFRDZRL0XsVv+WupR9Y/8XS5JXCojg
-n469H0ipIHbWXSa/8KJjtWulQxrNaT8idN5tz+wAim9LVecG759Tp8bsRDHiImld
-qyD5FzimWTtGuyMHQEbt8H8KtQKBgQDNAGGQY44OMwFkMBjaZVhw+OW3xen/1XgQ
-a4MHjk+HQOSZCrbFILZQEdos7Xg0VdSLiBJLMvWz0YjjydLQglIr79IC/q7cLrp4
-4ybKg61Vx6EPSdTamDlCuCsripuc99Bk2if5r4JcarG6hVdB0SMJQboVxquZGKmj
-Y+5ooCDl9QKBgFiC0yNP14d3XExWvkKiZ5sqH3wRCgGCVJeRCZDunnd8TefiBN0e
-O7+3P2NM29RdXruq0sqV+BPnJIKSo5Z/d5UHvxzZpyIv1+eyaGf+/Zhs/b6I9ZUL
-LEf4bKDGm+qGILuwdIfB0R4hH1VS5yyD6fBHZ/AplobXPF+yqo3mNR8BAoGAaC3O
-ZwtA0NR424pZxvsD0/2Y+Ch6/0ljh6yrXPakUc7XnTLFqS4zmENKRdS0ZpxLtFEF
-QvP1y1kroN8a5F2mFq/8YQs+n6SbnP2K5BXAy7v0jIlvw1rilpZzUeBRrpZ9cBMx
-h4D61a5e/bPvoQIANR8Syyg4YkgXRXJuYPsnXNUCgYEAjNBtFhzYaElJR30MyaOX
-wtNm7vIFVTP4l/IdpKTAiOZxWVQ6IgJanPngchH4pgm/7qbTqqOPQr8DYaNWCohl
-bN9h59Ls8pcfXiAOdrV9npwlr6xwVbCWHyEbOEv3hSJmR1RYM3iVBSM9rdOXuvQ1
-FXcutxDssTQVi/uiW1UMhMs=
------END PRIVATE KEY-----`;
+	let generatedDefaultTlsMaterial;
+
+	function getDefaultMockTlsMaterial() {
+		if (generatedDefaultTlsMaterial) {
+			return generatedDefaultTlsMaterial;
+		}
+
+		const forge = require('node-forge');
+		const keys = forge.pki.rsa.generateKeyPair(2048);
+		const certificate = forge.pki.createCertificate();
+		const now = new Date();
+		const expiresAt = new Date(now);
+		expiresAt.setFullYear(expiresAt.getFullYear() + 10);
+
+		certificate.publicKey = keys.publicKey;
+		certificate.serialNumber = Math.max(Date.now(), 1).toString(16);
+		certificate.validity.notBefore = now;
+		certificate.validity.notAfter = expiresAt;
+
+		const subject = [{ name: 'commonName', value: 'localhost' }];
+		certificate.setSubject(subject);
+		certificate.setIssuer(subject);
+		certificate.setExtensions([
+			{ name: 'basicConstraints', cA: false },
+			{ name: 'keyUsage', digitalSignature: true, keyEncipherment: true },
+			{ name: 'extKeyUsage', serverAuth: true },
+			{
+				name: 'subjectAltName',
+				altNames: [
+					{ type: 2, value: 'localhost' },
+					{ type: 7, ip: '127.0.0.1' },
+					{ type: 7, ip: '::1' },
+				],
+			},
+		]);
+		certificate.sign(keys.privateKey, forge.md.sha256.create());
+
+		generatedDefaultTlsMaterial = {
+			cert: forge.pki.certificateToPem(certificate),
+			key: forge.pki.privateKeyToPem(keys.privateKey),
+		};
+
+		return generatedDefaultTlsMaterial;
+	}
 
 	function resolveFilePath(relative, basePath) {
 		if (pathMod.isAbsolute(relative)) {
@@ -381,9 +379,10 @@ FXcutxDssTQVi/uiW1UMhMs=
 			if (hasCustomCert && (!connection.cert || !connection.key)) {
 				throw new Error('connection.cert and connection.key must be provided together');
 			}
+			const defaultTlsMaterial = hasCustomCert ? undefined : getDefaultMockTlsMaterial();
 			const tlsOptions = {
-				cert: connection.cert ? fs.readFileSync(resolveFilePath(connection.cert, filePath)) : DEFAULT_MOCK_SERVER_CERT,
-				key: connection.key ? fs.readFileSync(resolveFilePath(connection.key, filePath)) : DEFAULT_MOCK_SERVER_KEY,
+				cert: connection.cert ? fs.readFileSync(resolveFilePath(connection.cert, filePath)) : defaultTlsMaterial.cert,
+				key: connection.key ? fs.readFileSync(resolveFilePath(connection.key, filePath)) : defaultTlsMaterial.key,
 			};
 			if (connection.client_ca) {
 				tlsOptions.ca = fs.readFileSync(resolveFilePath(connection.client_ca, filePath));

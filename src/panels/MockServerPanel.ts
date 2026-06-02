@@ -6,7 +6,7 @@ import * as vscode from 'vscode';
 import WebSocket = require('ws');
 
 import {HistoryManager} from '../historyManager';
-import {DEFAULT_MOCK_SERVER_CERT, DEFAULT_MOCK_SERVER_KEY, startMockServerFromPath} from '../mmtAPI/mockRunner';
+import {getDefaultMockTlsMaterial, startMockServerFromPath} from '../mmtAPI/mockRunner';
 import {onRunFinished, onRunStarted} from '../runStatusBar';
 
 type ServerType = 'http' | 'https' | 'ws' | 'mmt';
@@ -320,9 +320,10 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
         return;
       }
       try {
+        const defaultTlsMaterial = certPath && keyPath ? undefined : getDefaultMockTlsMaterial();
         const {cert, key, passphrase} = certPath && keyPath ?
           this.loadServerCertificate({certPath, keyPath}) :
-          {cert: DEFAULT_MOCK_SERVER_CERT, key: DEFAULT_MOCK_SERVER_KEY, passphrase: undefined};
+          {cert: defaultTlsMaterial!.cert, key: defaultTlsMaterial!.key, passphrase: undefined};
         const httpsOptions: https.ServerOptions = {cert, key, passphrase};
         if (this.httpsRequestCert) {
           const clientCaPath = this.resolvePathMaybeRelative(this.httpsClientCaPath);
