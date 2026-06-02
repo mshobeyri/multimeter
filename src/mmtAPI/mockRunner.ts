@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as http from 'http';
 import * as https from 'https';
 import * as path from 'path';
+import {resolveCertFilePath} from 'mmt-core/fileHelper';
 import * as vscode from 'vscode';
 import YAML from 'yaml';
 import { mockParsePack, mockServer, variableReplacer, MockData as MockDataNS } from 'mmt-core';
@@ -71,10 +72,7 @@ export function getDefaultMockTlsMaterial(): GeneratedTlsMaterial {
 }
 
 function resolveFilePath(filePath: string, basePath: string): string {
-  if (path.isAbsolute(filePath)) {
-    return filePath;
-  }
-  return path.resolve(path.dirname(basePath), filePath);
+  return resolveCertFilePath(filePath, {baseFilePath: basePath});
 }
 
 function isSecureMockProtocol(protocol: string): boolean {

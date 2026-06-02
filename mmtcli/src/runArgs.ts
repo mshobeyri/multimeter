@@ -1,4 +1,4 @@
-import {findProjectRootSync} from 'mmt-core/fileHelper';
+import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/fileHelper';
 import fs from 'fs';
 import yaml from 'js-yaml';
 import * as mmtcore from 'mmt-core';
@@ -135,15 +135,9 @@ function resolveDefaultEnvVariables(variables: Record<string, any> | undefined):
   return env;
 }
 
-// Resolve certificate path relative to env file directory
+// Resolve certificate path relative to env file directory (or absolute)
 function resolveCertPath(certPath: string, envFileDir: string): string {
-  if (!certPath) {
-    return '';
-  }
-  if (path.isAbsolute(certPath)) {
-    return certPath;
-  }
-  return path.resolve(envFileDir, certPath);
+  return resolveCertFilePath(certPath, {baseDir: envFileDir});
 }
 
 // Build NetworkConfig from certificate settings in env file

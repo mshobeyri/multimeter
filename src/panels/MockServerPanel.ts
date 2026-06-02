@@ -5,6 +5,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import WebSocket = require('ws');
 
+import {resolveCertFilePath} from 'mmt-core/fileHelper';
 import {HistoryManager} from '../historyManager';
 import {getDefaultMockTlsMaterial, startMockServerFromPath} from '../mmtAPI/mockRunner';
 import {onRunFinished, onRunStarted} from '../runStatusBar';
@@ -645,14 +646,11 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
     if (!pth) {
       return '';
     }
-    if (path.isAbsolute(pth)) {
-      return pth;
-    }
     const ws = vscode.workspace.workspaceFolders?.[0];
     if (ws) {
-      return path.resolve(ws.uri.fsPath, pth);
+      return resolveCertFilePath(pth, {baseDir: ws.uri.fsPath});
     }
-    return pth;
+    return resolveCertFilePath(pth);
   }
 
   private loadServerCertificate(selected: {certPath: string; keyPath: string}): {cert: Buffer; key: Buffer; passphrase?: string} {

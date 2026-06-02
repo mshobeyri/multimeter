@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import {findProjectRootSync} from 'mmt-core/fileHelper';
+import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/fileHelper';
 import {handleNetworkMessage as coreHandleNetworkMessage, NetworkMessage, PostMessage} from 'mmt-core/network';
 import {CertificateSettings, DEFAULT_CERT_SETTINGS, NetworkConfig, resolvePassphrase} from 'mmt-core/NetworkData';
 import * as vscode from 'vscode';
@@ -192,31 +192,24 @@ function tryParseEnvFile(filePath: string): ParsedEnvFile|undefined {
   }
 }
 
-// Resolve certificate paths against the current document's project root
 function resolveCertPath(certPath: string, baseFilePath?: string): string {
   if (!certPath) {
     return '';
   }
-  if (path.isAbsolute(certPath)) {
-    return certPath;
+  const projectRoot = baseFilePath
+    ? findProjectRootSync(baseFilePath, fs.existsSync, path.dirname, path.join)
+    : null;
+  if (projectRoot) {
+    return resolveCertFilePath(certPath, {baseFilePath, projectRoot});
   }
   if (baseFilePath) {
-    // Use shared project-root finder (mirrors +/ import behavior).
-    const projectRoot = findProjectRootSync(
-        baseFilePath, fs.existsSync, path.dirname, path.join);
-    if (projectRoot) {
-      return path.resolve(projectRoot, certPath);
-    }
-    // Fallback: relative to document folder
-    return path.resolve(path.dirname(baseFilePath), certPath);
+    return resolveCertFilePath(certPath, {baseFilePath});
   }
-
-  // Last resort: relative to first workspace folder
   const ws = vscode.workspace.workspaceFolders?.[0];
   if (ws) {
-    return path.resolve(ws.uri.fsPath, certPath);
+    return resolveCertFilePath(certPath, {baseDir: ws.uri.fsPath});
   }
-  return certPath;
+  return resolveCertFilePath(certPath);
 }
 
 // Generate key for client certificate enable/disable
@@ -347,8 +340,8 @@ export function prepareNetworkConfigFromProjectFile(
   const config = vscode.workspace.getConfiguration('multimeter');
   const storedCerts: StoredCertificates = parsed?.certificates || {};
 
-  // Resolve cert paths relative to the project file's directory
   const projectDir = path.dirname(projectFilePath);
+  const certPathOpts = {baseDir: projectDir};
 
   const caCertDataList: Buffer[] = [];
   const ca = storedCerts.server_ca || {paths: []};
@@ -357,7 +350,7 @@ export function prepareNetworkConfigFromProjectFile(
   for (const caPath of caPaths) {
     if (caPath) {
       try {
-        const resolvedPath = path.isAbsolute(caPath) ? caPath : path.resolve(projectDir, caPath);
+        const resolvedPath = resolveCertFilePath(caPath, certPathOpts);
         caCertDataList.push(fs.readFileSync(resolvedPath));
       } catch {
       }
@@ -374,16 +367,13 @@ export function prepareNetworkConfigFromProjectFile(
     const pfxSrc = client.pfx || '';
     if (pfxSrc) {
       try {
-        const pfxResolvedPath = path.isAbsolute(pfxSrc) ? pfxSrc : path.resolve(projectDir, pfxSrc);
-        pfxData = fs.readFileSync(pfxResolvedPath);
+        pfxData = fs.readFileSync(resolveCertFilePath(pfxSrc, certPathOpts));
       } catch {
       }
     } else if (crtSrc && keySrc) {
       try {
-        const certResolvedPath = path.isAbsolute(crtSrc) ? crtSrc : path.resolve(projectDir, crtSrc);
-        const keyResolvedPath = path.isAbsolute(keySrc) ? keySrc : path.resolve(projectDir, keySrc);
-        certData = fs.readFileSync(certResolvedPath);
-        keyData = fs.readFileSync(keyResolvedPath);
+        certData = fs.readFileSync(resolveCertFilePath(crtSrc, certPathOpts));
+        keyData = fs.readFileSync(resolveCertFilePath(keySrc, certPathOpts));
       } catch {
       }
     }
