@@ -145,6 +145,14 @@ Syntax:
 - `<<i:param_name>> description text` — documents an input parameter
 - `<<o:param_name>> description text` — documents an output parameter
 
+Optional leading `[...]` on an input annotation documents allowed values and enables a picker in the API/test **In / Out** tab (inputs only). The bracket text is shown verbatim in generated docs.
+
+- `[a, b, c]` — discrete options (comma-separated; double-quoted tokens allowed)
+- `[1-5]` — integer range, inclusive (picker hidden if more than 10 values)
+- `["1", "2"]` keeps numeric-looking values as strings; `[1, 2]` stores them as numbers
+
+Example: `<<i:role>> [admin, editor, viewer] User role`
+
 Example API file:
 ```yaml
 type: api

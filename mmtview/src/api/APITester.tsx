@@ -1,4 +1,5 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useMemo } from "react";
+import { extractInputConstraintsFromDescription } from "mmt-core/paramConstraints";
 import { APIData } from "mmt-core/APIData";
 import { JSONRecord, Method, Protocol } from "mmt-core/CommonData";
 import { Request } from "mmt-core/NetworkData";
@@ -132,6 +133,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const shouldShowDoc = () => editorTab === "doc";
   const shouldShowGraphql = () => editorTab === "graphql";
   const shouldShowGrpc = () => editorTab === "grpc";
+
+  const inputConstraints = useMemo(
+    () => extractInputConstraintsFromDescription(api.description || ""),
+    [api.description]
+  );
 
   const handleExampleChange = (newIdx: number) => {
     setSelectedExampleIdx(newIdx);
@@ -372,6 +378,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
                 prepareRequestData(data, { respectTouched: false });
               }}
               keyOptions={typeof api.inputs === "object" ? Object.keys(api.inputs || {}) : []}
+              inputConstraints={inputConstraints}
               deletable={false}
             />
           </>

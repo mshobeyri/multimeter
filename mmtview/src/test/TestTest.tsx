@@ -3,6 +3,7 @@ import { TestData } from 'mmt-core/TestData';
 import { JSONRecord, formatDuration } from 'mmt-core/CommonData';
 import { formatReportRelativeTime } from 'mmt-core/reportFormat';
 import { resolveEnvTokenValues } from 'mmt-core/variableReplacer';
+import { extractInputConstraintsFromDescription } from 'mmt-core/paramConstraints';
 
 import { FileContext } from '../fileContext';
 import { setEnvironmentVariable } from '../environment/environmentUtils';
@@ -51,6 +52,11 @@ const TestTest: React.FC<TestTestProps> = (props) => {
 
     const hasInputs = inputKeys.length > 0;
     const hasOutputs = outputKeys.length > 0;
+
+    const inputConstraints = useMemo(
+        () => extractInputConstraintsFromDescription(props.testData.description || ''),
+        [props.testData.description]
+    );
 
     // Resolve env variables in default input values
     useEffect(() => {
@@ -342,6 +348,7 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                             currentInputsRef.current = data;
                         }}
                         keyOptions={inputKeys}
+                        inputConstraints={inputConstraints}
                         deletable={false}
                     />
                 </div>
