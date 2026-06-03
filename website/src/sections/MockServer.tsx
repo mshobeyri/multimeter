@@ -11,7 +11,7 @@ endpoints:
     status: 200
     format: json
     body:
-      id: "${url.id}"
+      id: "\${url.id}"
       name: "Mehrdad Shobeiri"
       email: "mehrdad@mmt.dev"`
 
