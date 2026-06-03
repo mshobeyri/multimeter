@@ -39,8 +39,6 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
 
     // Certificate settings from localStorage
     const [certSettings, setCertSettings] = useState<CertificateSettings>({
-        sslValidation: true,
-        allowSelfSigned: false,
         caEnabled: false,
         clientsEnabled: {},
     });
@@ -48,8 +46,6 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
     useEffect(() => {
         const cleanup = loadCertificateSettings((loaded) => {
             const safeLoaded: CertificateSettings = {
-                sslValidation: loaded?.sslValidation !== false,
-                allowSelfSigned: loaded?.allowSelfSigned === true,
                 caEnabled: loaded?.caEnabled === true,
                 clientsEnabled:
                     loaded && typeof loaded.clientsEnabled === 'object' && loaded.clientsEnabled
@@ -248,26 +244,6 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
                             </tr>
                         </thead>
                         <tbody>
-                            <tr>
-                                <td className="environment-table-name">Verify SSL Certificates</td>
-                                <td>
-                                    <input
-                                        type="checkbox"
-                                        checked={certSettings.sslValidation}
-                                        onChange={e => updateCertSettings({ sslValidation: e.target.checked })}
-                                    />
-                                </td>
-                            </tr>
-                            <tr>
-                                <td className="environment-table-name">Allow Untrusted Self-Signed Certificates</td>
-                                <td>
-                                    <input
-                                        type="checkbox"
-                                        checked={certSettings.allowSelfSigned}
-                                        onChange={e => updateCertSettings({ allowSelfSigned: e.target.checked })}
-                                    />
-                                </td>
-                            </tr>
                             <tr>
                                 <td className="environment-table-name">Use Server CA Certificates</td>
                                 <td>

@@ -4,7 +4,6 @@ import { safeList } from "mmt-core/safer";
 import FieldWithRemove from "../components/FieldWithRemove";
 import FilePickerInput from "../components/FilePickerInput";
 import { FileContext } from "../fileContext";
-import LEditor from "../components/LEditor";
 
 interface EnvironmentCertificatesEditProps {
   certificates: EnvCertificates | undefined;
@@ -18,12 +17,15 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
   const fileCtx = React.useContext(FileContext);
   const safeCerts: EnvCertificates = certificates || {};
   const clients = safeList(safeCerts.clients || []);
-  const ca: EnvCaCertificate = safeCerts.server_ca || { paths: [] };
+  const ca: EnvCaCertificate = typeof safeCerts.server_ca === "string"
+    ? {path: safeCerts.server_ca}
+    : safeCerts.server_ca || {};
+  const caPath = ca.path || safeList(ca.paths || [])[0] || "";
 
-  const handleCaPathsChange = (paths: string[]) => {
+  const handleCaPathChange = (path: string) => {
     onChange({
       ...safeCerts,
-      server_ca: { paths },
+      server_ca: path || undefined,
     });
   };
 
@@ -47,15 +49,16 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
   return (
     <div>
       <div className="inner-box">
-        <div className="label">Server CA Certificate Paths</div>
+        <div className="label">Server CA Certificate</div>
         <div style={{ padding: "5px" }}>
-          <LEditor
-            label=""
-            value={safeList(ca.paths || [])}
-            onChange={(paths) => handleCaPathsChange(paths)}
+          <FilePickerInput
+            value={caPath}
+            onChange={(path) => handleCaPathChange(path)}
+            onEnterPressed={(path) => handleCaPathChange(path)}
+            basePath={fileCtx?.mmtFilePath}
             placeholder="Server CA cert path"
-            filePicker
-            filePickerFilters={[{ name: "Certificate files", extensions: ["pem", "crt", "cer", "p12", "pfx"] }]}
+            showFilePicker
+            filters={[{ name: "Certificate files", extensions: ["pem", "crt", "cer", "p12", "pfx"] }]}
           />
         </div>
       </div>

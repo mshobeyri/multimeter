@@ -121,7 +121,8 @@ export function useNetwork(autoFormatBody = false): NetworkAPI {
               errorMessage: res.statusText || "",
               status: res.status || -1,
               errorCode: res.errorCode || "",
-              duration: res.duration || -1
+              duration: res.duration || -1,
+              warning: res.warning || undefined,
             });
           },
           onError: (error: Error) => {
@@ -145,7 +146,8 @@ export function useNetwork(autoFormatBody = false): NetworkAPI {
               errorMessage: error.message ?? "",
               status: error.status || 500,
               errorCode: error.code || "UNKNOWN_ERROR",
-              duration: error.duration || -1
+              duration: error.duration || -1,
+              warning: error.warning || undefined,
             });
           }
         });

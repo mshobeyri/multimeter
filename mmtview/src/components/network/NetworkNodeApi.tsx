@@ -6,6 +6,7 @@ export type Error = {
     message: string | null;
     code: string | null;
     duration: number | null;
+    warning?: string | null;
 }
 
 type HttpOptions = {

@@ -16,7 +16,8 @@ interface EnvVariable {
 }
 
 interface EnvCaCertificate {
-  paths: string[];
+  path?: string;
+  paths?: string[];
 }
 
 interface EnvClientCertificate {
@@ -137,7 +138,7 @@ export async function loadWorkspaceEnvFile(
  * editing `multimeter.mmt` immediately affects future runs.
  *
  * It intentionally does NOT modify `multimeter.certificates.settings` because
- * those are user toggles (CA enabled, per-client enabled, sslValidation).
+ * those are user toggles (CA enabled and per-client enabled).
  */
 export async function refreshWorkspaceCertificatesFromEnvFile(
     context: vscode.ExtensionContext,
@@ -237,10 +238,12 @@ function parseCertificates(certsObj: any): EnvCertificates {
   if (certsObj.server_ca) {
     if (Array.isArray(certsObj.server_ca)) {
       result.server_ca = {paths: certsObj.server_ca};
+    } else if (typeof certsObj.server_ca === 'string') {
+      result.server_ca = {path: certsObj.server_ca};
+    } else if (typeof certsObj.server_ca.path === 'string') {
+      result.server_ca = {path: certsObj.server_ca.path};
     } else if (certsObj.server_ca.paths && Array.isArray(certsObj.server_ca.paths)) {
       result.server_ca = {paths: certsObj.server_ca.paths};
-    } else if (typeof certsObj.server_ca === 'string') {
-      result.server_ca = {paths: [certsObj.server_ca]};
     }
   }
 
@@ -263,7 +266,9 @@ function initCertificateSettings(certs: EnvCertificates): CertificateSettings {
   const settings: CertificateSettings = {...DEFAULT_CERT_SETTINGS};
 
   // Enable CA if paths are defined
-  if (certs.server_ca && certs.server_ca.paths && certs.server_ca.paths.length > 0) {
+  if (certs.server_ca && (
+      certs.server_ca.path ||
+      (certs.server_ca.paths && certs.server_ca.paths.length > 0))) {
     settings.caEnabled = true;
   }
 

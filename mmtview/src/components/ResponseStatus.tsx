@@ -4,6 +4,7 @@ interface ResponseStatusProps {
   status?: number;
   errorMessage?: string;
   errorCode?: string | number;
+  warning?: string;
   protocol?: 'http' | 'ws' | 'graphql' | 'grpc';
   className?: string;
 }
@@ -13,9 +14,13 @@ type BadgeStyle = {
   color?: string;
 };
 
-function getResponseStatusStyle(status: number | undefined): BadgeStyle {
+function getResponseStatusStyle(status: number | undefined, warning?: string): BadgeStyle {
   if (typeof status === 'number' && status < 0) {
     return {backgroundColor: '#d32f2f'};
+  }
+
+  if (warning && typeof status === 'number' && status < 400) {
+    return {backgroundColor: '#f8b449', color: 'black'};
   }
 
   if (status === 200) {
@@ -37,18 +42,19 @@ function getHTTPResponseStatusTitle(
     status: number | undefined,
     errorMessage: string | undefined,
     errorCode: string | number | undefined,
+    warning?: string,
 ): {title: string; label: string | number} {
   if (typeof status === 'number' && status < 0) {
     return {title: errorMessage || 'Request failed', label: errorMessage || 'ERROR'};
   }
 
   if (status === 200) {
-    return {title: 'Request successful', label: status};
+    return {title: warning || 'Request successful', label: status};
   }
 
   const maybeStatus = typeof status === 'number' ? ` (Status: ${status})` : '';
   const maybeCode = errorCode ? ` (Code: ${errorCode})` : '';
-  const title = `${errorMessage || ''}${maybeStatus}${maybeCode}`.trim() || 'ERROR';
+  const title = `${warning || errorMessage || ''}${maybeStatus}${maybeCode}`.trim() || 'ERROR';
 
   return {title, label: status ?? errorCode ?? 'ERROR'};
 }
@@ -82,12 +88,12 @@ function getWSResponseStatusTitle(
   return {title, label: status ?? errorCode ?? 'WS'};
 }
 
-const ResponseStatus: React.FC<ResponseStatusProps> = ({ status, errorMessage, errorCode, protocol, className }) => {
-  const style = getResponseStatusStyle(status);
+const ResponseStatus: React.FC<ResponseStatusProps> = ({ status, errorMessage, errorCode, warning, protocol, className }) => {
+  const style = getResponseStatusStyle(status, warning);
   const {title, label} =
       protocol === 'ws'
           ? getWSResponseStatusTitle(status, errorMessage, errorCode)
-          : getHTTPResponseStatusTitle(status, errorMessage, errorCode);
+          : getHTTPResponseStatusTitle(status, errorMessage, errorCode, warning);
 
   return (
     <div

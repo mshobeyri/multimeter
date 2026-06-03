@@ -307,7 +307,7 @@ export async function sendHttpRequest(
     return axios.request({...baseRequestConfig, httpsAgent, httpAgent});
   };
   const start = Date.now();
-  const toSuccess = (response: any): HttpResponse => {
+  const toSuccess = (response: any, warning?: string): HttpResponse => {
     const duration = Date.now() - start;
     return {
       body: response.data,
@@ -316,9 +316,10 @@ export async function sendHttpRequest(
       statusText: response.statusText,
       duration,
       autoformat: config.autoFormat,
+      warning,
     };
   };
-  const toError = (err: any): HttpResponse => {
+  const toError = (err: any, warning?: string): HttpResponse => {
     const duration = Date.now() - start;
     if (err?.response) {
       return {
@@ -328,6 +329,7 @@ export async function sendHttpRequest(
         statusText: err.response.statusText,
         duration,
         autoformat: config.autoFormat,
+        warning: warning || formatResponseWarning(err),
       };
     }
     const code = err?.code ? String(err.code) : 'NETWORK_ERROR';
@@ -338,20 +340,21 @@ export async function sendHttpRequest(
       statusText: `${code}`,
       duration,
       autoformat: config.autoFormat,
+      warning,
     } as any;
   };
-  const canRetrySelfSigned = config.allowSelfSigned && config.sslValidation &&
-      parsedUrl.protocol === 'https:';
+  const canRetrySelfSigned = config.sslValidation && parsedUrl.protocol === 'https:';
   try {
     const response = await executeRequest(false);
     return toSuccess(response);
   } catch (err: any) {
     if (canRetrySelfSigned && isSelfSignedTlsError(err)) {
+      const warning = formatSelfSignedWarning(err);
       try {
         const retryResponse = await executeRequest(true);
-        return toSuccess(retryResponse);
+        return toSuccess(retryResponse, warning);
       } catch (retryErr: any) {
-        return toError(retryErr);
+        return toError(retryErr, warning);
       }
     }
     return toError(err);
@@ -389,6 +392,22 @@ function isSelfSignedTlsError(err: any): boolean {
     return false;
   }
   return SELF_SIGNED_MESSAGE_FRAGMENTS.some(fragment => message.includes(fragment));
+}
+
+function formatSelfSignedWarning(err: any): string {
+  const code = extractErrorCode(err);
+  const message = typeof err?.message === 'string' ? err.message : 'self-signed certificate';
+  return `Self-signed certificate warning: ${code ? `${code}: ` : ''}${message}`;
+}
+
+function formatResponseWarning(err: any): string|undefined {
+  if (!err?.response) {
+    return undefined;
+  }
+  const status = err.response.status;
+  const statusText = err.response.statusText;
+  const details = [status, statusText].filter(value => value !== undefined && value !== '').join(' ');
+  return details ? `Server returned response: ${details}` : 'Server returned an error response';
 }
 
 function extractErrorCode(err: any): string|undefined {
@@ -537,7 +556,7 @@ export function createWebSocketOptionsWithCertificates(
     config: NetworkConfig,
     opts?: {skipCertificateValidation?: boolean}) {
   const rejectUnauthorized = opts?.skipCertificateValidation ? false :
-      (config.allowSelfSigned ? false : config.sslValidation);
+      config.sslValidation;
   const wsOptions: any = {rejectUnauthorized};
   // Handle CA certificates (can be array or single Buffer for backward compat)
   if (config.ca.enabled && config.ca.certData) {

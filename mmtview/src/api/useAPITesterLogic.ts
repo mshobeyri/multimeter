@@ -450,6 +450,7 @@ export async function runApiDocument({ api, inputs, filePath }: RunApiDocumentOp
           status: res?.status || -1,
           errorCode: "",
           duration: res?.duration || -1,
+          warning: res?.warning,
         };
 
         pushHistory({
@@ -495,6 +496,7 @@ export async function runApiDocument({ api, inputs, filePath }: RunApiDocumentOp
           status: error.status || 500,
           errorCode: error.code || "UNKNOWN_ERROR",
           duration: error.duration || -1,
+          warning: error.warning || undefined,
         };
 
         window.postMessage({

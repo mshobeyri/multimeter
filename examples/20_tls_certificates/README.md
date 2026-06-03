@@ -33,13 +33,10 @@ The `certificates` section in `env.mmt` has two parts:
 
 ```yaml
 certificates:
-  server_ca:
-    paths:
-      - "./certs/ca.crt"
-      - "./certs/intermediate.pem"
+  server_ca: "./certs/ca.crt"
 ```
 
-Add paths to your CA/intermediate PEM files. These are used to trust custom certificate authorities (e.g., internal company CAs).
+Add a path to your CA PEM file. This is used to trust custom certificate authorities (e.g., internal company CAs).
 
 ### Client certificates (mTLS)
 
@@ -62,14 +59,12 @@ certificates:
 | `passphrase_env` | Environment variable name containing the key passphrase |
 | `passphrase_plain` | Plain text passphrase (avoid in shared configs) |
 
-## Boolean settings (VS Code workspace)
+## Enable/disable settings (VS Code workspace)
 
 These are managed via the UI, not in the YAML file:
 
 | Setting | Default | Description |
 |---|---|---|
-| SSL Validation | `true` | Verify SSL certificates |
-| Allow Self-Signed | `false` | Trust self-signed certificates |
 | CA Enabled | `false` | Enable custom CA certificates |
 | Client Enabled | `true` | Enable/disable individual client certs |
 

@@ -78,8 +78,6 @@ export function clearCertificates() {
 
 // Certificate boolean settings storage (separate from YAML)
 const DEFAULT_CERT_SETTINGS: CertificateSettings = {
-  sslValidation: true,
-  allowSelfSigned: false,
   caEnabled: false,
   clientsEnabled: {},
 };
@@ -104,8 +102,6 @@ export function loadCertificateSettings(
         return;
       }
       callback({
-        sslValidation: (raw as any).sslValidation !== false,
-        allowSelfSigned: (raw as any).allowSelfSigned === true,
         caEnabled: (raw as any).caEnabled === true,
         clientsEnabled:
           (raw as any).clientsEnabled && typeof (raw as any).clientsEnabled === 'object'

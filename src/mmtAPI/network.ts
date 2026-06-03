@@ -8,7 +8,8 @@ import * as YAML from 'yaml';
 
 // Certificate YAML data stored in workspace (file paths only)
 interface StoredCaCertificate {
-  paths: string[];  // Multiple CA cert paths
+  path?: string;
+  paths?: string[];  // Legacy multiple CA cert paths
 }
 
 interface StoredClientCertificate {
@@ -22,7 +23,7 @@ interface StoredClientCertificate {
 }
 
 interface StoredCertificates {
-  server_ca?: StoredCaCertificate;
+  server_ca?: string | StoredCaCertificate;
   clients?: StoredClientCertificate[];
 }
 
@@ -39,7 +40,7 @@ interface ParsedEnvFile {
 function hasStoredCertificatePaths(certs?: StoredCertificates): boolean {
   return Boolean(
       certs &&
-      ((certs.server_ca && certs.server_ca.paths && certs.server_ca.paths.length > 0) ||
+      ((certs.server_ca && getCaPath(certs.server_ca)) ||
        (certs.clients && certs.clients.length > 0)));
 }
 
@@ -48,7 +49,7 @@ function createDefaultCertificateSettings(certs?: StoredCertificates): Certifica
     ...DEFAULT_CERT_SETTINGS,
     clientsEnabled: {},
   };
-  if (certs?.server_ca?.paths?.length) {
+  if (certs?.server_ca && getCaPath(certs.server_ca)) {
     settings.caEnabled = true;
   }
   for (const client of certs?.clients || []) {
@@ -78,7 +79,9 @@ function tryParseEnvCertificatesFromFile(filePath: string): StoredCertificates|u
       if (Array.isArray(caObj)) {
         result.server_ca = {paths: caObj as any};
       } else if (typeof caObj === 'string') {
-        result.server_ca = {paths: [caObj]};
+        result.server_ca = {path: caObj};
+      } else if (typeof caObj.path === 'string') {
+        result.server_ca = {path: caObj.path};
       } else if (caObj.paths && Array.isArray(caObj.paths)) {
         result.server_ca = {paths: caObj.paths};
       }
@@ -212,6 +215,19 @@ function resolveCertPath(certPath: string, baseFilePath?: string): string {
   return resolveCertFilePath(certPath);
 }
 
+function getCaPath(ca?: string | StoredCaCertificate): string {
+  if (!ca) {
+    return '';
+  }
+  if (typeof ca === 'string') {
+    return ca;
+  }
+  if (typeof ca.path === 'string' && ca.path) {
+    return ca.path;
+  }
+  return ca.paths?.find(pathValue => !!pathValue) || '';
+}
+
 // Generate key for client certificate enable/disable
 function clientKey(client: StoredClientCertificate): string {
   return `${client.name || ''}:${client.host || ''}`;
@@ -241,20 +257,16 @@ export function getPreparedConfigFromStorage(
       createDefaultCertificateSettings(storedCerts);
   const config = vscode.workspace.getConfiguration('multimeter');
 
-  // Load CA cert data (multiple paths)
-  const caCertDataList: Buffer[] = [];
-  const ca = storedCerts.server_ca || {paths: []};
-  const caPaths = ca.paths || [];
-  if (certSettings.caEnabled && caPaths.length > 0) {
-    for (const caPath of caPaths) {
-      if (caPath) {
-        try {
-          const resolvedPath = resolveCertPath(caPath, certBaseFilePath);
-          caCertDataList.push(fs.readFileSync(resolvedPath));
-        } catch (e) {
-          vscode.window.showErrorMessage(`Failed to load CA certificate from ${caPath}: ${e}`);
-        }
-      }
+  // Load CA cert data
+  let caCertData: Buffer|undefined = undefined;
+  const ca = storedCerts.server_ca || {};
+  const caPath = getCaPath(ca);
+  if (certSettings.caEnabled && caPath) {
+    try {
+      const resolvedPath = resolveCertPath(caPath, certBaseFilePath);
+      caCertData = fs.readFileSync(resolvedPath);
+    } catch (e) {
+      vscode.window.showErrorMessage(`Failed to load CA certificate from ${caPath}: ${e}`);
     }
   }
 
@@ -302,10 +314,10 @@ export function getPreparedConfigFromStorage(
   });
 
   return {
-    ca: {enabled: certSettings.caEnabled, certPaths: caPaths, certData: caCertDataList.length > 0 ? caCertDataList : undefined},
+    ca: {enabled: certSettings.caEnabled, certPath: caPath, certPaths: caPath ? [caPath] : undefined, certData: caCertData ? [caCertData] : undefined},
     clients: clientsWithData,
-    sslValidation: certSettings.sslValidation,
-    allowSelfSigned: certSettings.allowSelfSigned,
+    sslValidation: true,
+    allowSelfSigned: false,
     timeout: config.get('network.timeout', 30000),
     autoFormat: config.get('body.auto.format', false)
   };
@@ -343,17 +355,15 @@ export function prepareNetworkConfigFromProjectFile(
   const projectDir = path.dirname(projectFilePath);
   const certPathOpts = {baseDir: projectDir};
 
-  const caCertDataList: Buffer[] = [];
-  const ca = storedCerts.server_ca || {paths: []};
-  const caPaths = ca.paths || [];
-  // Always load CA certs if present (no toggle needed for file-driven runs)
-  for (const caPath of caPaths) {
-    if (caPath) {
-      try {
-        const resolvedPath = resolveCertFilePath(caPath, certPathOpts);
-        caCertDataList.push(fs.readFileSync(resolvedPath));
-      } catch {
-      }
+  let caCertData: Buffer|undefined = undefined;
+  const ca = storedCerts.server_ca || {};
+  const caPath = getCaPath(ca);
+  // Always load the CA cert if present (no toggle needed for file-driven runs)
+  if (caPath) {
+    try {
+      const resolvedPath = resolveCertFilePath(caPath, certPathOpts);
+      caCertData = fs.readFileSync(resolvedPath);
+    } catch {
     }
   }
 
@@ -392,7 +402,7 @@ export function prepareNetworkConfigFromProjectFile(
   });
 
   return {
-    ca: {enabled: caCertDataList.length > 0, certPaths: caPaths, certData: caCertDataList.length > 0 ? caCertDataList : undefined},
+    ca: {enabled: !!caCertData, certPath: caPath, certPaths: caPath ? [caPath] : undefined, certData: caCertData ? [caCertData] : undefined},
     clients: clientsWithData,
     sslValidation: true,
     allowSelfSigned: false,

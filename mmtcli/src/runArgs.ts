@@ -140,9 +140,19 @@ function resolveCertPath(certPath: string, envFileDir: string): string {
   return resolveCertFilePath(certPath, {baseDir: envFileDir});
 }
 
-// Build NetworkConfig from certificate settings in env file
-// Note: Boolean settings (sslValidation, allowSelfSigned, enabled) default to sensible values
-// since they are not stored in YAML
+function getCaPath(certSettings: EnvCertificateSettings | undefined): string {
+  const serverCa = certSettings?.server_ca;
+  if (typeof serverCa === 'string') {
+    return serverCa;
+  }
+  if (serverCa?.path) {
+    return serverCa.path;
+  }
+  return serverCa?.paths?.find(pathValue => !!pathValue) || '';
+}
+
+// Build NetworkConfig from certificate settings in env file.
+// Note: Boolean enabled flags default to sensible values since they are not stored in YAML.
 export function buildNetworkConfigFromEnv(
     certSettings: EnvCertificateSettings | undefined,
     envFileDir: string,
@@ -151,19 +161,16 @@ export function buildNetworkConfigFromEnv(
     return {...DEFAULT_NETWORK_CONFIG};
   }
 
-  // Load CA certs (multiple paths)
-  const caCertDataList: Buffer[] = [];
-  const caPaths = certSettings.server_ca?.paths || [];
-  // CA is enabled if there are paths defined
-  const caEnabled = caPaths.length > 0;
-  for (const caPath of caPaths) {
-    if (caPath) {
-      try {
-        const resolvedPath = resolveCertPath(caPath, envFileDir);
-        caCertDataList.push(fs.readFileSync(resolvedPath));
-      } catch (e) {
-        console.warn(`Failed to load CA certificate from ${caPath}: ${e}`);
-      }
+  // Load CA cert
+  let caCertData: Buffer | undefined = undefined;
+  const caPath = getCaPath(certSettings);
+  const caEnabled = !!caPath;
+  if (caPath) {
+    try {
+      const resolvedPath = resolveCertPath(caPath, envFileDir);
+      caCertData = fs.readFileSync(resolvedPath);
+    } catch (e) {
+      console.warn(`Failed to load CA certificate from ${caPath}: ${e}`);
     }
   }
 
@@ -205,10 +212,10 @@ export function buildNetworkConfigFromEnv(
   });
 
   return {
-    ca: {enabled: caEnabled, certPaths: caPaths, certData: caCertDataList.length > 0 ? caCertDataList : undefined},
+    ca: {enabled: caEnabled, certPath: caPath, certPaths: caPath ? [caPath] : undefined, certData: caCertData},
     clients,
     sslValidation: true,  // Default true (not stored in YAML)
-    allowSelfSigned: false,  // Default false (not stored in YAML)
+    allowSelfSigned: false,
     timeout: 30000,
     autoFormat: false,
   };
