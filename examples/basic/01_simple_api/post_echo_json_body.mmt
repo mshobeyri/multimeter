@@ -1,0 +1,13 @@
+type: api
+title: Post echo JSON body
+description: Sends a raw JSON body and gets it echoed back
+url: https://test.mmt.dev/echo
+method: post
+format: json
+headers:
+  Content-Type: application/json
+body: |-
+  {
+    "name": "Multimeter",
+    "message": "Hello from JSON!"
+  }

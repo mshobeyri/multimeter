@@ -40,8 +40,8 @@ Examples:
 ```
 # macOS
 ./dist/bin/testlight-macos version-info
-./dist/bin/testlight-macos to-js ../examples/test/login_and_get_user_info.mmt
-./dist/bin/testlight-macos run ../examples/test/login_and_get_user_info.mmt --quiet
+./dist/bin/testlight-macos to-js ../examples/basic/02_simple_test/echo_test.mmt
+./dist/bin/testlight-macos run ../examples/basic/02_simple_test/echo_test.mmt --quiet
 
 # Linux
 ./dist/bin/testlight-linux run path/to/test.mmt --quiet

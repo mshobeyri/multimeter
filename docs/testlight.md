@@ -7,7 +7,7 @@ Testlight compiles your `.mmt`/YAML tests to JS on the fly and executes them wit
 ## Install
 
 - Local (via npx):
-  - npx testlight run examples/test/login_and_get_user_info.mmt --quiet
+  - npx testlight run examples/basic/02_simple_test/echo_test.mmt --quiet
 - Binary (recommended for CI):
   - See mmtcli README for pkg-built binaries under `bin/`
 
@@ -79,15 +79,15 @@ Suite-level environment configuration (from `environment:` field) only applies w
 
 - Run a test with inputs and env overrides
   ```sh
-  testlight run examples/test/login_and_get_user_info.mmt -i username=mehrdad -e API_URL=http://localhost:8080
+  testlight run examples/intermediate/08_chained_api_calls/chained_test.mmt -e username=mehrdad@example.com -e password=secret
   ```
 - Run with env file preset and explicit overrides
   ```sh
-  testlight run examples/test/login_and_get_user_info.mmt --env-file ./examples/_environments.mmt --preset dev -e retries=2
+  testlight run examples/intermediate/10_environment_presets/test/preset_test.mmt --env-file ./examples/intermediate/10_environment_presets/multimeter.mmt --preset runner.dev -e mode=release
   ```
 - Print generated JS for inspection
   ```sh
-  testlight print-js examples/test/login_and_get_user_info.mmt --env-file ./examples/_environments.mmt --preset dev
+  testlight print-js examples/intermediate/10_environment_presets/test/preset_test.mmt --env-file ./examples/intermediate/10_environment_presets/multimeter.mmt --preset runner.dev
   ```
 
 - Generate documentation HTML from a Doc file
@@ -104,7 +104,7 @@ Suite-level environment configuration (from `environment:` field) only applies w
 
 - Run a load test and export an HTML report
   ```sh
-  testlight run examples/21_load_test/loadtest.mmt --report html --report-file reports/load.html
+  testlight run examples/professional/03_load_test/loadtest.mmt --report html --report-file reports/load.html
   ```
 
 - Run a specific example by name or index

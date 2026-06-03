@@ -90,8 +90,8 @@ For `connection.mode: mtls`, `connection.client_ca` is required. Runtime sets `r
 3. Update the Mock Server panel naming to HTTP/HTTPS/WebSocket, with mTLS as a connection option, while preserving existing workspace state keys where helpful.
 4. Replace env certificate client shape in core types, VS Code runtime parsing, workspace env loader, CLI env parsing, webview editor, autocomplete, and docs.
 5. Add examples:
-   - `examples/25_tls_mock_server`
-   - `examples/26_mtls_mock_server`
+   - `examples/professional/05_tls_mock_server`
+   - `examples/professional/06_mtls_mock_server`
    Each includes a server `.mmt`, env file, client API/test files, README, and local long-lived certificates.
 6. Run focused parser/runtime tests and compile.
 
