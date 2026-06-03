@@ -254,6 +254,43 @@ export const findProjectRoot = async (
  * Synchronous variant of findProjectRoot for environments with sync file access.
  * Returns the directory containing multimeter.mmt, or null if not found.
  */
+export interface ResolveCertFilePathOptions {
+  /** File used to determine fallback directory (e.g. env file or running document). */
+  baseFilePath?: string;
+  /** Explicit directory for relative paths (e.g. env file directory). */
+  baseDir?: string;
+  /** When set, relative paths resolve against this directory (e.g. multimeter.mmt folder). */
+  projectRoot?: string;
+}
+
+/**
+ * Resolve a certificate (or other PEM/PFX) file path for reading from disk.
+ * Handles Windows drive paths (`C:\...`, `C:/...`), file URIs, and paths that
+ * are relative to a base directory or project root.
+ */
+export const resolveCertFilePath = (
+    certPath: string,
+    opts?: ResolveCertFilePathOptions): string => {
+  const raw = String(certPath ?? '').trim();
+  if (!raw) {
+    return '';
+  }
+
+  const requested = fileUriToPath(raw);
+  if (isAbsPath(requested)) {
+    return resolveDotSegments(requested);
+  }
+
+  const projectRoot = opts?.projectRoot;
+  if (projectRoot) {
+    return resolveDotSegments(joinPath(projectRoot, requested));
+  }
+
+  const baseDir = opts?.baseDir ??
+      (opts?.baseFilePath ? dirnamePath(fileUriToPath(opts.baseFilePath)) : '.');
+  return resolveDotSegments(joinPath(baseDir, requested));
+};
+
 export const findProjectRootSync = (
   startPath: string,
   fileExistsSync: (filePath: string) => boolean,
@@ -285,4 +322,12 @@ export const findProjectRootSync = (
   return null;
 };
 
-export default {computeRelative, resolveRequestedAgainst, isProjectRootImport, resolveProjectRootImport, findProjectRoot, findProjectRootSync};
+export default {
+  computeRelative,
+  resolveRequestedAgainst,
+  resolveCertFilePath,
+  isProjectRootImport,
+  resolveProjectRootImport,
+  findProjectRoot,
+  findProjectRootSync,
+};

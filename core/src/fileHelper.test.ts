@@ -2,6 +2,7 @@ import {
   computeRelative,
   fileUriToPath,
   findProjectRootSync,
+  resolveCertFilePath,
   resolveDotSegments,
   resolveRequestedAgainst,
 } from './fileHelper';
@@ -178,6 +179,43 @@ describe('path helpers', () => {
     const projectRoot = 'C:/project';
     expect(resolveRequestedAgainst(base, '+/apis/user.mmt', projectRoot))
         .toBe('C:/project/apis/user.mmt');
+  });
+});
+
+describe('resolveCertFilePath', () => {
+  test('preserves absolute Windows drive paths', () => {
+    expect(resolveCertFilePath('C:\\certs\\ca.pem'))
+        .toBe('C:/certs/ca.pem');
+    expect(resolveCertFilePath('C:/certs/ca.pem'))
+        .toBe('C:/certs/ca.pem');
+    expect(resolveCertFilePath('c:\\Program Files\\cert.pem'))
+        .toBe('c:/Program Files/cert.pem');
+  });
+
+  test('preserves Windows file URI paths', () => {
+    expect(resolveCertFilePath('file:///C:/certs/ca.pem'))
+        .toBe('C:/certs/ca.pem');
+  });
+
+  test('resolves relative paths against baseDir', () => {
+    expect(resolveCertFilePath('./certs/ca.pem', {baseDir: '/project/env'}))
+        .toBe('/project/env/certs/ca.pem');
+    expect(resolveCertFilePath('.\\certs\\ca.pem', {baseDir: 'C:/project/env'}))
+        .toBe('C:/project/env/certs/ca.pem');
+  });
+
+  test('resolves relative paths against projectRoot when provided', () => {
+    expect(resolveCertFilePath('./certs/ca.pem', {
+      baseFilePath: '/project/tests/main.mmt',
+      projectRoot: '/project',
+    })).toBe('/project/certs/ca.pem');
+  });
+
+  test('absolute requested path ignores projectRoot and baseDir', () => {
+    expect(resolveCertFilePath('C:/external/ca.pem', {
+      baseDir: '/project/env',
+      projectRoot: '/project',
+    })).toBe('C:/external/ca.pem');
   });
 });
 

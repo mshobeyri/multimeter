@@ -1039,7 +1039,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, missingDocFileProblems, exampleKeyProblems, inputRefProblems, envRefProblems, descriptionProblems, stageAfterProblems, authProblems]);
 
   return (
-    <div style={{ height: "100%" }}>
+    <div style={{ height: "100%", minHeight: 0, overflow: "hidden", position: "relative" }}>
       <TextEditor
         language={language}
         content={content}

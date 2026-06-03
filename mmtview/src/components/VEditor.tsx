@@ -1,8 +1,10 @@
 import React from "react";
 import FieldWithRemove from "./FieldWithRemove";
+import FieldWithOptionsPicker from "./FieldWithOptionsPicker";
 import SelectWithRemove from "./SelectWithRemove";
+import { ParamConstraintOption } from "mmt-core/paramConstraints";
 import { safeList } from "mmt-core/safer";
-import { JSONRecord } from "mmt-core/CommonData";
+import { JSONRecord, JSONValue } from "mmt-core/CommonData";
 import { valueToString, stringToValue } from "./convertor";
 
 interface VEditorProps {
@@ -11,6 +13,8 @@ interface VEditorProps {
   onChange: (v: JSONRecord) => void;
   keyOptions: string | string[];         // List of allowed keys
   valueOptions?: string[];      // List of allowed values (optional)
+  /** Per-input options from `<<i:name>> [a, b]` description annotations */
+  inputConstraints?: Record<string, ParamConstraintOption[]>;
   disabled?: boolean;
   deletable?: boolean;
   copyable?: boolean;
@@ -22,6 +26,7 @@ const VEditor: React.FC<VEditorProps> = ({
   onChange,
   keyOptions,
   valueOptions,
+  inputConstraints,
   disabled,
   deletable = true,
   copyable = false
@@ -41,6 +46,15 @@ const VEditor: React.FC<VEditorProps> = ({
       // Convert string input to match original type
       updated[key] = stringToValue(newVal);
     }
+    onChange(updated);
+  };
+
+  const handlePickedValue = (keyIndex: number, newVal: JSONValue) => {
+    const key = keys[keyIndex];
+    if (!key) return;
+
+    const updated: JSONRecord = { ...(value || {}) };
+    updated[key] = newVal;
     onChange(updated);
   };
 
@@ -66,6 +80,7 @@ const VEditor: React.FC<VEditorProps> = ({
           const currentValue = value?.[key];
           const displayValue = valueToString(currentValue === undefined ? "" : currentValue);
           const hasValue = currentValue !== undefined;
+          const pickerOptions = inputConstraints?.[key];
 
           return (
             <div key={key} style={{ marginBottom: 8, paddingLeft: 20 }}>
@@ -87,6 +102,18 @@ const VEditor: React.FC<VEditorProps> = ({
                     placeholder="Value"
                     disabled={disabled}
                     removable={deletable}
+                  />
+                ) : pickerOptions && pickerOptions.length > 0 ? (
+                  <FieldWithOptionsPicker
+                    value={displayValue}
+                    onChange={newVal => handleValueChange(index, newVal)}
+                    onPick={newVal => handlePickedValue(index, newVal)}
+                    onRemovePressed={() => handleRemove(index)}
+                    options={pickerOptions}
+                    placeholder="Value"
+                    disabled={disabled}
+                    removable={deletable && hasValue}
+                    copyable={copyable}
                   />
                 ) : (
                   <FieldWithRemove

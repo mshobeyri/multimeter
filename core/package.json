@@ -14,6 +14,11 @@
       "require": "./dist/docHtml.js",
       "default": "./dist/docHtml.js"
     },
+    "./paramConstraints": {
+      "types": "./dist/paramConstraints.d.ts",
+      "require": "./dist/paramConstraints.js",
+      "default": "./dist/paramConstraints.js"
+    },
     "./DocData": {
       "types": "./dist/DocData.d.ts",
       "require": "./dist/DocData.js",

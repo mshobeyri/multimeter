@@ -16,7 +16,7 @@ endpoints:
     status: 200
     format: json
     body:
-      id: :id
+      id: "${url.id}"
       name: Test User
       email: testuser@example.com
   - method: post
@@ -25,6 +25,8 @@ endpoints:
     format: json
     body:
       id: r:uuid
+      name: "${body.name}"
+      email: "${body.email}"
       message: User created
   - method: get
     path: /search

@@ -1,7 +1,7 @@
 import { validateYamlContent } from './Validate';
 import { KeySuggestionsByParent } from './AutoComplete';
 import { readFile } from '../vsAPI';
-import { outputExtractor } from 'mmt-core';
+import { outputExtractor, mockServer, mockParsePack } from 'mmt-core';
 
 const DEFAULT_EXTRACTION_RULES: Record<string, string> =
     outputExtractor.DEFAULT_EXTRACTION_RULES || {
@@ -11,6 +11,83 @@ const DEFAULT_EXTRACTION_RULES: Record<string, string> =
         status: 'status',
         duration: 'duration',
     };
+
+function collectNestedKeys(obj: any, prefix = ''): string[] {
+    if (!obj || typeof obj !== 'object' || Array.isArray(obj)) {
+        return [];
+    }
+    const keys: string[] = [];
+    for (const [key, value] of Object.entries(obj)) {
+        const path = prefix ? `${prefix}.${key}` : key;
+        keys.push(path);
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+            keys.push(...collectNestedKeys(value, path));
+        }
+    }
+    return keys;
+}
+
+function getMockServerRefSuggestions(content: string, namespace: string): Array<{label: string, detail: string, documentation: string}> {
+    const suggestions: Array<{label: string, detail: string, documentation: string}> = [];
+    const seen = new Set<string>();
+    const add = (label: string, detail: string, documentation: string) => {
+        const key = label.toLowerCase();
+        if (seen.has(key)) {
+            return;
+        }
+        seen.add(key);
+        suggestions.push({ label, detail, documentation });
+    };
+
+    const mock = mockParsePack.yamlToMock(content);
+    const endpointPaths: string[] = [];
+    if (mock?.endpoints) {
+        for (const ep of mock.endpoints as any[]) {
+            if (typeof ep?.path === 'string') {
+                endpointPaths.push(ep.path);
+            }
+            const matchBody = ep?.match?.body;
+            if (matchBody && namespace === 'body') {
+                for (const key of collectNestedKeys(matchBody)) {
+                    add(key, 'Request body field', `Substitute from incoming request body: \${body.${key}}`);
+                }
+            }
+            const matchHeaders = ep?.match?.headers;
+            if (matchHeaders && namespace === 'header') {
+                for (const key of Object.keys(matchHeaders)) {
+                    add(key, 'Request header', `Substitute from incoming request header: \${header.${key}}`);
+                }
+            }
+            const matchQuery = ep?.match?.query;
+            if (matchQuery && namespace === 'query') {
+                for (const key of Object.keys(matchQuery)) {
+                    add(key, 'Query parameter', `Substitute from query string: \${query.${key}}`);
+                }
+            }
+        }
+    }
+
+    if (namespace === 'url') {
+        add('path', 'Request path', 'Full request path without query string: ${url.path}');
+        for (const name of mockServer.extractPathParamNames(endpointPaths)) {
+            add(name, `Path param :${name}`, `Path parameter from route pattern: \${url.${name}}`);
+        }
+    } else if (namespace === 'body') {
+        for (const key of ['name', 'email', 'id', 'username', 'password', 'message']) {
+            add(key, 'Request body field', `Substitute from incoming request body: \${body.${key}}`);
+        }
+    } else if (namespace === 'header') {
+        for (const key of ['authorization', 'content-type', 'x-api-key', 'accept', 'user-agent']) {
+            add(key, 'Request header', `Substitute from incoming request header: \${header.${key}}`);
+        }
+    } else if (namespace === 'query') {
+        for (const key of ['page', 'limit', 'q', 'sort']) {
+            add(key, 'Query parameter', `Substitute from query string: \${query.${key}}`);
+        }
+    }
+
+    return suggestions;
+}
 
 async function listFiles(folder: string, recursive = true): Promise<string[]> {
     return new Promise((resolve) => {
@@ -656,6 +733,74 @@ export const handleBeforeMount = (monaco: any) => {
                             }
                         }
                     }
+                }
+            }
+
+            // Mock server request reference suggestions: ${url.id}, ${body.name}, ${header.x-api-key}
+            if (firstLine === 'type: server') {
+                const mockRefMatch = tokenSource.match(/\$\{(url|body|header|query)\.([\w.-]*)$/);
+                if (mockRefMatch) {
+                    const namespace = mockRefMatch[1];
+                    const prefix = mockRefMatch[2].toLowerCase();
+                    const refSuggestions = getMockServerRefSuggestions(model.getValue(), namespace)
+                        .filter(item => !prefix || item.label.toLowerCase().startsWith(prefix))
+                        .map(item => ({
+                            label: `${namespace}.${item.label}`,
+                            kind: monaco.languages.CompletionItemKind.Field,
+                            insertText: item.label,
+                            detail: item.detail,
+                            documentation: item.documentation,
+                            sortText: `0${item.label}`,
+                        }));
+                    if (refSuggestions.length > 0) {
+                        const dotPos = tokenSource.lastIndexOf('.');
+                        const replaceStartColumn = dotPos + 2;
+                        return {
+                            suggestions: deduplicateSuggestions(refSuggestions).map((item) => ({
+                                ...item,
+                                range: {
+                                    startLineNumber: position.lineNumber,
+                                    startColumn: replaceStartColumn,
+                                    endLineNumber: position.lineNumber,
+                                    endColumn: position.column,
+                                }
+                            }))
+                        };
+                    }
+                }
+
+                const mockRefStart = tokenSource.match(/\$\{([\w.-]*)$/);
+                if (mockRefStart && !mockRefStart[1].includes('.')) {
+                    const namespaces = [
+                        { ns: 'url', detail: 'Path and path parameters', doc: 'Use ${url.id} for path params, ${url.path} for the full path.' },
+                        { ns: 'body', detail: 'Request body fields', doc: 'Echo JSON/XML body fields, e.g. ${body.name}.' },
+                        { ns: 'header', detail: 'Request headers', doc: 'Echo request headers, e.g. ${header.authorization}.' },
+                        { ns: 'query', detail: 'Query string parameters', doc: 'Echo query params, e.g. ${query.page}.' },
+                    ];
+                    const prefix = mockRefStart[1].toLowerCase();
+                    const nsSuggestions = namespaces
+                        .filter(item => !prefix || item.ns.startsWith(prefix))
+                        .map(item => ({
+                            label: `${item.ns}.`,
+                            kind: monaco.languages.CompletionItemKind.Variable,
+                            insertText: `${item.ns}.`,
+                            detail: item.detail,
+                            documentation: item.doc,
+                            sortText: `0${item.ns}`,
+                        }));
+                    const bracePos = tokenSource.lastIndexOf('${');
+                    const replaceStartColumn = bracePos + 3;
+                    return {
+                        suggestions: nsSuggestions.map((item) => ({
+                            ...item,
+                            range: {
+                                startLineNumber: position.lineNumber,
+                                startColumn: replaceStartColumn,
+                                endLineNumber: position.lineNumber,
+                                endColumn: position.column,
+                            }
+                        }))
+                    };
                 }
             }
 

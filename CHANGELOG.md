@@ -2,6 +2,14 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.24.0]
+
+- Add option-selection support in UI interactions and response/message body parsing updates
+- Rename the default workspace environment file to `multimeter.mmt`
+- Fix Windows path handling and packaging reliability issues
+- Improve website slider active-state behavior
+- Refresh project licensing metadata and clean up incorrectly committed assets
+
 ## [1.23.0]
 
 - Export API outputs by default, including `body`, `headers`, `cookies`, `status`, and `duration`

@@ -208,4 +208,44 @@ describe('prepareNetworkConfigForFile certificate settings', () => {
     expect(config.clients[0].certData?.toString('utf8')).toBe('env-cert');
     expect(config.clients[0].keyData?.toString('utf8')).toBe('env-key');
   });
+
+  it('loads absolute certificate paths from the env file', () => {
+    const dir = createTempDir();
+    (vscode.workspace.workspaceFolders as any) = [{uri: {fsPath: dir}}];
+
+    const apiFilePath = path.join(dir, 'tests', 'login.mmt');
+    writeFile(apiFilePath, 'type: test\nname: login');
+
+    const externalDir = path.join(dir, 'external-certs');
+    const caPath = path.join(externalDir, 'ca.cer');
+    const certPath = path.join(externalDir, 'client.cer');
+    const keyPath = path.join(externalDir, 'client.key');
+    writeFile(caPath, 'abs-ca');
+    writeFile(certPath, 'abs-cert');
+    writeFile(keyPath, 'abs-key');
+
+    writeFile(
+        path.join(dir, 'multimeter.mmt'),
+        [
+          'type: env',
+          'certificates:',
+          '  server_ca:',
+          '    paths:',
+          `      - ${caPath.replace(/\\/g, '/')}`,
+          '  clients:',
+          '    - name: mtls',
+          '      host: api.example.com',
+          `      cert: ${certPath.replace(/\\/g, '/')}`,
+          `      key: ${keyPath.replace(/\\/g, '/')}`,
+        ].join('\n'),
+    );
+
+    const context = createContext(undefined);
+    const config = prepareNetworkConfigForFile(apiFilePath, undefined, context);
+
+    expect(config.ca.enabled).toBe(true);
+    expect(config.ca.certData?.[0].toString('utf8')).toBe('abs-ca');
+    expect(config.clients[0].certData?.toString('utf8')).toBe('abs-cert');
+    expect(config.clients[0].keyData?.toString('utf8')).toBe('abs-key');
+  });
 });

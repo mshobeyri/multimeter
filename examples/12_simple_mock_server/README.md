@@ -56,7 +56,8 @@ A self-contained example that defines a mock server in an `.mmt` file and runs t
 
 - **`type: server`** — defines a mock server with endpoints, a port, and optional fallback/CORS/delay settings.
 - **`run` step in tests** — starts the mock server before making API calls. If the server is already running, `run` is a no-op.
-- **Path parameters** — use `:param` in server endpoint paths (e.g. `/users/:id`); reference them in the response body with `":id"`.
+- **Path parameters** — use `:param` in server endpoint paths (e.g. `/users/:id`); reference them in the response body with `"${url.id}"`.
+- **Request echo** — use `${body.field}`, `${header.name}`, and `${query.param}` to echo parsed request data back in responses.
 - **Dynamic tokens** — `r:uuid` generates a random UUID, `c:date` inserts the current date.
 - **Fallback** — any request that doesn't match an endpoint returns the fallback response (404 in this example).
 

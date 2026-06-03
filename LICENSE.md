@@ -16,7 +16,7 @@ Change Date:          Four years from the date of each Licensed Work release.
 Change License:       Apache License, Version 2.0
 
 For information about alternative licensing arrangements for the Licensed Work,
-please contact: mehrdad.shobeyri@gmail.com
+please contact: info@mmt.dev
 
 Terms
 

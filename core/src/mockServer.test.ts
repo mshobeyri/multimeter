@@ -1,4 +1,4 @@
-import {matchPath, autoDetectFormat, partialMatch, findEndpoint, buildResponse, buildFallbackResponse, createMockRouter, MockRequest} from './mockServer';
+import {matchPath, autoDetectFormat, partialMatch, findEndpoint, buildResponse, buildFallbackResponse, createMockRouter, MockRequest, replaceRequestRefs, buildRequestContext, parseRequestBody, inferRequestBodyFormat, extractPathParamNames} from './mockServer';
 import {MockEndpoint, MockData} from './MockData';
 
 describe('matchPath', () => {
@@ -81,7 +81,7 @@ describe('findEndpoint', () => {
     {method: 'get', path: '/users', status: 200, body: []},
     {method: 'post', path: '/login', name: 'admin-login', match: {body: {username: 'admin'}}, status: 200, body: {role: 'admin'}},
     {method: 'post', path: '/login', status: 200, body: {role: 'user'}},
-    {method: 'get', path: '/users/:id', status: 200, body: {id: ':id'}},
+    {method: 'get', path: '/users/:id', status: 200, body: {id: '${url.id}'}},
     {method: 'post', path: '/echo', reflect: true, status: 200},
   ];
 
@@ -169,9 +169,30 @@ describe('buildResponse', () => {
   });
 
   it('replaces path params in body', () => {
-    const ep: MockEndpoint = {method: 'get', path: '/users/:id', status: 200, format: 'json', body: {id: ':id'}};
+    const ep: MockEndpoint = {method: 'get', path: '/users/:id', status: 200, format: 'json', body: {id: '${url.id}'}};
     const resp = buildResponse(ep, {id: '42'}, {method: 'get', path: '/users/42', headers: {}, query: {}, body: null}, undefined, 0);
     expect(JSON.parse(resp.body)).toEqual({id: '42'});
+  });
+
+  it('substitutes request body fields', () => {
+    const ep: MockEndpoint = {method: 'post', path: '/users', status: 201, format: 'json', body: {name: '${body.name}', email: '${body.email}'}};
+    const req: MockRequest = {method: 'post', path: '/users', headers: {}, query: {}, body: {name: 'Alice', email: 'a@b.com'}};
+    const resp = buildResponse(ep, {}, req, undefined, 0);
+    expect(JSON.parse(resp.body)).toEqual({name: 'Alice', email: 'a@b.com'});
+  });
+
+  it('substitutes request headers', () => {
+    const ep: MockEndpoint = {method: 'get', path: '/api', status: 200, format: 'json', body: {key: '${header.x-api-key}'}};
+    const req: MockRequest = {method: 'get', path: '/api', headers: {'x-api-key': 'secret'}, query: {}, body: null};
+    const resp = buildResponse(ep, {}, req, undefined, 0);
+    expect(JSON.parse(resp.body)).toEqual({key: 'secret'});
+  });
+
+  it('substitutes query parameters', () => {
+    const ep: MockEndpoint = {method: 'get', path: '/search', status: 200, format: 'json', body: {q: '${query.q}'}};
+    const req: MockRequest = {method: 'get', path: '/search', headers: {}, query: {q: 'hello'}, body: null};
+    const resp = buildResponse(ep, {}, req, undefined, 0);
+    expect(JSON.parse(resp.body)).toEqual({q: 'hello'});
   });
 
   it('uses endpoint delay if set, otherwise global', () => {
@@ -232,12 +253,44 @@ describe('buildFallbackResponse', () => {
     expect(JSON.parse(resp.body)).toEqual({error: 'Maintenance'});
   });
 
-  it('replaces :path in fallback body', () => {
+  it('replaces ${url.path} in fallback body', () => {
     const resp = buildFallbackResponse(
-        {status: 404, format: 'json', body: {error: 'Not found', path: ':path'}},
+        {status: 404, format: 'json', body: {error: 'Not found', path: '${url.path}'}},
         {method: 'get', path: '/missing/route', headers: {}, query: {}, body: null},
         undefined, 0);
     expect(JSON.parse(resp.body).path).toBe('/missing/route');
+  });
+});
+
+describe('parseRequestBody', () => {
+  it('parses JSON bodies', () => {
+    expect(parseRequestBody('{"name":"Alice"}', {'content-type': 'application/json'}))
+        .toEqual({name: 'Alice'});
+  });
+
+  it('parses XML bodies', () => {
+    const parsed = parseRequestBody('<user><name>Alice</name></user>', {'content-type': 'application/xml'});
+    expect(parsed).toEqual({user: {name: 'Alice'}});
+  });
+
+  it('infers JSON without content-type', () => {
+    expect(parseRequestBody('{"x":1}', {})).toEqual({x: 1});
+  });
+});
+
+describe('replaceRequestRefs', () => {
+  it('supports inline substitution in strings', () => {
+    const ctx = buildRequestContext(
+        {method: 'get', path: '/users/5', headers: {}, query: {}, body: null},
+        {id: '5'});
+    expect(replaceRequestRefs('user-${url.id}', ctx)).toBe('user-5');
+  });
+});
+
+describe('extractPathParamNames', () => {
+  it('collects unique param names from paths', () => {
+    expect(extractPathParamNames(['/users/:id', '/files/:folder/:name']))
+        .toEqual(expect.arrayContaining(['id', 'folder', 'name']));
   });
 });
 

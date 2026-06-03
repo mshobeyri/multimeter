@@ -408,7 +408,7 @@ const App: React.FC = () => {
 
   return (
     <FileContext.Provider value={{ mmtFilePath, projectRoot }}>
-      <div ref={splitHostRef} style={{height: "100vh", width: "100vw"}}>
+      <div ref={splitHostRef} style={{ height: "100%", width: "100%", overflow: "hidden" }}>
       <SplitPane
         split="vertical"
         size={panelSize}
@@ -428,13 +428,14 @@ const App: React.FC = () => {
         style={{
           height: "100%",
           width: "100%",
+          overflow: "hidden",
           backgroundColor: "var(--vscode-editor-background)",
           color: "var(--vscode-editor-foreground)",
           fontFamily: "var(--vscode-editor-font-family, sans-serif)",
           fontSize: "var(--vscode-editor-font-size, 14px)",
         }}
       >
-        <div style={{ height: "100vh", minHeight: 0 }}>
+        <div style={{ height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden" }}>
           <YamlEditorPanel
             content={content}
             setContent={yamlSetContent}
@@ -445,8 +446,8 @@ const App: React.FC = () => {
             sourceFormat={sourceFormat}
           />
         </div>
-        <div style={{ height: "100vh", minHeight: 0, overflowX: 'auto' }}>
-          <div style={{ width: '100%', height: '100%', maxWidth: 1200, minWidth: 450, margin: '0 auto' }}>
+        <div style={{ height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden" }}>
+          <div style={{ width: "100%", height: "100%", maxWidth: 1200, minWidth: 450, margin: "0 auto", overflow: "auto" }}>
             {docType === "env" && (
               <EnvironmentPanel content={validContent} setContent={uiSetContent} />
             )}
