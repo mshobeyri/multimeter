@@ -4,12 +4,12 @@ set -euo pipefail
 cd "${0:A:h}/.."
 
 # Build the TypeScript CLI (non-pkg) and run a simple env-file+preset scenario.
-# This asserts the regression: e:test_type should be "all".
+# This asserts that preset-selected env values reach the test run.
 
 npm run build --silent --prefix core
 npm run build --silent --prefix mmtcli
 
-out=$(node mmtcli/dist/cli.js run ./examples/test1.mmt --env-file ./examples/_environments.mmt --preset runner.cd)
+out=$(node mmtcli/dist/cli.js run ./examples/intermediate/10_environment_presets/test/preset_test.mmt --env-file ./examples/intermediate/10_environment_presets/multimeter.mmt --preset runner.dev)
 
-print -r -- "$out" | grep -q "\ball\b"
-print "OK: CLI run printed env preset (all)"
+print -r -- "$out" | grep -q "debug"
+print "OK: CLI run printed env preset (debug)"

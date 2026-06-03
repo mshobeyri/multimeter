@@ -41,6 +41,7 @@ export interface Response {
   duration?: number | -1;
   errorMessage: string | "";
   errorCode: string | "";
+  warning?: string;
 }
 
 export interface NetworkAPI {
@@ -61,8 +62,9 @@ export interface NetworkAPI {
 
 export interface CaCertificate {
   enabled: boolean;
-  certPaths?: string[];  // Multiple paths
-  certData?: Buffer[];   // Multiple loaded certificates
+  certPath?: string;     // Path to the CA certificate
+  certPaths?: string[];  // Legacy multiple paths
+  certData?: Buffer | Buffer[];   // Loaded CA certificate data
 }
 
 export interface ClientCertificate {
@@ -77,11 +79,12 @@ export interface ClientCertificate {
 }
 
 // Certificate settings stored in env file (YAML format).
-// Note: Boolean settings (ssl_validation, allow_self_signed, enabled flags) are NOT stored in YAML.
+// Note: Enable/disable flags are NOT stored in YAML.
 // They are stored in localStorage/workspaceState with sensible defaults.
 export interface EnvCertificateSettings {
-  server_ca?: {
-    paths?: string[];  // Multiple CA cert file paths
+  server_ca?: string | {
+    path?: string;     // Legacy CA cert file path
+    paths?: string[];  // Legacy multiple CA cert file paths
   };
   clients?: Array<{
     name?: string;
@@ -122,6 +125,7 @@ export interface HttpResponse {
   statusText: string;
   duration: number;
   autoformat: boolean;
+  warning?: string;
 }
 
 /** Canonical default NetworkConfig – import this instead of re-declaring. */

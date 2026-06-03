@@ -875,16 +875,16 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "certificates:\n\t",
             detail: 'Certificate settings [object]',
-            documentation: 'Configure SSL/TLS certificates for secure API connections.\nExample:\ncertificates:\n\tserver_ca:\n\t\tpaths:\n\t\t\t- ./certs/ca.pem\n\tclients:\n\t\t- name: api-cert\n\t\t\thost: "*.api.example.com"\n\t\t\tcert: ./certs/client.pem\n\t\t\tkey: ./certs/client.key',
+            documentation: 'Configure SSL/TLS certificates for secure API connections.\nExample:\ncertificates:\n\tserver_ca: ./certs/ca.pem\n\tclients:\n\t\t- name: api-cert\n\t\t\thost: "*.api.example.com"\n\t\t\tcert: ./certs/client.pem\n\t\t\tkey: ./certs/client.key',
         },
     ];
     const envCertificatesSuggestions = [
         {
             label: "server_ca",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "server_ca:\n\t\tpaths:\n\t\t\t- ",
-            detail: 'Server CA certificates [object]',
-            documentation: 'Configure Certificate Authority certificates used to verify servers.\nExample:\nserver_ca:\n\tpaths:\n\t\t- ./certs/ca.pem\n\t\t- ./certs/intermediate.pem',
+            insertText: "server_ca: ",
+            detail: 'Server CA certificate [string]',
+            documentation: 'Configure the Certificate Authority certificate used to verify servers.\nExample:\nserver_ca: ./certs/ca.pem',
         },
         {
             label: "clients",

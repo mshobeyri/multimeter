@@ -66,6 +66,11 @@ describe('prepareNetworkConfigForFile certificate settings', () => {
     } as any;
   }
 
+  function firstCaText(certData: any): string | undefined {
+    const first = Array.isArray(certData) ? certData[0] : certData;
+    return first?.toString('utf8');
+  }
+
   it('uses env-file certificate paths while honoring local toggle settings', () => {
     const dir = createTempDir();
     (vscode.workspace.workspaceFolders as any) = [{uri: {fsPath: dir}}];
@@ -87,9 +92,7 @@ describe('prepareNetworkConfigForFile certificate settings', () => {
           'variables:',
           '  CERT_PASS: from-file',
           'certificates:',
-          '  server_ca:',
-          '    paths:',
-          '      - ./certs/ca.cer',
+          '  server_ca: ./certs/ca.cer',
           '  clients:',
           '    - name: mtls',
           '      host: "*:8085"',
@@ -118,11 +121,11 @@ describe('prepareNetworkConfigForFile certificate settings', () => {
         context,
     );
 
-    expect(config.sslValidation).toBe(false);
-    expect(config.allowSelfSigned).toBe(true);
+    expect(config.sslValidation).toBe(true);
+    expect(config.allowSelfSigned).toBe(false);
     expect(config.ca.enabled).toBe(true);
     expect(config.ca.certData).toHaveLength(1);
-    expect(config.ca.certData?.[0].toString('utf8')).toBe('env-ca');
+    expect(firstCaText(config.ca.certData)).toBe('env-ca');
     expect(config.clients).toHaveLength(1);
     expect(config.clients[0].enabled).toBe(true);
     expect(config.clients[0].certData?.toString('utf8')).toBe('env-cert');
@@ -144,9 +147,7 @@ describe('prepareNetworkConfigForFile certificate settings', () => {
         [
           'type: env',
           'certificates:',
-          '  server_ca:',
-          '    paths:',
-          '      - ./certs/ca.cer',
+          '  server_ca: ./certs/ca.cer',
           '  clients:',
           '    - name: mtls',
           '      host: api.example.com',
@@ -187,9 +188,7 @@ describe('prepareNetworkConfigForFile certificate settings', () => {
         [
           'type: env',
           'certificates:',
-          '  server_ca:',
-          '    paths:',
-          '      - ./certs/ca.crt',
+          '  server_ca: ./certs/ca.crt',
           '  clients:',
           '    - name: mock-client',
           '      host: localhost:9444',
@@ -202,7 +201,7 @@ describe('prepareNetworkConfigForFile certificate settings', () => {
     const config = prepareNetworkConfigForFile(apiFilePath, undefined, context);
 
     expect(config.ca.enabled).toBe(true);
-    expect(config.ca.certData?.[0].toString('utf8')).toBe('env-ca');
+    expect(firstCaText(config.ca.certData)).toBe('env-ca');
     expect(config.clients).toHaveLength(1);
     expect(config.clients[0].enabled).toBe(true);
     expect(config.clients[0].certData?.toString('utf8')).toBe('env-cert');
@@ -229,9 +228,7 @@ describe('prepareNetworkConfigForFile certificate settings', () => {
         [
           'type: env',
           'certificates:',
-          '  server_ca:',
-          '    paths:',
-          `      - ${caPath.replace(/\\/g, '/')}`,
+          `  server_ca: ${caPath.replace(/\\/g, '/')}`,
           '  clients:',
           '    - name: mtls',
           '      host: api.example.com',
@@ -244,7 +241,7 @@ describe('prepareNetworkConfigForFile certificate settings', () => {
     const config = prepareNetworkConfigForFile(apiFilePath, undefined, context);
 
     expect(config.ca.enabled).toBe(true);
-    expect(config.ca.certData?.[0].toString('utf8')).toBe('abs-ca');
+    expect(firstCaText(config.ca.certData)).toBe('abs-ca');
     expect(config.clients[0].certData?.toString('utf8')).toBe('abs-cert');
     expect(config.clients[0].keyData?.toString('utf8')).toBe('abs-key');
   });

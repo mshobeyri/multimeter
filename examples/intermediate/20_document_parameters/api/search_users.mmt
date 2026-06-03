@@ -1,0 +1,28 @@
+type: api
+title: Search users
+description: |-
+  Search users with documented parameter options and ranges.
+
+  <<i:role>> [admin, editor, viewer] Filter users by role
+  <<i:page>> [1-5] Page number to fetch
+  <<i:sort>> [name, created_at, updated_at] Field used for sorting
+  <<i:include_inactive>> [true, false] Include inactive users in the result
+
+  <<o:count>> Number of users returned
+  <<o:request_method>> HTTP method used by the request
+inputs:
+  role: viewer
+  page: 1
+  sort: name
+  include_inactive: false
+outputs:
+  count: body.count
+  request_method: body.method
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  role: i:role
+  page: i:page
+  sort: i:sort
+  include_inactive: i:include_inactive

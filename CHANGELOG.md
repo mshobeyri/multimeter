@@ -2,6 +2,13 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.24.1]
+
+- Refactor certificate flows and related handling
+- Update documentation content
+- Update website CSS animation behavior
+- Remove UI testing content from the website
+
 ## [1.24.0]
 
 - Add option-selection support in UI interactions and response/message body parsing updates

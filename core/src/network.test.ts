@@ -33,7 +33,6 @@ describe('network helpers', () => {
       protocol: 'https:',
       hostname: 'api.example.com',
       sslValidation: true,
-      allowSelfSigned: false,
       hasCA: true,
       hasClientCert: true,
       isSecure: true,

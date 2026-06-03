@@ -1,0 +1,9 @@
+type: test
+title: Basic GET test
+description: Calls a simple endpoint and checks the HTTP status
+steps:
+  - http: https://test.mmt.dev/json
+    title: Get JSON
+    method: get
+    expect:
+      status: 200

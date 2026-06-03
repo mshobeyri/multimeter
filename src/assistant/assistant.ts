@@ -390,7 +390,7 @@ export function setupChatParticipants(context: vscode.ExtensionContext) {
     const filePick = await vscode.window.showInputBox({
       title: 'Run API/Test',
       prompt: 'Enter relative path to .mmt/.yaml file',
-      value: 'examples/test1.mmt'
+      value: 'examples/basic/02_simple_test/echo_test.mmt'
     });
     if (!filePick) {
       return;
@@ -398,7 +398,7 @@ export function setupChatParticipants(context: vscode.ExtensionContext) {
     const args = await vscode.window.showInputBox({
       title: 'Extra args (optional)',
       prompt:
-          'e.g., --input user=alice --env-file examples/_environments.mmt --preset runner.dev --print-js'
+          'e.g., --input user=alice --env-file examples/intermediate/10_environment_presets/multimeter.mmt --preset runner.dev --print-js'
     });
     const fakeReq = {
       command: 'run',
@@ -419,7 +419,7 @@ export function setupChatParticipants(context: vscode.ExtensionContext) {
         const filePick = await vscode.window.showInputBox({
           title: 'Print JS from Test',
           prompt: 'Enter relative path to .mmt/.yaml file',
-          value: 'examples/test1.mmt'
+          value: 'examples/basic/02_simple_test/echo_test.mmt'
         });
         if (!filePick) {
           return;
@@ -427,7 +427,7 @@ export function setupChatParticipants(context: vscode.ExtensionContext) {
         const args = await vscode.window.showInputBox({
           title: 'Extra args (optional)',
           prompt:
-              'e.g., --input user=alice --env-file examples/_environments.mmt --preset runner.dev'
+              'e.g., --input user=alice --env-file examples/intermediate/10_environment_presets/multimeter.mmt --preset runner.dev'
         });
         const fakeReq = {
           command: 'print-js',

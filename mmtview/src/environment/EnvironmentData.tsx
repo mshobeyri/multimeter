@@ -13,20 +13,19 @@ export interface EnvClientCertificate {
 
 // Server CA certificate in env file (YAML uses snake_case)
 export interface EnvCaCertificate {
-  paths: string[];  // Multiple CA cert file paths
+  path?: string;
+  paths?: string[];  // Legacy multiple CA cert file paths
 }
 
 // Certificate settings section in env file
 // Note: Boolean flags are NOT stored in YAML - they go to localStorage
 export interface EnvCertificates {
-  server_ca?: EnvCaCertificate;
+  server_ca?: string | EnvCaCertificate;
   clients?: EnvClientCertificate[];
 }
 
 // Certificate boolean settings stored in localStorage (not YAML)
 export interface CertificateSettings {
-  sslValidation: boolean;
-  allowSelfSigned: boolean;
   caEnabled: boolean;
   clientsEnabled: Record<string, boolean>;  // keyed by client name+host
 }

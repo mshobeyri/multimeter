@@ -1,0 +1,8 @@
+type: env
+certificates:
+  server_ca: ./certs/ca.crt
+  clients:
+    - name: mock-client
+      host: localhost:29444
+      cert: ./certs/client.crt
+      key: ./certs/client.key

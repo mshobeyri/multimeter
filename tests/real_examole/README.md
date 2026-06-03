@@ -5,7 +5,7 @@ Shows how to **chain API calls** — the output of one call feeds into the next.
 ## Structure
 
 ```
-11_chained_api_calls/
+08_chained_api_calls/
 ├── api/
 │   ├── login.mmt              # POST login, outputs token + user_id
 │   └── get_profile.mmt        # POST profile lookup using token
@@ -38,12 +38,12 @@ Shows how to **chain API calls** — the output of one call feeds into the next.
 ### With the CLI
 
 ```sh
-npx testlight run examples/13_chained_api_calls/chained_test.mmt
+npx testlight run examples/intermediate/08_chained_api_calls/chained_test.mmt
 ```
 
 Override credentials:
 
 ```sh
-npx testlight run examples/13_chained_api_calls/chained_test.mmt \
+npx testlight run examples/intermediate/08_chained_api_calls/chained_test.mmt \
   -e username=bob@example.com -e password=hunter2
 ```

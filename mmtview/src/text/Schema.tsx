@@ -354,15 +354,24 @@ export const EnvSchema = {
             type: 'object',
             properties: {
                 server_ca: {
-                    type: 'object',
-                    properties: {
-                        paths: {
-                            type: 'array',
-                            items: { type: 'string' },
-                            description: 'Paths to server CA certificate files'
+                    anyOf: [
+                        { type: 'string', description: 'Server CA certificate file' },
+                        {
+                            type: 'object',
+                            properties: {
+                                path: {
+                                    type: 'string',
+                                    description: 'Legacy server CA certificate file path'
+                                },
+                                paths: {
+                                    type: 'array',
+                                    items: { type: 'string' },
+                                    description: 'Legacy paths to server CA certificate files'
+                                },
+                            },
+                            additionalProperties: false
                         }
-                    },
-                    additionalProperties: false
+                    ]
                 },
                 clients: {
                     type: 'array',

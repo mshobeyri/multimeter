@@ -2,7 +2,7 @@
 
 SSL/TLS certificate configuration in MMT has two parts:
 1. **File paths** - stored in the `certificates` section of the env file (YAML)
-2. **Boolean settings** - stored in local storage (VS Code workspace state or CLI defaults)
+2. **Enable/disable settings** - stored in local storage (VS Code workspace state or CLI defaults)
 
 This separation allows certificate file paths to be version-controlled while keeping enable/disable toggles as local preferences.
 
@@ -23,11 +23,8 @@ variables:
   API_URL: "https://api.example.com"
 
 certificates:
-  # Server CA certificates (multiple paths supported)
-  server_ca:
-    paths:
-      - "./certs/ca.pem"           # Path relative to env file
-      - "./certs/intermediate.pem"
+  # Server CA certificate
+  server_ca: "./certs/ca.pem"      # Path relative to env file
   
   # Client certificates (mTLS)
   clients:
@@ -47,7 +44,7 @@ certificates:
 
 | Field | Description |
 |-------|-------------|
-| `server_ca.paths` | Array of paths to server CA certificate files (relative to env file or absolute) |
+| `server_ca` | Server CA certificate file (relative to env file or absolute) |
 | `clients[].name` | Display name for the client certificate |
 | `clients[].host` | Host pattern (e.g., `*.api.example.com`, `api.example.com:8443`, or `*:8443`) |
 | `clients[].cert` | Path to client certificate file (PEM/CRT format) |
@@ -56,24 +53,22 @@ certificates:
 | `clients[].passphrase_plain` | Passphrase in plain text (avoid in shared configs) |
 | `clients[].passphrase_env` | Environment variable name containing passphrase |
 
-## Boolean settings (local storage)
+## Enable/disable settings (local storage)
 
 These settings are NOT stored in the YAML file. They are managed via the UI and stored in VS Code workspace state:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| SSL Validation | `true` | Verify SSL certificates |
-| Allow Untrusted Self-Signed | `false` | Retry self-signed HTTPS requests without certificate validation when no trusted CA path is available |
 | Server CA Enabled | `false` | Use configured server CA certificates |
 | Client Enabled | `true` | Enable/disable individual client certificates |
 
 For CLI usage, sensible defaults are applied:
 - SSL validation is enabled
-- Self-signed certificates are not allowed by default
+- Self-signed certificate failures are retried and reported as warnings
 - All configured certificates are enabled
 
-### Self-signed certificate auto-retry
-When "Allow Untrusted Self-Signed" is enabled, Multimeter automatically retries failed HTTPS requests with SSL validation disabled if the error matches specific TLS error codes (such as `SELF_SIGNED_CERT_IN_CHAIN` or `DEPTH_ZERO_SELF_SIGNED_CERT`). If the server certificate is trusted through `certificates.server_ca`, this setting is not needed.
+### Self-signed certificate warning
+Multimeter first verifies SSL certificates. If an HTTPS request fails because of a self-signed certificate, Multimeter retries the request without certificate validation and reports the certificate issue as a warning, matching Postman-style behavior.
 
 ## Passphrase handling
 
@@ -98,8 +93,7 @@ testlight run test.mmt --env-file env.mmt
 ## Edit certificates in the UI
 
 In the env file editor, switch to the **Certificates** tab to:
-- Configure SSL validation settings (stored locally)
-- Add/remove server CA certificate paths (stored in YAML)
+- Configure the server CA certificate path (stored in YAML)
 - Manage client certificates for mTLS (paths in YAML, enable/disable locally)
 
 ## Host matching rules

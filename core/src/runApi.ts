@@ -207,6 +207,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `      const __duration = __res && typeof __res.duration === 'number' ? __res.duration : undefined;\n` +
       `      const __headers = (__res && __res.headers) || {};\n` +
       `      const __body = __res && Object.prototype.hasOwnProperty.call(__res, 'body') ? __res.body : undefined;\n` +
+      `      const __warning = __res && typeof __res.warning === 'string' ? __res.warning : '';\n` +
       `      const __resLog = {\n` +
       `        status: __mmt_raw(__status),\n` +
       `        statusText: __statusText,\n` +
@@ -215,6 +216,9 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `        body: __mmt_formatBodyValue(__body)\n` +
       `      };\n` +
       `      console.debug(__mmt_formatSection('Response:', __resLog));\n` +
+      `      if (__warning) {\n` +
+      `        console.warn(__warning);\n` +
+      `      }\n` +
       `      if (typeof __status === 'number' && __status < 0) {\n` +
       `        let err = new Error(__statusText || 'Network error');\n` +
       `        err.status = __status;\n` +
@@ -223,6 +227,28 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `      }\n` +
       `      return __res;\n` +
       `    } catch (err) {\n` +
+      `      if (err && err.response) {\n` +
+      `        const __response = err.response;\n` +
+      `        const __warning = err.message ? String(err.message) : 'Server returned an error response';\n` +
+      `        const __res = {\n` +
+      `          body: typeof __response.data !== 'undefined' ? __response.data : __response.body,\n` +
+      `          headers: __response.headers || {},\n` +
+      `          status: typeof __response.status === 'number' ? __response.status : -1,\n` +
+      `          statusText: __response.statusText || __warning,\n` +
+      `          duration: typeof __response.duration === 'number' ? __response.duration : -1,\n` +
+      `          warning: __warning\n` +
+      `        };\n` +
+      `        const __resLog = {\n` +
+      `          status: __mmt_raw(__res.status),\n` +
+      `          statusText: __res.statusText,\n` +
+      `          duration: __mmt_formatDuration(__res.duration),\n` +
+      `          headers: __res.headers,\n` +
+      `          body: __mmt_formatBodyValue(__res.body)\n` +
+      `        };\n` +
+      `        console.debug(__mmt_formatSection('Response:', __resLog));\n` +
+      `        console.warn(__warning);\n` +
+      `        return __res;\n` +
+      `      }\n` +
       `      const __errorLog = {\n` +
       `        message: __mmt_raw(err && err.message ? err.message : String(err))\n` +
       `      };\n` +

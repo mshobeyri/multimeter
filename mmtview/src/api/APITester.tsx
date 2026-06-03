@@ -470,6 +470,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
               status={responseData.status}
               errorMessage={responseData.errorMessage}
               errorCode={responseData.errorCode}
+              warning={responseData.warning}
             />
           )}
 

@@ -75,10 +75,6 @@ const features: FeatureRow[] = [
     values: { multimeter: true, postman: 'Scripts', insomnia: 'Scripts', bruno: 'Scripts', robot: true, cucumber: true, jmeter: true, neoload: true, playwright: true },
   },
   {
-    feature: 'UI Testing',
-    values: { multimeter: false, postman: false, insomnia: false, bruno: false, robot: 'Via library', cucumber: 'Via code', jmeter: false, neoload: true, playwright: true },
-  },
-  {
     feature: 'Test Suites (Parallel / Sequential)',
     values: { multimeter: true, postman: 'Sequential', insomnia: false, bruno: false, robot: true, cucumber: true, jmeter: true, neoload: true, playwright: true },
   },
