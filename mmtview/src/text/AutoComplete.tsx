@@ -900,11 +900,43 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'Presets for commonly used environment variable values. Helps with reusability and consistency.\nExample:\npresets:\n\t- name: "production"\n\t  value: "prod"\n\t- name: "staging"\n\t  value: "staging"\n\t- name: "development"\n\t  value: "dev"',
         },
         {
+            label: "setting",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "setting:\n\thttp:\n\t\tversion: \"auto\"\n\t\ttimeout: 30000",
+            detail: 'Runtime settings [object]',
+            documentation: 'Configure project-level runtime settings.\nExample:\nsetting:\n\thttp:\n\t\tversion: "auto"\n\t\ttimeout: 30000',
+        },
+        {
             label: "certificates",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "certificates:\n\t",
             detail: 'Certificate settings [object]',
             documentation: 'Configure SSL/TLS certificates for secure API connections.\nExample:\ncertificates:\n\tserver_ca: ./certs/ca.pem\n\tclients:\n\t\t- name: api-cert\n\t\t\thost: "*.api.example.com"\n\t\t\tcert: ./certs/client.pem\n\t\t\tkey: ./certs/client.key',
+        },
+    ];
+    const envSettingSuggestions = [
+        {
+            label: "http",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "http:\n\t\tversion: \"auto\"\n\t\ttimeout: 30000",
+            detail: 'HTTP defaults [object]',
+            documentation: 'Project-level HTTP defaults used by API and test HTTP requests.\nExample:\nhttp:\n\tversion: "auto"\n\ttimeout: 30000',
+        },
+    ];
+    const envHttpSettingSuggestions = [
+        {
+            label: "version",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "version: \"2\"",
+            detail: 'HTTP version ["auto"|"1"|"1.1"|"2"]',
+            documentation: 'Preferred HTTP version for project HTTP requests. HTTP/2 uses a basic request-response transport when supported by Node.\nExample: version: "2"',
+        },
+        {
+            label: "timeout",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "timeout: 30000",
+            detail: 'Default HTTP timeout [number, ms]',
+            documentation: 'Default timeout for HTTP requests in milliseconds. Per-request timeout still overrides this value.\nExample: timeout: 30000',
         },
     ];
     const envCertificatesSuggestions = [
@@ -1745,6 +1777,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
         services: servicesSuggestions,
         html: htmlSuggestions,
         env: envSuggestions,
+        setting: envSettingSuggestions,
+        http: envHttpSettingSuggestions,
         certificates: envCertificatesSuggestions,
         clients: envCaClientSuggestions,
         type: typeSuggestions,

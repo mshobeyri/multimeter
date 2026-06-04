@@ -3,7 +3,7 @@ import fs from 'fs';
 import yaml from 'js-yaml';
 import * as mmtcore from 'mmt-core';
 import type {RunFileOptions, RunReporterMessage} from 'mmt-core/runConfig';
-import type {NetworkConfig, EnvCertificateSettings} from 'mmt-core/NetworkData';
+import type {NetworkConfig, EnvCertificateSettings, EnvSetting} from 'mmt-core/NetworkData';
 import {DEFAULT_NETWORK_CONFIG, resolvePassphrase} from 'mmt-core/NetworkData';
 import path from 'path';
 
@@ -95,6 +95,29 @@ interface EnvDocResult {
   variables?: Record<string, any>;
   presets?: Record<string, any>;
   certificates?: EnvCertificateSettings;
+  setting?: EnvSetting;
+}
+
+const VALID_HTTP_VERSIONS = new Set(['auto', '1', '1.1', '2']);
+
+function parseEnvSetting(raw: any): EnvSetting|undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return undefined;
+  }
+  const httpRaw = raw.http;
+  if (!httpRaw || typeof httpRaw !== 'object' || Array.isArray(httpRaw)) {
+    return undefined;
+  }
+  const http: NonNullable<EnvSetting['http']> = {};
+  if (typeof httpRaw.version === 'string' && VALID_HTTP_VERSIONS.has(httpRaw.version.trim())) {
+    http.version = httpRaw.version.trim();
+  }
+  if (typeof httpRaw.timeout === 'number' &&
+      Number.isFinite(httpRaw.timeout) &&
+      httpRaw.timeout >= 0) {
+    http.timeout = httpRaw.timeout;
+  }
+  return Object.keys(http).length > 0 ? {http} : undefined;
 }
 
 function loadEnvDoc(envPath: string): EnvDocResult {
@@ -111,6 +134,7 @@ function loadEnvDoc(envPath: string): EnvDocResult {
       variables: data.variables || {},
       presets: data.presets || {},
       certificates: data.certificates || undefined,
+      setting: parseEnvSetting(data.setting),
     };
   } catch {
     return {};
@@ -156,9 +180,19 @@ function getCaPath(certSettings: EnvCertificateSettings | undefined): string {
 export function buildNetworkConfigFromEnv(
     certSettings: EnvCertificateSettings | undefined,
     envFileDir: string,
-    envVars?: Record<string, any>): NetworkConfig {
+    envVars?: Record<string, any>,
+    setting?: EnvSetting): NetworkConfig {
+  const timeout = typeof setting?.http?.timeout === 'number' &&
+      Number.isFinite(setting.http.timeout) &&
+      setting.http.timeout >= 0 ?
+    setting.http.timeout :
+    DEFAULT_NETWORK_CONFIG.timeout;
+  const httpVersion = typeof setting?.http?.version === 'string' &&
+      VALID_HTTP_VERSIONS.has(setting.http.version.trim()) ?
+    setting.http.version.trim() :
+    DEFAULT_NETWORK_CONFIG.httpVersion;
   if (!certSettings) {
-    return {...DEFAULT_NETWORK_CONFIG};
+    return {...DEFAULT_NETWORK_CONFIG, httpVersion, timeout};
   }
 
   // Load CA cert
@@ -216,7 +250,8 @@ export function buildNetworkConfigFromEnv(
     clients,
     sslValidation: true,  // Default true (not stored in YAML)
     allowSelfSigned: false,
-    timeout: 30000,
+    httpVersion,
+    timeout,
     autoFormat: false,
   };
 }
@@ -317,9 +352,10 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
     const defaultEnv = resolveDefaultEnvVariables(doc.variables);
     const presetEnv = resolvePresetEnv(doc, presetName);
     envvar = mergeEnv({baseEnv: defaultEnv, envvar: presetEnv, manualEnvvars});
-    // Build network config from certificates in env file
-    if (doc.certificates) {
-      networkConfig = buildNetworkConfigFromEnv(doc.certificates, envFileDir, envvar);
+    // Build network config from file-driven HTTP settings and certificates.
+    if (doc.certificates || doc.setting) {
+      networkConfig = buildNetworkConfigFromEnv(
+          doc.certificates, envFileDir, envvar, doc.setting);
     }
   } else {
     envvar = mergeEnv({envvar: undefined, manualEnvvars});

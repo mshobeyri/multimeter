@@ -4,6 +4,7 @@
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const axios = require('axios/dist/node/axios.cjs');
 import * as http from 'http';
+import * as http2 from 'http2';
 import * as https from 'https';
 import WebSocket from 'ws';
 
@@ -180,6 +181,177 @@ export function createHttpAgentWithTracking(hostname: string): http.Agent {
   return agent;
 }
 
+function createHttp2ConnectOptions(
+    hostname: string,
+    port: string | undefined,
+    protocol: string | undefined,
+    config: NetworkConfig,
+    skipCertificateValidation: boolean): http2.SecureClientSessionOptions {
+  const options: http2.SecureClientSessionOptions = {};
+  if (protocol === 'https:') {
+    options.rejectUnauthorized = skipCertificateValidation ? false : config.sslValidation;
+    if (config.ca.enabled && config.ca.certData) {
+      options.ca = Array.isArray(config.ca.certData) ?
+        config.ca.certData :
+        [config.ca.certData];
+    }
+    const matchingClientCert = findMatchingClientCertificate(
+        config.clients, hostname, port, protocol);
+    if (matchingClientCert) {
+      if (matchingClientCert.pfxData) {
+        options.pfx = matchingClientCert.pfxData;
+      } else if (matchingClientCert.certData && matchingClientCert.keyData) {
+        options.cert = matchingClientCert.certData;
+        options.key = matchingClientCert.keyData;
+      }
+      if (matchingClientCert.passphrase_plain) {
+        options.passphrase = matchingClientCert.passphrase_plain;
+      }
+    }
+  }
+  return options;
+}
+
+function normalizeHttp2RequestHeaders(headers: Record<string, string>):
+    Record<string, string> {
+  const blockedHeaders = new Set([
+    'connection',
+    'keep-alive',
+    'proxy-connection',
+    'transfer-encoding',
+    'upgrade',
+    'host',
+    'http2-settings',
+  ]);
+  const normalized: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    const normalizedKey = key.toLowerCase();
+    if (blockedHeaders.has(normalizedKey)) {
+      continue;
+    }
+    normalized[normalizedKey] = String(value);
+  }
+  return normalized;
+}
+
+function normalizeHttp2ResponseHeaders(raw: http2.IncomingHttpHeaders):
+    Record<string, string> {
+  const headers: Record<string, string> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (key.startsWith(':') || value === undefined) {
+      continue;
+    }
+    headers[key] = Array.isArray(value) ? value.join(', ') : String(value);
+  }
+  return headers;
+}
+
+function buildRequestPath(parsedUrl: URL, query?: Record<string, string>): string {
+  const urlForPath = new URL(parsedUrl.toString());
+  if (query) {
+    for (const [key, value] of Object.entries(query)) {
+      urlForPath.searchParams.set(key, value);
+    }
+  }
+  return `${urlForPath.pathname}${urlForPath.search}`;
+}
+
+function sendHttp2Request(
+    req: HttpRequest,
+    config: NetworkConfig,
+    reqHeaders: Record<string, string>,
+    parsedUrl: URL,
+    requestTimeout: number,
+    skipCertificateValidation = false): Promise<HttpResponse> {
+  return new Promise((resolve, reject) => {
+    const start = Date.now();
+    const authority = `${parsedUrl.protocol}//${parsedUrl.host}`;
+    const session = http2.connect(
+        authority,
+        createHttp2ConnectOptions(
+            parsedUrl.hostname, parsedUrl.port, parsedUrl.protocol, config,
+            skipCertificateValidation));
+    let settled = false;
+    const settle = (fn: () => void) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      try {
+        session.close();
+      } catch {
+        session.destroy();
+      }
+      fn();
+    };
+
+    const timer = setTimeout(() => {
+      settle(() => {
+        reject(Object.assign(new Error('HTTP/2 request timed out'), {
+          code: 'TIMEOUT',
+        }));
+      });
+    }, requestTimeout);
+
+    session.once('error', (err) => {
+      clearTimeout(timer);
+      settle(() => reject(err));
+    });
+
+    const headers = {
+      ':method': (req.method || 'get').toUpperCase(),
+      ':path': buildRequestPath(parsedUrl, req.query),
+      ':scheme': parsedUrl.protocol.replace(':', ''),
+      ':authority': parsedUrl.host,
+      ...normalizeHttp2RequestHeaders(reqHeaders),
+    };
+    const stream = session.request(headers);
+    const chunks: Buffer[] = [];
+    let responseHeaders: http2.IncomingHttpHeaders = {};
+
+    stream.once('response', (headers) => {
+      responseHeaders = headers;
+    });
+    stream.on('data', (chunk) => {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    });
+    stream.once('end', () => {
+      clearTimeout(timer);
+      settle(() => {
+        const status = Number(responseHeaders[':status'] || 0);
+        resolve({
+          body: Buffer.concat(chunks).toString('utf8'),
+          headers: normalizeHttp2ResponseHeaders(responseHeaders),
+          status,
+          statusText: http.STATUS_CODES[status] || '',
+          duration: Date.now() - start,
+          autoformat: config.autoFormat,
+        });
+      });
+    });
+    stream.once('error', (err) => {
+      clearTimeout(timer);
+      settle(() => reject(err));
+    });
+    stream.setTimeout(requestTimeout, () => {
+      stream.close(http2.constants.NGHTTP2_CANCEL);
+      clearTimeout(timer);
+      settle(() => {
+        reject(Object.assign(new Error('HTTP/2 request timed out'), {
+          code: 'TIMEOUT',
+        }));
+      });
+    });
+
+    const body = req.body || '';
+    if (body) {
+      stream.end(body);
+    } else {
+      stream.end();
+    }
+  });
+}
+
 /**
  * Record activity on a connection by socket
  */
@@ -289,6 +461,26 @@ export async function sendHttpRequest(
       Number.isFinite(req.timeout) && req.timeout >= 0 ?
       req.timeout :
       config.timeout;
+  const shouldUseHttp2 = config.httpVersion === '2';
+  if (shouldUseHttp2) {
+    const start = Date.now();
+    const canRetrySelfSigned = config.sslValidation && parsedUrl.protocol === 'https:';
+    try {
+      return await sendHttp2Request(
+          req, config, reqHeaders, parsedUrl, requestTimeout, false);
+    } catch (err: any) {
+      if (canRetrySelfSigned && isSelfSignedTlsError(err)) {
+        const warning = formatSelfSignedWarning(err);
+        try {
+          return await sendHttp2Request(
+              req, config, reqHeaders, parsedUrl, requestTimeout, true);
+        } catch (retryErr: any) {
+          return toNetworkError(retryErr, config, Date.now() - start, warning);
+        }
+      }
+      return toNetworkError(err, config, Date.now() - start);
+    }
+  }
   const baseRequestConfig = {
     url: req.url,
     method: req.method || 'get',
@@ -363,6 +555,23 @@ export async function sendHttpRequest(
     }
     return toError(err);
   }
+}
+
+function toNetworkError(
+    err: any,
+    config: NetworkConfig,
+    duration: number,
+    warning?: string): HttpResponse {
+  const code = err?.code ? String(err.code) : 'NETWORK_ERROR';
+  return {
+    body: '',
+    headers: {},
+    status: -1,
+    statusText: `${code}`,
+    duration,
+    autoformat: config.autoFormat,
+    warning,
+  };
 }
 
 const SELF_SIGNED_TLS_CODES = new Set([

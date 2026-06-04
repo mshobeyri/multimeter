@@ -19,7 +19,7 @@ Gap analysis comparing Multimeter against Postman, Insomnia, Bruno, Hoppscotch, 
 | # | Gap | Current State | Competitors |
 |---|-----|---------------|-------------|
 | 6 | **Load / performance testing** | `TestMetric` fields defined (`repeat`, `threads`, `duration`, `rampup`) but execution engine not implemented. | Karate has Gatling integration. k6 is purpose-built. Others have nothing. |
-| 7 | **Per-request timeout** | Global only (`multimeter.network.timeout`, default 30s). Cannot override per API call or test step. | Postman, Insomnia, Bruno all support per-request timeouts. |
+| 7 | **Per-request timeout** | Project default lives in `setting.http.timeout` with per-request overrides. | Postman, Insomnia, Bruno all support per-request timeouts. |
 | 8 | **Request retry with backoff** | TLS self-signed retry only. No 429/5xx retry, exponential backoff, or `Retry-After` parsing. | k6 has retry policies. Most others rely on scripting. |
 | 9 | **Cookie jar / session persistence** | Cookies visible in responses but not auto-forwarded to subsequent requests. Manual chaining required. | Postman, Insomnia auto-persist cookies across requests in a session. |
 | 10 | **gRPC / Protocol Buffers** | Not implemented. UI icon exists in history panel only. Priority 3b in strategy. | Postman, Insomnia, Karate support gRPC. |

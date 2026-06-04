@@ -101,11 +101,21 @@ export interface EnvCertificateSettings {
   }>;
 }
 
+export interface EnvHttpSettings {
+  version?: string;
+  timeout?: number;
+}
+
+export interface EnvSetting {
+  http?: EnvHttpSettings;
+}
+
 export interface NetworkConfig {
   ca: CaCertificate;
   clients: ClientCertificate[];
   sslValidation: boolean;
   allowSelfSigned: boolean;
+  httpVersion?: string;
   timeout: number;
   autoFormat: boolean;
 }
@@ -136,6 +146,7 @@ export const DEFAULT_NETWORK_CONFIG: NetworkConfig = {
   clients: [],
   sslValidation: true,
   allowSelfSigned: false,
+  httpVersion: undefined,
   timeout: 30000,
   autoFormat: false,
 };

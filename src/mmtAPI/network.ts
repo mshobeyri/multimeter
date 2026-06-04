@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/fileHelper';
 import {handleNetworkMessage as coreHandleNetworkMessage, NetworkMessage, PostMessage} from 'mmt-core/network';
-import {CertificateSettings, DEFAULT_CERT_SETTINGS, NetworkConfig, resolvePassphrase} from 'mmt-core/NetworkData';
+import {CertificateSettings, DEFAULT_CERT_SETTINGS, DEFAULT_NETWORK_CONFIG, EnvSetting, NetworkConfig, resolvePassphrase} from 'mmt-core/NetworkData';
 import * as vscode from 'vscode';
 import * as YAML from 'yaml';
 
@@ -35,6 +35,43 @@ interface EnvVariableEntry {
 interface ParsedEnvFile {
   envVars: Record<string, any>;
   certificates: StoredCertificates;
+  setting?: EnvSetting;
+}
+
+const VALID_HTTP_VERSIONS = new Set(['auto', '1', '1.1', '2']);
+
+function parseEnvSetting(raw: any): EnvSetting|undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return undefined;
+  }
+  const httpRaw = raw.http;
+  if (!httpRaw || typeof httpRaw !== 'object' || Array.isArray(httpRaw)) {
+    return undefined;
+  }
+  const http: NonNullable<EnvSetting['http']> = {};
+  if (typeof httpRaw.version === 'string' && VALID_HTTP_VERSIONS.has(httpRaw.version.trim())) {
+    http.version = httpRaw.version.trim();
+  }
+  if (typeof httpRaw.timeout === 'number' &&
+      Number.isFinite(httpRaw.timeout) &&
+      httpRaw.timeout >= 0) {
+    http.timeout = httpRaw.timeout;
+  }
+  return Object.keys(http).length > 0 ? {http} : undefined;
+}
+
+function getHttpTimeout(setting: EnvSetting|undefined, fallback: number): number {
+  const timeout = setting?.http?.timeout;
+  return typeof timeout === 'number' && Number.isFinite(timeout) && timeout >= 0 ?
+    timeout :
+    fallback;
+}
+
+function getHttpVersion(setting: EnvSetting|undefined): string|undefined {
+  const version = setting?.http?.version;
+  return typeof version === 'string' && VALID_HTTP_VERSIONS.has(version.trim()) ?
+    version.trim() :
+    undefined;
 }
 
 function hasStoredCertificatePaths(certs?: StoredCertificates): boolean {
@@ -189,7 +226,8 @@ function tryParseEnvFile(filePath: string): ParsedEnvFile|undefined {
     }
 
     const certificates = tryParseEnvCertificatesFromFile(filePath) || {};
-    return {envVars, certificates};
+    const setting = parseEnvSetting((yaml as any).setting);
+    return {envVars, certificates, setting};
   } catch {
     return undefined;
   }
@@ -256,6 +294,7 @@ export function getPreparedConfigFromStorage(
     const certSettings: CertificateSettings = storedCertSettings ||
       createDefaultCertificateSettings(storedCerts);
   const config = vscode.workspace.getConfiguration('multimeter');
+  const fallbackTimeout = DEFAULT_NETWORK_CONFIG.timeout;
 
   // Load CA cert data
   let caCertData: Buffer|undefined = undefined;
@@ -329,7 +368,8 @@ export function getPreparedConfigFromStorage(
     clients: clientsWithData,
     sslValidation: true,
     allowSelfSigned: false,
-    timeout: config.get('network.timeout', 30000),
+    httpVersion: getHttpVersion(parsed?.setting),
+    timeout: getHttpTimeout(parsed?.setting, fallbackTimeout),
     autoFormat: config.get('body.auto.format', false)
   };
 }
@@ -361,6 +401,7 @@ export function prepareNetworkConfigFromProjectFile(
   };
 
   const config = vscode.workspace.getConfiguration('multimeter');
+  const fallbackTimeout = DEFAULT_NETWORK_CONFIG.timeout;
   const storedCerts: StoredCertificates = parsed?.certificates || {};
 
   const projectDir = path.dirname(projectFilePath);
@@ -428,7 +469,8 @@ export function prepareNetworkConfigFromProjectFile(
     clients: clientsWithData,
     sslValidation: true,
     allowSelfSigned: false,
-    timeout: config.get('network.timeout', 30000),
+    httpVersion: getHttpVersion(parsed?.setting),
+    timeout: getHttpTimeout(parsed?.setting, fallbackTimeout),
     autoFormat: config.get('body.auto.format', false)
   };
 }
@@ -456,7 +498,8 @@ export function prepareNetworkConfigForFile(
     clients: [],
     sslValidation: true,
     allowSelfSigned: false,
-    timeout: config.get('network.timeout', 30000),
+    httpVersion: undefined,
+    timeout: DEFAULT_NETWORK_CONFIG.timeout,
     autoFormat: config.get('body.auto.format', false)
   };
 }
@@ -471,7 +514,8 @@ export function getPreparedConfig(): NetworkConfig {
     clients: [],
     sslValidation: true,
     allowSelfSigned: false,
-    timeout: config.get('network.timeout', 30000),
+    httpVersion: undefined,
+    timeout: DEFAULT_NETWORK_CONFIG.timeout,
     autoFormat: config.get('body.auto.format', false)
   };
 }

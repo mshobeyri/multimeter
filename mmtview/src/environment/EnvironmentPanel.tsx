@@ -21,7 +21,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   const [page, setPage] = useState<'environment' | 'edit'>(
     () => (localStorage.getItem(LAST_ENV_PAGE_KEY) as 'environment' | 'edit') || 'environment'
   );
-  const [editTab, setEditTab] = useState<'variables' | 'presets' | 'certificates'>('variables');
+  const [editTab, setEditTab] = useState<'variables' | 'presets' | 'settings' | 'certificates'>('variables');
   const [showIconsOnly, setShowIconsOnly] = useState(false);
   const [variables, setVariables] = useState<ComboTablePair[]>([]);
   const [presets, setPresets] = useState<ComboTablePair[]>([]);
@@ -372,6 +372,15 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
                   >
                     <span className="codicon codicon-tasklist tab-button-icon"></span>
                     Presets
+                  </button>
+                  <button
+                    onClick={() => setEditTab('settings')}
+                    className={`tab-button ${editTab === 'settings' ? 'active' : ''}`}
+                    title="Settings"
+                    type="button"
+                  >
+                    <span className="codicon codicon-settings-gear tab-button-icon"></span>
+                    Settings
                   </button>
                   <button
                     onClick={() => setEditTab('certificates')}

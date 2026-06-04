@@ -24,6 +24,15 @@ export interface EnvCertificates {
   clients?: EnvClientCertificate[];
 }
 
+export interface EnvHttpSettings {
+  version?: string;
+  timeout?: number;
+}
+
+export interface EnvSetting {
+  http?: EnvHttpSettings;
+}
+
 // Certificate boolean settings stored in localStorage (not YAML)
 export interface CertificateSettings {
   caEnabled: boolean;
@@ -42,6 +51,7 @@ export type EnvironmentData = {
       };
     };
   };
+  setting?: EnvSetting;
   certificates?: EnvCertificates;
 };
 

@@ -22,6 +22,11 @@ type: env
 variables:
   API_URL: "https://api.example.com"
 
+setting:
+  http:
+    version: "auto"
+    timeout: 30000
+
 certificates:
   # Server CA certificate
   server_ca: "./certs/ca.pem"      # Path relative to env file

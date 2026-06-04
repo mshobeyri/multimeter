@@ -25,6 +25,10 @@ presets:
     prod:
       api_url: prod
       mode: prod
+setting:
+  http:
+    version: "auto"
+    timeout: 30000
 ```
 
 Notes
@@ -110,10 +114,28 @@ setenv:
 
 SSL/TLS certificate settings can be configured in the `certificates` section of the env file. See [Certificates documentation](./certificates-mmt.md) for details on configuring the server CA certificate, client certificates (mTLS), and certificate warnings.
 
+## Settings
+
+Project-level runner settings can be configured in the `setting` section of the env file:
+
+```yaml
+setting:
+  http:
+    version: "auto"
+    timeout: 30000
+```
+
+- `setting.http.version` records the preferred HTTP version as a string (`"auto"`, `"1"`, `"1.1"`, or `"2"`).
+- HTTP/2 uses a basic request-response transport when supported by the Node runtime.
+- `setting.http.timeout` sets the default HTTP request timeout in milliseconds.
+- Per-request `timeout` fields in API files and test HTTP steps still override this default.
+- If no env file timeout is set, Multimeter uses the built-in default of `30000` milliseconds.
+
 ## Reference (types)
 - type: `env`
 - variables: record<string, object (key-value choices) | array (allowed values)>
 - presets: record<string, record<string, record<string, string|number|boolean|null>>>
+- setting: { http?: { version?: "auto"|"1"|"1.1"|"2", timeout?: number } }
 - certificates: { server_ca?, clients? }
 
 ## VS Code Settings
@@ -122,7 +144,6 @@ Multimeter exposes the following VS Code settings (accessible via Settings or `s
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `multimeter.network.timeout` | `30000` | HTTP request timeout in milliseconds |
 | `multimeter.body.auto.format` | `true` | Auto-format response bodies (JSON pretty-print) |
 | `multimeter.editor.fontSize` | `14` | Font size for the YAML editor (range: 8-40) |
 | `multimeter.editor.defaultPanel` | `yaml-ui` | Default panel when opening `.mmt` files: `yaml-ui`, `yaml`, or `ui` |
@@ -133,7 +154,7 @@ Multimeter exposes the following VS Code settings (accessible via Settings or `s
 
 A file named `multimeter.mmt` (with `type: env`) placed at the root of your project serves as the **project root marker**. This enables:
 
-1. **Workspace environment loading**: When configured, VS Code will automatically load variables, presets, and certificates from `multimeter.mmt` into workspace storage on project open. Configure the path using `multimeter.workspaceEnvFile` setting (default: `multimeter.mmt` at project root).
+1. **Workspace environment loading**: When configured, VS Code will automatically load variables, presets, settings, and certificates from `multimeter.mmt` into workspace storage on project open. Configure the path using `multimeter.workspaceEnvFile` setting (default: `multimeter.mmt` at project root).
 
 2. **Project root imports**: In test and API files, you can use `+/` prefix to import files relative to the project root (where `multimeter.mmt` exists) instead of relative to the current file.
 

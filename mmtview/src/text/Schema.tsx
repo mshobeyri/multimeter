@@ -351,6 +351,20 @@ export const EnvSchema = {
                 }
             }
         },
+        setting: {
+            type: 'object',
+            properties: {
+                http: {
+                    type: 'object',
+                    properties: {
+                        version: { type: 'string', enum: ['auto', '1', '1.1', '2'] },
+                        timeout: { type: 'number', minimum: 0 }
+                    },
+                    additionalProperties: false
+                }
+            },
+            additionalProperties: false
+        },
         certificates: {
             type: 'object',
             properties: {

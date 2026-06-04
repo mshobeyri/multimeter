@@ -19,4 +19,4 @@ npx testlight run examples/intermediate/21_manual_timeout/manual_timeout.mmt
 ## Key Concept
 
 - `timeout` is a per-request override in milliseconds.
-- If omitted, Multimeter uses the default `multimeter.network.timeout` setting.
+- If omitted, Multimeter uses `setting.http.timeout` from the env file, or the built-in default of `30000` milliseconds.

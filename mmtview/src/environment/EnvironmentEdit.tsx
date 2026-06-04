@@ -3,12 +3,42 @@ import parseYaml, { packYaml } from "mmt-core/markupConvertor";
 import EnvironmentVariableEdit from "./EnvironmentVariableEdit";
 import EnvironmentPresetEdit from "./EnvironmentPresetEdit";
 import EnvironmentCertificatesEdit from "./EnvironmentCertificatesEdit";
-import { EnvironmentData, EnvCertificates } from "./EnvironmentData";
+import EnvironmentSettingsEdit from "./EnvironmentSettingsEdit";
+import { EnvironmentData, EnvCertificates, EnvSetting } from "./EnvironmentData";
 
 interface EnvironmentEditProps {
   content: string;
   setContent: (value: string) => void;
-  tab: "variables" | "presets" | "certificates";
+  tab: "variables" | "presets" | "settings" | "certificates";
+}
+
+function packEnvironmentData(envData: EnvironmentData): string {
+  const {
+    type,
+    variables,
+    presets,
+    setting,
+    certificates,
+    ...rest
+  } = envData as EnvironmentData & Record<string, any>;
+  const ordered: Record<string, any> = {};
+  ordered.type = type;
+  if (variables !== undefined) {
+    ordered.variables = variables;
+  }
+  if (presets !== undefined) {
+    ordered.presets = presets;
+  }
+  if (setting !== undefined) {
+    ordered.setting = setting;
+  }
+  if (certificates !== undefined) {
+    ordered.certificates = certificates;
+  }
+  for (const [key, value] of Object.entries(rest)) {
+    ordered[key] = value;
+  }
+  return packYaml ? packYaml(ordered) : "";
 }
 
 const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent, tab }) => {
@@ -23,14 +53,21 @@ const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent, 
   const handleVariablesChange = (variables: EnvironmentData["variables"]) => {
     if (!envData) return;
     const newEnvData = { ...envData, variables };
-    const yamlString = packYaml ? packYaml(newEnvData) : content;
+    const yamlString = packEnvironmentData(newEnvData);
     setContent(yamlString);
   };
 
   const handlePresetsChange = (presets: EnvironmentData["presets"]) => {
     if (!envData) return;
     const newEnvData = { ...envData, presets };
-    const yamlString = packYaml ? packYaml(newEnvData) : content;
+    const yamlString = packEnvironmentData(newEnvData);
+    setContent(yamlString);
+  };
+
+  const handleSettingChange = (setting: EnvSetting) => {
+    if (!envData) return;
+    const newEnvData = { ...envData, setting };
+    const yamlString = packEnvironmentData(newEnvData);
     setContent(yamlString);
   };
 
@@ -39,7 +76,7 @@ const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent, 
       return;
     }
     const newEnvData = { ...envData, certificates };
-    const yamlString = packYaml ? packYaml(newEnvData) : content;
+    const yamlString = packEnvironmentData(newEnvData);
     setContent(yamlString);
   };
 
@@ -63,6 +100,12 @@ const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent, 
         <EnvironmentPresetEdit
           presets={envData.presets || {}}
           onChange={handlePresetsChange}
+        />
+      )}
+      {tab === "settings" && (
+        <EnvironmentSettingsEdit
+          setting={envData.setting}
+          onChange={handleSettingChange}
         />
       )}
       {tab === "certificates" && (
