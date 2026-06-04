@@ -3,12 +3,22 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 
 import * as file from './file';
-import {handleNetworkMessage} from './network';
+import {handleNetworkMessage, prepareNetworkConfigForFile} from './network';
 import * as run from './run';
 import * as mockRunner from './mockRunner';
-import {suiteHierarchy, JSer, testParsePack} from 'mmt-core';
+import {
+  suiteHierarchy,
+  JSer,
+  testParsePack,
+  apiParsePack,
+  variableReplacer,
+  markupConvertor,
+} from 'mmt-core';
+import {findMatchingClientCertificate, NetworkConfig, Request} from 'mmt-core/NetworkData';
 
 let curlTerminal: vscode.Terminal|null = null;
+
+type CurlShellKind = 'posix' | 'powershell' | 'cmd';
 
 async function handleUpdateWorkspaceState(message: any, mmtProvider: any) {
   mmtProvider.context.workspaceState.update(message.name, message.value);
@@ -94,9 +104,10 @@ async function handleUpdateConfig(message: any, mmtProvider: any) {
   }
 }
 
-async function handleRunCurlCommand(message: any) {
+async function handleRunCurlCommand(
+    message: any, document: vscode.TextDocument, mmtProvider: any) {
   try {
-    const cmd = String(message.curl || '').trim();
+    const cmd = buildCurlCommand(message, document, mmtProvider);
     if (!cmd) {
       vscode.window.showWarningMessage('No curl command to run.');
       return;
@@ -121,6 +132,279 @@ async function handleRunCurlCommand(message: any) {
     }
   } catch (err) {
     vscode.window.showErrorMessage(`Failed to open terminal: ${err}`);
+  }
+}
+
+function buildCurlCommand(
+    message: any, document: vscode.TextDocument, mmtProvider: any): string {
+  if (typeof message.curl === 'string' && message.curl.trim()) {
+    return message.curl.trim();
+  }
+  const request = getCurlRequest(message, document, mmtProvider);
+  if (!request) {
+    return '';
+  }
+
+  const shellKind = detectCurlShellKind();
+  const envVars = extractEnvVarsForCurl(mmtProvider);
+  const networkConfig = prepareNetworkConfigForFile(
+      document.uri.fsPath, envVars, mmtProvider.context);
+  const method = String(request.method || 'GET').toUpperCase();
+  const executable = shellKind === 'powershell' && process.platform === 'win32' ? 'curl.exe' : 'curl';
+  const parts: string[] = [executable];
+
+  if (method !== 'GET') {
+    parts.push('-X', method);
+  }
+
+  Object.entries(request.headers || {}).forEach(([key, value]) => {
+    const headerValue = stringifyCurlValue(value);
+    if (headerValue) {
+      parts.push('-H', quoteCurlArgument(shellKind, `${key}: ${headerValue}`));
+    }
+  });
+
+  const cookiePairs = Object.entries(request.cookies || {})
+      .map(([key, value]) => {
+        const cookieValue = stringifyCurlValue(value);
+        return cookieValue ? `${key}=${cookieValue}` : '';
+      })
+      .filter(Boolean);
+  if (cookiePairs.length) {
+    parts.push('-H', quoteCurlArgument(shellKind, `Cookie: ${cookiePairs.join('; ')}`));
+  }
+
+  const body = stringifyCurlBody(request.body);
+  if (method !== 'GET' && body) {
+    parts.push('--data', quoteCurlArgument(shellKind, body));
+  }
+
+  const url = buildCurlUrl(request.url || '', request.query || {});
+  if (!url) {
+    return '';
+  }
+  appendCurlCertificateFlags(parts, shellKind, url, networkConfig);
+  parts.push(quoteCurlArgument(shellKind, url));
+  return parts.join(' ');
+}
+
+function getCurlRequest(
+    message: any,
+    document: vscode.TextDocument,
+    mmtProvider: any): Request | undefined {
+  if (message.request && typeof message.request === 'object' && message.request.url) {
+    return message.request as Request;
+  }
+
+  const rawText = document.getText();
+  if (JSer.fileType(document.uri.fsPath, rawText) !== 'api') {
+    return undefined;
+  }
+
+  try {
+    const api = apiParsePack.yamlToAPIStrict(rawText);
+    const inputs = resolveCurlInputs(api, message?.inputs);
+    const envVars = extractEnvVarsForCurl(mmtProvider);
+    const request = variableReplacer.replaceAllRefs(
+        api,
+        api.inputs ?? {},
+        inputs,
+        envVars) as Request & {auth?: any};
+    if (request.auth) {
+      const applied = apiParsePack.applyAuthToRequest(
+          request.auth, request.headers || {}, request.query);
+      request.headers = applied.headers;
+      if (applied.query) {
+        request.query = applied.query;
+      }
+      delete request.auth;
+    }
+    if (request.body && typeof request.body !== 'string') {
+      request.body = markupConvertor.formatBody(
+          request.format || 'json', request.body ?? '');
+    }
+    return request;
+  } catch {
+    return undefined;
+  }
+}
+
+function resolveCurlInputs(api: any, inputsMessage: any): Record<string, any> {
+  const defaults =
+      api.inputs && typeof api.inputs === 'object' && !Array.isArray(api.inputs) ?
+      api.inputs :
+      {};
+  const manualInputs =
+      inputsMessage?.manualInputs &&
+      typeof inputsMessage.manualInputs === 'object' &&
+      !Array.isArray(inputsMessage.manualInputs) ?
+      inputsMessage.manualInputs :
+      {};
+  const examples = Array.isArray(api.examples) ? api.examples : [];
+  const exampleIndex =
+      typeof inputsMessage?.exampleIndex === 'number' &&
+      Number.isInteger(inputsMessage.exampleIndex) &&
+      inputsMessage.exampleIndex >= 0 ?
+      inputsMessage.exampleIndex :
+      undefined;
+  const exampleInputs =
+      exampleIndex !== undefined && examples[exampleIndex]?.inputs &&
+      typeof examples[exampleIndex].inputs === 'object' &&
+      !Array.isArray(examples[exampleIndex].inputs) ?
+      examples[exampleIndex].inputs :
+      {};
+  return {...defaults, ...exampleInputs, ...manualInputs};
+}
+
+function extractEnvVarsForCurl(mmtProvider: any): Record<string, any> {
+  const envStorage = mmtProvider.context.workspaceState.get(
+      'multimeter.environment.storage', []);
+  const envVars: Record<string, any> = {};
+  if (Array.isArray(envStorage)) {
+    for (const item of envStorage) {
+      if (!item || typeof item !== 'object') {
+        continue;
+      }
+      const name = (item as any).name;
+      if (typeof name === 'string' && name) {
+        envVars[name] = (item as any).value;
+      }
+    }
+  }
+  return envVars;
+}
+
+function appendCurlCertificateFlags(
+    parts: string[],
+    shellKind: CurlShellKind,
+    url: string,
+    networkConfig: NetworkConfig) {
+  if (!networkConfig.sslValidation || networkConfig.allowSelfSigned) {
+    parts.push('--insecure');
+  }
+
+  const caPath = networkConfig.ca.enabled ? networkConfig.ca.certPath : undefined;
+  if (caPath) {
+    parts.push('--cacert', quoteCurlArgument(shellKind, caPath));
+  }
+
+  const parsed = parseCurlUrl(url);
+  if (!parsed) {
+    return;
+  }
+  const client = findMatchingClientCertificate(
+      networkConfig.clients,
+      parsed.hostname,
+      parsed.port,
+      parsed.protocol) as any;
+  if (!client || !client.enabled) {
+    return;
+  }
+
+  if (client.pfxPath) {
+    parts.push('--cert-type', 'P12');
+    const certValue = client.passphrase_plain ?
+      `${client.pfxPath}:${client.passphrase_plain}` :
+      client.pfxPath;
+    parts.push('--cert', quoteCurlArgument(shellKind, certValue));
+    return;
+  }
+
+  if (client.certPath && client.keyPath) {
+    parts.push('--cert', quoteCurlArgument(shellKind, client.certPath));
+    parts.push('--key', quoteCurlArgument(shellKind, client.keyPath));
+    if (client.passphrase_plain) {
+      parts.push('--pass', quoteCurlArgument(shellKind, client.passphrase_plain));
+    }
+  }
+}
+
+function detectCurlShellKind(): CurlShellKind {
+  const platformKey = process.platform === 'win32' ?
+      'windows' :
+      process.platform === 'darwin' ? 'osx' : 'linux';
+  const terminalConfig = vscode.workspace.getConfiguration('terminal.integrated');
+  const defaultProfile = terminalConfig.get<string>(`defaultProfile.${platformKey}`) || '';
+  const profiles = terminalConfig.get<Record<string, any>>(`profiles.${platformKey}`) || {};
+  const profile = defaultProfile ? profiles[defaultProfile] : undefined;
+  const profilePath = Array.isArray(profile?.path) ?
+      profile.path.join(' ') :
+      typeof profile?.path === 'string' ? profile.path : '';
+  const configuredShell = `${defaultProfile} ${profilePath} ${(vscode.env as any).shell || ''}`.toLowerCase();
+
+  if (configuredShell.includes('powershell') || configuredShell.includes('pwsh')) {
+    return 'powershell';
+  }
+  if (configuredShell.includes('cmd.exe') || configuredShell.endsWith(' cmd')) {
+    return 'cmd';
+  }
+  if (configuredShell.includes('bash') || configuredShell.includes('zsh') ||
+      configuredShell.includes('fish') || configuredShell.includes('/sh')) {
+    return 'posix';
+  }
+  if (process.platform === 'win32') {
+    return 'powershell';
+  }
+  return 'posix';
+}
+
+function quoteCurlArgument(shellKind: CurlShellKind, value: string): string {
+  if (shellKind === 'powershell') {
+    return `'${value.replace(/'/g, "''")}'`;
+  }
+  if (shellKind === 'cmd') {
+    return `"${value.replace(/"/g, '\\"')}"`;
+  }
+  return `'${value.replace(/'/g, "'\\''")}'`;
+}
+
+function stringifyCurlValue(value: unknown): string {
+  if (value === undefined || value === null || value === '') {
+    return '';
+  }
+  return String(value);
+}
+
+function stringifyCurlBody(body: unknown): string {
+  if (body === undefined || body === null || body === '') {
+    return '';
+  }
+  if (typeof body === 'string') {
+    return body;
+  }
+  return JSON.stringify(body);
+}
+
+function buildCurlUrl(url: string, query: Record<string, unknown>): string {
+  const queryPairs = Object.entries(query)
+      .map(([key, value]) => [key, stringifyCurlValue(value)] as const)
+      .filter(([, value]) => value);
+  if (!queryPairs.length) {
+    return url;
+  }
+
+  try {
+    const parsed = new URL(url);
+    queryPairs.forEach(([key, value]) => parsed.searchParams.set(key, value));
+    return parsed.toString();
+  } catch {
+    const params = new URLSearchParams();
+    queryPairs.forEach(([key, value]) => params.set(key, value));
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}${params.toString()}`;
+  }
+}
+
+function parseCurlUrl(url: string): {hostname: string; port: string; protocol: string} | undefined {
+  try {
+    const parsed = new URL(url);
+    return {
+      hostname: parsed.hostname,
+      port: parsed.port,
+      protocol: parsed.protocol,
+    };
+  } catch {
+    return undefined;
   }
 }
 
@@ -326,7 +610,7 @@ export const messageReceived = async (
       break;
 
     case 'runCurlCommand':
-      await handleRunCurlCommand(message);
+      await handleRunCurlCommand(message, document, mmtProvider);
       break;
 
     case 'startMock':

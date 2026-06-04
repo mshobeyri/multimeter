@@ -268,6 +268,7 @@ function createFileLoader(basePath: string): (relPath: string) => Promise<string
 export async function handleRunCurrentDocument(
     message: any, webviewPanel: vscode.WebviewPanel,
     document: vscode.TextDocument, mmtProvider: any) {
+  showLogOutputChannel();
   const fileName = path.basename(document.uri.fsPath);
   const forwardLog = (level: LogLevel, message: string) => {
     logToOutput(level, message);

@@ -261,9 +261,11 @@ export function getPreparedConfigFromStorage(
   let caCertData: Buffer|undefined = undefined;
   const ca = storedCerts.server_ca || {};
   const caPath = getCaPath(ca);
+  let resolvedCaPath = caPath;
   if (certSettings.caEnabled && caPath) {
     try {
       const resolvedPath = resolveCertPath(caPath, certBaseFilePath);
+      resolvedCaPath = resolvedPath;
       caCertData = fs.readFileSync(resolvedPath);
     } catch (e) {
       vscode.window.showErrorMessage(`Failed to load CA certificate from ${caPath}: ${e}`);
@@ -278,21 +280,27 @@ export function getPreparedConfigFromStorage(
     let certData: Buffer|undefined = undefined;
     let keyData: Buffer|undefined = undefined;
     let pfxData: Buffer|undefined = undefined;
+    let certPath: string|undefined = undefined;
+    let keyPath: string|undefined = undefined;
+    let pfxPath: string|undefined = undefined;
     const crtSrc = client.cert || '';
     const keySrc = client.key || '';
     const pfxSrc = client.pfx || '';
     if (isEnabled) {
       if (pfxSrc) {
         try {
-          pfxData = fs.readFileSync(resolveCertPath(pfxSrc, certBaseFilePath));
+          pfxPath = resolveCertPath(pfxSrc, certBaseFilePath);
+          pfxData = fs.readFileSync(pfxPath);
         } catch (e) {
           vscode.window.showErrorMessage(
               `Failed to load PFX for ${client.host}: ${e}`);
         }
       } else if (crtSrc && keySrc) {
         try {
-          certData = fs.readFileSync(resolveCertPath(crtSrc, certBaseFilePath));
-          keyData = fs.readFileSync(resolveCertPath(keySrc, certBaseFilePath));
+          certPath = resolveCertPath(crtSrc, certBaseFilePath);
+          keyPath = resolveCertPath(keySrc, certBaseFilePath);
+          certData = fs.readFileSync(certPath);
+          keyData = fs.readFileSync(keyPath);
         } catch (e) {
           vscode.window.showErrorMessage(
               `Failed to load client certificate for ${client.host}: ${e}`);
@@ -306,6 +314,9 @@ export function getPreparedConfigFromStorage(
       name: client.name,
       host: client.host,
       passphrase_plain: passphrase,
+      certPath,
+      keyPath,
+      pfxPath,
       certData,
       keyData,
       pfxData,
@@ -314,7 +325,7 @@ export function getPreparedConfigFromStorage(
   });
 
   return {
-    ca: {enabled: certSettings.caEnabled, certPath: caPath, certPaths: caPath ? [caPath] : undefined, certData: caCertData ? [caCertData] : undefined},
+    ca: {enabled: certSettings.caEnabled, certPath: resolvedCaPath, certPaths: resolvedCaPath ? [resolvedCaPath] : undefined, certData: caCertData ? [caCertData] : undefined},
     clients: clientsWithData,
     sslValidation: true,
     allowSelfSigned: false,
@@ -358,10 +369,12 @@ export function prepareNetworkConfigFromProjectFile(
   let caCertData: Buffer|undefined = undefined;
   const ca = storedCerts.server_ca || {};
   const caPath = getCaPath(ca);
+  let resolvedCaPath = caPath;
   // Always load the CA cert if present (no toggle needed for file-driven runs)
   if (caPath) {
     try {
       const resolvedPath = resolveCertFilePath(caPath, certPathOpts);
+      resolvedCaPath = resolvedPath;
       caCertData = fs.readFileSync(resolvedPath);
     } catch {
     }
@@ -372,18 +385,24 @@ export function prepareNetworkConfigFromProjectFile(
     let certData: Buffer|undefined = undefined;
     let keyData: Buffer|undefined = undefined;
     let pfxData: Buffer|undefined = undefined;
+    let certPath: string|undefined = undefined;
+    let keyPath: string|undefined = undefined;
+    let pfxPath: string|undefined = undefined;
     const crtSrc = client.cert || '';
     const keySrc = client.key || '';
     const pfxSrc = client.pfx || '';
     if (pfxSrc) {
       try {
-        pfxData = fs.readFileSync(resolveCertFilePath(pfxSrc, certPathOpts));
+        pfxPath = resolveCertFilePath(pfxSrc, certPathOpts);
+        pfxData = fs.readFileSync(pfxPath);
       } catch {
       }
     } else if (crtSrc && keySrc) {
       try {
-        certData = fs.readFileSync(resolveCertFilePath(crtSrc, certPathOpts));
-        keyData = fs.readFileSync(resolveCertFilePath(keySrc, certPathOpts));
+        certPath = resolveCertFilePath(crtSrc, certPathOpts);
+        keyPath = resolveCertFilePath(keySrc, certPathOpts);
+        certData = fs.readFileSync(certPath);
+        keyData = fs.readFileSync(keyPath);
       } catch {
       }
     }
@@ -394,6 +413,9 @@ export function prepareNetworkConfigFromProjectFile(
       name: client.name,
       host: client.host,
       passphrase_plain: passphrase,
+      certPath,
+      keyPath,
+      pfxPath,
       certData,
       keyData,
       pfxData,
@@ -402,7 +424,7 @@ export function prepareNetworkConfigFromProjectFile(
   });
 
   return {
-    ca: {enabled: !!caCertData, certPath: caPath, certPaths: caPath ? [caPath] : undefined, certData: caCertData ? [caCertData] : undefined},
+    ca: {enabled: !!caCertData, certPath: resolvedCaPath, certPaths: resolvedCaPath ? [resolvedCaPath] : undefined, certData: caCertData ? [caCertData] : undefined},
     clients: clientsWithData,
     sslValidation: true,
     allowSelfSigned: false,
