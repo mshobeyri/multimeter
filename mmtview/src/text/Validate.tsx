@@ -1,47 +1,219 @@
 import { APISchema, EnvSchema, TestSchema, SuiteSchema, LoadTestSchema, DocSchema, MockSchema, ReportSchema, GeneralSchema } from './Schema';
-import YAML from 'yaml';
+import { parseDocument } from 'yaml';
 import Ajv from 'ajv';
 
 const ajv = new Ajv({ allErrors: true, verbose: true });
 
-const getLineNumberFromPath = (content: string, path: string): number => {
-    const lines = content.split('\n');
-    const pathParts = path.split('/').filter(part => part !== '');
+type YamlPosition = { line: number; column: number };
+type PathPositionEntry = { key?: YamlPosition; value?: YamlPosition };
+type YamlPathPositionMap = Map<string, PathPositionEntry>;
 
-    if (pathParts.length === 0) return 1;
-
-    let currentLine = 1;
-    for (const line of lines) {
-        if (line.trim().startsWith(`${pathParts[0]}:`)) {
-            return currentLine;
-        }
-        currentLine++;
+const offsetToLineColumn = (content: string, offset: number): YamlPosition => {
+    if (offset <= 0) {
+        return { line: 1, column: 1 };
     }
-
-    return 1;
+    let line = 1;
+    let lineStart = 0;
+    const limit = Math.min(offset, content.length);
+    for (let i = 0; i < limit; i++) {
+        if (content.charCodeAt(i) === 10) {
+            line += 1;
+            lineStart = i + 1;
+        }
+    }
+    return { line, column: offset - lineStart + 1 };
 };
 
-const findFirstOccurrence = (content: string, searchText: string): { line: number; column: number; found: boolean } => {
-    if (!content || !searchText) {
-        return { line: 1, column: 1, found: false };
+const getRangeStartOffset = (node: any): number | undefined => {
+    if (Array.isArray(node?.range) && typeof node.range[0] === 'number') {
+        return node.range[0];
     }
+    return undefined;
+};
 
-    const lines = content.split('\n');
+const isYamlPair = (item: any): boolean => {
+    return Boolean(item && item.key !== undefined && item.value !== undefined);
+};
 
-    for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-        const line = lines[lineIndex];
-        const columnIndex = line.indexOf(searchText);
+const isYamlMap = (node: any): boolean => {
+    const items = Array.isArray(node?.items) ? node.items : [];
+    return items.length > 0 && isYamlPair(items[0]);
+};
 
-        if (columnIndex !== -1) {
-            return {
-                line: lineIndex + 1, // 1-based line number
-                column: columnIndex + 1, // 1-based column number
-                found: true
-            };
+const appendObjectPath = (path: string, key: string): string => {
+    if (!path) {
+        return `.${key}`;
+    }
+    return `${path}.${key}`;
+};
+
+const appendArrayPath = (path: string, index: number): string => {
+    return `${path}[${index}]`;
+};
+
+const pathLookupKeys = (path: string): string[] => {
+    const normalized = normalizeAjvDataPath(path);
+    if (!normalized) {
+        return ['', '.'];
+    }
+    const keys = new Set<string>([normalized]);
+    if (normalized.startsWith('.')) {
+        keys.add(normalized.slice(1));
+    } else {
+        keys.add(`.${normalized}`);
+    }
+    if (normalized.startsWith('/')) {
+        keys.add(normalizeAjvDataPath(normalized));
+    }
+    return Array.from(keys);
+};
+
+const normalizeAjvDataPath = (path: string): string => {
+    if (!path || path === '/') {
+        return '';
+    }
+    if (path.startsWith('.')) {
+        return path;
+    }
+    if (!path.startsWith('/')) {
+        return `.${path}`;
+    }
+    const parts = path.split('/').filter(Boolean);
+    let result = '';
+    for (const part of parts) {
+        if (/^\d+$/.test(part)) {
+            result += `[${part}]`;
+        } else {
+            result += `.${part}`;
         }
     }
+    return result;
+};
 
-    return { line: 1, column: 1, found: false };
+const joinAjvPath = (base: string, segment: string): string => {
+    const normalizedBase = normalizeAjvDataPath(base);
+    if (!normalizedBase) {
+        return `.${segment}`;
+    }
+    return `${normalizedBase}.${segment}`;
+};
+
+const recordPathPosition = (
+    map: YamlPathPositionMap,
+    path: string,
+    part: 'key' | 'value',
+    node: any,
+    content: string
+): void => {
+    const offset = getRangeStartOffset(node);
+    if (typeof offset !== 'number') {
+        return;
+    }
+    const position = offsetToLineColumn(content, offset);
+    for (const key of pathLookupKeys(path)) {
+        const existing = map.get(key) || {};
+        if (part === 'key') {
+            existing.key = position;
+        } else {
+            existing.value = position;
+        }
+        map.set(key, existing);
+    }
+};
+
+const collectYamlPathPositions = (
+    node: any,
+    content: string,
+    path: string,
+    map: YamlPathPositionMap
+): void => {
+    if (!node) {
+        return;
+    }
+
+    const items: any[] = Array.isArray(node.items) ? node.items : [];
+    if (items.length > 0) {
+        if (isYamlMap(node)) {
+            for (const pair of items) {
+                const keyValue = pair?.key?.value;
+                if (keyValue === undefined || keyValue === null) {
+                    continue;
+                }
+                const key = String(keyValue);
+                const childPath = appendObjectPath(path, key);
+                recordPathPosition(map, childPath, 'key', pair.key, content);
+                collectYamlPathPositions(pair.value, content, childPath, map);
+            }
+            return;
+        }
+        items.forEach((item, index) => {
+            const childPath = appendArrayPath(path, index);
+            recordPathPosition(map, childPath, 'value', item, content);
+            collectYamlPathPositions(item, content, childPath, map);
+        });
+        return;
+    }
+
+    recordPathPosition(map, path, 'value', node, content);
+};
+
+const buildYamlPathPositionMap = (doc: any, content: string): YamlPathPositionMap => {
+    const map: YamlPathPositionMap = new Map();
+    collectYamlPathPositions(doc.contents, content, '', map);
+    return map;
+};
+
+const getAjvErrorDataPath = (error: any): string => {
+    const base = normalizeAjvDataPath((error as any).instancePath || (error as any).dataPath || '');
+    if (error.keyword === 'additionalProperties' && typeof error.params?.additionalProperty === 'string') {
+        return joinAjvPath(base, error.params.additionalProperty);
+    }
+    if (error.keyword === 'required' && typeof error.params?.missingProperty === 'string') {
+        return joinAjvPath(base, error.params.missingProperty);
+    }
+    return base;
+};
+
+const getErrorPositionPart = (error: any): 'key' | 'value' => {
+    if (error.keyword === 'additionalProperties' || error.keyword === 'required') {
+        return 'key';
+    }
+    return 'value';
+};
+
+const resolveErrorPosition = (
+    content: string,
+    pathMap: YamlPathPositionMap,
+    error: any,
+    fallbackPath?: string
+): YamlPosition => {
+    const dataPath = getAjvErrorDataPath(error);
+    const part = getErrorPositionPart(error);
+    for (const key of pathLookupKeys(dataPath)) {
+        const entry = pathMap.get(key);
+        const position = part === 'key' ? entry?.key : entry?.value;
+        if (position) {
+            return position;
+        }
+        if (entry?.key) {
+            return entry.key;
+        }
+        if (entry?.value) {
+            return entry.value;
+        }
+    }
+    if (fallbackPath) {
+        for (const key of pathLookupKeys(fallbackPath)) {
+            const entry = pathMap.get(key);
+            if (entry?.key) {
+                return entry.key;
+            }
+            if (entry?.value) {
+                return entry.value;
+            }
+        }
+    }
+    return { line: 1, column: 1 };
 };
 
 const isHttpApiDocument = (parsedContent: any): boolean => {
@@ -78,12 +250,14 @@ export const validateYamlContent = (content: string): any[] => {
     const errors: any[] = [];
 
     try {
-        // Parse YAML to JavaScript object using YAML library
-        const parsedContent = YAML.parse(content);
+        const doc = parseDocument(content);
+        const parsedContent = doc.toJS();
 
         if (!parsedContent) {
             return errors;
         }
+
+        const pathMap = buildYamlPathPositionMap(doc, content);
 
         // Validate against schema
         let validate = ajv.compile(GeneralSchema);
@@ -115,11 +289,11 @@ export const validateYamlContent = (content: string): any[] => {
                     return;
                 }
                 if (isTopLevelGraphqlRequiredError(error) && parsedContent?.protocol === 'graphql') {
-                    const line = getLineNumberFromPath(content, 'protocol');
+                    const { line, column } = resolveErrorPosition(content, pathMap, error, '.protocol');
                     errors.push({
                         severity: 8,
                         startLineNumber: line,
-                        startColumn: 1,
+                        startColumn: column,
                         endLineNumber: line,
                         endColumn: 100,
                         message: 'protocol "graphql" requires a graphql.operation block; body is not used for GraphQL requests',
@@ -131,7 +305,7 @@ export const validateYamlContent = (content: string): any[] => {
                     error.keyword === "additionalProperties" &&
                     typeof (error.params as any).additionalProperty === "string"
                 ) {
-                    const { line, column } = findFirstOccurrence(content, (error.params as any).additionalProperty);
+                    const { line, column } = resolveErrorPosition(content, pathMap, error);
                     errors.push({
                         severity: 8,
                         startLineNumber: line,
@@ -142,23 +316,24 @@ export const validateYamlContent = (content: string): any[] => {
                         source: 'mmt-validation'
                     });
                 } else if (error.keyword === "enum") {
-                    const { line, column } = findFirstOccurrence(content, error.data);
+                    const { line, column } = resolveErrorPosition(content, pathMap, error);
+                    const dataPath = (error as any).instancePath || (error as any).dataPath || '';
                     errors.push({
                         severity: 8,
                         startLineNumber: line,
                         startColumn: column,
                         endLineNumber: line,
                         endColumn: 100,
-                        message: `Invalid value for property "${error.dataPath}", expected one of: ${(error.params as any).allowedValues ? (error.params as any).allowedValues.join(', ') : (error.params as any).allowedValue}`,
+                        message: `Invalid value for property "${dataPath}", expected one of: ${(error.params as any).allowedValues ? (error.params as any).allowedValues.join(', ') : (error.params as any).allowedValue}`,
                         source: 'mmt-validation'
                     });
                 } else {
                     const path = (error as any).instancePath || (error as any).dataPath || '';
-                    const line = getLineNumberFromPath(content, path);
+                    const { line, column } = resolveErrorPosition(content, pathMap, error);
                     errors.push({
                         severity: 8,
                         startLineNumber: line,
-                        startColumn: 1,
+                        startColumn: column,
                         endLineNumber: line,
                         endColumn: 100,
                         message: formatValidationMessage(path, error.message),
