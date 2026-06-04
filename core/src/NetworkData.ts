@@ -210,6 +210,21 @@ function hostPatternToRegex(hostPattern: string): RegExp {
   return new RegExp(`^${escapedPattern}$`, 'i');
 }
 
+function matchesWildcardSubdomainPattern(
+    hostPattern: string, normalizedHostname: string): boolean {
+  if (!hostPattern.startsWith('*.') ||
+      hostPattern.indexOf('*', 1) !== -1) {
+    return false;
+  }
+  const parentDomain = hostPattern.slice(2);
+  if (!parentDomain || !normalizedHostname.endsWith(`.${parentDomain}`)) {
+    return false;
+  }
+  const matchedLabel = normalizedHostname.slice(
+      0, normalizedHostname.length - parentDomain.length - 1);
+  return !!matchedLabel && !matchedLabel.includes('.');
+}
+
 export function getDefaultPortForProtocol(protocol?: string): string|undefined {
   switch ((protocol || '').toLowerCase()) {
     case 'https:':
@@ -254,12 +269,17 @@ export function matchesCertificateHost(
   if (hostPattern === '*') {
     return true;
   }
+  if (matchesWildcardSubdomainPattern(hostPattern, normalizedHostname)) {
+    return true;
+  }
+  if (hostPattern.startsWith('*.')) {
+    return false;
+  }
   if (hostPattern.includes('*')) {
     return hostPatternToRegex(hostPattern).test(normalizedHostname);
   }
 
-  return normalizedHostname === hostPattern ||
-      normalizedHostname.endsWith(`.${hostPattern}`);
+  return normalizedHostname === hostPattern;
 }
 
 export function findMatchingClientCertificate(

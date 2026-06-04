@@ -394,7 +394,7 @@ export const EnvSchema = {
                         type: 'object',
                         properties: {
                             name: { type: 'string', description: 'Certificate name' },
-                            host: { type: 'string', description: 'Host pattern (e.g., *.example.com)' },
+                            host: { type: 'string', description: 'Host pattern (e.g., *, *:8443, example.com, *.example.com)' },
                             cert: { type: 'string', description: 'Path to client certificate file (.pem, .crt, .cer)' },
                             key: { type: 'string', description: 'Path to client private key file (.key, .pem)' },
                             pfx: { type: 'string', description: 'Path to client PFX/P12 bundle file (.pfx, .p12)' },
