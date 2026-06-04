@@ -118,8 +118,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
       label: "Run in Core",
       icon: "codicon-play",
       onClick: () => {
-        window.vscode?.postMessage({ command: "runCurrentDocument", inputs: runInputs });
         window.vscode?.postMessage({ command: "showLogOutputChannel" });
+        window.vscode?.postMessage({ command: "runCurrentDocument", inputs: runInputs });
       }
     },
     ...(canRunCurl ? [{
