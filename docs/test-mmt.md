@@ -165,6 +165,7 @@ Send an HTTP request directly from the test without importing a separate `type: 
 - http: https://example.com/users/<<i:userId>>
   id: getUser
   method: get
+  timeout: 5000
   format: json
   headers:
     Authorization: Bearer <<e:token>>
@@ -173,11 +174,12 @@ Send an HTTP request directly from the test without importing a separate `type: 
     body.name: != null
 ```
 
-Direct HTTP steps use the same HTTP request fields as API files where they make sense: `query`, `method`, `format`, `headers`, and `body`.
+Direct HTTP steps use the same HTTP request fields as API files where they make sense: `query`, `method`, `timeout`, `format`, `headers`, and `body`.
 
 Notes:
 - `http` is the request URL and is required.
 - `method` defaults to `get` if omitted.
+- `timeout` overrides the default request timeout for this step, in milliseconds.
 - `id` is optional, but recommended when you want to reference the response in later steps.
 - Inline `expect`, `debug`, and `report` work the same way as on `call` steps.
 - The response exposed through `id` includes `body`, `headers`, `cookies`, `status`, and `duration`.

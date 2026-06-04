@@ -11,7 +11,7 @@ export const STEP_KEY_ORDER: Record<string, string[]> = {
     'call', 'id', 'title', 'inputs', 'outputs', 'expect', 'debug', 'report'
   ],
   http:   [
-    'http', 'id', 'title', 'query', 'method', 'format', 'headers', 'body',
+    'http', 'id', 'title', 'query', 'method', 'timeout', 'format', 'headers', 'body',
     'outputs', 'expect', 'debug', 'report'
   ],
   run:    ['run'],
@@ -47,7 +47,7 @@ const VALID_STEP_KEYS: Record<string, Set<string>> = {
     'interface'
   ]),
   http:    new Set([
-    'http', 'id', 'title', 'query', 'method', 'format', 'headers', 'body',
+    'http', 'id', 'title', 'query', 'method', 'timeout', 'format', 'headers', 'body',
     'outputs', 'expect', 'debug', 'report'
   ]),
   run:     new Set(['run']),
@@ -480,6 +480,10 @@ function collectStepErrors(
       const httpStep = step as any;
       if (typeof httpStep.http !== 'string' || !httpStep.http.trim()) {
         errors.push(`Step ${context}[${i}]: http is missing required URL`);
+      }
+      if (httpStep.timeout !== undefined &&
+          (typeof httpStep.timeout !== 'number' || !Number.isFinite(httpStep.timeout) || httpStep.timeout < 0)) {
+        errors.push(`Step ${context}[${i}]: timeout must be a non-negative number of milliseconds`);
       }
     }
     // Recurse into nested steps

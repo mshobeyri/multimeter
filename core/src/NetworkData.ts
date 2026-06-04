@@ -5,6 +5,7 @@ export interface Request {
   protocol?: "http" | "ws" | "graphql" | "grpc" | undefined;
   format?: "json" | "xml" | "xmle" | "text" | undefined;
   method?: string;
+  timeout?: number;
   headers?: Record<string, string> | undefined;
   cookies?: Record<string, string> | undefined;
   query?: Record<string, string> | undefined;
@@ -112,6 +113,7 @@ export interface NetworkConfig {
 export interface HttpRequest {
   url: string;
   method?: string;
+  timeout?: number;
   headers?: Record<string, string>;
   body?: string;
   query?: Record<string, string>;

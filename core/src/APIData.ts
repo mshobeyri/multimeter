@@ -63,6 +63,7 @@ export interface APIData extends MMTFile {
   protocol?: Protocol;
   format?: Format;
   method?: Method;
+  timeout?: number;
   headers?: Record<string, string>;
   cookies?: Record<string, string>;
   body?: string|object|null;

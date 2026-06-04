@@ -416,6 +416,7 @@ const httpStepToApiData = (step: TestFlowHttp): APIData => ({
   protocol: 'http',
   format: step.format,
   method: step.method || 'get',
+  timeout: step.timeout,
   headers: step.headers,
   body: step.body,
 });

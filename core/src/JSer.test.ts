@@ -903,6 +903,7 @@ describe('empty test items are valid', () => {
           id: 'getUser',
           title: 'Get User',
           method: 'get',
+          timeout: 5000,
           format: 'json',
           expect: {'body.body.xxx': 'sss'},
         } as any],
@@ -916,6 +917,7 @@ describe('empty test items are valid', () => {
     expect(js).toContain('const __http_0 = async');
     expect(js).toContain('const getUser = await __http_0({});');
     expect(js).toContain('https://example.com/users/${userId}');
+    expect(js).toContain('timeout: 5000');
     expect(js).toContain('extractOutputs_');
     expect(js).not.toContain('"body.body.xxx": "body.body.xxx"');
     expect(js).toContain('getUser._ ? getUser._["body"] : undefined');
@@ -1538,6 +1540,21 @@ describe('API query handling', () => {
     expect(js).toContain('query: {');
     expect(js).toContain('"page": `${page}`');
     expect(js).toContain('"locale": `${envVariables.LOCALE}`');
+  });
+
+  it('injects timeout into generated request objects', async () => {
+    const apiYaml = [
+      'type: api',
+      'protocol: http',
+      'method: get',
+      'timeout: 5000',
+      'url: https://example.com/users',
+    ].join('\n');
+    const ctx: APIContext =
+        {api: yamlToAPI(apiYaml), name: 'users_api', inputs: {}, envVars: {}} as
+        any;
+    const js = await apiToJSfunc(ctx);
+    expect(js).toContain('timeout: 5000');
   });
 });
 

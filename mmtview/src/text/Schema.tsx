@@ -130,6 +130,7 @@ export const APISchema = {
             type: 'string',
             enum: ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
         },
+        timeout: { type: 'number', minimum: 0 },
         format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text'] },
         url: { type: 'string' },
         headers: { type: 'object', additionalProperties: { type: 'string' } },
@@ -541,6 +542,7 @@ export const TestSchema = {
                                 type: 'string',
                                 enum: ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
                             },
+                            timeout: { type: 'number', minimum: 0 },
                             format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text'] },
                             headers: { type: 'object', additionalProperties: { type: 'string' } },
                             query: { type: 'object', additionalProperties: { type: 'string' } },

@@ -78,6 +78,27 @@ describe('yamlToAPIStrict', () => {
     expect(api.url).toBe('http://example.com');
     expect(api.type).toBe('api');
   });
+
+  it('parses and serializes request timeout', () => {
+    const api = yamlToAPIStrict([
+      'type: api',
+      'url: http://example.com',
+      'method: get',
+      'timeout: 5000',
+      'format: json',
+    ].join('\n'));
+
+    expect(api.timeout).toBe(5000);
+    expect(apiToYaml(api)).toContain('timeout: 5000');
+  });
+
+  it('throws when timeout is not a non-negative number', () => {
+    expect(() => yamlToAPIStrict([
+      'type: api',
+      'url: http://example.com',
+      'timeout: fast',
+    ].join('\n'))).toThrow(/timeout.*non-negative number/i);
+  });
 });
 
 describe('graphql/grpc round-trip', () => {

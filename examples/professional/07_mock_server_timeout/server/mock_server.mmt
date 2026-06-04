@@ -1,0 +1,19 @@
+type: server
+title: Timeout Simulation Mock Server
+description: A mock server endpoint that waits 3 seconds before responding.
+port: 9107
+cors: true
+endpoints:
+  - method: get
+    path: /slow
+    status: 200
+    format: json
+    body:
+      status: slow-ok
+      message: This response arrives after 3 seconds
+    delay: 3000
+fallback:
+  status: 404
+  format: json
+  body:
+    error: Not Found

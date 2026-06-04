@@ -285,6 +285,10 @@ export async function sendHttpRequest(
       reqHeaders['Content-Length'] = String(len);
     }
   }
+  const requestTimeout = typeof req.timeout === 'number' &&
+      Number.isFinite(req.timeout) && req.timeout >= 0 ?
+      req.timeout :
+      config.timeout;
   const baseRequestConfig = {
     url: req.url,
     method: req.method || 'get',
@@ -292,7 +296,7 @@ export async function sendHttpRequest(
     params: req.query,
     withCredentials: true,
     headers: reqHeaders,
-    timeout: config.timeout,
+    timeout: requestTimeout,
     responseType: 'text' as const,
     transformResponse: [(data: string) => data],
   };
@@ -620,6 +624,7 @@ export async function send(req: Request): Promise<Response> {
     const httpReq: HttpRequest = {
       url: req.url,
       method: req.method,
+      timeout: req.timeout,
       headers: req.headers,
       body: typeof req.body === 'string' ? req.body : JSON.stringify(req.body),
       query: req.query,
