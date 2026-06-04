@@ -75,6 +75,10 @@ For CLI usage, sensible defaults are applied:
 ### Self-signed certificate warning
 Multimeter first verifies SSL certificates. If an HTTPS request fails because of a self-signed certificate, Multimeter retries the request without certificate validation and reports the certificate issue as a warning, matching Postman-style behavior.
 
+### Legacy TLS compatibility
+
+Multimeter automatically enables the Node/OpenSSL compatibility flags needed for many legacy TLS and mTLS gateways, avoids HTTPS TLS session reuse, and keeps TLS version negotiation automatic. No TLS-specific user configuration is required.
+
 ## Passphrase handling
 
 For security, you can store passphrases in environment variables instead of the env file:

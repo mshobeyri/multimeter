@@ -3,6 +3,7 @@
 // Require the concrete CJS build that Axios provides.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const axios = require('axios/dist/node/axios.cjs');
+import * as crypto from 'crypto';
 import * as http from 'http';
 import * as http2 from 'http2';
 import * as https from 'https';
@@ -41,6 +42,28 @@ function getAgentKey(
   const clientCertHost = findMatchingClientCertificate(
       config.clients, hostname, port, protocol)?.host || '';
   return `${hostname}:${port || ''}:${config.sslValidation}:${skipValidation}:${config.ca.enabled}:${clientCertHost}`;
+}
+
+function getLegacyRenegotiationSecureOptions(): number|undefined {
+  let secureOptions = 0;
+  const constants = crypto.constants as any;
+  if (typeof constants.SSL_OP_LEGACY_SERVER_CONNECT === 'number') {
+    secureOptions |= constants.SSL_OP_LEGACY_SERVER_CONNECT;
+  }
+  if (typeof constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION === 'number') {
+    secureOptions |= constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION;
+  }
+  return secureOptions || undefined;
+}
+
+function applyTlsCompatibilityOptions(target: any): void {
+  // Match broad client compatibility: keep TLS versions negotiated by Node,
+  // but allow legacy renegotiation and avoid reusing fragile TLS sessions.
+  target.maxCachedSessions = 0;
+  const secureOptions = getLegacyRenegotiationSecureOptions();
+  if (typeof secureOptions === 'number') {
+    target.secureOptions = (target.secureOptions || 0) | secureOptions;
+  }
 }
 
 function trackSocketForAgent(socket: any, host: string, protocol: 'http' | 'https'): void {
@@ -112,9 +135,10 @@ export function createHttpsAgentWithCertificates(
   const rejectUnauthorized = skipValidation ? false : config.sslValidation;
   const agentOptions: https.AgentOptions = {
     rejectUnauthorized,
-    keepAlive: true,
+    keepAlive: false,
     keepAliveMsecs: 30000,
   };
+  applyTlsCompatibilityOptions(agentOptions);
   // Handle CA certificates (can be array or single Buffer for backward compat)
   if (config.ca.enabled && config.ca.certData) {
     if (Array.isArray(config.ca.certData)) {
@@ -190,6 +214,7 @@ function createHttp2ConnectOptions(
   const options: http2.SecureClientSessionOptions = {};
   if (protocol === 'https:') {
     options.rejectUnauthorized = skipCertificateValidation ? false : config.sslValidation;
+    applyTlsCompatibilityOptions(options);
     if (config.ca.enabled && config.ca.certData) {
       options.ca = Array.isArray(config.ca.certData) ?
         config.ca.certData :
@@ -528,12 +553,11 @@ export async function sendHttpRequest(
         warning: warning || formatResponseWarning(err),
       };
     }
-    const code = err?.code ? String(err.code) : 'NETWORK_ERROR';
     return {
       body: '',
       headers: {},
       status: -1,
-      statusText: `${code}`,
+      statusText: formatNetworkErrorStatusText(err),
       duration,
       autoformat: config.autoFormat,
       warning,
@@ -562,12 +586,11 @@ function toNetworkError(
     config: NetworkConfig,
     duration: number,
     warning?: string): HttpResponse {
-  const code = err?.code ? String(err.code) : 'NETWORK_ERROR';
   return {
     body: '',
     headers: {},
     status: -1,
-    statusText: `${code}`,
+    statusText: formatNetworkErrorStatusText(err),
     duration,
     autoformat: config.autoFormat,
     warning,
@@ -621,6 +644,28 @@ function formatResponseWarning(err: any): string|undefined {
   const statusText = err.response.statusText;
   const details = [status, statusText].filter(value => value !== undefined && value !== '').join(' ');
   return details ? `Server returned response: ${details}` : 'Server returned an error response';
+}
+
+function formatNetworkErrorStatusText(err: any): string {
+  const parts: string[] = [];
+  const code = extractErrorCode(err) || 'NETWORK_ERROR';
+  parts.push(code);
+  if (typeof err?.message === 'string' && err.message && err.message !== code) {
+    parts.push(err.message);
+  }
+  if (typeof err?.reason === 'string' && err.reason &&
+      !parts.includes(err.reason)) {
+    parts.push(err.reason);
+  }
+  if (Array.isArray(err?.opensslErrorStack)) {
+    for (const stackEntry of err.opensslErrorStack) {
+      if (typeof stackEntry === 'string' && stackEntry &&
+          !parts.includes(stackEntry)) {
+        parts.push(stackEntry);
+      }
+    }
+  }
+  return parts.join(': ');
 }
 
 function extractErrorCode(err: any): string|undefined {
@@ -771,6 +816,7 @@ export function createWebSocketOptionsWithCertificates(
   const rejectUnauthorized = opts?.skipCertificateValidation ? false :
       config.sslValidation;
   const wsOptions: any = {rejectUnauthorized};
+  applyTlsCompatibilityOptions(wsOptions);
   // Handle CA certificates (can be array or single Buffer for backward compat)
   if (config.ca.enabled && config.ca.certData) {
     if (Array.isArray(config.ca.certData)) {

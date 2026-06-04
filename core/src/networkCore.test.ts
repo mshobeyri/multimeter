@@ -29,7 +29,7 @@ jest.mock('http2', () => {
 });
 
 import {DEFAULT_NETWORK_CONFIG} from './NetworkData';
-import {sendHttpRequest} from './networkCore';
+import {createHttpsAgentWithCertificates, sendHttpRequest} from './networkCore';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const axios = require('axios/dist/node/axios.cjs');
@@ -88,6 +88,40 @@ describe('networkCore request timeout', () => {
     expect(response.headers['content-type']).toBe('text/plain');
   });
 
+  it('applies TLS compatibility defaults to HTTPS agents', () => {
+    const agent = createHttpsAgentWithCertificates(
+        'tls-agent.example.com',
+        '443',
+        'https:',
+        DEFAULT_NETWORK_CONFIG,
+    );
+
+    expect((agent as any).options).toMatchObject({
+      keepAlive: false,
+      maxCachedSessions: 0,
+    });
+    expect((agent as any).options.secureOptions).toBeGreaterThan(0);
+  });
+
+  it('applies TLS compatibility defaults to HTTP/2 sessions', async () => {
+    await sendHttpRequest(
+        {url: 'https://http2-tls.example.com/users', method: 'get'},
+        {
+          ...DEFAULT_NETWORK_CONFIG,
+          httpVersion: '2',
+        },
+    );
+
+    expect(http2.connect).toHaveBeenCalledWith(
+        'https://http2-tls.example.com',
+        expect.objectContaining({
+          rejectUnauthorized: true,
+          maxCachedSessions: 0,
+          secureOptions: expect.any(Number),
+        }),
+    );
+  });
+
   it('uses the default transport when HTTP version is auto', async () => {
     await sendHttpRequest(
         {url: 'https://example.com/users', method: 'get'},
@@ -96,5 +130,26 @@ describe('networkCore request timeout', () => {
 
     expect(mockedAxios.request).toHaveBeenCalled();
     expect(http2.connect).not.toHaveBeenCalled();
+  });
+
+  it('includes TLS error details in network failure status text', async () => {
+    mockedAxios.request.mockRejectedValueOnce(Object.assign(
+        new Error('ssl3 alert handshake failure'),
+        {
+          code: 'ERR_SSL_SSLV3_ALERT_HANDSHAKE_FAILURE',
+          reason: 'sslv3 alert handshake failure',
+          opensslErrorStack: ['error:0A000152:SSL routines::unsafe legacy renegotiation disabled'],
+        },
+    ));
+
+    const response = await sendHttpRequest(
+        {url: 'https://tls-error.example.com', method: 'get'},
+        DEFAULT_NETWORK_CONFIG,
+    );
+
+    expect(response.status).toBe(-1);
+    expect(response.statusText).toContain('ERR_SSL_SSLV3_ALERT_HANDSHAKE_FAILURE');
+    expect(response.statusText).toContain('ssl3 alert handshake failure');
+    expect(response.statusText).toContain('unsafe legacy renegotiation disabled');
   });
 });

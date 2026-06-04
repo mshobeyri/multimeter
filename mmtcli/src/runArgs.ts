@@ -104,18 +104,17 @@ function parseEnvSetting(raw: any): EnvSetting|undefined {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return undefined;
   }
-  const httpRaw = raw.http;
-  if (!httpRaw || typeof httpRaw !== 'object' || Array.isArray(httpRaw)) {
-    return undefined;
-  }
   const http: NonNullable<EnvSetting['http']> = {};
-  if (typeof httpRaw.version === 'string' && VALID_HTTP_VERSIONS.has(httpRaw.version.trim())) {
-    http.version = httpRaw.version.trim();
-  }
-  if (typeof httpRaw.timeout === 'number' &&
-      Number.isFinite(httpRaw.timeout) &&
-      httpRaw.timeout >= 0) {
-    http.timeout = httpRaw.timeout;
+  const httpRaw = raw.http;
+  if (httpRaw && typeof httpRaw === 'object' && !Array.isArray(httpRaw)) {
+    if (typeof httpRaw.version === 'string' && VALID_HTTP_VERSIONS.has(httpRaw.version.trim())) {
+      http.version = httpRaw.version.trim();
+    }
+    if (typeof httpRaw.timeout === 'number' &&
+        Number.isFinite(httpRaw.timeout) &&
+        httpRaw.timeout >= 0) {
+      http.timeout = httpRaw.timeout;
+    }
   }
   return Object.keys(http).length > 0 ? {http} : undefined;
 }
