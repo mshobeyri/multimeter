@@ -32,18 +32,6 @@ const httpsAgentPool: Map<string, https.Agent> = new Map();
 const socketConnectionIds = new WeakMap<any, string>();
 const trackedSockets = new WeakSet<any>();
 
-function getAgentKey(
-    hostname: string,
-    port: string | undefined,
-    protocol: string | undefined,
-    config: NetworkConfig,
-    skipValidation: boolean): string {
-  // Create a key that uniquely identifies the agent configuration
-  const clientCertHost = findMatchingClientCertificate(
-      config.clients, hostname, port, protocol)?.host || '';
-  return `${hostname}:${port || ''}:${config.sslValidation}:${skipValidation}:${config.ca.enabled}:${clientCertHost}`;
-}
-
 function getLegacyRenegotiationSecureOptions(): number|undefined {
   let secureOptions = 0;
   const constants = crypto.constants as any;
@@ -56,10 +44,15 @@ function getLegacyRenegotiationSecureOptions(): number|undefined {
   return secureOptions || undefined;
 }
 
-function applyTlsCompatibilityOptions(target: any): void {
+function applyTlsCompatibilityOptions(
+    target: any,
+    opts?: {forceTls12?: boolean}): void {
   // Match broad client compatibility: keep TLS versions negotiated by Node,
   // but allow legacy renegotiation and avoid reusing fragile TLS sessions.
   target.maxCachedSessions = 0;
+  if (opts?.forceTls12) {
+    target.maxVersion = 'TLSv1.2';
+  }
   const secureOptions = getLegacyRenegotiationSecureOptions();
   if (typeof secureOptions === 'number') {
     target.secureOptions = (target.secureOptions || 0) | secureOptions;
@@ -122,23 +115,19 @@ export function createHttpsAgentWithCertificates(
     port: string | undefined,
     protocol: string | undefined,
     config: NetworkConfig,
-    opts?: {skipCertificateValidation?: boolean}): https.Agent {
+    opts?: {
+      skipCertificateValidation?: boolean;
+      fallbackClientCertId?: string;
+      forceTls12?: boolean;
+    }): https.Agent {
   const skipValidation = opts?.skipCertificateValidation ?? false;
-  const agentKey = getAgentKey(hostname, port, protocol, config, skipValidation);
-
-  // Check for existing agent in pool
-  const existingAgent = httpsAgentPool.get(agentKey);
-  if (existingAgent) {
-    return existingAgent;
-  }
-
   const rejectUnauthorized = skipValidation ? false : config.sslValidation;
   const agentOptions: https.AgentOptions = {
     rejectUnauthorized,
     keepAlive: false,
     keepAliveMsecs: 30000,
   };
-  applyTlsCompatibilityOptions(agentOptions);
+  applyTlsCompatibilityOptions(agentOptions, {forceTls12: opts?.forceTls12});
   // Handle CA certificates (can be array or single Buffer for backward compat)
   if (config.ca.enabled && config.ca.certData) {
     if (Array.isArray(config.ca.certData)) {
@@ -147,8 +136,9 @@ export function createHttpsAgentWithCertificates(
       agentOptions.ca = [config.ca.certData];
     }
   }
-    const matchingClientCert = findMatchingClientCertificate(
-      config.clients, hostname, port, protocol);
+    const matchingClientCert = opts?.fallbackClientCertId ?
+      findUsableClientCertificateById(config, opts.fallbackClientCertId) :
+      findMatchingClientCertificate(config.clients, hostname, port, protocol);
   if (matchingClientCert) {
     if (matchingClientCert.pfxData) {
       agentOptions.pfx = matchingClientCert.pfxData;
@@ -174,8 +164,39 @@ export function createHttpsAgentWithCertificates(
     return socket;
   };
 
-  httpsAgentPool.set(agentKey, agent);
   return agent;
+}
+
+function hasUsableClientCertificate(client: any): boolean {
+  return !!client?.enabled &&
+      (!!client.pfxData || (!!client.certData && !!client.keyData));
+}
+
+function getUsableClientCertificates(config: NetworkConfig): any[] {
+  return (config.clients || []).filter(hasUsableClientCertificate);
+}
+
+function findUsableClientCertificateById(
+    config: NetworkConfig, clientId: string): any|undefined {
+  return getUsableClientCertificates(config).find(client => client.id === clientId);
+}
+
+function getSingleFallbackClientCertificate(config: NetworkConfig): any|undefined {
+  const usableClients = getUsableClientCertificates(config);
+  return usableClients.length === 1 ? usableClients[0] : undefined;
+}
+
+function getCertificateRequiredRetryClient(
+    config: NetworkConfig,
+    hostname: string,
+    port: string | undefined,
+    protocol: string | undefined): any|undefined {
+  const matchingClient = findMatchingClientCertificate(
+      config.clients, hostname, port, protocol);
+  if (hasUsableClientCertificate(matchingClient)) {
+    return matchingClient;
+  }
+  return getSingleFallbackClientCertificate(config);
 }
 
 export function createHttpAgentWithTracking(hostname: string): http.Agent {
@@ -517,12 +538,19 @@ export async function sendHttpRequest(
     responseType: 'text' as const,
     transformResponse: [(data: string) => data],
   };
-  const executeRequest = (skipValidation = false) => {
+  const executeRequest = (
+      skipValidation = false,
+      fallbackClientCertId?: string,
+      opts?: {forceTls12?: boolean}) => {
     const isHttps = parsedUrl.protocol === 'https:';
     const httpsAgent = isHttps ?
         createHttpsAgentWithCertificates(
         hostname, parsedUrl.port, parsedUrl.protocol, config,
-            {skipCertificateValidation: skipValidation}) :
+            {
+              skipCertificateValidation: skipValidation,
+              fallbackClientCertId,
+              forceTls12: opts?.forceTls12,
+            }) :
         undefined;
     const httpAgent = !isHttps ? createHttpAgentWithTracking(hostname) : undefined;
     return axios.request({...baseRequestConfig, httpsAgent, httpAgent});
@@ -577,6 +605,21 @@ export async function sendHttpRequest(
         return toError(retryErr, warning);
       }
     }
+    if (parsedUrl.protocol === 'https:' && isClientCertificateRequiredTlsError(err)) {
+      const retryClient = getCertificateRequiredRetryClient(
+          config, hostname, parsedUrl.port, parsedUrl.protocol);
+      if (retryClient) {
+        try {
+          const retryResponse = await executeRequest(
+              false, retryClient.id, {forceTls12: true});
+          return toSuccess(
+              retryResponse,
+              `Server requested a client certificate; retried with "${retryClient.name || retryClient.host || retryClient.id}" using legacy mTLS compatibility.`);
+        } catch (retryErr: any) {
+          return toError(retryErr);
+        }
+      }
+    }
     return toError(err);
   }
 }
@@ -608,6 +651,20 @@ const SELF_SIGNED_MESSAGE_FRAGMENTS = [
   'unable to verify the first certificate',
 ];
 
+const CLIENT_CERTIFICATE_REQUIRED_CODES = new Set([
+  'ERR_SSL_TLSV13_ALERT_CERTIFICATE_REQUIRED',
+  'ERR_SSL_TLSV1_ALERT_CERTIFICATE_REQUIRED',
+  'ERR_SSL_SSLV3_ALERT_CERTIFICATE_REQUIRED',
+]);
+
+const CLIENT_CERTIFICATE_REQUIRED_MESSAGE_FRAGMENTS = [
+  'alert certificate required',
+  'certificate_required',
+  'certificate required',
+  'tlsv1_alert_certificate_required',
+  'tlsv13_alert_certificate_required',
+];
+
 function normalizeAxiosHeaders(raw: Record<string, any> = {}):
     Record<string, string> {
   return Object.fromEntries(Object.entries(raw)
@@ -628,6 +685,23 @@ function isSelfSignedTlsError(err: any): boolean {
     return false;
   }
   return SELF_SIGNED_MESSAGE_FRAGMENTS.some(fragment => message.includes(fragment));
+}
+
+function isClientCertificateRequiredTlsError(err: any): boolean {
+  if (!err || err.response) {
+    return false;
+  }
+  const code = extractErrorCode(err);
+  if (code && CLIENT_CERTIFICATE_REQUIRED_CODES.has(code)) {
+    return true;
+  }
+  const values = [
+    err?.message,
+    err?.reason,
+    ...(Array.isArray(err?.opensslErrorStack) ? err.opensslErrorStack : []),
+  ].filter(value => typeof value === 'string').map(value => value.toLowerCase());
+  return values.some(value => CLIENT_CERTIFICATE_REQUIRED_MESSAGE_FRAGMENTS.some(
+      fragment => value.includes(fragment)));
 }
 
 function formatSelfSignedWarning(err: any): string {

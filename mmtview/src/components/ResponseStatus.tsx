@@ -14,6 +14,15 @@ type BadgeStyle = {
   color?: string;
 };
 
+const MAX_BADGE_TEXT_LENGTH = 20;
+
+function compactBadgeLabel(label: string | number): string | number {
+  if (typeof label === 'string' && label.length > MAX_BADGE_TEXT_LENGTH) {
+    return 'ERROR';
+  }
+  return label;
+}
+
 function getResponseStatusStyle(status: number | undefined, warning?: string): BadgeStyle {
   if (typeof status === 'number' && status < 0) {
     return {backgroundColor: '#d32f2f'};
@@ -45,7 +54,8 @@ function getHTTPResponseStatusTitle(
     warning?: string,
 ): {title: string; label: string | number} {
   if (typeof status === 'number' && status < 0) {
-    return {title: errorMessage || 'Request failed', label: errorMessage || 'ERROR'};
+    const label = errorMessage || 'ERROR';
+    return {title: errorMessage || 'Request failed', label: compactBadgeLabel(label)};
   }
 
   if (status === 200) {
@@ -65,7 +75,8 @@ function getWSResponseStatusTitle(
     errorCode: string | number | undefined,
 ): {title: string; label: string | number} {
   if (typeof status === 'number' && status < 0) {
-    return {title: errorMessage || 'WebSocket error', label: errorMessage || 'ERROR'};
+    const label = errorMessage || 'ERROR';
+    return {title: errorMessage || 'WebSocket error', label: compactBadgeLabel(label)};
   }
 
   if (status === 101) {
