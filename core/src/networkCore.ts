@@ -199,6 +199,15 @@ function getCertificateRequiredRetryClient(
   return getSingleFallbackClientCertificate(config);
 }
 
+function hasMatchingUsableClientCertificate(
+    config: NetworkConfig,
+    hostname: string,
+    port: string | undefined,
+    protocol: string | undefined): boolean {
+  return hasUsableClientCertificate(findMatchingClientCertificate(
+      config.clients, hostname, port, protocol));
+}
+
 export function createHttpAgentWithTracking(hostname: string): http.Agent {
   const agentKey = `http:${hostname}`;
 
@@ -235,7 +244,10 @@ function createHttp2ConnectOptions(
   const options: http2.SecureClientSessionOptions = {};
   if (protocol === 'https:') {
     options.rejectUnauthorized = skipCertificateValidation ? false : config.sslValidation;
-    applyTlsCompatibilityOptions(options);
+    applyTlsCompatibilityOptions(options, {
+      forceTls12: hasMatchingUsableClientCertificate(
+          config, hostname, port, protocol),
+    });
     if (config.ca.enabled && config.ca.certData) {
       options.ca = Array.isArray(config.ca.certData) ?
         config.ca.certData :
@@ -543,13 +555,16 @@ export async function sendHttpRequest(
       fallbackClientCertId?: string,
       opts?: {forceTls12?: boolean}) => {
     const isHttps = parsedUrl.protocol === 'https:';
+    const forceTls12 = opts?.forceTls12 || (isHttps &&
+        hasMatchingUsableClientCertificate(
+            config, hostname, parsedUrl.port, parsedUrl.protocol));
     const httpsAgent = isHttps ?
         createHttpsAgentWithCertificates(
         hostname, parsedUrl.port, parsedUrl.protocol, config,
             {
               skipCertificateValidation: skipValidation,
               fallbackClientCertId,
-              forceTls12: opts?.forceTls12,
+              forceTls12,
             }) :
         undefined;
     const httpAgent = !isHttps ? createHttpAgentWithTracking(hostname) : undefined;

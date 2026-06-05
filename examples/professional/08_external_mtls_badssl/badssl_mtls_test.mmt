@@ -1,0 +1,10 @@
+type: test
+title: External BadSSL mTLS Test
+description: Calls the public BadSSL client-certificate endpoint with the included client certificate
+import:
+  badsslClient: ./api/badssl_client.mmt
+steps:
+  - call: badsslClient
+    title: Call public mTLS endpoint
+    expect:
+      status: 200

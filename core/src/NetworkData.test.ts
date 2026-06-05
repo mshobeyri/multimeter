@@ -88,6 +88,7 @@ describe('matchesCertificateHost', () => {
 
   it('matches host-port patterns including any-host on a fixed port', () => {
     expect(matchesCertificateHost('*:8085', 'service.local', '8085', 'https:')).toBe(true);
+    expect(matchesCertificateHost('*:8085', 'xxxx.yyy.zz.aaaa.bbbb', '8085', 'https:')).toBe(true);
     expect(matchesCertificateHost('*:8085', 'service.local', '8086', 'https:')).toBe(false);
     expect(matchesCertificateHost('secure.example.com:8085', 'secure.example.com', '8085', 'https:')).toBe(true);
     expect(matchesCertificateHost('secure.example.com:8085', 'api.secure.example.com', '8085', 'https:')).toBe(false);

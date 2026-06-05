@@ -228,7 +228,34 @@ describe('networkCore request timeout', () => {
     const firstConfig = mockedAxios.request.mock.calls[0][0];
     const retryConfig = mockedAxios.request.mock.calls[1][0];
     expect((firstConfig.httpsAgent as any).options.cert).toBe(certData);
+    expect((firstConfig.httpsAgent as any).options.maxVersion).toBe('TLSv1.2');
     expect((retryConfig.httpsAgent as any).options.cert).toBe(certData);
     expect((retryConfig.httpsAgent as any).options.maxVersion).toBe('TLSv1.2');
+  });
+
+  it('uses mTLS compatibility on the first request for any-host fixed-port matches', async () => {
+    const certData = Buffer.from('port-client-cert');
+    const keyData = Buffer.from('port-client-key');
+
+    await sendHttpRequest(
+        {url: 'https://xxxx.yyy.zz.aaaa.bbbb:8085/xxx/yyy', method: 'get'},
+        {
+          ...DEFAULT_NETWORK_CONFIG,
+          clients: [{
+            id: 'client-port',
+            name: 'Port Client',
+            host: '*:8085',
+            certData,
+            keyData,
+            enabled: true,
+          }],
+        },
+    );
+
+    expect(mockedAxios.request).toHaveBeenCalledTimes(1);
+    const firstConfig = mockedAxios.request.mock.calls[0][0];
+    expect((firstConfig.httpsAgent as any).options.cert).toBe(certData);
+    expect((firstConfig.httpsAgent as any).options.key).toBe(keyData);
+    expect((firstConfig.httpsAgent as any).options.maxVersion).toBe('TLSv1.2');
   });
 });

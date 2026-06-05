@@ -1,0 +1,9 @@
+type: env
+
+certificates:
+  clients:
+    - name: "BadSSL public client certificate"
+      host: "*:443"
+      cert: "./certs/badssl-client.crt"
+      key: "./certs/badssl-client.key"
+      passphrase_plain: "badssl.com"

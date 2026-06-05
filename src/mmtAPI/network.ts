@@ -148,27 +148,9 @@ export function resolveWorkspaceEnvFilePath(baseFilePath?: string): string|undef
 
   const defaultEnvFiles = ['multimeter.mmt', 'env.mmt'];
 
-  // If config specifies a path, use it directly
-  if (envRelPath) {
-    for (const folder of vscode.workspace.workspaceFolders || []) {
-      const candidate = path.join(folder.uri.fsPath, envRelPath);
-      if (fs.existsSync(candidate)) {
-        return candidate;
-      }
-    }
-  }
-
-  // No config set - search for default files in workspace roots
-  for (const fileName of defaultEnvFiles) {
-    for (const folder of vscode.workspace.workspaceFolders || []) {
-      const candidate = path.join(folder.uri.fsPath, fileName);
-      if (fs.existsSync(candidate)) {
-        return candidate;
-      }
-    }
-  }
-
-  // If baseFilePath provided, walk up directory tree looking for the env file
+  // Prefer the environment file nearest to the file being run. This lets
+  // examples and nested projects carry their own multimeter.mmt/env.mmt instead
+  // of accidentally inheriting the workspace root environment.
   if (baseFilePath) {
     const searchNames = envRelPath ? [envRelPath] : defaultEnvFiles;
     let currentDir = path.dirname(baseFilePath);
@@ -186,6 +168,26 @@ export function resolveWorkspaceEnvFilePath(baseFilePath?: string): string|undef
         break;
       }
       currentDir = parentDir;
+    }
+  }
+
+  // If config specifies a path, use it directly
+  if (envRelPath) {
+    for (const folder of vscode.workspace.workspaceFolders || []) {
+      const candidate = path.join(folder.uri.fsPath, envRelPath);
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
+    }
+  }
+
+  // No config set - search for default files in workspace roots
+  for (const fileName of defaultEnvFiles) {
+    for (const folder of vscode.workspace.workspaceFolders || []) {
+      const candidate = path.join(folder.uri.fsPath, fileName);
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
     }
   }
 
