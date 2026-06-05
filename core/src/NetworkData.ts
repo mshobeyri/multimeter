@@ -39,6 +39,7 @@ export interface Response {
   query?: Record<string, string> | undefined;
   body?: any;
   status?: number | -1;
+  statusText?: string;
   duration?: number | -1;
   errorMessage: string | "";
   errorCode: string | "";

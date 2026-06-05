@@ -15,7 +15,6 @@ import {
   findMatchingClientCertificate,
   HttpRequest,
   HttpResponse,
-  matchesCertificateHost,
   NetworkConfig,
   Request,
   Response,
@@ -628,7 +627,6 @@ export async function sendHttpRequest(
     method: req.method || 'get',
     data: req.body,
     params: req.query,
-    proxy: false,
     withCredentials: true,
     headers: reqHeaders,
     timeout: requestTimeout,
@@ -1097,147 +1095,36 @@ export function getRunnerNetworkConfig(): NetworkConfig {
   return cloneNetworkConfig(runnerNetworkConfig);
 }
 
-const SENSITIVE_FIELD_RE = /(authorization|cookie|token|secret|password|passphrase|api[-_]?key|cert|keydata|pfx)/i;
-
-function redactSensitiveRecord(record: Record<string, any>|undefined):
-    Record<string, any>|undefined {
-  if (!record || typeof record !== 'object') {
-    return record;
-  }
-  return Object.fromEntries(Object.entries(record).map(([key, value]) => [
-    key,
-    SENSITIVE_FIELD_RE.test(key) ? '[redacted]' : value,
-  ]));
-}
-
-function summarizeSendBody(body: any): any {
-  if (body === undefined || body === null || body === '') {
-    return body;
-  }
-  const value = typeof body === 'string' ? body : JSON.stringify(body);
-  return {
-    length: value.length,
-    preview: value.length > 500 ? `${value.slice(0, 500)}...` : value,
-  };
-}
-
-function summarizeSendRequest(req: Request): Record<string, any> {
-  return {
-    protocol: req.protocol,
-    url: req.url,
-    method: req.method,
-    timeout: req.timeout,
-    headers: redactSensitiveRecord(req.headers),
-    cookies: redactSensitiveRecord(req.cookies),
-    query: redactSensitiveRecord(req.query),
-    body: summarizeSendBody(req.body),
-  };
-}
-
-function summarizeSendConfig(config: NetworkConfig, req: Request): Record<string, any> {
-  let hostname = '';
-  let port = '';
-  let protocol = '';
-  try {
-    const parsedUrl = new URL(req.url || '');
-    hostname = parsedUrl.hostname;
-    port = parsedUrl.port;
-    protocol = parsedUrl.protocol;
-  } catch {
-    // Keep hostname empty when URL parsing fails; send will surface the real error.
-  }
-  return {
-    sslValidation: config.sslValidation,
-    allowSelfSigned: config.allowSelfSigned,
-    httpVersion: config.httpVersion,
-    timeout: config.timeout,
-    ca: {
-      enabled: config.ca?.enabled,
-      hasData: !!config.ca?.certData,
-    },
-    clients: (config.clients || []).map(client => ({
-      id: client.id,
-      name: client.name,
-      host: client.host,
-      enabled: client.enabled,
-      matchesRequest: hostname ? matchesCertificateHost(
-          client.host, hostname, port, protocol) : false,
-      hasCertKey: !!client.certData && !!client.keyData,
-      hasPfx: !!client.pfxData,
-      hasPassphrase: !!client.passphrase_plain,
-    })),
-  };
-}
-
-function summarizeSendResponse(response: Response|undefined): Record<string, any>|undefined {
-  if (!response) {
-    return response;
-  }
-  return {
-    status: response.status,
-    duration: response.duration,
-    errorMessage: response.errorMessage,
-    errorCode: response.errorCode,
-    headers: redactSensitiveRecord(response.headers),
-    body: summarizeSendBody(response.body),
-    warning: response.warning,
-  };
-}
-
-function logSendDebug(label: 'input'|'output'|'error', value: any): void {
-  try {
-    console.info(`[mmt send] ${label}: ${JSON.stringify(value)}`);
-  } catch {
-    console.info(`[mmt send] ${label}: [unserializable]`);
-  }
-}
-
 // Generic send function using default config
 export async function send(req: Request): Promise<Response> {
   if (!req.url) {
     throw new Error('URL is required');
   }
-  logSendDebug('input', {
-    request: summarizeSendRequest(req),
-    networkConfig: summarizeSendConfig(runnerNetworkConfig, req),
-  });
   const protocol = req.protocol || 'http';
-  try {
-    if (protocol === 'ws') {
-      const response = await sendWsRequest(req, runnerNetworkConfig);
-      logSendDebug('output', summarizeSendResponse(response));
-      return response;
-    } else if (protocol === 'http' || protocol === 'graphql') {
-      const httpReq: HttpRequest = {
-        url: req.url,
-        method: req.method,
-        timeout: req.timeout,
-        headers: req.headers,
-        body: typeof req.body === 'string' ? req.body : JSON.stringify(req.body),
-        query: req.query,
-        cookies: req.cookies,
-      };
-      const httpRes = await sendHttpRequest(httpReq, runnerNetworkConfig);
-      const response = {
-        body: httpRes.body,
-        headers: httpRes.headers,
-        status: httpRes.status,
-        statusText: httpRes.statusText,
-        duration: httpRes.duration,
-        errorMessage: httpRes.status < 0 ? httpRes.statusText : '',
-        errorCode: '',
-        warning: httpRes.warning,
-      };
-      logSendDebug('output', summarizeSendResponse(response));
-      return response;
-    } else {
-      throw new Error(`Unsupported protocol: ${protocol}`);
-    }
-  } catch (err: any) {
-    logSendDebug('error', {
-      message: err?.message || String(err),
-      code: err?.code,
-    });
-    throw err;
+  if (protocol === 'ws') {
+    return sendWsRequest(req, runnerNetworkConfig);
+  } else if (protocol === 'http' || protocol === 'graphql') {
+    const httpReq: HttpRequest = {
+      url: req.url,
+      method: req.method,
+      timeout: req.timeout,
+      headers: req.headers,
+      body: typeof req.body === 'string' ? req.body : JSON.stringify(req.body),
+      query: req.query,
+      cookies: req.cookies,
+    };
+    const httpRes = await sendHttpRequest(httpReq, runnerNetworkConfig);
+    return {
+      body: httpRes.body,
+      headers: httpRes.headers,
+      status: httpRes.status,
+      statusText: httpRes.statusText,
+      duration: httpRes.duration,
+      errorMessage: httpRes.status < 0 ? httpRes.statusText : '',
+      errorCode: '',
+      warning: httpRes.warning,
+    };
+  } else {
+    throw new Error(`Unsupported protocol: ${protocol}`);
   }
 }
