@@ -152,7 +152,9 @@ export function resolveWorkspaceEnvFilePath(baseFilePath?: string): string|undef
   // examples and nested projects carry their own multimeter.mmt/env.mmt instead
   // of accidentally inheriting the workspace root environment.
   if (baseFilePath) {
-    const searchNames = envRelPath ? [envRelPath] : defaultEnvFiles;
+    const searchNames = envRelPath ?
+      [envRelPath, ...defaultEnvFiles.filter(fileName => fileName !== envRelPath)] :
+      defaultEnvFiles;
     let currentDir = path.dirname(baseFilePath);
     const visited = new Set<string>();
     while (currentDir && !visited.has(currentDir)) {

@@ -1,5 +1,5 @@
 import {LogLevel} from './CommonData';
-import {GrpcRequest, GrpcResponse} from './NetworkData';
+import {GrpcRequest, GrpcResponse, matchesCertificateHost, NetworkConfig} from './NetworkData';
 import {normalizeTokenName} from './JSerHelper';
 import {applyValueAccessor} from './variableReplacer';
 // Import your send function from the network core
@@ -31,6 +31,97 @@ export interface RunJSCodeContext {
   workerEligible?: boolean;
   /** Controls check/assert console logging without changing report events. */
   checkLogMode?: 'default'|'failures-only'|'none';
+}
+
+const SEND_LOG_SENSITIVE_FIELD_RE =
+    /(authorization|cookie|token|secret|password|passphrase|api[-_]?key|cert|keydata|pfx)/i;
+
+function redactSendLogRecord(record: Record<string, any>|undefined):
+    Record<string, any>|undefined {
+  if (!record || typeof record !== 'object') {
+    return record;
+  }
+  return Object.fromEntries(Object.entries(record).map(([key, value]) => [
+    key,
+    SEND_LOG_SENSITIVE_FIELD_RE.test(key) ? '[redacted]' : value,
+  ]));
+}
+
+function summarizeSendLogBody(body: any): any {
+  if (body === undefined || body === null || body === '') {
+    return body;
+  }
+  const value = typeof body === 'string' ? body : JSON.stringify(body);
+  return {
+    length: value.length,
+    preview: value.length > 500 ? `${value.slice(0, 500)}...` : value,
+  };
+}
+
+function summarizeSendLogRequest(req: any): Record<string, any> {
+  return {
+    protocol: req?.protocol,
+    url: req?.url,
+    method: req?.method,
+    timeout: req?.timeout,
+    headers: redactSendLogRecord(req?.headers),
+    cookies: redactSendLogRecord(req?.cookies),
+    query: redactSendLogRecord(req?.query),
+    body: summarizeSendLogBody(req?.body),
+  };
+}
+
+function summarizeSendLogNetworkConfig(
+    config: NetworkConfig, req: any): Record<string, any> {
+  let hostname = '';
+  let port = '';
+  let protocol = '';
+  try {
+    const parsedUrl = new URL(req?.url || '');
+    hostname = parsedUrl.hostname;
+    port = parsedUrl.port;
+    protocol = parsedUrl.protocol;
+  } catch {
+    // Request URL errors are handled by the network layer.
+  }
+  return {
+    sslValidation: config.sslValidation,
+    allowSelfSigned: config.allowSelfSigned,
+    httpVersion: config.httpVersion,
+    timeout: config.timeout,
+    ca: {
+      enabled: config.ca?.enabled,
+      certPath: (config.ca as any)?.certPath,
+      hasData: !!config.ca?.certData,
+    },
+    clients: (config.clients || []).map(client => ({
+      id: client.id,
+      name: client.name,
+      host: client.host,
+      enabled: client.enabled,
+      matchesRequest: hostname ? matchesCertificateHost(
+          client.host, hostname, port, protocol) : false,
+      certPath: (client as any).certPath,
+      keyPath: (client as any).keyPath,
+      pfxPath: (client as any).pfxPath,
+      hasCertKey: !!client.certData && !!client.keyData,
+      hasPfx: !!client.pfxData,
+      hasPassphrase: !!client.passphrase_plain,
+    })),
+  };
+}
+
+function summarizeSendLogResponse(res: any): Record<string, any> {
+  return {
+    status: res?.status,
+    statusText: res?.statusText,
+    duration: res?.duration,
+    errorMessage: res?.errorMessage,
+    errorCode: res?.errorCode,
+    warning: res?.warning,
+    headers: redactSendLogRecord(res?.headers),
+    body: summarizeSendLogBody(res?.body),
+  };
 }
 
 const REPORTER_KEY = '__mmtReportStep';
@@ -181,21 +272,38 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       }
       compiledFunctionCache.set(functionBody, fn);
     }
-    // Wrap send_ with trace-level request/response logging for test runs
-    const sendFn = context.traceSend ? async (req: any) => {
-      const reqSummary = req ? `${(req.method || 'GET').toUpperCase()} ${req.url || ''}` : 'unknown';
-      lg('trace', `Request: ${reqSummary}`);
+    const sendFn = async (req: any) => {
+      const networkConfig = getRunnerNetworkConfig();
+      lg('debug', `Send input: ${JSON.stringify({
+        request: summarizeSendLogRequest(req),
+        networkConfig: summarizeSendLogNetworkConfig(networkConfig, req),
+      })}`);
+      const reqSummary = req ?
+        `${(req.method || 'GET').toUpperCase()} ${req.url || ''}` :
+        'unknown';
+      if (context.traceSend) {
+        lg('trace', `Request: ${reqSummary}`);
+      }
       try {
         const res = await send(req);
         const status = res && typeof res.status === 'number' ? res.status : '?';
         const duration = res && typeof res.duration === 'number' ? ` (${res.duration}ms)` : '';
-        lg('trace', `Response: ${status}${duration}`);
+        lg('debug', `Send output: ${JSON.stringify(summarizeSendLogResponse(res))}`);
+        if (context.traceSend) {
+          lg('trace', `Response: ${status}${duration}`);
+        }
         return res;
       } catch (err: any) {
-        lg('trace', `Response: error - ${err?.message || String(err)}`);
+        lg('debug', `Send error: ${JSON.stringify({
+          message: err?.message || String(err),
+          code: err?.code,
+        })}`);
+        if (context.traceSend) {
+          lg('trace', `Response: error - ${err?.message || String(err)}`);
+        }
         throw err;
       }
-    } : send;
+    };
     // Create gRPC sender (lazy-loads grpcCore)
     const sendGrpcFn = async (req: GrpcRequest): Promise<GrpcResponse> => {
       const {sendGrpcRequest} = await import('./grpcCore.js');

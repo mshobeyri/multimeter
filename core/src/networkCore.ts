@@ -15,6 +15,7 @@ import {
   findMatchingClientCertificate,
   HttpRequest,
   HttpResponse,
+  matchesCertificateHost,
   NetworkConfig,
   Request,
   Response,
@@ -43,6 +44,7 @@ function getLegacyRenegotiationSecureOptions(): number|undefined {
   }
   return secureOptions || undefined;
 }
+
 
 function applyTlsCompatibilityOptions(
     target: any,
@@ -410,6 +412,88 @@ function sendHttp2Request(
   });
 }
 
+function sendNativeHttpsRequest(
+    req: HttpRequest,
+    config: NetworkConfig,
+    reqHeaders: Record<string, string>,
+    parsedUrl: URL,
+    requestTimeout: number,
+    clientId: string,
+    skipCertificateValidation = false): Promise<HttpResponse> {
+  return new Promise((resolve, reject) => {
+    const start = Date.now();
+    const client = findUsableClientCertificateById(config, clientId);
+    if (!client) {
+      reject(new Error(`Client certificate ${clientId} is not available`));
+      return;
+    }
+
+    const headers = {...reqHeaders};
+    delete headers['Accept-Encoding'];
+    delete headers['accept-encoding'];
+
+    const requestOptions: https.RequestOptions = {
+      protocol: parsedUrl.protocol,
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port || undefined,
+      path: buildRequestPath(parsedUrl, req.query),
+      method: req.method || 'get',
+      headers,
+      rejectUnauthorized: skipCertificateValidation ? false : config.sslValidation,
+      timeout: requestTimeout,
+    };
+    applyTlsCompatibilityOptions(requestOptions, {forceTls12: true});
+
+    if (config.ca.enabled && config.ca.certData) {
+      requestOptions.ca = Array.isArray(config.ca.certData) ?
+        config.ca.certData :
+        [config.ca.certData];
+    }
+    if (client.pfxData) {
+      requestOptions.pfx = client.pfxData;
+    } else if (client.certData && client.keyData) {
+      requestOptions.cert = client.certData;
+      requestOptions.key = client.keyData;
+    }
+    if (client.passphrase_plain) {
+      requestOptions.passphrase = client.passphrase_plain;
+    }
+
+    const nativeReq = https.request(requestOptions, (res) => {
+      const chunks: Buffer[] = [];
+      res.on('data', (chunk) => {
+        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+      });
+      res.on('end', () => {
+        const headersOut: Record<string, string> = {};
+        for (const [key, value] of Object.entries(res.headers)) {
+          if (value !== undefined) {
+            headersOut[key] = Array.isArray(value) ? value.join(', ') : String(value);
+          }
+        }
+        resolve({
+          body: Buffer.concat(chunks).toString('utf8'),
+          headers: headersOut,
+          status: res.statusCode || 0,
+          statusText: res.statusMessage || '',
+          duration: Date.now() - start,
+          autoformat: config.autoFormat,
+        });
+      });
+    });
+    nativeReq.on('error', reject);
+    nativeReq.setTimeout(requestTimeout, () => {
+      nativeReq.destroy(Object.assign(new Error('HTTPS request timed out'), {
+        code: 'TIMEOUT',
+      }));
+    });
+    if (req.body) {
+      nativeReq.write(req.body);
+    }
+    nativeReq.end();
+  });
+}
+
 /**
  * Record activity on a connection by socket
  */
@@ -544,6 +628,7 @@ export async function sendHttpRequest(
     method: req.method || 'get',
     data: req.body,
     params: req.query,
+    proxy: false,
     withCredentials: true,
     headers: reqHeaders,
     timeout: requestTimeout,
@@ -607,6 +692,27 @@ export async function sendHttpRequest(
     } as any;
   };
   const canRetrySelfSigned = config.sslValidation && parsedUrl.protocol === 'https:';
+  const matchingClientForNative = parsedUrl.protocol === 'https:' ?
+    findMatchingClientCertificate(
+        config.clients, hostname, parsedUrl.port, parsedUrl.protocol) :
+    undefined;
+  if (matchingClientForNative &&
+      hasUsableClientCertificate(matchingClientForNative)) {
+    try {
+      const nativeClientId = matchingClientForNative.id;
+      const nativeResponse = await sendNativeHttpsRequest(
+          req, config, reqHeaders, parsedUrl, requestTimeout,
+          nativeClientId);
+      return {
+        ...nativeResponse,
+        warning: nativeResponse.status >= 400 ?
+          `Server returned response: ${nativeResponse.status} ${nativeResponse.statusText}` :
+          nativeResponse.warning,
+      };
+    } catch {
+      // Fall through to the Axios path for non-mTLS transport errors.
+    }
+  }
   try {
     const response = await executeRequest(false);
     return toSuccess(response);
@@ -630,6 +736,22 @@ export async function sendHttpRequest(
           return toSuccess(
               retryResponse,
               `Server requested a client certificate; retried with "${retryClient.name || retryClient.host || retryClient.id}" using legacy mTLS compatibility.`);
+        } catch (retryErr: any) {
+          return toError(retryErr);
+        }
+      }
+    }
+    if (parsedUrl.protocol === 'https:' && isClientCertificateRequiredHttpResponse(err)) {
+      const retryClient = getCertificateRequiredRetryClient(
+          config, hostname, parsedUrl.port, parsedUrl.protocol);
+      if (retryClient) {
+        try {
+          const retryResponse = await sendNativeHttpsRequest(
+              req, config, reqHeaders, parsedUrl, requestTimeout, retryClient.id);
+          return {
+            ...retryResponse,
+            warning: `Server requested a client certificate; retried with "${retryClient.name || retryClient.host || retryClient.id}" using native mTLS transport.`,
+          };
         } catch (retryErr: any) {
           return toError(retryErr);
         }
@@ -676,6 +798,8 @@ const CLIENT_CERTIFICATE_REQUIRED_MESSAGE_FRAGMENTS = [
   'alert certificate required',
   'certificate_required',
   'certificate required',
+  'required ssl certificate',
+  'ssl certificate was sent',
   'tlsv1_alert_certificate_required',
   'tlsv13_alert_certificate_required',
 ];
@@ -714,6 +838,23 @@ function isClientCertificateRequiredTlsError(err: any): boolean {
     err?.message,
     err?.reason,
     ...(Array.isArray(err?.opensslErrorStack) ? err.opensslErrorStack : []),
+  ].filter(value => typeof value === 'string').map(value => value.toLowerCase());
+  return values.some(value => CLIENT_CERTIFICATE_REQUIRED_MESSAGE_FRAGMENTS.some(
+      fragment => value.includes(fragment)));
+}
+
+function isClientCertificateRequiredHttpResponse(err: any): boolean {
+  const response = err?.response;
+  if (!response) {
+    return false;
+  }
+  const status = Number(response.status);
+  if (status !== 400 && status !== 403) {
+    return false;
+  }
+  const values = [
+    response.statusText,
+    response.data,
   ].filter(value => typeof value === 'string').map(value => value.toLowerCase());
   return values.some(value => CLIENT_CERTIFICATE_REQUIRED_MESSAGE_FRAGMENTS.some(
       fragment => value.includes(fragment)));
@@ -956,34 +1097,147 @@ export function getRunnerNetworkConfig(): NetworkConfig {
   return cloneNetworkConfig(runnerNetworkConfig);
 }
 
+const SENSITIVE_FIELD_RE = /(authorization|cookie|token|secret|password|passphrase|api[-_]?key|cert|keydata|pfx)/i;
+
+function redactSensitiveRecord(record: Record<string, any>|undefined):
+    Record<string, any>|undefined {
+  if (!record || typeof record !== 'object') {
+    return record;
+  }
+  return Object.fromEntries(Object.entries(record).map(([key, value]) => [
+    key,
+    SENSITIVE_FIELD_RE.test(key) ? '[redacted]' : value,
+  ]));
+}
+
+function summarizeSendBody(body: any): any {
+  if (body === undefined || body === null || body === '') {
+    return body;
+  }
+  const value = typeof body === 'string' ? body : JSON.stringify(body);
+  return {
+    length: value.length,
+    preview: value.length > 500 ? `${value.slice(0, 500)}...` : value,
+  };
+}
+
+function summarizeSendRequest(req: Request): Record<string, any> {
+  return {
+    protocol: req.protocol,
+    url: req.url,
+    method: req.method,
+    timeout: req.timeout,
+    headers: redactSensitiveRecord(req.headers),
+    cookies: redactSensitiveRecord(req.cookies),
+    query: redactSensitiveRecord(req.query),
+    body: summarizeSendBody(req.body),
+  };
+}
+
+function summarizeSendConfig(config: NetworkConfig, req: Request): Record<string, any> {
+  let hostname = '';
+  let port = '';
+  let protocol = '';
+  try {
+    const parsedUrl = new URL(req.url || '');
+    hostname = parsedUrl.hostname;
+    port = parsedUrl.port;
+    protocol = parsedUrl.protocol;
+  } catch {
+    // Keep hostname empty when URL parsing fails; send will surface the real error.
+  }
+  return {
+    sslValidation: config.sslValidation,
+    allowSelfSigned: config.allowSelfSigned,
+    httpVersion: config.httpVersion,
+    timeout: config.timeout,
+    ca: {
+      enabled: config.ca?.enabled,
+      hasData: !!config.ca?.certData,
+    },
+    clients: (config.clients || []).map(client => ({
+      id: client.id,
+      name: client.name,
+      host: client.host,
+      enabled: client.enabled,
+      matchesRequest: hostname ? matchesCertificateHost(
+          client.host, hostname, port, protocol) : false,
+      hasCertKey: !!client.certData && !!client.keyData,
+      hasPfx: !!client.pfxData,
+      hasPassphrase: !!client.passphrase_plain,
+    })),
+  };
+}
+
+function summarizeSendResponse(response: Response|undefined): Record<string, any>|undefined {
+  if (!response) {
+    return response;
+  }
+  return {
+    status: response.status,
+    duration: response.duration,
+    errorMessage: response.errorMessage,
+    errorCode: response.errorCode,
+    headers: redactSensitiveRecord(response.headers),
+    body: summarizeSendBody(response.body),
+    warning: response.warning,
+  };
+}
+
+function logSendDebug(label: 'input'|'output'|'error', value: any): void {
+  try {
+    console.info(`[mmt send] ${label}: ${JSON.stringify(value)}`);
+  } catch {
+    console.info(`[mmt send] ${label}: [unserializable]`);
+  }
+}
+
 // Generic send function using default config
 export async function send(req: Request): Promise<Response> {
   if (!req.url) {
     throw new Error('URL is required');
   }
+  logSendDebug('input', {
+    request: summarizeSendRequest(req),
+    networkConfig: summarizeSendConfig(runnerNetworkConfig, req),
+  });
   const protocol = req.protocol || 'http';
-  if (protocol === 'ws') {
-    return sendWsRequest(req, runnerNetworkConfig);
-  } else if (protocol === 'http' || protocol === 'graphql') {
-    const httpReq: HttpRequest = {
-      url: req.url,
-      method: req.method,
-      timeout: req.timeout,
-      headers: req.headers,
-      body: typeof req.body === 'string' ? req.body : JSON.stringify(req.body),
-      query: req.query,
-      cookies: req.cookies,
-    };
-    const httpRes = await sendHttpRequest(httpReq, runnerNetworkConfig);
-    return {
-      body: httpRes.body,
-      headers: httpRes.headers,
-      status: httpRes.status,
-      duration: httpRes.duration,
-      errorMessage: '',
-      errorCode: '',
-    };
-  } else {
-    throw new Error(`Unsupported protocol: ${protocol}`);
+  try {
+    if (protocol === 'ws') {
+      const response = await sendWsRequest(req, runnerNetworkConfig);
+      logSendDebug('output', summarizeSendResponse(response));
+      return response;
+    } else if (protocol === 'http' || protocol === 'graphql') {
+      const httpReq: HttpRequest = {
+        url: req.url,
+        method: req.method,
+        timeout: req.timeout,
+        headers: req.headers,
+        body: typeof req.body === 'string' ? req.body : JSON.stringify(req.body),
+        query: req.query,
+        cookies: req.cookies,
+      };
+      const httpRes = await sendHttpRequest(httpReq, runnerNetworkConfig);
+      const response = {
+        body: httpRes.body,
+        headers: httpRes.headers,
+        status: httpRes.status,
+        statusText: httpRes.statusText,
+        duration: httpRes.duration,
+        errorMessage: httpRes.status < 0 ? httpRes.statusText : '',
+        errorCode: '',
+        warning: httpRes.warning,
+      };
+      logSendDebug('output', summarizeSendResponse(response));
+      return response;
+    } else {
+      throw new Error(`Unsupported protocol: ${protocol}`);
+    }
+  } catch (err: any) {
+    logSendDebug('error', {
+      message: err?.message || String(err),
+      code: err?.code,
+    });
+    throw err;
   }
 }
