@@ -2,6 +2,11 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.24.3]
+
+- Add Cursor editor support files
+- Add additional fix for the latest release
+
 ## [1.24.2]
 
 - Show output only for glyph-triggered runs
