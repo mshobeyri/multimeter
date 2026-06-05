@@ -1,0 +1,20 @@
+{
+  "name": "multimeter",
+  "displayName": "Multimeter",
+  "version": "1.24.2",
+  "description": "Cursor plugin guidance for building, testing, documenting, and promoting Multimeter and Testlight.",
+  "author": {
+    "name": "mshobeyri"
+  },
+  "license": "BUSL-1.1",
+  "keywords": [
+    "cursor",
+    "plugin",
+    "multimeter",
+    "testlight",
+    "api-testing",
+    "rules",
+    "skills"
+  ],
+  "logo": "res/logo_file.svg"
+}

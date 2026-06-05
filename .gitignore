@@ -10,3 +10,5 @@ playwright-demo/video/
 TODO
 *.vsix
 dist-release
+!.cursor-plugin/
+!.cursor-plugin/plugin.json

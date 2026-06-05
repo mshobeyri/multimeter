@@ -449,7 +449,8 @@
     "check-types": "tsc --noEmit",
     "lint": "eslint src",
     "test": "jest",
-    "website": "npm run dev --prefix website"
+    "website": "npm run dev --prefix website",
+    "cursor:validate-plugin": "node scripts/validate-cursor-plugin.mjs"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
