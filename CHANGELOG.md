@@ -2,6 +2,16 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.24.2]
+
+- Show output only for glyph-triggered runs
+- Add configuration and HTTP version support
+- Add manual timeout support
+- Improve curl command handling
+- Fix reported error line handling
+- Fix mTLS handling
+- Fix star token handling
+
 ## [1.24.1]
 
 - Refactor certificate flows and related handling
