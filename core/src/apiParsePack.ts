@@ -7,7 +7,7 @@ import {isNonEmptyList, isNonEmptyObject, safeList} from './safer';
 /** Valid root-level keys for type: api files. */
 const VALID_API_ROOT_KEYS = new Set([
   'type', 'title', 'description', 'tags', 'inputs', 'outputs', 'setenv',
-  'url', 'query', 'protocol', 'format', 'method', 'headers', 'cookies',
+  'url', 'query', 'protocol', 'format', 'method', 'timeout', 'headers', 'cookies',
   'body', 'auth', 'graphql', 'grpc', 'examples',
 ]);
 
@@ -184,6 +184,7 @@ export function yamlToAPI(yamlContent: string): APIData {
       format: doc.format || 'json',
       url: doc.url || '',
       method: doc.method || '',
+      timeout: typeof doc.timeout === 'number' ? doc.timeout : undefined,
       headers: doc.headers || {},
       body: doc.body || '',
       query: doc.query || {},
@@ -216,6 +217,9 @@ export function yamlToAPIStrict(yamlContent: string): APIData {
   const unknownKeys = Object.keys(doc).filter(k => !VALID_API_ROOT_KEYS.has(k));
   if (unknownKeys.length > 0) {
     throw new Error(`Invalid API file: unknown key(s): ${unknownKeys.map(k => `"${k}"`).join(', ')}`);
+  }
+  if (doc.timeout !== undefined && (typeof doc.timeout !== 'number' || !Number.isFinite(doc.timeout) || doc.timeout < 0)) {
+    throw new Error('Invalid API file: "timeout" must be a non-negative number of milliseconds');
   }
   // GraphQL protocol validation
   const graphql = parseGraphQLConfig(doc.graphql);
@@ -265,6 +269,7 @@ export function yamlToAPIStrict(yamlContent: string): APIData {
     format: doc.format || 'json',
     url: doc.url || '',
     method: doc.method || '',
+    timeout: doc.timeout,
     headers: doc.headers || {},
     body: doc.body || '',
     query: doc.query || {},
@@ -310,6 +315,9 @@ export function apiToYaml(api: APIData): string {
   };
   if (api.method) {
     yamlObj.method = api.method;
+  };
+  if (api.timeout !== undefined) {
+    yamlObj.timeout = api.timeout;
   };
   if (api.format) {
     yamlObj.format = api.format;

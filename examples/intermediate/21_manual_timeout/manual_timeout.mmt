@@ -1,0 +1,11 @@
+type: api
+title: Manual request timeout
+description: Override the default network timeout for this single API request.
+outputs:
+  status_code: status
+  response_time_ms: duration
+  message: body[message]
+url: https://test.mmt.dev/json
+method: get
+timeout: 5000
+format: json

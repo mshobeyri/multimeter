@@ -12,6 +12,7 @@ export type Error = {
 type HttpOptions = {
     url: string;
     method?: string;
+    timeout?: number;
     headers?: Record<string, string>;
     body?: any;
     query?: Record<string, string>;
@@ -87,6 +88,7 @@ export const NetworkNodeApi = {
             action: "http-send",
             url: options.url,
             method: options.method,
+            timeout: options.timeout,
             headers: options.headers,
             body: options.body,
             query: options.query,

@@ -1,6 +1,8 @@
 import * as grpc from '@grpc/grpc-js';
 import * as protoLoader from '@grpc/proto-loader';
+import * as crypto from 'crypto';
 import * as path from 'path';
+import * as tls from 'tls';
 
 import {
   findMatchingClientCertificate,
@@ -64,6 +66,50 @@ const channelPool: Map<string, grpc.Channel> = new Map();
 // Reflection definition cache keyed by host:port:service
 const reflectionCache: Map<string, protoLoader.PackageDefinition> = new Map();
 
+function getLegacyRenegotiationSecureOptions(): number|undefined {
+  let secureOptions = 0;
+  const constants = crypto.constants as any;
+  if (typeof constants.SSL_OP_LEGACY_SERVER_CONNECT === 'number') {
+    secureOptions |= constants.SSL_OP_LEGACY_SERVER_CONNECT;
+  }
+  if (typeof constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION === 'number') {
+    secureOptions |= constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION;
+  }
+  return secureOptions || undefined;
+}
+
+function createGrpcSslCredentials(
+  config: NetworkConfig,
+  host: string,
+  port: number,
+): grpc.ChannelCredentials {
+  const secureContextOptions: tls.SecureContextOptions = {};
+  if (config.ca?.enabled && config.ca.certData) {
+    secureContextOptions.ca = Array.isArray(config.ca.certData) ?
+      config.ca.certData :
+      [config.ca.certData];
+  }
+  const secureOptions = getLegacyRenegotiationSecureOptions();
+  if (typeof secureOptions === 'number') {
+    secureContextOptions.secureOptions = secureOptions;
+  }
+
+  const clientCert = findMatchingClientCertificate(
+      config.clients || [], host, String(port), 'grpcs:');
+  if (clientCert?.pfxData) {
+    secureContextOptions.pfx = clientCert.pfxData;
+  } else if (clientCert?.certData && clientCert?.keyData) {
+    secureContextOptions.cert = clientCert.certData;
+    secureContextOptions.key = clientCert.keyData;
+  }
+  if (clientCert?.passphrase_plain) {
+    secureContextOptions.passphrase = clientCert.passphrase_plain;
+  }
+
+  return grpc.credentials.createFromSecureContext(
+      tls.createSecureContext(secureContextOptions));
+}
+
 function parseGrpcUrl(url: string): { host: string; port: number; tls: boolean } {
   // grpc://host:port or grpcs://host:port
   const normalized = url.replace(/^grpcs?:\/\//, '');
@@ -93,25 +139,7 @@ function getOrCreateChannel(
 
   let credentials: grpc.ChannelCredentials;
   if (tls) {
-    // Build SSL credentials from NetworkConfig
-    const rootCerts = config.ca?.enabled && config.ca.certData
-      ? (Array.isArray(config.ca.certData) ? Buffer.concat(config.ca.certData) : config.ca.certData)
-      : null;
-
-    // Find matching client cert for mTLS
-    const hostname = host;
-    const clientCert = findMatchingClientCertificate(
-        config.clients || [], hostname, String(port), 'grpcs:');
-
-    if (clientCert?.certData && clientCert?.keyData) {
-      credentials = grpc.credentials.createSsl(
-        rootCerts,
-        clientCert.keyData,
-        clientCert.certData,
-      );
-    } else {
-      credentials = grpc.credentials.createSsl(rootCerts);
-    }
+    credentials = createGrpcSslCredentials(config, host, port);
   } else {
     credentials = grpc.credentials.createInsecure();
   }
@@ -348,16 +376,7 @@ export async function sendGrpcRequest(
   // Build credentials matching what getOrCreateChannel uses
   let credentials: grpc.ChannelCredentials;
   if (tls) {
-    const rootCerts = config.ca?.enabled && config.ca.certData
-      ? (Array.isArray(config.ca.certData) ? Buffer.concat(config.ca.certData) : config.ca.certData)
-      : null;
-    const clientCert = findMatchingClientCertificate(
-        config.clients || [], host, String(port), 'grpcs:');
-    if (clientCert?.certData && clientCert?.keyData) {
-      credentials = grpc.credentials.createSsl(rootCerts, clientCert.keyData, clientCert.certData);
-    } else {
-      credentials = grpc.credentials.createSsl(rootCerts);
-    }
+    credentials = createGrpcSslCredentials(config, host, port);
   } else {
     credentials = grpc.credentials.createInsecure();
   }

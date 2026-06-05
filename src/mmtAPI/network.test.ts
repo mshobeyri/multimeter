@@ -133,6 +133,30 @@ describe('prepareNetworkConfigForFile certificate settings', () => {
     expect(config.clients[0].passphrase_plain).toBe('from-override');
   });
 
+  it('uses env-file HTTP settings for default timeout and version', () => {
+    const dir = createTempDir();
+    (vscode.workspace.workspaceFolders as any) = [{uri: {fsPath: dir}}];
+
+    const apiFilePath = path.join(dir, 'tests', 'login.mmt');
+    writeFile(apiFilePath, 'type: test\nname: login');
+    writeFile(
+        path.join(dir, 'multimeter.mmt'),
+        [
+          'type: env',
+          'setting:',
+          '  http:',
+          '    version: "2"',
+          '    timeout: 45000',
+        ].join('\n'),
+    );
+
+    const context = createContext(undefined);
+    const config = prepareNetworkConfigForFile(apiFilePath, undefined, context);
+
+    expect(config.httpVersion).toBe('2');
+    expect(config.timeout).toBe(45000);
+  });
+
   it('does not load CA or client cert bytes when local toggles disable them', () => {
     const dir = createTempDir();
     (vscode.workspace.workspaceFolders as any) = [{uri: {fsPath: dir}}];

@@ -233,38 +233,6 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     }
   }, [network, requestData?.url]);
 
-  const buildCurl = useCallback((): string => {
-    const method = (requestData?.method || "GET").toUpperCase();
-    const url = requestData?.url || "";
-    const parts: string[] = ["curl"];
-    if (method !== "GET") {
-      parts.push("-X", method);
-    }
-    const headers = requestData?.headers || {};
-    const cookies = requestData?.cookies || {};
-    Object.entries(headers).forEach(([k, v]) => {
-      if (v !== undefined && v !== null && v !== "") {
-        parts.push("-H", `'${escapeSingleQuotes(`${k}: ${v}`)}'`);
-      }
-    });
-    const cookiePairs = Object.entries(cookies)
-      .filter(([_, v]) => v !== undefined && v !== null && v !== "")
-      .map(([k, v]) => `${k}=${v}`);
-    if (cookiePairs.length) {
-      parts.push("-H", `'Cookie: ${escapeSingleQuotes(cookiePairs.join('; '))}'`);
-    }
-    const bodyStr = typeof requestData?.body === "string"
-      ? requestData?.body
-      : requestData?.body != null
-        ? JSON.stringify(requestData?.body)
-        : "";
-    if (method !== "GET" && bodyStr) {
-      parts.push("--data", `'${escapeSingleQuotes(bodyStr)}'`);
-    }
-    parts.push(`'${escapeSingleQuotes(url)}'`);
-    return parts.join(" ");
-  }, [requestData]);
-
   const setAutoFormatBody = useCallback((next: boolean) => {
     setAutoFormatBodyState(next);
   }, []);
@@ -353,7 +321,6 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     handleSend,
     handleCancel,
     handleConnect,
-    buildCurl,
     network,
     examples,
     resetTouchedFields
@@ -623,6 +590,3 @@ async function handleSetEnvVariables(
   );
 }
 
-function escapeSingleQuotes(value: string): string {
-  return String(value).replace(/'/g, "'\\''");
-}

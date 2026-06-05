@@ -84,7 +84,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     handleSend,
     handleCancel,
     handleConnect,
-    buildCurl,
     network,
     examples
   } = useAPITesterLogic({ api, onUpdateApi, filePath: mmtFilePath });
@@ -107,6 +106,34 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
 
   const isGraphQL = requestData?.protocol === "graphql";
   const isGrpc = requestData?.protocol === "grpc";
+  const requestProtocol = requestData?.protocol || api.protocol;
+  const canRunCurl = requestProtocol !== "graphql" && requestProtocol !== "grpc" &&
+    !isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url);
+  const runInputs = useMemo(() => ({
+    exampleIndex: selectedExampleIdx,
+    manualInputs: currentInputs
+  }), [currentInputs, selectedExampleIdx]);
+  const sendContextMenuItems = useMemo(() => [
+    {
+      label: "Run in Core",
+      icon: "codicon-play",
+      onClick: () => {
+        window.vscode?.postMessage({ command: "showLogOutputChannel" });
+        window.vscode?.postMessage({ command: "runCurrentDocument", inputs: runInputs });
+      }
+    },
+    ...(canRunCurl ? [{
+      label: "Run in Curl",
+      icon: "codicon-terminal",
+      onClick: () => {
+        window.vscode?.postMessage({
+          command: "runCurlCommand",
+          request: requestData,
+          inputs: runInputs
+        });
+      }
+    }] : [])
+  ], [canRunCurl, requestData, runInputs]);
 
   const [editorTab, setEditorTabInternal] = useState<EditorTab>(() => {
     const saved = localStorage.getItem("apitest-editor-tab");
@@ -399,6 +426,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             onCancel={handleCancel}
             disabled={isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url) && !network.connected}
             loading={network.loading}
+            contextMenuItems={sendContextMenuItems}
           />
         </div>
         <div className="horizontal-line horizontal-line--below" />
@@ -516,21 +544,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           >
             <span className="codicon codicon-history toolbar-button-icon"></span>
           </button>
-          {api.protocol === "http" && (
-            <button
-              onClick={() => {
-                const curl = buildCurl();
-                window.vscode?.postMessage({
-                  command: "runCurlCommand",
-                  curl
-                });
-              }}
-              className="toolbar-button"
-              title="run in terminal using curl"
-            >
-              <span className="codicon codicon-terminal toolbar-button-icon"></span>
-            </button>
-          )}
           <button
             onClick={() => {
               const next = !autoFormatBody;

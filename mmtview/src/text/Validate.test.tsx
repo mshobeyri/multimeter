@@ -167,6 +167,28 @@ describe('validateYamlContent API method requirements', () => {
     expect(errors.some(error => String(error.message).includes(".steps[0].expect['echoed_message']"))).toBe(false);
   });
 
+  it('marks additionalProperties at the schema path, not the first duplicate key name', () => {
+    const content = [
+      'type: env',
+      'variables:',
+      '  xxx: 1',
+      'certificates:',
+      '  clients:',
+      '    - name: mock-client',
+      '      host: localhost:29444',
+      '      key: ./certs/client.key',
+      '      cert: ./certs/client.crt',
+      '      xxx: null',
+    ].join('\n');
+    const errors = validateYamlContent(content);
+    const additionalPropertyError = errors.find(error =>
+      String(error.message).includes('Invalid property "xxx"')
+    );
+    expect(additionalPropertyError).toBeDefined();
+    expect(additionalPropertyError?.startLineNumber).toBe(10);
+    expect(additionalPropertyError?.startLineNumber).not.toBe(3);
+  });
+
   it('accepts arrays as direct http expect values', () => {
     const errors = validateYamlContent([
       'type: test',

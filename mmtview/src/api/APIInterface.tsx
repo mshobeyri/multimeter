@@ -20,6 +20,14 @@ const methodOptions: Method[] = ["get", "post", "put", "delete", "patch", "head"
 const authTypeOptions = ["none", "bearer", "basic", "api-key", "oauth2"] as const;
 const apiKeyPlacementOptions = ["header", "query"] as const;
 
+function parseTimeoutInput(value: string): number | undefined {
+  if (!value.trim()) {
+    return undefined;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+}
+
 function getFormatLabel(format: Format): string {
   if (format === "xml") {
     return "xml — self-closing";
@@ -157,6 +165,28 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
                 <option key={opt} value={opt}>{opt}</option>
               ))}
             </select>
+          </div>
+          <div className={effectiveProtocol !== "http" ? "label label-disabled" : "label"}>Timeout (ms)</div>
+          <div style={{ padding: "5px" }}>
+            <input
+              type="number"
+              min={0}
+              step={100}
+              value={data.timeout ?? ""}
+              onChange={e => {
+                const timeout = parseTimeoutInput(e.target.value);
+                if (timeout === undefined) {
+                  const next = { ...data };
+                  delete next.timeout;
+                  onChange(next);
+                } else {
+                  onChange({ ...data, timeout });
+                }
+              }}
+              style={{ width: "100%" }}
+              disabled={effectiveProtocol !== "http"}
+              placeholder="Default network timeout"
+            />
           </div>
         </>
       ) : null}

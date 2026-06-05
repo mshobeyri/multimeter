@@ -16,6 +16,7 @@ Supported:
  type: api
  url: <<e:api_url>>/users   # protocol inferred as http from URL
  method: get
+ timeout: 5000  # optional per-request timeout in milliseconds
  format: json   # affects default Content-Type and body handling
  headers:
    Session: e:token
@@ -25,6 +26,7 @@ Supported:
 ```
 Notes
 - `format` sets how the body is encoded/decoded (defaults to `json` if omitted)
+- `timeout` overrides the default request timeout for this API call, in milliseconds
 - `query` merges with any query string in `url`
 - `protocol` is optional - inferred from URL (ws:// or wss:// → ws, otherwise http)
 
@@ -218,6 +220,7 @@ description: README.md#-why-multimeter
   - All other URLs default to `http`
 - url: server URL
 - method: HTTP method `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
+- timeout: per-request timeout in milliseconds (optional; overrides the default network timeout)
 - format: body format `json` | `xml` | `xmle` | `text` (optional, defaults to `json`)
 - headers: HTTP headers
 - query: query parameters for HTTP requests
@@ -232,6 +235,7 @@ Sample:
 protocol: http
 url: x.com/blog
 method: get
+timeout: 5000
 headers:
   Authorization: Bearer <<e:token>>
   Accept: application/json

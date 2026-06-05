@@ -5,6 +5,7 @@ export interface Request {
   protocol?: "http" | "ws" | "graphql" | "grpc" | undefined;
   format?: "json" | "xml" | "xmle" | "text" | undefined;
   method?: string;
+  timeout?: number;
   headers?: Record<string, string> | undefined;
   cookies?: Record<string, string> | undefined;
   query?: Record<string, string> | undefined;
@@ -100,11 +101,21 @@ export interface EnvCertificateSettings {
   }>;
 }
 
+export interface EnvHttpSettings {
+  version?: string;
+  timeout?: number;
+}
+
+export interface EnvSetting {
+  http?: EnvHttpSettings;
+}
+
 export interface NetworkConfig {
   ca: CaCertificate;
   clients: ClientCertificate[];
   sslValidation: boolean;
   allowSelfSigned: boolean;
+  httpVersion?: string;
   timeout: number;
   autoFormat: boolean;
 }
@@ -112,6 +123,7 @@ export interface NetworkConfig {
 export interface HttpRequest {
   url: string;
   method?: string;
+  timeout?: number;
   headers?: Record<string, string>;
   body?: string;
   query?: Record<string, string>;
@@ -134,6 +146,7 @@ export const DEFAULT_NETWORK_CONFIG: NetworkConfig = {
   clients: [],
   sslValidation: true,
   allowSelfSigned: false,
+  httpVersion: undefined,
   timeout: 30000,
   autoFormat: false,
 };
@@ -197,6 +210,21 @@ function hostPatternToRegex(hostPattern: string): RegExp {
   return new RegExp(`^${escapedPattern}$`, 'i');
 }
 
+function matchesWildcardSubdomainPattern(
+    hostPattern: string, normalizedHostname: string): boolean {
+  if (!hostPattern.startsWith('*.') ||
+      hostPattern.indexOf('*', 1) !== -1) {
+    return false;
+  }
+  const parentDomain = hostPattern.slice(2);
+  if (!parentDomain || !normalizedHostname.endsWith(`.${parentDomain}`)) {
+    return false;
+  }
+  const matchedLabel = normalizedHostname.slice(
+      0, normalizedHostname.length - parentDomain.length - 1);
+  return !!matchedLabel && !matchedLabel.includes('.');
+}
+
 export function getDefaultPortForProtocol(protocol?: string): string|undefined {
   switch ((protocol || '').toLowerCase()) {
     case 'https:':
@@ -241,12 +269,17 @@ export function matchesCertificateHost(
   if (hostPattern === '*') {
     return true;
   }
+  if (matchesWildcardSubdomainPattern(hostPattern, normalizedHostname)) {
+    return true;
+  }
+  if (hostPattern.startsWith('*.')) {
+    return false;
+  }
   if (hostPattern.includes('*')) {
     return hostPatternToRegex(hostPattern).test(normalizedHostname);
   }
 
-  return normalizedHostname === hostPattern ||
-      normalizedHostname.endsWith(`.${hostPattern}`);
+  return normalizedHostname === hostPattern;
 }
 
 export function findMatchingClientCertificate(

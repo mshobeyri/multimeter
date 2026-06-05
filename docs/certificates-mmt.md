@@ -22,6 +22,11 @@ type: env
 variables:
   API_URL: "https://api.example.com"
 
+setting:
+  http:
+    version: "auto"
+    timeout: 30000
+
 certificates:
   # Server CA certificate
   server_ca: "./certs/ca.pem"      # Path relative to env file
@@ -70,6 +75,10 @@ For CLI usage, sensible defaults are applied:
 ### Self-signed certificate warning
 Multimeter first verifies SSL certificates. If an HTTPS request fails because of a self-signed certificate, Multimeter retries the request without certificate validation and reports the certificate issue as a warning, matching Postman-style behavior.
 
+### Legacy TLS compatibility
+
+Multimeter automatically enables the Node/OpenSSL compatibility flags needed for many legacy TLS and mTLS gateways, avoids HTTPS TLS session reuse, and keeps TLS version negotiation automatic. No TLS-specific user configuration is required.
+
 ## Passphrase handling
 
 For security, you can store passphrases in environment variables instead of the env file:
@@ -100,8 +109,10 @@ In the env file editor, switch to the **Certificates** tab to:
 
 Client certificate selection is based on the request host, with optional port matching:
 
-- `example.com` matches `example.com` and subdomains like `api.example.com`
-- `*.api.example.com` matches subdomains like `v1.api.example.com`
+- `*` matches any host on any port
+- `*:*` matches any host on any port
+- `example.com` matches only `example.com`
+- `*.example.com` matches one subdomain label like `test.example.com`, but not `example.com` or `deep.test.example.com`
 - `api.example.com:8443` restricts the match to that port
 - `*:8085` matches any host on port `8085`
 

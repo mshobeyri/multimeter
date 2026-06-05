@@ -313,6 +313,7 @@ describe('yamlToTestStrict', () => {
       '  - http: https://example.com/users/<<i:userId>>',
       '    id: getUser',
       '    method: get',
+      '    timeout: 5000',
       '    expect:',
       '      body.message: hello',
     ].join('\n');
@@ -327,6 +328,17 @@ describe('yamlToTestStrict', () => {
       '    method: get',
     ].join('\n');
     expect(() => yamlToTestStrict(yaml)).toThrow(/http is missing required URL/i);
+  });
+
+  it('throws when http request timeout is invalid', () => {
+    const yaml = [
+      'type: test',
+      'steps:',
+      '  - http: https://example.com/users',
+      '    method: get',
+      '    timeout: fast',
+    ].join('\n');
+    expect(() => yamlToTestStrict(yaml)).toThrow(/timeout.*non-negative number/i);
   });
 
   it('passes for valid test with matching call', () => {
@@ -380,7 +392,7 @@ describe('validateTestData', () => {
   it('returns empty for valid http request step', () => {
     const test = {
       type: 'test', title: '', description: '', tags: [],
-      steps: [{http: 'https://example.com', method: 'get'} as any],
+      steps: [{http: 'https://example.com', method: 'get', timeout: 5000} as any],
     } as any;
     const errors = validateTestData(test);
     expect(errors).toHaveLength(0);

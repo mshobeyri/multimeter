@@ -103,6 +103,7 @@ export interface TestFlowHttp extends TestFlowBase {
   title?: string;
   query?: Record<string, string>;
   method?: Method;
+  timeout?: number;
   format?: Format;
   headers?: Record<string, string>;
   body?: string|object|null;

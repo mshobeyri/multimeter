@@ -1,0 +1,15 @@
+type: test
+title: Mock server timeout simulation
+description: |-
+  Starts a mock server with a 3-second endpoint delay and calls it
+  with a 2-second request timeout.
+import:
+  server: ../server/mock_server.mmt
+  slow_request: ../api/slow_request.mmt
+steps:
+  - run: server
+  - call: slow_request
+    id: timeout_result
+    expect:
+      status: 200
+    report: all

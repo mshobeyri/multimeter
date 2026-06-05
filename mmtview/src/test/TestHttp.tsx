@@ -63,6 +63,14 @@ const rowsToExpectMap = (rows: ExpectRow[]): Record<string, any> | undefined => 
   return map;
 };
 
+const parseTimeoutInput = (value: string): number | undefined => {
+  if (!value.trim()) {
+    return undefined;
+  }
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : undefined;
+};
+
 const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
   const step = value && typeof value === 'object' ? value : {};
   const expectList = React.useMemo(() => expectMapToRows(step.expect), [step.expect]);
@@ -83,6 +91,10 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
       method: patch.method !== undefined ? patch.method : (step.method || 'get'),
       format: patch.format !== undefined ? patch.format : (step.format || 'json'),
     };
+    if (next.timeout === undefined || next.timeout === '' ||
+        (typeof next.timeout === 'number' && !Number.isFinite(next.timeout))) {
+      delete next.timeout;
+    }
     if (!next.headers || Object.keys(next.headers).length === 0) {
       delete next.headers;
     }
@@ -186,6 +198,19 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
                 <option key={method} value={method}>{method}</option>
               ))}
             </select>
+          </div>
+
+          <div className="label">Timeout (ms)</div>
+          <div style={{ padding: "5px" }}>
+            <input
+              type="number"
+              min={0}
+              step={100}
+              value={step.timeout ?? ''}
+              onChange={e => emit({ timeout: parseTimeoutInput(e.target.value) })}
+              style={{ width: '100%' }}
+              placeholder="Default network timeout"
+            />
           </div>
 
           <div className="label">Format</div>

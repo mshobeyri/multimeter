@@ -3,7 +3,9 @@
 // Require the concrete CJS build that Axios provides.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const axios = require('axios/dist/node/axios.cjs');
+import * as crypto from 'crypto';
 import * as http from 'http';
+import * as http2 from 'http2';
 import * as https from 'https';
 import WebSocket from 'ws';
 
@@ -40,6 +42,28 @@ function getAgentKey(
   const clientCertHost = findMatchingClientCertificate(
       config.clients, hostname, port, protocol)?.host || '';
   return `${hostname}:${port || ''}:${config.sslValidation}:${skipValidation}:${config.ca.enabled}:${clientCertHost}`;
+}
+
+function getLegacyRenegotiationSecureOptions(): number|undefined {
+  let secureOptions = 0;
+  const constants = crypto.constants as any;
+  if (typeof constants.SSL_OP_LEGACY_SERVER_CONNECT === 'number') {
+    secureOptions |= constants.SSL_OP_LEGACY_SERVER_CONNECT;
+  }
+  if (typeof constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION === 'number') {
+    secureOptions |= constants.SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION;
+  }
+  return secureOptions || undefined;
+}
+
+function applyTlsCompatibilityOptions(target: any): void {
+  // Match broad client compatibility: keep TLS versions negotiated by Node,
+  // but allow legacy renegotiation and avoid reusing fragile TLS sessions.
+  target.maxCachedSessions = 0;
+  const secureOptions = getLegacyRenegotiationSecureOptions();
+  if (typeof secureOptions === 'number') {
+    target.secureOptions = (target.secureOptions || 0) | secureOptions;
+  }
 }
 
 function trackSocketForAgent(socket: any, host: string, protocol: 'http' | 'https'): void {
@@ -111,9 +135,10 @@ export function createHttpsAgentWithCertificates(
   const rejectUnauthorized = skipValidation ? false : config.sslValidation;
   const agentOptions: https.AgentOptions = {
     rejectUnauthorized,
-    keepAlive: true,
+    keepAlive: false,
     keepAliveMsecs: 30000,
   };
+  applyTlsCompatibilityOptions(agentOptions);
   // Handle CA certificates (can be array or single Buffer for backward compat)
   if (config.ca.enabled && config.ca.certData) {
     if (Array.isArray(config.ca.certData)) {
@@ -178,6 +203,178 @@ export function createHttpAgentWithTracking(hostname: string): http.Agent {
 
   httpAgentPool.set(agentKey, agent);
   return agent;
+}
+
+function createHttp2ConnectOptions(
+    hostname: string,
+    port: string | undefined,
+    protocol: string | undefined,
+    config: NetworkConfig,
+    skipCertificateValidation: boolean): http2.SecureClientSessionOptions {
+  const options: http2.SecureClientSessionOptions = {};
+  if (protocol === 'https:') {
+    options.rejectUnauthorized = skipCertificateValidation ? false : config.sslValidation;
+    applyTlsCompatibilityOptions(options);
+    if (config.ca.enabled && config.ca.certData) {
+      options.ca = Array.isArray(config.ca.certData) ?
+        config.ca.certData :
+        [config.ca.certData];
+    }
+    const matchingClientCert = findMatchingClientCertificate(
+        config.clients, hostname, port, protocol);
+    if (matchingClientCert) {
+      if (matchingClientCert.pfxData) {
+        options.pfx = matchingClientCert.pfxData;
+      } else if (matchingClientCert.certData && matchingClientCert.keyData) {
+        options.cert = matchingClientCert.certData;
+        options.key = matchingClientCert.keyData;
+      }
+      if (matchingClientCert.passphrase_plain) {
+        options.passphrase = matchingClientCert.passphrase_plain;
+      }
+    }
+  }
+  return options;
+}
+
+function normalizeHttp2RequestHeaders(headers: Record<string, string>):
+    Record<string, string> {
+  const blockedHeaders = new Set([
+    'connection',
+    'keep-alive',
+    'proxy-connection',
+    'transfer-encoding',
+    'upgrade',
+    'host',
+    'http2-settings',
+  ]);
+  const normalized: Record<string, string> = {};
+  for (const [key, value] of Object.entries(headers)) {
+    const normalizedKey = key.toLowerCase();
+    if (blockedHeaders.has(normalizedKey)) {
+      continue;
+    }
+    normalized[normalizedKey] = String(value);
+  }
+  return normalized;
+}
+
+function normalizeHttp2ResponseHeaders(raw: http2.IncomingHttpHeaders):
+    Record<string, string> {
+  const headers: Record<string, string> = {};
+  for (const [key, value] of Object.entries(raw)) {
+    if (key.startsWith(':') || value === undefined) {
+      continue;
+    }
+    headers[key] = Array.isArray(value) ? value.join(', ') : String(value);
+  }
+  return headers;
+}
+
+function buildRequestPath(parsedUrl: URL, query?: Record<string, string>): string {
+  const urlForPath = new URL(parsedUrl.toString());
+  if (query) {
+    for (const [key, value] of Object.entries(query)) {
+      urlForPath.searchParams.set(key, value);
+    }
+  }
+  return `${urlForPath.pathname}${urlForPath.search}`;
+}
+
+function sendHttp2Request(
+    req: HttpRequest,
+    config: NetworkConfig,
+    reqHeaders: Record<string, string>,
+    parsedUrl: URL,
+    requestTimeout: number,
+    skipCertificateValidation = false): Promise<HttpResponse> {
+  return new Promise((resolve, reject) => {
+    const start = Date.now();
+    const authority = `${parsedUrl.protocol}//${parsedUrl.host}`;
+    const session = http2.connect(
+        authority,
+        createHttp2ConnectOptions(
+            parsedUrl.hostname, parsedUrl.port, parsedUrl.protocol, config,
+            skipCertificateValidation));
+    let settled = false;
+    const settle = (fn: () => void) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      try {
+        session.close();
+      } catch {
+        session.destroy();
+      }
+      fn();
+    };
+
+    const timer = setTimeout(() => {
+      settle(() => {
+        reject(Object.assign(new Error('HTTP/2 request timed out'), {
+          code: 'TIMEOUT',
+        }));
+      });
+    }, requestTimeout);
+
+    session.once('error', (err) => {
+      clearTimeout(timer);
+      settle(() => reject(err));
+    });
+
+    const headers = {
+      ':method': (req.method || 'get').toUpperCase(),
+      ':path': buildRequestPath(parsedUrl, req.query),
+      ':scheme': parsedUrl.protocol.replace(':', ''),
+      ':authority': parsedUrl.host,
+      ...normalizeHttp2RequestHeaders(reqHeaders),
+    };
+    const stream = session.request(headers);
+    const chunks: Buffer[] = [];
+    let responseHeaders: http2.IncomingHttpHeaders = {};
+
+    stream.once('response', (headers) => {
+      responseHeaders = headers;
+    });
+    stream.on('data', (chunk) => {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    });
+    stream.once('end', () => {
+      clearTimeout(timer);
+      settle(() => {
+        const status = Number(responseHeaders[':status'] || 0);
+        resolve({
+          body: Buffer.concat(chunks).toString('utf8'),
+          headers: normalizeHttp2ResponseHeaders(responseHeaders),
+          status,
+          statusText: http.STATUS_CODES[status] || '',
+          duration: Date.now() - start,
+          autoformat: config.autoFormat,
+        });
+      });
+    });
+    stream.once('error', (err) => {
+      clearTimeout(timer);
+      settle(() => reject(err));
+    });
+    stream.setTimeout(requestTimeout, () => {
+      stream.close(http2.constants.NGHTTP2_CANCEL);
+      clearTimeout(timer);
+      settle(() => {
+        reject(Object.assign(new Error('HTTP/2 request timed out'), {
+          code: 'TIMEOUT',
+        }));
+      });
+    });
+
+    const body = req.body || '';
+    if (body) {
+      stream.end(body);
+    } else {
+      stream.end();
+    }
+  });
 }
 
 /**
@@ -285,6 +482,30 @@ export async function sendHttpRequest(
       reqHeaders['Content-Length'] = String(len);
     }
   }
+  const requestTimeout = typeof req.timeout === 'number' &&
+      Number.isFinite(req.timeout) && req.timeout >= 0 ?
+      req.timeout :
+      config.timeout;
+  const shouldUseHttp2 = config.httpVersion === '2';
+  if (shouldUseHttp2) {
+    const start = Date.now();
+    const canRetrySelfSigned = config.sslValidation && parsedUrl.protocol === 'https:';
+    try {
+      return await sendHttp2Request(
+          req, config, reqHeaders, parsedUrl, requestTimeout, false);
+    } catch (err: any) {
+      if (canRetrySelfSigned && isSelfSignedTlsError(err)) {
+        const warning = formatSelfSignedWarning(err);
+        try {
+          return await sendHttp2Request(
+              req, config, reqHeaders, parsedUrl, requestTimeout, true);
+        } catch (retryErr: any) {
+          return toNetworkError(retryErr, config, Date.now() - start, warning);
+        }
+      }
+      return toNetworkError(err, config, Date.now() - start);
+    }
+  }
   const baseRequestConfig = {
     url: req.url,
     method: req.method || 'get',
@@ -292,7 +513,7 @@ export async function sendHttpRequest(
     params: req.query,
     withCredentials: true,
     headers: reqHeaders,
-    timeout: config.timeout,
+    timeout: requestTimeout,
     responseType: 'text' as const,
     transformResponse: [(data: string) => data],
   };
@@ -332,12 +553,11 @@ export async function sendHttpRequest(
         warning: warning || formatResponseWarning(err),
       };
     }
-    const code = err?.code ? String(err.code) : 'NETWORK_ERROR';
     return {
       body: '',
       headers: {},
       status: -1,
-      statusText: `${code}`,
+      statusText: formatNetworkErrorStatusText(err),
       duration,
       autoformat: config.autoFormat,
       warning,
@@ -359,6 +579,22 @@ export async function sendHttpRequest(
     }
     return toError(err);
   }
+}
+
+function toNetworkError(
+    err: any,
+    config: NetworkConfig,
+    duration: number,
+    warning?: string): HttpResponse {
+  return {
+    body: '',
+    headers: {},
+    status: -1,
+    statusText: formatNetworkErrorStatusText(err),
+    duration,
+    autoformat: config.autoFormat,
+    warning,
+  };
 }
 
 const SELF_SIGNED_TLS_CODES = new Set([
@@ -408,6 +644,28 @@ function formatResponseWarning(err: any): string|undefined {
   const statusText = err.response.statusText;
   const details = [status, statusText].filter(value => value !== undefined && value !== '').join(' ');
   return details ? `Server returned response: ${details}` : 'Server returned an error response';
+}
+
+function formatNetworkErrorStatusText(err: any): string {
+  const parts: string[] = [];
+  const code = extractErrorCode(err) || 'NETWORK_ERROR';
+  parts.push(code);
+  if (typeof err?.message === 'string' && err.message && err.message !== code) {
+    parts.push(err.message);
+  }
+  if (typeof err?.reason === 'string' && err.reason &&
+      !parts.includes(err.reason)) {
+    parts.push(err.reason);
+  }
+  if (Array.isArray(err?.opensslErrorStack)) {
+    for (const stackEntry of err.opensslErrorStack) {
+      if (typeof stackEntry === 'string' && stackEntry &&
+          !parts.includes(stackEntry)) {
+        parts.push(stackEntry);
+      }
+    }
+  }
+  return parts.join(': ');
 }
 
 function extractErrorCode(err: any): string|undefined {
@@ -558,6 +816,7 @@ export function createWebSocketOptionsWithCertificates(
   const rejectUnauthorized = opts?.skipCertificateValidation ? false :
       config.sslValidation;
   const wsOptions: any = {rejectUnauthorized};
+  applyTlsCompatibilityOptions(wsOptions);
   // Handle CA certificates (can be array or single Buffer for backward compat)
   if (config.ca.enabled && config.ca.certData) {
     if (Array.isArray(config.ca.certData)) {
@@ -620,6 +879,7 @@ export async function send(req: Request): Promise<Response> {
     const httpReq: HttpRequest = {
       url: req.url,
       method: req.method,
+      timeout: req.timeout,
       headers: req.headers,
       body: typeof req.body === 'string' ? req.body : JSON.stringify(req.body),
       query: req.query,

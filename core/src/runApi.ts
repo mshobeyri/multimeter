@@ -193,6 +193,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `    const __reqLog = {\n` +
       `      url: __mmt_raw(__req.url || ''),\n` +
       `      method: __mmt_raw((__req.method || '').toUpperCase()),\n` +
+      `      ...(typeof __req.timeout === 'number' ? { timeout: __mmt_raw(__req.timeout) } : {}),\n` +
       `      protocol: __mmt_raw(__req.protocol || ''),\n` +
       `      headers: __maskedHeaders,\n` +
       `      query: __req.query || {},\n` +

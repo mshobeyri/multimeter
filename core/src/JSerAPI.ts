@@ -144,6 +144,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
     url: __resolvedUrl,
     protocol: ${protocolExpr},
     method: '${effectiveMethod}',
+    timeout: ${typeof replaced.timeout === 'number' ? JSON.stringify(replaced.timeout) : 'undefined'},
     query: ${queryParams ? '{ ' + queryParams + ' }' : '{}'},
     headers: ${headers ? '{ ' + headers + ' }' : '{}'},
     body: ${bodyExpr}

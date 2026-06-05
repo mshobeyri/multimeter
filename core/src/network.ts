@@ -19,6 +19,7 @@ export type NetworkMessage =|{
   action: 'http-send';
   url: string;
   method?: string;
+  timeout?: number;
   headers?: Record<string, string>;
   body?: string;
   query?: Record<string, string>;
@@ -88,10 +89,10 @@ export function handleNetworkMessage(
   switch (message.action) {
     case 'http-send':
       (async () => {
-        const {url, method, headers, body, query, cookies, requestId} =
+        const {url, method, timeout, headers, body, query, cookies, requestId} =
             message;
         try {
-          const req: HttpRequest = {url, method, headers, body, query, cookies};
+          const req: HttpRequest = {url, method, timeout, headers, body, query, cookies};
           const response = await sendHttpRequest(req, config);
           postMessage({
             command: 'network',

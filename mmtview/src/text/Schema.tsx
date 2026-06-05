@@ -130,6 +130,7 @@ export const APISchema = {
             type: 'string',
             enum: ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
         },
+        timeout: { type: 'number', minimum: 0 },
         format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text'] },
         url: { type: 'string' },
         headers: { type: 'object', additionalProperties: { type: 'string' } },
@@ -350,6 +351,20 @@ export const EnvSchema = {
                 }
             }
         },
+        setting: {
+            type: 'object',
+            properties: {
+                http: {
+                    type: 'object',
+                    properties: {
+                        version: { type: 'string', enum: ['auto', '1', '1.1', '2'] },
+                        timeout: { type: 'number', minimum: 0 }
+                    },
+                    additionalProperties: false
+                }
+            },
+            additionalProperties: false
+        },
         certificates: {
             type: 'object',
             properties: {
@@ -379,7 +394,7 @@ export const EnvSchema = {
                         type: 'object',
                         properties: {
                             name: { type: 'string', description: 'Certificate name' },
-                            host: { type: 'string', description: 'Host pattern (e.g., *.example.com)' },
+                            host: { type: 'string', description: 'Host pattern (e.g., *, *:8443, example.com, *.example.com)' },
                             cert: { type: 'string', description: 'Path to client certificate file (.pem, .crt, .cer)' },
                             key: { type: 'string', description: 'Path to client private key file (.key, .pem)' },
                             pfx: { type: 'string', description: 'Path to client PFX/P12 bundle file (.pfx, .p12)' },
@@ -541,6 +556,7 @@ export const TestSchema = {
                                 type: 'string',
                                 enum: ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
                             },
+                            timeout: { type: 'number', minimum: 0 },
                             format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text'] },
                             headers: { type: 'object', additionalProperties: { type: 'string' } },
                             query: { type: 'object', additionalProperties: { type: 'string' } },

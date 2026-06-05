@@ -21,7 +21,7 @@ describe('network helpers', () => {
     autoFormat: true,
     ca: { enabled: true, certData: Buffer.from('abc') },
     clients: [
-      { id: '1', name: 'c1', host: 'example.com', enabled: true },
+      { id: '1', name: 'c1', host: '*.example.com', enabled: true },
       { id: '2', name: 'any', host: '*', enabled: false },
     ] as any,
     timeout: 1000,

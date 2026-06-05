@@ -1,0 +1,10 @@
+type: api
+title: Slow request with short timeout
+description: Calls a mock endpoint that waits 3 seconds, but this request times out after 2 seconds.
+outputs:
+  status_code: status
+  response_time_ms: duration
+url: http://localhost:9107/slow
+method: get
+timeout: 2000
+format: json

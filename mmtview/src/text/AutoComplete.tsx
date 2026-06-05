@@ -344,6 +344,28 @@ export const KeySuggestionsByParent = (monaco: any) => {
             ].join('\n')
         },
         {
+            label: "http",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "- http: ",
+            detail: 'Direct HTTP request',
+            documentation: [
+                'Sends an HTTP request directly from the test without importing an API.',
+                'Fields:',
+                '  - id: optional variable name to assign the output',
+                '  - method: HTTP method (defaults to get)',
+                '  - timeout: optional per-request timeout in milliseconds',
+                '  - query, headers, body: request details',
+                '  - expect/debug/report: validation and reporting',
+                'Example:',
+                '- http: https://api.example.com/users',
+                '  id: users',
+                '  method: get',
+                '  timeout: 5000',
+                '  expect:',
+                '    status: 200'
+            ].join('\n')
+        },
+        {
             label: "data",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "- data: ",
@@ -771,6 +793,13 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'The HTTP method for the request. Defines the type of operation to perform.\nOptions:\n\t- get: Retrieve data\n\t- post: Create new resource\n\t- put: Update entire resource\n\t- patch: Partial update\n\t- delete: Remove resource\n\t- head: Get headers only\n\t- options: Get allowed methods\n\t- trace: Debug request path\nExample: method: post',
         },
         {
+            label: "timeout",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "timeout: 5000",
+            detail: 'Request timeout override [number, ms]',
+            documentation: 'Overrides the default network timeout for this request only, in milliseconds.\nExample: timeout: 5000',
+        },
+        {
             label: "format",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "format: ",
@@ -871,11 +900,43 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'Presets for commonly used environment variable values. Helps with reusability and consistency.\nExample:\npresets:\n\t- name: "production"\n\t  value: "prod"\n\t- name: "staging"\n\t  value: "staging"\n\t- name: "development"\n\t  value: "dev"',
         },
         {
+            label: "setting",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "setting:\n\thttp:\n\t\tversion: \"auto\"\n\t\ttimeout: 30000",
+            detail: 'Runtime settings [object]',
+            documentation: 'Configure project-level runtime settings.\nExample:\nsetting:\n\thttp:\n\t\tversion: "auto"\n\t\ttimeout: 30000',
+        },
+        {
             label: "certificates",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "certificates:\n\t",
             detail: 'Certificate settings [object]',
             documentation: 'Configure SSL/TLS certificates for secure API connections.\nExample:\ncertificates:\n\tserver_ca: ./certs/ca.pem\n\tclients:\n\t\t- name: api-cert\n\t\t\thost: "*.api.example.com"\n\t\t\tcert: ./certs/client.pem\n\t\t\tkey: ./certs/client.key',
+        },
+    ];
+    const envSettingSuggestions = [
+        {
+            label: "http",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "http:\n\t\tversion: \"auto\"\n\t\ttimeout: 30000",
+            detail: 'HTTP defaults [object]',
+            documentation: 'Project-level HTTP defaults used by API and test HTTP requests.\nExample:\nhttp:\n\tversion: "auto"\n\ttimeout: 30000',
+        },
+    ];
+    const envHttpSettingSuggestions = [
+        {
+            label: "version",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "version: \"2\"",
+            detail: 'HTTP version ["auto"|"1"|"1.1"|"2"]',
+            documentation: 'Preferred HTTP version for project HTTP requests. HTTP/2 uses a basic request-response transport when supported by Node.\nExample: version: "2"',
+        },
+        {
+            label: "timeout",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "timeout: 30000",
+            detail: 'Default HTTP timeout [number, ms]',
+            documentation: 'Default timeout for HTTP requests in milliseconds. Per-request timeout still overrides this value.\nExample: timeout: 30000',
         },
     ];
     const envCertificatesSuggestions = [
@@ -1602,6 +1663,20 @@ export const KeySuggestionsByParent = (monaco: any) => {
         { label: 'debug', kind: monaco.languages.CompletionItemKind.Property, insertText: 'debug: ', detail: 'Debug output inspection', documentation: 'Inspect call outputs for debugging (not included in exports).\nUse `debug: true` to show all outputs, or specify fields:\n\nExample (all outputs):\n- call: login\n  debug: true\n\nExample (specific fields):\n- call: login\n  debug:\n    status_code: 200\n    body.token: != null' },
         { label: 'report', kind: monaco.languages.CompletionItemKind.Property, insertText: 'report: ', detail: 'Report level', documentation: 'Controls when expect results are reported.\nValues: all, fails, none\nOr object form:\n  report:\n    internal: all\n    external: fails' },
     ];
+    const httpSiblings = [
+        { label: 'id', kind: monaco.languages.CompletionItemKind.Property, insertText: 'id: ', detail: 'Capture HTTP result', documentation: 'Variable name to capture the HTTP step output.\nExample:\n- http: https://api.example.com/users\n  id: users' },
+        { label: 'title', kind: monaco.languages.CompletionItemKind.Property, insertText: 'title: ', detail: 'HTTP step title', documentation: 'Short summary shown inline in reports/UI.\nExample:\n- http: https://api.example.com/users\n  title: Fetch users' },
+        { label: 'method', kind: monaco.languages.CompletionItemKind.Property, insertText: 'method: ', detail: 'HTTP method', documentation: 'HTTP method for this request. Defaults to get.\nExample: method: post' },
+        { label: 'timeout', kind: monaco.languages.CompletionItemKind.Property, insertText: 'timeout: 5000', detail: 'Request timeout override [number, ms]', documentation: 'Overrides the default network timeout for this HTTP step only, in milliseconds.\nExample: timeout: 5000' },
+        { label: 'format', kind: monaco.languages.CompletionItemKind.Property, insertText: 'format: ', detail: 'Body format', documentation: 'Request and response format. Values: json, xml, xmle, text.\nExample: format: json' },
+        { label: 'query', kind: monaco.languages.CompletionItemKind.Property, insertText: 'query:\n\t', detail: 'Query parameters', documentation: 'Query parameters for this request.\nExample:\nquery:\n  page: "1"' },
+        { label: 'headers', kind: monaco.languages.CompletionItemKind.Property, insertText: 'headers:\n\t', detail: 'Request headers', documentation: 'Headers for this request.\nExample:\nheaders:\n  Authorization: Bearer <<e:token>>' },
+        { label: 'body', kind: monaco.languages.CompletionItemKind.Property, insertText: 'body: ', detail: 'Request body', documentation: 'Request body for post, put, or patch requests.' },
+        { label: 'outputs', kind: monaco.languages.CompletionItemKind.Property, insertText: 'outputs:\n\t', detail: 'Output extraction', documentation: 'Map output names to extraction paths.\nExample:\noutputs:\n  token: body.token' },
+        { label: 'expect', kind: monaco.languages.CompletionItemKind.Property, insertText: 'expect:\n\t', detail: 'Map-based response validation', documentation: 'Map of response fields to expected values.\nExample:\nexpect:\n  status: 200\n  body.ok: true' },
+        { label: 'debug', kind: monaco.languages.CompletionItemKind.Property, insertText: 'debug: ', detail: 'Debug output inspection', documentation: 'Inspect HTTP outputs for debugging.\nUse debug: true to show all outputs.' },
+        { label: 'report', kind: monaco.languages.CompletionItemKind.Property, insertText: 'report: ', detail: 'Report level', documentation: 'Controls when expect results are reported.\nValues: all, fails, none' },
+    ];
     const checkAssertSiblings = [
         { label: 'title', kind: monaco.languages.CompletionItemKind.Property, insertText: 'title: ', detail: 'Check title', documentation: 'Short summary shown inline in reports/UI.' },
         { label: 'details', kind: monaco.languages.CompletionItemKind.Property, insertText: 'details: ', detail: 'Check details', documentation: 'Long description shown in the details panel.' },
@@ -1702,6 +1777,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
         services: servicesSuggestions,
         html: htmlSuggestions,
         env: envSuggestions,
+        setting: envSettingSuggestions,
+        http: envHttpSettingSuggestions,
         certificates: envCertificatesSuggestions,
         clients: envCaClientSuggestions,
         type: typeSuggestions,
@@ -1724,6 +1801,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         connection: mockConnectionSuggestions,
         fallback: mockFallbackSuggestions,
         'step-call': callSiblings,
+        'step-http': httpSiblings,
         'step-check': checkAssertSiblings,
         'step-assert': checkAssertSiblings,
         'step-if': ifSiblings,

@@ -60,6 +60,7 @@ export function useNetwork(autoFormatBody = false): NetworkAPI {
         let {
           url = requestData.url,
           method = requestData.method || "get",
+          timeout = requestData.timeout,
           headers = requestData.headers,
           body = requestData.body,
           protocol = effectiveProtocol,
@@ -94,6 +95,7 @@ export function useNetwork(autoFormatBody = false): NetworkAPI {
         lastRequestID.current = NetworkNodeApi.sendHttp({
           url: url ?? "",
           method: method.toUpperCase(),
+          timeout,
           headers: headers || {},
           body,
           cookies: cookies || {},

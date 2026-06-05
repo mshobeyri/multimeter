@@ -64,13 +64,24 @@ describe('DEFAULT_CERT_SETTINGS', () => {
 });
 
 describe('matchesCertificateHost', () => {
-  it('matches bare domains against exact hosts and subdomains', () => {
+  it('matches any host and any port with star patterns', () => {
+    expect(matchesCertificateHost('*', 'service.local', '443', 'https:')).toBe(true);
+    expect(matchesCertificateHost('*', 'service.local', '8080', 'https:')).toBe(true);
+    expect(matchesCertificateHost('*', 'api.example.com', '', 'https:')).toBe(true);
+    expect(matchesCertificateHost('*:*', 'service.local', '443', 'https:')).toBe(true);
+    expect(matchesCertificateHost('*:*', 'service.local', '8080', 'https:')).toBe(true);
+  });
+
+  it('matches bare domains against exact hosts only', () => {
     expect(matchesCertificateHost('example.com', 'example.com', '443', 'https:')).toBe(true);
-    expect(matchesCertificateHost('example.com', 'api.example.com', '443', 'https:')).toBe(true);
+    expect(matchesCertificateHost('example.com', 'api.example.com', '443', 'https:')).toBe(false);
     expect(matchesCertificateHost('example.com', 'other.com', '443', 'https:')).toBe(false);
   });
 
-  it('matches wildcard subdomains without matching the root domain', () => {
+  it('matches wildcard subdomains using one DNS label', () => {
+    expect(matchesCertificateHost('*.example.com', 'test.example.com', '443', 'https:')).toBe(true);
+    expect(matchesCertificateHost('*.example.com', 'example.com', '443', 'https:')).toBe(false);
+    expect(matchesCertificateHost('*.example.com', 'deep.test.example.com', '443', 'https:')).toBe(false);
     expect(matchesCertificateHost('*.api.example.com', 'v1.api.example.com', '443', 'https:')).toBe(true);
     expect(matchesCertificateHost('*.api.example.com', 'api.example.com', '443', 'https:')).toBe(false);
   });
@@ -79,7 +90,9 @@ describe('matchesCertificateHost', () => {
     expect(matchesCertificateHost('*:8085', 'service.local', '8085', 'https:')).toBe(true);
     expect(matchesCertificateHost('*:8085', 'service.local', '8086', 'https:')).toBe(false);
     expect(matchesCertificateHost('secure.example.com:8085', 'secure.example.com', '8085', 'https:')).toBe(true);
-    expect(matchesCertificateHost('secure.example.com:8085', 'api.secure.example.com', '8085', 'https:')).toBe(true);
+    expect(matchesCertificateHost('secure.example.com:8085', 'api.secure.example.com', '8085', 'https:')).toBe(false);
+    expect(matchesCertificateHost('*.example.com:8085', 'api.example.com', '8085', 'https:')).toBe(true);
+    expect(matchesCertificateHost('*.example.com:8085', 'api.example.com', '8086', 'https:')).toBe(false);
   });
 
   it('uses protocol default ports when the URL omits one', () => {
