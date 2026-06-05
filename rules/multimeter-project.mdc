@@ -1,0 +1,41 @@
+---
+description: Multimeter project architecture, workflows, and coding conventions
+alwaysApply: true
+---
+
+# Multimeter Project Guidance
+
+## Architecture
+
+- `core/` is the platform-neutral TypeScript library for parsing, execution, network logic, reports, and conversion.
+- `mmtview/` is the React and VS Code webview UI for editing and running `.mmt` files.
+- `mmtcli/` contains the `testlight` CLI.
+- Root `src/` contains the VS Code extension host code.
+- `docs/` contains user-facing documentation. Use `https://mmt.dev` for the website and `https://test.mmt.dev` for the test server.
+
+## Execution Rules
+
+- `core/src/runner.ts` is the single source of truth for running `.mmt` files.
+- Use `runner.runFile({ rawFile, filePath, inputs, envvar, fileLoader, jsRunner, logger })` instead of reimplementing parsing or execution in the extension, CLI, or webview.
+- Keep `core/` free of VS Code, `fs`, `path`, browser APIs, and runtime-specific globals. Inject file loading, JS execution, logging, and network plumbing.
+- Keep token matching and replacement logic for `e:`, `i:`, `r:`, and `c:` tokens in `core/src/variableReplacer.ts`.
+
+## Change Strategy
+
+- Implement behavior in `core/` first when it affects parsing, execution, or shared data models.
+- Then wire behavior into `src/`, `mmtview/`, `mmtcli/`, and docs as needed.
+- Update relevant data model types in `core/src/*Data.ts` before adding behavior that changes `.mmt` structure.
+- Add or update focused tests in `core/src/*.test.ts` for pure logic changes.
+
+## Style
+
+- Use 2-space indentation and no tabs.
+- Always use braces for control structures, including single-line `if`, `else`, loops, and switches.
+- Prefer existing local helpers, UI patterns, and runner APIs over new abstractions.
+- Keep changes scoped and avoid unrelated refactors.
+
+## Validation
+
+- Run `npm run compile --silent` from the repository root for the full build.
+- Run `npm run test` for Jest tests.
+- Use `vsce package` from the root to build the VS Code extension package.
