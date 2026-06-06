@@ -2,6 +2,12 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.24.4]
+
+- Fix mTLS certificate resolution for nested env files and VS Code runs
+- Add a public external mTLS example and improve network handling
+- Remove unused code
+
 ## [1.24.3]
 
 - Add Cursor editor support files
