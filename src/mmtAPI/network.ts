@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as crypto from 'crypto';
 import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/fileHelper';
 import {handleNetworkMessage as coreHandleNetworkMessage, NetworkMessage, PostMessage} from 'mmt-core/network';
 import {CertificateSettings, DEFAULT_CERT_SETTINGS, DEFAULT_NETWORK_CONFIG, EnvSetting, NetworkConfig, resolvePassphrase} from 'mmt-core/NetworkData';
@@ -38,7 +39,68 @@ interface ParsedEnvFile {
   setting?: EnvSetting;
 }
 
+interface ParsedEnvCacheEntry {
+  hash: string;
+  parsed?: ParsedEnvFile;
+}
+
+interface PreparedCertificateMaterial {
+  ca: {
+    enabled: boolean;
+    certPath: string;
+    certPaths?: string[];
+    certData?: Buffer[];
+  };
+  clients: Array<{
+    id: string;
+    name: string;
+    host: string;
+    passphrase_plain?: string;
+    certPath?: string;
+    keyPath?: string;
+    pfxPath?: string;
+    certData?: Buffer;
+    keyData?: Buffer;
+    pfxData?: Buffer;
+    enabled: boolean;
+  }>;
+}
+
+interface CertificateMaterialCacheEntry {
+  key: string;
+  material: PreparedCertificateMaterial;
+}
+
 const VALID_HTTP_VERSIONS = new Set(['auto', '1', '1.1', '2']);
+const parsedEnvCache = new Map<string, ParsedEnvCacheEntry>();
+const certificateMaterialCache = new Map<string, CertificateMaterialCacheEntry>();
+
+function stableStringify(value: any): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(',')}]`;
+  }
+  if (value && typeof value === 'object') {
+    return `{${Object.keys(value).sort().map(
+        key => `${JSON.stringify(key)}:${stableStringify(value[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function sha256(value: string): string {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+function fileFingerprint(filePath: string): string {
+  if (!filePath) {
+    return '';
+  }
+  try {
+    const stat = fs.statSync(filePath);
+    return `${filePath}:${stat.size}:${stat.mtimeMs}`;
+  } catch {
+    return `${filePath}:missing`;
+  }
+}
 
 function parseEnvSetting(raw: any): EnvSetting|undefined {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
@@ -94,52 +156,40 @@ function createDefaultCertificateSettings(certs?: StoredCertificates): Certifica
   return settings;
 }
 
-function tryParseEnvCertificatesFromFile(filePath: string): StoredCertificates|undefined {
-  try {
-    if (!filePath || !fs.existsSync(filePath)) {
-      return undefined;
-    }
-    const content = fs.readFileSync(filePath, 'utf8');
-    if (!content.includes('type: env')) {
-      return undefined;
-    }
-    const yaml = YAML.parse(content);
-    const certsObj = yaml && (yaml as any).certificates;
-    if (!certsObj || typeof certsObj !== 'object') {
-      return undefined;
-    }
-
-    const result: StoredCertificates = {};
-    const caObj = (certsObj as any).server_ca;
-    if (caObj) {
-      if (Array.isArray(caObj)) {
-        result.server_ca = {paths: caObj as any};
-      } else if (typeof caObj === 'string') {
-        result.server_ca = {path: caObj};
-      } else if (typeof caObj.path === 'string') {
-        result.server_ca = {path: caObj.path};
-      } else if (caObj.paths && Array.isArray(caObj.paths)) {
-        result.server_ca = {paths: caObj.paths};
-      }
-    }
-
-    const clientsObj = (certsObj as any).clients;
-    if (Array.isArray(clientsObj)) {
-      result.clients = clientsObj.map((client: any) => ({
-        name: client?.name || '',
-        host: client?.host || '',
-        cert: client?.cert || undefined,
-        key: client?.key || undefined,
-        pfx: client?.pfx || undefined,
-        passphrase_plain: client?.passphrase_plain,
-        passphrase_env: client?.passphrase_env,
-      }));
-    }
-
-    return result;
-  } catch {
-    return undefined;
+function parseCertificatesFromYaml(yaml: any): StoredCertificates {
+  const certsObj = yaml && (yaml as any).certificates;
+  if (!certsObj || typeof certsObj !== 'object') {
+    return {};
   }
+
+  const result: StoredCertificates = {};
+  const caObj = (certsObj as any).server_ca;
+  if (caObj) {
+    if (Array.isArray(caObj)) {
+      result.server_ca = {paths: caObj as any};
+    } else if (typeof caObj === 'string') {
+      result.server_ca = {path: caObj};
+    } else if (typeof caObj.path === 'string') {
+      result.server_ca = {path: caObj.path};
+    } else if (caObj.paths && Array.isArray(caObj.paths)) {
+      result.server_ca = {paths: caObj.paths};
+    }
+  }
+
+  const clientsObj = (certsObj as any).clients;
+  if (Array.isArray(clientsObj)) {
+    result.clients = clientsObj.map((client: any) => ({
+      name: client?.name || '',
+      host: client?.host || '',
+      cert: client?.cert || undefined,
+      key: client?.key || undefined,
+      pfx: client?.pfx || undefined,
+      passphrase_plain: client?.passphrase_plain,
+      passphrase_env: client?.passphrase_env,
+    }));
+  }
+
+  return result;
 }
 
 export function resolveWorkspaceEnvFilePath(baseFilePath?: string): string|undefined {
@@ -201,11 +251,18 @@ function tryParseEnvFile(filePath: string): ParsedEnvFile|undefined {
       return undefined;
     }
     const content = fs.readFileSync(filePath, 'utf8');
+    const hash = sha256(content);
+    const cached = parsedEnvCache.get(filePath);
+    if (cached && cached.hash === hash) {
+      return cached.parsed;
+    }
     if (!content.includes('type: env')) {
+      parsedEnvCache.set(filePath, {hash, parsed: undefined});
       return undefined;
     }
     const yaml = YAML.parse(content);
     if (!yaml || typeof yaml !== 'object') {
+      parsedEnvCache.set(filePath, {hash, parsed: undefined});
       return undefined;
     }
 
@@ -228,9 +285,11 @@ function tryParseEnvFile(filePath: string): ParsedEnvFile|undefined {
       }
     }
 
-    const certificates = tryParseEnvCertificatesFromFile(filePath) || {};
+    const certificates = parseCertificatesFromYaml(yaml);
     const setting = parseEnvSetting((yaml as any).setting);
-    return {envVars, certificates, setting};
+    const parsed = {envVars, certificates, setting};
+    parsedEnvCache.set(filePath, {hash, parsed});
+    return parsed;
   } catch {
     return undefined;
   }
@@ -274,6 +333,124 @@ function clientKey(client: StoredClientCertificate): string {
   return `${client.name || ''}:${client.host || ''}`;
 }
 
+function cloneCertificateMaterial(
+    material: PreparedCertificateMaterial): PreparedCertificateMaterial {
+  return {
+    ca: {
+      ...material.ca,
+      certData: material.ca.certData ? [...material.ca.certData] : undefined,
+      certPaths: material.ca.certPaths ? [...material.ca.certPaths] : undefined,
+    },
+    clients: material.clients.map(client => ({...client})),
+  };
+}
+
+function prepareCertificateMaterial(
+    storedCerts: StoredCertificates,
+    certSettings: CertificateSettings,
+    envVars: Record<string, any>,
+    resolvePath: (certPath: string) => string): PreparedCertificateMaterial {
+  const ca = storedCerts.server_ca || {};
+  const caPath = getCaPath(ca);
+  const resolvedCaPath = caPath ? resolvePath(caPath) : caPath;
+  const caEnabled = !!certSettings.caEnabled && !!caPath;
+
+  const clientDescriptors = (storedCerts.clients || []).map((client, idx) => {
+    const key = clientKey(client);
+    const enabled = certSettings.clientsEnabled[key] !== false;
+    const passphrase = resolvePassphrase(
+        client.passphrase_plain, client.passphrase_env, envVars, process.env);
+    const certPath = enabled && client.cert ? resolvePath(client.cert) : undefined;
+    const keyPath = enabled && client.key ? resolvePath(client.key) : undefined;
+    const pfxPath = enabled && client.pfx ? resolvePath(client.pfx) : undefined;
+    return {
+      idx,
+      id: `client-${idx}`,
+      name: client.name,
+      host: client.host,
+      enabled,
+      passphrase,
+      certPath,
+      keyPath,
+      pfxPath,
+      certFingerprint: certPath ? fileFingerprint(certPath) : '',
+      keyFingerprint: keyPath ? fileFingerprint(keyPath) : '',
+      pfxFingerprint: pfxPath ? fileFingerprint(pfxPath) : '',
+    };
+  });
+
+  const cacheKey = sha256(stableStringify({
+    ca: {
+      enabled: caEnabled,
+      path: resolvedCaPath,
+      fingerprint: caEnabled ? fileFingerprint(resolvedCaPath) : '',
+    },
+    clients: clientDescriptors,
+  }));
+  const cached = certificateMaterialCache.get(cacheKey);
+  if (cached) {
+    return cloneCertificateMaterial(cached.material);
+  }
+
+  let caCertData: Buffer|undefined = undefined;
+  if (caEnabled && resolvedCaPath) {
+    try {
+      caCertData = fs.readFileSync(resolvedCaPath);
+    } catch (e) {
+      vscode.window.showErrorMessage(`Failed to load CA certificate from ${caPath}: ${e}`);
+    }
+  }
+
+  const clients = clientDescriptors.map(descriptor => {
+    let certData: Buffer|undefined = undefined;
+    let keyData: Buffer|undefined = undefined;
+    let pfxData: Buffer|undefined = undefined;
+    if (descriptor.enabled) {
+      if (descriptor.pfxPath) {
+        try {
+          pfxData = fs.readFileSync(descriptor.pfxPath);
+        } catch (e) {
+          vscode.window.showErrorMessage(
+              `Failed to load PFX for ${descriptor.host}: ${e}`);
+        }
+      } else if (descriptor.certPath && descriptor.keyPath) {
+        try {
+          certData = fs.readFileSync(descriptor.certPath);
+          keyData = fs.readFileSync(descriptor.keyPath);
+        } catch (e) {
+          vscode.window.showErrorMessage(
+              `Failed to load client certificate for ${descriptor.host}: ${e}`);
+        }
+      }
+    }
+    return {
+      id: descriptor.id,
+      name: descriptor.name,
+      host: descriptor.host,
+      passphrase_plain: descriptor.passphrase,
+      certPath: descriptor.certPath,
+      keyPath: descriptor.keyPath,
+      pfxPath: descriptor.pfxPath,
+      certData,
+      keyData,
+      pfxData,
+      enabled: descriptor.enabled,
+    };
+  });
+
+  const material: PreparedCertificateMaterial = {
+    ca: {
+      enabled: caEnabled,
+      certPath: resolvedCaPath,
+      certPaths: resolvedCaPath ? [resolvedCaPath] : undefined,
+      certData: caCertData ? [caCertData] : undefined,
+    },
+    clients,
+  };
+  certificateMaterialCache.set(cacheKey, {key: cacheKey, material});
+  return cloneCertificateMaterial(material);
+}
+
 // Prepare config with loaded cert/key data from workspace storage
 export function getPreparedConfigFromStorage(
     context: vscode.ExtensionContext,
@@ -298,77 +475,15 @@ export function getPreparedConfigFromStorage(
       createDefaultCertificateSettings(storedCerts);
   const config = vscode.workspace.getConfiguration('multimeter');
   const fallbackTimeout = DEFAULT_NETWORK_CONFIG.timeout;
-
-  // Load CA cert data
-  let caCertData: Buffer|undefined = undefined;
-  const ca = storedCerts.server_ca || {};
-  const caPath = getCaPath(ca);
-  let resolvedCaPath = caPath;
-  if (certSettings.caEnabled && caPath) {
-    try {
-      const resolvedPath = resolveCertPath(caPath, certBaseFilePath);
-      resolvedCaPath = resolvedPath;
-      caCertData = fs.readFileSync(resolvedPath);
-    } catch (e) {
-      vscode.window.showErrorMessage(`Failed to load CA certificate from ${caPath}: ${e}`);
-    }
-  }
-
-  // Load client cert/key data
-  const clients = storedCerts.clients || [];
-  const clientsWithData = clients.map((client, idx) => {
-    const key = clientKey(client);
-    const isEnabled = certSettings.clientsEnabled[key] !== false;  // Default true
-    let certData: Buffer|undefined = undefined;
-    let keyData: Buffer|undefined = undefined;
-    let pfxData: Buffer|undefined = undefined;
-    let certPath: string|undefined = undefined;
-    let keyPath: string|undefined = undefined;
-    let pfxPath: string|undefined = undefined;
-    const crtSrc = client.cert || '';
-    const keySrc = client.key || '';
-    const pfxSrc = client.pfx || '';
-    if (isEnabled) {
-      if (pfxSrc) {
-        try {
-          pfxPath = resolveCertPath(pfxSrc, certBaseFilePath);
-          pfxData = fs.readFileSync(pfxPath);
-        } catch (e) {
-          vscode.window.showErrorMessage(
-              `Failed to load PFX for ${client.host}: ${e}`);
-        }
-      } else if (crtSrc && keySrc) {
-        try {
-          certPath = resolveCertPath(crtSrc, certBaseFilePath);
-          keyPath = resolveCertPath(keySrc, certBaseFilePath);
-          certData = fs.readFileSync(certPath);
-          keyData = fs.readFileSync(keyPath);
-        } catch (e) {
-          vscode.window.showErrorMessage(
-              `Failed to load client certificate for ${client.host}: ${e}`);
-        }
-      }
-    }
-    const passphrase = resolvePassphrase(
-      client.passphrase_plain, client.passphrase_env, mergedEnvVars, process.env);
-    return {
-      id: `client-${idx}`,
-      name: client.name,
-      host: client.host,
-      passphrase_plain: passphrase,
-      certPath,
-      keyPath,
-      pfxPath,
-      certData,
-      keyData,
-      pfxData,
-      enabled: isEnabled,
-    };
-  });
+  const material = prepareCertificateMaterial(
+      storedCerts,
+      certSettings,
+      mergedEnvVars,
+      certPath => resolveCertPath(certPath, certBaseFilePath));
 
   return {
-    ca: {enabled: certSettings.caEnabled, certPath: resolvedCaPath, certPaths: resolvedCaPath ? [resolvedCaPath] : undefined, certData: caCertData ? [caCertData] : undefined},
-    clients: clientsWithData,
+    ca: material.ca,
+    clients: material.clients,
     sslValidation: true,
     allowSelfSigned: false,
     httpVersion: getHttpVersion(parsed?.setting),
@@ -409,67 +524,15 @@ export function prepareNetworkConfigFromProjectFile(
 
   const projectDir = path.dirname(projectFilePath);
   const certPathOpts = {baseDir: projectDir};
-
-  let caCertData: Buffer|undefined = undefined;
-  const ca = storedCerts.server_ca || {};
-  const caPath = getCaPath(ca);
-  let resolvedCaPath = caPath;
-  // Always load the CA cert if present (no toggle needed for file-driven runs)
-  if (caPath) {
-    try {
-      const resolvedPath = resolveCertFilePath(caPath, certPathOpts);
-      resolvedCaPath = resolvedPath;
-      caCertData = fs.readFileSync(resolvedPath);
-    } catch {
-    }
-  }
-
-  const clients = storedCerts.clients || [];
-  const clientsWithData = clients.map((client, idx) => {
-    let certData: Buffer|undefined = undefined;
-    let keyData: Buffer|undefined = undefined;
-    let pfxData: Buffer|undefined = undefined;
-    let certPath: string|undefined = undefined;
-    let keyPath: string|undefined = undefined;
-    let pfxPath: string|undefined = undefined;
-    const crtSrc = client.cert || '';
-    const keySrc = client.key || '';
-    const pfxSrc = client.pfx || '';
-    if (pfxSrc) {
-      try {
-        pfxPath = resolveCertFilePath(pfxSrc, certPathOpts);
-        pfxData = fs.readFileSync(pfxPath);
-      } catch {
-      }
-    } else if (crtSrc && keySrc) {
-      try {
-        certPath = resolveCertFilePath(crtSrc, certPathOpts);
-        keyPath = resolveCertFilePath(keySrc, certPathOpts);
-        certData = fs.readFileSync(certPath);
-        keyData = fs.readFileSync(keyPath);
-      } catch {
-      }
-    }
-    const passphrase = resolvePassphrase(
-        client.passphrase_plain, client.passphrase_env, envVars, process.env);
-    return {
-      id: `client-${idx}`,
-      name: client.name,
-      host: client.host,
-      passphrase_plain: passphrase,
-      certPath,
-      keyPath,
-      pfxPath,
-      certData,
-      keyData,
-      pfxData,
-      enabled: true,
-    };
-  });
+  const material = prepareCertificateMaterial(
+      storedCerts,
+      createDefaultCertificateSettings(storedCerts),
+      envVars,
+      certPath => resolveCertFilePath(certPath, certPathOpts));
 
   return {
-    ca: {enabled: !!caCertData, certPath: resolvedCaPath, certPaths: resolvedCaPath ? [resolvedCaPath] : undefined, certData: caCertData ? [caCertData] : undefined},
-    clients: clientsWithData,
+    ca: material.ca,
+    clients: material.clients,
     sslValidation: true,
     allowSelfSigned: false,
     httpVersion: getHttpVersion(parsed?.setting),

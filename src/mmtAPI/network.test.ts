@@ -315,4 +315,107 @@ describe('prepareNetworkConfigForFile certificate settings', () => {
     expect(config.clients[0].certData?.toString('utf8')).toBe('abs-cert');
     expect(config.clients[0].keyData?.toString('utf8')).toBe('abs-key');
   });
+
+  it('reuses loaded certificate material when only non-certificate env vars change', () => {
+    const dir = createTempDir();
+    (vscode.workspace.workspaceFolders as any) = [{uri: {fsPath: dir}}];
+
+    const apiFilePath = path.join(dir, 'tests', 'login.mmt');
+    const certPath = path.join(dir, 'certs', 'client.crt');
+    const keyPath = path.join(dir, 'certs', 'client.key');
+    writeFile(apiFilePath, 'type: test\nname: login');
+    writeFile(certPath, 'env-cert');
+    writeFile(keyPath, 'env-key');
+    const envPath = path.join(dir, 'multimeter.mmt');
+    const writeEnv = (token: string) => writeFile(
+        envPath,
+        [
+          'type: env',
+          'variables:',
+          `  TOKEN: ${token}`,
+          'certificates:',
+          '  clients:',
+          '    - name: mtls',
+          '      host: api.example.com',
+          '      cert: ./certs/client.crt',
+          '      key: ./certs/client.key',
+        ].join('\n'),
+    );
+    writeEnv('one');
+
+    const context = createContext(undefined);
+    const first = prepareNetworkConfigForFile(apiFilePath, undefined, context);
+    writeEnv('two');
+    const second = prepareNetworkConfigForFile(apiFilePath, undefined, context);
+
+    expect(first.clients[0].certData?.toString('utf8')).toBe('env-cert');
+    expect(second.clients[0].certData).toBe(first.clients[0].certData);
+    expect(second.clients[0].keyData).toBe(first.clients[0].keyData);
+  });
+
+  it('reloads certificate material when a certificate file changes', () => {
+    const dir = createTempDir();
+    (vscode.workspace.workspaceFolders as any) = [{uri: {fsPath: dir}}];
+
+    const apiFilePath = path.join(dir, 'tests', 'login.mmt');
+    const certPath = path.join(dir, 'certs', 'client.crt');
+    const keyPath = path.join(dir, 'certs', 'client.key');
+    writeFile(apiFilePath, 'type: test\nname: login');
+    writeFile(certPath, 'env-cert-one');
+    writeFile(keyPath, 'env-key');
+    writeFile(
+        path.join(dir, 'multimeter.mmt'),
+        [
+          'type: env',
+          'certificates:',
+          '  clients:',
+          '    - name: mtls',
+          '      host: api.example.com',
+          '      cert: ./certs/client.crt',
+          '      key: ./certs/client.key',
+        ].join('\n'),
+    );
+
+    const context = createContext(undefined);
+    const first = prepareNetworkConfigForFile(apiFilePath, undefined, context);
+    writeFile(certPath, 'env-cert-two-changed');
+    const second = prepareNetworkConfigForFile(apiFilePath, undefined, context);
+
+    expect(first.clients[0].certData?.toString('utf8')).toBe('env-cert-one');
+    expect(second.clients[0].certData?.toString('utf8')).toBe('env-cert-two-changed');
+  });
+
+  it('updates certificate material when passphrase_env changes', () => {
+    const dir = createTempDir();
+    (vscode.workspace.workspaceFolders as any) = [{uri: {fsPath: dir}}];
+
+    const apiFilePath = path.join(dir, 'tests', 'login.mmt');
+    writeFile(apiFilePath, 'type: test\nname: login');
+    writeFile(path.join(dir, 'certs', 'client.crt'), 'env-cert');
+    writeFile(path.join(dir, 'certs', 'client.key'), 'env-key');
+    writeFile(
+        path.join(dir, 'multimeter.mmt'),
+        [
+          'type: env',
+          'variables:',
+          '  CERT_PASS: from-file',
+          'certificates:',
+          '  clients:',
+          '    - name: mtls',
+          '      host: api.example.com',
+          '      cert: ./certs/client.crt',
+          '      key: ./certs/client.key',
+          '      passphrase_env: CERT_PASS',
+        ].join('\n'),
+    );
+
+    const context = createContext(undefined);
+    const first = prepareNetworkConfigForFile(
+        apiFilePath, {CERT_PASS: 'one'}, context);
+    const second = prepareNetworkConfigForFile(
+        apiFilePath, {CERT_PASS: 'two'}, context);
+
+    expect(first.clients[0].passphrase_plain).toBe('one');
+    expect(second.clients[0].passphrase_plain).toBe('two');
+  });
 });
