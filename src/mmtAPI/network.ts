@@ -148,6 +148,31 @@ export function resolveWorkspaceEnvFilePath(baseFilePath?: string): string|undef
 
   const defaultEnvFiles = ['multimeter.mmt', 'env.mmt'];
 
+  // Prefer the environment file nearest to the file being run. This lets
+  // examples and nested projects carry their own multimeter.mmt/env.mmt instead
+  // of accidentally inheriting the workspace root environment.
+  if (baseFilePath) {
+    const searchNames = envRelPath ?
+      [envRelPath, ...defaultEnvFiles.filter(fileName => fileName !== envRelPath)] :
+      defaultEnvFiles;
+    let currentDir = path.dirname(baseFilePath);
+    const visited = new Set<string>();
+    while (currentDir && !visited.has(currentDir)) {
+      visited.add(currentDir);
+      for (const searchName of searchNames) {
+        const candidate = path.join(currentDir, searchName);
+        if (fs.existsSync(candidate)) {
+          return candidate;
+        }
+      }
+      const parentDir = path.dirname(currentDir);
+      if (parentDir === currentDir) {
+        break;
+      }
+      currentDir = parentDir;
+    }
+  }
+
   // If config specifies a path, use it directly
   if (envRelPath) {
     for (const folder of vscode.workspace.workspaceFolders || []) {
@@ -165,27 +190,6 @@ export function resolveWorkspaceEnvFilePath(baseFilePath?: string): string|undef
       if (fs.existsSync(candidate)) {
         return candidate;
       }
-    }
-  }
-
-  // If baseFilePath provided, walk up directory tree looking for the env file
-  if (baseFilePath) {
-    const searchNames = envRelPath ? [envRelPath] : defaultEnvFiles;
-    let currentDir = path.dirname(baseFilePath);
-    const visited = new Set<string>();
-    while (currentDir && !visited.has(currentDir)) {
-      visited.add(currentDir);
-      for (const searchName of searchNames) {
-        const candidate = path.join(currentDir, searchName);
-        if (fs.existsSync(candidate)) {
-          return candidate;
-        }
-      }
-      const parentDir = path.dirname(currentDir);
-      if (parentDir === currentDir) {
-        break;
-      }
-      currentDir = parentDir;
     }
   }
 

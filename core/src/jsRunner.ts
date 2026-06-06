@@ -183,7 +183,9 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     }
     // Wrap send_ with trace-level request/response logging for test runs
     const sendFn = context.traceSend ? async (req: any) => {
-      const reqSummary = req ? `${(req.method || 'GET').toUpperCase()} ${req.url || ''}` : 'unknown';
+      const reqSummary = req ?
+        `${(req.method || 'GET').toUpperCase()} ${req.url || ''}` :
+        'unknown';
       lg('trace', `Request: ${reqSummary}`);
       try {
         const res = await send(req);

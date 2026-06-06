@@ -157,6 +157,52 @@ describe('prepareNetworkConfigForFile certificate settings', () => {
     expect(config.timeout).toBe(45000);
   });
 
+  it('prefers the nearest env file to the target file over workspace root env', () => {
+    const dir = createTempDir();
+    (vscode.workspace.workspaceFolders as any) = [{uri: {fsPath: dir}}];
+
+    const apiFilePath = path.join(dir, 'examples', 'external_mtls', 'test.mmt');
+    const exampleRoot = path.dirname(apiFilePath);
+    writeFile(apiFilePath, 'type: test\nname: nested');
+    writeFile(path.join(dir, 'certs', 'root.crt'), 'root-cert');
+    writeFile(path.join(dir, 'certs', 'root.key'), 'root-key');
+    writeFile(path.join(exampleRoot, 'certs', 'nested.crt'), 'nested-cert');
+    writeFile(path.join(exampleRoot, 'certs', 'nested.key'), 'nested-key');
+    writeFile(
+        path.join(dir, 'multimeter.mmt'),
+        [
+          'type: env',
+          'certificates:',
+          '  clients:',
+          '    - name: root-client',
+          '      host: root.example.com',
+          '      cert: ./certs/root.crt',
+          '      key: ./certs/root.key',
+        ].join('\n'),
+    );
+    writeFile(
+        path.join(exampleRoot, 'multimeter.mmt'),
+        [
+          'type: env',
+          'certificates:',
+          '  clients:',
+          '    - name: nested-client',
+          '      host: "*:8085"',
+          '      cert: ./certs/nested.crt',
+          '      key: ./certs/nested.key',
+        ].join('\n'),
+    );
+
+    const context = createContext(undefined);
+    const config = prepareNetworkConfigForFile(apiFilePath, undefined, context);
+
+    expect(config.clients).toHaveLength(1);
+    expect(config.clients[0].name).toBe('nested-client');
+    expect(config.clients[0].host).toBe('*:8085');
+    expect(config.clients[0].certData?.toString('utf8')).toBe('nested-cert');
+    expect(config.clients[0].keyData?.toString('utf8')).toBe('nested-key');
+  });
+
   it('does not load CA or client cert bytes when local toggles disable them', () => {
     const dir = createTempDir();
     (vscode.workspace.workspaceFolders as any) = [{uri: {fsPath: dir}}];

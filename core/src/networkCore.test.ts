@@ -152,4 +152,110 @@ describe('networkCore request timeout', () => {
     expect(response.statusText).toContain('ssl3 alert handshake failure');
     expect(response.statusText).toContain('unsafe legacy renegotiation disabled');
   });
+
+  it('retries certificate-required TLS failures with the only available client cert', async () => {
+    mockedAxios.request
+        .mockRejectedValueOnce(Object.assign(
+            new Error('tlsv1 alert certificate required'),
+            {code: 'ERR_SSL_TLSV1_ALERT_CERTIFICATE_REQUIRED'},
+        ))
+        .mockResolvedValueOnce({
+          data: 'ok',
+          headers: {},
+          status: 200,
+          statusText: 'OK',
+        });
+
+    const certData = Buffer.from('client-cert');
+    const keyData = Buffer.from('client-key');
+    const response = await sendHttpRequest(
+        {url: 'https://api.example.com/users', method: 'get'},
+        {
+          ...DEFAULT_NETWORK_CONFIG,
+          clients: [{
+            id: 'client-1',
+            name: 'Company API',
+            host: 'does-not-match.example.com',
+            certData,
+            keyData,
+            enabled: true,
+          }],
+        },
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.warning).toContain('retried with "Company API"');
+    expect(mockedAxios.request).toHaveBeenCalledTimes(2);
+    const retryConfig = mockedAxios.request.mock.calls[1][0];
+    expect((retryConfig.httpsAgent as any).options.cert).toBe(certData);
+    expect((retryConfig.httpsAgent as any).options.key).toBe(keyData);
+    expect((retryConfig.httpsAgent as any).options.maxVersion).toBe('TLSv1.2');
+  });
+
+  it('retries certificate-required TLS failures with a matching star client cert', async () => {
+    mockedAxios.request
+        .mockRejectedValueOnce(Object.assign(
+            new Error('tlsv1 alert certificate required'),
+            {code: 'ERR_SSL_TLSV1_ALERT_CERTIFICATE_REQUIRED'},
+        ))
+        .mockResolvedValueOnce({
+          data: 'ok',
+          headers: {},
+          status: 200,
+          statusText: 'OK',
+        });
+
+    const certData = Buffer.from('star-client-cert');
+    const keyData = Buffer.from('star-client-key');
+    const response = await sendHttpRequest(
+        {url: 'https://api.example.com/users', method: 'get'},
+        {
+          ...DEFAULT_NETWORK_CONFIG,
+          clients: [{
+            id: 'client-star',
+            name: 'Wildcard Company API',
+            host: '*',
+            certData,
+            keyData,
+            enabled: true,
+          }],
+        },
+    );
+
+    expect(response.status).toBe(200);
+    expect(response.warning).toContain('legacy mTLS compatibility');
+    expect(mockedAxios.request).toHaveBeenCalledTimes(2);
+    const firstConfig = mockedAxios.request.mock.calls[0][0];
+    const retryConfig = mockedAxios.request.mock.calls[1][0];
+    expect((firstConfig.httpsAgent as any).options.cert).toBe(certData);
+    expect((firstConfig.httpsAgent as any).options.maxVersion).toBe('TLSv1.2');
+    expect((retryConfig.httpsAgent as any).options.cert).toBe(certData);
+    expect((retryConfig.httpsAgent as any).options.maxVersion).toBe('TLSv1.2');
+  });
+
+  it('uses mTLS compatibility on the first request for any-host fixed-port matches', async () => {
+    const certData = Buffer.from('port-client-cert');
+    const keyData = Buffer.from('port-client-key');
+
+    await sendHttpRequest(
+        {url: 'https://xxxx.yyy.zz.aaaa.bbbb:8085/xxx/yyy', method: 'get'},
+        {
+          ...DEFAULT_NETWORK_CONFIG,
+          clients: [{
+            id: 'client-port',
+            name: 'Port Client',
+            host: '*:8085',
+            certData,
+            keyData,
+            enabled: true,
+          }],
+        },
+    );
+
+    expect(mockedAxios.request).toHaveBeenCalledTimes(1);
+    const firstConfig = mockedAxios.request.mock.calls[0][0];
+    expect((firstConfig.httpsAgent as any).options.cert).toBe(certData);
+    expect((firstConfig.httpsAgent as any).options.key).toBe(keyData);
+    expect((firstConfig.httpsAgent as any).options.maxVersion).toBe('TLSv1.2');
+  });
 });

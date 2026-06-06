@@ -84,7 +84,8 @@ async function handleChatRequest(
         // Apply certificate settings from workspace storage
         try {
           const envVars = runFileOptions.envvar || {};
-          const netConfig = getPreparedConfigFromStorage(context, envVars);
+          const netConfig = getPreparedConfigFromStorage(
+              context, envVars, runFileOptions.filePath);
           setRunnerNetworkConfig(netConfig);
         } catch (e) {
           // Continue without certificates if loading fails

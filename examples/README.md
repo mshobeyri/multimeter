@@ -16,4 +16,4 @@ Use these when you are ready for reusable APIs, authentication, mock servers, ri
 
 ## Professional
 
-Use these for higher-complexity workflows such as reports, TLS/mTLS certificates, load testing, and converting external API collections into `.mmt` files.
+Use these for higher-complexity workflows such as reports, TLS/mTLS certificates, load testing, external mTLS smoke tests, and converting external API collections into `.mmt` files.
