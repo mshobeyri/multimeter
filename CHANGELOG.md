@@ -2,6 +2,14 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.24.5]
+
+- Add data imports from `.json`, `.yaml`, `.yml`, and `.csv` across all file types
+- Resolve `${alias.path}` references in API runs, environment files, suites, and the UI
+- Add autocomplete for data import paths and imported field references
+- Move import editing into Overview tabs for suite and environment editors
+- Refactor certificate handling
+
 ## [1.24.4]
 
 - Fix mTLS certificate resolution for nested env files and VS Code runs
