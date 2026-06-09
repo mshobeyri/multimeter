@@ -315,9 +315,9 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   // Parse imports map whenever content changes
   useEffect(() => {
     try {
-      // Use plain YAML parse to get a JS object and read imports/import
+      // Use plain YAML parse to get a JS object and read import
       const js = parseYaml(content) as any;
-      const imps = (js && (js.imports || js.import)) || {};
+      const imps = (js && js.import) || {};
       importsMapRef.current = imps && typeof imps === 'object' ? imps : {};
       const typeVal = typeof js?.type === "string" ? js.type.toLowerCase() : null;
       setDocType(typeVal);

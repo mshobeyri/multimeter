@@ -54,6 +54,7 @@ export function yamlToSuite(rawYaml: string): SuiteData {
     title: typeof doc.title === 'string' ? doc.title : undefined,
     description: typeof doc.description === 'string' ? doc.description : undefined,
     tags,
+    import: doc.import && typeof doc.import === 'object' && !Array.isArray(doc.import) ? {...doc.import} : undefined,
     servers: intoStringArray(doc.servers).length > 0 ? intoStringArray(doc.servers) : undefined,
     tests,
     environment,
@@ -75,6 +76,9 @@ export function suiteToYaml(suite: SuiteData): string {
   }
   if (suite.tags && suite.tags.length > 0) {
     yamlObj.tags = suite.tags;
+  }
+  if (suite.import && Object.keys(suite.import).length > 0) {
+    yamlObj.import = suite.import;
   }
   // Canonical order: environment, servers, export, tests
   if (suite.environment) {

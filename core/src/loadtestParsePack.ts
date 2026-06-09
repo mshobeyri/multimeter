@@ -59,6 +59,7 @@ export function yamlToLoadTest(rawYaml: string): LoadTestData {
     title: typeof doc.title === 'string' ? doc.title : undefined,
     description: typeof doc.description === 'string' ? doc.description : undefined,
     tags,
+    import: doc.import && typeof doc.import === 'object' && !Array.isArray(doc.import) ? {...doc.import} : undefined,
     test,
     threads: typeof doc.threads === 'number' ? doc.threads : 1,
     repeat,
@@ -82,6 +83,9 @@ export function loadtestToYaml(loadtest: LoadTestData): string {
   }
   if (loadtest.tags && loadtest.tags.length > 0) {
     yamlObj.tags = loadtest.tags;
+  }
+  if (loadtest.import && Object.keys(loadtest.import).length > 0) {
+    yamlObj.import = loadtest.import;
   }
   if (loadtest.environment) {
     const env: Record<string, any> = {};

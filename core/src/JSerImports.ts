@@ -1,5 +1,6 @@
 import {yamlToAPI, yamlToAPIStrict} from './apiParsePack';
 import {csvToJSObj} from './csvConvertor';
+import {dataFileToJsObj, isDataImportPath, processDataImportsInYaml} from './dataImportProcessor';
 import {dirnamePath, fileUriToPath, isAbsPath, joinPath, resolveDotSegments, resolveRequestedAgainst,} from './fileHelper';
 import {createFileImporter} from './fileImporter';
 import {ImportTracker} from './importTracker';
@@ -156,7 +157,14 @@ const emitResolved = async(
     tracker.setTestFuncName(resolvedPath, publicName);
 
     if (type === 'test') {
-      const test = parseTestContentStrict(content, resolvedPath) as any;
+      const processedContent = await processDataImportsInYaml({
+        rawText: content,
+        filePath: resolvedPath,
+        projectRoot,
+        fileLoader: readFile,
+        keepDataImports: true,
+      });
+      const test = parseTestContentStrict(processedContent, resolvedPath) as any;
       if (test.title) { tracker.setFileTitle(resolvedPath, test.title); }
       if (test.inputs && typeof test.inputs === 'object') {
         tracker.setInputKeys(resolvedPath, Object.keys(test.inputs));
@@ -179,7 +187,13 @@ const emitResolved = async(
 
       results.push(flowJs + '\n');
     } else if (type === 'api') {
-      const api = yamlToAPIStrict(content);
+      const processedContent = await processDataImportsInYaml({
+        rawText: content,
+        filePath: resolvedPath,
+        projectRoot,
+        fileLoader: readFile,
+      });
+      const api = yamlToAPIStrict(processedContent);
       if (api.title) { tracker.setFileTitle(resolvedPath, api.title); }
       if (api.inputs && typeof api.inputs === 'object') {
         tracker.setInputKeys(resolvedPath, Object.keys(api.inputs));
@@ -201,6 +215,8 @@ const emitResolved = async(
           '\n');
     } else if (type === 'csv') {
       results.push(await csvToJSObj(content, publicName) + '\n');
+    } else if (isDataImportPath(resolvedPath)) {
+      results.push(await dataFileToJsObj(content, publicName, resolvedPath) + '\n');
     } else if (type === 'server') {
       // Server files emit a path constant for use with the 'run' step.
       // Example: const my_server_ = "/resolved/path/to/server.mmt";

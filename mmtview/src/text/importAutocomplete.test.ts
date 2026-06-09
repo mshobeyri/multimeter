@@ -8,7 +8,7 @@ function shouldOfferImportFileCompletion(lineContent: string, positionColumn: nu
   const key = keyValueMatch[2];
   const colonPosition = lineContent.indexOf(':');
   const valueStartColumn = colonPosition + 2;
-  return (key === 'import' || key === 'imports') && positionColumn >= valueStartColumn;
+  return key === 'import' && positionColumn >= valueStartColumn;
 }
 
 describe('import file autocomplete trigger', () => {
@@ -18,6 +18,10 @@ describe('import file autocomplete trigger', () => {
 
   it('does not trigger for other keys', () => {
     expect(shouldOfferImportFileCompletion('title: ', 8)).toBe(false);
+  });
+
+  it('does not trigger on `imports:`', () => {
+    expect(shouldOfferImportFileCompletion('imports: ', 10)).toBe(false);
   });
 });
 

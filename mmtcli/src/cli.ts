@@ -314,7 +314,7 @@ program.command('run')
           console.log(`Loaded: ${path.resolve(file)} (${summary})`);
         }
         const {runFileOptions, networkConfig, outFile, printJs, reportFormat, reportFile, getReportResults} =
-          buildCliRunArgs(file, {...(opts as any), logLevel: (program.opts() as any).logLevel});
+          await buildCliRunArgs(file, {...(opts as any), logLevel: (program.opts() as any).logLevel});
         
         // Apply network config if certificates are configured
         if (networkConfig) {
@@ -516,7 +516,7 @@ program.command('print-js')
       'Select a named example (matches name) or numeric index (#1 = first)')
     .action(async (file: string, opts: {stages?: boolean}) => {
       try {
-        const {runFileOptions} = buildCliRunArgs(
+        const {runFileOptions} = await buildCliRunArgs(
           file, {...(opts as any), logLevel: (program.opts() as any).logLevel});
         const rawText = runFileOptions.file;
         const envVars = (runFileOptions.envvar || {}) as any;

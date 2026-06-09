@@ -6,6 +6,12 @@ export const GeneralSchema = {
     }
 }
 
+const DataImportSchema = {
+    type: 'object',
+    description: 'Alias -> data file path. Supports .json, .yaml, .yml, and .csv files. Values are referenced with ${alias.path}.',
+    additionalProperties: { type: 'string' }
+};
+
 export const SuiteSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
@@ -15,6 +21,7 @@ export const SuiteSchema = {
         title: { type: 'string' },
         description: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
+        import: DataImportSchema,
         servers: { type: 'array', items: { type: 'string' } },
         environment: {
             type: 'object',
@@ -59,6 +66,7 @@ export const LoadTestSchema = {
         title: { type: 'string' },
         description: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
+        import: DataImportSchema,
         environment: {
             type: 'object',
             properties: {
@@ -104,6 +112,7 @@ export const APISchema = {
         title: { type: 'string' },
         description: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
+        import: DataImportSchema,
         inputs: {
             type: 'object',
             additionalProperties: {
@@ -310,6 +319,7 @@ export const EnvSchema = {
     required: ['type'],
     properties: {
         type: { type: 'string', enum: ['env'] },
+        import: DataImportSchema,
         variables: {
             type: 'object',
             additionalProperties: {
@@ -422,7 +432,7 @@ export const TestSchema = {
         tags: { type: 'array', items: { type: 'string' } },
         import: {
             type: 'object',
-            description: 'Alias -> import path. Supports .mmt (test/api/csv) and JS helper modules (.js/.cjs/.mjs).',
+            description: 'Alias -> import path. Supports .mmt tests/APIs, data files (.json/.yaml/.yml/.csv), and JS helper modules (.js/.cjs/.mjs). Data values are referenced with ${alias.path}.',
             additionalProperties: { type: 'string' }
         },
         inputs: {
@@ -931,6 +941,7 @@ export const MockSchema = {
         title: { type: 'string' },
         description: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
+        import: DataImportSchema,
         protocol: { type: 'string', enum: ['http', 'https', 'ws'] },
         port: { type: 'number', minimum: 1, maximum: 65535 },
         connection: {
@@ -1375,6 +1386,7 @@ export const DocSchema = {
         type: { type: 'string', enum: ['doc'] },
         title: { type: 'string' },
         description: { type: 'string' },
+        import: DataImportSchema,
         logo: { type: 'string' },
         sources: { type: 'array', items: { type: 'string' } },
         services: {

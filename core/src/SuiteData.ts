@@ -12,6 +12,7 @@ export interface SuiteData {
   title?: string;
   description?: string;
   tags?: string[];
+  import?: Record<string, string>;
   servers?: string[];
   tests: Array<string>;
   /** Environment configuration (root-only) */

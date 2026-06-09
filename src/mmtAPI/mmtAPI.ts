@@ -6,6 +6,7 @@ import * as file from './file';
 import {handleNetworkMessage, prepareNetworkConfigForFile} from './network';
 import * as run from './run';
 import * as mockRunner from './mockRunner';
+import {loadWorkspaceEnvFile, refreshWorkspaceCertificatesFromEnvFile} from '../workspaceEnvLoader';
 import {
   suiteHierarchy,
   JSer,
@@ -430,6 +431,12 @@ export const messageReceived = async (
 
     case 'loadWorkspaceState':
       handleLoadWorkspaceState(message, webviewPanel, mmtProvider);
+      break;
+
+    case 'reloadWorkspaceEnv':
+      await loadWorkspaceEnvFile(mmtProvider.context, true);
+      await refreshWorkspaceCertificatesFromEnvFile(mmtProvider.context);
+      await vscode.commands.executeCommand('multimeter.environment.refresh');
       break;
 
     case 'getFileContent':

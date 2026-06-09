@@ -24,6 +24,20 @@ You can use these fields for documentation and to help with searching and filter
 - `description`: A short explanation of what the suite does.
 - `tags`: An array of strings to categorize the suite.
 
+### import
+Suites support top-level data imports from `.json`, `.yaml`, `.yml`, and `.csv` files. Imported values can be referenced with `${alias.path}` in suite fields before the suite is run.
+
+```yaml
+type: suite
+import:
+  config: ./suite-config.yaml
+title: ${config.title}
+tests:
+  - ./tests/login.mmt
+```
+
+See [Data Imports](./data-imports.md).
+
 ### tests
 The `tests` property is an array of strings, where each string is a path to a `.mmt`, `.http`, `.https`, or `.bru` file. A suite can run any combination of APIs, tests, HTTP files, Bruno files, or other suites.
 

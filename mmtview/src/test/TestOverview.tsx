@@ -48,7 +48,7 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update, missingImport
       valuePlaceholder="path"
       filePicker={true}
       filePickerFilters={[
-        { name: "MMT, CSV, and JS files", extensions: ["mmt", "csv", "js", "cjs", "mjs"] },
+        { name: "MMT, data, and JS files", extensions: ["mmt", "csv", "json", "yaml", "yml", "js", "cjs", "mjs"] },
       ]}
     />
     {missingImports.length > 0 && (

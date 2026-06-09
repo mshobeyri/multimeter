@@ -9,7 +9,6 @@ import {runJSCode, setRunnerNetworkConfig} from 'mmt-core/jsRunner';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import YAML from 'yaml';
 
 import {readRelativeFileContent} from './file';
 import {startMockServerFromPath} from './mockRunner';
@@ -167,55 +166,27 @@ async function writeRunExports(params: {
  * Resolve suite environment configuration into merged env vars.
  * Reads the env file (multimeter.mmt or suite's environment.file) and resolves preset.
  */
-function resolveSuiteEnvVars(params: {
+async function resolveSuiteEnvVars(params: {
   suiteEnv?: SuiteEnvironment;
   suiteFilePath: string;
   projectRoot?: string;
   baseEnvVars: Record<string, any>;
-}): Record<string, any> {
+  fileLoader: (path: string) => Promise<string>;
+}): Promise<Record<string, any>> {
   const {suiteEnv, suiteFilePath, projectRoot, baseEnvVars} = params;
 
   if (!suiteEnv) {
     return baseEnvVars;
   }
-
-  // Resolve which env file to read for preset
-  let envFilePath: string | undefined;
-  if (suiteEnv.file) {
-    // Resolve relative to suite file or project root for +/ paths
-    if (suiteEnv.file.startsWith('+/')) {
-      envFilePath = projectRoot ? path.join(projectRoot, suiteEnv.file.slice(2)) : undefined;
-    } else {
-      envFilePath = path.resolve(path.dirname(suiteFilePath), suiteEnv.file);
-    }
-  } else if (suiteEnv.preset && projectRoot) {
-    // Use multimeter.mmt in project root
-    envFilePath = path.join(projectRoot, 'multimeter.mmt');
-  }
-
-  // Resolve preset env vars if preset is specified
-  let suitePresetEnv: Record<string, any> = {};
-  if (suiteEnv.preset && envFilePath && fs.existsSync(envFilePath)) {
-    try {
-      const content = fs.readFileSync(envFilePath, 'utf8');
-      const doc = YAML.parse(content);
-      if (doc && typeof doc === 'object') {
-        suitePresetEnv = runConfig.resolvePresetEnv(
-          {variables: doc.variables, presets: doc.presets},
-          suiteEnv.preset
-        );
-      }
-    } catch (e: any) {
-      logToOutput('warn', `Failed to resolve suite preset '${suiteEnv.preset}': ${e?.message || e}`);
-    }
-  }
-
-  // Merge using VS Code priority: suite variables > suite preset > base (local storage)
-  return runConfig.mergeSuiteEnv({
-    baseEnv: baseEnvVars,
-    suiteEnv,
-    suitePresetEnv,
-    cliOverridesSuiteEnv: false, // VS Code: suite env overrides local storage
+  return await runConfig.resolveDocumentEnvVars({
+    documentEnv: suiteEnv,
+    filePath: suiteFilePath,
+    projectRoot,
+    baseEnvVars,
+    manualEnvvars: {},
+    fileLoader: params.fileLoader,
+    logger: logToOutput,
+    cliOverridesSuiteEnv: false,
   });
 }
 
@@ -531,11 +502,12 @@ export async function handleRunSuite(
 
     // Merge suite environment with VS Code local storage env vars
     const projectRootSuite = findProjectRoot(runFilePath);
-    const mergedEnvVars = resolveSuiteEnvVars({
+    const mergedEnvVars = await resolveSuiteEnvVars({
       suiteEnv: bundle.environment,
       suiteFilePath: runFilePath,
       projectRoot: projectRootSuite,
       baseEnvVars: envVars,
+      fileLoader,
     });
 
     // Create serverRunner to start mock servers from suite server nodes and test `run` steps.

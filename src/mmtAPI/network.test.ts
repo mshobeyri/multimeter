@@ -157,6 +157,49 @@ describe('prepareNetworkConfigForFile certificate settings', () => {
     expect(config.timeout).toBe(45000);
   });
 
+  it('resolves data imports before reading env-file certificates and HTTP settings', () => {
+    const dir = createTempDir();
+    (vscode.workspace.workspaceFolders as any) = [{uri: {fsPath: dir}}];
+
+    const apiFilePath = path.join(dir, 'tests', 'login.mmt');
+    writeFile(apiFilePath, 'type: test\nname: login');
+    writeFile(path.join(dir, 'certs', 'ca.cer'), 'imported-ca');
+    writeFile(
+        path.join(dir, 'config.json'),
+        JSON.stringify({
+          timeout: 45000,
+          ca: './certs/ca.cer',
+        }),
+    );
+    writeFile(
+        path.join(dir, 'multimeter.mmt'),
+        [
+          'type: env',
+          'import:',
+          '  cfg: ./config.json',
+          'setting:',
+          '  http:',
+          '    version: "2"',
+          '    timeout: ${cfg.timeout}',
+          'certificates:',
+          '  server_ca: ${cfg.ca}',
+        ].join('\n'),
+    );
+
+    const context = createContext({
+      sslValidation: true,
+      allowSelfSigned: false,
+      caEnabled: true,
+      clientsEnabled: {},
+    });
+    const config = prepareNetworkConfigForFile(apiFilePath, undefined, context);
+
+    expect(config.httpVersion).toBe('2');
+    expect(config.timeout).toBe(45000);
+    expect(config.ca.enabled).toBe(true);
+    expect(firstCaText(config.ca.certData)).toBe('imported-ca');
+  });
+
   it('prefers the nearest env file to the target file over workspace root env', () => {
     const dir = createTempDir();
     (vscode.workspace.workspaceFolders as any) = [{uri: {fsPath: dir}}];

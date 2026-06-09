@@ -48,6 +48,22 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'Type of mmt file, must be one of: api, env, doc, test, suite, loadtest, server, report\n\t- api: Define an API\n\t- env: Define environment variables\n\t- doc: Define a documentation page (title/description/sources/theme)\n\t- test: Define a functional test (steps/stages)\n\t- suite: Orchestrate multiple .mmt files in groups split by "then"\n\t- loadtest: Run one test file with load configuration\n\t- server: Define a mock server\n\t- report: Test/suite run results\nExample: type: loadtest',
         }];
 
+    const dataImportSuggestion = {
+        label: "import",
+        kind: monaco.languages.CompletionItemKind.Property,
+        insertText: "import:\n\talias: ./data.json",
+        detail: 'Data file imports [object]',
+        documentation: [
+            'Import external data files with alias -> path entries.',
+            'Supported data files: .json, .yaml, .yml, .csv.',
+            'Use values with ${alias.path}, ${alias[0].field}, or ${alias}.',
+            'Example:',
+            'import:',
+            '  fixture: ./fixture.json',
+            'body: ${fixture.payload}',
+        ].join('\n')
+    };
+
     const typeSuggestions = [
         {
             label: "API",
@@ -135,13 +151,14 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Import external parameters [object of key: value]',
             documentation: [
                 'Import map used in this test (alias -> path).',
-                'Supports importing other .mmt files (test/api/csv) and also JS helper modules by extension (.js/.cjs/.mjs).',
+                'Supports importing other .mmt files, data files (.json/.yaml/.yml/.csv), and JS helper modules by extension (.js/.cjs/.mjs).',
                 'Examples:',
                 'import:',
                 '  common: ./common.test.mmt',
+                '  fixture: ./fixture.json',
                 '  helpers: ./helpers/myHelpers.js',
                 '',
-                'Then in steps JS you can call: helpers.someFn()',
+                'Use data values with ${fixture.path}. In steps JS you can call: helpers.someFn()',
             ].join('\n')
         },
         {
@@ -196,6 +213,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Suite tags [array of strings]',
             documentation: 'Tags for categorizing suites.',
         },
+        dataImportSuggestion,
         {
             label: "servers",
             kind: monaco.languages.CompletionItemKind.Property,
@@ -233,6 +251,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Load test tags [array of strings]',
             documentation: 'Tags for categorizing load tests.',
         },
+        dataImportSuggestion,
         {
             label: "environment",
             kind: monaco.languages.CompletionItemKind.Property,
@@ -699,6 +718,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Doc description [string]',
             documentation: 'Optional description shown under the title.'
         },
+        dataImportSuggestion,
         {
             label: "sources",
             kind: monaco.languages.CompletionItemKind.Property,
@@ -757,6 +777,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'API tags [array of strings]',
             documentation: 'Tags for categorizing and organizing APIs. Helps with searchability and filtering.\nExample:\ntags:\n\t- user\n\t- authentication\n\t- v1',
         },
+        dataImportSuggestion,
         {
             label: "inputs",
             kind: monaco.languages.CompletionItemKind.Property,
@@ -892,6 +913,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Environment variables [object of key: value]',
             documentation: 'Define variables that can be used throughout the API definition. These are placeholders that can be replaced with actual values at runtime.\nExample:\nvariables:\n\turl: \n\t\tdevelopment: "https://api.example.com"\n\t\tproduction: "http://localhost:3000"',
         },
+        dataImportSuggestion,
         {
             label: "presets",
             kind: monaco.languages.CompletionItemKind.Property,
@@ -1435,6 +1457,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Mock server tags [array of strings]',
             documentation: 'Tags for categorizing mock servers.'
         },
+        dataImportSuggestion,
         {
             label: "protocol",
             kind: monaco.languages.CompletionItemKind.Property,

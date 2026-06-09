@@ -9,6 +9,7 @@ import { JSONValue } from "mmt-core/CommonData";
 import { EnvCertificates, EnvVariable } from "./EnvironmentData";
 import { saveEnvPresets } from "../workspaceStorage";
 import { selectFromVariables } from "mmt-core/runConfig";
+import { useResolvedYamlContent } from "../useResolvedYamlContent";
 
 const LAST_ENV_PAGE_KEY = "mmtview:env:lastPage";
 
@@ -18,10 +19,11 @@ interface EnvironmentPanelProps {
 }
 
 const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent }) => {
+  const resolvedContent = useResolvedYamlContent(content);
   const [page, setPage] = useState<'environment' | 'edit'>(
     () => (localStorage.getItem(LAST_ENV_PAGE_KEY) as 'environment' | 'edit') || 'environment'
   );
-  const [editTab, setEditTab] = useState<'variables' | 'presets' | 'settings' | 'certificates'>('variables');
+  const [editTab, setEditTab] = useState<'overview' | 'variables' | 'presets' | 'settings' | 'certificates'>('overview');
   const [showIconsOnly, setShowIconsOnly] = useState(false);
   const [variables, setVariables] = useState<ComboTablePair[]>([]);
   const [presets, setPresets] = useState<ComboTablePair[]>([]);
@@ -29,7 +31,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   const [variableDefinitions, setVariableDefinitions] = useState<Record<string, any>>({});
   const [workspaceVars, setWorkspaceVars] = useState<EnvVariable[]>([]);
   const [certificates, setCertificates] = useState<EnvCertificates | undefined>(undefined);
-  const loadedVarsRef = React.useRef<{ name: string; value: JSONValue, options: JSONValue[] }[]>([]);
+  const loadedVarsRef = React.useRef<{ name: string; value: JSONValue, options: Array<{label: string; value: JSONValue}> }[]>([]);
 
   const refreshWorkspaceVars = useCallback(() => {
     if (window.vscode) {
@@ -66,9 +68,9 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     refreshWorkspaceVars();
   }, [refreshWorkspaceVars]);
 
-  // Parse YAML and update variables/presets when content changes
+  // Parse resolved YAML so imported ${alias.path} values appear in the UI.
   useEffect(() => {
-    const yaml = parseYaml(content);
+    const yaml = parseYaml(resolvedContent);
     if (!yaml) return;
 
     setCertificates(yaml.certificates as EnvCertificates | undefined);
@@ -128,7 +130,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     });
     setPresets(presetPairs);
     setPresetData(presetDataObj);
-  }, [content]);
+  }, [resolvedContent]);
 
   // Handler for variables
   const handleVariablesChange = (variable: EnvVariable) => {
@@ -173,7 +175,9 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
             return pair;
           }
           const choice = mapping[pair.name];
-          const resolvedValue = selectFromVariables(variableDefinitions, pair.name, choice);
+          const resolvedValue =
+            safeList(pair.options).find(opt => opt.label === choice)?.value ??
+            selectFromVariables(variableDefinitions, pair.name, choice);
           const nextOption = safeList(pair.options).find(opt =>
             opt.value === resolvedValue ||
             opt.label === resolvedValue ||
@@ -216,7 +220,9 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
           return pair;
         }
         const choice = mapping[pair.name];
-        const resolvedValue = selectFromVariables(variableDefinitions, pair.name, choice);
+        const resolvedValue =
+          safeList(pair.options).find(opt => opt.label === choice)?.value ??
+          selectFromVariables(variableDefinitions, pair.name, choice);
         const nextOption = safeList(pair.options).find(opt =>
           opt.value === resolvedValue ||
           opt.label === resolvedValue ||
@@ -252,7 +258,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
       loadedVarsRef.current = safeLoaded.map(v => ({
         name: v.name,
         value: v.value,
-        options: Array.isArray(v.options) ? v.options.map(opt => typeof opt === "object" && "value" in opt ? opt.value : opt) : []
+        options: Array.isArray(v.options) ? v.options : []
       }));
       setWorkspaceVars(safeLoaded.map(v => ({
         name: v.name,
@@ -266,10 +272,13 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
             ? loadedVarsRef.current.find((v: any) => v.name === pair.name)
             : undefined;
           if (found) {
+            const resolvedOptions = Array.isArray(found.options) && found.options.length > 0
+              ? found.options
+              : pair.options;
             const selectedOption =
-              safeList(pair.options).find(opt => opt.value === found.value) ||
-              pair.options[0];
-            return { ...pair, value: selectedOption };
+              safeList(resolvedOptions).find(opt => opt.value === found.value) ||
+              resolvedOptions[0];
+            return { ...pair, options: resolvedOptions, value: selectedOption };
           }
           return pair;
         })
@@ -288,14 +297,72 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   };
 
   const handleSaveToCache = () => {
-    setVariables(prev => {
-      const applied = applyPresetsToVariables(prev);
-      const flatVars = toEnvVariables(applied);
-      writeEnvironmentVariables(flatVars);
-      saveEnvPresets(presetData);
-      setWorkspaceVars(flatVars);
-      return applied;
+    const yaml = parseYaml(resolvedContent);
+    if (!yaml) {
+      return;
+    }
+    const variablesObj = (yaml.variables && typeof yaml.variables === "object") ? yaml.variables : {};
+    setVariableDefinitions(variablesObj as Record<string, any>);
+    const rebuiltPairs: ComboTablePair[] = [];
+    Object.entries(variablesObj).forEach(([name, value]) => {
+      if (isList(value)) {
+        const options = value.map((v: string) => ({ label: String(v), value: String(v), options: [] }));
+        rebuiltPairs.push({ name, options, value: options[0] });
+      } else if (typeof value === "object" && value !== null) {
+        const options = Object.entries(value).map(([k, v]) => ({ label: k, value: v }));
+        rebuiltPairs.push({ name, options, value: options[0] });
+      } else {
+        const scalar = { label: String(value), value: value as JSONValue };
+        rebuiltPairs.push({
+          name,
+          options: [scalar],
+          value: scalar,
+        });
+      }
     });
+    let applied = rebuiltPairs;
+    safeList(presets).forEach(preset => {
+      const selection = preset.value?.value || preset.value?.label;
+      if (!selection) {
+        return;
+      }
+      const mapping = presetData?.[preset.name]?.[selection];
+      if (!mapping || typeof mapping !== "object") {
+        return;
+      }
+      applied = safeList(applied).map(pair => {
+        if (!Object.prototype.hasOwnProperty.call(mapping, pair.name)) {
+          return pair;
+        }
+        const choice = mapping[pair.name];
+        const resolvedValue =
+          safeList(pair.options).find(opt => opt.label === choice)?.value ??
+          selectFromVariables(variablesObj as Record<string, any>, pair.name, choice);
+        const nextOption = safeList(pair.options).find(opt =>
+          opt.value === resolvedValue ||
+          opt.label === resolvedValue ||
+          String(opt.value) === String(resolvedValue)
+        );
+        if (nextOption) {
+          return { ...pair, value: nextOption };
+        }
+        const fallback = pair.options[0];
+        return fallback ? { ...pair, value: fallback } : pair;
+      });
+    });
+    const flatVars = toEnvVariables(applied);
+    writeEnvironmentVariables(flatVars);
+    saveEnvPresets(presetData);
+    setWorkspaceVars(flatVars);
+    loadedVarsRef.current = flatVars.map(v => ({
+      name: v.name,
+      value: v.value,
+      options: Array.isArray(v.options) ? v.options : [],
+    }));
+    setVariables(applied);
+    if (window.vscode) {
+      window.vscode.postMessage({ command: 'reloadWorkspaceEnv' });
+    }
     refreshWorkspaceVars();
   };
 
@@ -355,6 +422,15 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
                   <div className="api-edit-title">Edit Environment</div>
                 </div>
                 <div className="tab-bar">
+                  <button
+                    onClick={() => setEditTab('overview')}
+                    className={`tab-button ${editTab === 'overview' ? 'active' : ''}`}
+                    title="Overview"
+                    type="button"
+                  >
+                    <span className="codicon codicon-note tab-button-icon"></span>
+                    Overview
+                  </button>
                   <button
                     onClick={() => setEditTab('variables')}
                     className={`tab-button ${editTab === 'variables' ? 'active' : ''}`}

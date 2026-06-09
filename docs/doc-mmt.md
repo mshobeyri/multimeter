@@ -50,8 +50,11 @@ The `doc` type is intentionally small:
 - title: page title shown in the header
 - description: introductory text shown below the title in the rendered output
 - logo: path or URL to a logo image, displayed in the HTML header
+- import: optional JSON/YAML/CSV data imports referenced with `${alias.path}`
 - sources: array of folders and/or `.mmt` files to include
 - services: optional array of groups with `name`, `description?`, and `sources`
+
+Data imports can be used to share doc metadata or source lists. See [Data Imports](./data-imports.md).
 
 The editor’s Doc view:
 - Renders a sticky header with logo (if configured), title, and a search box

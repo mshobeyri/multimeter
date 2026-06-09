@@ -6,7 +6,7 @@ import FilePickerInput from '../components/FilePickerInput';
 import KSVEditor from '../components/KSVEditor';
 import { FileContext } from '../fileContext';
 
-type LoadTestEditTab = 'overview' | 'test' | 'load' | 'environment' | 'exports';
+type LoadTestEditTab = 'overview' | 'imports' | 'test' | 'load' | 'environment' | 'exports';
 
 interface LoadTestEnvironmentConfig {
   preset?: string;
@@ -64,6 +64,18 @@ const buildOverviewFromContent = (content: string): LoadTestOverviewConfig => {
   };
 };
 
+const buildImportsFromContent = (content: string): Record<string, string> => {
+  const parsed = parseYaml(content);
+  if (!parsed?.import || typeof parsed.import !== 'object' || Array.isArray(parsed.import)) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(parsed.import)
+      .filter(([key, value]) => typeof key === 'string' && typeof value === 'string')
+      .map(([key, value]) => [key, value as string])
+  );
+};
+
 const buildEnvironmentFromContent = (content: string): LoadTestEnvironmentConfig | null => {
   const parsed = parseYaml(content);
   if (!parsed?.environment || typeof parsed.environment !== 'object') {
@@ -107,6 +119,7 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
   const fileContext = useContext(FileContext);
   const [activeTab, setActiveTab] = useState<LoadTestEditTab>('overview');
   const [overview, setOverview] = useState<LoadTestOverviewConfig>(() => buildOverviewFromContent(content));
+  const [imports, setImports] = useState<Record<string, string>>(() => buildImportsFromContent(content));
   const [test, setTest] = useState<string>(() => buildTestFromContent(content));
   const [load, setLoad] = useState<LoadConfig>(() => buildLoadConfigFromContent(content));
   const [environment, setEnvironment] = useState<LoadTestEnvironmentConfig | null>(() => buildEnvironmentFromContent(content));
@@ -115,6 +128,7 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
 
   useEffect(() => {
     setOverview(buildOverviewFromContent(content));
+    setImports(buildImportsFromContent(content));
     setTest(buildTestFromContent(content));
     setLoad(buildLoadConfigFromContent(content));
     setEnvironment(buildEnvironmentFromContent(content));
@@ -145,6 +159,20 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
       setContent(updated);
     }
   }, [content, overview, setContent]);
+
+  const persistImports = useCallback((nextImports: Record<string, string>) => {
+    setImports(nextImports);
+    const updated = updateLoadTestContent(content, (doc) => {
+      if (Object.keys(nextImports).length === 0) {
+        doc.delete('import');
+      } else {
+        doc.set('import', nextImports);
+      }
+    });
+    if (updated) {
+      setContent(updated);
+    }
+  }, [content, setContent]);
 
   useEffect(() => {
     if (test) {
@@ -328,6 +356,22 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
     />
   );
 
+  const importsTabContent = (
+    <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
+      <KSVEditor
+        label="Import"
+        value={imports}
+        onChange={persistImports}
+        keyPlaceholder="alias"
+        valuePlaceholder="path"
+        filePicker={true}
+        filePickerFilters={[
+          { name: 'Data files', extensions: ['json', 'yaml', 'yml', 'csv'] },
+        ]}
+      />
+    </div>
+  );
+
   const loadTabContent = (
     <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
       <div className="label" style={{ marginBottom: 6 }}>Threads</div>
@@ -441,6 +485,10 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
           <span className="codicon codicon-note tab-button-icon" aria-hidden />
           Overview
         </button>
+        <button className={`tab-button ${activeTab === 'imports' ? 'active' : ''}`} onClick={() => setActiveTab('imports')} title="Imports" type="button">
+          <span className="codicon codicon-references tab-button-icon" aria-hidden />
+          Imports
+        </button>
         <button className={`tab-button ${activeTab === 'test' ? 'active' : ''}`} onClick={() => setActiveTab('test')} title="Test" type="button">
           <span className="codicon codicon-beaker tab-button-icon" aria-hidden />
           Test
@@ -460,6 +508,7 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
       </div>
       <div className="test-flow-tree" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
         {activeTab === 'overview' && overviewTabContent}
+        {activeTab === 'imports' && importsTabContent}
         {activeTab === 'test' && testTabContent}
         {activeTab === 'load' && loadTabContent}
         {activeTab === 'environment' && environmentTabContent}

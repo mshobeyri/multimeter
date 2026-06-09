@@ -7,6 +7,8 @@ Multimeter provides two ways to mock APIs:
 
 Both approaches support HTTP, HTTPS, mTLS, and WebSocket.
 
+`type: server` files also support JSON/YAML/CSV data imports. Use a top-level `import:` map and reference values in endpoint bodies, headers, or match rules with `${alias.path}`. See [Data Imports](./data-imports.md).
+
 ---
 
 ## Mock Server Panel

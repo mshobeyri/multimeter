@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as YAML from 'yaml';
 import {CertificateSettings, DEFAULT_CERT_SETTINGS} from 'mmt-core/NetworkData';
+import * as mmtcore from 'mmt-core';
 
 interface EnvOption {
   label: string;
@@ -68,7 +69,16 @@ export async function loadWorkspaceEnvFile(
         continue;
       }
 
-      const yaml = parseYaml(content);
+      const processed = await mmtcore.dataImportProcessor.processDataImportsInYaml({
+        rawText: content,
+        filePath: fullPath,
+        projectRoot: folder.uri.fsPath,
+        fileLoader: async (p: string) => {
+          const bytes = await vscode.workspace.fs.readFile(vscode.Uri.file(p));
+          return Buffer.from(bytes).toString('utf8');
+        },
+      });
+      const yaml = parseYaml(processed);
       if (!yaml) {
         continue;
       }
@@ -162,7 +172,16 @@ export async function refreshWorkspaceCertificatesFromEnvFile(
         continue;
       }
 
-      const yaml = parseYaml(content);
+      const processed = await mmtcore.dataImportProcessor.processDataImportsInYaml({
+        rawText: content,
+        filePath: fullPath,
+        projectRoot: folder.uri.fsPath,
+        fileLoader: async (p: string) => {
+          const bytes = await vscode.workspace.fs.readFile(vscode.Uri.file(p));
+          return Buffer.from(bytes).toString('utf8');
+        },
+      });
+      const yaml = parseYaml(processed);
       if (!yaml || !yaml.certificates || typeof yaml.certificates !== 'object') {
         return;
       }

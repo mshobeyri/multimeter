@@ -33,6 +33,20 @@ You can use these fields for documentation and for finding load test files in a 
 - `description`: A short explanation of what the load test measures.
 - `tags`: An array of strings such as `load`, `perf`, `smoke`, or `api`.
 
+### import
+Load test files support top-level data imports from `.json`, `.yaml`, `.yml`, and `.csv` files. Use `${alias.path}` to feed load settings or environment values from a shared fixture.
+
+```yaml
+type: loadtest
+import:
+  perf: ./perf.json
+threads: ${perf.threads}
+repeat: ${perf.repeat}
+test: ./tests/login.mmt
+```
+
+See [Data Imports](./data-imports.md).
+
 ### test
 The `test` property is a required path to a single `type: test` file. The referenced test is the scenario that each virtual user/iteration runs.
 

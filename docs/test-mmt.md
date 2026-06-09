@@ -46,7 +46,7 @@ For the provided MMT, the Test panel shows the generated JavaScript. Click Run t
 The `test` type also supports documentation fields (title, tags, description) and reuse/compose elements (import, inputs, outputs). See the API doc for details. The sections below cover flow elements.
 
 ### import
-The `import` section lets you bring in other `.mmt` files (APIs or tests), `.http` / `.https` files, `.bru` files, CSVs, or JavaScript helpers to use in your test. Each import has an alias (the key) and a file path (the value).
+The `import` section lets you bring in other `.mmt` files (APIs or tests), `.http` / `.https` files, `.bru` files, data files (`.json`, `.yaml`, `.yml`, `.csv`), or JavaScript helpers to use in your test. Each import has an alias (the key) and a file path (the value).
 
 ```yaml
 import:
@@ -54,6 +54,7 @@ import:
   requests: requests.http    # HTTP Client file, converted to a test flow
   profile: profile.bru       # Bruno request file, converted to a test flow
   users: ../data/users.csv   # relative path
+  fixture: ../data/user.json  # data source used as ${fixture.path}
   api: +/apis/userApi.mmt    # project root path
   helpers: ./helpers/xxx.js  # JS helper module (CommonJS)
 ```
@@ -101,6 +102,8 @@ steps:
 - `true`/`false` are coerced to booleans.
 - Quoted values remain strings (e.g., `"00123"` stays `"00123"`).
 - BOM characters at the start of the file are handled automatically.
+
+JSON/YAML/CSV data imports can be referenced with `${alias.path}` in this file before the test is executed. See [Data Imports](./data-imports.md).
 
 Example with project root imports:
 ```yaml

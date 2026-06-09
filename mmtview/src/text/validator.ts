@@ -101,7 +101,7 @@ export function extractImportLineInfo(doc: any, content: string): ImportLineInfo
   const items: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
   const importPair = items.find((entry) => {
     const key = entry?.key?.value;
-    return key === "import" || key === "imports";
+    return key === "import";
   });
   if (!importPair || !importPair.value) {
     return [];
@@ -134,6 +134,7 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "title",
         "description",
         "tags",
+        "import",
         "inputs",
         "outputs",
         "setenv",
@@ -168,6 +169,7 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "title",
         "description",
         "tags",
+        "import",
         "environment",
         "servers",
         "export",
@@ -179,6 +181,7 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "title",
         "description",
         "tags",
+        "import",
         "environment",
         "threads",
         "repeat",
@@ -187,13 +190,14 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "test",
       ];
     case "doc":
-      return ["type", "title", "description", "logo", "sources", "services", "html", "env"];
+      return ["type", "title", "description", "import", "logo", "sources", "services", "html", "env"];
     case "server":
       return [
         "type",
         "title",
         "description",
         "tags",
+        "import",
         "protocol",
         "port",
         "tls",

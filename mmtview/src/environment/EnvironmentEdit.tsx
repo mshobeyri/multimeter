@@ -5,16 +5,19 @@ import EnvironmentPresetEdit from "./EnvironmentPresetEdit";
 import EnvironmentCertificatesEdit from "./EnvironmentCertificatesEdit";
 import EnvironmentSettingsEdit from "./EnvironmentSettingsEdit";
 import { EnvironmentData, EnvCertificates, EnvSetting } from "./EnvironmentData";
+import KSVEditor from "../components/KSVEditor";
+import { useResolvedYamlContent } from "../useResolvedYamlContent";
 
 interface EnvironmentEditProps {
   content: string;
   setContent: (value: string) => void;
-  tab: "variables" | "presets" | "settings" | "certificates";
+  tab: "overview" | "variables" | "presets" | "settings" | "certificates";
 }
 
 function packEnvironmentData(envData: EnvironmentData): string {
   const {
     type,
+    import: imports,
     variables,
     presets,
     setting,
@@ -23,6 +26,9 @@ function packEnvironmentData(envData: EnvironmentData): string {
   } = envData as EnvironmentData & Record<string, any>;
   const ordered: Record<string, any> = {};
   ordered.type = type;
+  if (imports !== undefined && Object.keys(imports).length > 0) {
+    ordered.import = imports;
+  }
   if (variables !== undefined) {
     ordered.variables = variables;
   }
@@ -42,13 +48,24 @@ function packEnvironmentData(envData: EnvironmentData): string {
 }
 
 const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent, tab }) => {
+  const resolvedContent = useResolvedYamlContent(content);
 
   let envData: EnvironmentData | null = null;
+  let resolvedEnvData: EnvironmentData | null = null;
   try {
     envData = parseYaml(content);
+    resolvedEnvData = parseYaml(resolvedContent);
   } catch {
     envData = null;
+    resolvedEnvData = null;
   }
+
+  const handleImportsChange = (imports: Record<string, string>) => {
+    if (!envData) return;
+    const newEnvData = { ...envData, import: Object.keys(imports).length > 0 ? imports : undefined };
+    const yamlString = packEnvironmentData(newEnvData);
+    setContent(yamlString);
+  };
 
   const handleVariablesChange = (variables: EnvironmentData["variables"]) => {
     if (!envData) return;
@@ -90,6 +107,21 @@ const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent, 
 
   return (
     <div style={{ padding: 0 }}>
+      {tab === "overview" && (
+        <div style={{ padding: "0 16px 8px" }}>
+          <KSVEditor
+            label="Import"
+            value={envData.import}
+            onChange={handleImportsChange}
+            keyPlaceholder="alias"
+            valuePlaceholder="path"
+            filePicker={true}
+            filePickerFilters={[
+              { name: "Data files", extensions: ["json", "yaml", "yml", "csv"] },
+            ]}
+          />
+        </div>
+      )}
       {tab === "variables" && (
         <EnvironmentVariableEdit
           variables={envData.variables}
@@ -104,13 +136,13 @@ const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent, 
       )}
       {tab === "settings" && (
         <EnvironmentSettingsEdit
-          setting={envData.setting}
+          setting={resolvedEnvData?.setting ?? envData.setting}
           onChange={handleSettingChange}
         />
       )}
       {tab === "certificates" && (
         <EnvironmentCertificatesEdit
-          certificates={envData.certificates}
+          certificates={resolvedEnvData?.certificates ?? envData.certificates}
           onChange={handleCertificatesChange}
         />
       )}

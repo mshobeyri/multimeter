@@ -63,6 +63,18 @@ const buildSuiteGroupsFromContent = (content: string): SuiteGroup[] => {
   return groups;
 };
 
+const buildImportsFromContent = (content: string): Record<string, string> => {
+  const parsed = parseYaml(content);
+  if (!parsed?.import || typeof parsed.import !== 'object' || Array.isArray(parsed.import)) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(parsed.import)
+      .filter(([key, value]) => typeof key === 'string' && typeof value === 'string')
+      .map(([key, value]) => [key, value as string])
+  );
+};
+
 const flattenSuiteGroups = (groups: SuiteGroup[]): string[] => {
   const flattened: string[] = [];
   groups.forEach((group, idx) => {
@@ -175,6 +187,20 @@ const updateSuiteContentWithOverview = (content: string, overview: SuiteOverview
   }
 };
 
+const updateSuiteContentWithImports = (content: string, imports: Record<string, string>): string | null => {
+  try {
+    const doc = parseYamlDoc(content);
+    if (Object.keys(imports).length === 0) {
+      doc.delete('import');
+    } else {
+      doc.set('import', imports);
+    }
+    return canonicalizeSuiteYaml(doc.toString());
+  } catch {
+    return null;
+  }
+};
+
 const updateSuiteContentWithEnvironment = (content: string, env: SuiteEnvironmentConfig | null): string | null => {
   try {
     const doc = parseYamlDoc(content);
@@ -233,6 +259,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   const fileContext = useContext(FileContext);
   const [activeTab, setActiveTab] = useState<SuiteEditTab>('overview');
   const [overview, setOverview] = useState<SuiteOverviewConfig>(() => buildOverviewFromContent(content));
+  const [imports, setImports] = useState<Record<string, string>>(() => buildImportsFromContent(content));
   const [groups, setGroups] = useState<SuiteGroup[]>(() => buildSuiteGroupsFromContent(content));
   const [servers, setServers] = useState<string[]>(() => buildServersFromContent(content));
   const [environment, setEnvironment] = useState<SuiteEnvironmentConfig | null>(() => buildEnvironmentFromContent(content));
@@ -246,6 +273,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
 
   useEffect(() => {
     setOverview(buildOverviewFromContent(content));
+    setImports(buildImportsFromContent(content));
     setGroups(buildSuiteGroupsFromContent(content));
     setServers(buildServersFromContent(content));
     setEnvironment(buildEnvironmentFromContent(content));
@@ -276,6 +304,14 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
     },
     [content, overview, setContent]
   );
+
+  const persistImports = useCallback((nextImports: Record<string, string>) => {
+    setImports(nextImports);
+    const updated = updateSuiteContentWithImports(content, nextImports);
+    if (updated) {
+      setContent(updated);
+    }
+  }, [content, setContent]);
 
   const openAddMenuAtButton = useCallback(() => {
     const btn = addButtonRef.current;
@@ -565,13 +601,28 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   );
 
   const overviewTabContent = (
-    <FileOverview
-      title={overview.title}
-      description={overview.description}
-      tags={overview.tags}
-      onChange={persistOverview}
-      tagSuggestions={['suite', 'regression', 'smoke', 'user', 'admin']}
-    />
+    <>
+      <FileOverview
+        title={overview.title}
+        description={overview.description}
+        tags={overview.tags}
+        onChange={persistOverview}
+        tagSuggestions={['suite', 'regression', 'smoke', 'user', 'admin']}
+      />
+      <div style={{ paddingLeft: 16, paddingRight: 16, paddingBottom: 8 }}>
+        <KSVEditor
+          label="Import"
+          value={imports}
+          onChange={persistImports}
+          keyPlaceholder="alias"
+          valuePlaceholder="path"
+          filePicker={true}
+          filePickerFilters={[
+            { name: 'Data files', extensions: ['json', 'yaml', 'yml', 'csv'] },
+          ]}
+        />
+      </div>
+    </>
   );
 
   const serversTabContent = (

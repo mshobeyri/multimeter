@@ -2,6 +2,8 @@ import { validateYamlContent } from './Validate';
 import { KeySuggestionsByParent } from './AutoComplete';
 import { readFile } from '../vsAPI';
 import { outputExtractor, mockServer, mockParsePack } from 'mmt-core';
+import { applyValueAccessor } from 'mmt-core/variableReplacer';
+import { dataImportProcessor } from 'mmt-core';
 
 const DEFAULT_EXTRACTION_RULES: Record<string, string> =
     outputExtractor.DEFAULT_EXTRACTION_RULES || {
@@ -281,6 +283,148 @@ export const handleBeforeMount = (monaco: any) => {
         } catch {
             return [];
         }
+    };
+
+    /** Cache for imported data file parsed content */
+    const importedDataFileCache = new Map<string, any>();
+
+    const readAndParseDataImportFile = async (path: string): Promise<any | null> => {
+        if (importedDataFileCache.has(path)) {
+            return importedDataFileCache.get(path) ?? null;
+        }
+        try {
+            const content = await readFile(path);
+            if (!content) {
+                return null;
+            }
+            const data = dataImportProcessor.parseDataFile(content, path);
+            importedDataFileCache.set(path, data);
+            setTimeout(() => importedDataFileCache.delete(path), 10000);
+            return data;
+        } catch {
+            importedDataFileCache.set(path, null);
+            setTimeout(() => importedDataFileCache.delete(path), 5000);
+            return null;
+        }
+    };
+
+    const getDataImportRefSuggestions = async (
+        model: any,
+        tokenSource: string,
+        position: any,
+    ): Promise<any[] | null> => {
+        const dataImportRefMatch = tokenSource.match(
+            /\$\{\s*([A-Za-z_][A-Za-z0-9_-]*)((?:\.[A-Za-z_][A-Za-z0-9_-]*|\[\d+\])*)\.?([\w.-]*)$/
+        );
+        if (!dataImportRefMatch) {
+            const dataImportStartMatch = tokenSource.match(/\$\{\s*([\w.-]*)$/);
+            if (!dataImportStartMatch || dataImportStartMatch[1].includes(':')) {
+                return null;
+            }
+            const prefix = dataImportStartMatch[1].toLowerCase();
+            const importMap = getImportMap(model);
+            const aliasSuggestions = Object.entries(importMap)
+                .filter(([alias, filePath]) =>
+                    dataImportProcessor.isDataImportPath(filePath) &&
+                    (!prefix || alias.toLowerCase().startsWith(prefix)))
+                .map(([alias, filePath]) => ({
+                    label: alias,
+                    kind: monaco.languages.CompletionItemKind.Variable,
+                    insertText: alias,
+                    detail: `Data import: ${filePath}`,
+                    documentation: `Reference imported data with \${${alias}.path}`,
+                    sortText: `0${alias}`,
+                }));
+            if (aliasSuggestions.length === 0) {
+                return null;
+            }
+            const bracePos = tokenSource.lastIndexOf('${');
+            const replaceStartColumn = bracePos + 3;
+            return aliasSuggestions.map((item) => ({
+                ...item,
+                range: {
+                    startLineNumber: position.lineNumber,
+                    startColumn: replaceStartColumn,
+                    endLineNumber: position.lineNumber,
+                    endColumn: position.column,
+                },
+            }));
+        }
+
+        const alias = dataImportRefMatch[1];
+        const accessorPath = dataImportRefMatch[2] || '';
+        const partialKey = dataImportRefMatch[3] || '';
+        const importMap = getImportMap(model);
+        const importPath = importMap[alias];
+        if (!importPath || !dataImportProcessor.isDataImportPath(importPath)) {
+            return null;
+        }
+        const data = await readAndParseDataImportFile(importPath);
+        if (data == null) {
+            return null;
+        }
+        const normalizedAccessor = accessorPath.replace(/^\./, '');
+        const parentValue = normalizedAccessor ?
+            applyValueAccessor(data, normalizedAccessor) :
+            data;
+        const suggestions: any[] = [];
+        if (parentValue && typeof parentValue === 'object' && !Array.isArray(parentValue)) {
+            for (const key of Object.keys(parentValue)) {
+                if (partialKey && !key.toLowerCase().startsWith(partialKey.toLowerCase())) {
+                    continue;
+                }
+                suggestions.push({
+                    label: key,
+                    kind: monaco.languages.CompletionItemKind.Field,
+                    insertText: key,
+                    detail: `Field from ${alias}`,
+                    documentation: `Imported data field "${key}" from ${importPath}`,
+                    sortText: `0${key}`,
+                });
+            }
+        } else if (Array.isArray(parentValue)) {
+            for (let i = 0; i < parentValue.length; i++) {
+                const label = String(i);
+                if (partialKey && !label.startsWith(partialKey)) {
+                    continue;
+                }
+                suggestions.push({
+                    label,
+                    kind: monaco.languages.CompletionItemKind.Field,
+                    insertText: `[${i}]`,
+                    detail: `Index from ${alias}`,
+                    documentation: `Imported array index [${i}] from ${importPath}`,
+                    sortText: `0${label}`,
+                });
+            }
+        } else if (!normalizedAccessor) {
+            const nestedKeys = collectNestedKeys(data)
+                .filter((key) => !partialKey || key.toLowerCase().startsWith(partialKey.toLowerCase()));
+            for (const key of nestedKeys) {
+                suggestions.push({
+                    label: key,
+                    kind: monaco.languages.CompletionItemKind.Field,
+                    insertText: key,
+                    detail: `Path from ${alias}`,
+                    documentation: `Imported data path "${key}" from ${importPath}`,
+                    sortText: `0${key}`,
+                });
+            }
+        }
+        if (suggestions.length === 0) {
+            return null;
+        }
+        const dotPos = tokenSource.lastIndexOf('.');
+        const replaceStartColumn = dotPos >= 0 ? dotPos + 2 : tokenSource.lastIndexOf('${') + 3;
+        return deduplicateSuggestions(suggestions).map((item) => ({
+            ...item,
+            range: {
+                startLineNumber: position.lineNumber,
+                startColumn: replaceStartColumn,
+                endLineNumber: position.lineNumber,
+                endColumn: position.column,
+            },
+        }));
     };
 
     /** Cache for imported file parsed data */
@@ -617,8 +761,7 @@ export const handleBeforeMount = (monaco: any) => {
                     if (typeof p !== 'string') {
                         return false;
                     }
-                    const lower = p.toLowerCase();
-                    return lower.endsWith('.mmt') || lower.endsWith('.http') || lower.endsWith('.https') || lower.endsWith('.bru') || lower.endsWith('.bruno') || lower.endsWith('.csv');
+                    return dataImportProcessor.isImportAutocompletePath(p);
                 })
                 .filter((p) => {
                     const fileName = String(p).split('/').pop() ?? '';
@@ -629,7 +772,7 @@ export const handleBeforeMount = (monaco: any) => {
                     label: p,
                     kind: monaco.languages.CompletionItemKind.File,
                     insertText: ` ${p}`,
-                    detail: 'MMT, HTTP, Bruno, or CSV file',
+                    detail: 'MMT, HTTP, Bruno, or data file',
                     documentation: `Import from ${p}`,
                 }))
         );
@@ -683,6 +826,12 @@ export const handleBeforeMount = (monaco: any) => {
                         }
                     }))
                 };
+            }
+
+            // Data import reference suggestions: ${alias.path}
+            const dataImportSuggestions = await getDataImportRefSuggestions(model, tokenSource, position);
+            if (dataImportSuggestions) {
+                return { suggestions: dataImportSuggestions };
             }
 
             // Output token suggestions: ${callId.<field>}
@@ -1052,7 +1201,7 @@ export const handleBeforeMount = (monaco: any) => {
                 const valueStartColumn = colonPosition + 2;
                 const typedValue = keyValueMatch[3] ?? '';
 
-                // Import map values: suggest .mmt files for `import:` / `imports:` entries
+                // Import map values: suggest runnable imports and data files for `import:` entries
                 // Example:
                 // import:
                 //   x: <here>
@@ -1112,8 +1261,8 @@ export const handleBeforeMount = (monaco: any) => {
                 const valueStartColumn = colonPosition + 2;
                 const typedValue = listItemMatch[3] ?? '';
 
-                // Allow imports inside list items too (rare but harmless)
-                if ((key === 'import' || key === 'imports') && position.column >= valueStartColumn) {
+                // Allow import inside list items too (rare but harmless)
+                if (key === 'import' && position.column >= valueStartColumn) {
                     const suggestionList = await getImportValueSuggestions(typedValue);
                     return {
                         suggestions: suggestionList.map(item => ({

@@ -8,7 +8,7 @@ import https from 'https';
 import path from 'path';
 import yaml from 'js-yaml';
 import * as mmtcore from 'mmt-core';
-import {resolveCertFilePath} from 'mmt-core/fileHelper';
+import {findProjectRootSync, resolveCertFilePath} from 'mmt-core/fileHelper';
 
 const {mockParsePack, mockServer, variableReplacer} = mmtcore;
 
@@ -118,7 +118,16 @@ export async function startMockServerFromPath(
   const rawContent = fs.readFileSync(filePath, 'utf-8');
   let parsed: any;
   try {
-    parsed = yaml.load(rawContent);
+    const processor = (mmtcore as any).dataImportProcessor;
+    const processedContent = processor?.processDataImportsInYaml ?
+      await processor.processDataImportsInYaml({
+        rawText: rawContent,
+        filePath,
+        projectRoot: findProjectRootSync(filePath, fs.existsSync, path.dirname, path.join) ?? undefined,
+        fileLoader: async (p: string) => fs.readFileSync(p, 'utf-8'),
+      }) :
+      rawContent;
+    parsed = yaml.load(processedContent);
   } catch (err: any) {
     throw new Error(`Mock server: YAML parse error in ${path.basename(filePath)}: ${err.message}`);
   }

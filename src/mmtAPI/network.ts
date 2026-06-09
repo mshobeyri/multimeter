@@ -6,6 +6,7 @@ import {handleNetworkMessage as coreHandleNetworkMessage, NetworkMessage, PostMe
 import {CertificateSettings, DEFAULT_CERT_SETTINGS, DEFAULT_NETWORK_CONFIG, EnvSetting, NetworkConfig, resolvePassphrase} from 'mmt-core/NetworkData';
 import * as vscode from 'vscode';
 import * as YAML from 'yaml';
+import * as mmtcore from 'mmt-core';
 
 // Certificate YAML data stored in workspace (file paths only)
 interface StoredCaCertificate {
@@ -88,6 +89,87 @@ function stableStringify(value: any): string {
 
 function sha256(value: string): string {
   return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+const DATA_IMPORT_EXTENSIONS = ['.json', '.yaml', '.yml'];
+
+function isLocalDataImportPath(pathValue: string): boolean {
+  const lower = String(pathValue ?? '').trim().toLowerCase().split(/[?#]/, 1)[0];
+  return DATA_IMPORT_EXTENSIONS.some(ext => lower.endsWith(ext));
+}
+
+function localGetAccessorValue(value: any, accessor: string): any {
+  if (!accessor) {
+    return value;
+  }
+  const parts = accessor
+      .replace(/\[(\d+)\]/g, '.$1')
+      .replace(/^\./, '')
+      .split('.')
+      .filter(Boolean);
+  let current = value;
+  for (const part of parts) {
+    if (current == null) {
+      return undefined;
+    }
+    current = current[part];
+  }
+  return current;
+}
+
+function processEnvDataImportsFallback(rawText: string, filePath: string, projectRoot?: string): string {
+  const doc = YAML.parse(rawText);
+  if (!doc || typeof doc !== 'object') {
+    return rawText;
+  }
+  const imports = (doc as any).import || {};
+  const data: Record<string, any> = {};
+  for (const [alias, requestedPath] of Object.entries(imports)) {
+    if (typeof requestedPath !== 'string' || !isLocalDataImportPath(requestedPath)) {
+      continue;
+    }
+    const resolvedPath = requestedPath.startsWith('+/') && projectRoot ?
+      path.join(projectRoot, requestedPath.slice(2)) :
+      path.resolve(path.dirname(filePath), requestedPath);
+    const content = fs.readFileSync(resolvedPath, 'utf8');
+    data[alias] = requestedPath.toLowerCase().endsWith('.json') ?
+      JSON.parse(content) :
+      YAML.parse(content);
+  }
+  if (Object.keys(data).length === 0) {
+    return rawText;
+  }
+  const refRe = /\$\{\s*([A-Za-z_][A-Za-z0-9_-]*)((?:\.[A-Za-z_][A-Za-z0-9_-]*|\[\d+\])*)\s*\}/g;
+  const wholeRefRe = /^\$\{\s*([A-Za-z_][A-Za-z0-9_-]*)((?:\.[A-Za-z_][A-Za-z0-9_-]*|\[\d+\])*)\s*\}$/;
+  const replaceValue = (value: any): any => {
+    if (typeof value === 'string') {
+      const whole = wholeRefRe.exec(value);
+      if (whole && Object.prototype.hasOwnProperty.call(data, whole[1])) {
+        const resolved = localGetAccessorValue(data[whole[1]], whole[2] || '');
+        return resolved !== undefined ? resolved : value;
+      }
+      return value.replace(refRe, (match, alias: string, accessor: string) => {
+        if (!Object.prototype.hasOwnProperty.call(data, alias)) {
+          return match;
+        }
+        const resolved = localGetAccessorValue(data[alias], accessor || '');
+        if (resolved === undefined || resolved === null) {
+          return '';
+        }
+        return typeof resolved === 'object' ? JSON.stringify(resolved) : String(resolved);
+      });
+    }
+    if (Array.isArray(value)) {
+      return value.map(replaceValue);
+    }
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(Object.entries(value).map(([key, nested]) => [key, replaceValue(nested)]));
+    }
+    return value;
+  };
+  const replaced = replaceValue(doc);
+  delete replaced.import;
+  return YAML.stringify(replaced);
 }
 
 function fileFingerprint(filePath: string): string {
@@ -252,15 +334,26 @@ function tryParseEnvFile(filePath: string): ParsedEnvFile|undefined {
     }
     const content = fs.readFileSync(filePath, 'utf8');
     const hash = sha256(content);
+    const hasDataImports = /^\s*import\s*:/m.test(content);
     const cached = parsedEnvCache.get(filePath);
-    if (cached && cached.hash === hash) {
+    if (!hasDataImports && cached && cached.hash === hash) {
       return cached.parsed;
     }
     if (!content.includes('type: env')) {
       parsedEnvCache.set(filePath, {hash, parsed: undefined});
       return undefined;
     }
-    const yaml = YAML.parse(content);
+    const projectRoot = findProjectRootSync(filePath, fs.existsSync, path.dirname, path.join) ?? undefined;
+    const processor = (mmtcore as any).dataImportProcessor;
+    const processed = processor?.processDataImportsInYamlSync ?
+      processor.processDataImportsInYamlSync({
+        rawText: content,
+        filePath,
+        projectRoot,
+        fileLoader: (p: string) => fs.readFileSync(p, 'utf8'),
+      }) :
+      processEnvDataImportsFallback(content, filePath, projectRoot);
+    const yaml = YAML.parse(processed);
     if (!yaml || typeof yaml !== 'object') {
       parsedEnvCache.set(filePath, {hash, parsed: undefined});
       return undefined;

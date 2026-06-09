@@ -1,4 +1,4 @@
-import {markupConvertor, outputExtractor} from 'mmt-core';
+import {dataImportProcessor, markupConvertor, outputExtractor} from 'mmt-core';
 const {parseYaml} = markupConvertor;
 import {findProjectRootSync} from 'mmt-core/fileHelper';
 import {brunoToTest, isBrunoFilePath} from 'mmt-core/brunoParsePack';
@@ -541,8 +541,7 @@ export function handleListFiles(
             walk(full);
           }
         } else if (it.isFile()) {
-          const lower = full.toLowerCase();
-          if (lower.endsWith('.mmt') || lower.endsWith('.csv')) {
+          if (dataImportProcessor.isImportAutocompletePath(full)) {
             const rel = path.relative(path.dirname(document.uri.fsPath), full);
             results.push(rel);
           }
