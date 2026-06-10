@@ -15,6 +15,44 @@ describe('validateYamlContent API method requirements', () => {
     expect(errors.some(error => String(error.message).includes('Invalid property "import"'))).toBe(false);
   });
 
+  it('allows whole data import references where the schema expects an object', () => {
+    const errors = validateYamlContent([
+      'type: env',
+      'import:',
+      '  certs: ./data/certs.yaml',
+      'certificates:',
+      '  clients: ${certs.clients}',
+    ].join('\n'));
+
+    expect(errors.some(error => String(error.message).includes('/certificates/clients'))).toBe(false);
+    expect(errors.some(error => String(error.message).includes('must be array'))).toBe(false);
+  });
+
+  it('allows whole data import references where the schema expects enum values', () => {
+    const errors = validateYamlContent([
+      'type: env',
+      'import:',
+      '  cfg: ./data/config.json',
+      'setting:',
+      '  http:',
+      '    version: ${cfg.httpVersion}',
+      '    timeout: ${cfg.timeout}',
+    ].join('\n'));
+
+    expect(errors.some(error => String(error.message).includes('Invalid value'))).toBe(false);
+    expect(errors.some(error => String(error.message).includes('must be number'))).toBe(false);
+  });
+
+  it('does not treat normal strings as data import schema exceptions', () => {
+    const errors = validateYamlContent([
+      'type: api',
+      'url: https://example.com',
+      'method: nope',
+    ].join('\n'));
+
+    expect(errors.some(error => String(error.message).includes('Invalid value'))).toBe(true);
+  });
+
   it('accepts data imports on env files', () => {
     const errors = validateYamlContent([
       'type: env',

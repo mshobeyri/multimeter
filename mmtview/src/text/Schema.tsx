@@ -12,6 +12,19 @@ const DataImportSchema = {
     additionalProperties: { type: 'string' }
 };
 
+const DataRefStringSchema = {
+    type: 'string',
+    pattern: '^\\$\\{\\s*[A-Za-z_][A-Za-z0-9_-]*(?:\\.[A-Za-z_][A-Za-z0-9_-]*|\\[(?:-?\\d+(?::-?\\d*)?|[A-Za-z_][A-Za-z0-9_]*)\\])*\\s*\\}$',
+    description: 'Data import reference, resolved before execution.'
+};
+
+const dataRefOr = (...schemas: any[]) => ({
+    anyOf: [
+        DataRefStringSchema,
+        ...schemas
+    ]
+});
+
 export const SuiteSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
@@ -86,7 +99,7 @@ export const LoadTestSchema = {
             },
             additionalProperties: false
         },
-        threads: { type: 'number', default: 1 },
+        threads: dataRefOr({ type: 'number', default: 1 }),
         repeat: {
             anyOf: [
                 { type: 'number' },
@@ -134,13 +147,13 @@ export const APISchema = {
             type: 'object',
             additionalProperties: { type: 'string' }
         },
-        protocol: { type: 'string', enum: ['http', 'ws', 'graphql', 'grpc'] },
-        method: {
+        protocol: dataRefOr({ type: 'string', enum: ['http', 'ws', 'graphql', 'grpc'] }),
+        method: dataRefOr({
             type: 'string',
             enum: ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
-        },
-        timeout: { type: 'number', minimum: 0 },
-        format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text'] },
+        }),
+        timeout: dataRefOr({ type: 'number', minimum: 0 }),
+        format: dataRefOr({ type: 'string', enum: ['json', 'xml', 'xmle', 'text'] }),
         url: { type: 'string' },
         headers: { type: 'object', additionalProperties: { type: 'string' } },
         query: { type: 'object', additionalProperties: { type: 'string' } },
@@ -179,11 +192,11 @@ export const APISchema = {
                 proto: { type: 'string' },
                 service: { type: 'string' },
                 method: { type: 'string' },
-                stream: { type: 'string', enum: ['server', 'client', 'bidi'] },
-                message: {
+                stream: dataRefOr({ type: 'string', enum: ['server', 'client', 'bidi'] }),
+                message: dataRefOr({
                     type: 'object',
                     additionalProperties: true
-                }
+                })
             },
             required: ['service', 'method'],
             additionalProperties: false
@@ -367,8 +380,8 @@ export const EnvSchema = {
                 http: {
                     type: 'object',
                     properties: {
-                        version: { type: 'string', enum: ['auto', '1', '1.1', '2'] },
-                        timeout: { type: 'number', minimum: 0 }
+                        version: dataRefOr({ type: 'string', enum: ['auto', '1', '1.1', '2'] }),
+                        timeout: dataRefOr({ type: 'number', minimum: 0 })
                     },
                     additionalProperties: false
                 }
@@ -398,7 +411,7 @@ export const EnvSchema = {
                         }
                     ]
                 },
-                clients: {
+                clients: dataRefOr({
                     type: 'array',
                     items: {
                         type: 'object',
@@ -413,7 +426,7 @@ export const EnvSchema = {
                         },
                         additionalProperties: false
                     }
-                }
+                })
             },
             additionalProperties: false
         }

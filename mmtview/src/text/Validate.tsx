@@ -241,6 +241,70 @@ const isSchemaBranchError = (error: any): boolean => {
     return error?.keyword === 'if';
 };
 
+const DATA_IMPORT_EXTENSIONS = ['.json', '.yaml', '.yml', '.csv'];
+const WHOLE_DATA_IMPORT_REF_RE = /^\$\{\s*([A-Za-z_][A-Za-z0-9_-]*)(?:\.[A-Za-z_][A-Za-z0-9_-]*|\[(?:-?\d+(?::-?\d*)?|[A-Za-z_][A-Za-z0-9_]*)\])*\s*\}$/;
+
+const isDataImportPath = (pathValue: unknown): boolean => {
+    const lower = String(pathValue ?? '').trim().toLowerCase().split(/[?#]/, 1)[0];
+    return DATA_IMPORT_EXTENSIONS.some(ext => lower.endsWith(ext));
+};
+
+const getImportedDataAliases = (parsedContent: any): Set<string> => {
+    const aliases = new Set<string>();
+    const imports = parsedContent?.import;
+    if (!imports || typeof imports !== 'object' || Array.isArray(imports)) {
+        return aliases;
+    }
+    for (const [alias, importPath] of Object.entries(imports)) {
+        if (typeof alias === 'string' && isDataImportPath(importPath)) {
+            aliases.add(alias);
+        }
+    }
+    return aliases;
+};
+
+const getValueAtAjvPath = (root: any, path: string): any => {
+    if (!path || path === '/') {
+        return root;
+    }
+    if (path.startsWith('/')) {
+        const parts = path.split('/').slice(1).map(part =>
+            part.replace(/~1/g, '/').replace(/~0/g, '~')
+        );
+        return parts.reduce((current, part) => current == null ? undefined : current[part], root);
+    }
+
+    const normalized = normalizeAjvDataPath(path).replace(/^\./, '');
+    if (!normalized) {
+        return root;
+    }
+    const parts = normalized
+        .replace(/\[(\d+)\]/g, '.$1')
+        .split('.')
+        .filter(Boolean);
+    return parts.reduce((current, part) => current == null ? undefined : current[part], root);
+};
+
+const isWholeDataImportReference = (value: unknown, dataAliases: Set<string>): boolean => {
+    if (typeof value !== 'string') {
+        return false;
+    }
+    const match = value.match(WHOLE_DATA_IMPORT_REF_RE);
+    return Boolean(match && dataAliases.has(match[1]));
+};
+
+const isDataImportReferenceSchemaError = (
+    error: any,
+    parsedContent: any,
+    dataAliases: Set<string>
+): boolean => {
+    if (!['type', 'enum', 'anyOf', 'oneOf'].includes(String(error?.keyword))) {
+        return false;
+    }
+    const path = (error as any).instancePath || (error as any).dataPath || '';
+    return isWholeDataImportReference(getValueAtAjvPath(parsedContent, path), dataAliases);
+};
+
 const formatValidationMessage = (path: string, message: string | undefined): string => {
     const text = message || 'is invalid';
     return path ? `${path}: ${text}` : text;
@@ -258,6 +322,7 @@ export const validateYamlContent = (content: string): any[] => {
         }
 
         const pathMap = buildYamlPathPositionMap(doc, content);
+        const dataAliases = getImportedDataAliases(parsedContent);
 
         // Validate against schema
         let validate = ajv.compile(GeneralSchema);
@@ -283,6 +348,9 @@ export const validateYamlContent = (content: string): any[] => {
         if (!isValid && validate.errors) {
             validate.errors.forEach(error => {
                 if (isSchemaBranchError(error)) {
+                    return;
+                }
+                if (isDataImportReferenceSchemaError(error, parsedContent, dataAliases)) {
                     return;
                 }
                 if (isTopLevelMethodRequiredError(error) && !isHttpApiDocument(parsedContent)) {
