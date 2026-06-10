@@ -1,17 +1,17 @@
+import {connectionTracker} from 'mmt-core/networkCoreNode';
+import * as path from 'path';
 import * as vscode from 'vscode';
 
-import {connectionTracker} from 'mmt-core/networkCoreNode';
-
 import {setupChatParticipants} from './assistant/assistant';
+import {HistoryManager} from './historyManager';
+import {convertUriToMmt} from './mmtAPI/convertToMmt';
 import {MmtDocumentLinkProvider} from './mmtDocumentLinkProvider';
 import {MmtEditorProvider} from './mmtEditorProvider';
-import {registerRunStatusBar} from './runStatusBar';
 import ConnectionsPanel from './panels/ConnectionsPanel';
 import EnvironmentPanel from './panels/EnvironmentPanel';
 import HistoryPanel from './panels/HistoryPanel';
 import MockServerPanel from './panels/MockServerPanel';
-import {HistoryManager} from './historyManager';
-import {convertUriToMmt} from './mmtAPI/convertToMmt';
+import {registerRunStatusBar} from './runStatusBar';
 import {loadWorkspaceEnvFile} from './workspaceEnvLoader';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -28,6 +28,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerHistoryCommands(context, historyPanel, historyManager);
   registerEnvironmentCommands(context, environmentPanel, mmtviewPanel);
   registerMiscCommands(context);
+  registerApiTestStatusBar(context);
 
   registerRunStatusBar(context);
 
@@ -40,24 +41,22 @@ export function activate(context: vscode.ExtensionContext) {
 
 function registerDocumentLinks(context: vscode.ExtensionContext): void {
   const selector: vscode.DocumentSelector = {language: 'mmt', scheme: 'file'};
-  context.subscriptions.push(
-      vscode.languages.registerDocumentLinkProvider(
-          selector, new MmtDocumentLinkProvider()));
+  context.subscriptions.push(vscode.languages.registerDocumentLinkProvider(
+      selector, new MmtDocumentLinkProvider()));
 }
 
 function registerEditorProvider(
-    context: vscode.ExtensionContext,
-    mmtviewPanel: MmtEditorProvider): void {
+    context: vscode.ExtensionContext, mmtviewPanel: MmtEditorProvider): void {
   context.subscriptions.push(
       vscode.window.registerCustomEditorProvider('mmt.editor', mmtviewPanel, {
         webviewOptions: {retainContextWhenHidden: true, enableFindWidget: true}
       }));
-  context.subscriptions.push(
-      vscode.window.registerCustomEditorProvider('mmt.httpEditor', mmtviewPanel, {
+  context.subscriptions.push(vscode.window.registerCustomEditorProvider(
+      'mmt.httpEditor', mmtviewPanel, {
         webviewOptions: {retainContextWhenHidden: true, enableFindWidget: true}
       }));
-  context.subscriptions.push(
-      vscode.window.registerCustomEditorProvider('mmt.brunoEditor', mmtviewPanel, {
+  context.subscriptions.push(vscode.window.registerCustomEditorProvider(
+      'mmt.brunoEditor', mmtviewPanel, {
         webviewOptions: {retainContextWhenHidden: true, enableFindWidget: true}
       }));
 
@@ -65,7 +64,8 @@ function registerEditorProvider(
       vscode.workspace.onDidChangeConfiguration(event => {
         if (event.affectsConfiguration('multimeter.body.auto.format') ||
             event.affectsConfiguration('multimeter.editor.fontSize') ||
-            event.affectsConfiguration('multimeter.editor.collapseDescription')) {
+            event.affectsConfiguration(
+                'multimeter.editor.collapseDescription')) {
           mmtviewPanel.broadcastConfig();
         }
       }));
@@ -84,9 +84,9 @@ function registerEditorProvider(
       }));
 }
 
-function registerSidePanels(context: vscode.ExtensionContext, historyManager: HistoryManager): {
-  historyPanel: HistoryPanel;
-  environmentPanel: EnvironmentPanel;
+function registerSidePanels(
+    context: vscode.ExtensionContext, historyManager: HistoryManager): {
+  historyPanel: HistoryPanel; environmentPanel: EnvironmentPanel;
   connectionsPanel: ConnectionsPanel;
 } {
   context.subscriptions.push(vscode.window.registerWebviewViewProvider(
@@ -126,8 +126,7 @@ function registerConnectionsCommands(
 }
 
 function registerHistoryCommands(
-    context: vscode.ExtensionContext,
-    historyPanel: HistoryPanel,
+    context: vscode.ExtensionContext, historyPanel: HistoryPanel,
     historyManager: HistoryManager): void {
   context.subscriptions.push(
       vscode.commands.registerCommand('multimeter.history.clear', () => {
@@ -144,8 +143,7 @@ function registerHistoryCommands(
 }
 
 function registerEnvironmentCommands(
-    context: vscode.ExtensionContext,
-    environmentPanel: EnvironmentPanel,
+    context: vscode.ExtensionContext, environmentPanel: EnvironmentPanel,
     mmtviewPanel: MmtEditorProvider): void {
   const openSettingsCommand =
       vscode.commands.registerCommand('multimeter.setting.open', () => {
@@ -172,14 +170,13 @@ function registerEnvironmentCommands(
     mmtviewPanel.refreshEnvironmentVars();
   });
 
-  context.subscriptions.push(
-      vscode.commands.registerCommand(
-          'multimeter.environment.loadFromFile', async () => {
-            // Force reload when manually triggered (overwrites existing values)
-            await loadWorkspaceEnvFile(context, true);
-            environmentPanel.refreshEnvironmentVars();
-            mmtviewPanel.refreshEnvironmentVars();
-          }));
+  context.subscriptions.push(vscode.commands.registerCommand(
+      'multimeter.environment.loadFromFile', async () => {
+        // Force reload when manually triggered (overwrites existing values)
+        await loadWorkspaceEnvFile(context, true);
+        environmentPanel.refreshEnvironmentVars();
+        mmtviewPanel.refreshEnvironmentVars();
+      }));
 }
 
 function registerMiscCommands(context: vscode.ExtensionContext): void {
@@ -188,12 +185,21 @@ function registerMiscCommands(context: vscode.ExtensionContext): void {
         await convertUriToMmt(uri);
       }));
 
+  context.subscriptions.push(
+      vscode.commands.registerCommand('multimeter.apiTest.new', async () => {
+        await openUntitledApiTest();
+      }));
+
   context.subscriptions.push(vscode.commands.registerCommand(
       'multimeter.mmt.show.as.text', async (uri?: vscode.Uri) => {
         const targetUri = uri || vscode.window.activeTextEditor?.document.uri;
         const lowerPath = targetUri?.path.toLowerCase() || '';
-        if (!targetUri || (!lowerPath.endsWith('.mmt') && !lowerPath.endsWith('.http') && !lowerPath.endsWith('.https') && !lowerPath.endsWith('.bru') && !lowerPath.endsWith('.bruno'))) {
-          vscode.window.showErrorMessage('Please select an MMT, HTTP, or Bruno file');
+        if (!targetUri ||
+            (!lowerPath.endsWith('.mmt') && !lowerPath.endsWith('.http') &&
+             !lowerPath.endsWith('.https') && !lowerPath.endsWith('.bru') &&
+             !lowerPath.endsWith('.bruno'))) {
+          vscode.window.showErrorMessage(
+              'Please select an MMT, HTTP, or Bruno file');
           return;
         }
         const tabs =
@@ -216,4 +222,46 @@ function registerMiscCommands(context: vscode.ExtensionContext): void {
           await vscode.languages.setTextDocumentLanguage(document, 'mmt');
         }
       }));
+}
+
+function registerApiTestStatusBar(context: vscode.ExtensionContext): void {
+  const item =
+      vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+  item.name = 'Multimeter API Test';
+  item.text = '$(mmt-logo)';
+  item.tooltip = 'New API Test';
+  item.command = 'multimeter.apiTest.new';
+  item.show();
+  context.subscriptions.push(item);
+}
+
+async function openUntitledApiTest(): Promise<void> {
+  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  const suggestedPath =
+      path.join(workspaceRoot || process.cwd(), 'api-test.mmt');
+  const uri = vscode.Uri.from({scheme: 'untitled', path: suggestedPath});
+  const document = await vscode.workspace.openTextDocument(uri);
+
+  if (!document.getText().trim()) {
+    const edit = new vscode.WorkspaceEdit();
+    edit.insert(uri, new vscode.Position(0, 0), getDefaultApiTestContent());
+    await vscode.workspace.applyEdit(edit);
+  }
+
+  await vscode.languages.setTextDocumentLanguage(document, 'mmt');
+  await vscode.commands.executeCommand(
+      'vscode.openWith', uri, 'mmt.editor', {preview: false});
+}
+
+function getDefaultApiTestContent(): string {
+  return [
+    'type: api',
+    'title: New API Test',
+    'url: https://test.mmt.dev/echo',
+    'method: post',
+    'format: json',
+    'body:',
+    ' hello: from mmt!',
+    '',
+  ].join('\n');
 }

@@ -109,7 +109,7 @@ function localGetAccessorValue(value: any, accessor: string): any {
       .filter(Boolean);
   let current = value;
   for (const part of parts) {
-    if (current == null) {
+    if (current === null) {
       return undefined;
     }
     current = current[part];
