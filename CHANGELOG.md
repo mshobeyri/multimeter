@@ -2,6 +2,12 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.25.0]
+
+- Prepare pre-release packaging and metadata updates
+- See commit history for full details
+
+
 ## [1.24.5]
 
 - Add data imports from `.json`, `.yaml`, `.yml`, and `.csv` across all file types
