@@ -13,9 +13,6 @@
     <a href="https://github.com/mshobeyri/multimeter/blob/main/LICENSE.md">
       <img src="https://img.shields.io/badge/license-BSL-green" alt="License"/>
     </a>
-    <a href="https://github.com/mshobeyri/multimeter/stargazers">
-      <img src="https://img.shields.io/github/stars/mshobeyri/multimeter?style=social" alt="GitHub Stars"/>
-    </a>
   </p>
   <p>
     <a href="https://mmt.dev/demos"><img src="res/demo.png" alt="Demo" width="16" height="16" style="vertical-align: text-bottom;"/> View Demo</a>
