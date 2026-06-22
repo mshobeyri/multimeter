@@ -2,6 +2,11 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.25.1]
+ - Fix bug
+ - Add mmt fast mode in status bar 
+
+
 ## [1.25.0]
 
 - Prepare pre-release packaging and metadata updates
