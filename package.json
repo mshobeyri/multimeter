@@ -9,6 +9,7 @@
     "url": "https://github.com/mshobeyri/multimeter.git"
   },
   "icon": "res/logo.png",
+  "extensionReadme": "EXTENSION.md",
   "engines": {
     "vscode": "^1.95.0"
   },
