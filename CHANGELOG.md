@@ -2,6 +2,13 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.26.0]
+
+- Add extension README/metadata support via `EXTENSION.md`
+- Fix API response handling so response body is returned even when a request errors
+- Fix status bar API test creation when `api-test.mmt` already exists by auto-incrementing duplicate filenames
+
+
 ## [1.25.1]
  - Fix bug
  - Add mmt fast mode in status bar 
