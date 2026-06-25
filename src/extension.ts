@@ -1,4 +1,5 @@
 import {connectionTracker} from 'mmt-core/networkCoreNode';
+import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
@@ -237,9 +238,8 @@ function registerApiTestStatusBar(context: vscode.ExtensionContext): void {
 
 async function openUntitledApiTest(): Promise<void> {
   const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-  const suggestedPath =
-      path.join(workspaceRoot || process.cwd(), 'api-test.mmt');
-  const uri = vscode.Uri.from({scheme: 'untitled', path: suggestedPath});
+  const uri = getUniqueUntitledApiTestUri(
+      workspaceRoot || process.cwd(), 'api-test.mmt');
   const document = await vscode.workspace.openTextDocument(uri);
 
   if (!document.getText().trim()) {
@@ -251,6 +251,23 @@ async function openUntitledApiTest(): Promise<void> {
   await vscode.languages.setTextDocumentLanguage(document, 'mmt');
   await vscode.commands.executeCommand(
       'vscode.openWith', uri, 'mmt.editor', {preview: false});
+}
+
+function getUniqueUntitledApiTestUri(
+    rootDir: string, filename: string): vscode.Uri {
+  const extension = path.extname(filename);
+  const baseName = path.basename(filename, extension);
+  let candidateName = filename;
+  let candidatePath = path.join(rootDir, candidateName);
+  let counter = 1;
+
+  while (fs.existsSync(candidatePath)) {
+    counter += 1;
+    candidateName = `${baseName}${counter}${extension}`;
+    candidatePath = path.join(rootDir, candidateName);
+  }
+
+  return vscode.Uri.from({scheme: 'untitled', path: candidatePath});
 }
 
 function getDefaultApiTestContent(): string {
