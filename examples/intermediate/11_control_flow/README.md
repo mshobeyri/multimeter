@@ -27,8 +27,8 @@ Demonstrates **if/else** branching, **repeat** (count and time-based), **delay**
 
 - **`if` / `else`** — run nested steps conditionally. Uses the same expression syntax as `assert`/`check`.
 - **`repeat: N`** — run nested steps N times (count-based).
-- **`repeat: 3s`** — run nested steps for a duration. Supported units: `ms`, `s`, `m`, `h`. Use `inf` for indefinite.
-- **`delay: 500`** — pause in milliseconds. Also supports units: `- delay: 2s`.
+- **`repeat: 3s`** — run nested steps for a duration. Supported units: `ns`, `ms`, `s`, `m`, `h`; combined values like `1h5m` and `5m3s` are also valid. Use `inf` for indefinite.
+- **`delay: 500`** — pause in milliseconds. Also supports unit/combo values like `- delay: 2s`, `- delay: 1h5m`, or `- delay: 5m3s`.
 - **`for`** — JavaScript-style loop header. Supports `for-of`, `for-in`, and classic `for` syntax.
 - `${variable}` — template literals resolve variables inside strings.
 

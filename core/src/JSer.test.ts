@@ -1577,6 +1577,39 @@ describe('delay step generation', () => {
     };
     const js2 = await testToJsfunc(ctx2, true);
     expect(js2).toContain('setTimeout(r, 2000)');
+
+    const ctx3: TestContext = {
+      name: 'delayTest3',
+      test: {steps: [{delay: '1h5m'} as any]} as any,
+      inputs: {},
+      envVars: {}
+    };
+    const js3 = await testToJsfunc(ctx3, true);
+    expect(js3).toContain('setTimeout(r, 3900000)');
+  });
+});
+
+describe('repeat step generation', () => {
+  it('generates time-based loop for combined duration strings', async () => {
+    const ctx: TestContext = {
+      name: 'repeatDurationTest',
+      test: {steps: [{repeat: '5m3s', steps: [{print: 'tick'}]} as any]} as any,
+      inputs: {},
+      envVars: {}
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('Date.now() < start + 303000');
+  });
+
+  it('keeps bare numbers as count-based repeat', async () => {
+    const ctx: TestContext = {
+      name: 'repeatCountTest',
+      test: {steps: [{repeat: 3, steps: [{print: 'tick'}]} as any]} as any,
+      inputs: {},
+      envVars: {}
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('for (let i = 0; i < 3; i++)');
   });
 });
 

@@ -86,6 +86,19 @@ describe('executeLoadTest', () => {
     expect(result.suiteExports?.collectedResults.load?.summary?.failed_rate).toBe(0);
   });
 
+  it('accepts combined duration values for repeat and rampup', async () => {
+    const prepared = makePrepared(`type: loadtest\nthreads: 2\nrepeat: 1s\nrampup: 1s500ms\ntest: ./target.mmt\n`);
+    const options = makeOptions();
+    options.jsRunner = async () => ({});
+
+    const result = await executeLoadTest(prepared, options, [], async () => {
+      throw new Error('runFile should not be called for optimized loadtest iterations');
+    });
+
+    expect(result.result.success).toBe(true);
+    expect(result.result.durationMs).toBeGreaterThanOrEqual(1000);
+  });
+
   it('counts failed iterations in load summary', async () => {
     const prepared = makePrepared(`type: loadtest\nthreads: 2\nrepeat: 4\nexport:\n  - ./report.mmt\ntest: ./target.mmt\n`);
     const options = makeOptions();

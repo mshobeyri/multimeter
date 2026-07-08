@@ -1,6 +1,6 @@
 import {APIData} from './APIData';
 import {apiToJSfunc} from './JSerAPI';
-import {indentLines, timeUnitToMs, toInputsParams} from './JSerHelper';
+import {durationToJsMsExpr, indentLines, parseDurationString, toInputsParams} from './JSerHelper';
 import {Comparison, ComparisonObject, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, ScalarExpectValue, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, normalizeReportConfig, opsList, ReportConfig, ReportLevel, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
 import {getTestFlowStepType} from './testParsePack';
 import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
@@ -186,14 +186,9 @@ export const repeatToJSfunc = async (loop: TestFlowRepeat, useExternalReport: bo
                                                           String(loop.repeat);
   const loopBody = await flowStepsToJsfunc(loop.steps, true, useExternalReport, importTitleMap);
 
-  // Check for time-based repeat
-  const timeMatch = loopCondition.match(/^(\d+(?:\.\d+)?)(ns|ms|s|m|h)$/);
-  if (timeMatch) {
-    const value = parseFloat(timeMatch[1]);
-    const unit = timeMatch[2];
-    const durationMs = timeUnitToMs(value, unit);
-    return `for (const start = Date.now(); Date.now() < start + ${
-        durationMs}; ) {
+  const durationMs = parseDurationString(loopCondition);
+  if (durationMs !== undefined) {
+    return `for (const start = Date.now(); Date.now() < start + ${durationMs}; ) {
   ${indentLines(loopBody)}
 }`;
   }
@@ -205,24 +200,7 @@ export const repeatToJSfunc = async (loop: TestFlowRepeat, useExternalReport: bo
 };
 
 export function delayToJSfunc(d: string|number): string {
-  const val = typeof d === 'number' ? String(d) : String(d).trim();
-  let msExpr = '0';
-  const m = val.match(/^(\d+(?:\.\d+)?)(ns|ms|s|m|h)?$/);
-  if (m) {
-    const num = parseFloat(m[1]);
-    const unit = m[2] || 'ms';
-    msExpr = String(timeUnitToMs(num, unit));
-  } else {
-    msExpr = `(function(x){
-      const s = String(x).trim();
-      const mm = s.match(/^(\\d+(?:\\.\\d+)?)(ns|ms|s|m|h)?$/);
-      if(!mm) return Number(s)||0;
-      const n = parseFloat(mm[1]);
-      const u = mm[2]||'ms';
-      return u==='ns'? n/1e6 : u==='ms'? n : u==='s'? n*1000 : u==='m'? n*60000 : n*3600000;
-    })(${val})`;
-  }
-  return `await new Promise(r => setTimeout(r, ${msExpr}));`;
+  return `await new Promise(r => setTimeout(r, ${durationToJsMsExpr(d)}));`;
 }
 
 export const forToJSfunc = async (loop: TestFlowLoop, useExternalReport: boolean, importTitleMap?: Record<string, string>): Promise<string> => {

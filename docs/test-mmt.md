@@ -449,8 +449,16 @@ The `for` expression is passed directly to JavaScript, so any valid JS for-of/fo
   steps:
     - call: healthCheck
 
-# other time units: ms, s, m, h
+# other time units: ns, ms, s, m, h
 - repeat: 5m
+  steps:
+    - call: poll
+
+# combined durations
+- repeat: 1h5m
+  steps:
+    - call: poll
+- repeat: 5m3s
   steps:
     - call: poll
 
@@ -466,6 +474,8 @@ Pause the flow for a duration.
 ```yaml
 - delay: 500    # ms
 - delay: 2s     # units: ns|ms|s|m|h
+- delay: 1h5m   # combined duration
+- delay: 5m3s   # combined duration
 ```
 
 ### js
