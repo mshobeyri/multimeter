@@ -4,7 +4,7 @@ import {durationToJsMsExpr, indentLines, parseDurationString, toInputsParams} fr
 import {Comparison, ComparisonObject, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, ScalarExpectValue, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, normalizeReportConfig, opsList, ReportConfig, ReportLevel, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
 import {getTestFlowStepType} from './testParsePack';
 import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
-import {isOmitSentinel, normalizeOmitToNull} from './omitKeyword';
+import {isOmitSentinel, normalizeOmitToNull, OMIT_SENTINEL} from './omitKeyword';
 import {replaceEnvTokensPlain, toTemplateWithEnvVars} from './variableReplacer';
 
 function randomName(): string {
@@ -245,9 +245,11 @@ const comparisonToJSfunc = (type: 'check'|'assert', comparison: Comparison, useE
   const finalActual = actualRuntimeExpr
     ? actualRuntimeExpr
     : (typeof actual === 'string' ? toTemplateWithVars(actual) : undefined);
-  const finalExpected = typeof expected === 'string' ? toTemplateWithVars(expected) : undefined;
+  const finalExpected = typeof expected === 'string'
+    ? (isOmitSentinel(expected) ? JSON.stringify('omit') : toTemplateWithVars(expected))
+    : undefined;
   // Strip ${...} from comparison display string so UI shows clean field names
-  const displayRaw = raw.replace(/\$\{([^}]+)\}/g, '$1');
+  const displayRaw = raw.replace(/\$\{([^}]+)\}/g, '$1').replace(/__MMT_OMIT_KEYWORD__/g, 'omit');
   return `check_(${conditionStatement}, '${type}', ${JSON.stringify(displayRaw)}, '${reportLevel}', ${finalTitle}, ${finalDetails}, ${finalActual}, ${finalExpected});\n`;
 };
 
@@ -311,6 +313,9 @@ const isExplicitMultiCheckArray = (value: unknown): value is ScalarExpectValue[]
 };
 
 const expectValueToDisplay = (value: ExpectValue): string => {
+  if (isOmitSentinel(value)) {
+    return 'omit';
+  }
   const normalized = normalizeOmitToNull(value);
   return typeof normalized === 'string' ? normalized : JSON.stringify(normalized);
 };
@@ -321,6 +326,16 @@ const expectValueToJs = (value: ExpectValue): string => {
 };
 
 const comparisonFromPartsToJSfunc = (actualExpr: string, operator: string, expected: ExpectValue): string => {
+  if (isOmitSentinel(expected)) {
+    switch (operator) {
+      case '==':
+        return `(${actualExpr} === undefined || ${actualExpr} === null || ${actualExpr} === ${JSON.stringify(OMIT_SENTINEL)})`;
+      case '!=':
+        return `(${actualExpr} !== undefined && ${actualExpr} !== null && ${actualExpr} !== ${JSON.stringify(OMIT_SENTINEL)})`;
+      default:
+        break;
+    }
+  }
   const expectedExpr = expectValueToJs(expected);
   if (isFuzzyPercentOperator(operator) || isFuzzyPercentSelectOperator(operator)) {
     const percent = isFuzzyPercentOperator(operator) ? Number(operator.slice(1, -1)) : DEFAULT_FUZZY_PERCENT;
@@ -447,7 +462,7 @@ const appendExpectAndDebugChecks = (
       for (const v of values) {
         const { operator, expected } = parseExpectValue(v);
         const actualExpr = actualForField(resultVar, field);
-        const displayExpected = expectValueToDisplay(expected);
+        const displayExpected = isOmitSentinel(v) ? 'omit' : expectValueToDisplay(expected);
         const displayComparison = `${field} ${operator} ${displayExpected}`;
         const conditionStatement = isStructuredExpectValue(expected)
             ? comparisonFromPartsToJSfunc(actualExpr, operator, expected)
@@ -478,7 +493,7 @@ const appendExpectAndDebugChecks = (
         for (const v of values) {
           const { operator, expected } = parseExpectValue(v);
           const actualExpr = actualForField(resultVar, field);
-          const displayExpected = expectValueToDisplay(expected);
+          const displayExpected = isOmitSentinel(v) ? 'omit' : expectValueToDisplay(expected);
           const displayComparison = `${field} ${operator} ${displayExpected}`;
           const conditionStatement = isStructuredExpectValue(expected)
               ? comparisonFromPartsToJSfunc(actualExpr, operator, expected)

@@ -5,6 +5,7 @@ import {GenerateJsOptions, mergeInputs, RunFileOptions, TestOutputsReporterEvent
 import * as testParsePack from './testParsePack';
 import {brunoToTest, brunoToTestStrict, isBrunoFilePath} from './brunoParsePack';
 import {httpToTest, httpToTestStrict, isHttpFilePath} from './httpParsePack';
+import {restoreOmitKeyword} from './omitKeyword';
 
 const createRunId = (): string => {
   return `${Date.now().toString(36)}-${
@@ -120,7 +121,7 @@ export async function executeTest(
       const outputsEvent: TestOutputsReporterEvent = {
         scope: 'test-outputs',
         runId,
-        outputs: result.outputs,
+        outputs: restoreOmitKeyword(result.outputs),
         id: (options as any).id,
       };
       forwardReporter(outputsEvent);

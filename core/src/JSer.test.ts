@@ -9,6 +9,7 @@ import {TestContext, variableReplacer} from './JSerTest';
 import {assertToJSfunc, checkToJSfunc, conditionalStatementToJSfunc, flowStagesToJsfunc, parseExpectValue} from './JSerTestFlow';
 import {createTestFileLoaderMock} from './testFileLoaderMock';
 import {normalizeReportConfig} from './TestData';
+import {OMIT_SENTINEL} from './omitKeyword';
 
 describe('normalizeReportConfig', () => {
   it('returns defaults when undefined', () => {
@@ -744,6 +745,55 @@ describe('check/assert details templating', () => {
       comparison: 'body.body.username == mehrdad',
       actual: 'mehrdad',
       expected: 'mehrdad',
+      status: 'passed',
+    });
+  });
+
+  it('treats missing path as omit in check object comparisons', async () => {
+    const events: Record<string, any>[] = [];
+    const js = await rootTestToJsfunc({
+      name: 'checkMissingPathAsOmit',
+      test: {
+        type: 'test',
+        steps: [
+          {
+            call: 'echo',
+            id: 'xxx',
+          } as any,
+          {
+            check: {
+              title: 'xx',
+              actual: '${xxx.body.body.undefined}',
+              operator: '==',
+              expected: OMIT_SENTINEL as any,
+              details: 'xxx',
+            },
+          } as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/main.mmt',
+    });
+
+    await runJSCode({
+      js: `
+        const echo = async () => ({ _: { body: { body: { username: 'mehrdad' } } } });
+        ${js}
+      `,
+      title: 'check-missing-path-as-omit',
+      logger: jest.fn(),
+      runId: 'run-check-missing-path-omit',
+      reporter: (event: Record<string, any>) => {
+        events.push(event);
+      },
+    });
+
+    const checkStep = events.find((event) => event.scope === 'test-step' && event.stepType === 'check');
+    expect(checkStep).toBeDefined();
+    expect(checkStep?.status).toBe('passed');
+    expect(checkStep?.expects?.[0]).toMatchObject({
+      comparison: 'xxx.body.body.undefined == omit',
       status: 'passed',
     });
   });
@@ -1547,6 +1597,66 @@ describe('expect on call steps', () => {
     };
     const js = await testToJsfunc(ctx, true);
     expect(js).toContain('verifyUser');
+  });
+
+  it('renders omit keyword in reports instead of omit sentinel', async () => {
+    const events: Record<string, any>[] = [];
+    const js = await rootTestToJsfunc({
+      name: 'omitInReports',
+      test: {
+        type: 'test',
+        steps: [
+          {
+            call: 'echo',
+            id: 'xxx',
+            expect: {
+              x: OMIT_SENTINEL as any,
+            },
+          } as any,
+          {
+            check: {
+              title: 'xx',
+              actual: '${xxx.x}',
+              operator: '==',
+              expected: OMIT_SENTINEL as any,
+              details: 'xxx',
+            },
+          } as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/main.mmt',
+    });
+
+    await runJSCode({
+      js: `
+        const echo = async () => ({ x: '__MMT_OMIT_KEYWORD__' });
+        ${js}
+      `,
+      title: 'omit-report-runtime',
+      logger: jest.fn(),
+      runId: 'run-omit-report',
+      reporter: (event: Record<string, any>) => {
+        events.push(event);
+      },
+    });
+
+    const stepEvents = events.filter((event) => event.scope === 'test-step');
+    expect(stepEvents).toHaveLength(2);
+    const callExpectEvent = stepEvents[0];
+    const checkEvent = stepEvents[1];
+
+    expect(callExpectEvent.expects?.[0]).toMatchObject({
+      comparison: 'x == omit',
+      actual: 'omit',
+      expected: null,
+      status: 'passed',
+    });
+    expect(checkEvent.expects?.[0]).toMatchObject({
+      comparison: 'xxx.x == omit',
+      status: 'passed',
+    });
   });
 });
 
