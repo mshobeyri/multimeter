@@ -288,6 +288,22 @@ With title and report:
 
 All comparison operators supported by `check`/`assert` are available in `expect` values: `==`, `!=`, `<`, `>`, `<=`, `>=`, `=@`, `!@`, `=C`, `!C`, `=^`, `!^`, `=$`, `!$`, `=*`, `!*`, `=#`, `!#`, `=N%`, `!N%`. Legacy regex operators `=~` and `!~` are still accepted.
 
+`omit` behavior in `expect`:
+- Use unquoted `omit` when you expect a field to be missing.
+- Reports show `omit` (user-friendly keyword), not internal placeholders.
+- `null` and `omit` are different:
+  - `null` = field exists with null value
+  - `omit` = field/path does not exist
+
+Example:
+```yaml
+- call: getUser
+  id: userRes
+  expect:
+    body.user.middle_name: omit
+    body.user.first_name: != omit
+```
+
 #### Inline debug on call
 
 Use `debug` on a call step to inspect output values during development. It works exactly like `expect` (same syntax, same operators), but results are shown with a **debug icon** instead of pass/fail, and **are not included in exported reports** (HTML, Markdown, MMT report files).
@@ -363,6 +379,33 @@ Object-form examples
     operator: "=="
     title: "Login status"
     details: "Login must succeed"
+```
+
+Output-path behavior in object-form `check` / `assert`:
+- Runtime references like `${stepId.body.body.username}` and `${stepId.status}` use the same output fallback behavior as `expect`.
+- This means checks/asserts can read default output roots (`body`, `status`, `headers`, `cookies`, `duration`, `details`) from call results consistently.
+
+`omit` behavior in object-form `check` / `assert`:
+- Use unquoted `expected: omit` to assert that a value/path is missing.
+- For `operator: ==`, a missing path (`undefined`) is treated as `omit` and passes.
+- For `operator: !=`, the check passes only when the value is present and not omit/null.
+
+Examples:
+```yaml
+- call: xx
+  id: xxx
+
+- check:
+    title: username exists
+    actual: ${xxx.body.body.username}
+    operator: !=
+    expected: omit
+
+- check:
+    title: nickname missing
+    actual: ${xxx.body.body.nickname}
+    operator: ==
+    expected: omit
 ```
 
 #### Report configuration
