@@ -797,7 +797,12 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     if (!model) return;
 
     const isMac = navigator.platform.toLowerCase().includes('mac');
-    const modifier = isMac ? 'metaKey' : 'ctrlKey';
+    const hasGoToDefinitionModifier = (evt: {ctrlKey?: boolean; metaKey?: boolean}) => {
+      if (isMac) {
+        return Boolean(evt.metaKey || evt.ctrlKey);
+      }
+      return Boolean(evt.ctrlKey);
+    };
 
     const updateUnderline = (pos: any, withModifier: boolean) => {
       const target = withModifier
@@ -818,19 +823,19 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       const evt = e.event?.browserEvent as MouseEvent | undefined;
       const pos = e.target?.position;
       if (!evt || !pos) return;
-      const withMod = (evt as any)[modifier];
+      const withMod = hasGoToDefinitionModifier(evt as any);
       updateUnderline(pos, withMod);
       const target = withMod ? getFileLinkTargetAtPosition(monaco, model, content, pos) : null;
       editor.updateOptions({ mouseStyle: target ? 'pointer' : 'text' });
     });
 
     const onKeyDown = editor.onKeyDown((e: any) => {
-      if ((isMac && e.metaKey) || (!isMac && e.ctrlKey)) ctrlDownRef.current = true;
+      if (hasGoToDefinitionModifier(e)) ctrlDownRef.current = true;
       const pos = editor.getPosition();
       if (pos) updateUnderline(pos, ctrlDownRef.current);
     });
     const onKeyUp = editor.onKeyUp((e: any) => {
-      if (!(isMac ? e.metaKey : e.ctrlKey)) ctrlDownRef.current = false;
+      if (!hasGoToDefinitionModifier(e)) ctrlDownRef.current = false;
       linkDecorationsRef.current = editor.deltaDecorations(linkDecorationsRef.current, []);
       editor.updateOptions({ mouseStyle: 'text' });
     });
@@ -839,7 +844,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       const evt = e.event?.browserEvent as MouseEvent | undefined;
       const pos = e.target?.position;
       if (!evt || !pos) return;
-      const withMod = (evt as any)[modifier];
+      const withMod = hasGoToDefinitionModifier(evt as any);
       if (!withMod) return;
       const target = getFileLinkTargetAtPosition(monaco, model, content, pos);
       if (target) {
