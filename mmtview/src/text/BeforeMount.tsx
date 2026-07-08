@@ -798,7 +798,7 @@ export const handleBeforeMount = (monaco: any) => {
     };
 
     monaco.languages.registerCompletionItemProvider("yaml", {
-        provideCompletionItems: async (model: any, position: any) => {
+        provideCompletionItems: async (model: any, position: any, context: any) => {
             // Only provide completions for YAML language
             if (model.getLanguageId() !== "yaml") {
                 return { suggestions: [] };
@@ -955,6 +955,43 @@ export const handleBeforeMount = (monaco: any) => {
 
             const currentIndent = lineContent.search(/\S|$/);
             const parentContext = getParentContext(lines, currentIndent, firstLine);
+
+            const isImportValuePosition = (() => {
+                const kvMatch = lineContent.match(/^(\s*)(\w+):\s*(.*)$/);
+                if (!kvMatch || parentContext !== 'import') {
+                    return false;
+                }
+                const colonPosition = lineContent.indexOf(':');
+                return position.column >= colonPosition + 2;
+            })();
+
+            if (context?.triggerCharacter === '+' || context?.triggerCharacter === '/') {
+                if (!isImportValuePosition) {
+                    return { suggestions: [] };
+                }
+                if (context.triggerCharacter === '+') {
+                    const typedValue = (lineContent.match(/^(\s*)(\w+):\s*(.*)$/)?.[3] ?? '')
+                        .replace(/^\s+/, '');
+                    if (typedValue === '+') {
+                        return {
+                            suggestions: [{
+                                label: '+/',
+                                kind: monaco.languages.CompletionItemKind.File,
+                                insertText: '/',
+                                detail: 'Project root import',
+                                documentation: 'Import from the project root (multimeter.mmt folder). Continue typing to browse files.',
+                                range: {
+                                    startLineNumber: position.lineNumber,
+                                    startColumn: position.column,
+                                    endLineNumber: position.lineNumber,
+                                    endColumn: position.column,
+                                },
+                            }],
+                        };
+                    }
+                    return { suggestions: [] };
+                }
+            }
 
             // Detect whether the cursor is at a value position (after "key: ") on the current line.
             // When true, skip context-specific key suggestions and fall through to the general
@@ -1434,7 +1471,7 @@ export const handleBeforeMount = (monaco: any) => {
 
             return { suggestions };
         },
-        triggerCharacters: ["\n", " ", ":", "-", ".", "$", "{"],
+        triggerCharacters: ["\n", " ", ":", "-", ".", "$", "{", "+", "/"],
     });
 
     // Validation setup

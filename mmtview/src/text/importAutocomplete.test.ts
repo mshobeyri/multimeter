@@ -50,4 +50,14 @@ describe('import file autocomplete path prefix parsing', () => {
   it('keeps nested folder prefix', () => {
     expect(splitPathPrefix('a/b/te')).toEqual({ folder: 'a/b/', partial: 'te' });
   });
+
+  it('keeps +/ project-root folder prefix', () => {
+    expect(splitPathPrefix('+/')).toEqual({ folder: '+/', partial: '' });
+    expect(splitPathPrefix('+/ex')).toEqual({ folder: '+/', partial: 'ex' });
+  });
+
+  it('keeps nested +/ folder prefix', () => {
+    expect(splitPathPrefix('+/apis/')).toEqual({ folder: '+/apis/', partial: '' });
+    expect(splitPathPrefix('+/apis/te')).toEqual({ folder: '+/apis/', partial: 'te' });
+  });
 });
