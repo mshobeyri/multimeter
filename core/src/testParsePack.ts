@@ -232,6 +232,84 @@ function reorderStages(stages: any[]): any[] {
   });
 }
 
+/**
+ * Recover partial/incomplete YAML scalar values for call/http step fields.
+ * While typing URLs, `- call: http:` is parsed as `{ call: { http: null } }`.
+ */
+function normalizeScalarStepValue(value: unknown): string | undefined {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    const obj = value as Record<string, unknown>;
+    const keys = Object.keys(obj);
+    if (keys.length === 1 && (obj[keys[0]] === null || obj[keys[0]] === undefined)) {
+      return `${keys[0]}:`;
+    }
+    return undefined;
+  }
+  return undefined;
+}
+
+function normalizeTestFlowStep(step: unknown): any {
+  if (!step || typeof step !== 'object' || Array.isArray(step)) {
+    return step;
+  }
+  const normalized = {...step} as Record<string, any>;
+  if ('call' in normalized) {
+    const call = normalizeScalarStepValue(normalized.call);
+    if (call === undefined) {
+      delete normalized.call;
+    } else {
+      normalized.call = call;
+    }
+  }
+  if ('http' in normalized) {
+    const http = normalizeScalarStepValue(normalized.http);
+    if (http === undefined) {
+      delete normalized.http;
+    } else {
+      normalized.http = http;
+    }
+  }
+  if (Array.isArray(normalized.steps)) {
+    normalized.steps = normalizeTestFlowSteps(normalized.steps);
+  }
+  if (Array.isArray(normalized.else)) {
+    normalized.else = normalizeTestFlowSteps(normalized.else);
+  }
+  return normalized;
+}
+
+function normalizeTestFlowSteps(steps: unknown): TestFlowSteps | undefined {
+  if (!Array.isArray(steps)) {
+    return undefined;
+  }
+  return steps.map((step) => normalizeTestFlowStep(step));
+}
+
+function normalizeTestFlowStages(stages: unknown): any[] | undefined {
+  if (!Array.isArray(stages)) {
+    return undefined;
+  }
+  return stages.map((stage) => {
+    if (!stage || typeof stage !== 'object') {
+      return stage;
+    }
+    const normalized = {...stage} as Record<string, any>;
+    if (Array.isArray(normalized.steps)) {
+      normalized.steps = normalizeTestFlowSteps(normalized.steps);
+    }
+    return normalized;
+  });
+}
+
 export function yamlToTest(yamlContent: string): TestData {
   try {
     const doc = parseYaml(quoteExpectOperators(yamlContent)) as any;
@@ -250,8 +328,8 @@ export function yamlToTest(yamlContent: string): TestData {
       import: doc.import,
       inputs: doc.inputs,
       outputs: doc.outputs,
-      steps: doc.steps,
-      stages: doc.stages,
+      steps: normalizeTestFlowSteps(doc.steps),
+      stages: normalizeTestFlowStages(doc.stages),
     };
   } catch {
     return {} as TestData;

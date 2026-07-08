@@ -78,8 +78,8 @@ class TestGraphBuilder {
       return this.buildLoop(step as any, kind, prevTails);
     }
     if (kind === 'call') {
-      const alias = (step as any).call as string;
-      const imported = this.callTitleByAlias[alias];
+      const alias = typeof (step as any).call === 'string' ? (step as any).call : '';
+      const imported = alias ? this.callTitleByAlias[alias] : undefined;
       if (imported?.kind === 'test' && imported.test) {
         return this.buildImportedTestCall(step as any, alias, imported, prevTails);
       }
@@ -91,8 +91,8 @@ class TestGraphBuilder {
       kind: mappedKind,
       label,
       detail,
-      sourceFile: kind === 'call'
-        ? this.callTitleByAlias[(step as any).call as string]?.filePath
+      sourceFile: kind === 'call' && typeof (step as any).call === 'string'
+        ? this.callTitleByAlias[(step as any).call]?.filePath
         : undefined,
     });
     for (const t of prevTails) {
@@ -302,15 +302,15 @@ interface LeafMapping {
 function mapLeaf(step: any, kind: string, callTitleByAlias: FlowCallImportMap): LeafMapping {
   switch (kind) {
     case 'call': {
-      const alias = step.call as string;
-      const imported = callTitleByAlias[alias];
-      const label = imported?.title || alias || (step.id as string) || 'call';
+      const alias = typeof step.call === 'string' ? step.call : '';
+      const imported = alias ? callTitleByAlias[alias] : undefined;
+      const label = imported?.title || alias || (typeof step.id === 'string' ? step.id : '') || 'call';
       const detail = describeCall(step);
       return { mappedKind: 'call', label, detail };
     }
     case 'http': {
       const method = String(step.method || 'get').toUpperCase();
-      const url = String(step.http || 'http');
+      const url = typeof step.http === 'string' ? step.http : 'http';
       return { mappedKind: 'call', label: `${method} ${truncate(url, 48)}`, detail: url };
     }
     case 'run':
