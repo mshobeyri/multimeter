@@ -225,26 +225,47 @@ const comparisonToJSfunc = (type: 'check'|'assert', comparison: Comparison, useE
   if (!normalized) {
     return '';
   }
-  const {actual, expected, raw, title, details} = normalized;
+  const {actual, operator, expected, raw, title, details} = normalized;
   // Determine report level: internal (useExternalReport=false, direct run) vs external (useExternalReport=true, imported or in suite)
   const reportCfg = normalizeReportConfig(
     (comparison && typeof comparison === 'object') ? (comparison as any).report : undefined
   );
   const reportLevel = useExternalReport ? reportCfg.external : reportCfg.internal;
-  const conditionStatement = conditionalStatementToJSfunc(raw);
+  const actualTrimmed = typeof actual === 'string' ? actual.trim() : '';
+  const actualRuntimeExpr = actualTrimmed && /^\$\{.+\}$/.test(actualTrimmed)
+    ? normalizeRuntimeActualExpression(actualTrimmed.slice(2, -1))
+    : undefined;
+  const conditionStatement = actualRuntimeExpr
+    ? comparisonFromPartsToJSfunc(actualRuntimeExpr, operator, expected)
+    : conditionalStatementToJSfunc(raw);
   const finalTitle = typeof title === 'string' ? toTemplateWithVars(title) : undefined;
   const finalDetails = typeof details === 'string' ? toTemplateWithVars(details) : undefined;
   // For actual: if it's a ${...} variable reference, pass the raw JS expression so
   // objects preserve their type; otherwise keep as template literal for plain strings.
-  const actualTrimmed = typeof actual === 'string' ? actual.trim() : '';
-  const finalActual = actualTrimmed && /^\$\{.+\}$/.test(actualTrimmed)
-    ? actualTrimmed.slice(2, -1)
+  const finalActual = actualRuntimeExpr
+    ? actualRuntimeExpr
     : (typeof actual === 'string' ? toTemplateWithVars(actual) : undefined);
   const finalExpected = typeof expected === 'string' ? toTemplateWithVars(expected) : undefined;
   // Strip ${...} from comparison display string so UI shows clean field names
   const displayRaw = raw.replace(/\$\{([^}]+)\}/g, '$1');
   return `check_(${conditionStatement}, '${type}', ${JSON.stringify(displayRaw)}, '${reportLevel}', ${finalTitle}, ${finalDetails}, ${finalActual}, ${finalExpected});\n`;
 };
+
+function normalizeRuntimeActualExpression(expression: string): string {
+  const trimmed = String(expression || '').trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+  const dotAccessMatch = trimmed.match(/^([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)(.*)$/);
+  if (!dotAccessMatch) {
+    return trimmed;
+  }
+  const [, resultVar, root, rest] = dotAccessMatch;
+  if (!DEFAULT_OUTPUT_KEY_SET.has(root)) {
+    return trimmed;
+  }
+  return outputAccessExpression(resultVar, `${root}${rest}`);
+}
 
 export const checkToJSfunc = (check: Comparison, useExternalReport: boolean): string =>
   comparisonToJSfunc('check', check, useExternalReport);

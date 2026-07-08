@@ -693,6 +693,60 @@ describe('check/assert details templating', () => {
     expect(js).toContain('`result code is ${myCall.result_code}`');
     expect(js).toContain("check_(");
   });
+
+  it('resolves default output roots in ${...} check actual values', async () => {
+    const events: Record<string, any>[] = [];
+    const js = await rootTestToJsfunc({
+      name: 'checkDefaultOutputAccess',
+      test: {
+        type: 'test',
+        steps: [
+          {
+            call: 'echo',
+            id: 'xxx',
+            expect: {
+              'body.body.username': 'mehrdad',
+            },
+          } as any,
+          {
+            check: {
+              title: 'xx',
+              actual: '${xxx.body.body.username}',
+              operator: '==',
+              expected: 'mehrdad',
+              details: 'xxx',
+            },
+          } as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/main.mmt',
+    });
+
+    await runJSCode({
+      js: `
+        const echo = async () => ({ _: { body: { body: { username: 'mehrdad' } } } });
+        ${js}
+      `,
+      title: 'check-default-output-access-runtime',
+      logger: jest.fn(),
+      runId: 'run-check-default-output',
+      reporter: (event: Record<string, any>) => {
+        events.push(event);
+      },
+    });
+
+    const checkStep = events.find((event) => event.scope === 'test-step' && event.stepType === 'check');
+    expect(checkStep).toBeDefined();
+    expect(checkStep?.status).toBe('passed');
+    expect(checkStep?.expects?.[0]).toMatchObject({
+      comparison: 'body.body.username == mehrdad',
+      actual: 'mehrdad',
+      expected: 'mehrdad',
+      status: 'passed',
+    });
+  });
 });
 
 describe('rootTestToJsfunc + import tracker', () => {
