@@ -4,6 +4,7 @@ import {indentLines, timeUnitToMs, toInputsParams} from './JSerHelper';
 import {Comparison, ComparisonObject, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, ScalarExpectValue, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, normalizeReportConfig, opsList, ReportConfig, ReportLevel, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
 import {getTestFlowStepType} from './testParsePack';
 import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
+import {isOmitSentinel, normalizeOmitToNull} from './omitKeyword';
 import {replaceEnvTokensPlain, toTemplateWithEnvVars} from './variableReplacer';
 
 function randomName(): string {
@@ -280,13 +281,17 @@ export const assertToJSfunc = (assert: Comparison, useExternalReport: boolean): 
  * - Number or boolean: converted to string, defaults to '==' operator.
  */
 export const parseExpectValue = (value: ExpectValue): { operator: string; expected: ExpectValue } => {
-  if (value === null || Array.isArray(value) || typeof value === 'object') {
-    return { operator: '==', expected: value };
+  if (isOmitSentinel(value)) {
+    return {operator: '==', expected: null};
   }
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return { operator: '==', expected: value };
+  const normalizedValue = normalizeOmitToNull(value);
+  if (normalizedValue === null || Array.isArray(normalizedValue) || typeof normalizedValue === 'object') {
+    return { operator: '==', expected: normalizedValue };
   }
-  const trimmed = String(value).trim();
+  if (typeof normalizedValue === 'number' || typeof normalizedValue === 'boolean') {
+    return { operator: '==', expected: normalizedValue };
+  }
+  const trimmed = String(normalizedValue).trim();
   const prefixed = splitCheckOperatorPrefix(trimmed);
   if (prefixed) {
     return { operator: prefixed.operator, expected: unquoteEmpty(prefixed.expected) };
@@ -307,11 +312,13 @@ const isExplicitMultiCheckArray = (value: unknown): value is ScalarExpectValue[]
 };
 
 const expectValueToDisplay = (value: ExpectValue): string => {
-  return typeof value === 'string' ? value : JSON.stringify(value);
+  const normalized = normalizeOmitToNull(value);
+  return typeof normalized === 'string' ? normalized : JSON.stringify(normalized);
 };
 
 const expectValueToJs = (value: ExpectValue): string => {
-  return typeof value === 'string' ? toTemplateWithVars(value) : JSON.stringify(value);
+  const normalized = normalizeOmitToNull(value);
+  return typeof normalized === 'string' ? toTemplateWithVars(normalized) : JSON.stringify(normalized);
 };
 
 const comparisonFromPartsToJSfunc = (actualExpr: string, operator: string, expected: ExpectValue): string => {

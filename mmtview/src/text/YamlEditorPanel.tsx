@@ -51,6 +51,7 @@ const PLAIN_TOKEN_HIGHLIGHT_RE = new RegExp(
   `:\\s(?:[ieorc]:${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}|e:\\{${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}\\})`,
   'g'
 );
+const YAML_CONSTANT_HIGHLIGHT_RE = /(^|:\s+|-\s+)(omit|null)(?=\s*(?:#.*)?$|\s|,|\]|\})/gm;
 
 interface YamlEditorPanelProps {
   content: string;
@@ -126,6 +127,7 @@ function getDescriptionFoldLines(model: any): number[] {
 const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
 const UNDEFINED_INPUT_CLASS = "mmt-undefined-input-underline";
 const EXPECT_OP_CLASS = "mmt-expect-operator";
+const YAML_CONSTANT_CLASS = "mmt-yaml-constant";
 
 /** Known comparison operators, longest first so >= matches before > */
 const EXPECT_OPS = ['==', '!=', '>=', '<=', '=@', '!@', '=C', '!C', '=*', '!*', '=~', '!~', '=#', '!#', '=%', '!%', '=^', '!^', '=$', '!$', '>', '<'];
@@ -915,6 +917,26 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
             end.column
           ),
           options: { inlineClassName: I_PREFIX_CLASS }
+        });
+      }
+    }
+    {
+      const value = model.getValue();
+      let match;
+      while ((match = YAML_CONSTANT_HIGHLIGHT_RE.exec(value)) !== null) {
+        const full = match[0];
+        const token = match[2];
+        const tokenOffset = full.lastIndexOf(token);
+        const start = model.getPositionAt(match.index + tokenOffset);
+        const end = model.getPositionAt(match.index + tokenOffset + token.length);
+        matches.push({
+          range: new monaco.Range(
+            start.lineNumber,
+            start.column,
+            end.lineNumber,
+            end.column
+          ),
+          options: { inlineClassName: YAML_CONSTANT_CLASS }
         });
       }
     }

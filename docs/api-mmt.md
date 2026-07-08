@@ -484,6 +484,12 @@ Notes
   - `<<i:tags[0]>>` — array/string index access
   - `<<i:message[0:3]>>` — string/array slice (end-exclusive)
 
+Input keyword values:
+- `omit` (unquoted) removes the target field from request objects (headers/query/cookies/body). In arrays it keeps index shape by writing `null`.
+- `null` (unquoted) sends a JSON/YAML null value.
+- `"omit"` and `"null"` are literal strings (quoted on purpose) and stay strings after formatting.
+- This applies to top-level `inputs`, call-time `inputs`, CLI `-e key=value`, and API Tester input overrides.
+
 Example:
 ```yaml
 inputs:
@@ -548,6 +554,21 @@ outputs:
   session: cookies[session_id]
   userId: $[body][user][id]
 ```
+
+Missing vs null behavior:
+- If an extraction path is missing (for example `body.user.missing`), the output value is `omit`.
+- If an extraction path exists and its value is literally `null`, the output value is `null`.
+- Use this distinction in tests/debugging to tell “not present” apart from “present but null”.
+
+Example:
+```yaml
+outputs:
+  maybeName: body.user.name
+  maybeMiddleName: body.user.middleName
+```
+- If response is `{ "user": { "name": null } }`:
+  - `maybeName` => `null`
+  - `maybeMiddleName` => `omit`
 
 JSONPath syntax: `$` references the root response object. Use `$[body][key]` or `$body[key]` to drill into the body, headers, or cookies sections. This is an alternative to the `body[...]` bracket notation.
 
@@ -738,7 +759,7 @@ examples:
 - title: string
 - tags: string[]
 - description: string
-- inputs: record<string, string | number | boolean | null>
+- inputs: record<string, string | number | boolean | null> (+ `omit` keyword)
 - outputs: record<string, string>
 - setenv: record<string, string>
 - url: string (can contain query string)

@@ -11,6 +11,8 @@ export type ReportFormat = 'junit' | 'mmt' | 'html' | 'md';
 
 const {mergeEnv, resolvePresetEnv} =
     ((mmtcore as any).runConfig || {}) as any;
+const OMIT_SENTINEL =
+    ((mmtcore as any).omitKeyword || {}).OMIT_SENTINEL || '__MMT_OMIT_KEYWORD__';
 
 const LOG_LEVEL_PRIORITY: Record<string, number> = {
   error: 0,
@@ -52,6 +54,12 @@ type AnyOpts = Record<string, any>;
 
 function coerceCliValue(v: string): any {
   const t = (v ?? '').trim();
+  if (t === 'omit') {
+    return OMIT_SENTINEL;
+  }
+  if (t === 'null') {
+    return null;
+  }
   if (/^(true|false)$/i.test(t)) {
     return /^true$/i.test(t);
   }

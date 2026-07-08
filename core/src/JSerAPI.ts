@@ -2,6 +2,7 @@ import {APIData, AuthConfig} from './APIData';
 import {JSONRecord} from './CommonData';
 import {indentLines, toInputsParams} from './JSerHelper';
 import {formatBody} from './markupConvertor';
+import {stripOmitFromRequest} from './omitKeyword';
 import {DEFAULT_EXTRACTION_RULES} from './outputExtractor';
 import {replaceAllRefs, toTemplateWithEnvVars} from './variableReplacer';
 
@@ -27,6 +28,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
 
   let replaced =
       replaceAllRefs(ctx.api, paramsAsObj, ctx.inputs, ctx.envVars ?? {});
+  replaced = stripOmitFromRequest(replaced);
 
   let formattedBody =
       formatBody(replaced.format || 'json', replaced.body || '', false);

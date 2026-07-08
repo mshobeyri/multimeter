@@ -20,6 +20,7 @@ interface TextEditorProps {
 }
 
 const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
+const YAML_CONSTANT_CLASS = "mmt-yaml-constant";
 
 let graphqlRegistered = false;
 function registerGraphQLLanguage(monaco: any) {
@@ -118,6 +119,18 @@ const TextEditor: React.FC<TextEditorProps> = ({
         background:rgba(150, 246, 255, 0.27);
         color:rgb(203, 203, 203) !important;
         border-radius: 2px;
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
+  useEffect(() => {
+    if (document.getElementById("mmt-yaml-constant-style")) return;
+    const style = document.createElement("style");
+    style.id = "mmt-yaml-constant-style";
+    style.innerHTML = `
+      .${YAML_CONSTANT_CLASS} {
+        color: var(--mmt-yaml-constant-color, #569cd6) !important;
       }
     `;
     document.head.appendChild(style);

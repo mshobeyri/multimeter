@@ -6,6 +6,7 @@ import { ParamConstraintOption } from "mmt-core/paramConstraints";
 import { safeList } from "mmt-core/safer";
 import { JSONRecord, JSONValue } from "mmt-core/CommonData";
 import { valueToString, stringToValue } from "./convertor";
+import { isOmitSentinel } from "mmt-core/omitKeyword";
 
 interface VEditorProps {
   label: string;
@@ -78,8 +79,15 @@ const VEditor: React.FC<VEditorProps> = ({
       <div>
         {safeList(keys).map((key, index) => {
           const currentValue = value?.[key];
-          const displayValue = valueToString(currentValue === undefined ? "" : currentValue);
+          const displayValue = valueToString(currentValue);
           const hasValue = currentValue !== undefined;
+          const typeLabel = currentValue === null
+            ? "null"
+            : isOmitSentinel(currentValue)
+              ? "omit"
+              : Array.isArray(currentValue)
+                ? "array"
+                : typeof currentValue;
           const pickerOptions = inputConstraints?.[key];
 
           return (
@@ -88,7 +96,7 @@ const VEditor: React.FC<VEditorProps> = ({
                 <span style={{ fontWeight: 500 }}>{key}</span>
                 {hasValue && (
                   <span style={{ fontSize: "8px", color: "#888", marginLeft: "4px" }}>
-                    ({Array.isArray(currentValue) ? "array" : typeof currentValue})
+                    ({typeLabel})
                   </span>
                 )}
               </div>

@@ -129,6 +129,19 @@ Features shown:
 - **Parameter annotations** (`<<i:…>>`, `<<o:…>>`) in description for docs
 - **Examples** as runnable smoke tests with expected outputs
 
+Keyword example (`omit` vs `null`):
+```yaml
+inputs:
+  middleName: omit      # remove field from request
+  nickname: "omit"      # literal string
+  note: null            # actual null
+  noteText: "null"      # literal string
+outputs:
+  middle: body.profile.middleName
+```
+- If `middleName` is missing in response, `middle` resolves to `omit`.
+- If `middleName` exists with `null`, `middle` resolves to `null`.
+
 ### `apis/pets/create_pet.mmt` — Create a pet
 
 ```yaml

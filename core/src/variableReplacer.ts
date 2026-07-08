@@ -3,6 +3,7 @@ import {JSONRecord} from './CommonData';
 import {normalizeTokenName} from './JSerHelper';
 import {RANDOM_TOKEN_MAP} from './Random';
 import {CURRENT_TOKEN_MAP} from './Current';
+import {isOmitSentinel} from './omitKeyword';
 import {safeList} from './safer';
 import {TestData} from './TestData';
 
@@ -302,6 +303,9 @@ function resolveDynamicTokenValue(
   switch (prefix) {
     case 'i': {
       const resolved = resolveEmbeddedTokens(mergedInputs[name], envs);
+      if (isOmitSentinel(resolved)) {
+        return resolved;
+      }
       return applyValueAccessor(resolved, accessor);
     }
     case 'e':

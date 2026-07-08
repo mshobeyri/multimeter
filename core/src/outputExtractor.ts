@@ -2,6 +2,7 @@ import {xml2js} from 'xml-js';
 
 import {JSONRecord} from './CommonData';
 import {flattenXmlObj} from './markupConvertor';
+import {OMIT_SENTINEL, isOmitSentinel} from './omitKeyword';
 
 export interface ResponseData {
   type: 'xml'|'json'|'text'|'auto';
@@ -339,6 +340,50 @@ function parseBracketPath(path: string): {section: string; parts: string[]} {
   return {section, parts};
 }
 
+function navigatePathParts(current: any, parts: string[]): any {
+  for (const part of parts) {
+    if (isOmitSentinel(current)) {
+      return OMIT_SENTINEL;
+    }
+    if (current === undefined || current === null) {
+      return OMIT_SENTINEL;
+    }
+
+    if (/^\d+$/.test(part)) {
+      const index = parseInt(part, 10);
+      if (!Array.isArray(current)) {
+        return OMIT_SENTINEL;
+      }
+      current = current[index];
+    } else {
+      current = current[part];
+    }
+  }
+
+  if (current === undefined) {
+    return OMIT_SENTINEL;
+  }
+  return current;
+}
+
+function resolveResponseSection(response: ResponseData, section: string): any {
+  switch (section) {
+    case 'body':
+      return response.body;
+    case 'header':
+    case 'headers':
+      return response.headers;
+    case 'cookies':
+      return response.cookies;
+    case 'message':
+      return response.message ?? response.body;
+    case 'metadata':
+      return response.metadata ?? response.headers;
+    default:
+      return OMIT_SENTINEL;
+  }
+}
+
 // JSONPath resolver that handles $ syntax with bracket notation like
 // $[body][user][id]
 function resolveJSONPath(response: ResponseData, path: string): any {
@@ -362,54 +407,13 @@ function resolveJSONPath(response: ResponseData, path: string): any {
 
   // If there's a section specified after $, use it
   if (section) {
-    switch (section) {
-      case 'body':
-        current = response.body;
-        break;
-      case 'headers':
-        current = response.headers;
-        break;
-      case 'cookies':
-        current = response.cookies;
-        break;
-      case 'message':
-        current = response.message ?? response.body;
-        break;
-      case 'metadata':
-        current = response.metadata ?? response.headers;
-        break;
-      default:
-        // Unknown section, return null
-        return null;
+    current = resolveResponseSection(response, section);
+    if (isOmitSentinel(current)) {
+      return OMIT_SENTINEL;
     }
   }
 
-  // Navigate through the parts
-  for (let part of parts) {
-    if (current === null || current === undefined) {
-      return null;
-    }
-
-    // Check if it's a numeric index for arrays
-    if (/^\d+$/.test(part)) {
-      const index = parseInt(part, 10);
-      if (Array.isArray(current)) {
-        current = current[index];
-      } else {
-        return null;
-      }
-    }
-    // Property access
-    else {
-      current = current[part];
-    }
-
-    if (current === undefined || current === null) {
-      return null;
-    }
-  }
-
-  return current ?? null;
+  return navigatePathParts(current, parts);
 }
 
 function resolvePath(response: ResponseData, expr: string): any {
@@ -418,58 +422,19 @@ function resolvePath(response: ResponseData, expr: string): any {
     const {section, parts} = parseBracketPath(expr);
 
     if (!section) {
-      return null;
+      return OMIT_SENTINEL;
     }
 
-    // Get the initial value based on section
-    let val: any;
-    switch (section) {
-      case 'body':
-        val = response.body;
-        break;
-      case 'header':
-      case 'headers':
-        val = response.headers;
-        break;
-      case 'cookies':
-        val = response.cookies;
-        break;
-      case 'message':
-        val = response.message ?? response.body;
-        break;
-      case 'metadata':
-        val = response.metadata ?? response.headers;
-        break;
-      default:
-        return null;
+    const val = resolveResponseSection(response, section);
+    if (isOmitSentinel(val)) {
+      return OMIT_SENTINEL;
     }
 
-    // Process the bracket parts
-    for (let part of parts) {
-      if (val === undefined || val === null) {
-        return null;
-      }
-
-      // Check if it's a numeric index
-      if (/^\d+$/.test(part)) {
-        const index = parseInt(part, 10);
-        if (Array.isArray(val)) {
-          val = val[index];
-        } else {
-          return null;
-        }
-      }
-      // Property access
-      else {
-        val = val[part];
-      }
-    }
-
-    return val ?? null;
+    return navigatePathParts(val, parts);
   }
 
   // If not bracket notation, try dot notation
-  return null;
+  return OMIT_SENTINEL;
 }
 
 function resolveDotPath(response: ResponseData, expr: string): any {
@@ -479,47 +444,12 @@ function resolveDotPath(response: ResponseData, expr: string): any {
   }
 
   const section = parts[0];
-  let val: any;
-  switch (section) {
-    case 'body':
-      val = response.body;
-      break;
-    case 'header':
-    case 'headers':
-      val = response.headers;
-      break;
-    case 'cookies':
-      val = response.cookies;
-      break;
-    case 'message':
-      val = response.message ?? response.body;
-      break;
-    case 'metadata':
-      val = response.metadata ?? response.headers;
-      break;
-    default:
-      return null;
+  const val = resolveResponseSection(response, section);
+  if (isOmitSentinel(val)) {
+    return OMIT_SENTINEL;
   }
 
-  for (let i = 1; i < parts.length; i++) {
-    if (val === undefined || val === null) {
-      return null;
-    }
-    const part = parts[i];
-    // Check if it's a numeric index for arrays
-    if (/^\d+$/.test(part)) {
-      const index = parseInt(part, 10);
-      if (Array.isArray(val)) {
-        val = val[index];
-      } else {
-        return null;
-      }
-    } else {
-      val = val[part];
-    }
-  }
-
-  return val ?? null;
+  return navigatePathParts(val, parts.slice(1));
 }
 
 export function buildBodyExprFromPath(path: PathSegment[]): string {
@@ -714,7 +644,9 @@ export function extractOutputs(
     const isRegexExpr = !!parseRegexExtraction(expr) || expr.startsWith('regex ') ||
         (expr.includes('(') && expr.includes(')') && !expr.includes('['));
     const isPlainKeyword = /^(body|headers?|cookies?|status|duration|details|message|metadata)$/.test(expr);
-    if (!isRegexExpr &&
+    if (isOmitSentinel(extractedValue)) {
+      result[key] = OMIT_SENTINEL;
+    } else if (!isRegexExpr &&
         (isPlainKeyword || expr.startsWith('$') || (expr.includes('[') && expr.includes(']')) || expr.includes('.')) &&
         extractedValue !== null && extractedValue !== undefined) {
       // Preserve the native type (object, array, number, boolean, string)

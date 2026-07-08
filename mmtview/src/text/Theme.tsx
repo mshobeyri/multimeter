@@ -163,4 +163,5 @@ export const defineTheme = (monaco: any) => {
 
   // Expose the tag (operator) colour so decoration CSS can reference it.
   document.documentElement.style.setProperty('--mmt-expect-op-color', `#${colors.yamlTag}`);
+  document.documentElement.style.setProperty('--mmt-yaml-constant-color', `#${colors.yamlTag}`);
 };
