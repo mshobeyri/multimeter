@@ -59,6 +59,9 @@ class TestGraphBuilder {
    * array has a single id; for a branching `if` step it may have multiple.
    */
   buildSteps(steps: TestFlowSteps, prevTails: string[]): string[] {
+    if (!Array.isArray(steps)) {
+      return prevTails;
+    }
     let currentTails = prevTails;
     for (const step of steps ?? []) {
       currentTails = this.buildStep(step, currentTails);
@@ -140,8 +143,8 @@ class TestGraphBuilder {
     for (const t of prevTails) {
       this.connect(t, id);
     }
-    const thenSteps = (step.steps as TestFlowSteps) ?? [];
-    const elseSteps = (step.else as TestFlowSteps) ?? [];
+    const thenSteps = Array.isArray(step.steps) ? (step.steps as TestFlowSteps) : [];
+    const elseSteps = Array.isArray(step.else) ? (step.else as TestFlowSteps) : [];
 
     const tails: string[] = [];
 
@@ -187,7 +190,8 @@ class TestGraphBuilder {
     for (const t of prevTails) {
       this.connect(t, id);
     }
-    const bodyTail = this.buildSteps((step.steps as TestFlowSteps) ?? [], [id]);
+    const loopSteps = Array.isArray(step.steps) ? (step.steps as TestFlowSteps) : [];
+    const bodyTail = this.buildSteps(loopSteps, [id]);
     for (const tail of bodyTail) {
       if (tail !== id) {
         this.connect(tail, id, 'loop', 'loop-back');

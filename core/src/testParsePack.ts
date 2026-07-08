@@ -280,10 +280,10 @@ export function testToYaml(test: TestData): string {
   if (isNonEmptyObject(test.outputs)) {
     yamlObj.outputs = test.outputs;
   }
-  if (test.steps) {
+  if (Array.isArray(test.steps)) {
     yamlObj.steps = reorderSteps(test.steps);
   }
-  if (test.stages) {
+  if (Array.isArray(test.stages)) {
     yamlObj.stages = reorderStages(test.stages);
   }
   return packYaml(yamlObj);

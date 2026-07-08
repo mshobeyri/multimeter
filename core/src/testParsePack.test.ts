@@ -57,6 +57,32 @@ flow:
     expect(y).not.toContain('title:');
   });
 
+  it('testToYaml does not crash when steps is non-array', () => {
+    const malformed = yamlToTest([
+      'type: test',
+      'steps:',
+      '  call:',
+    ].join('\n'));
+
+    expect(() => testToYaml(malformed)).not.toThrow();
+    const y = testToYaml(malformed);
+    expect(y).toContain('type: test');
+    expect(y).not.toContain('steps:');
+  });
+
+  it('testToYaml does not crash when stages is non-array', () => {
+    const malformed = yamlToTest([
+      'type: test',
+      'stages:',
+      '  id: build',
+    ].join('\n'));
+
+    expect(() => testToYaml(malformed)).not.toThrow();
+    const y = testToYaml(malformed);
+    expect(y).toContain('type: test');
+    expect(y).not.toContain('stages:');
+  });
+
   it('getTestFlowStepType detects each known type including data', () => {
     const samples: Array<[TestFlowStep, string]> = [
       [{ stage: { id: 's', steps: [] } } as any, 'stage'],

@@ -50,8 +50,8 @@ function isAllowedOutputKeyReference(outputKey: string, allowedOutputs: Set<stri
 export const testToJsfunc = async(
     ctx: TestContext, root: boolean,
     importTracker: ImportTracker = new ImportTracker()): Promise<string> => {
-  if (ctx.test.stages && ctx.test.stages.length > 0 && ctx.test.steps &&
-      ctx.test.steps.length > 0) {
+  if (Array.isArray(ctx.test.stages) && ctx.test.stages.length > 0 &&
+      Array.isArray(ctx.test.steps) && ctx.test.steps.length > 0) {
     throw new Error(`${ctx.name}: Test cannot have both stages and steps`);
   }
 
@@ -209,8 +209,8 @@ export const testToJsfunc = async(
       }
     }
   };
-  const allSteps = replaced.steps || [];
-  const allStages = replaced.stages || [];
+  const allSteps = Array.isArray(replaced.steps) ? replaced.steps : [];
+  const allStages = Array.isArray(replaced.stages) ? replaced.stages : [];
   if (allSteps.length > 0) {
     validateCallContracts(allSteps, 'steps');
   }
