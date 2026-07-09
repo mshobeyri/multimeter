@@ -2124,6 +2124,43 @@ describe('same-name file imports', () => {
     // The root alias must point to the test setup
     expect(js).toContain('const setup = setup_');
   });
+
+  it('avoids root function name collision with imported file basename', async () => {
+    const mock = createTestFileLoaderMock({
+      '/examples/intermediate/22_omit_keyword/omit_keyword.mmt': [
+        'type: api',
+        'title: Omit keyword',
+        'url: https://test.mmt.dev/echo',
+        'method: post',
+        'format: json',
+        'inputs:',
+        '  displayName: Alex',
+        'body:',
+        '  displayName: i:displayName',
+      ].join('\n'),
+    });
+    setFileLoader(mock.fileLoader);
+
+    const js = await rootTestToJsfunc({
+      name: 'Omit_keyword',
+      test: {
+        type: 'test',
+        title: 'Omit keyword',
+        import: {profile: './omit_keyword.mmt'},
+        steps: [{call: 'profile', id: 'update'} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/examples/intermediate/22_omit_keyword/omit_keyword_test.mmt',
+    });
+
+    expect(js).toContain('const omit_keyword_ = async');
+    expect(js).toContain('const omit_keyword_1_ = async');
+    expect(js).toContain('const profile = omit_keyword_');
+    expect(js).toContain('return omit_keyword_1_({});');
+    expect(js.match(/const omit_keyword_ = async/g)?.length).toBe(1);
+    expect(js.match(/const omit_keyword_1_ = async/g)?.length).toBe(1);
+  });
 });
 
 describe('auth field (apiToJSfunc)', () => {
