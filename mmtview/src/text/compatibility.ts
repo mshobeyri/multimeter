@@ -62,7 +62,7 @@ function findSuiteTestsDeprecatedIssue(content: string, yamlDoc: any): Compatibi
   }
   return {
     id: 'suite-tests-deprecated',
-    message: '`tests` is deprecated. Rename `tests:` to `items:`.',
+    message: '`tests:` is deprecated. Rename it to `items:`',
     line: position.line,
     column: position.column,
     endColumn: position.endColumn,
