@@ -2,6 +2,7 @@ import {parseDocument} from 'yaml';
 import {
   applyCompatibilityFix,
   applyRenameYamlKeyOnLine,
+  findCompatibilityIssueAtPosition,
   findCompatibilityProblems,
 } from './compatibility';
 import {validateYamlContent} from './Validate';
@@ -42,6 +43,21 @@ describe('compatibility deprecations', () => {
     expect(applyRenameYamlKeyOnLine('  tests :', 'tests', 'items')).toBe('  items :');
     const updated = applyCompatibilityFix('type: suite\ntests:\n', {kind: 'renameYamlKey', from: 'tests', to: 'items'}, 2);
     expect(updated).toBe('type: suite\nitems:\n');
+  });
+
+  it('finds the compatibility issue at a clicked position', () => {
+    const content = [
+      'type: suite',
+      'title: Legacy',
+      'tests:',
+      '  - login.mmt',
+    ].join('\n');
+    const doc = parseDocument(content);
+    const issue = findCompatibilityIssueAtPosition(content, doc, 'suite', 3, 2);
+    expect(issue).toMatchObject({
+      id: 'suite-tests-deprecated',
+      applyFix: {kind: 'renameYamlKey', from: 'tests', to: 'items'},
+    });
   });
 });
 

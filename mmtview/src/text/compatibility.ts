@@ -96,6 +96,17 @@ export function findCompatibilityProblems(content: string, yamlDoc: any, docType
   }));
 }
 
+export function findCompatibilityIssueAtPosition(
+  content: string,
+  yamlDoc: any,
+  docType: string | null,
+  line: number,
+  column: number
+): CompatibilityIssue | null {
+  const issues = findCompatibilityIssues(content, yamlDoc, docType);
+  return issues.find((issue) => issue.line === line && column >= issue.column && column < issue.endColumn) ?? null;
+}
+
 export function getCompatibilityDecorations(
   monaco: any,
   model: any,
@@ -112,7 +123,7 @@ export function getCompatibilityDecorations(
     range: new monaco.Range(issue.line, issue.column, issue.line, issue.endColumn),
     options: {
       inlineClassName,
-      hoverMessage: {value: issue.message},
+      hoverMessage: {value: `${issue.message}  \n\n**(click on to fix)**`},
     },
   }));
 }

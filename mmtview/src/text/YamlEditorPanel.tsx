@@ -34,6 +34,8 @@ import {
   type ProblemEntry,
 } from "./validator";
 import {
+  applyCompatibilityFix,
+  findCompatibilityIssueAtPosition,
   findCompatibilityProblems,
   getCompatibilityDecorations,
 } from "./compatibility";
@@ -896,10 +898,31 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       const pos = e.target?.position;
       if (!evt || !pos) return;
       const withMod = hasGoToDefinitionModifier(evt as any);
-      if (!withMod) return;
-      const target = getFileLinkTargetAtPosition(monaco, model, content, pos);
-      if (target) {
-        openRelativeFile(target.path, target.fragment, evt.shiftKey);
+      if (withMod) {
+        const target = getFileLinkTargetAtPosition(monaco, model, content, pos);
+        if (target) {
+          openRelativeFile(target.path, target.fragment, evt.shiftKey);
+        }
+        return;
+      }
+
+      let doc: any = null;
+      try {
+        doc = parseYamlDoc(model.getValue());
+      } catch {
+        doc = null;
+      }
+
+      const issue = findCompatibilityIssueAtPosition(model.getValue(), doc, docType, pos.lineNumber, pos.column);
+      if (!issue) {
+        return;
+      }
+
+      const updated = applyCompatibilityFix(model.getValue(), issue.applyFix, pos.lineNumber);
+      if (updated != null && updated !== model.getValue()) {
+        evt.preventDefault();
+        evt.stopPropagation();
+        setContent(updated);
       }
     });
 
@@ -911,7 +934,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       linkDecorationsRef.current = editor.deltaDecorations(linkDecorationsRef.current, []);
       editor.updateOptions({ mouseStyle: 'text' });
     };
-  }, [content, editorReady]);
+  }, [content, docType, editorReady, setContent]);
 
   // run glyphs and example-run decorations handled in `useRunGlyphs` hook
 
