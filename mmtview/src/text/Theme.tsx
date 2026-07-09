@@ -105,18 +105,30 @@ export const defineTheme = (monaco: any) => {
       // Widgets
       "editorWidget.background": cssVar('--vscode-editorWidget-background', "#232323"),
       "editorWidget.border": cssVar('--vscode-editorWidget-border', "#454545"),
+      "editorHoverWidget.background": cssVar('--vscode-editorHoverWidget-background', cssVar('--vscode-editorWidget-background', "#232323")),
+      "editorHoverWidget.border": "transparent",
+      "editorHoverWidget.foreground": cssVar('--vscode-editorHoverWidget-foreground', cssVar('--vscode-editor-foreground', "#d4d4d4")),
+      "editorHoverWidget.statusBarBackground": cssVar('--vscode-editorHoverWidget-statusBarBackground', cssVar('--vscode-editorWidget-background', "#232323")),
+      "editorMarkerNavigation.background": cssVar('--vscode-editorWidget-background', "#232323"),
+      "editorMarkerNavigation.border": "transparent",
 
       // Suggest widget
       "editorSuggestWidget.background": cssVar('--vscode-editorSuggestWidget-background', "#252526"),
-      "editorSuggestWidget.border": "#00000000",
+      "editorSuggestWidget.border": "transparent",
       "editorSuggestWidget.foreground": cssVar('--vscode-editorSuggestWidget-foreground', "#d4d4d4"),
       "editorSuggestWidget.selectedForeground": cssVar('--vscode-editorSuggestWidget-selectedForeground', "#d4d4d4"),
       "editorSuggestWidget.selectedBackground": cssVar('--vscode-editorSuggestWidget-selectedBackground', "#2c2c2c"),
 
       // Markers
       "editorError.foreground": cssVar('--vscode-editorError-foreground', "#f48771"),
+      "editorError.background": "#00000000",
+      "editorError.border": "transparent",
       "editorWarning.foreground": cssVar('--vscode-editorWarning-foreground', "#cca700"),
+      "editorWarning.background": "#00000000",
+      "editorWarning.border": "transparent",
       "editorInfo.foreground": cssVar('--vscode-editorInfo-foreground', "#75beff"),
+      "editorInfo.background": "#00000000",
+      "editorInfo.border": "transparent",
 
       // Diff editor
       "diffEditor.insertedTextBackground": cssVar('--vscode-diffEditor-insertedTextBackground', "#00809b33"),
