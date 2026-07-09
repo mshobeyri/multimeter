@@ -70,7 +70,7 @@ describe('validateYamlContent API method requirements', () => {
       'type: suite',
       'import:',
       '  flags: ./flags.yml',
-      'tests:',
+      'items:',
       '  - ./tests/login.mmt',
     ].join('\n'));
     const loadErrors = validateYamlContent([

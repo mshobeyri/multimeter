@@ -1,6 +1,6 @@
 # Suite
 
-Use `type: suite` to define a suite MMT file. A suite allows you to run multiple tests together. Under the hood, Multimeter executes each test file specified in the suite.
+Use `type: suite` to define a suite MMT file. A suite runs multiple items together — tests, APIs, HTTP/Bruno files, or other suites. Under the hood, Multimeter executes each file listed in the suite.
 
 Example:
 
@@ -9,7 +9,7 @@ type: suite
 title: Smoke Tests
 tags:
   - smoke
-tests:
+items:
   - test/login_and_get_user_info.mmt
   - test/create_session.mmt
   - test/get_user_info.mmt
@@ -32,21 +32,23 @@ type: suite
 import:
   config: ./suite-config.yaml
 title: ${config.title}
-tests:
+items:
   - ./tests/login.mmt
 ```
 
 See [Data Imports](./data-imports.md).
 
-### tests
-The `tests` property is an array of strings, where each string is a path to a `.mmt`, `.http`, `.https`, or `.bru` file. A suite can run any combination of APIs, tests, HTTP files, Bruno files, or other suites.
+### items
+The `items` property is an array of strings, where each string is a path to a `.mmt`, `.http`, `.https`, or `.bru` file. A suite can run any combination of APIs, tests, HTTP files, Bruno files, or other suites.
+
+> **Legacy alias:** `tests` is still accepted as an alias for `items` in existing suite files.
 
 Paths can be:
 - **Relative** to the suite file's location (e.g., `../tests/login.mmt`)
 - **Project root** paths using `+/` prefix (e.g., `+/tests/login.mmt`) — resolves relative to the directory containing `multimeter.mmt`
 
 ```yaml
-tests:
+items:
   - ../apis/login.mmt
   - ../tests/login_and_get_user_info.mmt
   - ../requests/profile.http
@@ -59,12 +61,12 @@ See [Environment — Project Root Marker](./environment-mmt.md#project-root-mark
 When converting larger Postman collections, Multimeter generates `multimeter.mmt` and uses `+/` paths in generated tests and suites so files can move within the generated project without breaking imports.
 
 ### Sequential and Parallel Execution
-By default, all tests listed in the `tests` array will run in parallel. To control the flow and run tests in sequential stages, use `then` to separate the groups of tests. All tests between `then` separators form a group that runs in parallel. The groups themselves run sequentially, one after the other.
+By default, all items listed in the `items` array will run in parallel. To control the flow and run items in sequential stages, use `then` to separate groups. All items between `then` separators form a group that runs in parallel. The groups themselves run sequentially, one after the other.
 
 ```yaml
 type: suite
 title: Sequential and Parallel Execution Example
-tests:
+items:
   - test1.mmt
   - test2.mmt
   - then
@@ -95,21 +97,21 @@ title: Integration Suite
 servers:
   - mocks/user-service.mmt
   - mocks/auth-service.mmt
-tests:
+items:
   - tests/login.mmt
   - tests/profile.mmt
 ```
 
 This is the recommended way to manage mock servers in suites. It is safe even when the same test file appears multiple times, or when multiple tests use the same server — the server is started once and kept alive for all of them.
 
-#### Inline servers in `tests:`
+#### Inline servers in `items:`
 
-You can also include `type: server` files directly in the `tests` array. Servers start before tests in the same stage and stop automatically when the suite completes.
+You can also include `type: server` files directly in the `items` array. Servers start before items in the same stage and stop automatically when the suite completes.
 
 ```yaml
 type: suite
 title: Integration Suite with Inline Mock Server
-tests:
+items:
   - mocks/user-service.mmt    # type: server — starts first
   - mocks/auth-service.mmt    # runs in parallel with above
   - then
@@ -178,7 +180,7 @@ environment:
   variables:                            # inline variables
     API_URL: http://localhost:8080
     TIMEOUT: 30000
-tests:
+items:
   - tests/login.mmt
   - tests/profile.mmt
 ```
@@ -223,7 +225,7 @@ export:
   - ./reports/results.html    # HTML report
   - ./reports/results.md      # Markdown report
   - +/reports/results.mmt     # MMT format (project root)
-tests:
+items:
   - tests/login.mmt
   - tests/profile.mmt
 ```
@@ -262,7 +264,7 @@ This design prevents conflicts when suites are composed hierarchically.
 - tags: string[]
 - servers: string[] (paths to `type: server` `.mmt` files — started before tests, kept running for the suite)
 - export: string[] (root-only, paths to report files)
-- tests: string[] (paths to `.mmt` files; use `then` to separate sequential stages)
+- items: string[] (paths to `.mmt` files; use `then` to separate sequential stages; `tests` is a legacy alias)
 - environment: object (root-only)
   - preset: string
   - file: string

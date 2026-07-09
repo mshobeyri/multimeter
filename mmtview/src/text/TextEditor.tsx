@@ -179,6 +179,22 @@ const TextEditor: React.FC<TextEditorProps> = ({
     document.head.appendChild(style);
   }, []);
 
+  useEffect(() => {
+    if (document.getElementById("mmt-deprecated-keyword-style")) {
+      return;
+    }
+    const style = document.createElement("style");
+    style.id = "mmt-deprecated-keyword-style";
+    style.innerHTML = `
+      .mmt-deprecated-keyword {
+        text-decoration: line-through;
+        text-decoration-color: var(--vscode-editorWarning-foreground, #cca700);
+        text-decoration-thickness: 1px;
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
   // Add CSS for run glyph rendered in the gutter
   useEffect(() => {
     if (document.getElementById("mmt-run-glyph-style")) return;

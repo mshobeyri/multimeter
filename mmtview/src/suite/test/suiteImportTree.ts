@@ -9,12 +9,12 @@ export type SuiteImportTreeNode = {
   children?: SuiteImportTreeNode[];
   kind?: 'suite-file' | 'group' | 'suite-info';
   // Only on suite nodes.
-  tests?: string[];
+  items?: string[];
   groups?: string[][];
 };
 
 export type SuiteImportTreeResult = {
-  results: Record<string, { path: string; docType: SuiteImportDocType; tests?: string[]; cycle?: boolean; error?: string }>;
+  results: Record<string, { path: string; docType: SuiteImportDocType; items?: string[]; cycle?: boolean; error?: string }>;
 };
 
 const stableIdFor = (kind: string, key: string) => `suite-import-node:${kind}:${key}`;
@@ -32,7 +32,7 @@ export const createGroupNode = (parentPath: string, groupIndex: number): SuiteIm
   children: [],
 });
 
-export const splitSuiteGroups = (tests: string[]): string[][] => {
+export const splitSuiteGroups = (items: string[]): string[][] => {
   const groups: string[][] = [];
   let current: string[] = [];
   const push = () => {
@@ -41,7 +41,7 @@ export const splitSuiteGroups = (tests: string[]): string[][] => {
       current = [];
     }
   };
-  for (const raw of tests) {
+  for (const raw of items) {
     const trimmed = String(raw ?? '').trim();
     if (!trimmed) {
       continue;

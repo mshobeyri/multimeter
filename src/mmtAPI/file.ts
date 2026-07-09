@@ -335,7 +335,7 @@ type SuiteTreeNodeInfo = {
   path: string;
   absPath?: string;
   docType: 'suite' | 'test' | 'api' | 'env' | 'doc' | 'unknown' | 'missing';
-  tests?: string[];
+  items?: string[];
   cycle?: boolean;
   error?: string;
 };
@@ -388,9 +388,11 @@ export async function handleGetSuiteImportTree(
       const docType = detectType(text, abs);
       if (docType === 'suite') {
         const js: any = parseYaml(text);
-        const tests: any[] = Array.isArray(js?.tests) ? js.tests : [];
-        const strings = tests.filter(t => typeof t === 'string').map(t => String(t));
-        return { path: relPath, absPath: abs, docType, tests: strings };
+        const items: any[] = Array.isArray(js?.items)
+          ? js.items
+          : (Array.isArray(js?.tests) ? js.tests : []);
+        const strings = items.filter(t => typeof t === 'string').map(t => String(t));
+        return { path: relPath, absPath: abs, docType, items: strings };
       }
       return { path: relPath, absPath: abs, docType };
     } catch (err: any) {

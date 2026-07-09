@@ -37,11 +37,11 @@ function getParentContext(lines: string[], currentIndent: number, firstLine: str
 }
 
 describe('suite autocomplete context', () => {
-  it('detects tests: as parent for list items', () => {
-    const content = ['type: suite', 'tests:', '  - api1.mmt'];
+  it('detects items: as parent for list items', () => {
+    const content = ['type: suite', 'items:', '  - api1.mmt'];
     const firstLine = content[0].trim();
     const linesBefore = content.slice(0, 2); // before the list item
     const currentIndent = 2; // two spaces before '-'
-    expect(getParentContext(linesBefore, currentIndent, firstLine)).toBe('tests');
+    expect(getParentContext(linesBefore, currentIndent, firstLine)).toBe('items');
   });
 });

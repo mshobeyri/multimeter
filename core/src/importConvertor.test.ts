@@ -82,10 +82,10 @@ describe('importConvertor', () => {
     expect(collectionSuite).toBeTruthy();
     const collectionSuiteYaml = parseYamlStrict(collectionSuite!.content);
     expect(collectionSuiteYaml.type).toBe('suite');
-    expect(collectionSuiteYaml.tests).toEqual(['../suites/users.mmt']);
+    expect(collectionSuiteYaml.items).toEqual(['../suites/users.mmt']);
 
     const usersSuite = result.files.find(file => file.path === 'suites/users.mmt');
-    expect(parseYamlStrict(usersSuite!.content).tests).toEqual(['../tests/users.mmt']);
+    expect(parseYamlStrict(usersSuite!.content).items).toEqual(['../tests/users.mmt']);
   });
 
   it('uses project-root imports and creates a root env marker for larger Postman conversions', () => {
@@ -104,7 +104,7 @@ describe('importConvertor', () => {
     expect(test.import.request1).toBe('+/api/request-1.mmt');
 
     const suite = parseYamlStrict(result.files.find(file => file.path === 'suites/collection.mmt')!.content);
-    expect(suite.tests).toEqual(['+/tests/collection.mmt']);
+    expect(suite.items).toEqual(['+/tests/collection.mmt']);
   });
 
   it('converts OpenAPI operations into API files', () => {

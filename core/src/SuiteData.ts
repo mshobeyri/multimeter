@@ -14,7 +14,7 @@ export interface SuiteData {
   tags?: string[];
   import?: Record<string, string>;
   servers?: string[];
-  tests: Array<string>;
+  items: Array<string>;
   /** Environment configuration (root-only) */
   environment?: SuiteEnvironment;
   /** Export file paths to generate after suite completion (root-only) */

@@ -511,7 +511,7 @@ description: Fast checks — login and basic CRUD.
 tags:
   - smoke
   - ci
-tests:
+items:
   - +/tests/login_test.mmt
   - +/tests/pet_crud_test.mmt
 ```
@@ -528,7 +528,7 @@ description: |-
 tags:
   - regression
   - nightly
-tests:
+items:
   - +/tests/login_test.mmt
   - then
   - +/tests/pet_crud_test.mmt

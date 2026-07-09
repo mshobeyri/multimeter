@@ -9,7 +9,7 @@ import FilePickerInput from '../../components/FilePickerInput';
 import KSVEditor from '../../components/KSVEditor';
 import { FileContext } from '../../fileContext';
 
-type SuiteEditTab = 'overview' | 'tests' | 'servers' | 'environment' | 'exports';
+type SuiteEditTab = 'overview' | 'items' | 'servers' | 'environment' | 'exports';
 
 interface SuiteEnvironmentConfig {
   preset?: string;
@@ -34,7 +34,9 @@ const createPlaceholderEntry = (): SuiteEntry => ({ id: nextSuiteEntryId(), path
 
 const buildSuiteGroupsFromContent = (content: string): SuiteGroup[] => {
   const parsed = parseYaml(content);
-  const tests: any[] = Array.isArray(parsed?.tests) ? parsed.tests : [];
+  const items: any[] = Array.isArray(parsed?.items)
+    ? parsed.items
+    : (Array.isArray(parsed?.tests) ? parsed.tests : []);
   const groups: SuiteGroup[] = [];
   let currentEntries: SuiteEntry[] = [];
 
@@ -45,7 +47,7 @@ const buildSuiteGroupsFromContent = (content: string): SuiteGroup[] => {
     }
   };
 
-  for (const raw of tests) {
+  for (const raw of items) {
     if (typeof raw !== 'string') {
       continue;
     }
@@ -102,7 +104,7 @@ const canonicalizeSuiteYaml = (content: string): string => {
 const updateSuiteContentWithGroups = (content: string, groups: SuiteGroup[]): string | null => {
   try {
     const doc = parseYamlDoc(content);
-    doc.set('tests', flattenSuiteGroups(groups));
+    doc.set('items', flattenSuiteGroups(groups));
     return canonicalizeSuiteYaml(doc.toString());
   } catch {
     return null;
@@ -593,7 +595,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
         )}
       </div>
       {noItems ? (
-        <div style={{ opacity: 0.8 }}>No suite items found under `tests:`</div>
+        <div style={{ opacity: 0.8 }}>No suite items found under `items:`</div>
       ) : (
         tree
       )}
@@ -744,13 +746,13 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
           Overview
         </button>
         <button
-          className={`tab-button ${activeTab === 'tests' ? 'active' : ''}`}
-          onClick={() => setActiveTab('tests')}
-          title="Tests"
+          className={`tab-button ${activeTab === 'items' ? 'active' : ''}`}
+          onClick={() => setActiveTab('items')}
+          title="Items"
           type="button"
         >
           <span className="codicon codicon-beaker tab-button-icon" aria-hidden />
-          Tests
+          Items
         </button>
         <button
           className={`tab-button ${activeTab === 'servers' ? 'active' : ''}`}
@@ -782,7 +784,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
       </div>
       <div className="test-flow-tree" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
         {activeTab === 'overview' && overviewTabContent}
-        {activeTab === 'tests' && testsTabContent}
+        {activeTab === 'items' && testsTabContent}
         {activeTab === 'servers' && serversTabContent}
         {activeTab === 'environment' && environmentTabContent}
         {activeTab === 'exports' && exportsTabContent}

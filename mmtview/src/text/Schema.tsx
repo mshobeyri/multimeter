@@ -28,7 +28,11 @@ const dataRefOr = (...schemas: any[]) => ({
 export const SuiteSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
-    required: ['type', 'tests'],
+    required: ['type'],
+    anyOf: [
+        { required: ['items'] },
+        { required: ['tests'] },
+    ],
     properties: {
         type: { type: 'string', enum: ['suite'] },
         title: { type: 'string' },
@@ -59,8 +63,17 @@ export const SuiteSchema = {
             type: 'array',
             items: { type: 'string' }
         },
+        items: {
+            type: 'array',
+            items: {
+                anyOf: [
+                    { type: 'string' }
+                ]
+            }
+        },
         tests: {
             type: 'array',
+            description: 'Deprecated alias for items.',
             items: {
                 anyOf: [
                     { type: 'string' }

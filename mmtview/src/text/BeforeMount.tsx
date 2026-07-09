@@ -702,7 +702,7 @@ export const handleBeforeMount = (monaco: any) => {
                 kind: monaco.languages.CompletionItemKind.Keyword,
                 insertText: `- then`,
                 detail: 'Suite barrier',
-                documentation: 'Barrier token. Splits suite tests into sequential groups.'
+                documentation: 'Barrier token. Splits suite items into sequential groups.'
             },
             ...files
                 .filter((p) => typeof p === 'string' && p.toLowerCase().endsWith('.mmt'))
@@ -1187,14 +1187,14 @@ export const handleBeforeMount = (monaco: any) => {
                 }
             }
 
-            // Suite: suggest list items under tests:
-            //   tests:
+            // Suite: suggest list items under items:
+            //   items:
             //     - <here>
             const trimmed = lineContent.trim();
             const listPrefixLength = getListPrefixLength(lineContent, (model.getWordUntilPosition(position)?.startColumn ?? position.column));
             const inListItemLine = trimmed.startsWith('-') || trimmed === '';
             if (firstLine === 'type: suite' && inListItemLine) {
-                if (parentContext === 'tests') {
+                if (parentContext === 'items' || parentContext === 'tests') {
                     const suggestionList = await getSuiteTestsItemSuggestions();
                     const wordInfo = model.getWordUntilPosition(position);
                     const baseStartColumn = wordInfo?.startColumn ?? position.column;
@@ -1502,5 +1502,51 @@ export const handleBeforeMount = (monaco: any) => {
             validateModel(model);
             model.onDidChangeContent(() => validateModel(model));
         }
+    });
+
+    monaco.languages.registerCodeActionProvider('yaml', {
+        provideCodeActions(model: any, range: any) {
+            const lineNumber = range.startLineNumber;
+            const lineText = model.getLineContent(lineNumber);
+            const renameMatch = lineText.match(/^(\s*)tests(\s*):/);
+            if (!renameMatch) {
+                return { actions: [], dispose: () => {} };
+            }
+
+            let docType: string | null = null;
+            for (const line of model.getValue().split('\n')) {
+                const trimmed = line.trim();
+                if (!trimmed || trimmed.startsWith('#')) {
+                    continue;
+                }
+                const match = trimmed.match(/^type:\s*(\w+)/);
+                docType = match ? match[1] : null;
+                break;
+            }
+            if (docType !== 'suite') {
+                return { actions: [], dispose: () => {} };
+            }
+
+            const startColumn = renameMatch[1].length + 1;
+            const endColumn = startColumn + 'tests'.length;
+            return {
+                actions: [{
+                    title: 'Rename tests: to items:',
+                    kind: 'quickfix',
+                    isPreferred: true,
+                    edit: {
+                        edits: [{
+                            resource: model.uri,
+                            versionId: model.getVersionId(),
+                            textEdit: {
+                                range: new monaco.Range(lineNumber, startColumn, lineNumber, endColumn),
+                                text: 'items',
+                            },
+                        }],
+                    },
+                }],
+                dispose: () => {},
+            };
+        },
     });
 };

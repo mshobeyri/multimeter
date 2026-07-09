@@ -33,6 +33,10 @@ import {
   getInvalidStageAfterDecorations,
   type ProblemEntry,
 } from "./validator";
+import {
+  findCompatibilityProblems,
+  getCompatibilityDecorations,
+} from "./compatibility";
 import { useRunGlyphs } from './useRunGlyphs';
 import { useFormatAndOrder } from './useFormatAndOrder';
 // formatting and ordering helper moved to `useFormatAndOrder`
@@ -126,6 +130,7 @@ function getDescriptionFoldLines(model: any): number[] {
 
 const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
 const UNDEFINED_INPUT_CLASS = "mmt-undefined-input-underline";
+const DEPRECATED_KEYWORD_CLASS = "mmt-deprecated-keyword";
 const EXPECT_OP_CLASS = "mmt-expect-operator";
 const YAML_CONSTANT_CLASS = "mmt-yaml-constant";
 
@@ -152,6 +157,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const undefinedEnvRefDecorationsRef = useRef<string[]>([]);
   const undefinedOutputValueDecorationsRef = useRef<string[]>([]);
   const invalidStageAfterDecorationsRef = useRef<string[]>([]);
+  const compatibilityDecorationsRef = useRef<string[]>([]);
   const contentRef = useRef(content);
   const [editorReady, setEditorReady] = useState(false);
   const importsMapRef = useRef<Record<string, string>>({});
@@ -175,6 +181,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const [descriptionProblems, setDescriptionProblems] = useState<ProblemEntry[]>([]);
   const [stageAfterProblems, setStageAfterProblems] = useState<ProblemEntry[]>([]);
   const [authProblems, setAuthProblems] = useState<ProblemEntry[]>([]);
+  const [compatibilityProblems, setCompatibilityProblems] = useState<ProblemEntry[]>([]);
   const [knownEnvNames, setKnownEnvNames] = useState<Set<string>>(new Set());
   // Keep track of whether the editor has detected a canonical key-order issue via markers.
   const shouldShowRunControls = (docType === "test" || docType === "api" || docType === "suite" || docType === "loadtest");
@@ -737,6 +744,50 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     monaco.editor.setModelMarkers(model, "mmt-auth", markers);
   }, [content, docType, editorReady]);
 
+  useEffect(() => {
+    if (!editorReady || !monacoRef.current || !editorRef.current) {
+      setCompatibilityProblems([]);
+      return;
+    }
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) {
+      setCompatibilityProblems([]);
+      return;
+    }
+
+    let doc: any = null;
+    try {
+      doc = parseYamlDoc(content);
+      if (doc.errors && doc.errors.length > 0) {
+        setCompatibilityProblems([]);
+        compatibilityDecorationsRef.current = editor.deltaDecorations(compatibilityDecorationsRef.current, []);
+        return;
+      }
+    } catch {
+      setCompatibilityProblems([]);
+      compatibilityDecorationsRef.current = editor.deltaDecorations(compatibilityDecorationsRef.current, []);
+      return;
+    }
+
+    const problems = findCompatibilityProblems(content, doc, docType);
+    setCompatibilityProblems(problems);
+
+    const decos = getCompatibilityDecorations(
+      monaco,
+      model,
+      content,
+      doc,
+      docType,
+      DEPRECATED_KEYWORD_CLASS
+    );
+    compatibilityDecorationsRef.current = editor.deltaDecorations(
+      compatibilityDecorationsRef.current,
+      decos
+    );
+  }, [content, docType, editorReady]);
+
   // Warn on e:xxx / <<e:xxx>> references to undefined environment variables
   useEffect(() => {
     if (!editorReady || !monacoRef.current || !editorRef.current) {
@@ -1058,12 +1109,13 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       ...descriptionProblems,
       ...stageAfterProblems,
       ...authProblems,
+      ...compatibilityProblems,
     ];
     window.vscode.postMessage({
       command: "updateDocumentProblems",
       problems,
     });
-  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, missingDocFileProblems, exampleKeyProblems, inputRefProblems, envRefProblems, descriptionProblems, stageAfterProblems, authProblems]);
+  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, missingDocFileProblems, exampleKeyProblems, inputRefProblems, envRefProblems, descriptionProblems, stageAfterProblems, authProblems, compatibilityProblems]);
 
   return (
     <div style={{ height: "100%", minHeight: 0, overflow: "hidden", position: "relative" }}>

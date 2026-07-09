@@ -2,11 +2,23 @@ import {splitSuiteGroups, suiteToYaml, yamlToSuite} from './suiteParsePack';
 
 describe('suiteParsePack', () => {
   it('parses suite and keeps then tokens', () => {
-    const raw = `type: suite\ntitle: X\ntests:\n  - a.mmt\n  - then\n  - b.mmt\n`;
+    const raw = `type: suite\ntitle: X\nitems:\n  - a.mmt\n  - then\n  - b.mmt\n`;
     const suite = yamlToSuite(raw);
     expect(suite.type).toBe('suite');
     expect(suite.title).toBe('X');
-    expect(suite.tests).toEqual(['a.mmt', 'then', 'b.mmt']);
+    expect(suite.items).toEqual(['a.mmt', 'then', 'b.mmt']);
+  });
+
+  it('accepts legacy tests field as alias for items', () => {
+    const raw = `type: suite\ntitle: Legacy\ntests:\n  - a.mmt\n  - then\n  - b.mmt\n`;
+    const suite = yamlToSuite(raw);
+    expect(suite.items).toEqual(['a.mmt', 'then', 'b.mmt']);
+  });
+
+  it('prefers items over legacy tests when both are present', () => {
+    const raw = `type: suite\nitems:\n  - preferred.mmt\ntests:\n  - legacy.mmt\n`;
+    const suite = yamlToSuite(raw);
+    expect(suite.items).toEqual(['preferred.mmt']);
   });
 
   it('splits into groups by then', () => {
@@ -34,7 +46,7 @@ environment:
   variables:
     API_URL: http://localhost:8080
     DEBUG: true
-tests:
+items:
   - test.mmt
 `;
     const suite = yamlToSuite(raw);
@@ -51,7 +63,7 @@ tests:
     const raw = `
 type: suite
 title: With Exports
-tests:
+items:
   - test.mmt
 export:
   - ./reports/results.xml
@@ -69,7 +81,7 @@ export:
 type: suite
 title: Empty Env
 environment: {}
-tests:
+items:
   - test.mmt
 `;
     const suite = yamlToSuite(raw);
@@ -80,7 +92,7 @@ tests:
     const raw = `
 type: suite
 title: Empty Export
-tests:
+items:
   - test.mmt
 export: []
 `;
@@ -88,9 +100,11 @@ export: []
     expect(suite.export).toBeUndefined();
   });
 
-  it('suiteToYaml does not add title when missing', () => {
-    const yaml = suiteToYaml({type: 'suite', tests: ['test.mmt']});
+  it('suiteToYaml emits items', () => {
+    const yaml = suiteToYaml({type: 'suite', items: ['test.mmt']});
     expect(yaml).toContain('type: suite');
+    expect(yaml).toContain('items:');
     expect(yaml).not.toContain('title:');
+    expect(yaml).not.toContain('tests:');
   });
 });

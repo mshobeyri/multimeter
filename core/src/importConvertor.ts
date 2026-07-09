@@ -383,11 +383,11 @@ function buildPostmanSuites(postmanJson: any, tests: PostmanTestFile[], useProje
             title,
             description: `Generated from Postman collection folder "${title}".`,
             tags: ['postman'],
-            tests: testsList.length > 0 ? testsList : ['then'],
+            items: testsList.length > 0 ? testsList : ['then'],
           },
         };
       })
-      .filter(suite => suite.data.tests.length > 0 && suite.data.tests[0] !== 'then');
+      .filter(suite => suite.data.items.length > 0 && suite.data.items[0] !== 'then');
 }
 
 function collectFolderTitles(items: PostmanWalkItem[], folders: string[], folderTitles: Map<string, string>): void {

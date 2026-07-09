@@ -227,6 +227,11 @@ const isHttpApiDocument = (parsedContent: any): boolean => {
     return !/^(wss?|grpcs?):\/\//.test(url);
 };
 
+const isTopLevelItemsRequiredError = (error: any): boolean => {
+    return error?.keyword === 'required' && error?.params?.missingProperty === 'items' &&
+        ((error as any).instancePath || (error as any).dataPath || '') === '';
+};
+
 const isTopLevelMethodRequiredError = (error: any): boolean => {
     return error?.keyword === 'required' && error?.params?.missingProperty === 'method' &&
         ((error as any).instancePath || (error as any).dataPath || '') === '';
@@ -354,6 +359,14 @@ export const validateYamlContent = (content: string): any[] => {
                     return;
                 }
                 if (isTopLevelMethodRequiredError(error) && !isHttpApiDocument(parsedContent)) {
+                    return;
+                }
+                if (
+                    isTopLevelItemsRequiredError(error) &&
+                    parsedContent?.type === 'suite' &&
+                    Array.isArray(parsedContent?.tests) &&
+                    parsedContent.tests.length > 0
+                ) {
                     return;
                 }
                 if (isTopLevelGraphqlRequiredError(error) && parsedContent?.protocol === 'graphql') {

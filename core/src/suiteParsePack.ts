@@ -1,6 +1,14 @@
 import YAML from 'yaml';
 import {SuiteData, SuiteEnvironment} from './SuiteData';
 
+function readSuiteItems(doc: any): string[] {
+  const items = intoStringArray(doc?.items);
+  if (items.length > 0) {
+    return items;
+  }
+  return intoStringArray(doc?.tests);
+}
+
 function intoStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) {
     return [];
@@ -39,9 +47,9 @@ export function yamlToSuite(rawYaml: string): SuiteData {
     throw new Error('Not a suite document');
   }
 
-  const tests = intoStringArray(doc.tests);
-  if (tests.length === 0) {
-    throw new Error('Suite.tests must be a non-empty array');
+  const items = readSuiteItems(doc);
+  if (items.length === 0) {
+    throw new Error('Suite.items must be a non-empty array');
   }
 
   const tags = Array.isArray(doc.tags) ? doc.tags.filter((t: any) => typeof t === 'string').map((t: string) => t.trim()).filter(Boolean) : undefined;
@@ -56,7 +64,7 @@ export function yamlToSuite(rawYaml: string): SuiteData {
     tags,
     import: doc.import && typeof doc.import === 'object' && !Array.isArray(doc.import) ? {...doc.import} : undefined,
     servers: intoStringArray(doc.servers).length > 0 ? intoStringArray(doc.servers) : undefined,
-    tests,
+    items,
     environment,
     export: exportPaths.length > 0 ? exportPaths : undefined,
   };
@@ -80,7 +88,7 @@ export function suiteToYaml(suite: SuiteData): string {
   if (suite.import && Object.keys(suite.import).length > 0) {
     yamlObj.import = suite.import;
   }
-  // Canonical order: environment, servers, export, tests
+  // Canonical order: environment, servers, export, items
   if (suite.environment) {
     const env: Record<string, any> = {};
     if (suite.environment.preset) {
@@ -102,7 +110,7 @@ export function suiteToYaml(suite: SuiteData): string {
   if (suite.export && suite.export.length > 0) {
     yamlObj.export = suite.export;
   }
-  yamlObj.tests = suite.tests;
+  yamlObj.items = suite.items;
   return YAML.stringify(yamlObj, { lineWidth: 0 });
 }
 
@@ -112,7 +120,7 @@ export function splitSuiteGroups(items: string[]): string[][] {
 
   const flush = () => {
     if (current.length === 0) {
-      throw new Error('Suite.tests contains an empty group (misplaced "then")');
+      throw new Error('Suite.items contains an empty group (misplaced "then")');
     }
     groups.push(current);
     current = [];
@@ -131,7 +139,7 @@ export function splitSuiteGroups(items: string[]): string[][] {
   }
 
   if (current.length === 0) {
-    throw new Error('Suite.tests cannot end with "then"');
+    throw new Error('Suite.items cannot end with "then"');
   }
   groups.push(current);
   return groups;

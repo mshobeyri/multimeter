@@ -98,7 +98,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.EnumMember,
             insertText: " suite",
             detail: 'Define a suite runner',
-            documentation: 'Suite definition that runs referenced .mmt files. Uses tests: [path | then | path], runs items in a group in parallel and groups sequentially.',
+            documentation: 'Suite definition that runs referenced .mmt files. Uses items: [path | then | path], runs items in a group in parallel and groups sequentially.',
         },
         {
             label: "Load Test",
@@ -222,9 +222,9 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'List of mock server .mmt file paths to start before the suite runs and keep running throughout.',
         },
         {
-            label: "tests",
+            label: "items",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "tests:\n\t- ",
+            insertText: "items:\n\t- ",
             detail: 'Suite items [array]',
             documentation: 'List of .mmt paths and the literal "then" barrier. Items in a group run in parallel; groups run sequentially.',
         },

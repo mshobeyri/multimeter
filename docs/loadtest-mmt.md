@@ -204,7 +204,7 @@ See [Reports — Load Test Report Schema](./reports.md#load-test-report-schema) 
 
 | Suite (`type: suite`) | Load Test (`type: loadtest`) |
 |-----------------------|------------------------------|
-| Uses `tests` | Uses `test` |
+| Uses `items` | Uses `test` |
 | Runs multiple APIs/tests/suites | Runs one `type: test` scenario repeatedly |
 | Supports staged execution with `then` | Supports concurrency, ramp-up, and repeat limits |
 | Can start suite-level mock servers | Does not have suite-level `servers` |

@@ -134,7 +134,7 @@ Minimal example
 ```yaml
 type: suite
 title: Smoke Tests
-tests:
+items:
   - ./tests/login.mmt
   - ./tests/get_user.mmt
   - then

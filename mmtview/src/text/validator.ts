@@ -7,6 +7,9 @@ export type ProblemEntry = {
   severity: "error" | "warning";
   line?: number;
   column?: number;
+  endColumn?: number;
+  category?: "compatibility";
+  applyFix?: import("./compatibility").CompatibilityFix;
   inputKey?: string;
   alias?: string;
 };
@@ -173,6 +176,7 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "environment",
         "servers",
         "export",
+        "items",
         "tests",
       ];
     case "loadtest":
@@ -925,6 +929,7 @@ export function extractSuiteTestLineInfo(doc: any, content: string): SuiteTestLi
   }
   return [
     ...extractStringSequenceLineInfo(doc, content, "servers"),
+    ...extractStringSequenceLineInfo(doc, content, "items", {skipThen: true}),
     ...extractStringSequenceLineInfo(doc, content, "tests", {skipThen: true}),
   ];
 }
