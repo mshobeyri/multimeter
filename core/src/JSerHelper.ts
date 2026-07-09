@@ -177,10 +177,22 @@ export function normalizeTokenName(name: string): string {
       .toLowerCase();
 }
 
-// Convert a string to lowercase and replace spaces with underscores
+// Convert a string to a valid JS identifier fragment: lowercase, invalid
+// characters replaced with underscores, consecutive underscores collapsed.
 export function toLowerUnderscore(input: string): string {
   if (input === undefined || input === null) {
     return '';
   }
-  return String(input).replace(/ /g, '_').toLowerCase();
+  let out = String(input)
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, '_')
+      .replace(/_+/g, '_');
+  if (!out || /^_+$/.test(out)) {
+    return '';
+  }
+  if (/^[0-9]/.test(out)) {
+    out = `_${out}`;
+  }
+  return out;
 }

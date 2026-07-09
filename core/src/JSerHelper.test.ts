@@ -1,4 +1,32 @@
-import {durationToJsMsExpr, isDurationExpression, normalizeTokenName, parseDurationString, timeUnitToMs, toInputsParams} from './JSerHelper';
+import {durationToJsMsExpr, isDurationExpression, normalizeTokenName, parseDurationString, timeUnitToMs, toInputsParams, toLowerUnderscore} from './JSerHelper';
+
+describe('toLowerUnderscore', () => {
+  test('replaces spaces with underscores and lowercases', () => {
+    expect(toLowerUnderscore('First Title')).toBe('first_title');
+  });
+
+  test('removes invalid identifier characters such as em dashes', () => {
+    expect(toLowerUnderscore('Control Flow — for loop')).toBe('control_flow_for_loop');
+  });
+
+  test('collapses consecutive separators', () => {
+    expect(toLowerUnderscore('a---b')).toBe('a_b');
+    expect(toLowerUnderscore('a   b')).toBe('a_b');
+  });
+
+  test('prefixes names that start with a digit', () => {
+    expect(toLowerUnderscore('404 Not Found')).toBe('_404_not_found');
+  });
+
+  test('returns empty string for blank input', () => {
+    expect(toLowerUnderscore('   ')).toBe('');
+    expect(toLowerUnderscore('---')).toBe('');
+  });
+
+  test('preserves trailing underscores from already-normalized names', () => {
+    expect(toLowerUnderscore('first_')).toBe('first_');
+  });
+});
 
 describe('normalizeTokenName', () => {
   test('converts camelCase to snake_case', () => {
