@@ -797,6 +797,68 @@ describe('check/assert details templating', () => {
       status: 'passed',
     });
   });
+
+  it('compares numeric call outputs with unquoted numeric expected values', () => {
+    const statusCheck = checkToJSfunc('${iter.status} == 200', false);
+    expect(statusCheck).toContain('equals_(');
+    expect(statusCheck).toContain(', 200),');
+    expect(statusCheck).not.toContain('`200`');
+
+    const statusCodeCheck = checkToJSfunc('${iter.status_code} == 200', false);
+    expect(statusCodeCheck).toContain('equals_(iter.status_code, 200)');
+
+    const objectCheck = checkToJSfunc({
+      actual: '${iter.status}',
+      operator: '==',
+      expected: 200,
+    } as any, false);
+    expect(objectCheck).toContain(', 200),');
+    expect(objectCheck).not.toContain('`200`');
+  });
+
+  it('keeps quoted expected values as strings in runtime checks', () => {
+    const checkJs = checkToJSfunc('${iter.status} == "200"', false);
+    expect(checkJs).toContain('`200`');
+    expect(checkJs).not.toContain(', 200),');
+  });
+
+  it('passes numeric status checks against call outputs at runtime', async () => {
+    const events: Record<string, any>[] = [];
+    const js = await rootTestToJsfunc({
+      name: 'numericStatusCheck',
+      test: {
+        type: 'test',
+        steps: [
+          {
+            call: 'echo',
+            id: 'iter',
+          } as any,
+          {check: '${iter.status} == 200'} as any,
+          {check: '${iter.status_code} == 200'} as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/main.mmt',
+    });
+
+    await runJSCode({
+      js: `
+        const echo = async () => ({ status: 200, status_code: 200, _: { status: 200 } });
+        ${js}
+      `,
+      title: 'numeric-status-check-runtime',
+      logger: jest.fn(),
+      runId: 'run-numeric-status-check',
+      reporter: (event: Record<string, any>) => {
+        events.push(event);
+      },
+    });
+
+    const checkSteps = events.filter((event) => event.scope === 'test-step' && event.stepType === 'check');
+    expect(checkSteps).toHaveLength(2);
+    expect(checkSteps.every((step) => step.status === 'passed')).toBe(true);
+  });
 });
 
 describe('rootTestToJsfunc + import tracker', () => {

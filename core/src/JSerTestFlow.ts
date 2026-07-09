@@ -4,7 +4,7 @@ import {durationToJsMsExpr, indentLines, parseDurationString, toInputsParams} fr
 import {Comparison, ComparisonObject, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, ScalarExpectValue, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, normalizeReportConfig, opsList, ReportConfig, ReportLevel, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
 import {getTestFlowStepType} from './testParsePack';
 import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
-import {isOmitSentinel, normalizeOmitToNull, OMIT_SENTINEL} from './omitKeyword';
+import {isOmitSentinel, normalizeOmitToNull, OMIT_KEYWORD, OMIT_SENTINEL} from './omitKeyword';
 import {replaceEnvTokensPlain, toTemplateWithEnvVars} from './variableReplacer';
 
 function randomName(): string {
@@ -123,11 +123,47 @@ export const conditionalStatementToJSfunc = (check: string): string => {
 interface NormalizedComparison {
   actual: string;
   operator: string;
-  expected: string;
+  expected: ExpectValue;
   title?: string;
   details?: string;
   raw: string;
 }
+
+/** Parse the expected side of a comparison string into a typed scalar when possible. */
+const parseScalarComparisonExpected = (raw: string): ExpectValue => {
+  const trimmed = String(raw ?? '').trim();
+  if (trimmed === 'null') {
+    return null;
+  }
+  if (trimmed === 'true') {
+    return true;
+  }
+  if (trimmed === 'false') {
+    return false;
+  }
+  if (trimmed === OMIT_KEYWORD || isOmitSentinel(trimmed)) {
+    return OMIT_SENTINEL;
+  }
+  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+      (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+    return unquoteEmpty(trimmed.slice(1, -1));
+  }
+  if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(trimmed)) {
+    const num = Number(trimmed);
+    if (!Number.isNaN(num)) {
+      return num;
+    }
+  }
+  return trimmed;
+};
+
+const expectValueToDisplay = (value: ExpectValue): string => {
+  if (isOmitSentinel(value)) {
+    return 'omit';
+  }
+  const normalized = normalizeOmitToNull(value);
+  return typeof normalized === 'string' ? normalized : JSON.stringify(normalized);
+};
 
 const normalizeComparison =
     (comp: Comparison, kind: 'check'|'assert'): NormalizedComparison|null => {
@@ -135,13 +171,13 @@ const normalizeComparison =
         return null;
       }
       if (typeof comp === 'string') {
-        const raw = comp;
         const parsed = parseComparisonParts(comp);
         if (!parsed) {
           throw new Error(`Invalid ${kind} format: ${comp}`);
         }
         const { actual, operator } = parsed;
-        const expected = unquoteEmpty(parsed.expected);
+        const expected = parseScalarComparisonExpected(parsed.expected);
+        const raw = `${actual} ${operator} ${expectValueToDisplay(expected)}`;
         return {actual, operator, expected, raw};
       }
 
@@ -154,11 +190,14 @@ const normalizeComparison =
       }
       const operator = (comp as any).operator || '==';
       const actualStr = typeof actual === 'string' ? actual : JSON.stringify(actual, null, 2);
-      const expectedStr = typeof expected === 'string' ? expected : JSON.stringify(expected, null, 2);
+      const expectedValue = isOmitSentinel(expected)
+          ? (expected as ExpectValue)
+          : (normalizeOmitToNull(expected) as ExpectValue);
+      const expectedStr = expectValueToDisplay(expectedValue);
       const raw = `${actualStr} ${operator} ${expectedStr}`;
       const title = typeof (comp as any).title === 'string' ? (comp as any).title : undefined;
       const details = typeof (comp as any).details === 'string' ? (comp as any).details : undefined;
-      return {actual: actualStr, operator, expected: expectedStr, raw, title, details};
+      return {actual: actualStr, operator, expected: expectedValue, raw, title, details};
     };
 
 export const ifToJSfunc = async (condition: TestFlowCondition, useExternalReport: boolean, importTitleMap?: Record<string, string>): Promise<string> => {
@@ -245,9 +284,9 @@ const comparisonToJSfunc = (type: 'check'|'assert', comparison: Comparison, useE
   const finalActual = actualRuntimeExpr
     ? actualRuntimeExpr
     : (typeof actual === 'string' ? toTemplateWithVars(actual) : undefined);
-  const finalExpected = typeof expected === 'string'
-    ? (isOmitSentinel(expected) ? JSON.stringify('omit') : toTemplateWithVars(expected))
-    : undefined;
+  const finalExpected = isOmitSentinel(expected)
+    ? JSON.stringify('omit')
+    : expectValueToJs(expected);
   // Strip ${...} from comparison display string so UI shows clean field names
   const displayRaw = raw.replace(/\$\{([^}]+)\}/g, '$1').replace(/__MMT_OMIT_KEYWORD__/g, 'omit');
   return `check_(${conditionStatement}, '${type}', ${JSON.stringify(displayRaw)}, '${reportLevel}', ${finalTitle}, ${finalDetails}, ${finalActual}, ${finalExpected});\n`;
@@ -310,14 +349,6 @@ const isExplicitMultiCheckArray = (value: unknown): value is ScalarExpectValue[]
       value.length > 0 &&
       value.every(item => typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean') &&
       value.some(item => typeof item === 'string' && !!splitCheckOperatorPrefix(item.trim()));
-};
-
-const expectValueToDisplay = (value: ExpectValue): string => {
-  if (isOmitSentinel(value)) {
-    return 'omit';
-  }
-  const normalized = normalizeOmitToNull(value);
-  return typeof normalized === 'string' ? normalized : JSON.stringify(normalized);
 };
 
 const expectValueToJs = (value: ExpectValue): string => {
