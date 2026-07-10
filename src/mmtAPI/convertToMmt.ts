@@ -1,3 +1,4 @@
+import * as path from 'path';
 import * as vscode from 'vscode';
 
 import {importConvertor} from 'mmt-core';
@@ -46,6 +47,7 @@ export async function convertUriToMmt(uri?: vscode.Uri): Promise<void> {
     canSelectFiles: false,
     canSelectMany: false,
     openLabel: 'Save converted MMT files here',
+    defaultUri: vscode.Uri.file(path.dirname(targetUri.fsPath)),
   });
   const targetFolder = folders?.[0];
   if (!targetFolder) {

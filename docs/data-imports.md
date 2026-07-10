@@ -7,7 +7,7 @@ type: api
 import:
   fixture: ./data/user.json
 
-url: https://api.example.com/users/${fixture.user.id}
+url: https://test.mmt.dev/echo/${fixture.user.id}
 method: post
 body: ${fixture.payload}
 ```
@@ -45,7 +45,7 @@ Both can be used the same way:
 import:
   data: ./fixture.yaml
 
-url: https://api.example.com/${data.endpoint}
+url: https://test.mmt.dev/${data.endpoint}
 body: ${data.payload}
 ```
 

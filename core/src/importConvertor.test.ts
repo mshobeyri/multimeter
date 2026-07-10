@@ -13,7 +13,7 @@ describe('importConvertor', () => {
   it('converts a Postman collection into API, test, and env files', () => {
     const collection = {
       info: {name: 'User Collection', schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'},
-      variable: [{key: 'base_url', value: 'https://api.example.com'}],
+      variable: [{key: 'base_url', value: 'https://test.mmt.dev'}],
       item: [
         {
           name: 'Users',
@@ -76,7 +76,7 @@ describe('importConvertor', () => {
     expect(testYaml.steps[3].call).toBe('getUser');
 
     const envFile = result.files.find(file => file.path === 'multimeter.mmt');
-    expect(parseYamlStrict(envFile!.content).variables.base_url.default).toBe('https://api.example.com');
+    expect(parseYamlStrict(envFile!.content).variables.base_url.default).toBe('https://test.mmt.dev');
 
     const collectionSuite = result.files.find(file => file.path === 'suites/collection.mmt');
     expect(collectionSuite).toBeTruthy();
@@ -93,7 +93,7 @@ describe('importConvertor', () => {
       info: {name: 'Big Collection', schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'},
       item: Array.from({length: 5}, (_unused, index) => ({
         name: `Request ${index + 1}`,
-        request: `https://api.example.com/${index + 1}`,
+        request: `https://test.mmt.dev/${index + 1}`,
       })),
     };
 
@@ -111,7 +111,7 @@ describe('importConvertor', () => {
     const spec = {
       openapi: '3.0.0',
       info: {title: 'Pets', version: '1.0.0'},
-      servers: [{url: 'https://api.example.com'}],
+      servers: [{url: 'https://test.mmt.dev'}],
       paths: {
         '/pets/{petId}': {
           get: {
@@ -131,7 +131,7 @@ describe('importConvertor', () => {
     expect(result.files[0].path).toBe('api/get-pet.mmt');
     const api = parseYamlStrict(result.files[0].content);
     expect(api.type).toBe('api');
-    expect(api.url).toBe('https://api.example.com/pets/123');
+    expect(api.url).toBe('https://test.mmt.dev/pets/123');
     expect(api.query.include).toBe('owner');
   });
 
@@ -162,47 +162,141 @@ describe('importConvertor', () => {
     expect(api.body).toContain('<tns:id><<i:id>></tns:id>');
   });
 
-  it('converts HTTP request files into MMT tests', () => {
+  it('converts HTTP request files into API and test MMT files', () => {
     const result = convertToMmt([
-      '@host = https://api.example.com',
+      '@host = https://test.mmt.dev',
       '###',
       '# @name listUsers',
-      'GET {{host}}/users',
+      'GET {{host}}/json',
       'Accept: application/json',
     ].join('\n'), {sourcePath: 'users.http'});
 
     expect(result.sourceKind).toBe('http');
-    expect(result.files).toHaveLength(1);
-    expect(result.files[0].path).toBe('tests/users-http.mmt');
-    const test = parseYamlStrict(result.files[0].content);
+    expect(result.files).toHaveLength(2);
+    expect(result.files[0].path).toBe('api/listusers.mmt');
+    expect(result.files[1].path).toBe('tests/users-http.mmt');
+    const api = parseYamlStrict(result.files[0].content);
+    expect(api.type).toBe('api');
+    expect(api.tags).toContain('http');
+    expect(api.url).toBe('https://test.mmt.dev/json');
+    expect(api.method).toBe('get');
+    const test = parseYamlStrict(result.files[1].content);
     expect(test.type).toBe('test');
     expect(test.tags).toContain('http');
-    expect(test.steps[0].http).toBe('https://api.example.com/users');
-    expect(test.steps[0].method).toBe('get');
+    expect(test.import.listusers).toBe('../api/listusers.mmt');
+    expect(test.steps[0]).toMatchObject({
+      call: 'listusers',
+      id: 'iListusers',
+      debug: true,
+    });
   });
 
-  it('converts Bruno request files into MMT tests', () => {
+  it('converts multi-request HTTP files into multiple APIs and one test', () => {
+    const result = convertToMmt([
+      '@host = https://test.mmt.dev',
+      '###',
+      '# @name ping',
+      'GET {{host}}/json',
+      '###',
+      '# @name echo',
+      'POST {{host}}/echo',
+      'Content-Type: application/json',
+      '',
+      '{"ok":true}',
+    ].join('\n'), {sourcePath: 'flow.http'});
+
+    expect(result.files.filter(file => file.kind === 'api')).toHaveLength(2);
+    expect(result.files.filter(file => file.kind === 'test')).toHaveLength(1);
+    const test = parseYamlStrict(result.files.find(file => file.kind === 'test')!.content);
+    expect(test.steps).toHaveLength(2);
+    expect(test.steps[0]).toMatchObject({call: 'ping', id: 'iPing', debug: true});
+    expect(test.steps[1]).toMatchObject({call: 'echo', id: 'iEcho', debug: true});
+    expect(test.import.ping).toBe('../api/ping.mmt');
+    expect(test.import.echo).toBe('../api/echo.mmt');
+  });
+
+  it('prefixes converted Postman step ids to avoid import binding collisions', () => {
+    const collection = {
+      info: {name: 'Convert Example', schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'},
+      item: [
+        {
+          name: 'Ping',
+          request: {
+            method: 'GET',
+            url: 'https://test.mmt.dev/json',
+            header: [{key: 'Accept', value: 'application/json'}],
+          },
+          response: [{name: 'sample json', code: 200, body: '{"id":1}'}],
+        },
+      ],
+    };
+
+    const result = convertToMmt(JSON.stringify(collection), {sourcePath: 'convert.postman_collection.json'});
+    const test = parseYamlStrict(result.files.find(file => file.path === 'tests/collection.mmt')!.content);
+    expect(test.import.ping).toBe('../api/ping.mmt');
+    expect(test.steps[0].call).toBe('ping');
+    expect(test.steps[0].id).toBe('iPing');
+    expect(test.steps[0].debug).toBe(true);
+  });
+
+  it('prefixes conflicting Postman import aliases and step ids', () => {
+    const collection = {
+      info: {name: 'Keywords', schema: 'https://schema.getpostman.com/json/collection/v2.1.0/collection.json'},
+      item: [
+        {
+          name: 'Call',
+          request: {
+            method: 'GET',
+            url: {raw: 'https://test.mmt.dev/json'},
+          },
+        },
+      ],
+    };
+
+    const result = convertToMmt(JSON.stringify(collection), {sourcePath: 'keywords.postman_collection.json'});
+    const test = parseYamlStrict(result.files.find(file => file.path === 'tests/collection.mmt')!.content);
+    expect(test.import.call).toBe('../api/call.mmt');
+    expect(test.steps[0].call).toBe('call');
+    expect(test.steps[0].id).toBe('iCall');
+  });
+
+  it('converts Bruno request files into API and test files', () => {
     const bruno = `meta {
   name: Create user
 }
 post {
-  url: https://api.example.com/users
+  url: https://test.mmt.dev/echo
 }
 headers {
   Content-Type: application/json
 }
 body:json {
   {"name":"Ada"}
+}
+tests {
+  expect(res.status).to.equal(201);
 }`;
 
     const result = convertToMmt(bruno, {sourcePath: 'create-user.bru'});
     expect(result.sourceKind).toBe('bruno');
-    expect(result.files).toHaveLength(1);
-    expect(result.files[0].path).toBe('tests/create-user.mmt');
-    const test = parseYamlStrict(result.files[0].content);
+    expect(result.files.map(file => file.path).sort()).toEqual([
+      'api/create-user.mmt',
+      'tests/create-user.mmt',
+    ]);
+
+    const api = parseYamlStrict(result.files.find(file => file.path === 'api/create-user.mmt')!.content);
+    expect(api.type).toBe('api');
+    expect(api.tags).toContain('bruno');
+    expect(api.url).toBe('https://test.mmt.dev/echo');
+    expect(api.method).toBe('post');
+
+    const test = parseYamlStrict(result.files.find(file => file.path === 'tests/create-user.mmt')!.content);
     expect(test.type).toBe('test');
     expect(test.tags).toContain('bruno');
-    expect(test.steps[0].http).toBe('https://api.example.com/users');
-    expect(test.steps[0].method).toBe('post');
+    expect(test.import.createUser).toBe('../api/create-user.mmt');
+    expect(test.steps[0].call).toBe('createUser');
+    expect(test.steps[0].id).toBe('iCreateUser');
+    expect(test.steps[0].debug).toBe(true);
+    expect(test.steps[0].expect.status).toBe('== 201');
   });
 });

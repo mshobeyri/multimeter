@@ -1,6 +1,6 @@
-@host = https://api.example.com
+@host = https://test.mmt.dev
 
 ###
 # @name ping
-GET {{host}}/ping
+GET {{host}}/json
 Accept: application/json

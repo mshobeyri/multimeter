@@ -1,13 +1,11 @@
 type: test
 title: source.http
+description: Generated from HTTP request "ping".
 tags:
   - http
+import:
+  ping: ../api/ping.mmt
 steps:
-  - http: https://api.example.com/ping
-    id: ping
-    title: ping
-    method: get
-    format: text
-    headers:
-      Accept: application/json
-    report: all
+  - call: ping
+    id: iPing
+    debug: true

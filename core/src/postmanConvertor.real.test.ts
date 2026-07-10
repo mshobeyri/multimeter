@@ -26,7 +26,7 @@ describe('postmanConvertor.postmanToAPI real collection features', () => {
                   { key: 'Content-Type', value: 'application/json' },
                   { key: 'X-Env', value: '{{envName}}' }
                 ],
-                url: { raw: 'https://api.example.com/users' },
+                url: { raw: 'https://test.mmt.dev/echo' },
                 body: { mode: 'raw', raw: '{"name":"{{username}}","active":true}' }
               }
             },
@@ -35,7 +35,7 @@ describe('postmanConvertor.postmanToAPI real collection features', () => {
               request: {
                 method: 'GET',
                 header: [ { key: 'Content-Type', value: 'application/json' } ],
-                url: { raw: 'https://api.example.com/users/{{userId}}' }
+                url: { raw: 'https://test.mmt.dev/echo/{{userId}}' }
               }
             }
           ]
@@ -45,7 +45,7 @@ describe('postmanConvertor.postmanToAPI real collection features', () => {
           request: {
             method: 'PUT',
             header: [ { key: 'Content-Type', value: 'application/xml' } ],
-            url: { raw: 'https://api.example.com/users/{{userId}}' },
+            url: { raw: 'https://test.mmt.dev/echo/{{userId}}' },
             body: { mode: 'raw', raw: '<user><id>{{userId}}</id><status>active</status></user>' }
           }
         },
@@ -54,7 +54,7 @@ describe('postmanConvertor.postmanToAPI real collection features', () => {
           request: {
             method: 'POST',
             header: [ { key: 'Content-Type', value: 'application/x-www-form-urlencoded' } ],
-            url: { raw: 'https://api.example.com/login' },
+            url: { raw: 'https://test.mmt.dev/echo' },
             body: { mode: 'urlencoded', urlencoded: [ { key: 'user', value: '{{user}}' }, { key: 'pass', value: '{{pass}}' } ] }
           }
         },
@@ -63,7 +63,7 @@ describe('postmanConvertor.postmanToAPI real collection features', () => {
           request: {
             method: 'GET',
             header: [ { key: 'Content-Type', value: 'application/json' } ],
-            url: { raw: 'https://api.example.com/status' }
+            url: { raw: 'https://test.mmt.dev/status/200' }
           }
         },
         {
@@ -105,7 +105,7 @@ describe('postmanConvertor.postmanToAPI real collection features', () => {
 
   const staticStatus = apis.find(a => a.title === 'Static Status');
   expect(staticStatus).toBeTruthy();
-  expect(staticStatus!.url).toBe('https://api.example.com/status');
+  expect(staticStatus!.url).toBe('https://test.mmt.dev/status/200');
   // Protocol is undefined for http URLs (inferred from URL)
   expect(staticStatus!.protocol).toBeUndefined();
   expect(staticStatus!.method).toBe('get');

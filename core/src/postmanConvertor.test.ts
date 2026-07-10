@@ -14,7 +14,7 @@ describe('postmanConvertor.postmanToAPI', () => {
           request: {
             method: 'GET',
             header: [ { key: 'Content-Type', value: 'application/json' } ],
-            url: { raw: 'https://api.example.com/users' },
+            url: { raw: 'https://test.mmt.dev/echo' },
             body: { mode: 'raw', raw: '{"hello":"world"}' }
           }
         }
@@ -24,7 +24,7 @@ describe('postmanConvertor.postmanToAPI', () => {
     expect(apis.length).toBe(1);
     const api = apis[0];
     expect(api.method).toBe('get');
-    expect(api.url).toBe('https://api.example.com/users');
+    expect(api.url).toBe('https://test.mmt.dev/echo');
     expect(api.format).toBe('json');
     expect(api.body).toBe('{"hello":"world"}');
     // Protocol is undefined for http URLs (inferred from URL)
@@ -42,7 +42,7 @@ describe('postmanConvertor.postmanToAPI', () => {
               request: {
                 method: 'POST',
                 header: [ { key: 'Content-Type', value: 'application/x-www-form-urlencoded' } ],
-                url: { raw: 'https://api.example.com/login' },
+                url: { raw: 'https://test.mmt.dev/echo' },
                 body: { mode: 'urlencoded', urlencoded: [ { key: 'user', value: 'alice' }, { key: 'pass', value: 'secret' } ] }
               }
             },
@@ -83,7 +83,7 @@ describe('postmanConvertor.postmanToAPI', () => {
           request: {
             method: 'POST',
             header: [ { key: 'Content-Type', value: 'application/json' } ],
-            url: { raw: 'https://api.example.com/createUser?uuid={{$guid}}&ip={{$randomIP}}' },
+            url: { raw: 'https://test.mmt.dev/echo?uuid={{$guid}}&ip={{$randomIP}}' },
             body: { mode: 'raw', raw: '{"id":"{{$guid}}","email":"{{$randomEmail}}","v":"{{$randomInt}}","name":"{{$randomFullName}}"}' }
           }
         }
@@ -115,7 +115,7 @@ describe('postmanConvertor.postmanToAPI', () => {
               { key: 'Content-Type', value: 'application/json' },
               { key: 'X-Env', value: 'prod' }
             ],
-            url: { raw: 'https://api.example.com/users' },
+            url: { raw: 'https://test.mmt.dev/echo' },
             body: { mode: 'raw', raw: '{"name":"alice","active":true}' }
           },
           response: [
@@ -128,7 +128,7 @@ describe('postmanConvertor.postmanToAPI', () => {
                   { key: 'X-Env', value: 'staging' },
                   { key: 'X-Extra', value: '1' }
                 ],
-                url: { raw: 'https://api.example.com/users?mode=demo' },
+                url: { raw: 'https://test.mmt.dev/echo?mode=demo' },
                 body: { mode: 'raw', raw: '{"name":"bob","active":false}' }
               }
             }
@@ -143,7 +143,7 @@ describe('postmanConvertor.postmanToAPI', () => {
     // url is parameterized
     expect(api.url).toBe('<<i:url>>');
     expect(api.inputs).toBeTruthy();
-    expect(api.inputs!.url).toBe('https://api.example.com/users');
+    expect(api.inputs!.url).toBe('https://test.mmt.dev/echo');
     // headers are parameterized with union of keys
     expect(api.headers).toBeTruthy();
     expect(api.headers!['Content-Type']).toBe('<<i:hdr_content_type>>');
@@ -164,7 +164,7 @@ describe('postmanConvertor.postmanToAPI', () => {
     const ex = api.examples![0];
     expect(ex.name).toBe('example-override');
     expect(ex.inputs).toBeTruthy();
-    expect(ex.inputs!.url).toBe('https://api.example.com/users?mode=demo');
+    expect(ex.inputs!.url).toBe('https://test.mmt.dev/echo?mode=demo');
     expect(ex.inputs!['hdr_x_env']).toBe('staging');
     expect(ex.inputs!['hdr_x_extra']).toBe('1');
     expect(ex.inputs!['body']).toContain('"name":"bob"');

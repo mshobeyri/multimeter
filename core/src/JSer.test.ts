@@ -912,7 +912,7 @@ describe('rootTestToJsfunc + import tracker', () => {
   it('converts imported .http files into callable test functions', async () => {
     const mock = createTestFileLoaderMock({
       '/root/requests.http': `### Login
-POST https://api.example.com/login
+POST https://test.mmt.dev/echo
 Content-Type: application/json
 
 {"username":"ada"}
@@ -922,7 +922,7 @@ Content-Type: application/json
 %}
 
 ### Profile
-GET https://api.example.com/me
+GET https://test.mmt.dev/headers
 Authorization: Bearer {{token}}
 `,
     });
@@ -941,8 +941,8 @@ Authorization: Bearer {{token}}
 
     expect(js).toContain('const requests_ = async');
     expect(js).toContain('const requests = requests_;');
-    expect(js).toContain('https://api.example.com/login');
-    expect(js).toContain('https://api.example.com/me');
+    expect(js).toContain('https://test.mmt.dev/echo');
+    expect(js).toContain('https://test.mmt.dev/headers');
     expect(js).toContain('setenv_("token"');
     expect(js).toContain('request_1');
     expect(js).toContain('Bearer');
@@ -956,7 +956,7 @@ Authorization: Bearer {{token}}
 }
 
 get {
-  url: https://api.example.com/me
+  url: https://test.mmt.dev/headers
   body: none
   auth: none
 }
@@ -977,7 +977,7 @@ get {
 
     expect(js).toContain('const requests_ = async');
     expect(js).toContain('const requests = requests_;');
-    expect(js).toContain('https://api.example.com/me');
+    expect(js).toContain('https://test.mmt.dev/headers');
   });
 
   it('resolves bare subdirectory paths without ./ prefix for mmt imports', async () => {
@@ -2167,7 +2167,7 @@ describe('auth field (apiToJSfunc)', () => {
   it('generates Bearer Authorization header', async () => {
     const ctx: APIContext = {
       api: {
-        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        type: 'api', url: 'https://test.mmt.dev', method: 'get', format: 'json',
         auth: {type: 'bearer', token: 'my-token'},
       } as any,
       name: 'myApi', inputs: {}, envVars: {},
@@ -2181,7 +2181,7 @@ describe('auth field (apiToJSfunc)', () => {
   it('generates Basic Authorization header', async () => {
     const ctx: APIContext = {
       api: {
-        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        type: 'api', url: 'https://test.mmt.dev', method: 'get', format: 'json',
         auth: {type: 'basic', username: 'user', password: 'pass'},
       } as any,
       name: 'myApi', inputs: {}, envVars: {},
@@ -2195,7 +2195,7 @@ describe('auth field (apiToJSfunc)', () => {
   it('generates API key header', async () => {
     const ctx: APIContext = {
       api: {
-        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        type: 'api', url: 'https://test.mmt.dev', method: 'get', format: 'json',
         auth: {type: 'api-key', header: 'X-API-Key', value: 'secret123'},
       } as any,
       name: 'myApi', inputs: {}, envVars: {},
@@ -2208,7 +2208,7 @@ describe('auth field (apiToJSfunc)', () => {
   it('generates API key query parameter', async () => {
     const ctx: APIContext = {
       api: {
-        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        type: 'api', url: 'https://test.mmt.dev', method: 'get', format: 'json',
         auth: {type: 'api-key', query: 'api_key', value: 'secret123'},
       } as any,
       name: 'myApi', inputs: {}, envVars: {},
@@ -2221,7 +2221,7 @@ describe('auth field (apiToJSfunc)', () => {
   it('generates OAuth2 client_credentials token fetch', async () => {
     const ctx: APIContext = {
       api: {
-        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        type: 'api', url: 'https://test.mmt.dev', method: 'get', format: 'json',
         auth: {
           type: 'oauth2', grant: 'client_credentials',
           token_url: 'https://auth.example.com/token',
@@ -2240,7 +2240,7 @@ describe('auth field (apiToJSfunc)', () => {
   it('does not override explicit Authorization header', async () => {
     const ctx: APIContext = {
       api: {
-        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        type: 'api', url: 'https://test.mmt.dev', method: 'get', format: 'json',
         headers: {Authorization: 'Custom xyz'},
         auth: {type: 'bearer', token: 'my-token'},
       } as any,
@@ -2257,7 +2257,7 @@ describe('auth field (apiToJSfunc)', () => {
   it('auth: none generates no auth code', async () => {
     const ctx: APIContext = {
       api: {
-        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        type: 'api', url: 'https://test.mmt.dev', method: 'get', format: 'json',
         auth: 'none',
       } as any,
       name: 'myApi', inputs: {}, envVars: {},
@@ -2269,7 +2269,7 @@ describe('auth field (apiToJSfunc)', () => {
   it('env variable substitution works in auth token', async () => {
     const ctx: APIContext = {
       api: {
-        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        type: 'api', url: 'https://test.mmt.dev', method: 'get', format: 'json',
         auth: {type: 'bearer', token: '<<e:token>>'},
       } as any,
       name: 'myApi', inputs: {}, envVars: {},

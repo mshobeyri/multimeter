@@ -3,15 +3,21 @@ title: Ping
 outputs:
   status: status
   statusCode: status
-  ok: body.ok
-url: https://api.example.com/ping
+  id: body.id
+  name: body.name
+  description: body.description
+  version: body.version
+url: https://test.mmt.dev/json
 method: get
 format: json
 headers:
   Accept: application/json
 examples:
-  - name: pong
+  - name: sample json
     outputs:
       status: 200
       statusCode: 200
-      ok: true
+      id: 1
+      name: Multimeter
+      description: API testing tool
+      version: 1.0.0

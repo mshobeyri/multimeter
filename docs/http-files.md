@@ -11,7 +11,7 @@ You can also import `.http` and `.https` files from `type: test` `.mmt` files. M
 The first implementation targets the shared syntax used by VS Code REST Client and JetBrains HTTP Client:
 
 ```http
-@host = https://api.example.com
+@host = https://test.mmt.dev
 @username = ada
 
 ###
@@ -36,7 +36,7 @@ Supported request features:
 - `METHOD URL` request lines, plus `HTTP/1.1` and `HTTP/2` suffixes.
 - Headers and raw request bodies.
 - JSON, XML, and text body detection.
-- File variables such as `@host = https://api.example.com`.
+- File variables such as `@host = https://test.mmt.dev`.
 - Variable references such as `{{host}}`.
 - Common system variables such as `{{$guid}}`, `{{$uuid}}`, `{{$randomInt}}`, `{{$timestamp}}`, and `{{$datetime}}`.
 - Request chaining such as `{{login.response.body.$.token}}`.
@@ -50,7 +50,7 @@ For example:
 
 ```http
 # @name login
-POST https://api.example.com/login
+POST https://test.mmt.dev/echo
 Content-Type: application/json
 
 {"username":"ada"}
@@ -59,7 +59,7 @@ Content-Type: application/json
 is treated like this Multimeter test step internally:
 
 ```yaml
-- http: https://api.example.com/login
+- http: https://test.mmt.dev/echo
   id: login
   method: post
   format: json
@@ -67,6 +67,7 @@ is treated like this Multimeter test step internally:
     Content-Type: application/json
   body:
     username: ada
+  debug: true
 ```
 
 ## Saving

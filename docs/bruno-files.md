@@ -33,7 +33,7 @@ get {
 }
 
 vars:pre-request {
-  baseUrl: https://api.example.com
+  baseUrl: https://test.mmt.dev
 }
 
 headers {

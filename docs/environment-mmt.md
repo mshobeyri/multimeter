@@ -9,7 +9,7 @@ variables:
   api_url:
     local: "http://localhost:8080"      # key-value map (named choices)
     staging: "https://staging.example.com"
-    prod: "https://api.example.com"
+    prod: "https://test.mmt.dev"
   mode:
     dev: "debug"
     prod: "release"

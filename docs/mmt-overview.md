@@ -94,7 +94,7 @@ type: env
 variables:
   api_url:
     dev: http://localhost:8080
-    prod: https://api.example.com
+    prod: https://test.mmt.dev
   test_type: 
     - smoke
     - regression

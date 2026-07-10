@@ -42,7 +42,7 @@ export const demoPlaylist = {
     {
       "id": "bjsO5CQ0siU",
       "title": "Multimeter API: No-Code Request Example",
-      "description": "Here you can learn how to generate tests without a line of coding and just using UI.\\n\\n```yaml\\ntype: api\\nurl: http://test.mmt.dev/echo\\nmethod: post\\nformat: json\\nbody:\\n message: hi\\n```\\n\\n"
+      "description": "Here you can learn how to generate tests without a line of coding and just using UI.\\n\\n```yaml\\ntype: api\\nurl: https://test.mmt.dev/echo\\nmethod: post\\nformat: json\\nbody:\\n message: hi\\n```\\n\\n"
     },
     {
       "id": "FiP-KAkXqkw",
@@ -57,12 +57,12 @@ export const demoPlaylist = {
     {
       "id": "jw0aauHwcrk",
       "title": "Multimeter Env Variables: Define Reusable Multimeter Environment Variables",
-      "description": "We can keep environment variables as code. An environment file stores values that can be reused by API files. Here, the API references `e:url`, while the environment defines both WebSocket and HTTP URL options. The video tests switching the request target through the environment value.\\n\\n```yaml\\ntype: api\\nurl: e:url\\nmethod: post\\nformat: json\\nbody:\\n message: hi\\n```\\n\\n```yaml\\ntype: env\\nvariables:\\n url:\\n websocket: ws://test.mmt.dev/ws\\n http: http://test.mmt.dev/echo\\n```\\n\\n"
+      "description": "We can keep environment variables as code. An environment file stores values that can be reused by API files. Here, the API references `e:url`, while the environment defines both WebSocket and HTTP URL options. The video tests switching the request target through the environment value.\\n\\n```yaml\\ntype: api\\nurl: e:url\\nmethod: post\\nformat: json\\nbody:\\n message: hi\\n```\\n\\n```yaml\\ntype: env\\nvariables:\\n url:\\n websocket: ws://test.mmt.dev/ws\\n http: https://test.mmt.dev/echo\\n```\\n\\n"
     },
     {
       "id": "o9Ga1fn64do",
       "title": "Multimeter Env Variables: Presets or how to change multiple env variables together",
-      "description": "Presets group environment variable choices together. The API builds its URL from `e:url` and `e:endpoint`, while the environment file defines REST and WebSocket presets. The video tests how a preset changes multiple values at once.\\n\\n```yaml\\ntype: api\\nurl: {{e:url}}{{e:endpoint}}\\nmethod: post\\nformat: json\\nbody:\\n message: hi\\n```\\n\\n```yaml\\ntype: env\\nvariables:\\n url:\\n websocket: ws://test.mmt.dev\\n http: http://test.mmt.dev\\n endpoint:\\n websocket: /ws\\n http: /echo\\npresets:\\n env:\\n ws:\\n url: websocket\\n endpoint: websocket\\n rest:\\n url: http\\n endpoint: http\\n```\\n\\n"
+      "description": "Presets group environment variable choices together. The API builds its URL from `e:url` and `e:endpoint`, while the environment file defines REST and WebSocket presets. The video tests how a preset changes multiple values at once.\\n\\n```yaml\\ntype: api\\nurl: {{e:url}}{{e:endpoint}}\\nmethod: post\\nformat: json\\nbody:\\n message: hi\\n```\\n\\n```yaml\\ntype: env\\nvariables:\\n url:\\n websocket: ws://test.mmt.dev\\n http: https://test.mmt.dev\\n endpoint:\\n websocket: /ws\\n http: /echo\\npresets:\\n env:\\n ws:\\n url: websocket\\n endpoint: websocket\\n rest:\\n url: http\\n endpoint: http\\n```\\n\\n"
     },
     {
       "id": "IE0Um0jNnGs",
@@ -82,7 +82,7 @@ export const demoPlaylist = {
     {
       "id": "Kzw4zT8tBkc",
       "title": "Multimeter Document:  `title` and `description`",
-      "description": "For all types of .mmt files, you can add `title` and `description`. They have different usecases, but the main usecase is documenting. Here you can see how we added those field and the view we get in doc tab. Descriptoin support markdown basic features as well.\\n\\n```\\ntype: api\\ndescription: Send a JSON message to the echo endpoint and verify the request can be tested in Multimeter.\\nurl: http://test.mmt.dev/echo\\nmethod: post\\nformat: json\\nbody:\\n message: hi\\n```\\n\\n"
+      "description": "For all types of .mmt files, you can add `title` and `description`. They have different usecases, but the main usecase is documenting. Here you can see how we added those field and the view we get in doc tab. Descriptoin support markdown basic features as well.\\n\\n```\\ntype: api\\ndescription: Send a JSON message to the echo endpoint and verify the request can be tested in Multimeter.\\nurl: https://test.mmt.dev/echo\\nmethod: post\\nformat: json\\nbody:\\n message: hi\\n```\\n\\n"
     },
     {
       "id": "pjOGbekeq3M",

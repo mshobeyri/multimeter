@@ -20,7 +20,7 @@ Multimeter supports these certificate file references:
 ```yaml
 type: env
 variables:
-  API_URL: "https://api.example.com"
+  API_URL: "https://test.mmt.dev"
 
 setting:
   http:

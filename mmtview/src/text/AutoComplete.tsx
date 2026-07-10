@@ -376,7 +376,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 '  - query, headers, body: request details',
                 '  - expect/debug/report: validation and reporting',
                 'Example:',
-                '- http: https://api.example.com/users',
+                '- http: https://test.mmt.dev/echo',
                 '  id: users',
                 '  method: get',
                 '  timeout: 5000',
@@ -543,7 +543,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 'Declare variables available to subsequent steps. Strings are template-enabled; objects and numbers are inserted directly.',
                 'Examples:',
                 '- var:',
-                '    baseUrl: `https://api.example.com`',
+                '    baseUrl: `https://test.mmt.dev`',
                 '    threshold: 10'
             ].join('\n')
         },
@@ -911,7 +911,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "variables:\n\t",
             detail: 'Environment variables [object of key: value]',
-            documentation: 'Define variables that can be used throughout the API definition. These are placeholders that can be replaced with actual values at runtime.\nExample:\nvariables:\n\turl: \n\t\tdevelopment: "https://api.example.com"\n\t\tproduction: "http://localhost:3000"',
+            documentation: 'Define variables that can be used throughout the API definition. These are placeholders that can be replaced with actual values at runtime.\nExample:\nvariables:\n\turl: \n\t\tdevelopment: "https://test.mmt.dev"\n\t\tproduction: "http://localhost:3000"',
         },
         dataImportSuggestion,
         {
@@ -1512,7 +1512,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "proxy: ",
             detail: 'Proxy URL for unmatched requests [string]',
-            documentation: 'Forward unmatched requests to this URL. Useful for partial mocking.\nExample: proxy: https://api.example.com'
+            documentation: 'Forward unmatched requests to this URL. Useful for partial mocking.\nExample: proxy: https://test.mmt.dev'
         },
         {
             label: "fallback",
@@ -1687,8 +1687,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
         { label: 'report', kind: monaco.languages.CompletionItemKind.Property, insertText: 'report: ', detail: 'Report level', documentation: 'Controls when expect results are reported.\nValues: all, fails, none\nOr object form:\n  report:\n    internal: all\n    external: fails' },
     ];
     const httpSiblings = [
-        { label: 'id', kind: monaco.languages.CompletionItemKind.Property, insertText: 'id: ', detail: 'Capture HTTP result', documentation: 'Variable name to capture the HTTP step output.\nExample:\n- http: https://api.example.com/users\n  id: users' },
-        { label: 'title', kind: monaco.languages.CompletionItemKind.Property, insertText: 'title: ', detail: 'HTTP step title', documentation: 'Short summary shown inline in reports/UI.\nExample:\n- http: https://api.example.com/users\n  title: Fetch users' },
+        { label: 'id', kind: monaco.languages.CompletionItemKind.Property, insertText: 'id: ', detail: 'Capture HTTP result', documentation: 'Variable name to capture the HTTP step output.\nExample:\n- http: https://test.mmt.dev/echo\n  id: users' },
+        { label: 'title', kind: monaco.languages.CompletionItemKind.Property, insertText: 'title: ', detail: 'HTTP step title', documentation: 'Short summary shown inline in reports/UI.\nExample:\n- http: https://test.mmt.dev/echo\n  title: Fetch users' },
         { label: 'method', kind: monaco.languages.CompletionItemKind.Property, insertText: 'method: ', detail: 'HTTP method', documentation: 'HTTP method for this request. Defaults to get.\nExample: method: post' },
         { label: 'timeout', kind: monaco.languages.CompletionItemKind.Property, insertText: 'timeout: 5000', detail: 'Request timeout override [number, ms]', documentation: 'Overrides the default network timeout for this HTTP step only, in milliseconds.\nExample: timeout: 5000' },
         { label: 'format', kind: monaco.languages.CompletionItemKind.Property, insertText: 'format: ', detail: 'Body format', documentation: 'Request and response format. Values: json, xml, xmle, text.\nExample: format: json' },

@@ -11,7 +11,7 @@ Currently, setting authentication requires manually constructing headers:
 ```yaml
 # Current — verbose, error-prone, no validation
 type: api
-url: https://api.example.com/users
+url: https://test.mmt.dev/echo
 headers:
   Authorization: Bearer <<e:token>>
 ```
@@ -19,7 +19,7 @@ headers:
 ```yaml
 # Current — Basic auth requires manual base64 (impossible without JS step)
 type: api
-url: https://api.example.com/users
+url: https://test.mmt.dev/echo
 headers:
   Authorization: Basic dXNlcjpwYXNz
 ```
@@ -31,7 +31,7 @@ With `auth`:
 ```yaml
 # New — declarative, validated, readable
 type: api
-url: https://api.example.com/users
+url: https://test.mmt.dev/echo
 auth:
   type: bearer
   token: <<e:token>>
@@ -40,7 +40,7 @@ auth:
 ```yaml
 # New — Basic auth, auto-encoded
 type: api
-url: https://api.example.com/users
+url: https://test.mmt.dev/echo
 auth:
   type: basic
   username: <<e:user>>
@@ -144,7 +144,7 @@ All `auth` field values support the same token substitution as other fields:
 
 ```yaml
 type: api
-url: https://api.example.com/users
+url: https://test.mmt.dev/echo
 auth:
   type: bearer
   token: <<e:token>>

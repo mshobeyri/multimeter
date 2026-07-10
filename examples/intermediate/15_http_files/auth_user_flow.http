@@ -1,16 +1,17 @@
-@baseUrl = https://api.example.com
+@baseUrl = https://test.mmt.dev
 @username = test_user
 @password = 1234
 
 ########################################
 ### 1. LOGIN (capture token)
 ########################################
-POST {{baseUrl}}/auth/login
+POST {{baseUrl}}/echo
 Content-Type: application/json
 
 {
   "username": "{{username}}",
-  "password": "{{password}}"
+  "password": "{{password}}",
+  "token": "testtoken"
 }
 
 > {%
@@ -19,42 +20,43 @@ Content-Type: application/json
   });
 
   client.test("Token exists", function () {
-    client.assert(response.body.token !== undefined);
+    client.assert(response.body.body.token !== undefined);
   });
 
-  client.global.set("authToken", response.body.token);
+  client.global.set("authToken", "testtoken");
 %}
 
 
 ########################################
 ### 2. CREATE USER (POST)
 ########################################
-POST {{baseUrl}}/users
+POST {{baseUrl}}/echo
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
 {
   "name": "Ali",
-  "email": "ali@example.com"
+  "email": "ali@example.com",
+  "id": 42
 }
 
 > {%
   client.test("User created", function () {
-    client.assert(response.status === 201);
+    client.assert(response.status === 200);
   });
 
   client.test("Name matches input", function () {
-    client.assert(response.body.name === "Ali");
+    client.assert(response.body.body.name === "Ali");
   });
 
-  client.global.set("userId", response.body.id);
+  client.global.set("userId", 42);
 %}
 
 
 ########################################
 ### 3. GET USER (GET + validation)
 ########################################
-GET {{baseUrl}}/users/{{userId}}
+GET {{baseUrl}}/auth/bearer
 Authorization: Bearer {{authToken}}
 
 > {%
@@ -62,8 +64,8 @@ Authorization: Bearer {{authToken}}
     client.assert(response.status === 200);
   });
 
-  client.test("Correct ID returned", function () {
-    client.assert(response.body.id === client.global.get("userId"));
+  client.test("Bearer authenticated", function () {
+    client.assert(response.body.authenticated === true);
   });
 %}
 
@@ -71,12 +73,13 @@ Authorization: Bearer {{authToken}}
 ########################################
 ### 4. UPDATE USER (PATCH)
 ########################################
-PATCH {{baseUrl}}/users/{{userId}}
+PATCH {{baseUrl}}/echo
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
 {
-  "name": "Ali Updated"
+  "name": "Ali Updated",
+  "id": {{userId}}
 }
 
 > {%
@@ -85,7 +88,7 @@ Authorization: Bearer {{authToken}}
   });
 
   client.test("Name updated", function () {
-    client.assert(response.body.name === "Ali Updated");
+    client.assert(response.body.body.name === "Ali Updated");
   });
 %}
 
@@ -93,11 +96,11 @@ Authorization: Bearer {{authToken}}
 ########################################
 ### 5. DELETE USER
 ########################################
-DELETE {{baseUrl}}/users/{{userId}}
+DELETE {{baseUrl}}/status/200
 Authorization: Bearer {{authToken}}
 
 > {%
   client.test("Deleted successfully", function () {
-    client.assert(response.status === 204 || response.status === 200);
+    client.assert(response.status === 200);
   });
 %}

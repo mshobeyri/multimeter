@@ -34,7 +34,7 @@ presets?:                       # OPTIONAL
 
 Interpretation:
 - `variables[NAME]` can be:
-  - `{ dev: "http://localhost:8080", prod: "https://api.example.com" }` → named key-value choices.
+  - `{ dev: "http://localhost:8080", prod: "https://test.mmt.dev" }` → named key-value choices.
   - `["debug", "info", "warn"]` → a list of allowed values.
 - `presets[group][name]` tells the UI what to pick for each variable when that preset is active.
 
@@ -60,7 +60,7 @@ type: env
 variables:
   api_url:
     local: "http://localhost:8080"
-    prod: "https://api.example.com"
+    prod: "https://test.mmt.dev"
   default_user:
     - "alice@example.com"
   default_password:

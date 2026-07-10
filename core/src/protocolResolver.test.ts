@@ -15,7 +15,7 @@ describe('protocolResolver', () => {
     });
 
     it('returns http for https:// URLs', () => {
-      expect(resolveProtocolFromUrl('https://api.example.com/v1')).toBe('http');
+      expect(resolveProtocolFromUrl('https://test.mmt.dev/v1')).toBe('http');
     });
 
     it('returns http for URLs without scheme', () => {

@@ -7,9 +7,10 @@ import:
   ping: ../api/ping.mmt
 steps:
   - call: ping
-    id: ping
+    id: iPing
     expect:
-      status: == 200
+      status: 200
+    debug: true
   - js: |-
       // Original Postman test script. Review before relying on it at runtime.
       pm.response.to.have.status(200);
