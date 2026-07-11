@@ -214,18 +214,10 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     lg('debug', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
     return returnValue;
   } catch (e: any) {
-    // Suppress noisy error logging for intentional abort.
-    const isAbort = e?.name === 'TestAbortError';
-    if (!isAbort) {
-      lg('error', 'Error running test: ' + (e?.message || String(e)));
-    }
     restoreReporterGlobals();
     const elapsed = Date.now() - startTime;
     lg('debug', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
-    if (isAbort) {
-      throw e;
-    }
-    return undefined;
+    throw e;
   } finally {
     // Only clear abort signal if this run owns it.  During parallel suite
     // execution (skipServerCleanup=true), clearing unconditionally would

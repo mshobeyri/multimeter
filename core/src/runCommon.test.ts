@@ -124,4 +124,21 @@ describe('runGeneratedJs', () => {
     expect(result.success).toBe(false);
     expect(result.errors).toContain('Reported failed check');
   });
+
+  it('records executionError when the JS runner throws', async () => {
+    const result = await runGeneratedJs(
+      'run-1',
+      'pm.response.to.have.status(200);',
+      'runtime failure test',
+      () => {},
+      async () => {
+        throw new ReferenceError('pm is not defined');
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.threw).toBe(true);
+    expect(result.executionError).toBe('pm is not defined');
+    expect(result.errors).toContain('Error running test: pm is not defined');
+  });
 });

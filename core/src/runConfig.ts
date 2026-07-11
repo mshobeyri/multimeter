@@ -110,6 +110,8 @@ export interface RunResult {
   cancelled?: boolean;
   /** True when the generated JS failed syntax validation (bad .mmt syntax). */
   syntaxError?: boolean;
+  /** Set when generated JS threw during execution (e.g. ReferenceError, failed assert). */
+  executionError?: string;
 }
 
 export interface GenerateJsOptions {

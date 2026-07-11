@@ -1,7 +1,7 @@
 import React, { useContext } from "react";
 import TextEditor from "../text/TextEditor";
 import { rootTestToJsfunc, setFileLoader } from "mmt-core/JSer";
-import { logToOutput, readFile, runJSCode, showVSCodeMessage } from "../vsAPI";
+import { logToOutput, readFile, runJSCode, showLogOutputChannel, showVSCodeMessage } from "../vsAPI";
 import { TestData } from "mmt-core/TestData";
 import { loadEnvVariables } from "../workspaceStorage";
 import { FileContext } from "../fileContext";
@@ -105,6 +105,7 @@ const TestCode: React.FC<TestCodeProps> = ({ testData }) => {
         try {
             const fileName = mmtFilePath ? mmtFilePath.split(/[/\\]/).pop() : '';
             const runTitle = testData?.title || fileName || 'test';
+            showLogOutputChannel();
             runJSCode(jsCode, runTitle);
 
         } catch (e: any) {

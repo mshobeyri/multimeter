@@ -74,7 +74,7 @@ export function validateJsSyntax(js: string): string | undefined {
     return undefined;
   } catch (e: any) {
     if (e instanceof SyntaxError) {
-      return `Generated code has a syntax error (likely caused by invalid .mmt syntax): ${e.message}. Use print-js to see the generated code.`;
+      return `Syntax Error: ${e.message}.`;
     }
     // Non-syntax error during construction is unexpected; still report it.
     return `Unexpected error validating generated code: ${e?.message || String(e)}`;
@@ -170,16 +170,18 @@ export async function runGeneratedJs(
     };
   } catch (e: any) {
     const isCancelled = e?.name === 'TestAbortError';
-    if (!isCancelled) {
-      errors.push(e?.message || String(e));
+    const executionError = isCancelled ? undefined : (e?.message || String(e));
+    if (executionError) {
+      forward('error', `Error running test: ${executionError}`);
     }
     return {
       success: false,
       durationMs: Date.now() - start,
       errors,
       logs,
-      threw: true,
+      threw: !isCancelled,
       cancelled: isCancelled,
+      executionError,
     };
   }
 }

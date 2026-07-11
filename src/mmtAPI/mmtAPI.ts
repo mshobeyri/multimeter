@@ -586,7 +586,7 @@ export const messageReceived = async (
       break;
 
     case 'runJSCode':
-      await run.handleRunJSCode(message);
+      await run.handleRunJSCode(message, webviewPanel, document);
       break;
 
     case 'network':

@@ -96,6 +96,19 @@ export function showLogOutputChannel() {
   }
 }
 
+async function promptViewGeneratedCode(
+    webviewPanel: vscode.WebviewPanel,
+    filePath: string,
+    message: string): Promise<void> {
+  const action = await vscode.window.showErrorMessage(message, 'View Code');
+  if (action === 'View Code') {
+    webviewPanel.webview.postMessage({
+      command: 'switchToCodeTab',
+      filePath,
+    });
+  }
+}
+
 async function writeRunExports(params: {
   suiteExports: any;
   runFilePath: string;
@@ -302,15 +315,15 @@ export async function handleRunCurrentDocument(
 
     if (result.syntaxError) {
       const errorMsg = result.errors?.[0] || 'Generated code has a syntax error';
-      const action = await vscode.window.showErrorMessage(
-          `${label} ${displayName}: ${errorMsg}`,
-          'View Code');
-      if (action === 'View Code') {
-        webviewPanel.webview.postMessage({
-          command: 'switchToCodeTab',
-          filePath: document.uri.toString(),
-        });
-      }
+      await promptViewGeneratedCode(
+          webviewPanel,
+          document.uri.toString(),
+          `${label} ${displayName}: ${errorMsg}`);
+    } else if (result.executionError) {
+      await promptViewGeneratedCode(
+          webviewPanel,
+          document.uri.toString(),
+          `${label} ${displayName}: Error running test: ${result.executionError}`);
     }
 
     if (result.cancelled) {
@@ -616,14 +629,31 @@ export function handleStopTestRun(
   });
 }
 
-export async function handleRunJSCode(message: any) {
+export async function handleRunJSCode(
+    message: any,
+    webviewPanel: vscode.WebviewPanel,
+    document: vscode.TextDocument) {
+  showLogOutputChannel();
   const fileLoader = typeof message?.fileLoader === 'function' ? message.fileLoader : undefined;
-  await runJSCode({
-    js: message.code,
-    title: message.title,
-    logger: logToOutput,
-    runId: message.runId ?? 'vscode-js-run',
-    reporter: message.reporter ?? (() => {}),
-    fileLoader,
-  });
+  const title = typeof message?.title === 'string' && message.title ? message.title : 'Test';
+  try {
+    await runJSCode({
+      js: message.code,
+      title: message.title,
+      logger: logToOutput,
+      runId: message.runId ?? 'vscode-js-run',
+      reporter: message.reporter ?? (() => {}),
+      fileLoader,
+    });
+  } catch (e: any) {
+    if (e?.name === 'TestAbortError') {
+      return;
+    }
+    const executionError = e?.message || String(e);
+    logToOutput('error', `Error running test: ${executionError}`);
+    await promptViewGeneratedCode(
+        webviewPanel,
+        document.uri.toString(),
+        `${title}: Error running test: ${executionError}`);
+  }
 };
