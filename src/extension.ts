@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 
 import {setupChatParticipants} from './assistant/assistant';
+import {registerMcpProvider} from './mcpProvider';
 import {HistoryManager} from './historyManager';
 import {convertUriToMmt} from './mmtAPI/convertToMmt';
 import {MmtDocumentLinkProvider} from './mmtDocumentLinkProvider';
@@ -34,6 +35,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerRunStatusBar(context);
 
   setupChatParticipants(context);
+  registerMcpProvider(context);
 }
 
 // ---------------------------------------------------------------------------

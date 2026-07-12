@@ -193,6 +193,15 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "export",
         "test",
       ];
+    case "env":
+      return [
+        "type",
+        "import",
+        "variables",
+        "presets",
+        "setting",
+        "certificates",
+      ];
     case "doc":
       return ["type", "title", "description", "import", "logo", "sources", "services", "html", "env"];
     case "server":

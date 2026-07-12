@@ -6,7 +6,10 @@ import * as vscode from 'vscode';
 import YAML from 'yaml';
 
 import {parseAssistantRunArgs} from './assistantArgs';
+import {buildAssistantBasePrompt} from './assistantPrompt';
 import {getPreparedConfigFromStorage} from '../mmtAPI/network';
+
+export {buildAssistantBasePrompt} from './assistantPrompt';
 
 async function handleChatRequest(
   request: any, _chatContext: any, response: any,
@@ -313,11 +316,7 @@ async function handleChatRequest(
   }
 
   // Base prompt: instruct the model
-  const BASE_PROMPT = `
-You are the Multimeter (.mmt) Test Generation Assistant.
-Multimeter documentation is available at https://github.com/mshobeyri/multimeter/tree/dev/docs. Before answering questions or generating .mmt files, read the relevant docs you need from the repository.
-Please be concise, deterministic, and avoid placeholders unless unavoidable.
-`;
+  const BASE_PROMPT = buildAssistantBasePrompt();
 
   // Build messages for LLM: include base prompt, history, user message
   const messages: vscode.LanguageModelChatMessage[] = [];

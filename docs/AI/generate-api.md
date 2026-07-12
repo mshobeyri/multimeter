@@ -145,8 +145,8 @@ setenv:
 	auth_token: token
 url: <<e:api_url>>/login
 protocol: http
-format: json
 method: post
+format: json
 headers:
 	content-type: application/json
 body:

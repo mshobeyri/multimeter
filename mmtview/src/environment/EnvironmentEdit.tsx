@@ -1,5 +1,6 @@
 import React from "react";
-import parseYaml, { packYaml } from "mmt-core/markupConvertor";
+import parseYaml from "mmt-core/markupConvertor";
+import { envToYaml, yamlToEnv } from "mmt-core/envParsePack";
 import EnvironmentVariableEdit from "./EnvironmentVariableEdit";
 import EnvironmentPresetEdit from "./EnvironmentPresetEdit";
 import EnvironmentCertificatesEdit from "./EnvironmentCertificatesEdit";
@@ -23,28 +24,16 @@ function packEnvironmentData(envData: EnvironmentData): string {
     setting,
     certificates,
     ...rest
-  } = envData as EnvironmentData & Record<string, any>;
-  const ordered: Record<string, any> = {};
-  ordered.type = type;
-  if (imports !== undefined && Object.keys(imports).length > 0) {
-    ordered.import = imports;
-  }
-  if (variables !== undefined) {
-    ordered.variables = variables;
-  }
-  if (presets !== undefined) {
-    ordered.presets = presets;
-  }
-  if (setting !== undefined) {
-    ordered.setting = setting;
-  }
-  if (certificates !== undefined) {
-    ordered.certificates = certificates;
-  }
-  for (const [key, value] of Object.entries(rest)) {
-    ordered[key] = value;
-  }
-  return packYaml ? packYaml(ordered) : "";
+  } = envData as EnvironmentData & Record<string, unknown>;
+  return envToYaml({
+    type: 'env',
+    import: imports,
+    variables,
+    presets,
+    setting,
+    certificates,
+    extra: Object.keys(rest).length > 0 ? rest : undefined,
+  });
 }
 
 const EnvironmentEdit: React.FC<EnvironmentEditProps> = ({ content, setContent, tab }) => {

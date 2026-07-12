@@ -9,6 +9,7 @@ mmtview/build
 playwright-demo/video/
 TODO
 *.vsix
+*.tgz
 dist-release
 !.cursor-plugin/
 !.cursor-plugin/plugin.json

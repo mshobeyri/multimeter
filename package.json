@@ -3,7 +3,7 @@
   "publisher": "mshobeyri",
   "displayName": "Multimeter – API Testing as file",
   "description": "Store tests in Git, run them in VS Code, and track changes with pull requests.",
-  "version": "1.26.0",
+  "version": "1.27.0",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git"
@@ -42,6 +42,31 @@
           "light": "res/logo_file.svg",
           "dark": "res/logo_file.svg"
         }
+      }
+    ],
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "multimeter",
+        "label": "Multimeter"
+      }
+    ],
+    "chatInstructions": [
+      {
+        "name": "MultimeterMcpFirst",
+        "description": "Use Multimeter MCP tools first when creating, modifying, validating, or running .mmt files",
+        "path": "./rules/mmt-mcp.instructions.md"
+      }
+    ],
+    "chatPromptFiles": [
+      {
+        "name": "EditMmtFile",
+        "description": "Modify a .mmt file with MCP read_documentation, validate, and format",
+        "path": "./rules/edit-mmt-file.prompt.md"
+      },
+      {
+        "name": "RunMmtFile",
+        "description": "Run a .mmt file with the Multimeter MCP run tool",
+        "path": "./rules/run-mmt-file.prompt.md"
       }
     ],
     "chatParticipants": [
@@ -450,6 +475,8 @@
   ],
   "scripts": {
     "buildcore": "npm run build --prefix core",
+    "buildmcp": "npm run buildcore && npm run build --prefix mmtmcp && node scripts/copy-mcp-dist.mjs",
+    "test:mcp": "npm run buildmcp && sh -c 'cd dist/mcp && NODE_PATH=./node_modules MMT_GUIDES_DIR=./guides npx @modelcontextprotocol/inspector node server.js'",
     "buildview": "npm run build --prefix mmtview",
     "bootstrap": "sh -c 'if [ -f package-lock.json ]; then npm ci; else npm install; fi; npm audit || true'",
     "buildcli": "npm run buildcore && npm run pkg --prefix mmtcli",
@@ -457,13 +484,13 @@
     "pack-pre-release": "vsce package --pre-release",
     "publish": "vsce publish",
     "vscode:prepublish": "npm run build:vendor && npm run package",
-    "compile": "npm run buildcore && npm run buildview && npm run check-types && npm run lint && node esbuild.js",
+    "compile": "npm run buildcore && npm run buildmcp && npm run buildview && npm run check-types && npm run lint && node esbuild.js",
     "watch": "npm-run-all -p watch:*",
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
     "package": "npm run check-types && npm run lint && node esbuild.js --production",
     "compile-tests": "tsc -p . --outDir out",
-    "build:vendor": "npm run build --prefix core && npm run build --prefix mmtview && rm -rf dist/core dist/mmtview && cp -R core/dist dist/core && cp -R mmtview/build dist/mmtview",
+    "build:vendor": "npm run build --prefix core && npm run buildmcp && npm run build --prefix mmtview && rm -rf dist/core dist/mmtview && cp -R core/dist dist/core && cp -R mmtview/build dist/mmtview",
     "watch-tests": "tsc -p . -w --outDir out",
     "pretest": "npm run compile-tests && npm run compile && npm run lint",
     "check-types": "tsc --noEmit",

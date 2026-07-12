@@ -1,5 +1,7 @@
 This folder teaches an AI how to **answer questions** about Multimeter and decide **when to generate or edit** `.mmt` files.
 
+**When using VS Code Copilot with the Multimeter extension:** call Multimeter **MCP tools first** (`read_documentation`, `discover_api`, `validate`, `format`, `run`). See `AI/agent-workflow.md`.
+
 For actual YAML generation or modification, always go through `AI/generate.md`.
 
 The AI should:
