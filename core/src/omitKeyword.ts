@@ -1,4 +1,5 @@
 import * as YAML from 'yaml';
+import {preserveMultilineDescriptionScalars} from './multilineDescriptionYaml';
 
 export const OMIT_KEYWORD = 'omit';
 export const OMIT_SENTINEL = '__MMT_OMIT_KEYWORD__';
@@ -46,6 +47,7 @@ export function parseYamlWithOmitKeyword(
   if (strict && doc.errors.length > 0) {
     throw doc.errors[0];
   }
+  preserveMultilineDescriptionScalars(doc.contents, yamlString);
   walkYamlNode(doc.contents);
   return doc.toJS();
 }

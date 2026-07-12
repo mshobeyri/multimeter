@@ -58,6 +58,22 @@ describe('apiParsePack', () => {
     expect(yaml).toContain('  line one');
     expect(yaml).toContain('  line two');
   });
+
+  it('converts folded multiline description to a literal block on format', () => {
+    const input = `type: api
+description: Send a JSON payload to an echo endpoint and verify that the server
+  returns it back.
+url: https://test.mmt.dev/echo
+method: post
+format: json
+`;
+    const yaml = apiToYaml(yamlToAPI(input));
+
+    expect(yaml).toContain('description: |-');
+    expect(yaml).toContain('  Send a JSON payload to an echo endpoint and verify that the server');
+    expect(yaml).toContain('  returns it back.');
+    expect(yaml).not.toMatch(/description: Send a JSON payload[\s\S]*returns it back\.\nurl:/);
+  });
 });
 
 describe('yamlToAPIStrict', () => {

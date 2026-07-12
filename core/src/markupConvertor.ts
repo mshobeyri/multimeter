@@ -3,6 +3,7 @@ import * as YAML from 'yaml';
 import {parseYamlWithOmitKeyword} from './omitKeyword';
 import {restoreOmitKeyword} from './omitKeyword';
 import {isOmitSentinel} from './omitKeyword';
+import {applyDescriptionBlockLiteralStyles} from './multilineDescriptionYaml';
 
 function parseYamlDoc(yamlString: string): any {
   return YAML.parseDocument(yamlString);
@@ -80,9 +81,11 @@ function packYaml(obj: any): string {
     const doc = new YAML.Document();
     doc.contents = doc.createNode(restored);
     applyKeywordScalarStyles(doc.contents, obj);
+    applyDescriptionBlockLiteralStyles(doc.contents);
     return doc.toString({
       aliasDuplicateObjects: false,
       blockQuote: 'literal',
+      lineWidth: 0,
     } as any);
   } catch (e) {
     return '';

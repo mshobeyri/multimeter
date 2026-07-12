@@ -1,4 +1,4 @@
-import YAML from 'yaml';
+import parseYaml, {packYaml} from './markupConvertor';
 import {LoadTestData} from './LoadTestData';
 import {SuiteEnvironment} from './SuiteData';
 
@@ -33,7 +33,7 @@ function parseEnvironment(doc: any): SuiteEnvironment | undefined {
 }
 
 export function yamlToLoadTest(rawYaml: string): LoadTestData {
-  const doc = YAML.parse(rawYaml || '') || {};
+  const doc = parseYaml(rawYaml || '') || {};
   const type = typeof doc?.type === 'string' ? doc.type : '';
   if (type !== 'loadtest') {
     throw new Error('Not a loadtest document');
@@ -113,5 +113,5 @@ export function loadtestToYaml(loadtest: LoadTestData): string {
     yamlObj.export = loadtest.export;
   }
   yamlObj.test = loadtest.test;
-  return YAML.stringify(yamlObj, {lineWidth: 0});
+  return packYaml(yamlObj);
 }

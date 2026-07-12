@@ -1,4 +1,4 @@
-import YAML from 'yaml';
+import parseYaml, {packYaml} from './markupConvertor';
 import {SuiteData, SuiteEnvironment} from './SuiteData';
 
 function readSuiteItems(doc: any): string[] {
@@ -41,7 +41,7 @@ function parseEnvironment(doc: any): SuiteEnvironment | undefined {
 }
 
 export function yamlToSuite(rawYaml: string): SuiteData {
-  const doc = YAML.parse(rawYaml || '') || {};
+  const doc = parseYaml(rawYaml || '') || {};
   const type = typeof doc?.type === 'string' ? doc.type : '';
   if (type !== 'suite') {
     throw new Error('Not a suite document');
@@ -111,7 +111,7 @@ export function suiteToYaml(suite: SuiteData): string {
     yamlObj.export = suite.export;
   }
   yamlObj.items = suite.items;
-  return YAML.stringify(yamlObj, { lineWidth: 0 });
+  return packYaml(yamlObj);
 }
 
 export function splitSuiteGroups(items: string[]): string[][] {
