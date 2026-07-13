@@ -25,7 +25,7 @@ Grow into tests, suites, mocks, reports, auto-generated documentation, and CI wo
 
 All in the same tool. No migration required.
 
-## 😩 Tired of fighting your API testing tools?
+## 🫤 Tired of fighting your API testing tools?
 ---
 
 ### Coming from Postman?
