@@ -2,6 +2,30 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.27.0]
+
+- Add bundled MCP server for GitHub Copilot and AI agents (`read_documentation`, `discover_api`, `validate`, `format`, `run`)
+- Add `omit` keyword for removing request fields and expressing missing output values (distinct from `null` and quoted `"omit"`)
+- Add suite `items` field as the canonical runner list (`tests` remains supported as a deprecated alias)
+- Add click-to-fix compatibility warnings for deprecated suite `tests:` key
+- Add combined duration parsing for `repeat` and `delay` (e.g. `1h5m`, `5m3s`)
+- Add canonical `.mmt` formatting for env and suite files
+- Format multiline `description` fields as `|-` literal blocks
+- Improve Bruno, HTTP, Postman, OpenAPI, and import conversion reliability
+- Add autocomplete for `+/` path navigation in imports
+- Add API test scaffolding helpers for MCP `discover_api` workflows
+- Update AI/agent workflow documentation and Copilot prompt instructions
+- Fix root test function name collisions when a title matches an imported file basename
+- Fix input accessor interpolation (`i:` slices) in imported API call bodies
+- Fix check/assert access to default call outputs (`body`, `status`, etc.) without explicit output maps
+- Fix omit handling in check/assert comparisons and report output display
+- Fix crashes when typing partial `call:`/`http:` URLs in test steps
+- Fix crashes on malformed test-step YAML during flowchart rendering
+- Fix Ctrl+Click (Cmd+Click on macOS) navigation for call aliases in the editor
+- Strip invalid characters from generated JS function names during conversion
+- Improve JSer error handling and reporting
+- Remove red highlight box from autocomplete suggestions
+
 ## [1.26.0]
 
 - Add extension README/metadata support via `EXTENSION.md`
