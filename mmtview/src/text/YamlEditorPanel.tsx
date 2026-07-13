@@ -857,9 +857,11 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       return Boolean(evt.ctrlKey);
     };
 
+    const getLinkContent = () => model.getValue();
+
     const updateUnderline = (pos: any, withModifier: boolean) => {
       const target = withModifier
-        ? getFileLinkTargetAtPosition(monaco, model, content, pos)
+        ? getFileLinkTargetAtPosition(monaco, model, getLinkContent(), pos)
         : null;
       linkDecorationsRef.current = editor.deltaDecorations(linkDecorationsRef.current, []);
       if (!target) return;
@@ -878,7 +880,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       if (!evt || !pos) return;
       const withMod = hasGoToDefinitionModifier(evt as any);
       updateUnderline(pos, withMod);
-      const target = withMod ? getFileLinkTargetAtPosition(monaco, model, content, pos) : null;
+      const target = withMod ? getFileLinkTargetAtPosition(monaco, model, getLinkContent(), pos) : null;
       editor.updateOptions({ mouseStyle: target ? 'pointer' : 'text' });
     });
 
@@ -899,7 +901,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       if (!evt || !pos) return;
       const withMod = hasGoToDefinitionModifier(evt as any);
       if (withMod) {
-        const target = getFileLinkTargetAtPosition(monaco, model, content, pos);
+        const target = getFileLinkTargetAtPosition(monaco, model, getLinkContent(), pos);
         if (target) {
           openRelativeFile(target.path, target.fragment, evt.shiftKey);
         }

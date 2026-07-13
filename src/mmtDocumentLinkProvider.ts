@@ -24,9 +24,13 @@ function resolveImportPath(basePath: string, importPath: string): string {
 /**
  * Parse the `import:` block from the document text and return a map of alias → file path string.
  */
+function normalizeYamlLines(content: string): string[] {
+  return content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+}
+
 function parseImports(text: string): Map<string, {path: string; line: number; startCol: number; endCol: number}> {
   const imports = new Map<string, {path: string; line: number; startCol: number; endCol: number}>();
-  const lines = text.split('\n');
+  const lines = normalizeYamlLines(text);
   let inImport = false;
   let importIndent = -1;
 
@@ -74,7 +78,7 @@ function parseImports(text: string): Map<string, {path: string; line: number; st
  */
 function findCallReferences(text: string): Array<{alias: string; line: number; startCol: number; endCol: number}> {
   const refs: Array<{alias: string; line: number; startCol: number; endCol: number}> = [];
-  const lines = text.split('\n');
+  const lines = normalizeYamlLines(text);
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];

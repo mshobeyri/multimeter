@@ -8,9 +8,13 @@ const MD_REF_REGEX = /\S*\.md\/?#\S*/;
 /**
  * Parse the import: block from YAML content and return a map of alias → file path.
  */
+function normalizeYamlLines(content: string): string[] {
+  return content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
+}
+
 function parseImportAliases(content: string): Map<string, string> {
   const imports = new Map<string, string>();
-  const lines = content.split('\n');
+  const lines = normalizeYamlLines(content);
   let inImport = false;
   let importIndent = -1;
 
