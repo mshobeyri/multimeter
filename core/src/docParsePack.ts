@@ -34,6 +34,9 @@ export function yamlToDoc(yamlContent: string): DocData {
     if (doc.description) {
       res.description = doc.description;
     }
+    if (doc.import && typeof doc.import === 'object' && !Array.isArray(doc.import)) {
+      res.import = {...doc.import};
+    }
     if (doc.logo) {
       res.logo = String(doc.logo);
     }
@@ -77,6 +80,9 @@ export function docToYaml(data: DocData): string {
   }
   if (data.description) {
     out.description = data.description;
+  }
+  if (data.import && typeof data.import === 'object' && Object.keys(data.import).length) {
+    out.import = {...data.import};
   }
   if (data.logo) {
     out.logo = data.logo;

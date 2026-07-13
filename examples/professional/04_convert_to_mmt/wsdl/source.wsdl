@@ -10,5 +10,5 @@
   <message name="PingRequest"><part name="parameters" element="tns:Ping" /></message>
   <portType name="ConvertPort"><operation name="Ping"><input message="tns:PingRequest" /></operation></portType>
   <binding name="ConvertBinding" type="tns:ConvertPort"><soap:binding transport="http://schemas.xmlsoap.org/soap/http" /><operation name="Ping"><soap:operation soapAction="urn:Ping" /></operation></binding>
-  <service name="ConvertService"><port name="ConvertPort" binding="tns:ConvertBinding"><soap:address location="https://soap.example.com/convert" /></port></service>
+  <service name="ConvertService"><port name="ConvertPort" binding="tns:ConvertBinding"><soap:address location="https://test.mmt.dev/xml" /></port></service>
 </definitions>

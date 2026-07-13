@@ -269,6 +269,19 @@ describe('variableReplacer', () => {
     expect(out).toEqual({ first: 'h', short: 'he', body: 'value: ell' });
   });
 
+  it('keeps accessor replacements as runtime expressions for ${input} placeholders', () => {
+    const defaults = { username: '${username}', role: '${role}' } as any;
+    const iface = {
+      userInitial: '<<i:username[0]>>',
+      roleShort: '<<i:role[0:3]>>'
+    } as any;
+    const out = replaceAllRefs(iface, defaults, {}, {} as any);
+    expect(out).toEqual({
+      userInitial: '${__mmt_access(username, \'[0]\')}',
+      roleShort: '${__mmt_access(role, \'[0:3]\')}'
+    });
+  });
+
   it('supports env index and property access', () => {
     const envs = { TOKEN: 'abc123', user: {name: 'mehrdad'} } as any;
     const iface = {

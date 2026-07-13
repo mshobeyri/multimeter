@@ -116,6 +116,39 @@ button,
   position: absolute !important;
 }
 
+/* Hover / quick-fix popups */
+.monaco-hover,
+.monaco-editor-hover,
+.monaco-editor .monaco-editor-hover,
+.monaco-editor .monaco-hover,
+.monaco-editor .monaco-editor-hover-content,
+.monaco-editor .monaco-hover-content,
+.monaco-editor .monaco-hover .hover-contents,
+.monaco-editor .monaco-hover .hover-row,
+.monaco-editor .monaco-hover .hover-row-status-bar,
+.monaco-editor .monaco-hover .markdown-hover {
+  border: 0 !important;
+  border-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove autocomplete/suggest widget border */
+.monaco-editor .suggest-widget,
+.monaco-editor .suggest-widget .details,
+.monaco-editor .suggest-details {
+  border: 0 !important;
+  border-color: transparent !important;
+}
+
+/* Remove error/warning/info flat underlines while keeping squiggles */
+.monaco-editor .squiggly-error,
+.monaco-editor .squiggly-warning,
+.monaco-editor .squiggly-info {
+  border: none !important;
+  border-bottom: none !important;
+}
+
 .button-icon {
   display: flex;
   align-items: center;

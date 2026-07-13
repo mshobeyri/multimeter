@@ -6,15 +6,39 @@ export const GeneralSchema = {
     }
 }
 
+const DataImportSchema = {
+    type: 'object',
+    description: 'Alias -> data file path. Supports .json, .yaml, .yml, and .csv files. Values are referenced with ${alias.path}.',
+    additionalProperties: { type: 'string' }
+};
+
+const DataRefStringSchema = {
+    type: 'string',
+    pattern: '^\\$\\{\\s*[A-Za-z_][A-Za-z0-9_-]*(?:\\.[A-Za-z_][A-Za-z0-9_-]*|\\[(?:-?\\d+(?::-?\\d*)?|[A-Za-z_][A-Za-z0-9_]*)\\])*\\s*\\}$',
+    description: 'Data import reference, resolved before execution.'
+};
+
+const dataRefOr = (...schemas: any[]) => ({
+    anyOf: [
+        DataRefStringSchema,
+        ...schemas
+    ]
+});
+
 export const SuiteSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
-    required: ['type', 'tests'],
+    required: ['type'],
+    anyOf: [
+        { required: ['items'] },
+        { required: ['tests'] },
+    ],
     properties: {
         type: { type: 'string', enum: ['suite'] },
         title: { type: 'string' },
         description: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
+        import: DataImportSchema,
         servers: { type: 'array', items: { type: 'string' } },
         environment: {
             type: 'object',
@@ -39,8 +63,17 @@ export const SuiteSchema = {
             type: 'array',
             items: { type: 'string' }
         },
+        items: {
+            type: 'array',
+            items: {
+                anyOf: [
+                    { type: 'string' }
+                ]
+            }
+        },
         tests: {
             type: 'array',
+            description: 'Deprecated alias for items.',
             items: {
                 anyOf: [
                     { type: 'string' }
@@ -59,6 +92,7 @@ export const LoadTestSchema = {
         title: { type: 'string' },
         description: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
+        import: DataImportSchema,
         environment: {
             type: 'object',
             properties: {
@@ -78,7 +112,7 @@ export const LoadTestSchema = {
             },
             additionalProperties: false
         },
-        threads: { type: 'number', default: 1 },
+        threads: dataRefOr({ type: 'number', default: 1 }),
         repeat: {
             anyOf: [
                 { type: 'number' },
@@ -104,6 +138,7 @@ export const APISchema = {
         title: { type: 'string' },
         description: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
+        import: DataImportSchema,
         inputs: {
             type: 'object',
             additionalProperties: {
@@ -125,13 +160,13 @@ export const APISchema = {
             type: 'object',
             additionalProperties: { type: 'string' }
         },
-        protocol: { type: 'string', enum: ['http', 'ws', 'graphql', 'grpc'] },
-        method: {
+        protocol: dataRefOr({ type: 'string', enum: ['http', 'ws', 'graphql', 'grpc'] }),
+        method: dataRefOr({
             type: 'string',
             enum: ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
-        },
-        timeout: { type: 'number', minimum: 0 },
-        format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text'] },
+        }),
+        timeout: dataRefOr({ type: 'number', minimum: 0 }),
+        format: dataRefOr({ type: 'string', enum: ['json', 'xml', 'xmle', 'text'] }),
         url: { type: 'string' },
         headers: { type: 'object', additionalProperties: { type: 'string' } },
         query: { type: 'object', additionalProperties: { type: 'string' } },
@@ -170,11 +205,11 @@ export const APISchema = {
                 proto: { type: 'string' },
                 service: { type: 'string' },
                 method: { type: 'string' },
-                stream: { type: 'string', enum: ['server', 'client', 'bidi'] },
-                message: {
+                stream: dataRefOr({ type: 'string', enum: ['server', 'client', 'bidi'] }),
+                message: dataRefOr({
                     type: 'object',
                     additionalProperties: true
-                }
+                })
             },
             required: ['service', 'method'],
             additionalProperties: false
@@ -310,6 +345,7 @@ export const EnvSchema = {
     required: ['type'],
     properties: {
         type: { type: 'string', enum: ['env'] },
+        import: DataImportSchema,
         variables: {
             type: 'object',
             additionalProperties: {
@@ -357,8 +393,8 @@ export const EnvSchema = {
                 http: {
                     type: 'object',
                     properties: {
-                        version: { type: 'string', enum: ['auto', '1', '1.1', '2'] },
-                        timeout: { type: 'number', minimum: 0 }
+                        version: dataRefOr({ type: 'string', enum: ['auto', '1', '1.1', '2'] }),
+                        timeout: dataRefOr({ type: 'number', minimum: 0 })
                     },
                     additionalProperties: false
                 }
@@ -388,7 +424,7 @@ export const EnvSchema = {
                         }
                     ]
                 },
-                clients: {
+                clients: dataRefOr({
                     type: 'array',
                     items: {
                         type: 'object',
@@ -403,7 +439,7 @@ export const EnvSchema = {
                         },
                         additionalProperties: false
                     }
-                }
+                })
             },
             additionalProperties: false
         }
@@ -422,7 +458,7 @@ export const TestSchema = {
         tags: { type: 'array', items: { type: 'string' } },
         import: {
             type: 'object',
-            description: 'Alias -> import path. Supports .mmt (test/api/csv) and JS helper modules (.js/.cjs/.mjs).',
+            description: 'Alias -> import path. Supports .mmt tests/APIs, data files (.json/.yaml/.yml/.csv), and JS helper modules (.js/.cjs/.mjs). Data values are referenced with ${alias.path}.',
             additionalProperties: { type: 'string' }
         },
         inputs: {
@@ -931,6 +967,7 @@ export const MockSchema = {
         title: { type: 'string' },
         description: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
+        import: DataImportSchema,
         protocol: { type: 'string', enum: ['http', 'https', 'ws'] },
         port: { type: 'number', minimum: 1, maximum: 65535 },
         connection: {
@@ -1375,6 +1412,7 @@ export const DocSchema = {
         type: { type: 'string', enum: ['doc'] },
         title: { type: 'string' },
         description: { type: 'string' },
+        import: DataImportSchema,
         logo: { type: 'string' },
         sources: { type: 'array', items: { type: 'string' } },
         services: {

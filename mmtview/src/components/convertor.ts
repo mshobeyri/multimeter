@@ -1,13 +1,26 @@
 
 import {JSONValue} from 'mmt-core/CommonData';
+import {isOmitSentinel, OMIT_SENTINEL} from 'mmt-core/omitKeyword';
 
-export const valueToString = (val: JSONValue): string => {
-  if (val === null || val === undefined) {
+export const valueToString = (val: JSONValue | undefined): string => {
+  if (val === undefined) {
     return '';
+  }
+  if (val === null) {
+    return 'null';
+  }
+  if (isOmitSentinel(val)) {
+    return 'omit';
   }
   if (typeof val === 'string') {
     if (val.toLowerCase() === 'true' || val.toLowerCase() === 'false') {
       return `"${val}"`;
+    }
+    if (val.toLowerCase() === 'null') {
+      return '"null"';
+    }
+    if (val.toLowerCase() === 'omit') {
+      return '"omit"';
     }
     if (val.trim() !== '' && !isNaN(Number(val))) {
       return `"${val}"`;
@@ -31,39 +44,38 @@ export const stringToValue = (val: string): JSONValue => {
     return '';
   }
   if (typeof val === 'string') {
-    if (val.toLowerCase() === 'true') {
+    const t = val.trim();
+
+    if ((t.startsWith('"') && t.endsWith('"')) ||
+        (t.startsWith('\'') && t.endsWith('\''))) {
+      return t.slice(1, -1);
+    }
+
+    if (t === 'omit') {
+      return OMIT_SENTINEL;
+    }
+    if (t === 'null') {
+      return null;
+    }
+    if (t.toLowerCase() === 'true') {
       return true;
     }
-    if (val.toLowerCase() === 'false') {
+    if (t.toLowerCase() === 'false') {
       return false;
     }
-    const num = Number(val);
-    if (!isNaN(num) && val.trim() !== '') {
+    const num = Number(t);
+    if (!isNaN(num) && t !== '') {
       return num;
     }
-    // Try to parse JSON objects/arrays
-    if ((val.startsWith('{') && val.endsWith('}')) ||
-        (val.startsWith('[') && val.endsWith(']'))) {
+    if ((t.startsWith('{') && t.endsWith('}')) ||
+        (t.startsWith('[') && t.endsWith(']'))) {
       try {
-        return JSON.parse(val);
+        return JSON.parse(t);
       } catch {
         // Fall through to return as string
       }
     }
-    if (val.startsWith('"') && val.endsWith('"')) {
-      let trimmed = val.slice(1, -1);
-      if (trimmed.toLowerCase() === 'true') {
-        return 'true';
-      }
-      if (trimmed.toLowerCase() === 'false') {
-        return 'false';
-      }
-      const num = Number(trimmed);
-      if (!isNaN(num) && trimmed.trim() !== '') {
-        return `${trimmed}`;
-      }
-    }
-    return val;  // Return as string
+    return val;
   }
-  return val;  // Fallback
+  return val;
 };

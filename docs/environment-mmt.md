@@ -9,7 +9,7 @@ variables:
   api_url:
     local: "http://localhost:8080"      # key-value map (named choices)
     staging: "https://staging.example.com"
-    prod: "https://api.example.com"
+    prod: "https://test.mmt.dev"
   mode:
     dev: "debug"
     prod: "release"
@@ -179,6 +179,18 @@ import:
 ```
 
 See [Test documentation](./test-mmt.md#import) for more details on import paths.
+
+Environment files also support JSON/YAML/CSV data imports for defining variables and presets:
+
+```yaml
+type: env
+import:
+  shared: ./shared-env.json
+variables:
+  api_url: ${shared.api_url}
+```
+
+See [Data Imports](./data-imports.md).
 
 ---
 

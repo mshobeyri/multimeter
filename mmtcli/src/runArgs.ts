@@ -11,6 +11,8 @@ export type ReportFormat = 'junit' | 'mmt' | 'html' | 'md';
 
 const {mergeEnv, resolvePresetEnv} =
     ((mmtcore as any).runConfig || {}) as any;
+const OMIT_SENTINEL =
+    ((mmtcore as any).omitKeyword || {}).OMIT_SENTINEL || '__MMT_OMIT_KEYWORD__';
 
 const LOG_LEVEL_PRIORITY: Record<string, number> = {
   error: 0,
@@ -52,6 +54,12 @@ type AnyOpts = Record<string, any>;
 
 function coerceCliValue(v: string): any {
   const t = (v ?? '').trim();
+  if (t === 'omit') {
+    return OMIT_SENTINEL;
+  }
+  if (t === 'null') {
+    return null;
+  }
   if (/^(true|false)$/i.test(t)) {
     return /^true$/i.test(t);
   }
@@ -119,10 +127,19 @@ function parseEnvSetting(raw: any): EnvSetting|undefined {
   return Object.keys(http).length > 0 ? {http} : undefined;
 }
 
-function loadEnvDoc(envPath: string): EnvDocResult {
+async function loadEnvDoc(envPath: string, projectRoot?: string): Promise<EnvDocResult> {
   try {
     const txt = fs.readFileSync(envPath, 'utf8');
-    const data = yaml.load(txt) as any;
+    const processor = (mmtcore as any).dataImportProcessor;
+    const processed = processor?.processDataImportsInYaml ?
+      await processor.processDataImportsInYaml({
+        rawText: txt,
+        filePath: envPath,
+        projectRoot,
+        fileLoader: async (p: string) => fs.readFileSync(p, 'utf8'),
+      }) :
+      txt;
+    const data = yaml.load(processed) as any;
     if (!data || typeof data !== 'object') {
       return {};
     }
@@ -294,7 +311,7 @@ export interface ParsedCliRunArgs {
   getReportResults?: () => import('mmt-core/reportCollector').CollectedResults;
 }
 
-export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
+export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<ParsedCliRunArgs> {
   const full = path.resolve(process.cwd(), file);
   const dir = path.dirname(full);
   const rawText = fs.readFileSync(full, 'utf8');
@@ -347,7 +364,7 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
       }
     }
     envFileDir = path.dirname(p);
-    const doc = loadEnvDoc(p);
+    const doc = await loadEnvDoc(p, findProjectRootForCli(p) || undefined);
     const defaultEnv = resolveDefaultEnvVariables(doc.variables);
     const presetEnv = resolvePresetEnv(doc, presetName);
     envvar = mergeEnv({baseEnv: defaultEnv, envvar: presetEnv, manualEnvvars});
@@ -382,7 +399,8 @@ export function buildCliRunArgs(file: string, opts: AnyOpts): ParsedCliRunArgs {
       }
 
       if (suiteEnvFilePath && fs.existsSync(suiteEnvFilePath)) {
-        const suiteEnvDoc = loadEnvDoc(suiteEnvFilePath);
+        const suiteEnvDoc =
+            await loadEnvDoc(suiteEnvFilePath, projectRoot || undefined);
         suitePresetEnv = resolvePresetEnv(suiteEnvDoc, suiteEnvConfig.preset);
       }
     }

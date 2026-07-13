@@ -1,0 +1,19 @@
+type: test
+title: Omit keyword
+import:
+  profile: ./omit_keyword.mmt
+steps:
+  - call: profile
+    id: update
+    inputs:
+      displayName: Alex
+      middleName: omit
+      nickname: "omit"
+      bio: null
+      bioText: "null"
+    expect:
+      echoed_displayName: Alex
+      echoed_middleName: omit
+      echoed_nickname: "omit"
+      echoed_bio: null
+      echoed_bioText: "null"

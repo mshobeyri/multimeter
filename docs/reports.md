@@ -292,7 +292,7 @@ title: CI Suite
 export:
   - ./reports/results.xml
   - ./reports/results.html
-tests:
+items:
   - tests/login.mmt
   - tests/profile.mmt
 ```

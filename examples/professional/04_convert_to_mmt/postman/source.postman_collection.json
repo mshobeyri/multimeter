@@ -8,16 +8,16 @@
       "name": "Ping",
       "request": {
         "method": "GET",
-        "url": "https://api.example.com/ping",
+        "url": "https://test.mmt.dev/json",
         "header": [
           {"key": "Accept", "value": "application/json"}
         ]
       },
       "response": [
         {
-          "name": "pong",
+          "name": "sample json",
           "code": 200,
-          "body": "{\"ok\":true}"
+          "body": "{\"id\":1,\"name\":\"Multimeter\",\"description\":\"API testing tool\",\"version\":\"1.0.0\"}"
         }
       ],
       "event": [

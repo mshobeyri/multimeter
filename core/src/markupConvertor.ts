@@ -1,5 +1,9 @@
 import {js2xml, xml2js} from 'xml-js';
 import * as YAML from 'yaml';
+import {parseYamlWithOmitKeyword} from './omitKeyword';
+import {restoreOmitKeyword} from './omitKeyword';
+import {isOmitSentinel} from './omitKeyword';
+import {applyDescriptionBlockLiteralStyles} from './multilineDescriptionYaml';
 
 function parseYamlDoc(yamlString: string): any {
   return YAML.parseDocument(yamlString);
@@ -8,7 +12,7 @@ function parseYamlDoc(yamlString: string): any {
 
 function parseYaml(yamlString: string): any {
   try {
-    return YAML.parse(yamlString);
+    return parseYamlWithOmitKeyword(yamlString, false);
   } catch (e) {
     return null;
   }
@@ -19,15 +23,70 @@ function parseYaml(yamlString: string): any {
  * Use this in execution paths where errors must be surfaced.
  */
 function parseYamlStrict(yamlString: string): any {
-  return YAML.parse(yamlString);
+  return parseYamlWithOmitKeyword(yamlString, true);
+}
+
+function applyKeywordScalarStyles(node: any, original: any): void {
+  if (!node || typeof node !== 'object') {
+    return;
+  }
+
+  const hasScalarValue = Object.prototype.hasOwnProperty.call(node, 'value');
+  if (hasScalarValue && typeof node.value === 'string') {
+    if (isOmitSentinel(original)) {
+      node.type = 'PLAIN';
+      return;
+    }
+    if ((original === 'omit' || original === 'null') &&
+        typeof original === 'string') {
+      node.type = 'QUOTE_DOUBLE';
+    }
+    return;
+  }
+
+  if (Array.isArray(node.items)) {
+    const isArrayOriginal = Array.isArray(original);
+    for (let i = 0; i < node.items.length; i++) {
+      const item = node.items[i];
+      if (item && typeof item === 'object' &&
+          Object.prototype.hasOwnProperty.call(item, 'key') &&
+          Object.prototype.hasOwnProperty.call(item, 'value')) {
+        const key = item.key && typeof item.key === 'object' ?
+          item.key.value :
+          undefined;
+        const nextOriginal =
+          original && typeof original === 'object' && !Array.isArray(original) &&
+            key !== undefined ?
+            (original as Record<string, any>)[String(key)] :
+            undefined;
+        applyKeywordScalarStyles(item.value, nextOriginal);
+      } else {
+        const nextOriginal = isArrayOriginal ? original[i] : undefined;
+        applyKeywordScalarStyles(item, nextOriginal);
+      }
+    }
+  }
+
+  if (Object.prototype.hasOwnProperty.call(node, 'key')) {
+    applyKeywordScalarStyles(node.key, undefined);
+  }
+  if (Object.prototype.hasOwnProperty.call(node, 'value')) {
+    applyKeywordScalarStyles(node.value, original);
+  }
 }
 
 function packYaml(obj: any): string {
   try {
-    return YAML.stringify(obj, {
+    const restored = restoreOmitKeyword(obj);
+    const doc = new YAML.Document();
+    doc.contents = doc.createNode(restored);
+    applyKeywordScalarStyles(doc.contents, obj);
+    applyDescriptionBlockLiteralStyles(doc.contents);
+    return doc.toString({
       aliasDuplicateObjects: false,
       blockQuote: 'literal',
-    });
+      lineWidth: 0,
+    } as any);
   } catch (e) {
     return '';
   }

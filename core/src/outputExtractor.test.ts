@@ -1,4 +1,5 @@
 import { extractOutputs, buildBodyExprFromPath, ResponseData, DEFAULT_EXTRACTION_RULES, DEFAULT_OUTPUT_KEYS, mergeWithDefaultExtractionRules } from './outputExtractor';
+import {OMIT_SENTINEL} from './omitKeyword';
 
 describe('outputExtractor', () => {
   it('extracts with explicit regex prefix (legacy)', () => {
@@ -245,7 +246,7 @@ describe('outputExtractor', () => {
     expect(res.sid).toBe('S-77');
   });
 
-  it('returns null for missing dot notation path', () => {
+  it('returns omit for missing dot notation path', () => {
     const response: ResponseData = {
       type: 'json',
       body: { user: { id: 1 } },
@@ -253,10 +254,10 @@ describe('outputExtractor', () => {
       cookies: {}
     } as any;
     const res = extractOutputs(response, { nope: 'body.user.missing.deep' });
-    expect(res.nope).toBeNull();
+    expect(res.nope).toBe(OMIT_SENTINEL);
   });
 
-  it('returns null for missing JSONPath value', () => {
+  it('returns omit for missing JSONPath value', () => {
     const response: ResponseData = {
       type: 'json',
       body: { user: { id: 1 } },
@@ -264,7 +265,18 @@ describe('outputExtractor', () => {
       cookies: {}
     } as any;
     const res = extractOutputs(response, { nope: '$body[user][missing]' });
-    expect(res.nope).toBeNull();
+    expect(res.nope).toBe(OMIT_SENTINEL);
+  });
+
+  it('returns null for literal null at dot notation path', () => {
+    const response: ResponseData = {
+      type: 'json',
+      body: { xxx: null },
+      headers: {},
+      cookies: {}
+    } as any;
+    const res = extractOutputs(response, { x: 'body.xxx' });
+    expect(res.x).toBeNull();
   });
 
   it('extracts primitives with correct types via dot notation', () => {

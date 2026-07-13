@@ -2,7 +2,7 @@ import {JSONRecord} from './CommonData';
 import {resolveRequestedAgainst} from './fileHelper';
 import {ImportTracker} from './importTracker';
 import {indentLines, toInputsParams, toLowerUnderscore} from './JSerHelper';
-import {importsToJsfunc} from './JSerImports';
+import {importsToJsfuncDetailed} from './JSerImports';
 import {flowToJsFunc} from './JSerTestFlow';
 import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
 import {TestData} from './TestData';
@@ -50,8 +50,8 @@ function isAllowedOutputKeyReference(outputKey: string, allowedOutputs: Set<stri
 export const testToJsfunc = async(
     ctx: TestContext, root: boolean,
     importTracker: ImportTracker = new ImportTracker()): Promise<string> => {
-  if (ctx.test.stages && ctx.test.stages.length > 0 && ctx.test.steps &&
-      ctx.test.steps.length > 0) {
+  if (Array.isArray(ctx.test.stages) && ctx.test.stages.length > 0 &&
+      Array.isArray(ctx.test.steps) && ctx.test.steps.length > 0) {
     throw new Error(`${ctx.name}: Test cannot have both stages and steps`);
   }
 
@@ -209,8 +209,8 @@ export const testToJsfunc = async(
       }
     }
   };
-  const allSteps = replaced.steps || [];
-  const allStages = replaced.stages || [];
+  const allSteps = Array.isArray(replaced.steps) ? replaced.steps : [];
+  const allStages = Array.isArray(replaced.stages) ? replaced.stages : [];
   if (allSteps.length > 0) {
     validateCallContracts(allSteps, 'steps');
   }
@@ -261,16 +261,35 @@ export const variableReplacer = (full: string): string => {
   return out;
 };
 
+const chooseRootFunctionName =
+    (name: string, usedNames: Set<string>): string => {
+      const base = toLowerUnderscore(name) || 'testflow';
+      let candidate = `${base}_`;
+      let suffix = 1;
+      while (usedNames.has(candidate)) {
+        candidate = `${base}_${suffix}_`;
+        suffix++;
+      }
+      return candidate;
+    };
+
 export const rootTestToJsfunc = async(ctx: TestContext): Promise<string> => {
   const tracker = new ImportTracker();
-  let importedFuncs =
-      await importsToJsfunc(ctx.test.import ?? {}, tracker, ctx.filePath, ctx.projectRoot);
+  const importResult = await importsToJsfuncDetailed(
+      ctx.test.import ?? {}, tracker, ctx.filePath, ctx.projectRoot);
+  const importedFuncs = importResult.js;
+  const usedNames = new Set(Object.values(importResult.functionNameByResolvedPath));
+  const rootFuncName = chooseRootFunctionName(ctx.name, usedNames);
+  // testToJsfunc appends '_' for root wrappers; pass the stem only.
+  const rootNameStem = rootFuncName.endsWith('_') ?
+      rootFuncName.slice(0, -1) :
+      rootFuncName;
 
   const test =
-      await testToJsfunc({...ctx, importTracker: tracker}, true, tracker);
+      await testToJsfunc({...ctx, name: rootNameStem, importTracker: tracker}, true, tracker);
   const envPretty = JSON.stringify(ctx.envVars || {}, null, 2);
 
   const full = `const envVariables = ${envPretty};\n\n${importedFuncs}\n${
-      test}\nreturn ${toLowerUnderscore(ctx.name)}_({});`;
+      test}\nreturn ${rootFuncName}({});`;
   return variableReplacer(full);
 };

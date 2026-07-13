@@ -3,6 +3,7 @@ import {RunJSCodeContext} from './jsRunner';
 import type {LoadReportData} from './reportCollector';
 import {dirnamePath, joinPath, resolveRequestedAgainst} from './fileHelper';
 import parseYaml from './markupConvertor';
+import {processDataImportsInYaml} from './dataImportProcessor';
 
 export type FileLoader = (path: string) => Promise<string>;
 
@@ -109,6 +110,8 @@ export interface RunResult {
   cancelled?: boolean;
   /** True when the generated JS failed syntax validation (bad .mmt syntax). */
   syntaxError?: boolean;
+  /** Set when generated JS threw during execution (e.g. ReferenceError, failed assert). */
+  executionError?: string;
 }
 
 export interface GenerateJsOptions {
@@ -394,7 +397,13 @@ export async function resolveDocumentEnvVars(params: ResolveDocumentEnvParams): 
   if (documentEnv.preset && envFilePath) {
     try {
       const raw = await fileLoader(envFilePath);
-      const doc = parseYaml(raw);
+      const processed = await processDataImportsInYaml({
+        rawText: raw,
+        filePath: envFilePath,
+        projectRoot,
+        fileLoader,
+      });
+      const doc = parseYaml(processed);
       if (doc && typeof doc === 'object') {
         suitePresetEnv = resolvePresetEnv(
           {variables: (doc as any).variables, presets: (doc as any).presets},

@@ -48,6 +48,22 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'Type of mmt file, must be one of: api, env, doc, test, suite, loadtest, server, report\n\t- api: Define an API\n\t- env: Define environment variables\n\t- doc: Define a documentation page (title/description/sources/theme)\n\t- test: Define a functional test (steps/stages)\n\t- suite: Orchestrate multiple .mmt files in groups split by "then"\n\t- loadtest: Run one test file with load configuration\n\t- server: Define a mock server\n\t- report: Test/suite run results\nExample: type: loadtest',
         }];
 
+    const dataImportSuggestion = {
+        label: "import",
+        kind: monaco.languages.CompletionItemKind.Property,
+        insertText: "import:\n\talias: ./data.json",
+        detail: 'Data file imports [object]',
+        documentation: [
+            'Import external data files with alias -> path entries.',
+            'Supported data files: .json, .yaml, .yml, .csv.',
+            'Use values with ${alias.path}, ${alias[0].field}, or ${alias}.',
+            'Example:',
+            'import:',
+            '  fixture: ./fixture.json',
+            'body: ${fixture.payload}',
+        ].join('\n')
+    };
+
     const typeSuggestions = [
         {
             label: "API",
@@ -82,7 +98,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.EnumMember,
             insertText: " suite",
             detail: 'Define a suite runner',
-            documentation: 'Suite definition that runs referenced .mmt files. Uses tests: [path | then | path], runs items in a group in parallel and groups sequentially.',
+            documentation: 'Suite definition that runs referenced .mmt files. Uses items: [path | then | path], runs items in a group in parallel and groups sequentially.',
         },
         {
             label: "Load Test",
@@ -135,13 +151,14 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Import external parameters [object of key: value]',
             documentation: [
                 'Import map used in this test (alias -> path).',
-                'Supports importing other .mmt files (test/api/csv) and also JS helper modules by extension (.js/.cjs/.mjs).',
+                'Supports importing other .mmt files, data files (.json/.yaml/.yml/.csv), and JS helper modules by extension (.js/.cjs/.mjs).',
                 'Examples:',
                 'import:',
                 '  common: ./common.test.mmt',
+                '  fixture: ./fixture.json',
                 '  helpers: ./helpers/myHelpers.js',
                 '',
-                'Then in steps JS you can call: helpers.someFn()',
+                'Use data values with ${fixture.path}. In steps JS you can call: helpers.someFn()',
             ].join('\n')
         },
         {
@@ -196,6 +213,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Suite tags [array of strings]',
             documentation: 'Tags for categorizing suites.',
         },
+        dataImportSuggestion,
         {
             label: "servers",
             kind: monaco.languages.CompletionItemKind.Property,
@@ -204,9 +222,9 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'List of mock server .mmt file paths to start before the suite runs and keep running throughout.',
         },
         {
-            label: "tests",
+            label: "items",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "tests:\n\t- ",
+            insertText: "items:\n\t- ",
             detail: 'Suite items [array]',
             documentation: 'List of .mmt paths and the literal "then" barrier. Items in a group run in parallel; groups run sequentially.',
         },
@@ -233,6 +251,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Load test tags [array of strings]',
             documentation: 'Tags for categorizing load tests.',
         },
+        dataImportSuggestion,
         {
             label: "environment",
             kind: monaco.languages.CompletionItemKind.Property,
@@ -357,7 +376,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 '  - query, headers, body: request details',
                 '  - expect/debug/report: validation and reporting',
                 'Example:',
-                '- http: https://api.example.com/users',
+                '- http: https://test.mmt.dev/echo',
                 '  id: users',
                 '  method: get',
                 '  timeout: 5000',
@@ -524,7 +543,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 'Declare variables available to subsequent steps. Strings are template-enabled; objects and numbers are inserted directly.',
                 'Examples:',
                 '- var:',
-                '    baseUrl: `https://api.example.com`',
+                '    baseUrl: `https://test.mmt.dev`',
                 '    threshold: 10'
             ].join('\n')
         },
@@ -699,6 +718,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Doc description [string]',
             documentation: 'Optional description shown under the title.'
         },
+        dataImportSuggestion,
         {
             label: "sources",
             kind: monaco.languages.CompletionItemKind.Property,
@@ -757,6 +777,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'API tags [array of strings]',
             documentation: 'Tags for categorizing and organizing APIs. Helps with searchability and filtering.\nExample:\ntags:\n\t- user\n\t- authentication\n\t- v1',
         },
+        dataImportSuggestion,
         {
             label: "inputs",
             kind: monaco.languages.CompletionItemKind.Property,
@@ -890,8 +911,9 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "variables:\n\t",
             detail: 'Environment variables [object of key: value]',
-            documentation: 'Define variables that can be used throughout the API definition. These are placeholders that can be replaced with actual values at runtime.\nExample:\nvariables:\n\turl: \n\t\tdevelopment: "https://api.example.com"\n\t\tproduction: "http://localhost:3000"',
+            documentation: 'Define variables that can be used throughout the API definition. These are placeholders that can be replaced with actual values at runtime.\nExample:\nvariables:\n\turl: \n\t\tdevelopment: "https://test.mmt.dev"\n\t\tproduction: "http://localhost:3000"',
         },
+        dataImportSuggestion,
         {
             label: "presets",
             kind: monaco.languages.CompletionItemKind.Property,
@@ -1435,6 +1457,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             detail: 'Mock server tags [array of strings]',
             documentation: 'Tags for categorizing mock servers.'
         },
+        dataImportSuggestion,
         {
             label: "protocol",
             kind: monaco.languages.CompletionItemKind.Property,
@@ -1489,7 +1512,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "proxy: ",
             detail: 'Proxy URL for unmatched requests [string]',
-            documentation: 'Forward unmatched requests to this URL. Useful for partial mocking.\nExample: proxy: https://api.example.com'
+            documentation: 'Forward unmatched requests to this URL. Useful for partial mocking.\nExample: proxy: https://test.mmt.dev'
         },
         {
             label: "fallback",
@@ -1664,8 +1687,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
         { label: 'report', kind: monaco.languages.CompletionItemKind.Property, insertText: 'report: ', detail: 'Report level', documentation: 'Controls when expect results are reported.\nValues: all, fails, none\nOr object form:\n  report:\n    internal: all\n    external: fails' },
     ];
     const httpSiblings = [
-        { label: 'id', kind: monaco.languages.CompletionItemKind.Property, insertText: 'id: ', detail: 'Capture HTTP result', documentation: 'Variable name to capture the HTTP step output.\nExample:\n- http: https://api.example.com/users\n  id: users' },
-        { label: 'title', kind: monaco.languages.CompletionItemKind.Property, insertText: 'title: ', detail: 'HTTP step title', documentation: 'Short summary shown inline in reports/UI.\nExample:\n- http: https://api.example.com/users\n  title: Fetch users' },
+        { label: 'id', kind: monaco.languages.CompletionItemKind.Property, insertText: 'id: ', detail: 'Capture HTTP result', documentation: 'Variable name to capture the HTTP step output.\nExample:\n- http: https://test.mmt.dev/echo\n  id: users' },
+        { label: 'title', kind: monaco.languages.CompletionItemKind.Property, insertText: 'title: ', detail: 'HTTP step title', documentation: 'Short summary shown inline in reports/UI.\nExample:\n- http: https://test.mmt.dev/echo\n  title: Fetch users' },
         { label: 'method', kind: monaco.languages.CompletionItemKind.Property, insertText: 'method: ', detail: 'HTTP method', documentation: 'HTTP method for this request. Defaults to get.\nExample: method: post' },
         { label: 'timeout', kind: monaco.languages.CompletionItemKind.Property, insertText: 'timeout: 5000', detail: 'Request timeout override [number, ms]', documentation: 'Overrides the default network timeout for this HTTP step only, in milliseconds.\nExample: timeout: 5000' },
         { label: 'format', kind: monaco.languages.CompletionItemKind.Property, insertText: 'format: ', detail: 'Body format', documentation: 'Request and response format. Values: json, xml, xmle, text.\nExample: format: json' },

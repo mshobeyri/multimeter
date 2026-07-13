@@ -9,6 +9,7 @@ import { APIData, ExampleData } from "mmt-core/APIData";
 import { Request } from "mmt-core/NetworkData";
 import { protocolResolver } from "mmt-core";
 import { safeList, safeListCopy } from "mmt-core/safer";
+import { useResolvedYamlContent } from "../useResolvedYamlContent";
 
 const LAST_API_TAB_KEY = "mmtview:api:lastTab";
 const LAST_API_PAGE_KEY = "mmtview:api:lastPage";
@@ -19,11 +20,8 @@ interface APIsProps {
 }
 
 const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
-  // Memoize the parsed API so its reference is stable across renders.
-  // Without this, every render produces a new object, which makes effects
-  // in useAPITesterLogic (`[api, ...]`) fire constantly and reset
-  // touched fields — wiping the user's tester edits.
-  const api = useMemo<APIData>(() => yamlToAPI(content), [content]);
+  const resolvedContent = useResolvedYamlContent(content);
+  const api = useMemo<APIData>(() => yamlToAPI(resolvedContent), [resolvedContent]);
 
   const [page, setPage] = useState<"test" | "edit">(
     () => (localStorage.getItem(LAST_API_PAGE_KEY) as "test" | "edit") || "test"

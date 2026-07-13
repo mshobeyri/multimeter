@@ -62,6 +62,11 @@ export const fileType = (path: string, content: string): Type => {
   return null;
 };
 
+/** Matches one or more duration tokens such as 1h, 5m, 3s, 500ms. */
+export const DURATION_EXPRESSION_RE = /^((?:\d+(?:\.\d+)?)(?:ns|ms|s|m|h))+$/;
+
+const DURATION_TOKEN_RE = /(\d+(?:\.\d+)?)(ns|ms|s|m|h)/g;
+
 /**
  * Convert a numeric value with a time unit suffix to milliseconds.
  * Supported units: ns, ms, s, m, h. Defaults to ms if no unit provided.
@@ -78,6 +83,89 @@ export function timeUnitToMs(value: number, unit: string): number {
 }
 
 /**
+ * Returns true when a string contains one or more duration unit suffixes.
+ * Examples: 2s, 1h5m, 5m3s. Bare numbers and "inf" return false.
+ */
+export function isDurationExpression(value: string): boolean {
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed || trimmed === 'inf') {
+    return false;
+  }
+  return DURATION_EXPRESSION_RE.test(trimmed);
+}
+
+/**
+ * Parse a duration string into milliseconds.
+ * Supports single and combined unit suffixes: 2s, 1h5m, 5m3s, 1h30m15s.
+ * Bare numbers and "inf" return undefined — callers decide how to interpret them.
+ */
+export function parseDurationString(value: unknown): number | undefined {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value) || value < 0) {
+      return undefined;
+    }
+    return Math.round(value);
+  }
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const trimmed = value.trim().toLowerCase();
+  if (!trimmed || trimmed === 'inf' || !isDurationExpression(trimmed)) {
+    return undefined;
+  }
+  let total = 0;
+  const tokenRe = new RegExp(DURATION_TOKEN_RE.source, 'g');
+  let match: RegExpExecArray | null;
+  while ((match = tokenRe.exec(trimmed)) !== null) {
+    const amount = Number(match[1]);
+    if (!Number.isFinite(amount) || amount < 0) {
+      return undefined;
+    }
+    total += timeUnitToMs(amount, match[2]);
+  }
+  return Math.round(total);
+}
+
+/** Inline JS helper used when a delay value is only known at runtime. */
+export const PARSE_DURATION_JS_FN = `(function __parseDurationMs(v) {
+  const s = String(v).trim().toLowerCase();
+  if (!s || s === 'inf') return 0;
+  if (/^\\d+(?:\\.\\d+)?$/.test(s)) return Number(s) || 0;
+  if (!/^((?:\\d+(?:\\.\\d+)?)(?:ns|ms|s|m|h))+$/.test(s)) return Number(s) || 0;
+  let total = 0;
+  const re = /(\\d+(?:\\.\\d+)?)(ns|ms|s|m|h)/g;
+  let m;
+  while ((m = re.exec(s)) !== null) {
+    const n = parseFloat(m[1]);
+    const u = m[2];
+    total += u === 'ns' ? n / 1e6 : u === 'ms' ? n : u === 's' ? n * 1000 : u === 'm' ? n * 60000 : n * 3600000;
+  }
+  return Math.round(total);
+})`;
+
+/**
+ * Return a JavaScript expression that evaluates to milliseconds for a delay value.
+ * Static values are inlined; dynamic/template values use runtime parsing.
+ */
+export function durationToJsMsExpr(value: string | number): string {
+  if (typeof value === 'number') {
+    return String(Math.round(value));
+  }
+  const trimmed = value.trim();
+  const parsed = parseDurationString(trimmed);
+  if (parsed !== undefined) {
+    return String(parsed);
+  }
+  if (/^\d+(?:\.\d+)?$/.test(trimmed)) {
+    return String(Math.round(Number(trimmed)));
+  }
+  return `${PARSE_DURATION_JS_FN}(${JSON.stringify(value)})`;
+}
+
+/**
  * Normalize a token name: split camelCase, replace hyphens/spaces with
  * underscores, and lowercase everything.
  * e.g. "firstName" → "first_name", "my-token" → "my_token"
@@ -89,10 +177,22 @@ export function normalizeTokenName(name: string): string {
       .toLowerCase();
 }
 
-// Convert a string to lowercase and replace spaces with underscores
+// Convert a string to a valid JS identifier fragment: lowercase, invalid
+// characters replaced with underscores, consecutive underscores collapsed.
 export function toLowerUnderscore(input: string): string {
   if (input === undefined || input === null) {
     return '';
   }
-  return String(input).replace(/ /g, '_').toLowerCase();
+  let out = String(input)
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, '_')
+      .replace(/_+/g, '_');
+  if (!out || /^_+$/.test(out)) {
+    return '';
+  }
+  if (/^[0-9]/.test(out)) {
+    out = `_${out}`;
+  }
+  return out;
 }

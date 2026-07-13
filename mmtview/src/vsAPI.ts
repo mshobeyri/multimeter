@@ -130,6 +130,12 @@ export function logToOutput(level: LogLevel, message: string) {
   });
 }
 
+export function showLogOutputChannel() {
+  window.vscode?.postMessage({
+    command: 'showLogOutputChannel',
+  });
+}
+
 export function runJSCode(code: string, title: string) {
   window.vscode?.postMessage({
     command: 'runJSCode',

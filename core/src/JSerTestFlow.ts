@@ -1,9 +1,10 @@
 import {APIData} from './APIData';
 import {apiToJSfunc} from './JSerAPI';
-import {indentLines, timeUnitToMs, toInputsParams} from './JSerHelper';
+import {durationToJsMsExpr, indentLines, parseDurationString, toInputsParams} from './JSerHelper';
 import {Comparison, ComparisonObject, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, ScalarExpectValue, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, normalizeReportConfig, opsList, ReportConfig, ReportLevel, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
 import {getTestFlowStepType} from './testParsePack';
 import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
+import {isOmitSentinel, normalizeOmitToNull, OMIT_KEYWORD, OMIT_SENTINEL} from './omitKeyword';
 import {replaceEnvTokensPlain, toTemplateWithEnvVars} from './variableReplacer';
 
 function randomName(): string {
@@ -122,11 +123,47 @@ export const conditionalStatementToJSfunc = (check: string): string => {
 interface NormalizedComparison {
   actual: string;
   operator: string;
-  expected: string;
+  expected: ExpectValue;
   title?: string;
   details?: string;
   raw: string;
 }
+
+/** Parse the expected side of a comparison string into a typed scalar when possible. */
+const parseScalarComparisonExpected = (raw: string): ExpectValue => {
+  const trimmed = String(raw ?? '').trim();
+  if (trimmed === 'null') {
+    return null;
+  }
+  if (trimmed === 'true') {
+    return true;
+  }
+  if (trimmed === 'false') {
+    return false;
+  }
+  if (trimmed === OMIT_KEYWORD || isOmitSentinel(trimmed)) {
+    return OMIT_SENTINEL;
+  }
+  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+      (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+    return unquoteEmpty(trimmed.slice(1, -1));
+  }
+  if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(trimmed)) {
+    const num = Number(trimmed);
+    if (!Number.isNaN(num)) {
+      return num;
+    }
+  }
+  return trimmed;
+};
+
+const expectValueToDisplay = (value: ExpectValue): string => {
+  if (isOmitSentinel(value)) {
+    return 'omit';
+  }
+  const normalized = normalizeOmitToNull(value);
+  return typeof normalized === 'string' ? normalized : JSON.stringify(normalized);
+};
 
 const normalizeComparison =
     (comp: Comparison, kind: 'check'|'assert'): NormalizedComparison|null => {
@@ -134,13 +171,13 @@ const normalizeComparison =
         return null;
       }
       if (typeof comp === 'string') {
-        const raw = comp;
         const parsed = parseComparisonParts(comp);
         if (!parsed) {
           throw new Error(`Invalid ${kind} format: ${comp}`);
         }
         const { actual, operator } = parsed;
-        const expected = unquoteEmpty(parsed.expected);
+        const expected = parseScalarComparisonExpected(parsed.expected);
+        const raw = `${actual} ${operator} ${expectValueToDisplay(expected)}`;
         return {actual, operator, expected, raw};
       }
 
@@ -153,11 +190,14 @@ const normalizeComparison =
       }
       const operator = (comp as any).operator || '==';
       const actualStr = typeof actual === 'string' ? actual : JSON.stringify(actual, null, 2);
-      const expectedStr = typeof expected === 'string' ? expected : JSON.stringify(expected, null, 2);
+      const expectedValue = isOmitSentinel(expected)
+          ? (expected as ExpectValue)
+          : (normalizeOmitToNull(expected) as ExpectValue);
+      const expectedStr = expectValueToDisplay(expectedValue);
       const raw = `${actualStr} ${operator} ${expectedStr}`;
       const title = typeof (comp as any).title === 'string' ? (comp as any).title : undefined;
       const details = typeof (comp as any).details === 'string' ? (comp as any).details : undefined;
-      return {actual: actualStr, operator, expected: expectedStr, raw, title, details};
+      return {actual: actualStr, operator, expected: expectedValue, raw, title, details};
     };
 
 export const ifToJSfunc = async (condition: TestFlowCondition, useExternalReport: boolean, importTitleMap?: Record<string, string>): Promise<string> => {
@@ -185,14 +225,9 @@ export const repeatToJSfunc = async (loop: TestFlowRepeat, useExternalReport: bo
                                                           String(loop.repeat);
   const loopBody = await flowStepsToJsfunc(loop.steps, true, useExternalReport, importTitleMap);
 
-  // Check for time-based repeat
-  const timeMatch = loopCondition.match(/^(\d+(?:\.\d+)?)(ns|ms|s|m|h)$/);
-  if (timeMatch) {
-    const value = parseFloat(timeMatch[1]);
-    const unit = timeMatch[2];
-    const durationMs = timeUnitToMs(value, unit);
-    return `for (const start = Date.now(); Date.now() < start + ${
-        durationMs}; ) {
+  const durationMs = parseDurationString(loopCondition);
+  if (durationMs !== undefined) {
+    return `for (const start = Date.now(); Date.now() < start + ${durationMs}; ) {
   ${indentLines(loopBody)}
 }`;
   }
@@ -204,24 +239,7 @@ export const repeatToJSfunc = async (loop: TestFlowRepeat, useExternalReport: bo
 };
 
 export function delayToJSfunc(d: string|number): string {
-  const val = typeof d === 'number' ? String(d) : String(d).trim();
-  let msExpr = '0';
-  const m = val.match(/^(\d+(?:\.\d+)?)(ns|ms|s|m|h)?$/);
-  if (m) {
-    const num = parseFloat(m[1]);
-    const unit = m[2] || 'ms';
-    msExpr = String(timeUnitToMs(num, unit));
-  } else {
-    msExpr = `(function(x){
-      const s = String(x).trim();
-      const mm = s.match(/^(\\d+(?:\\.\\d+)?)(ns|ms|s|m|h)?$/);
-      if(!mm) return Number(s)||0;
-      const n = parseFloat(mm[1]);
-      const u = mm[2]||'ms';
-      return u==='ns'? n/1e6 : u==='ms'? n : u==='s'? n*1000 : u==='m'? n*60000 : n*3600000;
-    })(${val})`;
-  }
-  return `await new Promise(r => setTimeout(r, ${msExpr}));`;
+  return `await new Promise(r => setTimeout(r, ${durationToJsMsExpr(d)}));`;
 }
 
 export const forToJSfunc = async (loop: TestFlowLoop, useExternalReport: boolean, importTitleMap?: Record<string, string>): Promise<string> => {
@@ -246,26 +264,49 @@ const comparisonToJSfunc = (type: 'check'|'assert', comparison: Comparison, useE
   if (!normalized) {
     return '';
   }
-  const {actual, expected, raw, title, details} = normalized;
+  const {actual, operator, expected, raw, title, details} = normalized;
   // Determine report level: internal (useExternalReport=false, direct run) vs external (useExternalReport=true, imported or in suite)
   const reportCfg = normalizeReportConfig(
     (comparison && typeof comparison === 'object') ? (comparison as any).report : undefined
   );
   const reportLevel = useExternalReport ? reportCfg.external : reportCfg.internal;
-  const conditionStatement = conditionalStatementToJSfunc(raw);
+  const actualTrimmed = typeof actual === 'string' ? actual.trim() : '';
+  const actualRuntimeExpr = actualTrimmed && /^\$\{.+\}$/.test(actualTrimmed)
+    ? normalizeRuntimeActualExpression(actualTrimmed.slice(2, -1))
+    : undefined;
+  const conditionStatement = actualRuntimeExpr
+    ? comparisonFromPartsToJSfunc(actualRuntimeExpr, operator, expected)
+    : conditionalStatementToJSfunc(raw);
   const finalTitle = typeof title === 'string' ? toTemplateWithVars(title) : undefined;
   const finalDetails = typeof details === 'string' ? toTemplateWithVars(details) : undefined;
   // For actual: if it's a ${...} variable reference, pass the raw JS expression so
   // objects preserve their type; otherwise keep as template literal for plain strings.
-  const actualTrimmed = typeof actual === 'string' ? actual.trim() : '';
-  const finalActual = actualTrimmed && /^\$\{.+\}$/.test(actualTrimmed)
-    ? actualTrimmed.slice(2, -1)
+  const finalActual = actualRuntimeExpr
+    ? actualRuntimeExpr
     : (typeof actual === 'string' ? toTemplateWithVars(actual) : undefined);
-  const finalExpected = typeof expected === 'string' ? toTemplateWithVars(expected) : undefined;
+  const finalExpected = isOmitSentinel(expected)
+    ? JSON.stringify('omit')
+    : expectValueToJs(expected);
   // Strip ${...} from comparison display string so UI shows clean field names
-  const displayRaw = raw.replace(/\$\{([^}]+)\}/g, '$1');
+  const displayRaw = raw.replace(/\$\{([^}]+)\}/g, '$1').replace(/__MMT_OMIT_KEYWORD__/g, 'omit');
   return `check_(${conditionStatement}, '${type}', ${JSON.stringify(displayRaw)}, '${reportLevel}', ${finalTitle}, ${finalDetails}, ${finalActual}, ${finalExpected});\n`;
 };
+
+function normalizeRuntimeActualExpression(expression: string): string {
+  const trimmed = String(expression || '').trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+  const dotAccessMatch = trimmed.match(/^([A-Za-z_$][\w$]*)\.([A-Za-z_$][\w$]*)(.*)$/);
+  if (!dotAccessMatch) {
+    return trimmed;
+  }
+  const [, resultVar, root, rest] = dotAccessMatch;
+  if (!DEFAULT_OUTPUT_KEY_SET.has(root)) {
+    return trimmed;
+  }
+  return outputAccessExpression(resultVar, `${root}${rest}`);
+}
 
 export const checkToJSfunc = (check: Comparison, useExternalReport: boolean): string =>
   comparisonToJSfunc('check', check, useExternalReport);
@@ -280,13 +321,17 @@ export const assertToJSfunc = (assert: Comparison, useExternalReport: boolean): 
  * - Number or boolean: converted to string, defaults to '==' operator.
  */
 export const parseExpectValue = (value: ExpectValue): { operator: string; expected: ExpectValue } => {
-  if (value === null || Array.isArray(value) || typeof value === 'object') {
-    return { operator: '==', expected: value };
+  if (isOmitSentinel(value)) {
+    return {operator: '==', expected: null};
   }
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return { operator: '==', expected: value };
+  const normalizedValue = normalizeOmitToNull(value);
+  if (normalizedValue === null || Array.isArray(normalizedValue) || typeof normalizedValue === 'object') {
+    return { operator: '==', expected: normalizedValue };
   }
-  const trimmed = String(value).trim();
+  if (typeof normalizedValue === 'number' || typeof normalizedValue === 'boolean') {
+    return { operator: '==', expected: normalizedValue };
+  }
+  const trimmed = String(normalizedValue).trim();
   const prefixed = splitCheckOperatorPrefix(trimmed);
   if (prefixed) {
     return { operator: prefixed.operator, expected: unquoteEmpty(prefixed.expected) };
@@ -306,15 +351,22 @@ const isExplicitMultiCheckArray = (value: unknown): value is ScalarExpectValue[]
       value.some(item => typeof item === 'string' && !!splitCheckOperatorPrefix(item.trim()));
 };
 
-const expectValueToDisplay = (value: ExpectValue): string => {
-  return typeof value === 'string' ? value : JSON.stringify(value);
-};
-
 const expectValueToJs = (value: ExpectValue): string => {
-  return typeof value === 'string' ? toTemplateWithVars(value) : JSON.stringify(value);
+  const normalized = normalizeOmitToNull(value);
+  return typeof normalized === 'string' ? toTemplateWithVars(normalized) : JSON.stringify(normalized);
 };
 
 const comparisonFromPartsToJSfunc = (actualExpr: string, operator: string, expected: ExpectValue): string => {
+  if (isOmitSentinel(expected)) {
+    switch (operator) {
+      case '==':
+        return `(${actualExpr} === undefined || ${actualExpr} === null || ${actualExpr} === ${JSON.stringify(OMIT_SENTINEL)})`;
+      case '!=':
+        return `(${actualExpr} !== undefined && ${actualExpr} !== null && ${actualExpr} !== ${JSON.stringify(OMIT_SENTINEL)})`;
+      default:
+        break;
+    }
+  }
   const expectedExpr = expectValueToJs(expected);
   if (isFuzzyPercentOperator(operator) || isFuzzyPercentSelectOperator(operator)) {
     const percent = isFuzzyPercentOperator(operator) ? Number(operator.slice(1, -1)) : DEFAULT_FUZZY_PERCENT;
@@ -441,7 +493,7 @@ const appendExpectAndDebugChecks = (
       for (const v of values) {
         const { operator, expected } = parseExpectValue(v);
         const actualExpr = actualForField(resultVar, field);
-        const displayExpected = expectValueToDisplay(expected);
+        const displayExpected = isOmitSentinel(v) ? 'omit' : expectValueToDisplay(expected);
         const displayComparison = `${field} ${operator} ${displayExpected}`;
         const conditionStatement = isStructuredExpectValue(expected)
             ? comparisonFromPartsToJSfunc(actualExpr, operator, expected)
@@ -472,7 +524,7 @@ const appendExpectAndDebugChecks = (
         for (const v of values) {
           const { operator, expected } = parseExpectValue(v);
           const actualExpr = actualForField(resultVar, field);
-          const displayExpected = expectValueToDisplay(expected);
+          const displayExpected = isOmitSentinel(v) ? 'omit' : expectValueToDisplay(expected);
           const displayComparison = `${field} ${operator} ${displayExpected}`;
           const conditionStatement = isStructuredExpectValue(expected)
               ? comparisonFromPartsToJSfunc(actualExpr, operator, expected)
@@ -695,7 +747,7 @@ export const flowStepsToJsfunc = async (
 export const flowStagesToJsfunc = async (
     flow: TestFlowStages, root: boolean, useExternalReport: boolean = !root,
   importTitleMap?: Record<string, string>, emitSetenv: boolean = root): Promise<string> => {
-      if (!flow || flow.length === 0) {
+      if (!Array.isArray(flow) || flow.length === 0) {
         return '';
       };
 
@@ -815,9 +867,9 @@ export const flowStagesToJsfunc = async (
 
 export const flowToJsFunc = async (testData: TestData, root: boolean, useExternalReport: boolean = !root, importTitleMap?: Record<string, string>, emitSetenv: boolean = root): Promise<string> => {
   let flow = '';
-  if (testData.stages && testData.stages.length > 0) {
+  if (Array.isArray(testData.stages) && testData.stages.length > 0) {
     flow += await flowStagesToJsfunc(testData.stages, root, useExternalReport, importTitleMap, emitSetenv);
-  } else if (testData.steps && testData.steps.length > 0) {
+  } else if (Array.isArray(testData.steps) && testData.steps.length > 0) {
     flow += await flowStepsToJsfunc(testData.steps, root, useExternalReport, importTitleMap, emitSetenv);
   }
   return flow;

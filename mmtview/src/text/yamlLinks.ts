@@ -2,7 +2,7 @@ import { parseYamlDoc } from "mmt-core/markupConvertor";
 
 export type YamlLinkTarget = { path: string; fragment?: string; range: any } | null;
 
-const FILE_EXT_REGEX = /\.(mmt|svg|png|jpg|jpeg|gif|bmp|tiff|webp|csv)$/i;
+const FILE_EXT_REGEX = /\.(mmt|svg|png|jpg|jpeg|gif|bmp|tiff|webp|csv|json|yaml|yml)$/i;
 const MD_REF_REGEX = /\S*\.md\/?#\S*/;
 
 /**

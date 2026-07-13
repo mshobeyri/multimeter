@@ -1,5 +1,13 @@
-import YAML from 'yaml';
+import parseYaml, {packYaml} from './markupConvertor';
 import {SuiteData, SuiteEnvironment} from './SuiteData';
+
+function readSuiteItems(doc: any): string[] {
+  const items = intoStringArray(doc?.items);
+  if (items.length > 0) {
+    return items;
+  }
+  return intoStringArray(doc?.tests);
+}
 
 function intoStringArray(value: unknown): string[] {
   if (!Array.isArray(value)) {
@@ -33,15 +41,15 @@ function parseEnvironment(doc: any): SuiteEnvironment | undefined {
 }
 
 export function yamlToSuite(rawYaml: string): SuiteData {
-  const doc = YAML.parse(rawYaml || '') || {};
+  const doc = parseYaml(rawYaml || '') || {};
   const type = typeof doc?.type === 'string' ? doc.type : '';
   if (type !== 'suite') {
     throw new Error('Not a suite document');
   }
 
-  const tests = intoStringArray(doc.tests);
-  if (tests.length === 0) {
-    throw new Error('Suite.tests must be a non-empty array');
+  const items = readSuiteItems(doc);
+  if (items.length === 0) {
+    throw new Error('Suite.items must be a non-empty array');
   }
 
   const tags = Array.isArray(doc.tags) ? doc.tags.filter((t: any) => typeof t === 'string').map((t: string) => t.trim()).filter(Boolean) : undefined;
@@ -54,8 +62,9 @@ export function yamlToSuite(rawYaml: string): SuiteData {
     title: typeof doc.title === 'string' ? doc.title : undefined,
     description: typeof doc.description === 'string' ? doc.description : undefined,
     tags,
+    import: doc.import && typeof doc.import === 'object' && !Array.isArray(doc.import) ? {...doc.import} : undefined,
     servers: intoStringArray(doc.servers).length > 0 ? intoStringArray(doc.servers) : undefined,
-    tests,
+    items,
     environment,
     export: exportPaths.length > 0 ? exportPaths : undefined,
   };
@@ -76,7 +85,10 @@ export function suiteToYaml(suite: SuiteData): string {
   if (suite.tags && suite.tags.length > 0) {
     yamlObj.tags = suite.tags;
   }
-  // Canonical order: environment, servers, export, tests
+  if (suite.import && Object.keys(suite.import).length > 0) {
+    yamlObj.import = suite.import;
+  }
+  // Canonical order: environment, servers, export, items
   if (suite.environment) {
     const env: Record<string, any> = {};
     if (suite.environment.preset) {
@@ -98,8 +110,8 @@ export function suiteToYaml(suite: SuiteData): string {
   if (suite.export && suite.export.length > 0) {
     yamlObj.export = suite.export;
   }
-  yamlObj.tests = suite.tests;
-  return YAML.stringify(yamlObj, { lineWidth: 0 });
+  yamlObj.items = suite.items;
+  return packYaml(yamlObj);
 }
 
 export function splitSuiteGroups(items: string[]): string[][] {
@@ -108,7 +120,7 @@ export function splitSuiteGroups(items: string[]): string[][] {
 
   const flush = () => {
     if (current.length === 0) {
-      throw new Error('Suite.tests contains an empty group (misplaced "then")');
+      throw new Error('Suite.items contains an empty group (misplaced "then")');
     }
     groups.push(current);
     current = [];
@@ -127,7 +139,7 @@ export function splitSuiteGroups(items: string[]): string[][] {
   }
 
   if (current.length === 0) {
-    throw new Error('Suite.tests cannot end with "then"');
+    throw new Error('Suite.items cannot end with "then"');
   }
   groups.push(current);
   return groups;

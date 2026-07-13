@@ -1,6 +1,6 @@
-import {markupConvertor, outputExtractor} from 'mmt-core';
+import {dataImportProcessor, markupConvertor, outputExtractor} from 'mmt-core';
 const {parseYaml} = markupConvertor;
-import {findProjectRootSync} from 'mmt-core/fileHelper';
+import {findProjectRootSync, isProjectRootImport} from 'mmt-core/fileHelper';
 import {brunoToTest, isBrunoFilePath} from 'mmt-core/brunoParsePack';
 import {httpToTest, isHttpFilePath} from 'mmt-core/httpParsePack';
 import {generateJunitXml} from 'mmt-core/junitXml';
@@ -335,7 +335,7 @@ type SuiteTreeNodeInfo = {
   path: string;
   absPath?: string;
   docType: 'suite' | 'test' | 'api' | 'env' | 'doc' | 'unknown' | 'missing';
-  tests?: string[];
+  items?: string[];
   cycle?: boolean;
   error?: string;
 };
@@ -388,9 +388,11 @@ export async function handleGetSuiteImportTree(
       const docType = detectType(text, abs);
       if (docType === 'suite') {
         const js: any = parseYaml(text);
-        const tests: any[] = Array.isArray(js?.tests) ? js.tests : [];
-        const strings = tests.filter(t => typeof t === 'string').map(t => String(t));
-        return { path: relPath, absPath: abs, docType, tests: strings };
+        const items: any[] = Array.isArray(js?.items)
+          ? js.items
+          : (Array.isArray(js?.tests) ? js.tests : []);
+        const strings = items.filter(t => typeof t === 'string').map(t => String(t));
+        return { path: relPath, absPath: abs, docType, items: strings };
       }
       return { path: relPath, absPath: abs, docType };
     } catch (err: any) {
@@ -529,7 +531,26 @@ export function handleListFiles(
     message: any, webviewPanel: vscode.WebviewPanel,
     document: vscode.TextDocument) {
   const {folder, recursive} = message;
-  const folderPath = path.resolve(path.dirname(document.uri.fsPath), folder);
+  const docDir = path.dirname(document.uri.fsPath);
+  const folderStr = String(folder ?? '');
+  let folderPath: string;
+  let projectRoot: string | undefined;
+  let useProjectRootPaths = false;
+
+  if (isProjectRootImport(folderStr)) {
+    projectRoot = findProjectRoot(document.uri.fsPath);
+    if (!projectRoot) {
+      webviewPanel.webview.postMessage(
+          {command: 'listFilesResult', folder, files: []});
+      return;
+    }
+    const relativePart = folderStr.slice(2);
+    folderPath = path.resolve(projectRoot, relativePart || '.');
+    useProjectRootPaths = true;
+  } else {
+    folderPath = path.resolve(docDir, folderStr);
+  }
+
   const results: string[] = [];
   const walk = (dir: string) => {
     try {
@@ -541,9 +562,13 @@ export function handleListFiles(
             walk(full);
           }
         } else if (it.isFile()) {
-          const lower = full.toLowerCase();
-          if (lower.endsWith('.mmt') || lower.endsWith('.csv')) {
-            const rel = path.relative(path.dirname(document.uri.fsPath), full);
+          if (dataImportProcessor.isImportAutocompletePath(full)) {
+            let rel: string;
+            if (useProjectRootPaths && projectRoot) {
+              rel = '+/' + path.relative(projectRoot, full).split(path.sep).join('/');
+            } else {
+              rel = path.relative(docDir, full).split(path.sep).join('/');
+            }
             results.push(rel);
           }
         }

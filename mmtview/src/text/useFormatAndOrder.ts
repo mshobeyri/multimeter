@@ -5,6 +5,7 @@ import { yamlToDoc, docToYaml } from 'mmt-core/docParsePack';
 import { yamlToMock, mockToYaml } from 'mmt-core/mockParsePack';
 import { yamlToSuite, suiteToYaml } from 'mmt-core/suiteParsePack';
 import { yamlToLoadTest, loadtestToYaml } from 'mmt-core/loadtestParsePack';
+import { yamlToEnv, envToYaml } from 'mmt-core/envParsePack';
 import { parseReportMmt } from 'mmt-core/reportParser';
 import { generateMmtReport } from 'mmt-core/mmtReport';
 import YAML from 'yaml';
@@ -63,6 +64,19 @@ export function buildCanonicalYaml(content: string, docType: string | null): str
           return null;
         }
         return testToYaml(testData);
+      }
+      case 'env': {
+        try {
+          const envData = yamlToEnv(content);
+          if (!envData || envData.type !== 'env') {
+            showVSCodeMessage('error', 'Document is not a valid environment YAML.');
+            return null;
+          }
+          return envToYaml(envData);
+        } catch {
+          showVSCodeMessage('error', 'Document is not a valid environment YAML.');
+          return null;
+        }
       }
       case 'doc': {
         const docData = yamlToDoc(content);

@@ -1,3 +1,5 @@
+import {normalizeOmitToNull, OMIT_KEYWORD, OMIT_SENTINEL, restoreOmitKeyword} from './omitKeyword';
+
 /**
  * Abort signal for cooperative test cancellation.
  * Set via setAbortSignal_ before each run, checked by checkAbort_
@@ -76,7 +78,7 @@ function deepEquals_(a: any, b: any): boolean {
 }
 
 export function equals_(a: any, b: any) {
-  return deepEquals_(a, b);
+  return deepEquals_(normalizeOmitToNull(a), normalizeOmitToNull(b));
 }
 
 export function notEquals_(a: any, b: any) {
@@ -358,16 +360,17 @@ const nextStepIndexFor = (runId: string): number => {
 };
 
 const normalizeComparison = (value: unknown): string => {
+  const normalizedValue = restoreOmitKeyword(value);
   if (typeof value === 'string') {
-    return value;
+    return value.split(OMIT_SENTINEL).join(OMIT_KEYWORD);
   }
-  if (value === null || value === undefined) {
+  if (normalizedValue === null || normalizedValue === undefined) {
     return '';
   }
   try {
-    return JSON.stringify(value);
+    return JSON.stringify(normalizedValue);
   } catch {
-    return String(value);
+    return String(normalizedValue);
   }
 };
 
@@ -424,16 +427,16 @@ export const reportWithContext_ = (
   const expects = isExpectsArray
       ? (comparison as any[]).map(i => ({
           comparison: normalizeComparison(i.comparison),
-          actual: i.actual,
-          expected: i.expected,
+          actual: restoreOmitKeyword(i.actual),
+          expected: restoreOmitKeyword(i.expected),
           status: i.passed ? 'passed' : 'failed',
           similarity: similarityForComparison_(normalizeComparison(i.comparison), i.actual, i.expected),
           count: countForComparison_(normalizeComparison(i.comparison), i.actual),
         }))
       : [{
           comparison: normalizeComparison(comparison),
-          actual,
-          expected,
+          actual: restoreOmitKeyword(actual),
+          expected: restoreOmitKeyword(expected),
           status: passed ? 'passed' : 'failed',
           similarity: similarityForComparison_(normalizeComparison(comparison), actual, expected),
           count: countForComparison_(normalizeComparison(comparison), actual),
@@ -593,20 +596,22 @@ export const protocolFromUrl_ = (url: string): string => {
  */
 
 function displayValue(v: any): string {
-  if (v === null || v === undefined) {
-    return String(v);
+  const normalized = restoreOmitKeyword(v);
+  if (normalized === null || normalized === undefined) {
+    return String(normalized);
   }
-  if (typeof v === 'object') {
+  if (typeof normalized === 'object') {
     try {
-      return JSON.stringify(v);
+      return JSON.stringify(normalized);
     } catch {
-      return String(v);
+      return String(normalized);
     }
   }
-  return String(v);
+  return String(normalized);
 }
 
 function formatCheckDetails(raw: string): string {
+  const sanitizedRaw = String(raw || '').split(OMIT_SENTINEL).join(OMIT_KEYWORD);
   try {
     const expandJsonStrings = (obj: any): any => {
       if (typeof obj === 'string') {
@@ -633,11 +638,11 @@ function formatCheckDetails(raw: string): string {
       }
       return obj;
     };
-    const parsed = JSON.parse(raw);
-    const expanded = expandJsonStrings(parsed);
+    const parsed = JSON.parse(sanitizedRaw);
+    const expanded = restoreOmitKeyword(expandJsonStrings(parsed));
     return JSON.stringify(expanded, null, 2);
   } catch {
-    return raw;
+    return sanitizedRaw;
   }
 }
 

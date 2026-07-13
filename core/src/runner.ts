@@ -8,6 +8,7 @@ import {executeSuite, prepareSuiteRun} from './runSuite';
 import {executeSuiteBundle} from './suiteBundleRunner';
 import {executeLoadTest, prepareLoadTestRun} from './runLoadTest';
 import {executeTest, generateTestJs, prepareTestRun} from './runTest';
+import {processDataImportsInYaml} from './dataImportProcessor';
 
 export {generateTestJs, runGeneratedJs};
 
@@ -47,6 +48,15 @@ export async function prepareRunFromOptions(
     }
   }
   const docType = detectDocType(filePath, rawText);
+  if (docType) {
+    rawText = await processDataImportsInYaml({
+      rawText,
+      filePath,
+      projectRoot: options.projectRoot,
+      fileLoader: options.fileLoader,
+      keepDataImports: docType === 'test',
+    });
+  }
   const envVarsUsed = mergeEnv({
     envvar: options.envvar,
     manualEnvvars: options.manualEnvvars,

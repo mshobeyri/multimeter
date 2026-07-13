@@ -1,15 +1,11 @@
 type: test
 title: Create user
+description: Generated from Bruno request "Create user".
 tags:
   - bruno
+import:
+  createUser: ../api/create-user.mmt
 steps:
-  - http: https://api.example.com/users
-    id: Create_user
-    title: Create user
-    method: post
-    format: json
-    headers:
-      Content-Type: application/json
-    body:
-      name: Ada
-    report: all
+  - call: createUser
+    id: iCreateUser
+    debug: true

@@ -85,7 +85,9 @@ function extractSuiteTestItems(docType: string | null, content: string) {
   const positions = new Map<string, {line: number; column: number}>();
   const paths: string[] = [];
   const serverItems = collectStringSequenceItems(rootItems, content, 'servers');
-  const testItems = collectStringSequenceItems(rootItems, content, 'tests', {skipThen: true});
+  const itemEntries = collectStringSequenceItems(rootItems, content, 'items', {skipThen: true});
+  const legacyTestItems = collectStringSequenceItems(rootItems, content, 'tests', {skipThen: true});
+  const testItems = itemEntries.paths.length > 0 ? itemEntries : legacyTestItems;
   paths.push(...serverItems.paths, ...testItems.paths);
   mergePositions(positions, serverItems.positions);
   mergePositions(positions, testItems.positions);

@@ -22,6 +22,7 @@ export const typeOptions = [
 
 export interface MMTFile {
   type: Type;
+  import?: Record<string, string>;
 };
 
 export type JSONValue =  string | number | boolean | object | null;

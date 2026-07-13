@@ -9,7 +9,7 @@ import FilePickerInput from '../../components/FilePickerInput';
 import KSVEditor from '../../components/KSVEditor';
 import { FileContext } from '../../fileContext';
 
-type SuiteEditTab = 'overview' | 'tests' | 'servers' | 'environment' | 'exports';
+type SuiteEditTab = 'overview' | 'items' | 'servers' | 'environment' | 'exports';
 
 interface SuiteEnvironmentConfig {
   preset?: string;
@@ -34,7 +34,9 @@ const createPlaceholderEntry = (): SuiteEntry => ({ id: nextSuiteEntryId(), path
 
 const buildSuiteGroupsFromContent = (content: string): SuiteGroup[] => {
   const parsed = parseYaml(content);
-  const tests: any[] = Array.isArray(parsed?.tests) ? parsed.tests : [];
+  const items: any[] = Array.isArray(parsed?.items)
+    ? parsed.items
+    : (Array.isArray(parsed?.tests) ? parsed.tests : []);
   const groups: SuiteGroup[] = [];
   let currentEntries: SuiteEntry[] = [];
 
@@ -45,7 +47,7 @@ const buildSuiteGroupsFromContent = (content: string): SuiteGroup[] => {
     }
   };
 
-  for (const raw of tests) {
+  for (const raw of items) {
     if (typeof raw !== 'string') {
       continue;
     }
@@ -61,6 +63,18 @@ const buildSuiteGroupsFromContent = (content: string): SuiteGroup[] => {
   }
   pushGroup();
   return groups;
+};
+
+const buildImportsFromContent = (content: string): Record<string, string> => {
+  const parsed = parseYaml(content);
+  if (!parsed?.import || typeof parsed.import !== 'object' || Array.isArray(parsed.import)) {
+    return {};
+  }
+  return Object.fromEntries(
+    Object.entries(parsed.import)
+      .filter(([key, value]) => typeof key === 'string' && typeof value === 'string')
+      .map(([key, value]) => [key, value as string])
+  );
 };
 
 const flattenSuiteGroups = (groups: SuiteGroup[]): string[] => {
@@ -90,7 +104,7 @@ const canonicalizeSuiteYaml = (content: string): string => {
 const updateSuiteContentWithGroups = (content: string, groups: SuiteGroup[]): string | null => {
   try {
     const doc = parseYamlDoc(content);
-    doc.set('tests', flattenSuiteGroups(groups));
+    doc.set('items', flattenSuiteGroups(groups));
     return canonicalizeSuiteYaml(doc.toString());
   } catch {
     return null;
@@ -175,6 +189,20 @@ const updateSuiteContentWithOverview = (content: string, overview: SuiteOverview
   }
 };
 
+const updateSuiteContentWithImports = (content: string, imports: Record<string, string>): string | null => {
+  try {
+    const doc = parseYamlDoc(content);
+    if (Object.keys(imports).length === 0) {
+      doc.delete('import');
+    } else {
+      doc.set('import', imports);
+    }
+    return canonicalizeSuiteYaml(doc.toString());
+  } catch {
+    return null;
+  }
+};
+
 const updateSuiteContentWithEnvironment = (content: string, env: SuiteEnvironmentConfig | null): string | null => {
   try {
     const doc = parseYamlDoc(content);
@@ -233,6 +261,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   const fileContext = useContext(FileContext);
   const [activeTab, setActiveTab] = useState<SuiteEditTab>('overview');
   const [overview, setOverview] = useState<SuiteOverviewConfig>(() => buildOverviewFromContent(content));
+  const [imports, setImports] = useState<Record<string, string>>(() => buildImportsFromContent(content));
   const [groups, setGroups] = useState<SuiteGroup[]>(() => buildSuiteGroupsFromContent(content));
   const [servers, setServers] = useState<string[]>(() => buildServersFromContent(content));
   const [environment, setEnvironment] = useState<SuiteEnvironmentConfig | null>(() => buildEnvironmentFromContent(content));
@@ -246,6 +275,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
 
   useEffect(() => {
     setOverview(buildOverviewFromContent(content));
+    setImports(buildImportsFromContent(content));
     setGroups(buildSuiteGroupsFromContent(content));
     setServers(buildServersFromContent(content));
     setEnvironment(buildEnvironmentFromContent(content));
@@ -276,6 +306,14 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
     },
     [content, overview, setContent]
   );
+
+  const persistImports = useCallback((nextImports: Record<string, string>) => {
+    setImports(nextImports);
+    const updated = updateSuiteContentWithImports(content, nextImports);
+    if (updated) {
+      setContent(updated);
+    }
+  }, [content, setContent]);
 
   const openAddMenuAtButton = useCallback(() => {
     const btn = addButtonRef.current;
@@ -557,7 +595,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
         )}
       </div>
       {noItems ? (
-        <div style={{ opacity: 0.8 }}>No suite items found under `tests:`</div>
+        <div style={{ opacity: 0.8 }}>No suite items found under `items:`</div>
       ) : (
         tree
       )}
@@ -565,13 +603,28 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   );
 
   const overviewTabContent = (
-    <FileOverview
-      title={overview.title}
-      description={overview.description}
-      tags={overview.tags}
-      onChange={persistOverview}
-      tagSuggestions={['suite', 'regression', 'smoke', 'user', 'admin']}
-    />
+    <>
+      <FileOverview
+        title={overview.title}
+        description={overview.description}
+        tags={overview.tags}
+        onChange={persistOverview}
+        tagSuggestions={['suite', 'regression', 'smoke', 'user', 'admin']}
+      />
+      <div style={{ paddingLeft: 16, paddingRight: 16, paddingBottom: 8 }}>
+        <KSVEditor
+          label="Import"
+          value={imports}
+          onChange={persistImports}
+          keyPlaceholder="alias"
+          valuePlaceholder="path"
+          filePicker={true}
+          filePickerFilters={[
+            { name: 'Data files', extensions: ['json', 'yaml', 'yml', 'csv'] },
+          ]}
+        />
+      </div>
+    </>
   );
 
   const serversTabContent = (
@@ -693,13 +746,13 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
           Overview
         </button>
         <button
-          className={`tab-button ${activeTab === 'tests' ? 'active' : ''}`}
-          onClick={() => setActiveTab('tests')}
-          title="Tests"
+          className={`tab-button ${activeTab === 'items' ? 'active' : ''}`}
+          onClick={() => setActiveTab('items')}
+          title="Items"
           type="button"
         >
           <span className="codicon codicon-beaker tab-button-icon" aria-hidden />
-          Tests
+          Items
         </button>
         <button
           className={`tab-button ${activeTab === 'servers' ? 'active' : ''}`}
@@ -731,7 +784,7 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
       </div>
       <div className="test-flow-tree" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
         {activeTab === 'overview' && overviewTabContent}
-        {activeTab === 'tests' && testsTabContent}
+        {activeTab === 'items' && testsTabContent}
         {activeTab === 'servers' && serversTabContent}
         {activeTab === 'environment' && environmentTabContent}
         {activeTab === 'exports' && exportsTabContent}

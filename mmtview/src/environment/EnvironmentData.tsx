@@ -41,6 +41,9 @@ export interface CertificateSettings {
 
 export type EnvironmentData = {
   type: string;
+  import?: {
+    [alias: string]: string;
+  };
   variables: {
     [name: string]: | { [label: string]: string | undefined } | string[];
   };

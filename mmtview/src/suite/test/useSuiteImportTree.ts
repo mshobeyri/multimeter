@@ -18,14 +18,14 @@ type SuiteImportTreeRequest = {
 type SuiteImportTreeResponse = {
   command: 'suiteImportTreeResult';
   requestId?: string;
-  results?: Record<string, { path: string; docType: SuiteImportDocType; tests?: string[]; cycle?: boolean; error?: string }>;
+  results?: Record<string, { path: string; docType: SuiteImportDocType; items?: string[]; cycle?: boolean; error?: string }>;
 };
 
 
 export const useSuiteImportTree = (rootEntries: string[], enabled: boolean) => {
   const [rootNodes, setRootNodes] = useState<SuiteImportTreeNode[]>([]);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const cacheRef = useRef(new Map<string, { docType: SuiteImportDocType; tests?: string[]; cycle?: boolean; error?: string }>());
+  const cacheRef = useRef(new Map<string, { docType: SuiteImportDocType; items?: string[]; cycle?: boolean; error?: string }>());
 
   const request = useCallback(async (entries: string[]) => {
     if (!window?.vscode) {
@@ -51,7 +51,7 @@ export const useSuiteImportTree = (rootEntries: string[], enabled: boolean) => {
   const getCachedInfo = useCallback((path: string) => cacheRef.current.get(path), []);
 
   const cacheEntry = useCallback(
-    (path: string, info: { docType: SuiteImportDocType; tests?: string[]; cycle?: boolean; error?: string }) => {
+    (path: string, info: { docType: SuiteImportDocType; items?: string[]; cycle?: boolean; error?: string }) => {
       cacheRef.current.set(path, info);
     },
     []
@@ -67,11 +67,11 @@ export const useSuiteImportTree = (rootEntries: string[], enabled: boolean) => {
         return [];
       }
 
-      const tests = cached?.tests ?? suiteNode.tests ?? [];
-      const groups = splitSuiteGroups(tests);
+      const suiteItems = cached?.items ?? suiteNode.items ?? [];
+      const groups = splitSuiteGroups(suiteItems);
       suiteNode.groups = groups;
 
-      // If the suite has immediate tests (no `then` splits), show them directly
+      // If the suite has immediate items (no `then` splits), show them directly
       // under the suite node as boxes, and also include group nodes if present.
       if (groups.length === 1) {
         const entries = groups[0] ?? [];
@@ -82,11 +82,11 @@ export const useSuiteImportTree = (rootEntries: string[], enabled: boolean) => {
         return entries.map((entryPath) => {
           const info = res.results[entryPath];
           const docType = info?.docType ?? 'unknown';
-          cacheEntry(entryPath, { docType, tests: info?.tests, cycle: info?.cycle, error: info?.error });
+          cacheEntry(entryPath, { docType, items: info?.items, cycle: info?.cycle, error: info?.error });
 
           const child = createNode(entryPath, docType);
-          if (info?.tests) {
-            child.tests = info.tests;
+          if (info?.items) {
+            child.items = info.items;
           }
           if (info?.cycle) {
             child.cycle = true;
@@ -120,7 +120,7 @@ export const useSuiteImportTree = (rootEntries: string[], enabled: boolean) => {
         return [];
       }
 
-      const groups = splitSuiteGroups(cached.tests ?? []);
+      const groups = splitSuiteGroups(cached.items ?? []);
       const entries = groups[groupIndex] ?? [];
       if (!entries.length) {
         return [];
@@ -130,11 +130,11 @@ export const useSuiteImportTree = (rootEntries: string[], enabled: boolean) => {
       return entries.map((entryPath) => {
         const info = res.results[entryPath];
         const docType = info?.docType ?? 'unknown';
-        cacheEntry(entryPath, { docType, tests: info?.tests, cycle: info?.cycle, error: info?.error });
+        cacheEntry(entryPath, { docType, items: info?.items, cycle: info?.cycle, error: info?.error });
 
         const child = createNode(entryPath, docType);
-        if (info?.tests) {
-          child.tests = info.tests;
+        if (info?.items) {
+          child.items = info.items;
         }
         if (info?.cycle) {
           child.cycle = true;
@@ -210,10 +210,10 @@ export const useSuiteImportTree = (rootEntries: string[], enabled: boolean) => {
         .map((p) => {
           const info = res.results[p];
           const docType = info?.docType ?? 'unknown';
-          cacheEntry(p, { docType, tests: info?.tests, cycle: info?.cycle, error: info?.error });
+          cacheEntry(p, { docType, items: info?.items, cycle: info?.cycle, error: info?.error });
           const n = createNode(p, docType);
-          if (info?.tests) {
-            n.tests = info.tests;
+          if (info?.items) {
+            n.items = info.items;
           }
           if (info?.cycle) {
             n.cycle = true;

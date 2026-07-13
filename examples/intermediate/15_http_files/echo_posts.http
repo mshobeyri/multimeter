@@ -1,0 +1,71 @@
+@baseUrl = https://test.mmt.dev
+@title = Hello World
+@userId = 1
+
+########################################
+### 1. CREATE POST
+########################################
+POST {{baseUrl}}/echo
+Content-Type: application/json
+
+{
+  "title": "{{title}}",
+  "body": "This is a test post",
+  "userId": {{userId}}
+}
+
+> {%
+  client.test("Post created", function () {
+    client.assert(response.status === 200);
+  });
+
+  client.test("Title matches input", function () {
+    client.assert(response.body.body.title === "Hello World");
+  });
+
+  client.global.set("postId", 1);
+%}
+
+
+########################################
+### 2. FETCH SAMPLE JSON
+########################################
+GET {{baseUrl}}/json
+
+> {%
+  client.test("JSON fetched", function () {
+    client.assert(response.status === 200);
+  });
+
+  client.test("Has id", function () {
+    client.assert(response.body.id !== undefined);
+  });
+%}
+
+
+########################################
+### 3. SEARCH POSTS BY USER
+########################################
+GET {{baseUrl}}/echo?userId={{userId}}
+
+> {%
+  client.test("Query echoed", function () {
+    client.assert(response.status === 200);
+  });
+
+  client.test("User id in query", function () {
+    client.assert(response.body.query.userId === "1");
+  });
+%}
+
+
+########################################
+### 4. DELETE POST
+########################################
+DELETE {{baseUrl}}/status/200
+
+> {%
+  client.test("Delete executed", function () {
+    client.assert(response.status === 200);
+  });
+%}

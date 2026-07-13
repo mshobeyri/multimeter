@@ -7,6 +7,9 @@ export type ProblemEntry = {
   severity: "error" | "warning";
   line?: number;
   column?: number;
+  endColumn?: number;
+  category?: "compatibility";
+  applyFix?: import("./compatibility").CompatibilityFix;
   inputKey?: string;
   alias?: string;
 };
@@ -101,7 +104,7 @@ export function extractImportLineInfo(doc: any, content: string): ImportLineInfo
   const items: any[] = Array.isArray(doc?.contents?.items) ? doc.contents.items : [];
   const importPair = items.find((entry) => {
     const key = entry?.key?.value;
-    return key === "import" || key === "imports";
+    return key === "import";
   });
   if (!importPair || !importPair.value) {
     return [];
@@ -134,6 +137,7 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "title",
         "description",
         "tags",
+        "import",
         "inputs",
         "outputs",
         "setenv",
@@ -168,9 +172,11 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "title",
         "description",
         "tags",
+        "import",
         "environment",
         "servers",
         "export",
+        "items",
         "tests",
       ];
     case "loadtest":
@@ -179,6 +185,7 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "title",
         "description",
         "tags",
+        "import",
         "environment",
         "threads",
         "repeat",
@@ -186,14 +193,24 @@ export function getCanonicalOrder(docType: string | null): string[] | null {
         "export",
         "test",
       ];
+    case "env":
+      return [
+        "type",
+        "import",
+        "variables",
+        "presets",
+        "setting",
+        "certificates",
+      ];
     case "doc":
-      return ["type", "title", "description", "logo", "sources", "services", "html", "env"];
+      return ["type", "title", "description", "import", "logo", "sources", "services", "html", "env"];
     case "server":
       return [
         "type",
         "title",
         "description",
         "tags",
+        "import",
         "protocol",
         "port",
         "tls",
@@ -921,6 +938,7 @@ export function extractSuiteTestLineInfo(doc: any, content: string): SuiteTestLi
   }
   return [
     ...extractStringSequenceLineInfo(doc, content, "servers"),
+    ...extractStringSequenceLineInfo(doc, content, "items", {skipThen: true}),
     ...extractStringSequenceLineInfo(doc, content, "tests", {skipThen: true}),
   ];
 }

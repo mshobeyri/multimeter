@@ -1,6 +1,6 @@
 import {detectDocType} from './runCommon';
 import {generateTestJs} from './runTest';
-import {httpToTest, isHttpFilePath, parseHttpDocument, testToHttp, validateHttpDocument} from './httpParsePack';
+import {httpRequestToAPI, httpToTest, isHttpFilePath, parseHttpDocument, testToHttp, validateHttpDocument} from './httpParsePack';
 
 describe('httpParsePack', () => {
   it('detects .http and .https files as test documents', () => {
@@ -9,35 +9,63 @@ describe('httpParsePack', () => {
     expect(detectDocType('/tmp/flow.http', 'GET https://example.com')).toBe('test');
   });
 
+  it('adds debug to request steps used for HTTP runtime conversion', () => {
+    const test = httpToTest(`GET https://test.mmt.dev/json`, 'ping.http');
+    expect(test.steps?.[0]).toMatchObject({
+      http: 'https://test.mmt.dev/json',
+      method: 'get',
+      debug: true,
+    });
+  });
+
+  it('maps HTTP request blocks to API files', () => {
+    const document = parseHttpDocument(`### Create user
+POST https://test.mmt.dev/echo
+Content-Type: application/json
+
+{"name":"Ada"}`);
+    const api = httpRequestToAPI(document.requests[0]);
+    expect(api).toMatchObject({
+      type: 'api',
+      title: 'Create user',
+      tags: ['http'],
+      url: 'https://test.mmt.dev/echo',
+      method: 'post',
+      format: 'json',
+      body: {name: 'Ada'},
+    });
+  });
+
   it('parses VS Code REST style variables and request chaining', () => {
-    const test = httpToTest(`@host = https://api.example.com
+    const test = httpToTest(`@host = https://test.mmt.dev
 @user = jane
 
 ###
 # @name login
-POST {{host}}/login
+POST {{host}}/echo
 Content-Type: application/json
 
 {"user":"{{user}}","trace":"{{$guid}}"}
 
 ###
 # @name profile
-GET {{host}}/me
+GET {{host}}/headers
 Authorization: Bearer {{login.response.body.$.token}}
 `);
 
     expect(test.steps).toHaveLength(2);
     expect(test.steps?.[0]).toMatchObject({
-      http: 'https://api.example.com/login',
+      http: 'https://test.mmt.dev/echo',
       id: 'login',
       method: 'post',
       format: 'json',
       report: 'all',
+      debug: true,
       headers: {'Content-Type': 'application/json'},
       body: {user: 'jane', trace: 'r:uuid'},
     });
     expect(test.steps?.[1]).toMatchObject({
-      http: 'https://api.example.com/me',
+      http: 'https://test.mmt.dev/headers',
       id: 'profile',
       report: 'all',
       headers: {Authorization: 'Bearer ${login.body.token}'},
@@ -47,7 +75,7 @@ Authorization: Bearer {{login.response.body.$.token}}
   it('parses JetBrains style metadata and response assertions', () => {
     const test = httpToTest(`### Create user
 // @name createUser
-POST https://api.example.com/users HTTP/2
+POST https://test.mmt.dev/echo HTTP/2
 Content-Type: application/json
 
 {
@@ -64,10 +92,22 @@ Content-Type: application/json
     expect(test.steps?.[0]).toMatchObject({
       id: 'createUser',
       title: 'Create user',
-      http: 'https://api.example.com/users',
+      http: 'https://test.mmt.dev/echo',
       method: 'post',
       body: {name: 'Ada'},
       expect: {status: '== 201'},
+    });
+  });
+
+  it('prefixes conflicting HTTP request ids', () => {
+    const test = httpToTest(`### Call endpoint
+# @name call
+GET https://test.mmt.dev/json
+`);
+
+    expect(test.steps?.[0]).toMatchObject({
+      id: 'iCall',
+      method: 'get',
     });
   });
 
@@ -77,7 +117,7 @@ Content-Type: application/json
 @email = mehrdad@example.com
 
 ### Create user
-POST {{baseUrl}}/users
+POST {{baseUrl}}/echo
 Content-Type: application/json
 
 {
@@ -117,7 +157,7 @@ Content-Type: application/json
   it('maps response handler global variables to setenv steps', () => {
     const test = httpToTest(`### Login
 # @name login
-POST https://api.example.com/login
+POST https://test.mmt.dev/echo
 Content-Type: application/json
 
 {"username":"ada"}
@@ -176,7 +216,7 @@ Content-Type: application/json
       tags: [],
       steps: [
         {
-          http: 'https://api.example.com/users',
+          http: 'https://test.mmt.dev/echo',
           id: 'createUser',
           title: 'Create user',
           method: 'post',
@@ -188,7 +228,7 @@ Content-Type: application/json
     });
 
     expect(http).toContain('# @name createUser');
-    expect(http).toContain('POST https://api.example.com/users');
+    expect(http).toContain('POST https://test.mmt.dev/echo');
     expect(http).toContain('Content-Type: application/json');
     expect(http).toContain('"name": "Ada"');
   });
@@ -197,7 +237,7 @@ Content-Type: application/json
     const js = await generateTestJs({
       rawText: `###
 # @name ping
-GET https://api.example.com/ping
+GET https://test.mmt.dev/json
 `,
       name: 'ping_http',
       inputs: {},
@@ -209,18 +249,18 @@ GET https://api.example.com/ping
     });
 
     expect(js).toContain('__http_0');
-    expect(js).toContain('https://api.example.com/ping');
+    expect(js).toContain('https://test.mmt.dev/json');
   });
 
   it('parses a full login and user CRUD HTTP flow', () => {
-    const test = httpToTest(`@baseUrl = https://api.example.com
+    const test = httpToTest(`@baseUrl = https://test.mmt.dev
 @username = test_user
 @password = 1234
 
 ########################################
 ### 1. LOGIN (capture token)
 ########################################
-POST {{baseUrl}}/auth/login
+POST {{baseUrl}}/auth/basic
 Content-Type: application/json
 
 {
@@ -244,7 +284,7 @@ Content-Type: application/json
 ########################################
 ### 2. CREATE USER (POST)
 ########################################
-POST {{baseUrl}}/users
+POST {{baseUrl}}/echo
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
@@ -269,7 +309,7 @@ Authorization: Bearer {{authToken}}
 ########################################
 ### 3. GET USER (GET + validation)
 ########################################
-GET {{baseUrl}}/users/{{userId}}
+GET {{baseUrl}}/echo/{{userId}}
 Authorization: Bearer {{authToken}}
 
 > {%
@@ -286,7 +326,7 @@ Authorization: Bearer {{authToken}}
 ########################################
 ### 4. UPDATE USER (PATCH)
 ########################################
-PATCH {{baseUrl}}/users/{{userId}}
+PATCH {{baseUrl}}/echo/{{userId}}
 Content-Type: application/json
 Authorization: Bearer {{authToken}}
 
@@ -308,7 +348,7 @@ Authorization: Bearer {{authToken}}
 ########################################
 ### 5. DELETE USER
 ########################################
-DELETE {{baseUrl}}/users/{{userId}}
+DELETE {{baseUrl}}/echo/{{userId}}
 Authorization: Bearer {{authToken}}
 
 > {%
@@ -320,7 +360,7 @@ Authorization: Bearer {{authToken}}
 
     expect(test.steps).toHaveLength(7);
     expect(test.steps?.[0]).toMatchObject({
-      http: 'https://api.example.com/auth/login',
+      http: 'https://test.mmt.dev/auth/basic',
       id: 'request_1',
       title: '1. LOGIN (capture token)',
       method: 'post',
@@ -330,7 +370,7 @@ Authorization: Bearer {{authToken}}
     });
     expect(test.steps?.[1]).toEqual({setenv: {authToken: '${request_1.body.token}'}});
     expect(test.steps?.[2]).toMatchObject({
-      http: 'https://api.example.com/users',
+      http: 'https://test.mmt.dev/echo',
       id: 'request_2',
       title: '2. CREATE USER (POST)',
       headers: {
@@ -341,19 +381,19 @@ Authorization: Bearer {{authToken}}
     });
     expect(test.steps?.[3]).toEqual({setenv: {userId: '${request_2.body.id}'}});
     expect(test.steps?.[4]).toMatchObject({
-      http: 'https://api.example.com/users/<<e:userId>>',
+      http: 'https://test.mmt.dev/echo/<<e:userId>>',
       method: 'get',
       headers: {Authorization: 'Bearer <<e:authToken>>'},
       expect: {status: '== 200', 'body.id': '== <<e:userId>>'},
     });
     expect(test.steps?.[5]).toMatchObject({
-      http: 'https://api.example.com/users/<<e:userId>>',
+      http: 'https://test.mmt.dev/echo/<<e:userId>>',
       method: 'patch',
       body: {name: 'Ali Updated'},
       expect: {status: '== 200', 'body.name': '== Ali Updated'},
     });
     expect(test.steps?.[6]).toMatchObject({
-      http: 'https://api.example.com/users/<<e:userId>>',
+      http: 'https://test.mmt.dev/echo/<<e:userId>>',
       method: 'delete',
     });
     expect((test.steps?.[6] as any).expect).toBeUndefined();

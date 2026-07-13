@@ -4,6 +4,7 @@ import { Request, Response } from "mmt-core/NetworkData";
 import { JSONRecord } from "mmt-core/CommonData";
 import { safeList } from "mmt-core/safer";
 import { replaceAllRefs } from "mmt-core/variableReplacer";
+import { stripOmitFromRequest, isOmitSentinel } from "mmt-core/omitKeyword";
 import { formatBody } from "mmt-core/markupConvertor";
 import { applyAuthToRequest } from "mmt-core/apiParsePack";
 import { loadEnvVariables } from "../workspaceStorage";
@@ -118,6 +119,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
         resolvedInputs,
         envParameters
       ) as Request & { auth?: any };
+      rface = stripOmitFromRequest(rface) as Request & { auth?: any };
 
       if (rface.auth) {
         const applied = applyAuthToRequest(rface.auth, rface.headers || {}, rface.query);
@@ -515,12 +517,16 @@ async function buildRequestFromApi(api: APIData, inputs?: JSONRecord): Promise<R
     resolvedInputs,
     envParameters
   ) as Request;
+  const strippedRequest = stripOmitFromRequest(request) as Request;
 
-  if (request.body && typeof request.body !== "string") {
-    request.body = formatBody(request.format || "json", request.body ?? "");
+  if (strippedRequest.body && typeof strippedRequest.body !== "string") {
+    strippedRequest.body = formatBody(
+      strippedRequest.format || "json",
+      strippedRequest.body ?? ""
+    );
   }
 
-  return request;
+  return strippedRequest;
 }
 
 async function getEnvironmentParameters(): Promise<JSONRecord> {
@@ -573,7 +579,7 @@ async function handleSetEnvVariables(
 
         if (Object.prototype.hasOwnProperty.call(finalOutputs, String(outputKey))) {
           const outputValue = finalOutputs[String(outputKey)];
-          if (outputValue !== "" && outputValue != null) {
+          if (outputValue !== "" && outputValue != null && !isOmitSentinel(outputValue)) {
             value = String(outputValue);
           }
         } else {

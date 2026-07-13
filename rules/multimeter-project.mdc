@@ -17,6 +17,7 @@ alwaysApply: true
 
 - `core/src/runner.ts` is the single source of truth for running `.mmt` files.
 - Use `runner.runFile({ rawFile, filePath, inputs, envvar, fileLoader, jsRunner, logger })` instead of reimplementing parsing or execution in the extension, CLI, or webview.
+- **Copilot / AI:** For `.mmt` create, modify, validate, format, or run tasks, use the **Multimeter MCP tools first** — not testlight, npm, or shell exploration. See `docs/AI/agent-workflow.md` and `rules/mmt-mcp.instructions.md`.
 - Keep `core/` free of VS Code, `fs`, `path`, browser APIs, and runtime-specific globals. Inject file loading, JS execution, logging, and network plumbing.
 - Keep token matching and replacement logic for `e:`, `i:`, `r:`, and `c:` tokens in `core/src/variableReplacer.ts`.
 

@@ -1,7 +1,8 @@
 import {APIData} from './APIData';
 import {apiToYaml} from './apiParsePack';
-import {brunoToTest, isBrunoFilePath} from './brunoParsePack';
-import {httpToTest, isHttpFilePath} from './httpParsePack';
+import {brunoToAPI, brunoToTest, isBrunoFilePath} from './brunoParsePack';
+import {safeStepIdFromAlias, slugToCamel, slugValue} from './identifierUtils';
+import {httpRequestCallExtras, httpRequestToAPI, isHttpFilePath, parseHttpDocument} from './httpParsePack';
 import {packYaml, parseYamlStrict} from './markupConvertor';
 import {openApiToAPI} from './openapiConvertor';
 import {postmanToAPI} from './postmanConvertor';
@@ -183,34 +184,133 @@ function convertWsdlToMmt(rawFile: string, _options: ConvertToMmtOptions): Conve
 }
 
 function convertHttpToMmt(rawFile: string, options: ConvertToMmtOptions): ConvertToMmtResult {
-  const test = httpToTest(rawFile, options.sourcePath || 'request.http');
-  const title = test.title || basename(options.sourcePath || 'request.http');
+  const sourcePath = options.sourcePath || 'request.http';
+  const document = parseHttpDocument(rawFile);
+  const title = basename(sourcePath);
+  const testSlug = slug(title);
+  const files: ConvertedMmtFile[] = [];
+  const usedPaths = new Set<string>();
+  const usedAliases = new Set<string>();
+  const imports: Record<string, string> = {};
+  const steps: TestFlowStep[] = [];
+  const warnings = document.warnings.map(warning => `line ${warning.line}: ${warning.message}`);
+
+  for (let index = 0; index < document.requests.length; index++) {
+    const request = document.requests[index];
+    const api = httpRequestToAPI(request, index);
+    if (!api) {
+      warnings.push(`Skipped HTTP request on line ${request.startLine} because it has no URL.`);
+      continue;
+    }
+    const requestTitle = api.title || `request_${index + 1}`;
+    const apiPath = uniquePath(`api/${slug(requestTitle)}.mmt`, usedPaths);
+    const alias = uniqueAlias(slugToCamel(requestTitle), usedAliases);
+    files.push({
+      path: apiPath,
+      kind: 'api',
+      sourceName: requestTitle,
+      content: apiToYaml(api),
+    });
+    imports[alias] = `../${apiPath}`;
+    const stepId = safeStepIdFromAlias(alias);
+    const step: TestFlowStep = {
+      call: alias,
+      id: stepId,
+      debug: true,
+    };
+    const {expect, setenv} = httpRequestCallExtras(request, stepId);
+    if (expect && Object.keys(expect).length > 0) {
+      step.expect = expect;
+    }
+    steps.push(step);
+    if (setenv && Object.keys(setenv).length > 0) {
+      steps.push({setenv});
+    }
+  }
+
+  if (steps.length > 0) {
+    files.push({
+      path: `tests/${testSlug}.mmt`,
+      kind: 'test',
+      sourceName: title,
+      content: testToYaml({
+        type: 'test',
+        title,
+        description: document.requests.length === 1
+          ? `Generated from HTTP request "${document.requests[0].title || document.requests[0].name || title}".`
+          : `Generated from HTTP file "${title}".`,
+        tags: ['http'],
+        import: imports,
+        steps,
+      }),
+    });
+  }
+
   return {
     sourceKind: 'http',
     title,
-    files: [{
-      path: `tests/${slug(title)}.mmt`,
-      kind: 'test',
-      sourceName: title,
-      content: testToYaml(test),
-    }],
-    warnings: test.steps && test.steps.length > 0 ? [] : ['No HTTP requests were found.'],
+    files,
+    warnings: files.length > 0 ? warnings : [...warnings, 'No HTTP requests were found.'],
   };
 }
 
 function convertBrunoToMmt(rawFile: string, options: ConvertToMmtOptions): ConvertToMmtResult {
-  const test = brunoToTest(rawFile, options.sourcePath || 'request.bru');
-  const title = test.title || basename(options.sourcePath || 'request.bru');
-  return {
-    sourceKind: 'bruno',
-    title,
-    files: [{
-      path: `tests/${slug(title)}.mmt`,
+  const sourcePath = options.sourcePath || 'request.bru';
+  const api = brunoToAPI(rawFile, sourcePath);
+  const test = brunoToTest(rawFile, sourcePath);
+  const title = test.title || basename(sourcePath);
+  const slugName = slug(title);
+  const files: ConvertedMmtFile[] = [];
+
+  if (api) {
+    const apiPath = `api/${slugName}.mmt`;
+    const alias = slugToCamel(title);
+    files.push({
+      path: apiPath,
+      kind: 'api',
+      sourceName: api.title,
+      content: apiToYaml(api),
+    });
+
+    const inlineStep = test.steps?.[0];
+    const step: TestFlowStep = {
+      call: alias,
+      id: safeStepIdFromAlias(alias),
+      debug: true,
+    };
+    if (inlineStep && 'expect' in inlineStep && inlineStep.expect && Object.keys(inlineStep.expect).length > 0) {
+      step.expect = inlineStep.expect;
+    }
+
+    files.push({
+      path: `tests/${slugName}.mmt`,
+      kind: 'test',
+      sourceName: title,
+      content: testToYaml({
+        type: 'test',
+        title,
+        description: `Generated from Bruno request "${title}".`,
+        tags: ['bruno'],
+        import: {
+          [alias]: `../${apiPath}`,
+        },
+        steps: [step],
+      }),
+    });
+  } else {
+    files.push({
+      path: `tests/${slugName}.mmt`,
       kind: 'test',
       sourceName: title,
       content: testToYaml(test),
-    }],
-    warnings: test.steps && test.steps.length > 0 ? [] : ['No Bruno request was found.'],
+    });
+  }
+
+  return {
+    sourceKind: 'bruno',
+    title,
+    files,
+    warnings: files.length > 0 && (api || (test.steps && test.steps.length > 0)) ? [] : ['No Bruno request was found.'],
   };
 }
 
@@ -290,7 +390,7 @@ function collectPostmanRequests(postmanJson: any, warnings: string[]): PostmanRe
       }
       const folderPath = folders.map(slug).filter(Boolean);
       const apiPath = ['api', ...folderPath, `${slug(api.title || name)}.mmt`].join('/');
-      const alias = uniqueAlias(camel(api.title || name), usedAliases);
+      const alias = uniqueAlias(slugToCamel(api.title || name), usedAliases);
       const groupKey = folderPath.join('/') || 'collection';
       const groupTitle = folders[folders.length - 1] || postmanJson.info?.name || 'Postman Collection';
       requests.push({api, apiPath, alias, groupKey, groupTitle, item});
@@ -323,7 +423,8 @@ function buildPostmanTests(
       }
       const step: any = {
         call: requestFile.alias,
-        id: requestFile.alias,
+        id: safeStepIdFromAlias(requestFile.alias),
+        debug: true,
       };
       const expect = buildPostmanExpect(requestFile.item, scriptMode, warnings);
       if (expect && Object.keys(expect).length > 0) {
@@ -383,11 +484,11 @@ function buildPostmanSuites(postmanJson: any, tests: PostmanTestFile[], useProje
             title,
             description: `Generated from Postman collection folder "${title}".`,
             tags: ['postman'],
-            tests: testsList.length > 0 ? testsList : ['then'],
+            items: testsList.length > 0 ? testsList : ['then'],
           },
         };
       })
-      .filter(suite => suite.data.tests.length > 0 && suite.data.tests[0] !== 'then');
+      .filter(suite => suite.data.items.length > 0 && suite.data.items[0] !== 'then');
 }
 
 function collectFolderTitles(items: PostmanWalkItem[], folders: string[], folderTitles: Map<string, string>): void {
@@ -598,20 +699,7 @@ function uniqueAlias(value: string, used: Set<string>): string {
 }
 
 function slug(value: string): string {
-  return String(value || 'item')
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '') || 'item';
-}
-
-function camel(value: string): string {
-  const parts = slug(value).split('-').filter(Boolean);
-  const name = parts.map((part, index) => index === 0 ? part : part.charAt(0).toUpperCase() + part.slice(1)).join('');
-  if (!name) {
-    return 'request';
-  }
-  return /^[A-Za-z_]/.test(name) ? name : `request${name}`;
+  return slugValue(value);
 }
 
 function basename(filePath: string): string {

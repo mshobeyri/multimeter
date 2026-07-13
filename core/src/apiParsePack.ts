@@ -6,7 +6,7 @@ import {isNonEmptyList, isNonEmptyObject, safeList} from './safer';
 
 /** Valid root-level keys for type: api files. */
 const VALID_API_ROOT_KEYS = new Set([
-  'type', 'title', 'description', 'tags', 'inputs', 'outputs', 'setenv',
+  'type', 'title', 'description', 'tags', 'import', 'inputs', 'outputs', 'setenv',
   'url', 'query', 'protocol', 'format', 'method', 'timeout', 'headers', 'cookies',
   'body', 'auth', 'graphql', 'grpc', 'examples',
 ]);
@@ -177,6 +177,7 @@ export function yamlToAPI(yamlContent: string): APIData {
       title: doc.title || '',
       description: typeof doc.description === 'string' ? doc.description.trimEnd() : '',
       tags: doc.tags,
+      import: doc.import,
       inputs: doc.inputs,
       outputs: doc.outputs,
       setenv: doc.setenv,
@@ -262,6 +263,7 @@ export function yamlToAPIStrict(yamlContent: string): APIData {
     title: doc.title || '',
     description: typeof doc.description === 'string' ? doc.description.trimEnd() : '',
     tags: doc.tags,
+    import: doc.import,
     inputs: doc.inputs,
     outputs: doc.outputs,
     setenv: doc.setenv,
@@ -294,6 +296,9 @@ export function apiToYaml(api: APIData): string {
   };
   if (isNonEmptyList(api.tags)) {
     yamlObj.tags = api.tags;
+  };
+  if (isNonEmptyObject(api.import)) {
+    yamlObj.import = api.import;
   };
   if (isNonEmptyObject(api.inputs)) {
     yamlObj.inputs = api.inputs;

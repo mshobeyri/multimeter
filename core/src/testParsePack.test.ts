@@ -57,6 +57,64 @@ flow:
     expect(y).not.toContain('title:');
   });
 
+  it('testToYaml does not crash when steps is non-array', () => {
+    const malformed = yamlToTest([
+      'type: test',
+      'steps:',
+      '  call:',
+    ].join('\n'));
+
+    expect(() => testToYaml(malformed)).not.toThrow();
+    const y = testToYaml(malformed);
+    expect(y).toContain('type: test');
+    expect(y).not.toContain('steps:');
+  });
+
+  it('testToYaml does not crash when stages is non-array', () => {
+    const malformed = yamlToTest([
+      'type: test',
+      'stages:',
+      '  id: build',
+    ].join('\n'));
+
+    expect(() => testToYaml(malformed)).not.toThrow();
+    const y = testToYaml(malformed);
+    expect(y).toContain('type: test');
+    expect(y).not.toContain('stages:');
+  });
+
+  it('yamlToTest recovers partial call/http URL scalars while typing', () => {
+    const callPartial = yamlToTest([
+      'type: test',
+      'steps:',
+      '  - call: http:',
+    ].join('\n'));
+    expect(callPartial.steps?.[0]).toEqual({ call: 'http:' });
+
+    const httpPartial = yamlToTest([
+      'type: test',
+      'steps:',
+      '  - http: http:',
+    ].join('\n'));
+    expect(httpPartial.steps?.[0]).toEqual({ http: 'http:' });
+  });
+
+  it('yamlToTest drops empty call/http scalars from incomplete steps', () => {
+    const emptyCall = yamlToTest([
+      'type: test',
+      'steps:',
+      '  - call:',
+    ].join('\n'));
+    expect(emptyCall.steps?.[0]).toEqual({});
+
+    const emptyHttp = yamlToTest([
+      'type: test',
+      'steps:',
+      '  - http:',
+    ].join('\n'));
+    expect(emptyHttp.steps?.[0]).toEqual({});
+  });
+
   it('getTestFlowStepType detects each known type including data', () => {
     const samples: Array<[TestFlowStep, string]> = [
       [{ stage: { id: 's', steps: [] } } as any, 'stage'],

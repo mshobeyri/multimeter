@@ -33,7 +33,8 @@ The command parses the source file and creates one or more `.mmt` API, test, sui
   - example payloads when available
 - Postman projects generate `api/`, `tests/`, `suites/`, and, for larger projects, `multimeter.mmt`
 - OpenAPI and WSDL generate API files under `api/`
-- HTTP and Bruno files generate test files under `tests/`
+- HTTP files generate API and test files under `api/` and `tests/`
+- Bruno files generate API and test files under `api/` and `tests/`
 
 ### Postman-specific features
 - **Dynamic variable mapping**: Postman variables like `{{$guid}}`, `{{$randomEmail}}`, `{{$randomInt}}` are automatically converted to Multimeter `r:` tokens (e.g., `r:uuid`, `r:email`, `r:int`).
@@ -50,7 +51,11 @@ The command parses the source file and creates one or more `.mmt` API, test, sui
 - **SOAP API generation**: WSDL operations become XML API files with SOAP envelopes, endpoint URLs, and SOAPAction headers.
 
 ### HTTP and Bruno features
-- **Editable tests**: `.http`, `.https`, `.bru`, and `.bruno` files can be converted into `type: test` `.mmt` files while still remaining runnable directly.
+- **Editable tests**: `.http`, `.https`, `.bru`, and `.bruno` files can be converted into MMT files while still remaining runnable directly.
+- **HTTP and Bruno API extraction**: HTTP and Bruno requests with a valid HTTP method and URL generate an `api/` file plus a `tests/` file that imports and calls it, similar to Postman conversions. Multi-request HTTP files generate one API per request and a single test file with sequential `call` steps.
+- **Safe step ids**: Converted tests keep import aliases unchanged, but prefix generated step `id` values with `i` so they do not collide with the import binding in generated JavaScript (for example, `call: ping` with `id: iPing`, or `call: call` with `id: iCall`). HTTP and Bruno inline step ids are only prefixed when they match reserved words or test-flow keywords.
+- **Response debug**: Converted request steps include `debug: true` so responses are visible in the run output on first run.
+- **HTTP runtime mapping**: When you open a `.http` file in the Multimeter HTTP editor, each request is converted to an internal test step with `debug: true` so responses appear in the run panel without saving to `.mmt` first.
 
 ## Tips
 - Map your base URL to an environment variable early (for example, api_url) and reference it with `<<e:api_url>>` so you can switch presets

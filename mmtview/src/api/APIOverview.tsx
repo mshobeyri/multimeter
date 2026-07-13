@@ -69,6 +69,19 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
         </div>
       )}
 
+      <KSVEditor
+        label="Import"
+        value={api.import}
+        onChange={kv => {
+          update({ import: kv });
+        }}
+        keyPlaceholder="alias"
+        valuePlaceholder="path"
+        filePicker={true}
+        filePickerFilters={[
+          { name: "Data files", extensions: ["json", "yaml", "yml", "csv"] },
+        ]}
+      />
       <KVEditor
         label="Inputs"
         value={api.inputs}

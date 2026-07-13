@@ -9,10 +9,10 @@ steps:
     steps:
       - call: echo
         id: result
+        title: ${row.message}
         inputs:
           message: ${row.message}
         expect:
           status: 200
           echoed_message: ${row.message}
           request_method: ${row.expected_method}
-        title: ${row.message}

@@ -46,7 +46,7 @@ For the provided MMT, the Test panel shows the generated JavaScript. Click Run t
 The `test` type also supports documentation fields (title, tags, description) and reuse/compose elements (import, inputs, outputs). See the API doc for details. The sections below cover flow elements.
 
 ### import
-The `import` section lets you bring in other `.mmt` files (APIs or tests), `.http` / `.https` files, `.bru` files, CSVs, or JavaScript helpers to use in your test. Each import has an alias (the key) and a file path (the value).
+The `import` section lets you bring in other `.mmt` files (APIs or tests), `.http` / `.https` files, `.bru` files, data files (`.json`, `.yaml`, `.yml`, `.csv`), or JavaScript helpers to use in your test. Each import has an alias (the key) and a file path (the value).
 
 ```yaml
 import:
@@ -54,6 +54,7 @@ import:
   requests: requests.http    # HTTP Client file, converted to a test flow
   profile: profile.bru       # Bruno request file, converted to a test flow
   users: ../data/users.csv   # relative path
+  fixture: ../data/user.json  # data source used as ${fixture.path}
   api: +/apis/userApi.mmt    # project root path
   helpers: ./helpers/xxx.js  # JS helper module (CommonJS)
 ```
@@ -101,6 +102,8 @@ steps:
 - `true`/`false` are coerced to booleans.
 - Quoted values remain strings (e.g., `"00123"` stays `"00123"`).
 - BOM characters at the start of the file are handled automatically.
+
+JSON/YAML/CSV data imports can be referenced with `${alias.path}` in this file before the test is executed. See [Data Imports](./data-imports.md).
 
 Example with project root imports:
 ```yaml
@@ -285,6 +288,22 @@ With title and report:
 
 All comparison operators supported by `check`/`assert` are available in `expect` values: `==`, `!=`, `<`, `>`, `<=`, `>=`, `=@`, `!@`, `=C`, `!C`, `=^`, `!^`, `=$`, `!$`, `=*`, `!*`, `=#`, `!#`, `=N%`, `!N%`. Legacy regex operators `=~` and `!~` are still accepted.
 
+`omit` behavior in `expect`:
+- Use unquoted `omit` when you expect a field to be missing.
+- Reports show `omit` (user-friendly keyword), not internal placeholders.
+- `null` and `omit` are different:
+  - `null` = field exists with null value
+  - `omit` = field/path does not exist
+
+Example:
+```yaml
+- call: getUser
+  id: userRes
+  expect:
+    body.user.middle_name: omit
+    body.user.first_name: != omit
+```
+
 #### Inline debug on call
 
 Use `debug` on a call step to inspect output values during development. It works exactly like `expect` (same syntax, same operators), but results are shown with a **debug icon** instead of pass/fail, and **are not included in exported reports** (HTML, Markdown, MMT report files).
@@ -360,6 +379,33 @@ Object-form examples
     operator: "=="
     title: "Login status"
     details: "Login must succeed"
+```
+
+Output-path behavior in object-form `check` / `assert`:
+- Runtime references like `${stepId.body.body.username}` and `${stepId.status}` use the same output fallback behavior as `expect`.
+- This means checks/asserts can read default output roots (`body`, `status`, `headers`, `cookies`, `duration`, `details`) from call results consistently.
+
+`omit` behavior in object-form `check` / `assert`:
+- Use unquoted `expected: omit` to assert that a value/path is missing.
+- For `operator: ==`, a missing path (`undefined`) is treated as `omit` and passes.
+- For `operator: !=`, the check passes only when the value is present and not omit/null.
+
+Examples:
+```yaml
+- call: xx
+  id: xxx
+
+- check:
+    title: username exists
+    actual: ${xxx.body.body.username}
+    operator: !=
+    expected: omit
+
+- check:
+    title: nickname missing
+    actual: ${xxx.body.body.nickname}
+    operator: ==
+    expected: omit
 ```
 
 #### Report configuration
@@ -446,8 +492,16 @@ The `for` expression is passed directly to JavaScript, so any valid JS for-of/fo
   steps:
     - call: healthCheck
 
-# other time units: ms, s, m, h
+# other time units: ns, ms, s, m, h
 - repeat: 5m
+  steps:
+    - call: poll
+
+# combined durations
+- repeat: 1h5m
+  steps:
+    - call: poll
+- repeat: 5m3s
   steps:
     - call: poll
 
@@ -463,6 +517,8 @@ Pause the flow for a duration.
 ```yaml
 - delay: 500    # ms
 - delay: 2s     # units: ns|ms|s|m|h
+- delay: 1h5m   # combined duration
+- delay: 5m3s   # combined duration
 ```
 
 ### js

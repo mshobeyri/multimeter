@@ -68,7 +68,10 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
 
   // File context (avoid calling hooks inside callbacks)
   const fileCtx = useContext(FileContext);
-  const effectiveFilePickerFilters = filePickerFilters || [{ name: 'MMT files, CSV files', extensions: ['mmt', 'csv'] }];
+  const effectiveFilePickerFilters = filePickerFilters || [{
+    name: 'MMT, data, HTTP, Bruno, and JS files',
+    extensions: ['mmt', 'csv', 'json', 'yaml', 'yml', 'http', 'https', 'bru', 'bruno', 'js', 'cjs', 'mjs'],
+  }];
 
   // Helper to convert entries array back to object
   const toObject = (arr: Array<[string, string]>): Record<string, string> =>

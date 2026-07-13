@@ -1,5 +1,7 @@
 This file is the **single entry point** when the AI needs to **generate or modify** any `.mmt` file.
 
+**Copilot / MCP:** Before editing YAML, call `read_documentation` for the file type, then `validate` after every edit. See `AI/agent-workflow.md`.
+
 The AI must:
 - Always output valid **YAML**.
 - Always put `type` as the **first key** in the file.

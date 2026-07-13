@@ -2,6 +2,7 @@ import React, { useContext } from "react";
 import { DocData } from "mmt-core/DocData";
 import DescriptionEditor from "../components/DescriptionEditor";
 import FilePickerInput from "../components/FilePickerInput";
+import KSVEditor from "../components/KSVEditor";
 import { FileContext } from '../fileContext';
 
 interface DocOverviewProps {
@@ -44,6 +45,20 @@ const DocOverview: React.FC<DocOverviewProps> = ({ doc, update }) => {
             showFilePicker={true}
           />
         </div>
+      </div>
+
+      <div className="panel-form-row">
+        <KSVEditor
+          label="Import"
+          value={doc.import}
+          onChange={imports => update({ import: imports })}
+          keyPlaceholder="alias"
+          valuePlaceholder="path"
+          filePicker={true}
+          filePickerFilters={[
+            { name: 'Data files', extensions: ['json', 'yaml', 'yml', 'csv'] },
+          ]}
+        />
       </div>
 
       <div className="panel-form-row">

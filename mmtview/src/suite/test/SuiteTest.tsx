@@ -294,17 +294,19 @@ const buildSuiteGroupsFromContent = (content: string, mode: 'suite' | 'loadtest'
         const test = typeof parsed?.test === 'string' ? parsed.test.trim() : '';
         return test ? [{ label: 'Test', entries: [{ id: 'loadtest-test-0', path: test }] }] : [];
     }
-    const tests: string[] = Array.isArray(parsed?.tests)
-        ? parsed.tests.map((value: any) => (typeof value === 'string' ? value.trim() : '').trim()).filter(Boolean)
-        : [];
+    const items: string[] = Array.isArray(parsed?.items)
+        ? parsed.items.map((value: any) => (typeof value === 'string' ? value.trim() : '').trim()).filter(Boolean)
+        : (Array.isArray(parsed?.tests)
+            ? parsed.tests.map((value: any) => (typeof value === 'string' ? value.trim() : '').trim()).filter(Boolean)
+            : []);
 
-    if (!tests.length) {
+    if (!items.length) {
         return [];
     }
 
     let grouped: string[][] = [];
     try {
-        grouped = splitSuiteGroups([...tests]);
+        grouped = splitSuiteGroups([...items]);
     } catch {
         const fallbackGroups: string[][] = [];
         let current: string[] = [];
@@ -314,7 +316,7 @@ const buildSuiteGroupsFromContent = (content: string, mode: 'suite' | 'loadtest'
                 current = [];
             }
         };
-        tests.forEach((entry) => {
+        items.forEach((entry) => {
             if (entry === 'then') {
                 flush();
                 return;
@@ -1078,7 +1080,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                         <ExportReportButton disabled={suiteExportDisabled} onExport={handleExportReport} />
                     </div>
                 </div>
-                {noItems ? <div style={{ opacity: 0.8 }}>{mode === 'loadtest' ? 'No test file found under `test:`' : 'No suite items found under `tests:`'}</div> : (
+                {noItems ? <div style={{ opacity: 0.8 }}>{mode === 'loadtest' ? 'No test file found under `test:`' : 'No suite items found under `items:`'}</div> : (
                     <>
                         {mode === 'loadtest'
                             ? <>

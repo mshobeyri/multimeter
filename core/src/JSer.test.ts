@@ -9,6 +9,7 @@ import {TestContext, variableReplacer} from './JSerTest';
 import {assertToJSfunc, checkToJSfunc, conditionalStatementToJSfunc, flowStagesToJsfunc, parseExpectValue} from './JSerTestFlow';
 import {createTestFileLoaderMock} from './testFileLoaderMock';
 import {normalizeReportConfig} from './TestData';
+import {OMIT_SENTINEL} from './omitKeyword';
 
 describe('normalizeReportConfig', () => {
   it('returns defaults when undefined', () => {
@@ -693,6 +694,171 @@ describe('check/assert details templating', () => {
     expect(js).toContain('`result code is ${myCall.result_code}`');
     expect(js).toContain("check_(");
   });
+
+  it('resolves default output roots in ${...} check actual values', async () => {
+    const events: Record<string, any>[] = [];
+    const js = await rootTestToJsfunc({
+      name: 'checkDefaultOutputAccess',
+      test: {
+        type: 'test',
+        steps: [
+          {
+            call: 'echo',
+            id: 'xxx',
+            expect: {
+              'body.body.username': 'mehrdad',
+            },
+          } as any,
+          {
+            check: {
+              title: 'xx',
+              actual: '${xxx.body.body.username}',
+              operator: '==',
+              expected: 'mehrdad',
+              details: 'xxx',
+            },
+          } as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/main.mmt',
+    });
+
+    await runJSCode({
+      js: `
+        const echo = async () => ({ _: { body: { body: { username: 'mehrdad' } } } });
+        ${js}
+      `,
+      title: 'check-default-output-access-runtime',
+      logger: jest.fn(),
+      runId: 'run-check-default-output',
+      reporter: (event: Record<string, any>) => {
+        events.push(event);
+      },
+    });
+
+    const checkStep = events.find((event) => event.scope === 'test-step' && event.stepType === 'check');
+    expect(checkStep).toBeDefined();
+    expect(checkStep?.status).toBe('passed');
+    expect(checkStep?.expects?.[0]).toMatchObject({
+      comparison: 'body.body.username == mehrdad',
+      actual: 'mehrdad',
+      expected: 'mehrdad',
+      status: 'passed',
+    });
+  });
+
+  it('treats missing path as omit in check object comparisons', async () => {
+    const events: Record<string, any>[] = [];
+    const js = await rootTestToJsfunc({
+      name: 'checkMissingPathAsOmit',
+      test: {
+        type: 'test',
+        steps: [
+          {
+            call: 'echo',
+            id: 'xxx',
+          } as any,
+          {
+            check: {
+              title: 'xx',
+              actual: '${xxx.body.body.undefined}',
+              operator: '==',
+              expected: OMIT_SENTINEL as any,
+              details: 'xxx',
+            },
+          } as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/main.mmt',
+    });
+
+    await runJSCode({
+      js: `
+        const echo = async () => ({ _: { body: { body: { username: 'mehrdad' } } } });
+        ${js}
+      `,
+      title: 'check-missing-path-as-omit',
+      logger: jest.fn(),
+      runId: 'run-check-missing-path-omit',
+      reporter: (event: Record<string, any>) => {
+        events.push(event);
+      },
+    });
+
+    const checkStep = events.find((event) => event.scope === 'test-step' && event.stepType === 'check');
+    expect(checkStep).toBeDefined();
+    expect(checkStep?.status).toBe('passed');
+    expect(checkStep?.expects?.[0]).toMatchObject({
+      comparison: 'xxx.body.body.undefined == omit',
+      status: 'passed',
+    });
+  });
+
+  it('compares numeric call outputs with unquoted numeric expected values', () => {
+    const statusCheck = checkToJSfunc('${iter.status} == 200', false);
+    expect(statusCheck).toContain('equals_(');
+    expect(statusCheck).toContain(', 200),');
+    expect(statusCheck).not.toContain('`200`');
+
+    const statusCodeCheck = checkToJSfunc('${iter.status_code} == 200', false);
+    expect(statusCodeCheck).toContain('equals_(iter.status_code, 200)');
+
+    const objectCheck = checkToJSfunc({
+      actual: '${iter.status}',
+      operator: '==',
+      expected: 200,
+    } as any, false);
+    expect(objectCheck).toContain(', 200),');
+    expect(objectCheck).not.toContain('`200`');
+  });
+
+  it('keeps quoted expected values as strings in runtime checks', () => {
+    const checkJs = checkToJSfunc('${iter.status} == "200"', false);
+    expect(checkJs).toContain('`200`');
+    expect(checkJs).not.toContain(', 200),');
+  });
+
+  it('passes numeric status checks against call outputs at runtime', async () => {
+    const events: Record<string, any>[] = [];
+    const js = await rootTestToJsfunc({
+      name: 'numericStatusCheck',
+      test: {
+        type: 'test',
+        steps: [
+          {
+            call: 'echo',
+            id: 'iter',
+          } as any,
+          {check: '${iter.status} == 200'} as any,
+          {check: '${iter.status_code} == 200'} as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/main.mmt',
+    });
+
+    await runJSCode({
+      js: `
+        const echo = async () => ({ status: 200, status_code: 200, _: { status: 200 } });
+        ${js}
+      `,
+      title: 'numeric-status-check-runtime',
+      logger: jest.fn(),
+      runId: 'run-numeric-status-check',
+      reporter: (event: Record<string, any>) => {
+        events.push(event);
+      },
+    });
+
+    const checkSteps = events.filter((event) => event.scope === 'test-step' && event.stepType === 'check');
+    expect(checkSteps).toHaveLength(2);
+    expect(checkSteps.every((step) => step.status === 'passed')).toBe(true);
+  });
 });
 
 describe('rootTestToJsfunc + import tracker', () => {
@@ -746,7 +912,7 @@ describe('rootTestToJsfunc + import tracker', () => {
   it('converts imported .http files into callable test functions', async () => {
     const mock = createTestFileLoaderMock({
       '/root/requests.http': `### Login
-POST https://api.example.com/login
+POST https://test.mmt.dev/echo
 Content-Type: application/json
 
 {"username":"ada"}
@@ -756,7 +922,7 @@ Content-Type: application/json
 %}
 
 ### Profile
-GET https://api.example.com/me
+GET https://test.mmt.dev/headers
 Authorization: Bearer {{token}}
 `,
     });
@@ -775,8 +941,8 @@ Authorization: Bearer {{token}}
 
     expect(js).toContain('const requests_ = async');
     expect(js).toContain('const requests = requests_;');
-    expect(js).toContain('https://api.example.com/login');
-    expect(js).toContain('https://api.example.com/me');
+    expect(js).toContain('https://test.mmt.dev/echo');
+    expect(js).toContain('https://test.mmt.dev/headers');
     expect(js).toContain('setenv_("token"');
     expect(js).toContain('request_1');
     expect(js).toContain('Bearer');
@@ -790,7 +956,7 @@ Authorization: Bearer {{token}}
 }
 
 get {
-  url: https://api.example.com/me
+  url: https://test.mmt.dev/headers
   body: none
   auth: none
 }
@@ -811,7 +977,7 @@ get {
 
     expect(js).toContain('const requests_ = async');
     expect(js).toContain('const requests = requests_;');
-    expect(js).toContain('https://api.example.com/me');
+    expect(js).toContain('https://test.mmt.dev/headers');
   });
 
   it('resolves bare subdirectory paths without ./ prefix for mmt imports', async () => {
@@ -1494,6 +1660,66 @@ describe('expect on call steps', () => {
     const js = await testToJsfunc(ctx, true);
     expect(js).toContain('verifyUser');
   });
+
+  it('renders omit keyword in reports instead of omit sentinel', async () => {
+    const events: Record<string, any>[] = [];
+    const js = await rootTestToJsfunc({
+      name: 'omitInReports',
+      test: {
+        type: 'test',
+        steps: [
+          {
+            call: 'echo',
+            id: 'xxx',
+            expect: {
+              x: OMIT_SENTINEL as any,
+            },
+          } as any,
+          {
+            check: {
+              title: 'xx',
+              actual: '${xxx.x}',
+              operator: '==',
+              expected: OMIT_SENTINEL as any,
+              details: 'xxx',
+            },
+          } as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/root/main.mmt',
+    });
+
+    await runJSCode({
+      js: `
+        const echo = async () => ({ x: '__MMT_OMIT_KEYWORD__' });
+        ${js}
+      `,
+      title: 'omit-report-runtime',
+      logger: jest.fn(),
+      runId: 'run-omit-report',
+      reporter: (event: Record<string, any>) => {
+        events.push(event);
+      },
+    });
+
+    const stepEvents = events.filter((event) => event.scope === 'test-step');
+    expect(stepEvents).toHaveLength(2);
+    const callExpectEvent = stepEvents[0];
+    const checkEvent = stepEvents[1];
+
+    expect(callExpectEvent.expects?.[0]).toMatchObject({
+      comparison: 'x == omit',
+      actual: 'omit',
+      expected: null,
+      status: 'passed',
+    });
+    expect(checkEvent.expects?.[0]).toMatchObject({
+      comparison: 'xxx.x == omit',
+      status: 'passed',
+    });
+  });
 });
 
 describe('body inputs numeric/boolean templating', () => {
@@ -1577,6 +1803,39 @@ describe('delay step generation', () => {
     };
     const js2 = await testToJsfunc(ctx2, true);
     expect(js2).toContain('setTimeout(r, 2000)');
+
+    const ctx3: TestContext = {
+      name: 'delayTest3',
+      test: {steps: [{delay: '1h5m'} as any]} as any,
+      inputs: {},
+      envVars: {}
+    };
+    const js3 = await testToJsfunc(ctx3, true);
+    expect(js3).toContain('setTimeout(r, 3900000)');
+  });
+});
+
+describe('repeat step generation', () => {
+  it('generates time-based loop for combined duration strings', async () => {
+    const ctx: TestContext = {
+      name: 'repeatDurationTest',
+      test: {steps: [{repeat: '5m3s', steps: [{print: 'tick'}]} as any]} as any,
+      inputs: {},
+      envVars: {}
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('Date.now() < start + 303000');
+  });
+
+  it('keeps bare numbers as count-based repeat', async () => {
+    const ctx: TestContext = {
+      name: 'repeatCountTest',
+      test: {steps: [{repeat: 3, steps: [{print: 'tick'}]} as any]} as any,
+      inputs: {},
+      envVars: {}
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('for (let i = 0; i < 3; i++)');
   });
 });
 
@@ -1865,13 +2124,50 @@ describe('same-name file imports', () => {
     // The root alias must point to the test setup
     expect(js).toContain('const setup = setup_');
   });
+
+  it('avoids root function name collision with imported file basename', async () => {
+    const mock = createTestFileLoaderMock({
+      '/examples/intermediate/22_omit_keyword/omit_keyword.mmt': [
+        'type: api',
+        'title: Omit keyword',
+        'url: https://test.mmt.dev/echo',
+        'method: post',
+        'format: json',
+        'inputs:',
+        '  displayName: Alex',
+        'body:',
+        '  displayName: i:displayName',
+      ].join('\n'),
+    });
+    setFileLoader(mock.fileLoader);
+
+    const js = await rootTestToJsfunc({
+      name: 'Omit_keyword',
+      test: {
+        type: 'test',
+        title: 'Omit keyword',
+        import: {profile: './omit_keyword.mmt'},
+        steps: [{call: 'profile', id: 'update'} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/examples/intermediate/22_omit_keyword/omit_keyword_test.mmt',
+    });
+
+    expect(js).toContain('const omit_keyword_ = async');
+    expect(js).toContain('const omit_keyword_1_ = async');
+    expect(js).toContain('const profile = omit_keyword_');
+    expect(js).toContain('return omit_keyword_1_({});');
+    expect(js.match(/const omit_keyword_ = async/g)?.length).toBe(1);
+    expect(js.match(/const omit_keyword_1_ = async/g)?.length).toBe(1);
+  });
 });
 
 describe('auth field (apiToJSfunc)', () => {
   it('generates Bearer Authorization header', async () => {
     const ctx: APIContext = {
       api: {
-        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        type: 'api', url: 'https://test.mmt.dev', method: 'get', format: 'json',
         auth: {type: 'bearer', token: 'my-token'},
       } as any,
       name: 'myApi', inputs: {}, envVars: {},
@@ -1885,7 +2181,7 @@ describe('auth field (apiToJSfunc)', () => {
   it('generates Basic Authorization header', async () => {
     const ctx: APIContext = {
       api: {
-        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        type: 'api', url: 'https://test.mmt.dev', method: 'get', format: 'json',
         auth: {type: 'basic', username: 'user', password: 'pass'},
       } as any,
       name: 'myApi', inputs: {}, envVars: {},
@@ -1899,7 +2195,7 @@ describe('auth field (apiToJSfunc)', () => {
   it('generates API key header', async () => {
     const ctx: APIContext = {
       api: {
-        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        type: 'api', url: 'https://test.mmt.dev', method: 'get', format: 'json',
         auth: {type: 'api-key', header: 'X-API-Key', value: 'secret123'},
       } as any,
       name: 'myApi', inputs: {}, envVars: {},
@@ -1912,7 +2208,7 @@ describe('auth field (apiToJSfunc)', () => {
   it('generates API key query parameter', async () => {
     const ctx: APIContext = {
       api: {
-        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        type: 'api', url: 'https://test.mmt.dev', method: 'get', format: 'json',
         auth: {type: 'api-key', query: 'api_key', value: 'secret123'},
       } as any,
       name: 'myApi', inputs: {}, envVars: {},
@@ -1925,7 +2221,7 @@ describe('auth field (apiToJSfunc)', () => {
   it('generates OAuth2 client_credentials token fetch', async () => {
     const ctx: APIContext = {
       api: {
-        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        type: 'api', url: 'https://test.mmt.dev', method: 'get', format: 'json',
         auth: {
           type: 'oauth2', grant: 'client_credentials',
           token_url: 'https://auth.example.com/token',
@@ -1944,7 +2240,7 @@ describe('auth field (apiToJSfunc)', () => {
   it('does not override explicit Authorization header', async () => {
     const ctx: APIContext = {
       api: {
-        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        type: 'api', url: 'https://test.mmt.dev', method: 'get', format: 'json',
         headers: {Authorization: 'Custom xyz'},
         auth: {type: 'bearer', token: 'my-token'},
       } as any,
@@ -1961,7 +2257,7 @@ describe('auth field (apiToJSfunc)', () => {
   it('auth: none generates no auth code', async () => {
     const ctx: APIContext = {
       api: {
-        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        type: 'api', url: 'https://test.mmt.dev', method: 'get', format: 'json',
         auth: 'none',
       } as any,
       name: 'myApi', inputs: {}, envVars: {},
@@ -1973,7 +2269,7 @@ describe('auth field (apiToJSfunc)', () => {
   it('env variable substitution works in auth token', async () => {
     const ctx: APIContext = {
       api: {
-        type: 'api', url: 'https://api.example.com', method: 'get', format: 'json',
+        type: 'api', url: 'https://test.mmt.dev', method: 'get', format: 'json',
         auth: {type: 'bearer', token: '<<e:token>>'},
       } as any,
       name: 'myApi', inputs: {}, envVars: {},

@@ -51,7 +51,7 @@ export async function executeSuite(
     ? {...(options.envvar || {}), ...suiteEnvVars, ...(options.manualEnvvars || {})}
     : options.envvar;
 
-  const groups = splitSuiteGroups(suite.tests);
+  const groups = splitSuiteGroups(suite.items);
   const suiteDisplayName = title || baseName;
   const identifier = sanitizeIdentifier(suiteDisplayName);
 

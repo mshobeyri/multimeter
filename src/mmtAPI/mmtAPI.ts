@@ -6,6 +6,7 @@ import * as file from './file';
 import {handleNetworkMessage, prepareNetworkConfigForFile} from './network';
 import * as run from './run';
 import * as mockRunner from './mockRunner';
+import {loadWorkspaceEnvFile, refreshWorkspaceCertificatesFromEnvFile} from '../workspaceEnvLoader';
 import {
   suiteHierarchy,
   JSer,
@@ -56,17 +57,22 @@ function handleUpdateDocumentProblems(
   const diagnostics = problems.map((problem: any) => {
     const line = typeof problem?.line === 'number' ? problem.line : 1;
     const column = typeof problem?.column === 'number' ? problem.column : 1;
+    const endColumn = typeof problem?.endColumn === 'number' ? problem.endColumn : column + 1;
     const zeroLine = Math.max(0, line - 1);
     const zeroColumn = Math.max(0, column - 1);
+    const zeroEndColumn = Math.max(zeroColumn + 1, endColumn - 1);
     const range = new vscode.Range(
         new vscode.Position(zeroLine, zeroColumn),
-        new vscode.Position(zeroLine, Math.max(zeroColumn + 1, zeroColumn)));
+        new vscode.Position(zeroLine, zeroEndColumn));
     const severity = problem?.severity === 'error' ?
         vscode.DiagnosticSeverity.Error :
         vscode.DiagnosticSeverity.Warning;
     const diagnostic =
         new vscode.Diagnostic(range, String(problem?.message || ''), severity);
-    diagnostic.source = 'multimeter';
+    diagnostic.source = problem?.category === 'compatibility' ? 'multimeter (compatibility)' : 'multimeter';
+    if (problem?.category === 'compatibility') {
+      diagnostic.tags = [vscode.DiagnosticTag.Deprecated];
+    }
     return diagnostic;
   });
   mmtProvider.diagnostics.set(document.uri, diagnostics);
@@ -432,6 +438,12 @@ export const messageReceived = async (
       handleLoadWorkspaceState(message, webviewPanel, mmtProvider);
       break;
 
+    case 'reloadWorkspaceEnv':
+      await loadWorkspaceEnvFile(mmtProvider.context, true);
+      await refreshWorkspaceCertificatesFromEnvFile(mmtProvider.context);
+      await vscode.commands.executeCommand('multimeter.environment.refresh');
+      break;
+
     case 'getFileContent':
       await file.handleGetFileContent(
           message, webviewPanel, document, mmtProvider);
@@ -574,7 +586,7 @@ export const messageReceived = async (
       break;
 
     case 'runJSCode':
-      await run.handleRunJSCode(message);
+      await run.handleRunJSCode(message, webviewPanel, document);
       break;
 
     case 'network':

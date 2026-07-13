@@ -33,6 +33,12 @@ import {
   getInvalidStageAfterDecorations,
   type ProblemEntry,
 } from "./validator";
+import {
+  applyCompatibilityFix,
+  findCompatibilityIssueAtPosition,
+  findCompatibilityProblems,
+  getCompatibilityDecorations,
+} from "./compatibility";
 import { useRunGlyphs } from './useRunGlyphs';
 import { useFormatAndOrder } from './useFormatAndOrder';
 // formatting and ordering helper moved to `useFormatAndOrder`
@@ -51,6 +57,7 @@ const PLAIN_TOKEN_HIGHLIGHT_RE = new RegExp(
   `:\\s(?:[ieorc]:${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}|e:\\{${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}\\})`,
   'g'
 );
+const YAML_CONSTANT_HIGHLIGHT_RE = /(^|:\s+|-\s+)(omit|null)(?=\s*(?:#.*)?$|\s|,|\]|\})/gm;
 
 interface YamlEditorPanelProps {
   content: string;
@@ -125,7 +132,9 @@ function getDescriptionFoldLines(model: any): number[] {
 
 const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
 const UNDEFINED_INPUT_CLASS = "mmt-undefined-input-underline";
+const DEPRECATED_KEYWORD_CLASS = "mmt-deprecated-keyword";
 const EXPECT_OP_CLASS = "mmt-expect-operator";
+const YAML_CONSTANT_CLASS = "mmt-yaml-constant";
 
 /** Known comparison operators, longest first so >= matches before > */
 const EXPECT_OPS = ['==', '!=', '>=', '<=', '=@', '!@', '=C', '!C', '=*', '!*', '=~', '!~', '=#', '!#', '=%', '!%', '=^', '!^', '=$', '!$', '>', '<'];
@@ -150,6 +159,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const undefinedEnvRefDecorationsRef = useRef<string[]>([]);
   const undefinedOutputValueDecorationsRef = useRef<string[]>([]);
   const invalidStageAfterDecorationsRef = useRef<string[]>([]);
+  const compatibilityDecorationsRef = useRef<string[]>([]);
   const contentRef = useRef(content);
   const [editorReady, setEditorReady] = useState(false);
   const importsMapRef = useRef<Record<string, string>>({});
@@ -173,6 +183,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   const [descriptionProblems, setDescriptionProblems] = useState<ProblemEntry[]>([]);
   const [stageAfterProblems, setStageAfterProblems] = useState<ProblemEntry[]>([]);
   const [authProblems, setAuthProblems] = useState<ProblemEntry[]>([]);
+  const [compatibilityProblems, setCompatibilityProblems] = useState<ProblemEntry[]>([]);
   const [knownEnvNames, setKnownEnvNames] = useState<Set<string>>(new Set());
   // Keep track of whether the editor has detected a canonical key-order issue via markers.
   const shouldShowRunControls = (docType === "test" || docType === "api" || docType === "suite" || docType === "loadtest");
@@ -315,9 +326,9 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   // Parse imports map whenever content changes
   useEffect(() => {
     try {
-      // Use plain YAML parse to get a JS object and read imports/import
+      // Use plain YAML parse to get a JS object and read import
       const js = parseYaml(content) as any;
-      const imps = (js && (js.imports || js.import)) || {};
+      const imps = (js && js.import) || {};
       importsMapRef.current = imps && typeof imps === 'object' ? imps : {};
       const typeVal = typeof js?.type === "string" ? js.type.toLowerCase() : null;
       setDocType(typeVal);
@@ -735,6 +746,50 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     monaco.editor.setModelMarkers(model, "mmt-auth", markers);
   }, [content, docType, editorReady]);
 
+  useEffect(() => {
+    if (!editorReady || !monacoRef.current || !editorRef.current) {
+      setCompatibilityProblems([]);
+      return;
+    }
+    const monaco = monacoRef.current;
+    const editor = editorRef.current;
+    const model = editor.getModel();
+    if (!model) {
+      setCompatibilityProblems([]);
+      return;
+    }
+
+    let doc: any = null;
+    try {
+      doc = parseYamlDoc(content);
+      if (doc.errors && doc.errors.length > 0) {
+        setCompatibilityProblems([]);
+        compatibilityDecorationsRef.current = editor.deltaDecorations(compatibilityDecorationsRef.current, []);
+        return;
+      }
+    } catch {
+      setCompatibilityProblems([]);
+      compatibilityDecorationsRef.current = editor.deltaDecorations(compatibilityDecorationsRef.current, []);
+      return;
+    }
+
+    const problems = findCompatibilityProblems(content, doc, docType);
+    setCompatibilityProblems(problems);
+
+    const decos = getCompatibilityDecorations(
+      monaco,
+      model,
+      content,
+      doc,
+      docType,
+      DEPRECATED_KEYWORD_CLASS
+    );
+    compatibilityDecorationsRef.current = editor.deltaDecorations(
+      compatibilityDecorationsRef.current,
+      decos
+    );
+  }, [content, docType, editorReady]);
+
   // Warn on e:xxx / <<e:xxx>> references to undefined environment variables
   useEffect(() => {
     if (!editorReady || !monacoRef.current || !editorRef.current) {
@@ -795,7 +850,12 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
     if (!model) return;
 
     const isMac = navigator.platform.toLowerCase().includes('mac');
-    const modifier = isMac ? 'metaKey' : 'ctrlKey';
+    const hasGoToDefinitionModifier = (evt: {ctrlKey?: boolean; metaKey?: boolean}) => {
+      if (isMac) {
+        return Boolean(evt.metaKey || evt.ctrlKey);
+      }
+      return Boolean(evt.ctrlKey);
+    };
 
     const updateUnderline = (pos: any, withModifier: boolean) => {
       const target = withModifier
@@ -816,19 +876,19 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       const evt = e.event?.browserEvent as MouseEvent | undefined;
       const pos = e.target?.position;
       if (!evt || !pos) return;
-      const withMod = (evt as any)[modifier];
+      const withMod = hasGoToDefinitionModifier(evt as any);
       updateUnderline(pos, withMod);
       const target = withMod ? getFileLinkTargetAtPosition(monaco, model, content, pos) : null;
       editor.updateOptions({ mouseStyle: target ? 'pointer' : 'text' });
     });
 
     const onKeyDown = editor.onKeyDown((e: any) => {
-      if ((isMac && e.metaKey) || (!isMac && e.ctrlKey)) ctrlDownRef.current = true;
+      if (hasGoToDefinitionModifier(e)) ctrlDownRef.current = true;
       const pos = editor.getPosition();
       if (pos) updateUnderline(pos, ctrlDownRef.current);
     });
     const onKeyUp = editor.onKeyUp((e: any) => {
-      if (!(isMac ? e.metaKey : e.ctrlKey)) ctrlDownRef.current = false;
+      if (!hasGoToDefinitionModifier(e)) ctrlDownRef.current = false;
       linkDecorationsRef.current = editor.deltaDecorations(linkDecorationsRef.current, []);
       editor.updateOptions({ mouseStyle: 'text' });
     });
@@ -837,11 +897,32 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       const evt = e.event?.browserEvent as MouseEvent | undefined;
       const pos = e.target?.position;
       if (!evt || !pos) return;
-      const withMod = (evt as any)[modifier];
-      if (!withMod) return;
-      const target = getFileLinkTargetAtPosition(monaco, model, content, pos);
-      if (target) {
-        openRelativeFile(target.path, target.fragment, evt.shiftKey);
+      const withMod = hasGoToDefinitionModifier(evt as any);
+      if (withMod) {
+        const target = getFileLinkTargetAtPosition(monaco, model, content, pos);
+        if (target) {
+          openRelativeFile(target.path, target.fragment, evt.shiftKey);
+        }
+        return;
+      }
+
+      let doc: any = null;
+      try {
+        doc = parseYamlDoc(model.getValue());
+      } catch {
+        doc = null;
+      }
+
+      const issue = findCompatibilityIssueAtPosition(model.getValue(), doc, docType, pos.lineNumber, pos.column);
+      if (!issue) {
+        return;
+      }
+
+      const updated = applyCompatibilityFix(model.getValue(), issue.applyFix, pos.lineNumber);
+      if (updated != null && updated !== model.getValue()) {
+        evt.preventDefault();
+        evt.stopPropagation();
+        setContent(updated);
       }
     });
 
@@ -853,7 +934,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       linkDecorationsRef.current = editor.deltaDecorations(linkDecorationsRef.current, []);
       editor.updateOptions({ mouseStyle: 'text' });
     };
-  }, [content, editorReady]);
+  }, [content, docType, editorReady, setContent]);
 
   // run glyphs and example-run decorations handled in `useRunGlyphs` hook
 
@@ -915,6 +996,26 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
             end.column
           ),
           options: { inlineClassName: I_PREFIX_CLASS }
+        });
+      }
+    }
+    {
+      const value = model.getValue();
+      let match;
+      while ((match = YAML_CONSTANT_HIGHLIGHT_RE.exec(value)) !== null) {
+        const full = match[0];
+        const token = match[2];
+        const tokenOffset = full.lastIndexOf(token);
+        const start = model.getPositionAt(match.index + tokenOffset);
+        const end = model.getPositionAt(match.index + tokenOffset + token.length);
+        matches.push({
+          range: new monaco.Range(
+            start.lineNumber,
+            start.column,
+            end.lineNumber,
+            end.column
+          ),
+          options: { inlineClassName: YAML_CONSTANT_CLASS }
         });
       }
     }
@@ -1031,12 +1132,13 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       ...descriptionProblems,
       ...stageAfterProblems,
       ...authProblems,
+      ...compatibilityProblems,
     ];
     window.vscode.postMessage({
       command: "updateDocumentProblems",
       problems,
     });
-  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, missingDocFileProblems, exampleKeyProblems, inputRefProblems, envRefProblems, descriptionProblems, stageAfterProblems, authProblems]);
+  }, [docType, yamlProblems, orderingProblems, missingImportProblems, callAliasProblems, callInputsProblems, missingSuiteFileProblems, missingDocFileProblems, exampleKeyProblems, inputRefProblems, envRefProblems, descriptionProblems, stageAfterProblems, authProblems, compatibilityProblems]);
 
   return (
     <div style={{ height: "100%", minHeight: 0, overflow: "hidden", position: "relative" }}>

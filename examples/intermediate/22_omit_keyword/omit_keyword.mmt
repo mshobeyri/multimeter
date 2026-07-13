@@ -1,0 +1,34 @@
+type: api
+title: Omit keyword
+description: |-
+  Use the `omit` keyword in inputs and see how it appears in outputs.
+
+  Inputs:
+  - `omit` (unquoted) removes the field from the request body
+  - `null` (unquoted) sends JSON null
+  - `"omit"` and `"null"` are literal strings
+
+  Outputs:
+  - missing path (for example `echoed_middleName`) => omit
+  - existing null value (for example `echoed_bio`) => null
+inputs:
+  displayName: Alex
+  middleName: omit
+  nickname: "omit"
+  bio: null
+  bioText: "null"
+outputs:
+  echoed_displayName: body.body.displayName
+  echoed_middleName: body.body.middleName
+  echoed_nickname: body.body.nickname
+  echoed_bio: body.body.bio
+  echoed_bioText: body.body.bioText
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  displayName: i:displayName
+  middleName: i:middleName
+  nickname: i:nickname
+  bio: i:bio
+  bioText: i:bioText

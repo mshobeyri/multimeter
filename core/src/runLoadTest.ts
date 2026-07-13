@@ -5,6 +5,7 @@ import {basename, PreparedRun, resolveRelativeTo, RunFileResult, runGeneratedJs,
 import {generateTestJs, prepareTestRun} from './runTest';
 import {RunFileOptions, RunReporterMessage, RunResult, TestOutputsReporterEvent, TestRunSummaryEvent, TestStepReporterEvent} from './runConfig';
 import {formatDuration} from './CommonData';
+import {parseDurationString} from './JSerHelper';
 import {roundReportNumber} from './reportFormat';
 
 const LOADTEST_ITEM_ID = 'loadtest-test-0';
@@ -22,38 +23,6 @@ function formatLoadSummaryLine(params: {
   const {elapsedMs, activeThreads, configuredThreads, completed, failed, requests, throughput} = params;
   const passed = Math.max(0, completed - failed);
   return `Load summary: duration=${formatDuration(elapsedMs)}, active_threads=${activeThreads}/${configuredThreads}, iterations=${completed}, passed=${passed}, failed=${failed}, requests=${requests}, rps=${roundReportNumber(throughput).toFixed(3)}`;
-}
-
-function parseDurationMs(value: unknown): number | undefined {
-  if (typeof value !== 'string') {
-    return undefined;
-  }
-  const trimmed = value.trim().toLowerCase();
-  if (!trimmed || trimmed === 'inf') {
-    return undefined;
-  }
-  const match = trimmed.match(/^(\d+(?:\.\d+)?)(ms|s|m|h)$/);
-  if (!match) {
-    return undefined;
-  }
-  const amount = Number(match[1]);
-  const unit = match[2];
-  if (!Number.isFinite(amount) || amount < 0) {
-    return undefined;
-  }
-  if (unit === 'ms') {
-    return Math.round(amount);
-  }
-  if (unit === 's') {
-    return Math.round(amount * 1000);
-  }
-  if (unit === 'm') {
-    return Math.round(amount * 60_000);
-  }
-  if (unit === 'h') {
-    return Math.round(amount * 3_600_000);
-  }
-  return undefined;
 }
 
 function parsePositiveInteger(value: unknown): number | undefined {
@@ -117,11 +86,11 @@ export async function executeLoadTest(
   const childDisplayName = basename(childFilePath || loadtest.test);
   const threads = Math.max(1, Math.floor(loadtest.threads || 1));
   const repeatIterations = parsePositiveInteger(loadtest.repeat);
-  const repeatDurationMs = repeatIterations === undefined ? parseDurationMs(loadtest.repeat) : undefined;
+  const repeatDurationMs = repeatIterations === undefined ? parseDurationString(loadtest.repeat) : undefined;
   if (repeatIterations === undefined && repeatDurationMs === undefined) {
     throw new Error('Loadtest.repeat must be a positive integer or duration string such as 10s, 1m, or 1000');
   }
-  const rampupMs = parseDurationMs(loadtest.rampup) || 0;
+  const rampupMs = parseDurationString(loadtest.rampup) || 0;
   const runStartedAt = Date.now();
   const deadline = repeatDurationMs !== undefined ? runStartedAt + repeatDurationMs : undefined;
   const maxIterations = repeatIterations;

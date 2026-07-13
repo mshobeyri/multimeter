@@ -4,10 +4,12 @@ These examples show `.http` files that can be opened through **Open With...** ->
 
 The Multimeter HTTP editor treats these files as runnable test flows. The structured UI is read-only for `.http` files; use **Save as MMT** to convert one into an editable `.mmt` test.
 
+All live requests target the public [test.mmt.dev](https://test.mmt.dev) test server.
+
 ## Files
 
-- `auth_user_flow.http`: login, create user, fetch user, update user, and delete user flow with captured variables.
-- `jsonplaceholder_posts.http`: create, fetch, search, and delete post flow using JSONPlaceholder-style endpoints.
+- `auth_user_flow.http`: login, create user, verify bearer auth, update user, and delete user flow with captured variables.
+- `echo_posts.http`: create, fetch, search, and delete post flow using echo and status endpoints on test.mmt.dev.
 - `import_http_in_test.mmt`: a Multimeter test that imports a `.http` file and calls it like any other test import.
 
 ## Importing HTTP files from MMT
@@ -17,7 +19,7 @@ The Multimeter HTTP editor treats these files as runnable test flows. The struct
 ```yaml
 type: test
 import:
-	posts: jsonplaceholder_posts.http
+	posts: echo_posts.http
 steps:
 	- call: posts
 ```

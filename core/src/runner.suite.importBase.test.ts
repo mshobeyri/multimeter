@@ -7,7 +7,7 @@ describe('runner suite import base', () => {
 
       if (normalized.endsWith('/suite/suite.mmt')) {
         // suite file is in /root/suite, but it references a test in /root/other
-        return `type: suite\ntests:\n  - ../other/test.mmt\n`;
+        return `type: suite\nitems:\n  - ../other/test.mmt\n`;
       }
 
       if (normalized.endsWith('/other/test.mmt')) {

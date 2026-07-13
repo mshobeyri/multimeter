@@ -7,6 +7,8 @@ Multimeter provides two ways to mock APIs:
 
 Both approaches support HTTP, HTTPS, mTLS, and WebSocket.
 
+`type: server` files also support JSON/YAML/CSV data imports. Use a top-level `import:` map and reference values in endpoint bodies, headers, or match rules with `${alias.path}`. See [Data Imports](./data-imports.md).
+
 ---
 
 ## Mock Server Panel
@@ -275,7 +277,7 @@ title: Integration Suite
 servers:
   - mocks/user-service.mmt
   - mocks/auth-service.mmt
-tests:
+items:
   - tests/login.mmt
   - tests/profile.mmt
 ```
@@ -286,7 +288,7 @@ tests:
 2. Tests begin once servers are ready
 3. When the suite finishes, all servers are stopped automatically
 
-You can also include `type: server` files directly in the `tests` array for inline control over when they start relative to other stages.
+You can also include `type: server` files directly in the `items` array for inline control over when they start relative to other stages.
 
 This lets you set up complex integration environments declaratively, without manual server management.
 

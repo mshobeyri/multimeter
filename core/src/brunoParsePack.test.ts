@@ -1,6 +1,6 @@
 import {detectDocType} from './runCommon';
 import {generateTestJs} from './runTest';
-import {brunoToTest, isBrunoFilePath, validateBrunoDocument} from './brunoParsePack';
+import {brunoToAPI, brunoToTest, isBrunoFilePath, validateBrunoDocument} from './brunoParsePack';
 
 describe('brunoParsePack', () => {
   it('detects .bru and .bruno files as test documents', () => {
@@ -8,6 +8,69 @@ describe('brunoParsePack', () => {
     expect(isBrunoFilePath('/tmp/get_user.bruno')).toBe(true);
     expect(detectDocType('/tmp/get_user.bru', 'meta {\n  name: Get user\n}\nget {\n  url: https://example.com\n}\n')).toBe('test');
     expect(detectDocType('/tmp/get_user.bruno', 'meta {\n  name: Get user\n}\nget {\n  url: https://example.com\n}\n')).toBe('test');
+  });
+
+  it('adds debug to request steps used for Bruno runtime conversion', () => {
+    const test = brunoToTest(`meta {
+  name: Ping
+}
+
+get {
+  url: https://test.mmt.dev/json
+}
+`, 'ping.bru');
+    expect(test.steps?.[0]).toMatchObject({
+      method: 'get',
+      debug: true,
+    });
+  });
+
+  it('converts a Bruno request into an API definition', () => {
+    const api = brunoToAPI(`meta {
+  name: Create user
+}
+
+post {
+  url: {{baseUrl}}/echo
+  body: json
+  auth: bearer
+}
+
+vars:pre-request {
+  baseUrl: https://test.mmt.dev
+}
+
+headers {
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "name": "Ada"
+  }
+}
+`, 'create-user.bru');
+
+    expect(api).toMatchObject({
+      type: 'api',
+      title: 'Create user',
+      tags: ['bruno'],
+      url: 'https://test.mmt.dev/echo',
+      method: 'post',
+      format: 'json',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      auth: {
+        type: 'bearer',
+        token: '<<e:token>>',
+      },
+      body: {name: 'Ada'},
+    });
   });
 
   it('converts a Bruno request into a test flow', () => {
@@ -18,13 +81,13 @@ describe('brunoParsePack', () => {
 }
 
 post {
-  url: {{baseUrl}}/users
+  url: {{baseUrl}}/echo
   body: json
   auth: bearer
 }
 
 vars:pre-request {
-  baseUrl: https://api.example.com
+  baseUrl: https://test.mmt.dev
 }
 
 headers {
@@ -57,7 +120,7 @@ tests {
       tags: ['bruno'],
     });
     expect(test.steps?.[0]).toMatchObject({
-      http: 'https://api.example.com/users',
+      http: 'https://test.mmt.dev/echo',
       id: 'Create_user',
       method: 'post',
       format: 'json',
@@ -74,6 +137,22 @@ tests {
     });
   });
 
+  it('prefixes conflicting Bruno step ids', () => {
+    const test = brunoToTest(`meta {
+  name: call
+}
+
+get {
+  url: https://test.mmt.dev/json
+}
+`);
+
+    expect(test.steps?.[0]).toMatchObject({
+      id: 'iCall',
+      method: 'get',
+    });
+  });
+
   it('reports missing method and url validation errors', () => {
     const errors = validateBrunoDocument('meta {\n  name: Broken\n}\n');
     expect(errors.some(error => error.message.includes('No Bruno HTTP method block'))).toBe(true);
@@ -86,7 +165,7 @@ tests {
 }
 
 get {
-  url: https://api.example.com/ping
+  url: https://test.mmt.dev/json
   body: none
   auth: none
 }
@@ -101,6 +180,6 @@ get {
     });
 
     expect(js).toContain('__http_0');
-    expect(js).toContain('https://api.example.com/ping');
+    expect(js).toContain('https://test.mmt.dev/json');
   });
 });

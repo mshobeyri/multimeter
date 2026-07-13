@@ -9,7 +9,7 @@ describe('openapiConvertor.openApiToAPI', () => {
   it('converts basic GET without body', () => {
     const spec = {
       openapi: '3.0.0',
-      servers: [ { url: 'https://api.example.com' } ],
+      servers: [ { url: 'https://test.mmt.dev' } ],
       paths: {
         '/users': {
           get: {
@@ -26,7 +26,7 @@ describe('openapiConvertor.openApiToAPI', () => {
     expect(apis.length).toBe(1);
     const api = apis[0];
     expect(api.title).toBe('List users');
-    expect(api.url).toBe('https://api.example.com/users');
+    expect(api.url).toBe('https://test.mmt.dev/users');
     expect(api.method).toBe('get');
     expect(api.query).toEqual({ page: '1' });
     expect(api.headers).toEqual({ 'X-Trace': 'abc' });
@@ -36,7 +36,7 @@ describe('openapiConvertor.openApiToAPI', () => {
   it('handles path params and generates body example from schema properties', () => {
     const spec = {
       openapi: '3.0.0',
-      servers: [ { url: 'https://api.example.com' } ],
+      servers: [ { url: 'https://test.mmt.dev' } ],
       paths: {
         '/user/{id}': {
           post: {
@@ -63,7 +63,7 @@ describe('openapiConvertor.openApiToAPI', () => {
     const apis = openApiToAPI(spec);
     expect(apis.length).toBe(1);
     const api = apis[0];
-    expect(api.url).toBe('https://api.example.com/user/42');
+    expect(api.url).toBe('https://test.mmt.dev/user/42');
     expect(api.method).toBe('post');
     expect(api.format).toBe('json');
     expect(typeof api.body).toBe('string');

@@ -42,7 +42,7 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
     indexPath: number[],
   ): Promise<SuiteHierarchyRootNode> => {
     const suiteDoc = yamlToSuite(rawText);
-    const children = await buildNodesFromEntries(suiteDoc.tests ?? [], targetFilePath, indexPath);
+    const children = await buildNodesFromEntries(suiteDoc.items ?? [], targetFilePath, indexPath);
     const node: SuiteHierarchyRootNode = {
       kind: 'suite',
       id: createSuiteNodeId(indexPath, {prefix: leafPrefix}),

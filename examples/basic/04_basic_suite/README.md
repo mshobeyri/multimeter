@@ -27,7 +27,7 @@ npx testlight run examples/basic/04_basic_suite/suite.mmt
 ## Key concepts
 
 - **`type: suite`** groups test files.
-- **`tests`** lists the test files to run.
+- **`items`** lists the files to run (tests, APIs, or other suites).
 - Suites are useful when a workflow grows beyond one test file.
 
 See [Suite docs](../../../docs/suite-mmt.md) for the full suite reference.

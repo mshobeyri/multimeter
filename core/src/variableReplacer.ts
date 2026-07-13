@@ -3,6 +3,7 @@ import {JSONRecord} from './CommonData';
 import {normalizeTokenName} from './JSerHelper';
 import {RANDOM_TOKEN_MAP} from './Random';
 import {CURRENT_TOKEN_MAP} from './Current';
+import {isOmitSentinel} from './omitKeyword';
 import {safeList} from './safer';
 import {TestData} from './TestData';
 
@@ -136,6 +137,9 @@ export function applyValueAccessor(value: any, accessor = ''): any {
 
 const escapeBackticks = (s: string): string =>
     String(s ?? '').replace(/`/g, '\\`');
+
+const toSingleQuotedJsString = (s: string): string =>
+    `'${String(s ?? '').replace(/\\/g, '\\\\').replace(/'/g, '\\\'')}'`;
 
 const toJsAccessorExpression = (baseExpression: string, accessor = ''): string =>
     accessor ? `__mmt_access(${baseExpression}, ${JSON.stringify(accessor)})` : baseExpression;
@@ -301,7 +305,23 @@ function resolveDynamicTokenValue(
     mergedInputs: Record<string, any>, envs: Record<string, any>): any {
   switch (prefix) {
     case 'i': {
-      const resolved = resolveEmbeddedTokens(mergedInputs[name], envs);
+      const rawInputValue = mergedInputs[name];
+      const placeholderMatch = typeof rawInputValue === 'string' ?
+        /^\$\{([A-Za-z_][A-Za-z0-9_]*)\}$/.exec(rawInputValue) :
+        null;
+      // During JS generation we pass `${inputName}` placeholders as defaults.
+      // Accessors must be applied to the runtime variable, not sliced from the
+      // placeholder text itself (e.g. `${role}` -> `${r`).
+      if (placeholderMatch && placeholderMatch[1]) {
+        if (!accessor) {
+          return rawInputValue;
+        }
+        return `\${__mmt_access(${placeholderMatch[1]}, ${toSingleQuotedJsString(accessor)})}`;
+      }
+      const resolved = resolveEmbeddedTokens(rawInputValue, envs);
+      if (isOmitSentinel(resolved)) {
+        return resolved;
+      }
       return applyValueAccessor(resolved, accessor);
     }
     case 'e':

@@ -9,7 +9,7 @@ const VALID_METHODS: Method[] = ['get', 'post', 'put', 'delete', 'patch', 'head'
 const VALID_FORMATS: Format[] = ['json', 'xml', 'xmle', 'text'];
 
 const MOCK_TOP_KEYS = new Set([
-  'type', 'title', 'description', 'tags', 'protocol', 'port',
+  'type', 'title', 'description', 'tags', 'import', 'protocol', 'port',
   'connection', 'cors', 'delay', 'headers', 'endpoints', 'proxy', 'fallback'
 ]);
 
@@ -140,6 +140,7 @@ export function parseMockData(yaml: any): {data: MockData | null; errors: ParseE
     title: yaml.title ? String(yaml.title) : undefined,
     description: yaml.description ? String(yaml.description) : undefined,
     tags: Array.isArray(yaml.tags) ? yaml.tags.filter((t: any) => t != null).map(String) : undefined,
+    import: yaml.import && typeof yaml.import === 'object' && !Array.isArray(yaml.import) ? {...yaml.import} : undefined,
     protocol,
     port: yaml.port,
     connection,
@@ -188,6 +189,7 @@ export function yamlToMock(yamlContent: string): MockData | null {
     title: yaml.title ? String(yaml.title) : undefined,
     description: yaml.description ? String(yaml.description) : undefined,
     tags: Array.isArray(yaml.tags) ? yaml.tags.filter((t: any) => t != null).map(String) : undefined,
+    import: yaml.import && typeof yaml.import === 'object' && !Array.isArray(yaml.import) ? {...yaml.import} : undefined,
     protocol: normalizeMockProtocol(String(yaml.protocol || 'http')),
     port: typeof yaml.port === 'number' ? yaml.port : (yaml.port || 0),
     connection: parseConnectionConfig(yaml, normalizeMockProtocol(String(yaml.protocol || 'http')), []),
@@ -258,6 +260,7 @@ export function mockToYaml(mock: MockData): string {
   if (mock.title) { obj.title = mock.title; }
   if (mock.description) { obj.description = mock.description; }
   if (isNonEmptyList(mock.tags)) { obj.tags = mock.tags; }
+  if (isNonEmptyObject(mock.import)) { obj.import = mock.import; }
   if (mock.protocol && mock.protocol !== 'http') { obj.protocol = mock.protocol; }
   obj.port = mock.port;
   if (mock.connection && (mock.connection.mode !== 'plain' || mock.connection.cert || mock.connection.key || mock.connection.client_ca)) {

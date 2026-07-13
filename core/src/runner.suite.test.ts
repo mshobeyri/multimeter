@@ -6,7 +6,7 @@ describe('runner suite', () => {
 
     const fileLoader = async (p: string) => {
       if (p.endsWith('suite.mmt')) {
-        return `type: suite\ntests:\n  - a.mmt\n  - b.mmt\n  - then\n  - c.mmt\n`;
+        return `type: suite\nitems:\n  - a.mmt\n  - b.mmt\n  - then\n  - c.mmt\n`;
       }
       if (p.endsWith('a.mmt')) {
         return `type: test\nsteps:\n  - print: a\n`;
@@ -68,7 +68,7 @@ describe('runner suite', () => {
   it('continues on check failure but stops on assert failure', async () => {
     const fileLoader = async (p: string) => {
       if (p.endsWith('suite.mmt')) {
-        return `type: suite\ntests:\n  - checkfail.mmt\n  - then\n  - assertfail.mmt\n  - then\n  - after.mmt\n`;
+        return `type: suite\nitems:\n  - checkfail.mmt\n  - then\n  - assertfail.mmt\n  - then\n  - after.mmt\n`;
       }
       if (p.endsWith('checkfail.mmt')) {
         return `type: test\nsteps:\n  - check: 1 == 2\n  - print: afterCheck\n`;
@@ -127,8 +127,8 @@ describe('suite bundle runner nested suite', () => {
     const {createSuiteBundle} = await import('./suiteBundle.js');
 
     const files: Record<string, string> = {
-      '/root/suite.mmt': ['type: suite', 'tests:', '  - ./suite1.mmt'].join('\n'),
-      '/root/suite1.mmt': ['type: suite', 'tests:', '  - ./test.mmt'].join('\n'),
+      '/root/suite.mmt': ['type: suite', 'items:', '  - ./suite1.mmt'].join('\n'),
+      '/root/suite1.mmt': ['type: suite', 'items:', '  - ./test.mmt'].join('\n'),
       '/root/test.mmt': ['type: test', 'steps:', '  - print: ok'].join('\n'),
     };
 

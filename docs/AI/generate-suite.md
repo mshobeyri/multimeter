@@ -22,10 +22,10 @@ tags:                            # optional, for grouping
 
 description: string              # optional, short explanation
 
-servers:                         # optional, root-only: mock servers started before tests
+servers:                         # optional, root-only: mock servers started before items
   - path/to/server.mmt           # type: server files; kept running for the entire suite
 
-tests:                           # REQUIRED, array of files to run
+items:                           # REQUIRED, array of files to run
   - path/to/file1.mmt
   - path/to/file2.mmt
   - then
@@ -43,14 +43,16 @@ export:                          # optional, root-only: generate reports after c
 
 > **Root-only fields**: `servers`, `environment`, and `export` only take effect when the suite is run directly. When imported by another suite, these fields are ignored.
 
+> **Legacy alias**: `tests` is still accepted as an alias for `items`, but new suites should use `items`.
+
 ---
 
-## Execution Flow (`tests` array)
+## Execution Flow (`items` array)
 
-The `tests` array defines the execution flow.
+The `items` array defines the execution flow.
 - All files listed between `then` separators (or before the first one) are run in parallel.
 - The groups of files separated by `then` are run sequentially.
-- **Server files** (`type: server`) can be included — they start before tests in the same stage and stop when the suite completes.
+- **Server files** (`type: server`) can be included — they start before items in the same stage and stop when the suite completes.
 
 Example: `[a, b, then, c]` will run `a` and `b` in parallel, and once both are finished, it will run `c`.
 
@@ -58,7 +60,7 @@ Example: `[a, b, then, c]` will run `a` and `b` in parallel, and once both are f
 
 ## Common patterns the AI should generate
 
-### 1. Simple suite running all tests in parallel
+### 1. Simple suite running all items in parallel
 
 User asks: "Create a suite to run smoke tests `test1.mmt` and `test2.mmt`."
 
@@ -66,12 +68,12 @@ User asks: "Create a suite to run smoke tests `test1.mmt` and `test2.mmt`."
 type: suite
 title: Smoke Tests
 tags: [smoke]
-tests:
+items:
   - ./tests/test1.mmt
   - ./tests/test2.mmt
 ```
 
-### 2. Sequential execution of tests
+### 2. Sequential execution of items
 
 User asks: "Create a suite that first runs `login.mmt`, and then `get_user.mmt`."
 
@@ -79,7 +81,7 @@ User asks: "Create a suite that first runs `login.mmt`, and then `get_user.mmt`.
 type: suite
 title: Login and Get User
 tags: [smoke, auth]
-tests:
+items:
   - ./tests/login.mmt
   - then
   - ./tests/get_user.mmt
@@ -93,7 +95,7 @@ User asks: "Create a suite that runs `test1.mmt` and `test2.mmt` in parallel, an
 type: suite
 title: Mixed Execution Suite
 tags: [regression]
-tests:
+items:
   - ./tests/test1.mmt
   - ./tests/test2.mmt
   - then
@@ -108,14 +110,14 @@ User asks: "Create a suite that starts a mock server before running integration 
 type: suite
 title: Integration with Mock Server
 tags: [integration]
-tests:
+items:
   - ./mocks/user-service.mmt    # type: server — starts first
   - then
   - ./tests/user_crud.mmt
   - ./tests/user_auth.mmt
 ```
 
-Servers start before tests in the same stage and stop when the suite finishes.
+Servers start before items in the same stage and stop when the suite finishes.
 
 ### 5. Suite with top-level servers and environment
 
@@ -130,12 +132,12 @@ servers:
   - ./mocks/auth-service.mmt
 environment:
   preset: staging
-tests:
+items:
   - ./tests/login.mmt
   - ./tests/profile.mmt
 ```
 
-Using the `servers` field is recommended over placing servers in `tests` — it keeps them running for the entire suite and avoids ordering issues.
+Using the `servers` field is recommended over placing servers in `items` — it keeps them running for the entire suite and avoids ordering issues.
 
 ### 6. Suite with report exports
 
@@ -147,7 +149,7 @@ title: CI Suite
 export:
   - ./reports/results.xml
   - ./reports/results.html
-tests:
+items:
   - ./tests/login.mmt
   - ./tests/profile.mmt
 ```
@@ -160,6 +162,6 @@ tests:
 - Prefer clear and descriptive titles.
 - Always include a `title`.
 - Use `tags` to categorize suites where appropriate.
-- Ensure file paths in the `tests` array are plausible.
+- Ensure file paths in the `items` array are plausible.
 
 When unsure, generate a **minimal valid suite** that includes the requested files.

@@ -1,4 +1,6 @@
+import {APIData, AuthConfig} from './APIData';
 import {Method} from './CommonData';
+import {applyRunDebugToRequestSteps, safeStepId} from './identifierUtils';
 import {TestData, TestFlowHttp, TestFlowStep} from './TestData';
 import {validateTestData} from './testParsePack';
 
@@ -121,13 +123,7 @@ const blocksByName = (document: BrunoDocument, name: string): BrunoBlock[] => {
   return document.blocks.filter(block => block.name === name);
 };
 
-const sanitizeId = (value: string): string => {
-  const normalized = String(value || '').trim().replace(/[^A-Za-z0-9_]/g, '_');
-  if (!normalized) {
-    return 'request';
-  }
-  return /^[A-Za-z_]/.test(normalized) ? normalized : `request_${normalized}`;
-};
+const sanitizeId = (value: string): string => safeStepId(value);
 
 const convertVariableReference = (expr: string, variables: Record<string, string>): string => {
   const trimmed = expr.trim();
@@ -247,6 +243,35 @@ const extractTestExpects = (script: string): TestFlowHttp['expect'] | undefined 
   return Object.keys(expect).length > 0 ? expect : undefined;
 };
 
+interface BrunoRequestData {
+  title: string;
+  id: string;
+  method: Method;
+  url: string;
+  format: TestFlowHttp['format'];
+  query?: Record<string, string>;
+  headers?: Record<string, string>;
+  body?: string | object;
+  auth?: AuthConfig;
+  expect?: TestFlowHttp['expect'];
+  hasMethodBlock: boolean;
+}
+
+const buildBrunoAuth = (document: BrunoDocument, authType: string | undefined, variables: Record<string, string>): AuthConfig | undefined => {
+  const type = String(authType || '').toLowerCase();
+  if (!type || type === 'none') {
+    return undefined;
+  }
+  if (type === 'bearer') {
+    const values = parseKeyValueBlock(firstBlock(document, 'auth', 'bearer')?.content || '');
+    const token = values.token || values.bearer || '';
+    if (token) {
+      return {type: 'bearer', token: convertVariables(token, variables)};
+    }
+  }
+  return undefined;
+};
+
 const applyAuthHeaders = (headers: Record<string, string>, document: BrunoDocument, authType: string | undefined, variables: Record<string, string>) => {
   const type = String(authType || '').toLowerCase();
   if (!type || type === 'none' || headers.Authorization || headers.authorization) {
@@ -261,7 +286,7 @@ const applyAuthHeaders = (headers: Record<string, string>, document: BrunoDocume
   }
 };
 
-export function brunoToTest(content: string, filePath = ''): TestData {
+const parseBrunoRequest = (content: string, filePath = ''): BrunoRequestData => {
   const document = parseBrunoDocument(content);
   const variables = collectVariables(document);
   const meta = parseKeyValueBlock(firstBlock(document, 'meta')?.content || '');
@@ -277,41 +302,96 @@ export function brunoToTest(content: string, filePath = ''): TestData {
   const bodyBlock = blocksByName(document, 'body').find(block => block.qualifier && block.qualifier !== 'none');
   const rawBody = bodyBlock ? convertVariables(bodyBlock.content, variables) : undefined;
   const format = inferFormat(bodyBlock?.qualifier || methodInfo.body, headers, rawBody);
-  const step: TestFlowHttp = {
-    http: convertVariables(methodInfo.url || '', variables),
-    id: sanitizeId(meta.name || 'request'),
-    title,
-    method: (methodBlock?.name || 'get') as Method,
-    format,
-    report: 'all',
-  };
-
   const query = Object.fromEntries(
       Object.entries(parseKeyValueBlock(firstBlock(document, 'params', 'query')?.content || ''))
           .map(([key, value]) => [key, convertVariables(value, variables)]));
-  if (Object.keys(query).length > 0) {
-    step.query = query;
-  }
-  if (Object.keys(headers).length > 0) {
-    step.headers = headers;
-  }
-  const body = parseBody(format, rawBody);
-  if (body !== undefined) {
-    step.body = body;
-  }
+  const parsedBody = parseBody(format, rawBody);
   const testsBlock = firstBlock(document, 'tests');
-  if (testsBlock) {
-    step.expect = extractTestExpects(testsBlock.content);
+  const expect = testsBlock ? extractTestExpects(testsBlock.content) : undefined;
+  const auth = buildBrunoAuth(document, methodInfo.auth, variables);
+
+  return {
+    title,
+    id: sanitizeId(meta.name || 'request'),
+    method: (methodBlock?.name || 'get') as Method,
+    url: convertVariables(methodInfo.url || '', variables),
+    format,
+    query: Object.keys(query).length > 0 ? query : undefined,
+    headers: Object.keys(headers).length > 0 ? headers : undefined,
+    body: parsedBody === null ? undefined : parsedBody,
+    auth,
+    expect,
+    hasMethodBlock: !!methodBlock,
+  };
+};
+
+export function brunoToAPI(content: string, filePath = ''): APIData | undefined {
+  const request = parseBrunoRequest(content, filePath);
+  if (!request.hasMethodBlock || !request.url) {
+    return undefined;
+  }
+
+  const api: APIData = {
+    type: 'api',
+    title: request.title,
+    tags: ['bruno'],
+    url: request.url,
+    method: request.method,
+    format: request.format,
+  };
+  if (request.query) {
+    api.query = request.query;
+  }
+  if (request.headers) {
+    const headers = {...request.headers};
+    if (request.auth) {
+      delete headers.Authorization;
+      delete headers.authorization;
+    }
+    if (Object.keys(headers).length > 0) {
+      api.headers = headers;
+    }
+  }
+  if (request.body !== undefined && request.body !== null) {
+    api.body = request.body;
+  }
+  if (request.auth) {
+    api.auth = request.auth;
+  }
+  return api;
+}
+
+export function brunoToTest(content: string, filePath = ''): TestData {
+  const request = parseBrunoRequest(content, filePath);
+  const step: TestFlowHttp = {
+    http: request.url,
+    id: request.id,
+    title: request.title,
+    method: request.method,
+    format: request.format,
+    report: 'all',
+  };
+  if (request.query) {
+    step.query = request.query;
+  }
+  if (request.headers) {
+    step.headers = request.headers;
+  }
+  if (request.body !== undefined) {
+    step.body = request.body;
+  }
+  if (request.expect) {
+    step.expect = request.expect;
   }
 
   return {
     type: 'test',
-    title,
+    title: request.title,
     description: '',
     tags: ['bruno'],
     inputs: {},
     outputs: {},
-    steps: methodBlock ? [step] as TestFlowStep[] : [],
+    steps: applyRunDebugToRequestSteps(request.hasMethodBlock ? [step] as TestFlowStep[] : []),
   };
 }
 

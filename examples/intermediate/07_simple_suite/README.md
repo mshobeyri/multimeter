@@ -34,7 +34,7 @@ A minimal example of `type: suite` files that run multiple tests together, demon
 
 ## Parallel vs Sequential
 
-- **Parallel** (`suite_parallel.mmt`): all tests are listed directly under `tests` and execute at the same time.
+- **Parallel** (`suite_parallel.mmt`): all items are listed directly under `items` and execute at the same time.
 - **Sequential** (`suite_sequential.mmt`): tests are separated by `- then` entries, so each test waits for the previous one to finish before starting.
 
 ## How to use

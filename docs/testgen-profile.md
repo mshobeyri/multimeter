@@ -209,7 +209,7 @@ type: api
 title: Create User
 protocol: http
 method: post
-url: https://api.example.com/users
+url: https://test.mmt.dev/echo
 inputs:
   name: r:firstName
   email: r:email
@@ -243,7 +243,7 @@ type: env
 variables:
   api_url:
     local: http://localhost:8080
-    prod: https://api.example.com
+    prod: https://test.mmt.dev
 ```
 
 ## Structures (API, Test, Env, Doc)
@@ -283,7 +283,7 @@ Example (HTTP):
 type: api
 protocol: http
 method: post
-url: https://api.example.com/users
+url: https://test.mmt.dev/echo
 body:
   name: John
 ```
@@ -379,7 +379,7 @@ type: env
 variables:
   api_url:
     local: http://localhost:3000
-    prod: https://api.example.com
+    prod: https://test.mmt.dev
   token:
     - your-token
 presets:

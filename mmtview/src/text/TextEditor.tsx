@@ -20,6 +20,7 @@ interface TextEditorProps {
 }
 
 const I_PREFIX_CLASS = "monaco-i-prefix-highlight";
+const YAML_CONSTANT_CLASS = "mmt-yaml-constant";
 
 let graphqlRegistered = false;
 function registerGraphQLLanguage(monaco: any) {
@@ -123,6 +124,18 @@ const TextEditor: React.FC<TextEditorProps> = ({
     document.head.appendChild(style);
   }, []);
 
+  useEffect(() => {
+    if (document.getElementById("mmt-yaml-constant-style")) return;
+    const style = document.createElement("style");
+    style.id = "mmt-yaml-constant-style";
+    style.innerHTML = `
+      .${YAML_CONSTANT_CLASS} {
+        color: var(--mmt-yaml-constant-color, #569cd6) !important;
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
   // Add CSS for expect operator highlights (red colour matching YAML tag token)
   useEffect(() => {
     if (document.getElementById("mmt-expect-operator-style")) return;
@@ -161,6 +174,22 @@ const TextEditor: React.FC<TextEditorProps> = ({
         text-decoration: underline wavy;
         text-decoration-color: #e2c358;
         text-underline-offset: 3px;
+      }
+    `;
+    document.head.appendChild(style);
+  }, []);
+
+  useEffect(() => {
+    if (document.getElementById("mmt-deprecated-keyword-style")) {
+      return;
+    }
+    const style = document.createElement("style");
+    style.id = "mmt-deprecated-keyword-style";
+    style.innerHTML = `
+      .mmt-deprecated-keyword {
+        text-decoration: line-through;
+        text-decoration-color: var(--vscode-editorWarning-foreground, #cca700);
+        text-decoration-thickness: 1px;
       }
     `;
     document.head.appendChild(style);

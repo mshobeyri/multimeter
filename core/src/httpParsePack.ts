@@ -1,4 +1,6 @@
+import {APIData} from './APIData';
 import {Method} from './CommonData';
+import {applyRunDebugToRequestSteps, safeStepId} from './identifierUtils';
 import {TestData, TestFlowHttp, TestFlowSetEnv, TestFlowStep} from './TestData';
 import {validateTestData} from './testParsePack';
 
@@ -504,8 +506,44 @@ export function parseHttpDocument(content: string): HttpDocument {
   return {variables, variableItems, requests, warnings};
 }
 
+export function httpRequestToAPI(request: HttpRequestBlock, index = 0): APIData | undefined {
+  if (!request.url?.trim()) {
+    return undefined;
+  }
+  const format = inferFormat(request.headers, request.body);
+  const body = format === 'json' ? toJsonBody(request.body) : request.body;
+  const api: APIData = {
+    type: 'api',
+    title: request.title || request.name || `Request ${index + 1}`,
+    tags: ['http'],
+    url: request.url,
+    method: request.method,
+    format,
+  };
+  if (Object.keys(request.headers).length > 0) {
+    api.headers = request.headers;
+  }
+  if (body !== undefined) {
+    api.body = body;
+  }
+  return api;
+}
+
+export function httpRequestCallExtras(
+    request: HttpRequestBlock,
+    resultId: string,
+): {expect?: TestFlowHttp['expect']; setenv?: Record<string, any>} {
+  const expect = request.responseHandlerScript
+    ? extractResponseScriptExpects(request.responseHandlerScript)
+    : undefined;
+  const setenv = request.responseHandlerScript
+    ? extractResponseScriptSetEnv(request.responseHandlerScript, resultId)
+    : undefined;
+  return {expect, setenv};
+}
+
 const requestToSteps = (request: HttpRequestBlock, index: number): TestFlowStep[] => {
-  const id = (request.name || `request_${index + 1}`).replace(/[^A-Za-z0-9_]/g, '_');
+  const id = safeStepId(request.name || `request_${index + 1}`);
   const format = inferFormat(request.headers, request.body);
   const step: TestFlowHttp = {
     http: request.url,
@@ -543,7 +581,7 @@ export function httpToTest(content: string, filePath = ''): TestData {
     tags: ['http'],
     inputs: {},
     outputs: {},
-    steps: document.requests.flatMap(requestToSteps) as TestFlowStep[],
+    steps: applyRunDebugToRequestSteps(document.requests.flatMap(requestToSteps) as TestFlowStep[]),
   };
 }
 

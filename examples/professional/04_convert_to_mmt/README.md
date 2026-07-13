@@ -5,5 +5,5 @@ Each folder contains a source file and a `converted/` folder showing the expecte
 - `postman/` - Postman collection to API, test, and suite files
 - `openapi/` - OpenAPI spec to API files
 - `wsdl/` - WSDL SOAP definition to API files
-- `http/` - `.http` request file to a test file
-- `bruno/` - Bruno `.bru` request file to a test file
+- `http/` - `.http` request file to API and test files
+- `bruno/` - Bruno `.bru` request file to API and test files

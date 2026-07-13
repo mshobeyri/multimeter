@@ -24,6 +24,11 @@ For full details, see the references:
 ## API (type: api)
 Purpose: Define a single HTTP/WS request with inputs, headers, body, and extraction rules.
 
+Input/output keyword notes:
+- Unquoted `omit` means "not present" (remove field on request side, missing value on output side).
+- Unquoted `null` is a real null value.
+- Quoted `"omit"` / `"null"` are plain strings.
+
 Minimal example
 ```yaml
 type: api
@@ -89,7 +94,7 @@ type: env
 variables:
   api_url:
     dev: http://localhost:8080
-    prod: https://api.example.com
+    prod: https://test.mmt.dev
   test_type: 
     - smoke
     - regression
@@ -129,7 +134,7 @@ Minimal example
 ```yaml
 type: suite
 title: Smoke Tests
-tests:
+items:
   - ./tests/login.mmt
   - ./tests/get_user.mmt
   - then

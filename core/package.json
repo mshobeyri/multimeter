@@ -163,6 +163,31 @@
       "types": "./dist/reportParser.d.ts",
       "require": "./dist/reportParser.js",
       "default": "./dist/reportParser.js"
+    },
+    "./omitKeyword": {
+      "types": "./dist/omitKeyword.d.ts",
+      "require": "./dist/omitKeyword.js",
+      "default": "./dist/omitKeyword.js"
+    },
+    "./testScaffold": {
+      "types": "./dist/testScaffold.d.ts",
+      "require": "./dist/testScaffold.js",
+      "default": "./dist/testScaffold.js"
+    },
+    "./mmtFormat": {
+      "types": "./dist/mmtFormat.d.ts",
+      "require": "./dist/mmtFormat.js",
+      "default": "./dist/mmtFormat.js"
+    },
+    "./EnvData": {
+      "types": "./dist/EnvData.d.ts",
+      "require": "./dist/EnvData.js",
+      "default": "./dist/EnvData.js"
+    },
+    "./envParsePack": {
+      "types": "./dist/envParsePack.d.ts",
+      "require": "./dist/envParsePack.js",
+      "default": "./dist/envParsePack.js"
     }
   },
   "scripts": {

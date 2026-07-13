@@ -40,6 +40,14 @@ mmtview/craco.config.js
 # Dependencies (will be bundled, not shipped raw)
 node_modules/**
 **/node_modules/**
+# MCP server runtime deps live under dist/mcp/node_modules (not bundled)
+!dist/mcp/node_modules/**
+
+# MCP build sources (shipped artifact is dist/mcp/)
+mmtmcp/**
+
+# Local Cursor MCP config (not for VS Code extension users)
+.cursor/**
 
 # Exclude CLI workspace from VSIX (not needed for the extension runtime)
 mmtcli/**

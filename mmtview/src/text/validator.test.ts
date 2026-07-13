@@ -237,12 +237,12 @@ describe('validator test call checks', () => {
 });
 
 describe('suite file reference extraction', () => {
-  it('extracts suite-level servers and tests for missing file markers', () => {
+  it('extracts suite-level servers and items for missing file markers', () => {
     const content = [
       'type: suite',
       'servers:',
       '  - mocks/missing-server.mmt',
-      'tests:',
+      'items:',
       '  - then',
       '  - tests/login.mmt',
     ].join('\n');
