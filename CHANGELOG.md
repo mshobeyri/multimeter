@@ -2,6 +2,10 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.27.1]
+
+- Fix Ctrl+Click navigation for `call:` aliases on Windows (CRLF line endings broke import alias resolution in the editor)
+
 ## [1.27.0]
 
 - Add bundled MCP server for GitHub Copilot and AI agents (`read_documentation`, `discover_api`, `validate`, `format`, `run`)
