@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import EnvironmentPanel from "./environment/EnvironmentPanel";
 import { SplitPane } from '@rexxars/react-split-pane';
 import './App.css';
@@ -119,7 +119,7 @@ const App: React.FC = () => {
 
   const [content, setContent] = useState("");
   const [validContent, setValidContent] = useState("");
-  const [docType, setDocType] = useState<string | null>(null);
+  const [documentContentLoaded, setDocumentContentLoaded] = useState(false);
   const [sourceFormat, setSourceFormat] = useState<"mmt" | "http" | "bruno">("mmt");
   const [mmtFilePath, setMmtFilePath] = useState<string | undefined>(undefined);
   const [projectRoot, setProjectRoot] = useState<string | undefined>(undefined);
@@ -194,6 +194,7 @@ const App: React.FC = () => {
       const message = event.data;
       if (message.command === "viewDocumentContent") {
         isInitLoad.current = true;
+        setDocumentContentLoaded(true);
         if (typeof message.uri === "string") {
           const savedViewState = readSavedViewState(message.uri);
           initialViewState.current = savedViewState;
@@ -328,20 +329,18 @@ const App: React.FC = () => {
     return () => window.removeEventListener("message", handler);
   }, [setContent]);
 
-  useEffect(() => {
+  const docType = useMemo(() => {
     if (sourceFormat === "http" || sourceFormat === "bruno") {
-      setDocType(validContent.trim() ? "test" : null);
-      return;
+      return validContent.trim() ? "test" : null;
     }
     try {
       const parsed = parseYaml(validContent);
       if (parsed && typeof parsed === "object" && "type" in parsed) {
-        setDocType((parsed as any).type);
-      } else {
-        setDocType(null);
+        return (parsed as { type?: string }).type ?? null;
       }
+      return null;
     } catch {
-      setDocType(null);
+      return null;
     }
   }, [validContent, sourceFormat]);
 
@@ -476,7 +475,7 @@ const App: React.FC = () => {
             {docType === "report" && (
               <ReportPanel content={validContent} setContent={uiSetContent} />
             )}
-            {docType === null && (
+            {documentContentLoaded && docType === null && (
               <NotypePanel content={validContent} setContent={uiSetContent} />
             )}
           </div>
