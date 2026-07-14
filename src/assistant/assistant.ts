@@ -6,10 +6,43 @@ import * as vscode from 'vscode';
 import YAML from 'yaml';
 
 import {parseAssistantRunArgs} from './assistantArgs';
-import {buildAssistantBasePrompt} from './assistantPrompt';
+import {
+  buildAssistantBasePrompt,
+  formatGenerationDeprecationNotice,
+  formatGenerationUnavailableNotice,
+} from './assistantPrompt';
 import {getPreparedConfigFromStorage} from '../mmtAPI/network';
 
-export {buildAssistantBasePrompt} from './assistantPrompt';
+export {
+  buildAssistantBasePrompt,
+  formatGenerationDeprecationNotice,
+  formatGenerationUnavailableNotice,
+} from './assistantPrompt';
+
+const ASSISTANT_FALLBACK_MODEL_FAMILIES = ['gpt-4o', 'gpt-4.1', 'gpt-4.1-mini'];
+
+async function pickAssistantChatModel(): Promise<vscode.LanguageModelChat|undefined> {
+  for (const family of ASSISTANT_FALLBACK_MODEL_FAMILIES) {
+    const models = await vscode.lm.selectChatModels({vendor: 'copilot', family});
+    if (models.length > 0) {
+      return models[0];
+    }
+  }
+  return undefined;
+}
+
+async function sendAssistantChatRequest(
+    request: any,
+    messages: vscode.LanguageModelChatMessage[],
+    token: vscode.CancellationToken,
+): Promise<vscode.LanguageModelChatResponse> {
+  const requestOptions: vscode.LanguageModelChatRequestOptions = {
+    justification: 'Generate or explain Multimeter .mmt test and API files.',
+  };
+
+  const model = (await pickAssistantChatModel()) ?? request.model;
+  return await model.sendRequest(messages, requestOptions, token);
+}
 
 async function handleChatRequest(
   request: any, _chatContext: any, response: any,
@@ -33,12 +66,11 @@ async function handleChatRequest(
       request.command === 'help' || /(^|\s)\/help(\s|$)/.test(userTextLower);
   if (showHelp) {
     const help = `# Multimeter Assistant\n\n` +
+        formatGenerationDeprecationNotice() +
         `## Usage:\n` +
-        `  You can ask any question from Multimeter asssistant.\n` +
-        `  Also, you can use the following format to interact with Multimeter in form of commands.\n` +
-        `  \`@multimeter /[command] [options]\`` +
-        `  or` +
-        `  \`@mmt /[command] [options]\`. \n\n` +
+        `  Use commands below to run tests, print JS, or generate docs.\n` +
+        `  For generating or editing \`.mmt\` files, use **Copilot agent mode** or **Cursor Agent** with the **Multimeter MCP server**.\n` +
+        `  \`@multimeter /[command] [options]\` or \`@mmt /[command] [options]\`\n\n` +
         `  \`@Multimeter\` stays in the chat after responding, but \`@mmt\` goes away.\n\n` +
         `## Commands:\n` +
         `  \`/run <file>\`                    Test file (.yaml/.yml/.json/.mmt)\n` +
@@ -343,13 +375,17 @@ async function handleChatRequest(
   // Finally user's current message
   messages.push(vscode.LanguageModelChatMessage.User(userText));
 
-  // Send to LLM
-  const chatResponse =
-      await request.model.sendRequest(messages, {}, request.token);
+  response.markdown(formatGenerationDeprecationNotice());
 
-  // Stream response back
-  for await (const fragment of chatResponse.text) {
-    response.markdown(fragment);
+  try {
+    const chatResponse =
+        await sendAssistantChatRequest(request, messages, request.token);
+
+    for await (const fragment of chatResponse.text) {
+      response.markdown(fragment);
+    }
+  } catch {
+    response.markdown(formatGenerationUnavailableNotice());
   }
 }
 

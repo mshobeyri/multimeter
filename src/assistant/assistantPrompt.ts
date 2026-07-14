@@ -1,3 +1,20 @@
+export function formatGenerationDeprecationNotice(): string {
+  return [
+    '**Deprecated:** Multimeter chat generation is deprecated.',
+    '',
+    'Use **Multimeter MCP server** to generate and validate `.mmt` tests.',
+    '',
+    'The Multimeter MCP server is included with this extension. Try:',
+    '- "Generate a smoke test for apis/login.mmt"',
+    '- MCP prompt: `generate_test`',
+    '',
+  ].join('\n');
+}
+
+export function formatGenerationUnavailableNotice(): string {
+  return 'Could not generate a response from this chat participant. Use agent mode with the Multimeter MCP server instead.';
+}
+
 export function buildAssistantBasePrompt(): string {
   return `You are the Multimeter (.mmt) Test Generation Assistant.
 When the user asks you to generate a test, output only valid Multimeter YAML. Do not output Postman collections, Postman JSON, or any other API testing format.
