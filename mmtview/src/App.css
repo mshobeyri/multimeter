@@ -1,6 +1,5 @@
 /* Add this at the top of your CSS file to set the default font for everything */
 input,
-select,
 textarea,
 button,
 .tab-button,
@@ -245,11 +244,9 @@ option {
 }
 
 input,
-select,
 textarea,
 input:focus,
 textarea:focus,
-select:focus,
 tag {
   box-sizing: border-box;
   background-color: var(--vscode-input-background, #1e1e1e);
@@ -260,6 +257,25 @@ tag {
   outline: none;
   transition: border-color 0.2s;
   height: 1.6rem;
+}
+
+select,
+select:focus {
+  box-sizing: border-box;
+  background-color: var(--vscode-input-background, #1e1e1e);
+  color: var(--vscode-input-foreground, #d4d4d4);
+  border: 1px solid var(--vscode-input-border, #3c3c3c);
+  border-radius: 2px;
+  outline: none;
+  transition: border-color 0.2s;
+  min-height: 28px;
+  height: auto;
+  padding: 5px 28px 5px 8px;
+  line-height: normal;
+  font-size: var(--vscode-font-size, 13px);
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  cursor: pointer;
+  vertical-align: middle;
 }
 
 .tag {
@@ -867,7 +883,9 @@ button:focus {
 .method-select {
   flex-shrink: 0;
   flex-grow: 0;
-  padding: 4px 4px;
+  min-height: 26px;
+  height: 26px;
+  padding: 0 4px;
   border: none;
   border-radius: 4px;
   color: #fff;
@@ -882,7 +900,7 @@ button:focus {
   width: 70px;
   max-width: 70px;
   box-sizing: border-box;
-  overflow: hidden;
+  line-height: 26px;
 }
 
 .method-select.method-badge {
@@ -1295,6 +1313,202 @@ button:focus {
   margin-bottom: 12px;
   color: var(--vscode-foreground);
   font-size: var(--vscode-font-size, 13px);
+}
+
+/* New document / sample gallery */
+.notype-panel-box {
+  padding-top: 24px;
+}
+
+.notype-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 8px 12px 28px;
+  margin-bottom: 4px;
+}
+
+.notype-logo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 76px;
+  margin-bottom: 14px;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(129, 140, 248, 0.18), transparent 55%),
+    radial-gradient(circle at 70% 80%, rgba(6, 182, 212, 0.14), transparent 50%),
+    var(--vscode-editorWidget-background, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--vscode-widget-border, rgba(255, 255, 255, 0.08));
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.notype-logo {
+  display: block;
+  filter: drop-shadow(0 2px 8px rgba(129, 140, 248, 0.25));
+}
+
+.notype-brand-name {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  background: linear-gradient(135deg, #a5b4fc 0%, #67e8f9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.notype-tagline {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  line-height: 1.4;
+}
+
+.notype-type-section {
+  padding: 0 5px 20px;
+  background: transparent;
+  border: none;
+}
+
+.notype-intro {
+  margin: 0 0 12px;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.notype-field-label {
+  color: var(--vscode-foreground, #d4d4d4);
+  font-size: var(--vscode-font-size, 13px);
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+}
+
+.notype-type-select {
+  width: 100%;
+}
+
+.notype-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 5px 12px;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  font-size: 12px;
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  text-transform: lowercase;
+}
+
+.notype-divider::before,
+.notype-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--vscode-editorWidget-border, #444);
+  opacity: 0.7;
+}
+
+.notype-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 5px 8px;
+}
+
+.notype-sample-card {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--vscode-input-border, #3c3c3c);
+  border-radius: 4px;
+  cursor: pointer;
+  text-align: left;
+  background: transparent;
+  color: inherit;
+  transition: border-color 0.15s, background 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.notype-sample-card:hover {
+  border-color: var(--vscode-focusBorder, #007fd4);
+  background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.05));
+}
+
+.notype-sample-card:focus-visible {
+  border-color: var(--vscode-focusBorder, #007fd4);
+  outline: 1px solid var(--vscode-focusBorder, #007fd4);
+  outline-offset: 1px;
+}
+
+.notype-sample-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: var(--vscode-badge-background, rgba(128, 128, 128, 0.2));
+  color: var(--vscode-badge-foreground, #d4d4d4);
+}
+
+.notype-sample-icon .codicon {
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+.notype-sample-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.notype-sample-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.notype-sample-title {
+  font-weight: 600;
+  font-size: var(--vscode-font-size, 13px);
+  color: var(--vscode-foreground, #d4d4d4);
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notype-sample-badge {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--vscode-badge-background, rgba(128, 128, 128, 0.2));
+  color: var(--vscode-badge-foreground, #d4d4d4);
+  font-size: 11px;
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  letter-spacing: 0.02em;
+}
+
+.notype-sample-desc {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  line-height: 1.45;
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
 }
 
 @media (max-width: 300px) {
