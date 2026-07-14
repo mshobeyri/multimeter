@@ -23,7 +23,7 @@
   </p>
 </div>
 
-<img src="res/api.gif" alt="Multimeter in action" style="max-width: 100%; height: auto;" />
+<img src="res/demo.gif" alt="Multimeter in action" style="max-width: 100%; height: auto;" />
 
 
 
