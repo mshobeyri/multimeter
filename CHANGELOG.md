@@ -2,6 +2,17 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.27.2]
+
+- Fix YAML editor tokenizer issues in the `.mmt` editor
+- Add sample gallery to the welcome panel for files without a `type`
+- Improve history panel UI
+- Restore `EXTENSION.md` as the marketplace readme and update the demo GIF
+- Update extension display name to "Multimeter – API Testing platform"
+- Fix deprecated VS Code chat instruction and prompt metadata
+- Deprecate `.mmt` generation in `@multimeter` / `@mmt` chat participants; use Copilot agent mode or Cursor Agent with the Multimeter MCP server instead
+- Add fallback model selection for assistant chat requests
+
 ## [1.27.1]
 
 - Fix Ctrl+Click navigation for `call:` aliases on Windows (CRLF line endings broke import alias resolution in the editor)
