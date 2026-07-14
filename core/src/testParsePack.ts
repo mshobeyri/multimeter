@@ -1,6 +1,7 @@
 import parseYaml, {packYaml, parseYamlStrict} from './markupConvertor';
+import {quoteExpectOperators} from './expectOperatorYaml';
 import {isNonEmptyList, isNonEmptyObject} from './safer';
-import {FlowType, opsList, TestData, TestFlowStep, TestFlowSteps, TestFlowStages} from './TestData';
+import {FlowType, TestData, TestFlowStep, TestFlowSteps, TestFlowStages} from './TestData';
 
 /**
  * Canonical key orders for each step type.
@@ -70,101 +71,7 @@ const VALID_STEP_KEYS: Record<string, Set<string>> = {
 /** Canonical key order for stage items. */
 export const STAGE_KEY_ORDER = ['id', 'title', 'condition', 'after', 'steps'];
 
-/**
- * Operators that need quoting in YAML because they start with a character that
- * YAML interprets specially:
- *   `!`  → tag indicator  (value silently loses the operator)
- *   `>`  → block-scalar indicator  (parse error)
- * We pre-quote these inside `expect:` blocks before YAML.parse sees them.
- */
-const YAML_UNSAFE_OPS = opsList.filter(op => op.startsWith('!') || op.startsWith('>'));
-
-/**
- * Pre-process raw YAML text to double-quote `expect:` map values and array
- * items whose leading characters would be mangled by the YAML parser.
- *
- * Handles both flat and array forms:
- *   expect:                      expect:
- *     status: != 200               status:
- *     name: > 5                      - != 500
- *                                    - > 0
- *
- * Already-quoted values (starting with " or ') are left untouched.
- */
-export function quoteExpectOperators(yaml: string): string {
-  const lines = yaml.split('\n');
-  let inExpect = false;
-  let expectIndent = -1;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    if (line.trim() === '') {
-      continue;
-    }
-    const indent = line.search(/\S/);
-
-    // Detect `expect:` or `debug:` with nothing after the colon (block form)
-    if (/^\s*(?:expect|debug):\s*$/.test(line)) {
-      inExpect = true;
-      expectIndent = indent;
-      continue;
-    }
-
-    // Still inside the expect block?
-    if (inExpect) {
-      if (indent <= expectIndent) {
-        inExpect = false;
-        // fall through — this line is outside the block
-      } else {
-        lines[i] = quoteLineIfNeeded(line);
-        continue;
-      }
-    }
-  }
-
-  return lines.join('\n');
-}
-
-/** Quote a single value string, escaping inner double-quotes and backslashes. */
-function quoteValue(raw: string): string {
-  return '"' + raw.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
-}
-
-/** Check if a bare value would be mangled by the YAML parser. */
-function needsOperatorQuoting(value: string): boolean {
-  if (/^["']/.test(value)) { return false; } // already quoted
-  for (const op of YAML_UNSAFE_OPS) {
-    if (value === op || value.startsWith(op + ' ')) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/** If the value portion of a map entry or array item needs quoting, return the fixed line. */
-function quoteLineIfNeeded(line: string): string {
-  const trimmed = line.trimStart();
-  // Map entry:  key: value
-  const mapMatch = trimmed.match(/^([\w.]+:\s+)(.+)$/);
-  if (mapMatch) {
-    const [, prefix, value] = mapMatch;
-    if (needsOperatorQuoting(value)) {
-      const leadingWS = line.slice(0, line.length - trimmed.length);
-      return leadingWS + prefix + quoteValue(value);
-    }
-    return line;
-  }
-  // Array item:  - value
-  const arrayMatch = trimmed.match(/^(-\s+)(.+)$/);
-  if (arrayMatch) {
-    const [, prefix, value] = arrayMatch;
-    if (needsOperatorQuoting(value)) {
-      const leadingWS = line.slice(0, line.length - trimmed.length);
-      return leadingWS + prefix + quoteValue(value);
-    }
-  }
-  return line;
-}
+export {quoteExpectOperators} from './expectOperatorYaml';
 
 /**
  * Reorder the keys of an object according to a canonical order.

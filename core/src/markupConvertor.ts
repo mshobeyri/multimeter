@@ -1,12 +1,17 @@
 import {js2xml, xml2js} from 'xml-js';
 import * as YAML from 'yaml';
+import {filterOperatorYamlErrors} from './expectOperatorYaml';
 import {parseYamlWithOmitKeyword} from './omitKeyword';
 import {restoreOmitKeyword} from './omitKeyword';
 import {isOmitSentinel} from './omitKeyword';
 import {applyDescriptionBlockLiteralStyles} from './multilineDescriptionYaml';
 
 function parseYamlDoc(yamlString: string): any {
-  return YAML.parseDocument(yamlString);
+  const doc = YAML.parseDocument(yamlString);
+  if (doc.errors?.length) {
+    doc.errors = filterOperatorYamlErrors(yamlString, doc.errors);
+  }
+  return doc;
 }
 
 

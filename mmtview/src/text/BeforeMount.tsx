@@ -1,4 +1,5 @@
 import { validateYamlContent } from './Validate';
+import { registerMmtYamlTokenizer } from './yamlTokenizer';
 import { KeySuggestionsByParent } from './AutoComplete';
 import { readFile } from '../vsAPI';
 import { outputExtractor, mockServer, mockParsePack } from 'mmt-core';
@@ -106,6 +107,7 @@ async function listFiles(folder: string, recursive = true): Promise<string[]> {
 }
 
 export const handleBeforeMount = (monaco: any) => {
+    registerMmtYamlTokenizer(monaco);
     const keySuggestionsByParent = KeySuggestionsByParent(monaco);
 
     if (!monaco.languages.getLanguages().some((language: any) => language.id === 'http')) {

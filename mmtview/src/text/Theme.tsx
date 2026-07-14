@@ -65,6 +65,7 @@ export const defineTheme = (monaco: any) => {
       { token: "delimiter", foreground: colors.delimiter },
       { token: "delimiter.yaml", foreground: colors.delimiter },
       { token: "tag", foreground: colors.yamlTag },
+      { token: "mmt.operator", foreground: colors.yamlTag },
 
       // JSON tokens
       { token: "string.key.json", foreground: colors.jsonKey },

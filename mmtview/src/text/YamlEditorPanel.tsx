@@ -5,6 +5,7 @@ import { curlToAPI, isCurlCommand } from "mmt-core/curlConvertor";
 import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./BeforeMount";
 import { safeList } from "mmt-core/safer";
+import { opsList } from "mmt-core/TestData";
 import { openRelativeFile } from "../vsAPI";
 import { loadEnvVariables } from "../workspaceStorage";
 import { useImportValidation } from "./useImportValidation";
@@ -137,7 +138,7 @@ const EXPECT_OP_CLASS = "mmt-expect-operator";
 const YAML_CONSTANT_CLASS = "mmt-yaml-constant";
 
 /** Known comparison operators, longest first so >= matches before > */
-const EXPECT_OPS = ['==', '!=', '>=', '<=', '=@', '!@', '=C', '!C', '=*', '!*', '=~', '!~', '=#', '!#', '=%', '!%', '=^', '!^', '=$', '!$', '>', '<'];
+const EXPECT_OPS = [...opsList].sort((a, b) => b.length - a.length);
 
 const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   content,
