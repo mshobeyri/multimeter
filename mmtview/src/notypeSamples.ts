@@ -1,12 +1,53 @@
 import type { Type } from "mmt-core/CommonData";
 
+export type NotypeSampleType = Exclude<Type, null | "csv">;
+
 export interface NotypeSample {
-  type: Exclude<Type, null | "csv">;
+  type: NotypeSampleType;
   title: string;
   description: string;
   codicon: string;
   content: string;
 }
+
+const DOCS_BASE = "https://github.com/mshobeyri/multimeter/blob/dev/docs";
+const DEMOS_BASE = "https://mmt.dev/demos";
+
+/** GitHub docs + demo-page section for each gallery file type. */
+export const notypeHelpLinks: Record<NotypeSampleType, { docsUrl: string; demoUrl: string }> = {
+  api: {
+    docsUrl: `${DOCS_BASE}/api-mmt.md`,
+    demoUrl: `${DEMOS_BASE}#api`,
+  },
+  env: {
+    docsUrl: `${DOCS_BASE}/environment-mmt.md`,
+    demoUrl: `${DEMOS_BASE}#environment`,
+  },
+  test: {
+    docsUrl: `${DOCS_BASE}/test-mmt.md`,
+    demoUrl: `${DEMOS_BASE}#test`,
+  },
+  suite: {
+    docsUrl: `${DOCS_BASE}/suite-mmt.md`,
+    demoUrl: `${DEMOS_BASE}#suite`,
+  },
+  loadtest: {
+    docsUrl: `${DOCS_BASE}/loadtest-mmt.md`,
+    demoUrl: `${DEMOS_BASE}#load-test`,
+  },
+  doc: {
+    docsUrl: `${DOCS_BASE}/doc-mmt.md`,
+    demoUrl: `${DEMOS_BASE}#documentation`,
+  },
+  server: {
+    docsUrl: `${DOCS_BASE}/mock-server.md`,
+    demoUrl: `${DEMOS_BASE}#mock-server`,
+  },
+  report: {
+    docsUrl: `${DOCS_BASE}/reports.md`,
+    demoUrl: `${DEMOS_BASE}#report`,
+  },
+};
 
 export const notypeSamples: NotypeSample[] = [
   {
@@ -155,7 +196,7 @@ checks:
   },
 ];
 
-export const notypeTypeIcons: Record<Exclude<Type, null | "csv">, string> = {
+export const notypeTypeIcons: Record<NotypeSampleType, string> = {
   api: "globe",
   env: "server-environment",
   test: "beaker",

@@ -231,6 +231,22 @@ function normalizeGroupKey(prefix: string): string {
     return 'documentation'
   }
 
+  if (normalized.includes('mock')) {
+    return 'mock server'
+  }
+
+  if (normalized.includes('load')) {
+    return 'load test'
+  }
+
+  if (normalized.includes('suite')) {
+    return 'suite'
+  }
+
+  if (normalized.includes('report')) {
+    return 'report'
+  }
+
   if (normalized.includes('api')) {
     return 'api'
   }
@@ -240,6 +256,10 @@ function normalizeGroupKey(prefix: string): string {
   }
 
   return normalized
+}
+
+function groupSectionId(groupKey: string): string {
+  return groupKey.trim().toLowerCase().replace(/\s+/g, '-')
 }
 
 function getGroupMeta(prefix: string): GroupMeta {
@@ -528,7 +548,8 @@ export default function PlaylistShowcase({
       {groupedVideos.map((group, groupIndex) => (
         <section
           key={group.key}
-          className={`space-y-4 rounded-2xl border px-3 py-4 sm:space-y-6 sm:rounded-[34px] sm:px-6 sm:py-7 ${getGroupFrameStyle(group.key)}`}
+          id={groupSectionId(group.key)}
+          className={`scroll-mt-24 space-y-4 rounded-2xl border px-3 py-4 sm:space-y-6 sm:rounded-[34px] sm:px-6 sm:py-7 ${getGroupFrameStyle(group.key)}`}
         >
           <FadeIn delay={groupIndex * 60}>
             <div className="px-1 sm:px-3">

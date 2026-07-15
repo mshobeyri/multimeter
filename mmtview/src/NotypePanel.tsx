@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import parseYaml from "mmt-core/markupConvertor";
 import { typeOptions } from "mmt-core/CommonData";
 import MultimeterLogo from "./components/MultimeterLogo";
-import { notypeSamples } from "./notypeSamples";
+import { notypeHelpLinks, notypeSamples } from "./notypeSamples";
 import { openExternalUrl } from "./vsAPI";
 
 interface NotypePanelProps {
@@ -96,25 +96,56 @@ const NotypePanel: React.FC<NotypePanelProps> = ({ content, setContent }) => {
         <div className="notype-gallery" role="list">
           {visibleSamples.map(sample => {
             const typeLabel = typeOptions.find(opt => opt.value === sample.type)?.label ?? sample.type;
+            const help = notypeHelpLinks[sample.type];
             return (
-              <button
+              <div
                 key={`${sample.type}-${sample.title}`}
-                type="button"
                 className="notype-sample-card"
                 role="listitem"
-                onClick={() => setContent(sample.content)}
               >
-                <span className="notype-sample-icon" aria-hidden>
-                  <span className={`codicon codicon-${sample.codicon}`} />
-                </span>
-                <span className="notype-sample-body">
-                  <span className="notype-sample-head">
-                    <span className="notype-sample-title">{sample.title}</span>
-                    <span className="notype-sample-badge">{typeLabel}</span>
+                <button
+                  type="button"
+                  className="notype-sample-main"
+                  onClick={() => setContent(sample.content)}
+                >
+                  <span className="notype-sample-icon" aria-hidden>
+                    <span className={`codicon codicon-${sample.codicon}`} />
                   </span>
-                  <span className="notype-sample-desc">{sample.description}</span>
-                </span>
-              </button>
+                  <span className="notype-sample-body">
+                    <span className="notype-sample-head">
+                      <span className="notype-sample-title">{sample.title}</span>
+                      <span className="notype-sample-badge">{typeLabel}</span>
+                    </span>
+                    <span className="notype-sample-desc">{sample.description}</span>
+                  </span>
+                </button>
+                <div className="notype-sample-help" aria-label={`${sample.title} links`}>
+                  <button
+                    type="button"
+                    className="notype-sample-help-btn"
+                    title="Open documentation"
+                    aria-label={`Open ${typeLabel} documentation`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openExternalUrl(help.docsUrl);
+                    }}
+                  >
+                    <span className="codicon codicon-question" aria-hidden />
+                  </button>
+                  <button
+                    type="button"
+                    className="notype-sample-help-btn"
+                    title="Watch demo"
+                    aria-label={`Watch ${typeLabel} demo`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openExternalUrl(help.demoUrl);
+                    }}
+                  >
+                    <span className="codicon codicon-play" aria-hidden />
+                  </button>
+                </div>
+              </div>
             );
           })}
         </div>
