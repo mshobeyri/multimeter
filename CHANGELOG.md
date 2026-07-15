@@ -2,6 +2,13 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.27.4]
+
+- Add community CTAs on the no-type welcome screen (star the repo, star the extension, send feedback)
+- Add per-sample docs and demo links in the sample gallery
+- Open an empty untitled `.mmt` (gallery view) from New Multimeter File / activity bar instead of a default API template
+- Fix ESLint build warnings in the webview
+
 ## [1.27.3]
 
 - Fix webview flash on initial load
