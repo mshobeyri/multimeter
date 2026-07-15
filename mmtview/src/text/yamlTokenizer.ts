@@ -22,7 +22,7 @@ export function buildMmtTagHandleRules(): TagHandleRule[] {
   // Fuzzy-percent operators such as !75%
   rules.push([/!(?:0|[1-9][0-9]?|100)%(?=[ \t"']|$)/, 'mmt.operator']);
 
-  rules.push([/\![^ ]*/, 'tag']);
+  rules.push([/![^ ]*/, 'tag']);
   return rules;
 }
 
@@ -94,7 +94,7 @@ const mmtYamlLanguage = {
 
       [/:(?= )/, 'operators'],
 
-      [/(?:".*?"|'.*?'|[^,\{\[]+?)(?=: )/, 'type'],
+      [/(?:".*?"|'.*?'|[^[{,]+?)(?=: )/, 'type'],
 
       { include: '@flowCollections' },
       { include: '@flowScalars' },
@@ -103,7 +103,7 @@ const mmtYamlLanguage = {
       { include: '@anchor' },
       { include: '@flowNumber' },
 
-      [/[^\},]+/, {
+      [/[^},]+/, {
         cases: {
           '@keywords': 'keyword',
           '@default': 'string'
@@ -179,13 +179,13 @@ const mmtYamlLanguage = {
     ],
 
     flowNumber: [
-      [/@numberInteger(?=[ \t]*[,\]\}])/, 'number'],
-      [/@numberFloat(?=[ \t]*[,\]\}])/, 'number.float'],
-      [/@numberOctal(?=[ \t]*[,\]\}])/, 'number.octal'],
-      [/@numberHex(?=[ \t]*[,\]\}])/, 'number.hex'],
-      [/@numberInfinity(?=[ \t]*[,\]\}])/, 'number.infinity'],
-      [/@numberNaN(?=[ \t]*[,\]\}])/, 'number.nan'],
-      [/@numberDate(?=[ \t]*[,\]\}])/, 'number.date']
+      [/@numberInteger(?=[ \t]*[,[\]}])/, 'number'],
+      [/@numberFloat(?=[ \t]*[,[\]}])/, 'number.float'],
+      [/@numberOctal(?=[ \t]*[,[\]}])/, 'number.octal'],
+      [/@numberHex(?=[ \t]*[,[\]}])/, 'number.hex'],
+      [/@numberInfinity(?=[ \t]*[,[\]}])/, 'number.infinity'],
+      [/@numberNaN(?=[ \t]*[,[\]}])/, 'number.nan'],
+      [/@numberDate(?=[ \t]*[,[\]}])/, 'number.date']
     ],
 
     tagHandle: buildMmtTagHandleRules(),

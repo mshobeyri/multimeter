@@ -56,11 +56,11 @@ export const KeySuggestionsByParent = (monaco: any) => {
         documentation: [
             'Import external data files with alias -> path entries.',
             'Supported data files: .json, .yaml, .yml, .csv.',
-            'Use values with ${alias.path}, ${alias[0].field}, or ${alias}.',
+            `Use values with \${alias.path}, \${alias[0].field}, or \${alias}.`,
             'Example:',
             'import:',
             '  fixture: ./fixture.json',
-            'body: ${fixture.payload}',
+            `body: \${fixture.payload}`,
         ].join('\n')
     };
 
@@ -158,7 +158,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 '  fixture: ./fixture.json',
                 '  helpers: ./helpers/myHelpers.js',
                 '',
-                'Use data values with ${fixture.path}. In steps JS you can call: helpers.someFn()',
+                `Use data values with \${fixture.path}. In steps JS you can call: helpers.someFn()`,
             ].join('\n')
         },
         {
@@ -581,8 +581,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
                 'Only takes effect when running the test directly (not when imported).',
                 'Example:',
                 '- setenv:',
-                '    TOKEN: ${login.token}',
-                '    USER_ID: ${user.id}'
+                `    TOKEN: \${login.token}`,
+                `    USER_ID: \${user.id}`
             ].join('\n')
         },
         {
@@ -1389,7 +1389,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "outputs:\n\t",
             detail: 'Expected outputs [object]',
-            documentation: 'Define expected output values for this example. Used to verify the API response matches expectations.\nExample:\noutputs:\n\tstatus_code: 200\n\tbody: {\"id\": 1}',
+            documentation: 'Define expected output values for this example. Used to verify the API response matches expectations.\nExample:\noutputs:\n\tstatus_code: 200\n\tbody: {"id": 1}',
         }
     ];
     const authSuggestions = [
@@ -1577,7 +1577,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "body: ",
             detail: 'Response body [any]',
-            documentation: 'Response body content. Supports JSON objects, strings, or any YAML value.\nTokens like <<r:uuid>>, <<c:timestamp>>, <<e:VAR>> are resolved at runtime.\nEcho request data with ${url.id}, ${body.name}, ${header.authorization}, or ${query.page}.'
+            documentation: 'Response body content. Supports JSON objects, strings, or any YAML value.\nTokens like <<r:uuid>>, <<c:timestamp>>, <<e:VAR>> are resolved at runtime.\n' +
+                `Echo request data with \${url.id}, \${body.name}, \${header.authorization}, or \${query.page}.`
         },
         {
             label: "delay",

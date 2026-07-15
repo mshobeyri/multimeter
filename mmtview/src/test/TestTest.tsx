@@ -271,19 +271,6 @@ const TestTest: React.FC<TestTestProps> = (props) => {
 
     const exportDisabled = runState === 'running' || stepReports.length === 0;
 
-    const summary = useMemo(() => {
-        if (runState === 'running') {
-            return 'Running checks...';
-        }
-        if (runState === 'passed') {
-            return 'All checks passed';
-        }
-        if (runState === 'failed') {
-            return 'Run failed';
-        }
-        return 'Ready to run';
-    }, [runState]);
-
     const isRunning = runState === 'running';
 
     const overviewStats = useMemo((): OverviewStats | null => {

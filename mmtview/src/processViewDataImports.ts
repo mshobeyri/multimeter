@@ -7,7 +7,7 @@ export async function processViewDataImports(
     projectRoot?: string,
     keepDataImports = false,
 ): Promise<string> {
-  if (!rawText || !/\nimport\s*:/m.test(rawText) && !/^import\s*:/m.test(rawText)) {
+  if (!rawText || (!/\nimport\s*:/m.test(rawText) && !/^import\s*:/m.test(rawText))) {
     return rawText;
   }
   try {

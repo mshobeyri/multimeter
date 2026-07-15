@@ -8,7 +8,7 @@ export const GeneralSchema = {
 
 const DataImportSchema = {
     type: 'object',
-    description: 'Alias -> data file path. Supports .json, .yaml, .yml, and .csv files. Values are referenced with ${alias.path}.',
+    description: `Alias -> data file path. Supports .json, .yaml, .yml, and .csv files. Values are referenced with \${alias.path}.`,
     additionalProperties: { type: 'string' }
 };
 
@@ -458,7 +458,7 @@ export const TestSchema = {
         tags: { type: 'array', items: { type: 'string' } },
         import: {
             type: 'object',
-            description: 'Alias -> import path. Supports .mmt tests/APIs, data files (.json/.yaml/.yml/.csv), and JS helper modules (.js/.cjs/.mjs). Data values are referenced with ${alias.path}.',
+            description: `Alias -> import path. Supports .mmt tests/APIs, data files (.json/.yaml/.yml/.csv), and JS helper modules (.js/.cjs/.mjs). Data values are referenced with \${alias.path}.`,
             additionalProperties: { type: 'string' }
         },
         inputs: {

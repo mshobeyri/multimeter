@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StepStatus } from './types';
 import { statusIconFor } from './Common';
 
@@ -365,7 +365,7 @@ interface TestStepReportPanelProps {
 }
 
 const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
-  const { isExpanded, stepReports, runState, onRun, runButtonLabel, disabledRun, showHeader = true, showTimestamps = true } = props;
+  const { isExpanded, stepReports, runState, showHeader = true, showTimestamps = true } = props;
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
   const stepCountRef = useRef(0);
 
@@ -378,19 +378,6 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
       setExpandedDetails({});
     }
   }, [isExpanded]);
-
-  const summary = useMemo(() => {
-    if (runState === 'running') {
-      return 'Running checks...';
-    }
-    if (runState === 'passed') {
-      return 'All checks passed';
-    }
-    if (runState === 'failed') {
-      return 'Run failed';
-    }
-    return 'Ready to run';
-  }, [runState]);
 
   const unescapeCommon = useCallback((s: string): string => {
     if (!s) {

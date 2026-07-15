@@ -39,7 +39,7 @@ function registerGraphQLLanguage(monaco: any) {
         [/"""/, "string", "@blockString"],
         [/\$\w+/, "variable"],
         [/@\w+/, "annotation"],
-        [/[{}()\[\]]/, "delimiter.bracket"],
+        [/[{}()[\]]/, "delimiter.bracket"],
         [/[!:=|&]/, "delimiter"],
         [/\b\d+\b/, "number"],
         [/[a-zA-Z_]\w*/, {

@@ -327,7 +327,7 @@ const App: React.FC = () => {
 
     window.addEventListener("message", handler);
     return () => window.removeEventListener("message", handler);
-  }, [setContent]);
+  }, [setContent, mmtFilePath, sourceFormat]);
 
   const docType = useMemo(() => {
     if (sourceFormat === "http" || sourceFormat === "bruno") {

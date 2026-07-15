@@ -24,7 +24,6 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
     () => (localStorage.getItem(LAST_ENV_PAGE_KEY) as 'environment' | 'edit') || 'environment'
   );
   const [editTab, setEditTab] = useState<'overview' | 'variables' | 'presets' | 'settings' | 'certificates'>('overview');
-  const [showIconsOnly, setShowIconsOnly] = useState(false);
   const [variables, setVariables] = useState<ComboTablePair[]>([]);
   const [presets, setPresets] = useState<ComboTablePair[]>([]);
   const [presetData, setPresetData] = useState<any>({});
@@ -45,8 +44,6 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
   useEffect(() => {
     localStorage.setItem(LAST_ENV_PAGE_KEY, page);
   }, [page]);
-
-  // (no tab-bar on first page; leave showIconsOnly unused for now)
 
   // Add event listener for environment variable refresh messages
   useEffect(() => {
@@ -203,43 +200,6 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
       });
     }
   };
-
-  const applyPresetsToVariables = useCallback((currentPairs: ComboTablePair[]): ComboTablePair[] => {
-    let updatedPairs = safeList(currentPairs).map(pair => ({ ...pair }));
-    safeList(presets).forEach(preset => {
-      const selection = preset.value?.value || preset.value?.label;
-      if (!selection) {
-        return;
-      }
-      const mapping = presetData?.[preset.name]?.[selection];
-      if (!mapping || typeof mapping !== "object") {
-        return;
-      }
-      updatedPairs = safeList(updatedPairs).map(pair => {
-        if (!Object.prototype.hasOwnProperty.call(mapping, pair.name)) {
-          return pair;
-        }
-        const choice = mapping[pair.name];
-        const resolvedValue =
-          safeList(pair.options).find(opt => opt.label === choice)?.value ??
-          selectFromVariables(variableDefinitions, pair.name, choice);
-        const nextOption = safeList(pair.options).find(opt =>
-          opt.value === resolvedValue ||
-          opt.label === resolvedValue ||
-          String(opt.value) === String(resolvedValue)
-        );
-        if (nextOption) {
-          return { ...pair, value: nextOption };
-        }
-        const fallback = pair.options[0];
-        if (fallback) {
-          return { ...pair, value: fallback };
-        }
-        return pair;
-      });
-    });
-    return updatedPairs;
-  }, [presets, presetData, variableDefinitions]);
 
   const toEnvVariables = (pairs: ComboTablePair[]): EnvVariable[] =>
     safeList(pairs).map(pair => ({
