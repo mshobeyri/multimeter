@@ -77,14 +77,15 @@ When the user says **"release version X.Y.Z"** (or "release version X.Y.Z pre-re
 1. Update the `version` field in the root `package.json` to `X.Y.Z`.
 2. Update CHANGELOG.md based on commits (consider adding change log of previous versions if missed)
 3. Stage all changes and create a git commit with the message: `Release version X.Y.Z`.
-4. Run `vsce package` at the repo root to produce the `.vsix`.
-   - If the user said **pre-release**, run `vsce package --pre-release` instead.
+4. Run `npm run pack` at the repo root to produce the `.vsix`.
+   - If the user said **pre-release**, run `npm run pack-pre-release` instead.
+   - Do **not** use bare `vsce package`; it packages the wrong readme. Always use `npm run pack` so `EXTENSION.md` is included.
 
 ## Build, test, and packaging
 - From repo root:
   - `npm run compile --silent` – build all apps (core, extension, webview, CLI) via the shared pipeline.
   - `npm run test` – run Jest tests (mostly `core/src/*.test.ts`).
-- VS Code extension packaging: run `vsce package` at the repo root to create the `.vsix`.
+- VS Code extension packaging: run `npm run pack` at the repo root to create the `.vsix` (uses `EXTENSION.md` as the marketplace readme).
 - Avoid per-package custom build scripts; integrate new build steps into the root `package.json`.
 
 ## Conventions and change strategy
