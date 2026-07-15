@@ -1583,6 +1583,100 @@ button:focus {
   font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
 }
 
+.notype-cta {
+  margin: 20px 5px 8px;
+  padding: 18px 8px 10px;
+  border-top: 1px solid var(--vscode-editorWidget-border, #444);
+}
+
+.notype-cta-copy {
+  margin: 0 0 14px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+}
+
+.notype-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.notype-cta-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  margin: 0;
+  padding: 3px 10px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.15s, background 0.15s;
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+}
+
+.notype-cta-button + .notype-cta-button::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 1px;
+  height: 11px;
+  transform: translateY(-50%);
+  background: var(--vscode-editorWidget-border, #555);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.notype-cta-button:hover {
+  background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.05));
+}
+
+.notype-cta-button:hover .notype-cta-button-label,
+.notype-cta-button:hover .notype-cta-icon .codicon {
+  color: var(--vscode-foreground, #e8e8e8);
+}
+
+.notype-cta-button:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder, #007fd4);
+  outline-offset: 2px;
+}
+
+.notype-cta-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.notype-cta-icon .codicon {
+  font-size: 12px;
+  opacity: 0.92;
+  color: var(--vscode-foreground, #d4d4d4);
+  transition: color 0.15s;
+}
+
+.notype-cta-button-label {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: var(--vscode-foreground, #d4d4d4);
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+
 @media (max-width: 300px) {
   body {
     overflow-x: auto;

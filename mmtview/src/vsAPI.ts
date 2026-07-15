@@ -245,6 +245,14 @@ duration?: number
     window.vscode?.postMessage({command: 'openRelativeFile', filename: normalizeOpenFilePath(filename), fragment, newTab});
   }
 
+  export function openExternalUrl(url: string) {
+    const trimmed = (url || '').trim();
+    if (!trimmed) {
+      return;
+    }
+    window.vscode?.postMessage({command: 'openExternalUrl', url: trimmed});
+  }
+
 function normalizeOpenFilePath(filename: string): string {
   const raw = (filename || '').trim();
   if (!raw) {
