@@ -137,22 +137,23 @@ const DocViewMarkdown: React.FC<DocViewProps> = ({ doc }) => {
   
 
   return (
-    <div style={{ height: 'calc(100vh - 100px)', width: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, gap: 8 }}>
-        <div />
-        <div>
-          <button onClick={handleOpenPreview} style={{ marginRight: 8, display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 12px' }}>Show Preview</button>
-          <button onClick={handleExport} className="button-icon" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 12px', background: 'var(--vscode-button-background, #0e639c)', color: 'var(--vscode-button-foreground, #ffffff)', border: '1px solid var(--vscode-button-border, #3c3c3c)', borderRadius: 2 }}>
-            <span className="codicon codicon-export" aria-hidden />
-            Export
-          </button>
-        </div>
+    <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <div className="run-action-bar">
+        <button onClick={handleOpenPreview} className="button-icon" type="button">
+          <span className="codicon codicon-open-preview" aria-hidden />
+          Show Preview
+        </button>
+        <button onClick={handleExport} className="button-icon" type="button">
+          <span className="codicon codicon-export" aria-hidden />
+          Export
+        </button>
       </div>
       <pre
         style={{
           flex: 1,
           margin: 0,
           padding: 8,
+          minHeight: 0,
           overflow: 'auto',
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-word',

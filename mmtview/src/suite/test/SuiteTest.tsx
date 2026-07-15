@@ -1044,42 +1044,34 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     );
 
     return (
-        <div style={{ overflow: 'auto', flex: 1, width: '100%' }}>
-            <div className="test-flow-tree" style={{ paddingTop: 4 }}>
-                <div
-                    style={{
-                        display: 'flex',
-                        justifyContent: 'flex-end',
-                        marginBottom: 8,
-                        alignItems: 'center',
-                        position: 'relative',
-                        gap: 8,
-                    }}
-                >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8}}>
-                        {suiteRunState === 'running' ? (
-                            <button
-                                className="button-icon"
-                                onClick={onStopSuite}
-                                title={stopLabel}
-                            >
-                                <span className="codicon codicon-debug-stop" aria-hidden />
-                                Stop
-                            </button>
-                        ) : (
-                            <button
-                                className="button-icon"
-                                disabled={!canRun}
-                                onClick={onRunSuite}
-                                title={!canRun ? (mode === 'loadtest' ? 'No test file to run' : 'No suite files to run') : runLabel}
-                            >
-                                <span className="codicon codicon-run" aria-hidden />
-                                {runLabel}
-                            </button>
-                        )}
-                        <ExportReportButton disabled={suiteExportDisabled} onExport={handleExportReport} />
-                    </div>
-                </div>
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
+            <div className="run-action-bar">
+                {suiteRunState === 'running' ? (
+                    <button
+                        className="button-icon"
+                        onClick={onStopSuite}
+                        title={stopLabel}
+                        type="button"
+                    >
+                        <span className="codicon codicon-debug-stop" aria-hidden />
+                        Stop
+                    </button>
+                ) : (
+                    <button
+                        className="button-icon"
+                        disabled={!canRun}
+                        onClick={onRunSuite}
+                        title={!canRun ? (mode === 'loadtest' ? 'No test file to run' : 'No suite files to run') : runLabel}
+                        type="button"
+                    >
+                        <span className="codicon codicon-run" aria-hidden />
+                        {runLabel}
+                    </button>
+                )}
+                <ExportReportButton disabled={suiteExportDisabled} onExport={handleExportReport} />
+            </div>
+            <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+            <div className="test-flow-tree">
                 {noItems ? <div style={{ opacity: 0.8 }}>{mode === 'loadtest' ? 'No test file found under `test:`' : 'No suite items found under `items:`'}</div> : (
                     <>
                         {mode === 'loadtest'
@@ -1210,6 +1202,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                         )}
                     </>
                 )}
+            </div>
             </div>
         </div>
     );

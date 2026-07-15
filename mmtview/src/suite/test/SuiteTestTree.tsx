@@ -615,7 +615,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
       onSelectItems={() => { }}
       renderItemArrow={({ item, context }) =>
         item.isFolder ? (
-          <span {...context.arrowProps} style={{ display: 'inline-flex', paddingTop: 8, lineHeight: 0, alignSelf: 'flex-start' }}>
+          <span {...context.arrowProps} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 0 }}>
             {context.isExpanded ? (
               <span className="codicon codicon-chevron-down" style={{ fontSize: 16 }} />
             ) : (

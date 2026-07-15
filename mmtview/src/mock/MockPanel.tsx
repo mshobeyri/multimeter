@@ -149,20 +149,20 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
                     </button>
                   </div>
                 </div>
+                <div className="run-action-bar">
+                  {running ? (
+                    <button onClick={handleStop} className="button-icon" type="button">
+                      <span className="codicon codicon-debug-stop" aria-hidden />
+                      Stop
+                    </button>
+                  ) : (
+                    <button onClick={handleStart} className="button-icon" type="button">
+                      <span className="codicon codicon-run" aria-hidden />
+                      Run
+                    </button>
+                  )}
+                </div>
                 <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
-                  <div style={{ marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8 }}>
-                    {running ? (
-                      <button onClick={handleStop} className="button-icon" style={{ opacity: 1 }}>
-                        <span className="codicon codicon-debug-stop" />
-                        Stop
-                      </button>
-                    ) : (
-                      <button onClick={handleStart} className="button-icon" style={{ opacity: 1 }}>
-                        <span className="codicon codicon-run" />
-                        Run
-                      </button>
-                    )}
-                  </div>
                   {/* Info chips */}
                   <div className="label" style={{ marginBottom: 8 }}>Configuration</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>

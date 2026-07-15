@@ -393,6 +393,16 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
                     </button>
                   </div>
                 </div>
+                <div className="run-action-bar">
+                  <button onClick={handleSaveToCache} className="button-icon" type="button">
+                    <span className="codicon codicon-refresh" aria-hidden />
+                    Reload
+                  </button>
+                  <button onClick={handleClearCache} className="button-icon" type="button">
+                    <span className="codicon codicon-clear-all" aria-hidden />
+                    Clear
+                  </button>
+                </div>
                 <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
                   <EnvironmentEnv
                     variables={variables}
@@ -400,8 +410,6 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
                     presets={presets}
                     handleVariablesChange={handleVariablesChange}
                     handlePresetsChange={handlePresetsChange}
-                    onClearCache={handleClearCache}
-                    onSaveToCache={handleSaveToCache}
                     clients={certificates?.clients}
                   />
                 </div>

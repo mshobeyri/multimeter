@@ -185,7 +185,7 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
                     </div>
                   </div>
                 </div>
-                <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+                <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <TestTest
                     testData={test}
                   />

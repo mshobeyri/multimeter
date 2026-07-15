@@ -11,9 +11,6 @@ interface EnvironmentEnvProps {
     presets: ComboTablePair[];
     handleVariablesChange: (variable: EnvVariable) => void;
     handlePresetsChange: (presetName: string, envName: string) => void;
-    onClearCache?: () => void;
-    onSaveToCache?: () => void;
-    // Client certificates from YAML (read-only names for enable/disable toggles)
     clients?: EnvClientCertificate[];
 }
 
@@ -23,8 +20,6 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
     presets,
     handleVariablesChange,
     handlePresetsChange,
-    onClearCache,
-    onSaveToCache,
     clients,
 }) => {
     const currentMap = useMemo(() => {
@@ -115,28 +110,7 @@ const EnvironmentEnv: React.FC<EnvironmentEnvProps> = ({
 
     return (
         <div>
-            <div style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "12px"
-            }}>
-                <div className="label">Variables</div>
-                <div style={{ display: "flex", gap: "8px" }}>
-                    {onSaveToCache && (
-                        <button onClick={onSaveToCache} className="button-icon">
-                            <span className="codicon codicon-checklist" style={{ fontSize: "16px" }}></span>
-                            Reload
-                        </button>
-                    )}
-                    {onClearCache && (
-                        <button onClick={onClearCache} className="button-icon">
-                            <span className="codicon codicon-clear-all" style={{ fontSize: "16px" }}></span>
-                            Clear
-                        </button>
-                    )}
-                </div>
-            </div>
+            <div className="label" style={{ marginBottom: "12px" }}>Variables</div>
             {hasVariables ? (
                 <div className="environment-table-wrapper">
                     <table className="environment-table">

@@ -1061,6 +1061,53 @@ button:focus {
   overflow: visible;
 }
 
+.tree-view-box.tree-view-box-row {
+  align-items: center;
+  padding: 8px;
+}
+
+.tree-view-box-row-arrow {
+  width: 24px;
+  min-width: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tree-view-box-row-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tree-view-box-row-label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-family: var(--vscode-editor-font-family);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-view-box-row-label-link {
+  cursor: pointer;
+}
+
+.tree-view-box-row .codicon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
 .test-flow-box-items {
   display: flex;
   align-items: flex-start;
@@ -1070,6 +1117,31 @@ button:focus {
 
   padding: 4px 0px 4px 0px;
   box-sizing: border-box;
+}
+
+.run-action-bar {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+.run-action-bar .button-icon {
+  opacity: 1;
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+  border: 1px solid var(--vscode-button-border, #3c3c3c);
+  border-radius: 2;
+  font-size: var(--vscode-font-size, 13px);
+  font-family: var(--vscode-font-family, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
+  cursor: pointer;
+}
+
+.run-action-bar .button-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .test-flow-tree {

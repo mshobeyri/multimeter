@@ -143,14 +143,14 @@ const DocViewHTML: React.FC<DocViewProps> = ({ doc }) => {
   };
 
   return (
-    <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 8, gap: 8 }}>
-        <button onClick={handleExport} className="button-icon" style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 12px', background: 'var(--vscode-button-background, #0e639c)', color: 'var(--vscode-button-foreground, #ffffff)', border: '1px solid var(--vscode-button-border, #3c3c3c)', borderRadius: 2 }}>
+    <div style={{ height: '100%', width: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+      <div className="run-action-bar">
+        <button onClick={handleExport} className="button-icon" type="button">
           <span className="codicon codicon-export" aria-hidden />
           Export
         </button>
       </div>
-      <iframe ref={iframeRef} style={{ flex: 1, width: '100%', height: '100%', border: '1px solid var(--panel-border)' }} title="Documentation Preview" />
+      <iframe ref={iframeRef} style={{ flex: 1, width: '100%', minHeight: 0, border: '1px solid var(--panel-border)' }} title="Documentation Preview" />
     </div>
   );
 };
