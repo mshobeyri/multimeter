@@ -2,6 +2,14 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.27.3]
+
+- Fix webview flash on initial load
+- Keep Run, Export, Reload, and related action buttons fixed below panel headers across test, suite, load test, mock, environment, document, and report views
+- Move report Export out of the title row into the shared action bar
+- Align suite tree item rows and expand chevrons consistently
+- Add a Show Preview icon and align document preview/export buttons
+
 ## [1.27.2]
 
 - Fix YAML editor tokenizer issues in the `.mmt` editor
