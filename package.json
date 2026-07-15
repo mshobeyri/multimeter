@@ -261,7 +261,7 @@
       },
       {
         "command": "multimeter.apiTest.new",
-        "title": "New API Test",
+        "title": "New Multimeter File",
         "category": "Multimeter",
         "icon": {
           "light": "res/activity.png",
