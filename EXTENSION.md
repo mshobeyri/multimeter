@@ -14,82 +14,47 @@
 
 <img src="res/demo.gif" alt="Multimeter in action" style="max-width: 100%; height: auto;" />
 
-## 🚀 The simplicity of Bruno. The power of Postman.
+## 🚀 Simplicity along with Power.
 ---
 
-**Multimeter** combines the simplicity of Git-native tools with the power of a complete API testing platform.
+**Multimeter** combines the simplicity of Git-native tools like Bruno with the power of a complete API testing platform like Postman.
 
-Start with a single HTTP request.
-
-Grow into tests, suites, mocks, reports, auto-generated documentation, and CI workflows when you need them.
+Start with a single HTTP request.  Grow into tests, suites, mocks, reports, auto-generated documentation, and CI workflows when you need them.
 
 All in the same tool. No migration required.
 
-## 🫤 Tired of fighting your API testing tools?
----
-
-### Coming from Postman?
-
-- ✅ Powerful ecosystem
-- ✅ Rich API tooling
-- ✅ Collaboration features
-
-- ❌ Huge collections
-- ❌ JavaScript test scripts everywhere
-- ❌ CI pipelines behaving differently than local runs
-- ❌ Environment sprawl
-- ❌ Tests tied to a platform
-- ❌ Hidden state scattered across workspaces
-
-### Coming from Bruno?
-
-- ✅ Git-native
-- ✅ Lightweight
-- ✅ Simple
-
-- ❌ Repeated request definitions
-- ❌ Multi-step API workflows
-- ❌ Large test suites
-- ❌ Keeping mocks in sync
-- ❌ CI reports
-- ❌ Generated documentation
+| **👮 Coming from Postman?** | **🦮 Coming from Bruno?** |
+|-|-|
+| ✔️ Powerful ecosystem<br>✔️ Rich API tooling<br>✔️ Collaboration features<br>|  ✔️ Git-native<br>✔️ Lightweight<br>✔️ Simple<br>|
+|✖️ Huge collections<br> ✖️ JavaScript everywhere<br>✖️ CI/local mismatch<br>✖️ Environment sprawl<br>✖️ Tests tied to a platform<br>✖️ Hidden states scattered |✖️ Repeated request definitions<br>✖️ Multi-step API workflows<br>✖️ Large test suites<br>✖️ Keeping mocks in sync<br>✖️ CI reports<br>✖️ Generated documentation |
 
 ## 🎯 Why Multimeter?
 ---
 
-**Everything developers love about Bruno**
+**Everything to start simply**
 
-- ✅ Git-native
-- ✅ File-based
-- ✅ Lightweight
-- ✅ No cloud lock-in
+- ✔️ Git-native
+- ✔️ File-based
+- ✔️ Lightweight
+- ✔️ No cloud lock-in
 
 **Everything teams eventually need as projects grow**
 
-- ✅ API testing
-- ✅ Test suites
-- ✅ Mock servers
-- ✅ Documentation
-- ✅ Reports
-- ✅ CI workflows
+- ✔️ API testing
+- ✔️ Test suites
+- ✔️ Mock servers
+- ✔️ Documentation
+- ✔️ Reports
+- ✔️ CI workflows
+- ➕ [And more...](https://mmt.dev/#features)
 
-**Without switching tools. Without the usual tradeoff.**
-
-| Tool | Tradeoff |
-|--------|--------|
-| Postman | Powerful but heavy |
-| Bruno | Simple but limited |
-| Multimeter | Simple by default. Powerful when needed. |
-
-[See all features →](https://mmt.dev/#features)
-
-## ⚡ Start simple
+## 🪜 Start simple, grow easily...
 ---
 
-Multimeter is a VS Code-native extension. All you need:
-- Click Install button in [Multimeter VS Code Extension](https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter)
-- Create a `.mmt` file
-- Type:
+Multimeter is a VS Code-native extension. All you need is:
+1. Click Install button in [Multimeter VS Code Extension](https://marketplace.visualstudio.com/items?itemName=mshobeyri.multimeter)
+2. Create a `.mmt` file
+3. Type:
 
 ```yaml
 type: api
@@ -97,15 +62,9 @@ url: https://test.mmt.dev/echo
 method: get
 ```
 
-That's enough.
+That's enough for manual API testing. **Need automated tests?**
 
-- No suites.
-- No mocks.
-- No workflows.
-- No complexity.
-
-## 🧪 Need tests?
----
+Type the following to test if the status is `200`.
 
 ```yaml
 type: test
@@ -120,12 +79,7 @@ steps:
 - Still Git-native.
 - Still easy to review.
 
-## 🚀 Scale without switching tools
----
-
 As your project grows, Multimeter grows with it.
-
-Add:
 
 - Test suites
 - Mock servers
@@ -133,12 +87,9 @@ Add:
 - Workflow execution
 - Structured reporting
 - CI artifacts
+- [And more...](https://github.com/mshobeyri/multimeter/tree/dev/examples)
 
-**Only when you need them.**
-
-Everything stays in the same ecosystem.
-
-[See all examples →](https://github.com/mshobeyri/multimeter/tree/dev/examples)
+Add only when you need them. **Everything stays in the same ecosystem.** 
 
 ## 🔁 Built for reliable CI
 ---
@@ -147,32 +98,30 @@ Multimeter validates test definitions before execution.
 
 That means:
 
-- ✅ Earlier feedback
-- ✅ More deterministic execution
-- ✅ Fewer surprises in CI
-- ✅ Easier debugging
-- ✅ Reproducible results
+- Earlier feedback
+- More deterministic execution
+- Fewer surprises in CI
+- Easier debugging
+- Reproducible results
 
-## 📦 Everything stays in Git
+## <img src="res/git.svg" alt="mmt.dev" width="36" height="36" style="vertical-align: text-bottom;"/> Why Git?
 ---
 
-Your code, tests, mocks, documentation, reports, and environment settings live in the same repository.
+Your code, tests, mocks, documentation, reports, and environment settings live in the **same repository.**
 
-- ✅ Version controlled
-- ✅ Code and tests evolve together
-- ✅ Reviewable through pull requests
-- ✅ Easy to move and share
-- ✅ No platform lock-in
-- ✅ AI can update code and tests together
-- ✅ Environment variables never go missing
-- ✅ Historical test results stay with the project
+- Version controlled
+- Code and tests evolve together
+- Reviewable through pull requests
+- Easy to move and share
+- No platform lock-in
+- AI can update code and tests together
+- Environment variables never go missing
+- Historical test results stay with the project
 
 ## 🧠 Philosophy
 ---
 
-Most API tools focus on requests.
-
-Multimeter focuses on behavior.
+Most API tools focus on requests. Multimeter focuses on **behavior**.
 
 Instead of asking:
 
