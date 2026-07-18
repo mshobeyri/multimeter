@@ -48,10 +48,10 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     []
   );
 
-  const discardRef = useRef<(() => void) | null>(null);
+  const resetRef = useRef<(() => void) | null>(null);
 
   const handleRequestReset = useCallback((reset: () => void) => {
-    discardRef.current = reset;
+    resetRef.current = reset;
   }, []);
 
   const setAPI = (newApi: APIData) => {
@@ -193,7 +193,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
                         <UnsavedChangesWarning
                           modifiedYaml={modifiedYaml}
                           onSave={() => setAPI(savedModifiedApi)}
-                          onDiscard={() => discardRef.current?.()}
+                          onReset={() => resetRef.current?.()}
                         />
                       )}
                     </div>

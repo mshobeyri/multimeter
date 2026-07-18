@@ -15,6 +15,12 @@ import { NetworkNodeApi, Error as NetworkError } from "../components/network/Net
 import { pushHistory, showVSCodeMessage } from "../vsAPI";
 import { beautifyWithContentType } from "mmt-core/markupConvertor";
 import { protocolResolver } from "mmt-core";
+import {
+  ApiUiRefreshScope,
+  applyScopedRequestData,
+  diffApiRefreshScopes,
+  isDocOnlyRefresh,
+} from "./apiUiRefresh";
 
 type OutputPosition = { text?: string; line: number; column: number };
 
@@ -32,6 +38,8 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
   const [responseData, setResponseData] = useState<Response>();
   const [responseRevision, setResponseRevision] = useState<number>(0);
   const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(-1);
+  const prevApiRef = useRef<APIData | undefined>(undefined);
+  const prevExampleIdxRef = useRef<number>(-1);
   const [currentInputs, setCurrentInputs] = useState<JSONRecord>({});
   const currentInputsRef = useRef<JSONRecord>({});
   const touchedFieldsRef = useRef<Set<keyof Request>>(new Set());
@@ -47,10 +55,6 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
   useEffect(() => {
     currentInputsRef.current = currentInputs;
   }, [currentInputs]);
-
-  useEffect(() => {
-    setSelectedExampleIdx(-1);
-  }, [api]);
 
   const markFieldTouched = useCallback((field: keyof Request) => {
     if (!touchedFieldsRef.current.has(field)) {
@@ -92,7 +96,20 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     }
   }, [requestData?.query, updateField]);
 
-  const prepareRequestData = useCallback((inputs?: JSONRecord, options?: { forceReset?: boolean; respectTouched?: boolean }) => {
+  const prepareRequestData = useCallback((
+    inputs?: JSONRecord,
+    options?: {
+      forceReset?: boolean;
+      respectTouched?: boolean;
+      /** Which UI parts to rewrite. Default `['all']`. Prefer narrower scopes (`env` / `url` / `body`) for partial updates. */
+      scopes?: ApiUiRefreshScope[];
+    }
+  ) => {
+    const scopes: ApiUiRefreshScope[] = options?.scopes ?? ["all"];
+    if (isDocOnlyRefresh(scopes)) {
+      return;
+    }
+
     if (options?.forceReset) {
       resetTouchedFields();
     }
@@ -134,18 +151,69 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
         rface.body = formatBody(rface.format || "json", rface.body ?? "");
       }
 
-      setRequestData(prev => mergeRequestData(prev, rface, touchedFieldsRef.current, respectTouched));
+      setRequestData((prev) =>
+        applyScopedRequestData(prev, rface, scopes, touchedFieldsRef.current, respectTouched)
+      );
     })();
   }, [api, resetTouchedFields]);
 
+  // Rebuild request UI only for scopes that actually changed (url / body / headers / …).
   useEffect(() => {
-    const baseInputs = selectedExampleIdx === -1
+    const prevApi = prevApiRef.current;
+    const exampleChanged = prevExampleIdxRef.current !== selectedExampleIdx;
+    prevExampleIdxRef.current = selectedExampleIdx;
+
+    let scopes: ApiUiRefreshScope[];
+    let forceReset = false;
+    let exampleIdx = selectedExampleIdx;
+
+    if (!prevApi) {
+      scopes = ["all"];
+      forceReset = true;
+    } else if (prevApi !== api) {
+      scopes = diffApiRefreshScopes(prevApi, api);
+      if (scopes.length === 0 && !exampleChanged) {
+        prevApiRef.current = api;
+        return;
+      }
+
+      const examplesChanged =
+        JSON.stringify(prevApi.examples) !== JSON.stringify(api.examples);
+      const inputsChanged =
+        JSON.stringify(prevApi.inputs) !== JSON.stringify(api.inputs);
+
+      if (examplesChanged || inputsChanged) {
+        forceReset = true;
+        scopes = ["all"];
+        exampleIdx = -1;
+        if (selectedExampleIdx !== -1) {
+          prevExampleIdxRef.current = -1;
+          setSelectedExampleIdx(-1);
+        }
+      } else if (scopes.includes("all")) {
+        forceReset = true;
+      }
+    } else if (exampleChanged) {
+      scopes = ["all"];
+      forceReset = true;
+    } else {
+      prevApiRef.current = api;
+      return;
+    }
+
+    prevApiRef.current = api;
+
+    if (isDocOnlyRefresh(scopes)) {
+      return;
+    }
+
+    const baseInputs = exampleIdx === -1
       ? (api.inputs || {})
-      : (examples[selectedExampleIdx]?.inputs || {});
+      : (examples[exampleIdx]?.inputs || {});
 
     const clonedInputs = cloneInputs(baseInputs);
     setCurrentInputs(clonedInputs);
-    prepareRequestData(clonedInputs, { forceReset: true });
+    prepareRequestData(clonedInputs, { forceReset, scopes });
   }, [api, examples, selectedExampleIdx, prepareRequestData]);
 
   useEffect(() => {
@@ -243,7 +311,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     const handleConfig = (message: any) => {
       if (typeof message.bodyAutoFormat === "boolean") {
         setAutoFormatBodyState(message.bodyAutoFormat);
-        prepareRequestData(undefined, { forceReset: true });
+        prepareRequestData(undefined, { forceReset: true, scopes: ["all"] });
       }
     };
 
@@ -252,7 +320,9 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
       if (!message) return;
       switch (message.command) {
         case "multimeter.environment.refresh":
-          prepareRequestData(undefined, { forceReset: true });
+          // Env values changed: re-resolve tokens into request text fields only.
+          // Do not force-reset the whole tester or clear user edits.
+          prepareRequestData(undefined, { scopes: ["env"] });
           break;
         case "config":
           handleConfig(message);
@@ -342,26 +412,6 @@ function cloneInputs(source?: JSONRecord): JSONRecord {
   } catch {
     return { ...source };
   }
-}
-
-function mergeRequestData(
-  prev: Request | undefined,
-  generated: Request,
-  touchedFields: Set<keyof Request>,
-  respectTouched: boolean
-): Request {
-  if (!respectTouched || !prev || touchedFields.size === 0) {
-    return generated;
-  }
-
-  const merged = { ...generated } as Request;
-  touchedFields.forEach(field => {
-    if (typeof prev[field] !== "undefined") {
-      merged[field] = prev[field];
-    }
-  });
-
-  return merged;
 }
 
 type RunApiDocumentOptions = {

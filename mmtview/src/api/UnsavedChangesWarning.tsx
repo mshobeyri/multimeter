@@ -4,10 +4,10 @@ interface UnsavedChangesWarningProps {
   /** YAML representation of the API with the user's temporary edits merged in. */
   modifiedYaml: string;
   onSave: () => void;
-  onDiscard: () => void;
+  onReset: () => void;
 }
 
-const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({ modifiedYaml, onSave, onDiscard }) => {
+const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({ modifiedYaml, onSave, onReset }) => {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
@@ -32,7 +32,7 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({ modifiedY
         ref={buttonRef}
         className="action-button unsaved-warning-btn"
         onClick={() => setOpen(v => !v)}
-        title="Save or discard temporary changes"
+        title="Save or reset temporary changes"
         type="button"
       >
         <span className="codicon codicon-save" aria-hidden />
@@ -67,11 +67,11 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({ modifiedY
               </button>
               <button
                 className="button-icon"
-                onClick={() => { onDiscard(); setOpen(false); }}
+                onClick={() => { onReset(); setOpen(false); }}
                 type="button"
-                title="Discard changes and reset to file"
+                title="Reset UI to the current YAML file"
               >
-                <span className="codicon codicon-discard" aria-hidden /> Discard
+                <span className="codicon codicon-discard" aria-hidden /> Reset
               </button>
             </div>
           </div>

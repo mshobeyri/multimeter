@@ -94,9 +94,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
 
   useEffect(() => {
     if (!onRequestReset) { return; }
-    onRequestReset(() => prepareRequestData(undefined, { forceReset: true }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onRequestReset]);
+    // Keep the reset callback fresh so it always rebuilds from the current YAML/`api`.
+    onRequestReset(() => prepareRequestData(undefined, { forceReset: true, scopes: ["all"] }));
+  }, [onRequestReset, prepareRequestData]);
 
   // Based on the displayed URL (not resolved inputs/env)
   const isDisplayedUrlWebSocket = (protocol: Protocol | undefined, url: string | undefined
