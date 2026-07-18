@@ -6,42 +6,10 @@ import {Worker, isMainThread, parentPort, workerData} from 'worker_threads';
 // Import from mmt-core root exports to avoid subpath resolution issues under
 // pkg
 import {apiParsePack, docHtml, docParsePack, runner} from 'mmt-core';
-
-/**
- * Generic resolver for mmt-core exports that handles three resolution strategies:
- * 1. pkg snapshot paths (require 'mmt-core/dist/...')
- * 2. CJS/Node16 paths (require 'mmt-core/...')
- * 3. Fallback from mmtcore namespace
- */
-function resolveCoreExport<T>(module: string, exportName: string, fallback?: T): T|null {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const mod = require(`mmt-core/dist/${module}.js`);
-    if (mod && typeof mod[exportName] === 'function') {
-      return mod[exportName];
-    }
-  } catch { /* pkg path not available */ }
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const mod = require(`mmt-core/${module}`);
-    if (mod && typeof mod[exportName] === 'function') {
-      return mod[exportName];
-    }
-  } catch { /* CJS path not available */ }
-  return fallback ?? (mmtcore as any)?.[module]?.[exportName] ?? null;
-}
-
-async function loadCoreExport<T>(module: string, exportName: string): Promise<T|null> {
-  // When running as ESM, prefer dynamic import
-  try {
-    const mod: any = await import(`mmt-core/${module}`);
-    if (mod && typeof mod[exportName] === 'function') {
-      return mod[exportName];
-    }
-  } catch { /* ESM path not available */ }
-  return resolveCoreExport<T>(module, exportName);
-}
 import path from 'path';
+import {createRequire} from 'module';
+
+const requireFromCli = createRequire(__filename);
 
 import {summarize} from './loadTest.js';
 import {startMockServerFromPath, stopAllServers} from './mockRunner.js';
@@ -51,27 +19,28 @@ import {buildCliRunArgs} from './runArgs.js';
 
 const program = new Command();
 
-// Resolve version from package.json when available; fallback to a single const
-// here.
+// Resolve version from the installed package.json (next to dist/cli.js).
 function resolveCliVersion(): string {
-  const fallback = '0.2.0';
   try {
-    const pkgPath = path.resolve('mmtcli', '.', 'package.json');
-    const candidates = [pkgPath];
-    for (const p of candidates) {
-      if (p && fs.existsSync(p)) {
-        const txt = fs.readFileSync(p, 'utf8');
-        const pkg = JSON.parse(txt);
-        if (pkg && typeof pkg.version === 'string' && pkg.version) {
-          return pkg.version;
-        }
-      }
+    const version = requireFromCli('../package.json').version;
+    if (typeof version === 'string' && version) {
+      return version;
     }
   } catch {
   }
-  return fallback;
+  return '0.0.0';
 }
 const CLI_VERSION = resolveCliVersion();
+
+type JsRunnerModule = typeof import('mmt-core/jsRunner');
+let jsRunnerModulePromise: Promise<JsRunnerModule>|undefined;
+
+async function loadJsRunnerModule(): Promise<JsRunnerModule> {
+  if (!jsRunnerModulePromise) {
+    jsRunnerModulePromise = import('mmt-core/jsRunner');
+  }
+  return jsRunnerModulePromise;
+}
 
 interface WorkerJsRunnerRequest {
   id: number;
@@ -105,11 +74,7 @@ async function startJsRunnerWorkerThread(): Promise<void> {
   if (!parentPort) {
     return;
   }
-  const runJSCode = await loadCoreExport<any>('jsRunner', 'runJSCode');
-  if (typeof runJSCode !== 'function') {
-    throw new Error('Internal error: worker runJSCode is not available');
-  }
-  const setRunnerNetworkConfig = await loadCoreExport<any>('jsRunner', 'setRunnerNetworkConfig');
+  const {runJSCode, setRunnerNetworkConfig} = await loadJsRunnerModule();
   if (typeof setRunnerNetworkConfig === 'function' && workerData?.networkConfig) {
     setRunnerNetworkConfig(workerData.networkConfig);
   }
@@ -301,10 +266,7 @@ program.command('run')
       'Run loadtest virtual users in the main Node event loop instead of worker threads')
     .action(async (file: string, opts: {quiet?: boolean; out?: string}) => {
       try {
-        const runJSCode = await loadCoreExport<any>('jsRunner', 'runJSCode');
-        if (typeof runJSCode !== 'function') {
-          throw new Error('Internal error: runJSCode is not available');
-        }
+        const {runJSCode, setRunnerNetworkConfig} = await loadJsRunnerModule();
         const full = path.resolve(process.cwd(), file);
         const rawText = fs.readFileSync(full, 'utf8');
         const raw =
@@ -319,10 +281,7 @@ program.command('run')
         // Apply network config if certificates are configured
         if (networkConfig) {
           try {
-            const setRunnerNetworkConfig = await loadCoreExport<(config: any) => void>('jsRunner', 'setRunnerNetworkConfig');
-            if (setRunnerNetworkConfig) {
-              setRunnerNetworkConfig(networkConfig);
-            }
+            setRunnerNetworkConfig(networkConfig);
           } catch (e) {
             console.warn(`Unable to apply certificate settings: ${e}`);
           }

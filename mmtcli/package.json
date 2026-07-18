@@ -1,14 +1,14 @@
 {
   "name": "mmt-testlight",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "Multimeter CLI test runner",
-  "type": "module",
   "private": false,
   "bin": {
     "testlight": "dist/cli.js",
     "mmt": "dist/cli.js"
   },
   "scripts": {
+    "prepublishOnly": "npm run build",
     "build": "node esbuild.js",
     "build:tsc": "tsc -p tsconfig.json",
     "build:cjs": "tsc -p tsconfig.cjs.json",
