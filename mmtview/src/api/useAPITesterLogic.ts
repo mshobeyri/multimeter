@@ -177,12 +177,11 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
         return;
       }
 
-      const examplesChanged =
-        JSON.stringify(prevApi.examples) !== JSON.stringify(api.examples);
       const inputsChanged =
         JSON.stringify(prevApi.inputs) !== JSON.stringify(api.inputs);
 
-      if (examplesChanged || inputsChanged) {
+      // Examples-only edits do not affect request values — skip rebuild via isDocOnlyRefresh.
+      if (inputsChanged) {
         forceReset = true;
         scopes = ["all"];
         exampleIdx = -1;

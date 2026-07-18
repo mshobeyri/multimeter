@@ -305,13 +305,6 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     setAPI({ ...api, examples });
   };
 
-  const addExample = () => {
-
-    const examples = safeListCopy(api.examples);
-    examples.push({ name: "" });
-    setAPI({ ...api, examples });
-  };
-
   return (
     <div className="panel" style={{ overflow: 'hidden' }}>
       <div
@@ -429,10 +422,6 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
                                 />
                               </div>
                             ))}
-                          <button onClick={addExample} className="button-icon" type="button">
-                            <span className="codicon codicon-add" aria-hidden />
-                            Add Example
-                          </button>
                         </td>
                       </tr>
                     </tbody>

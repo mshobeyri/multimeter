@@ -176,6 +176,38 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     prepareRequestData(nextInputs);
   };
 
+  const handleAddAsExample = () => {
+    const newExampleNameBase = "example";
+    let newName = newExampleNameBase;
+    const nameSet = new Set((api.examples || []).map(e => (e?.name || "").toLowerCase()));
+    let counter = 1;
+    while (nameSet.has(newName.toLowerCase())) {
+      newName = `${newExampleNameBase}${counter++}`;
+    }
+
+    const newExample: { name: string; inputs?: JSONRecord; outputs?: JSONRecord } = { name: newName };
+    if (Object.keys(currentInputs).length) {
+      newExample.inputs = cloneInputs(currentInputs);
+    }
+
+    // Only persist outputs that are defined on the API — never invent status_code.
+    const definedOutputKeys = Object.keys(api.outputs || {});
+    if (definedOutputKeys.length > 0) {
+      const exampleOutputs: JSONRecord = {};
+      definedOutputKeys.forEach((key) => {
+        if (Object.prototype.hasOwnProperty.call(outputs, key)) {
+          exampleOutputs[key] = outputs[key];
+        }
+      });
+      if (Object.keys(exampleOutputs).length > 0) {
+        newExample.outputs = exampleOutputs;
+      }
+    }
+
+    const updatedExamples = [...(api.examples || []), newExample];
+    onUpdateApi?.({ examples: updatedExamples });
+  };
+
   return (
     <div className="apitest-root">
       {/* ── Fixed header: URL bar + tab bar ── */}
@@ -373,30 +405,38 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
 
         {shouldShowInputs() && (
           <>
-            {examples.length > 0 && (
-              <div style={{ paddingBottom: 20, width: "100%" }}>
-                <div className="label">Predefined inputs</div>
-                <div>
-                  <select
-                    value={selectedExampleIdx ?? ""}
-                    onChange={e => {
-                      const newIdx = Number(e.target.value);
-                      handleExampleChange(newIdx);
-                    }}
-                    style={{ width: "100%" }}
-                  >
-                    <option value={-1}>Defaults</option>
-                    {examples
-                      .filter(ex => ex && typeof ex === "object")
-                      .map((ex, idx) => (
-                        <option key={ex?.name || idx} value={idx}>
-                          {ex?.name || `Example ${idx + 1}`}
-                        </option>
-                      ))}
-                  </select>
-                </div>
+            <div style={{ paddingBottom: 20, width: "100%" }}>
+              <div className="label">Example</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <select
+                  value={selectedExampleIdx ?? ""}
+                  onChange={e => {
+                    const newIdx = Number(e.target.value);
+                    handleExampleChange(newIdx);
+                  }}
+                  style={{ flex: 1, minWidth: 0 }}
+                >
+                  <option value={-1}>Defaults</option>
+                  {examples
+                    .filter(ex => ex && typeof ex === "object")
+                    .map((ex, idx) => (
+                      <option key={ex?.name || idx} value={idx}>
+                        {ex?.name || `Example ${idx + 1}`}
+                      </option>
+                    ))}
+                </select>
+                <button
+                  type="button"
+                  className="button-icon"
+                  onClick={handleAddAsExample}
+                  title="Add as example"
+                  aria-label="Add as example"
+                  style={{ flexShrink: 0 }}
+                >
+                  <span className="codicon codicon-add" aria-hidden />
+                </button>
               </div>
-            )}
+            </div>
             <VEditor
               label="Inputs"
               value={currentInputs}
@@ -502,39 +542,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             />
           )}
 
-          {(responseData?.status) && (
-            <button
-              onClick={async (e) => {
-                e.currentTarget.blur();
-                const newExampleNameBase = "example";
-                let newName = newExampleNameBase;
-                const nameSet = new Set((api.examples || []).map(e => (e?.name || "").toLowerCase()));
-                let counter = 1;
-                while (nameSet.has(newName.toLowerCase())) {
-                  newName = `${newExampleNameBase}${counter++}`;
-                }
-                const newExample: any = { name: newName };
-                if (Object.keys(currentInputs).length) newExample.inputs = currentInputs;
-
-                const outputsWithStatus: JSONRecord = { ...outputs };
-
-                if (requestData?.protocol !== "ws" && typeof responseData?.status === "number") {
-                  outputsWithStatus.status_code = responseData.status;
-                }
-
-                if (Object.keys(outputsWithStatus).length) newExample.outputs = outputsWithStatus;
-
-                const updatedExamples = [...(api.examples || []), newExample];
-                onUpdateApi?.({ examples: updatedExamples });
-              }}
-              className="toolbar-button"
-              title="Add example from current inputs and outputs"
-            >
-              <span style={{ position: "relative" }}>
-                <span className="codicon codicon-lightbulb-autofix toolbar-button-icon"></span>
-              </span>
-            </button>
-          )}
           <button
             onClick={() => {
               showHistoryPanel();

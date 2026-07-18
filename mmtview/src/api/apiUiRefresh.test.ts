@@ -43,6 +43,12 @@ describe("apiUiRefresh", () => {
     expect(diffApiRefreshScopes(baseApi, next)).toEqual(["all"]);
   });
 
+  test("diffApiRefreshScopes isolates examples changes without rebuilding request", () => {
+    const next = { ...baseApi, examples: [{ name: "example", inputs: { id: 1 } }] };
+    expect(diffApiRefreshScopes(baseApi, next)).toEqual(["examples"]);
+    expect(isDocOnlyRefresh(["examples"])).toBe(true);
+  });
+
   test("requestFieldsForScopes expands env to token-bearing fields", () => {
     expect(requestFieldsForScopes(["env"])).toEqual(
       expect.arrayContaining(["url", "body", "headers", "query", "cookies"])

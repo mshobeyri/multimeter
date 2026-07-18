@@ -14,7 +14,8 @@ import { Request } from "mmt-core/NetworkData";
  * - `body`     – body, format, graphql, grpc
  * - `headers`  – headers, cookies (incl. auth-derived)
  * - `meta`     – method, protocol, timeout
- * - `inputs`   – inputs / examples drive a broader refresh
+ * - `inputs`   – inputs / outputs / setenv drive a broader refresh
+ * - `examples` – examples list only (dropdown); no requestData rebuild
  * - `doc`      – description / title / tags only (no requestData write)
  */
 export type ApiUiRefreshScope =
@@ -25,11 +26,12 @@ export type ApiUiRefreshScope =
   | "headers"
   | "meta"
   | "inputs"
+  | "examples"
   | "doc";
 
 type RequestField = keyof Request;
 
-const SCOPE_FIELDS: Record<Exclude<ApiUiRefreshScope, "all" | "doc" | "inputs">, readonly RequestField[]> = {
+const SCOPE_FIELDS: Record<Exclude<ApiUiRefreshScope, "all" | "doc" | "inputs" | "examples">, readonly RequestField[]> = {
   env: ["url", "query", "body", "format", "headers", "cookies", "graphql", "grpc"],
   url: ["url", "query"],
   body: ["body", "format", "graphql", "grpc"],
@@ -49,7 +51,7 @@ export function requestFieldsForScopes(scopes: ApiUiRefreshScope[]): RequestFiel
 
   const fields = new Set<RequestField>();
   for (const scope of scopes) {
-    if (scope === "doc") {
+    if (scope === "doc" || scope === "examples") {
       continue;
     }
     const scoped = SCOPE_FIELDS[scope as keyof typeof SCOPE_FIELDS];
@@ -63,9 +65,9 @@ export function requestFieldsForScopes(scopes: ApiUiRefreshScope[]): RequestFiel
   return Array.from(fields);
 }
 
-/** True when scopes only affect doc chrome and should not rebuild requestData. */
+/** True when scopes only affect chrome that should not rebuild requestData. */
 export function isDocOnlyRefresh(scopes: ApiUiRefreshScope[]): boolean {
-  return scopes.length > 0 && scopes.every((scope) => scope === "doc");
+  return scopes.length > 0 && scopes.every((scope) => scope === "doc" || scope === "examples");
 }
 
 /**
@@ -107,10 +109,13 @@ export function diffApiRefreshScopes(prev: APIData | undefined, next: APIData): 
   if (
     !stableEqual(prev.inputs, next.inputs) ||
     !stableEqual(prev.outputs, next.outputs) ||
-    !stableEqual(prev.setenv, next.setenv) ||
-    !stableEqual(prev.examples, next.examples)
+    !stableEqual(prev.setenv, next.setenv)
   ) {
     scopes.add("inputs");
+  }
+  if (!stableEqual(prev.examples, next.examples)) {
+    // Examples list does not change resolved request values by itself.
+    scopes.add("examples");
   }
   if (
     !stableEqual(prev.description, next.description) ||
@@ -124,7 +129,7 @@ export function diffApiRefreshScopes(prev: APIData | undefined, next: APIData): 
     return [];
   }
 
-  // Inputs/examples change the whole resolved request; treat as full rebuild.
+  // Inputs/outputs/setenv change the whole resolved request; treat as full rebuild.
   if (scopes.has("inputs")) {
     return ["all"];
   }
