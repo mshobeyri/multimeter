@@ -19,6 +19,8 @@ interface VEditorProps {
   disabled?: boolean;
   deletable?: boolean;
   copyable?: boolean;
+  /** Per-key match status vs selected example expected outputs (shown beside the field). */
+  matchStatus?: ReadonlyMap<string, "match" | "mismatch" | "unset">;
 }
 
 const VEditor: React.FC<VEditorProps> = ({
@@ -30,7 +32,8 @@ const VEditor: React.FC<VEditorProps> = ({
   inputConstraints,
   disabled,
   deletable = true,
-  copyable = false
+  copyable = false,
+  matchStatus
 }) => {
   const keys = typeof keyOptions === "string" ? [keyOptions]: keyOptions;
 
@@ -89,6 +92,41 @@ const VEditor: React.FC<VEditorProps> = ({
                 ? "array"
                 : typeof currentValue;
           const pickerOptions = inputConstraints?.[key];
+          const fieldMatch = matchStatus?.get(key);
+
+          const fieldControl = valueOptions && valueOptions.length > 0 ? (
+            <SelectWithRemove
+              value={displayValue}
+              onChange={newVal => handleValueChange(index, newVal)}
+              onRemovePressed={() => handleRemove(index)}
+              options={valueOptions}
+              placeholder="Value"
+              disabled={disabled}
+              removable={deletable}
+            />
+          ) : pickerOptions && pickerOptions.length > 0 ? (
+            <FieldWithOptionsPicker
+              value={displayValue}
+              onChange={newVal => handleValueChange(index, newVal)}
+              onPick={newVal => handlePickedValue(index, newVal)}
+              onRemovePressed={() => handleRemove(index)}
+              options={pickerOptions}
+              placeholder="Value"
+              disabled={disabled}
+              removable={deletable && hasValue}
+              copyable={copyable}
+            />
+          ) : (
+            <FieldWithRemove
+              value={displayValue}
+              onChange={newVal => handleValueChange(index, newVal)}
+              onRemovePressed={() => handleRemove(index)}
+              placeholder="Value"
+              disabled={disabled}
+              removable={deletable && hasValue}
+              copyable={copyable}
+            />
+          );
 
           return (
             <div key={key} style={{ marginBottom: 8, paddingLeft: 20 }}>
@@ -100,38 +138,44 @@ const VEditor: React.FC<VEditorProps> = ({
                   </span>
                 )}
               </div>
-              <div>
-                {valueOptions && valueOptions.length > 0 ? (
-                  <SelectWithRemove
-                    value={displayValue}
-                    onChange={newVal => handleValueChange(index, newVal)}
-                    onRemovePressed={() => handleRemove(index)}
-                    options={valueOptions}
-                    placeholder="Value"
-                    disabled={disabled}
-                    removable={deletable}
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  {fieldControl}
+                </div>
+                {fieldMatch === "match" && (
+                  <span
+                    className="codicon codicon-check"
+                    title="Matches example output"
+                    aria-label="Matches example output"
+                    style={{
+                      flexShrink: 0,
+                      fontSize: "14px",
+                      color: "var(--vscode-testing-iconPassed, #73c991)",
+                    }}
                   />
-                ) : pickerOptions && pickerOptions.length > 0 ? (
-                  <FieldWithOptionsPicker
-                    value={displayValue}
-                    onChange={newVal => handleValueChange(index, newVal)}
-                    onPick={newVal => handlePickedValue(index, newVal)}
-                    onRemovePressed={() => handleRemove(index)}
-                    options={pickerOptions}
-                    placeholder="Value"
-                    disabled={disabled}
-                    removable={deletable && hasValue}
-                    copyable={copyable}
+                )}
+                {fieldMatch === "mismatch" && (
+                  <span
+                    className="codicon codicon-close"
+                    title="Does not match example output"
+                    aria-label="Does not match example output"
+                    style={{
+                      flexShrink: 0,
+                      fontSize: "14px",
+                      color: "var(--vscode-testing-iconFailed, #f14c4c)",
+                    }}
                   />
-                ) : (
-                  <FieldWithRemove
-                    value={displayValue}
-                    onChange={newVal => handleValueChange(index, newVal)}
-                    onRemovePressed={() => handleRemove(index)}
-                    placeholder="Value"
-                    disabled={disabled}
-                    removable={deletable && hasValue}
-                    copyable={copyable}
+                )}
+                {fieldMatch === "unset" && (
+                  <span
+                    className="codicon codicon-circle-outline"
+                    title="Not asserted by this example"
+                    aria-label="Not asserted by this example"
+                    style={{
+                      flexShrink: 0,
+                      fontSize: "14px",
+                      color: "var(--vscode-descriptionForeground, #888)",
+                    }}
                   />
                 )}
               </div>

@@ -50,6 +50,27 @@ function cloneInputs(source?: JSONRecord): JSONRecord {
   }
 }
 
+/** Compare run output vs example expected value (allows string/number coercion). */
+function outputValuesMatch(actual: unknown, expected: unknown): boolean {
+  if (Object.is(actual, expected)) {
+    return true;
+  }
+  if (actual === undefined || expected === undefined) {
+    return false;
+  }
+  if (actual === null || expected === null) {
+    return actual === expected;
+  }
+  if (typeof actual === "object" || typeof expected === "object") {
+    try {
+      return JSON.stringify(actual) === JSON.stringify(expected);
+    } catch {
+      return false;
+    }
+  }
+  return String(actual) === String(expected);
+}
+
 const methodColor: Record<string, string> = {
   get: "#61affe",
   post: "#49cc90",
@@ -165,6 +186,29 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     () => extractInputConstraintsFromDescription(api.description || ""),
     [api.description]
   );
+
+  const outputMatchStatus = useMemo(() => {
+    const status = new Map<string, "match" | "mismatch" | "unset">();
+    if (selectedExampleIdx < 0 || !responseData) {
+      return status;
+    }
+    const expected = examples[selectedExampleIdx]?.outputs;
+    const expectedObj = expected && typeof expected === "object" ? expected : {};
+    const outputKeys = typeof api.outputs === "object" ? Object.keys(api.outputs || {}) : [];
+
+    outputKeys.forEach((key) => {
+      if (!Object.prototype.hasOwnProperty.call(expectedObj, key)) {
+        status.set(key, "unset");
+        return;
+      }
+      if (outputValuesMatch(outputs[key], expectedObj[key])) {
+        status.set(key, "match");
+      } else {
+        status.set(key, "mismatch");
+      }
+    });
+    return status;
+  }, [selectedExampleIdx, examples, outputs, responseData, api.outputs]);
 
   const handleExampleChange = (newIdx: number) => {
     setSelectedExampleIdx(newIdx);
@@ -521,6 +565,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             keyOptions={typeof api.outputs === "object" ? Object.keys(api.outputs || {}) : []}
             deletable={false}
             copyable={true}
+            matchStatus={outputMatchStatus}
           />
         )}
       </div>
