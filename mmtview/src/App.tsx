@@ -151,10 +151,10 @@ const App: React.FC = () => {
     window.vscode?.postMessage({command: "logToOutput", level: "debug", message: `[panel] ${message}`});
   }
 
-  function uiSetContent(content: string) {
-    if (!yamlEditorFocused) {
-      setContent(content);
-      setValidContent(content);
+  function uiSetContent(next: string, options?: { force?: boolean }) {
+    if (!yamlEditorFocused || options?.force) {
+      setContent(next);
+      setValidContent(next);
     }
   }
 
