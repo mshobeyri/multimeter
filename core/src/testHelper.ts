@@ -1,4 +1,5 @@
 import {normalizeOmitToNull, OMIT_KEYWORD, OMIT_SENTINEL, restoreOmitKeyword} from './omitKeyword';
+import {opsList} from './TestData';
 
 /**
  * Abort signal for cooperative test cancellation.
@@ -610,6 +611,44 @@ function displayValue(v: any): string {
   return String(normalized);
 }
 
+function escapeRegExp_(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Extract comparison operator from a raw check string like `status == 201`. */
+function operatorFromComparison_(comparison: string): string {
+  const trimmed = String(comparison ?? '').trim();
+  if (!trimmed) {
+    return '==';
+  }
+  const pattern = [
+    '[=!](?:0|[1-9][0-9]?|100)%',
+    ...opsList.slice().sort((a, b) => b.length - a.length).map(escapeRegExp_),
+  ].join('|');
+  const operatorRe = new RegExp(`(?:^|\\s)(${pattern})(?=\\s|$)`, 'g');
+  let match: RegExpExecArray|null;
+  while ((match = operatorRe.exec(trimmed))) {
+    const operator = match[1];
+    const operatorStart = match.index + match[0].length - operator.length;
+    const actual = trimmed.slice(0, operatorStart).trim();
+    if (actual) {
+      return operator;
+    }
+  }
+  return '==';
+}
+
+function formatCheckLogLine_(
+    passed: boolean, label: string, titlePart: string, raw: string, actual?: any,
+    expected?: any): string {
+  const base = `${passed ? '\u2713' : '\u00D7'} ${label} ${titlePart}"${raw}"`;
+  if (passed) {
+    return base;
+  }
+  const op = operatorFromComparison_(raw);
+  return `${base} (${displayValue(actual)} ${op} ${displayValue(expected)})`;
+}
+
 function formatCheckDetails(raw: string): string {
   const sanitizedRaw = String(raw || '').split(OMIT_SENTINEL).join(OMIT_KEYWORD);
   try {
@@ -679,7 +718,7 @@ export const check_ = (
   const label = type === 'check' ? 'Check' : 'Assert';
   const titlePart = title ? `"${title}" - ` : '';
   if (passed) {
-    const msg = `\u2713 ${label} ${titlePart}"${raw}" passed`;
+    const msg = formatCheckLogLine_(true, label, titlePart, raw);
     if (checkLogMode === 'none') {
       if (reportLevel === 'all') {
         doReport(type, raw, title, details, true);
@@ -698,7 +737,8 @@ export const check_ = (
       c.trace(msg);
     }
   } else {
-    const shortMsg = `\u00D7 ${label} ${titlePart}"${raw}" failed, as ${displayValue(actual)} is not ${displayValue(expected)}`;
+    const shortMsg =
+        formatCheckLogLine_(false, label, titlePart, raw, actual, expected);
     if (checkLogMode === 'none') {
       if (reportLevel !== 'none') {
         doReport(type, raw, title, details, false, actual, expected);
@@ -755,7 +795,7 @@ export const checkExpects_ = (
         c.debug(`\u{1F41E} ${label} ${titlePart}"${item.comparison}" ${item.passed ? 'passed' : 'failed'}: actual=${displayValue(item.actual)}, expected=${displayValue(item.expected)}`);
       }
     } else if (item.passed) {
-      const msg = `\u2713 ${label} ${titlePart}"${item.comparison}" passed`;
+      const msg = formatCheckLogLine_(true, label, titlePart, item.comparison);
       if (checkLogMode === 'none' || checkLogMode === 'failures-only') {
         // Keep passed checks available to reporters below, but do not emit
         // per-check success lines to the console/log stream.
@@ -767,7 +807,8 @@ export const checkExpects_ = (
         c.trace(msg);
       }
     } else {
-      const shortMsg = `\u00D7 ${label} ${titlePart}"${item.comparison}" failed, as ${displayValue(item.actual)} is not ${displayValue(item.expected)}`;
+      const shortMsg = formatCheckLogLine_(
+          false, label, titlePart, item.comparison, item.actual, item.expected);
       if (checkLogMode === 'none') {
         // Keep failed checks available to reporters below, but do not emit
         // per-check failure lines to the console/log stream.
