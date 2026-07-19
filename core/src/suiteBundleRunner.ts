@@ -71,7 +71,12 @@ async function runSuiteBundleNode(params: {
 
   const currentIndex = nextIndex();
   const childFilePath = resolveRelativeTo(node.path, bundle.rootSuitePath);
-  const display = basename(childFilePath || node.path);
+  const nodeTitle =
+      typeof (node as any).title === 'string' && (node as any).title.trim() ?
+      (node as any).title.trim() :
+      undefined;
+  // Prefer YAML title over filename (same priority as tests).
+  const display = nodeTitle || basename(childFilePath || node.path);
   // Include a suite-run nonce so repeating the suite reuses no runIds.
   const suiteRunNonce = typeof options.suiteRunId === 'string' ? options.suiteRunId : '';
   const runId = `suite:${sanitizeIdentifier(bundle.rootSuitePath)}:${suiteRunNonce}:${currentIndex}:${sanitizeIdentifier(childFilePath || node.path)}`;
@@ -106,7 +111,7 @@ async function runSuiteBundleNode(params: {
       runId,
       filePath: childFilePath,
       entry: node.path,
-      title: (node as any).title,
+      title: nodeTitle || (node as any).title,
       docType: childDocType ?? undefined,
       id,
     });
@@ -131,6 +136,7 @@ async function runSuiteBundleNode(params: {
       childRun = await executeSuiteBundle({
         bundle: {
           rootSuitePath: childFilePath,
+          rootTitle: nodeTitle,
           bundle: node.children,
           target: undefined,
         },
@@ -154,7 +160,7 @@ async function runSuiteBundleNode(params: {
       runId,
       filePath: childFilePath,
       entry: node.path,
-      title: (node as any).title,
+      title: nodeTitle || (node as any).title,
       docType: childDocType ?? undefined,
       id,
     });
@@ -172,7 +178,7 @@ async function runSuiteBundleNode(params: {
       runId,
       filePath: childFilePath,
       entry: node.path,
-      title: (node as any).title,
+      title: nodeTitle || (node as any).title,
       id,
     });
 
@@ -309,7 +315,10 @@ export async function executeSuiteBundle(params: {
     effectiveOptions = options;
   }
 
-  const suiteDisplayName = basename(bundle.rootSuitePath);
+  const suiteDisplayName =
+      (typeof bundle.rootTitle === 'string' && bundle.rootTitle.trim()) ?
+      bundle.rootTitle.trim() :
+      basename(bundle.rootSuitePath);
   const identifier = sanitizeIdentifier(suiteDisplayName);
 
   const allLogs: string[] = [];

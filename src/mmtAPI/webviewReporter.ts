@@ -38,9 +38,8 @@ export interface WebviewRunReporter {
 export interface CreateWebviewRunReporterOptions {
   type: WebviewReportType;
   webviewPanel: vscode.WebviewPanel;
-  /** When set, reporter is scoped to an active suite run. */
+  /** When set, all report posts are tagged with this suite run id. */
   suiteRunId?: string;
-  getActiveSuiteRunId?: () => string|undefined;
   isAborted?: () => boolean;
   resolveChildId?: (runId: string) => string|undefined;
   rememberChildId?: (runId: string, id: string) => void;
@@ -52,6 +51,9 @@ export interface CreateWebviewRunReporterOptions {
  * - full: forwards every report event and extension lifecycle hooks to the UI panel
  * - lifecycle: only start/stop of a run (onRunStart / onRunEnd / matching scopes);
  *   step/item detail is ignored. Panel updates are off for this type (logs-only runs).
+ *
+ * Suite runs may overlap: each reporter always tags posts with its own suiteRunId.
+ * The webview decides which suiteRunId is currently shown and ignores the rest.
  */
 export function createWebviewRunReporter(
     options: CreateWebviewRunReporterOptions): WebviewRunReporter {
@@ -79,10 +81,6 @@ export function createWebviewRunReporter(
         return;
       }
       if (options.suiteRunId) {
-        const currentId = options.getActiveSuiteRunId?.();
-        if (currentId && currentId !== options.suiteRunId) {
-          return;
-        }
         let id = typeof msg?.id === 'string' ? msg.id : undefined;
         if (!id && typeof msg?.runId === 'string' && msg.runId) {
           id = options.resolveChildId?.(msg.runId);

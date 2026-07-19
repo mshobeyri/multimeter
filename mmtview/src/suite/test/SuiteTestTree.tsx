@@ -271,7 +271,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
 
         const hierarchyChildren: string[] = [];
 
-        const pushHierarchy = (parent: string, nodes: SuiteTreeNode[], outChildren: string[]) => {
+        const pushHierarchy = (ownerPath: string, parent: string, nodes: SuiteTreeNode[], outChildren: string[]) => {
           for (let idx = 0; idx < (nodes || []).length; idx++) {
             const n = (nodes as any)[idx];
             if (!n) continue;
@@ -285,7 +285,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
               // unnecessary single group level for imported suites.
               if (Array.isArray(nodes) && nodes.length === 1) {
                 // recurse into the single group's children directly under parent
-                pushHierarchy(parent, n.children, outChildren);
+                pushHierarchy(ownerPath, parent, n.children, outChildren);
                 continue;
               }
 
@@ -293,7 +293,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
               const childIds2: string[] = [];
               items[gid] = { index: gid, isFolder: true, children: childIds2, data: { type: 'group', label: n.label, id: baseId } };
               // recurse and populate childIds2
-              pushHierarchy(gid, n.children, childIds2);
+              pushHierarchy(ownerPath, gid, n.children, childIds2);
               outChildren.push(gid);
               continue;
             }
@@ -302,7 +302,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
               const path = n.path;
               const itemId = uiId;
               // Make imported test nodes expandable so users can toggle the report panel.
-              items[itemId] = { index: itemId, isFolder: true, children: [], data: { type: 'test', path, id: baseId, title: (n as any).title, parentPath: parent } };
+              items[itemId] = { index: itemId, isFolder: true, children: [], data: { type: 'test', path, id: baseId, title: (n as any).title, parentPath: ownerPath } };
               outChildren.push(itemId);
               continue;
             }
@@ -311,9 +311,9 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
               const path = n.path;
               const itemId = uiId;
               const childIdsForSuite: string[] = [];
-              items[itemId] = { index: itemId, isFolder: true, children: childIdsForSuite, data: { type: 'suite', path, id: baseId, title: (n as any).title, parentPath: parent } };
-              // recurse to populate childIdsForSuite
-              pushHierarchy(itemId, n.children, childIdsForSuite);
+              items[itemId] = { index: itemId, isFolder: true, children: childIdsForSuite, data: { type: 'suite', path, id: baseId, title: (n as any).title, parentPath: ownerPath } };
+              // Nested suite children are relative to this nested suite file.
+              pushHierarchy(path, itemId, n.children, childIdsForSuite);
               outChildren.push(itemId);
               continue;
             }
@@ -321,7 +321,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
             if (n.kind === 'missing') {
               const path = n.path;
               const itemId = uiId;
-              items[itemId] = { index: itemId, isFolder: false, children: [], data: { type: 'test', path, id: baseId, parentPath: parent } };
+              items[itemId] = { index: itemId, isFolder: false, children: [], data: { type: 'test', path, id: baseId, parentPath: ownerPath } };
               outChildren.push(itemId);
               continue;
             }
@@ -333,7 +333,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
           }
         };
 
-        pushHierarchy(entry.id, Array.isArray(root.children) ? root.children : [], hierarchyChildren);
+        pushHierarchy(entry.path, entry.id, Array.isArray(root.children) ? root.children : [], hierarchyChildren);
 
         // Only show imported children when expanded.
         if (hierarchyChildren.length) {

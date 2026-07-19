@@ -52,7 +52,12 @@ let activeSuiteRun:
 let activeTestRun:
   {controller: AbortController; panelId: string;}|null = null;
 
-const suiteRunIdByChildRunId = new Map<string, string>();
+/** Per-suite-run state so concurrent/re-runs stay isolated. */
+const suiteRuns = new Map<string, {
+  controller: AbortController;
+  panelId: string;
+  childIds: Map<string, string>;
+}>();
 
 function createSuiteRunId(document: vscode.TextDocument) {
   return `suite:${document.uri.fsPath}:${Date.now()}`;
@@ -393,23 +398,27 @@ export async function handleRunSuite(
       message.suiteRunId :
       createSuiteRunId(document);
 
+  // Do not abort a previous suite run — allow re-running the same suite
+  // while an earlier run finishes. Each run keeps its own suiteRunId; the
+  // webview ignores superseded run ids so UI reports stay correct.
   const controller = new AbortController();
+  const childIds = new Map<string, string>();
+  const panelId = getPanelId(webviewPanel);
+  suiteRuns.set(suiteRunId, {controller, panelId, childIds});
   activeSuiteRun = {
     suiteRunId,
     controller,
-    panelId: getPanelId(webviewPanel),
+    panelId,
   };
-  suiteRunIdByChildRunId.clear();
 
   const uiReporter = createWebviewRunReporter({
     type: resolveWebviewReportType(message),
     webviewPanel,
     suiteRunId,
-    getActiveSuiteRunId: () => activeSuiteRun?.suiteRunId,
     isAborted: () => controller.signal.aborted,
-    resolveChildId: (runId) => suiteRunIdByChildRunId.get(runId),
+    resolveChildId: (runId) => childIds.get(runId),
     rememberChildId: (runId, id) => {
-      suiteRunIdByChildRunId.set(runId, id);
+      childIds.set(runId, id);
     },
   });
 
@@ -577,6 +586,7 @@ export async function handleRunSuite(
       forwardLog('error', `Failed to run ${fileName}: ${err?.message || String(err)}`);
     }
   } finally {
+    suiteRuns.delete(suiteRunId);
     if (activeSuiteRun && activeSuiteRun.suiteRunId === suiteRunId) {
       activeSuiteRun = null;
     }
@@ -589,14 +599,23 @@ export function handleStopSuiteRun(
     _document: vscode.TextDocument, _mmtProvider: any) {
   const suiteRunId =
       typeof message?.suiteRunId === 'string' ? message.suiteRunId : '';
+  const panelId = getPanelId(webviewPanel);
+
+  if (suiteRunId) {
+    const tracked = suiteRuns.get(suiteRunId);
+    if (!tracked || tracked.panelId !== panelId) {
+      return;
+    }
+    tracked.controller.abort();
+    webviewPanel.webview.postMessage({
+      command: 'suiteRunStopped',
+      suiteRunId,
+    });
+    return;
+  }
+
   const current = activeSuiteRun;
-  if (!current) {
-    return;
-  }
-  if (suiteRunId && current.suiteRunId !== suiteRunId) {
-    return;
-  }
-  if (current.panelId !== getPanelId(webviewPanel)) {
+  if (!current || current.panelId !== panelId) {
     return;
   }
   current.controller.abort();

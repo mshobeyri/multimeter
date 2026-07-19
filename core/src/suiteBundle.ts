@@ -69,8 +69,8 @@ export function createSuiteBundle(params: {
           path: node.path,
           children: build(node.children, nextIndexPath),
         };
-        if (node.title) {
-          (suiteNode as any).title = node.title;
+        if (typeof node.title === 'string' && node.title.trim()) {
+          suiteNode.title = node.title.trim();
         }
         out.push(suiteNode);
         continue;
@@ -79,8 +79,8 @@ export function createSuiteBundle(params: {
       if (node.kind === 'test') {
         const id = resolveNodeId(node, nextIndexPath);
         const testNode: SuiteBundleNode = {kind: 'test', id, path: node.path};
-        if (node.title) {
-          (testNode as any).title = node.title;
+        if (typeof node.title === 'string' && node.title.trim()) {
+          testNode.title = node.title.trim();
         }
         out.push(testNode);
         continue;

@@ -50,7 +50,7 @@ function buildDisplayNamesFromHierarchy(
         const label = getNodeLabel(node);
         const currentPath = node.kind === 'group' ? pathParts : [...pathParts, label];
 
-        if (node.kind === 'test' || node.kind === 'missing' || node.kind === 'cycle') {
+        if (node.kind === 'test' || node.kind === 'suite' || node.kind === 'missing' || node.kind === 'cycle') {
             result[node.id] = currentPath.join(' / ');
         }
 
@@ -439,6 +439,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     const [missingFiles, setMissingFiles] = useState<Set<string>>(new Set());
 
     const [suiteRunId, setSuiteRunId] = useState<string | null>(null);
+    const suiteRunIdRef = useRef<string | null>(null);
+    const ignoredSuiteRunIdsRef = useRef<Set<string>>(new Set());
     const [suiteRunState, setSuiteRunState] = useState<StepStatus>('default');
     const [loadRunSummary, setLoadRunSummary] = useState<LoadRunSummary | null>(null);
     const [leafReportsById, setLeafReportsById] = useState<Record<string, StepReportItem[]>>({});
@@ -451,6 +453,26 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     const reportQueueRef = useRef<any[]>([]);
     const reportFlushTimerRef = useRef<number | null>(null);
     const durationTimerRef = useRef<number | null>(null);
+
+    const trimIgnoredSuiteRuns = useCallback(() => {
+        if (ignoredSuiteRunIdsRef.current.size <= 10) {
+            return;
+        }
+        const first = ignoredSuiteRunIdsRef.current.values().next();
+        if (!first.done) {
+            ignoredSuiteRunIdsRef.current.delete(first.value);
+        }
+    }, []);
+
+    const beginSuiteRun = useCallback((nextSuiteRunId: string) => {
+        if (suiteRunIdRef.current) {
+            ignoredSuiteRunIdsRef.current.add(suiteRunIdRef.current);
+            trimIgnoredSuiteRuns();
+        }
+        suiteRunIdRef.current = nextSuiteRunId;
+        setSuiteRunId(nextSuiteRunId);
+        reportQueueRef.current = [];
+    }, [trimIgnoredSuiteRuns]);
 
     const resetLeafState = useCallback((mode: 'all' | readonly string[]) => {
         if (mode === 'all') {
@@ -703,6 +725,18 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 if (!nextSuiteRunId) {
                     return;
                 }
+                if (ignoredSuiteRunIdsRef.current.has(nextSuiteRunId)) {
+                    return;
+                }
+                // Accept start for the active run, or adopt it if the UI has not
+                // bound a suiteRunId yet (e.g. host-generated id).
+                if (suiteRunIdRef.current && suiteRunIdRef.current !== nextSuiteRunId) {
+                    ignoredSuiteRunIdsRef.current.add(suiteRunIdRef.current);
+                    trimIgnoredSuiteRuns();
+                    suiteRunIdRef.current = nextSuiteRunId;
+                } else if (!suiteRunIdRef.current) {
+                    suiteRunIdRef.current = nextSuiteRunId;
+                }
                 reportQueueRef.current = [];
                 // New suite run: clear per-run mappings so old runIds can't
                 // influence routing or step sequences.
@@ -730,7 +764,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
 
             if (message.command === 'suiteRunEnd') {
                 const endedId = typeof message.suiteRunId === 'string' ? message.suiteRunId : null;
-                if (endedId && suiteRunId && endedId !== suiteRunId) {
+                if (endedId && ignoredSuiteRunIdsRef.current.has(endedId)) {
+                    return;
+                }
+                if (endedId && suiteRunIdRef.current && endedId !== suiteRunIdRef.current) {
                     return;
                 }
                 const cancelled = Boolean((message as any).cancelled);
@@ -760,7 +797,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
 
             if (message.command === 'suiteRunStopped') {
                 const stoppedId = typeof message.suiteRunId === 'string' ? message.suiteRunId : null;
-                if (stoppedId && suiteRunId && stoppedId !== suiteRunId) {
+                if (stoppedId && ignoredSuiteRunIdsRef.current.has(stoppedId)) {
+                    return;
+                }
+                if (stoppedId && suiteRunIdRef.current && stoppedId !== suiteRunIdRef.current) {
                     return;
                 }
                 setSuiteRunState('cancelled');
@@ -811,10 +851,14 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
 
             if (message.command === 'runFileReport') {
                 const incomingSuiteRunId = typeof (message as any).suiteRunId === 'string' ? (message as any).suiteRunId : null;
-                if (suiteRunId) {
+                if (incomingSuiteRunId && ignoredSuiteRunIdsRef.current.has(incomingSuiteRunId)) {
+                    return;
+                }
+                const activeId = suiteRunIdRef.current;
+                if (activeId) {
                     // When the UI thinks we have an active suite run, only accept
                     // reports explicitly tagged with the same suiteRunId.
-                    if (!incomingSuiteRunId || incomingSuiteRunId !== suiteRunId) {
+                    if (!incomingSuiteRunId || incomingSuiteRunId !== activeId) {
                         return;
                     }
                 } else {
@@ -837,7 +881,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         };
         window.addEventListener('message', handler);
         return () => window.removeEventListener('message', handler);
-    }, [groups, suiteRunId, resetLeafState, flushReportQueue, mode]);
+    }, [groups, resetLeafState, flushReportQueue, mode, trimIgnoredSuiteRuns]);
 
     useEffect(() => {
         if (allPaths.length > 0) {
@@ -882,7 +926,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         setStepStatuses(next);
         const nextSuiteRunId = `suite-ui:${Date.now()}`;
         const startedAt = Date.now();
-        setSuiteRunId(nextSuiteRunId);
+        beginSuiteRun(nextSuiteRunId);
         setSuiteRunState('running');
         suiteRunStartTimeRef.current = startedAt;
         setSuiteRunStartedAt(startedAt);
@@ -890,7 +934,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         pendingLeafResetRef.current = 'all';
         resetLeafState('all');
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId });
-    }, [groups, resetLeafState, hierarchyByEntryPath]);
+    }, [groups, resetLeafState, hierarchyByEntryPath, beginSuiteRun]);
 
     const onRunTargets = useCallback((target: string) => {
         const effectiveTarget = typeof target === 'string' ? target : '';
@@ -945,13 +989,13 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
 
         const nextSuiteRunId = `suite-ui:${Date.now()}`;
         const startedAt = Date.now();
-        setSuiteRunId(nextSuiteRunId);
+        beginSuiteRun(nextSuiteRunId);
         setSuiteRunState('running');
         suiteRunStartTimeRef.current = startedAt;
         setSuiteRunStartedAt(startedAt);
         setSuiteRunDurationMs(0);
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId, target: effectiveTarget });
-    }, [resetLeafState, hierarchyByEntryPath]);
+    }, [resetLeafState, hierarchyByEntryPath, beginSuiteRun]);
 
     const onRunSuiteInCore = useCallback(() => {
         window.vscode?.postMessage({
