@@ -30,8 +30,8 @@ inputs:                        # Optional. Input parameters for this API, with d
 	<name>: JSON value           # string | number | boolean | null | object.
 outputs:                       # Optional. Named values extracted from the response (body/headers/cookies).
 	<name>: string               # Extractor expression, e.g. body[token] or body[/regex_pattern/]
-setenv:                        # Optional. Promote outputs into environment variables for later steps/tests.
-	<env_name>: <output_name>    # env_name is snake_case; output_name must exist in outputs.
+setenv:                        # Optional. Promote response values into env vars after a run (same extraction DSL as outputs).
+	<env_name>: <expression>     # e.g. body[token] or body.access_token (legacy: outputs key name still works).
 
 # Request description (REQUIRED)
 url: string                    # REQUIRED. Full or relative URL; may include env/input tokens like <<e:api_url>>.
@@ -142,7 +142,7 @@ outputs:
 	token: body[token]
 	status: body[status]
 setenv:
-	auth_token: token
+	auth_token: body[token]
 url: <<e:api_url>>/login
 protocol: http
 method: post

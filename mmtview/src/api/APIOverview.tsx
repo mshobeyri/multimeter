@@ -13,7 +13,6 @@ interface APIOverviewProps {
 }
 
 const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
-  const outputOptions = Object.keys(api.outputs || {});
   const [showPreview, setShowPreview] = useState(false);
 
   return (
@@ -107,8 +106,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
           update({ setenv: kv });
         }}
         keyPlaceholder="name"
-        valuePlaceholder="output key"
-        options={outputOptions}
+        valuePlaceholder="body.path or regex"
       />
     </div >
   );

@@ -4,12 +4,13 @@ import { Request, Response } from "mmt-core/NetworkData";
 import { JSONRecord } from "mmt-core/CommonData";
 import { safeList } from "mmt-core/safer";
 import { replaceAllRefs } from "mmt-core/variableReplacer";
-import { stripOmitFromRequest, isOmitSentinel } from "mmt-core/omitKeyword";
+import { stripOmitFromRequest } from "mmt-core/omitKeyword";
 import { formatBody } from "mmt-core/markupConvertor";
 import { applyAuthToRequest } from "mmt-core/apiParsePack";
 import { loadEnvVariables } from "../workspaceStorage";
 import { extractOutputs, extractPathAtPosition, buildBodyExprFromPath } from "mmt-core/outputExtractor";
-import { setEnvironmentVariable, getEnvironmentVariable } from "../environment/environmentUtils";
+import { resolveSetenvValues } from "mmt-core/setenvResolve";
+import { setEnvironmentVariables } from "../environment/environmentUtils";
 import { useNetwork } from "../components/network/Network";
 import { NetworkNodeApi, Error as NetworkError } from "../components/network/NetworkNodeApi";
 import { pushHistory, showVSCodeMessage } from "../vsAPI";
@@ -216,37 +217,40 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
   }, [api, examples, selectedExampleIdx, prepareRequestData]);
 
   useEffect(() => {
-    if (
-      (!api.outputs || Object.keys(api.outputs).length === 0) ||
-      (( !responseData?.body || responseData.body === "" ) &&
-        (!responseData?.headers || Object.keys(responseData.headers).length === 0) &&
-        (!responseData?.cookies || Object.keys(responseData.cookies).length === 0))
-    ) {
+    const hasBody = !!(responseData?.body && responseData.body !== "");
+    const hasHeaders = !!(responseData?.headers && Object.keys(responseData.headers).length > 0);
+    const hasCookies = !!(responseData?.cookies && Object.keys(responseData.cookies).length > 0);
+    if (!hasBody && !hasHeaders && !hasCookies && responseData?.status == null) {
       return;
     }
 
-    const extractRules = api.outputs || {};
-    const outputNames = Object.keys(extractRules);
-
-    const extractedValues = extractOutputs({
-      type: "auto",
+    const extractSource = {
+      type: "auto" as const,
       body: responseData?.body,
       headers: responseData?.headers || {},
-      cookies: responseData?.cookies || {}
-    }, extractRules);
+      cookies: responseData?.cookies || {},
+      status: responseData?.status,
+      duration: responseData?.duration,
+    };
 
+    const extractRules = api.outputs || {};
+    const outputNames = Object.keys(extractRules);
     const finalOutputs: JSONRecord = {};
-    outputNames.forEach(outputName => {
-      if (outputName in extractedValues) {
-        finalOutputs[outputName] = extractedValues[outputName];
-      } else {
-        finalOutputs[outputName] = "";
-      }
-    });
 
-    setOutputs(finalOutputs);
-    void handleSetEnvVariables(api, finalOutputs);
-  }, [responseData?.body, responseData?.headers, responseData?.cookies, api.outputs, api.setenv, api]);
+    if (outputNames.length > 0) {
+      const extractedValues = extractOutputs(extractSource, extractRules);
+      outputNames.forEach(outputName => {
+        if (outputName in extractedValues) {
+          finalOutputs[outputName] = extractedValues[outputName];
+        } else {
+          finalOutputs[outputName] = "";
+        }
+      });
+      setOutputs(finalOutputs);
+    }
+
+    void handleSetEnvVariables(api, extractSource, finalOutputs);
+  }, [responseData?.body, responseData?.headers, responseData?.cookies, responseData?.status, responseData?.duration, api.outputs, api.setenv, api]);
 
   const handleAddOutputVariable = useCallback((pos: OutputPosition) => {
     const bodyText = pos.text ?? "";
@@ -541,30 +545,31 @@ export async function runApiDocument({ api, inputs, filePath }: RunApiDocumentOp
 }
 
 async function handleApiOutputs(api: APIData, response: Response) {
-  if (!api.outputs || Object.keys(api.outputs).length === 0) {
-    return;
-  }
-
-  const extractRules = api.outputs || {};
-  const outputNames = Object.keys(extractRules);
-
-  const extractedValues = extractOutputs({
-    type: "auto",
+  const extractSource = {
+    type: "auto" as const,
     body: response.body,
     headers: response.headers || {},
     cookies: response.cookies || {},
-  }, extractRules);
+    status: response.status,
+    duration: response.duration,
+  };
 
+  const extractRules = api.outputs || {};
+  const outputNames = Object.keys(extractRules);
   const finalOutputs: JSONRecord = {};
-  outputNames.forEach(outputName => {
-    if (outputName in extractedValues) {
-      finalOutputs[outputName] = extractedValues[outputName];
-    } else {
-      finalOutputs[outputName] = "";
-    }
-  });
 
-  await handleSetEnvVariables(api, finalOutputs);
+  if (outputNames.length > 0) {
+    const extractedValues = extractOutputs(extractSource, extractRules);
+    outputNames.forEach(outputName => {
+      if (outputName in extractedValues) {
+        finalOutputs[outputName] = extractedValues[outputName];
+      } else {
+        finalOutputs[outputName] = "";
+      }
+    });
+  }
+
+  await handleSetEnvVariables(api, extractSource, finalOutputs);
 }
 
 async function buildRequestFromApi(api: APIData, inputs?: JSONRecord): Promise<Request> {
@@ -626,33 +631,35 @@ function toContentString(data: any): string {
 
 async function handleSetEnvVariables(
   api: APIData,
+  response: {
+    type: "auto";
+    body: any;
+    headers: Record<string, any>;
+    cookies: Record<string, any>;
+    status?: number;
+    duration?: number;
+  },
   finalOutputs: JSONRecord
 ) {
   if (!api.setenv || typeof api.setenv !== "object" || Object.keys(api.setenv).length === 0) {
     return;
   }
-  await Promise.all(
-    Object.entries(api.setenv).map(async ([envKey, outputKey]) => {
-      if (envKey && outputKey) {
-        let value = "";
-        let label = api.title ? `api - ${api.title}` : 'api';
 
-        if (Object.prototype.hasOwnProperty.call(finalOutputs, String(outputKey))) {
-          const outputValue = finalOutputs[String(outputKey)];
-          if (outputValue !== "" && outputValue != null && !isOmitSentinel(outputValue)) {
-            value = String(outputValue);
-          }
-        } else {
-          value = String(outputKey);
-          label = api.title ? `api - ${api.title}` : 'api';
-        }
+  const resolved = resolveSetenvValues({
+    response,
+    setenv: api.setenv,
+    outputs: api.outputs,
+    extractedOutputs: finalOutputs,
+  });
+  if (resolved.length === 0) {
+    return;
+  }
 
-        const currentValue = await getEnvironmentVariable(envKey);
-        if (currentValue !== value) {
-          setEnvironmentVariable(envKey, value, label);
-        }
-      }
-    })
-  );
+  const label = api.title ? `api - ${api.title}` : "api";
+  setEnvironmentVariables(resolved.map(item => ({
+    name: item.name,
+    value: item.value,
+    label,
+  })));
 }
 

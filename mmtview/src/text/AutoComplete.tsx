@@ -797,7 +797,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "setenv:\n\t",
             detail: 'Set environment variables [object of key: value]',
-            documentation: 'Map output values to environment variables that can be used in other APIs. Links extracted outputs to environment variable names.\nExample:\nsetenv:\n\tUSER_ID: "userId"\n\tACCESS_TOKEN: "token"',
+            documentation: 'Promote response values into environment variables after an API run. Values use the same extraction expressions as outputs (paths, regex, keywords).\nExample:\nsetenv:\n\tTOKEN: body.access_token\n\tUSER_ID: body.user.id\nDeprecated: referencing an outputs key name (TOKEN: token) still works; click the struck-through value to replace it with the output expression.',
         },
         {
             label: "protocol",

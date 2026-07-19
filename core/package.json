@@ -169,6 +169,11 @@
       "require": "./dist/omitKeyword.js",
       "default": "./dist/omitKeyword.js"
     },
+    "./setenvResolve": {
+      "types": "./dist/setenvResolve.d.ts",
+      "require": "./dist/setenvResolve.js",
+      "default": "./dist/setenvResolve.js"
+    },
     "./testScaffold": {
       "types": "./dist/testScaffold.d.ts",
       "require": "./dist/testScaffold.js",

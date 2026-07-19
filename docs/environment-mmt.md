@@ -104,7 +104,7 @@ Typing rules for CLI values
 ![Environment variables UI](../screenshots/environment_variables_ui.png)
 
 ## Promote values to env during runs
-In API definitions, use `setenv` to capture values from responses for later steps.
+In API definitions, use `setenv` to capture values from responses for later steps. Values use the same extraction expressions as `outputs`:
 ```yaml
 setenv:
   token: body[token]

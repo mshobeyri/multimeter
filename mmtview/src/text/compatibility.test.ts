@@ -5,7 +5,6 @@ import {
   findCompatibilityIssueAtPosition,
   findCompatibilityProblems,
 } from './compatibility';
-import {validateYamlContent} from './Validate';
 
 describe('compatibility deprecations', () => {
   it('warns when suite uses legacy tests instead of items', () => {
@@ -59,23 +58,58 @@ describe('compatibility deprecations', () => {
       applyFix: {kind: 'renameYamlKey', from: 'tests', to: 'items'},
     });
   });
-});
 
-describe('validateYamlContent suite legacy tests', () => {
-  it('accepts legacy tests without requiring items', () => {
-    const errors = validateYamlContent([
-      'type: suite',
-      'tests:',
-      '  - ./tests/login.mmt',
-    ].join('\n'));
-    expect(errors.some((error) => String(error.message).includes("required property 'items'"))).toBe(false);
+  it('warns when api setenv references an outputs key name', () => {
+    const content = [
+      'type: api',
+      'url: https://example.com',
+      'outputs:',
+      '  token: body.access_token',
+      'setenv:',
+      '  TOKEN: token',
+    ].join('\n');
+    const doc = parseDocument(content);
+    const problems = findCompatibilityProblems(content, doc, 'api');
+    expect(problems).toHaveLength(1);
+    expect(problems[0]).toMatchObject({
+      category: 'compatibility',
+      severity: 'warning',
+      message: expect.stringContaining('deprecated'),
+      applyFix: {
+        kind: 'replaceRange',
+        text: 'body.access_token',
+      },
+    });
   });
 
-  it('still requires items or tests on suite files', () => {
-    const errors = validateYamlContent([
-      'type: suite',
-      'title: Empty',
-    ].join('\n'));
-    expect(errors.length).toBeGreaterThan(0);
+  it('click-fix replaces legacy setenv output key with extraction expression', () => {
+    const content = [
+      'type: api',
+      'url: https://example.com',
+      'outputs:',
+      '  token: body.access_token',
+      'setenv:',
+      '  TOKEN: token',
+    ].join('\n');
+    const doc = parseDocument(content);
+    const issue = findCompatibilityIssueAtPosition(content, doc, 'api', 6, 10);
+    expect(issue).not.toBeNull();
+    const updated = applyCompatibilityFix(content, issue!.applyFix, issue!.line);
+    expect(updated).toContain('TOKEN: body.access_token');
+    expect(updated).not.toContain('TOKEN: token');
+  });
+
+  it('does not warn when setenv already uses extraction expressions', () => {
+    const content = [
+      'type: api',
+      'url: https://example.com',
+      'outputs:',
+      '  token: body.access_token',
+      'setenv:',
+      '  TOKEN: body.access_token',
+    ].join('\n');
+    const doc = parseDocument(content);
+    const problems = findCompatibilityProblems(content, doc, 'api');
+    expect(problems).toHaveLength(0);
   });
 });

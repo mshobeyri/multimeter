@@ -19,6 +19,7 @@ export * as markupConvertor from "./markupConvertor";
 export * as variableReplacer from "./variableReplacer";
 export * as omitKeyword from "./omitKeyword";
 export * as outputExtractor from "./outputExtractor";
+export * as setenvResolve from "./setenvResolve";
 export * as testHelper from "./testHelper";
 export * as testFileLoaderMock from './testFileLoaderMock';
 export * as protocolResolver from "./protocolResolver";
