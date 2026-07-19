@@ -49,6 +49,7 @@ export interface PreparedRun {
   title?: string;
   exampleName?: string;
   exampleIndex?: number;
+  exampleOutputs?: Record<string, any>;
   loadtestConfig?: LoadTestPreparedConfig;
 }
 

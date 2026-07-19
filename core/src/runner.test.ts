@@ -52,4 +52,27 @@ describe('createApiLogHelpers', () => {
     expect(formatted).toEqual({__mmt_raw: '321ms'});
     expect(blank).toEqual({__mmt_raw: ''});
   });
+
+  it('formats Expects with pass/fail marks', () => {
+    const helpers = createApiLogHelpers();
+
+    expect(helpers.valuesMatch('a', 'a')).toBe(true);
+    expect(helpers.valuesMatch(1, '1')).toBe(true);
+    expect(helpers.valuesMatch({a: 1}, {a: 1})).toBe(true);
+    expect(helpers.valuesMatch('a', 'b')).toBe(false);
+
+    const allPass = helpers.formatExpects({s: 'ok'}, {s: 'ok'});
+    expect(allPass.successText).toBe('Expects:\n  \u2713 s');
+    expect(allPass.failText).toBe('');
+
+    const mixed = helpers.formatExpects(
+        {s: 'ok', ss: 12, d: '__MMT_OMIT_KEYWORD__'},
+        {s: 'ok', ss: 13, d: '__MMT_OMIT_KEYWORD__'});
+    expect(mixed.successText).toBe('Expects:\n  \u2713 s\n  \u2713 d');
+    expect(mixed.failText).toBe('Expects:\n  \u00D7 ss (12 \u2260 13)');
+
+    const allFail = helpers.formatExpects({s: 1}, {s: 2});
+    expect(allFail.successText).toBe('');
+    expect(allFail.failText).toBe('Expects:\n  \u00D7 s (1 \u2260 2)');
+  });
 });

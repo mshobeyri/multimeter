@@ -8,6 +8,7 @@ import {replaceAllRefs} from './variableReplacer';
 
 export interface ResolveExampleResult {
   exampleInputs: Record<string, any>;
+  exampleOutputs?: Record<string, any>;
   resolvedExampleName?: string;
   resolvedExampleIndex?: number;
 }
@@ -25,8 +26,12 @@ export function resolveApiExample(
         typeof ex?.name === 'string' && ex.name.trim() ? ex.name : undefined;
     const inputs =
         isPlainObject(ex?.inputs) ? {...ex.inputs as Record<string, any>} : {};
+    const outputs = isPlainObject(ex?.outputs) ?
+        {...ex.outputs as Record<string, any>} :
+        undefined;
     return {
       exampleInputs: inputs,
+      exampleOutputs: outputs,
       resolvedExampleName: name,
       resolvedExampleIndex: typeof idx === 'number' ? idx : undefined,
     };
@@ -71,7 +76,7 @@ export function prepareApiRun(
       typeof options.exampleName === 'string' && options.exampleName.trim() ?
       options.exampleName.trim() :
       undefined;
-  const {exampleInputs, resolvedExampleName, resolvedExampleIndex} =
+  const {exampleInputs, exampleOutputs, resolvedExampleName, resolvedExampleIndex} =
       resolveApiExample(
           apiDoc, requestedExampleIndex, requestedExampleName, log);
   const inputsUsed = mergeInputs({
@@ -85,6 +90,7 @@ export function prepareApiRun(
     apiDoc,
     exampleName: resolvedExampleName,
     exampleIndex: resolvedExampleIndex,
+    exampleOutputs,
   };
 }
 
@@ -96,12 +102,21 @@ interface GenerateApiJsOptions {
   fileLoader: FileLoader;
   exampleName?: string;
   exampleIndex?: number;
+  exampleOutputs?: Record<string, any>;
 }
 
 export async function generateApiJs(options: GenerateApiJsOptions):
     Promise<string> {
-  const {api, name, envVars, inputs, fileLoader, exampleName, exampleIndex} =
-      options;
+  const {
+    api,
+    name,
+    envVars,
+    inputs,
+    fileLoader,
+    exampleName,
+    exampleIndex,
+    exampleOutputs,
+  } = options;
   JSer.setFileLoader(async (p: string) => {
     try {
       const t = await fileLoader(p);
@@ -122,8 +137,14 @@ export async function generateApiJs(options: GenerateApiJsOptions):
     envVars,
   });
   return `${funcSource}\n\n${
-      buildApiRunnerWrapper(
-          {name, envVars, inputs, exampleName, exampleIndex})}`;
+      buildApiRunnerWrapper({
+        name,
+        envVars,
+        inputs,
+        exampleName,
+        exampleIndex,
+        exampleOutputs,
+      })}`;
 }
 
 interface ApiRunnerWrapperOptions {
@@ -132,12 +153,16 @@ interface ApiRunnerWrapperOptions {
   inputs: Record<string, any>;
   exampleName?: string;
   exampleIndex?: number;
+  exampleOutputs?: Record<string, any>;
 }
 
 function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
   opts = replaceAllRefs(opts, {}, opts.inputs, opts.envVars);
   const envJson = JSON.stringify(opts.envVars ?? {}, null, 2);
   const inputsJson = JSON.stringify(opts.inputs ?? {}, null, 2);
+  const exampleOutputs = isPlainObject(opts.exampleOutputs) ? opts.exampleOutputs : {};
+  const exampleOutputsJson = JSON.stringify(exampleOutputs, null, 2);
+  const hasExampleOutputs = Object.keys(exampleOutputs).length > 0;
   const exampleLabelParts: string[] = [];
   if (opts.exampleName) {
     exampleLabelParts.push(`${opts.exampleName}`);
@@ -160,10 +185,22 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `    formatKeyValueObject: __mmt_formatKeyValueObject,\n` +
       `    formatSection: __mmt_formatSection,\n` +
       `    formatDuration: __mmt_formatDuration,\n` +
-      `    formatBodyValue: __mmt_formatBodyValue\n` +
+      `    formatBodyValue: __mmt_formatBodyValue,\n` +
+      `    valuesMatch: __mmt_valuesMatch,\n` +
+      `    formatExpects: __mmt_formatExpects\n` +
       `  } = (\n${helperFactorySource}\n  )();`;
   const exampleLiteral =
       exampleLabel ? `'${escapeForJsString(exampleLabel)}'` : 'null';
+  const expectsLogBlock = hasExampleOutputs ?
+      `    const __mmt_exampleOutputs = ${exampleOutputsJson};\n` +
+          `    const __mmt_expects = __mmt_formatExpects(__outputLog, __mmt_exampleOutputs);\n` +
+          `    if (__mmt_expects.successText) {\n` +
+          `      console.log(__mmt_expects.successText);\n` +
+          `    }\n` +
+          `    if (__mmt_expects.failText) {\n` +
+          `      console.error(__mmt_expects.failText);\n` +
+          `    }\n` :
+      '';
   return `return (async () => {\n` +
       `  const envVar = ${envJson};\n` +
       `  const envVariables = envVar;\n` +
@@ -305,6 +342,7 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `      return copy;\n` +
       `    })();\n` +
       `    console.log(__mmt_formatSection('Outputs:', __outputLog));\n` +
+      expectsLogBlock +
       `    return result;\n` +
       `  } finally {\n` +
       `    send_ = __mmt_originalSend;\n` +
@@ -328,6 +366,10 @@ export interface ApiLogHelpers {
   formatSection: (title: string, obj: Record<string, any>) => string;
   formatDuration: (value: unknown) => ApiLogRawValue;
   formatBodyValue: (body: unknown) => unknown;
+  valuesMatch: (actual: unknown, expected: unknown) => boolean;
+  formatExpects:
+      (actualOutputs: Record<string, any>, expectedOutputs: Record<string, any>) =>
+          {successText: string; failText: string};
 }
 
 export function createApiLogHelpers(): ApiLogHelpers {
@@ -477,6 +519,85 @@ export function createApiLogHelpers(): ApiLogHelpers {
     }
     return body;
   }
+  function unwrapForMatch(value: unknown): unknown {
+    return isRaw(value) ? value.__mmt_raw : value;
+  }
+  function valuesMatch(actual: unknown, expected: unknown): boolean {
+    const left = unwrapForMatch(actual);
+    const right = unwrapForMatch(expected);
+    if (Object.is(left, right)) {
+      return true;
+    }
+    if (left === undefined || right === undefined) {
+      return false;
+    }
+    if (left === null || right === null) {
+      return left === right;
+    }
+    if (typeof left === 'object' || typeof right === 'object') {
+      try {
+        return JSON.stringify(left) === JSON.stringify(right);
+      } catch {
+        return false;
+      }
+    }
+    return String(left) === String(right);
+  }
+  function displayExpectValue(value: unknown): string {
+    const restoreOmit = (v: unknown): unknown => {
+      if (v === '__MMT_OMIT_KEYWORD__') {
+        return 'omit';
+      }
+      if (Array.isArray(v)) {
+        return v.map(restoreOmit);
+      }
+      if (v && typeof v === 'object' && !isRaw(v)) {
+        const out: Record<string, unknown> = {};
+        for (const [k, nested] of Object.entries(v as Record<string, unknown>)) {
+          out[k] = restoreOmit(nested);
+        }
+        return out;
+      }
+      return v;
+    };
+    const normalized = restoreOmit(unwrapForMatch(value));
+    if (normalized === null || normalized === undefined) {
+      return String(normalized);
+    }
+    if (typeof normalized === 'object') {
+      try {
+        return JSON.stringify(normalized);
+      } catch {
+        return String(normalized);
+      }
+    }
+    return String(normalized);
+  }
+  function formatExpects(
+      actualOutputs: Record<string, any>,
+      expectedOutputs: Record<string, any>):
+      {successText: string; failText: string} {
+    const expected = expectedOutputs || {};
+    const actual = actualOutputs || {};
+    const successLines: string[] = [];
+    const failLines: string[] = [];
+    for (const key of Object.keys(expected)) {
+      if (valuesMatch(actual[key], expected[key])) {
+        successLines.push('  \u2713 ' + key);
+      } else {
+        failLines.push(
+            '  \u00D7 ' + key + ' (' + displayExpectValue(actual[key]) +
+            ' \u2260 ' + displayExpectValue(expected[key]) + ')');
+      }
+    }
+    return {
+      successText: successLines.length ?
+          'Expects:\n' + successLines.join('\n') :
+          '',
+      failText:
+          failLines.length ? 'Expects:\n' + failLines.join('\n') : '',
+    };
+  }
   return {
     raw,
     isRaw,
@@ -488,7 +609,9 @@ export function createApiLogHelpers(): ApiLogHelpers {
     formatKeyValueObject,
     formatSection,
     formatDuration,
-    formatBodyValue
+    formatBodyValue,
+    valuesMatch,
+    formatExpects,
   };
 }
 
@@ -515,6 +638,7 @@ export async function executeApi(
     apiDoc,
     exampleName,
     exampleIndex,
+    exampleOutputs,
   } = prepared;
   const {fileLoader, jsRunner} = options;
 
@@ -544,6 +668,7 @@ export async function executeApi(
     fileLoader,
     exampleName,
     exampleIndex,
+    exampleOutputs,
   });
   const result = await runGeneratedJs(
       'run-api', js, displayName, options.logger, jsRunner, undefined,
