@@ -2,6 +2,7 @@ import {LogLevel} from './CommonData';
 import {basename, detectDocType, PreparedRun, resolveRelativeTo, RunFileResult, sanitizeIdentifier} from './runCommon';
 import {RunFileOptions, RunResult, SuiteStepStatus} from './runConfig';
 import {logRunFinished} from './runLog';
+import {classifySuiteItemStatus} from './suiteItemStatus';
 import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
 import {isProjectRootImport, resolveProjectRootImport} from './fileHelper';
 import {stopAllServers_, registerServer_} from './testHelper';
@@ -221,19 +222,16 @@ export async function executeSuite(
 
         flushLogBuffer();
 
-        const status: SuiteStepStatus =
-            childRun.result?.success ? 'passed' :
-            childRun.result?.syntaxError ? 'invalid' :
-            'failed';
+        const status: SuiteStepStatus = classifySuiteItemStatus(childRun.result);
         const result = {
           entry,
           filePath: childFilePath,
           docType: childDocType ?? undefined,
-          success: !!childRun.result?.success,
+          success: status === 'passed',
           status,
           errors: childRun.result?.errors ?? [],
           logs: childRun.result?.logs ?? [],
-          threw: childRun.result?.threw === true,
+          threw: status === 'invalid' || childRun.result?.threw === true,
         };
 
         options.reporter && options.reporter({
@@ -254,11 +252,7 @@ export async function executeSuite(
         const errorMessage = e?.message || String(e);
         suiteLogger('error', `Failed to run suite item: ${display} - ${errorMessage}`);
 
-        const isInvalid = [
-          'Invalid test file', 'Invalid API file', 'Import error',
-          'unknown key(s)', 'is not imported', 'undefined input(s)', 'YAML',
-        ].some(p => errorMessage.includes(p));
-        const status: SuiteStepStatus = isInvalid ? 'invalid' : 'failed';
+        const status: SuiteStepStatus = 'invalid';
         const result = {
           entry,
           filePath: childFilePath,

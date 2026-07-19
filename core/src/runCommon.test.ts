@@ -1,4 +1,5 @@
 import {runGeneratedJs, validateJsSyntax} from './runCommon';
+import {AssertionFailedError} from './testHelper';
 
 describe('validateJsSyntax', () => {
   it('returns undefined for valid JS', () => {
@@ -140,6 +141,23 @@ describe('runGeneratedJs', () => {
     expect(result.threw).toBe(true);
     expect(result.executionError).toBe('pm is not defined');
     expect(result.errors).toContain('Error running test: pm is not defined');
+  });
+
+  it('treats AssertionFailedError as a normal failure, not executionError', async () => {
+    const result = await runGeneratedJs(
+      'run-assert',
+      'throw new Error("unused");',
+      'Basic GET test',
+      () => {},
+      async () => {
+        throw new AssertionFailedError();
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.threw).toBe(false);
+    expect(result.executionError).toBeUndefined();
+    expect(result.errors.some(e => /Error running/.test(e))).toBe(false);
   });
 
   it('uses API wording for API runKind execution errors', async () => {

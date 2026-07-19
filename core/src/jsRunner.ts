@@ -9,6 +9,7 @@ import * as Random from './Random';
 import * as Current from './Current';
 import * as mmtHelper from './testHelper';
 import type {ServerRunner} from './testHelper';
+import {isAssertionFailedError, isTestAbortError} from './testHelper';
 import {logRunFinished, RunKind} from './runLog';
 
 export type {RunKind};
@@ -190,7 +191,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       `const checkExpects_ = (items, type, reportLevel, title, details) => mmtHelper.checkExpects_(items, type, reportLevel, title, details, report_, console, __checkLogMode);\n` +
       // Override checkAbort_ with a closure-based version so parallel tests
       // each check their own abort signal instead of the global.
-      `const checkAbort_ = () => { if (__abortSignal && __abortSignal.aborted) { const e = new Error('Test run was stopped'); e.name = 'TestAbortError'; throw e; } };\n` +
+      `const checkAbort_ = () => { if (__abortSignal && __abortSignal.aborted) { throw new mmtHelper.TestAbortError(); } };\n` +
       // Override importJsModule_ with a closure-based wrapper that ensures
       // the file loader is set to this test's loader before each import,
       // protecting against parallel tests overwriting the global loader.
@@ -248,7 +249,8 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     return returnValue;
   } catch (e: any) {
     restoreReporterGlobals();
-    logRunFinished(lg, runKind, title, false, undefined, {hasError: true});
+    const isControlFlow = isAssertionFailedError(e) || isTestAbortError(e);
+    logRunFinished(lg, runKind, title, false, undefined, {hasError: !isControlFlow});
     throw e;
   } finally {
     // Only clear abort signal if this run owns it.  During parallel suite

@@ -4,25 +4,14 @@ import {basename, detectDocType, resolveRelativeTo, RunFileResult, sanitizeIdent
 import {RunFileOptions, RunReporterMessage, RunResult, SuiteStepStatus} from './runConfig';
 import {logRunFinished} from './runLog';
 import {SuiteBundle, SuiteBundleNode} from './suiteBundle';
+import {
+  classifySuiteItemStatus,
+  worstSuiteItemStatus,
+} from './suiteItemStatus';
 import {stopAllServers_, registerServer_} from './testHelper';
 
 /** Cleanup functions for servers started during suite execution. */
 type ServerCleanup = () => void;
-
-/** Patterns that indicate a validation/structural error rather than a runtime failure. */
-const INVALID_ERROR_PATTERNS = [
-  'Invalid test file',
-  'Invalid API file',
-  'Import error',
-  'unknown key(s)',
-  'is not imported',
-  'undefined input(s)',
-  'YAML',
-];
-
-function isValidationError(message: string): boolean {
-  return INVALID_ERROR_PATTERNS.some(p => message.includes(p));
-}
 
 function reportUnresolvedSuiteNode(params: {
   node: Extract<SuiteBundleNode, {kind: 'missing'|'cycle'}>;
@@ -188,10 +177,7 @@ async function runSuiteBundleNode(params: {
     // Flush buffered logs now that the child is done.
     flushLogBuffer();
 
-    const status: SuiteStepStatus =
-        childRun.result?.success ? 'passed' :
-        childRun.result?.syntaxError ? 'invalid' :
-        'failed';
+    const status: SuiteStepStatus = classifySuiteItemStatus(childRun.result);
 
     options.reporter && options.reporter({
       scope: 'suite-item',
@@ -204,11 +190,17 @@ async function runSuiteBundleNode(params: {
       id,
     });
 
-    return {success: status === 'passed', threw: childRun.result?.threw === true, cancelled: childRun.result?.cancelled === true, status};
+    return {
+      success: status === 'passed',
+      threw: status === 'invalid' || childRun.result?.threw === true,
+      cancelled: childRun.result?.cancelled === true,
+      status,
+    };
   } catch (e: any) {
     flushLogBuffer();
     const errorMessage = e?.message || String(e);
-    const status: SuiteStepStatus = isValidationError(errorMessage) ? 'invalid' : 'failed';
+    // Unusable item or unexpected runner exception → invalid (warning).
+    const status: SuiteStepStatus = 'invalid';
     suiteLogger('error', `Failed to run suite item: ${display} - ${errorMessage}`);
 
     options.reporter && options.reporter({
@@ -234,7 +226,7 @@ async function runSuiteGroup(params: {
   baseFileLoader: RunFileOptions['fileLoader'];
   nextIndex: () => number;
   serverCleanups: ServerCleanup[];
-}): Promise<{overallSuccess: boolean; anyThrew: boolean; anyCancelled: boolean}> {
+}): Promise<{overallSuccess: boolean; anyThrew: boolean; anyCancelled: boolean; statuses: SuiteStepStatus[]}> {
   const {node, bundle, options, runFile, suiteLogger, baseFileLoader, nextIndex, serverCleanups} = params;
 
   const isParallel = node.children.length > 1;
@@ -269,7 +261,15 @@ async function runSuiteGroup(params: {
         nextIndex,
         serverCleanups,
       });
-      return {success: childGroup.overallSuccess, threw: childGroup.anyThrew, cancelled: childGroup.anyCancelled, status: childGroup.overallSuccess ? 'passed' as SuiteStepStatus : 'failed' as SuiteStepStatus};
+      const status = childGroup.overallSuccess
+        ? 'passed' as SuiteStepStatus
+        : worstSuiteItemStatus(childGroup.statuses);
+      return {
+        success: childGroup.overallSuccess,
+        threw: childGroup.anyThrew,
+        cancelled: childGroup.anyCancelled,
+        status,
+      };
     }
 
     if (child.kind === 'server') {
@@ -280,7 +280,12 @@ async function runSuiteGroup(params: {
         suiteLogger,
         serverCleanups,
       });
-      return {success: serverResult.success, threw: false, cancelled: false, status: serverResult.success ? 'passed' as SuiteStepStatus : 'failed' as SuiteStepStatus};
+      return {
+        success: serverResult.success,
+        threw: false,
+        cancelled: false,
+        status: serverResult.success ? 'passed' as SuiteStepStatus : 'invalid' as SuiteStepStatus,
+      };
     }
 
     if (child.kind === 'missing' || child.kind === 'cycle') {
@@ -299,8 +304,14 @@ async function runSuiteGroup(params: {
   const groupHadAnyFailure = results.some(r => !r || !r.success);
   const groupThrew = results.some(r => !!r && r.threw === true);
   const groupCancelled = results.some(r => !!r && (r as any).cancelled === true);
+  const statuses = results.map(r => r.status);
 
-  return {overallSuccess: !groupHadAnyFailure, anyThrew: groupThrew, anyCancelled: groupCancelled};
+  return {
+    overallSuccess: !groupHadAnyFailure,
+    anyThrew: groupThrew,
+    anyCancelled: groupCancelled,
+    statuses,
+  };
 }
 
 async function startServerNode(params: {
@@ -406,6 +417,7 @@ export async function executeSuiteBundle(params: {
   }
 
   let overallSuccess = true;
+  const itemStatuses: SuiteStepStatus[] = [];
 
   // Capture the original loader so child loaders never recurse through an overridden loader.
   const baseFileLoader = options.fileLoader;
@@ -439,6 +451,7 @@ export async function executeSuiteBundle(params: {
           nextIndex,
           serverCleanups,
         });
+        itemStatuses.push(...group.statuses);
         if (!group.overallSuccess) {
           overallSuccess = false;
         }
@@ -460,6 +473,7 @@ export async function executeSuiteBundle(params: {
         });
         if (!serverResult.success) {
           overallSuccess = false;
+          itemStatuses.push('invalid');
           // Server startup failure stops the suite (treat like throw).
           return;
         }
@@ -476,6 +490,7 @@ export async function executeSuiteBundle(params: {
           baseFileLoader,
           nextIndex,
         });
+        itemStatuses.push(r.status);
         if (!r.success) {
           overallSuccess = false;
         }
@@ -495,6 +510,7 @@ export async function executeSuiteBundle(params: {
           suiteLogger,
           nextIndex,
         });
+        itemStatuses.push(r.status);
         if (!r.success) {
           overallSuccess = false;
         }
@@ -571,11 +587,14 @@ export async function executeSuiteBundle(params: {
 
   const durationMs = Date.now() - suiteStart;
   const cancelled = effectiveOptions.abortSignal?.aborted === true;
+  const aggregatedStatus = overallSuccess ? 'passed' as SuiteStepStatus : worstSuiteItemStatus(itemStatuses);
   const result: RunResult = {
     success: overallSuccess,
     durationMs,
     errors: allErrors,
     logs: allLogs,
+    itemStatus: overallSuccess ? undefined : aggregatedStatus,
+    threw: aggregatedStatus === 'invalid',
   };
 
   const suiteTitle =
@@ -583,7 +602,8 @@ export async function executeSuiteBundle(params: {
       bundle.rootTitle.trim() :
       suiteDisplayName;
   logRunFinished(
-      suiteLogger, 'Suite', suiteTitle, overallSuccess && !cancelled, durationMs);
+      suiteLogger, 'Suite', suiteTitle, overallSuccess && !cancelled, durationMs,
+      {hasError: aggregatedStatus === 'invalid'});
 
   if (shouldEmitSuiteRunEvents) {
     effectiveOptions.reporter && effectiveOptions.reporter({

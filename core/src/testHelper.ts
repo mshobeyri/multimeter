@@ -9,10 +9,29 @@ import {opsList} from './TestData';
 let __mmtAbortSignal: AbortSignal|undefined;
 
 export class TestAbortError extends Error {
+  readonly kind = 'test-abort' as const;
   constructor() {
     super('Test run was stopped');
     this.name = 'TestAbortError';
   }
+}
+
+export class AssertionFailedError extends Error {
+  readonly kind = 'assertion-failed' as const;
+  constructor() {
+    super('Assertion failed');
+    this.name = 'AssertionFailedError';
+  }
+}
+
+export function isTestAbortError(e: unknown): e is TestAbortError {
+  return e instanceof TestAbortError ||
+      (!!e && typeof e === 'object' && (e as any).kind === 'test-abort');
+}
+
+export function isAssertionFailedError(e: unknown): e is AssertionFailedError {
+  return e instanceof AssertionFailedError ||
+      (!!e && typeof e === 'object' && (e as any).kind === 'assertion-failed');
 }
 
 export const setAbortSignal_ = (signal: AbortSignal|undefined) => {
@@ -753,7 +772,7 @@ export const check_ = (
       doReport(type, raw, title, details, false, actual, expected);
     }
     if (type === 'assert') {
-      throw new Error('Assertion failed');
+      throw new AssertionFailedError();
     }
   }
 };
@@ -839,7 +858,7 @@ export const checkExpects_ = (
       doReport(type, items, title, details, false);
     }
     if (type === 'assert') {
-      throw new Error('Assertion failed');
+      throw new AssertionFailedError();
     }
   }
 };

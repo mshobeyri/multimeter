@@ -146,7 +146,12 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                     <TestStepReportPanel
                         isExpanded={true}
                         stepReports={stepReports}
-                        runState={runState === 'running' ? 'running' : runState === 'passed' ? 'passed' : 'failed'}
+                        runState={
+                            runState === 'running' || runState === 'passed' || runState === 'failed' ||
+                            runState === 'invalid'
+                                ? runState
+                                : 'failed'
+                        }
                         showHeader={false}
                     />
                 </div>

@@ -356,7 +356,7 @@ interface TestStepReportPanelProps {
   isExpanded: boolean;
   onToggleExpanded?: (next: boolean) => void;
   stepReports: StepReportItem[];
-  runState: 'default' | 'running' | 'passed' | 'failed';
+  runState: StepStatus;
   onRun?: () => void;
   runButtonLabel?: string;
   disabledRun?: boolean;

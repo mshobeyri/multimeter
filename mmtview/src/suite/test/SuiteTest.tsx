@@ -809,7 +809,11 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     setStepStatuses(prev => {
                         const vals = Object.values(prev);
                         const hasFailed = vals.some(v => v === 'failed');
-                        setSuiteRunState(hasFailed ? 'failed' : 'passed');
+                        const hasInvalid = vals.some(v => v === 'invalid');
+                        setSuiteRunState(
+                            hasFailed ? 'failed' :
+                            hasInvalid ? 'invalid' :
+                            'passed');
                         return prev;
                     });
                 }

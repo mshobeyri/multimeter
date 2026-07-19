@@ -110,8 +110,13 @@ export interface RunResult {
   cancelled?: boolean;
   /** True when the generated JS failed syntax validation (bad .mmt syntax). */
   syntaxError?: boolean;
-  /** Set when generated JS threw during execution (e.g. ReferenceError, failed assert). */
+  /** Set when generated JS threw during execution (e.g. ReferenceError). Assert throws use this too. */
   executionError?: string;
+  /**
+   * Preferred suite-item status when the run represents an aggregated outcome
+   * (e.g. nested suite). When set, UI classification uses this directly.
+   */
+  itemStatus?: SuiteStepStatus;
 }
 
 export interface GenerateJsOptions {
