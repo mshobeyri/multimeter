@@ -115,9 +115,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
 
   useEffect(() => {
     if (!onRequestReset) { return; }
-    // Keep the reset callback fresh so it always rebuilds from the current YAML/`api`.
-    onRequestReset(() => prepareRequestData(undefined, { forceReset: true, scopes: ["all"] }));
-  }, [onRequestReset, prepareRequestData]);
+    // Full reset: restore baseline inputs from YAML/`api`, clear touches, rebuild request.
+    onRequestReset(() => {
+      const baseInputs = selectedExampleIdx === -1
+        ? (api.inputs || {})
+        : (examples[selectedExampleIdx]?.inputs || {});
+      const nextInputs = cloneInputs(baseInputs);
+      setCurrentInputs(nextInputs);
+      prepareRequestData(nextInputs, { forceReset: true, scopes: ["all"] });
+    });
+  }, [onRequestReset, prepareRequestData, api, examples, selectedExampleIdx, setCurrentInputs]);
 
   // Based on the displayed URL (not resolved inputs/env)
   const isDisplayedUrlWebSocket = (protocol: Protocol | undefined, url: string | undefined

@@ -247,13 +247,16 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
   }, [api]);
 
   const handleWarningReset = useCallback(() => {
-    const pending = pendingYamlRef.current;
-    if (pending !== null) {
-      applyYamlAndResetUi(pending);
-      return;
-    }
+    // Reset both sides to the stored YAML so UI and editor match again.
+    const stored = appliedContent;
+    dismissedYamlRef.current = null;
+    pendingYamlRef.current = null;
+    setTestRequestData(undefined);
+    setTestTouchedFields(new Set());
+    setAppliedContent(stored);
+    setContent(stored, { force: true });
     resetRef.current?.();
-  }, [applyYamlAndResetUi]);
+  }, [appliedContent, setContent]);
 
   useEffect(() => {
     localStorage.setItem(LAST_API_PAGE_KEY, page);
