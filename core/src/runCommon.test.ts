@@ -122,7 +122,7 @@ describe('runGeneratedJs', () => {
     );
 
     expect(result.success).toBe(false);
-    expect(result.errors).toContain('Reported failed check');
+    expect(result.errors).toContain('check failed');
   });
 
   it('records executionError when the JS runner throws', async () => {

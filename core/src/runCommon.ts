@@ -110,8 +110,9 @@ export async function runGeneratedJs(
     if (!hasFailedStatus && !hasFailedExpect) {
       return;
     }
-    const title = typeof event.title === 'string' && event.title ? ` ${event.title}` : '';
-    const message = `Reported failed ${event.stepType || event.scope || 'step'}${title}`;
+    const title = typeof event.title === 'string' ? event.title.trim() : '';
+    const kind = String(event.stepType || event.scope || 'step');
+    const message = title ? `${title} failed` : `${kind} failed`;
     if (!errors.includes(message)) {
       errors.push(message);
     }
