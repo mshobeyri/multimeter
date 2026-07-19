@@ -81,6 +81,18 @@ const methodColor: Record<string, string> = {
   options: "#0d5aa7",
   trace: "#888",
   ws: "#888",
+  graphql: "#e535ab",
+  grpc: "#244c5a",
+  http: "#61affe",
+};
+
+const HTTP_METHODS: Method[] = ["get", "post", "put", "delete", "patch", "head", "options", "trace"];
+const OTHER_PROTOCOLS: Protocol[] = ["ws", "graphql", "grpc"];
+
+const PROTOCOL_LABELS: Record<string, string> = {
+  ws: "WS",
+  graphql: "GraphQL",
+  grpc: "gRPC",
 };
 
 const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChange, onRequestReset, rightOfUrlButton }) => {
@@ -135,6 +147,19 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const isGraphQL = requestData?.protocol === "graphql";
   const isGrpc = requestData?.protocol === "grpc";
   const requestProtocol = requestData?.protocol || api.protocol;
+  const effectiveProtocol = protocolResolver.getEffectiveProtocol(
+    requestData?.protocol || api.protocol,
+    requestData?.url
+  );
+  const methodOrProtocolValue = (effectiveProtocol === "ws" || effectiveProtocol === "graphql" || effectiveProtocol === "grpc")
+    ? `protocol:${effectiveProtocol}`
+    : `method:${(requestData?.method || api.method || "get").toLowerCase()}`;
+  const methodOrProtocolColor = methodColor[
+    methodOrProtocolValue.startsWith("protocol:")
+      ? methodOrProtocolValue.slice("protocol:".length)
+      : methodOrProtocolValue.slice("method:".length)
+  ] || "#888";
+
   const canRunCurl = requestProtocol !== "graphql" && requestProtocol !== "grpc" &&
     !isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url);
   const runInputs = useMemo(() => ({
@@ -174,6 +199,27 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const setEditorTab = (tab: EditorTab) => {
     setEditorTabInternal(tab);
     localStorage.setItem("apitest-editor-tab", tab);
+  };
+
+  const handleMethodOrProtocolChange = (raw: string) => {
+    if (raw.startsWith("protocol:")) {
+      const protocol = raw.slice("protocol:".length) as Protocol;
+      updateField("protocol", protocol);
+      if (protocol === "graphql" || protocol === "grpc") {
+        setEditorTab(protocol);
+      } else if (editorTab === "graphql" || editorTab === "grpc") {
+        setEditorTab("inout");
+      }
+      return;
+    }
+    if (raw.startsWith("method:")) {
+      const method = raw.slice("method:".length) as Method;
+      updateField("method", method);
+      updateField("protocol", "http");
+      if (editorTab === "graphql" || editorTab === "grpc") {
+        setEditorTab("inout");
+      }
+    }
   };
 
   const shouldShowQuery = () => editorTab === "params";
@@ -264,40 +310,21 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
       {/* ── Fixed header: URL bar + tab bar ── */}
       <div className="apitest-fixed-header">
       <div style={{ padding: "8px", display: "flex", alignItems: "stretch", gap: 8 }}>
-        {isGrpc ? (
-          <span
-            className="method-select method-badge"
-            style={{ background: "#244c5a" }}
-          >
-            gRPC
-          </span>
-        ) : isGraphQL ? (
-          <span
-            className="method-select method-badge"
-            style={{ background: "#e535ab" }}
-          >
-            GQL
-          </span>
-        ) : isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url) ? (
-          <span
-            className="method-select method-badge"
-            style={{ background: methodColor["ws"] }}
-          >
-            WS
-          </span>
-        ) : (
-          <select
-            className="method-select"
-            value={(requestData?.method || api.method || "get").toLowerCase()}
-            onChange={e => updateField("method", e.target.value as Method)}
-            title="HTTP Method (temporary override)"
-            style={{ background: methodColor[(requestData?.method || api.method || "get").toLowerCase()] || "#888" }}
-          >
-            {(["get", "post", "put", "delete", "patch", "head", "options", "trace"] as Method[]).map(m => (
-              <option key={m} value={m}>{m.toUpperCase()}</option>
-            ))}
-          </select>
-        )}
+        <select
+          className="method-select"
+          value={methodOrProtocolValue}
+          onChange={e => handleMethodOrProtocolChange(e.target.value)}
+          title="HTTP method or protocol (temporary override)"
+          style={{ background: methodOrProtocolColor }}
+        >
+          {HTTP_METHODS.map(m => (
+            <option key={m} value={`method:${m}`}>{m.toUpperCase()}</option>
+          ))}
+          <option disabled value="__sep__">────────</option>
+          {OTHER_PROTOCOLS.map(p => (
+            <option key={p} value={`protocol:${p}`}>{PROTOCOL_LABELS[p] || p}</option>
+          ))}
+        </select>
         <div style={{ flex: 1, minWidth: 0 }}>
           <UrlInput
             url={requestData?.url ?? ""}
