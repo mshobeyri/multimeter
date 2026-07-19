@@ -47,39 +47,39 @@
             background: var(--vscode-list-hoverBackground, #2a2d2e);
         }
 
-        .history-icon {
-            width: 16px;
-            height: 16px;
-            margin-right: 8px;
-            opacity: 0.85;
-            vertical-align: middle;
-        }
-
-        .mock-protocol-wrapper {
-            position: relative;
+        .history-badge {
+            flex-shrink: 0;
             display: inline-flex;
             align-items: center;
-            margin-right: 8px;
+            justify-content: center;
+            width: 34px;
+            min-width: 34px;
+            max-width: 34px;
+            height: 14px;
+            padding: 0 2px;
+            margin-right: 6px;
+            border-radius: 2px;
+            color: #fff;
+            font-size: 8px;
+            font-weight: 600;
+            line-height: 14px;
+            letter-spacing: 0;
+            text-transform: uppercase;
+            box-sizing: border-box;
+            overflow: hidden;
+            white-space: nowrap;
         }
 
-        .mock-protocol-wrapper .history-icon {
-            margin-right: 0;
-            position: absolute;
-            bottom: -3px;
-            right: -5px;
-            width: 10px;
-            height: 10px;
-        }
-
-        .mock-server-icon {
-            font-size: 14px !important;
+        .history-badge-mock {
+            outline: 1px solid rgba(255, 255, 255, 0.35);
+            outline-offset: 0;
         }
 
         .history-title {
             flex: 1;
             color: var(--vscode-foreground, #ccc);
             font-size: var(--history-row-size);
-            margin-left: 4px;
+            margin-left: 0;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
@@ -223,24 +223,83 @@
         function getTypeIcon(type, status, protocol) {
             // Mock server entries show send/recv arrows just like regular entries
             return type === 'send'
-                ? '<span class="codicon codicon-arrow-up" style="color:#3399ff"></span>'
+                ? '<span class="codicon codicon-arrow-up" style="color:#3399ff;margin-right:6px"></span>'
                 : type === 'recv' && status < 400
-                    ? '<span class="codicon codicon-arrow-down" style="color:#66bb6a"></span>'
-                    : '<span class="codicon codicon-chrome-close" style="color:#ff5555"></span>';
+                    ? '<span class="codicon codicon-arrow-down" style="color:#66bb6a;margin-right:6px"></span>'
+                    : '<span class="codicon codicon-chrome-close" style="color:#ff5555;margin-right:6px"></span>';
         }
-        function getProtocolIcon(protocol, serverType) {
-            if (protocol === 'mock') {
-                // For mock entries, show the underlying protocol icon with a small server badge
-                var iconSrc = '__HTTP_ICON__';
-                if (serverType === 'ws') { iconSrc = '__WS_ICON__'; }
-                return '<span class="mock-protocol-wrapper">' +
-                    '<span class="codicon codicon-server mock-server-icon" style="color:#66bb6a"></span>' +
-                    '<img src="' + iconSrc + '" class="history-icon" />' +
-                    '</span>';
+
+        // Same colors/labels as the API tester method/protocol selector.
+        var METHOD_PROTOCOL_COLORS = {
+            get: '#61affe',
+            post: '#49cc90',
+            put: '#fca130',
+            delete: '#f93e3e',
+            patch: '#50e3c2',
+            head: '#9012fe',
+            options: '#0d5aa7',
+            trace: '#888',
+            ws: '#888',
+            graphql: '#e535ab',
+            grpc: '#244c5a',
+            http: '#61affe'
+        };
+        var PROTOCOL_LABELS = {
+            ws: 'WS',
+            graphql: 'GraphQL',
+            grpc: 'gRPC'
+        };
+
+        function getMethodOrProtocolBadge(item) {
+            var protocol = String(item.protocol || 'http').toLowerCase();
+            var method = String(item.method || 'get').toLowerCase();
+            var serverType = String(item.serverType || '').toLowerCase();
+            var isMock = protocol === 'mock';
+            var label;
+            var colorKey;
+
+            if (isMock) {
+                if (serverType === 'ws' || method === 'ws') {
+                    label = PROTOCOL_LABELS.ws;
+                    colorKey = 'ws';
+                } else if (serverType === 'graphql' || method === 'graphql') {
+                    label = PROTOCOL_LABELS.graphql;
+                    colorKey = 'graphql';
+                } else if (serverType === 'grpc' || method === 'grpc') {
+                    label = PROTOCOL_LABELS.grpc;
+                    colorKey = 'grpc';
+                } else {
+                    label = method.toUpperCase();
+                    colorKey = METHOD_PROTOCOL_COLORS[method] ? method : 'get';
+                }
+            } else if (protocol === 'ws' || protocol === 'graphql' || protocol === 'grpc') {
+                label = PROTOCOL_LABELS[protocol] || protocol.toUpperCase();
+                colorKey = protocol;
+            } else {
+                label = method.toUpperCase();
+                colorKey = METHOD_PROTOCOL_COLORS[method] ? method : 'get';
             }
-            if (protocol === 'ws') return '<img src="__WS_ICON__" class="history-icon" />';
-            if (protocol === 'grpc') return '<img src="__GRPC_ICON__" class="history-icon" />';
-            return '<img src="__HTTP_ICON__" class="history-icon" />';
+
+            var color = METHOD_PROTOCOL_COLORS[colorKey] || '#888';
+            var mockClass = isMock ? ' history-badge-mock' : '';
+            var display = String(label).toUpperCase();
+            var len = display.length;
+            var fontSize = len <= 4 ? '8px' : len <= 5 ? '7px' : len <= 6 ? '6.5px' : '5.5px';
+            return '<span class="history-badge' + mockClass + '" style="background:' + color +
+                ';font-size:' + fontSize + '" title="' +
+                (isMock ? 'mock ' : '') + display + '">' + display + '</span>';
+        }
+
+        function displayTitle(item) {
+            var title = String(item.title || '');
+            var urlMatch = title.match(/((?:https?|wss?):\/\/\S+)/i);
+            if (urlMatch) {
+                return urlMatch[1];
+            }
+            return title.replace(
+                /^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|send|recv|connnect|connect|connected|closed|error|close|gRPC)\s+/i,
+                ''
+            ).replace(/\s+Error$/i, '');
         }
 
         function renderVerticalTable(obj) {
@@ -280,8 +339,8 @@
                         '<div class="history-row" onclick="toggleDrawer(' + idx + ')">' +
                         '<span class="drawer-arrow' + (openIdx === idx ? ' open' : '') + '">&#9654;</span>' +
                         getTypeIcon(item.type, item.status, item.protocol) +
-                        getProtocolIcon(item.protocol, item.serverType) +
-                        '<span class="history-title"' + (isError || item.status >= 400 ? ' style="color:#ff5555;"' : '') + '>' + escapeHtml(item.title) + '</span>' +
+                        getMethodOrProtocolBadge(item) +
+                        '<span class="history-title"' + (isError || item.status >= 400 ? ' style="color:#ff5555;"' : '') + '>' + escapeHtml(displayTitle(item)) + '</span>' +
                         '<span class="history-time">' +
                         (item.duration >= 0
                             ? '<span style="color:' + (isError || item.status >= 400 ? '#ff5555' : '#66bb6a') + ';">(' + item.duration + 'ms)</span> '

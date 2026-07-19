@@ -247,7 +247,7 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
         const scheme = this.serverType === 'http' ? 'http' : 'https';
         const url = `${scheme}://127.0.0.1:${this.port}${req.url || ''}`;
 
-        const titleBase = `${method} ${url}`;
+        const titleBase = url;
 
         // Collect request body, then log incoming request
         let requestBody = '';
