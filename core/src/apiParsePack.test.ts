@@ -1,7 +1,7 @@
 import {apiToYaml, yamlToAPI, yamlToAPIStrict} from './apiParsePack';
 
 describe('apiParsePack', () => {
-  it('ignores legacy import blocks when parsing APIs', () => {
+  it('parses legacy import blocks on APIs', () => {
     const api = yamlToAPI([
       'type: api',
       'title: Example API',
@@ -16,11 +16,11 @@ describe('apiParsePack', () => {
       title: 'Example API',
       url: 'https://example.com',
       format: 'json',
+      import: {auth: './auth.mmt'},
     });
-    expect('import' in api).toBe(false);
   });
 
-  it('does not serialize import blocks for APIs', () => {
+  it('does not invent import blocks when serializing APIs', () => {
     const yaml = apiToYaml({
       type: 'api',
       title: 'Example API',

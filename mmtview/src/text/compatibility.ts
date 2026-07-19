@@ -241,7 +241,7 @@ export function applyCompatibilityFix(content: string, fix: CompatibilityFix, li
     return null;
   }
   const nextLine = applyRenameYamlKeyOnLine(lines[index], fix.from, fix.to);
-  if (nextLine == null) {
+  if (nextLine === null || nextLine === undefined) {
     return null;
   }
   lines[index] = nextLine;

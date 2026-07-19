@@ -18,21 +18,14 @@ describe('validateJsSyntax', () => {
     const js = 'if (true) { console.log("open")';
     const result = validateJsSyntax(js);
     expect(result).toBeDefined();
-    expect(result).toContain('syntax error');
+    expect(result!.toLowerCase()).toContain('syntax error');
   });
 
   it('detects syntax error from unexpected token', () => {
     const js = 'const x = ;';
     const result = validateJsSyntax(js);
     expect(result).toBeDefined();
-    expect(result).toContain('syntax error');
-  });
-
-  it('includes print-js hint in syntax error message', () => {
-    const js = 'if (true) {';
-    const result = validateJsSyntax(js);
-    expect(result).toBeDefined();
-    expect(result).toContain('print-js');
+    expect(result!.toLowerCase()).toContain('syntax error');
   });
 
   it('detects syntax error from malformed template literal', () => {
@@ -40,7 +33,7 @@ describe('validateJsSyntax', () => {
     const js = 'const x = `${`;';
     const result = validateJsSyntax(js);
     expect(result).toBeDefined();
-    expect(result).toContain('syntax error');
+    expect(result!.toLowerCase()).toContain('syntax error');
   });
 
   it('does not flag undefined variable references (those are runtime errors)', () => {

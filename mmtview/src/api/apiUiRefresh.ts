@@ -197,7 +197,7 @@ function stableEqual(a: unknown, b: unknown): boolean {
   if (a === b) {
     return true;
   }
-  if (a == null || b == null) {
+  if (a === null || a === undefined || b === null || b === undefined) {
     return a === b;
   }
   try {

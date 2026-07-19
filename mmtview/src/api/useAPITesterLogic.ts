@@ -220,7 +220,8 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     const hasBody = !!(responseData?.body && responseData.body !== "");
     const hasHeaders = !!(responseData?.headers && Object.keys(responseData.headers).length > 0);
     const hasCookies = !!(responseData?.cookies && Object.keys(responseData.cookies).length > 0);
-    if (!hasBody && !hasHeaders && !hasCookies && responseData?.status == null) {
+    if (!hasBody && !hasHeaders && !hasCookies &&
+        (responseData?.status === null || responseData?.status === undefined)) {
       return;
     }
 
@@ -331,7 +332,9 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
 
     const handleMessage = (event: MessageEvent) => {
       const message = event.data;
-      if (!message) return;
+      if (!message) {
+        return;
+      }
       switch (message.command) {
         case "multimeter.environment.refresh":
           // Env values changed: re-resolve tokens into request text fields only.
@@ -609,21 +612,31 @@ async function getEnvironmentParameters(): Promise<JSONRecord> {
 }
 
 function parseSetCookie(setCookie: string[] | string | undefined): Record<string, string> {
-  if (!setCookie) return {};
+  if (!setCookie) {
+    return {};
+  }
   const arr = Array.isArray(setCookie) ? setCookie : [setCookie];
   const cookies: Record<string, string> = {};
   arr.forEach(cookieStr => {
     const [cookiePair] = cookieStr.split(";");
     const [key, value] = cookiePair.split("=");
-    if (key && value) cookies[key.trim()] = value.trim();
+    if (key && value) {
+      cookies[key.trim()] = value.trim();
+    }
   });
   return cookies;
 }
 
 function toContentString(data: any): string {
-  if (data === null || data === undefined) return "";
-  if (typeof data === "string") return data;
-  if (typeof data === "object") return JSON.stringify(data, null, 2);
+  if (data === null || data === undefined) {
+    return "";
+  }
+  if (typeof data === "string") {
+    return data;
+  }
+  if (typeof data === "object") {
+    return JSON.stringify(data, null, 2);
+  }
   return String(data);
 }
 
