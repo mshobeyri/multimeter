@@ -240,9 +240,31 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     [api.description]
   );
 
+  // Match icons are tied to the response that was produced for a specific
+  // example + inputs snapshot. Changing either clears icons until the next run.
+  const [matchBaseline, setMatchBaseline] = useState<{ exampleIdx: number; inputsKey: string } | null>(null);
+  useEffect(() => {
+    if (!responseData) {
+      setMatchBaseline(null);
+      return;
+    }
+    setMatchBaseline({
+      exampleIdx: selectedExampleIdx,
+      inputsKey: JSON.stringify(currentInputs),
+    });
+    // Only stamp when a new response arrives — not when inputs/example change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [responseRevision, responseData]);
+
   const outputMatchStatus = useMemo(() => {
-    const status = new Map<string, "match" | "mismatch" | "unset">();
-    if (selectedExampleIdx < 0 || !responseData) {
+    const status = new Map<string, "match" | "mismatch">();
+    if (selectedExampleIdx < 0 || !responseData || !matchBaseline) {
+      return status;
+    }
+    if (
+      matchBaseline.exampleIdx !== selectedExampleIdx ||
+      matchBaseline.inputsKey !== JSON.stringify(currentInputs)
+    ) {
       return status;
     }
     const expected = examples[selectedExampleIdx]?.outputs;
@@ -251,7 +273,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
 
     outputKeys.forEach((key) => {
       if (!Object.prototype.hasOwnProperty.call(expectedObj, key)) {
-        status.set(key, "unset");
         return;
       }
       if (outputValuesMatch(outputs[key], expectedObj[key])) {
@@ -261,7 +282,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
       }
     });
     return status;
-  }, [selectedExampleIdx, examples, outputs, responseData, api.outputs]);
+  }, [selectedExampleIdx, examples, outputs, responseData, api.outputs, currentInputs, matchBaseline]);
 
   const handleExampleChange = (newIdx: number) => {
     setSelectedExampleIdx(newIdx);

@@ -20,7 +20,7 @@ interface VEditorProps {
   deletable?: boolean;
   copyable?: boolean;
   /** Per-key match status vs selected example expected outputs (shown beside the field). */
-  matchStatus?: ReadonlyMap<string, "match" | "mismatch" | "unset">;
+  matchStatus?: ReadonlyMap<string, "match" | "mismatch">;
 }
 
 const VEditor: React.FC<VEditorProps> = ({
@@ -163,18 +163,6 @@ const VEditor: React.FC<VEditorProps> = ({
                       flexShrink: 0,
                       fontSize: "14px",
                       color: "var(--vscode-testing-iconFailed, #f14c4c)",
-                    }}
-                  />
-                )}
-                {fieldMatch === "unset" && (
-                  <span
-                    className="codicon codicon-circle-outline"
-                    title="Not asserted by this example"
-                    aria-label="Not asserted by this example"
-                    style={{
-                      flexShrink: 0,
-                      fontSize: "14px",
-                      color: "var(--vscode-descriptionForeground, #888)",
                     }}
                   />
                 )}
