@@ -204,11 +204,11 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `    const __mmt_exampleOutputs = ${exampleOutputsJson};\n` +
           `    const __mmt_checkTitle = ${checkTitleLiteral};\n` +
           `    const __mmt_expects = __mmt_formatExpects(__outputLog, __mmt_exampleOutputs, __mmt_checkTitle);\n` +
-          `    if (__mmt_expects.successText) {\n` +
-          `      console.log(__mmt_expects.successText);\n` +
+          `    for (const __line of __mmt_expects.successLines) {\n` +
+          `      console.log(__line);\n` +
           `    }\n` +
-          `    if (__mmt_expects.failText) {\n` +
-          `      console.error(__mmt_expects.failText);\n` +
+          `    for (const __line of __mmt_expects.failLines) {\n` +
+          `      console.error(__line);\n` +
           `    }\n` :
       '';
   return `return (async () => {\n` +
@@ -379,7 +379,7 @@ export interface ApiLogHelpers {
   valuesMatch: (actual: unknown, expected: unknown) => boolean;
   formatExpects:
       (actualOutputs: Record<string, any>, expectedOutputs: Record<string, any>,
-       title?: string|null) => {successText: string; failText: string};
+       title?: string|null) => {successLines: string[]; failLines: string[]};
 }
 
 export function createApiLogHelpers(): ApiLogHelpers {
@@ -587,7 +587,7 @@ export function createApiLogHelpers(): ApiLogHelpers {
       actualOutputs: Record<string, any>,
       expectedOutputs: Record<string, any>,
       title?: string|null):
-      {successText: string; failText: string} {
+      {successLines: string[]; failLines: string[]} {
     const expected = expectedOutputs || {};
     const actual = actualOutputs || {};
     const titleText =
@@ -606,10 +606,7 @@ export function createApiLogHelpers(): ApiLogHelpers {
             displayExpectValue(actual[key]) + ' == ' + expectedDisplay + ')');
       }
     }
-    return {
-      successText: successLines.join('\n'),
-      failText: failLines.join('\n'),
-    };
+    return {successLines, failLines};
   }
   return {
     raw,

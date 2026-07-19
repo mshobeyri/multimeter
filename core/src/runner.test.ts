@@ -62,20 +62,24 @@ describe('createApiLogHelpers', () => {
     expect(helpers.valuesMatch('a', 'b')).toBe(false);
 
     const allPass = helpers.formatExpects({s: 'ok'}, {s: 'ok'}, 'Echo API');
-    expect(allPass.successText).toBe('\u2713 Check "Echo API" - "s == ok"');
-    expect(allPass.failText).toBe('');
+    expect(allPass.successLines).toEqual(['\u2713 Check "Echo API" - "s == ok"']);
+    expect(allPass.failLines).toEqual([]);
 
     const mixed = helpers.formatExpects(
         {s: 'ok', ss: 12, d: '__MMT_OMIT_KEYWORD__'},
         {s: 'ok', ss: 13, d: '__MMT_OMIT_KEYWORD__'}, 'Echo API');
-    expect(mixed.successText)
-        .toBe(
-            '\u2713 Check "Echo API" - "s == ok"\n\u2713 Check "Echo API" - "d == omit"');
-    expect(mixed.failText)
-        .toBe('\u00D7 Check "Echo API" - "ss == 13" (12 == 13)');
+    expect(mixed.successLines).toEqual([
+      '\u2713 Check "Echo API" - "s == ok"',
+      '\u2713 Check "Echo API" - "d == omit"',
+    ]);
+    expect(mixed.failLines).toEqual([
+      '\u00D7 Check "Echo API" - "ss == 13" (12 == 13)',
+    ]);
 
     const allFail = helpers.formatExpects({s: 1}, {s: 2}, 'Echo API');
-    expect(allFail.successText).toBe('');
-    expect(allFail.failText).toBe('\u00D7 Check "Echo API" - "s == 2" (1 == 2)');
+    expect(allFail.successLines).toEqual([]);
+    expect(allFail.failLines).toEqual([
+      '\u00D7 Check "Echo API" - "s == 2" (1 == 2)',
+    ]);
   });
 });

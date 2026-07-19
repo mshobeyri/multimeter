@@ -283,10 +283,20 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
   }, [onUpdateApi, requestData?.format]);
 
   const handleSend = useCallback(async () => {
+    // Also run through core so the Multimeter log gets Inputs/Outputs/Checks
+    // (same as glyph / Run in Core). Do not open the output channel here —
+    // only "Run in Core" / glyphs should reveal it.
+    window.vscode?.postMessage({
+      command: "runCurrentDocument",
+      inputs: {
+        exampleIndex: selectedExampleIdx,
+        manualInputs: currentInputs,
+      },
+    });
     const res = await network.send(requestData);
     setResponseData(res);
     setResponseRevision(prev => prev + 1);
-  }, [network, requestData]);
+  }, [network, requestData, selectedExampleIdx, currentInputs]);
 
   const handleCancel = useCallback(async () => {
     setResponseData(undefined);
