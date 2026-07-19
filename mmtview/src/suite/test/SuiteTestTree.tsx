@@ -50,6 +50,8 @@ interface SuiteTestTreeProps {
   runStateById: Record<string, StepStatus>;
 
   onRunTargets: (target: string) => void;
+  /** Logs-only core run (no UI panel updates). */
+  onRunTargetsInCore?: (target: string) => void;
 }
 
 const collectDescendantLeafIds = (
@@ -165,6 +167,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
   reportsById,
   runStateById,
   onRunTargets,
+  onRunTargetsInCore,
 }) => {
   const base = useMemo(() => buildBaseTestTree(groups), [groups]);
   const [expandedItems, setExpandedItems] = useState<string[]>(['suite-root']);
@@ -486,6 +489,11 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
           runButtonTitle="Run group"
           runDisabled={!hasTargets}
           onRun={() => hasTargets && onRunTargets(groupTargets[0])}
+          onRunInCore={
+            hasTargets && onRunTargetsInCore
+              ? () => onRunTargetsInCore(groupTargets[0])
+              : undefined
+          }
         />
       );
     }
@@ -531,6 +539,9 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
       const suiteStatus = computedStatus as any;
       const effectiveTarget = (data as any).id || entryId;
       const effectiveRunHandler = effectiveTarget ? () => onRunTargets(effectiveTarget) : undefined;
+      const effectiveRunInCore = effectiveTarget && onRunTargetsInCore
+        ? () => onRunTargetsInCore(effectiveTarget)
+        : undefined;
       return (
         <SuiteSuiteFileItem
           item={item as any}
@@ -543,6 +554,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
           id={(data as any).id || ''}
           runStateById={runStateById}
           onRun={effectiveRunHandler}
+          onRunInCore={effectiveRunInCore}
           runButtonTitle="Run suite"
           runDisabled={!effectiveTarget}
           displayPath={displayPath}
@@ -553,6 +565,9 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
     const testLeafId = (data as any)?.id as string | undefined;
     const canRunLeaf = typeof testLeafId === 'string' && !!testLeafId;
     const handleRun = canRunLeaf ? () => onRunTargets(testLeafId!) : undefined;
+    const handleRunInCore = canRunLeaf && onRunTargetsInCore
+      ? () => onRunTargetsInCore(testLeafId!)
+      : undefined;
 
     // Ensure test leaf status reflects bundle-id keyed runState when available.
     const effectiveTestStatus = (() => {
@@ -581,6 +596,7 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
         reportsById={reportsById}
         runStateById={runStateById}
         onRun={handleRun}
+        onRunInCore={handleRunInCore}
         runButtonTitle="Run test"
         runDisabled={!canRunLeaf}
         displayPath={displayPath}

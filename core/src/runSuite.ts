@@ -1,6 +1,7 @@
 import {LogLevel} from './CommonData';
 import {basename, detectDocType, PreparedRun, resolveRelativeTo, RunFileResult, sanitizeIdentifier} from './runCommon';
 import {RunFileOptions, RunResult, SuiteStepStatus} from './runConfig';
+import {logRunFinished} from './runLog';
 import {splitSuiteGroups, yamlToSuite} from './suiteParsePack';
 import {isProjectRootImport, resolveProjectRootImport} from './fileHelper';
 import {stopAllServers_, registerServer_} from './testHelper';
@@ -327,12 +328,16 @@ export async function executeSuite(
   }
 
   const durationMs = Date.now() - suiteStart;
+  const cancelled = options.abortSignal?.aborted === true;
   const result: RunResult = {
     success: overallSuccess,
     durationMs,
     errors: allErrors,
     logs: allLogs,
   };
+  logRunFinished(
+      suiteLogger, 'Suite', title || suiteDisplayName,
+      overallSuccess && !cancelled, durationMs);
   options.reporter && options.reporter({
     scope: 'suite-run-finished',
     runId: `suite:${sanitizeIdentifier(prepared.filePath)}`,
@@ -340,7 +345,7 @@ export async function executeSuite(
     finishedAt: Date.now(),
     success: overallSuccess,
     durationMs,
-    cancelled: options.abortSignal?.aborted === true,
+    cancelled,
   } as any);
   if (preLogs.length) {
     result.logs = [...preLogs.map(l => l.message), ...(result.logs ?? [])];

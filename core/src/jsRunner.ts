@@ -9,6 +9,10 @@ import * as Random from './Random';
 import * as Current from './Current';
 import * as mmtHelper from './testHelper';
 import type {ServerRunner} from './testHelper';
+import {logRunFinished, RunKind} from './runLog';
+
+export type {RunKind};
+export {logRunFinished};
 
 export interface RunJSCodeContext {
   runId: string;
@@ -31,6 +35,8 @@ export interface RunJSCodeContext {
   workerEligible?: boolean;
   /** Controls check/assert console logging without changing report events. */
   checkLogMode?: 'default'|'failures-only'|'none';
+  /** Prefix for the finished/failed log line (Test / API / Suite). */
+  runKind?: RunKind;
 }
 
 const REPORTER_KEY = '__mmtReportStep';
@@ -90,12 +96,37 @@ const applyReporterGlobals = (
 
 export async function runJSCode(context: RunJSCodeContext): Promise<any> {
   const {js: code, title, logger: lg, reporter} = context;
-  lg('debug', `Running test: ${title}...`);
+  const runKind = context.runKind || 'Test';
+  lg('debug', `Running ${runKind.toLowerCase()}: ${title}...`);
   const startTime = Date.now();
   const runId = typeof context?.runId === 'string' ? context.runId : '';
   const reporterFn = typeof reporter === 'function' ? reporter : undefined;
+
+  let hadFailure = false;
+  const markFailure = (event?: Record<string, any>) => {
+    if (!event) {
+      hadFailure = true;
+      return;
+    }
+    if (event.status === 'failed' || event.result === 'failed') {
+      hadFailure = true;
+      return;
+    }
+    if (Array.isArray(event.expects) &&
+        event.expects.some((item: any) => item && item.status === 'failed')) {
+      hadFailure = true;
+    }
+  };
+
+  const trackedReporter = typeof reporterFn === 'function' ?
+      ((message: any) => {
+        markFailure(message);
+        return reporterFn(message);
+      }) :
+      undefined;
+
   const restoreReporterGlobals = applyReporterGlobals(
-  reporterFn, runId, context.id);
+      trackedReporter, runId, context.id);
 
   const customConsole = {
     trace: (...args: any[]) => lg(
@@ -110,9 +141,11 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     warn: (...args: any[]) => lg(
         'warn',
         args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')),
-    error: (...args: any[]) => lg(
-        'error',
-        args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')),
+    error: (...args: any[]) => {
+      hadFailure = true;
+      lg('error',
+         args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' '));
+    },
   };
 
   // Set the file loader BEFORE we build the Function; otherwise hoisted
@@ -207,16 +240,15 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     };
     const returnValue = await fn(
         mmtHelper, customConsole, sendFn, sendGrpcFn, extractOutputs, Random,
-        reporterFn, runId, context.id, mmtRandom, mmtCurrent, mmtAccess,
+        trackedReporter, runId, context.id, mmtRandom, mmtCurrent, mmtAccess,
         context.abortSignal, context.fileLoader, context.checkLogMode || 'default');
     restoreReporterGlobals();
     const elapsed = Date.now() - startTime;
-    lg('debug', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
+    logRunFinished(lg, runKind, title, !hadFailure, elapsed);
     return returnValue;
   } catch (e: any) {
     restoreReporterGlobals();
-    const elapsed = Date.now() - startTime;
-    lg('debug', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
+    logRunFinished(lg, runKind, title, false);
     throw e;
   } finally {
     // Only clear abort signal if this run owns it.  During parallel suite

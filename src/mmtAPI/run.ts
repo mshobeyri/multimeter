@@ -14,6 +14,10 @@ import {readRelativeFileContent} from './file';
 import {startMockServerFromPath} from './mockRunner';
 import {prepareNetworkConfigForFile, parseEnvFileForRun, resolveWorkspaceEnvFilePath} from './network';
 import {onRunStarted, onRunFinished} from '../runStatusBar';
+import {
+  createWebviewRunReporter,
+  resolveWebviewReportType,
+} from './webviewReporter';
 
 type SuiteEnvironment = SuiteData.SuiteEnvironment;
 
@@ -267,6 +271,12 @@ export async function handleRunCurrentDocument(
     panelId: getPanelId(webviewPanel),
   };
 
+  const uiReporter = createWebviewRunReporter({
+    type: resolveWebviewReportType(message),
+    webviewPanel,
+    isAborted: () => controller.signal.aborted,
+  });
+
   const statusBarRunId = onRunStarted(`Running ${fileName}`, () => controller.abort());
   const serverRunner = async (alias: string, filePath: string): Promise<() => void> => {
     // filePath is the resolved absolute path to the mock server file
@@ -293,13 +303,9 @@ export async function handleRunCurrentDocument(
       logger: forwardLog,
       abortSignal: controller.signal,
       reporter: (msg: any) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        webviewPanel.webview.postMessage({
-          command: 'runFileReport',
-          filePath: document.uri.toString(),
+        uiReporter.report({
           ...msg,
+          filePath: document.uri.toString(),
         });
       },
       projectRoot,
@@ -313,28 +319,34 @@ export async function handleRunCurrentDocument(
       docType === 'loadtest'      ? 'Load Test' :
                                       'Document';
 
-    if (result.syntaxError) {
-      const errorMsg = result.errors?.[0] || 'Generated code has a syntax error';
-      await promptViewGeneratedCode(
-          webviewPanel,
-          document.uri.toString(),
-          `${label} ${displayName}: ${errorMsg}`);
-    } else if (result.executionError) {
-      await promptViewGeneratedCode(
-          webviewPanel,
-          document.uri.toString(),
-          `${label} ${displayName}: Error running test: ${result.executionError}`);
+    if (uiReporter.notifyHost) {
+      if (result.syntaxError) {
+        const errorMsg = result.errors?.[0] || 'Generated code has a syntax error';
+        await promptViewGeneratedCode(
+            webviewPanel,
+            document.uri.toString(),
+            `${label} ${displayName}: ${errorMsg}`);
+      } else if (result.executionError) {
+        await promptViewGeneratedCode(
+            webviewPanel,
+            document.uri.toString(),
+            `${label} ${displayName}: Error running test: ${result.executionError}`);
+      }
+    } else if (result.syntaxError || result.executionError) {
+      const errorMsg = result.errors?.[0] || result.executionError ||
+          'Run failed';
+      forwardLog('error', `${label} ${displayName}: ${errorMsg}`);
     }
 
     if (result.cancelled) {
-      webviewPanel.webview.postMessage({
+      uiReporter.onCancelled({
         command: 'testRunStopped',
         filePath: document.uri.toString(),
       });
     }
   } catch (err: any) {
     if (controller.signal.aborted) {
-      webviewPanel.webview.postMessage({
+      uiReporter.onCancelled({
         command: 'testRunStopped',
         filePath: document.uri.toString(),
       });
@@ -342,7 +354,7 @@ export async function handleRunCurrentDocument(
     }
     const msg = err?.message || String(err);
     logToOutput('error', `Failed to run ${fileName}: ${msg}`);
-    webviewPanel.webview.postMessage({
+    uiReporter.onCancelled({
       command: 'testRunStopped',
       filePath: document.uri.toString(),
     });
@@ -351,49 +363,16 @@ export async function handleRunCurrentDocument(
           `Failed to run ${fileName}: ${msg}. Add a multimeter.mmt file in your project root (or a parent folder) to enable +/ imports.`);
       return;
     }
-    vscode.window.showErrorMessage(
-        `Failed to run ${fileName}: ${msg}`);
+    if (uiReporter.notifyHost) {
+      vscode.window.showErrorMessage(
+          `Failed to run ${fileName}: ${msg}`);
+    }
   } finally {
     if (activeTestRun && activeTestRun.controller === controller) {
       activeTestRun = null;
     }
     onRunFinished(statusBarRunId);
   }
-}
-
-/** Create a reporter callback for suite runs that routes events via the webview. */
-function createSuiteReporter(
-    webviewPanel: vscode.WebviewPanel,
-    suiteRunId: string,
-    controller: AbortController): (msg: any) => void {
-  return (msg: any) => {
-    const current = activeSuiteRun;
-    if (!current || current.suiteRunId !== suiteRunId) {
-      return;
-    }
-    if (current.controller.signal.aborted) {
-      return;
-    }
-
-    let id = typeof msg?.id === 'string' ? msg.id : undefined;
-    if (!id && typeof msg?.runId === 'string' && msg.runId) {
-      id = suiteRunIdByChildRunId.get(msg.runId);
-    }
-    if (msg?.scope === 'suite-item' && typeof msg?.runId === 'string' && msg.runId && id) {
-      suiteRunIdByChildRunId.set(msg.runId, id);
-    }
-
-    webviewPanel.webview.postMessage({
-      command: 'runFileReport',
-      suiteRunId,
-      ...msg,
-      // Place id AFTER spread so our resolved value is never overridden by
-      // an undefined msg.id.  This is critical for events (like test-step)
-      // where the core may not set id but the extension resolved it from
-      // the suiteRunIdByChildRunId lookup.
-      id,
-    });
-  };
 }
 
 export async function handleRunSuite(
@@ -422,16 +401,28 @@ export async function handleRunSuite(
   };
   suiteRunIdByChildRunId.clear();
 
+  const uiReporter = createWebviewRunReporter({
+    type: resolveWebviewReportType(message),
+    webviewPanel,
+    suiteRunId,
+    getActiveSuiteRunId: () => activeSuiteRun?.suiteRunId,
+    isAborted: () => controller.signal.aborted,
+    resolveChildId: (runId) => suiteRunIdByChildRunId.get(runId),
+    rememberChildId: (runId, id) => {
+      suiteRunIdByChildRunId.set(runId, id);
+    },
+  });
+
   const statusBarRunId = onRunStarted(`Running suite ${fileName}`, () => controller.abort());
   const startedAt = Date.now();
 
-  webviewPanel.webview.postMessage({
+  uiReporter.onRunStart({
     command: 'suiteRunStart',
     suiteRunId,
     filePath: document.uri.fsPath,
     startedAt,
   });
-  forwardLog('debug', `handleRunSuite: started suiteRunId=${suiteRunId} file=${document.uri.fsPath} target=${String(message?.target)}`);
+  forwardLog('debug', `handleRunSuite: started suiteRunId=${suiteRunId} file=${document.uri.fsPath} target=${String(message?.target)} report=${uiReporter.type}`);
 
   try {
     const target = typeof message?.target === 'string' ? message.target : undefined;
@@ -465,7 +456,7 @@ export async function handleRunSuite(
         abortSignal: controller.signal,
         suiteRunId,
         projectRoot: projectRootLoadTest,
-        reporter: createSuiteReporter(webviewPanel, suiteRunId, controller),
+        reporter: uiReporter.report,
         serverRunner: suiteServerRunner,
       });
 
@@ -476,7 +467,7 @@ export async function handleRunSuite(
         forwardLog,
       });
 
-      webviewPanel.webview.postMessage({
+      uiReporter.onRunEnd({
         command: 'suiteRunEnd',
         suiteRunId,
         filePath: document.uri.fsPath,
@@ -506,9 +497,8 @@ export async function handleRunSuite(
     });
     forwardLog('debug', `handleRunSuite: created bundle root=${runFilePath} target=${String(bundleTarget)}`);
 
-    // Forward the bundle to the webview for debugging/logging so the UI can print it
     try {
-      webviewPanel.webview.postMessage({ command: 'suiteBundle', suiteRunId, bundle });
+      uiReporter.onDebug({ command: 'suiteBundle', suiteRunId, bundle });
     } catch (e) {
       console.warn('Unable to post suiteBundle to webview', e);
     }
@@ -553,7 +543,7 @@ export async function handleRunSuite(
       suiteBundle: bundle,
       suiteRunId: suiteRunId,
       projectRoot: projectRootSuite,
-      reporter: createSuiteReporter(webviewPanel, suiteRunId, controller),
+      reporter: uiReporter.report,
       serverRunner: suiteServerRunner,
     });
 
@@ -564,7 +554,7 @@ export async function handleRunSuite(
       forwardLog,
     });
 
-    webviewPanel.webview.postMessage({
+    uiReporter.onRunEnd({
       command: 'suiteRunEnd',
       suiteRunId,
       filePath: document.uri.fsPath,
@@ -572,7 +562,7 @@ export async function handleRunSuite(
       cancelled: controller.signal.aborted,
     });
   } catch (err: any) {
-    webviewPanel.webview.postMessage({
+    uiReporter.onRunEnd({
       command: 'suiteRunEnd',
       suiteRunId,
       filePath: document.uri.fsPath,
@@ -580,8 +570,12 @@ export async function handleRunSuite(
       cancelled: controller.signal.aborted,
       error: err?.message || String(err),
     });
-    vscode.window.showErrorMessage(
-        `Failed to run ${fileName}: ${err?.message || String(err)}`);
+    if (uiReporter.notifyHost) {
+      vscode.window.showErrorMessage(
+          `Failed to run ${fileName}: ${err?.message || String(err)}`);
+    } else {
+      forwardLog('error', `Failed to run ${fileName}: ${err?.message || String(err)}`);
+    }
   } finally {
     if (activeSuiteRun && activeSuiteRun.suiteRunId === suiteRunId) {
       activeSuiteRun = null;

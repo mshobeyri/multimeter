@@ -2,6 +2,7 @@ import {LogLevel} from './CommonData';
 import {createReportCollector, CollectedResults} from './reportCollector';
 import {basename, detectDocType, resolveRelativeTo, RunFileResult, sanitizeIdentifier, SuiteExportSpec} from './runCommon';
 import {RunFileOptions, RunReporterMessage, RunResult, SuiteStepStatus} from './runConfig';
+import {logRunFinished} from './runLog';
 import {SuiteBundle, SuiteBundleNode} from './suiteBundle';
 import {stopAllServers_, registerServer_} from './testHelper';
 
@@ -500,12 +501,20 @@ export async function executeSuiteBundle(params: {
   }
 
   const durationMs = Date.now() - suiteStart;
+  const cancelled = effectiveOptions.abortSignal?.aborted === true;
   const result: RunResult = {
     success: overallSuccess,
     durationMs,
     errors: allErrors,
     logs: allLogs,
   };
+
+  const suiteTitle =
+      (typeof bundle.rootTitle === 'string' && bundle.rootTitle.trim()) ?
+      bundle.rootTitle.trim() :
+      suiteDisplayName;
+  logRunFinished(
+      suiteLogger, 'Suite', suiteTitle, overallSuccess && !cancelled, durationMs);
 
   if (shouldEmitSuiteRunEvents) {
     effectiveOptions.reporter && effectiveOptions.reporter({
@@ -515,7 +524,7 @@ export async function executeSuiteBundle(params: {
       finishedAt: Date.now(),
       success: overallSuccess,
       durationMs,
-      cancelled: effectiveOptions.abortSignal?.aborted === true,
+      cancelled,
     });
   }
 

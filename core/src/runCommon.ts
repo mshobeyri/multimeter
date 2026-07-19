@@ -2,6 +2,7 @@ import {APIData} from './APIData';
 import {LogLevel, Type} from './CommonData';
 import * as JSer from './JSer';
 import {RunJSCodeContext} from './jsRunner';
+import type {RunKind} from './runLog';
 import type {CollectedResults, LoadReportData} from './reportCollector';
 import {RunResult, TestStepReporterEvent} from './runConfig';
 
@@ -96,7 +97,8 @@ export async function runGeneratedJs(
   basePath?: string,
   skipSyntaxValidation?: boolean,
   workerEligible?: boolean,
-  checkLogMode?: 'default'|'failures-only'|'none'): Promise<RunResult> {
+  checkLogMode?: 'default'|'failures-only'|'none',
+  runKind: RunKind = 'Test'): Promise<RunResult> {
   const start = Date.now();
   const errors: string[] = [];
   const logs: string[] = [];
@@ -160,6 +162,7 @@ export async function runGeneratedJs(
       basePath,
       workerEligible,
       checkLogMode,
+      runKind,
     });
 
     const outputs = returnValue && typeof returnValue === 'object' ? returnValue : undefined;

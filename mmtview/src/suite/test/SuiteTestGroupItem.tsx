@@ -1,6 +1,7 @@
 import React from 'react';
 import { TreeItem } from 'react-complex-tree';
 import { StepStatus } from '../../shared/types';
+import ContextMenuHost, { runInCoreMenuItem } from '../../components/ContextMenuHost';
 
 export type SuiteTestGroupItemData = { type: 'group' | 'root' | 'import-group'; label: string };
 
@@ -14,6 +15,8 @@ interface SuiteTestGroupItemProps {
   canShowStatusIcon?: boolean;
   showRunButton?: boolean;
   onRun?: () => void;
+  /** Logs-only run (opens output channel via menu helper). */
+  onRunInCore?: () => void;
   runButtonTitle?: string;
   runDisabled?: boolean;
 }
@@ -28,6 +31,7 @@ const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
   canShowStatusIcon = true,
   showRunButton = false,
   onRun,
+  onRunInCore,
   runButtonTitle = 'Run',
   runDisabled = false,
 }) => {
@@ -63,19 +67,27 @@ const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
             <span>{data.label}</span>
           </div>
           {showRunButton && (
-            <button
-              className="tab-button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onRun?.();
-              }}
-              title={runButtonTitle}
-              disabled={runDisabled}
-              style={{ padding: 6 }}
+            <ContextMenuHost
+              items={
+                runDisabled || !(onRunInCore || onRun)
+                  ? undefined
+                  : [runInCoreMenuItem(onRunInCore || onRun!)]
+              }
             >
-              <span className="codicon codicon-run tab-button-icon" aria-hidden />
-            </button>
+              <button
+                className="tab-button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onRun?.();
+                }}
+                title={runButtonTitle}
+                disabled={runDisabled}
+                style={{ padding: 6 }}
+              >
+                <span className="codicon codicon-run tab-button-icon" aria-hidden />
+              </button>
+            </ContextMenuHost>
           )}
         </div>
       </div>

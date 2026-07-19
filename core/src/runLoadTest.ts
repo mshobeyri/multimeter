@@ -6,6 +6,7 @@ import {generateTestJs, prepareTestRun} from './runTest';
 import {RunFileOptions, RunReporterMessage, RunResult, TestOutputsReporterEvent, TestRunSummaryEvent, TestStepReporterEvent} from './runConfig';
 import {formatDuration} from './CommonData';
 import {parseDurationString} from './JSerHelper';
+import {logRunFinished} from './runLog';
 import {roundReportNumber} from './reportFormat';
 
 const LOADTEST_ITEM_ID = 'loadtest-test-0';
@@ -366,6 +367,7 @@ export async function executeLoadTest(
         true,
         true,
         'none',
+        'Test',
       );
       completed += 1;
       if (!childResult.success) {
@@ -453,6 +455,9 @@ export async function executeLoadTest(
     durationMs,
     cancelled: options.abortSignal?.aborted === true,
   });
+
+  logRunFinished(
+      loadLogger, 'Load Test', displayName, success, durationMs);
 
   const result: RunResult = {
     success,

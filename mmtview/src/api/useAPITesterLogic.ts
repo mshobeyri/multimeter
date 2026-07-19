@@ -288,6 +288,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     // only "Run in Core" / glyphs should reveal it.
     window.vscode?.postMessage({
       command: "runCurrentDocument",
+      report: { type: "lifecycle" },
       inputs: {
         exampleIndex: selectedExampleIdx,
         manualInputs: currentInputs,

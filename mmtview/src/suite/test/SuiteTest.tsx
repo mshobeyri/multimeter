@@ -18,6 +18,7 @@ import ExportReportButton, { ReportFormat } from '../../shared/ExportReportButto
 import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
 import { FileContext } from '../../fileContext';
 import LoadTestReport, { LoadMetricsOverview } from '../../loadtest/LoadTestReport';
+import ContextMenuHost, { runInCoreMenuItem } from '../../components/ContextMenuHost';
 
 /** Get basename from a file path. */
 function basename(p: string): string {
@@ -952,6 +953,27 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId, target: effectiveTarget });
     }, [resetLeafState, hierarchyByEntryPath]);
 
+    const onRunSuiteInCore = useCallback(() => {
+        window.vscode?.postMessage({
+            command: 'runSuite',
+            suiteRunId: `suite-logs:${Date.now()}`,
+            report: { type: 'lifecycle' },
+        });
+    }, []);
+
+    const onRunTargetsInCore = useCallback((target: string) => {
+        const effectiveTarget = typeof target === 'string' ? target : '';
+        if (!effectiveTarget) {
+            return;
+        }
+        window.vscode?.postMessage({
+            command: 'runSuite',
+            suiteRunId: `suite-logs:${Date.now()}`,
+            target: effectiveTarget,
+            report: { type: 'lifecycle' },
+        });
+    }, []);
+
     const onStopSuite = useCallback(() => {
         if (!suiteRunId) {
             return;
@@ -1040,6 +1062,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             reportsById={leafReportsById}
             runStateById={leafRunStateById}
             onRunTargets={onRunTargets}
+            onRunTargetsInCore={onRunTargetsInCore}
         />
     );
 
@@ -1057,16 +1080,20 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                         Stop
                     </button>
                 ) : (
-                    <button
-                        className="button-icon"
-                        disabled={!canRun}
-                        onClick={onRunSuite}
-                        title={!canRun ? (mode === 'loadtest' ? 'No test file to run' : 'No suite files to run') : runLabel}
-                        type="button"
+                    <ContextMenuHost
+                        items={canRun ? [runInCoreMenuItem(onRunSuiteInCore)] : undefined}
                     >
-                        <span className="codicon codicon-run" aria-hidden />
-                        {runLabel}
-                    </button>
+                        <button
+                            className="button-icon"
+                            disabled={!canRun}
+                            onClick={onRunSuite}
+                            title={!canRun ? (mode === 'loadtest' ? 'No test file to run' : 'No suite files to run') : runLabel}
+                            type="button"
+                        >
+                            <span className="codicon codicon-run" aria-hidden />
+                            {runLabel}
+                        </button>
+                    </ContextMenuHost>
                 )}
                 <ExportReportButton disabled={suiteExportDisabled} onExport={handleExportReport} />
             </div>

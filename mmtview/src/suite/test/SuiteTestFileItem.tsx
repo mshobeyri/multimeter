@@ -3,6 +3,7 @@ import { TreeItem } from 'react-complex-tree';
 import { StepStatus } from '../../shared/types';
 import TestStepReportPanel, { StepReportItem } from '../../shared/TestStepReportPanel';
 import { openRelativeFile } from '../../vsAPI';
+import ContextMenuHost, { runInCoreMenuItem } from '../../components/ContextMenuHost';
 
 export type SuiteTestFileItemData = { type: 'test'; path: string; id: string }
 
@@ -19,6 +20,7 @@ interface SuiteTestFileItemProps {
     runStateById: Record<string, StepStatus>;
 
     onRun?: () => void;
+    onRunInCore?: () => void;
     runButtonTitle?: string;
     runDisabled?: boolean;
 
@@ -36,6 +38,7 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     reportsById,
     runStateById,
     onRun,
+    onRunInCore,
     runButtonTitle = 'Run',
     runDisabled = false,
     displayPath,
@@ -114,19 +117,27 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                         {labelPath}
                     </div>
                     {onRun && !isMissing && (
-                        <button
-                            className="tab-button"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onRun();
-                            }}
-                            title={runButtonTitle}
-                            disabled={runDisabled}
-                            style={{ padding: 6 }}
+                        <ContextMenuHost
+                            items={
+                              runDisabled
+                                ? undefined
+                                : [runInCoreMenuItem(onRunInCore || onRun)]
+                            }
                         >
-                            <span className="codicon codicon-run tab-button-icon" aria-hidden />
-                        </button>
+                            <button
+                                className="tab-button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    onRun();
+                                }}
+                                title={runButtonTitle}
+                                disabled={runDisabled}
+                                style={{ padding: 6 }}
+                            >
+                                <span className="codicon codicon-run tab-button-icon" aria-hidden />
+                            </button>
+                        </ContextMenuHost>
                     )}
                 </div>
             </div>

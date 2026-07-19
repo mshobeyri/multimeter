@@ -12,6 +12,7 @@ import { StepStatus } from '../shared/types';
 import ExportReportButton, { ReportFormat } from '../shared/ExportReportButton';
 import OverviewBoxes, { OverviewStats } from '../shared/OverviewBoxes';
 import VEditor from '../components/VEditor';
+import ContextMenuHost, { runInCoreMenuItem } from '../components/ContextMenuHost';
 import { loadEnvVariables } from '../workspaceStorage';
 
 interface TestTestProps {
@@ -305,14 +306,24 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                         Stop
                     </button>
                 ) : (
-                    <button
-                        onClick={handleRun}
-                        className="button-icon"
-                        type="button"
-                    >
-                        <span className="codicon codicon-run" aria-hidden />
-                        Run test
-                    </button>
+                    <ContextMenuHost items={[runInCoreMenuItem(() => {
+                        window.vscode?.postMessage({
+                            command: 'runCurrentDocument',
+                            report: { type: 'lifecycle' },
+                            inputs: {
+                                manualInputs: currentInputsRef.current,
+                            },
+                        });
+                    })]}>
+                        <button
+                            onClick={handleRun}
+                            className="button-icon"
+                            type="button"
+                        >
+                            <span className="codicon codicon-run" aria-hidden />
+                            Run test
+                        </button>
+                    </ContextMenuHost>
                 )}
                 <ExportReportButton disabled={exportDisabled} onExport={handleExportReport} />
             </div>
