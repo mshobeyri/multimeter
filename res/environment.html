@@ -288,18 +288,17 @@
 </head>
 
 <body>
-    <div class="section-card">
+    <div id="preset-card" class="section-card" style="display: none;">
         <div class="section-header">
             <div>
                 <div class="section-title">Presets</div>
             </div>
         </div>
         <div id="preset-section" class="preset-section"></div>
-        <div id="preset-empty" class="empty-state">No presets found in the current environment file.</div>
     </div>
 
     <div class="section-card">
-        <div class="section-header">
+        <div id="env-header" class="section-header" style="display: none;">
             <div>
                 <div class="section-title">Environment Variables</div>
             </div>
@@ -352,14 +351,21 @@
         function updateUI() {
             const tableContainer = document.getElementById('env-table-container');
             const emptyState = document.getElementById('empty-state');
+            const envHeader = document.getElementById('env-header');
             const tableBody = document.getElementById('env-table-body');
 
             if (!environmentVars || environmentVars.length === 0) {
+                if (envHeader) {
+                    envHeader.style.display = 'none';
+                }
                 tableContainer.style.display = 'none';
                 emptyState.style.display = 'block';
                 return;
             }
 
+            if (envHeader) {
+                envHeader.style.display = 'flex';
+            }
             tableContainer.style.display = 'block';
             emptyState.style.display = 'none';
             tableBody.innerHTML = '';
@@ -465,23 +471,25 @@
         }
 
         function renderPresets() {
+            const presetCard = document.getElementById('preset-card');
             const presetSection = document.getElementById('preset-section');
-            const presetEmpty = document.getElementById('preset-empty');
-            if (!presetSection || !presetEmpty) {
+            if (!presetCard || !presetSection) {
                 return;
             }
 
-            const presetEntries = Object.entries(environmentPresets || {});
+            const presetEntries = Object.entries(environmentPresets || {}).filter(
+                ([, presetGroup]) => Object.keys(presetGroup || {}).length > 0
+            );
             presetSection.innerHTML = '';
 
             if (presetEntries.length === 0) {
+                presetCard.style.display = 'none';
                 presetSection.style.display = 'none';
-                presetEmpty.style.display = 'block';
                 return;
             }
 
+            presetCard.style.display = 'block';
             presetSection.style.display = 'flex';
-            presetEmpty.style.display = 'none';
 
             const validPresetNames = new Set(presetEntries.map(([name]) => name));
             Object.keys(presetSelections).forEach(key => {
@@ -492,9 +500,6 @@
 
             presetEntries.forEach(([presetName, presetGroup]) => {
                 const envNames = Object.keys(presetGroup || {});
-                if (envNames.length === 0) {
-                    return;
-                }
 
                 const row = document.createElement('div');
                 row.className = 'preset-row';
