@@ -141,4 +141,32 @@ describe('runGeneratedJs', () => {
     expect(result.executionError).toBe('pm is not defined');
     expect(result.errors).toContain('Error running test: pm is not defined');
   });
+
+  it('uses API wording for API runKind execution errors', async () => {
+    const result = await runGeneratedJs(
+      'run-api',
+      'throw new Error("boom");',
+      'sample api',
+      () => {},
+      async () => {
+        throw new ReferenceError('envVariables is not defined');
+      },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'API',
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.threw).toBe(true);
+    expect(result.errors).toContain('Error running API: envVariables is not defined');
+  });
 });

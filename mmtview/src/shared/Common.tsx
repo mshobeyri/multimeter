@@ -15,7 +15,7 @@ export const statusIconFor = (status: StepStatus) => {
         return { icon: 'codicon-error', color: '#f85149', title: 'Failed' };
     }
     if (status === 'invalid') {
-        return { icon: 'codicon-warning', color: '#f8b449', title: 'Invalid' };
+        return { icon: 'codicon-warning', color: '#f8b449', title: 'File not found / Invalid' };
     }
     if (status === 'pending') {
         return { icon: 'codicon-compass', color: '#3794ff', title: 'Pending' };

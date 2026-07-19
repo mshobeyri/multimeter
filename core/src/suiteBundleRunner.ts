@@ -24,6 +24,45 @@ function isValidationError(message: string): boolean {
   return INVALID_ERROR_PATTERNS.some(p => message.includes(p));
 }
 
+function reportUnresolvedSuiteNode(params: {
+  node: Extract<SuiteBundleNode, {kind: 'missing'|'cycle'}>;
+  bundle: SuiteBundle;
+  options: RunFileOptions;
+  suiteLogger: (level: LogLevel, msg: string) => void;
+  nextIndex: () => number;
+}): {success: boolean; threw: boolean; cancelled: boolean; status: SuiteStepStatus} {
+  const {node, bundle, options, suiteLogger, nextIndex} = params;
+  const currentIndex = nextIndex();
+  const display = basename(node.path);
+  const suiteRunNonce = typeof options.suiteRunId === 'string' ? options.suiteRunId : '';
+  const runId =
+      `suite:${sanitizeIdentifier(bundle.rootSuitePath)}:${suiteRunNonce}:${currentIndex}:${sanitizeIdentifier(node.path)}`;
+  const reason = node.kind === 'missing' ? 'File not found' : 'Circular suite reference';
+
+  suiteLogger('error', `${reason}: ${display}`);
+
+  options.reporter && options.reporter({
+    scope: 'suite-item',
+    status: 'running',
+    runId,
+    filePath: node.path,
+    entry: node.path,
+    title: display,
+    id: node.id,
+  });
+  options.reporter && options.reporter({
+    scope: 'suite-item',
+    status: 'invalid',
+    runId,
+    filePath: node.path,
+    entry: node.path,
+    title: display,
+    id: node.id,
+  });
+
+  return {success: false, threw: false, cancelled: false, status: 'invalid'};
+}
+
 function findNodeById(nodes: readonly SuiteBundleNode[], targetId: string): SuiteBundleNode|undefined {
   const stack: SuiteBundleNode[] = [...nodes];
   while (stack.length) {
@@ -244,7 +283,16 @@ async function runSuiteGroup(params: {
       return {success: serverResult.success, threw: false, cancelled: false, status: serverResult.success ? 'passed' as SuiteStepStatus : 'failed' as SuiteStepStatus};
     }
 
-    // missing/cycle are not runnable.
+    if (child.kind === 'missing' || child.kind === 'cycle') {
+      return reportUnresolvedSuiteNode({
+        node: child,
+        bundle,
+        options,
+        suiteLogger,
+        nextIndex,
+      });
+    }
+
     return {success: true, threw: false, cancelled: false, status: 'passed' as SuiteStepStatus};
   }));
 
@@ -439,7 +487,19 @@ export async function executeSuiteBundle(params: {
         continue;
       }
 
-      // missing/cycle are ignored.
+      if (n.kind === 'missing' || n.kind === 'cycle') {
+        const r = reportUnresolvedSuiteNode({
+          node: n,
+          bundle,
+          options: effectiveOptions,
+          suiteLogger,
+          nextIndex,
+        });
+        if (!r.success) {
+          overallSuccess = false;
+        }
+        continue;
+      }
     }
   };
 

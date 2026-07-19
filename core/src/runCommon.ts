@@ -177,7 +177,11 @@ export async function runGeneratedJs(
     const isCancelled = e?.name === 'TestAbortError';
     const executionError = isCancelled ? undefined : (e?.message || String(e));
     if (executionError) {
-      forward('error', `Error running test: ${executionError}`);
+      const kindLabel = runKind === 'API' ? 'API' :
+          runKind === 'Suite' ? 'suite' :
+          runKind === 'Load Test' ? 'load test' :
+          'test';
+      forward('error', `Error running ${kindLabel}: ${executionError}`);
     }
     return {
       success: false,

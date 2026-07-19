@@ -528,6 +528,9 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
             if (leafState === 'passed' || leafState === 'failed') {
               return leafState as any;
             }
+            if (leafState === 'invalid') {
+              return 'invalid' as any;
+            }
           }
         }
       }
@@ -580,6 +583,9 @@ const SuiteTestTree: React.FC<SuiteTestTreeProps> = ({
       }
       if (leafState === 'passed' || leafState === 'failed') {
         return leafState as any;
+      }
+      if (leafState === 'invalid') {
+        return 'invalid' as any;
       }
       return computedStatus;
     })();

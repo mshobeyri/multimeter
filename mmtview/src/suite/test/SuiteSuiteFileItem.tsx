@@ -52,7 +52,7 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
         if (leafRunState === 'cancelled') {
             return 'cancelled';
         }
-        if (leafRunState === 'passed' || leafRunState === 'failed') {
+        if (leafRunState === 'passed' || leafRunState === 'failed' || leafRunState === 'invalid') {
             return leafRunState;
         }
         return status;

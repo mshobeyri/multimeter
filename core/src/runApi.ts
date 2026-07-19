@@ -138,16 +138,18 @@ export async function generateApiJs(options: GenerateApiJsOptions):
     inputs: {},
     envVars,
   });
-  return `${funcSource}\n\n${
-      buildApiRunnerWrapper({
-        name,
-        envVars,
-        inputs,
-        exampleName,
-        exampleIndex,
-        exampleOutputs,
-        checkTitle,
-      })}`;
+  // Define the API function inside the runner IIFE so it closes over
+  // `envVariables` (e: tokens / input defaults resolve correctly).
+  return buildApiRunnerWrapper({
+    name,
+    envVars,
+    inputs,
+    exampleName,
+    exampleIndex,
+    exampleOutputs,
+    checkTitle,
+    apiFunctionSource: funcSource,
+  });
 }
 
 interface ApiRunnerWrapperOptions {
@@ -158,6 +160,7 @@ interface ApiRunnerWrapperOptions {
   exampleIndex?: number;
   exampleOutputs?: Record<string, any>;
   checkTitle?: string;
+  apiFunctionSource?: string;
 }
 
 function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
@@ -218,6 +221,9 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `  const __mmt_inputs = ${inputsJson};\n` +
       `  const __mmt_exampleLabel = ${exampleLiteral};\n` + helperDestructure +
       '\n' +
+      (opts.apiFunctionSource ?
+           `${indentMultiline(opts.apiFunctionSource, '  ')}\n\n` :
+           '') +
       `  const __mmt_originalSend = send_;\n` +
       `  send_ = async function(req) {\n` +
       `    const __req = req || {};\n` +

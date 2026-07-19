@@ -635,9 +635,37 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
 
     const [hierarchyByEntryPath, setHierarchyByEntryPath] = useState<Record<string, SuiteTreeNode>>({});
 
+    const hierarchyMissingPaths = useMemo(() => {
+        const missing = new Set<string>();
+        const walk = (node: any) => {
+            if (!node || typeof node !== 'object') {
+                return;
+            }
+            if (node.kind === 'missing' && typeof node.path === 'string' && node.path) {
+                missing.add(node.path);
+            }
+            if (Array.isArray(node.children)) {
+                for (const child of node.children) {
+                    walk(child);
+                }
+            }
+        };
+        Object.values(hierarchyByEntryPath).forEach(walk);
+        return missing;
+    }, [hierarchyByEntryPath]);
+
+    const effectiveMissingFiles = useMemo(() => {
+        if (hierarchyMissingPaths.size === 0) {
+            return missingFiles;
+        }
+        const merged = new Set(missingFiles);
+        hierarchyMissingPaths.forEach((path) => merged.add(path));
+        return merged;
+    }, [missingFiles, hierarchyMissingPaths]);
+
     useEffect(() => {
-        onFlowchartStateChange?.({ groups, hierarchyByEntryPath, missingFiles, noItems });
-    }, [groups, hierarchyByEntryPath, missingFiles, noItems, onFlowchartStateChange]);
+        onFlowchartStateChange?.({ groups, hierarchyByEntryPath, missingFiles: effectiveMissingFiles, noItems });
+    }, [groups, hierarchyByEntryPath, effectiveMissingFiles, noItems, onFlowchartStateChange]);
 
     useEffect(() => {
         let cancelled = false;
@@ -1099,7 +1127,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         <SuiteTestTree
             groups={groups}
             hierarchyByEntryPath={hierarchyByEntryPath}
-            missingFiles={missingFiles}
+            missingFiles={effectiveMissingFiles}
             stepStatuses={stepStatuses}
             lastRunIdByEntryId={lastRunIdByEntryId}
             statusIconFor={statusIconFor}

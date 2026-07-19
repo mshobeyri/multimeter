@@ -330,18 +330,16 @@ export async function handleRunCurrentDocument(
         await promptViewGeneratedCode(
             webviewPanel,
             document.uri.toString(),
-            `${label} ${displayName}: ${errorMsg}`);
+            `${label} "${displayName}" has error: ${errorMsg}`);
       } else if (result.executionError) {
         await promptViewGeneratedCode(
             webviewPanel,
             document.uri.toString(),
-            `${label} ${displayName}: Error running test: ${result.executionError}`);
+            `${label} "${displayName}" has error: ${result.executionError}`);
       }
-    } else if (result.syntaxError || result.executionError) {
-      const errorMsg = result.errors?.[0] || result.executionError ||
-          'Run failed';
-      forwardLog('error', `${label} ${displayName}: ${errorMsg}`);
     }
+    // Runtime errors/failures are already logged via the run logger; avoid
+    // duplicating status lines like `API X: API "X" failed`.
 
     if (result.cancelled) {
       uiReporter.onCancelled({
