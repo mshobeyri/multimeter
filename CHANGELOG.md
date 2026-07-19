@@ -2,6 +2,20 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.28.0]
+
+- Improve API `setenv`: values use the same extraction expressions as `outputs` (paths/regex); referencing an outputs key name remains supported but is deprecated with click-to-fix
+- Fix Environment panel variable order (env-file order, then manual adds) and hide empty Presets / Variables titles
+- Report missing suite files as `invalid` (warning icon) instead of leaving them pending
+- Distinguish run outcomes in logs: check failures (`failed`) vs runtime exceptions (`has error`)
+- Fix API `envVariables is not defined` when resolving `e:` tokens during API runs
+- Improve suite run lifecycle, duplicate nested-suite handling, and webview report routing
+- Log API example expects after Outputs and improve example check UX
+- Improve API save/discard and YAML update behavior for request edits
+- Fix protocol and method selectors in the API tester
+- Show HTTP methods instead of logos in the history panel
+- Improve CLI version handling for Testlight
+
 ## [1.27.4]
 
 - Add community CTAs on the no-type welcome screen (star the repo, star the extension, send feedback)
