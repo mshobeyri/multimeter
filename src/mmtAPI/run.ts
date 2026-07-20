@@ -1,4 +1,5 @@
 import {runner, suiteHierarchy, suiteBundle, runConfig, SuiteData} from 'mmt-core';
+import {buildApiTesterResponse} from 'mmt-core/apiRunResult';
 import {LogLevel} from 'mmt-core/CommonData';
 import {findProjectRootSync} from 'mmt-core/fileHelper';
 import {generateJunitXml} from 'mmt-core/junitXml';
@@ -324,6 +325,15 @@ export async function handleRunCurrentDocument(
       docType === 'loadtest'      ? 'Load Test' :
                                       'Document';
 
+    // API Send contract: one core round-trip. Post the same response the finish
+    // log used so the Response panel / toolbar duration stay in sync.
+    if (docType === 'api') {
+      postApiRunResult(
+          webviewPanel, document.uri.toString(),
+          result.cancelled ? null : buildApiTesterResponse(result.outputs),
+          !!result.cancelled);
+    }
+
     if (uiReporter.notifyHost) {
       if (result.syntaxError) {
         const errorMsg = result.errors?.[0] || 'Generated code has a syntax error';
@@ -349,6 +359,7 @@ export async function handleRunCurrentDocument(
     }
   } catch (err: any) {
     if (controller.signal.aborted) {
+      postApiRunResult(webviewPanel, document.uri.toString(), null, true);
       uiReporter.onCancelled({
         command: 'testRunStopped',
         filePath: document.uri.toString(),
@@ -357,6 +368,7 @@ export async function handleRunCurrentDocument(
     }
     const msg = err?.message || String(err);
     logToOutput('error', `Failed to run ${fileName}: ${msg}`);
+    postApiRunResult(webviewPanel, document.uri.toString(), null, false);
     uiReporter.onCancelled({
       command: 'testRunStopped',
       filePath: document.uri.toString(),
@@ -376,6 +388,18 @@ export async function handleRunCurrentDocument(
     }
     onRunFinished(statusBarRunId);
   }
+}
+
+/** Post API run result to the webview Response panel (Send / Run in Core). */
+function postApiRunResult(
+    webviewPanel: vscode.WebviewPanel, uri: string,
+    response: ReturnType<typeof buildApiTesterResponse>, cancelled: boolean) {
+  webviewPanel.webview.postMessage({
+    command: 'multimeter.api.run.result',
+    uri,
+    response,
+    cancelled,
+  });
 }
 
 export async function handleRunSuite(

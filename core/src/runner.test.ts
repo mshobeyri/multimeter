@@ -48,9 +48,11 @@ describe('createApiLogHelpers', () => {
 
     const formatted = helpers.formatDuration(321) as ApiLogRawValue;
     const blank = helpers.formatDuration('skip') as ApiLogRawValue;
+    const overOneSecond = helpers.formatDuration(1234) as ApiLogRawValue;
 
     expect(formatted).toEqual({__mmt_raw: '321ms'});
     expect(blank).toEqual({__mmt_raw: ''});
+    expect(overOneSecond).toEqual({__mmt_raw: '1234ms'});
   });
 
   it('formats Expects with pass/fail marks', () => {

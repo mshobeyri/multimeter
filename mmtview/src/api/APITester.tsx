@@ -118,7 +118,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     handleCancel,
     handleConnect,
     network,
-    examples
+    examples,
+    isSending,
   } = useAPITesterLogic({ api, onUpdateApi, filePath: mmtFilePath });
 
   useEffect(() => {
@@ -568,7 +569,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             onClick={handleSend}
             onCancel={handleCancel}
             disabled={isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url) && !network.connected}
-            loading={network.loading}
+            loading={
+              isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url)
+                ? network.loading
+                : isSending
+            }
             contextMenuItems={sendContextMenuItems}
           />
         </div>

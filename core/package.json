@@ -34,6 +34,11 @@
       "require": "./dist/jsRunner.js",
       "default": "./dist/jsRunner.js"
     },
+    "./apiRunResult": {
+      "types": "./dist/apiRunResult.d.ts",
+      "require": "./dist/apiRunResult.js",
+      "default": "./dist/apiRunResult.js"
+    },
     "./CommonData": {
       "types": "./dist/CommonData.d.ts",
       "require": "./dist/CommonData.js",

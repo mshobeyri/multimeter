@@ -36,6 +36,7 @@ export * as dataImportProcessor from "./dataImportProcessor";
 export * as Random from "./Random";
 export * as Current from "./Current";
 export * as runner from "./runner";
+export * as apiRunResult from "./apiRunResult";
 export * as runConfig from "./runConfig";
 export * as suiteHierarchy from "./suiteHierarchy";
 export * as suiteBundle from "./suiteBundle";

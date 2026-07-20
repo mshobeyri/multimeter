@@ -12,8 +12,7 @@ import { extractOutputs, extractPathAtPosition, buildBodyExprFromPath } from "mm
 import { resolveSetenvValues } from "mmt-core/setenvResolve";
 import { setEnvironmentVariables } from "../environment/environmentUtils";
 import { useNetwork } from "../components/network/Network";
-import { NetworkNodeApi, Error as NetworkError } from "../components/network/NetworkNodeApi";
-import { pushHistory, showVSCodeMessage } from "../vsAPI";
+import { pushHistory } from "../vsAPI";
 import { beautifyWithContentType } from "mmt-core/markupConvertor";
 import { protocolResolver } from "mmt-core";
 import {
@@ -36,6 +35,10 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
   const network = useNetwork(autoFormatBody);
   const apiRef = useRef<APIData>(api);
   const [requestData, setRequestData] = useState<Request>();
+  const requestDataRef = useRef(requestData);
+  requestDataRef.current = requestData;
+  const [isSending, setIsSending] = useState(false);
+  const sendPendingRef = useRef(false);
   const [responseData, setResponseData] = useState<Response>();
   const [responseRevision, setResponseRevision] = useState<number>(0);
   const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(-1);
@@ -287,10 +290,28 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     onUpdateApi?.({ outputs: existing });
   }, [onUpdateApi, requestData?.format]);
 
-  const handleSend = useCallback(async () => {
-    // Also run through core so the Multimeter log gets Inputs/Outputs/Checks
-    // (same as glyph / Run in Core). Do not open the output channel here —
-    // only "Run in Core" / glyphs should reveal it.
+  // HTTP/GraphQL/gRPC Send: one core round-trip via runCurrentDocument.
+  // The extension posts multimeter.api.run.result so the Response panel and
+  // finish log share the same network duration. WS still uses the live socket.
+  const runViaCore = useCallback((opts: { forSend: boolean }) => {
+    if (opts.forSend) {
+      setIsSending(true);
+      sendPendingRef.current = true;
+      const protocol = protocolResolver.getEffectiveProtocol(
+        requestData?.protocol as any, requestData?.url) || "http";
+      const method = (requestData?.method || "get").toLowerCase();
+      const url = requestData?.url ?? "";
+      pushHistory({
+        type: "send",
+        method: method.toUpperCase(),
+        protocol,
+        title: url,
+        cookies: requestData?.cookies,
+        headers: requestData?.headers,
+        query: requestData?.query,
+        content: method === "get" ? "" : toContentString(requestData?.body),
+      });
+    }
     window.vscode?.postMessage({
       command: "runCurrentDocument",
       report: { type: "lifecycle" },
@@ -299,14 +320,38 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
         manualInputs: currentInputs,
       },
     });
-    const res = await network.send(requestData);
-    setResponseData(res);
+  }, [requestData, selectedExampleIdx, currentInputs]);
+
+  const handleSend = useCallback(async () => {
+    setResponseData(undefined);
     setResponseRevision(prev => prev + 1);
-  }, [network, requestData, selectedExampleIdx, currentInputs]);
+
+    const protocol = protocolResolver.getEffectiveProtocol(
+      requestData?.protocol as any, requestData?.url);
+
+    if (protocol === "ws") {
+      const res = await network.send(requestData);
+      setResponseData(res);
+      setResponseRevision(prev => prev + 1);
+      return;
+    }
+
+    runViaCore({ forSend: true });
+  }, [network, requestData, runViaCore]);
 
   const handleCancel = useCallback(async () => {
+    const protocol = protocolResolver.getEffectiveProtocol(
+      requestDataRef.current?.protocol as any, requestDataRef.current?.url);
+
+    setIsSending(false);
+    sendPendingRef.current = false;
     setResponseData(undefined);
-    await network.cancel();
+
+    if (protocol === "ws") {
+      await network.cancel();
+      return;
+    }
+    window.vscode?.postMessage({ command: "stopTestRun" });
   }, [network]);
 
   const handleConnect = useCallback(() => {
@@ -357,21 +402,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     };
   }, [prepareRequestData]);
 
-  useEffect(() => {
-    const listener = (event: MessageEvent) => {
-      const message = event.data;
-      if (!message || message.command !== "multimeter.api.run") {
-        return;
-      }
-      if (message.uri && filePath && message.uri !== filePath) {
-        return;
-      }
-      void handleSend();
-    };
-    window.addEventListener("message", listener);
-    return () => window.removeEventListener("message", listener);
-  }, [handleSend, filePath]);
-
+  // Response panel is filled only via multimeter.api.run.result from the extension.
   useEffect(() => {
     const listener = (event: MessageEvent) => {
       const message = event.data;
@@ -381,14 +412,51 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
       if (message.uri && filePath && message.uri !== filePath) {
         return;
       }
-      if (typeof message.response !== "undefined") {
-        setResponseData(message.response);
+      setIsSending(false);
+      const fromSend = sendPendingRef.current;
+      sendPendingRef.current = false;
+      if (message.cancelled) {
+        return;
+      }
+      if (typeof message.response !== "undefined" && message.response !== null) {
+        let response = message.response as Response;
+        if (autoFormatBody && response.body != null && response.headers) {
+          const contentType =
+            response.headers["Content-Type"] || response.headers["content-type"] || "";
+          response = {
+            ...response,
+            body: beautifyWithContentType(contentType, response.body),
+          };
+        }
+        if (typeof response.duration === "number" && Number.isFinite(response.duration)) {
+          response = { ...response, duration: Math.round(response.duration) };
+        }
+        setResponseData(response);
         setResponseRevision(prev => prev + 1);
+
+        if (fromSend) {
+          const req = requestDataRef.current;
+          const method = (req?.method || "get").toLowerCase();
+          const url = req?.url ?? "";
+          const protocol = protocolResolver.getEffectiveProtocol(
+            req?.protocol as any, req?.url) || "http";
+          pushHistory({
+            type: response.status != null && response.status < 0 ? "error" : "recv",
+            method: method.toUpperCase(),
+            protocol,
+            title: url,
+            cookies: response.cookies,
+            headers: response.headers,
+            content: toContentString(response.body ?? response.errorMessage),
+            duration: response.duration,
+            status: response.status,
+          });
+        }
       }
     };
     window.addEventListener("message", listener);
     return () => window.removeEventListener("message", listener);
-  }, [filePath]);
+  }, [filePath, autoFormatBody]);
 
   return {
     requestData,
@@ -402,6 +470,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     autoFormatBody,
     setAutoFormatBody,
     outputs,
+    isSending,
     updateField,
     handleUrlChange,
     handleQueryChange,
@@ -431,202 +500,6 @@ function cloneInputs(source?: JSONRecord): JSONRecord {
   }
 }
 
-type RunApiDocumentOptions = {
-  api: APIData;
-  inputs?: JSONRecord;
-  filePath?: string;
-};
-
-export async function runApiDocument({ api, inputs, filePath }: RunApiDocumentOptions): Promise<Response | undefined> {
-  const request = await buildRequestFromApi(api, inputs);
-  const protocol = protocolResolver.getEffectiveProtocol(request.protocol as any, request.url);
-
-  if (protocol !== "http") {
-    showVSCodeMessage("warn", "Run from editor currently supports HTTP APIs only.");
-    return undefined;
-  }
-
-  if (!request.url) {
-    showVSCodeMessage("error", "API request URL is missing.");
-    return undefined;
-  }
-
-  return new Promise<Response | undefined>((resolve) => {
-    const method = (request.method || "get").toLowerCase();
-    const url = request.url ?? "";
-
-    pushHistory({
-      type: "send",
-      method,
-      protocol,
-      title: `${method} ${url}`,
-      cookies: request.cookies,
-      headers: request.headers,
-      query: request.query,
-      content: method === "get" ? "" : toContentString(request.body),
-    });
-
-    NetworkNodeApi.sendHttp({
-      url,
-      method,
-      headers: request.headers || {},
-      body: request.body,
-      cookies: request.cookies || {},
-      query: request.query || {},
-      onResponse: async (res: any) => {
-        if (res?.autoformat) {
-          res.body = beautifyWithContentType(res.headers?.["Content-Type"], res.body);
-        }
-
-        const response: Response = {
-          body: res?.body,
-          headers: res?.headers || {},
-          cookies: parseSetCookie(res?.headers?.["set-cookie"]),
-          errorMessage: "",
-          status: res?.status || -1,
-          errorCode: "",
-          duration: res?.duration || -1,
-          warning: res?.warning,
-        };
-
-        pushHistory({
-          type: "recv",
-          method,
-          protocol,
-          title: `${method} ${url}`,
-          cookies: response.cookies,
-          headers: response.headers,
-          content: toContentString(response.body),
-          duration: response.duration,
-          status: response.status,
-        });
-
-        await handleApiOutputs(api, response);
-
-        window.postMessage({
-          command: "multimeter.api.run.result",
-          uri: filePath,
-          response,
-        }, "*");
-
-        resolve(response);
-      },
-      onError: (error: NetworkError) => {
-        pushHistory({
-          type: "error",
-          method,
-          protocol,
-          title: `${method} ${url} Error`,
-          cookies: {},
-          headers: {},
-          content: toContentString(error),
-          duration: error?.duration || -1,
-          status: error?.status || 500,
-        });
-
-        const failure: Response = {
-          body: error.body || null,
-          headers: error.headers || {},
-          cookies: {},
-          errorMessage: error.message ?? "",
-          status: error.status || 500,
-          errorCode: error.code || "UNKNOWN_ERROR",
-          duration: error.duration || -1,
-          warning: error.warning || undefined,
-        };
-
-        window.postMessage({
-          command: "multimeter.api.run.result",
-          uri: filePath,
-          response: failure,
-        }, "*");
-
-        resolve(failure);
-      },
-    });
-  });
-}
-
-async function handleApiOutputs(api: APIData, response: Response) {
-  const extractSource = {
-    type: "auto" as const,
-    body: response.body,
-    headers: response.headers || {},
-    cookies: response.cookies || {},
-    status: response.status,
-    duration: response.duration,
-  };
-
-  const extractRules = api.outputs || {};
-  const outputNames = Object.keys(extractRules);
-  const finalOutputs: JSONRecord = {};
-
-  if (outputNames.length > 0) {
-    const extractedValues = extractOutputs(extractSource, extractRules);
-    outputNames.forEach(outputName => {
-      if (outputName in extractedValues) {
-        finalOutputs[outputName] = extractedValues[outputName];
-      } else {
-        finalOutputs[outputName] = "";
-      }
-    });
-  }
-
-  await handleSetEnvVariables(api, extractSource, finalOutputs);
-}
-
-async function buildRequestFromApi(api: APIData, inputs?: JSONRecord): Promise<Request> {
-  const resolvedInputs = inputs ?? (api.inputs || {});
-  const envParameters = await getEnvironmentParameters();
-
-  const request = replaceAllRefs(
-    api,
-    api?.inputs ?? {},
-    resolvedInputs,
-    envParameters
-  ) as Request;
-  const strippedRequest = stripOmitFromRequest(request) as Request;
-
-  if (strippedRequest.body && typeof strippedRequest.body !== "string") {
-    strippedRequest.body = formatBody(
-      strippedRequest.format || "json",
-      strippedRequest.body ?? ""
-    );
-  }
-
-  return strippedRequest;
-}
-
-async function getEnvironmentParameters(): Promise<JSONRecord> {
-  const envVars = await new Promise<any[]>(resolve => {
-    const cleanup = loadEnvVariables(vars => {
-      cleanup();
-      resolve(vars);
-    });
-  });
-
-  return safeList(envVars).reduce((acc, envVar) => {
-    acc[envVar.name] = envVar.value;
-    return acc;
-  }, {} as JSONRecord);
-}
-
-function parseSetCookie(setCookie: string[] | string | undefined): Record<string, string> {
-  if (!setCookie) {
-    return {};
-  }
-  const arr = Array.isArray(setCookie) ? setCookie : [setCookie];
-  const cookies: Record<string, string> = {};
-  arr.forEach(cookieStr => {
-    const [cookiePair] = cookieStr.split(";");
-    const [key, value] = cookiePair.split("=");
-    if (key && value) {
-      cookies[key.trim()] = value.trim();
-    }
-  });
-  return cookies;
-}
-
 function toContentString(data: any): string {
   if (data === null || data === undefined) {
     return "";
@@ -639,8 +512,6 @@ function toContentString(data: any): string {
   }
   return String(data);
 }
-
-// buildBodyExprFromPath is now imported from mmt-core/outputExtractor
 
 async function handleSetEnvVariables(
   api: APIData,

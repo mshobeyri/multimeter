@@ -192,6 +192,7 @@ export async function runGeneratedJs(
       durationMs: Date.now() - start,
       errors,
       logs,
+      outputs: e?.mmtApiOutputs,
       threw: !isCancelled && !isAssertion,
       cancelled: isCancelled,
       executionError: message,

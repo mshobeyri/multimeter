@@ -21,7 +21,7 @@ export const statusIconFor = (status: StepStatus) => {
         return { icon: 'codicon-compass', color: '#7c847e', title: 'Pending' };
     }
     if (status === 'debug') {
-        return { icon: 'codicon-debug', color: '#c5c5c5', title: 'Debug' };
+        return { icon: 'codicon-debug', color: '#8973ea', title: 'Debug' };
     }
     return { icon: 'codicon-circle-large', color: '#c5c5c5', title: 'Default' };
 };

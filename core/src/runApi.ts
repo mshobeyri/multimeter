@@ -273,12 +273,9 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `      if (__warning) {\n` +
       `        console.warn(__warning);\n` +
       `      }\n` +
-      `      if (typeof __status === 'number' && __status < 0) {\n` +
-      `        let err = new Error(__statusText || 'Network error');\n` +
-      `        err.status = __status;\n` +
-      `        err.statusText = __statusText;\n` +
-      `        throw err;\n` +
-      `      }\n` +
+      `      // Return network failures to the API function so outputs (and the\n` +
+      `      // tester Response panel) still receive the response; the wrapper\n` +
+      `      // marks the run failed after outputs are built.\n` +
       `      return __res;\n` +
       `    } catch (err) {\n` +
       `      if (err && err.response) {\n` +
@@ -359,6 +356,18 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `    })();\n` +
       `    console.log(__mmt_formatSection('Outputs:', __outputLog));\n` +
       expectsLogBlock +
+      `    if (result && result._ && typeof result._.status === 'number' && result._.status < 0) {\n` +
+      `      let __failMsg = 'Network error';\n` +
+      `      try {\n` +
+      `        const __details = typeof result._.details === 'string' ? JSON.parse(result._.details) : null;\n` +
+      `        const __st = __details && __details.response && __details.response.statusText;\n` +
+      `        if (typeof __st === 'string' && __st) { __failMsg = __st; }\n` +
+      `      } catch (_e) {}\n` +
+      `      const err = new Error(__failMsg);\n` +
+      `      err.status = result._.status;\n` +
+      `      err.mmtApiOutputs = result;\n` +
+      `      throw err;\n` +
+      `    }\n` +
       `    return result;\n` +
       `  } finally {\n` +
       `    send_ = __mmt_originalSend;\n` +
@@ -488,33 +497,10 @@ export function createApiLogHelpers(): ApiLogHelpers {
   }
   function formatDuration(value: unknown): ApiLogRawValue {
     if (typeof value === 'number' && Number.isFinite(value)) {
-      // Inline duration formatting – this function is serialized via
-      // toString() and embedded in generated JS executed in a sandbox,
-      // so it must NOT reference any outer-scope imports.
-      const ms = value;
-      let text: string;
-      if (ms < 0) {
-        text = '0ms';
-      } else if (ms < 1000) {
-        text = `${Math.round(ms)}ms`;
-      } else if (ms < 60000) {
-        const s = Math.floor(ms / 1000);
-        const rem = Math.round(ms % 1000);
-        text = rem > 0 ? `${s}s ${rem}ms` : `${s}s`;
-      } else if (ms < 3600000) {
-        const m = Math.floor(ms / 60000);
-        const s = Math.round((ms % 60000) / 1000);
-        text = s > 0 ? `${m}m ${s}s` : `${m}m`;
-      } else if (ms < 86400000) {
-        const h = Math.floor(ms / 3600000);
-        const m = Math.round((ms % 3600000) / 60000);
-        text = m > 0 ? `${h}h ${m}m` : `${h}h`;
-      } else {
-        const d = Math.floor(ms / 86400000);
-        const h = Math.round((ms % 86400000) / 3600000);
-        text = h > 0 ? `${d}d ${h}h` : `${d}d`;
-      }
-      return raw(text);
+      // Always render as integer milliseconds so the Response log matches
+      // the API tester toolbar (e.g. "1234ms", not "1s 234ms").
+      const ms = value < 0 ? 0 : Math.round(value);
+      return raw(`${ms}ms`);
     }
     return raw('');
   }

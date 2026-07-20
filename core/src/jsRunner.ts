@@ -129,6 +129,8 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
   const restoreReporterGlobals = applyReporterGlobals(
       trackedReporter, runId, context.id);
 
+  let lastNetworkDurationMs: number|undefined;
+
   const customConsole = {
     trace: (...args: any[]) => lg(
         'trace',
@@ -215,36 +217,59 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       }
       compiledFunctionCache.set(functionBody, fn);
     }
-    // Wrap send_ with trace-level request/response logging for test runs
-    const sendFn = context.traceSend ? async (req: any) => {
-      const reqSummary = req ?
-        `${(req.method || 'GET').toUpperCase()} ${req.url || ''}` :
-        'unknown';
-      lg('trace', `Request: ${reqSummary}`);
+    // Wrap send_ so we can record the network round-trip duration (same value
+    // the API tester toolbar shows) and optionally emit trace logs.
+    const recordNetworkDuration = (res: any) => {
+      if (res && typeof res.duration === 'number' && Number.isFinite(res.duration) &&
+          res.duration >= 0) {
+        lastNetworkDurationMs = res.duration;
+      }
+    };
+    const sendFn = async (req: any) => {
+      if (context.traceSend) {
+        const reqSummary = req ?
+            `${(req.method || 'GET').toUpperCase()} ${req.url || ''}` :
+            'unknown';
+        lg('trace', `Request: ${reqSummary}`);
+      }
       try {
         const res = await send(req);
-        const status = res && typeof res.status === 'number' ? res.status : '?';
-        const duration = res && typeof res.duration === 'number' ? ` (${res.duration}ms)` : '';
-        lg('trace', `Response: ${status}${duration}`);
+        recordNetworkDuration(res);
+        if (context.traceSend) {
+          const status = res && typeof res.status === 'number' ? res.status : '?';
+          const duration = res && typeof res.duration === 'number' ?
+              ` (${res.duration}ms)` :
+              '';
+          lg('trace', `Response: ${status}${duration}`);
+        }
         return res;
       } catch (err: any) {
-        lg('trace', `Response: error - ${err?.message || String(err)}`);
+        if (context.traceSend) {
+          lg('trace', `Response: error - ${err?.message || String(err)}`);
+        }
         throw err;
       }
-    } : send;
+    };
     // Create gRPC sender (lazy-loads grpcCore)
     const sendGrpcFn = async (req: GrpcRequest): Promise<GrpcResponse> => {
       const {sendGrpcRequest} = await import('./grpcCore.js');
       const config = getRunnerNetworkConfig();
       const loader = context.fileLoader || (async () => { throw new Error('File loader not available'); });
-      return sendGrpcRequest(req, config, loader, context.basePath);
+      const res = await sendGrpcRequest(req, config, loader, context.basePath);
+      recordNetworkDuration(res);
+      return res;
     };
     const returnValue = await fn(
         mmtHelper, customConsole, sendFn, sendGrpcFn, extractOutputs, Random,
         trackedReporter, runId, context.id, mmtRandom, mmtCurrent, mmtAccess,
         context.abortSignal, context.fileLoader, context.checkLogMode || 'default');
     restoreReporterGlobals();
-    const elapsed = Date.now() - startTime;
+    // For API runs, prefer the network send/receive duration so the finish
+    // log matches the toolbar. Fall back to wall-clock for tests/suites.
+    const wallClockMs = Date.now() - startTime;
+    const elapsed = runKind === 'API' && typeof lastNetworkDurationMs === 'number' ?
+        Math.round(lastNetworkDurationMs) :
+        wallClockMs;
     logRunFinished(lg, runKind, title, !hadFailure, elapsed);
     return returnValue;
   } catch (e: any) {
