@@ -80,7 +80,7 @@ const methodColor: Record<string, string> = {
   head: "#9012fe",
   options: "#0d5aa7",
   trace: "#888",
-  ws: "#888",
+  ws: "#9b59b6",
   graphql: "#e535ab",
   grpc: "#244c5a",
   http: "#61affe",

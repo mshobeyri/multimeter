@@ -75,6 +75,41 @@
             outline-offset: 0;
         }
 
+        .history-type-icon {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            margin-right: 6px;
+            flex-shrink: 0;
+        }
+
+        .history-type-icon .codicon {
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        .history-type-icon-bg {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.28;
+            pointer-events: none;
+        }
+
+        .history-type-icon-bg .codicon {
+            font-size: 16px;
+        }
+
+        .history-type-icon-fg {
+            position: relative;
+            z-index: 1;
+        }
+
         .history-title {
             flex: 1;
             color: var(--vscode-foreground, #ccc);
@@ -221,12 +256,23 @@
         let openIdx = null;
 
         function getTypeIcon(type, status, protocol) {
-            // Mock server entries show send/recv arrows just like regular entries
-            return type === 'send'
-                ? '<span class="codicon codicon-arrow-up" style="color:#3399ff;margin-right:6px"></span>'
-                : type === 'recv' && status < 400
-                    ? '<span class="codicon codicon-arrow-down" style="color:#66bb6a;margin-right:6px"></span>'
-                    : '<span class="codicon codicon-chrome-close" style="color:#ff5555;margin-right:6px"></span>';
+            var isMock = String(protocol || '').toLowerCase() === 'mock';
+            var color;
+            var fg;
+            if (type === 'send') {
+                color = '#3399ff';
+                fg = '<span class="codicon codicon-arrow-up history-type-icon-fg" style="color:' + color + '"></span>';
+            } else if (type === 'recv' && !(status >= 400)) {
+                color = '#66bb6a';
+                fg = '<span class="codicon codicon-arrow-down history-type-icon-fg" style="color:' + color + '"></span>';
+            } else {
+                color = '#ff5555';
+                fg = '<span class="codicon codicon-arrow-down history-type-icon-fg" style="color:' + color + '"></span>';
+            }
+            var bg = isMock
+                ? '<span class="history-type-icon-bg" title="Mock server" style="color:' + color + '"><span class="codicon codicon-vm-compact"></span></span>'
+                : '';
+            return '<span class="history-type-icon">' + bg + fg + '</span>';
         }
 
         // Same colors/labels as the API tester method/protocol selector.
@@ -239,7 +285,7 @@
             head: '#9012fe',
             options: '#0d5aa7',
             trace: '#888',
-            ws: '#888',
+            ws: '#9b59b6',
             graphql: '#e535ab',
             grpc: '#244c5a',
             http: '#61affe'
