@@ -33,10 +33,16 @@ function installProductionDependencies(targetDirPath) {
         dependencies: mmtmcpPkg.dependencies ?? {},
       }, null, 2)}\n`,
   );
-  execSync('npm install --omit=dev --no-package-lock --no-audit --no-fund', {
-    cwd: targetDirPath,
-    stdio: 'inherit',
-  });
+  // --ignore-scripts: protobufjs (via @grpc/*) has a postinstall that npm 11
+  // flags under allowScripts; the published package already includes build output.
+  // --silent: suppress "added N packages" / allowScripts noise during buildmcp.
+  execSync(
+      'npm install --omit=dev --no-package-lock --no-audit --no-fund --ignore-scripts --silent',
+      {
+        cwd: targetDirPath,
+        stdio: 'inherit',
+      },
+  );
 }
 
 if (!fs.existsSync(sourceDir)) {

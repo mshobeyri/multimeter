@@ -2,6 +2,14 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.28.1]
+
+- Improve history panel icons: red reply for failed responses, mock-server `vm-compact` backdrop matching send/recv colors, and purple WS badge
+- Move HTTP API send/response handling into core for shared run results and duration
+- Distinguish suite invalid/runtime issues (warning icon) from failed checks; assert failures abort without error popups
+- Fix failing tests and clear mmtview lint warnings
+- Update agent workflow docs
+
 ## [1.28.0]
 
 - Improve API `setenv`: values use the same extraction expressions as `outputs` (paths/regex); referencing an outputs key name remains supported but is deprecated with click-to-fix
