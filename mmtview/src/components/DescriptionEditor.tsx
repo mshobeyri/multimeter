@@ -25,8 +25,10 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ value, onChange }
     }, [localValue]);
 
     return (
-        <div style={{ 
-            width: "100%", // Subtract margin from width
+        <div style={{
+            width: "100%",
+            maxWidth: "100%",
+            minWidth: 0,
             boxSizing: "border-box"
         }}>
             <textarea
@@ -59,6 +61,8 @@ const DescriptionEditor: React.FC<DescriptionEditorProps> = ({ value, onChange }
                 }}
                 style={{
                     width: "100%",
+                    maxWidth: "100%",
+                    minWidth: 0,
                     resize: "none",
                     overflow: "hidden",
                     boxSizing: "border-box"

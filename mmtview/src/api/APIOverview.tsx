@@ -18,13 +18,13 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
   return (
     <div
       className="APIOverview"
-      style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}
+      style={{ width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box" }}
     >
       <div className="label">Title</div>
 
-      <div style={{ width: "100%", padding: "5px" }}>
+      <div style={{ width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", padding: "5px" }}>
         <input
-          style={{ width: "100%" }}
+          style={{ width: "100%", boxSizing: "border-box" }}
           value={api.title || ""}
           onChange={e => update({ title: e.target.value })}
           placeholder="title"
@@ -32,7 +32,7 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
       </div>
 
       <div className="label">Tags</div>
-      <div style={{ width: "100%", padding: "5px" }}>
+      <div style={{ width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", padding: "5px" }}>
         <SearchableTagInput
           tags={safeList(api.tags)}
           onChange={tags => update({ tags })}
@@ -52,14 +52,14 @@ const APIOverview: React.FC<APIOverviewProps> = ({ api, update }) => {
           Preview
         </label>
       </div>
-      <div style={{ width: "100%", padding: "5px" }}>
+      <div style={{ width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", padding: "5px" }}>
         <DescriptionEditor
           value={api.description || ""}
           onChange={value => update({ description: value })}
         />
       </div>
       {showPreview && api.description && (
-        <div style={{ width: "100%", padding: "0 5px" }}>
+        <div style={{ width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box", padding: "0 5px" }}>
           <MdViewer
             description={api.description}
             inputs={api.inputs}
