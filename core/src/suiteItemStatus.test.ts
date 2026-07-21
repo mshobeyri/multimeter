@@ -67,6 +67,7 @@ async function runSuiteWithEvents(
     files: Record<string, string>,
     suitePath: string,
     jsRunner: (ctx: any) => Promise<any>,
+    options?: {target?: string; includeRunning?: boolean},
 ): Promise<Array<Record<string, any>>> {
   const fileLoader = async (p: string) => {
     const normalized = p.startsWith('/') ? p : `/root/${p.replace(/^\.\//, '')}`;
@@ -83,6 +84,7 @@ async function runSuiteWithEvents(
   const bundle = createSuiteBundle({
     rootSuitePath: suitePath,
     hierarchy: tree,
+    target: options?.target,
   });
   const events: Array<Record<string, any>> = [];
   await runFile({
@@ -100,7 +102,10 @@ async function runSuiteWithEvents(
       events.push(event);
     },
   } as any);
-  return events.filter(e => e.scope === 'suite-item' && e.status && e.status !== 'running');
+  return events.filter(e =>
+    e.scope === 'suite-item' &&
+    e.status &&
+    (options?.includeRunning || e.status !== 'running'));
 }
 
 describe('suite item status reporting', () => {
@@ -208,5 +213,73 @@ describe('suite item status reporting', () => {
     });
     expect(itemEvents.some(e => e.status === 'failed')).toBe(true);
     expect(itemEvents.every(e => e.status !== 'invalid')).toBe(true);
+  });
+
+  it('partial run of one duplicate suite path does not emit status for the other instance', async () => {
+    const files: Record<string, string> = {
+      '/root/parent.mmt': [
+        'type: suite',
+        'title: Basic Suite M',
+        'items:',
+        '  - suite2.mmt',
+        '  - then',
+        '  - suite1.mmt',
+        '  - suite2.mmt',
+      ].join('\n'),
+      '/root/suite1.mmt': [
+        'type: suite',
+        'title: Suite 1',
+        'items:',
+        '  - t1.mmt',
+      ].join('\n'),
+      '/root/suite2.mmt': [
+        'type: suite',
+        'title: Suite 2',
+        'items:',
+        '  - t2.mmt',
+      ].join('\n'),
+      '/root/t1.mmt': [
+        'type: test',
+        'title: T1',
+        'steps:',
+        '  - check: 1 == 1',
+      ].join('\n'),
+      '/root/t2.mmt': [
+        'type: test',
+        'title: T2',
+        'steps:',
+        '  - check: 1 == 1',
+      ].join('\n'),
+    };
+
+    const fileLoader = async (p: string) => {
+      const normalized = p.startsWith('/') ? p : `/root/${p.replace(/^\.\//, '')}`;
+      return files[normalized];
+    };
+    const tree = await buildSuiteHierarchyFromSuiteFile({
+      suiteFilePath: '/root/parent.mmt',
+      suiteRawText: files['/root/parent.mmt'],
+      fileLoader,
+    });
+    const firstSuite2 = (tree.children[0] as any).children[0];
+    const secondSuite2 = (tree.children[1] as any).children[1];
+    expect(firstSuite2.id).toBe('suite-node:0.0');
+    expect(secondSuite2.id).toBe('suite-node:1.1');
+
+    const itemEvents = await runSuiteWithEvents(
+        files,
+        '/root/parent.mmt',
+        async () => ({success: true}),
+        {target: firstSuite2.id, includeRunning: true},
+    );
+
+    const touched = new Set(itemEvents.map(e => e.id));
+    expect(touched.has(firstSuite2.id)).toBe(true);
+    expect(touched.has(secondSuite2.id)).toBe(false);
+    expect([...touched].every(
+        id => id === firstSuite2.id || String(id).startsWith(`${firstSuite2.id}.`),
+    )).toBe(true);
+    // Parent group must not receive status when a child suite is the target.
+    expect(touched.has('suite-node:0')).toBe(false);
   });
 });

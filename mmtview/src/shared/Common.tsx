@@ -1,4 +1,3 @@
-
 import { StepStatus } from './types';
 
 export const statusIconFor = (status: StepStatus) => {
@@ -25,8 +24,6 @@ export const statusIconFor = (status: StepStatus) => {
     }
     return { icon: 'codicon-circle-large', color: '#c5c5c5', title: 'Default' };
 };
-
-export type SuiteGroupAggregationMode = 'run';
 
 export const aggregateStatuses = (statuses: Array<StepStatus | undefined | null>): StepStatus => {
     let anyFailed = false;
@@ -78,32 +75,4 @@ export const aggregateStatuses = (statuses: Array<StepStatus | undefined | null>
         return 'passed';
     }
     return 'default';
-};
-
-export type LeafVisibilityInputs = {
-    leafState?: StepStatus;
-    explicitRunStatus?: StepStatus;
-    isPending?: boolean;
-};
-
-export const leafVisibleStatus = (inputs: LeafVisibilityInputs): StepStatus | undefined => {
-    const { leafState, explicitRunStatus, isPending } = inputs;
-    if (leafState) {
-        return leafState;
-    }
-    if (explicitRunStatus && explicitRunStatus !== 'pending') {
-        return explicitRunStatus;
-    }
-    if (isPending) {
-        return 'pending';
-    }
-    return undefined;
-};
-
-export const aggregateLeafIds = (opts: {
-    leafIds: string[];
-    getVisible: (leafId: string) => StepStatus | undefined;
-}): StepStatus => {
-    const statuses = opts.leafIds.map((id) => opts.getVisible(id));
-    return aggregateStatuses(statuses);
 };

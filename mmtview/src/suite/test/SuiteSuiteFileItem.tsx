@@ -14,8 +14,6 @@ interface SuiteSuiteFileItemProps {
     missingFiles: Set<string>;
     statusIconFor: (status: StepStatus) => { icon: string; color: string; title: string };
     status: StepStatus;
-    id: string;
-    runStateById: Record<string, StepStatus>;
 
     onRun?: () => void;
     onRunInCore?: () => void;
@@ -33,8 +31,6 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
     missingFiles,
     statusIconFor,
     status,
-    id,
-    runStateById,
     onRun,
     onRunInCore,
     runButtonTitle = 'Run',
@@ -44,39 +40,25 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
     const data = item.data as SuiteSuiteFileItemData;
     const isMissing = missingFiles.has(data.path);
 
-    const leafRunState = id ? (runStateById[id] || 'default') : 'default';
-    const effectiveStatus: StepStatus = (() => {
-        if (leafRunState === 'running') {
-            return 'running';
-        }
-        if (leafRunState === 'cancelled') {
-            return 'cancelled';
-        }
-        if (leafRunState === 'passed' || leafRunState === 'failed' || leafRunState === 'invalid') {
-            return leafRunState;
-        }
-        return status;
-    })();
-
     const statusIcon = isMissing
         ? {
             icon: 'codicon-warning',
             color: 'var(--vscode-editorWarning-foreground, #f8b449)',
             title: 'File not found',
         }
-        : effectiveStatus === 'cancelled'
+        : status === 'cancelled'
             ? {
                 icon: 'codicon-stop-circle',
                 color: ' #f88349',
                 title: 'Cancelled',
             }
-            : effectiveStatus === 'default'
+            : status === 'default'
                 ? {
                     icon: 'codicon-circle-large',
                     color: 'var(--vscode-editor-foreground, #c5c5c5)',
                     title: 'Suite',
                 }
-                : statusIconFor(effectiveStatus as any);
+                : statusIconFor(status as any);
 
     const labelPath = (displayPath && displayPath.trim()) ? displayPath : data.path;
 

@@ -101,7 +101,7 @@ const LoadTestPanel: React.FC<LoadTestPanelProps> = ({ content, setContent }) =>
                   rootTitle: loadTestTitle,
                   rootPath: mmtFilePath,
                   groups: flowchartState?.groups ?? [],
-                  hierarchyByEntryPath: flowchartState?.hierarchyByEntryPath ?? {},
+                  hierarchyByEntryId: flowchartState?.hierarchyByEntryId ?? {},
                   missingFiles: flowchartState?.missingFiles ?? NO_MISSING_FILES,
                 }}
                 onBack={() => setPage('test')}

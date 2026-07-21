@@ -12,7 +12,7 @@ import { readFile } from '../vsAPI';
  */
 export function useSuiteTestData(
   groups: SuiteGroup[],
-  hierarchyByEntryPath: Record<string, SuiteTreeNode | undefined> | undefined,
+  hierarchyByEntryId: Record<string, SuiteTreeNode | undefined> | undefined,
   enabled: boolean,
   refreshKey = 0,
 ): Record<string, TestData | undefined> {
@@ -22,7 +22,7 @@ export function useSuiteTestData(
     if (!enabled) {
       return;
     }
-    const testPaths = collectTestPaths(groups, hierarchyByEntryPath);
+    const testPaths = collectTestPaths(groups, hierarchyByEntryId);
     if (testPaths.length === 0) {
       return;
     }
@@ -56,7 +56,7 @@ export function useSuiteTestData(
     return () => {
       cancelled = true;
     };
-  }, [groups, hierarchyByEntryPath, enabled, refreshKey]);
+  }, [groups, hierarchyByEntryId, enabled, refreshKey]);
 
   return data;
 }
@@ -70,7 +70,7 @@ interface TestPathSpec {
 
 function collectTestPaths(
   groups: SuiteGroup[],
-  hierarchyByEntryPath: Record<string, SuiteTreeNode | undefined> | undefined,
+  hierarchyByEntryId: Record<string, SuiteTreeNode | undefined> | undefined,
 ): TestPathSpec[] {
   const seen = new Map<string, TestPathSpec>();
   const add = (readPath: string, extraKey?: string) => {
@@ -112,7 +112,7 @@ function collectTestPaths(
 
   for (const group of groups ?? []) {
     for (const entry of group.entries ?? []) {
-      walk(hierarchyByEntryPath?.[entry.path], entry.path);
+      walk(hierarchyByEntryId?.[entry.id], entry.path);
     }
   }
   return Array.from(seen.values());

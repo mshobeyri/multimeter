@@ -230,6 +230,20 @@ async function runSuiteGroup(params: {
   const {node, bundle, options, runFile, suiteLogger, baseFileLoader, nextIndex, serverCleanups} = params;
 
   const isParallel = node.children.length > 1;
+  const suiteRunNonce = typeof options.suiteRunId === 'string' ? options.suiteRunId : '';
+  const groupRunId =
+      `suite:${sanitizeIdentifier(bundle.rootSuitePath)}:${suiteRunNonce}:group:${sanitizeIdentifier(node.id)}`;
+  const groupTitle = typeof node.label === 'string' && node.label.trim() ? node.label.trim() : node.id;
+
+  options.reporter && options.reporter({
+    scope: 'suite-item',
+    status: 'running',
+    runId: groupRunId,
+    filePath: bundle.rootSuitePath,
+    entry: node.label,
+    title: groupTitle,
+    id: node.id,
+  });
 
   const results = await Promise.all(node.children.map(async (child) => {
     if (options.abortSignal?.aborted) {
@@ -305,6 +319,19 @@ async function runSuiteGroup(params: {
   const groupThrew = results.some(r => !!r && r.threw === true);
   const groupCancelled = results.some(r => !!r && (r as any).cancelled === true);
   const statuses = results.map(r => r.status);
+  const groupStatus: SuiteStepStatus = !groupHadAnyFailure
+    ? 'passed'
+    : (statuses.length > 0 ? worstSuiteItemStatus(statuses) : 'failed');
+
+  options.reporter && options.reporter({
+    scope: 'suite-item',
+    status: groupStatus,
+    runId: groupRunId,
+    filePath: bundle.rootSuitePath,
+    entry: node.label,
+    title: groupTitle,
+    id: node.id,
+  });
 
   return {
     overallSuccess: !groupHadAnyFailure,
@@ -558,7 +585,50 @@ export async function executeSuiteBundle(params: {
 
     if (overallSuccess) {
       if (root && (root.kind === 'group' || root.kind === 'suite')) {
+        // Partial runs execute children only; still emit suite-item for the
+        // targeted parent so the UI can update its group/suite status icon.
+        const suiteRunNonce = typeof effectiveOptions.suiteRunId === 'string' ? effectiveOptions.suiteRunId : '';
+        const targetRunId =
+            `suite:${sanitizeIdentifier(bundle.rootSuitePath)}:${suiteRunNonce}:target:${sanitizeIdentifier(root.id)}`;
+        const targetTitle = root.kind === 'suite'
+          ? (
+            typeof (root as any).title === 'string' && (root as any).title.trim()
+              ? (root as any).title.trim()
+              : basename(root.path)
+          )
+          : (typeof root.label === 'string' && root.label.trim() ? root.label.trim() : root.id);
+        const targetFilePath = root.kind === 'suite'
+          ? resolveRelativeTo(root.path, bundle.rootSuitePath)
+          : bundle.rootSuitePath;
+        const targetEntry = root.kind === 'suite' ? root.path : root.label;
+
+        effectiveOptions.reporter && effectiveOptions.reporter({
+          scope: 'suite-item',
+          status: 'running',
+          runId: targetRunId,
+          filePath: targetFilePath,
+          entry: targetEntry,
+          title: targetTitle,
+          docType: root.kind === 'suite' ? 'suite' : undefined,
+          id: root.id,
+        });
+
         await runNodesSequentially(root.children);
+
+        const targetStatus: SuiteStepStatus = overallSuccess
+          ? 'passed'
+          : (itemStatuses.length > 0 ? worstSuiteItemStatus(itemStatuses) : 'failed');
+
+        effectiveOptions.reporter && effectiveOptions.reporter({
+          scope: 'suite-item',
+          status: targetStatus,
+          runId: targetRunId,
+          filePath: targetFilePath,
+          entry: targetEntry,
+          title: targetTitle,
+          docType: root.kind === 'suite' ? 'suite' : undefined,
+          id: root.id,
+        });
       } else if (root) {
         await runNodesSequentially([root]);
       } else {

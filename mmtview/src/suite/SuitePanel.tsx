@@ -104,7 +104,7 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
                   rootTitle: suiteTitle,
                   rootPath: mmtFilePath,
                   groups: flowchartState?.groups ?? [],
-                  hierarchyByEntryPath: flowchartState?.hierarchyByEntryPath ?? {},
+                  hierarchyByEntryId: flowchartState?.hierarchyByEntryId ?? {},
                   missingFiles: flowchartState?.missingFiles ?? EMPTY_MISSING_FILES,
                 }}
                 onBack={() => setPage('test')}
