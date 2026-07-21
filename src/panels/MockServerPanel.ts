@@ -9,7 +9,6 @@ import {resolveCertFilePath} from 'mmt-core/fileHelper';
 import {HistoryManager} from '../historyManager';
 import {getDefaultMockTlsMaterial, startMockServerFromPath} from '../mmtAPI/mockRunner';
 import {onRunFinished, onRunStarted} from '../runStatusBar';
-import {openUntitledGalleryMmt} from '../untitledGalleryMmt';
 
 type ServerType = 'http' | 'https' | 'ws' | 'mmt';
 
@@ -53,14 +52,6 @@ export default class MockServerPanel implements vscode.WebviewViewProvider,
     this.updateViewHtml();
     const sub = webviewView.webview.onDidReceiveMessage(this.handleMessage.bind(this));
     this.disposables.push(sub);
-    this.disposables.push(webviewView.onDidChangeVisibility(() => {
-      if (webviewView.visible) {
-        void openUntitledGalleryMmt({onlyIfMissing: true});
-      }
-    }));
-    if (webviewView.visible) {
-      void openUntitledGalleryMmt({onlyIfMissing: true});
-    }
   }
 
   private handleMessage(msg: any) {
