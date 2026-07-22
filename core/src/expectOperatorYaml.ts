@@ -13,7 +13,7 @@ const YAML_UNSAFE_OPS = opsList
   .filter(op => op.startsWith('!') || op.startsWith('>'))
   .sort((a, b) => b.length - a.length);
 
-const FUZZY_PERCENT_OP_RE = /^[!](?:0|[1-9][0-9]?|100)%(?:\s|$)/;
+const FUZZY_PERCENT_OP_RE = /^[>](?:0|[1-9][0-9]?|100)%(?:\s|$)/;
 
 /**
  * Map key + value. Keys may include dots, underscores, hyphens, brackets
@@ -219,7 +219,7 @@ function needsOperatorQuoting(value: string): boolean {
   return false;
 }
 
-const EXACT_FUZZY_PERCENT_OP_RE = /^[!](?:0|[1-9][0-9]?|100)%$/;
+const EXACT_FUZZY_PERCENT_OP_RE = /^[>](?:0|[1-9][0-9]?|100)%$/;
 
 function needsExactOperatorQuoting(value: string): boolean {
   if (/^["']/.test(value)) {

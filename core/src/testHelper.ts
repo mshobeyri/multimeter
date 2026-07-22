@@ -229,13 +229,13 @@ export function notFuzzyMatch_(actual: any, expected: any, percent: any) {
 
 function extractComparisonOperator_(comparison: string): string | undefined {
   const trimmed = String(comparison ?? '').trim();
-  const match = /(?:^|\s)([=!](?:%|0|[1-9][0-9]?|100)%)(?=\s|$)/.exec(trimmed);
+  const match = /(?:^|\s)([<>](?:%|0|[1-9][0-9]?|100)%)(?=\s|$)/.exec(trimmed);
   return match?.[1];
 }
 
 function similarityForComparison_(comparison: string, actual: any, expected: any): number | undefined {
   const operator = extractComparisonOperator_(comparison);
-  if (!operator || !/^[=!](?:%|0|[1-9][0-9]?|100)%$/.test(operator)) {
+  if (!operator || !/^[<>](?:%|0|[1-9][0-9]?|100)%$/.test(operator)) {
     return undefined;
   }
   return similarityPercent_(actual, expected);
@@ -641,7 +641,7 @@ function operatorFromComparison_(comparison: string): string {
     return '==';
   }
   const pattern = [
-    '[=!](?:0|[1-9][0-9]?|100)%',
+    '[<>](?:0|[1-9][0-9]?|100)%',
     ...opsList.slice().sort((a, b) => b.length - a.length).map(escapeRegExp_),
   ].join('|');
   const operatorRe = new RegExp(`(?:^|\\s)(${pattern})(?=\\s|$)`, 'g');

@@ -230,18 +230,18 @@ export const addableFlowTypes = [
 ] as FlowType[];
 export type CheckOps =
     '<'|'>'|'<='|'>='|'=='|'!='|'=@'|'!@'|'=C'|'!C'|'=^'|'!^'|'=$'|'!$'|
-    '=*'|'!*'|'=~'|'!~'|'=#'|'!#'|'=%'|'!%'|`=${number}%`|`!${number}%`;
+    '=*'|'!*'|'=~'|'!~'|'=#'|'!#'|'>%'|'<%'|`>${number}%`|`<${number}%`;
 
 export const DEFAULT_FUZZY_PERCENT = 80;
 
 export const opsList: CheckOps[] = [
   '<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=C', '!C', '=^', '!^', '=$',
-  '!$', '=*', '!*', '=~', '!~', '=#', '!#', '=%', '!%'
+  '!$', '=*', '!*', '=~', '!~', '=#', '!#', '>%', '<%'
 ];
 
 export const selectableOpsList: CheckOps[] = [
   '<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=C', '!C', '=^', '!^', '=$',
-  '!$', '=*', '!*', '=#', '!#', '=%', '!%'
+  '!$', '=*', '!*', '=#', '!#', '>%', '<%'
 ];
 
 export const opsNames = [
@@ -253,24 +253,24 @@ export const opsNames = [
   'fuzzy match at least percent', 'fuzzy match less than percent'
 ];
 
-export function isFuzzyPercentOperator(op: string): op is `=${number}%`|`!${number}%` {
-  return /^[=!](0|[1-9][0-9]?|100)%$/.test(op);
+export function isFuzzyPercentOperator(op: string): op is `>${number}%`|`<${number}%` {
+  return /^[<>](0|[1-9][0-9]?|100)%$/.test(op);
 }
 
-export function isFuzzyPercentSelectOperator(op: string): op is '=%'|'!%' {
-  return op === '=%' || op === '!%';
+export function isFuzzyPercentSelectOperator(op: string): op is '>%'|'<%' {
+  return op === '>%' || op === '<%';
 }
 
 export function isFuzzyPercentAnyOperator(op: string): boolean {
   return isFuzzyPercentSelectOperator(op) || isFuzzyPercentOperator(op);
 }
 
-export function getFuzzyPercentOperatorBase(op: string): '=%'|'!%'|undefined {
-  if (op === '=%' || (isFuzzyPercentOperator(op) && op.startsWith('='))) {
-    return '=%';
+export function getFuzzyPercentOperatorBase(op: string): '>%'|'<%'|undefined {
+  if (op === '>%' || (isFuzzyPercentOperator(op) && op.startsWith('>'))) {
+    return '>%';
   }
-  if (op === '!%' || (isFuzzyPercentOperator(op) && op.startsWith('!'))) {
-    return '!%';
+  if (op === '<%' || (isFuzzyPercentOperator(op) && op.startsWith('<'))) {
+    return '<%';
   }
   return undefined;
 }
@@ -282,9 +282,9 @@ export function getFuzzyPercentOperatorValue(op: string): number {
   return DEFAULT_FUZZY_PERCENT;
 }
 
-export function makeFuzzyPercentOperator(base: '=%'|'!%', percent: number): `=${number}%`|`!${number}%` {
+export function makeFuzzyPercentOperator(base: '>%'|'<%', percent: number): `>${number}%`|`<${number}%` {
   const normalized = Math.max(0, Math.min(100, Math.round(Number(percent))));
-  return `${base[0]}${normalized}%` as `=${number}%`|`!${number}%`;
+  return `${base[0]}${normalized}%` as `>${number}%`|`<${number}%`;
 }
 
 /** Longest-first so `<=` / `>=` / `!=` win over single-char prefixes. */
@@ -292,7 +292,7 @@ const OPS_BY_LENGTH = [...opsList].sort((a, b) => b.length - a.length);
 
 export function splitCheckOperatorPrefix(value: string): { operator: string; expected: string } | undefined {
   const trimmed = String(value).trim();
-  const fuzzyMatch = trimmed.match(/^([=!](?:0|[1-9][0-9]?|100)%)(?:\s+(.*)|$)/);
+  const fuzzyMatch = trimmed.match(/^([<>](?:0|[1-9][0-9]?|100)%)(?:\s+(.*)|$)/);
   if (fuzzyMatch) {
     return { operator: fuzzyMatch[1], expected: (fuzzyMatch[2] || '').trim() };
   }
@@ -307,7 +307,7 @@ export function splitCheckOperatorPrefix(value: string): { operator: string; exp
 export function getOpOptionLabel(op: CheckOps): string {
   const idx = opsList.indexOf(op);
   if (idx < 0 && isFuzzyPercentOperator(op)) {
-    const prefix = op.startsWith('!') ? 'fuzzy match less than' : 'fuzzy match at least';
+    const prefix = op.startsWith('<') ? 'fuzzy match less than' : 'fuzzy match at least';
     return `${op} — ${prefix} ${op.slice(1)}`;
   }
   return idx >= 0 ? `${op} — ${opsNames[idx]}` : op;

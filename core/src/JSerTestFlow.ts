@@ -25,7 +25,7 @@ const unquoteEmpty = (s: string): string => {
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const comparisonOperatorPattern = [
-  '[=!](?:0|[1-9][0-9]?|100)%',
+  '[<>](?:0|[1-9][0-9]?|100)%',
   ...opsList
       .slice()
       .sort((a, b) => b.length - a.length)
@@ -73,7 +73,7 @@ export const conditionalStatementToJSfunc = (check: string): string => {
   const expectedTemplate = toTemplateArg(expected);
   if (isFuzzyPercentOperator(operator) || isFuzzyPercentSelectOperator(operator)) {
     const percent = isFuzzyPercentOperator(operator) ? Number(operator.slice(1, -1)) : DEFAULT_FUZZY_PERCENT;
-    const helper = operator.startsWith('!') ? 'notFuzzyMatch_' : 'fuzzyMatch_';
+    const helper = operator.startsWith('<') ? 'notFuzzyMatch_' : 'fuzzyMatch_';
     return `${helper}(${actualTemplate}, ${expectedTemplate}, ${percent})`;
   }
   switch (operator) {
@@ -370,7 +370,7 @@ const comparisonFromPartsToJSfunc = (actualExpr: string, operator: string, expec
   const expectedExpr = expectValueToJs(expected);
   if (isFuzzyPercentOperator(operator) || isFuzzyPercentSelectOperator(operator)) {
     const percent = isFuzzyPercentOperator(operator) ? Number(operator.slice(1, -1)) : DEFAULT_FUZZY_PERCENT;
-    const helper = operator.startsWith('!') ? 'notFuzzyMatch_' : 'fuzzyMatch_';
+    const helper = operator.startsWith('<') ? 'notFuzzyMatch_' : 'fuzzyMatch_';
     return `${helper}(${actualExpr}, ${expectedExpr}, ${percent})`;
   }
   switch (operator) {

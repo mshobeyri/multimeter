@@ -17,7 +17,8 @@ describe('buildMmtTagHandleRules', () => {
     expect(firstTagHandleToken('!* /fail/')).toBe('mmt.operator');
     expect(firstTagHandleToken('!^ prefix')).toBe('mmt.operator');
     expect(firstTagHandleToken('!@ item')).toBe('mmt.operator');
-    expect(firstTagHandleToken('!75% admin')).toBe('mmt.operator');
+    expect(firstTagHandleToken('>75% admin')).toBe('mmt.operator');
+    expect(firstTagHandleToken('<75% admin')).toBe('mmt.operator');
   });
 
   it('still treats real YAML tags as tags', () => {

@@ -7,9 +7,9 @@ describe('expectOperatorYaml', () => {
     expect(quoteExpectOperators(yaml)).toContain('path: "!^ /start"');
   });
 
-  it('quotes !% and fuzzy-percent operators in expect block', () => {
-    expect(quoteExpectOperators('expect:\n  name: !% Jon')).toContain('name: "!% Jon"');
-    expect(quoteExpectOperators('expect:\n  name: !75% Jon')).toContain('name: "!75% Jon"');
+  it('quotes >% and fuzzy-percent operators in expect block', () => {
+    expect(quoteExpectOperators('expect:\n  name: >% Jon')).toContain('name: ">% Jon"');
+    expect(quoteExpectOperators('expect:\n  name: >75% Jon')).toContain('name: ">75% Jon"');
   });
 
   it('quotes != and !* for dotted, hyphenated, and bracket keys', () => {

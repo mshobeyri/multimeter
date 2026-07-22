@@ -1074,7 +1074,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
                 opStartCol += 1;
               }
 
-              const fuzzyPercentMatch = afterQuote.match(/^([=!](?:0|[1-9][0-9]?|100)%)(?:\s|["']|$)/);
+              const fuzzyPercentMatch = afterQuote.match(/^([<>](?:0|[1-9][0-9]?|100)%)(?:\s|["']|$)/);
               if (fuzzyPercentMatch) {
                 const op = fuzzyPercentMatch[1];
                 matches.push({

@@ -153,7 +153,7 @@ Beyond the basic `call`, `id`, and `inputs`, a call step also supports:
 - `=$` (ends with), `!$` (not ends with)
 - `=*` (regex match), `!*` (regex not match). Legacy `=~` and `!~` still work.
 - `=#` (string/number character length equals), `!#` (not equal)
-- `=N%`(fuzzy match at least N% similar), `!N%` (not fuzzy match at N%). Any whole percent from 0 to 100 can be used, for example `=80%`. In the visual UI these appear as `=%` and `!%` with a separate percentage selector.
+- `>N%`(fuzzy match at least N% similar), `<N%` (fuzzy match less than N%). Any whole percent from 0 to 100 can be used, for example `>80%`. In the visual UI these appear as `>%` and `<%` with a separate percentage selector.
 
 Example comparisons:
 

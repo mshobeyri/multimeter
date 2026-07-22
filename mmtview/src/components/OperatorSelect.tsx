@@ -15,7 +15,7 @@ const OperatorSelect: React.FC<OperatorSelectProps> = ({ value, onChange, style,
   const fuzzyPercent = getFuzzyPercentOperatorValue(value);
 
   const updateOperator = (nextValue: CheckOps) => {
-    if (nextValue === '=%' || nextValue === '!%') {
+    if (nextValue === '>%' || nextValue === '<%') {
       onChange(makeFuzzyPercentOperator(nextValue, fuzzyPercent));
       return;
     }
@@ -23,7 +23,7 @@ const OperatorSelect: React.FC<OperatorSelectProps> = ({ value, onChange, style,
   };
 
   const updatePercent = (nextPercent: number) => {
-    const base = fuzzyBase || '=%';
+    const base = fuzzyBase || '>%';
     onChange(makeFuzzyPercentOperator(base, nextPercent));
   };
 

@@ -1,0 +1,27 @@
+type: api
+title: Operator sample payload
+description: Echoes a fixed JSON payload so comparison operators can be exercised against a live response
+outputs:
+  status_code: status
+  method: body.method
+  name: body.body.name
+  nickname: body.body.nickname
+  role: body.body.role
+  score: body.body.score
+  tags: body.body.tags
+  message: body.body.message
+  path: body.body.path
+url: https://test.mmt.dev/echo
+method: post
+format: json
+body:
+  name: Jonathan
+  nickname: Jon
+  role: admin
+  score: 85
+  tags:
+    - api
+    - test
+    - demo
+  message: Hello world from Multimeter
+  path: /api/v1/users

@@ -12,7 +12,7 @@ The examples are grouped by complexity so new users can start simple and add pow
 
 ## Intermediate
 
-Use these when you are ready for reusable APIs, authentication, mock servers, richer environment variables, inputs and outputs, suites, imports, data-driven tests, environment presets, documentation options/ranges, control flow, helper JavaScript, additional protocol or file formats, and the `omit` keyword.
+Use these when you are ready for reusable APIs, authentication, mock servers, richer environment variables, inputs and outputs, suites, imports, data-driven tests, environment presets, documentation options/ranges, control flow, comparison operators (`expect` / `check` / `assert`), helper JavaScript, additional protocol or file formats, and the `omit` keyword.
 
 ## Professional
 

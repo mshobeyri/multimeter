@@ -1254,11 +1254,11 @@ describe('parseExpectValue', () => {
     expect(parseExpectValue('!* /fail/')).toEqual({ operator: '!*', expected: '/fail/' });
     expect(parseExpectValue('=# 3')).toEqual({ operator: '=#', expected: '3' });
     expect(parseExpectValue('!# 0')).toEqual({ operator: '!#', expected: '0' });
-    expect(parseExpectValue('=% John')).toEqual({ operator: '=%', expected: 'John' });
-    expect(parseExpectValue('=0% John')).toEqual({ operator: '=0%', expected: 'John' });
-    expect(parseExpectValue('=10% John')).toEqual({ operator: '=10%', expected: 'John' });
-    expect(parseExpectValue('!75% admin')).toEqual({ operator: '!75%', expected: 'admin' });
-    expect(parseExpectValue('!100% admin')).toEqual({ operator: '!100%', expected: 'admin' });
+    expect(parseExpectValue('>% John')).toEqual({ operator: '>%', expected: 'John' });
+    expect(parseExpectValue('>0% John')).toEqual({ operator: '>0%', expected: 'John' });
+    expect(parseExpectValue('>10% John')).toEqual({ operator: '>10%', expected: 'John' });
+    expect(parseExpectValue('<75% admin')).toEqual({ operator: '<75%', expected: 'admin' });
+    expect(parseExpectValue('<100% admin')).toEqual({ operator: '<100%', expected: 'admin' });
   });
 
   it('handles expected value with spaces', () => {
@@ -1277,14 +1277,14 @@ describe('parseExpectValue', () => {
 
 describe('conditionalStatementToJSfunc', () => {
   it('parses fuzzy operators after multi-word actual values', () => {
-    expect(conditionalStatementToJSfunc('mehrdad zahra =100% mehrdad sahar'))
+    expect(conditionalStatementToJSfunc('mehrdad zahra >100% mehrdad sahar'))
         .toBe('fuzzyMatch_(`mehrdad zahra`, `mehrdad sahar`, 100)');
   });
 
-  it('uses 80 percent as the default fuzzy threshold for =%', () => {
-    expect(conditionalStatementToJSfunc('name =% Jon'))
+  it('uses 80 percent as the default fuzzy threshold for >%', () => {
+    expect(conditionalStatementToJSfunc('name >% Jon'))
         .toBe('fuzzyMatch_(`name`, `Jon`, 80)');
-    expect(conditionalStatementToJSfunc('name !% admin'))
+    expect(conditionalStatementToJSfunc('name <% admin'))
         .toBe('notFuzzyMatch_(`name`, `admin`, 80)');
   });
 });

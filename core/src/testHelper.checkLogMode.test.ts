@@ -191,7 +191,7 @@ describe('testHelper comparison helpers', () => {
       'run-1',
       'node-1',
       'check',
-      'mehrdad zahra =80% mehrdad sahar',
+      'mehrdad zahra >80% mehrdad sahar',
       'fuzzy name',
       undefined,
       true,

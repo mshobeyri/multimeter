@@ -286,7 +286,7 @@ With title and report:
     external: fails
 ```
 
-All comparison operators supported by `check`/`assert` are available in `expect` values: `==`, `!=`, `<`, `>`, `<=`, `>=`, `=@`, `!@`, `=C`, `!C`, `=^`, `!^`, `=$`, `!$`, `=*`, `!*`, `=#`, `!#`, `=N%`, `!N%`. Legacy regex operators `=~` and `!~` are still accepted.
+All comparison operators supported by `check`/`assert` are available in `expect` values: `==`, `!=`, `<`, `>`, `<=`, `>=`, `=@`, `!@`, `=C`, `!C`, `=^`, `!^`, `=$`, `!$`, `=*`, `!*`, `=#`, `!#`, `>N%`, `<N%`. Legacy regex operators `=~` and `!~` are still accepted.
 
 `omit` behavior in `expect`:
 - Use unquoted `omit` when you expect a field to be missing.
@@ -341,7 +341,7 @@ Supported operators
 - `=$` (ends with), `!$` (not ends with)
 - `=*` (regex match), `!*` (not regex match). Legacy `=~` and `!~` still work.
 - `=#` (string/number character length equals), `!#` (not equal)
-- `=N%`(fuzzy match at least N% similar), `!N%` (not fuzzy match at N%). Any whole percent from 0 to 100 can be used, for example `=80%`. In the visual UI these appear as `=%` and `!%` with a separate percentage selector.
+- `>N%`(fuzzy match at least N% similar), `<N%` (fuzzy match less than N%). Any whole percent from 0 to 100 can be used, for example `>80%`. In the visual UI these appear as `>%` and `<%` with a separate percentage selector.
 
 You can write checks and asserts in a concise inline form or in a structured object form with explicit `actual`, `expected`, `operator`, and an optional `title` or `details`.
 
@@ -349,7 +349,7 @@ Inline examples
 ```yaml
 - assert: ${doLogin.status} == 200
 - check: ${profile.name} =* /John/i
-- check: ${profile.name} =80% Jon
+- check: ${profile.name} >80% Jon
 - check: ${profile.roles} =# 2
 ```
 

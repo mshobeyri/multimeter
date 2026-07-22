@@ -93,7 +93,7 @@ describe('generateReportMarkdown', () => {
             makeStep({
               title: 'name == John',
               status: 'failed',
-              expects: [{ comparison: 'name =80% John', actual: 'Jane', expected: 'John', similarity: 25, status: 'failed' }],
+              expects: [{ comparison: 'name >80% John', actual: 'Jane', expected: 'John', similarity: 25, status: 'failed' }],
             }),
           ],
         }),
@@ -103,7 +103,7 @@ describe('generateReportMarkdown', () => {
     const md = generateReportMarkdown(results);
     expect(md).toContain('<details>');
     expect(md).toContain('<summary>✗ name == John</summary>');
-    expect(md).toContain('✗ name =80% John');
+    expect(md).toContain('✗ name >80% John');
     expect(md).toContain('got: Jane');
     expect(md).toContain('similarity: 25%');
     expect(md).toContain('</details>');
@@ -118,9 +118,9 @@ describe('generateReportMarkdown', () => {
           displayName: 'test.mmt',
           steps: [
             makeStep({
-              title: 'name =80% John',
+              title: 'name >80% John',
               status: 'passed',
-              expects: [{ comparison: 'name =80% Jon', actual: 'John', expected: 'Jon', similarity: 75, status: 'passed' }],
+              expects: [{ comparison: 'name >80% Jon', actual: 'John', expected: 'Jon', similarity: 75, status: 'passed' }],
             }),
           ],
         }),
@@ -128,8 +128,8 @@ describe('generateReportMarkdown', () => {
     };
 
     const md = generateReportMarkdown(results);
-    expect(md).toContain('<summary>✓ name =80% John</summary>');
-    expect(md).toContain('✓ name =80% Jon');
+    expect(md).toContain('<summary>✓ name >80% John</summary>');
+    expect(md).toContain('✓ name >80% Jon');
     expect(md).toContain('got: John');
     expect(md).toContain('similarity: 75%');
   });
