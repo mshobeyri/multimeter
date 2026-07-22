@@ -2,6 +2,11 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.28.3]
+
+- Fix API Send / Run in Core ignoring temporary tester edits; right-panel runs always prefer UI data (glyphs still use the file)
+- Align test panel temporary inputs with API behavior: keep edits across env refresh, gate YAML updates behind the conflict dialog, and show save/reset for dirty inputs
+
 ## [1.28.2]
 
 - Fix YAML `!` / `>` expect and check operators (`!=`, `!*`, `operator: !=`, etc.) so they parse and round-trip correctly from code and edit form
