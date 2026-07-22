@@ -2,6 +2,18 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.29.0]
+
+- Redesign the no-type welcome panel: colored type icon row (matching panel title icons), outline badges, and cleaner sample gallery
+- Improve response body auto-format handling in the API tester and history panel
+- Show a Monaco YAML diff for temporary UI changes (save/reset warning)
+- Rename fuzzy percent check operators from `=%` / `!%` to `>%` / `<%` (and `>N%` / `<N%`)
+- Support `e:` env tokens in mock servers (responses, match rules, paths, headers, and listen port)
+- Fix crash on incomplete `e:` tokens and allow resolving `protocol` from env vars
+- Restore suite pending icons for full and partial runs; use tiffany for the running state
+- Interrupt long delay steps every 2s so Stop can abort without waiting out the full delay
+- Fix Extension marketplace readme issues
+
 ## [1.28.4]
 
 - Stable release of the 1.28.3 fixes (API/test temporary UI data for Send/Run, test input conflict dialog and env refresh)
