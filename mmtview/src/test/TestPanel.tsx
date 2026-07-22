@@ -342,8 +342,9 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
                       )}
                       {isTestModified && (
                         <UnsavedChangesWarning
+                          originalYaml={appliedContent}
                           modifiedYaml={modifiedYaml}
-                          yamlHeaderLabel="Modified Test"
+                          yamlHeaderLabel="YAML ↔ temporary inputs"
                           onSave={() => setTest(savedModifiedTest)}
                           onReset={handleWarningReset}
                         />

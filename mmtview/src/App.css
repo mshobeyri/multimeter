@@ -810,7 +810,7 @@ button:focus {
   border: 1px solid var(--vscode-notifications-border, #303031);
   border-radius: 6px;
   padding: 12px;
-  width: 360px;
+  width: 480px;
   max-width: calc(100vw - 24px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
   display: flex;
@@ -878,6 +878,13 @@ button:focus {
   white-space: pre;
   margin: 0;
   color: var(--vscode-editor-foreground, #d4d4d4);
+}
+
+.unsaved-changes-popup-diff {
+  border: 1px solid var(--vscode-widget-border, #454545);
+  border-radius: 4px;
+  overflow: hidden;
+  min-height: 240px;
 }
 
 

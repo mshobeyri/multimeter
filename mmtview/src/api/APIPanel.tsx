@@ -345,6 +345,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
                       </button>
                       {isTestModified && (
                         <UnsavedChangesWarning
+                          originalYaml={appliedContent}
                           modifiedYaml={modifiedYaml}
                           onSave={() => setAPI(savedModifiedApi)}
                           onReset={handleWarningReset}

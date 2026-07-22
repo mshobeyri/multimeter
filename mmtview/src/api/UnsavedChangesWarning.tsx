@@ -1,17 +1,22 @@
 import React, { useEffect, useRef, useState } from "react";
+import { DiffEditor } from "@monaco-editor/react";
+import { FIXED_BG_THEME, defineTheme } from "../text/Theme";
 
 interface UnsavedChangesWarningProps {
-  /** YAML representation with the user's temporary edits merged in. */
+  /** Current file / applied YAML (left / original side of the diff). */
+  originalYaml: string;
+  /** YAML with the user's temporary UI edits merged in. */
   modifiedYaml: string;
-  /** Label above the YAML preview (e.g. "Modified API"). */
+  /** Label above the diff preview (e.g. "Modified API"). */
   yamlHeaderLabel?: string;
   onSave: () => void;
   onReset: () => void;
 }
 
 const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
+  originalYaml,
   modifiedYaml,
-  yamlHeaderLabel = "Modified API",
+  yamlHeaderLabel = "YAML ↔ temporary UI",
   onSave,
   onReset,
 }) => {
@@ -84,7 +89,40 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
               </button>
             </div>
           </div>
-          <pre className="unsaved-changes-popup-yaml">{modifiedYaml}</pre>
+          <div className="unsaved-changes-popup-diff">
+            <DiffEditor
+              original={originalYaml}
+              modified={modifiedYaml}
+              language="yaml"
+              theme={FIXED_BG_THEME}
+              beforeMount={defineTheme}
+              height="240px"
+              options={{
+                readOnly: true,
+                renderSideBySide: false,
+                hideUnchangedRegions: {
+                  enabled: true,
+                  contextLineCount: 1,
+                  minimumLineCount: 3,
+                  revealLineCount: 20,
+                },
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                fontSize: 12,
+                lineNumbers: "off",
+                glyphMargin: false,
+                folding: false,
+                renderOverviewRuler: false,
+                overviewRulerLanes: 0,
+                scrollbar: {
+                  verticalScrollbarSize: 8,
+                  horizontalScrollbarSize: 8,
+                },
+                renderIndicators: true,
+                ignoreTrimWhitespace: false,
+              }}
+            />
+          </div>
         </div>
       )}
     </div>
