@@ -287,13 +287,16 @@ export function makeFuzzyPercentOperator(base: '=%'|'!%', percent: number): `=${
   return `${base[0]}${normalized}%` as `=${number}%`|`!${number}%`;
 }
 
+/** Longest-first so `<=` / `>=` / `!=` win over single-char prefixes. */
+const OPS_BY_LENGTH = [...opsList].sort((a, b) => b.length - a.length);
+
 export function splitCheckOperatorPrefix(value: string): { operator: string; expected: string } | undefined {
   const trimmed = String(value).trim();
   const fuzzyMatch = trimmed.match(/^([=!](?:0|[1-9][0-9]?|100)%)(?:\s+(.*)|$)/);
   if (fuzzyMatch) {
     return { operator: fuzzyMatch[1], expected: (fuzzyMatch[2] || '').trim() };
   }
-  for (const op of opsList) {
+  for (const op of OPS_BY_LENGTH) {
     if (trimmed.startsWith(op + ' ') || trimmed === op) {
       return { operator: op, expected: trimmed.slice(op.length).trim() };
     }

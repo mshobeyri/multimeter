@@ -148,17 +148,15 @@ export default class EnvironmentPanel implements vscode.WebviewViewProvider {
 
   private getWorkspaceEnvironmentVars(): EnvironmentVar[] {
     try {
-      // Get environment variables from workspace storage
-      const storedVars = this.context.workspaceState.get<Record<string, any>>(
-          'multimeter.environment.storage', {});
+      // Preserve storage order: env-file vars first (YAML order), then manual adds.
+      const storedVars = this.context.workspaceState.get<EnvironmentVar[]|Record<string, any>>(
+          'multimeter.environment.storage', []);
 
-      // Convert stored variables to EnvironmentVar array
-      const environmentVars: EnvironmentVar[] =
-          Object.entries(storedVars).map(([name, value]) => {
-            return value;
-          });
+      if (Array.isArray(storedVars)) {
+        return storedVars;
+      }
 
-      return environmentVars.sort((a, b) => a.name.localeCompare(b.name));
+      return Object.values(storedVars || {});
     } catch (error) {
       console.error(
           'Failed to load environment variables from workspace storage:',

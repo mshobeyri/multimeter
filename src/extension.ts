@@ -1,6 +1,4 @@
 import {connectionTracker} from 'mmt-core/networkCoreNode';
-import * as fs from 'fs';
-import * as path from 'path';
 import * as vscode from 'vscode';
 
 import {setupChatParticipants} from './assistant/assistant';
@@ -14,6 +12,7 @@ import EnvironmentPanel from './panels/EnvironmentPanel';
 import HistoryPanel from './panels/HistoryPanel';
 import MockServerPanel from './panels/MockServerPanel';
 import {registerRunStatusBar} from './runStatusBar';
+import {openUntitledGalleryMmt} from './untitledGalleryMmt';
 import {loadWorkspaceEnvFile} from './workspaceEnvLoader';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -190,7 +189,7 @@ function registerMiscCommands(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(
       vscode.commands.registerCommand('multimeter.apiTest.new', async () => {
-        await openUntitledApiTest();
+        await openUntitledGalleryMmt();
       }));
 
   context.subscriptions.push(vscode.commands.registerCommand(
@@ -230,57 +229,11 @@ function registerMiscCommands(context: vscode.ExtensionContext): void {
 function registerApiTestStatusBar(context: vscode.ExtensionContext): void {
   const item =
       vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-  item.name = 'Multimeter API Test';
+  item.name = 'Multimeter';
   item.text = '$(mmt-logo)';
-  item.tooltip = 'New API Test';
+  item.tooltip = 'New Multimeter file';
   item.command = 'multimeter.apiTest.new';
   item.show();
   context.subscriptions.push(item);
 }
 
-async function openUntitledApiTest(): Promise<void> {
-  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
-  const uri = getUniqueUntitledApiTestUri(
-      workspaceRoot || process.cwd(), 'api-test.mmt');
-  const document = await vscode.workspace.openTextDocument(uri);
-
-  if (!document.getText().trim()) {
-    const edit = new vscode.WorkspaceEdit();
-    edit.insert(uri, new vscode.Position(0, 0), getDefaultApiTestContent());
-    await vscode.workspace.applyEdit(edit);
-  }
-
-  await vscode.languages.setTextDocumentLanguage(document, 'mmt');
-  await vscode.commands.executeCommand(
-      'vscode.openWith', uri, 'mmt.editor', {preview: false});
-}
-
-function getUniqueUntitledApiTestUri(
-    rootDir: string, filename: string): vscode.Uri {
-  const extension = path.extname(filename);
-  const baseName = path.basename(filename, extension);
-  let candidateName = filename;
-  let candidatePath = path.join(rootDir, candidateName);
-  let counter = 1;
-
-  while (fs.existsSync(candidatePath)) {
-    counter += 1;
-    candidateName = `${baseName}${counter}${extension}`;
-    candidatePath = path.join(rootDir, candidateName);
-  }
-
-  return vscode.Uri.from({scheme: 'untitled', path: candidatePath});
-}
-
-function getDefaultApiTestContent(): string {
-  return [
-    'type: api',
-    'title: New API Test',
-    'url: https://test.mmt.dev/echo',
-    'method: post',
-    'format: json',
-    'body:',
-    ' hello: from mmt!',
-    '',
-  ].join('\n');
-}

@@ -1,13 +1,16 @@
 import React from "react";
-import { ReportConfig, ReportLevel, splitCheckOperatorPrefix } from "mmt-core/TestData";
+import { ReportConfig, ReportLevel } from "mmt-core/TestData";
+import {
+  applyExpectUiRowChange,
+  createEmptyExpectUiRow,
+  expectMapToUiRows,
+  type ExpectUiRow,
+  uiRowsToExpectMap,
+} from "mmt-core/expectUi";
 import KSVEditor from "../components/KSVEditor";
 import OperatorSelect from "../components/OperatorSelect";
 
-interface ExpectRow {
-  field: string;
-  op: string;
-  expected: string;
-}
+interface ExpectRow extends ExpectUiRow {}
 
 interface TestHttpProps {
   value: any;
@@ -20,49 +23,6 @@ const formatOptions = ['json', 'xml', 'xmle', 'text'];
 const responseFields = ['status', 'body.message', 'body', 'headers', 'cookies', 'duration'];
 const reportLevelOptions: ReportLevel[] = ['all', 'fails', 'none'];
 
-const expectMapToRows = (map: Record<string, any> | undefined): ExpectRow[] => {
-  if (!map || typeof map !== 'object') {
-    return [];
-  }
-  const rows: ExpectRow[] = [];
-  for (const [field, val] of Object.entries(map)) {
-    const values = Array.isArray(val) ? val : [val];
-    for (const v of values) {
-      const s = String(v ?? '').trim();
-      const prefixed = splitCheckOperatorPrefix(s);
-      let matched = false;
-      if (prefixed) {
-        rows.push({ field, op: prefixed.operator, expected: prefixed.expected });
-        matched = true;
-      }
-      if (!matched) {
-        rows.push({ field, op: '==', expected: s });
-      }
-    }
-  }
-  return rows;
-};
-
-const rowsToExpectMap = (rows: ExpectRow[]): Record<string, any> | undefined => {
-  if (rows.length === 0) {
-    return undefined;
-  }
-  const map: Record<string, any> = {};
-  for (const row of rows) {
-    const entry = row.op === '==' ? row.expected : `${row.op} ${row.expected}`;
-    if (map[row.field] !== undefined) {
-      if (Array.isArray(map[row.field])) {
-        map[row.field].push(entry);
-      } else {
-        map[row.field] = [map[row.field], entry];
-      }
-    } else {
-      map[row.field] = entry;
-    }
-  }
-  return map;
-};
-
 const parseTimeoutInput = (value: string): number | undefined => {
   if (!value.trim()) {
     return undefined;
@@ -73,7 +33,7 @@ const parseTimeoutInput = (value: string): number | undefined => {
 
 const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
   const step = value && typeof value === 'object' ? value : {};
-  const expectList = React.useMemo(() => expectMapToRows(step.expect), [step.expect]);
+  const expectList = React.useMemo(() => expectMapToUiRows(step.expect), [step.expect]);
   const callReport = step.report;
   const isReportObjectForm = callReport && typeof callReport === 'object';
   const reportInternalValue: ReportLevel = isReportObjectForm
@@ -110,7 +70,7 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
     if (next.body === '' || next.body === undefined) {
       delete next.body;
     }
-    const expectMap = rowsToExpectMap(nextExpect ?? expectList);
+    const expectMap = uiRowsToExpectMap(nextExpect ?? expectList);
     if (expectMap) {
       next.expect = expectMap;
     } else {
@@ -138,7 +98,10 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
   };
 
   const handleAddExpect = () => {
-    emit({}, [...expectList, { field: 'body.message', op: '==', expected: '' }]);
+    const defaultField = expectList.length > 0
+      ? expectList[expectList.length - 1].field
+      : 'body.message';
+    emit({}, [...expectList, createEmptyExpectUiRow(defaultField)]);
   };
 
   const handleRemoveExpect = (index: number) => {
@@ -146,7 +109,9 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
   };
 
   const handleExpectPartChange = (index: number, part: 'field' | 'op' | 'expected', val: string) => {
-    const updated = expectList.map((row, i) => i === index ? { ...row, [part]: val } : row);
+    const updated = expectList.map((row, i) => (
+      i === index ? applyExpectUiRowChange(row, part, val) : row
+    ));
     emit({}, updated);
   };
 

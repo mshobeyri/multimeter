@@ -1,4 +1,5 @@
 import { validateYamlContent } from './Validate';
+import { registerMmtYamlTokenizer } from './yamlTokenizer';
 import { KeySuggestionsByParent } from './AutoComplete';
 import { readFile } from '../vsAPI';
 import { outputExtractor, mockServer, mockParsePack } from 'mmt-core';
@@ -70,7 +71,7 @@ function getMockServerRefSuggestions(content: string, namespace: string): Array<
     }
 
     if (namespace === 'url') {
-        add('path', 'Request path', 'Full request path without query string: ${url.path}');
+        add('path', 'Request path', `Full request path without query string: \${url.path}`);
         for (const name of mockServer.extractPathParamNames(endpointPaths)) {
             add(name, `Path param :${name}`, `Path parameter from route pattern: \${url.${name}}`);
         }
@@ -106,6 +107,7 @@ async function listFiles(folder: string, recursive = true): Promise<string[]> {
 }
 
 export const handleBeforeMount = (monaco: any) => {
+    registerMmtYamlTokenizer(monaco);
     const keySuggestionsByParent = KeySuggestionsByParent(monaco);
 
     if (!monaco.languages.getLanguages().some((language: any) => language.id === 'http')) {
@@ -921,10 +923,10 @@ export const handleBeforeMount = (monaco: any) => {
                 const mockRefStart = tokenSource.match(/\$\{([\w.-]*)$/);
                 if (mockRefStart && !mockRefStart[1].includes('.')) {
                     const namespaces = [
-                        { ns: 'url', detail: 'Path and path parameters', doc: 'Use ${url.id} for path params, ${url.path} for the full path.' },
-                        { ns: 'body', detail: 'Request body fields', doc: 'Echo JSON/XML body fields, e.g. ${body.name}.' },
-                        { ns: 'header', detail: 'Request headers', doc: 'Echo request headers, e.g. ${header.authorization}.' },
-                        { ns: 'query', detail: 'Query string parameters', doc: 'Echo query params, e.g. ${query.page}.' },
+                        { ns: 'url', detail: 'Path and path parameters', doc: `Use \${url.id} for path params, \${url.path} for the full path.` },
+                        { ns: 'body', detail: 'Request body fields', doc: `Echo JSON/XML body fields, e.g. \${body.name}.` },
+                        { ns: 'header', detail: 'Request headers', doc: `Echo request headers, e.g. \${header.authorization}.` },
+                        { ns: 'query', detail: 'Query string parameters', doc: `Echo query params, e.g. \${query.page}.` },
                     ];
                     const prefix = mockRefStart[1].toLowerCase();
                     const nsSuggestions = namespaces

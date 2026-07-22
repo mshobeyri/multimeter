@@ -12,18 +12,18 @@ interface TestOverviewProps {
 }
 
 const TestOverview: React.FC<TestOverviewProps> = ({ test, update, missingImports = [] }) => (
-  <div style={{ width: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
+  <div style={{ width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box" }}>
     <div className="label">Title</div>
-    <div style={{ padding: "5px" }}>
+    <div style={{ padding: "5px", boxSizing: "border-box" }}>
       <input
         value={test.title || ""}
         onChange={e => update({ title: e.target.value })}
         placeholder="title"
-        style={{ width: "100%" }}
+        style={{ width: "100%", boxSizing: "border-box" }}
       />
     </div>
     <div className="label">Tags</div>
-    <div style={{ padding: "5px" }}>
+    <div style={{ padding: "5px", boxSizing: "border-box" }}>
       <SearchableTagInput
         tags={test.tags || []}
         onChange={tags => update({ tags })}
@@ -31,7 +31,7 @@ const TestOverview: React.FC<TestOverviewProps> = ({ test, update, missingImport
       />
     </div>
     <div className="label">Description</div>
-    <div style={{ padding: "5px", width: "100%" }}>
+    <div style={{ padding: "5px", width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box" }}>
       <DescriptionEditor
         value={test.description || ""}
         onChange={value => update({ description: value })}

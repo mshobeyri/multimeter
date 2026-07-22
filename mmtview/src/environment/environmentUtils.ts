@@ -29,19 +29,36 @@ export const writeEnvironmentVariables =
  */
 export const setEnvironmentVariable =
     (name: string, value: string|number|boolean, label?: string): void => {
-      // First read existing variables
-      const cleanup = loadEnvVariables((existingVars) => {
-        const existing = Array.isArray(existingVars) ? existingVars : [];
-
-        // Update or add the new variable
-        const updated = existing.filter(v => v.name !== name);
-        updated.push({name, label: label || name, value, options: []});
-
-        // Save back to storage
-        saveEnvVariablesFromObject(updated);
-        cleanup();  // Clean up the subscription immediately
-      });
+      setEnvironmentVariables([{name, value, label}]);
     };
+
+/**
+ * Sets multiple environment variables in one read-modify-write to avoid races.
+ */
+export const setEnvironmentVariables =
+    (updates: Array<{name: string; value: string|number|boolean; label?: string}>):
+        void => {
+          if (!Array.isArray(updates) || updates.length === 0) {
+            return;
+          }
+          const cleanup = loadEnvVariables((existingVars) => {
+            let updated = Array.isArray(existingVars) ? [...existingVars] : [];
+            for (const item of updates) {
+              if (!item?.name) {
+                continue;
+              }
+              updated = updated.filter(v => v.name !== item.name);
+              updated.push({
+                name: item.name,
+                label: item.label || item.name,
+                value: item.value,
+                options: [],
+              });
+            }
+            saveEnvVariablesFromObject(updated);
+            cleanup();
+          });
+        };
 
 /**
  * Gets a single environment variable value from storage

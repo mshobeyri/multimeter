@@ -12,7 +12,7 @@
     "mmt-core": "file:../core/dist",
     "monaco-editor": "^0.52.2",
     "monaco-yaml": "^5.4.0",
-    "postcss": "^8.5.6",
+    "postcss": "8.4.31",
     "react": "^19.1.0",
     "react-complex-tree": "^2.6.0",
     "react-dom": "^19.1.0"

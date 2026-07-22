@@ -25,5 +25,8 @@ module.exports = {
   ],
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
+    // Resolve workspace mmt-core imports for mmtview tests (package points at core/dist).
+    '^mmt-core/(.*)$': '<rootDir>/core/src/$1',
+    '^mmt-core$': '<rootDir>/core/src/index.ts',
   },
 };

@@ -34,7 +34,7 @@ export type FlowchartSource =
     rootTitle?: string;
     rootPath?: string;
     groups: SuiteGroup[];
-    hierarchyByEntryPath?: Record<string, SuiteTreeNode | undefined>;
+    hierarchyByEntryId?: Record<string, SuiteTreeNode | undefined>;
     missingFiles?: Set<string>;
   };
 
@@ -129,7 +129,7 @@ function toRFEdges(graph: FlowGraph, positions: ReturnType<typeof applyLayout>):
 const FlowchartView: React.FC<FlowchartViewProps> = ({ source, onBack, title }) => {
   const [refreshVersion, setRefreshVersion] = useState(0);
   const suiteGroups = source.kind === 'suite' ? source.groups : EMPTY_SUITE_GROUPS;
-  const suiteHierarchy = source.kind === 'suite' ? source.hierarchyByEntryPath : undefined;
+  const suiteHierarchy = source.kind === 'suite' ? source.hierarchyByEntryId : undefined;
   const suiteMissingFiles = source.kind === 'suite' ? source.missingFiles : undefined;
   const suiteRootTitle = source.kind === 'suite' ? source.rootTitle : undefined;
   const suiteRootPath = source.kind === 'suite' ? source.rootPath : undefined;
@@ -156,7 +156,7 @@ const FlowchartView: React.FC<FlowchartViewProps> = ({ source, onBack, title }) 
       rootTitle: suiteRootTitle,
       rootPath: suiteRootPath,
       groups: suiteGroups,
-      hierarchyByEntryPath: suiteHierarchy,
+      hierarchyByEntryId: suiteHierarchy,
       missingFiles: suiteMissingFiles,
       testDataByPath,
       callTitleByTestPath,

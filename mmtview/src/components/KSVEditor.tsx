@@ -112,7 +112,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   };
 
   return (
-    <div style={{ width: "100%" }}>
+    <div style={{ width: "100%", maxWidth: "100%", minWidth: 0, boxSizing: "border-box" }}>
       {label ? (
         <div
           className={disabled ? "label label-disabled" : "label"}
@@ -120,13 +120,13 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
           {label}
         </div>
       ) : null}
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <table style={{ width: "100%", maxWidth: "100%", borderCollapse: "collapse", tableLayout: "fixed" }}>
         <tbody style={{ width: "100%" }}>
           {safeList(entries)
             .filter(([k], i) => !(deactivated && k === "" && i === entries.length - 1))
             .map(([k, v], i) => (
               <tr style={{ width: "100%" }} key={i}>
-                <td style={{ width: "50%", padding: "5px", verticalAlign: "top" }}>
+                <td style={{ width: "50%", padding: "5px", verticalAlign: "top", boxSizing: "border-box" }}>
                   <input
                     value={k}
                     onChange={e => handleKeyChange(i, e.target.value)}
@@ -135,7 +135,7 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
                     disabled={disabled || keysDisabled}
                   />
                 </td>
-                <td style={{ width: "50%", padding: "5px", verticalAlign: "top" }}>
+                <td style={{ width: "50%", padding: "5px", verticalAlign: "top", boxSizing: "border-box" }}>
                   {k.trim() !== "" && (
                     filePicker ? (
                       <FilePickerInput

@@ -8,8 +8,24 @@
 <body>
     <div id="history-list"></div>
     <style>
+        :root {
+            --history-row-size: 12px;
+            --history-meta-size: 11px;
+            --history-detail-size: 11px;
+            --history-section-size: 10px;
+            --history-muted: var(--vscode-descriptionForeground, #888);
+            --history-radius: 6px;
+        }
+
+        body {
+            margin: 0;
+            padding: 4px 0;
+            font-family: var(--vscode-font-family, sans-serif);
+            color: var(--vscode-foreground, #ccc);
+        }
+
         .history-list {
-            color: var(--vscode-foreground, #aaa);
+            color: var(--vscode-foreground, #ccc);
             list-style: none;
             padding: 0;
             margin: 0;
@@ -18,13 +34,12 @@
         .history-row {
             display: flex;
             align-items: center;
-            padding: 6px 8px;
-            border-radius: 4px;
+            padding: 5px 8px;
+            border-radius: var(--history-radius);
             cursor: pointer;
-            transition: background 0.15s;
-            font-family: var(--vscode-font-family, monospace);
-            font-size: 12px;
-            margin-bottom: 2px;
+            transition: background 0.15s ease;
+            font-size: var(--history-row-size);
+            margin-bottom: 1px;
             position: relative;
         }
 
@@ -32,117 +47,173 @@
             background: var(--vscode-list-hoverBackground, #2a2d2e);
         }
 
-        .history-icon {
-            width: 16px;
-            height: 16px;
-            margin-right: 8px;
-            opacity: 0.9;
-            vertical-align: middle;
+        .history-badge {
+            flex-shrink: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            min-width: 34px;
+            max-width: 34px;
+            height: 14px;
+            padding: 0 2px;
+            margin-right: 6px;
+            border-radius: 2px;
+            color: #fff;
+            font-size: 8px;
+            font-weight: 600;
+            line-height: 14px;
+            letter-spacing: 0;
+            text-transform: uppercase;
+            box-sizing: border-box;
+            overflow: hidden;
+            white-space: nowrap;
         }
 
-        .mock-protocol-wrapper {
+        .history-badge-mock {
+            outline: 1px solid rgba(255, 255, 255, 0.35);
+            outline-offset: 0;
+        }
+
+        .history-type-icon {
             position: relative;
             display: inline-flex;
             align-items: center;
-            margin-right: 8px;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            margin-right: 6px;
+            flex-shrink: 0;
         }
 
-        .mock-protocol-wrapper .history-icon {
-            margin-right: 0;
+        .history-type-icon .codicon {
+            font-size: 14px;
+            line-height: 1;
+        }
+
+        .history-type-icon-bg {
             position: absolute;
-            bottom: -3px;
-            right: -5px;
-            width: 10px;
-            height: 10px;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.28;
+            pointer-events: none;
         }
 
-        .mock-server-icon {
-            font-size: 14px !important;
+        .history-type-icon-bg .codicon {
+            font-size: 16px;
+        }
+
+        .history-type-icon-fg {
+            position: relative;
+            z-index: 1;
         }
 
         .history-title {
             flex: 1;
-            color: var(--vscode-foreground, #aaa);
-            font-size: 12px;
-            margin-left: 4px;
+            color: var(--vscode-foreground, #ccc);
+            font-size: var(--history-row-size);
+            margin-left: 0;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
 
         .history-time {
-            font-size: 11px;
-            color: var(--vscode-foreground, #aaa);
+            font-size: var(--history-meta-size);
+            color: var(--history-muted);
             margin-left: 12px;
             min-width: 90px;
             text-align: right;
+            font-variant-numeric: tabular-nums;
         }
 
         .drawer-content {
-            border-radius: 0 0 8px 8px;
-            margin: 0 0 8px 0;
-            padding: 18px 24px;
-            font-size: 13px;
-            color: var(--vscode-foreground, #aaa);
-            border-top: 1px solid #444;
+            border-radius: 0 0 var(--history-radius) var(--history-radius);
+            margin: 0 4px 6px 20px;
+            padding: 10px 12px 12px;
+            font-size: var(--history-detail-size);
+            color: var(--vscode-foreground, #ccc);
             white-space: pre-wrap;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-            animation: drawerOpen 0.2s;
+            animation: drawerOpen 0.18s ease-out;
         }
 
         .drawer-section {
-            margin-bottom: 18px;
+            margin-bottom: 12px;
         }
 
-        .drawer-label {
-            font-weight: bold;
-            color: #66bb6a;
-            margin-right: 8px;
+        .drawer-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .drawer-section-title {
+            display: block;
+            font-size: var(--history-section-size);
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--history-muted);
+            margin-bottom: 4px;
+        }
+
+        .drawer-sub {
+            padding-left: 12px;
         }
 
         .drawer-value {
-            color: var(--vscode-foreground, #aaa);
-            font-family: var(--vscode-font-family, monospace);
+            color: var(--vscode-foreground, #ccc);
+            font-family: var(--vscode-editor-font-family, var(--vscode-font-family, monospace));
             word-break: break-all;
+            line-height: 1.45;
         }
 
         .drawer-table {
             border-collapse: collapse;
-            margin-top: 8px;
-            margin-bottom: 12px;
-            min-width: 240px;
-            max-width: 600px;
+            width: 100%;
         }
 
         .drawer-table th,
         .drawer-table td {
-            border: 1px solid #444;
-            padding: 6px 16px;
-            font-size: 12px;
+            border: none;
+            padding: 2px 0;
+            font-size: var(--history-detail-size);
             text-align: left;
             vertical-align: top;
+            line-height: 1.45;
+        }
+
+        .drawer-table tr + tr th,
+        .drawer-table tr + tr td {
+            padding-top: 3px;
         }
 
         .drawer-table th {
-            background: none;
-            color: #66bb6a;
-            font-weight: bold;
-            width: 90px;
-            padding-right: 16px;
+            color: var(--vscode-foreground, #ccc);
+            font-weight: 600;
+            width: 110px;
+            padding-right: 12px;
+            white-space: nowrap;
         }
 
         .drawer-table td {
-            background: none;
-            color: var(--vscode-foreground, #aaa);
+            color: var(--vscode-foreground, #ccc);
+            font-family: var(--vscode-editor-font-family, var(--vscode-font-family, monospace));
+            word-break: break-all;
         }
 
         .drawer-content pre {
-            color: var(--vscode-foreground, #aaa);
-            padding: 10px 16px;
+            color: var(--vscode-foreground, #ccc);
+            background: rgba(127, 127, 127, 0.14);
+            padding: 8px 10px;
             border-radius: 4px;
-            font-size: 12px;
+            font-size: var(--history-detail-size);
+            font-family: var(--vscode-editor-font-family, var(--vscode-font-family, monospace));
             margin: 0;
             overflow-x: auto;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
         }
 
         @keyframes drawerOpen {
@@ -185,26 +256,96 @@
         let openIdx = null;
 
         function getTypeIcon(type, status, protocol) {
-            // Mock server entries show send/recv arrows just like regular entries
-            return type === 'send'
-                ? '<span class="codicon codicon-arrow-up" style="color:#3399ff"></span>'
-                : type === 'recv' && status < 400
-                    ? '<span class="codicon codicon-arrow-down" style="color:#66bb6a"></span>'
-                    : '<span class="codicon codicon-chrome-close" style="color:#ff5555"></span>';
-        }
-        function getProtocolIcon(protocol, serverType) {
-            if (protocol === 'mock') {
-                // For mock entries, show the underlying protocol icon with a small server badge
-                var iconSrc = '__HTTP_ICON__';
-                if (serverType === 'ws') { iconSrc = '__WS_ICON__'; }
-                return '<span class="mock-protocol-wrapper">' +
-                    '<span class="codicon codicon-server mock-server-icon" style="color:#66bb6a"></span>' +
-                    '<img src="' + iconSrc + '" class="history-icon" />' +
-                    '</span>';
+            var isMock = String(protocol || '').toLowerCase() === 'mock';
+            var color;
+            var fg;
+            if (type === 'send') {
+                color = '#3399ff';
+                fg = '<span class="codicon codicon-arrow-up history-type-icon-fg" style="color:' + color + '"></span>';
+            } else if (type === 'recv' && !(status >= 400)) {
+                color = '#66bb6a';
+                fg = '<span class="codicon codicon-arrow-down history-type-icon-fg" style="color:' + color + '"></span>';
+            } else {
+                color = '#ff5555';
+                fg = '<span class="codicon codicon-arrow-down history-type-icon-fg" style="color:' + color + '"></span>';
             }
-            if (protocol === 'ws') return '<img src="__WS_ICON__" class="history-icon" />';
-            if (protocol === 'grpc') return '<img src="__GRPC_ICON__" class="history-icon" />';
-            return '<img src="__HTTP_ICON__" class="history-icon" />';
+            var bg = isMock
+                ? '<span class="history-type-icon-bg" title="Mock server" style="color:' + color + '"><span class="codicon codicon-vm-compact"></span></span>'
+                : '';
+            return '<span class="history-type-icon">' + bg + fg + '</span>';
+        }
+
+        // Same colors/labels as the API tester method/protocol selector.
+        var METHOD_PROTOCOL_COLORS = {
+            get: '#61affe',
+            post: '#49cc90',
+            put: '#fca130',
+            delete: '#f93e3e',
+            patch: '#50e3c2',
+            head: '#9012fe',
+            options: '#0d5aa7',
+            trace: '#888',
+            ws: '#9b59b6',
+            graphql: '#e535ab',
+            grpc: '#244c5a',
+            http: '#61affe'
+        };
+        var PROTOCOL_LABELS = {
+            ws: 'WS',
+            graphql: 'GraphQL',
+            grpc: 'gRPC'
+        };
+
+        function getMethodOrProtocolBadge(item) {
+            var protocol = String(item.protocol || 'http').toLowerCase();
+            var method = String(item.method || 'get').toLowerCase();
+            var serverType = String(item.serverType || '').toLowerCase();
+            var isMock = protocol === 'mock';
+            var label;
+            var colorKey;
+
+            if (isMock) {
+                if (serverType === 'ws' || method === 'ws') {
+                    label = PROTOCOL_LABELS.ws;
+                    colorKey = 'ws';
+                } else if (serverType === 'graphql' || method === 'graphql') {
+                    label = PROTOCOL_LABELS.graphql;
+                    colorKey = 'graphql';
+                } else if (serverType === 'grpc' || method === 'grpc') {
+                    label = PROTOCOL_LABELS.grpc;
+                    colorKey = 'grpc';
+                } else {
+                    label = method.toUpperCase();
+                    colorKey = METHOD_PROTOCOL_COLORS[method] ? method : 'get';
+                }
+            } else if (protocol === 'ws' || protocol === 'graphql' || protocol === 'grpc') {
+                label = PROTOCOL_LABELS[protocol] || protocol.toUpperCase();
+                colorKey = protocol;
+            } else {
+                label = method.toUpperCase();
+                colorKey = METHOD_PROTOCOL_COLORS[method] ? method : 'get';
+            }
+
+            var color = METHOD_PROTOCOL_COLORS[colorKey] || '#888';
+            var mockClass = isMock ? ' history-badge-mock' : '';
+            var display = String(label).toUpperCase();
+            var len = display.length;
+            var fontSize = len <= 4 ? '8px' : len <= 5 ? '7px' : len <= 6 ? '6.5px' : '5.5px';
+            return '<span class="history-badge' + mockClass + '" style="background:' + color +
+                ';font-size:' + fontSize + '" title="' +
+                (isMock ? 'mock ' : '') + display + '">' + display + '</span>';
+        }
+
+        function displayTitle(item) {
+            var title = String(item.title || '');
+            var urlMatch = title.match(/((?:https?|wss?):\/\/\S+)/i);
+            if (urlMatch) {
+                return urlMatch[1];
+            }
+            return title.replace(
+                /^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|TRACE|send|recv|connnect|connect|connected|closed|error|close|gRPC)\s+/i,
+                ''
+            ).replace(/\s+Error$/i, '');
         }
 
         function renderVerticalTable(obj) {
@@ -244,8 +385,8 @@
                         '<div class="history-row" onclick="toggleDrawer(' + idx + ')">' +
                         '<span class="drawer-arrow' + (openIdx === idx ? ' open' : '') + '">&#9654;</span>' +
                         getTypeIcon(item.type, item.status, item.protocol) +
-                        getProtocolIcon(item.protocol, item.serverType) +
-                        '<span class="history-title"' + (isError || item.status >= 400 ? ' style="color:#ff5555;"' : '') + '>' + escapeHtml(item.title) + '</span>' +
+                        getMethodOrProtocolBadge(item) +
+                        '<span class="history-title"' + (isError || item.status >= 400 ? ' style="color:#ff5555;"' : '') + '>' + escapeHtml(displayTitle(item)) + '</span>' +
                         '<span class="history-time">' +
                         (item.duration >= 0
                             ? '<span style="color:' + (isError || item.status >= 400 ? '#ff5555' : '#66bb6a') + ';">(' + item.duration + 'ms)</span> '
@@ -263,24 +404,24 @@
                         '</div>' +
                         (openIdx === idx
                             ? '<div class="drawer-content">' +
-                            '<div class="drawer-section"><span class="drawer-label">Method:</span> <span class="drawer-value">' + item.method + '</span></div>' +
-                            '<div class="drawer-section"><span class="drawer-label">Protocol:</span> <span class="drawer-value">' + item.protocol + '</span></div>' +
+                            '<div class="drawer-section"><span class="drawer-section-title">Method</span><div class="drawer-sub"><span class="drawer-value">' + item.method + '</span></div></div>' +
+                            '<div class="drawer-section"><span class="drawer-section-title">Protocol</span><div class="drawer-sub"><span class="drawer-value">' + item.protocol + '</span></div></div>' +
                             (item.status !== undefined
                                 ? (
                                     isError || item.status >= 400
-                                        ? '<div class="drawer-section"><span class="drawer-label">Status:</span> <span class="drawer-value" style="color:#ff5555;">' + item.status + '</span></div>'
-                                        : '<div class="drawer-section"><span class="drawer-label">Status:</span> <span class="drawer-value" style="color:#66bb6a;">' + item.status + '</span></div>'
+                                        ? '<div class="drawer-section"><span class="drawer-section-title">Status</span><div class="drawer-sub"><span class="drawer-value" style="color:#ff5555;">' + item.status + '</span></div></div>'
+                                        : '<div class="drawer-section"><span class="drawer-section-title">Status</span><div class="drawer-sub"><span class="drawer-value" style="color:#66bb6a;">' + item.status + '</span></div></div>'
                                 )
                                 : ''
                             ) +
                             (item.cookies && Object.keys(item.cookies).length
-                                ? '<div class="drawer-section"><span class="drawer-label">Cookies:</span>' + renderVerticalTable(item.cookies) + '</div>' : '') +
+                                ? '<div class="drawer-section"><span class="drawer-section-title">Cookies</span><div class="drawer-sub">' + renderVerticalTable(item.cookies) + '</div></div>' : '') +
                             (item.headers && Object.keys(item.headers).length
-                                ? '<div class="drawer-section"><span class="drawer-label">Headers:</span>' + renderVerticalTable(item.headers) + '</div>' : '') +
+                                ? '<div class="drawer-section"><span class="drawer-section-title">Headers</span><div class="drawer-sub">' + renderVerticalTable(item.headers) + '</div></div>' : '') +
                             (item.query && Object.keys(item.query).length
-                                ? '<div class="drawer-section"><span class="drawer-label">Query:</span>' + renderVerticalTable(item.query) + '</div>' : '') +
+                                ? '<div class="drawer-section"><span class="drawer-section-title">Query</span><div class="drawer-sub">' + renderVerticalTable(item.query) + '</div></div>' : '') +
                             (item.content
-                                ? '<div class="drawer-section"><span class="drawer-label">Content:</span><pre>' + escapeHtml(item.content) + '</pre></div>' : '') +
+                                ? '<div class="drawer-section"><span class="drawer-section-title">Body</span><div class="drawer-sub"><pre>' + escapeHtml(item.content) + '</pre></div></div>' : '') +
                             '</div>'
                             : '') +
                         '</li>';

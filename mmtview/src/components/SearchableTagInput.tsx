@@ -40,6 +40,11 @@ const SearchableTagInput: React.FC<SearchableTagInputProps> = ({
   return (
     <div
       style={{
+        position: "relative",
+        width: "100%",
+        maxWidth: "100%",
+        minWidth: 0,
+        boxSizing: "border-box",
         borderRadius: 2,
         padding: 4,
         display: "flex",

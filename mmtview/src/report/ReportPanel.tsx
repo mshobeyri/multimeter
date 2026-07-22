@@ -159,18 +159,23 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
   const headerSubtitle = isLoadReport ? 'Load report' : 'Functional report';
 
   return (
-    <div style={{ width: 'calc(100% - 16px)', padding: '0 4px', overflow: 'hidden', boxSizing: 'border-box' }}>
-      <div className="api-edit-header" style={{ marginBottom: 12 }}>
-        <div className="tab-bar tab-bar-single" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div className="tab-button active" style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }} title={suiteName}>
-            <span className={`codicon ${headerIcon}`} aria-hidden />
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{suiteName}</span>
-            <span style={{ opacity: 0.7, fontSize: '0.85em', marginLeft: 4 }}>({headerSubtitle})</span>
+    <div className="panel">
+      <div className="panel-box" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0, minWidth: 0 }}>
+        <div className="api-edit-header">
+          <div className="tab-bar tab-bar-single">
+            <div className="tab-button active" style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }} title={suiteName}>
+              <span className={`codicon ${headerIcon}`} aria-hidden />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{suiteName}</span>
+              <span style={{ opacity: 0.7, fontSize: '0.85em', marginLeft: 4 }}>({headerSubtitle})</span>
+            </div>
           </div>
+        </div>
+
+        <div className="run-action-bar">
           <ExportReportButton disabled={false} onExport={handleExportReport} />
         </div>
-      </div>
 
+        <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
       <OverviewBoxes stats={overviewStats} />
       {isLoadReport && results.load && (
         <LoadMetricsOverview
@@ -303,6 +308,8 @@ const ReportPanel: React.FC<ReportPanelProps> = ({ content }) => {
           )}
         </>
       )}
+        </div>
+      </div>
     </div>
   );
 };

@@ -50,6 +50,27 @@ function cloneInputs(source?: JSONRecord): JSONRecord {
   }
 }
 
+/** Compare run output vs example expected value (allows string/number coercion). */
+function outputValuesMatch(actual: unknown, expected: unknown): boolean {
+  if (Object.is(actual, expected)) {
+    return true;
+  }
+  if (actual === undefined || expected === undefined) {
+    return false;
+  }
+  if (actual === null || expected === null) {
+    return actual === expected;
+  }
+  if (typeof actual === "object" || typeof expected === "object") {
+    try {
+      return JSON.stringify(actual) === JSON.stringify(expected);
+    } catch {
+      return false;
+    }
+  }
+  return String(actual) === String(expected);
+}
+
 const methodColor: Record<string, string> = {
   get: "#61affe",
   post: "#49cc90",
@@ -59,7 +80,19 @@ const methodColor: Record<string, string> = {
   head: "#9012fe",
   options: "#0d5aa7",
   trace: "#888",
-  ws: "#888",
+  ws: "#9b59b6",
+  graphql: "#e535ab",
+  grpc: "#244c5a",
+  http: "#61affe",
+};
+
+const HTTP_METHODS: Method[] = ["get", "post", "put", "delete", "patch", "head", "options", "trace"];
+const OTHER_PROTOCOLS: Protocol[] = ["ws", "graphql", "grpc"];
+
+const PROTOCOL_LABELS: Record<string, string> = {
+  ws: "WS",
+  graphql: "GraphQL",
+  grpc: "gRPC",
 };
 
 const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChange, onRequestReset, rightOfUrlButton }) => {
@@ -82,10 +115,12 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     handleAddOutputVariable,
     prepareRequestData,
     handleSend,
+    handleRunInCore,
     handleCancel,
     handleConnect,
     network,
-    examples
+    examples,
+    isSending,
   } = useAPITesterLogic({ api, onUpdateApi, filePath: mmtFilePath });
 
   useEffect(() => {
@@ -94,9 +129,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
 
   useEffect(() => {
     if (!onRequestReset) { return; }
-    onRequestReset(() => prepareRequestData(undefined, { forceReset: true }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onRequestReset]);
+    // Full reset: restore baseline inputs from YAML/`api`, clear touches, rebuild request.
+    onRequestReset(() => {
+      const baseInputs = selectedExampleIdx === -1
+        ? (api.inputs || {})
+        : (examples[selectedExampleIdx]?.inputs || {});
+      const nextInputs = cloneInputs(baseInputs);
+      setCurrentInputs(nextInputs);
+      prepareRequestData(nextInputs, { forceReset: true, scopes: ["all"] });
+    });
+  }, [onRequestReset, prepareRequestData, api, examples, selectedExampleIdx, setCurrentInputs]);
 
   // Based on the displayed URL (not resolved inputs/env)
   const isDisplayedUrlWebSocket = (protocol: Protocol | undefined, url: string | undefined
@@ -107,6 +149,19 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const isGraphQL = requestData?.protocol === "graphql";
   const isGrpc = requestData?.protocol === "grpc";
   const requestProtocol = requestData?.protocol || api.protocol;
+  const effectiveProtocol = protocolResolver.getEffectiveProtocol(
+    requestData?.protocol || api.protocol,
+    requestData?.url
+  );
+  const methodOrProtocolValue = (effectiveProtocol === "ws" || effectiveProtocol === "graphql" || effectiveProtocol === "grpc")
+    ? `protocol:${effectiveProtocol}`
+    : `method:${(requestData?.method || api.method || "get").toLowerCase()}`;
+  const methodOrProtocolColor = methodColor[
+    methodOrProtocolValue.startsWith("protocol:")
+      ? methodOrProtocolValue.slice("protocol:".length)
+      : methodOrProtocolValue.slice("method:".length)
+  ] || "#888";
+
   const canRunCurl = requestProtocol !== "graphql" && requestProtocol !== "grpc" &&
     !isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url);
   const runInputs = useMemo(() => ({
@@ -117,10 +172,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     {
       label: "Run in Core",
       icon: "codicon-play",
-      onClick: () => {
-        window.vscode?.postMessage({ command: "showLogOutputChannel" });
-        window.vscode?.postMessage({ command: "runCurrentDocument", inputs: runInputs });
-      }
+      onClick: handleRunInCore,
     },
     ...(canRunCurl ? [{
       label: "Run in Curl",
@@ -133,7 +185,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
         });
       }
     }] : [])
-  ], [canRunCurl, requestData, runInputs]);
+  ], [canRunCurl, handleRunInCore, requestData, runInputs]);
 
   const [editorTab, setEditorTabInternal] = useState<EditorTab>(() => {
     const saved = localStorage.getItem("apitest-editor-tab");
@@ -146,6 +198,27 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const setEditorTab = (tab: EditorTab) => {
     setEditorTabInternal(tab);
     localStorage.setItem("apitest-editor-tab", tab);
+  };
+
+  const handleMethodOrProtocolChange = (raw: string) => {
+    if (raw.startsWith("protocol:")) {
+      const protocol = raw.slice("protocol:".length) as Protocol;
+      updateField("protocol", protocol);
+      if (protocol === "graphql" || protocol === "grpc") {
+        setEditorTab(protocol);
+      } else if (editorTab === "graphql" || editorTab === "grpc") {
+        setEditorTab("inout");
+      }
+      return;
+    }
+    if (raw.startsWith("method:")) {
+      const method = raw.slice("method:".length) as Method;
+      updateField("method", method);
+      updateField("protocol", "http");
+      if (editorTab === "graphql" || editorTab === "grpc") {
+        setEditorTab("inout");
+      }
+    }
   };
 
   const shouldShowQuery = () => editorTab === "params";
@@ -166,6 +239,50 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     [api.description]
   );
 
+  // Match icons are tied to the response that was produced for a specific
+  // example + inputs snapshot. Changing either clears icons until the next run.
+  const [matchBaseline, setMatchBaseline] = useState<{ exampleIdx: number; inputsKey: string } | null>(null);
+  useEffect(() => {
+    if (!responseData) {
+      setMatchBaseline(null);
+      return;
+    }
+    setMatchBaseline({
+      exampleIdx: selectedExampleIdx,
+      inputsKey: JSON.stringify(currentInputs),
+    });
+    // Only stamp when a new response arrives — not when inputs/example change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [responseRevision, responseData]);
+
+  const outputMatchStatus = useMemo(() => {
+    const status = new Map<string, "match" | "mismatch">();
+    if (selectedExampleIdx < 0 || !responseData || !matchBaseline) {
+      return status;
+    }
+    if (
+      matchBaseline.exampleIdx !== selectedExampleIdx ||
+      matchBaseline.inputsKey !== JSON.stringify(currentInputs)
+    ) {
+      return status;
+    }
+    const expected = examples[selectedExampleIdx]?.outputs;
+    const expectedObj = expected && typeof expected === "object" ? expected : {};
+    const outputKeys = typeof api.outputs === "object" ? Object.keys(api.outputs || {}) : [];
+
+    outputKeys.forEach((key) => {
+      if (!Object.prototype.hasOwnProperty.call(expectedObj, key)) {
+        return;
+      }
+      if (outputValuesMatch(outputs[key], expectedObj[key])) {
+        status.set(key, "match");
+      } else {
+        status.set(key, "mismatch");
+      }
+    });
+    return status;
+  }, [selectedExampleIdx, examples, outputs, responseData, api.outputs, currentInputs, matchBaseline]);
+
   const handleExampleChange = (newIdx: number) => {
     setSelectedExampleIdx(newIdx);
     const baseInputs = newIdx === -1
@@ -176,45 +293,58 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     prepareRequestData(nextInputs);
   };
 
+  const handleAddAsExample = () => {
+    const newExampleNameBase = "example";
+    let newName = newExampleNameBase;
+    const nameSet = new Set((api.examples || []).map(e => (e?.name || "").toLowerCase()));
+    let counter = 1;
+    while (nameSet.has(newName.toLowerCase())) {
+      newName = `${newExampleNameBase}${counter++}`;
+    }
+
+    const newExample: { name: string; inputs?: JSONRecord; outputs?: JSONRecord } = { name: newName };
+    if (Object.keys(currentInputs).length) {
+      newExample.inputs = cloneInputs(currentInputs);
+    }
+
+    // Only persist outputs that are defined on the API — never invent status_code.
+    const definedOutputKeys = Object.keys(api.outputs || {});
+    if (definedOutputKeys.length > 0) {
+      const exampleOutputs: JSONRecord = {};
+      definedOutputKeys.forEach((key) => {
+        if (Object.prototype.hasOwnProperty.call(outputs, key)) {
+          exampleOutputs[key] = outputs[key];
+        }
+      });
+      if (Object.keys(exampleOutputs).length > 0) {
+        newExample.outputs = exampleOutputs;
+      }
+    }
+
+    const updatedExamples = [...(api.examples || []), newExample];
+    onUpdateApi?.({ examples: updatedExamples });
+  };
+
   return (
     <div className="apitest-root">
       {/* ── Fixed header: URL bar + tab bar ── */}
       <div className="apitest-fixed-header">
       <div style={{ padding: "8px", display: "flex", alignItems: "stretch", gap: 8 }}>
-        {isGrpc ? (
-          <span
-            className="method-select method-badge"
-            style={{ background: "#244c5a" }}
-          >
-            gRPC
-          </span>
-        ) : isGraphQL ? (
-          <span
-            className="method-select method-badge"
-            style={{ background: "#e535ab" }}
-          >
-            GQL
-          </span>
-        ) : isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url) ? (
-          <span
-            className="method-select method-badge"
-            style={{ background: methodColor["ws"] }}
-          >
-            WS
-          </span>
-        ) : (
-          <select
-            className="method-select"
-            value={(requestData?.method || api.method || "get").toLowerCase()}
-            onChange={e => updateField("method", e.target.value as Method)}
-            title="HTTP Method (temporary override)"
-            style={{ background: methodColor[(requestData?.method || api.method || "get").toLowerCase()] || "#888" }}
-          >
-            {(["get", "post", "put", "delete", "patch", "head", "options", "trace"] as Method[]).map(m => (
-              <option key={m} value={m}>{m.toUpperCase()}</option>
-            ))}
-          </select>
-        )}
+        <select
+          className="method-select"
+          value={methodOrProtocolValue}
+          onChange={e => handleMethodOrProtocolChange(e.target.value)}
+          title="HTTP method or protocol (temporary override)"
+          style={{ background: methodOrProtocolColor }}
+        >
+          {HTTP_METHODS.map(m => (
+            <option key={m} value={`method:${m}`}>{m.toUpperCase()}</option>
+          ))}
+          <option disabled value="__sep__">────────</option>
+          {OTHER_PROTOCOLS.map(p => (
+            <option key={p} value={`protocol:${p}`}>{PROTOCOL_LABELS[p] || p}</option>
+          ))}
+        </select>
         <div style={{ flex: 1, minWidth: 0 }}>
           <UrlInput
             url={requestData?.url ?? ""}
@@ -373,30 +503,38 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
 
         {shouldShowInputs() && (
           <>
-            {examples.length > 0 && (
-              <div style={{ paddingBottom: 20, width: "100%" }}>
-                <div className="label">Predefined inputs</div>
-                <div>
-                  <select
-                    value={selectedExampleIdx ?? ""}
-                    onChange={e => {
-                      const newIdx = Number(e.target.value);
-                      handleExampleChange(newIdx);
-                    }}
-                    style={{ width: "100%" }}
-                  >
-                    <option value={-1}>Defaults</option>
-                    {examples
-                      .filter(ex => ex && typeof ex === "object")
-                      .map((ex, idx) => (
-                        <option key={ex?.name || idx} value={idx}>
-                          {ex?.name || `Example ${idx + 1}`}
-                        </option>
-                      ))}
-                  </select>
-                </div>
+            <div style={{ paddingBottom: 20, width: "100%" }}>
+              <div className="label">Example</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <select
+                  value={selectedExampleIdx ?? ""}
+                  onChange={e => {
+                    const newIdx = Number(e.target.value);
+                    handleExampleChange(newIdx);
+                  }}
+                  style={{ flex: 1, minWidth: 0 }}
+                >
+                  <option value={-1}>Defaults</option>
+                  {examples
+                    .filter(ex => ex && typeof ex === "object")
+                    .map((ex, idx) => (
+                      <option key={ex?.name || idx} value={idx}>
+                        {ex?.name || `Example ${idx + 1}`}
+                      </option>
+                    ))}
+                </select>
+                <button
+                  type="button"
+                  className="button-icon"
+                  onClick={handleAddAsExample}
+                  title="Add as example"
+                  aria-label="Add as example"
+                  style={{ flexShrink: 0 }}
+                >
+                  <span className="codicon codicon-add" aria-hidden />
+                </button>
               </div>
-            )}
+            </div>
             <VEditor
               label="Inputs"
               value={currentInputs}
@@ -425,7 +563,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             onClick={handleSend}
             onCancel={handleCancel}
             disabled={isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url) && !network.connected}
-            loading={network.loading}
+            loading={
+              isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url)
+                ? network.loading
+                : isSending
+            }
             contextMenuItems={sendContextMenuItems}
           />
         </div>
@@ -481,6 +623,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             keyOptions={typeof api.outputs === "object" ? Object.keys(api.outputs || {}) : []}
             deletable={false}
             copyable={true}
+            matchStatus={outputMatchStatus}
           />
         )}
       </div>
@@ -502,39 +645,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             />
           )}
 
-          {(responseData?.status) && (
-            <button
-              onClick={async (e) => {
-                e.currentTarget.blur();
-                const newExampleNameBase = "example";
-                let newName = newExampleNameBase;
-                const nameSet = new Set((api.examples || []).map(e => (e?.name || "").toLowerCase()));
-                let counter = 1;
-                while (nameSet.has(newName.toLowerCase())) {
-                  newName = `${newExampleNameBase}${counter++}`;
-                }
-                const newExample: any = { name: newName };
-                if (Object.keys(currentInputs).length) newExample.inputs = currentInputs;
-
-                const outputsWithStatus: JSONRecord = { ...outputs };
-
-                if (requestData?.protocol !== "ws" && typeof responseData?.status === "number") {
-                  outputsWithStatus.status_code = responseData.status;
-                }
-
-                if (Object.keys(outputsWithStatus).length) newExample.outputs = outputsWithStatus;
-
-                const updatedExamples = [...(api.examples || []), newExample];
-                onUpdateApi?.({ examples: updatedExamples });
-              }}
-              className="toolbar-button"
-              title="Add example from current inputs and outputs"
-            >
-              <span style={{ position: "relative" }}>
-                <span className="codicon codicon-lightbulb-autofix toolbar-button-icon"></span>
-              </span>
-            </button>
-          )}
           <button
             onClick={() => {
               showHistoryPanel();

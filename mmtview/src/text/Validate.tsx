@@ -1,5 +1,5 @@
 import { APISchema, EnvSchema, TestSchema, SuiteSchema, LoadTestSchema, DocSchema, MockSchema, ReportSchema, GeneralSchema } from './Schema';
-import { parseDocument } from 'yaml';
+import { parseYamlDoc } from 'mmt-core/markupConvertor';
 import Ajv from 'ajv';
 
 const ajv = new Ajv({ allErrors: true, verbose: true });
@@ -319,7 +319,7 @@ export const validateYamlContent = (content: string): any[] => {
     const errors: any[] = [];
 
     try {
-        const doc = parseDocument(content);
+        const doc = parseYamlDoc(content);
         const parsedContent = doc.toJS();
 
         if (!parsedContent) {

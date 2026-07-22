@@ -61,9 +61,10 @@
 ## Network, logging, and errors
 - All HTTP/WS traffic flows through `core/src/networkCore.ts` + `core/src/network.ts` using `NetworkConfig` from `NetworkData.ts`.
 - HTTP helpers always return a structured `HttpResponse`; network-level failures are normalized (e.g. `status = -1`, descriptive `statusText`) so callers can distinguish unreachable hosts from HTTP errors.
-- API runs use `buildApiRunnerWrapper` in `runner.ts`:
+- **Two layers:** (1) **Execution** — request/response via `runner.runFile` / `send_` (HTTP, GraphQL, gRPC, one-shot WS). (2) **Live sessions** — API tester Connect + Connections panel via the network bridge. Do not dual-fire HTTP Send (webview send + core run).
+- API runs use `buildApiRunnerWrapper` in `runApi.ts`:
   - Log `Request`, `Response`, `Environment`, and `Inputs` sections with consistent key/value formatting.
-  - If `status < 0`, the wrapper throws after logging so `RunResult.success` is `false`.
+  - If `status < 0`, the wrapper builds outputs then fails the run so the Response panel can still show the network error.
 - When extending logs, reuse helpers from `createApiLogHelpers` instead of ad-hoc `console.log`, and treat logs as append-only (especially in the extension output channel).
 
 ## Workflow / agent rules
@@ -77,14 +78,15 @@ When the user says **"release version X.Y.Z"** (or "release version X.Y.Z pre-re
 1. Update the `version` field in the root `package.json` to `X.Y.Z`.
 2. Update CHANGELOG.md based on commits (consider adding change log of previous versions if missed)
 3. Stage all changes and create a git commit with the message: `Release version X.Y.Z`.
-4. Run `vsce package` at the repo root to produce the `.vsix`.
-   - If the user said **pre-release**, run `vsce package --pre-release` instead.
+4. Run `npm run pack` at the repo root to produce the `.vsix`.
+   - If the user said **pre-release**, run `npm run pack-pre-release` instead.
+   - Do **not** use bare `vsce package`; it packages the wrong readme. Always use `npm run pack` so `EXTENSION.md` is included.
 
 ## Build, test, and packaging
 - From repo root:
   - `npm run compile --silent` – build all apps (core, extension, webview, CLI) via the shared pipeline.
   - `npm run test` – run Jest tests (mostly `core/src/*.test.ts`).
-- VS Code extension packaging: run `vsce package` at the repo root to create the `.vsix`.
+- VS Code extension packaging: run `npm run pack` at the repo root to create the `.vsix` (uses `EXTENSION.md` as the marketplace readme).
 - Avoid per-package custom build scripts; integrate new build steps into the root `package.json`.
 
 ## Conventions and change strategy
@@ -107,21 +109,26 @@ This section captures the current runtime flow through the webview → extension
 
 ```mermaid
 flowchart TD
-  A["Webview UI - Run API"] --> B["postMessage (runCurrentDocument)"]
-  B --> C["Extension host (mmtEditorProvider/run)"]
+  A["Webview UI - Send / Run API"] --> B["postMessage (runCurrentDocument)"]
+  B --> C["Extension host (mmtAPI/run)"]
   C --> D["core runner (runner.runFile)"]
   D --> E["JSer.fileType"]
   E -->|api| F["runApi"]
   F --> G["runCommon.runGeneratedJs"]
   G --> H["jsRunner exec (sets globals)"]
-  F --> I["networkCore/network"]
+  F --> I["networkCore send_ / sendGrpc_"]
   I --> F
-  F --> J["Reporter events (runId + optional leafId)"]
-  J --> K["Extension forwards runFileReport"]
-  K --> L["Webview renders output"]
+  F --> J["outputs + finish log duration from res.duration"]
+  J --> K["Extension posts multimeter.api.run.result"]
+  K --> L["Webview Response panel + toolbar duration"]
 ```
 
 Notes:
+- **Send** (HTTP/GraphQL/gRPC) and Run in Core share this path — one network round-trip. Do **not** also call webview `network.send` for those protocols.
+- After the run, `buildApiTesterResponse` (`core/src/apiRunResult.ts`) shapes `outputs._` into the Response panel payload.
+- For API finish logs, `jsRunner` prefers last `send_`/`sendGrpc_` `res.duration` over wall-clock.
+- Interactive WebSocket **Connect**/live **Send** stays on the live network bridge (`network.ts` + Connections panel), not `runCurrentDocument`.
+- One-shot WS in tests/CLI uses `sendWsRequest` (connect → send → one reply → close).
 - Plain API runs generally don’t originate a `leafId`.
 
 ### Run a Test `.mmt` file (`type: test`)

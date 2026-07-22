@@ -1,6 +1,5 @@
 /* Add this at the top of your CSS file to set the default font for everything */
 input,
-select,
 textarea,
 button,
 .tab-button,
@@ -245,11 +244,9 @@ option {
 }
 
 input,
-select,
 textarea,
 input:focus,
 textarea:focus,
-select:focus,
 tag {
   box-sizing: border-box;
   background-color: var(--vscode-input-background, #1e1e1e);
@@ -260,6 +257,25 @@ tag {
   outline: none;
   transition: border-color 0.2s;
   height: 1.6rem;
+}
+
+select,
+select:focus {
+  box-sizing: border-box;
+  background-color: var(--vscode-input-background, #1e1e1e);
+  color: var(--vscode-input-foreground, #d4d4d4);
+  border: 1px solid var(--vscode-input-border, #3c3c3c);
+  border-radius: 2px;
+  outline: none;
+  transition: border-color 0.2s;
+  min-height: 28px;
+  height: auto;
+  padding: 5px 28px 5px 8px;
+  line-height: normal;
+  font-size: var(--vscode-font-size, 13px);
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  cursor: pointer;
+  vertical-align: middle;
 }
 
 .tag {
@@ -538,8 +554,9 @@ button:focus {
   background-color: var(--vscode-editor-background);
   color: var(--vscode-editor-foreground);
   min-width: 0;
-  max-width: 100vw;
-  overflow: auto;
+  max-width: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
   height: 100%;
 }
 
@@ -864,10 +881,15 @@ button:focus {
 }
 
 
-.method-select {
+/* Must beat global `select` / `select:focus` rules (padding, height, font). */
+select.method-select,
+select.method-select:focus,
+select.method-select:focus-visible {
   flex-shrink: 0;
   flex-grow: 0;
-  padding: 4px 4px;
+  min-height: 26px;
+  height: 26px;
+  padding: 0 4px;
   border: none;
   border-radius: 4px;
   color: #fff;
@@ -879,10 +901,15 @@ button:focus {
   appearance: none;
   -webkit-appearance: none;
   text-align: center;
-  width: 70px;
-  max-width: 70px;
+  text-align-last: center;
+  width: 84px;
+  max-width: 84px;
   box-sizing: border-box;
-  overflow: hidden;
+  line-height: 26px;
+  box-shadow: none;
+  background-image: none;
+  transition: none;
+  vertical-align: middle;
 }
 
 .method-select.method-badge {
@@ -890,10 +917,6 @@ button:focus {
   align-items: center;
   justify-content: center;
   cursor: default;
-}
-
-.method-select:focus {
-  border-color: var(--vscode-focusBorder, #007fd4);
 }
 
 .apitest-root {
@@ -1043,6 +1066,53 @@ button:focus {
   overflow: visible;
 }
 
+.tree-view-box.tree-view-box-row {
+  align-items: center;
+  padding: 8px;
+}
+
+.tree-view-box-row-arrow {
+  width: 24px;
+  min-width: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tree-view-box-row-main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.tree-view-box-row-label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-family: var(--vscode-editor-font-family);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tree-view-box-row-label-link {
+  cursor: pointer;
+}
+
+.tree-view-box-row .codicon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
 .test-flow-box-items {
   display: flex;
   align-items: flex-start;
@@ -1052,6 +1122,31 @@ button:focus {
 
   padding: 4px 0px 4px 0px;
   box-sizing: border-box;
+}
+
+.run-action-bar {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+.run-action-bar .button-icon {
+  opacity: 1;
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+  border: 1px solid var(--vscode-button-border, #3c3c3c);
+  border-radius: 2;
+  font-size: var(--vscode-font-size, 13px);
+  font-family: var(--vscode-font-family, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
+  cursor: pointer;
+}
+
+.run-action-bar .button-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .test-flow-tree {
@@ -1295,6 +1390,360 @@ button:focus {
   margin-bottom: 12px;
   color: var(--vscode-foreground);
   font-size: var(--vscode-font-size, 13px);
+}
+
+/* New document / sample gallery */
+.notype-panel-box {
+  padding-top: 24px;
+}
+
+.notype-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 8px 12px 28px;
+  margin-bottom: 4px;
+}
+
+.notype-logo-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 76px;
+  margin-bottom: 14px;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(129, 140, 248, 0.18), transparent 55%),
+    radial-gradient(circle at 70% 80%, rgba(6, 182, 212, 0.14), transparent 50%),
+    var(--vscode-editorWidget-background, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--vscode-widget-border, rgba(255, 255, 255, 0.08));
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.notype-logo {
+  display: block;
+  filter: drop-shadow(0 2px 8px rgba(129, 140, 248, 0.25));
+}
+
+.notype-brand-name {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  background: linear-gradient(135deg, #a5b4fc 0%, #67e8f9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.notype-tagline {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  line-height: 1.4;
+}
+
+.notype-type-section {
+  padding: 0 5px 20px;
+  background: transparent;
+  border: none;
+}
+
+.notype-intro {
+  margin: 0 0 12px;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: left;
+}
+
+.notype-field-label {
+  color: var(--vscode-foreground, #d4d4d4);
+  font-size: var(--vscode-font-size, 13px);
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+}
+
+.notype-type-select {
+  width: 100%;
+}
+
+.notype-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 5px 12px;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  font-size: 12px;
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  text-transform: lowercase;
+}
+
+.notype-divider::before,
+.notype-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--vscode-editorWidget-border, #444);
+  opacity: 0.7;
+}
+
+.notype-gallery {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 5px 8px;
+}
+
+.notype-sample-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--vscode-input-border, #3c3c3c);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  transition: border-color 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.notype-sample-card:hover {
+  border-color: var(--vscode-focusBorder, #007fd4);
+  background: transparent;
+}
+
+.notype-sample-help {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.notype-sample-help-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none !important;
+  border-radius: 3px;
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.notype-sample-help-btn .codicon {
+  font-size: 13px;
+}
+
+.notype-sample-help-btn:hover,
+.notype-sample-help-btn:focus {
+  color: var(--vscode-foreground, #d4d4d4);
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+}
+
+.notype-sample-help-btn:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder, #007fd4);
+  outline-offset: 1px;
+}
+
+.notype-sample-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 12px;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0;
+  cursor: pointer;
+  text-align: left;
+  background: transparent !important;
+  background-color: transparent !important;
+  color: inherit;
+  outline: none;
+  transition: none;
+}
+
+.notype-sample-main:hover,
+.notype-sample-main:focus {
+  background: transparent !important;
+  background-color: transparent !important;
+  border-color: transparent !important;
+  color: inherit;
+}
+
+.notype-sample-main:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder, #007fd4);
+  outline-offset: 1px;
+}
+
+.notype-sample-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: var(--vscode-badge-background, rgba(128, 128, 128, 0.2));
+  color: var(--vscode-badge-foreground, #d4d4d4);
+}
+
+.notype-sample-icon .codicon {
+  font-size: 16px;
+  opacity: 0.9;
+}
+
+.notype-sample-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.notype-sample-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.notype-sample-title {
+  font-weight: 600;
+  font-size: var(--vscode-font-size, 13px);
+  color: var(--vscode-foreground, #d4d4d4);
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.notype-sample-badge {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 3px;
+  background: var(--vscode-badge-background, rgba(128, 128, 128, 0.2));
+  color: var(--vscode-badge-foreground, #d4d4d4);
+  font-size: 11px;
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  letter-spacing: 0.02em;
+}
+
+.notype-sample-desc {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  line-height: 1.45;
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+}
+
+.notype-cta {
+  margin: 20px 5px 8px;
+  padding: 18px 8px 10px;
+  border-top: 1px solid var(--vscode-editorWidget-border, #444);
+}
+
+.notype-cta-copy {
+  margin: 0 0 14px;
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+}
+
+.notype-cta-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.notype-cta-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  margin: 0;
+  padding: 3px 10px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.15s, background 0.15s;
+  font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+}
+
+.notype-cta-button + .notype-cta-button::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 1px;
+  height: 11px;
+  transform: translateY(-50%);
+  background: var(--vscode-editorWidget-border, #555);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.notype-cta-button:hover {
+  background: var(--vscode-list-hoverBackground, rgba(255, 255, 255, 0.05));
+}
+
+.notype-cta-button:hover .notype-cta-button-label,
+.notype-cta-button:hover .notype-cta-icon .codicon {
+  color: var(--vscode-foreground, #e8e8e8);
+}
+
+.notype-cta-button:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder, #007fd4);
+  outline-offset: 2px;
+}
+
+.notype-cta-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.notype-cta-icon .codicon {
+  font-size: 12px;
+  opacity: 0.92;
+  color: var(--vscode-foreground, #d4d4d4);
+  transition: color 0.15s;
+}
+
+.notype-cta-button-label {
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  color: var(--vscode-foreground, #d4d4d4);
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: color 0.15s;
 }
 
 @media (max-width: 300px) {

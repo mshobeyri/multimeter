@@ -20,10 +20,12 @@ environment:
 export:
   - ./reports/results.mmt
 test: test.mmt
+repeat: 10
 `;
     const loadtest = yamlToLoadTest(raw);
     expect(loadtest.environment?.preset).toBe('perf');
     expect(loadtest.export).toEqual(['./reports/results.mmt']);
+    expect(loadtest.repeat).toBe(10);
   });
 
   it('serializes loadtest in canonical order', () => {

@@ -7,13 +7,14 @@ interface ResponseDurationProps {
 
 const ResponseDuration: React.FC<ResponseDurationProps> = ({ duration, className }) => {
   if (duration == null || duration < 0) return null;
+  const ms = Math.round(duration);
   return (
     <div
       className={`response-badge ${className || ''}`.trim()}
       style={{ minWidth: '20px' }}
-      title={`Duration: ${duration}ms`}
+      title={`Duration: ${ms}ms`}
     >
-      {duration}ms
+      {ms}ms
     </div>
   );
 };

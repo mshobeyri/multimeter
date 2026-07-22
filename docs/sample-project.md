@@ -98,7 +98,7 @@ outputs:
   token: body[token]
   userId: body[user][id]
 setenv:
-  token: token
+  token: body[token]
 method: post
 format: json
 url: <<e:api_url>>/auth/login

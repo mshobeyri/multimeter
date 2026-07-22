@@ -57,6 +57,7 @@ export interface APIData extends MMTFile {
   tags?: string[];
   inputs?: JSONRecord;
   outputs?: Record<string, string>;
+  /** Env var name → extraction expression (same DSL as outputs). Legacy: output key name. */
   setenv?: JSONRecord;
   url: string;
   query?: Record<string, string>;

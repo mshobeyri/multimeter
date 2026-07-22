@@ -92,7 +92,6 @@ export function useImportValidation(importsMap?: Record<string, string> | null) 
     return () => {
       window.removeEventListener('message', listener);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entries, visRevision]);
 
   return {missingImports, inputsByAlias, outputsByAlias};

@@ -483,6 +483,25 @@ export async function handleOpenRelativeFile(
   }
 }
 
+export async function handleOpenExternalUrl(message: any): Promise<void> {
+  const raw = typeof message?.url === 'string' ? message.url.trim() : '';
+  if (!raw) {
+    return;
+  }
+  let uri: vscode.Uri;
+  try {
+    uri = vscode.Uri.parse(raw, true);
+  } catch {
+    vscode.window.showErrorMessage(`Invalid URL: ${raw}`);
+    return;
+  }
+  if (uri.scheme !== 'http' && uri.scheme !== 'https') {
+    vscode.window.showErrorMessage(`Only http(s) URLs can be opened: ${raw}`);
+    return;
+  }
+  await vscode.env.openExternal(uri);
+}
+
 /**
  * Scroll the active editor to a heading matching the given fragment slug.
  * Fragment slugs follow GitHub-style: lowercase, spaces→dashes, leading `-`

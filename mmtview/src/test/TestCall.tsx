@@ -1,16 +1,19 @@
 import React from "react";
 import { parseYamlDoc } from "mmt-core/markupConvertor";
 import { findTestCallAliasProblems, findTestCallInputsProblems, type MissingImportEntry, type ProblemEntry } from "../text/validator";
-import { opsList, ReportLevel, ReportConfig } from "mmt-core/TestData";
+import { ReportLevel, ReportConfig } from "mmt-core/TestData";
+import {
+  applyExpectUiRowChange,
+  createEmptyExpectUiRow,
+  expectMapToUiRows,
+  type ExpectUiRow,
+  uiRowsToExpectMap,
+} from "mmt-core/expectUi";
 import FieldWithRemove from "../components/FieldWithRemove";
 import OperatorSelect from "../components/OperatorSelect";
 
 /** A single row in the expect UI list */
-interface ExpectRow {
-  field: string;
-  op: string;
-  expected: string;
-}
+type ExpectRow = ExpectUiRow;
 
 interface TestCallProps {
   value: any; // current value can be alias string
@@ -109,55 +112,10 @@ const TestCall: React.FC<TestCallProps> = ({
 
   // --- Inline expect helpers ---
 
-  /** Parse an ExpectMap (from YAML) into a flat list of ExpectRow for the UI */
-  const expectMapToRows = (map: Record<string, any> | undefined): ExpectRow[] => {
-    if (!map || typeof map !== 'object') { return []; }
-    const rows: ExpectRow[] = [];
-    for (const [field, val] of Object.entries(map)) {
-      const values = Array.isArray(val) ? val : [val];
-      for (const v of values) {
-        const s = String(v ?? '').trim();
-        let matched = false;
-        for (const op of opsList) {
-          if (s.startsWith(op + ' ') || s === op) {
-            rows.push({ field, op, expected: s.slice(op.length).trim() });
-            matched = true;
-            break;
-          }
-        }
-        if (!matched) {
-          // Plain value → default equality
-          rows.push({ field, op: '==', expected: s });
-        }
-      }
-    }
-    return rows;
-  };
-
-  /** Convert flat ExpectRow[] back to an ExpectMap for YAML serialisation */
-  const rowsToExpectMap = (rows: ExpectRow[]): Record<string, any> | undefined => {
-    if (rows.length === 0) { return undefined; }
-    const map: Record<string, any> = {};
-    for (const r of rows) {
-      const entry = r.op === '==' ? r.expected : `${r.op} ${r.expected}`;
-      if (map[r.field] !== undefined) {
-        // Multiple entries for same field → array
-        if (Array.isArray(map[r.field])) {
-          map[r.field].push(entry);
-        } else {
-          map[r.field] = [map[r.field], entry];
-        }
-      } else {
-        map[r.field] = entry;
-      }
-    }
-    return map;
-  };
-
   /** Read expect rows from local state */
   const expectList: ExpectRow[] = React.useMemo(() => {
     const raw = local && typeof local === 'object' ? (local as any).expect : undefined;
-    return expectMapToRows(raw);
+    return expectMapToUiRows(raw);
   }, [local]);
 
   const callReport = React.useMemo(() => {
@@ -205,7 +163,7 @@ const TestCall: React.FC<TestCallProps> = ({
     if (id && id.trim().length > 0) { obj.id = id; }
     if (title && title.trim().length > 0) { obj.title = title; }
     obj.inputs = inp;
-    const expectMap = rowsToExpectMap(exp);
+    const expectMap = uiRowsToExpectMap(exp);
     if (expectMap) { obj.expect = expectMap; }
     if (rep !== undefined) { obj.report = rep; }
     return obj;
@@ -339,8 +297,12 @@ const TestCall: React.FC<TestCallProps> = ({
   // --- Expect handlers ---
 
   const handleAddExpect = () => {
-    const defaultField = availableOutputs[0] || '';
-    const next = buildCallObj({ expect: [...expectList, { field: defaultField, op: '==', expected: '' }] });
+    const defaultField = expectList.length > 0
+      ? expectList[expectList.length - 1].field
+      : (availableOutputs[0] || '');
+    const next = buildCallObj({
+      expect: [...expectList, createEmptyExpectUiRow(defaultField)],
+    });
     setLocal(next);
     scheduleEmit(next);
   };
@@ -360,7 +322,9 @@ const TestCall: React.FC<TestCallProps> = ({
   };
 
   const handleExpectPartChange = (index: number, part: 'field' | 'op' | 'expected', val: string) => {
-    const updated = expectList.map((row, i) => i === index ? { ...row, [part]: val } : row);
+    const updated = expectList.map((row, i) => (
+      i === index ? applyExpectUiRowChange(row, part, val) : row
+    ));
     const next = buildCallObj({ expect: updated });
     setLocal(next);
     scheduleEmit(next);

@@ -23,7 +23,7 @@
   </p>
 </div>
 
-<img src="res/api.gif" alt="Multimeter in action" style="max-width: 100%; height: auto;" />
+<img src="res/demo.gif" alt="Multimeter in action" style="max-width: 100%; height: auto;" />
 
 
 
@@ -37,7 +37,7 @@ Grow into tests, suites, mocks, reports, auto-generated documentation, and CI wo
 
 All in the same tool. No migration required.
 
-## 😩 Tired of fighting your API testing tools?
+## 🫤 Tired of fighting your API testing tools?
 
 
 ### Coming from Postman?

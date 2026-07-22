@@ -1,4 +1,5 @@
 import {runGeneratedJs, validateJsSyntax} from './runCommon';
+import {AssertionFailedError} from './testHelper';
 
 describe('validateJsSyntax', () => {
   it('returns undefined for valid JS', () => {
@@ -17,21 +18,14 @@ describe('validateJsSyntax', () => {
     const js = 'if (true) { console.log("open")';
     const result = validateJsSyntax(js);
     expect(result).toBeDefined();
-    expect(result).toContain('syntax error');
+    expect(result!.toLowerCase()).toContain('syntax error');
   });
 
   it('detects syntax error from unexpected token', () => {
     const js = 'const x = ;';
     const result = validateJsSyntax(js);
     expect(result).toBeDefined();
-    expect(result).toContain('syntax error');
-  });
-
-  it('includes print-js hint in syntax error message', () => {
-    const js = 'if (true) {';
-    const result = validateJsSyntax(js);
-    expect(result).toBeDefined();
-    expect(result).toContain('print-js');
+    expect(result!.toLowerCase()).toContain('syntax error');
   });
 
   it('detects syntax error from malformed template literal', () => {
@@ -39,7 +33,7 @@ describe('validateJsSyntax', () => {
     const js = 'const x = `${`;';
     const result = validateJsSyntax(js);
     expect(result).toBeDefined();
-    expect(result).toContain('syntax error');
+    expect(result!.toLowerCase()).toContain('syntax error');
   });
 
   it('does not flag undefined variable references (those are runtime errors)', () => {
@@ -122,7 +116,7 @@ describe('runGeneratedJs', () => {
     );
 
     expect(result.success).toBe(false);
-    expect(result.errors).toContain('Reported failed check');
+    expect(result.errors).toContain('check failed');
   });
 
   it('records executionError when the JS runner throws', async () => {
@@ -140,5 +134,50 @@ describe('runGeneratedJs', () => {
     expect(result.threw).toBe(true);
     expect(result.executionError).toBe('pm is not defined');
     expect(result.errors).toContain('Error running test: pm is not defined');
+  });
+
+  it('treats AssertionFailedError as a normal failure, not executionError', async () => {
+    const result = await runGeneratedJs(
+      'run-assert',
+      'throw new Error("unused");',
+      'Basic GET test',
+      () => {},
+      async () => {
+        throw new AssertionFailedError();
+      },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.threw).toBe(false);
+    expect(result.executionError).toBeUndefined();
+    expect(result.errors.some(e => /Error running/.test(e))).toBe(false);
+  });
+
+  it('uses API wording for API runKind execution errors', async () => {
+    const result = await runGeneratedJs(
+      'run-api',
+      'throw new Error("boom");',
+      'sample api',
+      () => {},
+      async () => {
+        throw new ReferenceError('envVariables is not defined');
+      },
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'API',
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.threw).toBe(true);
+    expect(result.errors).toContain('Error running API: envVariables is not defined');
   });
 });

@@ -33,21 +33,26 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
 }): Promise<SuiteHierarchyRootNode> {
   const {suiteFilePath, suiteRawText, fileLoader, leafPrefix} = params;
 
-  const suiteStack = new Set<string>();
-  suiteStack.add(suiteFilePath);
-
   const convertSuiteToHierarchy = async (
     targetFilePath: string,
     rawText: string,
     indexPath: number[],
+    ancestors: ReadonlySet<string>,
   ): Promise<SuiteHierarchyRootNode> => {
     const suiteDoc = yamlToSuite(rawText);
-    const children = await buildNodesFromEntries(suiteDoc.items ?? [], targetFilePath, indexPath);
+    // Ancestry is per-branch so the same suite may appear twice as siblings
+    // (e.g. suite1 / then / suite1). Only true A→…→A recursion is a cycle.
+    const nextAncestors = new Set(ancestors);
+    nextAncestors.add(targetFilePath);
+    const children = await buildNodesFromEntries(
+        suiteDoc.items ?? [], targetFilePath, indexPath, nextAncestors);
     const node: SuiteHierarchyRootNode = {
       kind: 'suite',
       id: createSuiteNodeId(indexPath, {prefix: leafPrefix}),
       path: targetFilePath,
-      title: suiteDoc.title,
+      title: typeof suiteDoc.title === 'string' && suiteDoc.title.trim() ?
+          suiteDoc.title.trim() :
+          undefined,
       children,
     };
     if (Array.isArray(suiteDoc.servers) && suiteDoc.servers.length > 0) {
@@ -66,6 +71,7 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
     entries: readonly string[],
     ownerFilePath: string,
     parentIndexPath: number[],
+    ancestors: ReadonlySet<string>,
   ): Promise<SuiteHierarchyNode[]> => {
     const groups = splitSuiteGroups([...entries]);
     const groupNodes: Array<SuiteHierarchyNode | null> = await Promise.all(
@@ -73,7 +79,8 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
         const groupIndexPath = [...parentIndexPath, gi];
         const children =
             (await Promise.all(
-                 g.map(async (p, idx) => await buildNodeFromEntry(p, ownerFilePath, [...groupIndexPath, idx]))))
+                 g.map(async (p, idx) => await buildNodeFromEntry(
+                     p, ownerFilePath, [...groupIndexPath, idx], ancestors))))
                 .filter((n): n is SuiteHierarchyNode => n !== null);
         if (!children.length) {
           return null;
@@ -90,7 +97,9 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
     return groupNodes.filter((n): n is SuiteHierarchyNode => n !== null);
   };
 
-  const buildNodeFromEntry = async (entry: string, ownerFilePath: string, indexPath: number[]): Promise<SuiteHierarchyNode | null> => {
+  const buildNodeFromEntry = async (
+      entry: string, ownerFilePath: string, indexPath: number[],
+      ancestors: ReadonlySet<string>): Promise<SuiteHierarchyNode | null> => {
     const trimmed = String(entry ?? '').trim();
     if (!trimmed || trimmed === 'then') {
       return null;
@@ -133,17 +142,12 @@ export async function buildSuiteHierarchyFromSuiteFile(params: {
       return null;
     }
 
-    if (suiteStack.has(resolvedPath)) {
+    if (ancestors.has(resolvedPath)) {
       return {kind: 'cycle', id: createSuiteNodeId(indexPath, {prefix: leafPrefix}), path: resolvedPath};
     }
 
-    suiteStack.add(resolvedPath);
-    const suiteNode = await convertSuiteToHierarchy(resolvedPath, raw, indexPath);
-    suiteStack.delete(resolvedPath);
-
-    return suiteNode;
+    return convertSuiteToHierarchy(resolvedPath, raw, indexPath, ancestors);
   };
 
-  const rootNode = await convertSuiteToHierarchy(suiteFilePath, suiteRawText, []);
-  return rootNode;
+  return convertSuiteToHierarchy(suiteFilePath, suiteRawText, [], new Set());
 }

@@ -4,17 +4,46 @@ import { Request, Response } from "mmt-core/NetworkData";
 import { JSONRecord } from "mmt-core/CommonData";
 import { safeList } from "mmt-core/safer";
 import { replaceAllRefs } from "mmt-core/variableReplacer";
-import { stripOmitFromRequest, isOmitSentinel } from "mmt-core/omitKeyword";
+import { stripOmitFromRequest } from "mmt-core/omitKeyword";
 import { formatBody } from "mmt-core/markupConvertor";
-import { applyAuthToRequest } from "mmt-core/apiParsePack";
+import { applyAuthToRequest, apiToYaml } from "mmt-core/apiParsePack";
 import { loadEnvVariables } from "../workspaceStorage";
 import { extractOutputs, extractPathAtPosition, buildBodyExprFromPath } from "mmt-core/outputExtractor";
-import { setEnvironmentVariable, getEnvironmentVariable } from "../environment/environmentUtils";
+import { resolveSetenvValues } from "mmt-core/setenvResolve";
+import { setEnvironmentVariables } from "../environment/environmentUtils";
 import { useNetwork } from "../components/network/Network";
-import { NetworkNodeApi, Error as NetworkError } from "../components/network/NetworkNodeApi";
-import { pushHistory, showVSCodeMessage } from "../vsAPI";
+import { pushHistory } from "../vsAPI";
 import { beautifyWithContentType } from "mmt-core/markupConvertor";
 import { protocolResolver } from "mmt-core";
+import {
+  ApiUiRefreshScope,
+  applyScopedRequestData,
+  diffApiRefreshScopes,
+  isDocOnlyRefresh,
+} from "./apiUiRefresh";
+
+/** Always prefer the right-panel API Tester request over file YAML. */
+function buildUiApiRawFile(api: APIData, requestData: Request | undefined): string {
+  let merged = api;
+  if (requestData) {
+    const overrides: Record<string, unknown> = {};
+    (Object.keys(requestData) as (keyof Request)[]).forEach((field) => {
+      const val = requestData[field];
+      if (val !== undefined) {
+        overrides[field as string] = val;
+      }
+    });
+    merged = { ...api, ...overrides } as APIData;
+    // prepareRequestData already applied auth into headers/query.
+    delete (merged as { auth?: unknown }).auth;
+  }
+  const effectiveProtocol = protocolResolver.getEffectiveProtocol(
+    merged.protocol, merged.url);
+  if (effectiveProtocol === "http" && !merged.method) {
+    merged = { ...merged, method: "get" };
+  }
+  return apiToYaml(merged);
+}
 
 type OutputPosition = { text?: string; line: number; column: number };
 
@@ -29,9 +58,15 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
   const network = useNetwork(autoFormatBody);
   const apiRef = useRef<APIData>(api);
   const [requestData, setRequestData] = useState<Request>();
+  const requestDataRef = useRef(requestData);
+  requestDataRef.current = requestData;
+  const [isSending, setIsSending] = useState(false);
+  const sendPendingRef = useRef(false);
   const [responseData, setResponseData] = useState<Response>();
   const [responseRevision, setResponseRevision] = useState<number>(0);
   const [selectedExampleIdx, setSelectedExampleIdx] = useState<number>(-1);
+  const prevApiRef = useRef<APIData | undefined>(undefined);
+  const prevExampleIdxRef = useRef<number>(-1);
   const [currentInputs, setCurrentInputs] = useState<JSONRecord>({});
   const currentInputsRef = useRef<JSONRecord>({});
   const touchedFieldsRef = useRef<Set<keyof Request>>(new Set());
@@ -47,10 +82,6 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
   useEffect(() => {
     currentInputsRef.current = currentInputs;
   }, [currentInputs]);
-
-  useEffect(() => {
-    setSelectedExampleIdx(-1);
-  }, [api]);
 
   const markFieldTouched = useCallback((field: keyof Request) => {
     if (!touchedFieldsRef.current.has(field)) {
@@ -92,7 +123,20 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     }
   }, [requestData?.query, updateField]);
 
-  const prepareRequestData = useCallback((inputs?: JSONRecord, options?: { forceReset?: boolean; respectTouched?: boolean }) => {
+  const prepareRequestData = useCallback((
+    inputs?: JSONRecord,
+    options?: {
+      forceReset?: boolean;
+      respectTouched?: boolean;
+      /** Which UI parts to rewrite. Default `['all']`. Prefer narrower scopes (`env` / `url` / `body`) for partial updates. */
+      scopes?: ApiUiRefreshScope[];
+    }
+  ) => {
+    const scopes: ApiUiRefreshScope[] = options?.scopes ?? ["all"];
+    if (isDocOnlyRefresh(scopes)) {
+      return;
+    }
+
     if (options?.forceReset) {
       resetTouchedFields();
     }
@@ -134,52 +178,106 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
         rface.body = formatBody(rface.format || "json", rface.body ?? "");
       }
 
-      setRequestData(prev => mergeRequestData(prev, rface, touchedFieldsRef.current, respectTouched));
+      setRequestData((prev) =>
+        applyScopedRequestData(prev, rface, scopes, touchedFieldsRef.current, respectTouched)
+      );
     })();
   }, [api, resetTouchedFields]);
 
+  // Rebuild request UI only for scopes that actually changed (url / body / headers / …).
   useEffect(() => {
-    const baseInputs = selectedExampleIdx === -1
-      ? (api.inputs || {})
-      : (examples[selectedExampleIdx]?.inputs || {});
+    const prevApi = prevApiRef.current;
+    const exampleChanged = prevExampleIdxRef.current !== selectedExampleIdx;
+    prevExampleIdxRef.current = selectedExampleIdx;
 
-    const clonedInputs = cloneInputs(baseInputs);
-    setCurrentInputs(clonedInputs);
-    prepareRequestData(clonedInputs, { forceReset: true });
-  }, [api, examples, selectedExampleIdx, prepareRequestData]);
+    let scopes: ApiUiRefreshScope[];
+    let forceReset = false;
+    let exampleIdx = selectedExampleIdx;
 
-  useEffect(() => {
-    if (
-      (!api.outputs || Object.keys(api.outputs).length === 0) ||
-      (( !responseData?.body || responseData.body === "" ) &&
-        (!responseData?.headers || Object.keys(responseData.headers).length === 0) &&
-        (!responseData?.cookies || Object.keys(responseData.cookies).length === 0))
-    ) {
+    if (!prevApi) {
+      scopes = ["all"];
+      forceReset = true;
+    } else if (prevApi !== api) {
+      scopes = diffApiRefreshScopes(prevApi, api);
+      if (scopes.length === 0 && !exampleChanged) {
+        prevApiRef.current = api;
+        return;
+      }
+
+      const inputsChanged =
+        JSON.stringify(prevApi.inputs) !== JSON.stringify(api.inputs);
+
+      // Examples-only edits do not affect request values — skip rebuild via isDocOnlyRefresh.
+      if (inputsChanged) {
+        forceReset = true;
+        scopes = ["all"];
+        exampleIdx = -1;
+        if (selectedExampleIdx !== -1) {
+          prevExampleIdxRef.current = -1;
+          setSelectedExampleIdx(-1);
+        }
+      } else if (scopes.includes("all")) {
+        forceReset = true;
+      }
+    } else if (exampleChanged) {
+      scopes = ["all"];
+      forceReset = true;
+    } else {
+      prevApiRef.current = api;
       return;
     }
 
-    const extractRules = api.outputs || {};
-    const outputNames = Object.keys(extractRules);
+    prevApiRef.current = api;
 
-    const extractedValues = extractOutputs({
-      type: "auto",
+    if (isDocOnlyRefresh(scopes)) {
+      return;
+    }
+
+    const baseInputs = exampleIdx === -1
+      ? (api.inputs || {})
+      : (examples[exampleIdx]?.inputs || {});
+
+    const clonedInputs = cloneInputs(baseInputs);
+    setCurrentInputs(clonedInputs);
+    prepareRequestData(clonedInputs, { forceReset, scopes });
+  }, [api, examples, selectedExampleIdx, prepareRequestData]);
+
+  useEffect(() => {
+    const hasBody = !!(responseData?.body && responseData.body !== "");
+    const hasHeaders = !!(responseData?.headers && Object.keys(responseData.headers).length > 0);
+    const hasCookies = !!(responseData?.cookies && Object.keys(responseData.cookies).length > 0);
+    if (!hasBody && !hasHeaders && !hasCookies &&
+        (responseData?.status === null || responseData?.status === undefined)) {
+      return;
+    }
+
+    const extractSource = {
+      type: "auto" as const,
       body: responseData?.body,
       headers: responseData?.headers || {},
-      cookies: responseData?.cookies || {}
-    }, extractRules);
+      cookies: responseData?.cookies || {},
+      status: responseData?.status,
+      duration: responseData?.duration,
+    };
 
+    const extractRules = api.outputs || {};
+    const outputNames = Object.keys(extractRules);
     const finalOutputs: JSONRecord = {};
-    outputNames.forEach(outputName => {
-      if (outputName in extractedValues) {
-        finalOutputs[outputName] = extractedValues[outputName];
-      } else {
-        finalOutputs[outputName] = "";
-      }
-    });
 
-    setOutputs(finalOutputs);
-    void handleSetEnvVariables(api, finalOutputs);
-  }, [responseData?.body, responseData?.headers, responseData?.cookies, api.outputs, api.setenv, api]);
+    if (outputNames.length > 0) {
+      const extractedValues = extractOutputs(extractSource, extractRules);
+      outputNames.forEach(outputName => {
+        if (outputName in extractedValues) {
+          finalOutputs[outputName] = extractedValues[outputName];
+        } else {
+          finalOutputs[outputName] = "";
+        }
+      });
+      setOutputs(finalOutputs);
+    }
+
+    void handleSetEnvVariables(api, extractSource, finalOutputs);
+  }, [responseData?.body, responseData?.headers, responseData?.cookies, responseData?.status, responseData?.duration, api.outputs, api.setenv, api]);
 
   const handleAddOutputVariable = useCallback((pos: OutputPosition) => {
     const bodyText = pos.text ?? "";
@@ -215,15 +313,75 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     onUpdateApi?.({ outputs: existing });
   }, [onUpdateApi, requestData?.format]);
 
+  // HTTP/GraphQL/gRPC Send / Run in Core from the right panel: always send the
+  // UI request as rawFile. Glyphs omit rawFile and use the editor file only.
+  // The extension posts multimeter.api.run.result so the Response panel and
+  // finish log share the same network duration. WS still uses the live socket.
+  const runViaCore = useCallback((opts: { forSend: boolean }) => {
+    if (opts.forSend) {
+      setIsSending(true);
+      sendPendingRef.current = true;
+      const protocol = protocolResolver.getEffectiveProtocol(
+        requestData?.protocol as any, requestData?.url) || "http";
+      const method = (requestData?.method || "get").toLowerCase();
+      const url = requestData?.url ?? "";
+      pushHistory({
+        type: "send",
+        method: method.toUpperCase(),
+        protocol,
+        title: url,
+        cookies: requestData?.cookies,
+        headers: requestData?.headers,
+        query: requestData?.query,
+        content: method === "get" ? "" : toContentString(requestData?.body),
+      });
+    }
+    window.vscode?.postMessage({
+      command: "runCurrentDocument",
+      report: { type: "lifecycle" },
+      rawFile: buildUiApiRawFile(apiRef.current, requestData),
+      inputs: {
+        exampleIndex: selectedExampleIdx,
+        manualInputs: currentInputs,
+      },
+    });
+  }, [requestData, selectedExampleIdx, currentInputs]);
+
+  const handleRunInCore = useCallback(() => {
+    window.vscode?.postMessage({ command: "showLogOutputChannel" });
+    runViaCore({ forSend: false });
+  }, [runViaCore]);
+
   const handleSend = useCallback(async () => {
-    const res = await network.send(requestData);
-    setResponseData(res);
+    setResponseData(undefined);
     setResponseRevision(prev => prev + 1);
-  }, [network, requestData]);
+
+    const protocol = protocolResolver.getEffectiveProtocol(
+      requestData?.protocol as any, requestData?.url);
+
+    if (protocol === "ws") {
+      const res = await network.send(requestData);
+      setResponseData(res);
+      setResponseRevision(prev => prev + 1);
+      return;
+    }
+
+    runViaCore({ forSend: true });
+  }, [network, requestData, runViaCore]);
 
   const handleCancel = useCallback(async () => {
+    const protocol = protocolResolver.getEffectiveProtocol(
+      requestDataRef.current?.protocol as any, requestDataRef.current?.url);
+
+    setIsSending(false);
+    sendPendingRef.current = false;
     setResponseData(undefined);
-    await network.cancel();
+
+    if (protocol === "ws") {
+      await network.cancel();
+      return;
+    }
+    window.vscode?.postMessage({ command: "stopTestRun" });
   }, [network]);
 
   const handleConnect = useCallback(() => {
@@ -243,16 +401,20 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     const handleConfig = (message: any) => {
       if (typeof message.bodyAutoFormat === "boolean") {
         setAutoFormatBodyState(message.bodyAutoFormat);
-        prepareRequestData(undefined, { forceReset: true });
+        prepareRequestData(undefined, { forceReset: true, scopes: ["all"] });
       }
     };
 
     const handleMessage = (event: MessageEvent) => {
       const message = event.data;
-      if (!message) return;
+      if (!message) {
+        return;
+      }
       switch (message.command) {
         case "multimeter.environment.refresh":
-          prepareRequestData(undefined, { forceReset: true });
+          // Env values changed: re-resolve tokens into request text fields only.
+          // Do not force-reset the whole tester or clear user edits.
+          prepareRequestData(undefined, { scopes: ["env"] });
           break;
         case "config":
           handleConfig(message);
@@ -270,21 +432,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     };
   }, [prepareRequestData]);
 
-  useEffect(() => {
-    const listener = (event: MessageEvent) => {
-      const message = event.data;
-      if (!message || message.command !== "multimeter.api.run") {
-        return;
-      }
-      if (message.uri && filePath && message.uri !== filePath) {
-        return;
-      }
-      void handleSend();
-    };
-    window.addEventListener("message", listener);
-    return () => window.removeEventListener("message", listener);
-  }, [handleSend, filePath]);
-
+  // Response panel is filled only via multimeter.api.run.result from the extension.
   useEffect(() => {
     const listener = (event: MessageEvent) => {
       const message = event.data;
@@ -294,14 +442,51 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
       if (message.uri && filePath && message.uri !== filePath) {
         return;
       }
-      if (typeof message.response !== "undefined") {
-        setResponseData(message.response);
+      setIsSending(false);
+      const fromSend = sendPendingRef.current;
+      sendPendingRef.current = false;
+      if (message.cancelled) {
+        return;
+      }
+      if (typeof message.response !== "undefined" && message.response !== null) {
+        let response = message.response as Response;
+        if (autoFormatBody && response.body != null && response.headers) {
+          const contentType =
+            response.headers["Content-Type"] || response.headers["content-type"] || "";
+          response = {
+            ...response,
+            body: beautifyWithContentType(contentType, response.body),
+          };
+        }
+        if (typeof response.duration === "number" && Number.isFinite(response.duration)) {
+          response = { ...response, duration: Math.round(response.duration) };
+        }
+        setResponseData(response);
         setResponseRevision(prev => prev + 1);
+
+        if (fromSend) {
+          const req = requestDataRef.current;
+          const method = (req?.method || "get").toLowerCase();
+          const url = req?.url ?? "";
+          const protocol = protocolResolver.getEffectiveProtocol(
+            req?.protocol as any, req?.url) || "http";
+          pushHistory({
+            type: response.status != null && response.status < 0 ? "error" : "recv",
+            method: method.toUpperCase(),
+            protocol,
+            title: url,
+            cookies: response.cookies,
+            headers: response.headers,
+            content: toContentString(response.body ?? response.errorMessage),
+            duration: response.duration,
+            status: response.status,
+          });
+        }
       }
     };
     window.addEventListener("message", listener);
     return () => window.removeEventListener("message", listener);
-  }, [filePath]);
+  }, [filePath, autoFormatBody]);
 
   return {
     requestData,
@@ -315,12 +500,14 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     autoFormatBody,
     setAutoFormatBody,
     outputs,
+    isSending,
     updateField,
     handleUrlChange,
     handleQueryChange,
     handleAddOutputVariable,
     prepareRequestData,
     handleSend,
+    handleRunInCore,
     handleCancel,
     handleConnect,
     network,
@@ -344,255 +531,50 @@ function cloneInputs(source?: JSONRecord): JSONRecord {
   }
 }
 
-function mergeRequestData(
-  prev: Request | undefined,
-  generated: Request,
-  touchedFields: Set<keyof Request>,
-  respectTouched: boolean
-): Request {
-  if (!respectTouched || !prev || touchedFields.size === 0) {
-    return generated;
-  }
-
-  const merged = { ...generated } as Request;
-  touchedFields.forEach(field => {
-    if (typeof prev[field] !== "undefined") {
-      merged[field] = prev[field];
-    }
-  });
-
-  return merged;
-}
-
-type RunApiDocumentOptions = {
-  api: APIData;
-  inputs?: JSONRecord;
-  filePath?: string;
-};
-
-export async function runApiDocument({ api, inputs, filePath }: RunApiDocumentOptions): Promise<Response | undefined> {
-  const request = await buildRequestFromApi(api, inputs);
-  const protocol = protocolResolver.getEffectiveProtocol(request.protocol as any, request.url);
-
-  if (protocol !== "http") {
-    showVSCodeMessage("warn", "Run from editor currently supports HTTP APIs only.");
-    return undefined;
-  }
-
-  if (!request.url) {
-    showVSCodeMessage("error", "API request URL is missing.");
-    return undefined;
-  }
-
-  return new Promise<Response | undefined>((resolve) => {
-    const method = (request.method || "get").toLowerCase();
-    const url = request.url ?? "";
-
-    pushHistory({
-      type: "send",
-      method,
-      protocol,
-      title: `${method} ${url}`,
-      cookies: request.cookies,
-      headers: request.headers,
-      query: request.query,
-      content: method === "get" ? "" : toContentString(request.body),
-    });
-
-    NetworkNodeApi.sendHttp({
-      url,
-      method,
-      headers: request.headers || {},
-      body: request.body,
-      cookies: request.cookies || {},
-      query: request.query || {},
-      onResponse: async (res: any) => {
-        if (res?.autoformat) {
-          res.body = beautifyWithContentType(res.headers?.["Content-Type"], res.body);
-        }
-
-        const response: Response = {
-          body: res?.body,
-          headers: res?.headers || {},
-          cookies: parseSetCookie(res?.headers?.["set-cookie"]),
-          errorMessage: "",
-          status: res?.status || -1,
-          errorCode: "",
-          duration: res?.duration || -1,
-          warning: res?.warning,
-        };
-
-        pushHistory({
-          type: "recv",
-          method,
-          protocol,
-          title: `${method} ${url}`,
-          cookies: response.cookies,
-          headers: response.headers,
-          content: toContentString(response.body),
-          duration: response.duration,
-          status: response.status,
-        });
-
-        await handleApiOutputs(api, response);
-
-        window.postMessage({
-          command: "multimeter.api.run.result",
-          uri: filePath,
-          response,
-        }, "*");
-
-        resolve(response);
-      },
-      onError: (error: NetworkError) => {
-        pushHistory({
-          type: "error",
-          method,
-          protocol,
-          title: `${method} ${url} Error`,
-          cookies: {},
-          headers: {},
-          content: toContentString(error),
-          duration: error?.duration || -1,
-          status: error?.status || 500,
-        });
-
-        const failure: Response = {
-          body: error.body || null,
-          headers: error.headers || {},
-          cookies: {},
-          errorMessage: error.message ?? "",
-          status: error.status || 500,
-          errorCode: error.code || "UNKNOWN_ERROR",
-          duration: error.duration || -1,
-          warning: error.warning || undefined,
-        };
-
-        window.postMessage({
-          command: "multimeter.api.run.result",
-          uri: filePath,
-          response: failure,
-        }, "*");
-
-        resolve(failure);
-      },
-    });
-  });
-}
-
-async function handleApiOutputs(api: APIData, response: Response) {
-  if (!api.outputs || Object.keys(api.outputs).length === 0) {
-    return;
-  }
-
-  const extractRules = api.outputs || {};
-  const outputNames = Object.keys(extractRules);
-
-  const extractedValues = extractOutputs({
-    type: "auto",
-    body: response.body,
-    headers: response.headers || {},
-    cookies: response.cookies || {},
-  }, extractRules);
-
-  const finalOutputs: JSONRecord = {};
-  outputNames.forEach(outputName => {
-    if (outputName in extractedValues) {
-      finalOutputs[outputName] = extractedValues[outputName];
-    } else {
-      finalOutputs[outputName] = "";
-    }
-  });
-
-  await handleSetEnvVariables(api, finalOutputs);
-}
-
-async function buildRequestFromApi(api: APIData, inputs?: JSONRecord): Promise<Request> {
-  const resolvedInputs = inputs ?? (api.inputs || {});
-  const envParameters = await getEnvironmentParameters();
-
-  const request = replaceAllRefs(
-    api,
-    api?.inputs ?? {},
-    resolvedInputs,
-    envParameters
-  ) as Request;
-  const strippedRequest = stripOmitFromRequest(request) as Request;
-
-  if (strippedRequest.body && typeof strippedRequest.body !== "string") {
-    strippedRequest.body = formatBody(
-      strippedRequest.format || "json",
-      strippedRequest.body ?? ""
-    );
-  }
-
-  return strippedRequest;
-}
-
-async function getEnvironmentParameters(): Promise<JSONRecord> {
-  const envVars = await new Promise<any[]>(resolve => {
-    const cleanup = loadEnvVariables(vars => {
-      cleanup();
-      resolve(vars);
-    });
-  });
-
-  return safeList(envVars).reduce((acc, envVar) => {
-    acc[envVar.name] = envVar.value;
-    return acc;
-  }, {} as JSONRecord);
-}
-
-function parseSetCookie(setCookie: string[] | string | undefined): Record<string, string> {
-  if (!setCookie) return {};
-  const arr = Array.isArray(setCookie) ? setCookie : [setCookie];
-  const cookies: Record<string, string> = {};
-  arr.forEach(cookieStr => {
-    const [cookiePair] = cookieStr.split(";");
-    const [key, value] = cookiePair.split("=");
-    if (key && value) cookies[key.trim()] = value.trim();
-  });
-  return cookies;
-}
-
 function toContentString(data: any): string {
-  if (data === null || data === undefined) return "";
-  if (typeof data === "string") return data;
-  if (typeof data === "object") return JSON.stringify(data, null, 2);
+  if (data === null || data === undefined) {
+    return "";
+  }
+  if (typeof data === "string") {
+    return data;
+  }
+  if (typeof data === "object") {
+    return JSON.stringify(data, null, 2);
+  }
   return String(data);
 }
 
-// buildBodyExprFromPath is now imported from mmt-core/outputExtractor
-
 async function handleSetEnvVariables(
   api: APIData,
+  response: {
+    type: "auto";
+    body: any;
+    headers: Record<string, any>;
+    cookies: Record<string, any>;
+    status?: number;
+    duration?: number;
+  },
   finalOutputs: JSONRecord
 ) {
   if (!api.setenv || typeof api.setenv !== "object" || Object.keys(api.setenv).length === 0) {
     return;
   }
-  await Promise.all(
-    Object.entries(api.setenv).map(async ([envKey, outputKey]) => {
-      if (envKey && outputKey) {
-        let value = "";
-        let label = api.title ? `api - ${api.title}` : 'api';
 
-        if (Object.prototype.hasOwnProperty.call(finalOutputs, String(outputKey))) {
-          const outputValue = finalOutputs[String(outputKey)];
-          if (outputValue !== "" && outputValue != null && !isOmitSentinel(outputValue)) {
-            value = String(outputValue);
-          }
-        } else {
-          value = String(outputKey);
-          label = api.title ? `api - ${api.title}` : 'api';
-        }
+  const resolved = resolveSetenvValues({
+    response,
+    setenv: api.setenv,
+    outputs: api.outputs,
+    extractedOutputs: finalOutputs,
+  });
+  if (resolved.length === 0) {
+    return;
+  }
 
-        const currentValue = await getEnvironmentVariable(envKey);
-        if (currentValue !== value) {
-          setEnvironmentVariable(envKey, value, label);
-        }
-      }
-    })
-  );
+  const label = api.title ? `api - ${api.title}` : "api";
+  setEnvironmentVariables(resolved.map(item => ({
+    name: item.name,
+    value: item.value,
+    label,
+  })));
 }
 

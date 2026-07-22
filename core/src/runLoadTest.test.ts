@@ -178,7 +178,7 @@ describe('executeLoadTest', () => {
     };
     options.jsRunner = async (ctx: any) => {
       seenCheckLogModes.push(ctx.checkLogMode);
-      ctx.logger('info', '✓ Check "Health Check" - "status_field == ok" passed');
+      ctx.logger('info', '✓ Check "Health Check" - "status_field == ok"');
       ctx.logger('trace', 'Request: GET http://localhost:9099/health');
       ctx.logger('trace', 'Response: 200 (5ms)');
       return {};

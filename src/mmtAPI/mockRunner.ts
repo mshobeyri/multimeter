@@ -296,7 +296,7 @@ export async function startMockServer(
       const duration = Date.now() - startTime;
 
       // Persist to history
-      const titleBase = `${method.toUpperCase()} ${pathname}`;
+      const titleBase = urlStr;
       mmtProvider.historyManager.add({
         type: 'recv',
         method,

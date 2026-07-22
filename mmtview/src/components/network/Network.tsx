@@ -85,7 +85,7 @@ export function useNetwork(autoFormatBody = false): NetworkAPI {
           type: "send",
           method: method.toUpperCase(),
           protocol,
-          title: `${method.toUpperCase()} ${url}`,
+          title: url ?? "",
           cookies: cookies,
           headers: headers,
           query: query,
@@ -109,7 +109,7 @@ export function useNetwork(autoFormatBody = false): NetworkAPI {
               type: "recv",
               method,
               protocol,
-              title: `${method.toUpperCase()} ${url}`,
+              title: url ?? "",
               cookies: parseSetCookie(res.headers?.["set-cookie"]),
               headers: res.headers || {},
               content: toContentString(res.body),
@@ -134,7 +134,7 @@ export function useNetwork(autoFormatBody = false): NetworkAPI {
               type: "error",
               method,
               protocol,
-              title: `${method.toUpperCase()} ${url} Error`,
+              title: url ?? "",
               cookies: {},
               headers: {},
               content: toContentString(error),
@@ -167,7 +167,7 @@ export function useNetwork(autoFormatBody = false): NetworkAPI {
           type: "send",
           method: `${service}/${method}`,
           protocol: "grpc",
-          title: `gRPC ${service}/${method}`,
+          title: url || `${service}/${method}`,
           headers: metadata,
           content: toContentString(message),
         });
@@ -186,7 +186,7 @@ export function useNetwork(autoFormatBody = false): NetworkAPI {
               type: "recv",
               method: `${service}/${method}`,
               protocol: "grpc",
-              title: `gRPC ${service}/${method}`,
+              title: url || `${service}/${method}`,
               headers: res.metadata || {},
               content: toContentString(res.body),
               duration: res.duration || -1,
@@ -207,7 +207,7 @@ export function useNetwork(autoFormatBody = false): NetworkAPI {
               type: "error",
               method: `${service}/${method}`,
               protocol: "grpc",
-              title: `gRPC ${service}/${method} Error`,
+              title: url || `${service}/${method}`,
               content: toContentString(error),
               duration: error.duration || -1,
               status: error.status || -1,
@@ -259,7 +259,7 @@ export function useNetwork(autoFormatBody = false): NetworkAPI {
           type: "send",
           method: "send",
           protocol,
-          title: `send ${url}`,
+          title: url ?? "",
           content: toContentString(body)
         });
 
@@ -302,7 +302,7 @@ export function useNetwork(autoFormatBody = false): NetworkAPI {
       type: "send",
       method: "connect",
       protocol: "ws",
-      title: `connnect ${url}`
+      title: url ?? ""
     });
 
     return new Promise<Response | undefined>((resolve) => {
@@ -317,7 +317,7 @@ export function useNetwork(autoFormatBody = false): NetworkAPI {
             type: "recv",
             method: "connected",
             protocol: "ws",
-            title: `connected ${url}`,
+            title: url ?? "",
             content: url
           });
 
@@ -336,7 +336,7 @@ export function useNetwork(autoFormatBody = false): NetworkAPI {
             type: "recv",
             method: "recv",
             protocol: "ws",
-            title: `recv ${url}`,
+            title: url ?? "",
             content: body
           });
           // Optionally resolve here if you want to return on first message
@@ -360,7 +360,7 @@ export function useNetwork(autoFormatBody = false): NetworkAPI {
             type: "recv",
             method: "closed",
             protocol: "ws",
-            title: `closed ${url}`,
+            title: url ?? "",
             content: closeReason ? `${closeCode} ${closeReason}` : `${closeCode}`
           });
 
@@ -378,7 +378,7 @@ export function useNetwork(autoFormatBody = false): NetworkAPI {
             type: "recv",
             method: "error",
             protocol: "ws",
-            title: `error ${url}`,
+            title: url ?? "",
             content: err?.message || err?.error || String(err)
           });
           resolve({
@@ -398,7 +398,7 @@ export function useNetwork(autoFormatBody = false): NetworkAPI {
       type: "send",
       method: "close",
       protocol: "ws",
-      title: `close`
+      title: ""
     });
     NetworkNodeApi.disconnectWs({
       wsId: wsId || "",

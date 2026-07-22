@@ -3,6 +3,7 @@ import { TreeItem } from 'react-complex-tree';
 import { StepStatus } from '../../shared/types';
 import TestStepReportPanel, { StepReportItem } from '../../shared/TestStepReportPanel';
 import { openRelativeFile } from '../../vsAPI';
+import ContextMenuHost, { runInCoreMenuItem } from '../../components/ContextMenuHost';
 
 export type SuiteTestFileItemData = { type: 'test'; path: string; id: string }
 
@@ -19,6 +20,7 @@ interface SuiteTestFileItemProps {
     runStateById: Record<string, StepStatus>;
 
     onRun?: () => void;
+    onRunInCore?: () => void;
     runButtonTitle?: string;
     runDisabled?: boolean;
 
@@ -36,6 +38,7 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     reportsById,
     runStateById,
     onRun,
+    onRunInCore,
     runButtonTitle = 'Run',
     runDisabled = false,
     displayPath,
@@ -63,88 +66,78 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     return (
         <div {...context.itemContainerWithChildrenProps}>
             <div
-                className="tree-view-box"
+                className="tree-view-box tree-view-box-row"
                 {...context.itemContainerWithoutChildrenProps}
-                style={{ paddingTop: 10, display: 'flex' }}
             >
-                <div style={{ width: 24, minWidth: 24, display: 'inline-flex', alignItems: 'flex-start' }}>{arrow}</div>
-                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, minWidth: 0 }}>
-                    <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                <div className="tree-view-box-row-arrow">{arrow}</div>
+                <div className="tree-view-box-row-main">
+                    <div
+                        className={`tree-view-box-row-label${isMissing ? '' : ' tree-view-box-row-label-link'}`}
+                        title={data.path}
+                        role={isMissing ? undefined : 'link'}
+                        tabIndex={isMissing ? undefined : 0}
+                        onMouseEnter={(e) => {
+                            if (isMissing) {
+                                return;
+                            }
+                            (e.currentTarget as any).style.opacity = '0.8';
+                        }}
+                        onMouseLeave={(e) => {
+                            if (isMissing) {
+                                return;
+                            }
+                            (e.currentTarget as any).style.opacity = '1';
+                        }}
+                        onClick={(e) => {
+                            if (isMissing) {
+                                return;
+                            }
+                            e.preventDefault();
+                            e.stopPropagation();
+                            openRelativeFile(data.path);
+                        }}
+                        onKeyDown={(e) => {
+                            if (isMissing) {
+                                return;
+                            }
+                            if (e.key === 'Enter') {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                openRelativeFile(data.path);
+                            }
+                        }}
+                    >
                         <span
                             className={`codicon ${statusIcon.icon}`}
                             aria-hidden
                             title={statusIcon.title}
                             style={{ color: statusIcon.color }}
                         />
-                        <div
-                            style={{
-                                fontFamily: 'var(--vscode-editor-font-family)',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                whiteSpace: 'nowrap',
-                                width: '100%',
-                                minWidth: 0,
-                                cursor: isMissing ? 'default' : 'pointer',
-                                opacity: isMissing ? 1 : undefined,
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 6,
-                            }}
-                            title={data.path}
-                            role={isMissing ? undefined : 'link'}
-                            tabIndex={isMissing ? undefined : 0}
-                            onMouseEnter={(e) => {
-                                if (isMissing) {
-                                    return;
-                                }
-                                (e.currentTarget as any).style.opacity = '0.8';
-                            }}
-                            onMouseLeave={(e) => {
-                                if (isMissing) {
-                                    return;
-                                }
-                                (e.currentTarget as any).style.opacity = '1';
-                            }}
-                            onClick={(e) => {
-                                if (isMissing) {
-                                    return;
-                                }
-                                // Open on plain click. Prevent propagation so the tree
-                                // doesn't also treat the click as selection/expand.
-                                e.preventDefault();
-                                e.stopPropagation();
-                                openRelativeFile(data.path);
-                            }}
-                            onKeyDown={(e) => {
-                                if (isMissing) {
-                                    return;
-                                }
-                                if (e.key === 'Enter') {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    openRelativeFile(data.path);
-                                }
-                            }}
-                        >
-                            {/* Type icon for test */}
-                            <span className="codicon codicon-beaker" aria-hidden title="Test" style={{ marginRight: 6, color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
-                            {labelPath}
-                        </div>
+                        <span className="codicon codicon-beaker" aria-hidden title="Test" style={{ color: 'var(--vscode-editor-foreground, #c5c5c5)' }} />
+                        {labelPath}
                     </div>
                     {onRun && !isMissing && (
-                        <button
-                            className="tab-button"
-                            onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                onRun();
-                            }}
-                            title={runButtonTitle}
-                            disabled={runDisabled}
-                            style={{ marginTop: -2, padding: 6 }}
+                        <ContextMenuHost
+                            items={
+                              runDisabled
+                                ? undefined
+                                : [runInCoreMenuItem(onRunInCore || onRun)]
+                            }
                         >
-                            <span className="codicon codicon-run tab-button-icon" aria-hidden />
-                        </button>
+                            <button
+                                className="tab-button"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    onRun();
+                                }}
+                                title={runButtonTitle}
+                                disabled={runDisabled}
+                                style={{ padding: 6 }}
+                            >
+                                <span className="codicon codicon-run tab-button-icon" aria-hidden />
+                            </button>
+                        </ContextMenuHost>
                     )}
                 </div>
             </div>
@@ -153,7 +146,12 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                     <TestStepReportPanel
                         isExpanded={true}
                         stepReports={stepReports}
-                        runState={runState === 'running' ? 'running' : runState === 'passed' ? 'passed' : 'failed'}
+                        runState={
+                            runState === 'running' || runState === 'passed' || runState === 'failed' ||
+                            runState === 'invalid'
+                                ? runState
+                                : 'failed'
+                        }
                         showHeader={false}
                     />
                 </div>

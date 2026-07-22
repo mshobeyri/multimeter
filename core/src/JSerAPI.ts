@@ -188,6 +188,7 @@ ${isGraphQL ? `
       console.error('GraphQL Errors:\\n' + __gqlBody.errors.map(e => '  - ' + (e.message || JSON.stringify(e))).join('\\n'));
       const err = new Error('GraphQL errors: ' + __gqlErrors);
       err.graphqlErrors = __gqlBody.errors;
+      err.mmtApiOutputs = output_;
       throw err;
     }
   } catch (e) {

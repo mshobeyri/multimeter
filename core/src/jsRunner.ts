@@ -9,6 +9,11 @@ import * as Random from './Random';
 import * as Current from './Current';
 import * as mmtHelper from './testHelper';
 import type {ServerRunner} from './testHelper';
+import {isAssertionFailedError, isTestAbortError} from './testHelper';
+import {logRunFinished, RunKind} from './runLog';
+
+export type {RunKind};
+export {logRunFinished};
 
 export interface RunJSCodeContext {
   runId: string;
@@ -31,6 +36,8 @@ export interface RunJSCodeContext {
   workerEligible?: boolean;
   /** Controls check/assert console logging without changing report events. */
   checkLogMode?: 'default'|'failures-only'|'none';
+  /** Prefix for the finished/failed log line (Test / API / Suite). */
+  runKind?: RunKind;
 }
 
 const REPORTER_KEY = '__mmtReportStep';
@@ -90,12 +97,39 @@ const applyReporterGlobals = (
 
 export async function runJSCode(context: RunJSCodeContext): Promise<any> {
   const {js: code, title, logger: lg, reporter} = context;
-  lg('debug', `Running test: ${title}...`);
+  const runKind = context.runKind || 'Test';
+  lg('debug', `Running ${runKind.toLowerCase()}: ${title}...`);
   const startTime = Date.now();
   const runId = typeof context?.runId === 'string' ? context.runId : '';
   const reporterFn = typeof reporter === 'function' ? reporter : undefined;
+
+  let hadFailure = false;
+  const markFailure = (event?: Record<string, any>) => {
+    if (!event) {
+      hadFailure = true;
+      return;
+    }
+    if (event.status === 'failed' || event.result === 'failed') {
+      hadFailure = true;
+      return;
+    }
+    if (Array.isArray(event.expects) &&
+        event.expects.some((item: any) => item && item.status === 'failed')) {
+      hadFailure = true;
+    }
+  };
+
+  const trackedReporter = typeof reporterFn === 'function' ?
+      ((message: any) => {
+        markFailure(message);
+        return reporterFn(message);
+      }) :
+      undefined;
+
   const restoreReporterGlobals = applyReporterGlobals(
-  reporterFn, runId, context.id);
+      trackedReporter, runId, context.id);
+
+  let lastNetworkDurationMs: number|undefined;
 
   const customConsole = {
     trace: (...args: any[]) => lg(
@@ -110,9 +144,11 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
     warn: (...args: any[]) => lg(
         'warn',
         args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')),
-    error: (...args: any[]) => lg(
-        'error',
-        args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ')),
+    error: (...args: any[]) => {
+      hadFailure = true;
+      lg('error',
+         args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' '));
+    },
   };
 
   // Set the file loader BEFORE we build the Function; otherwise hoisted
@@ -148,7 +184,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       `const report_ = (...args) => mmtHelper.reportWithContext_(__reporter, __runId, __id, ...args);\n` +
       // setenv_ must update the in-scope envVariables object so that
       // subsequent e: references read the new value within the same run.
-      `const setenv_ = (name, value) => { try { envVariables[name] = value; } catch (_e) {} mmtHelper.setenvWithContext_(__reporter, __runId, __id, name, value); };\n` +
+      `const setenv_ = (name, value) => { if (typeof envVariables !== 'undefined') { try { envVariables[name] = value; } catch (_e) {} } mmtHelper.setenvWithContext_(__reporter, __runId, __id, name, value); };\n` +
       // Override check_ to pass the closure-based report_ so that under
       // parallel execution each test uses its own reporter/runId/id instead
       // of the shared module-level globals.
@@ -157,7 +193,7 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       `const checkExpects_ = (items, type, reportLevel, title, details) => mmtHelper.checkExpects_(items, type, reportLevel, title, details, report_, console, __checkLogMode);\n` +
       // Override checkAbort_ with a closure-based version so parallel tests
       // each check their own abort signal instead of the global.
-      `const checkAbort_ = () => { if (__abortSignal && __abortSignal.aborted) { const e = new Error('Test run was stopped'); e.name = 'TestAbortError'; throw e; } };\n` +
+      `const checkAbort_ = () => { if (__abortSignal && __abortSignal.aborted) { throw new mmtHelper.TestAbortError(); } };\n` +
       // Override importJsModule_ with a closure-based wrapper that ensures
       // the file loader is set to this test's loader before each import,
       // protecting against parallel tests overwriting the global loader.
@@ -181,42 +217,65 @@ export async function runJSCode(context: RunJSCodeContext): Promise<any> {
       }
       compiledFunctionCache.set(functionBody, fn);
     }
-    // Wrap send_ with trace-level request/response logging for test runs
-    const sendFn = context.traceSend ? async (req: any) => {
-      const reqSummary = req ?
-        `${(req.method || 'GET').toUpperCase()} ${req.url || ''}` :
-        'unknown';
-      lg('trace', `Request: ${reqSummary}`);
+    // Wrap send_ so we can record the network round-trip duration (same value
+    // the API tester toolbar shows) and optionally emit trace logs.
+    const recordNetworkDuration = (res: any) => {
+      if (res && typeof res.duration === 'number' && Number.isFinite(res.duration) &&
+          res.duration >= 0) {
+        lastNetworkDurationMs = res.duration;
+      }
+    };
+    const sendFn = async (req: any) => {
+      if (context.traceSend) {
+        const reqSummary = req ?
+            `${(req.method || 'GET').toUpperCase()} ${req.url || ''}` :
+            'unknown';
+        lg('trace', `Request: ${reqSummary}`);
+      }
       try {
         const res = await send(req);
-        const status = res && typeof res.status === 'number' ? res.status : '?';
-        const duration = res && typeof res.duration === 'number' ? ` (${res.duration}ms)` : '';
-        lg('trace', `Response: ${status}${duration}`);
+        recordNetworkDuration(res);
+        if (context.traceSend) {
+          const status = res && typeof res.status === 'number' ? res.status : '?';
+          const duration = res && typeof res.duration === 'number' ?
+              ` (${res.duration}ms)` :
+              '';
+          lg('trace', `Response: ${status}${duration}`);
+        }
         return res;
       } catch (err: any) {
-        lg('trace', `Response: error - ${err?.message || String(err)}`);
+        if (context.traceSend) {
+          lg('trace', `Response: error - ${err?.message || String(err)}`);
+        }
         throw err;
       }
-    } : send;
+    };
     // Create gRPC sender (lazy-loads grpcCore)
     const sendGrpcFn = async (req: GrpcRequest): Promise<GrpcResponse> => {
       const {sendGrpcRequest} = await import('./grpcCore.js');
       const config = getRunnerNetworkConfig();
       const loader = context.fileLoader || (async () => { throw new Error('File loader not available'); });
-      return sendGrpcRequest(req, config, loader, context.basePath);
+      const res = await sendGrpcRequest(req, config, loader, context.basePath);
+      recordNetworkDuration(res);
+      return res;
     };
     const returnValue = await fn(
         mmtHelper, customConsole, sendFn, sendGrpcFn, extractOutputs, Random,
-        reporterFn, runId, context.id, mmtRandom, mmtCurrent, mmtAccess,
+        trackedReporter, runId, context.id, mmtRandom, mmtCurrent, mmtAccess,
         context.abortSignal, context.fileLoader, context.checkLogMode || 'default');
     restoreReporterGlobals();
-    const elapsed = Date.now() - startTime;
-    lg('debug', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
+    // For API runs, prefer the network send/receive duration so the finish
+    // log matches the toolbar. Fall back to wall-clock for tests/suites.
+    const wallClockMs = Date.now() - startTime;
+    const elapsed = runKind === 'API' && typeof lastNetworkDurationMs === 'number' ?
+        Math.round(lastNetworkDurationMs) :
+        wallClockMs;
+    logRunFinished(lg, runKind, title, !hadFailure, elapsed);
     return returnValue;
   } catch (e: any) {
     restoreReporterGlobals();
-    const elapsed = Date.now() - startTime;
-    lg('debug', `Test ${title ? title + ' ' : ''}finished in ${elapsed} ms`);
+    const isControlFlow = isAssertionFailedError(e) || isTestAbortError(e);
+    logRunFinished(lg, runKind, title, false, undefined, {hasError: !isControlFlow});
     throw e;
   } finally {
     // Only clear abort signal if this run owns it.  During parallel suite

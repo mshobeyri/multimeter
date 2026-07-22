@@ -2,8 +2,8 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 import { TestData } from 'mmt-core/TestData';
 import { JSONRecord, formatDuration } from 'mmt-core/CommonData';
 import { formatReportRelativeTime } from 'mmt-core/reportFormat';
-import { resolveEnvTokenValues } from 'mmt-core/variableReplacer';
 import { extractInputConstraintsFromDescription } from 'mmt-core/paramConstraints';
+import { testToYaml } from 'mmt-core/testParsePack';
 
 import { FileContext } from '../fileContext';
 import { setEnvironmentVariable } from '../environment/environmentUtils';
@@ -12,10 +12,21 @@ import { StepStatus } from '../shared/types';
 import ExportReportButton, { ReportFormat } from '../shared/ExportReportButton';
 import OverviewBoxes, { OverviewStats } from '../shared/OverviewBoxes';
 import VEditor from '../components/VEditor';
+import ContextMenuHost, { runInCoreMenuItem } from '../components/ContextMenuHost';
 import { loadEnvVariables } from '../workspaceStorage';
+import {
+    applyEnvRefreshToInputs,
+    applyYamlInputsRefresh,
+    computeDirtyInputKeys,
+    envVarsToParameters,
+    resolveInputDefaults,
+    stableEqual,
+} from './testUiRefresh';
 
 interface TestTestProps {
     testData: TestData;
+    onInputsModificationChange?: (currentInputs: JSONRecord, dirtyKeys: Set<string>) => void;
+    onInputsReset?: (reset: () => void) => void;
 }
 
 const TestTest: React.FC<TestTestProps> = (props) => {
@@ -29,10 +40,28 @@ const TestTest: React.FC<TestTestProps> = (props) => {
     // Inputs/outputs state
     const [currentInputs, setCurrentInputs] = useState<JSONRecord>({});
     const currentInputsRef = useRef<JSONRecord>({});
+    const dirtyKeysRef = useRef<Set<string>>(new Set());
+    const [dirtyKeys, setDirtyKeys] = useState<Set<string>>(new Set());
+    const yamlInputsRef = useRef<JSONRecord | undefined>(props.testData.inputs);
+    const resolvedBaselineRef = useRef<JSONRecord>({});
     const [outputs, setOutputs] = useState<JSONRecord>({});
     const runStartTimeRef = useRef<number | null>(null);
     const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
     const [runDurationMs, setRunDurationMs] = useState<number | null>(null);
+    const testDataRef = useRef(props.testData);
+    testDataRef.current = props.testData;
+
+    /** Right-panel runs always prefer UI test data; glyphs omit rawFile. */
+    const postRunCurrentDocument = useCallback((opts?: { reportLifecycle?: boolean }) => {
+        window.vscode?.postMessage({
+            command: 'runCurrentDocument',
+            ...(opts?.reportLifecycle ? { report: { type: 'lifecycle' } } : {}),
+            rawFile: testToYaml(testDataRef.current),
+            inputs: {
+                manualInputs: currentInputsRef.current,
+            },
+        });
+    }, []);
 
     const inputKeys = useMemo(() => {
         const raw = props.testData.inputs;
@@ -58,32 +87,110 @@ const TestTest: React.FC<TestTestProps> = (props) => {
         [props.testData.description]
     );
 
-    // Resolve env variables in default input values
-    useEffect(() => {
-        const defaults: JSONRecord = { ...(props.testData.inputs || {}) };
-        const resolveDefaults = (envVars: any[]) => {
-            const envParameters: JSONRecord = (envVars || []).reduce((acc: JSONRecord, envVar: any) => {
-                if (envVar && typeof envVar === 'object' && typeof envVar.name === 'string') {
-                    acc[envVar.name] = envVar.value;
-                }
-                return acc;
-            }, {} as JSONRecord);
-            // Resolve e:xxx references in default values
-            const resolved: JSONRecord = {};
-            for (const [key, val] of Object.entries(defaults)) {
-                if (typeof val === 'string') {
-                    resolved[key] = resolveEnvTokenValues(val, envParameters);
-                } else {
-                    resolved[key] = val;
-                }
-            }
-            setCurrentInputs(resolved);
-            currentInputsRef.current = resolved;
-        };
+    const clearDirtyKeys = useCallback(() => {
+        if (dirtyKeysRef.current.size === 0) {
+            return;
+        }
+        dirtyKeysRef.current = new Set();
+        setDirtyKeys(new Set());
+    }, []);
 
-        const cleanup = loadEnvVariables(resolveDefaults);
+    const setDirtyKeysState = useCallback((nextDirty: Set<string>) => {
+        dirtyKeysRef.current = nextDirty;
+        setDirtyKeys(new Set(nextDirty));
+    }, []);
+
+    const markDirtyKeysFromEdit = useCallback((next: JSONRecord) => {
+        setDirtyKeysState(computeDirtyInputKeys(next, resolvedBaselineRef.current));
+    }, [setDirtyKeysState]);
+
+    const applyInputs = useCallback((next: JSONRecord) => {
+        currentInputsRef.current = next;
+        setCurrentInputs(next);
+    }, []);
+
+    const resetInputsFromYaml = useCallback(() => {
+        clearDirtyKeys();
+        const cleanup = loadEnvVariables((envVars) => {
+            cleanup();
+            const resolved = resolveInputDefaults(
+                yamlInputsRef.current,
+                envVarsToParameters(envVars),
+            );
+            resolvedBaselineRef.current = resolved;
+            applyInputs(resolved);
+        });
+    }, [applyInputs, clearDirtyKeys]);
+
+    useEffect(() => {
+        props.onInputsReset?.(resetInputsFromYaml);
+    }, [props.onInputsReset, resetInputsFromYaml]);
+
+    useEffect(() => {
+        props.onInputsModificationChange?.(currentInputs, dirtyKeys);
+    }, [currentInputs, dirtyKeys, props.onInputsModificationChange]);
+
+    // YAML inputs changed (from applied panel content): rebuild, preserving dirty keys.
+    useEffect(() => {
+        const nextYamlInputs = props.testData.inputs;
+        const prevYamlInputs = yamlInputsRef.current;
+        yamlInputsRef.current = nextYamlInputs;
+
+        if (stableEqual(prevYamlInputs, nextYamlInputs) && Object.keys(currentInputsRef.current).length > 0) {
+            return;
+        }
+
+        const cleanup = loadEnvVariables((envVars) => {
+            cleanup();
+            const envParameters = envVarsToParameters(envVars);
+            const forceReset = dirtyKeysRef.current.size === 0;
+            const resolvedBaseline = resolveInputDefaults(nextYamlInputs, envParameters);
+            const next = applyYamlInputsRefresh(
+                currentInputsRef.current,
+                nextYamlInputs,
+                envParameters,
+                dirtyKeysRef.current,
+                forceReset,
+            );
+            resolvedBaselineRef.current = resolvedBaseline;
+            if (forceReset) {
+                clearDirtyKeys();
+            } else {
+                setDirtyKeysState(computeDirtyInputKeys(next, resolvedBaseline));
+            }
+            applyInputs(next);
+        });
         return cleanup;
-    }, [props.testData.inputs]);
+    }, [props.testData.inputs, applyInputs, clearDirtyKeys, setDirtyKeysState]);
+
+    // Env values changed: re-resolve e: tokens for non-dirty keys only (like API scopes:["env"]).
+    useEffect(() => {
+        const handleMessage = (event: MessageEvent) => {
+            const message = event.data;
+            if (!message || message.command !== 'multimeter.environment.refresh') {
+                return;
+            }
+            const cleanup = loadEnvVariables((envVars) => {
+                cleanup();
+                const envParameters = envVarsToParameters(envVars);
+                const resolvedBaseline = resolveInputDefaults(
+                    yamlInputsRef.current,
+                    envParameters,
+                );
+                resolvedBaselineRef.current = resolvedBaseline;
+                const next = applyEnvRefreshToInputs(
+                    currentInputsRef.current,
+                    yamlInputsRef.current,
+                    envParameters,
+                    dirtyKeysRef.current,
+                );
+                setDirtyKeysState(computeDirtyInputKeys(next, resolvedBaseline));
+                applyInputs(next);
+            });
+        };
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, [applyInputs, setDirtyKeysState]);
 
     useEffect(() => {
         currentInputsRef.current = currentInputs;
@@ -116,13 +223,8 @@ const TestTest: React.FC<TestTestProps> = (props) => {
         runStartTimeRef.current = startedAt;
         setRunStartedAt(startedAt);
         setRunDurationMs(null);
-        window.vscode?.postMessage({
-            command: 'runCurrentDocument',
-            inputs: {
-                manualInputs: currentInputsRef.current,
-            },
-        });
-    }, [trimIgnoredRuns]);
+        postRunCurrentDocument();
+    }, [trimIgnoredRuns, postRunCurrentDocument]);
 
     const handleStop = useCallback(() => {
         window.vscode?.postMessage({
@@ -271,19 +373,6 @@ const TestTest: React.FC<TestTestProps> = (props) => {
 
     const exportDisabled = runState === 'running' || stepReports.length === 0;
 
-    const summary = useMemo(() => {
-        if (runState === 'running') {
-            return 'Running checks...';
-        }
-        if (runState === 'passed') {
-            return 'All checks passed';
-        }
-        if (runState === 'failed') {
-            return 'Run failed';
-        }
-        return 'Ready to run';
-    }, [runState]);
-
     const isRunning = runState === 'running';
 
     const overviewStats = useMemo((): OverviewStats | null => {
@@ -306,46 +395,42 @@ const TestTest: React.FC<TestTestProps> = (props) => {
     }, [stepReports, runState, runStartedAt, runDurationMs]);
 
     return (
-        <div style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-            <div
-                style={{
-                    marginBottom: 8,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'flex-end',
-                    gap: 8,
-                }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {isRunning ? (
-                        <button
-                            onClick={handleStop}
-                            className='button-icon'
-                            style={{ opacity: 1 }}
-                        >
-                            <span className="codicon codicon-debug-stop" />
-                            Stop
-                        </button>
-                    ) : (
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%' }}>
+            <div className="run-action-bar">
+                {isRunning ? (
+                    <button
+                        onClick={handleStop}
+                        className="button-icon"
+                        type="button"
+                    >
+                        <span className="codicon codicon-debug-stop" aria-hidden />
+                        Stop
+                    </button>
+                ) : (
+                    <ContextMenuHost items={[runInCoreMenuItem(() => {
+                        postRunCurrentDocument({ reportLifecycle: true });
+                    })]}>
                         <button
                             onClick={handleRun}
-                            className='button-icon'
-                            style={{ opacity: 1 }}
+                            className="button-icon"
+                            type="button"
                         >
-                            <span className="codicon codicon-run" />
+                            <span className="codicon codicon-run" aria-hidden />
                             Run test
                         </button>
-                    )}
-                    <ExportReportButton disabled={exportDisabled} onExport={handleExportReport} />
-                </div>
+                    </ContextMenuHost>
+                )}
+                <ExportReportButton disabled={exportDisabled} onExport={handleExportReport} />
             </div>
+            <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
             {hasInputs && (
                 <div style={{ marginBottom: 12 }}>
                     <VEditor
                         label="Inputs"
                         value={currentInputs}
                         onChange={(data) => {
-                            setCurrentInputs(data);
-                            currentInputsRef.current = data;
+                            markDirtyKeysFromEdit(data);
+                            applyInputs(data);
                         }}
                         keyOptions={inputKeys}
                         inputConstraints={inputConstraints}
@@ -376,6 +461,7 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                 onRun={handleRun}
                 runButtonLabel="Run test"
             />
+            </div>
         </div>
     );
 };

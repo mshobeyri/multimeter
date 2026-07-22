@@ -51,6 +51,43 @@ function handleShowPopupMessage(message: any) {
   }
 }
 
+async function handleShowModalDialog(
+    message: any, webviewPanel: vscode.WebviewPanel) {
+  const requestId = message?.requestId;
+  const text = typeof message?.message === 'string' ? message.message : '';
+  const detail = typeof message?.detail === 'string' ? message.detail : undefined;
+  const buttons = Array.isArray(message?.buttons) ?
+      message.buttons.filter((b: unknown) => typeof b === 'string' && b) as string[] :
+      [];
+  const options: vscode.MessageOptions = {modal: true};
+  if (detail) {
+    options.detail = detail;
+  }
+
+  let choice: string|undefined;
+  switch (message?.level) {
+    case 'error':
+      choice = await vscode.window.showErrorMessage(text, options, ...buttons);
+      break;
+    case 'info':
+      choice =
+          await vscode.window.showInformationMessage(text, options, ...buttons);
+      break;
+    case 'warning':
+    default:
+      choice =
+          await vscode.window.showWarningMessage(text, options, ...buttons);
+      break;
+  }
+
+  webviewPanel.webview.postMessage({
+    command: 'modalDialogResult',
+    requestId,
+    choice: choice || undefined,
+    cancelled: !choice,
+  });
+}
+
 function handleUpdateDocumentProblems(
     message: any, document: vscode.TextDocument, mmtProvider: any) {
   const problems = Array.isArray(message?.problems) ? message.problems : [];
@@ -543,6 +580,9 @@ export const messageReceived = async (
     case 'openRelativeFile':
       await file.handleOpenRelativeFile(message, document);
       break;
+    case 'openExternalUrl':
+      await file.handleOpenExternalUrl(message);
+      break;
     case 'openOsFilePicker':
       await file.handleOpenOsFilePicker(message, webviewPanel, document);
       break;
@@ -574,6 +614,10 @@ export const messageReceived = async (
 
     case 'showPopupMessage':
       handleShowPopupMessage(message);
+      break;
+
+    case 'showModalDialog':
+      await handleShowModalDialog(message, webviewPanel);
       break;
 
 

@@ -2,8 +2,10 @@ import {APIData} from './APIData';
 import {LogLevel, Type} from './CommonData';
 import * as JSer from './JSer';
 import {RunJSCodeContext} from './jsRunner';
+import type {RunKind} from './runLog';
 import type {CollectedResults, LoadReportData} from './reportCollector';
 import {RunResult, TestStepReporterEvent} from './runConfig';
+import {isAssertionFailedError, isTestAbortError} from './testHelper';
 
 export interface SuiteExportSpec {
   /** Export file paths from the suite file's `export` field. */
@@ -49,6 +51,7 @@ export interface PreparedRun {
   title?: string;
   exampleName?: string;
   exampleIndex?: number;
+  exampleOutputs?: Record<string, any>;
   loadtestConfig?: LoadTestPreparedConfig;
 }
 
@@ -95,7 +98,8 @@ export async function runGeneratedJs(
   basePath?: string,
   skipSyntaxValidation?: boolean,
   workerEligible?: boolean,
-  checkLogMode?: 'default'|'failures-only'|'none'): Promise<RunResult> {
+  checkLogMode?: 'default'|'failures-only'|'none',
+  runKind: RunKind = 'Test'): Promise<RunResult> {
   const start = Date.now();
   const errors: string[] = [];
   const logs: string[] = [];
@@ -109,8 +113,9 @@ export async function runGeneratedJs(
     if (!hasFailedStatus && !hasFailedExpect) {
       return;
     }
-    const title = typeof event.title === 'string' && event.title ? ` ${event.title}` : '';
-    const message = `Reported failed ${event.stepType || event.scope || 'step'}${title}`;
+    const title = typeof event.title === 'string' ? event.title.trim() : '';
+    const kind = String(event.stepType || event.scope || 'step');
+    const message = title ? `${title} failed` : `${kind} failed`;
     if (!errors.includes(message)) {
       errors.push(message);
     }
@@ -158,6 +163,7 @@ export async function runGeneratedJs(
       basePath,
       workerEligible,
       checkLogMode,
+      runKind,
     });
 
     const outputs = returnValue && typeof returnValue === 'object' ? returnValue : undefined;
@@ -169,19 +175,27 @@ export async function runGeneratedJs(
       outputs,
     };
   } catch (e: any) {
-    const isCancelled = e?.name === 'TestAbortError';
-    const executionError = isCancelled ? undefined : (e?.message || String(e));
-    if (executionError) {
-      forward('error', `Error running test: ${executionError}`);
+    const isCancelled = isTestAbortError(e);
+    const isAssertion = isAssertionFailedError(e);
+    const message = isCancelled || isAssertion ? undefined : (e?.message || String(e));
+    // Assert throws to abort remaining steps; treat as a normal failure,
+    // not an unexpected runtime error (no popup / "has error" path).
+    if (message) {
+      const kindLabel = runKind === 'API' ? 'API' :
+          runKind === 'Suite' ? 'suite' :
+          runKind === 'Load Test' ? 'load test' :
+          'test';
+      forward('error', `Error running ${kindLabel}: ${message}`);
     }
     return {
       success: false,
       durationMs: Date.now() - start,
       errors,
       logs,
-      threw: !isCancelled,
+      outputs: e?.mmtApiOutputs,
+      threw: !isCancelled && !isAssertion,
       cancelled: isCancelled,
-      executionError,
+      executionError: message,
     };
   }
 }

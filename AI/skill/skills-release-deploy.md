@@ -39,9 +39,11 @@ The extension and CLI versions are independent. The CLI version is derived from 
 
 ```bash
 npm run compile          # full build: core → webview → extension typecheck + lint + esbuild
-vsce package             # produces multimeter-X.Y.Z.vsix
-vsce package --pre-release  # for pre-release builds
+npm run pack             # produces multimeter-X.Y.Z.vsix (uses EXTENSION.md as marketplace readme)
+npm run pack-pre-release # for pre-release builds
 ```
+
+Do **not** run bare `vsce package` — it packages the wrong readme (`readme.md` instead of `EXTENSION.md`).
 
 ### Publish
 
@@ -403,8 +405,8 @@ VERSION=0.4.0-beta.1 ./scripts/release-testlight.sh --publish --pre-release
 - [ ] Update root `package.json` version to `X.Y.Z`
 - [ ] Update `CHANGELOG.md`
 - [ ] Run: `npm run compile`
-- [ ] Package: `vsce package` (or `vsce package --pre-release`)
-- [ ] Publish: `vsce publish` (or `vsce publish --pre-release`)
+- [ ] Package: `npm run pack` (or `npm run pack-pre-release`)
+- [ ] Publish: `vsce publish --readme-path EXTENSION.md --allow-package-all-secrets` (or add `--pre-release`)
 - [ ] Verify on Marketplace
 
 ---

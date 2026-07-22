@@ -573,12 +573,25 @@ outputs:
 JSONPath syntax: `$` references the root response object. Use `$[body][key]` or `$body[key]` to drill into the body, headers, or cookies sections. This is an alternative to the `body[...]` bracket notation.
 
 ### setenv
-Promote values from `outputs` into the runtime environment.
+Promote values from the response into the runtime environment after an API run.
+
+Values use the **same extraction expressions as `outputs`** (paths, regex, keywords):
+```yaml
+outputs:
+  token: body.access_token
+setenv:
+  TOKEN: body.access_token
+  USER_ID: body.user.id
+```
+
+These become available to subsequent steps/tests as environment variables (`e:TOKEN`, `<<e:TOKEN>>`).
+
+Deprecated: referencing an `outputs` key by name still works for compatibility:
 ```yaml
 setenv:
-  TOKEN: token
+  TOKEN: token   # deprecated — prefer body.access_token
 ```
-These become available to subsequent steps/tests as environment variables.
+In the YAML editor, deprecated values are struck through; click to replace them with the output’s extraction expression.
 
 ## Dynamic values: random and current
 Use built-in dynamic tokens anywhere in url, headers, body, query, cookies, or even in inputs defaults.
@@ -674,6 +687,8 @@ examples:
  description: Full-text search on users
  outputs:
   total: body[total]
+ setenv:
+  last_total: body[total]
  protocol: http
  url: <<e:api_url>>/users/search
  method: get
@@ -685,9 +700,7 @@ examples:
    q: john
    limit: "10"
  cookies:
-   locale: en-US 
- setenv:
-  last_total: total
+   locale: en-US
 ```
 
 ### WS
@@ -761,7 +774,7 @@ examples:
 - description: string
 - inputs: record<string, string | number | boolean | null> (+ `omit` keyword)
 - outputs: record<string, string>
-- setenv: record<string, string>
+- setenv: record<string, string>  # env name → extraction expression (same DSL as outputs; legacy: outputs key name)
 - url: string (can contain query string)
 - protocol: `http` | `ws` | `graphql`
 - method: HTTP verbs (HTTP only)

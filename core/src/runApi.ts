@@ -8,6 +8,7 @@ import {replaceAllRefs} from './variableReplacer';
 
 export interface ResolveExampleResult {
   exampleInputs: Record<string, any>;
+  exampleOutputs?: Record<string, any>;
   resolvedExampleName?: string;
   resolvedExampleIndex?: number;
 }
@@ -25,8 +26,12 @@ export function resolveApiExample(
         typeof ex?.name === 'string' && ex.name.trim() ? ex.name : undefined;
     const inputs =
         isPlainObject(ex?.inputs) ? {...ex.inputs as Record<string, any>} : {};
+    const outputs = isPlainObject(ex?.outputs) ?
+        {...ex.outputs as Record<string, any>} :
+        undefined;
     return {
       exampleInputs: inputs,
+      exampleOutputs: outputs,
       resolvedExampleName: name,
       resolvedExampleIndex: typeof idx === 'number' ? idx : undefined,
     };
@@ -71,7 +76,7 @@ export function prepareApiRun(
       typeof options.exampleName === 'string' && options.exampleName.trim() ?
       options.exampleName.trim() :
       undefined;
-  const {exampleInputs, resolvedExampleName, resolvedExampleIndex} =
+  const {exampleInputs, exampleOutputs, resolvedExampleName, resolvedExampleIndex} =
       resolveApiExample(
           apiDoc, requestedExampleIndex, requestedExampleName, log);
   const inputsUsed = mergeInputs({
@@ -85,6 +90,7 @@ export function prepareApiRun(
     apiDoc,
     exampleName: resolvedExampleName,
     exampleIndex: resolvedExampleIndex,
+    exampleOutputs,
   };
 }
 
@@ -96,12 +102,23 @@ interface GenerateApiJsOptions {
   fileLoader: FileLoader;
   exampleName?: string;
   exampleIndex?: number;
+  exampleOutputs?: Record<string, any>;
+  checkTitle?: string;
 }
 
 export async function generateApiJs(options: GenerateApiJsOptions):
     Promise<string> {
-  const {api, name, envVars, inputs, fileLoader, exampleName, exampleIndex} =
-      options;
+  const {
+    api,
+    name,
+    envVars,
+    inputs,
+    fileLoader,
+    exampleName,
+    exampleIndex,
+    exampleOutputs,
+    checkTitle,
+  } = options;
   JSer.setFileLoader(async (p: string) => {
     try {
       const t = await fileLoader(p);
@@ -121,9 +138,18 @@ export async function generateApiJs(options: GenerateApiJsOptions):
     inputs: {},
     envVars,
   });
-  return `${funcSource}\n\n${
-      buildApiRunnerWrapper(
-          {name, envVars, inputs, exampleName, exampleIndex})}`;
+  // Define the API function inside the runner IIFE so it closes over
+  // `envVariables` (e: tokens / input defaults resolve correctly).
+  return buildApiRunnerWrapper({
+    name,
+    envVars,
+    inputs,
+    exampleName,
+    exampleIndex,
+    exampleOutputs,
+    checkTitle,
+    apiFunctionSource: funcSource,
+  });
 }
 
 interface ApiRunnerWrapperOptions {
@@ -132,12 +158,18 @@ interface ApiRunnerWrapperOptions {
   inputs: Record<string, any>;
   exampleName?: string;
   exampleIndex?: number;
+  exampleOutputs?: Record<string, any>;
+  checkTitle?: string;
+  apiFunctionSource?: string;
 }
 
 function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
   opts = replaceAllRefs(opts, {}, opts.inputs, opts.envVars);
   const envJson = JSON.stringify(opts.envVars ?? {}, null, 2);
   const inputsJson = JSON.stringify(opts.inputs ?? {}, null, 2);
+  const exampleOutputs = isPlainObject(opts.exampleOutputs) ? opts.exampleOutputs : {};
+  const exampleOutputsJson = JSON.stringify(exampleOutputs, null, 2);
+  const hasExampleOutputs = Object.keys(exampleOutputs).length > 0;
   const exampleLabelParts: string[] = [];
   if (opts.exampleName) {
     exampleLabelParts.push(`${opts.exampleName}`);
@@ -160,10 +192,28 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `    formatKeyValueObject: __mmt_formatKeyValueObject,\n` +
       `    formatSection: __mmt_formatSection,\n` +
       `    formatDuration: __mmt_formatDuration,\n` +
-      `    formatBodyValue: __mmt_formatBodyValue\n` +
+      `    formatBodyValue: __mmt_formatBodyValue,\n` +
+      `    valuesMatch: __mmt_valuesMatch,\n` +
+      `    formatExpects: __mmt_formatExpects\n` +
       `  } = (\n${helperFactorySource}\n  )();`;
   const exampleLiteral =
       exampleLabel ? `'${escapeForJsString(exampleLabel)}'` : 'null';
+  const checkTitle = typeof opts.checkTitle === 'string' && opts.checkTitle.trim() ?
+      opts.checkTitle.trim() :
+      '';
+  const checkTitleLiteral =
+      checkTitle ? `'${escapeForJsString(checkTitle)}'` : 'null';
+  const expectsLogBlock = hasExampleOutputs ?
+      `    const __mmt_exampleOutputs = ${exampleOutputsJson};\n` +
+          `    const __mmt_checkTitle = ${checkTitleLiteral};\n` +
+          `    const __mmt_expects = __mmt_formatExpects(__outputLog, __mmt_exampleOutputs, __mmt_checkTitle);\n` +
+          `    for (const __line of __mmt_expects.successLines) {\n` +
+          `      console.log(__line);\n` +
+          `    }\n` +
+          `    for (const __line of __mmt_expects.failLines) {\n` +
+          `      console.error(__line);\n` +
+          `    }\n` :
+      '';
   return `return (async () => {\n` +
       `  const envVar = ${envJson};\n` +
       `  const envVariables = envVar;\n` +
@@ -171,6 +221,9 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `  const __mmt_inputs = ${inputsJson};\n` +
       `  const __mmt_exampleLabel = ${exampleLiteral};\n` + helperDestructure +
       '\n' +
+      (opts.apiFunctionSource ?
+           `${indentMultiline(opts.apiFunctionSource, '  ')}\n\n` :
+           '') +
       `  const __mmt_originalSend = send_;\n` +
       `  send_ = async function(req) {\n` +
       `    const __req = req || {};\n` +
@@ -220,12 +273,9 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `      if (__warning) {\n` +
       `        console.warn(__warning);\n` +
       `      }\n` +
-      `      if (typeof __status === 'number' && __status < 0) {\n` +
-      `        let err = new Error(__statusText || 'Network error');\n` +
-      `        err.status = __status;\n` +
-      `        err.statusText = __statusText;\n` +
-      `        throw err;\n` +
-      `      }\n` +
+      `      // Return network failures to the API function so outputs (and the\n` +
+      `      // tester Response panel) still receive the response; the wrapper\n` +
+      `      // marks the run failed after outputs are built.\n` +
       `      return __res;\n` +
       `    } catch (err) {\n` +
       `      if (err && err.response) {\n` +
@@ -305,6 +355,19 @@ function buildApiRunnerWrapper(opts: ApiRunnerWrapperOptions): string {
       `      return copy;\n` +
       `    })();\n` +
       `    console.log(__mmt_formatSection('Outputs:', __outputLog));\n` +
+      expectsLogBlock +
+      `    if (result && result._ && typeof result._.status === 'number' && result._.status < 0) {\n` +
+      `      let __failMsg = 'Network error';\n` +
+      `      try {\n` +
+      `        const __details = typeof result._.details === 'string' ? JSON.parse(result._.details) : null;\n` +
+      `        const __st = __details && __details.response && __details.response.statusText;\n` +
+      `        if (typeof __st === 'string' && __st) { __failMsg = __st; }\n` +
+      `      } catch (_e) {}\n` +
+      `      const err = new Error(__failMsg);\n` +
+      `      err.status = result._.status;\n` +
+      `      err.mmtApiOutputs = result;\n` +
+      `      throw err;\n` +
+      `    }\n` +
       `    return result;\n` +
       `  } finally {\n` +
       `    send_ = __mmt_originalSend;\n` +
@@ -328,6 +391,10 @@ export interface ApiLogHelpers {
   formatSection: (title: string, obj: Record<string, any>) => string;
   formatDuration: (value: unknown) => ApiLogRawValue;
   formatBodyValue: (body: unknown) => unknown;
+  valuesMatch: (actual: unknown, expected: unknown) => boolean;
+  formatExpects:
+      (actualOutputs: Record<string, any>, expectedOutputs: Record<string, any>,
+       title?: string|null) => {successLines: string[]; failLines: string[]};
 }
 
 export function createApiLogHelpers(): ApiLogHelpers {
@@ -430,33 +497,10 @@ export function createApiLogHelpers(): ApiLogHelpers {
   }
   function formatDuration(value: unknown): ApiLogRawValue {
     if (typeof value === 'number' && Number.isFinite(value)) {
-      // Inline duration formatting – this function is serialized via
-      // toString() and embedded in generated JS executed in a sandbox,
-      // so it must NOT reference any outer-scope imports.
-      const ms = value;
-      let text: string;
-      if (ms < 0) {
-        text = '0ms';
-      } else if (ms < 1000) {
-        text = `${Math.round(ms)}ms`;
-      } else if (ms < 60000) {
-        const s = Math.floor(ms / 1000);
-        const rem = Math.round(ms % 1000);
-        text = rem > 0 ? `${s}s ${rem}ms` : `${s}s`;
-      } else if (ms < 3600000) {
-        const m = Math.floor(ms / 60000);
-        const s = Math.round((ms % 60000) / 1000);
-        text = s > 0 ? `${m}m ${s}s` : `${m}m`;
-      } else if (ms < 86400000) {
-        const h = Math.floor(ms / 3600000);
-        const m = Math.round((ms % 3600000) / 60000);
-        text = m > 0 ? `${h}h ${m}m` : `${h}h`;
-      } else {
-        const d = Math.floor(ms / 86400000);
-        const h = Math.round((ms % 86400000) / 3600000);
-        text = h > 0 ? `${d}d ${h}h` : `${d}d`;
-      }
-      return raw(text);
+      // Always render as integer milliseconds so the Response log matches
+      // the API tester toolbar (e.g. "1234ms", not "1s 234ms").
+      const ms = value < 0 ? 0 : Math.round(value);
+      return raw(`${ms}ms`);
     }
     return raw('');
   }
@@ -477,6 +521,85 @@ export function createApiLogHelpers(): ApiLogHelpers {
     }
     return body;
   }
+  function unwrapForMatch(value: unknown): unknown {
+    return isRaw(value) ? value.__mmt_raw : value;
+  }
+  function valuesMatch(actual: unknown, expected: unknown): boolean {
+    const left = unwrapForMatch(actual);
+    const right = unwrapForMatch(expected);
+    if (Object.is(left, right)) {
+      return true;
+    }
+    if (left === undefined || right === undefined) {
+      return false;
+    }
+    if (left === null || right === null) {
+      return left === right;
+    }
+    if (typeof left === 'object' || typeof right === 'object') {
+      try {
+        return JSON.stringify(left) === JSON.stringify(right);
+      } catch {
+        return false;
+      }
+    }
+    return String(left) === String(right);
+  }
+  function displayExpectValue(value: unknown): string {
+    const restoreOmit = (v: unknown): unknown => {
+      if (v === '__MMT_OMIT_KEYWORD__') {
+        return 'omit';
+      }
+      if (Array.isArray(v)) {
+        return v.map(restoreOmit);
+      }
+      if (v && typeof v === 'object' && !isRaw(v)) {
+        const out: Record<string, unknown> = {};
+        for (const [k, nested] of Object.entries(v as Record<string, unknown>)) {
+          out[k] = restoreOmit(nested);
+        }
+        return out;
+      }
+      return v;
+    };
+    const normalized = restoreOmit(unwrapForMatch(value));
+    if (normalized === null || normalized === undefined) {
+      return String(normalized);
+    }
+    if (typeof normalized === 'object') {
+      try {
+        return JSON.stringify(normalized);
+      } catch {
+        return String(normalized);
+      }
+    }
+    return String(normalized);
+  }
+  function formatExpects(
+      actualOutputs: Record<string, any>,
+      expectedOutputs: Record<string, any>,
+      title?: string|null):
+      {successLines: string[]; failLines: string[]} {
+    const expected = expectedOutputs || {};
+    const actual = actualOutputs || {};
+    const titleText =
+        typeof title === 'string' && title.trim() ? title.trim() : '';
+    const titlePart = titleText ? `"${titleText}" - ` : '';
+    const successLines: string[] = [];
+    const failLines: string[] = [];
+    for (const key of Object.keys(expected)) {
+      const expectedDisplay = displayExpectValue(expected[key]);
+      const subject = key + ' == ' + expectedDisplay;
+      if (valuesMatch(actual[key], expected[key])) {
+        successLines.push('\u2713 Check ' + titlePart + '"' + subject + '"');
+      } else {
+        failLines.push(
+            '\u00D7 Check ' + titlePart + '"' + subject + '" (' +
+            displayExpectValue(actual[key]) + ' == ' + expectedDisplay + ')');
+      }
+    }
+    return {successLines, failLines};
+  }
   return {
     raw,
     isRaw,
@@ -488,7 +611,9 @@ export function createApiLogHelpers(): ApiLogHelpers {
     formatKeyValueObject,
     formatSection,
     formatDuration,
-    formatBodyValue
+    formatBodyValue,
+    valuesMatch,
+    formatExpects,
   };
 }
 
@@ -515,6 +640,7 @@ export async function executeApi(
     apiDoc,
     exampleName,
     exampleIndex,
+    exampleOutputs,
   } = prepared;
   const {fileLoader, jsRunner} = options;
 
@@ -544,11 +670,14 @@ export async function executeApi(
     fileLoader,
     exampleName,
     exampleIndex,
+    exampleOutputs,
+    checkTitle: fileDisplayName,
   });
   const result = await runGeneratedJs(
       'run-api', js, displayName, options.logger, jsRunner, undefined,
       (options as any).id, fileLoader, undefined, undefined, undefined, undefined,
-      prepared.filePath ? prepared.filePath.split(/[/\\]/).slice(0, -1).join('/') : undefined);
+      prepared.filePath ? prepared.filePath.split(/[/\\]/).slice(0, -1).join('/') : undefined,
+      undefined, undefined, undefined, 'API');
   if (preLogs.length) {
     result.logs = [...preLogs.map(l => l.message), ...(result.logs ?? [])];
   }

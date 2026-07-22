@@ -26,22 +26,19 @@ await esbuild.build({
   bundle: true,
   platform: 'node',
   target: 'node18',
-  format: 'esm',
+  format: 'cjs',
   outfile: 'dist/cli.js',
   banner: {
     js: '#!/usr/bin/env node',
   },
   plugins: [mmtCorePlugin],
-  // Keep actual npm dependencies external (not bundled)
+  // Bundle runtime deps used by mmt-core network/js execution.
   external: [
     'commander',
     'js-yaml',
-    'axios',
-    'ws',
     'yaml',
     'xml-js',
   ],
-  // Suppress dynamic require warnings (the fallback paths in resolveCoreExport)
   logOverride: {
     'unsupported-dynamic-import': 'silent',
   },

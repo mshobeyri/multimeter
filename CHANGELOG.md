@@ -2,6 +2,77 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.28.4]
+
+- Stable release of the 1.28.3 fixes (API/test temporary UI data for Send/Run, test input conflict dialog and env refresh)
+
+## [1.28.3]
+
+- Fix API Send / Run in Core ignoring temporary tester edits; right-panel runs always prefer UI data (glyphs still use the file)
+- Align test panel temporary inputs with API behavior: keep edits across env refresh, gate YAML updates behind the conflict dialog, and show save/reset for dirty inputs
+
+## [1.28.2]
+
+- Fix YAML `!` / `>` expect and check operators (`!=`, `!*`, `operator: !=`, etc.) so they parse and round-trip correctly from code and edit form
+- Preserve multi-check expect lists and plain vs explicit `==` values through form editing
+- Emit unquoted bang-operators from form serialization (e.g. `!= 201`, `operator: !=`)
+- Fix suite partial-run status handling and simplify own-id icons
+- Bring back the add example button in the API UI
+- Fix overview panel issues
+- Stop opening an empty file when clicking the activity bar icon
+
+## [1.28.1]
+
+- Improve history panel icons: red reply for failed responses, mock-server `vm-compact` backdrop matching send/recv colors, and purple WS badge
+- Move HTTP API send/response handling into core for shared run results and duration
+- Distinguish suite invalid/runtime issues (warning icon) from failed checks; assert failures abort without error popups
+- Fix failing tests and clear mmtview lint warnings
+- Update agent workflow docs
+
+## [1.28.0]
+
+- Improve API `setenv`: values use the same extraction expressions as `outputs` (paths/regex); referencing an outputs key name remains supported but is deprecated with click-to-fix
+- Fix Environment panel variable order (env-file order, then manual adds) and hide empty Presets / Variables titles
+- Report missing suite files as `invalid` (warning icon) instead of leaving them pending
+- Distinguish run outcomes in logs: check failures (`failed`) vs runtime exceptions (`has error`)
+- Fix API `envVariables is not defined` when resolving `e:` tokens during API runs
+- Improve suite run lifecycle, duplicate nested-suite handling, and webview report routing
+- Log API example expects after Outputs and improve example check UX
+- Improve API save/discard and YAML update behavior for request edits
+- Fix protocol and method selectors in the API tester
+- Show HTTP methods instead of logos in the history panel
+- Improve CLI version handling for Testlight
+
+## [1.27.4]
+
+- Add community CTAs on the no-type welcome screen (star the repo, star the extension, send feedback)
+- Add per-sample docs and demo links in the sample gallery
+- Open an empty untitled `.mmt` (gallery view) from New Multimeter File / activity bar instead of a default API template
+- Fix ESLint build warnings in the webview
+
+## [1.27.3]
+
+- Fix webview flash on initial load
+- Keep Run, Export, Reload, and related action buttons fixed below panel headers across test, suite, load test, mock, environment, document, and report views
+- Move report Export out of the title row into the shared action bar
+- Align suite tree item rows and expand chevrons consistently
+- Add a Show Preview icon and align document preview/export buttons
+
+## [1.27.2]
+
+- Fix YAML editor tokenizer issues in the `.mmt` editor
+- Add sample gallery to the welcome panel for files without a `type`
+- Improve history panel UI
+- Restore `EXTENSION.md` as the marketplace readme and update the demo GIF
+- Update extension display name to "Multimeter – API Testing platform"
+- Fix deprecated VS Code chat instruction and prompt metadata
+- Deprecate `.mmt` generation in `@multimeter` / `@mmt` chat participants; use Copilot agent mode or Cursor Agent with the Multimeter MCP server instead
+- Add fallback model selection for assistant chat requests
+
+## [1.27.1]
+
+- Fix Ctrl+Click navigation for `call:` aliases on Windows (CRLF line endings broke import alias resolution in the editor)
+
 ## [1.27.0]
 
 - Add bundled MCP server for GitHub Copilot and AI agents (`read_documentation`, `discover_api`, `validate`, `format`, `run`)

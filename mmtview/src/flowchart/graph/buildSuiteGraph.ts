@@ -8,8 +8,8 @@ export interface BuildSuiteGraphInput {
   rootTitle?: string;
   rootPath?: string;
   groups: SuiteGroup[];
-  /** Resolved hierarchy keyed by entry path. */
-  hierarchyByEntryPath?: Record<string, SuiteTreeNode | undefined>;
+  /** Resolved hierarchy keyed by entry id (position), not path. */
+  hierarchyByEntryId?: Record<string, SuiteTreeNode | undefined>;
   /** Set of missing file paths. */
   missingFiles?: Set<string>;
   /** Parsed TestData by absolute path for inlining test flows. */
@@ -58,7 +58,7 @@ export function buildSuiteGraph(input: BuildSuiteGraphInput): FlowGraph {
 
     const groupTails: string[] = [];
     for (const entry of group.entries) {
-      const hierarchy = input.hierarchyByEntryPath?.[entry.path];
+      const hierarchy = input.hierarchyByEntryId?.[entry.id];
       const tails = buildEntry(graph, ctx, entry.path, hierarchy, [groupNodeId]);
       groupTails.push(...tails);
     }

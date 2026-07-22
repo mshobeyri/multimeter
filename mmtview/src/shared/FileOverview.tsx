@@ -18,7 +18,7 @@ const FileOverview: React.FC<FileOverviewProps> = ({
   tagSuggestions = [],
 }) => {
   return (
-    <div style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
+    <div style={{ width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box', paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
       <div className="label">Title</div>
       <div style={{ padding: '5px 0' }}>
         <input
@@ -26,7 +26,7 @@ const FileOverview: React.FC<FileOverviewProps> = ({
           value={title || ''}
           onChange={(e) => onChange({ title: e.target.value || undefined })}
           placeholder="title"
-          style={{ width: '100%' }}
+          style={{ width: '100%', boxSizing: 'border-box' }}
         />
       </div>
 
@@ -40,7 +40,7 @@ const FileOverview: React.FC<FileOverviewProps> = ({
       </div>
 
       <div className="label">Description</div>
-      <div style={{ padding: '5px 0', width: '100%' }}>
+      <div style={{ padding: '5px 0', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
         <DescriptionEditor
           value={description || ''}
           onChange={(value) => onChange({ description: value || undefined })}

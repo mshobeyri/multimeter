@@ -11,13 +11,14 @@ import { StepReportItem } from '../../shared/TestStepReportPanel';
 import { useSuiteImportTree } from './useSuiteImportTree';
 import { SuiteTreeNode } from './suiteHierarchy';
 import { getSuiteHierarchy } from '../../vsAPI';
-// Suite hierarchy prefixes removed; targeting is now bundle id.
 import { resetLeafStateMap } from './leafStateReset';
+import { isUnderSuiteTarget } from './suiteRunStatus';
 import { statusIconFor } from '../../shared/Common';
 import ExportReportButton, { ReportFormat } from '../../shared/ExportReportButton';
 import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
 import { FileContext } from '../../fileContext';
 import LoadTestReport, { LoadMetricsOverview } from '../../loadtest/LoadTestReport';
+import ContextMenuHost, { runInCoreMenuItem } from '../../components/ContextMenuHost';
 
 /** Get basename from a file path. */
 function basename(p: string): string {
@@ -28,7 +29,7 @@ function basename(p: string): string {
 /** Build a map from node id to display path by combining group entries and hierarchy trees. */
 function buildDisplayNamesFromHierarchy(
     groups: SuiteGroup[],
-    hierarchyByEntryPath: Record<string, SuiteTreeNode>
+    hierarchyByEntryId: Record<string, SuiteTreeNode>
 ): Record<string, string> {
     const result: Record<string, string> = {};
 
@@ -49,7 +50,7 @@ function buildDisplayNamesFromHierarchy(
         const label = getNodeLabel(node);
         const currentPath = node.kind === 'group' ? pathParts : [...pathParts, label];
 
-        if (node.kind === 'test' || node.kind === 'missing' || node.kind === 'cycle') {
+        if (node.kind === 'test' || node.kind === 'suite' || node.kind === 'missing' || node.kind === 'cycle') {
             result[node.id] = currentPath.join(' / ');
         }
 
@@ -63,7 +64,7 @@ function buildDisplayNamesFromHierarchy(
     // First, add display names for all top-level entries from groups
     for (const group of groups) {
         for (const entry of group.entries) {
-            const hierarchy = hierarchyByEntryPath[entry.path];
+            const hierarchy = hierarchyByEntryId[entry.id];
             if (hierarchy) {
                 // Entry is a suite - use its title or filename as the base, then traverse children
                 const suiteLabel = getNodeLabel(hierarchy);
@@ -92,7 +93,7 @@ interface SuiteTestProps {
 
 export interface SuiteFlowchartState {
     groups: SuiteGroup[];
-    hierarchyByEntryPath: Record<string, SuiteTreeNode>;
+    hierarchyByEntryId: Record<string, SuiteTreeNode>;
     missingFiles: Set<string>;
     noItems: boolean;
 }
@@ -432,12 +433,13 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
 
     useSuiteImportTree(allPaths, true);
 
-    const [stepStatuses, setStepStatuses] = useState<Record<string, StepStatus | 'running'>>({});
     const [lastRunIdByEntryId, setLastRunIdByEntryId] = useState<Record<string, string>>({});
     const lastRunIdByEntryIdRef = useRef<Record<string, string>>({});
     const [missingFiles, setMissingFiles] = useState<Set<string>>(new Set());
 
     const [suiteRunId, setSuiteRunId] = useState<string | null>(null);
+    const suiteRunIdRef = useRef<string | null>(null);
+    const ignoredSuiteRunIdsRef = useRef<Set<string>>(new Set());
     const [suiteRunState, setSuiteRunState] = useState<StepStatus>('default');
     const [loadRunSummary, setLoadRunSummary] = useState<LoadRunSummary | null>(null);
     const [leafReportsById, setLeafReportsById] = useState<Record<string, StepReportItem[]>>({});
@@ -446,10 +448,31 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     const [suiteRunStartedAt, setSuiteRunStartedAt] = useState<number | null>(null);
     const [suiteRunDurationMs, setSuiteRunDurationMs] = useState<number | null>(null);
     const pendingLeafResetRef = useRef<'all' | string[] | null>(null);
-    const pendingEntriesToCancelRef = useRef<string[] | null>(null);
+    /** Partial-run target id; null means full suite run (all ids allowed). */
+    const partialRunTargetRef = useRef<string | null>(null);
     const reportQueueRef = useRef<any[]>([]);
     const reportFlushTimerRef = useRef<number | null>(null);
     const durationTimerRef = useRef<number | null>(null);
+
+    const trimIgnoredSuiteRuns = useCallback(() => {
+        if (ignoredSuiteRunIdsRef.current.size <= 10) {
+            return;
+        }
+        const first = ignoredSuiteRunIdsRef.current.values().next();
+        if (!first.done) {
+            ignoredSuiteRunIdsRef.current.delete(first.value);
+        }
+    }, []);
+
+    const beginSuiteRun = useCallback((nextSuiteRunId: string) => {
+        if (suiteRunIdRef.current) {
+            ignoredSuiteRunIdsRef.current.add(suiteRunIdRef.current);
+            trimIgnoredSuiteRuns();
+        }
+        suiteRunIdRef.current = nextSuiteRunId;
+        setSuiteRunId(nextSuiteRunId);
+        reportQueueRef.current = [];
+    }, [trimIgnoredSuiteRuns]);
 
     const resetLeafState = useCallback((mode: 'all' | readonly string[]) => {
         if (mode === 'all') {
@@ -477,28 +500,17 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
 
         const queuedReports = [...queued];
         const runIdToEntryId: Record<string, string> = {};
-
         Object.entries(lastRunIdByEntryIdRef.current).forEach(([entryId, runId]) => {
             if (runId) {
                 runIdToEntryId[runId] = entryId;
             }
         });
+        const allowed = (id: string | null | undefined) =>
+            isUnderSuiteTarget(partialRunTargetRef.current, id);
 
+        // suite-item events carry id + runId; map runId → id for later test-step routing.
         queuedReports.forEach((message: any) => {
             const runId = typeof message.runId === 'string' ? message.runId : null;
-            const groupIndex = message.groupIndex;
-            const groupItemIndex = message.groupItemIndex;
-            if (runId && typeof groupIndex === 'number' && typeof groupItemIndex === 'number') {
-                const group = groups[groupIndex];
-                const entry = group?.entries?.[groupItemIndex];
-                if (entry?.id) {
-                    runIdToEntryId[runId] = entry.id;
-                }
-            }
-            // For bundle-based suite runs, suite-item events carry both id
-            // and runId directly. Use these to build the mapping so that
-            // subsequent test-step events (which may only have runId) can
-            // be routed to the correct tree leaf.
             if (runId && typeof message.id === 'string' && message.id && message.scope === 'suite-item') {
                 runIdToEntryId[runId] = message.id;
             }
@@ -508,17 +520,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             const next = { ...prev };
             queuedReports.forEach((message: any) => {
                 const runId = typeof message.runId === 'string' ? message.runId : null;
-                const groupIndex = message.groupIndex;
-                const groupItemIndex = message.groupItemIndex;
-                if (runId && typeof groupIndex === 'number' && typeof groupItemIndex === 'number') {
-                    const group = groups[groupIndex];
-                    const entry = group?.entries?.[groupItemIndex];
-                    if (entry?.id) {
-                        next[entry.id] = runId;
-                    }
-                }
-                // Also register the mapping for bundle-based suite-item events
-                // which carry id directly instead of groupIndex/groupItemIndex.
                 if (runId && typeof message.id === 'string' && message.id && message.scope === 'suite-item') {
                     next[message.id] = runId;
                 }
@@ -526,68 +527,44 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             return next;
         });
 
-        setStepStatuses(prev => {
-            const next = { ...prev };
-            queuedReports.forEach((message: any) => {
-                const runId = typeof message.runId === 'string' ? message.runId : null;
-                const groupIndex = message.groupIndex;
-                const groupItemIndex = message.groupItemIndex;
-                // test-step-run events use 'result' not 'status' or 'success'.
-                const nextStatus: StepStatus | 'running' =
-                    message.status ||
-                    (typeof message.result === 'string' ? message.result : null) ||
-                    (typeof message.success === 'boolean' ? (message.success ? 'passed' : 'failed') : null) ||
-                    'failed';
-
-                if (runId) {
-                    next[runId] = nextStatus;
-                    return;
-                }
-
-                if (typeof groupIndex === 'number' && typeof groupItemIndex === 'number') {
-                    const group = groups[groupIndex];
-                    const entry = group?.entries?.[groupItemIndex];
-                    if (entry?.id) {
-                        next[entry.id] = nextStatus;
-                    }
-                }
-            });
-            return next;
-        });
-
         setLeafRunStateById(prev => {
             const next = { ...prev };
+            let changed = false;
             queuedReports.forEach((message: any) => {
                 const runId = typeof message.runId === 'string' ? message.runId : null;
                 const reportedId = typeof message.id === 'string' ? message.id : null;
                 const targetId = reportedId || (runId ? runIdToEntryId[runId] : null);
-                if (!targetId) {
+                if (!targetId || !allowed(targetId)) {
                     return;
                 }
                 const scope = typeof message.scope === 'string' ? message.scope : '';
-                const nextStatus: StepStatus | 'running' = message.status || (message.success ? 'passed' : 'failed');
-
-                if (scope === 'suite-item' && nextStatus === 'running') {
-                    next[targetId] = 'running';
-                }
-                if (scope === 'suite-item' && (nextStatus === 'passed' || nextStatus === 'failed' || nextStatus === 'invalid')) {
-                    next[targetId] = nextStatus;
+                if (scope === 'suite-item') {
+                    const status = message.status as StepStatus | undefined;
+                    if (status === 'running' || status === 'passed' || status === 'failed' || status === 'invalid' || status === 'cancelled') {
+                        next[targetId] = status;
+                        changed = true;
+                    }
+                    return;
                 }
                 if (scope === 'test-step-run' && message.success === false) {
                     next[targetId] = 'failed';
+                    changed = true;
                 }
             });
-            return next;
+            return changed ? next : prev;
         });
 
         setLeafReportsById(prev => {
             const next = { ...prev };
+            let changed = false;
             queuedReports.forEach((message: any) => {
+                if (message.scope !== 'test-step') {
+                    return;
+                }
                 const runId = typeof message.runId === 'string' ? message.runId : null;
                 const reportedId = typeof message.id === 'string' ? message.id : null;
                 const targetId = reportedId || (runId ? runIdToEntryId[runId] : null);
-                const scope = typeof message.scope === 'string' ? message.scope : '';
-                if (!targetId || scope !== 'test-step') {
+                if (!targetId || !allowed(targetId)) {
                     return;
                 }
                 const normalized: StepReportItem = {
@@ -599,22 +576,49 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     expects: Array.isArray(message.expects) ? message.expects : [],
                     timestamp: typeof message.timestamp === 'number' ? message.timestamp : Date.now(),
                 };
-                const existing = next[targetId] || [];
-                next[targetId] = [...existing, normalized];
-
+                next[targetId] = [...(next[targetId] || []), normalized];
+                changed = true;
                 if (normalized.status === 'failed') {
                     setLeafRunStateById(state => ({ ...state, [targetId]: 'failed' }));
                 }
             });
-            return next;
+            return changed ? next : prev;
         });
-    }, [groups]);
+    }, []);
 
-    const [hierarchyByEntryPath, setHierarchyByEntryPath] = useState<Record<string, SuiteTreeNode>>({});
+    const [hierarchyByEntryId, setHierarchyByEntryId] = useState<Record<string, SuiteTreeNode>>({});
+
+    const hierarchyMissingPaths = useMemo(() => {
+        const missing = new Set<string>();
+        const walk = (node: any) => {
+            if (!node || typeof node !== 'object') {
+                return;
+            }
+            if (node.kind === 'missing' && typeof node.path === 'string' && node.path) {
+                missing.add(node.path);
+            }
+            if (Array.isArray(node.children)) {
+                for (const child of node.children) {
+                    walk(child);
+                }
+            }
+        };
+        Object.values(hierarchyByEntryId).forEach(walk);
+        return missing;
+    }, [hierarchyByEntryId]);
+
+    const effectiveMissingFiles = useMemo(() => {
+        if (hierarchyMissingPaths.size === 0) {
+            return missingFiles;
+        }
+        const merged = new Set(missingFiles);
+        hierarchyMissingPaths.forEach((path) => merged.add(path));
+        return merged;
+    }, [missingFiles, hierarchyMissingPaths]);
 
     useEffect(() => {
-        onFlowchartStateChange?.({ groups, hierarchyByEntryPath, missingFiles, noItems });
-    }, [groups, hierarchyByEntryPath, missingFiles, noItems, onFlowchartStateChange]);
+        onFlowchartStateChange?.({ groups, hierarchyByEntryId, missingFiles: effectiveMissingFiles, noItems });
+    }, [groups, hierarchyByEntryId, effectiveMissingFiles, noItems, onFlowchartStateChange]);
 
     useEffect(() => {
         let cancelled = false;
@@ -626,7 +630,9 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                         const res = await getSuiteHierarchy(entry.path, entry.id);
                         const tree = res?.tree;
                         if (tree && typeof tree === 'object') {
-                            result[entry.path] = tree;
+                            // Key by entry id (position), not path — duplicate
+                            // items like two `suite1.mmt` rows must keep independent trees.
+                            result[entry.id] = tree;
                         }
                     } catch {
                         // Ignore; tree will treat it as non-suite.
@@ -634,7 +640,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 }
             }
             if (!cancelled) {
-                setHierarchyByEntryPath(result as any);
+                setHierarchyByEntryId(result as any);
             }
         };
         run();
@@ -644,12 +650,12 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     }, [groups]);
 
     useEffect(() => {
-        setStepStatuses({});
         setSuiteRunId(null);
         setSuiteRunState('default');
         setLoadRunSummary(null);
         setSuiteRunStartedAt(null);
         pendingLeafResetRef.current = null;
+        partialRunTargetRef.current = null;
         reportQueueRef.current = [];
         resetLeafState('all');
     }, [content, resetLeafState]);
@@ -702,6 +708,18 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 if (!nextSuiteRunId) {
                     return;
                 }
+                if (ignoredSuiteRunIdsRef.current.has(nextSuiteRunId)) {
+                    return;
+                }
+                // Accept start for the active run, or adopt it if the UI has not
+                // bound a suiteRunId yet (e.g. host-generated id).
+                if (suiteRunIdRef.current && suiteRunIdRef.current !== nextSuiteRunId) {
+                    ignoredSuiteRunIdsRef.current.add(suiteRunIdRef.current);
+                    trimIgnoredSuiteRuns();
+                    suiteRunIdRef.current = nextSuiteRunId;
+                } else if (!suiteRunIdRef.current) {
+                    suiteRunIdRef.current = nextSuiteRunId;
+                }
                 reportQueueRef.current = [];
                 // New suite run: clear per-run mappings so old runIds can't
                 // influence routing or step sequences.
@@ -729,21 +747,44 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
 
             if (message.command === 'suiteRunEnd') {
                 const endedId = typeof message.suiteRunId === 'string' ? message.suiteRunId : null;
-                if (endedId && suiteRunId && endedId !== suiteRunId) {
+                if (endedId && ignoredSuiteRunIdsRef.current.has(endedId)) {
+                    return;
+                }
+                if (endedId && suiteRunIdRef.current && endedId !== suiteRunIdRef.current) {
                     return;
                 }
                 const cancelled = Boolean((message as any).cancelled);
                 flushReportQueue();
-                // Derive pass/fail from the current leaf statuses
+                // Clear stuck "running" on own nodes only (no child→parent rollup).
+                setLeafRunStateById((prev) => {
+                    const next = { ...prev };
+                    let changed = false;
+                    Object.keys(next).forEach((id) => {
+                        if (next[id] !== 'running') {
+                            return;
+                        }
+                        if (!isUnderSuiteTarget(partialRunTargetRef.current, id)) {
+                            return;
+                        }
+                        next[id] = cancelled ? 'cancelled' : 'failed';
+                        changed = true;
+                    });
+                    return changed ? next : prev;
+                });
+                partialRunTargetRef.current = null;
                 if (cancelled) {
                     setSuiteRunState('cancelled');
                 } else if (mode === 'loadtest' && typeof (message as any).success === 'boolean') {
                     setSuiteRunState((message as any).success ? 'passed' : 'failed');
                 } else {
-                    setStepStatuses(prev => {
+                    setLeafRunStateById((prev) => {
                         const vals = Object.values(prev);
                         const hasFailed = vals.some(v => v === 'failed');
-                        setSuiteRunState(hasFailed ? 'failed' : 'passed');
+                        const hasInvalid = vals.some(v => v === 'invalid');
+                        setSuiteRunState(
+                            hasFailed ? 'failed' :
+                            hasInvalid ? 'invalid' :
+                            'passed');
                         return prev;
                     });
                 }
@@ -759,61 +800,37 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
 
             if (message.command === 'suiteRunStopped') {
                 const stoppedId = typeof message.suiteRunId === 'string' ? message.suiteRunId : null;
-                if (stoppedId && suiteRunId && stoppedId !== suiteRunId) {
+                if (stoppedId && ignoredSuiteRunIdsRef.current.has(stoppedId)) {
+                    return;
+                }
+                if (stoppedId && suiteRunIdRef.current && stoppedId !== suiteRunIdRef.current) {
                     return;
                 }
                 setSuiteRunState('cancelled');
-
-                // Mark currently running leaves as cancelled
                 setLeafRunStateById((prev) => {
                     const next: typeof prev = { ...prev };
                     Object.keys(next).forEach((k) => {
-                        if (next[k] === 'running') {
+                        if (next[k] === 'running' || next[k] === 'pending') {
                             next[k] = 'cancelled';
                         }
                     });
                     return next;
                 });
-                // Also mark pending step statuses (UI-created) as cancelled and
-                // mark their corresponding leaf states cancelled so the UI updates.
-                setStepStatuses((prev) => {
-                    const next: Record<string, StepStatus | 'running'> = { ...prev };
-                    const pendingIds: string[] = [];
-                    Object.keys(next).forEach((k) => {
-                        if (next[k] === 'pending') {
-                            next[k] = 'cancelled';
-                            pendingIds.push(k);
-                        }
-                    });
-                    pendingEntriesToCancelRef.current = pendingIds;
-                    return next;
-                });
-
-                setLeafRunStateById((prev) => {
-                    const next: typeof prev = { ...prev };
-                    const pendingIds = pendingEntriesToCancelRef.current;
-                    if (Array.isArray(pendingIds) && pendingIds.length) {
-                        // Pending ids can be both top-level entry ids and imported
-                        // suite/test ids. Mark them directly.
-                        pendingIds.forEach((id) => {
-                            if (typeof id === 'string' && id) {
-                                next[id] = 'cancelled';
-                            }
-                        });
-                    }
-                    pendingEntriesToCancelRef.current = null;
-                    return next;
-                });
+                partialRunTargetRef.current = null;
                 flushReportQueue();
                 return;
             }
 
             if (message.command === 'runFileReport') {
                 const incomingSuiteRunId = typeof (message as any).suiteRunId === 'string' ? (message as any).suiteRunId : null;
-                if (suiteRunId) {
+                if (incomingSuiteRunId && ignoredSuiteRunIdsRef.current.has(incomingSuiteRunId)) {
+                    return;
+                }
+                const activeId = suiteRunIdRef.current;
+                if (activeId) {
                     // When the UI thinks we have an active suite run, only accept
                     // reports explicitly tagged with the same suiteRunId.
-                    if (!incomingSuiteRunId || incomingSuiteRunId !== suiteRunId) {
+                    if (!incomingSuiteRunId || incomingSuiteRunId !== activeId) {
                         return;
                     }
                 } else {
@@ -836,7 +853,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         };
         window.addEventListener('message', handler);
         return () => window.removeEventListener('message', handler);
-    }, [groups, suiteRunId, resetLeafState, flushReportQueue, mode]);
+    }, [groups, resetLeafState, flushReportQueue, mode, trimIgnoredSuiteRuns]);
 
     useEffect(() => {
         if (allPaths.length > 0) {
@@ -847,49 +864,31 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     }, [allPaths]);
 
     const onRunSuite = useCallback(() => {
-        const next: Record<string, StepStatus> = {};
-        const collectDescendantIds = (root: any, out: string[]) => {
-            if (!root) return;
-            const stack = [root];
-            while (stack.length) {
-                const node = stack.pop();
-                if (!node || typeof node !== 'object') continue;
-                if (typeof node.id === 'string' && node.id) {
-                    out.push(node.id);
-                }
-                if (Array.isArray(node.children) && node.children.length) {
-                    for (let i = 0; i < node.children.length; i++) stack.push(node.children[i]);
-                }
-            }
-        };
-        groups.forEach((group) =>
-            group.entries.forEach((entry) => {
-                // mark the top-level entry id
-                next[entry.id] = 'pending';
-                const root = hierarchyByEntryPath[entry.path] as any;
-                if (root && typeof root === 'object') {
-                    const ids: string[] = [];
-                    // children under root are the imported nodes
-                    collectDescendantIds(root, ids);
-                    ids.forEach((id) => {
-                        // avoid overwriting stronger existing markers
-                        next[id] = 'pending';
-                    });
-                }
-            })
-        );
-        setStepStatuses(next);
         const nextSuiteRunId = `suite-ui:${Date.now()}`;
         const startedAt = Date.now();
-        setSuiteRunId(nextSuiteRunId);
+        beginSuiteRun(nextSuiteRunId);
         setSuiteRunState('running');
         suiteRunStartTimeRef.current = startedAt;
         setSuiteRunStartedAt(startedAt);
         setSuiteRunDurationMs(0);
         pendingLeafResetRef.current = 'all';
-        resetLeafState('all');
+        partialRunTargetRef.current = null;
+        setLeafReportsById({});
+        // Mark top-level entries/groups pending until their own suite-item arrives.
+        setLeafRunStateById(() => {
+            const next: Record<string, StepStatus> = {};
+            groups.forEach((group, gi) => {
+                next[createSuiteNodeId([gi])] = 'pending';
+                group.entries.forEach((entry) => {
+                    if (entry?.id) {
+                        next[entry.id] = 'pending';
+                    }
+                });
+            });
+            return next;
+        });
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId });
-    }, [groups, resetLeafState, hierarchyByEntryPath]);
+    }, [groups, beginSuiteRun]);
 
     const onRunTargets = useCallback((target: string) => {
         const effectiveTarget = typeof target === 'string' ? target : '';
@@ -897,60 +896,45 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             return;
         }
 
-        // For bundle runs we can't pre-mark by gi/ei.
-        // Mark the target and any descendant bundle ids as pending so the UI shows progress.
-        const pendingMap: Record<string, StepStatus> = {};
-        const collectDescendantIds = (node: any, out: string[]) => {
-            if (!node) return;
-            const stack = [node];
-            while (stack.length) {
-                const n = stack.pop();
-                if (!n || typeof n !== 'object') continue;
-                if (typeof n.id === 'string' && n.id) out.push(n.id);
-                if (Array.isArray(n.children) && n.children.length) stack.push(...n.children);
-            }
-        };
-
-        // Try to find the node matching effectiveTarget inside each hierarchy tree.
-        let found = false;
-        for (const p of Object.keys(hierarchyByEntryPath)) {
-            const root = (hierarchyByEntryPath as any)[p];
-            if (!root) continue;
-            const stack = [root];
-            while (stack.length) {
-                const n = stack.pop();
-                if (!n || typeof n !== 'object') continue;
-                if (n.id === effectiveTarget) {
-                    found = true;
-                    const ids: string[] = [];
-                    collectDescendantIds(n, ids);
-                    ids.forEach((id) => (pendingMap[id] = 'pending'));
-                    break;
-                }
-                if (Array.isArray(n.children) && n.children.length) stack.push(...n.children);
-            }
-            if (found) break;
-        }
-
-        // If not found in hierarchies, still mark the effectiveTarget itself
-        if (!found) {
-            pendingMap[effectiveTarget] = 'pending';
-        }
-
-        setStepStatuses((prev) => ({ ...prev, ...pendingMap }));
-
         pendingLeafResetRef.current = [effectiveTarget];
-        resetLeafState([effectiveTarget]);
+        // Prefix allowlist: target + descendants (suite-node:1.1 → suite-node:1.1.*).
+        partialRunTargetRef.current = effectiveTarget;
+        setLeafReportsById((prev) => resetLeafStateMap(prev, [effectiveTarget]));
+        setLeafRunStateById((prev) => ({
+            ...resetLeafStateMap(prev, [effectiveTarget]),
+            [effectiveTarget]: 'pending',
+        }));
 
         const nextSuiteRunId = `suite-ui:${Date.now()}`;
         const startedAt = Date.now();
-        setSuiteRunId(nextSuiteRunId);
+        beginSuiteRun(nextSuiteRunId);
         setSuiteRunState('running');
         suiteRunStartTimeRef.current = startedAt;
         setSuiteRunStartedAt(startedAt);
         setSuiteRunDurationMs(0);
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId, target: effectiveTarget });
-    }, [resetLeafState, hierarchyByEntryPath]);
+    }, [beginSuiteRun]);
+
+    const onRunSuiteInCore = useCallback(() => {
+        window.vscode?.postMessage({
+            command: 'runSuite',
+            suiteRunId: `suite-logs:${Date.now()}`,
+            report: { type: 'lifecycle' },
+        });
+    }, []);
+
+    const onRunTargetsInCore = useCallback((target: string) => {
+        const effectiveTarget = typeof target === 'string' ? target : '';
+        if (!effectiveTarget) {
+            return;
+        }
+        window.vscode?.postMessage({
+            command: 'runSuite',
+            suiteRunId: `suite-logs:${Date.now()}`,
+            target: effectiveTarget,
+            report: { type: 'lifecycle' },
+        });
+    }, []);
 
     const onStopSuite = useCallback(() => {
         if (!suiteRunId) {
@@ -960,8 +944,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     }, [suiteRunId]);
 
     const displayNameById = useMemo(() => {
-        return buildDisplayNamesFromHierarchy(groups, hierarchyByEntryPath);
-    }, [groups, hierarchyByEntryPath]);
+        return buildDisplayNamesFromHierarchy(groups, hierarchyByEntryId);
+    }, [groups, hierarchyByEntryId]);
 
     const handleExportReport = useCallback((format: ReportFormat) => {
         window.vscode?.postMessage({
@@ -971,7 +955,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 type: mode === 'loadtest' ? 'loadtest' : 'suite',
                 leafReportsById,
                 leafRunStateById,
-                stepStatuses,
                 suiteRunState,
                 startedAt: suiteRunStartedAt,
                 durationMs: suiteRunDurationMs,
@@ -983,7 +966,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                     : undefined,
             },
         });
-    }, [leafReportsById, leafRunStateById, stepStatuses, suiteRunState, suiteRunStartedAt, suiteRunDurationMs, displayNameById, suiteTitle, mmtFilePath, mode, loadConfig, groups, loadRunSummary]);
+    }, [leafReportsById, leafRunStateById, suiteRunState, suiteRunStartedAt, suiteRunDurationMs, displayNameById, suiteTitle, mmtFilePath, mode, loadConfig, groups, loadRunSummary]);
 
     const suiteExportDisabled = suiteRunState === 'running' || (mode === 'loadtest' ? !loadRunSummary : Object.keys(leafReportsById).length === 0);
     const runLabel = mode === 'loadtest' ? 'Run load test' : 'Run suite';
@@ -1032,54 +1015,49 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     const tree = (
         <SuiteTestTree
             groups={groups}
-            hierarchyByEntryPath={hierarchyByEntryPath}
-            missingFiles={missingFiles}
-            stepStatuses={stepStatuses}
-            lastRunIdByEntryId={lastRunIdByEntryId}
+            hierarchyByEntryId={hierarchyByEntryId}
+            missingFiles={effectiveMissingFiles}
             statusIconFor={statusIconFor}
             reportsById={leafReportsById}
             runStateById={leafRunStateById}
             onRunTargets={onRunTargets}
+            onRunTargetsInCore={onRunTargetsInCore}
         />
     );
 
     return (
-        <div style={{ overflow: 'auto', flex: 1, width: '100%' }}>
-            <div className="test-flow-tree" style={{ paddingTop: 4 }}>
-                <div
-                    style={{
-                        display: 'flex',
-                        justifyContent: 'flex-end',
-                        marginBottom: 8,
-                        alignItems: 'center',
-                        position: 'relative',
-                        gap: 8,
-                    }}
-                >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8}}>
-                        {suiteRunState === 'running' ? (
-                            <button
-                                className="button-icon"
-                                onClick={onStopSuite}
-                                title={stopLabel}
-                            >
-                                <span className="codicon codicon-debug-stop" aria-hidden />
-                                Stop
-                            </button>
-                        ) : (
-                            <button
-                                className="button-icon"
-                                disabled={!canRun}
-                                onClick={onRunSuite}
-                                title={!canRun ? (mode === 'loadtest' ? 'No test file to run' : 'No suite files to run') : runLabel}
-                            >
-                                <span className="codicon codicon-run" aria-hidden />
-                                {runLabel}
-                            </button>
-                        )}
-                        <ExportReportButton disabled={suiteExportDisabled} onExport={handleExportReport} />
-                    </div>
-                </div>
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
+            <div className="run-action-bar">
+                {suiteRunState === 'running' ? (
+                    <button
+                        className="button-icon"
+                        onClick={onStopSuite}
+                        title={stopLabel}
+                        type="button"
+                    >
+                        <span className="codicon codicon-debug-stop" aria-hidden />
+                        Stop
+                    </button>
+                ) : (
+                    <ContextMenuHost
+                        items={canRun ? [runInCoreMenuItem(onRunSuiteInCore)] : undefined}
+                    >
+                        <button
+                            className="button-icon"
+                            disabled={!canRun}
+                            onClick={onRunSuite}
+                            title={!canRun ? (mode === 'loadtest' ? 'No test file to run' : 'No suite files to run') : runLabel}
+                            type="button"
+                        >
+                            <span className="codicon codicon-run" aria-hidden />
+                            {runLabel}
+                        </button>
+                    </ContextMenuHost>
+                )}
+                <ExportReportButton disabled={suiteExportDisabled} onExport={handleExportReport} />
+            </div>
+            <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
+            <div className="test-flow-tree">
                 {noItems ? <div style={{ opacity: 0.8 }}>{mode === 'loadtest' ? 'No test file found under `test:`' : 'No suite items found under `items:`'}</div> : (
                     <>
                         {mode === 'loadtest'
@@ -1210,6 +1188,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                         )}
                     </>
                 )}
+            </div>
             </div>
         </div>
     );

@@ -2,16 +2,11 @@
 .vscode/**
 .vscode-test/**
 
-# Folders]
+# Folders
 bin/
 docs/
 src/
-core/src/
-core/scripts/
-core/tsconfig.json
-core/package.json
-core/package-lock.json
-mmtview/src/
+core/**
 mmtcli/
 out/
 examples/
@@ -21,15 +16,16 @@ demos/
 playwright-demo/
 AI/
 .github/
+.cursor-plugin/**
 
-# Webview build artifacts (not needed in the vsix)
-mmtview/node_modules/**
-mmtview/package-lock.json
-mmtview/yarn.lock
-mmtview/.eslintrc*
-mmtview/tsconfig.json
-mmtview/webpack.config.js
-mmtview/craco.config.js
+# Webview sources (runtime uses mmtview/build only)
+mmtview/**
+!mmtview/build/**
+
+# Vendor copies under dist/ (extension uses dist/extension.js + dist/mcp)
+dist/core/**
+dist/mmtview/**
+dist/extension.js.map
 
 # Test folders
 **/test/**
@@ -42,6 +38,11 @@ node_modules/**
 **/node_modules/**
 # MCP server runtime deps live under dist/mcp/node_modules (not bundled)
 !dist/mcp/node_modules/**
+dist/mcp/node_modules/**/*.md
+dist/mcp/node_modules/**/*.d.ts
+dist/mcp/node_modules/**/src/**
+dist/mcp/node_modules/**/test/**
+dist/mcp/node_modules/**/tests/**
 
 # MCP build sources (shipped artifact is dist/mcp/)
 mmtmcp/**
@@ -49,12 +50,10 @@ mmtmcp/**
 # Local Cursor MCP config (not for VS Code extension users)
 .cursor/**
 
-# Exclude CLI workspace from VSIX (not needed for the extension runtime)
-mmtcli/**
-
 # Git & dev files
 .gitignore
 .gitattributes
+.dockerignore
 **/.git
 **/.DS_Store
 *.code-workspace
@@ -121,9 +120,16 @@ coverage/
 **/*.js.map
 
 # Docs & design assets
+README.md
+readme.md
+EXTENSION.md
+CONTRIBUTING.md
 README.dev.md
 CHANGELOG.dev.md
 COPILOT.md
+
+# Marketplace/demo assets not needed at runtime
+res/api.gif
 
 # Ignore packaged archives
 **/*.vsix

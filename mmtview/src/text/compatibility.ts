@@ -1,10 +1,18 @@
 import {offsetToLineNumber} from './validator';
+import {findLegacySetenvOutputRefs} from 'mmt-core/setenvResolve';
 
-export type CompatibilityFix = {
-  kind: 'renameYamlKey';
-  from: string;
-  to: string;
-};
+export type CompatibilityFix =
+  | {
+      kind: 'renameYamlKey';
+      from: string;
+      to: string;
+    }
+  | {
+      kind: 'replaceRange';
+      startOffset: number;
+      endOffset: number;
+      text: string;
+    };
 
 export type CompatibilityIssue = {
   id: string;
@@ -47,6 +55,11 @@ function findRootYamlKey(content: string, yamlDoc: any, key: string): {line: num
   return {line, column, endColumn: column + keyText.length};
 }
 
+function findRootMapPair(yamlDoc: any, key: string): any | null {
+  const rootItems: any[] = Array.isArray(yamlDoc?.contents?.items) ? yamlDoc.contents.items : [];
+  return rootItems.find((item) => item?.key?.value === key) ?? null;
+}
+
 function findSuiteTestsDeprecatedIssue(content: string, yamlDoc: any): CompatibilityIssue | null {
   if (!yamlDoc || yamlDoc.errors?.length) {
     return null;
@@ -70,6 +83,79 @@ function findSuiteTestsDeprecatedIssue(content: string, yamlDoc: any): Compatibi
   };
 }
 
+function findApiSetenvLegacyOutputRefIssues(content: string, yamlDoc: any): CompatibilityIssue[] {
+  if (!yamlDoc || yamlDoc.errors?.length) {
+    return [];
+  }
+
+  const outputsPair = findRootMapPair(yamlDoc, 'outputs');
+  const setenvPair = findRootMapPair(yamlDoc, 'setenv');
+  if (!outputsPair?.value?.items || !setenvPair?.value?.items) {
+    return [];
+  }
+
+  const outputs: Record<string, string> = {};
+  for (const item of outputsPair.value.items) {
+    const key = item?.key?.value;
+    const value = item?.value?.value;
+    if (typeof key === 'string' && typeof value === 'string') {
+      outputs[key] = value;
+    }
+  }
+
+  const legacyRefs = findLegacySetenvOutputRefs(
+      Object.fromEntries(
+          (setenvPair.value.items as any[])
+              .filter((item) => typeof item?.key?.value === 'string' && typeof item?.value?.value === 'string')
+              .map((item) => [item.key.value, item.value.value])),
+      outputs);
+
+  if (legacyRefs.length === 0) {
+    return [];
+  }
+
+  const refsByEnvKey = new Map(legacyRefs.map((ref) => [ref.envKey, ref]));
+  const issues: CompatibilityIssue[] = [];
+
+  for (const item of setenvPair.value.items) {
+    const envKey = item?.key?.value;
+    const outputKey = item?.value?.value;
+    if (typeof envKey !== 'string' || typeof outputKey !== 'string') {
+      continue;
+    }
+    const legacy = refsByEnvKey.get(envKey);
+    if (!legacy || legacy.outputKey !== outputKey) {
+      continue;
+    }
+
+    const valueNode = item.value;
+    const range = Array.isArray(valueNode?.range) ? valueNode.range : null;
+    if (!range || typeof range[0] !== 'number' || typeof range[1] !== 'number') {
+      continue;
+    }
+    const startOffset = range[0];
+    const endOffset = range[1];
+    const line = offsetToLineNumber(content, startOffset);
+    const column = offsetToColumn(content, startOffset);
+    issues.push({
+      id: `api-setenv-output-key:${envKey}`,
+      message:
+          `\`setenv\` value \`${outputKey}\` is deprecated. Use an extraction expression like outputs (e.g. \`${legacy.expression}\`)`,
+      line,
+      column,
+      endColumn: column + Math.max(1, endOffset - startOffset),
+      applyFix: {
+        kind: 'replaceRange',
+        startOffset,
+        endOffset,
+        text: legacy.expression,
+      },
+    });
+  }
+
+  return issues;
+}
+
 export function findCompatibilityIssues(content: string, yamlDoc: any, docType: string | null): CompatibilityIssue[] {
   if (!docType || !yamlDoc || yamlDoc.errors?.length) {
     return [];
@@ -80,6 +166,9 @@ export function findCompatibilityIssues(content: string, yamlDoc: any, docType: 
     if (suiteIssue) {
       issues.push(suiteIssue);
     }
+  }
+  if (docType === 'api') {
+    issues.push(...findApiSetenvLegacyOutputRefIssues(content, yamlDoc));
   }
   return issues;
 }
@@ -137,6 +226,12 @@ export function applyRenameYamlKeyOnLine(lineText: string, from: string, to: str
 }
 
 export function applyCompatibilityFix(content: string, fix: CompatibilityFix, line: number): string | null {
+  if (fix.kind === 'replaceRange') {
+    if (fix.startOffset < 0 || fix.endOffset < fix.startOffset || fix.endOffset > content.length) {
+      return null;
+    }
+    return content.slice(0, fix.startOffset) + fix.text + content.slice(fix.endOffset);
+  }
   if (fix.kind !== 'renameYamlKey') {
     return null;
   }
@@ -146,7 +241,7 @@ export function applyCompatibilityFix(content: string, fix: CompatibilityFix, li
     return null;
   }
   const nextLine = applyRenameYamlKeyOnLine(lines[index], fix.from, fix.to);
-  if (nextLine == null) {
+  if (nextLine === null || nextLine === undefined) {
     return null;
   }
   lines[index] = nextLine;

@@ -12,6 +12,7 @@ const osFilePickerRejecters: Map<string, (err: any) => void> = new Map();
 
 const suiteHierarchyResolvers: Map<string, (value: any) => void> = new Map();
 const suiteHierarchyRejecters: Map<string, (err: any) => void> = new Map();
+const modalDialogResolvers: Map<string, (choice: string|undefined) => void> = new Map();
 
 // Add the event listener only once
 if (typeof window !== 'undefined' &&
@@ -85,6 +86,13 @@ if (typeof window !== 'undefined' &&
           resolve(message);
         }
       }
+    } else if (message.command === 'modalDialogResult') {
+      const id = message?.requestId;
+      if (id && modalDialogResolvers.has(id)) {
+        const resolve = modalDialogResolvers.get(id)!;
+        modalDialogResolvers.delete(id);
+        resolve(typeof message.choice === 'string' ? message.choice : undefined);
+      }
     }
   });
   (window as any).__fileContentListenerAdded = true;
@@ -120,6 +128,58 @@ export function showVSCodeMessage(level: LogLevel, message: string) {
     level,
     message,
   });
+}
+
+export type YamlUiConflictChoice = 'ui-to-yaml' | 'yaml-to-ui' | 'cancel';
+
+/** Native VS Code modal dialog; returns the clicked button label, or undefined if dismissed. */
+export function showVSCodeModalDialog(options: {
+  level?: 'warning'|'info'|'error';
+  message: string;
+  detail?: string;
+  buttons: string[];
+}): Promise<string|undefined> {
+  const requestId =
+      `modal-dialog-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+  return new Promise((resolve) => {
+    modalDialogResolvers.set(requestId, resolve);
+    window.vscode?.postMessage({
+      command: 'showModalDialog',
+      requestId,
+      level: options.level || 'warning',
+      message: options.message,
+      detail: options.detail,
+      buttons: options.buttons,
+    });
+    setTimeout(() => {
+      if (modalDialogResolvers.has(requestId)) {
+        modalDialogResolvers.delete(requestId);
+        resolve(undefined);
+      }
+    }, 10 * 60 * 1000);
+  });
+}
+
+export async function showYamlUiConflictDialog(
+    modifiedFieldsLabel: string,
+    surface: 'API tester' | 'test' = 'API tester'): Promise<YamlUiConflictChoice> {
+  const fields = modifiedFieldsLabel ? ` (${modifiedFieldsLabel})` : '';
+  const surfaceLabel = surface === 'test' ? 'test inputs UI' : 'API tester UI';
+  const choice = await showVSCodeModalDialog({
+    level: 'warning',
+    message: 'YAML conflicts with UI edits',
+    detail:
+        `You changed the ${surfaceLabel}${fields}. Applying this YAML update would discard those UI edits.\n\nHow do you want to continue?`,
+    // Modal dialogs already provide a system Cancel / Escape dismiss.
+    buttons: ['Reset UI to YAML', 'Reset YAML to UI'],
+  });
+  if (choice === 'Reset UI to YAML') {
+    return 'ui-to-yaml';
+  }
+  if (choice === 'Reset YAML to UI') {
+    return 'yaml-to-ui';
+  }
+  return 'cancel';
 }
 
 export function logToOutput(level: LogLevel, message: string) {
@@ -243,6 +303,14 @@ duration?: number
 
   export function openRelativeFile(filename: string, fragment?: string, newTab?: boolean) {
     window.vscode?.postMessage({command: 'openRelativeFile', filename: normalizeOpenFilePath(filename), fragment, newTab});
+  }
+
+  export function openExternalUrl(url: string) {
+    const trimmed = (url || '').trim();
+    if (!trimmed) {
+      return;
+    }
+    window.vscode?.postMessage({command: 'openExternalUrl', url: trimmed});
   }
 
 function normalizeOpenFilePath(filename: string): string {

@@ -10,17 +10,41 @@ import { Request } from "mmt-core/NetworkData";
 import { protocolResolver } from "mmt-core";
 import { safeList, safeListCopy } from "mmt-core/safer";
 import { useResolvedYamlContent } from "../useResolvedYamlContent";
+import { showYamlUiConflictDialog } from "../vsAPI";
 
 const LAST_API_TAB_KEY = "mmtview:api:lastTab";
 const LAST_API_PAGE_KEY = "mmtview:api:lastPage";
 
+const REQUEST_FIELD_LABELS: Partial<Record<keyof Request, string>> = {
+  url: "URL",
+  query: "Params",
+  body: "Body",
+  headers: "Headers",
+  cookies: "Cookies",
+  method: "Method",
+  protocol: "Protocol",
+  format: "Format",
+  graphql: "GraphQL",
+  grpc: "gRPC",
+  timeout: "Timeout",
+};
+
 interface APIsProps {
   content: string;
-  setContent: (value: string) => void;
+  setContent: (value: string, options?: { force?: boolean }) => void;
 }
 
 const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
-  const resolvedContent = useResolvedYamlContent(content);
+  // `appliedContent` is what the right-side API UI is built from.
+  // When the tester has temporary edits, YAML changes are held until the
+  // user resolves the native VS Code conflict dialog.
+  const [appliedContent, setAppliedContent] = useState(content);
+  const resetAfterApplyRef = useRef(false);
+  const pendingYamlRef = useRef<string | null>(null);
+  const dialogOpenRef = useRef(false);
+  const dismissedYamlRef = useRef<string | null>(null);
+
+  const resolvedContent = useResolvedYamlContent(appliedContent);
   const api = useMemo<APIData>(() => yamlToAPI(resolvedContent), [resolvedContent]);
 
   const [page, setPage] = useState<"test" | "edit">(
@@ -35,7 +59,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
   // Test-mode override tracking. We don't snapshot the API on entry; instead
   // we ask the tester which fields the user has touched and compare those
   // values against the current `api`. This way:
-  //  - YAML edits don't trigger the warning (touched fields stay aligned with api)
+  //  - YAML edits don't silently overwrite UI overrides
   //  - Reverting a touched value back to its api value clears the warning
   const [testRequestData, setTestRequestData] = useState<Request | undefined>(undefined);
   const [testTouchedFields, setTestTouchedFields] = useState<Set<keyof Request>>(new Set());
@@ -48,15 +72,19 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     []
   );
 
-  const discardRef = useRef<(() => void) | null>(null);
+  const resetRef = useRef<(() => void) | null>(null);
 
   const handleRequestReset = useCallback((reset: () => void) => {
-    discardRef.current = reset;
+    resetRef.current = reset;
   }, []);
 
   const setAPI = (newApi: APIData) => {
     const newYaml = apiToYaml(newApi);
-    setContent(newYaml);
+    // UI-originated writes are intentional — apply immediately on both sides.
+    dismissedYamlRef.current = null;
+    pendingYamlRef.current = null;
+    setAppliedContent(newYaml);
+    setContent(newYaml, { force: true });
   };
 
   // Build the API as it would look with the user's tester overrides applied.
@@ -80,11 +108,10 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     return { ...modifiedApi, method: 'get' } as APIData;
   }, [modifiedApi]);
 
-  const isTestModified = useMemo(() => {
-    if (page !== 'test' || !testRequestData || testTouchedFields.size === 0) {
+  const hasUiOverrides = useMemo(() => {
+    if (!testRequestData || testTouchedFields.size === 0) {
       return false;
     }
-    // True only if at least one touched field actually differs from `api`.
     let modified = false;
     testTouchedFields.forEach((field) => {
       if (modified) { return; }
@@ -96,12 +123,140 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
       }
     });
     return modified;
-  }, [api, page, testRequestData, testTouchedFields]);
+  }, [api, testRequestData, testTouchedFields]);
+
+  const isTestModified = page === "test" && hasUiOverrides;
 
   const modifiedYaml = useMemo(
-    () => (isTestModified ? apiToYaml(savedModifiedApi) : ""),
-    [isTestModified, savedModifiedApi]
+    () => (hasUiOverrides ? apiToYaml(savedModifiedApi) : ""),
+    [hasUiOverrides, savedModifiedApi]
   );
+
+  const modifiedFieldsLabel = useMemo(() => {
+    if (!testRequestData || testTouchedFields.size === 0) {
+      return "";
+    }
+    const labels: string[] = [];
+    testTouchedFields.forEach((field) => {
+      const fieldKey = field as string;
+      const reqVal = (testRequestData as Record<string, unknown>)[fieldKey];
+      const apiVal = (api as unknown as Record<string, unknown>)[fieldKey];
+      if (JSON.stringify(reqVal) !== JSON.stringify(apiVal)) {
+        labels.push(REQUEST_FIELD_LABELS[field] || fieldKey);
+      }
+    });
+    return labels.join(", ");
+  }, [api, testRequestData, testTouchedFields]);
+
+  const modifiedFieldsLabelRef = useRef(modifiedFieldsLabel);
+  const modifiedYamlRef = useRef(modifiedYaml);
+  const savedModifiedApiRef = useRef(savedModifiedApi);
+  const contentRef = useRef(content);
+
+  useEffect(() => {
+    modifiedFieldsLabelRef.current = modifiedFieldsLabel;
+  }, [modifiedFieldsLabel]);
+
+  useEffect(() => {
+    modifiedYamlRef.current = modifiedYaml;
+  }, [modifiedYaml]);
+
+  useEffect(() => {
+    savedModifiedApiRef.current = savedModifiedApi;
+  }, [savedModifiedApi]);
+
+  useEffect(() => {
+    contentRef.current = content;
+  }, [content]);
+
+  const applyYamlAndResetUi = useCallback((yaml: string) => {
+    resetAfterApplyRef.current = true;
+    dismissedYamlRef.current = null;
+    pendingYamlRef.current = null;
+    setAppliedContent(yaml);
+  }, []);
+
+  const promptConflict = useCallback(async () => {
+    if (dialogOpenRef.current) {
+      return;
+    }
+    dialogOpenRef.current = true;
+    try {
+      const choice = await showYamlUiConflictDialog(modifiedFieldsLabelRef.current);
+      const yaml = pendingYamlRef.current ?? contentRef.current;
+
+      if (choice === "ui-to-yaml") {
+        applyYamlAndResetUi(yaml);
+        return;
+      }
+
+      if (choice === "yaml-to-ui") {
+        const uiYaml = modifiedYamlRef.current || apiToYaml(savedModifiedApiRef.current);
+        resetAfterApplyRef.current = true;
+        dismissedYamlRef.current = null;
+        pendingYamlRef.current = null;
+        setAppliedContent(uiYaml);
+        setContent(uiYaml, { force: true });
+        return;
+      }
+
+      // Cancel (or dialog dismissed): leave both sides as they are.
+      dismissedYamlRef.current = yaml;
+      pendingYamlRef.current = null;
+    } finally {
+      dialogOpenRef.current = false;
+    }
+  }, [applyYamlAndResetUi, setContent]);
+
+  // Gate YAML → UI updates when the tester has temporary edits.
+  useEffect(() => {
+    if (content === appliedContent) {
+      dismissedYamlRef.current = null;
+      pendingYamlRef.current = null;
+      return;
+    }
+
+    // UI overrides were cleared — safe to apply YAML.
+    if (!hasUiOverrides) {
+      dismissedYamlRef.current = null;
+      pendingYamlRef.current = null;
+      setAppliedContent(content);
+      return;
+    }
+
+    // User already cancelled for this exact YAML snapshot.
+    if (dismissedYamlRef.current === content) {
+      return;
+    }
+
+    pendingYamlRef.current = content;
+    if (dialogOpenRef.current) {
+      return;
+    }
+
+    void promptConflict();
+  }, [content, appliedContent, hasUiOverrides, promptConflict]);
+
+  // After resolving a conflict by applying new YAML/`api`, clear tester overrides.
+  useEffect(() => {
+    if (!resetAfterApplyRef.current) {
+      return;
+    }
+    resetAfterApplyRef.current = false;
+    resetRef.current?.();
+  }, [api]);
+
+  const handleWarningReset = useCallback(() => {
+    // Reset both sides to the stored YAML so UI and editor match again.
+    const stored = appliedContent;
+    dismissedYamlRef.current = null;
+    pendingYamlRef.current = null;
+    setTestRequestData(undefined);
+    setTestTouchedFields(new Set());
+    setAppliedContent(stored);
+    setContent(stored, { force: true });
+    resetRef.current?.();
+  }, [appliedContent, setContent]);
 
   useEffect(() => {
     localStorage.setItem(LAST_API_PAGE_KEY, page);
@@ -154,7 +309,6 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
   };
 
   const addExample = () => {
-
     const examples = safeListCopy(api.examples);
     examples.push({ name: "" });
     setAPI({ ...api, examples });
@@ -193,7 +347,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
                         <UnsavedChangesWarning
                           modifiedYaml={modifiedYaml}
                           onSave={() => setAPI(savedModifiedApi)}
-                          onDiscard={() => discardRef.current?.()}
+                          onReset={handleWarningReset}
                         />
                       )}
                     </div>

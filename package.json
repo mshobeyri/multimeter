@@ -1,15 +1,14 @@
 {
   "name": "multimeter",
   "publisher": "mshobeyri",
-  "displayName": "Multimeter – API Testing as file",
+  "displayName": "Multimeter – API Testing platform",
   "description": "Store tests in Git, run them in VS Code, and track changes with pull requests.",
-  "version": "1.27.0",
+  "version": "1.28.4",
   "repository": {
     "type": "git",
     "url": "https://github.com/mshobeyri/multimeter.git"
   },
   "icon": "res/logo.png",
-  "extensionReadme": "EXTENSION.md",
   "engines": {
     "vscode": "^1.95.0"
   },
@@ -53,19 +52,16 @@
     "chatInstructions": [
       {
         "name": "MultimeterMcpFirst",
-        "description": "Use Multimeter MCP tools first when creating, modifying, validating, or running .mmt files",
         "path": "./rules/mmt-mcp.instructions.md"
       }
     ],
     "chatPromptFiles": [
       {
         "name": "EditMmtFile",
-        "description": "Modify a .mmt file with MCP read_documentation, validate, and format",
         "path": "./rules/edit-mmt-file.prompt.md"
       },
       {
         "name": "RunMmtFile",
-        "description": "Run a .mmt file with the Multimeter MCP run tool",
         "path": "./rules/run-mmt-file.prompt.md"
       }
     ],
@@ -74,7 +70,7 @@
         "id": "multimeter",
         "name": "Multimeter",
         "fullName": "Multimeter Assistant",
-        "description": "What kind of test do you want today?",
+        "description": "DEPRECATED: Use the Multimeter MCP server for test generation",
         "isSticky": true,
         "commands": [
           {
@@ -99,7 +95,7 @@
         "id": "mmt",
         "name": "mmt",
         "fullName": "Multimeter Assistant",
-        "description": "What kind of test do you want today?",
+        "description": "DEPRECATED: Use the Multimeter MCP server for test generation",
         "isSticky": false,
         "commands": [
           {
@@ -265,7 +261,7 @@
       },
       {
         "command": "multimeter.apiTest.new",
-        "title": "New API Test",
+        "title": "New Multimeter File",
         "category": "Multimeter",
         "icon": {
           "light": "res/activity.png",
@@ -480,9 +476,9 @@
     "buildview": "npm run build --prefix mmtview",
     "bootstrap": "sh -c 'if [ -f package-lock.json ]; then npm ci; else npm install; fi; npm audit || true'",
     "buildcli": "npm run buildcore && npm run pkg --prefix mmtcli",
-    "pack": "vsce package",
-    "pack-pre-release": "vsce package --pre-release",
-    "publish": "vsce publish",
+    "pack": "vsce package --readme-path EXTENSION.md --allow-package-all-secrets",
+    "pack-pre-release": "vsce package --pre-release --readme-path EXTENSION.md --allow-package-all-secrets",
+    "publish": "vsce publish --readme-path EXTENSION.md --allow-package-all-secrets",
     "vscode:prepublish": "npm run build:vendor && npm run package",
     "compile": "npm run buildcore && npm run buildmcp && npm run buildview && npm run check-types && npm run lint && node esbuild.js",
     "watch": "npm-run-all -p watch:*",
