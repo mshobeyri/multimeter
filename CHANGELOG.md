@@ -2,6 +2,10 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.28.4]
+
+- Stable release of the 1.28.3 fixes (API/test temporary UI data for Send/Run, test input conflict dialog and env refresh)
+
 ## [1.28.3]
 
 - Fix API Send / Run in Core ignoring temporary tester edits; right-panel runs always prefer UI data (glyphs still use the file)
