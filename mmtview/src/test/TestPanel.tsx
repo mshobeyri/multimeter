@@ -319,14 +319,6 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
                         <span className="codicon codicon-type-hierarchy-sub" aria-hidden />
                         <span className="api-edit-launcher-text">Flow chart</span>
                       </button>
-                      {isTestModified && (
-                        <UnsavedChangesWarning
-                          modifiedYaml={modifiedYaml}
-                          yamlHeaderLabel="Modified Test"
-                          onSave={() => setTest(savedModifiedTest)}
-                          onReset={handleWarningReset}
-                        />
-                      )}
                       {onSaveAsMmt ? (
                         <button
                           className="action-button api-edit-launcher"
@@ -347,6 +339,14 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
                           <span className="codicon codicon-edit" aria-hidden />
                           <span className="api-edit-launcher-text">Edit Test</span>
                         </button>
+                      )}
+                      {isTestModified && (
+                        <UnsavedChangesWarning
+                          modifiedYaml={modifiedYaml}
+                          yamlHeaderLabel="Modified Test"
+                          onSave={() => setTest(savedModifiedTest)}
+                          onReset={handleWarningReset}
+                        />
                       )}
                     </div>
                   </div>

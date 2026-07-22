@@ -39,16 +39,16 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
         ref={buttonRef}
         className="action-button unsaved-warning-btn"
         onClick={() => setOpen(v => !v)}
-        title="Save or reset temporary changes"
+        title="YAML auto-sync paused — temporary UI changes"
         type="button"
       >
-        <span className="codicon codicon-save" aria-hidden />
+        <span className="codicon codicon-sync-ignored" aria-hidden />
       </button>
       {open && (
         <div ref={popupRef} className="unsaved-changes-popup">
           <div className="unsaved-changes-popup-header">
-            <span className="codicon codicon-warning unsaved-changes-popup-icon" aria-hidden />
-            <span>Temporary changes</span>
+            <span className="codicon codicon-sync-ignored unsaved-changes-popup-icon" aria-hidden />
+            <span>YAML auto-sync paused</span>
             <button
               className="unsaved-changes-popup-close"
               onClick={() => setOpen(false)}
@@ -59,7 +59,9 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
             </button>
           </div>
           <p className="unsaved-changes-popup-desc">
-            Modifications are temporary and won't be persisted to the file automatically.
+            Auto-sync from YAML to the UI is disabled because you have temporary
+            changes. Update YAML to write them to the file, or Reset to YAML to
+            discard them and resume syncing.
           </p>
           <div className="unsaved-changes-popup-yaml-header">
             <span>{yamlHeaderLabel}</span>
@@ -68,9 +70,9 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
                 className="button-icon"
                 onClick={() => { onSave(); setOpen(false); }}
                 type="button"
-                title="Save changes to file"
+                title="Update YAML with temporary UI changes"
               >
-                <span className="codicon codicon-save" aria-hidden /> Save
+                <span className="codicon codicon-reply" aria-hidden /> Update YAML
               </button>
               <button
                 className="button-icon"
@@ -78,7 +80,7 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
                 type="button"
                 title="Reset UI to the current YAML file"
               >
-                <span className="codicon codicon-discard" aria-hidden /> Reset
+                <span className="codicon codicon-forward" aria-hidden /> Reset to YAML
               </button>
             </div>
           </div>
