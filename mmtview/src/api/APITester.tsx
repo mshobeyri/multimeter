@@ -115,6 +115,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     handleAddOutputVariable,
     prepareRequestData,
     handleSend,
+    handleRunInCore,
     handleCancel,
     handleConnect,
     network,
@@ -171,14 +172,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
     {
       label: "Run in Core",
       icon: "codicon-play",
-      onClick: () => {
-        window.vscode?.postMessage({ command: "showLogOutputChannel" });
-        window.vscode?.postMessage({
-          command: "runCurrentDocument",
-          report: { type: "lifecycle" },
-          inputs: runInputs,
-        });
-      }
+      onClick: handleRunInCore,
     },
     ...(canRunCurl ? [{
       label: "Run in Curl",
@@ -191,7 +185,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
         });
       }
     }] : [])
-  ], [canRunCurl, requestData, runInputs]);
+  ], [canRunCurl, handleRunInCore, requestData, runInputs]);
 
   const [editorTab, setEditorTabInternal] = useState<EditorTab>(() => {
     const saved = localStorage.getItem("apitest-editor-tab");

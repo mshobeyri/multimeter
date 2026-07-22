@@ -292,8 +292,12 @@ export async function handleRunCurrentDocument(
 
   try {
     const fileLoader = createFileLoader(document.uri.fsPath);
+    // Prefer right-panel UI YAML when present; glyphs omit rawFile and use the file.
+    const rawFile = typeof message?.rawFile === 'string' && message.rawFile.length > 0
+      ? message.rawFile
+      : document.getText();
     const runOutcome = await runner.runFile({
-      file: document.getText(),
+      file: rawFile,
       fileType: 'raw',
       filePath: document.uri.fsPath,
       exampleIndex: message?.inputs?.exampleIndex,

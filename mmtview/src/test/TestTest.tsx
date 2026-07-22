@@ -4,6 +4,7 @@ import { JSONRecord, formatDuration } from 'mmt-core/CommonData';
 import { formatReportRelativeTime } from 'mmt-core/reportFormat';
 import { resolveEnvTokenValues } from 'mmt-core/variableReplacer';
 import { extractInputConstraintsFromDescription } from 'mmt-core/paramConstraints';
+import { testToYaml } from 'mmt-core/testParsePack';
 
 import { FileContext } from '../fileContext';
 import { setEnvironmentVariable } from '../environment/environmentUtils';
@@ -34,6 +35,20 @@ const TestTest: React.FC<TestTestProps> = (props) => {
     const runStartTimeRef = useRef<number | null>(null);
     const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
     const [runDurationMs, setRunDurationMs] = useState<number | null>(null);
+    const testDataRef = useRef(props.testData);
+    testDataRef.current = props.testData;
+
+    /** Right-panel runs always prefer UI test data; glyphs omit rawFile. */
+    const postRunCurrentDocument = useCallback((opts?: { reportLifecycle?: boolean }) => {
+        window.vscode?.postMessage({
+            command: 'runCurrentDocument',
+            ...(opts?.reportLifecycle ? { report: { type: 'lifecycle' } } : {}),
+            rawFile: testToYaml(testDataRef.current),
+            inputs: {
+                manualInputs: currentInputsRef.current,
+            },
+        });
+    }, []);
 
     const inputKeys = useMemo(() => {
         const raw = props.testData.inputs;
@@ -117,13 +132,8 @@ const TestTest: React.FC<TestTestProps> = (props) => {
         runStartTimeRef.current = startedAt;
         setRunStartedAt(startedAt);
         setRunDurationMs(null);
-        window.vscode?.postMessage({
-            command: 'runCurrentDocument',
-            inputs: {
-                manualInputs: currentInputsRef.current,
-            },
-        });
-    }, [trimIgnoredRuns]);
+        postRunCurrentDocument();
+    }, [trimIgnoredRuns, postRunCurrentDocument]);
 
     const handleStop = useCallback(() => {
         window.vscode?.postMessage({
@@ -307,13 +317,7 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                     </button>
                 ) : (
                     <ContextMenuHost items={[runInCoreMenuItem(() => {
-                        window.vscode?.postMessage({
-                            command: 'runCurrentDocument',
-                            report: { type: 'lifecycle' },
-                            inputs: {
-                                manualInputs: currentInputsRef.current,
-                            },
-                        });
+                        postRunCurrentDocument({ reportLifecycle: true });
                     })]}>
                         <button
                             onClick={handleRun}

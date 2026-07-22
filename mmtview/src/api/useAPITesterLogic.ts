@@ -6,7 +6,7 @@ import { safeList } from "mmt-core/safer";
 import { replaceAllRefs } from "mmt-core/variableReplacer";
 import { stripOmitFromRequest } from "mmt-core/omitKeyword";
 import { formatBody } from "mmt-core/markupConvertor";
-import { applyAuthToRequest } from "mmt-core/apiParsePack";
+import { applyAuthToRequest, apiToYaml } from "mmt-core/apiParsePack";
 import { loadEnvVariables } from "../workspaceStorage";
 import { extractOutputs, extractPathAtPosition, buildBodyExprFromPath } from "mmt-core/outputExtractor";
 import { resolveSetenvValues } from "mmt-core/setenvResolve";
@@ -21,6 +21,29 @@ import {
   diffApiRefreshScopes,
   isDocOnlyRefresh,
 } from "./apiUiRefresh";
+
+/** Always prefer the right-panel API Tester request over file YAML. */
+function buildUiApiRawFile(api: APIData, requestData: Request | undefined): string {
+  let merged = api;
+  if (requestData) {
+    const overrides: Record<string, unknown> = {};
+    (Object.keys(requestData) as (keyof Request)[]).forEach((field) => {
+      const val = requestData[field];
+      if (val !== undefined) {
+        overrides[field as string] = val;
+      }
+    });
+    merged = { ...api, ...overrides } as APIData;
+    // prepareRequestData already applied auth into headers/query.
+    delete (merged as { auth?: unknown }).auth;
+  }
+  const effectiveProtocol = protocolResolver.getEffectiveProtocol(
+    merged.protocol, merged.url);
+  if (effectiveProtocol === "http" && !merged.method) {
+    merged = { ...merged, method: "get" };
+  }
+  return apiToYaml(merged);
+}
 
 type OutputPosition = { text?: string; line: number; column: number };
 
@@ -290,7 +313,8 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     onUpdateApi?.({ outputs: existing });
   }, [onUpdateApi, requestData?.format]);
 
-  // HTTP/GraphQL/gRPC Send: one core round-trip via runCurrentDocument.
+  // HTTP/GraphQL/gRPC Send / Run in Core from the right panel: always send the
+  // UI request as rawFile. Glyphs omit rawFile and use the editor file only.
   // The extension posts multimeter.api.run.result so the Response panel and
   // finish log share the same network duration. WS still uses the live socket.
   const runViaCore = useCallback((opts: { forSend: boolean }) => {
@@ -315,12 +339,18 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     window.vscode?.postMessage({
       command: "runCurrentDocument",
       report: { type: "lifecycle" },
+      rawFile: buildUiApiRawFile(apiRef.current, requestData),
       inputs: {
         exampleIndex: selectedExampleIdx,
         manualInputs: currentInputs,
       },
     });
   }, [requestData, selectedExampleIdx, currentInputs]);
+
+  const handleRunInCore = useCallback(() => {
+    window.vscode?.postMessage({ command: "showLogOutputChannel" });
+    runViaCore({ forSend: false });
+  }, [runViaCore]);
 
   const handleSend = useCallback(async () => {
     setResponseData(undefined);
@@ -477,6 +507,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     handleAddOutputVariable,
     prepareRequestData,
     handleSend,
+    handleRunInCore,
     handleCancel,
     handleConnect,
     network,
