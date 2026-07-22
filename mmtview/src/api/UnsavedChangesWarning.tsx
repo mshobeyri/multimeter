@@ -1,13 +1,20 @@
 import React, { useEffect, useRef, useState } from "react";
 
 interface UnsavedChangesWarningProps {
-  /** YAML representation of the API with the user's temporary edits merged in. */
+  /** YAML representation with the user's temporary edits merged in. */
   modifiedYaml: string;
+  /** Label above the YAML preview (e.g. "Modified API"). */
+  yamlHeaderLabel?: string;
   onSave: () => void;
   onReset: () => void;
 }
 
-const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({ modifiedYaml, onSave, onReset }) => {
+const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
+  modifiedYaml,
+  yamlHeaderLabel = "Modified API",
+  onSave,
+  onReset,
+}) => {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const popupRef = useRef<HTMLDivElement>(null);
@@ -55,7 +62,7 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({ modifiedY
             Modifications are temporary and won't be persisted to the file automatically.
           </p>
           <div className="unsaved-changes-popup-yaml-header">
-            <span>Modified API</span>
+            <span>{yamlHeaderLabel}</span>
             <div style={{ display: 'flex', gap: 4 }}>
               <button
                 className="button-icon"

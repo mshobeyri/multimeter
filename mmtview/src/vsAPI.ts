@@ -161,13 +161,15 @@ export function showVSCodeModalDialog(options: {
 }
 
 export async function showYamlUiConflictDialog(
-    modifiedFieldsLabel: string): Promise<YamlUiConflictChoice> {
+    modifiedFieldsLabel: string,
+    surface: 'API tester' | 'test' = 'API tester'): Promise<YamlUiConflictChoice> {
   const fields = modifiedFieldsLabel ? ` (${modifiedFieldsLabel})` : '';
+  const surfaceLabel = surface === 'test' ? 'test inputs UI' : 'API tester UI';
   const choice = await showVSCodeModalDialog({
     level: 'warning',
     message: 'YAML conflicts with UI edits',
     detail:
-        `You changed the API tester UI${fields}. Applying this YAML update would discard those UI edits.\n\nHow do you want to continue?`,
+        `You changed the ${surfaceLabel}${fields}. Applying this YAML update would discard those UI edits.\n\nHow do you want to continue?`,
     // Modal dialogs already provide a system Cancel / Escape dismiss.
     buttons: ['Reset UI to YAML', 'Reset YAML to UI'],
   });
