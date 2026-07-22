@@ -15,6 +15,7 @@ import VEditor from "../components/VEditor";
 import { FileContext } from "../fileContext";
 import { showHistoryPanel } from "../vsAPI";
 import { useAPITesterLogic } from "./useAPITesterLogic";
+import { displayResponseBody } from "./responseBodyDisplay";
 import { protocolResolver } from "mmt-core";
 import MdViewer from "../components/MdViewer";
 
@@ -599,13 +600,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             <div className="label">Response Body</div>
             <div className="apitest-body-wrapper">
               <BodyView
-                value={
-                  responseData?.body === null || responseData?.body === undefined
-                    ? ""
-                    : typeof responseData?.body === "string"
-                      ? responseData?.body
-                      : JSON.stringify(responseData?.body, null, 2)
-                }
+                value={displayResponseBody(responseData, autoFormatBody)}
                 format={requestData?.format || "json"}
                 mode="live"
                 onInspectPosition={handleAddOutputVariable}

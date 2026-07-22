@@ -13,8 +13,8 @@ import { resolveSetenvValues } from "mmt-core/setenvResolve";
 import { setEnvironmentVariables } from "../environment/environmentUtils";
 import { useNetwork } from "../components/network/Network";
 import { pushHistory } from "../vsAPI";
-import { beautifyWithContentType } from "mmt-core/markupConvertor";
 import { protocolResolver } from "mmt-core";
+import { responseBodyToRawString } from "./responseBodyDisplay";
 import {
   ApiUiRefreshScope,
   applyScopedRequestData,
@@ -452,14 +452,8 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
       }
       if (typeof message.response !== "undefined" && message.response !== null) {
         let response = message.response as Response;
-        if (autoFormatBody && response.body != null && response.headers) {
-          const contentType =
-            response.headers["Content-Type"] || response.headers["content-type"] || "";
-          response = {
-            ...response,
-            body: beautifyWithContentType(contentType, response.body),
-          };
-        }
+        // Keep the body raw here; Response BodyView beautifies on display when
+        // auto-format is on so the user can toggle format after the send.
         if (typeof response.duration === "number" && Number.isFinite(response.duration)) {
           response = { ...response, duration: Math.round(response.duration) };
         }
@@ -489,7 +483,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
     };
     window.addEventListener("message", listener);
     return () => window.removeEventListener("message", listener);
-  }, [filePath, autoFormatBody]);
+  }, [filePath]);
 
   return {
     requestData,
@@ -535,16 +529,7 @@ function cloneInputs(source?: JSONRecord): JSONRecord {
 }
 
 function toContentString(data: any): string {
-  if (data === null || data === undefined) {
-    return "";
-  }
-  if (typeof data === "string") {
-    return data;
-  }
-  if (typeof data === "object") {
-    return JSON.stringify(data, null, 2);
-  }
-  return String(data);
+  return responseBodyToRawString(data);
 }
 
 async function handleSetEnvVariables(

@@ -197,12 +197,24 @@ checks:
 ];
 
 export const notypeTypeIcons: Record<NotypeSampleType, string> = {
-  api: "globe",
+  api: "symbol-interface",
   env: "server-environment",
   test: "beaker",
-  suite: "list-tree",
-  loadtest: "pulse",
+  suite: "layers",
+  loadtest: "dashboard",
   doc: "book",
   server: "server",
-  report: "output",
+  report: "file-text",
+};
+
+/** Distinct accent color per document type (icons + gallery). */
+export const notypeTypeColors: Record<NotypeSampleType, string> = {
+  api: "#1f6feb",
+  env: "#8957e5",
+  test: "#3fb950",
+  suite: "#58a6ff",
+  loadtest: "#db6d28",
+  doc: "#d4a72c",
+  server: "#39c5cf",
+  report: "#a371f7",
 };
