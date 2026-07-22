@@ -14,6 +14,7 @@ function firstTagHandleToken(text: string): string | undefined {
 describe('buildMmtTagHandleRules', () => {
   it('treats MMT ! operators as operators, not YAML tags', () => {
     expect(firstTagHandleToken('!= 500')).toBe('mmt.operator');
+    expect(firstTagHandleToken('!* /fail/')).toBe('mmt.operator');
     expect(firstTagHandleToken('!^ prefix')).toBe('mmt.operator');
     expect(firstTagHandleToken('!@ item')).toBe('mmt.operator');
     expect(firstTagHandleToken('!75% admin')).toBe('mmt.operator');

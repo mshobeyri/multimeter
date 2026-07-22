@@ -1,14 +1,26 @@
 import {js2xml, xml2js} from 'xml-js';
 import * as YAML from 'yaml';
-import {filterOperatorYamlErrors} from './expectOperatorYaml';
+import {emitUnquotedOperators, filterOperatorYamlErrors, quoteExpectOperators} from './expectOperatorYaml';
 import {parseYamlWithOmitKeyword} from './omitKeyword';
 import {restoreOmitKeyword} from './omitKeyword';
 import {isOmitSentinel} from './omitKeyword';
 import {applyDescriptionBlockLiteralStyles} from './multilineDescriptionYaml';
 
+/**
+ * Quote YAML-unsafe expect/debug operators (`!=`, `!*`, `>`, …) before parsing.
+ * Without this, YAML treats `!…` as tags and silently drops the operator
+ * (e.g. `status: != 100` → `status: 100`).
+ */
+function prepareYaml(yamlString: string): string {
+  return quoteExpectOperators(yamlString || '');
+}
+
 function parseYamlDoc(yamlString: string): any {
-  const doc = YAML.parseDocument(yamlString);
+  const prepared = prepareYaml(yamlString);
+  const doc = YAML.parseDocument(prepared);
   if (doc.errors?.length) {
+    // Fall back to original-text filtering so residual tag errors on unquoted
+    // lines (if any) are still suppressed against the editor buffer.
     doc.errors = filterOperatorYamlErrors(yamlString, doc.errors);
   }
   return doc;
@@ -17,7 +29,7 @@ function parseYamlDoc(yamlString: string): any {
 
 function parseYaml(yamlString: string): any {
   try {
-    return parseYamlWithOmitKeyword(yamlString, false);
+    return parseYamlWithOmitKeyword(prepareYaml(yamlString), false);
   } catch (e) {
     return null;
   }
@@ -28,7 +40,7 @@ function parseYaml(yamlString: string): any {
  * Use this in execution paths where errors must be surfaced.
  */
 function parseYamlStrict(yamlString: string): any {
-  return parseYamlWithOmitKeyword(yamlString, true);
+  return parseYamlWithOmitKeyword(prepareYaml(yamlString), true);
 }
 
 function applyKeywordScalarStyles(node: any, original: any): void {
@@ -87,11 +99,11 @@ function packYaml(obj: any): string {
     doc.contents = doc.createNode(restored);
     applyKeywordScalarStyles(doc.contents, obj);
     applyDescriptionBlockLiteralStyles(doc.contents);
-    return doc.toString({
+    return emitUnquotedOperators(doc.toString({
       aliasDuplicateObjects: false,
       blockQuote: 'literal',
       lineWidth: 0,
-    } as any);
+    } as any));
   } catch (e) {
     return '';
   }

@@ -1052,7 +1052,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
             // Map entry:   key: ["]OP ...["]
             // Array item:  - ["]OP ...["]
             let valueStartCol = -1;
-            const mapMatch = line.match(/^(\s*[\w.]+:\s+)/);
+            const mapMatch = line.match(/^(\s*[^:]+?:\s+)/);
             if (mapMatch) {
               valueStartCol = mapMatch[1].length;
             }

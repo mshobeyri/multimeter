@@ -1,4 +1,5 @@
 import { yamlToTest, testToYaml, getTestFlowStepType, quoteExpectOperators, yamlToTestStrict, validateTestData } from './testParsePack';
+import parseYaml from './markupConvertor';
 import { TestData, TestFlowStep } from './TestData';
 
 describe('testParsePack', () => {
@@ -251,6 +252,51 @@ describe('quoteExpectOperators', () => {
 });
 
 describe('yamlToTest with expect operators', () => {
+  it('correctly parses != operator in check object form', () => {
+    const yaml = `
+type: test
+steps:
+  - check:
+      actual: 1
+      operator: !=
+      expected: 2
+  - assert:
+      actual: x
+      operator: !*
+      expected: /fail/
+  - check:
+      actual: count
+      operator: >
+      expected: 0
+`;
+    const t = yamlToTest(yaml);
+    expect((t as any).steps[0].check.operator).toBe('!=');
+    expect((t as any).steps[1].assert.operator).toBe('!*');
+    expect((t as any).steps[2].check.operator).toBe('>');
+  });
+
+  it('emits unquoted bang-operators from edit-mode serialization', () => {
+    const yaml = `
+type: test
+steps:
+  - call: api
+    expect:
+      status:
+        - != 201
+        - !* 1.*
+  - check:
+      actual: 1
+      operator: !=
+      expected: 2
+`;
+    const serialized = testToYaml(yamlToTest(yaml));
+    expect(serialized).toContain('- != 201');
+    expect(serialized).toContain('- !* 1.*');
+    expect(serialized).toContain('operator: !=');
+    expect(serialized).not.toContain('"!= 201"');
+    expect(serialized).not.toContain('operator: "!="');
+  });
+
   it('correctly parses != operator in expect', () => {
     const yaml = `
 type: test
@@ -324,6 +370,25 @@ steps:
     const step = (t as any).steps[0];
     expect(step.expect.status).toBe(200);
     expect(step.expect.name).toBe('hello');
+  });
+});
+
+describe('parseYaml preserves unsafe expect operators', () => {
+  it('keeps != and !* through the shared parseYaml path used by the UI', () => {
+    const yaml = `
+type: test
+steps:
+  - call: api
+    expect:
+      status: != 100
+      msg: !* /fail/
+    debug:
+      code: != 500
+`;
+    const doc = parseYaml(yaml);
+    expect(doc.steps[0].expect.status).toBe('!= 100');
+    expect(doc.steps[0].expect.msg).toBe('!* /fail/');
+    expect(doc.steps[0].debug.code).toBe('!= 500');
   });
 });
 
