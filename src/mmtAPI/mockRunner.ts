@@ -156,6 +156,25 @@ function findServerByPort(port: number): string | undefined {
   return undefined;
 }
 
+/** Extract env var dict from workspace environment storage. */
+function extractEnvVars(mmtProvider: any): Record<string, any> {
+  const envStorage = mmtProvider?.context?.workspaceState?.get(
+    'multimeter.environment.storage', []) ?? [];
+  const envVars: Record<string, any> = {};
+  if (Array.isArray(envStorage)) {
+    for (const item of envStorage) {
+      if (!item || typeof item !== 'object') {
+        continue;
+      }
+      const name = (item as any).name;
+      if (typeof name === 'string' && name) {
+        envVars[name] = (item as any).value;
+      }
+    }
+  }
+  return envVars;
+}
+
 export async function startMockServer(
   document: vscode.TextDocument,
   webviewPanel: vscode.WebviewPanel,
@@ -182,15 +201,17 @@ export async function startMockServer(
     return;
   }
 
-  // Resolve environment variables
-  const envVars: Record<string, string> = {};
-  // Load workspace environment variables from mmtProvider if available
-  if (mmtProvider?.getEnvVars) {
-    const vars = mmtProvider.getEnvVars();
-    if (vars && typeof vars === 'object') {
-      Object.assign(envVars, vars);
-    }
+  // Load workspace environment variables so e:VAR / <<e:VAR>> resolve in responses
+  const envVars = extractEnvVars(mmtProvider);
+
+  let listenPort: number;
+  try {
+    listenPort = mockParsePack.resolveMockPort(data.port, envVars);
+  } catch (err: any) {
+    vscode.window.showErrorMessage(err?.message || String(err));
+    return;
   }
+  data.port = listenPort;
 
   // Create token resolver using core's resolveEmbeddedTokens
   // This recursively walks objects/arrays and resolves r:, c:, e: and <<...>> tokens
@@ -335,7 +356,7 @@ export async function startMockServer(
     server.on('listening', () => {
       const handle: MockServerHandle = {
         server,
-        port: data.port,
+        port: listenPort,
         dispose: () => {
           try {
             server.close();
@@ -344,17 +365,17 @@ export async function startMockServer(
           }
         },
       };
-      const label = `Mock server ${getMockUrlScheme(protocol)}://localhost:${data.port}`;
+      const label = `Mock server ${getMockUrlScheme(protocol)}://localhost:${listenPort}`;
       handle.statusBarRunId = onRunStarted(label, () => stopMockServer(documentUri), 'server');
       activeServers.set(documentUri, handle);
 
       webviewPanel.webview.postMessage({
         command: 'mockServerStatus',
         running: true,
-        port: data.port,
+        port: listenPort,
       });
 
-      vscode.window.showInformationMessage(`Mock server running on ${getMockUrlScheme(protocol)}://localhost:${data.port}`);
+      vscode.window.showInformationMessage(`Mock server running on ${getMockUrlScheme(protocol)}://localhost:${listenPort}`);
       resolve();
     });
 
@@ -381,14 +402,14 @@ export async function startMockServer(
         finishMockServerStatus(handle);
       }
       if (err.code === 'EADDRINUSE') {
-        vscode.window.showErrorMessage(`Mock server: port ${data.port} is already in use.`);
+        vscode.window.showErrorMessage(`Mock server: port ${listenPort} is already in use.`);
       } else {
         vscode.window.showErrorMessage(`Mock server error: ${err.message}`);
       }
       reject(err);
     });
 
-    server.listen(data.port);
+    server.listen(listenPort);
   });
 }
 
@@ -427,8 +448,11 @@ export async function startMockServerFromPath(
     throw new Error(`Mock server validation errors in ${path.basename(filePath)}: ${msg}`);
   }
 
+  const listenPort = mockParsePack.resolveMockPort(data.port, envVars);
+  data.port = listenPort;
+
   // Check if a server is already running on this port (possibly started via Mock Server panel)
-  const existingUri = findServerByPort(data.port);
+  const existingUri = findServerByPort(listenPort);
   if (existingUri) {
     // Server already running on this port - return a no-op cleanup
     // This makes the 'run' step idempotent
@@ -561,11 +585,11 @@ export async function startMockServerFromPath(
 
       const handle: MockServerHandle = {
         server,
-        port: data.port,
+        port: listenPort,
         dispose,
       };
       const protocol = data.protocol || 'http';
-      const label = `Mock server ${getMockUrlScheme(protocol)}://localhost:${data.port}`;
+      const label = `Mock server ${getMockUrlScheme(protocol)}://localhost:${listenPort}`;
       handle.statusBarRunId = onRunStarted(label, () => stopMockServer(documentUri), 'server');
       activeServers.set(documentUri, handle);
       resolve(dispose);
@@ -587,12 +611,12 @@ export async function startMockServerFromPath(
         finishMockServerStatus(handle);
       }
       if (err.code === 'EADDRINUSE') {
-        reject(new Error(`Mock server: port ${data.port} is already in use.`));
+        reject(new Error(`Mock server: port ${listenPort} is already in use.`));
       } else {
         reject(new Error(`Mock server error: ${err.message}`));
       }
     });
 
-    server.listen(data.port);
+    server.listen(listenPort);
   });
 }

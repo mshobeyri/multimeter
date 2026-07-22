@@ -969,7 +969,12 @@ export const MockSchema = {
         tags: { type: 'array', items: { type: 'string' } },
         import: DataImportSchema,
         protocol: { type: 'string', enum: ['http', 'https', 'ws'] },
-        port: { type: 'number', minimum: 1, maximum: 65535 },
+        port: {
+            oneOf: [
+                { type: 'number', minimum: 1, maximum: 65535 },
+                { type: 'string', description: 'Port number or env token, e.g. e:MOCK_PORT or <<e:MOCK_PORT>>' },
+            ],
+        },
         connection: {
             type: 'object',
             properties: {

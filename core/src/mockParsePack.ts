@@ -2,6 +2,7 @@ import {MockConnectionConfig, MockConnectionMode, MockData, MockEndpoint, MockFa
 import {Format, Method} from './CommonData';
 import parseYaml, {packYaml} from './markupConvertor';
 import {isNonEmptyList, isNonEmptyObject} from './safer';
+import {resolveEmbeddedTokens} from './variableReplacer';
 
 const VALID_PROTOCOLS: MockProtocol[] = ['http', 'https', 'ws'];
 const VALID_CONNECTION_MODES: MockConnectionMode[] = ['plain', 'tls', 'mtls'];
@@ -45,12 +46,8 @@ export function parseMockData(yaml: any): {data: MockData | null; errors: ParseE
     }
   }
 
-  // Port (required)
-  if (yaml.port === undefined || yaml.port === null) {
-    errors.push({message: 'port is required', severity: 'error'});
-  } else if (typeof yaml.port !== 'number' || yaml.port < 1 || yaml.port > 65535 || !Number.isInteger(yaml.port)) {
-    errors.push({message: 'port must be an integer between 1 and 65535', severity: 'error'});
-  }
+  // Port (required): integer 1–65535, or env token e:VAR / <<e:VAR>>
+  const normalizedPort = normalizeMockPort(yaml.port, errors);
 
   // Protocol
   const rawProtocol = String(yaml.protocol || 'http');
@@ -142,7 +139,7 @@ export function parseMockData(yaml: any): {data: MockData | null; errors: ParseE
     tags: Array.isArray(yaml.tags) ? yaml.tags.filter((t: any) => t != null).map(String) : undefined,
     import: yaml.import && typeof yaml.import === 'object' && !Array.isArray(yaml.import) ? {...yaml.import} : undefined,
     protocol,
-    port: yaml.port,
+    port: normalizedPort ?? 0,
     connection,
     cors: !!yaml.cors,
     delay: typeof yaml.delay === 'number' ? yaml.delay : 0,
@@ -191,7 +188,7 @@ export function yamlToMock(yamlContent: string): MockData | null {
     tags: Array.isArray(yaml.tags) ? yaml.tags.filter((t: any) => t != null).map(String) : undefined,
     import: yaml.import && typeof yaml.import === 'object' && !Array.isArray(yaml.import) ? {...yaml.import} : undefined,
     protocol: normalizeMockProtocol(String(yaml.protocol || 'http')),
-    port: typeof yaml.port === 'number' ? yaml.port : (yaml.port || 0),
+    port: normalizeMockPortLenient(yaml.port),
     connection: parseConnectionConfig(yaml, normalizeMockProtocol(String(yaml.protocol || 'http')), []),
     cors: !!yaml.cors,
     delay: typeof yaml.delay === 'number' ? yaml.delay : 0,
@@ -294,4 +291,100 @@ export function mockToYaml(mock: MockData): string {
     obj.fallback = fb;
   }
   return packYaml(obj);
+}
+
+const ENV_PORT_TOKEN_RE =
+    /^(?:e:[A-Za-z_][A-Za-z0-9_\-]*|<<\s*e:[A-Za-z_][A-Za-z0-9_\-]*\s*>>)$/;
+
+/** True when port is an env token like `e:MOCK_PORT` or `<<e:MOCK_PORT>>`. */
+export function isMockPortEnvToken(value: string): boolean {
+  return ENV_PORT_TOKEN_RE.test(String(value || '').trim());
+}
+
+function isValidListenPort(n: number): boolean {
+  return Number.isInteger(n) && n >= 1 && n <= 65535;
+}
+
+/**
+ * Normalize/validate a mock `port` field.
+ * Accepts integers 1–65535, numeric strings, or env tokens (`e:VAR` / `<<e:VAR>>`).
+ */
+export function normalizeMockPort(
+    raw: any, errors: ParseError[]): number | string | undefined {
+  if (raw === undefined || raw === null || raw === '') {
+    errors.push({message: 'port is required', severity: 'error'});
+    return undefined;
+  }
+  if (typeof raw === 'number') {
+    if (!isValidListenPort(raw)) {
+      errors.push({message: 'port must be an integer between 1 and 65535', severity: 'error'});
+    }
+    return raw;
+  }
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (isMockPortEnvToken(trimmed)) {
+      return trimmed;
+    }
+    if (/^\d+$/.test(trimmed)) {
+      const asNum = Number(trimmed);
+      if (!isValidListenPort(asNum)) {
+        errors.push({message: 'port must be an integer between 1 and 65535', severity: 'error'});
+      }
+      return asNum;
+    }
+    errors.push({
+      message: 'port must be an integer between 1 and 65535, or an env token like e:MOCK_PORT',
+      severity: 'error',
+    });
+    return trimmed;
+  }
+  errors.push({
+    message: 'port must be an integer between 1 and 65535, or an env token like e:MOCK_PORT',
+    severity: 'error',
+  });
+  return undefined;
+}
+
+/** Lenient port normalize for format/canonicalize (keeps invalid string values). */
+function normalizeMockPortLenient(raw: any): number | string {
+  if (typeof raw === 'number') {
+    return raw;
+  }
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) {
+      return 0;
+    }
+    if (isMockPortEnvToken(trimmed)) {
+      return trimmed;
+    }
+    if (/^\d+$/.test(trimmed)) {
+      return Number(trimmed);
+    }
+    return trimmed;
+  }
+  return 0;
+}
+
+/**
+ * Resolve a mock listen port against env vars.
+ * `port: e:MOCK_PORT` / `<<e:MOCK_PORT>>` become numbers from the environment.
+ */
+export function resolveMockPort(
+    port: number | string, envVars: Record<string, any> = {}): number {
+  if (typeof port === 'number') {
+    if (!isValidListenPort(port)) {
+      throw new Error(`Mock server: invalid port ${port}`);
+    }
+    return port;
+  }
+
+  const resolved = resolveEmbeddedTokens(String(port).trim(), envVars);
+  const n = typeof resolved === 'number' ? resolved : Number(String(resolved ?? '').trim());
+  if (!isValidListenPort(n)) {
+    throw new Error(
+        `Mock server: port "${port}" resolved to "${resolved}", which is not a valid port (1–65535)`);
+  }
+  return n;
 }

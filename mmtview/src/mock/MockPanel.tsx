@@ -113,7 +113,10 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
 
   const protocol = mockData.protocol || "http";
   const urlScheme = protocol === "ws" ? "ws" : protocol === "https" ? "https" : "http";
-  const baseUrl = `${urlScheme}://localhost:${mockData.port}`;
+  const displayPort = typeof mockData.port === "string"
+    ? resolveEnvTokenValues(String(mockData.port), envParams)
+    : mockData.port;
+  const baseUrl = `${urlScheme}://localhost:${displayPort}`;
   const endpointCount = mockData.endpoints?.length || 0;
   const connection = mockData.connection;
 

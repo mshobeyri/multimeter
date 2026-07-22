@@ -1,4 +1,4 @@
-import {mockToYaml, parseMockData, yamlToMock} from './mockParsePack';
+import {mockToYaml, parseMockData, resolveMockPort, yamlToMock} from './mockParsePack';
 
 describe('mockParsePack', () => {
   it('mockToYaml does not add title when missing', () => {
@@ -99,5 +99,38 @@ endpoints:
     });
 
     expect(errors.map(error => error.message)).toContain('Unknown field: tls');
+  });
+
+  it('accepts env token ports like e:MOCK_PORT', () => {
+    const {data, errors} = parseMockData({
+      type: 'server',
+      port: 'e:MOCK_PORT',
+      endpoints: [{method: 'get', path: '/health'}],
+    });
+
+    expect(errors.filter(error => error.severity === 'error')).toEqual([]);
+    expect(data?.port).toBe('e:MOCK_PORT');
+  });
+
+  it('accepts angle-bracket env token ports', () => {
+    const {data, errors} = parseMockData({
+      type: 'server',
+      port: '<<e:MOCK_PORT>>',
+      endpoints: [{method: 'get', path: '/health'}],
+    });
+
+    expect(errors.filter(error => error.severity === 'error')).toEqual([]);
+    expect(data?.port).toBe('<<e:MOCK_PORT>>');
+  });
+
+  it('resolves env token ports to numbers', () => {
+    expect(resolveMockPort('e:MOCK_PORT', {MOCK_PORT: 9090})).toBe(9090);
+    expect(resolveMockPort('<<e:MOCK_PORT>>', {MOCK_PORT: '9091'})).toBe(9091);
+    expect(resolveMockPort(8080, {})).toBe(8080);
+  });
+
+  it('rejects unresolved or invalid env token ports', () => {
+    expect(() => resolveMockPort('e:MISSING', {})).toThrow(/not a valid port/);
+    expect(() => resolveMockPort('e:MOCK_PORT', {MOCK_PORT: 'nope'})).toThrow(/not a valid port/);
   });
 });

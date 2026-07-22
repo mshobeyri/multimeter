@@ -1,5 +1,6 @@
 import {matchPath, autoDetectFormat, partialMatch, findEndpoint, buildResponse, buildFallbackResponse, createMockRouter, MockRequest, replaceRequestRefs, buildRequestContext, parseRequestBody, inferRequestBodyFormat, extractPathParamNames} from './mockServer';
 import {MockEndpoint, MockData} from './MockData';
+import {resolveEmbeddedTokens} from './variableReplacer';
 
 describe('matchPath', () => {
   it('matches exact paths', () => {
@@ -235,6 +236,67 @@ describe('buildResponse', () => {
     };
     const resp = buildResponse(ep, {}, {method: 'get', path: '/test', headers: {}, query: {}, body: null}, undefined, 0, resolver);
     expect(JSON.parse(resp.body)).toEqual({token: 'resolved-uuid'});
+  });
+
+  it('resolves e: env tokens in body and headers via tokenResolver', () => {
+    const env = {ADMIN_EMAIL: 'admin@example.com', API_KEY: 'secret-key'};
+    const resolver = (v: any) => resolveEmbeddedTokens(v, env);
+    const ep: MockEndpoint = {
+      method: 'get',
+      path: '/me',
+      status: 200,
+      format: 'json',
+      headers: {'X-Api-Key': 'e:API_KEY'},
+      body: {email: 'e:ADMIN_EMAIL', host: 'https://<<e:API_KEY>>.local'},
+    };
+    const resp = buildResponse(
+        ep, {}, {method: 'get', path: '/me', headers: {}, query: {}, body: null},
+        undefined, 0, resolver);
+    expect(JSON.parse(resp.body)).toEqual({
+      email: 'admin@example.com',
+      host: 'https://secret-key.local',
+    });
+    expect(resp.headers['X-Api-Key']).toBe('secret-key');
+  });
+});
+
+describe('findEndpoint with env tokens', () => {
+  it('resolves e: tokens in match rules', () => {
+    const env = {API_KEY: 'secret'};
+    const resolver = (v: any) => resolveEmbeddedTokens(v, env);
+    const endpoints: MockEndpoint[] = [
+      {
+        method: 'get',
+        path: '/secure',
+        match: {headers: {'x-api-key': 'e:API_KEY'}},
+        status: 200,
+        body: 'ok',
+      },
+    ];
+    const hit = findEndpoint(
+        endpoints,
+        {method: 'get', path: '/secure', headers: {'x-api-key': 'secret'}, query: {}, body: null},
+        resolver);
+    expect(hit).not.toBeNull();
+
+    const miss = findEndpoint(
+        endpoints,
+        {method: 'get', path: '/secure', headers: {'x-api-key': 'wrong'}, query: {}, body: null},
+        resolver);
+    expect(miss).toBeNull();
+  });
+
+  it('resolves e: tokens in path patterns', () => {
+    const env = {BASE_PATH: '/api/v1'};
+    const resolver = (v: any) => resolveEmbeddedTokens(v, env);
+    const endpoints: MockEndpoint[] = [
+      {method: 'get', path: '<<e:BASE_PATH>>/health', status: 200, body: 'ok'},
+    ];
+    const hit = findEndpoint(
+        endpoints,
+        {method: 'get', path: '/api/v1/health', headers: {}, query: {}, body: null},
+        resolver);
+    expect(hit).not.toBeNull();
   });
 });
 

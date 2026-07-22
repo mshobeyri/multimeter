@@ -138,9 +138,12 @@ export async function startMockServerFromPath(
     throw new Error(`Mock server validation errors in ${path.basename(filePath)}: ${msg}`);
   }
 
+  const listenPort = mockParsePack.resolveMockPort(data.port, envVars);
+  data.port = listenPort;
+
   // Check if a server is already running on this port
   for (const [, handle] of activeServers) {
-    if (handle.port === data.port) {
+    if (handle.port === listenPort) {
       // Server already running on this port — return a no‑op cleanup
       return () => {};
     }
@@ -257,20 +260,20 @@ export async function startMockServerFromPath(
         activeServers.delete(filePath);
       };
 
-      activeServers.set(filePath, {server, port: data.port, dispose});
+      activeServers.set(filePath, {server, port: listenPort, dispose});
       resolve(dispose);
     });
 
     server.on('error', (err: any) => {
       activeServers.delete(filePath);
       if (err.code === 'EADDRINUSE') {
-        reject(new Error(`Mock server: port ${data.port} is already in use.`));
+        reject(new Error(`Mock server: port ${listenPort} is already in use.`));
       } else {
         reject(new Error(`Mock server error: ${err.message}`));
       }
     });
 
-    server.listen(data.port);
+    server.listen(listenPort);
   });
 }
 

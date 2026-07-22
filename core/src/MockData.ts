@@ -58,7 +58,8 @@ export interface MockData extends MMTFile {
   description?: string;
   tags?: string[];
   protocol?: MockProtocol;
-  port: number;
+  /** Listen port, or an env token such as `e:MOCK_PORT` / `<<e:MOCK_PORT>>`. */
+  port: number | string;
   connection?: MockConnectionConfig;
   cors?: boolean;
   delay?: number;

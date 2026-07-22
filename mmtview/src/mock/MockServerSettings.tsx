@@ -97,13 +97,22 @@ const MockServerSettings: React.FC<MockServerSettingsProps> = ({ data, updateFie
     <div className="mock-edit-tab-content">
       <div className="label" style={{ marginBottom: 6 }}>Port</div>
       <input
-        type="number"
+        type="text"
         className="vscode-input"
-        value={data.port || ''}
-        onChange={e => updateField('port', parseInt(e.target.value, 10) || undefined)}
-        placeholder="8080"
-        min={1}
-        max={65535}
+        value={data.port ?? ''}
+        onChange={e => {
+          const raw = e.target.value.trim();
+          if (!raw) {
+            updateField('port', undefined);
+            return;
+          }
+          if (/^\d+$/.test(raw)) {
+            updateField('port', Number(raw));
+            return;
+          }
+          updateField('port', raw);
+        }}
+        placeholder="8080 or e:MOCK_PORT"
         style={{ width: '100%', marginBottom: 12 }}
       />
 
