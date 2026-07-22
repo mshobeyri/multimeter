@@ -2,6 +2,16 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.28.2]
+
+- Fix YAML `!` / `>` expect and check operators (`!=`, `!*`, `operator: !=`, etc.) so they parse and round-trip correctly from code and edit form
+- Preserve multi-check expect lists and plain vs explicit `==` values through form editing
+- Emit unquoted bang-operators from form serialization (e.g. `!= 201`, `operator: !=`)
+- Fix suite partial-run status handling and simplify own-id icons
+- Bring back the add example button in the API UI
+- Fix overview panel issues
+- Stop opening an empty file when clicking the activity bar icon
+
 ## [1.28.1]
 
 - Improve history panel icons: red reply for failed responses, mock-server `vm-compact` backdrop matching send/recv colors, and purple WS badge
