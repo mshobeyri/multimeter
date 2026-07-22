@@ -12,7 +12,11 @@ import { useSuiteImportTree } from './useSuiteImportTree';
 import { SuiteTreeNode } from './suiteHierarchy';
 import { getSuiteHierarchy } from '../../vsAPI';
 import { resetLeafStateMap } from './leafStateReset';
-import { isUnderSuiteTarget } from './suiteRunStatus';
+import {
+    buildFullSuitePendingState,
+    buildTargetPendingState,
+    isUnderSuiteTarget,
+} from './suiteRunStatus';
 import { statusIconFor } from '../../shared/Common';
 import ExportReportButton, { ReportFormat } from '../../shared/ExportReportButton';
 import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
@@ -733,12 +737,15 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 if (mode === 'loadtest') {
                     setLoadRunSummary(null);
                 }
+                // Clear prior reports for this run, but do not wipe leafRunStateById —
+                // onRunSuite / onRunTargets already primed pending icons for nodes that
+                // will run. Resetting run state here made pending disappear immediately.
                 const hint = pendingLeafResetRef.current;
                 pendingLeafResetRef.current = null;
                 if (hint === 'all') {
-                    resetLeafState('all');
+                    setLeafReportsById({});
                 } else if (Array.isArray(hint) && hint.length) {
-                    resetLeafState(hint);
+                    setLeafReportsById((prev) => resetLeafStateMap(prev, hint));
                 } else {
                     resetLeafState('all');
                 }
@@ -874,21 +881,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         pendingLeafResetRef.current = 'all';
         partialRunTargetRef.current = null;
         setLeafReportsById({});
-        // Mark top-level entries/groups pending until their own suite-item arrives.
-        setLeafRunStateById(() => {
-            const next: Record<string, StepStatus> = {};
-            groups.forEach((group, gi) => {
-                next[createSuiteNodeId([gi])] = 'pending';
-                group.entries.forEach((entry) => {
-                    if (entry?.id) {
-                        next[entry.id] = 'pending';
-                    }
-                });
-            });
-            return next;
-        });
+        // Mark every known runnable node pending until its own suite-item arrives.
+        setLeafRunStateById(buildFullSuitePendingState(groups, hierarchyByEntryId));
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId });
-    }, [groups, beginSuiteRun]);
+    }, [groups, hierarchyByEntryId, beginSuiteRun]);
 
     const onRunTargets = useCallback((target: string) => {
         const effectiveTarget = typeof target === 'string' ? target : '';
@@ -899,10 +895,11 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         pendingLeafResetRef.current = [effectiveTarget];
         // Prefix allowlist: target + descendants (suite-node:1.1 → suite-node:1.1.*).
         partialRunTargetRef.current = effectiveTarget;
+        const pendingMap = buildTargetPendingState(effectiveTarget, groups, hierarchyByEntryId);
         setLeafReportsById((prev) => resetLeafStateMap(prev, [effectiveTarget]));
         setLeafRunStateById((prev) => ({
             ...resetLeafStateMap(prev, [effectiveTarget]),
-            [effectiveTarget]: 'pending',
+            ...pendingMap,
         }));
 
         const nextSuiteRunId = `suite-ui:${Date.now()}`;
@@ -913,7 +910,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         setSuiteRunStartedAt(startedAt);
         setSuiteRunDurationMs(0);
         window.vscode?.postMessage({ command: 'runSuite', suiteRunId: nextSuiteRunId, target: effectiveTarget });
-    }, [beginSuiteRun]);
+    }, [groups, hierarchyByEntryId, beginSuiteRun]);
 
     const onRunSuiteInCore = useCallback(() => {
         window.vscode?.postMessage({

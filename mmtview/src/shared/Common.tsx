@@ -2,7 +2,7 @@ import { StepStatus } from './types';
 
 export const statusIconFor = (status: StepStatus) => {
     if (status === 'running') {
-        return { icon: 'codicon-play-circle', color: '#233cba', title: 'Running' };
+        return { icon: 'codicon-play-circle', color: '#0ABAB5', title: 'Running' };
     }
     if (status === 'cancelled') {
         return { icon: 'codicon-stop-circle', color: ' #7c4545', title: 'Cancelled' };
