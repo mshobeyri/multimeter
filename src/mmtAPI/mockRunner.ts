@@ -205,13 +205,16 @@ export async function startMockServer(
   const envVars = extractEnvVars(mmtProvider);
 
   let listenPort: number;
+  let listenProtocol: MockDataNS.MockProtocol;
   try {
     listenPort = mockParsePack.resolveMockPort(data.port, envVars);
+    listenProtocol = mockParsePack.resolveMockProtocol(data.protocol, envVars);
   } catch (err: any) {
     vscode.window.showErrorMessage(err?.message || String(err));
     return;
   }
   data.port = listenPort;
+  data.protocol = listenProtocol;
 
   // Create token resolver using core's resolveEmbeddedTokens
   // This recursively walks objects/arrays and resolves r:, c:, e: and <<...>> tokens
@@ -449,7 +452,9 @@ export async function startMockServerFromPath(
   }
 
   const listenPort = mockParsePack.resolveMockPort(data.port, envVars);
+  const listenProtocol = mockParsePack.resolveMockProtocol(data.protocol, envVars);
   data.port = listenPort;
+  data.protocol = listenProtocol;
 
   // Check if a server is already running on this port (possibly started via Mock Server panel)
   const existingUri = findServerByPort(listenPort);

@@ -488,7 +488,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
       ) : null}
 
       {/* Only show body editor if method is not get and protocol is not graphql/grpc */}
-      {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && (effectiveProtocol === "ws" || !data.method || data.method.toLowerCase() !== "get") && (
+      {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && (effectiveProtocol === "ws" || !data.method || (typeof data.method === "string" && data.method.toLowerCase() !== "get")) && (
         <>
           <div className="label">Body</div>
           <div style={{ padding: "5px", position: "relative" }}>

@@ -968,7 +968,12 @@ export const MockSchema = {
         description: { type: 'string' },
         tags: { type: 'array', items: { type: 'string' } },
         import: DataImportSchema,
-        protocol: { type: 'string', enum: ['http', 'https', 'ws'] },
+        protocol: {
+            oneOf: [
+                { type: 'string', enum: ['http', 'https', 'ws'] },
+                { type: 'string', description: 'Env token, e.g. e:MOCK_PROTOCOL or <<e:MOCK_PROTOCOL>>' },
+            ],
+        },
         port: {
             oneOf: [
                 { type: 'number', minimum: 1, maximum: 65535 },

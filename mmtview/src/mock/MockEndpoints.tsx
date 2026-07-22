@@ -357,7 +357,7 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
         renderItemArrow={({ item }) => {
           let ep: MockEndpoint | undefined;
           try { ep = JSON.parse(item.data as string); } catch { }
-          const method = (ep?.method || 'get').toLowerCase();
+          const method = String(typeof ep?.method === 'string' ? ep.method : 'get').toLowerCase();
           const ico = methodIconFor(method);
           return (
             <span

@@ -61,8 +61,8 @@ const DocElementsDrawer: React.FC<DocElementsDrawerProps> = ({ apis, docTitle, d
             {group.map((api, idx) => {
               const apiKey = `${tag}:${idx}`;
               // Detect protocol: ws if url starts with ws:// or wss://
-              let proto = (api.method || '').toUpperCase();
-              if (/^ws(s)?:\/\//i.test(api.url)) proto = 'WS';
+              let proto = typeof api.method === 'string' ? api.method.toUpperCase() : '';
+              if (/^ws(s)?:\/\//i.test(String(api.url || ''))) proto = 'WS';
               return (
                 <div key={apiKey} className="doc-elements-api">
                   <div
@@ -72,7 +72,7 @@ const DocElementsDrawer: React.FC<DocElementsDrawerProps> = ({ apis, docTitle, d
                   >
                     <span
                       className="doc-elements-method-badge"
-                      style={{ background: methodColor[(api.method || "get").toLowerCase()] || "#888" }}
+                      style={{ background: methodColor[(typeof api.method === 'string' ? api.method : 'get').toLowerCase()] || "#888" }}
                     >
                       {proto || "GET"}
                     </span>

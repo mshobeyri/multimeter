@@ -103,10 +103,10 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
     },
   }), [commit]);
 
-  const method = (local.method || 'get').toLowerCase();
+  const method = String(typeof local.method === 'string' ? local.method : 'get').toLowerCase();
   const isFallback = variant === 'fallback';
   const summaryLabel = isFallback ? 'FALLBACK' : method.toUpperCase();
-  const summaryPath = isFallback ? '/?' : local.path;
+  const summaryPath = isFallback ? '/?' : (typeof local.path === 'string' ? local.path : String(local.path ?? ''));
 
   /* ─── Context menu (kebab) ─── */
   const Actions = () => {

@@ -139,7 +139,9 @@ export async function startMockServerFromPath(
   }
 
   const listenPort = mockParsePack.resolveMockPort(data.port, envVars);
+  const listenProtocol = mockParsePack.resolveMockProtocol(data.protocol, envVars);
   data.port = listenPort;
+  data.protocol = listenProtocol;
 
   // Check if a server is already running on this port
   for (const [, handle] of activeServers) {

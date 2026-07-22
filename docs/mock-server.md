@@ -194,10 +194,11 @@ Mock responses use the same dynamic tokens as APIs and tests. Values are resolve
 | `r:name` | `id: r:uuid` | Random value (new per request) |
 | `c:name` | `created: c:date` | Current date/time |
 
-`e:` tokens also work in response headers, `match` rules, path patterns, and `port`:
+`e:` tokens also work in response headers, `match` rules, path patterns, `port`, and `protocol`:
 
 ```yaml
 type: server
+protocol: e:MOCK_PROTOCOL
 port: e:MOCK_PORT
 endpoints:
   - method: get
@@ -213,7 +214,9 @@ endpoints:
       greeting: "Hello from <<e:ENV_NAME>>"
 ```
 
-Set `MOCK_PORT` (and other vars) in the Environment panel, a suite `environment`, or via CLI `--env-file` / `-e`.
+Set `MOCK_PORT` / `MOCK_PROTOCOL` (and other vars) in the Environment panel, a suite `environment`, or via CLI `--env-file` / `-e`.
+
+While typing an incomplete token such as `protocol: e:`, YAML may temporarily parse it as a nested map — Multimeter treats that as a validation error instead of crashing the editor.
 
 ### HTTPS and mTLS server files
 

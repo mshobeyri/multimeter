@@ -49,12 +49,8 @@ export function parseMockData(yaml: any): {data: MockData | null; errors: ParseE
   // Port (required): integer 1–65535, or env token e:VAR / <<e:VAR>>
   const normalizedPort = normalizeMockPort(yaml.port, errors);
 
-  // Protocol
-  const rawProtocol = String(yaml.protocol || 'http');
-  const protocol = normalizeMockProtocol(rawProtocol);
-  if (!VALID_PROTOCOLS.includes(protocol)) {
-    errors.push({message: `protocol must be one of: ${VALID_PROTOCOLS.join(', ')}`, severity: 'error'});
-  }
+  // Protocol: http|https|ws, or env token e:VAR / <<e:VAR>>
+  const protocol = normalizeMockProtocolField(yaml.protocol, errors);
 
   const connection = parseConnectionConfig(yaml, protocol, errors);
 
@@ -82,7 +78,12 @@ export function parseMockData(yaml: any): {data: MockData | null; errors: ParseE
       if (protocol !== 'ws' && !ep.reflect) {
         if (!ep.method) {
           errors.push({message: `endpoints[${i}]: method is required for HTTP endpoints`, severity: 'error'});
-        } else if (!VALID_METHODS.includes(ep.method)) {
+        } else if (typeof ep.method === 'object') {
+          errors.push({
+            message: `endpoints[${i}]: method must be a string (use e:METHOD or quote incomplete tokens while typing)`,
+            severity: 'error',
+          });
+        } else if (!VALID_METHODS.includes(ep.method) && !isMockEnvToken(String(ep.method))) {
           errors.push({message: `endpoints[${i}]: invalid method "${ep.method}"`, severity: 'error'});
         }
       }
@@ -154,8 +155,8 @@ export function parseMockData(yaml: any): {data: MockData | null; errors: ParseE
 
 function parseEndpoint(ep: any): MockEndpoint {
   const endpoint: MockEndpoint & {messages?: any[]} = {
-    method: ep.method || undefined,
-    path: String(ep.path || '/'),
+    method: typeof ep.method === 'string' ? ep.method : undefined,
+    path: typeof ep.path === 'string' ? String(ep.path) : '/',
     name: ep.name ? String(ep.name) : undefined,
     match: ep.match ? {
       body: ep.match.body,
@@ -187,9 +188,9 @@ export function yamlToMock(yamlContent: string): MockData | null {
     description: yaml.description ? String(yaml.description) : undefined,
     tags: Array.isArray(yaml.tags) ? yaml.tags.filter((t: any) => t != null).map(String) : undefined,
     import: yaml.import && typeof yaml.import === 'object' && !Array.isArray(yaml.import) ? {...yaml.import} : undefined,
-    protocol: normalizeMockProtocol(String(yaml.protocol || 'http')),
+    protocol: normalizeMockProtocolField(yaml.protocol),
     port: normalizeMockPortLenient(yaml.port),
-    connection: parseConnectionConfig(yaml, normalizeMockProtocol(String(yaml.protocol || 'http')), []),
+    connection: parseConnectionConfig(yaml, normalizeMockProtocolField(yaml.protocol), []),
     cors: !!yaml.cors,
     delay: typeof yaml.delay === 'number' ? yaml.delay : 0,
     headers: yaml.headers && typeof yaml.headers === 'object' ? yaml.headers : undefined,
@@ -205,11 +206,38 @@ export function yamlToMock(yamlContent: string): MockData | null {
   return data;
 }
 
-function normalizeMockProtocol(protocol: string): MockProtocol {
-  return protocol as MockProtocol;
+function normalizeMockProtocolField(raw: any, errors?: ParseError[]): MockProtocol | string {
+  if (raw === undefined || raw === null || raw === '') {
+    return 'http';
+  }
+  // Incomplete tokens like `protocol: e:` parse as nested maps and can swallow
+  // following keys; treat as invalid rather than String(object) => "[object Object]".
+  if (typeof raw === 'object') {
+    if (errors) {
+      errors.push({
+        message: 'protocol must be http, https, ws, or an env token like e:MOCK_PROTOCOL',
+        severity: 'error',
+      });
+    }
+    return 'http';
+  }
+  const s = String(raw).trim();
+  if (VALID_PROTOCOLS.includes(s as MockProtocol)) {
+    return s as MockProtocol;
+  }
+  if (isMockEnvToken(s)) {
+    return s;
+  }
+  if (errors) {
+    errors.push({
+      message: `protocol must be one of: ${VALID_PROTOCOLS.join(', ')}, or an env token like e:MOCK_PROTOCOL`,
+      severity: 'error',
+    });
+  }
+  return s;
 }
 
-function normalizeConnectionMode(rawMode: string | undefined, protocol: MockProtocol): MockConnectionMode {
+function normalizeConnectionMode(rawMode: string | undefined, protocol: MockProtocol | string): MockConnectionMode {
   if (rawMode && VALID_CONNECTION_MODES.includes(rawMode as MockConnectionMode)) {
     return rawMode as MockConnectionMode;
   }
@@ -221,7 +249,7 @@ function normalizeConnectionMode(rawMode: string | undefined, protocol: MockProt
 
 function parseConnectionConfig(
     yaml: any,
-    protocol: MockProtocol,
+    protocol: MockProtocol | string,
     errors: ParseError[]): MockConnectionConfig | undefined {
   const rawConnection = yaml.connection && typeof yaml.connection === 'object' ? yaml.connection : undefined;
   if (yaml.connection && typeof yaml.connection !== 'object') {
@@ -238,7 +266,8 @@ function parseConnectionConfig(
     key: rawConnection?.key ? String(rawConnection.key) : undefined,
     client_ca: rawConnection?.client_ca ? String(rawConnection.client_ca) : undefined,
   };
-  if (mode !== 'plain' && protocol !== 'https') {
+  const isConcreteProtocol = VALID_PROTOCOLS.includes(protocol as MockProtocol);
+  if (mode !== 'plain' && isConcreteProtocol && protocol !== 'https') {
     errors.push({message: 'protocol must be https when connection.mode is tls or mtls', severity: 'error'});
   }
   if (mode === 'mtls' && !connection.client_ca) {
@@ -293,12 +322,17 @@ export function mockToYaml(mock: MockData): string {
   return packYaml(obj);
 }
 
-const ENV_PORT_TOKEN_RE =
+const ENV_TOKEN_RE =
     /^(?:e:[A-Za-z_][A-Za-z0-9_\-]*|<<\s*e:[A-Za-z_][A-Za-z0-9_\-]*\s*>>)$/;
 
-/** True when port is an env token like `e:MOCK_PORT` or `<<e:MOCK_PORT>>`. */
+/** True when value is an env token like `e:MOCK_PORT` or `<<e:MOCK_PORT>>`. */
+export function isMockEnvToken(value: string): boolean {
+  return ENV_TOKEN_RE.test(String(value || '').trim());
+}
+
+/** @deprecated Use isMockEnvToken */
 export function isMockPortEnvToken(value: string): boolean {
-  return ENV_PORT_TOKEN_RE.test(String(value || '').trim());
+  return isMockEnvToken(value);
 }
 
 function isValidListenPort(n: number): boolean {
@@ -323,7 +357,7 @@ export function normalizeMockPort(
   }
   if (typeof raw === 'string') {
     const trimmed = raw.trim();
-    if (isMockPortEnvToken(trimmed)) {
+    if (isMockEnvToken(trimmed)) {
       return trimmed;
     }
     if (/^\d+$/.test(trimmed)) {
@@ -339,6 +373,7 @@ export function normalizeMockPort(
     });
     return trimmed;
   }
+  // Incomplete `port: e:` parses as a nested map — reject without crashing callers.
   errors.push({
     message: 'port must be an integer between 1 and 65535, or an env token like e:MOCK_PORT',
     severity: 'error',
@@ -356,7 +391,7 @@ function normalizeMockPortLenient(raw: any): number | string {
     if (!trimmed) {
       return 0;
     }
-    if (isMockPortEnvToken(trimmed)) {
+    if (isMockEnvToken(trimmed)) {
       return trimmed;
     }
     if (/^\d+$/.test(trimmed)) {
@@ -387,4 +422,28 @@ export function resolveMockPort(
         `Mock server: port "${port}" resolved to "${resolved}", which is not a valid port (1–65535)`);
   }
   return n;
+}
+
+/**
+ * Resolve a mock protocol against env vars.
+ * `protocol: e:MOCK_PROTOCOL` becomes http|https|ws from the environment.
+ */
+export function resolveMockProtocol(
+    protocol: MockProtocol | string | undefined,
+    envVars: Record<string, any> = {}): MockProtocol {
+  const raw = protocol === undefined || protocol === null || protocol === '' ? 'http' : protocol;
+  if (typeof raw !== 'string') {
+    throw new Error('Mock server: invalid protocol value');
+  }
+  const trimmed = raw.trim();
+  if (VALID_PROTOCOLS.includes(trimmed as MockProtocol)) {
+    return trimmed as MockProtocol;
+  }
+  const resolved = resolveEmbeddedTokens(trimmed, envVars);
+  const s = String(resolved ?? '').trim().toLowerCase();
+  if (!VALID_PROTOCOLS.includes(s as MockProtocol)) {
+    throw new Error(
+        `Mock server: protocol "${protocol}" resolved to "${resolved}", which is not one of: ${VALID_PROTOCOLS.join(', ')}`);
+  }
+  return s as MockProtocol;
 }

@@ -16,7 +16,7 @@ export interface MockMatch {
 }
 
 export interface MockEndpoint {
-  method?: Method;
+  method?: Method | string;
   path: string;
   name?: string;
   match?: MockMatch;
@@ -57,7 +57,8 @@ export interface MockData extends MMTFile {
   title?: string;
   description?: string;
   tags?: string[];
-  protocol?: MockProtocol;
+  /** `http` | `https` | `ws`, or an env token such as `e:MOCK_PROTOCOL`. */
+  protocol?: MockProtocol | string;
   /** Listen port, or an env token such as `e:MOCK_PORT` / `<<e:MOCK_PORT>>`. */
   port: number | string;
   connection?: MockConnectionConfig;

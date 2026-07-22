@@ -282,7 +282,8 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
   const handleAddOutputVariable = useCallback((pos: OutputPosition) => {
     const bodyText = pos.text ?? "";
 
-    const fmt = (requestData?.format || "json").toLowerCase();
+    const fmtRaw = requestData?.format || "json";
+    const fmt = typeof fmtRaw === "string" ? fmtRaw.toLowerCase() : "json";
     const contentType: "json" | "xml" =
       fmt.includes("xml") || bodyText.trim().startsWith("<")
         ? "xml"
@@ -323,7 +324,8 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
       sendPendingRef.current = true;
       const protocol = protocolResolver.getEffectiveProtocol(
         requestData?.protocol as any, requestData?.url) || "http";
-      const method = (requestData?.method || "get").toLowerCase();
+      const methodRaw = requestData?.method || "get";
+      const method = typeof methodRaw === "string" ? methodRaw.toLowerCase() : "get";
       const url = requestData?.url ?? "";
       pushHistory({
         type: "send",
@@ -466,7 +468,8 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
 
         if (fromSend) {
           const req = requestDataRef.current;
-          const method = (req?.method || "get").toLowerCase();
+          const methodRaw = req?.method || "get";
+          const method = typeof methodRaw === "string" ? methodRaw.toLowerCase() : "get";
           const url = req?.url ?? "";
           const protocol = protocolResolver.getEffectiveProtocol(
             req?.protocol as any, req?.url) || "http";

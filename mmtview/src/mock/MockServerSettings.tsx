@@ -20,9 +20,11 @@ const KEY_FILTERS = [{ name: 'Key files', extensions: ['key', 'pem'] }];
 
 const MockServerSettings: React.FC<MockServerSettingsProps> = ({ data, updateField, content, setContent }) => {
   const fileContext = React.useContext(FileContext);
-  const connection = data.connection;
-  const connectionMode = connection?.mode || (data.protocol === 'https' ? 'tls' : 'plain');
-  const showTlsFiles = connectionMode !== 'plain' || data.protocol === 'https';
+  const connection = data.connection && typeof data.connection === 'object' ? data.connection : undefined;
+  const protocolValue = typeof data.protocol === 'string' ? data.protocol : 'http';
+  const connectionMode = (typeof connection?.mode === 'string' ? connection.mode : undefined)
+    || (protocolValue === 'https' ? 'tls' : 'plain');
+  const showTlsFiles = connectionMode !== 'plain' || protocolValue === 'https';
 
   const setConnection = React.useCallback((nextConnection: MockConnectionConfig | undefined, forceHttps = false) => {
     try {
@@ -119,12 +121,17 @@ const MockServerSettings: React.FC<MockServerSettingsProps> = ({ data, updateFie
       <div className="label" style={{ marginBottom: 6 }}>Protocol</div>
       <select
         className="vscode-input"
-        value={data.protocol || 'http'}
+        value={PROTOCOLS.includes(protocolValue as any) ? protocolValue : 'http'}
         onChange={e => updateProtocol(e.target.value)}
         style={{ width: '100%', marginBottom: 12 }}
       >
         {PROTOCOLS.map(protocol => <option key={protocol} value={protocol}>{protocol.toUpperCase()}</option>)}
       </select>
+      {typeof data.protocol === 'string' && !PROTOCOLS.includes(data.protocol as any) && (
+        <div style={{ fontSize: 11, color: 'var(--vscode-descriptionForeground)', marginTop: -8, marginBottom: 12 }}>
+          Using env token <code>{data.protocol}</code> from YAML
+        </div>
+      )}
 
       <div className="label" style={{ marginBottom: 6 }}>Connection</div>
       <select

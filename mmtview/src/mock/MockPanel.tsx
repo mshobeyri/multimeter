@@ -111,14 +111,18 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
     );
   }
 
-  const protocol = mockData.protocol || "http";
+  const protocolRaw = typeof mockData.protocol === "string" ? mockData.protocol : "http";
+  const protocol = resolveEnvTokenValues(protocolRaw, envParams) || "http";
   const urlScheme = protocol === "ws" ? "ws" : protocol === "https" ? "https" : "http";
   const displayPort = typeof mockData.port === "string"
     ? resolveEnvTokenValues(String(mockData.port), envParams)
     : mockData.port;
   const baseUrl = `${urlScheme}://localhost:${displayPort}`;
-  const endpointCount = mockData.endpoints?.length || 0;
-  const connection = mockData.connection;
+  const endpointCount = Array.isArray(mockData.endpoints) ? mockData.endpoints.length : 0;
+  const connection = mockData.connection && typeof mockData.connection === "object"
+    ? mockData.connection
+    : undefined;
+  const connectionMode = typeof connection?.mode === "string" ? connection.mode : undefined;
 
   return (
     <div className="panel">
@@ -170,16 +174,16 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
                   <div className="label" style={{ marginBottom: 8 }}>Configuration</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
                     <span className="mock-info-chip mock-info-chip--url">{baseUrl}</span>
-                    <span className="mock-info-chip">{protocol.toUpperCase()}</span>
+                    <span className="mock-info-chip">{String(protocol).toUpperCase()}</span>
                     {mockData.cors && <span className="mock-info-chip">CORS</span>}
-                    {connection?.mode && connection.mode !== 'plain' && <span className="mock-info-chip">{connection.mode.toUpperCase()}</span>}
+                    {connectionMode && connectionMode !== 'plain' && <span className="mock-info-chip">{connectionMode.toUpperCase()}</span>}
                     {mockData.delay && <span className="mock-info-chip">delay: {mockData.delay}ms</span>}
                   </div>
 
                   {/* Endpoints */}
                   <div className="label">Endpoints ({endpointCount})</div>
-                  {(mockData.endpoints || []).filter((ep): ep is MockEndpoint => ep != null).map((endpoint, idx) => {
-                    const method = (endpoint.method || "ANY").toUpperCase();
+                  {(Array.isArray(mockData.endpoints) ? mockData.endpoints : []).filter((ep): ep is MockEndpoint => ep != null && typeof ep === "object").map((endpoint, idx) => {
+                    const method = String(typeof endpoint.method === "string" ? endpoint.method : "ANY").toUpperCase();
                     const color = METHOD_COLORS[method.toLowerCase()] || "var(--vscode-descriptionForeground)";
                     return (
                       <div key={idx} className="mock-ep-row">
@@ -187,7 +191,7 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
                           <span className={`codicon ${methodIconFor(method)}`} style={{ color }} />
                         </span>
                         <span className="mock-ep-method" style={{ color }}>{method}</span>
-                        <span className="mock-ep-path">{endpoint.path}</span>
+                        <span className="mock-ep-path">{typeof endpoint.path === "string" ? endpoint.path : String(endpoint.path ?? "")}</span>
                         <span className="mock-ep-tags">
                           {endpoint.name && <span className="mock-tag mock-tag--name">{endpoint.name}</span>}
                           {endpoint.match && <span className="mock-tag">match</span>}
