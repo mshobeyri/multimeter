@@ -238,8 +238,25 @@ export const repeatToJSfunc = async (loop: TestFlowRepeat, useExternalReport: bo
 }`;
 };
 
+/** Max uninterrupted delay wait so Stop can be observed during long delays. */
+export const DELAY_ABORT_CHECK_MS = 2000;
+
+/**
+ * Generate an awaitable delay that cooperatively checks abort about every 2s.
+ * Short delays still wait once; longer ones are split into ≤2s chunks.
+ */
 export function delayToJSfunc(d: string|number): string {
-  return `await new Promise(r => setTimeout(r, ${durationToJsMsExpr(d)}));`;
+  // Use a block so locals don't leak; checkAbort_ is the run-scoped helper
+  // injected by jsRunner (correct under parallel suite execution).
+  return `{
+  let __delayLeft = ${durationToJsMsExpr(d)};
+  while (__delayLeft > 0) {
+    checkAbort_();
+    const __wait = Math.min(__delayLeft, ${DELAY_ABORT_CHECK_MS});
+    await new Promise(r => setTimeout(r, __wait));
+    __delayLeft -= __wait;
+  }
+}`;
 }
 
 export const forToJSfunc = async (loop: TestFlowLoop, useExternalReport: boolean, importTitleMap?: Record<string, string>): Promise<string> => {

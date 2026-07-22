@@ -1785,7 +1785,7 @@ describe('API query handling', () => {
 });
 
 describe('delay step generation', () => {
-  it('generates setTimeout-based await for ms and unit strings', async () => {
+  it('generates chunked delay with abort checks for ms and unit strings', async () => {
     const ctx1: TestContext = {
       name: 'delayTest1',
       test: {steps: [{delay: 500} as any]} as any,
@@ -1793,7 +1793,10 @@ describe('delay step generation', () => {
       envVars: {}
     };
     const js1 = await testToJsfunc(ctx1, true);
-    expect(js1).toContain('setTimeout(r, 500)');
+    expect(js1).toContain('let __delayLeft = 500');
+    expect(js1).toContain('Math.min(__delayLeft, 2000)');
+    expect(js1).toContain('checkAbort_()');
+    expect(js1).toContain('setTimeout(r, __wait)');
 
     const ctx2: TestContext = {
       name: 'delayTest2',
@@ -1802,7 +1805,8 @@ describe('delay step generation', () => {
       envVars: {}
     };
     const js2 = await testToJsfunc(ctx2, true);
-    expect(js2).toContain('setTimeout(r, 2000)');
+    expect(js2).toContain('let __delayLeft = 2000');
+    expect(js2).toContain('Math.min(__delayLeft, 2000)');
 
     const ctx3: TestContext = {
       name: 'delayTest3',
@@ -1811,7 +1815,9 @@ describe('delay step generation', () => {
       envVars: {}
     };
     const js3 = await testToJsfunc(ctx3, true);
-    expect(js3).toContain('setTimeout(r, 3900000)');
+    expect(js3).toContain('let __delayLeft = 3900000');
+    expect(js3).toContain('Math.min(__delayLeft, 2000)');
+    expect(js3).not.toContain('setTimeout(r, 3900000)');
   });
 });
 
