@@ -92,7 +92,7 @@ function patchXmlValueHighlighting(monaco: any) {
     defaultToken: "",
     tokenPostfix: ".xml",
     ignoreCase: true,
-    qualifiedName: /(?:[\w\.\-]+:)?[\w\.\-]+/,
+    qualifiedName: /(?:[\w.-]+:)?[\w.-]+/,
     tokenizer: {
       root: [
         [/[^<&]+/, "string"],
@@ -103,8 +103,8 @@ function patchXmlValueHighlighting(monaco: any) {
           [{ token: "delimiter" }, { token: "tag" }, "", { token: "delimiter" }],
         ],
         [/(<\?)(@qualifiedName)/, [{ token: "delimiter" }, { token: "metatag", next: "@tag" }]],
-        [/(<\!)(@qualifiedName)/, [{ token: "delimiter" }, { token: "metatag", next: "@tag" }]],
-        [/<\!\[CDATA\[/, { token: "delimiter.cdata", next: "@cdata" }],
+        [/(<!)(@qualifiedName)/, [{ token: "delimiter" }, { token: "metatag", next: "@tag" }]],
+        [/<!\[CDATA\[/, { token: "delimiter.cdata", next: "@cdata" }],
         [/&\w+;/, "string.escape"],
       ],
       cdata: [
@@ -116,7 +116,7 @@ function patchXmlValueHighlighting(monaco: any) {
         [/[ \t\r\n]+/, ""],
         [/(@qualifiedName)(\s*=\s*)("[^"]*"|'[^']*')/, ["attribute.name", "", "attribute.value"]],
         [
-          /(@qualifiedName)(\s*=\s*)("[^">?\/]*|'[^'>?\/]*)(?=[\?\/]\>)/,
+          /(@qualifiedName)(\s*=\s*)("[^">?/]*|'[^'>?/]*)(?=[?/]>)/,
           ["attribute.name", "", "attribute.value"],
         ],
         [/(@qualifiedName)(\s*=\s*)("[^">]*|'[^'>]*)/, ["attribute.name", "", "attribute.value"]],
@@ -130,10 +130,10 @@ function patchXmlValueHighlighting(monaco: any) {
         [/<!--/, { token: "comment", next: "@comment" }],
       ],
       comment: [
-        [/[^<\-]+/, "comment.content"],
+        [/[^<-]+/, "comment.content"],
         [/-->/, { token: "comment", next: "@pop" }],
         [/<!--/, "comment.content.invalid"],
-        [/[<\-]/, "comment.content"],
+        [/[<-]/, "comment.content"],
       ],
     },
   });

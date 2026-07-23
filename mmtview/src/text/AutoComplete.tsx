@@ -1132,6 +1132,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "request/response",
             kind: monaco.languages.CompletionItemKind.Snippet,
+            // Monaco snippet placeholders intentionally use ${n:default} in a normal string.
+            // eslint-disable-next-line no-template-curly-in-string
             insertText: "\n\trequest: ${1:json}\n\tresponse: ${2:json}",
             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
             detail: 'Split request and response formats',
