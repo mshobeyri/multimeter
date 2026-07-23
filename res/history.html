@@ -275,32 +275,15 @@
             max-height: 360px;
         }
 
-        .bh-key { color: #3ec9b1; }
-        .bh-string { color: #cf9178; }
-        .bh-number { color: #f77669; }
-        .bh-keyword,
-        .bh-punct { color: #d4d4d4; }
-        .bh-tag { color: #3ec9b1; }
-        .bh-attr { color: #b6cea8; }
-        .bh-comment { color: #618b4f; }
-        .bh-text { color: var(--vscode-editor-foreground, #d4d4d4); }
-
-        body.vscode-light .bh-key,
-        body.vscode-light .bh-tag,
-        body.vscode-high-contrast-light .bh-key,
-        body.vscode-high-contrast-light .bh-tag { color: #0f7b6c; }
-        body.vscode-light .bh-string,
-        body.vscode-high-contrast-light .bh-string { color: #a31e22; }
-        body.vscode-light .bh-number,
-        body.vscode-high-contrast-light .bh-number { color: #b02a37; }
-        body.vscode-light .bh-keyword,
-        body.vscode-light .bh-punct,
-        body.vscode-high-contrast-light .bh-keyword,
-        body.vscode-high-contrast-light .bh-punct { color: #495057; }
-        body.vscode-light .bh-attr,
-        body.vscode-light .bh-comment,
-        body.vscode-high-contrast-light .bh-attr,
-        body.vscode-high-contrast-light .bh-comment { color: #0f5132; }
+        .bh-key { color: var(--mmt-token-key, var(--vscode-symbolIcon-keyForeground, #9cdcfe)); }
+        .bh-string { color: var(--mmt-token-string, var(--vscode-symbolIcon-stringForeground, #ce9178)); }
+        .bh-number { color: var(--mmt-token-number, var(--vscode-symbolIcon-numberForeground, #b5cea8)); }
+        .bh-keyword { color: var(--mmt-token-keyword, var(--vscode-symbolIcon-keywordForeground, #569cd6)); }
+        .bh-punct { color: var(--mmt-token-punctuation, var(--vscode-editor-foreground, #d4d4d4)); }
+        .bh-tag { color: var(--mmt-token-tag, var(--mmt-token-key, #569cd6)); }
+        .bh-attr { color: var(--mmt-token-attribute, var(--mmt-token-key, #9cdcfe)); }
+        .bh-comment { color: var(--mmt-token-comment, #6a9955); }
+        .bh-text { color: var(--mmt-token-foreground, var(--vscode-editor-foreground, #d4d4d4)); }
 
         @keyframes drawerOpen {
             from {
@@ -339,7 +322,54 @@
     <script>
         const vscode = acquireVsCodeApi();
         const history = __HISTORY_DATA__;
+        const initialTokenColors = __TOKEN_COLORS__;
         let openIdx = null;
+
+        function applyTokenColors(tokenColors) {
+            if (!tokenColors) {
+                return;
+            }
+            var root = document.documentElement.style;
+            function set(name, value) {
+                if (!value) {
+                    return;
+                }
+                root.setProperty(name, value.charAt(0) === '#' ? value : ('#' + value));
+            }
+            set('--mmt-token-key', tokenColors.key);
+            set('--mmt-token-string', tokenColors.string);
+            set('--mmt-token-number', tokenColors.number);
+            set('--mmt-token-keyword', tokenColors.keyword);
+            set('--mmt-token-comment', tokenColors.comment);
+            set('--mmt-token-tag', tokenColors.tag);
+            set('--mmt-token-attribute', tokenColors.attribute);
+            set('--mmt-token-punctuation', tokenColors.punctuation);
+            set('--mmt-token-foreground', tokenColors.foreground);
+        }
+        applyTokenColors(initialTokenColors);
+
+        function requestThemeTokens() {
+            var themeId = document.body.getAttribute('data-vscode-theme-id') || undefined;
+            vscode.postMessage({ command: 'requestThemeTokens', themeId: themeId });
+        }
+        // Ask host after load, and whenever VS Code updates the webview theme id.
+        requestThemeTokens();
+        try {
+            var themeRequestTimer = null;
+            var themeObserver = new MutationObserver(function () {
+                if (themeRequestTimer) {
+                    clearTimeout(themeRequestTimer);
+                }
+                themeRequestTimer = setTimeout(function () {
+                    themeRequestTimer = null;
+                    requestThemeTokens();
+                }, 40);
+            });
+            themeObserver.observe(document.body, {
+                attributes: true,
+                attributeFilter: ['data-vscode-theme-id']
+            });
+        } catch (e) { /* ignore */ }
         /** Per-item body format toggle: idx -> true when showing beautified body. */
         var formattedBodyByIdx = {};
         /** Brief "Copied" feedback per body idx. */
@@ -803,13 +833,12 @@
 
         window.addEventListener('message', function (event) {
             const msg = event.data;
+            if (msg && msg.type === 'vscode:changeColorTheme') {
+                applyTokenColors(msg.tokenColors);
+            }
             if (msg.command === 'refreshHistory') {
                 vscode.postMessage({ type: 'refreshHistory' });
             }
-        });
-
-        window.addEventListener('message', function (event) {
-            const msg = event.data;
             if (msg.command === 'setHistory') {
                 window.history = msg.history;
                 renderHistory();

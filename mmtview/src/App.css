@@ -348,75 +348,41 @@ button,
   word-break: break-all;
 }
 
-/* Token colors aligned with Monaco FIXED_BG_THEME (dark defaults). */
+/* Token colors from active VS Code theme (set by Theme.tsx / history host). */
 .bh-key {
-  color: #3ec9b1;
+  color: var(--mmt-token-key, var(--vscode-symbolIcon-keyForeground, #9cdcfe));
 }
 
 .bh-string {
-  color: #cf9178;
+  color: var(--mmt-token-string, var(--vscode-symbolIcon-stringForeground, #ce9178));
 }
 
 .bh-number {
-  color: #f77669;
+  color: var(--mmt-token-number, var(--vscode-symbolIcon-numberForeground, #b5cea8));
 }
 
 .bh-keyword {
-  color: #d4d4d4;
+  color: var(--mmt-token-keyword, var(--vscode-symbolIcon-keywordForeground, #569cd6));
 }
 
 .bh-punct {
-  color: #d4d4d4;
+  color: var(--mmt-token-punctuation, var(--vscode-editor-foreground, #d4d4d4));
 }
 
 .bh-tag {
-  color: #3ec9b1;
+  color: var(--mmt-token-tag, var(--mmt-token-key, #569cd6));
 }
 
 .bh-attr {
-  color: #b6cea8;
+  color: var(--mmt-token-attribute, var(--mmt-token-key, #9cdcfe));
 }
 
 .bh-comment {
-  color: #618b4f;
+  color: var(--mmt-token-comment, #6a9955);
 }
 
 .bh-text {
-  color: var(--vscode-editor-foreground, #d4d4d4);
-}
-
-body.vscode-light .bh-key,
-body.vscode-high-contrast-light .bh-key,
-body.vscode-light .bh-tag,
-body.vscode-high-contrast-light .bh-tag {
-  color: #0f7b6c;
-}
-
-body.vscode-light .bh-string,
-body.vscode-high-contrast-light .bh-string {
-  color: #a31e22;
-}
-
-body.vscode-light .bh-number,
-body.vscode-high-contrast-light .bh-number {
-  color: #b02a37;
-}
-
-body.vscode-light .bh-keyword,
-body.vscode-high-contrast-light .bh-keyword,
-body.vscode-light .bh-punct,
-body.vscode-high-contrast-light .bh-punct {
-  color: #495057;
-}
-
-body.vscode-light .bh-attr,
-body.vscode-high-contrast-light .bh-attr {
-  color: #0f5132;
-}
-
-body.vscode-light .bh-comment,
-body.vscode-high-contrast-light .bh-comment {
-  color: #0f5132;
+  color: var(--mmt-token-foreground, var(--vscode-editor-foreground, #d4d4d4));
 }
 
 option {

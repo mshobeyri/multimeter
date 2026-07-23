@@ -18,6 +18,7 @@ import { isHttpFilePath, parseHttpDocument } from "mmt-core/httpParsePack";
 import YamlEditorPanel from "./text/YamlEditorPanel";
 import { FileContext } from "./fileContext";
 import PanelErrorBoundary from "./shared/PanelErrorBoundary";
+import { ensureThemeSync } from "./text/Theme";
 
 /** True when YAML parses without document errors (keeps UI off mid-typing junk like `url: http:`). */
 function isUsableMmtYaml(content: string): boolean {
@@ -143,6 +144,10 @@ const App: React.FC = () => {
   const isInitLoad = useRef(true);
   const [yamlEditorFocused, setYamlEditorFocused] = useState(false);
   const lastWindowWidthRef = useRef(window.innerWidth);
+
+  useEffect(() => {
+    ensureThemeSync();
+  }, []);
 
   function getLayoutWidth() {
     if (splitHostRef.current) {

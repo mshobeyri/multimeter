@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { DiffEditor } from "@monaco-editor/react";
-import { FIXED_BG_THEME, defineTheme } from "../text/Theme";
+import { defineTheme, getMonacoThemeName } from "../text/Theme";
 
 interface UnsavedChangesWarningProps {
   /** Current file / applied YAML (left / original side of the diff). */
@@ -94,7 +94,7 @@ const UnsavedChangesWarning: React.FC<UnsavedChangesWarningProps> = ({
               original={originalYaml}
               modified={modifiedYaml}
               language="yaml"
-              theme={FIXED_BG_THEME}
+              theme={getMonacoThemeName()}
               beforeMount={defineTheme}
               height="240px"
               options={{

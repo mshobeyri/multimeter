@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 
 import {HistoryManager} from './historyManager';
 import {messageReceived} from './mmtAPI/mmtAPI';
+import {buildThemeTokenMessage} from './themeTokenColors';
 
 export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   private static instance: MmtEditorProvider|null = null;
@@ -124,6 +125,15 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
       messageReceived(message, webviewPanel, document, this);
     });
 
+    // Push current theme token colors as soon as the webview is ready.
+    setTimeout(() => {
+      try {
+        webviewPanel.webview.postMessage(buildThemeTokenMessage());
+      } catch {
+        // ignore disposed webview
+      }
+    }, 0);
+
     // Sync external document changes (undo, revert/discard) back to the
     // webview so it never holds stale content.
     const changeDocumentSubscription =
@@ -147,7 +157,7 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
         });
 
     const themeListener = vscode.window.onDidChangeActiveColorTheme(() => {
-      webviewPanel.webview.postMessage({type: 'vscode:changeColorTheme'});
+      webviewPanel.webview.postMessage(buildThemeTokenMessage());
     });
     webviewPanel.onDidDispose(() => {
       changeDocumentSubscription.dispose();

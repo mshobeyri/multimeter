@@ -7,6 +7,7 @@ import {handleNetworkMessage, prepareNetworkConfigForFile} from './network';
 import * as run from './run';
 import * as mockRunner from './mockRunner';
 import {loadWorkspaceEnvFile, refreshWorkspaceCertificatesFromEnvFile} from '../workspaceEnvLoader';
+import {buildThemeTokenMessage} from '../themeTokenColors';
 import {
   suiteHierarchy,
   JSer,
@@ -458,6 +459,12 @@ export const messageReceived = async (
   switch (message.command) {
     case 'loadDocumentContent':
       await file.handleLoadDocumentContent(webviewPanel, document, mmtProvider);
+      break;
+
+    case 'requestThemeTokens':
+      webviewPanel.webview.postMessage(
+          buildThemeTokenMessage(
+              typeof message.themeId === 'string' ? message.themeId : undefined));
       break;
 
     case 'updateDocumentContent':

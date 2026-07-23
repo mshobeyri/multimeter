@@ -152,7 +152,7 @@ function highlightJson(text: string): string {
   // Tokenize strings, numbers, keywords, and punctuation.
   // Keep whitespace after strings in its own group so newlines before `}` are preserved.
   const re =
-    /("(?:\\.|[^"\\])*")(\s*)(:)?|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|\b(true|false|null)\b|([{}\[\],])/g;
+    /("(?:\\.|[^"\\])*")(\s*)(:)?|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|\b(true|false|null)\b|([{}[\],])/g;
   let out = '';
   let last = 0;
   let match: RegExpExecArray | null;
@@ -185,7 +185,7 @@ function highlightJson(text: string): string {
 
 function highlightXml(text: string): string {
   const re =
-    /(<!--[\s\S]*?-->)|(<\?[\s\S]*?\?>)|(<\/?[A-Za-z_][\w:.-]*)|(\/?>)|(=)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|([^<\s="'\/]+)/g;
+    /(<!--[\s\S]*?-->)|(<\?[\s\S]*?\?>)|(<\/?[A-Za-z_][\w:.-]*)|(\/?>)|(=)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|([^<\s="'/]+)/g;
   let out = '';
   let last = 0;
   let inTag = false;

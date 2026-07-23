@@ -1,6 +1,6 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import MonacoEditor from "@monaco-editor/react";
-import { FIXED_BG_THEME, defineTheme } from "./Theme";
+import { defineTheme, getMonacoThemeName } from "./Theme";
 
 interface TextEditorProps {
   content: string;
@@ -178,16 +178,18 @@ const TextEditor: React.FC<TextEditorProps> = ({
     pasteTextTransformRef.current = onPasteTextTransform;
   }, [onPasteTextTransform]);
 
-  // Listen for VS Code theme changes and update Monaco theme
+  // Keep Monaco React theme prop in sync with flip-flop theme names from Theme.tsx.
+  const [monacoTheme, setMonacoTheme] = useState(getMonacoThemeName);
   useEffect(() => {
-    const handler = () => {
+    const handler = (event: Event) => {
+      const name = (event as CustomEvent).detail?.monacoTheme || getMonacoThemeName();
+      setMonacoTheme(name);
       if (monacoRefToUse.current) {
-        defineTheme(monacoRefToUse.current);
-        monacoRefToUse.current.editor.setTheme(FIXED_BG_THEME);
+        monacoRefToUse.current.editor.setTheme(name);
       }
     };
-    window.addEventListener("vscode:changeColorTheme", handler);
-    return () => window.removeEventListener("vscode:changeColorTheme", handler);
+    window.addEventListener("vscode:changeColorTheme", handler as EventListener);
+    return () => window.removeEventListener("vscode:changeColorTheme", handler as EventListener);
   }, [monacoRefToUse]);
 
   // Add CSS for the decoration
@@ -298,15 +300,6 @@ const TextEditor: React.FC<TextEditorProps> = ({
     document.head.appendChild(style);
   }, []);
 
-  // Add this in your main React entry file (e.g. index.tsx or App.tsx)
-  useEffect(() => {
-    window.addEventListener("message", event => {
-      if (event.data && event.data.type === "vscode:changeColorTheme") {
-        window.dispatchEvent(new Event("vscode:changeColorTheme"));
-      }
-    });
-  }, []);
-
   const editorDidMount = (editor: any) => {
     editorRefToUse.current = editor;
     editor.onDidFocusEditorWidget?.(() => {
@@ -393,7 +386,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
       width="100%"
       language={language}
       value={content}
-      theme={FIXED_BG_THEME}
+      theme={monacoTheme}
       beforeMount={monaco => {
         monacoRefToUse.current = monaco;
         defineTheme(monaco);

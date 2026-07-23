@@ -13,6 +13,7 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 
 import {resolveWorkspaceEnvFilePath} from './network';
+import {buildThemeTokenMessage} from '../themeTokenColors';
 
 const DEFAULT_OUTPUT_KEYS = Array.isArray(outputExtractor.DEFAULT_OUTPUT_KEYS) ?
   outputExtractor.DEFAULT_OUTPUT_KEYS : ['body', 'headers', 'cookies', 'status', 'duration'];
@@ -199,6 +200,12 @@ export async function handleLoadDocumentContent(
     projectRoot,
     sourceFormat
   });
+
+  // Send theme token colors with document load (avoids race with early theme post).
+  try {
+    webviewPanel.webview.postMessage(buildThemeTokenMessage());
+  } catch {
+  }
 
   // Send initial configuration values (e.g., body auto format)
   try {
