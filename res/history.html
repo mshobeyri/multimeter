@@ -183,6 +183,36 @@
             background: var(--vscode-toolbar-hoverBackground, rgba(255, 255, 255, 0.08));
         }
 
+        .drawer-body-format {
+            font-size: 10px;
+            opacity: 0.55;
+            text-transform: lowercase;
+            padding: 0 4px;
+            border: 1px solid var(--vscode-editorWidget-border, #555);
+            border-radius: 3px;
+            line-height: 1.4;
+        }
+
+        .drawer-body-actions {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: auto;
+        }
+
+        .drawer-copy-btn {
+            width: 22px;
+            height: 20px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .drawer-copy-btn .codicon {
+            font-size: 14px;
+        }
+
         .drawer-sub {
             padding-left: 12px;
         }
@@ -228,19 +258,49 @@
             word-break: break-all;
         }
 
-        .drawer-content pre {
-            color: var(--vscode-foreground, #ccc);
+        .drawer-content pre,
+        .drawer-body-pre {
+            color: var(--vscode-editor-foreground, #d4d4d4);
             background: rgba(127, 127, 127, 0.14);
             padding: 8px 10px;
             border-radius: 4px;
+            border: none;
             font-size: var(--history-detail-size);
             font-family: var(--vscode-editor-font-family, var(--vscode-font-family, monospace));
             margin: 0;
             overflow-x: auto;
             line-height: 1.5;
             white-space: pre-wrap;
-            word-break: break-all;
+            word-break: break-word;
+            max-height: 360px;
         }
+
+        .bh-key { color: #3ec9b1; }
+        .bh-string { color: #cf9178; }
+        .bh-number { color: #f77669; }
+        .bh-keyword,
+        .bh-punct { color: #d4d4d4; }
+        .bh-tag { color: #3ec9b1; }
+        .bh-attr { color: #b6cea8; }
+        .bh-comment { color: #618b4f; }
+        .bh-text { color: var(--vscode-editor-foreground, #d4d4d4); }
+
+        body.vscode-light .bh-key,
+        body.vscode-light .bh-tag,
+        body.vscode-high-contrast-light .bh-key,
+        body.vscode-high-contrast-light .bh-tag { color: #0f7b6c; }
+        body.vscode-light .bh-string,
+        body.vscode-high-contrast-light .bh-string { color: #a31e22; }
+        body.vscode-light .bh-number,
+        body.vscode-high-contrast-light .bh-number { color: #b02a37; }
+        body.vscode-light .bh-keyword,
+        body.vscode-light .bh-punct,
+        body.vscode-high-contrast-light .bh-keyword,
+        body.vscode-high-contrast-light .bh-punct { color: #495057; }
+        body.vscode-light .bh-attr,
+        body.vscode-light .bh-comment,
+        body.vscode-high-contrast-light .bh-attr,
+        body.vscode-high-contrast-light .bh-comment { color: #0f5132; }
 
         @keyframes drawerOpen {
             from {
@@ -282,6 +342,62 @@
         let openIdx = null;
         /** Per-item body format toggle: idx -> true when showing beautified body. */
         var formattedBodyByIdx = {};
+        /** Brief "Copied" feedback per body idx. */
+        var copiedBodyByIdx = {};
+
+        function escapeHtml(s) {
+            return String(s)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function headerValue(headers, name) {
+            if (!headers) {
+                return '';
+            }
+            var target = String(name).toLowerCase();
+            var keys = Object.keys(headers);
+            for (var i = 0; i < keys.length; i++) {
+                if (String(keys[i]).toLowerCase() === target) {
+                    return headers[keys[i]] == null ? '' : String(headers[keys[i]]);
+                }
+            }
+            return '';
+        }
+
+        function detectBodyFormat(content, headers) {
+            var ct = headerValue(headers, 'content-type').toLowerCase();
+            if (ct.indexOf('json') >= 0) {
+                return 'json';
+            }
+            if (ct.indexOf('xml') >= 0 || ct.indexOf('html') >= 0) {
+                return 'xml';
+            }
+            if (ct.indexOf('urlencoded') >= 0 || ct.indexOf('x-www-form-urlencoded') >= 0) {
+                return 'urlencoded';
+            }
+            var text = content == null ? '' : String(content);
+            var trimmed = text.replace(/^\s+/, '');
+            if (!trimmed) {
+                return 'text';
+            }
+            if (trimmed.charAt(0) === '{' || trimmed.charAt(0) === '[') {
+                try {
+                    JSON.parse(text);
+                    return 'json';
+                } catch (e) { /* fall through */ }
+            }
+            if (trimmed.charAt(0) === '<') {
+                return 'xml';
+            }
+            if (/^[^=&\s]+=/.test(trimmed) && trimmed.indexOf('=') >= 0 && trimmed.indexOf('\n') < 0) {
+                return 'urlencoded';
+            }
+            return 'text';
+        }
 
         function indentXml(xml) {
             var padded = xml.replace(/(>)(<)(\/*)/g, '$1\n$2$3');
@@ -304,38 +420,161 @@
             return out.join('\n');
         }
 
-        function tryFormatBody(content) {
+        function formatUrlEncoded(body) {
+            return String(body).split('&').filter(function (part) {
+                return part.length > 0;
+            }).map(function (part) {
+                var eq = part.indexOf('=');
+                if (eq < 0) {
+                    try { return decodeURIComponent(part.replace(/\+/g, ' ')); } catch (e) { return part; }
+                }
+                var key = part.slice(0, eq);
+                var value = part.slice(eq + 1);
+                try { key = decodeURIComponent(key.replace(/\+/g, ' ')); } catch (e) { /* keep */ }
+                try { value = decodeURIComponent(value.replace(/\+/g, ' ')); } catch (e) { /* keep */ }
+                return key + '=' + value;
+            }).join('\n');
+        }
+
+        function tryFormatBody(content, headers) {
             if (content == null) {
                 return '';
             }
             var text = String(content);
-            var trimmed = text.trimStart();
+            var format = detectBodyFormat(text, headers);
             try {
-                if (trimmed.charAt(0) === '{' || trimmed.charAt(0) === '[') {
+                if (format === 'json') {
                     return JSON.stringify(JSON.parse(text), null, 2);
                 }
-            } catch (e) { /* not JSON */ }
-            if (trimmed.charAt(0) === '<') {
-                try {
+                if (format === 'xml') {
                     return indentXml(text);
-                } catch (e) { /* leave raw */ }
-            }
+                }
+                if (format === 'urlencoded') {
+                    return formatUrlEncoded(text);
+                }
+            } catch (e) { /* leave raw */ }
             return text;
         }
 
-        function canFormatBody(content) {
+        function canFormatBody(content, headers) {
             if (content == null || content === '') {
                 return false;
             }
-            var text = String(content);
-            var trimmed = text.trimStart();
-            try {
-                if (trimmed.charAt(0) === '{' || trimmed.charAt(0) === '[') {
-                    JSON.parse(text);
+            var format = detectBodyFormat(String(content), headers);
+            if (format === 'json') {
+                try {
+                    JSON.parse(String(content));
                     return true;
+                } catch (e) {
+                    return false;
                 }
-            } catch (e) { /* not JSON */ }
-            return trimmed.charAt(0) === '<';
+            }
+            return format === 'xml' || format === 'urlencoded';
+        }
+
+        function spanCls(cls, text) {
+            return '<span class="' + cls + '">' + escapeHtml(text) + '</span>';
+        }
+
+        function highlightJson(text) {
+            // Keep whitespace after strings in its own group so newlines before `}` are preserved.
+            var re = /("(?:\\.|[^"\\])*")(\s*)(:)?|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)|\b(true|false|null)\b|([{}\[\],])/g;
+            var out = '';
+            var last = 0;
+            var match;
+            while ((match = re.exec(text)) !== null) {
+                if (match.index > last) {
+                    out += escapeHtml(text.slice(last, match.index));
+                }
+                if (match[1] !== undefined) {
+                    out += spanCls(match[3] ? 'bh-key' : 'bh-string', match[1]);
+                    if (match[2]) {
+                        out += escapeHtml(match[2]);
+                    }
+                    if (match[3]) {
+                        out += spanCls('bh-punct', match[3]);
+                    }
+                } else if (match[4] !== undefined) {
+                    out += spanCls('bh-number', match[4]);
+                } else if (match[5] !== undefined) {
+                    out += spanCls('bh-keyword', match[5]);
+                } else if (match[6] !== undefined) {
+                    out += spanCls('bh-punct', match[6]);
+                }
+                last = match.index + match[0].length;
+            }
+            if (last < text.length) {
+                out += escapeHtml(text.slice(last));
+            }
+            return out;
+        }
+
+        function highlightXml(text) {
+            var re = /(<!--[\s\S]*?-->)|(<\?[\s\S]*?\?>)|(<\/?[A-Za-z_][\w:.-]*)|(\/?>)|(=)|("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|([^<\s="'\/]+)/g;
+            var out = '';
+            var last = 0;
+            var inTag = false;
+            var match;
+            while ((match = re.exec(text)) !== null) {
+                if (match.index > last) {
+                    out += escapeHtml(text.slice(last, match.index));
+                }
+                if (match[1]) {
+                    out += spanCls('bh-comment', match[1]);
+                } else if (match[2]) {
+                    out += spanCls('bh-tag', match[2]);
+                } else if (match[3]) {
+                    inTag = true;
+                    out += spanCls('bh-tag', match[3]);
+                } else if (match[4]) {
+                    inTag = false;
+                    out += spanCls('bh-punct', match[4]);
+                } else if (match[5]) {
+                    out += spanCls('bh-punct', match[5]);
+                } else if (match[6]) {
+                    out += spanCls('bh-string', match[6]);
+                } else if (match[7]) {
+                    out += spanCls(inTag ? 'bh-attr' : 'bh-text', match[7]);
+                }
+                last = match.index + match[0].length;
+            }
+            if (last < text.length) {
+                out += escapeHtml(text.slice(last));
+            }
+            return out;
+        }
+
+        function highlightUrlEncoded(text) {
+            return String(text).split(/(\n|&)/).map(function (part) {
+                if (part === '\n' || part === '&') {
+                    return spanCls('bh-punct', part);
+                }
+                if (!part) {
+                    return '';
+                }
+                var eq = part.indexOf('=');
+                if (eq < 0) {
+                    return spanCls('bh-key', part);
+                }
+                return spanCls('bh-key', part.slice(0, eq)) +
+                    spanCls('bh-punct', '=') +
+                    spanCls('bh-string', part.slice(eq + 1));
+            }).join('');
+        }
+
+        function highlightBodyHtml(content, headers) {
+            var text = content == null ? '' : String(content);
+            var format = detectBodyFormat(text, headers);
+            if (format === 'json') {
+                return highlightJson(text);
+            }
+            if (format === 'xml') {
+                return highlightXml(text);
+            }
+            if (format === 'urlencoded') {
+                return highlightUrlEncoded(text);
+            }
+            return escapeHtml(text);
         }
 
         function getTypeIcon(type, status, protocol) {
@@ -443,15 +682,6 @@
         function renderHistory() {
             const list = document.getElementById('history-list');
 
-            function escapeHtml(s) {
-                return String(s)
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;")
-                    .replace(/\"/g, "&quot;")
-                    .replace(/'/g, "&#39;");
-            }
-
             function renderCodicons(text) {
                 // Supports VS Code codicon string syntax: $(icon-name)
                 // Example: $(server) $(arrow-up)
@@ -464,6 +694,11 @@
                 '<ul class="history-list">' +
                 history.map(function (item, idx) {
                     const isError = item.type === 'error';
+                    const bodyText = item.content == null ? '' : String(item.content);
+                    const displayBody = formattedBodyByIdx[idx]
+                        ? tryFormatBody(bodyText, item.headers)
+                        : bodyText;
+                    const bodyFormat = bodyText ? detectBodyFormat(displayBody, item.headers) : '';
                     return '<li>' +
                         '<div class="history-row" onclick="toggleDrawer(' + idx + ')">' +
                         '<span class="drawer-arrow' + (openIdx === idx ? ' open' : '') + '">&#9654;</span>' +
@@ -503,15 +738,20 @@
                                 ? '<div class="drawer-section"><span class="drawer-section-title">Headers</span><div class="drawer-sub">' + renderVerticalTable(item.headers) + '</div></div>' : '') +
                             (item.query && Object.keys(item.query).length
                                 ? '<div class="drawer-section"><span class="drawer-section-title">Query</span><div class="drawer-sub">' + renderVerticalTable(item.query) + '</div></div>' : '') +
-                            (item.content
+                            (bodyText
                                 ? '<div class="drawer-section"><div class="drawer-section-header"><span class="drawer-section-title">Body</span>' +
-                                (canFormatBody(item.content)
+                                '<span class="drawer-body-format" title="Detected body type">' + escapeHtml(bodyFormat) + '</span>' +
+                                '<div class="drawer-body-actions">' +
+                                (canFormatBody(bodyText, item.headers)
                                     ? '<button type="button" class="drawer-format-btn" onclick="event.stopPropagation(); toggleBodyFormat(' + idx + ')" title="' +
                                       (formattedBodyByIdx[idx] ? 'Show raw body' : 'Format body') + '">' +
                                       (formattedBodyByIdx[idx] ? 'Raw' : 'Format') + '</button>'
                                     : '') +
-                                '</div><div class="drawer-sub"><pre>' +
-                                escapeHtml(formattedBodyByIdx[idx] ? tryFormatBody(item.content) : item.content) +
+                                '<button type="button" class="drawer-format-btn drawer-copy-btn" onclick="event.stopPropagation(); copyHistoryBody(' + idx + ')" title="' +
+                                  (copiedBodyByIdx[idx] ? 'Copied' : 'Copy body') + '">' +
+                                  '<span class="codicon ' + (copiedBodyByIdx[idx] ? 'codicon-check' : 'codicon-copy') + '"></span></button>' +
+                                '</div></div><div class="drawer-sub"><pre class="drawer-body-pre bh-' + escapeHtml(bodyFormat) + '">' +
+                                highlightBodyHtml(displayBody, item.headers) +
                                 '</pre></div></div>' : '') +
                             '</div>'
                             : '') +
@@ -521,13 +761,44 @@
         }
 
         window.toggleDrawer = function (idx) {
-            openIdx = openIdx === idx ? null : idx;
+            var opening = openIdx !== idx;
+            openIdx = opening ? idx : null;
+            // Pretty-print only when this row is opened (not for the whole list).
+            if (opening) {
+                var item = history[idx];
+                if (item && canFormatBody(item.content, item.headers)) {
+                    formattedBodyByIdx[idx] = true;
+                }
+            }
             renderHistory();
         };
 
         window.toggleBodyFormat = function (idx) {
             formattedBodyByIdx[idx] = !formattedBodyByIdx[idx];
             renderHistory();
+        };
+
+        window.copyHistoryBody = function (idx) {
+            var item = history[idx];
+            if (!item || item.content == null) {
+                return;
+            }
+            var text = formattedBodyByIdx[idx]
+                ? tryFormatBody(String(item.content), item.headers)
+                : String(item.content);
+            function markCopied() {
+                copiedBodyByIdx[idx] = true;
+                renderHistory();
+                window.setTimeout(function () {
+                    copiedBodyByIdx[idx] = false;
+                    renderHistory();
+                }, 1200);
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(markCopied).catch(function () {
+                    // ignore
+                });
+            }
         };
 
         window.addEventListener('message', function (event) {
