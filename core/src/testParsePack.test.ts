@@ -489,6 +489,45 @@ steps:
       - call: missing_api`;
     expect(() => yamlToTestStrict(yaml)).toThrow(/missing_api.*not imported/i);
   });
+
+  it('validates nested steps in if else branch', () => {
+    const yaml = `type: test
+import:
+  echo: echo.mmt
+steps:
+  - if: true
+    steps:
+      - print: ok
+    else:
+      - call: missing_api`;
+    expect(() => yamlToTestStrict(yaml)).toThrow(/missing_api.*not imported/i);
+  });
+
+  it('round-trips if/else steps', () => {
+    const yaml = [
+      'type: test',
+      'steps:',
+      '  - if: status == 200',
+      '    steps:',
+      '      - print: ok',
+      '    else:',
+      '      - print: fail',
+    ].join('\n');
+    const test = yamlToTest(yaml);
+    expect(test.steps?.[0]).toMatchObject({
+      if: 'status == 200',
+      steps: [{print: 'ok'}],
+      else: [{print: 'fail'}],
+    });
+    const packed = testToYaml(test);
+    expect(packed).toContain('else:');
+    expect(packed).toContain('print: fail');
+    expect(yamlToTest(packed).steps?.[0]).toMatchObject({
+      if: 'status == 200',
+      steps: [{print: 'ok'}],
+      else: [{print: 'fail'}],
+    });
+  });
 });
 
 describe('validateTestData', () => {

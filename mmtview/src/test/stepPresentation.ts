@@ -24,6 +24,8 @@ export function codiconForStepType(type?: string): string {
       return 'pass';
     case 'if':
       return 'question';
+    case 'else':
+      return 'debug-step-over';
     case 'for':
       return 'sync';
     case 'repeat':
@@ -75,6 +77,8 @@ export function displayNameForStepType(type?: string): string {
       return 'js';
     case 'stage':
       return 'stage';
+    case 'else':
+      return 'else';
     default:
       return type || 'step';
   }

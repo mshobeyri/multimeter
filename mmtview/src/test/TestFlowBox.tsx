@@ -134,7 +134,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       </div>
     );
   };
-  type FlowTypeWithCsv = FlowType | 'data';
+  type FlowTypeWithCsv = FlowType | 'data' | 'else';
   const renderInner = () => {
     switch (type as FlowTypeWithCsv) {
       case 'call':
@@ -183,10 +183,19 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
             actual={actual}
             op={op}
             expected={expected}
-            onChange={({ actual, op, expected }) => onChange({ [type]: `${actual} ${op} ${expected}` })}
+            onChange={({ actual, op, expected }) => onChange({
+              ...stepData,
+              [type]: `${actual} ${op} ${expected}`,
+            })}
           />
         );
       }
+      case 'else':
+        return (
+          <div style={{ opacity: 0.85, fontWeight: 600, padding: '2px 0' }}>
+            else
+          </div>
+        );
       case 'check':
       case 'assert': {
         let actual = '', op: CheckOps = '==' as CheckOps, expected = '', title = '', details = '';
@@ -232,7 +241,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
           <input
             placeholder={type === 'for' ? '(i = 0; i < 5; i++ | key in obj | item of list)' : (type === 'delay' ? '(1ms | 2s | 3m | 4h)' : '(100 | 2ms | 3m | 4h)')}
             value={stepData[type] || ''}
-            onChange={e => onChange({ [type]: e.target.value })}
+            onChange={e => onChange({ ...stepData, [type]: e.target.value })}
             style={{ width: '100%' }}
           />
         );
@@ -392,7 +401,7 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       <div
         style={{ marginLeft: 'auto', display: 'flex', alignItems: 'flex-start', pointerEvents: 'auto', gap: 4, flex: '0 0 auto' }}
       >
-        <Actions />
+        {type !== 'else' ? <Actions /> : null}
       </div>
     </div>
   );

@@ -1150,6 +1150,26 @@ describe('empty test items are valid', () => {
        const js = await testToJsfunc(ctx, true);
        expect(js).toContain('if (true)');
      });
+
+  it('emits else branch for if steps', async () => {
+    const ctx: TestContext = {
+      name: 'ifElse',
+      test: {
+        steps: [{
+          if: 'status == 200',
+          steps: [{print: 'ok'} as any],
+          else: [{print: 'fail'} as any],
+        } as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('if (');
+    expect(js).toContain('} else {');
+    expect(js).toContain('ok');
+    expect(js).toContain('fail');
+  });
 });
 
 describe('call steps without expect', () => {

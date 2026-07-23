@@ -443,7 +443,10 @@ export const KeySuggestionsByParent = (monaco: any) => {
         {
             label: "if",
             kind: monaco.languages.CompletionItemKind.Property,
-            insertText: "- if: ",
+            // Monaco snippet placeholders intentionally use ${n:default} in a normal string.
+            // eslint-disable-next-line no-template-curly-in-string
+            insertText: "- if: ${1:condition}\n\tsteps:\n\t\t- print: then branch\n\telse:\n\t\t- print: else branch",
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
             detail: 'Conditional block',
             documentation: [
                 'Runs nested steps only when the condition is true. Optional else with its own steps.',

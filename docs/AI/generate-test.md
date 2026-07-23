@@ -75,11 +75,11 @@ Supported step forms:
 # 4) assert: hard assertion (stops on failure)
 - assert: <comparison>
 
-# 5) if: conditional block
+# 5) if: conditional block (optional else)
 - if: <comparison>
   steps:
     - <step>
-  else?:
+  else:
     - <step>
 
 # 6) repeat: repeat a block N times or by string

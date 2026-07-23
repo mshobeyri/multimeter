@@ -443,7 +443,8 @@ Checks, assertions, prints, and errors appear in the Log panel while the flow ru
 ![Log panel](../screenshots/test_panel_log.png)
 
 ### if, else
-Conditionally run nested steps based on an expression.
+Conditionally run nested steps based on an expression. The true branch is `steps:`; an optional `else:` runs when the condition is false. There is no `elseif` — nest another `if` inside `else` when you need more branches.
+
 ```yaml
 - if: ${doLogin.status} == 200
   steps:
@@ -451,6 +452,11 @@ Conditionally run nested steps based on an expression.
       id: me
   else:
     - print: "Login failed"
+    - if: ${doLogin.status} == 401
+      steps:
+        - print: "Unauthorized"
+      else:
+        - print: "Other error"
 ```
 
 ### for, repeat

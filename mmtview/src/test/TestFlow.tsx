@@ -455,6 +455,16 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                     };
 
                     const doDuplicate = (targetKey: string) => {
+                        try {
+                            const node = shortTree.items[targetKey];
+                            if (node) {
+                                const parsed = JSON.parse(node.data);
+                                if (parsed?.type === 'else') {
+                                    return;
+                                }
+                            }
+                        } catch {
+                        }
                         setShortTree(prev => {
                             const itemsCopy = { ...prev.items } as Record<string, any>;
                             const parentKey = findParentOf(itemsCopy, targetKey) || 'flow';
@@ -478,6 +488,16 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
 
                     const doRemove = (targetKey: string) => {
                         if (targetKey === 'root' || targetKey === 'flow') return;
+                        try {
+                            const node = shortTree.items[targetKey];
+                            if (node) {
+                                const parsed = JSON.parse(node.data);
+                                if (parsed?.type === 'else') {
+                                    return;
+                                }
+                            }
+                        } catch {
+                        }
                         setShortTree(prev => {
                             const itemsCopy = { ...prev.items } as Record<string, any>;
                             const parentKey = findParentOf(itemsCopy, targetKey) || 'flow';
@@ -612,13 +632,42 @@ function testDataToShortTree(testData: TestData): { items: Record<string, any> }
         const type = forceStageType ? 'stage' : computed;
         const children: string[] = [];
 
-        const childSteps = (step && Array.isArray(step.steps)) ? step.steps : [];
-        childSteps.forEach((childStep: any, idx: number) => {
-            if (!childStep) { return; }
-            const childPath = `${path}_${idx}`;
-            children.push(childPath);
-            toItem(childStep, childPath);
-        });
+        if (type === 'if') {
+            const thenSteps = Array.isArray(step.steps) ? step.steps : [];
+            thenSteps.forEach((childStep: any, idx: number) => {
+                if (!childStep) { return; }
+                const childPath = `${path}_${idx}`;
+                children.push(childPath);
+                toItem(childStep, childPath);
+            });
+
+            const elseKey = `${path}__else`;
+            children.push(elseKey);
+            const elseSteps = Array.isArray(step.else) ? step.else : [];
+            const elseChildren: string[] = [];
+            elseSteps.forEach((childStep: any, idx: number) => {
+                if (!childStep) { return; }
+                const childPath = `${elseKey}_${idx}`;
+                elseChildren.push(childPath);
+                toItem(childStep, childPath);
+            });
+            items[elseKey] = {
+                index: elseKey,
+                isFolder: true,
+                canMove: false,
+                children: elseChildren,
+                data: JSON.stringify({ type: 'else', data: { stepData: { else: true } } }),
+                canRename: false,
+            };
+        } else {
+            const childSteps = (step && Array.isArray(step.steps)) ? step.steps : [];
+            childSteps.forEach((childStep: any, idx: number) => {
+                if (!childStep) { return; }
+                const childPath = `${path}_${idx}`;
+                children.push(childPath);
+                toItem(childStep, childPath);
+            });
+        }
 
         items[path] = {
             index: path,
@@ -657,7 +706,7 @@ function testDataToShortTree(testData: TestData): { items: Record<string, any> }
 }
 
 const isTypeFolder = (type: FlowType | unknown): boolean => {
-    return type === "stage" || type === "stages" || type === "steps" || type === "if" || type === "for" || type === "repeat";
+    return type === "stage" || type === "stages" || type === "steps" || type === "if" || type === "else" || type === "for" || type === "repeat";
 }
 
 const isExpandable = (type: FlowType | unknown): boolean => {
@@ -683,7 +732,40 @@ function buildStepFromTree(items: Record<string, any>, key: string): any {
         parsed = { type: 'unknown', data: { stepData: {} } } as any;
     }
     const base = parsed.data.stepData || {};
+    const type = parsed.type;
     const kids: string[] = Array.isArray(node.children) ? node.children : [];
+
+    if (type === 'else') {
+        // Structural folder only; never emitted as a flow step.
+        return {};
+    }
+
+    if (type === 'if') {
+        const elseKey = kids.find((k) => {
+            try {
+                return JSON.parse(items[k]?.data || '{}').type === 'else';
+            } catch {
+                return false;
+            }
+        });
+        const thenKeys = kids.filter((k) => k !== elseKey);
+        const result: any = {
+            ...base,
+            if: base.if,
+            steps: thenKeys.map((k) => buildStepFromTree(items, k)),
+        };
+        delete result.else;
+        if (elseKey) {
+            const elseKids: string[] = Array.isArray(items[elseKey]?.children)
+                ? items[elseKey].children
+                : [];
+            if (elseKids.length > 0) {
+                result.else = elseKids.map((k: string) => buildStepFromTree(items, k));
+            }
+        }
+        return result;
+    }
+
     if (kids.length > 0) {
         const newSteps = kids.map((k) => buildStepFromTree(items, k));
         return { ...base, steps: newSteps };
