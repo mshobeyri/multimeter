@@ -154,6 +154,8 @@ export interface RunFileOptions {
   envvar?: Record<string, any>;
   manualEnvvars?: Record<string, any>;
   fileLoader: FileLoader;
+  /** Load a relative path as raw bytes (format: binary request bodies). */
+  binaryFileLoader?: (path: string) => Promise<Buffer>;
   jsRunner: (context: RunJSCodeContext) => Promise<any>;
   logger: (level: LogLevel, msg: string) => void;
   reporter: (message: RunReporterMessage) => void;

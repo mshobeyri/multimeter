@@ -95,3 +95,19 @@ describe('markupConvertor urlencoded format', () => {
         .toBe('application/x-www-form-urlencoded');
   });
 });
+
+describe('markupConvertor binary format', () => {
+  it('keeps a file path string as-is', () => {
+    expect(formatBody('binary', './payload.bin', false)).toBe('./payload.bin');
+    expect(formatBody('binary', '  ./a.pdf  ', false)).toBe('./a.pdf');
+  });
+
+  it('round-trips path through formattedBodyToYamlObject', () => {
+    expect(formattedBodyToYamlObject('binary', './payload.bin'))
+        .toBe('./payload.bin');
+  });
+
+  it('uses application/octet-stream content type', () => {
+    expect(contentTypeForFormat('binary')).toBe('application/octet-stream');
+  });
+});

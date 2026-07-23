@@ -348,6 +348,12 @@ export async function executeLoadTest(
     };
 
     try {
+      const childBinaryFileLoader = options.binaryFileLoader
+        ? async (requestedPath: string) => {
+            const resolved = resolveRelativeTo(requestedPath, childFilePath);
+            return await options.binaryFileLoader!(resolved);
+          }
+        : undefined;
       const childResult = await runGeneratedJs(
         runId,
         childJs,
@@ -368,6 +374,7 @@ export async function executeLoadTest(
         true,
         'none',
         'Test',
+        childBinaryFileLoader,
       );
       completed += 1;
       if (!childResult.success) {

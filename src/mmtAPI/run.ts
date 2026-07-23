@@ -11,7 +11,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 
-import {readRelativeFileContent} from './file';
+import {readRelativeFileContent, readRelativeFileBinary} from './file';
 import {startMockServerFromPath} from './mockRunner';
 import {prepareNetworkConfigForFile, parseEnvFileForRun, resolveWorkspaceEnvFilePath} from './network';
 import {onRunStarted, onRunFinished} from '../runStatusBar';
@@ -259,6 +259,13 @@ function createFileLoader(basePath: string): (relPath: string) => Promise<string
   };
 }
 
+/** Create a binary file loader scoped to the directory of `basePath`. */
+function createBinaryFileLoader(basePath: string): (relPath: string) => Promise<Buffer> {
+  return async (relPath: string) => {
+    return await readRelativeFileBinary(basePath, relPath);
+  };
+}
+
 export async function handleRunCurrentDocument(
     message: any, webviewPanel: vscode.WebviewPanel,
     document: vscode.TextDocument, mmtProvider: any) {
@@ -292,6 +299,7 @@ export async function handleRunCurrentDocument(
 
   try {
     const fileLoader = createFileLoader(document.uri.fsPath);
+    const binaryFileLoader = createBinaryFileLoader(document.uri.fsPath);
     // Prefer right-panel UI YAML when present; glyphs omit rawFile and use the file.
     const rawFile = typeof message?.rawFile === 'string' && message.rawFile.length > 0
       ? message.rawFile
@@ -305,9 +313,11 @@ export async function handleRunCurrentDocument(
       envvar: envVars,
       manualEnvvars: {},
       fileLoader,
+      binaryFileLoader,
       jsRunner: (ctx: any) => runJSCode({
         ...ctx,
         fileLoader,
+        binaryFileLoader,
         serverRunner,
       }),
       logger: forwardLog,
@@ -468,6 +478,7 @@ export async function handleRunSuite(
     if (isLoadTest) {
       const projectRootLoadTest = findProjectRoot(runFilePath);
       const fileLoader = createFileLoader(runFilePath);
+      const binaryFileLoader = createBinaryFileLoader(runFilePath);
       const suiteServerRunner = async (alias: string, filePath: string): Promise<() => void> => {
         forwardLog('info', `Starting mock server from ${alias}`);
         return startMockServerFromPath(filePath, envVars);
@@ -482,9 +493,11 @@ export async function handleRunSuite(
         envvar: envVars,
         manualEnvvars: {},
         fileLoader,
+        binaryFileLoader,
         jsRunner: (ctx: any) => runJSCode({
           ...ctx,
           fileLoader: ctx.fileLoader || fileLoader,
+          binaryFileLoader: ctx.binaryFileLoader || binaryFileLoader,
           serverRunner: ctx.serverRunner || suiteServerRunner,
         }),
         logger: forwardLog,
@@ -516,6 +529,7 @@ export async function handleRunSuite(
 
     const bundleTarget = typeof target === 'string' && target ? target : undefined;
     const fileLoader = createFileLoader(runFilePath);
+    const binaryFileLoader = createBinaryFileLoader(runFilePath);
     const tree = await suiteHierarchy.buildSuiteHierarchyFromSuiteFile({
       suiteFilePath: runFilePath,
       suiteRawText: rawSuite,
@@ -564,6 +578,7 @@ export async function handleRunSuite(
       envvar: mergedEnvVars,
       manualEnvvars: {},
       fileLoader,
+      binaryFileLoader,
       jsRunner: (ctx: any) => runJSCode({
         ...ctx,
         // Prefer the child-specific fileLoader from the suite bundle runner
@@ -571,6 +586,7 @@ export async function handleRunSuite(
         // suite-level fileLoader.  Only fall back to suite-level if ctx has
         // no fileLoader at all.
         fileLoader: ctx.fileLoader || fileLoader,
+        binaryFileLoader: ctx.binaryFileLoader || binaryFileLoader,
         serverRunner: ctx.serverRunner || suiteServerRunner,
       }),
       logger: forwardLog,

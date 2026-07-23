@@ -65,4 +65,25 @@ describe('API format parse/pack', () => {
     expect(apiToYaml({...api, format: {request: 'text', response: 'text'}}))
         .toMatch(/format: text/);
   });
+
+  it('parses format: binary with a path body', () => {
+    const yaml = [
+      'type: api',
+      'url: https://example.com/upload',
+      'method: post',
+      'format: binary',
+      'body: ./payload.bin',
+    ].join('\n');
+    const api = yamlToAPIStrict(yaml);
+    expect(api.format).toBe('binary');
+    expect(api.body).toBe('./payload.bin');
+    expect(requestFormat(api.format)).toBe('binary');
+    const packed = apiToYaml(api);
+    expect(packed).toMatch(/format: binary/);
+    expect(packed).toContain('body: ./payload.bin');
+  });
+
+  it('packs matching binary request/response as scalar format: binary', () => {
+    expect(packFormatSpec({request: 'binary', response: 'binary'})).toBe('binary');
+  });
 });

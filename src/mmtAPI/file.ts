@@ -171,6 +171,16 @@ export async function readRelativeFileContent(
   return await readFileContent(absolutePath);
 }
 
+/** Read a relative path as raw bytes (for format: binary request bodies). */
+export async function readRelativeFileBinary(
+    openFilePath: string, relativePath: string): Promise<Buffer> {
+  const safeRelativePath =
+      typeof relativePath === 'string' ? relativePath : openFilePath;
+  const normalized = normalizeWebviewPath(safeRelativePath);
+  const absolutePath = resolveImportPath(openFilePath, normalized);
+  return await fs.promises.readFile(absolutePath);
+}
+
 
 export async function handleLoadDocumentContent(
     webviewPanel: vscode.WebviewPanel, document: vscode.TextDocument,

@@ -25,7 +25,7 @@ const dataRefOr = (...schemas: any[]) => ({
     ]
 });
 
-const FormatEnumSchema = { type: 'string', enum: ['json', 'xml', 'xmle', 'text', 'urlencoded'] };
+const FormatEnumSchema = { type: 'string', enum: ['json', 'xml', 'xmle', 'text', 'urlencoded', 'binary'] };
 
 /** Scalar format or `{ request, response }` when they differ. */
 const FormatSpecSchema = {

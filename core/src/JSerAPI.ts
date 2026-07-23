@@ -106,6 +106,8 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
 
   // GraphQL: override method, headers, and body
   const effectiveMethod = isGraphQL ? 'post' : (replaced.method || '');
+  const reqFormat = requestFormat(replaced.format);
+  const isBinaryRequest = !isGraphQL && reqFormat === 'binary';
   if (isGraphQL) {
     // Ensure Content-Type is set to application/json
     const hasContentType = Object.keys(replaced.headers || {}).some(
@@ -117,13 +119,13 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
                     .map(([k, v]) => `"${k}": ${toTemplateWithEnvs(String(v))}`)
                     .join(', ');
     }
-  } else if (requestFormat(replaced.format) === 'urlencoded') {
-    // Form bodies are not detectable from shape alone (unlike JSON/XML)
+  } else if (reqFormat === 'urlencoded' || reqFormat === 'binary') {
+    // Form and binary bodies are not detectable from shape alone (unlike JSON/XML)
     const hasContentType = Object.keys(replaced.headers || {}).some(
         k => k.toLowerCase() === 'content-type');
     if (!hasContentType) {
       replaced.headers = replaced.headers || {};
-      replaced.headers['Content-Type'] = contentTypeForFormat('urlencoded');
+      replaced.headers['Content-Type'] = contentTypeForFormat(reqFormat);
       headers = Object.entries(replaced.headers)
                     .map(([k, v]) => `"${k}": ${toTemplateWithEnvs(String(v))}`)
                     .join(', ');
@@ -147,13 +149,28 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
     graphqlBodyExpr = `JSON.stringify({ query: ${operationStr}, variables: ${variablesExpr}${opNamePart} })`;
   }
 
+  const binaryPathSource = typeof replaced.body === 'string'
+      ? replaced.body.trim()
+      : (replaced.body == null ? '' : String(replaced.body));
+  const binaryPathExpr = toTemplateWithEnvs(binaryPathSource);
   const bodyExpr = isGraphQL && graphqlBodyExpr
       ? graphqlBodyExpr
-      : toTemplateWithEnvs(formattedBody);
+      : isBinaryRequest
+        ? '__binaryBody_'
+        : toTemplateWithEnvs(formattedBody);
+
+  const binaryLoadLines = isBinaryRequest
+      ? `  const __binaryPath_ = ${binaryPathExpr};
+  const __binaryBody_ = await readBinaryFile_(__binaryPath_);
+`
+      : '';
+  const detailsRequestExpr = isBinaryRequest
+      ? `{ ...req_, body: '<binary ' + __binaryBody_.length + ' bytes path=' + __binaryPath_ + '>' }`
+      : 'req_';
 
   return `const ${ctx.name} = async ({ ${inputParams} } = {}) => {
   const __resolvedUrl = ${toTemplateWithEnvs(String(replaced.url || ''))};
-  const req_ = {
+${binaryLoadLines}  const req_ = {
     url: __resolvedUrl,
     protocol: ${protocolExpr},
     method: '${effectiveMethod}',
@@ -172,7 +189,7 @@ ${authCode}
       cookies: res_?.cookies || {},
       status: res_?.status || 0,
       duration: res_?.duration || 0,
-      details: JSON.stringify({ request: req_, response: res_ }, null, 2)
+      details: JSON.stringify({ request: ${detailsRequestExpr}, response: res_ }, null, 2)
     };
   const __defaultOutput_ = extractOutputs_(
     __extractSource_,
@@ -185,7 +202,7 @@ ${authCode}
 
   output_['_'] = {
     ...__defaultOutput_,
-    details: JSON.stringify({ request: req_, response: res_ }, null, 2),
+    details: JSON.stringify({ request: ${detailsRequestExpr}, response: res_ }, null, 2),
     status: res_?.status || 0,
     duration: res_?.duration || 0,
     reportOutputKeys: ${JSON.stringify(reportOutputKeys)}

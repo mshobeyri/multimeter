@@ -127,7 +127,7 @@ export interface HttpRequest {
   method?: string;
   timeout?: number;
   headers?: Record<string, string>;
-  body?: string;
+  body?: string | Buffer;
   query?: Record<string, string>;
   cookies?: Record<string, string>;
 }

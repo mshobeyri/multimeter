@@ -88,10 +88,15 @@ async function startJsRunnerWorkerThread(): Promise<void> {
       }
       return fs.readFileSync(resolved, 'utf8');
     };
+    const binaryFileLoader = async (requestedPath: string) => {
+      const resolved = path.isAbsolute(requestedPath) ? requestedPath : path.resolve(basePath, requestedPath);
+      return fs.promises.readFile(resolved);
+    };
     try {
       const result = await runJSCode({
         ...context,
         fileLoader,
+        binaryFileLoader,
         logger: (level: LogLevel, message: string) => {
           parentPort?.postMessage({type: 'log', id, level, message});
         },

@@ -824,8 +824,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
             label: "format",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "format: ",
-            detail: 'Data format [json, xml, xmle, text, urlencoded] or { request, response }',
-            documentation: 'The format of the request and response data. A single value applies to both.\nOptions:\n\t- json, xml, xmle, text, urlencoded\nOr split when they differ:\nformat:\n  request: json\n  response: xml\nExample: format: json',
+            detail: 'Data format [json, xml, xmle, text, urlencoded, binary] or { request, response }',
+            documentation: 'The format of the request and response data. A single value applies to both.\nOptions:\n\t- json, xml, xmle, text, urlencoded, binary\nOr split when they differ:\nformat:\n  request: json\n  response: xml\nExample: format: json',
         },
         {
             label: "url",
@@ -1118,6 +1118,14 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'application/x-www-form-urlencoded body. YAML object fields become key=value pairs joined by &.\nSpecial characters are percent-encoded (spaces as +).\nExample:\nformat: urlencoded\nbody:\n  username: mehrdad\n  password: secret\n# → username=mehrdad&password=secret',
             sortText: '1urlencoded',
         },
+        {
+            label: "binary",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " binary",
+            detail: 'Binary file body',
+            documentation: 'Send a file as the request body. Set body to a relative path.\nDefault Content-Type: application/octet-stream (override with headers).\nExample:\nformat: binary\nbody: ./payload.bin\n\nBinary responses are not supported yet (shown as text).',
+            sortText: '1binary',
+        },
     ];
     const formatSuggestion = [
         ...formatValueSuggestion,
@@ -1127,7 +1135,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: "\n\trequest: ${1:json}\n\tresponse: ${2:json}",
             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
             detail: 'Split request and response formats',
-            documentation: 'Use different formats for request body vs response body.\nExample:\nformat:\n  request: json\n  response: xml\n\nThen set each value to json, xml, xmle, text, or urlencoded.',
+            documentation: 'Use different formats for request body vs response body.\nExample:\nformat:\n  request: json\n  response: xml\n\nThen set each value to json, xml, xmle, text, urlencoded, or binary.',
             sortText: '0split',
         },
     ];
@@ -1137,21 +1145,21 @@ export const KeySuggestionsByParent = (monaco: any) => {
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "request: ",
             detail: 'Request body format',
-            documentation: 'Format used to encode the request body.\nValues: json, xml, xmle, text, urlencoded\nExample:\nformat:\n  request: json\n  response: xml',
+            documentation: 'Format used to encode the request body.\nValues: json, xml, xmle, text, urlencoded, binary\nExample:\nformat:\n  request: json\n  response: xml',
         },
         {
             label: "response",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "response: ",
             detail: 'Response body format',
-            documentation: 'Format used for the response body.\nValues: json, xml, xmle, text, urlencoded\nExample:\nformat:\n  request: json\n  response: xml',
+            documentation: 'Format used for the response body.\nValues: json, xml, xmle, text, urlencoded, binary\nExample:\nformat:\n  request: json\n  response: xml',
         },
         {
             label: "respond",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "respond: ",
             detail: 'Alias for response',
-            documentation: 'Alias for response. Same values: json, xml, xmle, text, urlencoded.',
+            documentation: 'Alias for response. Same values: json, xml, xmle, text, urlencoded, binary.',
         },
     ];
     const methodSuggestions = [
@@ -1739,7 +1747,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         { label: 'title', kind: monaco.languages.CompletionItemKind.Property, insertText: 'title: ', detail: 'HTTP step title', documentation: 'Short summary shown inline in reports/UI.\nExample:\n- http: https://test.mmt.dev/echo\n  title: Fetch users' },
         { label: 'method', kind: monaco.languages.CompletionItemKind.Property, insertText: 'method: ', detail: 'HTTP method', documentation: 'HTTP method for this request. Defaults to get.\nExample: method: post' },
         { label: 'timeout', kind: monaco.languages.CompletionItemKind.Property, insertText: 'timeout: 5000', detail: 'Request timeout override [number, ms]', documentation: 'Overrides the default network timeout for this HTTP step only, in milliseconds.\nExample: timeout: 5000' },
-        { label: 'format', kind: monaco.languages.CompletionItemKind.Property, insertText: 'format: ', detail: 'Body format', documentation: 'Request and response format.\nScalar: json, xml, xmle, text, urlencoded\nOr choose request/response to set them separately:\nformat:\n  request: json\n  response: xml' },
+        { label: 'format', kind: monaco.languages.CompletionItemKind.Property, insertText: 'format: ', detail: 'Body format', documentation: 'Request and response format.\nScalar: json, xml, xmle, text, urlencoded, binary\nOr choose request/response to set them separately:\nformat:\n  request: json\n  response: xml' },
         { label: 'query', kind: monaco.languages.CompletionItemKind.Property, insertText: 'query:\n\t', detail: 'Query parameters', documentation: 'Query parameters for this request.\nExample:\nquery:\n  page: "1"' },
         { label: 'headers', kind: monaco.languages.CompletionItemKind.Property, insertText: 'headers:\n\t', detail: 'Request headers', documentation: 'Headers for this request.\nExample:\nheaders:\n  Authorization: Bearer <<e:token>>' },
         { label: 'body', kind: monaco.languages.CompletionItemKind.Property, insertText: 'body: ', detail: 'Request body', documentation: 'Request body for post, put, or patch requests.' },

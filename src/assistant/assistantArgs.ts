@@ -237,6 +237,16 @@ export async function parseAssistantRunArgs(
         return '';
       }
     },
+    binaryFileLoader: async (p: string) => {
+      let abs: string;
+      if (isProjectRootImport(p) && detectedProjectRoot) {
+        abs = resolveProjectRootImport(p, detectedProjectRoot);
+      } else {
+        abs = path.isAbsolute(p) ? p : path.join(dir, p);
+      }
+      const buf = await vscode.workspace.fs.readFile(vscode.Uri.file(abs));
+      return Buffer.from(buf);
+    },
     projectRoot: detectedProjectRoot,
     jsRunner: async () => {},
     logger: logToOutput,

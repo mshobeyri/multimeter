@@ -124,6 +124,8 @@ function contentTypeForFormat(format: Format): string {
       return 'application/xml';
     case 'urlencoded':
       return 'application/x-www-form-urlencoded';
+    case 'binary':
+      return 'application/octet-stream';
     case 'text':
     default:
       return 'text/plain';
@@ -216,6 +218,10 @@ function formatBody(
     if (format === 'urlencoded') {
       return formatUrlEncodedBody(body);
     }
+    if (format === 'binary') {
+      // Body is a file path string; do not re-encode
+      return typeof body === 'string' ? body.trim() : String(body);
+    }
     if (format === 'text') {
       return typeof body === 'string' ?
           body :
@@ -256,6 +262,10 @@ function formattedBodyToYamlObject(
     }
     if (format === 'urlencoded') {
       return parseUrlEncodedBody(body);
+    }
+    if (format === 'binary') {
+      // Keep the file path as a plain string for YAML round-trip
+      return typeof body === 'string' ? body : String(body);
     }
     // Default: YAML
     return YAML.parse(body);

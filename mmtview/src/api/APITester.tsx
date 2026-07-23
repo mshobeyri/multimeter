@@ -5,6 +5,7 @@ import { JSONRecord, Method, Protocol, requestFormat, responseFormat } from "mmt
 import { Request } from "mmt-core/NetworkData";
 import KSVEditor from "../components/KSVEditor";
 import BodyView from "../components/BodyView";
+import FilePickerInput from "../components/FilePickerInput";
 import { formatBody } from "mmt-core/markupConvertor";
 import SendButton from "../components/SendButton";
 import ConnectButton from "../components/ConnectButton";
@@ -424,17 +425,28 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           <>
             <div className="label">Request Body</div>
             <div className="apitest-body-wrapper">
-              <BodyView
-                value={typeof requestData?.body === "string"
-                  ? requestData?.body
-                  : formatBody(requestFormat(requestData?.format), requestData?.body || {})
-                }
-                format={requestFormat(requestData?.format)}
-                mode="live"
-                onChange={val => {
-                  updateField("body", val);
-                }}
-              />
+              {requestFormat(requestData?.format) === "binary" ? (
+                <FilePickerInput
+                  value={typeof requestData?.body === "string" ? requestData.body : ""}
+                  basePath={mmtFilePath}
+                  showFilePicker
+                  placeholder="Relative path to binary file"
+                  onChange={val => updateField("body", val)}
+                  onEnterPressed={val => updateField("body", val)}
+                />
+              ) : (
+                <BodyView
+                  value={typeof requestData?.body === "string"
+                    ? requestData?.body
+                    : formatBody(requestFormat(requestData?.format), requestData?.body || {})
+                  }
+                  format={requestFormat(requestData?.format)}
+                  mode="live"
+                  onChange={val => {
+                    updateField("body", val);
+                  }}
+                />
+              )}
             </div>
           </>
         )}

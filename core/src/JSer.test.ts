@@ -1746,6 +1746,49 @@ describe('body inputs numeric/boolean templating', () => {
   });
 });
 
+describe('binary request body (apiToJSfunc)', () => {
+  it('loads bytes via readBinaryFile_ and sets octet-stream Content-Type', async () => {
+    const apiYaml = [
+      'type: api',
+      'protocol: http',
+      'method: post',
+      'format: binary',
+      'url: https://example.com/upload',
+      'body: ./payload.bin',
+    ].join('\n');
+    const ctx: APIContext =
+        {api: yamlToAPI(apiYaml), name: 'upload_api', inputs: {}, envVars: {}} as
+        any;
+    const js = await apiToJSfunc(ctx);
+    expect(js).toContain('readBinaryFile_');
+    expect(js).toContain('__binaryBody_ = await readBinaryFile_(__binaryPath_)');
+    expect(js).toContain('body: __binaryBody_');
+    expect(js).toContain('"Content-Type": `application/octet-stream`');
+    expect(js).toContain('<binary \' + __binaryBody_.length + \' bytes path=');
+    expect(js).not.toMatch(/body:\s*`\.\/payload\.bin`/);
+  });
+
+  it('respects an explicit Content-Type header for binary', async () => {
+    const apiYaml = [
+      'type: api',
+      'method: post',
+      'format: binary',
+      'url: https://example.com/upload',
+      'headers:',
+      '  Content-Type: application/pdf',
+      'body: ./doc.pdf',
+    ].join('\n');
+    const js = await apiToJSfunc({
+      api: yamlToAPI(apiYaml),
+      name: 'upload_pdf',
+      inputs: {},
+      envVars: {},
+    } as any);
+    expect(js).toContain('"Content-Type": `application/pdf`');
+    expect(js).not.toContain('application/octet-stream');
+  });
+});
+
 describe('API query handling', () => {
   it('injects query parameters into generated request objects', async () => {
     const apiYaml = [

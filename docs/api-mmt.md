@@ -4,9 +4,10 @@ Usage-first guide to write APIs in `.mmt` files. Includes HTTP/WS, params, bodie
 
 Supported:
 - Protocols: `http`, `ws`, `graphql`, `grpc`
-- Formats: `json`, `xml`, `xmle`, `text`, `urlencoded`
+- Formats: `json`, `xml`, `xmle`, `text`, `urlencoded`, `binary`
   - Scalar `format: json` applies to both request and response
   - Or split: `format: { request: json, response: xml }`
+  - `binary` request bodies use a relative file path; binary **responses** are not supported yet (shown as text)
 - Methods: `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
 
 ---
@@ -126,6 +127,23 @@ Produces:
 ```
 q=hello+world&email=a%2Bb%40example.com
 ```
+
+### HTTP binary file body
+```yaml
+ type: api
+ protocol: http
+ url: <<e:api_url>>/upload
+ method: post
+ format: binary
+ body: ./payload.bin
+ # optional override:
+ # headers:
+ #   Content-Type: application/pdf
+```
+
+Set `body` to a path relative to the `.mmt` file (same pattern as certificates and imports). At send time Multimeter reads the file as raw bytes. Default `Content-Type` is `application/octet-stream` when you do not set one.
+
+When both request and response formats are binary, you can write `format: binary`. **Binary response handling is not supported yet** — the Response panel still decodes as UTF-8 text and may look garbled.
 
 ### HTTP raw text or raw XML
 ```yaml
@@ -261,13 +279,13 @@ description: README.md#-why-multimeter
 - url: server URL
 - method: HTTP method `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
 - timeout: per-request timeout in milliseconds (optional; overrides the default network timeout)
-- format: body format `json` | `xml` | `xmle` | `text` | `urlencoded`, or `{ request, response }` when they differ (optional, defaults to `json`)
+- format: body format `json` | `xml` | `xmle` | `text` | `urlencoded` | `binary`, or `{ request, response }` when they differ (optional, defaults to `json`)
 - headers: HTTP headers
 - query: query parameters for HTTP requests
 - cookies: HTTP cookies
 - body: request body (HTTP) or message (WS)
 
-As noted in the quick start, the body can be raw XML, JSON, text, or form fields. Use `xml` for self-closing empty tags and `xmle` for expanded XML. Use `urlencoded` for form bodies (`key=value&...`). It can also be a YAML object that’s automatically converted to the specified format.
+As noted in the quick start, the body can be raw XML, JSON, text, form fields, or a binary file path. Use `xml` for self-closing empty tags and `xmle` for expanded XML. Use `urlencoded` for form bodies (`key=value&...`). Use `binary` with a relative file path. It can also be a YAML object that’s automatically converted to the specified format (except `binary`, which stays a path string).
 
 
 Sample:
@@ -294,7 +312,7 @@ For convenience, Multimeter adds a few sensible HTTP headers if they’re missin
 - Connection: keep-alive
 - Accept-Encoding: gzip, deflate, br
 
-When a body is present, it also infers Content-Type (json/xml/text/urlencoded) and sets Content-Length.
+When a body is present, it also infers Content-Type (json/xml/text/urlencoded/octet-stream) and sets Content-Length.
 
 You can explicitly block any of these by setting the header value to `_` in your API:
 
@@ -816,11 +834,11 @@ examples:
 - url: string (can contain query string)
 - protocol: `http` | `ws` | `graphql`
 - method: HTTP verbs (HTTP only)
-- format: `json` | `xml` | `xmle` | `text` | `urlencoded` | `{ request, response }`
+- format: `json` | `xml` | `xmle` | `text` | `urlencoded` | `binary` | `{ request, response }`
 - headers: record<string, string>
 - query: record<string, string>
 - cookies: record<string, string>
-- body: string or object (json/xml/text/urlencoded based on format; not used with graphql)
+- body: string or object (json/xml/text/urlencoded based on format; relative path string when format is binary; not used with graphql)
 - graphql: { operation: string (required), variables?: object, operationName?: string }
 - auth: `none` | { type: `bearer`, token } | { type: `basic`, username, password } | { type: `api-key`, header|query, value } | { type: `oauth2`, grant, token_url, client_id, client_secret, scope? }
 - examples: array of { name (required), description?, inputs?, outputs? }

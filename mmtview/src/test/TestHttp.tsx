@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useContext } from "react";
 import { ReportConfig, ReportLevel } from "mmt-core/TestData";
 import {
   applyExpectUiRowChange,
@@ -9,7 +9,9 @@ import {
 } from "mmt-core/expectUi";
 import { Format, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData";
 import KSVEditor from "../components/KSVEditor";
+import FilePickerInput from "../components/FilePickerInput";
 import OperatorSelect from "../components/OperatorSelect";
+import { FileContext } from "../fileContext";
 
 interface ExpectRow extends ExpectUiRow {}
 
@@ -20,7 +22,7 @@ interface TestHttpProps {
 }
 
 const methodOptions = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace'];
-const formatOptions = ['json', 'xml', 'xmle', 'text', 'urlencoded'];
+const formatOptions: Format[] = ['json', 'xml', 'xmle', 'text', 'urlencoded', 'binary'];
 const responseFields = ['status', 'body.message', 'body', 'headers', 'cookies', 'duration'];
 const reportLevelOptions: ReportLevel[] = ['all', 'fails', 'none'];
 
@@ -33,6 +35,7 @@ const parseTimeoutInput = (value: string): number | undefined => {
 };
 
 const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
+  const { mmtFilePath } = useContext(FileContext);
   const step = value && typeof value === 'object' ? value : {};
   const expectList = React.useMemo(() => expectMapToUiRows(step.expect), [step.expect]);
   const callReport = step.report;
@@ -231,12 +234,23 @@ const TestHttp: React.FC<TestHttpProps> = ({ value, onChange, expanded }) => {
             <>
               <div className="label">Body</div>
               <div style={{ padding: "5px" }}>
-                <textarea
-                  value={typeof step.body === 'string' ? step.body : JSON.stringify(step.body || '', null, 2)}
-                  onChange={e => emit({ body: e.target.value })}
-                  style={{ width: '100%', minHeight: 120, resize: 'vertical' }}
-                  placeholder="Request body"
-                />
+                {requestFormat(step.format) === 'binary' ? (
+                  <FilePickerInput
+                    value={typeof step.body === 'string' ? step.body : ''}
+                    basePath={mmtFilePath}
+                    showFilePicker
+                    placeholder="Relative path to binary file"
+                    onChange={path => emit({ body: path })}
+                    onEnterPressed={path => emit({ body: path })}
+                  />
+                ) : (
+                  <textarea
+                    value={typeof step.body === 'string' ? step.body : JSON.stringify(step.body || '', null, 2)}
+                    onChange={e => emit({ body: e.target.value })}
+                    style={{ width: '100%', minHeight: 120, resize: 'vertical' }}
+                    placeholder="Request body"
+                  />
+                )}
               </div>
             </>
           )}

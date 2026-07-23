@@ -1,13 +1,15 @@
-import React, { useCallback, useRef, useEffect, useState } from "react";
+import React, { useCallback, useRef, useEffect, useState, useContext } from "react";
 import KSVEditor from "../components/KSVEditor";
 import UrlInput from "../components/UrlInput";
 import { Protocol, Method, Format, FormatSpec, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData"
 import { formatBody, formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import BodyView from "../components/BodyView";
+import FilePickerInput from "../components/FilePickerInput";
 import { safeList, isNonEmptyObject } from "mmt-core/safer";
 import { JSONRecord } from "mmt-core/CommonData";
 import { APIData } from "mmt-core/APIData";
 import { protocolResolver } from "mmt-core";
+import { FileContext } from "../fileContext";
 
 interface InterfaceEditorProps {
   data: APIData;
@@ -15,7 +17,7 @@ interface InterfaceEditorProps {
 }
 
 const protocolOptions: Protocol[] = ["http", "ws", "graphql", "grpc"];
-const formatOptions: Format[] = ["json", "xml", "xmle", "text", "urlencoded"];
+const formatOptions: Format[] = ["json", "xml", "xmle", "text", "urlencoded", "binary"];
 const methodOptions: Method[] = ["get", "post", "put", "delete", "patch", "head", "options", "trace"];
 const authTypeOptions = ["none", "bearer", "basic", "api-key", "oauth2"] as const;
 const apiKeyPlacementOptions = ["header", "query"] as const;
@@ -38,6 +40,9 @@ function getFormatLabel(format: Format): string {
   if (format === "urlencoded") {
     return "urlencoded — form body";
   }
+  if (format === "binary") {
+    return "binary — file upload";
+  }
   return format;
 }
 
@@ -46,6 +51,7 @@ function setFormats(nextRequest: Format, nextResponse: Format): FormatSpec {
 }
 
 const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => {
+  const { mmtFilePath } = useContext(FileContext);
   // Split url and query string safely
   const url = (data.url || "").split("?")[0];
 
@@ -518,18 +524,29 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
         <>
           <div className="label">Body</div>
           <div style={{ padding: "5px", position: "relative" }}>
-            <BodyView
-              value={formattedBody === null ? "" : formattedBody}
-              format={reqFormat}
-              mode="appliable"
-              onChange={val => {
-                setFormattedBody(val);
-                const yamlObj = formattedBodyToYamlObject(reqFormat, val);
-                if (yamlObj !== null) {
-                  onChange({ ...data, body: yamlObj });
-                }
-              }}
-            />
+            {reqFormat === "binary" ? (
+              <FilePickerInput
+                value={typeof data.body === "string" ? data.body : ""}
+                basePath={mmtFilePath}
+                showFilePicker
+                placeholder="Relative path to binary file"
+                onChange={path => onChange({ ...data, body: path })}
+                onEnterPressed={path => onChange({ ...data, body: path })}
+              />
+            ) : (
+              <BodyView
+                value={formattedBody === null ? "" : formattedBody}
+                format={reqFormat}
+                mode="appliable"
+                onChange={val => {
+                  setFormattedBody(val);
+                  const yamlObj = formattedBodyToYamlObject(reqFormat, val);
+                  if (yamlObj !== null) {
+                    onChange({ ...data, body: yamlObj });
+                  }
+                }}
+              />
+            )}
           </div>
         </>
       )}
