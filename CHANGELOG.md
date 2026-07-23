@@ -2,6 +2,19 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.30.0]
+
+- Add `urlencoded` and `binary` request body formats (including file picker for binary)
+- Support split request/response body formats when they differ
+- Highlight urlencoded and XML body values in Monaco
+- Support `else` branches for `if` steps in tests
+- Preserve `#` comments when formatting `.mmt` YAML (Format Document)
+- Colorize history and report/test step bodies by type, with Format/Raw and copy
+- Sync Monaco and history syntax colors with the active VS Code color theme
+- Fix webview crash while typing incomplete URL schemes (e.g. `url: http:`)
+- Isolate UI panel crashes so the YAML editor stays alive
+- Stabilize Run/Stop button labels in test, suite, and mock UI
+
 ## [1.29.1]
 
 - Stable release of the 1.29.0 features (no-type welcome icons, mock `e:` tokens, fuzzy `>%`/`<%` operators, suite pending/running icons, delay abort, YAML diff for temp UI changes)
