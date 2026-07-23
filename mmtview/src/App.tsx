@@ -12,11 +12,24 @@ import LoadTestPanel from "./loadtest/LoadTestPanel";
 import DocPanel from "./doc/DocPanel";
 import MockPanel from "./mock/MockPanel";
 import ReportPanel from "./report/ReportPanel";
-import parseYaml from "mmt-core/markupConvertor";
+import parseYaml, { parseYamlDoc } from "mmt-core/markupConvertor";
 import { isBrunoFilePath, parseBrunoDocument } from "mmt-core/brunoParsePack";
 import { isHttpFilePath, parseHttpDocument } from "mmt-core/httpParsePack";
 import YamlEditorPanel from "./text/YamlEditorPanel";
 import { FileContext } from "./fileContext";
+
+/** True when YAML parses without document errors (keeps UI off mid-typing junk like `url: http:`). */
+function isUsableMmtYaml(content: string): boolean {
+  try {
+    const doc = parseYamlDoc(content);
+    if (!doc || (doc.errors && doc.errors.length > 0)) {
+      return false;
+    }
+    return Boolean(parseYaml(content));
+  } catch {
+    return false;
+  }
+}
 
 declare global {
   interface Window {
@@ -179,9 +192,7 @@ const App: React.FC = () => {
       return;
     }
     try {
-      const parsed = parseYaml(content);
-      // Only update validContent when YAML parses and has no validation errors
-      if (parsed) {
+      if (isUsableMmtYaml(content)) {
         setValidContent(content);
       }
     } catch {
@@ -227,8 +238,7 @@ const App: React.FC = () => {
           }
         } else {
           try {
-            const parsed = parseYaml(message.content);
-            if (parsed) {
+            if (isUsableMmtYaml(message.content)) {
               setValidContent(message.content);
             }
             // else: do nothing, keep previous validContent
@@ -266,8 +276,7 @@ const App: React.FC = () => {
           }
         } else {
           try {
-            const parsed = parseYaml(message.content);
-            if (parsed) {
+            if (isUsableMmtYaml(message.content)) {
               setValidContent(message.content);
             }
           } catch {

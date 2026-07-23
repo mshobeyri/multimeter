@@ -3,6 +3,7 @@ import {APIData, AuthConfig, GraphQLConfig, GrpcConfig} from './APIData';
 import {Format, FormatSpec, GrpcStream, packFormatSpec} from './CommonData';
 import parseYaml, {packYaml, parseYamlStrict} from './markupConvertor';
 import {isNonEmptyList, isNonEmptyObject, safeList} from './safer';
+import {coerceYamlString} from './yamlIncompleteScalar';
 
 /** Valid root-level keys for type: api files. */
 const VALID_API_ROOT_KEYS = new Set([
@@ -202,10 +203,10 @@ export function yamlToAPI(yamlContent: string): APIData {
       inputs: doc.inputs,
       outputs: doc.outputs,
       setenv: doc.setenv,
-      protocol: doc.protocol || undefined,
+      protocol: (coerceYamlString(doc.protocol) || undefined) as APIData['protocol'],
       format: parseFormatSpec(doc.format),
-      url: doc.url || '',
-      method: doc.method || '',
+      url: coerceYamlString(doc.url),
+      method: coerceYamlString(doc.method) as APIData['method'],
       timeout: typeof doc.timeout === 'number' ? doc.timeout : undefined,
       headers: doc.headers || {},
       body: doc.body || '',

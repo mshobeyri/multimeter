@@ -3,6 +3,7 @@ import {Format, Method} from './CommonData';
 import parseYaml, {packYaml} from './markupConvertor';
 import {isNonEmptyList, isNonEmptyObject} from './safer';
 import {resolveEmbeddedTokens} from './variableReplacer';
+import {coerceYamlString} from './yamlIncompleteScalar';
 
 const VALID_PROTOCOLS: MockProtocol[] = ['http', 'https', 'ws'];
 const VALID_CONNECTION_MODES: MockConnectionMode[] = ['plain', 'tls', 'mtls'];
@@ -146,7 +147,7 @@ export function parseMockData(yaml: any): {data: MockData | null; errors: ParseE
     delay: typeof yaml.delay === 'number' ? yaml.delay : 0,
     headers: yaml.headers && typeof yaml.headers === 'object' ? yaml.headers : undefined,
     endpoints: (yaml.endpoints || []).filter((ep: any) => ep != null && typeof ep === 'object').map((ep: any) => parseEndpoint(ep)),
-    proxy: yaml.proxy ? String(yaml.proxy) : undefined,
+    proxy: coerceYamlString(yaml.proxy) || undefined,
     fallback
   };
 
@@ -195,7 +196,7 @@ export function yamlToMock(yamlContent: string): MockData | null {
     delay: typeof yaml.delay === 'number' ? yaml.delay : 0,
     headers: yaml.headers && typeof yaml.headers === 'object' ? yaml.headers : undefined,
     endpoints: Array.isArray(yaml.endpoints) ? yaml.endpoints.filter((ep: any) => ep != null && typeof ep === 'object').map((ep: any) => parseEndpoint(ep)) : [],
-    proxy: yaml.proxy ? String(yaml.proxy) : undefined,
+    proxy: coerceYamlString(yaml.proxy) || undefined,
     fallback: yaml.fallback && typeof yaml.fallback === 'object' ? {
       status: yaml.fallback.status ?? 404,
       format: yaml.fallback.format,

@@ -53,7 +53,7 @@ function setFormats(nextRequest: Format, nextResponse: Format): FormatSpec {
 const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => {
   const { mmtFilePath } = useContext(FileContext);
   // Split url and query string safely
-  const url = (data.url || "").split("?")[0];
+  const url = (typeof data.url === "string" ? data.url : "").split("?")[0];
 
   const reqFormat = requestFormat(data.format);
   const resFormat = responseFormat(data.format);
