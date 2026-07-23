@@ -1,13 +1,7 @@
 import {fileType} from './JSer';
-import {apiToYaml, yamlToAPI} from './apiParsePack';
-import {docToYaml, yamlToDoc} from './docParsePack';
-import {envToYaml, yamlToEnv} from './envParsePack';
-import {loadtestToYaml, yamlToLoadTest} from './loadtestParsePack';
-import {mockToYaml, yamlToMock} from './mockParsePack';
+import {formatMmtYamlAst} from './mmtFormatAst';
 import {generateMmtReport} from './mmtReport';
 import {parseReportMmt} from './reportParser';
-import {suiteToYaml, yamlToSuite} from './suiteParsePack';
-import {testToYaml, yamlToTest} from './testParsePack';
 import YAML from 'yaml';
 
 export type MmtDocType =
@@ -57,31 +51,15 @@ export function formatMmtYaml(content: string, filePath?: string): {
   let formatted: string;
   switch (docType) {
     case 'api':
-      formatted = apiToYaml(yamlToAPI(content));
-      break;
     case 'test':
-      formatted = testToYaml(yamlToTest(content));
-      break;
     case 'env':
-      formatted = envToYaml(yamlToEnv(content));
-      break;
     case 'doc':
-      formatted = docToYaml(yamlToDoc(content));
-      break;
     case 'suite':
-      formatted = suiteToYaml(yamlToSuite(content));
-      break;
     case 'loadtest':
-      formatted = loadtestToYaml(yamlToLoadTest(content));
+    case 'server':
+      // AST path preserves `#` comments while reordering known keys.
+      formatted = formatMmtYamlAst(content, docType);
       break;
-    case 'server': {
-      const mockData = yamlToMock(content);
-      if (!mockData) {
-        throw new Error('Document is not a valid server YAML.');
-      }
-      formatted = mockToYaml(mockData);
-      break;
-    }
     case 'report': {
       const parsed = YAML.parse(content);
       if (!parsed || parsed.type !== 'report') {

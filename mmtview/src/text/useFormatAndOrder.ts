@@ -1,19 +1,5 @@
 import { useCallback } from 'react';
-import { apiToYaml, yamlToAPI } from 'mmt-core/apiParsePack';
-import { yamlToTest, testToYaml } from 'mmt-core/testParsePack';
-import { yamlToDoc, docToYaml } from 'mmt-core/docParsePack';
-import { yamlToMock, mockToYaml } from 'mmt-core/mockParsePack';
-import { yamlToSuite, suiteToYaml } from 'mmt-core/suiteParsePack';
-import { yamlToLoadTest, loadtestToYaml } from 'mmt-core/loadtestParsePack';
-import { yamlToEnv, envToYaml } from 'mmt-core/envParsePack';
-import { parseReportMmt } from 'mmt-core/reportParser';
-import { generateMmtReport } from 'mmt-core/mmtReport';
-import YAML from 'yaml';
-import { APIData } from 'mmt-core/APIData';
-import { TestData } from 'mmt-core/TestData';
-import { DocData } from 'mmt-core/DocData';
-import { MockData } from 'mmt-core/MockData';
-import { SuiteData } from 'mmt-core/SuiteData';
+import { formatMmtYaml } from 'mmt-core/mmtFormat';
 import { showVSCodeMessage } from '../vsAPI';
 
 export function useFormatAndOrder({
@@ -46,83 +32,12 @@ export function useFormatAndOrder({
   return { reorderDocument };
 }
 
-export function buildCanonicalYaml(content: string, docType: string | null): string | null {
+/** Format Document path — AST-based so `#` comments are preserved. */
+export function buildCanonicalYaml(content: string, _docType: string | null): string | null {
   try {
-    switch (docType) {
-      case 'api': {
-        const apiData = yamlToAPI(content);
-        if (!apiData || typeof apiData !== 'object' || apiData === ({} as APIData)) {
-          showVSCodeMessage('error', 'Document is not a valid YAML.');
-          return null;
-        }
-        return apiToYaml(apiData);
-      }
-      case 'test': {
-        const testData = yamlToTest(content);
-        if (!testData || typeof testData !== 'object' || testData === ({} as TestData)) {
-          showVSCodeMessage('error', 'Document is not a valid YAML.');
-          return null;
-        }
-        return testToYaml(testData);
-      }
-      case 'env': {
-        try {
-          const envData = yamlToEnv(content);
-          if (!envData || envData.type !== 'env') {
-            showVSCodeMessage('error', 'Document is not a valid environment YAML.');
-            return null;
-          }
-          return envToYaml(envData);
-        } catch {
-          showVSCodeMessage('error', 'Document is not a valid environment YAML.');
-          return null;
-        }
-      }
-      case 'doc': {
-        const docData = yamlToDoc(content);
-        if (!docData || typeof docData !== 'object' || docData === ({} as DocData)) {
-          showVSCodeMessage('error', 'Document is not a valid YAML.');
-          return null;
-        }
-        return docToYaml(docData);
-      }
-      case 'suite': {
-        const suiteData = yamlToSuite(content);
-        if (!suiteData || typeof suiteData !== 'object' || suiteData === ({} as SuiteData)) {
-          showVSCodeMessage('error', 'Document is not a valid YAML.');
-          return null;
-        }
-        return suiteToYaml(suiteData);
-      }
-      case 'loadtest': {
-        const loadtestData = yamlToLoadTest(content);
-        if (!loadtestData || typeof loadtestData !== 'object') {
-          showVSCodeMessage('error', 'Document is not a valid YAML.');
-          return null;
-        }
-        return loadtestToYaml(loadtestData);
-      }
-      case 'server': {
-        const mockData = yamlToMock(content);
-        if (!mockData || typeof mockData !== 'object' || mockData === ({} as MockData)) {
-          showVSCodeMessage('error', 'Document is not a valid YAML.');
-          return null;
-        }
-        return mockToYaml(mockData);
-      }
-      case 'report': {
-        const parsed = YAML.parse(content);
-        if (!parsed || parsed.type !== 'report') {
-          showVSCodeMessage('error', 'Document is not a valid report YAML.');
-          return null;
-        }
-        const results = parseReportMmt(parsed);
-        return generateMmtReport(results, { suiteName: parsed.name });
-      }
-      default:
-        return null;
-    }
+    return formatMmtYaml(content).formatted;
   } catch {
+    showVSCodeMessage('error', 'Document is not a valid YAML.');
     return null;
   }
 }
