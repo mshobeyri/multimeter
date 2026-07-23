@@ -400,11 +400,12 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                 {isRunning ? (
                     <button
                         onClick={handleStop}
-                        className="button-icon"
+                        className="button-icon run-toggle-button"
                         type="button"
+                        title="Stop test"
                     >
                         <span className="codicon codicon-debug-stop" aria-hidden />
-                        Stop
+                        Stop test
                     </button>
                 ) : (
                     <ContextMenuHost items={[runInCoreMenuItem(() => {
@@ -412,8 +413,9 @@ const TestTest: React.FC<TestTestProps> = (props) => {
                     })]}>
                         <button
                             onClick={handleRun}
-                            className="button-icon"
+                            className="button-icon run-toggle-button"
                             type="button"
+                            title="Run test"
                         >
                             <span className="codicon codicon-run" aria-hidden />
                             Run test

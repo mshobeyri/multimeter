@@ -1027,20 +1027,20 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             <div className="run-action-bar">
                 {suiteRunState === 'running' ? (
                     <button
-                        className="button-icon"
+                        className="button-icon run-toggle-button"
                         onClick={onStopSuite}
                         title={stopLabel}
                         type="button"
                     >
                         <span className="codicon codicon-debug-stop" aria-hidden />
-                        Stop
+                        {stopLabel}
                     </button>
                 ) : (
                     <ContextMenuHost
                         items={canRun ? [runInCoreMenuItem(onRunSuiteInCore)] : undefined}
                     >
                         <button
-                            className="button-icon"
+                            className="button-icon run-toggle-button"
                             disabled={!canRun}
                             onClick={onRunSuite}
                             title={!canRun ? (mode === 'loadtest' ? 'No test file to run' : 'No suite files to run') : runLabel}

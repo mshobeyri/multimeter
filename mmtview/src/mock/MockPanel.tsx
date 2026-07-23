@@ -158,14 +158,24 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
                 </div>
                 <div className="run-action-bar">
                   {running ? (
-                    <button onClick={handleStop} className="button-icon" type="button">
+                    <button
+                      onClick={handleStop}
+                      className="button-icon run-toggle-button"
+                      type="button"
+                      title="Stop mock"
+                    >
                       <span className="codicon codicon-debug-stop" aria-hidden />
-                      Stop
+                      Stop mock
                     </button>
                   ) : (
-                    <button onClick={handleStart} className="button-icon" type="button">
+                    <button
+                      onClick={handleStart}
+                      className="button-icon run-toggle-button"
+                      type="button"
+                      title="Run mock"
+                    >
                       <span className="codicon codicon-run" aria-hidden />
-                      Run
+                      Run mock
                     </button>
                   )}
                 </div>
