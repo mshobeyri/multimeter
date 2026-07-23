@@ -15,7 +15,7 @@ interface MockEndpointBoxProps {
 }
 
 const METHODS = ['get', 'post', 'put', 'delete', 'patch', 'head', 'options'] as const;
-const FORMATS = ['json', 'xml', 'xmle', 'text'] as const;
+const FORMATS = ['json', 'xml', 'xmle', 'text', 'urlencoded'] as const;
 
 function getFormatLabel(format: string): string {
   if (format === 'xml') {
@@ -23,6 +23,9 @@ function getFormatLabel(format: string): string {
   }
   if (format === 'xmle') {
     return 'xmle — expanded';
+  }
+  if (format === 'urlencoded') {
+    return 'urlencoded — form body';
   }
   return format;
 }

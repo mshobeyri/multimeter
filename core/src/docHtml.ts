@@ -557,7 +557,7 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     const cookies = api?.cookies && Object.keys(api.cookies).length ? renderParamTable(api.cookies, 'Default', { showSource: true }) : '';
     // Compute body string once – used for both detail panel and Try panel
     const fmtRaw = String(api?.format || 'json').toLowerCase();
-    const fmt = (fmtRaw === 'xml' || fmtRaw === 'xmle' || fmtRaw === 'json' || fmtRaw === 'text') ? fmtRaw : 'json';
+    const fmt = (fmtRaw === 'xml' || fmtRaw === 'xmle' || fmtRaw === 'json' || fmtRaw === 'text' || fmtRaw === 'urlencoded') ? fmtRaw : 'json';
     let bodyStr = '';
     if (api?.body !== undefined && api?.body !== null && String(api.body).length) {
       try {

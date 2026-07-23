@@ -3,7 +3,7 @@ import { GraphQLConfig, GrpcConfig } from './APIData';
 export interface Request {
   url?: string;
   protocol?: "http" | "ws" | "graphql" | "grpc" | undefined;
-  format?: "json" | "xml" | "xmle" | "text" | undefined;
+  format?: "json" | "xml" | "xmle" | "text" | "urlencoded" | undefined;
   method?: string;
   timeout?: number;
   headers?: Record<string, string> | undefined;
@@ -33,7 +33,7 @@ export interface GrpcResponse {
 }
 
 export interface Response {
-  format?: "json" | "xml" | "xmle" | "text" | undefined;
+  format?: "json" | "xml" | "xmle" | "text" | "urlencoded" | undefined;
   headers?: Record<string, string> | undefined;
   cookies?: Record<string, string> | undefined;
   query?: Record<string, string> | undefined;

@@ -120,7 +120,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
         setIsValid(valid);
         setErrorMsg(valid ? null : err);
 
-        if (isValid && valid && beautify(format as "json" | "xml" | "xmle" | "text", localValue) !== value) {
+        if (isValid && valid && beautify(format as "json" | "xml" | "xmle" | "text" | "urlencoded", localValue) !== value) {
             setCanApply(true);
         } else {
             setCanApply(false);
@@ -166,19 +166,19 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                     isUserEditingRef.current = true;
                     setLocalValue(nextValue);
                 }}
-                language={(format || "").includes("xml") ? "xml" : format}
+                language={(format || "").includes("xml") ? "xml" : format === "urlencoded" ? "plaintext" : format}
                 showNumbers={false}
                 fontSize={11}
                 onInspectPosition={onInspectPosition}
                 editorRef={editorRef}
             />
             <div className="bodyview-toolbar">
-                {((format === "json" || (format || "").includes("xml")) && isValid && beautify(format as "json" | "xml" | "xmle" | "text", localValue) !== localValue) && (
+                {((format === "json" || (format || "").includes("xml")) && isValid && beautify(format as "json" | "xml" | "xmle" | "text" | "urlencoded", localValue) !== localValue) && (
                     <button
                         className="bodyview-btn-icon"
                         title="Beautify"
                         onClick={() => {
-                            const beautified = beautify(format as "json" | "xml" | "xmle" | "text", localValue);
+                            const beautified = beautify(format as "json" | "xml" | "xmle" | "text" | "urlencoded", localValue);
                             setLocalValue(beautified);
                         }}
                     >

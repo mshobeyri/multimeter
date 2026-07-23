@@ -824,8 +824,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
             label: "format",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "format: ",
-            detail: 'Data format [json, xml, xmle, text]',
-            documentation: 'The format of the request and response data. Determines how the body content is parsed and serialized.\nOptions:\n\t- json: JavaScript Object Notation\n\t- xml: XML with self-closing empty tags\n\t- xmle: expanded XML with explicit closing tags for empty elements\n\t- text: Plain text format\nExample: format: json',
+            detail: 'Data format [json, xml, xmle, text, urlencoded]',
+            documentation: 'The format of the request and response data. Determines how the body content is parsed and serialized.\nOptions:\n\t- json: JavaScript Object Notation\n\t- xml: XML with self-closing empty tags\n\t- xmle: expanded XML with explicit closing tags for empty elements\n\t- text: Plain text format\n\t- urlencoded: application/x-www-form-urlencoded form body (key=value&...)\nExample: format: json',
         },
         {
             label: "url",
@@ -1105,6 +1105,13 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: " text",
             detail: 'Define a text API',
             documentation: 'Text format for data exchange.',
+        },
+        {
+            label: "urlencoded",
+            kind: monaco.languages.CompletionItemKind.EnumMember,
+            insertText: " urlencoded",
+            detail: 'Form URL-encoded body',
+            documentation: 'application/x-www-form-urlencoded body. YAML object fields become key=value pairs joined by &.\nSpecial characters are percent-encoded (spaces as +).\nExample:\nformat: urlencoded\nbody:\n  username: mehrdad\n  password: secret\n# → username=mehrdad&password=secret',
         },
     ]
     const methodSuggestions = [
@@ -1692,7 +1699,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         { label: 'title', kind: monaco.languages.CompletionItemKind.Property, insertText: 'title: ', detail: 'HTTP step title', documentation: 'Short summary shown inline in reports/UI.\nExample:\n- http: https://test.mmt.dev/echo\n  title: Fetch users' },
         { label: 'method', kind: monaco.languages.CompletionItemKind.Property, insertText: 'method: ', detail: 'HTTP method', documentation: 'HTTP method for this request. Defaults to get.\nExample: method: post' },
         { label: 'timeout', kind: monaco.languages.CompletionItemKind.Property, insertText: 'timeout: 5000', detail: 'Request timeout override [number, ms]', documentation: 'Overrides the default network timeout for this HTTP step only, in milliseconds.\nExample: timeout: 5000' },
-        { label: 'format', kind: monaco.languages.CompletionItemKind.Property, insertText: 'format: ', detail: 'Body format', documentation: 'Request and response format. Values: json, xml, xmle, text.\nExample: format: json' },
+        { label: 'format', kind: monaco.languages.CompletionItemKind.Property, insertText: 'format: ', detail: 'Body format', documentation: 'Request and response format. Values: json, xml, xmle, text, urlencoded.\nExample: format: json' },
         { label: 'query', kind: monaco.languages.CompletionItemKind.Property, insertText: 'query:\n\t', detail: 'Query parameters', documentation: 'Query parameters for this request.\nExample:\nquery:\n  page: "1"' },
         { label: 'headers', kind: monaco.languages.CompletionItemKind.Property, insertText: 'headers:\n\t', detail: 'Request headers', documentation: 'Headers for this request.\nExample:\nheaders:\n  Authorization: Bearer <<e:token>>' },
         { label: 'body', kind: monaco.languages.CompletionItemKind.Property, insertText: 'body: ', detail: 'Request body', documentation: 'Request body for post, put, or patch requests.' },

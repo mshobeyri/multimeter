@@ -1,5 +1,6 @@
 import {js2xml, xml2js} from 'xml-js';
 import * as YAML from 'yaml';
+import {Format} from './CommonData';
 import {emitUnquotedOperators, filterOperatorYamlErrors, quoteExpectOperators} from './expectOperatorYaml';
 import {parseYamlWithOmitKeyword} from './omitKeyword';
 import {restoreOmitKeyword} from './omitKeyword';
@@ -109,8 +110,76 @@ function packYaml(obj: any): string {
   }
 }
 
-function isXmlFormat(format: 'json'|'xml'|'xmle'|'text'): boolean {
+function isXmlFormat(format: Format): boolean {
   return format === 'xml' || format === 'xmle';
+}
+
+/** Content-Type for a body format (without charset). */
+function contentTypeForFormat(format: Format): string {
+  switch (format) {
+    case 'json':
+      return 'application/json';
+    case 'xml':
+    case 'xmle':
+      return 'application/xml';
+    case 'urlencoded':
+      return 'application/x-www-form-urlencoded';
+    case 'text':
+    default:
+      return 'text/plain';
+  }
+}
+
+function formValueToString(value: unknown): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (typeof value === 'string') {
+    return value;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  return JSON.stringify(value);
+}
+
+function objectToUrlEncoded(obj: Record<string, unknown>): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(obj)) {
+    params.append(key, formValueToString(value));
+  }
+  return params.toString();
+}
+
+function formatUrlEncodedBody(body: string|object): string {
+  if (typeof body === 'string') {
+    const trimmed = body.trim();
+    if (!trimmed) {
+      return '';
+    }
+    try {
+      const parsed = YAML.parse(trimmed);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return objectToUrlEncoded(parsed as Record<string, unknown>);
+      }
+    } catch {
+      // Keep as raw string (already encoded or plain text)
+    }
+    return trimmed;
+  }
+  if (body && typeof body === 'object' && !Array.isArray(body)) {
+    return objectToUrlEncoded(body as Record<string, unknown>);
+  }
+  return body == null ? '' : String(body);
+}
+
+function parseUrlEncodedBody(body: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  const params = new URLSearchParams(body);
+  params.forEach((value, key) => {
+    result[key] = value;
+  });
+  return result;
 }
 
 function formatXmlBody(body: string|object, pretty: boolean, expanded: boolean): string {
@@ -123,7 +192,7 @@ function formatXmlBody(body: string|object, pretty: boolean, expanded: boolean):
 }
 
 function formatBody(
-    format: 'json'|'xml'|'xmle'|'text', body: string|object,
+    format: Format, body: string|object,
     pretty: boolean = true): string {
   // Normalize empty-ish inputs to empty string for display/editing purposes
   if (body === null || body === undefined) {
@@ -143,6 +212,9 @@ function formatBody(
     }
     if (isXmlFormat(format)) {
       return formatXmlBody(body, pretty, format === 'xmle');
+    }
+    if (format === 'urlencoded') {
+      return formatUrlEncodedBody(body);
     }
     if (format === 'text') {
       return typeof body === 'string' ?
@@ -172,7 +244,7 @@ function flattenXmlObj(obj: any): any {
 }
 
 function formattedBodyToYamlObject(
-    format: 'json'|'xml'|'xmle'|'text', body: string): any {
+    format: Format, body: string): any {
   try {
     if (format === 'json') {
       return JSON.parse(body);
@@ -182,6 +254,9 @@ function formattedBodyToYamlObject(
       const jsObj = xml2js(body, {compact: true});
       return flattenXmlObj(jsObj);
     }
+    if (format === 'urlencoded') {
+      return parseUrlEncodedBody(body);
+    }
     // Default: YAML
     return YAML.parse(body);
   } catch (e) {
@@ -190,13 +265,16 @@ function formattedBodyToYamlObject(
   }
 }
 
-function beautify(format: 'json'|'xml'|'xmle'|'text', value: string): string {
+function beautify(format: Format, value: string): string {
   try {
     if (format === 'json') {
       return JSON.stringify(JSON.parse(value), null, 2);
     }
     if (isXmlFormat(format)) {
       return formatXmlBody(value, true, format === 'xmle');
+    }
+    if (format === 'urlencoded') {
+      return objectToUrlEncoded(parseUrlEncodedBody(value));
     }
     // Add YAML or other formats as needed
   } catch {
@@ -208,15 +286,18 @@ function beautify(format: 'json'|'xml'|'xmle'|'text', value: string): string {
 
 function beautifyWithContentType(contentType: string, value: string): string {
   const trimmedValue = value.trimStart();
-  if ((contentType && contentType.includes('json')) || trimmedValue.startsWith('{') ||
+  const ct = (contentType || '').toLowerCase();
+  if (ct.includes('json') || trimmedValue.startsWith('{') ||
       trimmedValue.startsWith('[')) {
     return beautify('json', value);
-  } else if (
-      (contentType && contentType.includes('xml')) || trimmedValue.startsWith('<')) {
-    return beautify('xml', value);
-  } else {
-    return value;
   }
+  if (ct.includes('xml') || trimmedValue.startsWith('<')) {
+    return beautify('xml', value);
+  }
+  if (ct.includes('urlencoded') || ct.includes('x-www-form-urlencoded')) {
+    return beautify('urlencoded', value);
+  }
+  return value;
 }
 
 export {
@@ -225,6 +306,7 @@ export {
   parseYamlDoc,
   packYaml,
   formatBody,
+  contentTypeForFormat,
   flattenXmlObj,
   formattedBodyToYamlObject,
   beautify,

@@ -1,7 +1,7 @@
 import {APIData, AuthConfig} from './APIData';
 import {JSONRecord} from './CommonData';
 import {indentLines, toInputsParams} from './JSerHelper';
-import {formatBody} from './markupConvertor';
+import {contentTypeForFormat, formatBody} from './markupConvertor';
 import {stripOmitFromRequest} from './omitKeyword';
 import {DEFAULT_EXTRACTION_RULES} from './outputExtractor';
 import {replaceAllRefs, toTemplateWithEnvVars} from './variableReplacer';
@@ -113,6 +113,17 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
     if (!hasContentType) {
       replaced.headers = replaced.headers || {};
       replaced.headers['Content-Type'] = 'application/json';
+      headers = Object.entries(replaced.headers)
+                    .map(([k, v]) => `"${k}": ${toTemplateWithEnvs(String(v))}`)
+                    .join(', ');
+    }
+  } else if ((replaced.format || 'json') === 'urlencoded') {
+    // Form bodies are not detectable from shape alone (unlike JSON/XML)
+    const hasContentType = Object.keys(replaced.headers || {}).some(
+        k => k.toLowerCase() === 'content-type');
+    if (!hasContentType) {
+      replaced.headers = replaced.headers || {};
+      replaced.headers['Content-Type'] = contentTypeForFormat('urlencoded');
       headers = Object.entries(replaced.headers)
                     .map(([k, v]) => `"${k}": ${toTemplateWithEnvs(String(v))}`)
                     .join(', ');

@@ -36,7 +36,7 @@ Use it during development to inspect requests, echo (reflect) them back, and sim
   - HTTP: response body includes method, path, headers, and body you sent
   - WS: incoming frames are sent back to the same client
 - Status: optional response status for HTTP (for example, 200, 400, 500)
-- Content type: pick a content type for the HTTP response body (json/xml/text)
+- Content type: pick a content type for the HTTP response body (json/xml/xmle/text/urlencoded)
 
 Tip: Reflect is a great way to validate what your client actually sends -- no backend needed.
 

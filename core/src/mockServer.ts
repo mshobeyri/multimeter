@@ -1,5 +1,5 @@
 import {Format, JSONValue} from './CommonData';
-import {formatBody, formattedBodyToYamlObject} from './markupConvertor';
+import {contentTypeForFormat, formatBody, formattedBodyToYamlObject} from './markupConvertor';
 import {MockData, MockEndpoint, MockFallback, MockMatch} from './MockData';
 import {applyValueAccessor} from './variableReplacer';
 
@@ -66,16 +66,7 @@ export function autoDetectFormat(body: any): Format {
 }
 
 /** Get Content-Type header for a format. */
-export function contentTypeForFormat(format: Format): string {
-  switch (format) {
-    case 'json': return 'application/json';
-    case 'xml':
-    case 'xmle':
-      return 'application/xml';
-    case 'text': return 'text/plain';
-    default: return 'text/plain';
-  }
-}
+export {contentTypeForFormat};
 
 /** Deep partial match: does `actual` contain all key-value pairs from `expected`? */
 export function partialMatch(expected: Record<string, any>, actual: Record<string, any>): boolean {
@@ -157,7 +148,7 @@ const MOCK_REF_RE = /\$\{(url|body|header|query)\.([^}]+)\}/g;
 
 /** Infer request body format from Content-Type and body shape. */
 export function inferRequestBodyFormat(
-    headers: Record<string, string>, rawBody: string): 'json'|'xml'|'text' {
+    headers: Record<string, string>, rawBody: string): Format {
   const contentTypeKey = Object.keys(headers).find(k => k.toLowerCase() === 'content-type');
   const contentType = contentTypeKey ? headers[contentTypeKey].toLowerCase() : '';
   if (contentType.includes('json')) {
@@ -165,6 +156,9 @@ export function inferRequestBodyFormat(
   }
   if (contentType.includes('xml')) {
     return 'xml';
+  }
+  if (contentType.includes('urlencoded') || contentType.includes('x-www-form-urlencoded')) {
+    return 'urlencoded';
   }
   const trimmed = rawBody.trim();
   if ((trimmed.startsWith('{') && trimmed.endsWith('}')) ||
@@ -183,7 +177,7 @@ export function parseRequestBody(rawBody: string, headers: Record<string, string
     return undefined;
   }
   const format = inferRequestBodyFormat(headers, rawBody);
-  if (format === 'json' || format === 'xml') {
+  if (format === 'json' || format === 'xml' || format === 'urlencoded') {
     const parsed = formattedBodyToYamlObject(format, rawBody);
     return parsed ?? rawBody;
   }

@@ -19,7 +19,7 @@ interface TestHttpProps {
 }
 
 const methodOptions = ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace'];
-const formatOptions = ['json', 'xml', 'xmle', 'text'];
+const formatOptions = ['json', 'xml', 'xmle', 'text', 'urlencoded'];
 const responseFields = ['status', 'body.message', 'body', 'headers', 'cookies', 'duration'];
 const reportLevelOptions: ReportLevel[] = ['all', 'fails', 'none'];
 

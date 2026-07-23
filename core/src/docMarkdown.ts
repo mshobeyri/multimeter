@@ -140,9 +140,9 @@ export function buildDocMarkdown(
     // Body
     if (api?.body !== undefined && api?.body !== null && String(api.body).length) {
       const fmtRaw = String(api?.format || 'json').toLowerCase();
-      const format = (fmtRaw === 'xml' || fmtRaw === 'xmle' || fmtRaw === 'json' || fmtRaw === 'text') ? fmtRaw : 'json';
+      const format = (fmtRaw === 'xml' || fmtRaw === 'xmle' || fmtRaw === 'json' || fmtRaw === 'text' || fmtRaw === 'urlencoded') ? fmtRaw : 'json';
       const bodyStr = formatBody(format as any, api.body, true);
-      const lang = format === 'xmle' ? 'xml' : format;
+      const lang = format === 'xmle' ? 'xml' : format === 'urlencoded' ? '' : format;
       lines.push('', '**Body**', '', fence(bodyStr, lang === 'text' ? '' : lang));
     }
     // Examples

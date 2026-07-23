@@ -7,7 +7,7 @@ import {resolveEmbeddedTokens} from './variableReplacer';
 const VALID_PROTOCOLS: MockProtocol[] = ['http', 'https', 'ws'];
 const VALID_CONNECTION_MODES: MockConnectionMode[] = ['plain', 'tls', 'mtls'];
 const VALID_METHODS: Method[] = ['get', 'post', 'put', 'delete', 'patch', 'head', 'options', 'trace'];
-const VALID_FORMATS: Format[] = ['json', 'xml', 'xmle', 'text'];
+const VALID_FORMATS: Format[] = ['json', 'xml', 'xmle', 'text', 'urlencoded'];
 
 const MOCK_TOP_KEYS = new Set([
   'type', 'title', 'description', 'tags', 'import', 'protocol', 'port',

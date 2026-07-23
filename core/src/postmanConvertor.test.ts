@@ -66,6 +66,7 @@ describe('postmanConvertor.postmanToAPI', () => {
     const login = apis.find(a => a.title?.includes('Login'))!;
     const socket = apis.find(a => a.title?.includes('Socket'))!;
     expect(login.method).toBe('post');
+    expect(login.format).toBe('urlencoded');
     expect(login.body).toEqual({ user: 'alice', pass: 'secret' });
     // HTTP URLs don't have explicit protocol
     expect(login.protocol).toBeUndefined();

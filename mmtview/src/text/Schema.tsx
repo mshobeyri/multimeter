@@ -166,7 +166,7 @@ export const APISchema = {
             enum: ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
         }),
         timeout: dataRefOr({ type: 'number', minimum: 0 }),
-        format: dataRefOr({ type: 'string', enum: ['json', 'xml', 'xmle', 'text'] }),
+        format: dataRefOr({ type: 'string', enum: ['json', 'xml', 'xmle', 'text', 'urlencoded'] }),
         url: { type: 'string' },
         headers: { type: 'object', additionalProperties: { type: 'string' } },
         query: { type: 'object', additionalProperties: { type: 'string' } },
@@ -593,7 +593,7 @@ export const TestSchema = {
                                 enum: ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
                             },
                             timeout: { type: 'number', minimum: 0 },
-                            format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text'] },
+                            format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text', 'urlencoded'] },
                             headers: { type: 'object', additionalProperties: { type: 'string' } },
                             query: { type: 'object', additionalProperties: { type: 'string' } },
                             body: {
@@ -1012,7 +1012,7 @@ export const MockSchema = {
                         additionalProperties: false
                     },
                     status: { type: 'number', minimum: 100, maximum: 599 },
-                    format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text'] },
+                    format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text', 'urlencoded'] },
                     headers: { type: 'object', additionalProperties: { type: 'string' } },
                     body: {},
                     delay: { type: 'number', minimum: 0 },
@@ -1026,7 +1026,7 @@ export const MockSchema = {
             type: 'object',
             properties: {
                 status: { type: 'number' },
-                format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text'] },
+                format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text', 'urlencoded'] },
                 headers: { type: 'object', additionalProperties: { type: 'string' } },
                 body: {}
             },
