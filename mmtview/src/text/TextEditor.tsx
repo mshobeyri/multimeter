@@ -58,6 +58,87 @@ function registerGraphQLLanguage(monaco: any) {
   });
 }
 
+let urlencodedRegistered = false;
+function registerUrlEncodedLanguage(monaco: any) {
+  if (urlencodedRegistered) {
+    return;
+  }
+  urlencodedRegistered = true;
+  monaco.languages.register({ id: "urlencoded" });
+  // Use YAML/JSON theme tokens: `key` (green) and `string` (orange).
+  monaco.languages.setMonarchTokensProvider("urlencoded", {
+    tokenizer: {
+      root: [
+        [/\s+/, "white"],
+        // key=value (value may be empty)
+        [/([^&\s=]+)(=)([^&]*)/, ["key", "delimiter", "string"]],
+        // bare key (no = yet)
+        [/[^&\s=]+/, "key"],
+        [/[=&]/, "delimiter"],
+      ],
+    },
+  });
+}
+
+let xmlHighlightPatched = false;
+/** Color XML element/CDATA text as string (orange), matching JSON/YAML values. */
+function patchXmlValueHighlighting(monaco: any) {
+  if (xmlHighlightPatched) {
+    return;
+  }
+  xmlHighlightPatched = true;
+  // Built-in XML leaves text as "" (default/white). Retokenize as string.xml.
+  monaco.languages.setMonarchTokensProvider("xml", {
+    defaultToken: "",
+    tokenPostfix: ".xml",
+    ignoreCase: true,
+    qualifiedName: /(?:[\w\.\-]+:)?[\w\.\-]+/,
+    tokenizer: {
+      root: [
+        [/[^<&]+/, "string"],
+        { include: "@whitespace" },
+        [/(<)(@qualifiedName)/, [{ token: "delimiter" }, { token: "tag", next: "@tag" }]],
+        [
+          /(<\/)(@qualifiedName)(\s*)(>)/,
+          [{ token: "delimiter" }, { token: "tag" }, "", { token: "delimiter" }],
+        ],
+        [/(<\?)(@qualifiedName)/, [{ token: "delimiter" }, { token: "metatag", next: "@tag" }]],
+        [/(<\!)(@qualifiedName)/, [{ token: "delimiter" }, { token: "metatag", next: "@tag" }]],
+        [/<\!\[CDATA\[/, { token: "delimiter.cdata", next: "@cdata" }],
+        [/&\w+;/, "string.escape"],
+      ],
+      cdata: [
+        [/[^\]]+/, "string"],
+        [/\]\]>/, { token: "delimiter.cdata", next: "@pop" }],
+        [/\]/, "string"],
+      ],
+      tag: [
+        [/[ \t\r\n]+/, ""],
+        [/(@qualifiedName)(\s*=\s*)("[^"]*"|'[^']*')/, ["attribute.name", "", "attribute.value"]],
+        [
+          /(@qualifiedName)(\s*=\s*)("[^">?\/]*|'[^'>?\/]*)(?=[\?\/]\>)/,
+          ["attribute.name", "", "attribute.value"],
+        ],
+        [/(@qualifiedName)(\s*=\s*)("[^">]*|'[^'>]*)/, ["attribute.name", "", "attribute.value"]],
+        [/@qualifiedName/, "attribute.name"],
+        [/\?>/, { token: "delimiter", next: "@pop" }],
+        [/(\/)(>)/, [{ token: "tag" }, { token: "delimiter", next: "@pop" }]],
+        [/>/, { token: "delimiter", next: "@pop" }],
+      ],
+      whitespace: [
+        [/[ \t\r\n]+/, ""],
+        [/<!--/, { token: "comment", next: "@comment" }],
+      ],
+      comment: [
+        [/[^<\-]+/, "comment.content"],
+        [/-->/, { token: "comment", next: "@pop" }],
+        [/<!--/, "comment.content.invalid"],
+        [/[<\-]/, "comment.content"],
+      ],
+    },
+  });
+}
+
 const TextEditor: React.FC<TextEditorProps> = ({
   content,
   setContent,
@@ -317,6 +398,8 @@ const TextEditor: React.FC<TextEditorProps> = ({
         monacoRefToUse.current = monaco;
         defineTheme(monaco);
         registerGraphQLLanguage(monaco);
+        registerUrlEncodedLanguage(monaco);
+        patchXmlValueHighlighting(monaco);
         beforeMount?.(monaco);
       }}
       onMount={editorDidMount}

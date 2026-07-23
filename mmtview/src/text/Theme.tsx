@@ -74,6 +74,11 @@ export const defineTheme = (monaco: any) => {
       { token: "keyword.json", foreground: colors.delimiter },
       { token: "delimiter.json", foreground: colors.delimiter },
 
+      // urlencoded form body (key=value&...)
+      { token: "key.urlencoded", foreground: colors.jsonKey },
+      { token: "string.urlencoded", foreground: colors.jsonString },
+      { token: "delimiter.urlencoded", foreground: colors.delimiter },
+
       // XML tokens
       { token: "tag.xml", foreground: colors.xmlTag },
       { token: "attribute.name.xml", foreground: colors.xmlAttrName },

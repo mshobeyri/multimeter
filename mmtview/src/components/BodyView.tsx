@@ -166,7 +166,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                     isUserEditingRef.current = true;
                     setLocalValue(nextValue);
                 }}
-                language={(format || "").includes("xml") ? "xml" : format === "urlencoded" ? "plaintext" : format}
+                language={(format || "").includes("xml") ? "xml" : format}
                 showNumbers={false}
                 fontSize={11}
                 onInspectPosition={onInspectPosition}
