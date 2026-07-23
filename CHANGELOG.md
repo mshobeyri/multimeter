@@ -2,6 +2,11 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.29.1]
+
+- Stable release of the 1.29.0 features (no-type welcome icons, mock `e:` tokens, fuzzy `>%`/`<%` operators, suite pending/running icons, delay abort, YAML diff for temp UI changes)
+- Fix oversized Git icon asset in the marketplace readme
+
 ## [1.29.0]
 
 - Redesign the no-type welcome panel: colored type icon row (matching panel title icons), outline badges, and cleaner sample gallery
