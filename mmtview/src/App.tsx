@@ -17,6 +17,7 @@ import { isBrunoFilePath, parseBrunoDocument } from "mmt-core/brunoParsePack";
 import { isHttpFilePath, parseHttpDocument } from "mmt-core/httpParsePack";
 import YamlEditorPanel from "./text/YamlEditorPanel";
 import { FileContext } from "./fileContext";
+import PanelErrorBoundary from "./shared/PanelErrorBoundary";
 
 /** True when YAML parses without document errors (keeps UI off mid-typing junk like `url: http:`). */
 function isUsableMmtYaml(content: string): boolean {
@@ -456,37 +457,39 @@ const App: React.FC = () => {
         </div>
         <div style={{ height: "100%", minHeight: 0, minWidth: 0, overflow: "hidden" }}>
           <div style={{ width: "100%", height: "100%", maxWidth: 1200, minWidth: 450, margin: "0 auto", overflow: "auto" }}>
-            {docType === "env" && (
-              <EnvironmentPanel content={validContent} setContent={uiSetContent} />
-            )}
-            {docType === "api" && (
-              <APIPanel content={validContent} setContent={uiSetContent} />
-            )}
-            {docType === "doc" && (
-              <DocPanel content={validContent} setContent={uiSetContent} />
-            )}
-            {docType === "test" && (
-              sourceFormat === "http" ?
-                <HttpTestPanel content={validContent} setContent={uiSetContent} /> :
-                sourceFormat === "bruno" ?
-                <BrunoTestPanel content={validContent} setContent={uiSetContent} /> :
-                <TestPanel content={validContent} setContent={uiSetContent} />
-            )}
-            {docType === "suite" && (
-              <SuitePanel content={validContent} setContent={uiSetContent} />
-            )}
-            {docType === "loadtest" && (
-              <LoadTestPanel content={validContent} setContent={uiSetContent} />
-            )}
-            {docType === "server" && (
-              <MockPanel content={validContent} setContent={uiSetContent} />
-            )}
-            {docType === "report" && (
-              <ReportPanel content={validContent} setContent={uiSetContent} />
-            )}
-            {documentContentLoaded && docType === null && (
-              <NotypePanel content={validContent} setContent={uiSetContent} />
-            )}
+            <PanelErrorBoundary resetKey={`${docType || "none"}::${validContent}`}>
+              {docType === "env" && (
+                <EnvironmentPanel content={validContent} setContent={uiSetContent} />
+              )}
+              {docType === "api" && (
+                <APIPanel content={validContent} setContent={uiSetContent} />
+              )}
+              {docType === "doc" && (
+                <DocPanel content={validContent} setContent={uiSetContent} />
+              )}
+              {docType === "test" && (
+                sourceFormat === "http" ?
+                  <HttpTestPanel content={validContent} setContent={uiSetContent} /> :
+                  sourceFormat === "bruno" ?
+                  <BrunoTestPanel content={validContent} setContent={uiSetContent} /> :
+                  <TestPanel content={validContent} setContent={uiSetContent} />
+              )}
+              {docType === "suite" && (
+                <SuitePanel content={validContent} setContent={uiSetContent} />
+              )}
+              {docType === "loadtest" && (
+                <LoadTestPanel content={validContent} setContent={uiSetContent} />
+              )}
+              {docType === "server" && (
+                <MockPanel content={validContent} setContent={uiSetContent} />
+              )}
+              {docType === "report" && (
+                <ReportPanel content={validContent} setContent={uiSetContent} />
+              )}
+              {documentContentLoaded && docType === null && (
+                <NotypePanel content={validContent} setContent={uiSetContent} />
+              )}
+            </PanelErrorBoundary>
           </div>
         </div>
       </SplitPane>
