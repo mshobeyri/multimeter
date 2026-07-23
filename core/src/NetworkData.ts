@@ -1,9 +1,10 @@
 import { GraphQLConfig, GrpcConfig } from './APIData';
+import { FormatSpec } from './CommonData';
 
 export interface Request {
   url?: string;
   protocol?: "http" | "ws" | "graphql" | "grpc" | undefined;
-  format?: "json" | "xml" | "xmle" | "text" | "urlencoded" | undefined;
+  format?: FormatSpec | undefined;
   method?: string;
   timeout?: number;
   headers?: Record<string, string> | undefined;

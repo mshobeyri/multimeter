@@ -1,5 +1,5 @@
 import {APIData, AuthConfig} from './APIData';
-import {JSONRecord} from './CommonData';
+import {JSONRecord, requestFormat} from './CommonData';
 import {indentLines, toInputsParams} from './JSerHelper';
 import {contentTypeForFormat, formatBody} from './markupConvertor';
 import {stripOmitFromRequest} from './omitKeyword';
@@ -31,7 +31,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   replaced = stripOmitFromRequest(replaced);
 
   let formattedBody =
-      formatBody(replaced.format || 'json', replaced.body || '', false);
+      formatBody(requestFormat(replaced.format), replaced.body || '', false);
   // Replace placeholders with JSON.stringify(var) so non-strings are not quoted
   try {
     if (typeof formattedBody === 'string') {
@@ -117,7 +117,7 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
                     .map(([k, v]) => `"${k}": ${toTemplateWithEnvs(String(v))}`)
                     .join(', ');
     }
-  } else if ((replaced.format || 'json') === 'urlencoded') {
+  } else if (requestFormat(replaced.format) === 'urlencoded') {
     // Form bodies are not detectable from shape alone (unlike JSON/XML)
     const hasContentType = Object.keys(replaced.headers || {}).some(
         k => k.toLowerCase() === 'content-type');

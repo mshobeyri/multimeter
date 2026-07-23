@@ -1267,7 +1267,12 @@ export const handleBeforeMount = (monaco: any) => {
                         ((key === 'internal' || key === 'external') && parentContext === 'report')
                     );
                     const isAuthTypeKey = key === 'type' && parentContext === 'auth';
-                    const effectiveKey = isReportLevelKey ? 'report-level' : isAuthTypeKey ? 'auth-type' : key;
+                    const isFormatSideKey = (key === 'request' || key === 'response' || key === 'respond')
+                        && parentContext === 'format';
+                    const effectiveKey = isReportLevelKey ? 'report-level'
+                        : isAuthTypeKey ? 'auth-type'
+                        : isFormatSideKey ? 'format-value'
+                        : key;
                     const suggestionList = getValueSuggestions(effectiveKey);
 
                     // When inside expect: or debug:, also suggest inline operators (==, !=, etc.)
@@ -1443,7 +1448,9 @@ export const handleBeforeMount = (monaco: any) => {
             // instead of type: report file-level suggestions
             const effectiveContext = (parentContext === 'report' && firstLine === 'type: test')
                 ? 'step-report'
-                : parentContext;
+                : parentContext === 'format'
+                    ? 'format-keys'
+                    : parentContext;
             const parentSuggestions = keySuggestionsByParent[effectiveContext] || [];
             const baseSuggestions = deduplicateSuggestions(parentSuggestions);
 

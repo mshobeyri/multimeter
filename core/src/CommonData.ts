@@ -2,8 +2,71 @@ export type Type = "env" | "api" | "test" | "suite" | "loadtest" | "doc" | "csv"
 
 export type Protocol = "http" | "ws" | "graphql" | "grpc";
 export type Format = "json" | "xml" | "xmle" | "text" | "urlencoded";
+/** Split request vs response body formats. */
+export interface FormatConfig {
+  request?: Format;
+  response?: Format;
+}
+/**
+ * Body format: a single value applies to both request and response,
+ * or `{ request, response }` when they differ.
+ */
+export type FormatSpec = Format | FormatConfig;
 export type Method = "get" | "post" | "put" | "delete" | "patch" | "head" | "options" | "trace";
 export type GrpcStream = "server" | "client" | "bidi";
+
+export const FORMAT_VALUES: Format[] = ["json", "xml", "xmle", "text", "urlencoded"];
+
+function isFormatValue(value: unknown): value is Format {
+  return typeof value === "string" && (FORMAT_VALUES as string[]).includes(value);
+}
+
+/**
+ * Normalize format from YAML/UI.
+ * Accepts `response` or legacy alias `respond`.
+ */
+export function normalizeFormat(format?: FormatSpec | null | Record<string, unknown>): {
+  request: Format;
+  response: Format;
+} {
+  if (format == null) {
+    return { request: "json", response: "json" };
+  }
+  if (typeof format === "string") {
+    const value = isFormatValue(format) ? format : "json";
+    return { request: value, response: value };
+  }
+  if (typeof format === "object" && !Array.isArray(format)) {
+    const rawRequest = (format as any).request;
+    const rawResponse = (format as any).response ?? (format as any).respond;
+    const request = isFormatValue(rawRequest)
+      ? rawRequest
+      : (isFormatValue(rawResponse) ? rawResponse : "json");
+    const response = isFormatValue(rawResponse) ? rawResponse : request;
+    return { request, response };
+  }
+  return { request: "json", response: "json" };
+}
+
+export function requestFormat(format?: FormatSpec | null | Record<string, unknown>): Format {
+  return normalizeFormat(format).request;
+}
+
+export function responseFormat(format?: FormatSpec | null | Record<string, unknown>): Format {
+  return normalizeFormat(format).response;
+}
+
+/** Compact for YAML: scalar when request === response, else `{ request, response }`. */
+export function packFormatSpec(format?: FormatSpec | null): FormatSpec | undefined {
+  if (format == null) {
+    return undefined;
+  }
+  const { request, response } = normalizeFormat(format);
+  if (request === response) {
+    return request;
+  }
+  return { request, response };
+}
 
 export const jsonTypes = [
   "object", "object[]", "string", "string[]", "number", "number[]", "boolean", "boolean[]"

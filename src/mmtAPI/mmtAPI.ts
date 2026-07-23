@@ -14,6 +14,7 @@ import {
   apiParsePack,
   variableReplacer,
   markupConvertor,
+  CommonData,
 } from 'mmt-core';
 import {findMatchingClientCertificate, NetworkConfig, Request} from 'mmt-core/NetworkData';
 
@@ -264,7 +265,7 @@ function getCurlRequest(
     }
     if (request.body && typeof request.body !== 'string') {
       request.body = markupConvertor.formatBody(
-          request.format || 'json', request.body ?? '');
+          CommonData.requestFormat(request.format), request.body ?? '');
     }
     return request;
   } catch {

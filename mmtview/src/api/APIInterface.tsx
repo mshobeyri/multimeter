@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useEffect, useState } from "react";
 import KSVEditor from "../components/KSVEditor";
 import UrlInput from "../components/UrlInput";
-import { Protocol, Method, Format } from "mmt-core/CommonData"
+import { Protocol, Method, Format, FormatSpec, requestFormat, responseFormat, packFormatSpec } from "mmt-core/CommonData"
 import { formatBody, formattedBodyToYamlObject } from "mmt-core/markupConvertor";
 import BodyView from "../components/BodyView";
 import { safeList, isNonEmptyObject } from "mmt-core/safer";
@@ -41,26 +41,30 @@ function getFormatLabel(format: Format): string {
   return format;
 }
 
+function setFormats(nextRequest: Format, nextResponse: Format): FormatSpec {
+  return packFormatSpec({ request: nextRequest, response: nextResponse }) || nextRequest;
+}
+
 const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => {
   // Split url and query string safely
   const url = (data.url || "").split("?")[0];
 
-  // State for formatted body
-  const format = data.format || 'json';
+  const reqFormat = requestFormat(data.format);
+  const resFormat = responseFormat(data.format);
 
   // State for formatted body
   const [formattedBody, setFormattedBody] = useState<string>(
-    formatBody(format, data.body || "")
+    formatBody(reqFormat, data.body || "")
   );
 
   // Update formattedBody when body or format changes
   useEffect(() => {
     if (data.body) {
-      setFormattedBody(formatBody(format, data.body || ""));
+      setFormattedBody(formatBody(reqFormat, data.body || ""));
     } else {
       setFormattedBody("");
     }
-  }, [data.body, format]);
+  }, [data.body, reqFormat]);
 
   // Only call onChange if url value actually changed
   const handleUrlChange = useCallback(
@@ -127,11 +131,30 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
 
       {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && (
         <>
-          <div className="label">Format</div>
+          <div className="label">Request format</div>
           <div style={{ padding: "5px" }}>
             <select
-              value={format}
-              onChange={e => onChange({ ...data, format: e.target.value as Format })}
+              value={reqFormat}
+              onChange={e => onChange({
+                ...data,
+                format: setFormats(e.target.value as Format, resFormat),
+              })}
+              style={{ width: "100%" }}
+            >
+              <option key="" value="" disabled>Select format...</option>
+              {safeList(formatOptions).map(opt => (
+                <option key={opt} value={opt}>{getFormatLabel(opt)}</option>
+              ))}
+            </select>
+          </div>
+          <div className="label">Response format</div>
+          <div style={{ padding: "5px" }}>
+            <select
+              value={resFormat}
+              onChange={e => onChange({
+                ...data,
+                format: setFormats(reqFormat, e.target.value as Format),
+              })}
               style={{ width: "100%" }}
             >
               <option key="" value="" disabled>Select format...</option>
@@ -497,11 +520,11 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
           <div style={{ padding: "5px", position: "relative" }}>
             <BodyView
               value={formattedBody === null ? "" : formattedBody}
-              format={format}
+              format={reqFormat}
               mode="appliable"
               onChange={val => {
                 setFormattedBody(val);
-                const yamlObj = formattedBodyToYamlObject(format, val);
+                const yamlObj = formattedBodyToYamlObject(reqFormat, val);
                 if (yamlObj !== null) {
                   onChange({ ...data, body: yamlObj });
                 }

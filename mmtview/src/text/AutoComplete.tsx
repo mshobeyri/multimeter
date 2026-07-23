@@ -824,8 +824,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
             label: "format",
             kind: monaco.languages.CompletionItemKind.Property,
             insertText: "format: ",
-            detail: 'Data format [json, xml, xmle, text, urlencoded]',
-            documentation: 'The format of the request and response data. Determines how the body content is parsed and serialized.\nOptions:\n\t- json: JavaScript Object Notation\n\t- xml: XML with self-closing empty tags\n\t- xmle: expanded XML with explicit closing tags for empty elements\n\t- text: Plain text format\n\t- urlencoded: application/x-www-form-urlencoded form body (key=value&...)\nExample: format: json',
+            detail: 'Data format [json, xml, xmle, text, urlencoded] or { request, response }',
+            documentation: 'The format of the request and response data. A single value applies to both.\nOptions:\n\t- json, xml, xmle, text, urlencoded\nOr split when they differ:\nformat:\n  request: json\n  response: xml\nExample: format: json',
         },
         {
             label: "url",
@@ -1077,13 +1077,14 @@ export const KeySuggestionsByParent = (monaco: any) => {
             documentation: 'gRPC remote procedure calls over TLS. Use with the grpc block to define service, method, and message. URL should use grpcs:// scheme.',
         },
     ]
-    const formatSuggestion = [
+    const formatValueSuggestion = [
         {
             label: "json",
             kind: monaco.languages.CompletionItemKind.EnumMember,
             insertText: " json",
             detail: 'Define a JSON API',
             documentation: 'JSON format for data exchange.',
+            sortText: '1json',
         },
         {
             label: "xml",
@@ -1091,6 +1092,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: " xml",
             detail: 'XML with self-closing empty tags',
             documentation: 'XML format using self-closing empty tags for empty elements.\nExample: <item/>',
+            sortText: '1xml',
         },
         {
             label: "xmle",
@@ -1098,6 +1100,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: " xmle",
             detail: 'Expanded XML with explicit closing tags',
             documentation: 'XML format using explicit closing tags for empty elements.\nExample: <item></item>',
+            sortText: '1xmle',
         },
         {
             label: "text",
@@ -1105,6 +1108,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: " text",
             detail: 'Define a text API',
             documentation: 'Text format for data exchange.',
+            sortText: '1text',
         },
         {
             label: "urlencoded",
@@ -1112,8 +1116,44 @@ export const KeySuggestionsByParent = (monaco: any) => {
             insertText: " urlencoded",
             detail: 'Form URL-encoded body',
             documentation: 'application/x-www-form-urlencoded body. YAML object fields become key=value pairs joined by &.\nSpecial characters are percent-encoded (spaces as +).\nExample:\nformat: urlencoded\nbody:\n  username: mehrdad\n  password: secret\n# → username=mehrdad&password=secret',
+            sortText: '1urlencoded',
         },
-    ]
+    ];
+    const formatSuggestion = [
+        ...formatValueSuggestion,
+        {
+            label: "request/response",
+            kind: monaco.languages.CompletionItemKind.Snippet,
+            insertText: "\n\trequest: ${1:json}\n\tresponse: ${2:json}",
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            detail: 'Split request and response formats',
+            documentation: 'Use different formats for request body vs response body.\nExample:\nformat:\n  request: json\n  response: xml\n\nThen set each value to json, xml, xmle, text, or urlencoded.',
+            sortText: '0split',
+        },
+    ];
+    const formatKeySuggestions = [
+        {
+            label: "request",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "request: ",
+            detail: 'Request body format',
+            documentation: 'Format used to encode the request body.\nValues: json, xml, xmle, text, urlencoded\nExample:\nformat:\n  request: json\n  response: xml',
+        },
+        {
+            label: "response",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "response: ",
+            detail: 'Response body format',
+            documentation: 'Format used for the response body.\nValues: json, xml, xmle, text, urlencoded\nExample:\nformat:\n  request: json\n  response: xml',
+        },
+        {
+            label: "respond",
+            kind: monaco.languages.CompletionItemKind.Property,
+            insertText: "respond: ",
+            detail: 'Alias for response',
+            documentation: 'Alias for response. Same values: json, xml, xmle, text, urlencoded.',
+        },
+    ];
     const methodSuggestions = [
         {
             label: "get",
@@ -1699,7 +1739,7 @@ export const KeySuggestionsByParent = (monaco: any) => {
         { label: 'title', kind: monaco.languages.CompletionItemKind.Property, insertText: 'title: ', detail: 'HTTP step title', documentation: 'Short summary shown inline in reports/UI.\nExample:\n- http: https://test.mmt.dev/echo\n  title: Fetch users' },
         { label: 'method', kind: monaco.languages.CompletionItemKind.Property, insertText: 'method: ', detail: 'HTTP method', documentation: 'HTTP method for this request. Defaults to get.\nExample: method: post' },
         { label: 'timeout', kind: monaco.languages.CompletionItemKind.Property, insertText: 'timeout: 5000', detail: 'Request timeout override [number, ms]', documentation: 'Overrides the default network timeout for this HTTP step only, in milliseconds.\nExample: timeout: 5000' },
-        { label: 'format', kind: monaco.languages.CompletionItemKind.Property, insertText: 'format: ', detail: 'Body format', documentation: 'Request and response format. Values: json, xml, xmle, text, urlencoded.\nExample: format: json' },
+        { label: 'format', kind: monaco.languages.CompletionItemKind.Property, insertText: 'format: ', detail: 'Body format', documentation: 'Request and response format.\nScalar: json, xml, xmle, text, urlencoded\nOr choose request/response to set them separately:\nformat:\n  request: json\n  response: xml' },
         { label: 'query', kind: monaco.languages.CompletionItemKind.Property, insertText: 'query:\n\t', detail: 'Query parameters', documentation: 'Query parameters for this request.\nExample:\nquery:\n  page: "1"' },
         { label: 'headers', kind: monaco.languages.CompletionItemKind.Property, insertText: 'headers:\n\t', detail: 'Request headers', documentation: 'Headers for this request.\nExample:\nheaders:\n  Authorization: Bearer <<e:token>>' },
         { label: 'body', kind: monaco.languages.CompletionItemKind.Property, insertText: 'body: ', detail: 'Request body', documentation: 'Request body for post, put, or patch requests.' },
@@ -1821,6 +1861,8 @@ export const KeySuggestionsByParent = (monaco: any) => {
         auth: authSuggestions,
         'auth-type': authTypeSuggestions,
         format: formatSuggestion,
+        'format-value': formatValueSuggestion,
+        'format-keys': formatKeySuggestions,
         graphql: graphqlSuggestions,
         grpc: grpcSuggestions,
         outputs: outputsSuggestions,

@@ -39,7 +39,7 @@ query:                         # Optional. Query parameters appended to url; mer
 	<name>: string               # Value is always a string expression (can contain tokens).
 protocol: http | ws            # Optional. "http" for HTTP(S); "ws" for WebSocket.
                                # Inferred from URL if omitted: ws:// or wss:// → ws, otherwise http.
-format: json | text | xml | xmle | urlencoded      # REQUIRED. Controls how body is encoded/decoded (JSON object vs raw text/XML/form).
+format: json | text | xml | xmle | urlencoded | { request, response }
 method:                        # HTTP method (REQUIRED when protocol is http).
 	get | post | put | delete | patch | head | options | trace
 headers:                       # Optional. HTTP/WS headers to send with the request.

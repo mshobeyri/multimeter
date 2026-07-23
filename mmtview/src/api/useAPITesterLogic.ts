@@ -6,6 +6,7 @@ import { safeList } from "mmt-core/safer";
 import { replaceAllRefs } from "mmt-core/variableReplacer";
 import { stripOmitFromRequest } from "mmt-core/omitKeyword";
 import { formatBody } from "mmt-core/markupConvertor";
+import { requestFormat, responseFormat } from "mmt-core/CommonData";
 import { applyAuthToRequest, apiToYaml } from "mmt-core/apiParsePack";
 import { loadEnvVariables } from "../workspaceStorage";
 import { extractOutputs, extractPathAtPosition, buildBodyExprFromPath } from "mmt-core/outputExtractor";
@@ -175,7 +176,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
       }
 
       if (rface.body && typeof rface.body !== "string") {
-        rface.body = formatBody(rface.format || "json", rface.body ?? "");
+        rface.body = formatBody(requestFormat(rface.format), rface.body ?? "");
       }
 
       setRequestData((prev) =>
@@ -282,8 +283,7 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
   const handleAddOutputVariable = useCallback((pos: OutputPosition) => {
     const bodyText = pos.text ?? "";
 
-    const fmtRaw = requestData?.format || "json";
-    const fmt = typeof fmtRaw === "string" ? fmtRaw.toLowerCase() : "json";
+    const fmt = responseFormat(requestData?.format);
     const contentType: "json" | "xml" =
       fmt.includes("xml") || bodyText.trim().startsWith("<")
         ? "xml"

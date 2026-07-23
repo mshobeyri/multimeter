@@ -5,6 +5,8 @@ Usage-first guide to write APIs in `.mmt` files. Includes HTTP/WS, params, bodie
 Supported:
 - Protocols: `http`, `ws`, `graphql`, `grpc`
 - Formats: `json`, `xml`, `xmle`, `text`, `urlencoded`
+  - Scalar `format: json` applies to both request and response
+  - Or split: `format: { request: json, response: xml }`
 - Methods: `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
 
 ---
@@ -26,6 +28,13 @@ Supported:
 ```
 Notes
 - `format` sets how the body is encoded/decoded (defaults to `json` if omitted)
+- Use a single value when request and response share a format, or split them:
+
+```yaml
+format:
+  request: json
+  response: xml
+```
 - `timeout` overrides the default request timeout for this API call, in milliseconds
 - `query` merges with any query string in `url`
 - `protocol` is optional - inferred from URL (ws:// or wss:// → ws, otherwise http)
@@ -252,7 +261,7 @@ description: README.md#-why-multimeter
 - url: server URL
 - method: HTTP method `get`, `post`, `put`, `delete`, `patch`, `head`, `options`, `trace`
 - timeout: per-request timeout in milliseconds (optional; overrides the default network timeout)
-- format: body format `json` | `xml` | `xmle` | `text` | `urlencoded` (optional, defaults to `json`)
+- format: body format `json` | `xml` | `xmle` | `text` | `urlencoded`, or `{ request, response }` when they differ (optional, defaults to `json`)
 - headers: HTTP headers
 - query: query parameters for HTTP requests
 - cookies: HTTP cookies
@@ -807,7 +816,7 @@ examples:
 - url: string (can contain query string)
 - protocol: `http` | `ws` | `graphql`
 - method: HTTP verbs (HTTP only)
-- format: `json` | `xml` | `xmle` | `text` | `urlencoded`
+- format: `json` | `xml` | `xmle` | `text` | `urlencoded` | `{ request, response }`
 - headers: record<string, string>
 - query: record<string, string>
 - cookies: record<string, string>

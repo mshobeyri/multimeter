@@ -25,6 +25,24 @@ const dataRefOr = (...schemas: any[]) => ({
     ]
 });
 
+const FormatEnumSchema = { type: 'string', enum: ['json', 'xml', 'xmle', 'text', 'urlencoded'] };
+
+/** Scalar format or `{ request, response }` when they differ. */
+const FormatSpecSchema = {
+    anyOf: [
+        FormatEnumSchema,
+        {
+            type: 'object',
+            properties: {
+                request: FormatEnumSchema,
+                response: FormatEnumSchema,
+                respond: FormatEnumSchema, // alias for response
+            },
+            additionalProperties: false,
+        },
+    ],
+};
+
 export const SuiteSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
@@ -166,7 +184,7 @@ export const APISchema = {
             enum: ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
         }),
         timeout: dataRefOr({ type: 'number', minimum: 0 }),
-        format: dataRefOr({ type: 'string', enum: ['json', 'xml', 'xmle', 'text', 'urlencoded'] }),
+        format: dataRefOr(FormatSpecSchema),
         url: { type: 'string' },
         headers: { type: 'object', additionalProperties: { type: 'string' } },
         query: { type: 'object', additionalProperties: { type: 'string' } },
@@ -593,7 +611,7 @@ export const TestSchema = {
                                 enum: ['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']
                             },
                             timeout: { type: 'number', minimum: 0 },
-                            format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text', 'urlencoded'] },
+                            format: FormatSpecSchema,
                             headers: { type: 'object', additionalProperties: { type: 'string' } },
                             query: { type: 'object', additionalProperties: { type: 'string' } },
                             body: {
@@ -1012,7 +1030,7 @@ export const MockSchema = {
                         additionalProperties: false
                     },
                     status: { type: 'number', minimum: 100, maximum: 599 },
-                    format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text', 'urlencoded'] },
+                    format: FormatEnumSchema,
                     headers: { type: 'object', additionalProperties: { type: 'string' } },
                     body: {},
                     delay: { type: 'number', minimum: 0 },
@@ -1026,7 +1044,7 @@ export const MockSchema = {
             type: 'object',
             properties: {
                 status: { type: 'number' },
-                format: { type: 'string', enum: ['json', 'xml', 'xmle', 'text', 'urlencoded'] },
+                format: FormatEnumSchema,
                 headers: { type: 'object', additionalProperties: { type: 'string' } },
                 body: {}
             },

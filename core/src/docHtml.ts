@@ -1,5 +1,6 @@
 import { DOC_TEMPLATE_HTML } from './docTemplate';
 import { formatBody } from './markupConvertor';
+import { requestFormat } from './CommonData';
 import { resolveEnvTokenValues } from './variableReplacer';
 // Shared HTML renderer for documentation pages
 // Framework-free and safe to use in Node and browser contexts
@@ -556,7 +557,7 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
     const headers = api?.headers && Object.keys(api.headers).length ? renderParamTable(api.headers, 'Default', { showSource: true }) : '';
     const cookies = api?.cookies && Object.keys(api.cookies).length ? renderParamTable(api.cookies, 'Default', { showSource: true }) : '';
     // Compute body string once – used for both detail panel and Try panel
-    const fmtRaw = String(api?.format || 'json').toLowerCase();
+    const fmtRaw = String(requestFormat(api?.format)).toLowerCase();
     const fmt = (fmtRaw === 'xml' || fmtRaw === 'xmle' || fmtRaw === 'json' || fmtRaw === 'text' || fmtRaw === 'urlencoded') ? fmtRaw : 'json';
     let bodyStr = '';
     if (api?.body !== undefined && api?.body !== null && String(api.body).length) {
@@ -612,7 +613,7 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
       hasQuery ? `<h3>Query</h3>${query}` : '',
       headers ? `<h3>Headers</h3>${headers}` : '',
       cookies ? `<h3>Cookies</h3>${cookies}` : '',
-      body ? `<h3>Body (${api?.format || 'JSON'})</h3>${body}` : ''
+      body ? `<h3>Body (${requestFormat(api?.format) || 'JSON'})</h3>${body}` : ''
     ].filter(Boolean).join('\n');
     const hasInfo = !!desc || !!tags;
     const hasInputs = !!inputs;
@@ -681,7 +682,7 @@ export function buildDocHtml(apis: any[], opts: BuildDocHtmlOptions = {}): strin
         url: urlStr,
         headers: api?.headers || {},
         body: api?.body || null,
-        format: api?.format || 'json',
+        format: requestFormat(api?.format),
         inputs: api?.inputs || {},
         query: queryObj || {},
         examples: (api?.examples || []).map((ex: any) => {

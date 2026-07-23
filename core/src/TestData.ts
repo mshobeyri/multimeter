@@ -1,6 +1,6 @@
 
 
-import {Format, Method, MMTFile, Protocol} from './CommonData';
+import {FormatSpec, Method, MMTFile, Protocol} from './CommonData';
 
 export type Timestr = `${number}s`|`${number}m`|`${number}h`|'inf';
 export type Repeat = `${number}`|'inf';
@@ -104,7 +104,7 @@ export interface TestFlowHttp extends TestFlowBase {
   query?: Record<string, string>;
   method?: Method;
   timeout?: number;
-  format?: Format;
+  format?: FormatSpec;
   headers?: Record<string, string>;
   body?: string|object|null;
   outputs?: Record<string, string>;

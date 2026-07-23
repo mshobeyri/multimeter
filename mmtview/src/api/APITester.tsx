@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect, useMemo } from "react";
 import { extractInputConstraintsFromDescription } from "mmt-core/paramConstraints";
 import { APIData } from "mmt-core/APIData";
-import { JSONRecord, Method, Protocol } from "mmt-core/CommonData";
+import { JSONRecord, Method, Protocol, requestFormat, responseFormat } from "mmt-core/CommonData";
 import { Request } from "mmt-core/NetworkData";
 import KSVEditor from "../components/KSVEditor";
 import BodyView from "../components/BodyView";
@@ -427,9 +427,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
               <BodyView
                 value={typeof requestData?.body === "string"
                   ? requestData?.body
-                  : formatBody(requestData?.format || "json", requestData?.body || {})
+                  : formatBody(requestFormat(requestData?.format), requestData?.body || {})
                 }
-                format={requestData?.format || "json"}
+                format={requestFormat(requestData?.format)}
                 mode="live"
                 onChange={val => {
                   updateField("body", val);
@@ -601,7 +601,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             <div className="apitest-body-wrapper">
               <BodyView
                 value={displayResponseBody(responseData, autoFormatBody)}
-                format={requestData?.format || "json"}
+                format={responseFormat(requestData?.format)}
                 mode="live"
                 onInspectPosition={handleAddOutputVariable}
                 refreshKey={responseRevision}
