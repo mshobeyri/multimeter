@@ -106,7 +106,7 @@ That means:
 - Easier debugging
 - Reproducible results
 
-## <img src="res/git.png" alt="Git" width="36" height="36" style="vertical-align: text-bottom;"/> Why Git?
+## <img src="res/git.png" alt="Git" width="24" height="24" style="vertical-align: text-bottom;"/> Why Git?
 ---
 
 Your code, tests, mocks, documentation, reports, and environment settings live in the **same repository.**
