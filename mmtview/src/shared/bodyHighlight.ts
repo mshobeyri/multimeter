@@ -110,7 +110,8 @@ function formatUrlEncoded(body: string): string {
       const value = decodeURIComponent(part.slice(eq + 1).replace(/\+/g, ' '));
       return `${key}=${value}`;
     })
-    .join('\n');
+    // Keep `&` visible (wire separator) while still pretty-printing one field per line.
+    .join('&\n');
 }
 
 /** Pretty-print body when possible; otherwise return original. */

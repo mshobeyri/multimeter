@@ -35,6 +35,12 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
   // Replace placeholders with JSON.stringify(var) so non-strings are not quoted
   try {
     if (typeof formattedBody === 'string') {
+      const reqFormat = requestFormat(replaced.format);
+      if (reqFormat === 'urlencoded') {
+        // URLSearchParams encodes `${name}` → %24%7Bname%7D, which would be
+        // sent literally. Restore JS interpolations that re-encode at runtime.
+        formattedBody = restoreUrlEncodedJsPlaceholders(formattedBody);
+      }
       const entries = Object.entries(ctx.api.inputs ?? {});
       for (const [name, value] of entries) {
         // Replace "${name}" -> ${JSON.stringify(name)}
@@ -226,6 +232,26 @@ ${isGraphQL ? `
   return output_;
 };`;
 };
+
+/**
+ * After urlencoded formatting, `${expr}` becomes `%24%7Bexpr%7D` and would be
+ * sent as a literal. Turn those back into runtime interpolations that encode
+ * the resolved value (same idea as the JSON `"${name}"` rewrite above).
+ */
+export function restoreUrlEncodedJsPlaceholders(encodedBody: string): string {
+  return String(encodedBody ?? '').replace(/%24%7B([\s\S]*?)%7D/gi, (_match, innerEnc: string) => {
+    let inner: string;
+    try {
+      inner = decodeURIComponent(String(innerEnc || ''));
+    } catch {
+      return _match;
+    }
+    if (!inner.trim()) {
+      return _match;
+    }
+    return `\${encodeURIComponent(String(${inner} ?? ''))}`;
+  });
+}
 
 function generateGrpcFunction(
     ctx: APIContext,

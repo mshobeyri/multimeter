@@ -23,6 +23,13 @@ describe('bodyHighlight', () => {
     expect(canBeautifyBody('plain')).toBe(false);
   });
 
+  it('beautifies urlencoded bodies as one field per line and keeps &', () => {
+    const pretty = beautifyBody('xxx=aaa&bbb=qqq', {
+      'Content-Type': 'application/x-www-form-urlencoded',
+    });
+    expect(pretty).toBe('xxx=aaa&\nbbb=qqq');
+  });
+
   it('escapes html and colorizes json keys/strings', () => {
     expect(escapeHtml('<b>&"\'')).toBe('&lt;b&gt;&amp;&quot;&#39;');
     const html = highlightBodyHtml('{"name":"ada","n":1, "ok":true}');

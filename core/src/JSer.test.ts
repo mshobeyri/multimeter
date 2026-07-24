@@ -1766,6 +1766,49 @@ describe('body inputs numeric/boolean templating', () => {
   });
 });
 
+describe('urlencoded body inputs (apiToJSfunc)', () => {
+  it('interpolates i: placeholders instead of sending encoded ${name}', async () => {
+    const apiYaml = [
+      'type: api',
+      'protocol: http',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'inputs:',
+      '  iii: hello',
+      'body:',
+      '  xxx: i:iii',
+      '  yyy: plain',
+    ].join('\n');
+    const ctx: APIContext =
+        {api: yamlToAPI(apiYaml), name: 'form_api', inputs: {}, envVars: {}} as
+        any;
+    const js = await apiToJSfunc(ctx);
+    expect(js).not.toContain('%24%7Biii%7D');
+    expect(js).toContain("encodeURIComponent(String(iii ?? ''))");
+    expect(js).toContain('yyy=plain');
+  });
+
+  it('interpolates placeholders embedded in larger urlencoded values', async () => {
+    const apiYaml = [
+      'type: api',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'inputs:',
+      '  userId: u1',
+      'body:',
+      '  path: /users/<<i:userId>>/profile',
+    ].join('\n');
+    const ctx: APIContext =
+        {api: yamlToAPI(apiYaml), name: 'form_api', inputs: {}, envVars: {}} as
+        any;
+    const js = await apiToJSfunc(ctx);
+    expect(js).toContain("encodeURIComponent(String(userId ?? ''))");
+    expect(js).not.toMatch(/%24%7BuserId%7D/i);
+  });
+});
+
 describe('binary request body (apiToJSfunc)', () => {
   it('loads bytes via readBinaryFile_ and sets octet-stream Content-Type', async () => {
     const apiYaml = [
