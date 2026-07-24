@@ -13,6 +13,7 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 
+import {openUntitledMmtWithContent} from '../untitledGalleryMmt';
 import {resolveWorkspaceEnvFilePath} from './network';
 import {buildThemeTokenMessage} from '../themeTokenColors';
 
@@ -499,6 +500,17 @@ export async function handleOpenRelativeFile(
           `Failed to open file ${message.filename}: ${err}`);
     }
   }
+}
+
+export async function handleOpenUntitledMmt(message: any): Promise<void> {
+  const content = typeof message?.content === 'string' ? message.content : '';
+  const suggestedName =
+      typeof message?.suggestedName === 'string' ? message.suggestedName : undefined;
+  const newTab = !!message?.newTab;
+  await openUntitledMmtWithContent(content, {
+    suggestedName,
+    viewColumn: newTab ? vscode.ViewColumn.Beside : vscode.ViewColumn.Active,
+  });
 }
 
 export async function handleOpenExternalUrl(message: any): Promise<void> {

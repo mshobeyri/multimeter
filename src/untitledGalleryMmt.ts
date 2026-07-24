@@ -19,6 +19,41 @@ export async function openUntitledGalleryMmt(
       'vscode.openWith', uri, 'mmt.editor', {preview: false});
 }
 
+/** Open an untitled .mmt custom editor prefilled with content. */
+export async function openUntitledMmtWithContent(
+    content: string,
+    options?: {
+      suggestedName?: string;
+      viewColumn?: vscode.ViewColumn;
+    }): Promise<void> {
+  const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+  const filename = sanitizeUntitledFilename(options?.suggestedName || 'untitled.mmt');
+  const uri =
+      getUniqueUntitledMmtUri(workspaceRoot || process.cwd(), filename);
+  const document = await vscode.workspace.openTextDocument(uri);
+  const text = String(content ?? '');
+  if (document.getText() !== text) {
+    const edit = new vscode.WorkspaceEdit();
+    const fullRange = new vscode.Range(
+        document.positionAt(0),
+        document.positionAt(document.getText().length));
+    edit.replace(document.uri, fullRange, text);
+    await vscode.workspace.applyEdit(edit);
+  }
+  await vscode.languages.setTextDocumentLanguage(document, 'mmt');
+  const viewColumn = options?.viewColumn ?? vscode.ViewColumn.Active;
+  await vscode.commands.executeCommand(
+      'vscode.openWith', uri, 'mmt.editor', {preview: false, viewColumn});
+}
+
+function sanitizeUntitledFilename(name: string): string {
+  const base = path.basename(String(name || 'untitled.mmt').trim() || 'untitled.mmt');
+  if (base.toLowerCase().endsWith('.mmt')) {
+    return base;
+  }
+  return `${base}.mmt`;
+}
+
 function hasOpenUntitledMmt(): boolean {
   for (const group of vscode.window.tabGroups.all) {
     for (const tab of group.tabs) {

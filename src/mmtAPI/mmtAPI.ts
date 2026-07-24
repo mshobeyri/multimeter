@@ -590,6 +590,9 @@ export const messageReceived = async (
     case 'openRelativeFile':
       await file.handleOpenRelativeFile(message, document);
       break;
+    case 'openUntitledMmt':
+      await file.handleOpenUntitledMmt(message);
+      break;
     case 'openExternalUrl':
       await file.handleOpenExternalUrl(message);
       break;

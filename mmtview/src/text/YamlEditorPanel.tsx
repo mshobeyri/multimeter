@@ -6,12 +6,17 @@ import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./BeforeMount";
 import { safeList } from "mmt-core/safer";
 import { opsList } from "mmt-core/TestData";
-import { openRelativeFile } from "../vsAPI";
+import { openRelativeFile, openUntitledMmt } from "../vsAPI";
 import { loadEnvVariables } from "../workspaceStorage";
 import { useImportValidation } from "./useImportValidation";
 import { useDocFileValidation } from "./useDocFileValidation";
 import { useSuiteTestsValidation } from "./useSuiteTestsValidation";
 import { getFileLinkTargetAtPosition } from "./yamlLinks";
+import {
+  findHttpStepAtPosition,
+  httpStepApiPreviewYamlAtPosition,
+  suggestHttpStepApiFilename,
+} from "mmt-core/httpStepApiPreview";
 import {
   computeMissingImportMarkers,
   computeMissingDocFileMarkers, // Updated from computeMissingLogoFileMarkers
@@ -903,7 +908,28 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       const withMod = hasGoToDefinitionModifier(evt as any);
       if (withMod) {
         const target = getFileLinkTargetAtPosition(monaco, model, getLinkContent(), pos);
-        if (target) {
+        if (target?.httpStepPreview) {
+          try {
+            const yaml = httpStepApiPreviewYamlAtPosition(
+              getLinkContent(),
+              target.httpStepPreview.lineNumber,
+              target.httpStepPreview.column,
+            );
+            if (yaml) {
+              const hit = findHttpStepAtPosition(
+                getLinkContent(),
+                target.httpStepPreview.lineNumber,
+                target.httpStepPreview.column,
+              );
+              openUntitledMmt(yaml, {
+                suggestedName: hit ? suggestHttpStepApiFilename(hit.step) : 'http-step.mmt',
+                newTab: evt.shiftKey,
+              });
+            }
+          } catch {
+            // ignore
+          }
+        } else if (target?.path) {
           openRelativeFile(target.path, target.fragment, evt.shiftKey);
         }
         return;

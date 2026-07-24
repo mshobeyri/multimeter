@@ -1,6 +1,13 @@
+import { findHttpStepAtPosition } from "mmt-core/httpStepApiPreview";
 import { parseYamlDoc } from "mmt-core/markupConvertor";
 
-export type YamlLinkTarget = { path: string; fragment?: string; range: any } | null;
+export type YamlLinkTarget = {
+  range: any;
+  path?: string;
+  fragment?: string;
+  /** Ctrl+click opens a temporary API preview for this HTTP step URL. */
+  httpStepPreview?: { lineNumber: number; column: number };
+} | null;
 
 const FILE_EXT_REGEX = /\.(mmt|svg|png|jpg|jpeg|gif|bmp|tiff|webp|csv|json|yaml|yml)$/i;
 const MD_REF_REGEX = /\S*\.md\/?#\S*/;
@@ -76,6 +83,24 @@ export function getFileLinkTargetAtPosition(
         };
       }
     }
+  }
+
+  // Detect inline HTTP step URL → temporary API preview
+  try {
+    const httpHit = findHttpStepAtPosition(content, lineNumber, pos.column);
+    if (httpHit) {
+      return {
+        httpStepPreview: { lineNumber, column: pos.column },
+        range: new monaco.Range(
+          httpHit.urlLine,
+          httpHit.urlStartColumn,
+          httpHit.urlLine,
+          httpHit.urlEndColumn,
+        ),
+      };
+    }
+  } catch {
+    // ignore parse failures while typing
   }
 
   // Detect bare .md# ref pattern (e.g. description: README.md#section)

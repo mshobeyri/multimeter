@@ -194,6 +194,11 @@
       "require": "./dist/mmtFormat.js",
       "default": "./dist/mmtFormat.js"
     },
+    "./httpStepApiPreview": {
+      "types": "./dist/httpStepApiPreview.d.ts",
+      "require": "./dist/httpStepApiPreview.js",
+      "default": "./dist/httpStepApiPreview.js"
+    },
     "./EnvData": {
       "types": "./dist/EnvData.d.ts",
       "require": "./dist/EnvData.js",

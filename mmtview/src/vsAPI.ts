@@ -305,6 +305,19 @@ duration?: number
     window.vscode?.postMessage({command: 'openRelativeFile', filename: normalizeOpenFilePath(filename), fragment, newTab});
   }
 
+  /** Open an untitled .mmt custom editor prefilled with YAML content. */
+  export function openUntitledMmt(content: string, options?: {
+    suggestedName?: string;
+    newTab?: boolean;
+  }) {
+    window.vscode?.postMessage({
+      command: 'openUntitledMmt',
+      content: String(content ?? ''),
+      suggestedName: options?.suggestedName,
+      newTab: !!options?.newTab,
+    });
+  }
+
   export function openExternalUrl(url: string) {
     const trimmed = (url || '').trim();
     if (!trimmed) {
