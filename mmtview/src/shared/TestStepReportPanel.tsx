@@ -41,9 +41,9 @@ function formatStructuredValue(value: any, pretty?: boolean): string {
 const HeadersBlock: React.FC<{ label: string; headers?: Record<string, any> }> = ({ label, headers }) => {
   if (!headers || Object.keys(headers).length === 0) { return null; }
   return (
-    <div style={{ marginTop: 6 }}>
+    <div className="report-headers-block" style={{ marginTop: 6 }}>
       <span style={{ fontWeight: 600, fontSize: 11, textTransform: 'uppercase', opacity: 0.7 }}>{label}</span>
-      <div style={{ marginTop: 2, maxHeight: 200, overflow: 'auto' }}>
+      <div className="report-headers-content">
         <table className="report-headers-table">
           <tbody>
             {Object.entries(headers).map(([k, v]) => (

@@ -337,7 +337,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           value={methodOrProtocolValue}
           onChange={e => handleMethodOrProtocolChange(e.target.value)}
           title="HTTP method or protocol (temporary override)"
-          style={{ background: methodOrProtocolColor }}
+          style={{ ['--mmt-method-color' as any]: methodOrProtocolColor }}
         >
           {HTTP_METHODS.map(m => (
             <option key={m} value={`method:${m}`}>{m.toUpperCase()}</option>

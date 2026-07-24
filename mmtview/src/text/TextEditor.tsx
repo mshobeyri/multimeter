@@ -199,8 +199,7 @@ const TextEditor: React.FC<TextEditorProps> = ({
     style.id = "i-prefix-highlight-style";
     style.innerHTML = `
       .${I_PREFIX_CLASS} {
-        background:rgba(150, 246, 255, 0.27);
-        color:rgb(203, 203, 203) !important;
+        background: color-mix(in srgb, var(--vscode-editorInfo-foreground, #75beff) 28%, transparent);
         border-radius: 2px;
       }
     `;

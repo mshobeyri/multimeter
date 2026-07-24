@@ -464,7 +464,9 @@ export const messageReceived = async (
     case 'requestThemeTokens':
       webviewPanel.webview.postMessage(
           buildThemeTokenMessage(
-              typeof message.themeId === 'string' ? message.themeId : undefined));
+              typeof message.themeId === 'string' ? message.themeId : undefined,
+              typeof message.themeName === 'string' ? message.themeName :
+                                                     undefined));
       break;
 
     case 'updateDocumentContent':

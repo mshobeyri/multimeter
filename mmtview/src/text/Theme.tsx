@@ -37,7 +37,7 @@ const FALLBACK_LIGHT: MmtTokenColors = {
   keyword: "#0000ff",
   comment: "#008000",
   tag: "#800000",
-  attribute: "#ff0000",
+  attribute: "#0451a5",
   punctuation: "#000000",
   foreground: "#000000",
 };
@@ -190,12 +190,11 @@ function buildThemeDefinition(monaco: any, themeName: string) {
       "editor.selectionBackground": cssVar("--vscode-editor-selectionBackground", "#264f78"),
       "editor.selectionForeground": cssVar("--vscode-editor-selectionForeground", "#ffffff"),
       "editor.inactiveSelectionBackground": cssVar("--vscode-editor-inactiveSelectionBackground", "#264f78"),
-      // Active-line fill from VS Code; never draw Monaco's line border (shows as a
-      // harsh red/colored box and isn't how the real VS Code editor looks).
-      "editor.lineHighlightBackground": cssVar(
-        "--vscode-editor-lineHighlightBackground",
-        "#00000000",
-      ),
+      // Never draw Monaco's active-line chrome. Some themes use a strong
+      // pink/red line highlight; combined with token decorations it reads as a
+      // random "red bar" on lines with <<i:...>> / markers. Match VS Code's
+      // usual look by relying on selection + gutter only.
+      "editor.lineHighlightBackground": "#00000000",
       "editor.lineHighlightBorder": "#00000000",
       "editor.foldBackground": "#00000000",
 

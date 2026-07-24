@@ -8,32 +8,37 @@ class HistoryPanel implements vscode.WebviewViewProvider {
   private _view?: vscode.WebviewView;
   private themeListener?: vscode.Disposable;
   private themeApplyTimer?: NodeJS.Timeout;
+  /** Last open drawer index restored across HTML rebuilds. */
+  private openIdx: number|null = null;
 
   constructor(private readonly context: vscode.ExtensionContext) {
     // Keep listening even before the view is opened so the first reveal is current.
     this.themeListener = vscode.window.onDidChangeActiveColorTheme(() => {
-      this.scheduleThemeTokenPush();
+      this.scheduleThemeRefresh();
     });
     context.subscriptions.push(this.themeListener);
   }
 
-  private scheduleThemeTokenPush() {
+  private scheduleThemeRefresh() {
     if (this.themeApplyTimer) {
       clearTimeout(this.themeApplyTimer);
     }
     // Let workbench.colorTheme / webview theme-id settle (esp. while picker is open).
     this.themeApplyTimer = setTimeout(() => {
       this.themeApplyTimer = undefined;
-      this.pushThemeTokens();
-    }, 50);
+      // Full HTML rebuild is the reliable path: CSS-var postMessage alone was
+      // leaving history body/json colors stuck on the previous theme.
+      void this.updateHistoryView(this._view);
+    }, 100);
   }
 
-  private pushThemeTokens(preferredThemeId?: string) {
+  private pushThemeTokens(preferredThemeId?: string, preferredThemeName?: string) {
     if (!this._view) {
       return;
     }
     try {
-      this._view.webview.postMessage(buildThemeTokenMessage(preferredThemeId));
+      this._view.webview.postMessage(
+          buildThemeTokenMessage(preferredThemeId, preferredThemeName));
     } catch {
       // view may be disposed
     }
@@ -53,9 +58,10 @@ class HistoryPanel implements vscode.WebviewViewProvider {
       history = [];
     }
     const tokenColors = buildThemeTokenMessage().tokenColors;
-    view.webview.html = this.getHtml(history, tokenColors);
-    // HTML replace resets JS; push tokens again after the new document is ready.
+    view.webview.html = this.getHtml(history, tokenColors, this.openIdx);
+    // After HTML reload, also push tokens (covers late theme-id settlement).
     setTimeout(() => this.pushThemeTokens(), 0);
+    setTimeout(() => this.pushThemeTokens(), 250);
   }
 
   refreshHistory() {
@@ -71,7 +77,13 @@ class HistoryPanel implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage((message) => {
       if (message?.command === 'requestThemeTokens') {
         this.pushThemeTokens(
-            typeof message.themeId === 'string' ? message.themeId : undefined);
+            typeof message.themeId === 'string' ? message.themeId : undefined,
+            typeof message.themeName === 'string' ? message.themeName :
+                                                   undefined);
+      }
+      if (message?.command === 'historyOpenIdx') {
+        this.openIdx =
+            typeof message.idx === 'number' ? message.idx : null;
       }
       if (message?.type === 'refreshHistory') {
         this.refreshHistory();
@@ -80,13 +92,15 @@ class HistoryPanel implements vscode.WebviewViewProvider {
     this.updateHistoryView(webviewView);
   }
 
-  getHtml(history: any[], tokenColors: MmtTokenColors) {
+  getHtml(history: any[], tokenColors: MmtTokenColors, openIdx: number|null) {
     const htmlPath =
         path.join(this.context.extensionPath, 'res', 'history.html');
     let html = fs.readFileSync(htmlPath, 'utf8');
     html = html.replace('__HISTORY_DATA__', JSON.stringify(history));
     html = html.replace(
         '__TOKEN_COLORS__', JSON.stringify(tokenColors).replace(/</g, '\\u003c'));
+    html = html.replace(
+        '__OPEN_IDX__', openIdx === null ? 'null' : String(openIdx));
     return html;
   }
 }

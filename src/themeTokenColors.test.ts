@@ -53,4 +53,64 @@ describe('themeTokenColors', () => {
       fs.rmSync(dir, {recursive: true, force: true});
     }
   });
+
+  it('does not use regexp punctuation colors for body delimiters', () => {
+    const dir = fs.mkdtempSync(path.join(__dirname, '.theme-test-'));
+    try {
+      const themePath = path.join(dir, 'theme.json');
+      fs.writeFileSync(themePath, JSON.stringify({
+        colors: {'editor.foreground': '#222222'},
+        tokenColors: [
+          {
+            scope: 'punctuation.definition.character-class.regexp',
+            settings: {foreground: '#d16969'},
+          },
+          {
+            scope: 'punctuation.definition.group.regexp',
+            settings: {foreground: '#d16969'},
+          },
+          {
+            scope: 'punctuation.separator.dictionary.key-value.json',
+            settings: {foreground: '#666666'},
+          },
+          {
+            scope: 'support.type.property-name.json',
+            settings: {foreground: '#0451a5'},
+          },
+          {scope: 'string', settings: {foreground: '#a31515'}},
+        ],
+      }));
+
+      const tokens = tokenColorsFromThemeFile(themePath, DEFAULT_DARK);
+      expect(tokens.punctuation.toLowerCase()).toBe('#666666');
+      expect(tokens.punctuation.toLowerCase()).not.toBe('#d16969');
+    } finally {
+      fs.rmSync(dir, {recursive: true, force: true});
+    }
+  });
+
+  it('falls back to editor foreground when no JSON delimiter scopes exist', () => {
+    const dir = fs.mkdtempSync(path.join(__dirname, '.theme-test-'));
+    try {
+      const themePath = path.join(dir, 'theme.json');
+      fs.writeFileSync(themePath, JSON.stringify({
+        colors: {'editor.foreground': '#101010'},
+        tokenColors: [
+          {
+            scope: 'punctuation.definition.character-class.regexp',
+            settings: {foreground: '#d16969'},
+          },
+          {
+            scope: 'support.type.property-name.json',
+            settings: {foreground: '#0451a5'},
+          },
+        ],
+      }));
+
+      const tokens = tokenColorsFromThemeFile(themePath, DEFAULT_DARK);
+      expect(tokens.punctuation.toLowerCase()).toBe('#101010');
+    } finally {
+      fs.rmSync(dir, {recursive: true, force: true});
+    }
+  });
 });

@@ -261,10 +261,13 @@
         .drawer-content pre,
         .drawer-body-pre {
             color: var(--vscode-editor-foreground, #d4d4d4);
-            background: rgba(127, 127, 127, 0.14);
+            background: var(
+                --vscode-textCodeBlock-background,
+                color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 88%, var(--vscode-foreground, #ccc) 12%)
+            );
             padding: 8px 10px;
             border-radius: 4px;
-            border: none;
+            border: 1px solid var(--vscode-editorWidget-border, var(--vscode-widget-border, #555));
             font-size: var(--history-detail-size);
             font-family: var(--vscode-editor-font-family, var(--vscode-font-family, monospace));
             margin: 0;
@@ -321,38 +324,77 @@
     </style>
     <script>
         const vscode = acquireVsCodeApi();
-        const history = __HISTORY_DATA__;
+        let history = __HISTORY_DATA__;
         const initialTokenColors = __TOKEN_COLORS__;
-        let openIdx = null;
+        let openIdx = __OPEN_IDX__;
 
         function applyTokenColors(tokenColors) {
             if (!tokenColors) {
                 return;
             }
+            function hex(value) {
+                if (value == null || value === '') {
+                    return '';
+                }
+                var v = String(value);
+                return v.charAt(0) === '#' ? v : ('#' + v);
+            }
             var root = document.documentElement.style;
-            function set(name, value) {
-                if (!value) {
+            var body = document.body && document.body.style;
+            function setVar(name, value) {
+                var h = hex(value);
+                if (!h) {
                     return;
                 }
-                root.setProperty(name, value.charAt(0) === '#' ? value : ('#' + value));
+                root.setProperty(name, h);
+                if (body) {
+                    body.setProperty(name, h);
+                }
             }
-            set('--mmt-token-key', tokenColors.key);
-            set('--mmt-token-string', tokenColors.string);
-            set('--mmt-token-number', tokenColors.number);
-            set('--mmt-token-keyword', tokenColors.keyword);
-            set('--mmt-token-comment', tokenColors.comment);
-            set('--mmt-token-tag', tokenColors.tag);
-            set('--mmt-token-attribute', tokenColors.attribute);
-            set('--mmt-token-punctuation', tokenColors.punctuation);
-            set('--mmt-token-foreground', tokenColors.foreground);
+            setVar('--mmt-token-key', tokenColors.key);
+            setVar('--mmt-token-string', tokenColors.string);
+            setVar('--mmt-token-number', tokenColors.number);
+            setVar('--mmt-token-keyword', tokenColors.keyword);
+            setVar('--mmt-token-comment', tokenColors.comment);
+            setVar('--mmt-token-tag', tokenColors.tag);
+            setVar('--mmt-token-attribute', tokenColors.attribute);
+            setVar('--mmt-token-punctuation', tokenColors.punctuation);
+            setVar('--mmt-token-foreground', tokenColors.foreground);
+
+            // Also stamp a style tag so colors win even if var() cascade is flaky.
+            var style = document.getElementById('mmt-token-colors');
+            if (!style) {
+                style = document.createElement('style');
+                style.id = 'mmt-token-colors';
+                document.head.appendChild(style);
+            }
+            style.textContent =
+                '.bh-key { color: ' + hex(tokenColors.key) + ' !important; }' +
+                '.bh-string { color: ' + hex(tokenColors.string) + ' !important; }' +
+                '.bh-number { color: ' + hex(tokenColors.number) + ' !important; }' +
+                '.bh-keyword { color: ' + hex(tokenColors.keyword) + ' !important; }' +
+                '.bh-punct { color: ' + hex(tokenColors.punctuation) + ' !important; }' +
+                '.bh-tag { color: ' + hex(tokenColors.tag) + ' !important; }' +
+                '.bh-attr { color: ' + hex(tokenColors.attribute) + ' !important; }' +
+                '.bh-comment { color: ' + hex(tokenColors.comment) + ' !important; }' +
+                '.bh-text { color: ' + hex(tokenColors.foreground) + ' !important; }';
         }
         applyTokenColors(initialTokenColors);
 
         function requestThemeTokens() {
-            var themeId = document.body.getAttribute('data-vscode-theme-id') || undefined;
-            vscode.postMessage({ command: 'requestThemeTokens', themeId: themeId });
+            var themeId = document.body.getAttribute('data-vscode-theme-id') ||
+                (document.body.dataset && document.body.dataset.vscodeThemeId) ||
+                undefined;
+            var themeName = document.body.getAttribute('data-vscode-theme-name') ||
+                (document.body.dataset && document.body.dataset.vscodeThemeName) ||
+                undefined;
+            vscode.postMessage({
+                command: 'requestThemeTokens',
+                themeId: themeId,
+                themeName: themeName
+            });
         }
-        // Ask host after load, and whenever VS Code updates the webview theme id.
+        // Ask host after load, and whenever VS Code updates the webview theme attrs.
         requestThemeTokens();
         try {
             var themeRequestTimer = null;
@@ -367,7 +409,12 @@
             });
             themeObserver.observe(document.body, {
                 attributes: true,
-                attributeFilter: ['data-vscode-theme-id']
+                attributeFilter: [
+                    'data-vscode-theme-id',
+                    'data-vscode-theme-name',
+                    'data-vscode-theme-kind',
+                    'class'
+                ]
             });
         } catch (e) { /* ignore */ }
         /** Per-item body format toggle: idx -> true when showing beautified body. */
@@ -463,7 +510,7 @@
                 try { key = decodeURIComponent(key.replace(/\+/g, ' ')); } catch (e) { /* keep */ }
                 try { value = decodeURIComponent(value.replace(/\+/g, ' ')); } catch (e) { /* keep */ }
                 return key + '=' + value;
-            }).join('\n');
+            }).join('&\n');
         }
 
         function tryFormatBody(content, headers) {
@@ -793,6 +840,9 @@
         window.toggleDrawer = function (idx) {
             var opening = openIdx !== idx;
             openIdx = opening ? idx : null;
+            try {
+                vscode.postMessage({ command: 'historyOpenIdx', idx: openIdx });
+            } catch (e) { /* ignore */ }
             // Pretty-print only when this row is opened (not for the whole list).
             if (opening) {
                 var item = history[idx];
@@ -833,14 +883,17 @@
 
         window.addEventListener('message', function (event) {
             const msg = event.data;
-            if (msg && msg.type === 'vscode:changeColorTheme') {
+            if (!msg) {
+                return;
+            }
+            if (msg.type === 'vscode:changeColorTheme') {
                 applyTokenColors(msg.tokenColors);
             }
             if (msg.command === 'refreshHistory') {
                 vscode.postMessage({ type: 'refreshHistory' });
             }
             if (msg.command === 'setHistory') {
-                window.history = msg.history;
+                history = msg.history || [];
                 renderHistory();
             }
         });

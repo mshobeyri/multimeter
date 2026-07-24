@@ -34,7 +34,8 @@ export const DEFAULT_LIGHT: MmtTokenColors = {
   keyword: '#0000ff',
   comment: '#008000',
   tag: '#800000',
-  attribute: '#ff0000',
+  // Light+ HTML attribute is #ff0000; use a softer navy so fallbacks don't dominate.
+  attribute: '#0451a5',
   punctuation: '#000000',
   foreground: '#000000',
 };
@@ -127,8 +128,13 @@ export function collectRules(themePath: string, depth = 0): {rules: ScopeRule[];
   return {rules, colors};
 }
 
+/**
+ * Prefer exact scope matches, then ancestor scopes (theme inheritance), then
+ * nearby child scopes. Deep children (e.g. punctuation.definition.*.regexp)
+ * are heavily penalized so a broad preferred scope like `punctuation.definition`
+ * does not steal regex/markdown colors for JSON/YAML body highlighters.
+ */
 export function findForeground(rules: ScopeRule[], preferredScopes: string[], fallback: string): string {
-  // Prefer exact scope match, then prefix match; later rules win (theme override order).
   let bestMatch: {score: number; color: string}|undefined;
   for (const preferred of preferredScopes) {
     for (let i = 0; i < rules.length; i++) {
@@ -136,18 +142,22 @@ export function findForeground(rules: ScopeRule[], preferredScopes: string[], fa
       for (const scope of rule.scopes) {
         let matchScore = -1;
         if (scope === preferred) {
-          matchScore = 1000 + preferred.length + i;
-        } else if (preferred.startsWith(scope + '.') || preferred.startsWith(scope)) {
-          matchScore = scope.length + i;
-        } else if (scope.startsWith(preferred + '.') || scope.startsWith(preferred)) {
-          matchScore = preferred.length + i;
+          // Exact match — later theme rules still win via +i.
+          matchScore = 100000 + preferred.length * 10 + i;
+        } else if (preferred.startsWith(scope + '.')) {
+          // Preferred is more specific than the rule (inherit from ancestor).
+          matchScore = 50000 + scope.length * 10 + i;
+        } else if (scope.startsWith(preferred + '.')) {
+          // Rule is a child of preferred — prefer shallower children.
+          const extraSegments = scope.slice(preferred.length + 1).split('.').length;
+          matchScore = 10000 + preferred.length * 10 - extraSegments * 100 + i;
         }
         if (matchScore >= 0 && (!bestMatch || matchScore >= bestMatch.score)) {
           bestMatch = {score: matchScore, color: rule.foreground};
         }
       }
     }
-    if (bestMatch && bestMatch.score >= 1000) {
+    if (bestMatch && bestMatch.score >= 100000) {
       break;
     }
   }
@@ -235,31 +245,52 @@ export function tokenColorsFromThemeFile(
           'entity.other.attribute-name',
         ],
         fallback.attribute),
+    // Prefer JSON/YAML delimiters; never use bare `punctuation.definition` —
+    // that matches regexp/markdown scopes (e.g. #d16969) and paints `=` / `&` red.
     punctuation: findForeground(
         rules,
         [
-          'punctuation.separator',
-          'punctuation.definition',
-          'meta.brace',
-          'punctuation',
+          'punctuation.separator.dictionary.key-value.json',
+          'punctuation.separator.comma.json',
+          'punctuation.definition.bracket.curly.json',
+          'punctuation.definition.bracket.square.json',
+          'punctuation.separator.key-value',
+          'punctuation.separator.dictionary.pair',
+          'meta.brace.square',
+          'meta.brace.round',
+          'meta.brace.curly',
         ],
         editorFg),
     foreground: editorFg,
   };
 }
 
-export function resolveActiveThemeTokenColors(preferredThemeId?: string): MmtTokenColors {
+export function resolveActiveThemeTokenColors(
+    preferredThemeId?: string, preferredThemeName?: string): MmtTokenColors {
   const kind = vscode.window.activeColorTheme.kind;
   const fallback = defaultsForKind(kind);
-  const themeId =
-      preferredThemeId ||
+  const configId =
       vscode.workspace.getConfiguration('workbench').get<string>('colorTheme') ||
       '';
-  const themePath = findThemePath(themeId);
-  if (!themePath) {
-    return fallback;
+  // Try webview-reported id/name first, then the committed workbench setting.
+  // A missing preferred id must NOT skip the config theme (that left history
+  // stuck on light/dark fallbacks while the UI chrome already switched).
+  const candidates = [preferredThemeId, preferredThemeName, configId]
+                         .map((v) => (typeof v === 'string' ? v.trim() : ''))
+                         .filter(Boolean);
+  const tried = new Set<string>();
+  for (const themeId of candidates) {
+    const key = themeId.toLowerCase();
+    if (tried.has(key)) {
+      continue;
+    }
+    tried.add(key);
+    const themePath = findThemePath(themeId);
+    if (themePath) {
+      return tokenColorsFromThemeFile(themePath, fallback);
+    }
   }
-  return tokenColorsFromThemeFile(themePath, fallback);
+  return fallback;
 }
 
 /** Monaco `rules` want hex without `#`. */
@@ -271,9 +302,11 @@ export function tokenColorsForMonaco(tokens: MmtTokenColors): Record<keyof MmtTo
   return out;
 }
 
-export function buildThemeTokenMessage(preferredThemeId?: string) {
+export function buildThemeTokenMessage(
+    preferredThemeId?: string, preferredThemeName?: string) {
   return {
     type: 'vscode:changeColorTheme' as const,
-    tokenColors: resolveActiveThemeTokenColors(preferredThemeId),
+    tokenColors:
+        resolveActiveThemeTokenColors(preferredThemeId, preferredThemeName),
   };
 }

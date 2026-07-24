@@ -299,7 +299,7 @@ button,
 }
 
 .highlighted-body-pre {
-  margin: 0;
+  margin: 0 0 0 12px;
   white-space: pre-wrap;
   word-break: break-word;
   font-family: var(--vscode-editor-font-family, monospace);
@@ -307,13 +307,24 @@ button,
   overflow: auto;
   padding: 8px 10px;
   border-radius: 4px;
-  border: none;
-  background: rgba(127, 127, 127, 0.14);
+  border: 1px solid var(--vscode-editorWidget-border, var(--vscode-widget-border, #555));
+  background: var(
+    --vscode-textCodeBlock-background,
+    color-mix(in srgb, var(--vscode-editor-background, #1e1e1e) 88%, var(--vscode-foreground, #ccc) 12%)
+  );
   color: var(--vscode-editor-foreground, #d4d4d4);
   line-height: 1.5;
 }
 
-/* Borderless key/value table for report/test step headers (history-style). */
+/* Borderless key/value table for report/test step headers (history-style).
+   Indent content only — keep HEADERS title flush with BODY / RESPONSE. */
+.report-headers-content {
+  margin-top: 2px;
+  max-height: 200px;
+  overflow: auto;
+  padding-left: 12px;
+}
+
 .report-headers-table {
   border-collapse: collapse;
   width: 100%;
@@ -1035,7 +1046,8 @@ button:focus {
 }
 
 
-/* Must beat global `select` / `select:focus` rules (padding, height, font). */
+/* Must beat global `select` / `select:focus` rules (padding, height, font).
+   Theme surfaces + per-method accent via --mmt-method-color. */
 select.method-select,
 select.method-select:focus,
 select.method-select:focus-visible {
@@ -1044,9 +1056,7 @@ select.method-select:focus-visible {
   min-height: 26px;
   height: 26px;
   padding: 0 4px;
-  border: none;
   border-radius: 4px;
-  color: #fff;
   font-size: var(--vscode-font-size, 13px);
   font-family: var(--vscode-font-family, inherit);
   font-weight: 600;
@@ -1059,11 +1069,37 @@ select.method-select:focus-visible {
   width: 84px;
   max-width: 84px;
   box-sizing: border-box;
-  line-height: 26px;
+  line-height: 24px;
   box-shadow: none;
   background-image: none;
-  transition: none;
+  transition: background-color 80ms ease, border-color 80ms ease;
   vertical-align: middle;
+  color: var(--mmt-method-color, var(--vscode-foreground, #ccc));
+  background-color: color-mix(
+    in srgb,
+    var(--mmt-method-color, #888) 20%,
+    var(--vscode-input-background, var(--vscode-sideBar-background, #3c3c3c))
+  );
+  border: 1px solid color-mix(
+    in srgb,
+    var(--mmt-method-color, #888) 55%,
+    var(--vscode-input-border, var(--vscode-widget-border, transparent))
+  );
+}
+
+select.method-select:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--mmt-method-color, #888) 30%,
+    var(--vscode-input-background, var(--vscode-sideBar-background, #3c3c3c))
+  );
+}
+
+select.method-select:focus,
+select.method-select:focus-visible {
+  border-color: var(--mmt-method-color, var(--vscode-focusBorder, #007fd4));
+  outline: 1px solid color-mix(in srgb, var(--mmt-method-color, #888) 40%, transparent);
+  outline-offset: 1px;
 }
 
 .method-select.method-badge {
