@@ -374,19 +374,19 @@ const TestFlowBox: React.FC<TestFlowBoxProps> = ({ data, onChange, onDuplicate, 
       ? { gap: 8, width: '100%' }
       : undefined;
 
+  // Fixed label column sized to the longest common step title ("assert")
+  // so the type stays visible when the expanded editor (e.g. http) takes width.
+  const typeLabelStyle: React.CSSProperties = {
+    paddingTop: '6px',
+    flex: '0 0 4em',
+    width: '4em',
+    minWidth: '4em',
+    whiteSpace: 'nowrap',
+  };
+
   return (
     <div className="test-flow-box-items" style={containerStyle}>
-      <span
-        style={{
-          paddingTop: '6px',
-          flex: '0 1 80px',
-          maxWidth: 80,
-          minWidth: 0,
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis'
-        }}
-      >
+      <span style={typeLabelStyle}>
         {type}
       </span>
       <div
