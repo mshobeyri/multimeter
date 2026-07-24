@@ -2,6 +2,15 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.30.1]
+
+- Fix Windows CRLF breaking YAML `expect` operators (`!=`, etc.) and markdown heading navigation
+- Fix urlencoded request bodies so `i:` / `${input}` tokens substitute in tests; keep `&` visible when pretty-printing history
+- Fix history panel theme sync so JSON/body highlight colors update with the VS Code theme
+- Align body highlight punctuation with theme delimiters (stop using regexp-red `=` / `&`)
+- Theme the method selector and body boxes; indent report header/body content without shifting their titles
+- Soften `<<i:…>>` token highlight and disable Monaco active-line chrome that showed as intermittent red bars
+
 ## [1.30.0]
 
 - Add `urlencoded` and `binary` request body formats (including file picker for binary)
