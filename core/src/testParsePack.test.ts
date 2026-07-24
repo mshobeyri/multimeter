@@ -390,6 +390,25 @@ steps:
     expect(doc.steps[0].expect.msg).toBe('!* /fail/');
     expect(doc.steps[0].debug.code).toBe('!= 500');
   });
+
+  it('keeps != through yamlToTest when the file uses CRLF (Windows)', () => {
+    const yaml = [
+      'type: test',
+      'title: POST and verify body',
+      'steps:',
+      '  - http: https://test.mmt.dev/echo',
+      '    title: Post echo',
+      '    method: post',
+      '    body:',
+      '      message: hello',
+      '    expect:',
+      '      status: != 200',
+      '      body.body.message: hello',
+    ].join('\r\n');
+    const t = yamlToTest(yaml);
+    expect((t as any).steps[0].expect.status).toBe('!= 200');
+    expect((t as any).steps[0].expect['body.body.message']).toBe('hello');
+  });
 });
 
 describe('yamlToTestStrict', () => {

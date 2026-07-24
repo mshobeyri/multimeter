@@ -1,4 +1,5 @@
 import { opsList } from './TestData';
+import { splitNormalizedLines } from './textLines';
 
 /**
  * Operators that need quoting in YAML because they start with a character that
@@ -28,7 +29,7 @@ const MAP_ENTRY_RE = /^([^:]+?:\s+)(.+)$/;
  * - `operator:` fields on check/assert object forms (e.g. `operator: !=`)
  */
 export function quoteExpectOperators(yaml: string): string {
-  const lines = yaml.split('\n');
+  const lines = splitNormalizedLines(yaml);
   let inExpect = false;
   let expectIndent = -1;
 
@@ -70,7 +71,7 @@ const QUOTED_SCALAR_RE = /^"((?:\\.|[^"\\])*)"$/;
  * quoted because unquoted block-scalar syntax breaks parsing.
  */
 export function emitUnquotedOperators(yaml: string): string {
-  const lines = yaml.split('\n');
+  const lines = splitNormalizedLines(yaml);
   let inExpect = false;
   let expectIndent = -1;
 
@@ -186,8 +187,8 @@ export function filterOperatorYamlErrors(content: string, errors: any[]): any[] 
   }
 
   const modifiedLines = new Set<number>();
-  const origLines = content.split('\n');
-  const quotedLines = quoted.split('\n');
+  const origLines = splitNormalizedLines(content);
+  const quotedLines = splitNormalizedLines(quoted);
   for (let i = 0; i < origLines.length; i++) {
     if (origLines[i] !== quotedLines[i]) {
       modifiedLines.add(i + 1);

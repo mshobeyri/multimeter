@@ -19,6 +19,23 @@ url: https://test.mmt.dev/echo
     );
   });
 
+  it('preserves multiline descriptions when the source uses CRLF', () => {
+    const input = [
+      'type: api',
+      'description: Send a JSON payload to an echo endpoint and verify that the server',
+      '  returns it back.',
+      'url: https://test.mmt.dev/echo',
+      '',
+    ].join('\r\n');
+    const doc = YAML.parseDocument(input);
+    preserveMultilineDescriptionScalars(doc.contents, input);
+    const parsed = doc.toJS();
+    expect(parsed.description).toBe(
+        'Send a JSON payload to an echo endpoint and verify that the server\nreturns it back.',
+    );
+    expect(parsed.description).not.toContain('\r');
+  });
+
   it('serializes multiline descriptions with a block literal indicator', () => {
     const obj = {
       type: 'api',

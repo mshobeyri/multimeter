@@ -1,6 +1,7 @@
 import {dataImportProcessor, markupConvertor, outputExtractor} from 'mmt-core';
 const {parseYaml} = markupConvertor;
 import {findProjectRootSync, isProjectRootImport} from 'mmt-core/fileHelper';
+import {splitNormalizedLines} from 'mmt-core/textLines';
 import {brunoToTest, isBrunoFilePath} from 'mmt-core/brunoParsePack';
 import {httpToTest, isHttpFilePath} from 'mmt-core/httpParsePack';
 import {generateJunitXml} from 'mmt-core/junitXml';
@@ -529,7 +530,7 @@ async function scrollToHeading(filePath: string, fragment: string) {
     const uri = vscode.Uri.file(filePath);
     const doc = await vscode.workspace.openTextDocument(uri);
     const text = doc.getText();
-    const lines = text.split('\n');
+    const lines = splitNormalizedLines(text);
     const slug = fragment.toLowerCase().replace(/^-/, '');
 
     for (let i = 0; i < lines.length; i++) {

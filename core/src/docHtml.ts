@@ -2,6 +2,7 @@ import { DOC_TEMPLATE_HTML } from './docTemplate';
 import { formatBody } from './markupConvertor';
 import { requestFormat } from './CommonData';
 import { resolveEnvTokenValues } from './variableReplacer';
+import { splitNormalizedLines } from './textLines';
 // Shared HTML renderer for documentation pages
 // Framework-free and safe to use in Node and browser contexts
 
@@ -55,7 +56,7 @@ export function resolveRefPath(refPath: string, basePath?: string): string {
  */
 export function extractMarkdownSection(content: string, fragment: string): string {
   if (!fragment) { return content; }
-  const lines = content.split('\n');
+  const lines = splitNormalizedLines(content);
   // GitHub-style slug: lowercase, strip non-alphanum except dashes/spaces, collapse
   const slugify = (text: string) =>
     text.toLowerCase().replace(/[^\w\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-');
@@ -110,7 +111,7 @@ function inlineMarkdownToHtml(text: string): string {
  */
 export function simpleMarkdownToHtml(md: string, headingTag = 'h4'): string {
   if (!md) { return ''; }
-  const lines = md.split('\n');
+  const lines = splitNormalizedLines(md);
   const result: string[] = [];
   let inUl = false;
   let inOl = false;

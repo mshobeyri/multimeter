@@ -337,6 +337,13 @@ describe('simpleMarkdownToHtml', () => {
     expect(html).toContain('More text');
   });
 
+  test('converts ## headings when markdown uses Windows CRLF endings', () => {
+    const html = simpleMarkdownToHtml('## Section\r\nSome text\r\n### Sub\r\nMore');
+    expect(html).toContain('<h3>Section</h3>');
+    expect(html).toContain('<h4>Sub</h4>');
+    expect(html).toContain('Some text');
+  });
+
   test('converts unordered list', () => {
     const html = simpleMarkdownToHtml('- item one\n- item two');
     expect(html).toContain('<ul>');
@@ -557,6 +564,22 @@ describe('resolveRefPath', () => {
   test('handles fragment with leading dash', () => {
     const result = extractMarkdownSection(md, '-why');
     expect(result).toContain('Because reasons.');
+  });
+
+  test('extracts section when markdown uses Windows CRLF endings', () => {
+    const crlf = [
+      '# Top',
+      'Intro text.',
+      '',
+      '## Why',
+      'Because reasons.',
+      '',
+      '## How',
+      'Steps to follow.',
+    ].join('\r\n');
+    const result = extractMarkdownSection(crlf, 'why');
+    expect(result).toContain('Because reasons.');
+    expect(result).not.toContain('Steps to follow.');
   });
 });
 
