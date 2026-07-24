@@ -291,14 +291,13 @@ Tweety,bird,14.99
 ### `tests/helpers/utils.js` — JS helper module
 
 ```js
-module.exports = {
-  formatPrice(amount) {
-    return `$${Number(amount).toFixed(2)}`;
-  },
-  isValidUUID(str) {
-    return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
-  }
-};
+function formatPrice(amount) {
+  return `$${Number(amount).toFixed(2)}`;
+}
+
+function isValidUUID(str) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+}
 ```
 
 ### `tests/login_test.mmt` — Basic login test

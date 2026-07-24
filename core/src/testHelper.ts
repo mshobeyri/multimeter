@@ -1,5 +1,6 @@
 import {normalizeOmitToNull, OMIT_KEYWORD, OMIT_SENTINEL, restoreOmitKeyword} from './omitKeyword';
 import {opsList} from './TestData';
+import {wrapJsHelperModuleSource} from './jsModuleExport';
 
 /**
  * Abort signal for cooperative test cancellation.
@@ -311,20 +312,15 @@ export const importJsModule_ = async(
   const moduleObj: {exports: any} = {exports: {}};
   const moduleId = options?.moduleId || path;
 
-  // Evaluate as CommonJS-like module.
-  // Note: This intentionally does not expose Node's require/process.
-    // Evaluate as CommonJS-like module.
-    // We keep exports in sync with module.exports even if reassigned.
-    const wrapped =
-      `"use strict";\n` +
-      `let exports = module.exports;\n` +
-      `${sourceText}\n` +
-      `return module.exports;\n`;
-    const fn = new Function('module', '__filename', '__dirname', wrapped);
-    const exported = fn(moduleObj, moduleId, '');
+  // Evaluate as CommonJS-like module. Top-level `function foo()` /
+  // `const foo = () => {}` bindings are auto-attached onto module.exports
+  // when not already exported (so helpers need not use module.exports).
+  const wrapped = wrapJsHelperModuleSource(sourceText);
+  const fn = new Function('module', '__filename', '__dirname', wrapped);
+  const exported = fn(moduleObj, moduleId, '');
 
-    // If the module reassigned module.exports, ensure our stored reference matches.
-    moduleObj.exports = exported;
+  // If the module reassigned module.exports, ensure our stored reference matches.
+  moduleObj.exports = exported;
 
   __mmtJsModuleCache.set(path, exported);
   return exported;

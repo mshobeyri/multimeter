@@ -69,18 +69,16 @@ steps:
 **JS helper modules**
 - Files ending in `.js`, `.cjs`, or `.mjs` are treated as JavaScript helper modules.
 - They are loaded via the runner's `fileLoader` and evaluated once per run, then cached.
-- Use CommonJS exports (recommended):
+- Write plain top-level functions (or `const`/`let`/`var` function bindings). Multimeter auto-exports them onto the import alias:
 
 ```js
 // xxx.js
-module.exports = {
-  add(a, b) {
-    return a + b;
-  }
-};
-```
+function add(a, b) {
+  return a + b;
+}
 
-Then in your test steps:
+const double = (x) => x * 2;
+```
 
 ```yaml
 type: test
@@ -89,8 +87,20 @@ import:
 steps:
   - js: |
       const sum = helpers.add(1, 2)
-      console.log('sum', sum)
+      console.log('sum', sum, helpers.double(sum))
 ```
+
+- You can still use CommonJS explicitly when you need a custom export shape:
+
+```js
+module.exports = {
+  add(a, b) {
+    return a + b;
+  }
+};
+```
+
+See `examples/intermediate/14_javascript_helpers` and `examples/professional/09_javascript_helpers`.
 
 **Path resolution:**
 - **Relative paths** (e.g., `./login.mmt`, `../apis/users.mmt`) resolve relative to the current file's directory.

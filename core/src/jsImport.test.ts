@@ -53,6 +53,49 @@ steps:
     expect(logs.join('\n')).not.toContain('Error running test');
   });
 
+  test('auto-exports top-level functions without module.exports', async () => {
+    const rawText = `type: test
+import:
+  helpers: /proj/plain-helpers.js
+steps:
+  - js: |
+      const out = helpers.add(2, 3);
+      const d = helpers.double(4);
+      if (out !== 5 || d !== 8) { throw new Error('bad math'); }
+`;
+
+    const helperSrc = `
+function add(a, b) { return a + b; }
+const double = (x) => x * 2;
+`;
+
+    const js = await generateTestJs({
+      rawText,
+      name: 't',
+      inputs: {},
+      envVars: {},
+      filePath: '/proj/test.mmt',
+      projectRoot: '/proj',
+      fileLoader: createLoader({
+        '/proj/plain-helpers.js': helperSrc,
+      }),
+    } as any);
+
+    const logs: string[] = [];
+    await runJSCode({
+      runId: 'run',
+      js,
+      title: 't',
+      fileLoader: createLoader({
+        '/proj/plain-helpers.js': helperSrc,
+      }),
+      logger: (_level, msg) => {
+        logs.push(String(msg));
+      },
+    });
+    expect(logs.join('\n')).not.toContain('Error running test');
+  });
+
   test('caches imported module by resolved path', async () => {
     const rawText = `type: test
 import:
