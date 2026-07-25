@@ -8,6 +8,8 @@ import UnsavedChangesWarning from "./UnsavedChangesWarning";
 import { APIData, ExampleData } from "mmt-core/APIData";
 import { Request } from "mmt-core/NetworkData";
 import { protocolResolver } from "mmt-core";
+import { requestFormat } from "mmt-core/CommonData";
+import { packBodyForYamlCompare } from "mmt-core/markupConvertor";
 import { safeList, safeListCopy } from "mmt-core/safer";
 import { useResolvedYamlContent } from "../useResolvedYamlContent";
 import { showYamlUiConflictDialog } from "../vsAPI";
@@ -97,16 +99,24 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
 
   // Build the API as it would look with the user's tester overrides applied.
   // Only fields explicitly touched by the user become overrides.
+  const uiFieldValue = useCallback((field: string): unknown => {
+    const raw = (testRequestData as Record<string, unknown> | undefined)?.[field];
+    if (field !== "body") {
+      return raw;
+    }
+    return packBodyForYamlCompare(api.body, raw, requestFormat(api.format));
+  }, [api.body, api.format, testRequestData]);
+
   const modifiedApi = useMemo<APIData>(() => {
     if (!testRequestData || testTouchedFields.size === 0) {
       return api;
     }
     const overrides: Record<string, unknown> = {};
     testTouchedFields.forEach((field) => {
-      overrides[field as string] = (testRequestData as Record<string, unknown>)[field as string];
+      overrides[field as string] = uiFieldValue(field as string);
     });
     return { ...api, ...overrides } as APIData;
-  }, [api, testRequestData, testTouchedFields]);
+  }, [api, testRequestData, testTouchedFields, uiFieldValue]);
 
   const savedModifiedApi = useMemo<APIData>(() => {
     const effectiveProtocol = protocolResolver.getEffectiveProtocol(modifiedApi.protocol, modifiedApi.url);
@@ -124,14 +134,14 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     testTouchedFields.forEach((field) => {
       if (modified) { return; }
       const fieldKey = field as string;
-      const reqVal = (testRequestData as Record<string, unknown>)[fieldKey];
+      const reqVal = uiFieldValue(fieldKey);
       const apiVal = (api as unknown as Record<string, unknown>)[fieldKey];
       if (JSON.stringify(reqVal) !== JSON.stringify(apiVal)) {
         modified = true;
       }
     });
     return modified;
-  }, [api, testRequestData, testTouchedFields]);
+  }, [api, testRequestData, testTouchedFields, uiFieldValue]);
 
   const isTestModified = page === "test" && hasUiOverrides;
 
@@ -147,14 +157,14 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     const labels: string[] = [];
     testTouchedFields.forEach((field) => {
       const fieldKey = field as string;
-      const reqVal = (testRequestData as Record<string, unknown>)[fieldKey];
+      const reqVal = uiFieldValue(fieldKey);
       const apiVal = (api as unknown as Record<string, unknown>)[fieldKey];
       if (JSON.stringify(reqVal) !== JSON.stringify(apiVal)) {
         labels.push(REQUEST_FIELD_LABELS[field] || fieldKey);
       }
     });
     return labels.join(", ");
-  }, [api, testRequestData, testTouchedFields]);
+  }, [api, testRequestData, testTouchedFields, uiFieldValue]);
 
   const modifiedFieldsLabelRef = useRef(modifiedFieldsLabel);
   const modifiedYamlRef = useRef(modifiedYaml);

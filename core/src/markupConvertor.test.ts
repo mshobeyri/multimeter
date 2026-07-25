@@ -1,4 +1,4 @@
-import {beautify, beautifyWithContentType, contentTypeForFormat, formatBody, formattedBodyToYamlObject, packYaml} from './markupConvertor';
+import {beautify, beautifyWithContentType, contentTypeForFormat, formatBody, formattedBodyToYamlObject, packBodyForYamlCompare, packYaml} from './markupConvertor';
 import {apiToYaml} from './apiParsePack';
 
 describe('markupConvertor XML formats', () => {
@@ -173,5 +173,29 @@ describe('markupConvertor Windows CRLF bodies', () => {
 
   it('formatBody normalizes CRLF before formatting text', () => {
     expect(formatBody('text', 'a\r\nb\rc', false)).toBe('a\nb\nc');
+  });
+});
+
+describe('packBodyForYamlCompare', () => {
+  it('keeps UI body when YAML body is already text', () => {
+    expect(packBodyForYamlCompare('raw text', '<a>1</a>', 'xml')).toBe('<a>1</a>');
+  });
+
+  it('packs UI text to object when YAML body is structured', () => {
+    const yamlBody = {token: 'i:token'};
+    const uiXml = formatBody('xml', {token: 'placeholder'}, true);
+    const packed = packBodyForYamlCompare(yamlBody, uiXml, 'xml');
+    expect(packed).toEqual({token: 'placeholder'});
+  });
+
+  it('falls back to UI text when packing fails', () => {
+    const yamlBody = {token: 'i:token'};
+    expect(packBodyForYamlCompare(yamlBody, '<<<not-xml', 'xml')).toBe('<<<not-xml');
+  });
+
+  it('passes through non-string UI bodies unchanged', () => {
+    const yamlBody = {a: 1};
+    const uiBody = {a: 2};
+    expect(packBodyForYamlCompare(yamlBody, uiBody, 'json')).toEqual({a: 2});
   });
 });

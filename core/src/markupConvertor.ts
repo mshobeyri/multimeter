@@ -303,6 +303,29 @@ function formattedBodyToYamlObject(
   }
 }
 
+/**
+ * Align UI body with YAML for diffs / write-back.
+ * If the YAML-side body is structured (not plain text), pack the UI string
+ * via {@link formattedBodyToYamlObject}. On pack failure, keep the UI text.
+ */
+function packBodyForYamlCompare(
+    yamlBody: unknown,
+    uiBody: unknown,
+    format: Format,
+): unknown {
+  if (yamlBody == null || typeof yamlBody === 'string') {
+    return uiBody;
+  }
+  if (typeof uiBody !== 'string') {
+    return uiBody;
+  }
+  const packed = formattedBodyToYamlObject(format, uiBody);
+  if (packed === null || packed === undefined) {
+    return uiBody;
+  }
+  return packed;
+}
+
 function beautify(format: Format, value: string): string {
   try {
     if (format === 'json') {
@@ -347,6 +370,7 @@ export {
   contentTypeForFormat,
   flattenXmlObj,
   formattedBodyToYamlObject,
+  packBodyForYamlCompare,
   beautify,
   beautifyWithContentType
 };
