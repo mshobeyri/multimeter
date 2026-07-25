@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { harmonizeAccent, methodProtocolAccent } from "../shared/themeAccent";
 
 // APIData type should match what yamlToAPI returns
 interface APIData {
@@ -19,17 +20,6 @@ interface DocElementsDrawerProps {
   docTitle?: string;
   docDescription?: string;
 }
-
-// Helper for method color
-const methodColor: Record<string, string> = {
-  get: "#61affe",
-  post: "#49cc90",
-  put: "#fca130",
-  delete: "#f93e3e",
-  patch: "#50e3c2",
-  head: "#9012fe",
-  options: "#0d5aa7",
-};
 
 function groupByTag(apis: APIData[]) {
   const groups: Record<string, APIData[]> = {};
@@ -72,7 +62,18 @@ const DocElementsDrawer: React.FC<DocElementsDrawerProps> = ({ apis, docTitle, d
                   >
                     <span
                       className="doc-elements-method-badge"
-                      style={{ background: methodColor[(typeof api.method === 'string' ? api.method : 'get').toLowerCase()] || "#888" }}
+                      style={(() => {
+                        const chrome = harmonizeAccent(
+                          methodProtocolAccent(
+                            typeof api.method === 'string' ? api.method : 'get',
+                          ),
+                        );
+                        return {
+                          background: chrome.softFill,
+                          color: chrome.text,
+                          border: `1px solid ${chrome.border}`,
+                        };
+                      })()}
                     >
                       {proto || "GET"}
                     </span>

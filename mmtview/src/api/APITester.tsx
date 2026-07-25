@@ -19,6 +19,11 @@ import { useAPITesterLogic } from "./useAPITesterLogic";
 import { displayResponseBody } from "./responseBodyDisplay";
 import { protocolResolver } from "mmt-core";
 import MdViewer from "../components/MdViewer";
+import {
+  accentChromeCssVars,
+  harmonizeAccent,
+  methodProtocolAccent,
+} from "../shared/themeAccent";
 
 interface APITestProps {
   api: APIData;
@@ -72,21 +77,6 @@ function outputValuesMatch(actual: unknown, expected: unknown): boolean {
   }
   return String(actual) === String(expected);
 }
-
-const methodColor: Record<string, string> = {
-  get: "#61affe",
-  post: "#49cc90",
-  put: "#fca130",
-  delete: "#f93e3e",
-  patch: "#50e3c2",
-  head: "#9012fe",
-  options: "#0d5aa7",
-  trace: "#888",
-  ws: "#9b59b6",
-  graphql: "#e535ab",
-  grpc: "#244c5a",
-  http: "#61affe",
-};
 
 const HTTP_METHODS: Method[] = ["get", "post", "put", "delete", "patch", "head", "options", "trace"];
 const OTHER_PROTOCOLS: Protocol[] = ["ws", "graphql", "grpc"];
@@ -158,11 +148,23 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
   const methodOrProtocolValue = (effectiveProtocol === "ws" || effectiveProtocol === "graphql" || effectiveProtocol === "grpc")
     ? `protocol:${effectiveProtocol}`
     : `method:${(requestData?.method || api.method || "get").toLowerCase()}`;
-  const methodOrProtocolColor = methodColor[
-    methodOrProtocolValue.startsWith("protocol:")
-      ? methodOrProtocolValue.slice("protocol:".length)
-      : methodOrProtocolValue.slice("method:".length)
-  ] || "#888";
+  const methodOrProtocolKey = methodOrProtocolValue.startsWith("protocol:")
+    ? methodOrProtocolValue.slice("protocol:".length)
+    : methodOrProtocolValue.slice("method:".length);
+  const methodOrProtocolAccent = methodProtocolAccent(methodOrProtocolKey);
+  const [themeTick, setThemeTick] = useState(0);
+  useEffect(() => {
+    const onTheme = () => setThemeTick((n) => n + 1);
+    window.addEventListener("vscode:changeColorTheme", onTheme as EventListener);
+    return () => window.removeEventListener("vscode:changeColorTheme", onTheme as EventListener);
+  }, []);
+  const methodChrome = useMemo(
+    () => harmonizeAccent(methodOrProtocolAccent),
+    // themeTick forces recompute when VS Code theme CSS vars change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [methodOrProtocolAccent, themeTick],
+  );
+  const methodChromeVars = accentChromeCssVars(methodChrome);
 
   const canRunCurl = requestProtocol !== "graphql" && requestProtocol !== "grpc" &&
     !isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url);
@@ -337,7 +339,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
           value={methodOrProtocolValue}
           onChange={e => handleMethodOrProtocolChange(e.target.value)}
           title="HTTP method or protocol (temporary override)"
-          style={{ ['--mmt-method-color' as any]: methodOrProtocolColor }}
+          style={methodChromeVars as React.CSSProperties}
         >
           {HTTP_METHODS.map(m => (
             <option key={m} value={`method:${m}`}>{m.toUpperCase()}</option>
@@ -573,6 +575,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onModificationChang
             />
           )}
           <SendButton
+            accent={methodOrProtocolAccent}
             onClick={handleSend}
             onCancel={handleCancel}
             disabled={isDisplayedUrlWebSocket(requestData?.protocol || undefined, requestData?.url) && !network.connected}

@@ -1,7 +1,7 @@
 import React from "react";
 import { MockData, MockEndpoint } from "mmt-core/MockData";
 import { parseYamlDoc } from "mmt-core/markupConvertor";
-import MockEndpointBox, { METHOD_COLORS } from "./MockEndpointBox";
+import MockEndpointBox, { methodTextColor } from "./MockEndpointBox";
 import { ControlledTreeEnvironment, Tree, DraggingPosition, DraggingPositionBetweenItems } from 'react-complex-tree';
 import { canonicalizeMockYaml } from "./mockYaml";
 
@@ -326,7 +326,7 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
                 style={{ width: '100%', justifyContent: 'flex-start', display: 'flex', alignItems: 'center', gap: 8 }}
                 onPointerUp={() => { setAddMenuOpen(false); addEndpoint(m); }}
               >
-                <span className={`codicon ${methodIconFor(m)}`} style={{ fontSize: 14, opacity: 0.85, color: METHOD_COLORS[m] || 'inherit' }} aria-hidden />
+                <span className={`codicon ${methodIconFor(m)}`} style={{ fontSize: 14, opacity: 0.85, color: methodTextColor(m) }} aria-hidden />
                 <span style={{ fontWeight: 600 }}>{m.toUpperCase()}</span>
               </button>
             ))}
@@ -364,7 +364,7 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
               style={{ display: 'inline-flex', alignSelf: 'center', width: 16, justifyContent: 'center' }}
               aria-hidden
             >
-              <span className={`codicon ${ico}`} style={{ fontSize: 14, opacity: 0.8, color: METHOD_COLORS[method] || 'inherit' }} />
+              <span className={`codicon ${ico}`} style={{ fontSize: 14, opacity: 0.8, color: methodTextColor(method) }} />
             </span>
           );
         }}

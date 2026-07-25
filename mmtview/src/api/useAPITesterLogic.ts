@@ -324,8 +324,8 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
       sendPendingRef.current = true;
       const protocol = protocolResolver.getEffectiveProtocol(
         requestData?.protocol as any, requestData?.url) || "http";
-      const methodRaw = requestData?.method || "get";
-      const method = typeof methodRaw === "string" ? methodRaw.toLowerCase() : "get";
+      const methodRaw = requestData?.method || apiRef.current?.method || "get";
+      const method = typeof methodRaw === "string" ? methodRaw.trim().toLowerCase() : "get";
       const url = requestData?.url ?? "";
       pushHistory({
         type: "send",
@@ -462,8 +462,8 @@ export function useAPITesterLogic({ api, onUpdateApi, filePath }: UseAPITesterLo
 
         if (fromSend) {
           const req = requestDataRef.current;
-          const methodRaw = req?.method || "get";
-          const method = typeof methodRaw === "string" ? methodRaw.toLowerCase() : "get";
+          const methodRaw = req?.method || apiRef.current?.method || "get";
+          const method = typeof methodRaw === "string" ? methodRaw.trim().toLowerCase() : "get";
           const url = req?.url ?? "";
           const protocol = protocolResolver.getEffectiveProtocol(
             req?.protocol as any, req?.url) || "http";

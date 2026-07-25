@@ -7,6 +7,7 @@ import MockOverview from "./MockOverview";
 import MockEndpoints from "./MockEndpoints";
 import MockServerSettings from "./MockServerSettings";
 import { canonicalizeMockYaml } from "./mockYaml";
+import { methodTextColor } from "../shared/themeAccent";
 
 interface MockPanelProps {
   content: string;
@@ -194,7 +195,7 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
                   <div className="label">Endpoints ({endpointCount})</div>
                   {(Array.isArray(mockData.endpoints) ? mockData.endpoints : []).filter((ep): ep is MockEndpoint => ep != null && typeof ep === "object").map((endpoint, idx) => {
                     const method = String(typeof endpoint.method === "string" ? endpoint.method : "ANY").toUpperCase();
-                    const color = METHOD_COLORS[method.toLowerCase()] || "var(--vscode-descriptionForeground)";
+                    const color = methodTextColor(method);
                     return (
                       <div key={idx} className="mock-ep-row">
                         <span className="mock-ep-icon" aria-hidden>
@@ -319,11 +320,6 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
 };
 
 /* ─── Helpers ─── */
-
-const METHOD_COLORS: Record<string, string> = {
-  get: "#61affe", post: "#49cc90", put: "#fca130", patch: "#e5c07b",
-  delete: "#f93e3e", head: "#9012fe", options: "#0d5aa7",
-};
 
 function methodIconFor(method: string): string {
   switch (method.toLowerCase()) {

@@ -200,7 +200,7 @@ button,
   padding: 2px 8px;
   font-size: 11px;
   cursor: pointer;
-  color: var(--vscode-button-foreground, #ffffff);
+  color: var(--vscode-foreground, #d4d4d4);
   background-color: transparent;
 }
 
@@ -457,11 +457,11 @@ textarea:disabled {
   border-color: var(--vscode-input-border, #3c3c3c);
 }
 
-/* Button styles */
+/* Button styles — match VS Code primary button tokens */
 button {
   background-color: var(--vscode-button-background, #0e639c);
   color: var(--vscode-button-foreground, #ffffff);
-  border: 1px solid var(--vscode-button-border, #3c3c3c);
+  border: 1px solid var(--vscode-button-border, transparent);
   border-radius: 2px;
   padding: 4px 12px;
   font-size: var(--vscode-font-size, 13px);
@@ -475,7 +475,7 @@ button {
 button:hover,
 button:focus {
   background-color: var(--vscode-button-hoverBackground, #1177bb);
-  border-color: var(--vscode-focusBorder, #007fd4);
+  border-color: var(--vscode-button-border, transparent);
 }
 
 /* Action button styles */
@@ -1047,7 +1047,8 @@ button:focus {
 
 
 /* Must beat global `select` / `select:focus` rules (padding, height, font).
-   Theme surfaces + per-method accent via --mmt-method-color. */
+   Method select: theme foreground + 1px border (same as inputs);
+   softFill and border both merge the method accent into theme surfaces. */
 select.method-select,
 select.method-select:focus,
 select.method-select:focus-visible {
@@ -1056,7 +1057,7 @@ select.method-select:focus-visible {
   min-height: 26px;
   height: 26px;
   padding: 0 4px;
-  border-radius: 4px;
+  border-radius: 2px;
   font-size: var(--vscode-font-size, 13px);
   font-family: var(--vscode-font-family, inherit);
   font-weight: 600;
@@ -1072,34 +1073,47 @@ select.method-select:focus-visible {
   line-height: 24px;
   box-shadow: none;
   background-image: none;
-  transition: background-color 80ms ease, border-color 80ms ease;
+  transition: background-color 80ms ease, border-color 80ms ease, color 80ms ease;
   vertical-align: middle;
-  color: var(--mmt-method-color, var(--vscode-foreground, #ccc));
-  background-color: color-mix(
-    in srgb,
-    var(--mmt-method-color, #888) 20%,
-    var(--vscode-input-background, var(--vscode-sideBar-background, #3c3c3c))
+  /* Always match theme UI text — not accent-tinted, not button-foreground. */
+  color: var(--vscode-foreground, #ccc);
+  background-color: var(
+    --mmt-accent-soft-fill,
+    color-mix(
+      in oklab,
+      var(--mmt-accent, #888) 32%,
+      var(--vscode-input-background, var(--vscode-sideBar-background, #3c3c3c))
+    )
   );
-  border: 1px solid color-mix(
-    in srgb,
-    var(--mmt-method-color, #888) 55%,
-    var(--vscode-input-border, var(--vscode-widget-border, transparent))
+  /* Same 1px edge as VS Code inputs; color is accent merged into theme border. */
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(
+    --mmt-accent-border,
+    color-mix(
+      in oklab,
+      var(--mmt-accent, #888) 70%,
+      var(--vscode-input-border, var(--vscode-editor-foreground, #ccc))
+    )
   );
 }
 
 select.method-select:hover {
-  background-color: color-mix(
-    in srgb,
-    var(--mmt-method-color, #888) 30%,
-    var(--vscode-input-background, var(--vscode-sideBar-background, #3c3c3c))
+  background-color: var(
+    --mmt-accent-soft-fill,
+    color-mix(
+      in oklab,
+      var(--mmt-accent, #888) 32%,
+      var(--vscode-input-background, #3c3c3c)
+    )
   );
+  border-color: var(--mmt-accent-border);
 }
 
 select.method-select:focus,
 select.method-select:focus-visible {
-  border-color: var(--mmt-method-color, var(--vscode-focusBorder, #007fd4));
-  outline: 1px solid color-mix(in srgb, var(--mmt-method-color, #888) 40%, transparent);
-  outline-offset: 1px;
+  border-color: var(--mmt-accent-border, var(--vscode-focusBorder, #007fd4));
+  outline: none;
 }
 
 .method-select.method-badge {
@@ -1327,7 +1341,7 @@ select.method-select:focus-visible {
   opacity: 1;
   background: var(--vscode-button-background, #0e639c);
   color: var(--vscode-button-foreground, #ffffff);
-  border: 1px solid var(--vscode-button-border, #3c3c3c);
+  border: 1px solid var(--vscode-button-border, transparent);
   border-radius: 2;
   font-size: var(--vscode-font-size, 13px);
   font-family: var(--vscode-font-family, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);

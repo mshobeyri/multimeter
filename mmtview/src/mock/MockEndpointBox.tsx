@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 import { MockEndpoint } from "mmt-core/MockData";
 import KSVEditor from "../components/KSVEditor";
+import { METHOD_PROTOCOL_COLORS, methodTextColor as sharedMethodTextColor } from '../shared/themeAccent';
 
 interface MockEndpointBoxProps {
   endpoint: MockEndpoint;
@@ -31,9 +32,19 @@ function getFormatLabel(format: string): string {
 }
 
 export const METHOD_COLORS: Record<string, string> = {
-  get: "#61affe", post: "#49cc90", put: "#fca130", patch: "#e5c07b",
-  delete: "#f93e3e", head: "#9012fe", options: "#0d5aa7",
+  get: METHOD_PROTOCOL_COLORS.get,
+  post: METHOD_PROTOCOL_COLORS.post,
+  put: METHOD_PROTOCOL_COLORS.put,
+  patch: METHOD_PROTOCOL_COLORS.patch,
+  delete: METHOD_PROTOCOL_COLORS.delete,
+  head: METHOD_PROTOCOL_COLORS.head,
+  options: METHOD_PROTOCOL_COLORS.options,
 };
+
+/** Theme-harmonized text color for method labels/icons. */
+export function methodTextColor(method: string): string {
+  return sharedMethodTextColor(method);
+}
 
 const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
   endpoint, onChange, onDuplicate, onRemove, showExpand, expanded, onToggleExpand, variant = 'endpoint',
@@ -201,7 +212,7 @@ const MockEndpointBox: React.FC<MockEndpointBoxProps> = ({
   /* ─── Collapsed summary row ─── */
   const summary = (
     <div className="test-flow-box-items" style={{ alignItems: 'center' }}>
-      <span style={{ flex: `0 1 ${isFallback ? 76 : 60}px`, maxWidth: isFallback ? 76 : 60, minWidth: 0, fontWeight: 700, fontSize: 12, color: isFallback ? 'var(--vscode-descriptionForeground)' : METHOD_COLORS[method] || 'inherit' }}>
+      <span style={{ flex: `0 1 ${isFallback ? 76 : 60}px`, maxWidth: isFallback ? 76 : 60, minWidth: 0, fontWeight: 700, fontSize: 12, color: isFallback ? 'var(--vscode-descriptionForeground)' : methodTextColor(method) }}>
         {summaryLabel}
       </span>
       <div style={{ flex: '1 1 auto', minWidth: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', gap: 6 }}>

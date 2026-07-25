@@ -35,7 +35,7 @@ const ExportReportButton: React.FC<ExportReportButtonProps> = ({ disabled, onExp
           pointerEvents: 'none',
           background: 'var(--vscode-button-background, #0e639c)',
           color: 'var(--vscode-button-foreground, #ffffff)',
-          border: '1px solid var(--vscode-button-border, #3c3c3c)',
+          border: '1px solid var(--vscode-button-border, transparent)',
           borderRadius: 2,
           fontSize: 'var(--vscode-font-size, 13px)',
           fontFamily: 'var(--vscode-font-family, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif)',
