@@ -6,11 +6,22 @@ import DocOverview from './DocOverview';
 import DocSource from './DocSource';
 import DocViewHTML from './DocViewHTML';
 import DocViewMarkdown from './DocViewMarkdown';
+import TabBar from '../components/TabBar';
 
 
 const LAST_DOC_TAB_KEY = "mmtview:doc:lastTab";
 const LAST_DOC_PAGE_KEY = "mmtview:doc:lastPage";
 const LAST_DOC_VIEW_TAB_KEY = "mmtview:doc:lastViewTab";
+
+const DOC_VIEW_TABS = [
+  { id: "html" as const, label: "HTML", icon: "code" },
+  { id: "md" as const, label: "Markdown", icon: "markdown" },
+];
+
+const DOC_EDIT_TABS = [
+  { id: "overview" as const, label: "Overview", icon: "search" },
+  { id: "source" as const, label: "Source", icon: "folder-opened" },
+];
 
 
 interface DocProps {
@@ -60,8 +71,6 @@ const Doc: React.FC<DocProps> = ({ content, setContent }) => {
       return (saved === "overview" || saved === "source") ? saved : "overview";
     }
   );
-  const [showIconsOnly, setShowIconsOnly] = useState(false);
-  const tabContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     localStorage.setItem(LAST_DOC_PAGE_KEY, page);
@@ -74,28 +83,6 @@ const Doc: React.FC<DocProps> = ({ content, setContent }) => {
   useEffect(() => {
     localStorage.setItem(LAST_DOC_TAB_KEY, tab);
   }, [tab]);
-
-  useEffect(() => {
-    const checkTabWidth = () => {
-      if (!tabContainerRef.current) { return; }
-
-      const container = tabContainerRef.current;
-      const containerWidth = container.clientWidth;
-
-      const fullTextWidth = 3 * 100;
-
-      setShowIconsOnly(containerWidth < fullTextWidth);
-    };
-
-    checkTabWidth();
-
-    const resizeObserver = new ResizeObserver(checkTabWidth);
-    if (tabContainerRef.current) {
-      resizeObserver.observe(tabContainerRef.current);
-    }
-
-    return () => resizeObserver.disconnect();
-  }, []);
 
   const update = (patch: Partial<DocData>) => {
     setDoc(prev => ({ ...prev, ...patch }));
@@ -113,25 +100,13 @@ const Doc: React.FC<DocProps> = ({ content, setContent }) => {
             <div className="api-swipe-page api-swipe-page--test">
               <div style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                 <div className="api-edit-header">
-                  <div className="tab-bar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex' }}>
-                      <button
-                        onClick={() => setViewTab("html")}
-                        className={`tab-button ${viewTab === "html" ? "active" : ""}`}
-                        type="button"
-                      >
-                        <span className="codicon codicon-code tab-button-icon"></span>
-                        HTML
-                      </button>
-                      <button
-                        onClick={() => setViewTab("md")}
-                        className={`tab-button ${viewTab === "md" ? "active" : ""}`}
-                        type="button"
-                      >
-                        <span className="codicon codicon-markdown tab-button-icon"></span>
-                        Markdown
-                      </button>
-                    </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <TabBar
+                      tabs={DOC_VIEW_TABS}
+                      value={viewTab}
+                      onChange={setViewTab}
+                      collapseLabels={false}
+                    />
                     <button
                       className="action-button api-edit-launcher"
                       onClick={() => setPage('edit')}
@@ -164,26 +139,7 @@ const Doc: React.FC<DocProps> = ({ content, setContent }) => {
                   </button>
                   <div className="api-edit-title">Edit Doc</div>
                 </div>
-                <div ref={tabContainerRef} className="tab-bar">
-                  <button
-                    onClick={() => setTab("overview")}
-                    className={`tab-button ${tab === "overview" ? "active" : ""}`}
-                    title={showIconsOnly ? "Overview" : undefined}
-                    type="button"
-                  >
-                    <span className="codicon codicon-search tab-button-icon"></span>
-                    {!showIconsOnly && "Overview"}
-                  </button>
-                  <button
-                    onClick={() => setTab("source")}
-                    className={`tab-button ${tab === "source" ? "active" : ""}`}
-                    title={showIconsOnly ? "Source" : undefined}
-                    type="button"
-                  >
-                    <span className="codicon codicon-folder-opened tab-button-icon"></span>
-                    {!showIconsOnly && "Source"}
-                  </button>
-                </div>
+                <TabBar tabs={DOC_EDIT_TABS} value={tab} onChange={setTab} />
               </div>
 
               <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>

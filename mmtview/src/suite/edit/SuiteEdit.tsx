@@ -8,8 +8,17 @@ import FileOverview from '../../shared/FileOverview';
 import FilePickerInput from '../../components/FilePickerInput';
 import KSVEditor from '../../components/KSVEditor';
 import { FileContext } from '../../fileContext';
+import TabBar from '../../components/TabBar';
 
 type SuiteEditTab = 'overview' | 'items' | 'servers' | 'environment' | 'exports';
+
+const SUITE_EDIT_TABS = [
+  { id: 'overview' as const, label: 'Overview', icon: 'note' },
+  { id: 'items' as const, label: 'Items', icon: 'beaker' },
+  { id: 'servers' as const, label: 'Servers', icon: 'server-environment' },
+  { id: 'environment' as const, label: 'Environment', icon: 'symbol-namespace' },
+  { id: 'exports' as const, label: 'Exports', icon: 'export' },
+];
 
 interface SuiteEnvironmentConfig {
   preset?: string;
@@ -735,53 +744,12 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
 
   return (
     <div style={{ overflow: 'hidden', flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-      <div className="tab-bar" style={{ flexShrink: 0 }}>
-        <button
-          className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`}
-          onClick={() => setActiveTab('overview')}
-          title="Overview"
-          type="button"
-        >
-          <span className="codicon codicon-note tab-button-icon" aria-hidden />
-          Overview
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'items' ? 'active' : ''}`}
-          onClick={() => setActiveTab('items')}
-          title="Items"
-          type="button"
-        >
-          <span className="codicon codicon-beaker tab-button-icon" aria-hidden />
-          Items
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'servers' ? 'active' : ''}`}
-          onClick={() => setActiveTab('servers')}
-          title="Servers"
-          type="button"
-        >
-          <span className="codicon codicon-server-environment tab-button-icon" aria-hidden />
-          Servers
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'environment' ? 'active' : ''}`}
-          onClick={() => setActiveTab('environment')}
-          title="Environment"
-          type="button"
-        >
-          <span className="codicon codicon-symbol-namespace tab-button-icon" aria-hidden />
-          Environment
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'exports' ? 'active' : ''}`}
-          onClick={() => setActiveTab('exports')}
-          title="Exports"
-          type="button"
-        >
-          <span className="codicon codicon-export tab-button-icon" aria-hidden />
-          Exports
-        </button>
-      </div>
+      <TabBar
+        tabs={SUITE_EDIT_TABS}
+        value={activeTab}
+        onChange={setActiveTab}
+        style={{ flexShrink: 0 }}
+      />
       <div className="test-flow-tree" style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
         {activeTab === 'overview' && overviewTabContent}
         {activeTab === 'items' && testsTabContent}

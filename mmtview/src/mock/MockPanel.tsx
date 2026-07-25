@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import { MockData, MockEndpoint } from "mmt-core/MockData";
 import { resolveEnvTokenValues } from "mmt-core/variableReplacer";
 import { parseYaml, parseYamlDoc } from "mmt-core/markupConvertor";
@@ -8,6 +8,7 @@ import MockEndpoints from "./MockEndpoints";
 import MockServerSettings from "./MockServerSettings";
 import { canonicalizeMockYaml } from "./mockYaml";
 import { methodTextColor } from "../shared/themeAccent";
+import TabBar from "../components/TabBar";
 
 interface MockPanelProps {
   content: string;
@@ -16,6 +17,12 @@ interface MockPanelProps {
 
 const LAST_MOCK_PAGE_KEY = "mmtview:mock:lastPage";
 const LAST_MOCK_TAB_KEY = "mmtview:mock:lastTab";
+
+const MOCK_EDIT_TABS = [
+  { id: "overview" as const, label: "Overview", icon: "search" },
+  { id: "server" as const, label: "Server", icon: "server-environment" },
+  { id: "endpoints" as const, label: "Endpoints", icon: "list-tree" },
+];
 
 const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
   const [mockData, setMockData] = useState<MockData | null>(null);
@@ -29,23 +36,10 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
       return savedTab === 'server' || savedTab === 'endpoints' || savedTab === 'overview' ? savedTab : 'overview';
     }
   );
-  const [showIconsOnly, setShowIconsOnly] = useState(false);
   const [envParams, setEnvParams] = useState<Record<string, any>>({});
-  const tabContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { localStorage.setItem(LAST_MOCK_PAGE_KEY, page); }, [page]);
   useEffect(() => { localStorage.setItem(LAST_MOCK_TAB_KEY, tab); }, [tab]);
-
-  useEffect(() => {
-    const checkWidth = () => {
-      if (!tabContainerRef.current) { return; }
-      setShowIconsOnly(tabContainerRef.current.clientWidth < 350);
-    };
-    checkWidth();
-    const ro = new ResizeObserver(checkWidth);
-    if (tabContainerRef.current) { ro.observe(tabContainerRef.current); }
-    return () => ro.disconnect();
-  }, []);
 
   useEffect(() => {
     const cleanup = loadEnvVariables((envVars) => {
@@ -256,7 +250,7 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
 
             {/* ── Edit page (tabs: Overview / Server / Endpoints) ── */}
             <div className="api-swipe-page api-swipe-page--edit">
-              <div className="api-edit-header" ref={tabContainerRef}>
+              <div className="api-edit-header">
                 <div className="api-edit-header-row">
                   <button
                     className="action-button"
@@ -269,35 +263,7 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
                   <div className="api-edit-title">Edit Mock</div>
                 </div>
 
-                <div className="tab-bar">
-                  <button
-                    onClick={() => setTab('overview')}
-                    className={`tab-button ${tab === 'overview' ? 'active' : ''}`}
-                    title={showIconsOnly ? "Overview" : undefined}
-                    type="button"
-                  >
-                    <span className="codicon codicon-search tab-button-icon" />
-                    {!showIconsOnly && "Overview"}
-                  </button>
-                  <button
-                    onClick={() => setTab('server')}
-                    className={`tab-button ${tab === 'server' ? 'active' : ''}`}
-                    title={showIconsOnly ? "Server" : undefined}
-                    type="button"
-                  >
-                    <span className="codicon codicon-server-environment tab-button-icon" />
-                    {!showIconsOnly && "Server"}
-                  </button>
-                  <button
-                    onClick={() => setTab('endpoints')}
-                    className={`tab-button ${tab === 'endpoints' ? 'active' : ''}`}
-                    title={showIconsOnly ? "Endpoints" : undefined}
-                    type="button"
-                  >
-                    <span className="codicon codicon-list-tree tab-button-icon" />
-                    {!showIconsOnly && "Endpoints"}
-                  </button>
-                </div>
+                <TabBar tabs={MOCK_EDIT_TABS} value={tab} onChange={setTab} />
               </div>
 
               <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>

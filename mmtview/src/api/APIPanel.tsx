@@ -11,9 +11,16 @@ import { protocolResolver } from "mmt-core";
 import { safeList, safeListCopy } from "mmt-core/safer";
 import { useResolvedYamlContent } from "../useResolvedYamlContent";
 import { showYamlUiConflictDialog } from "../vsAPI";
+import TabBar from "../components/TabBar";
 
 const LAST_API_TAB_KEY = "mmtview:api:lastTab";
 const LAST_API_PAGE_KEY = "mmtview:api:lastPage";
+
+const API_EDIT_TABS = [
+  { id: "overview" as const, label: "Overview", icon: "search" },
+  { id: "interface" as const, label: "Interface", icon: "symbol-interface" },
+  { id: "examples" as const, label: "Examples", icon: "lightbulb" },
+];
 
 const REQUEST_FIELD_LABELS: Partial<Record<keyof Request, string>> = {
   url: "URL",
@@ -53,8 +60,6 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
   const [tab, setTab] = useState<"overview" | "interface" | "examples">(
     () => (localStorage.getItem(LAST_API_TAB_KEY) as "overview" | "interface" | "examples") || "overview"
   );
-  const [showIconsOnly, setShowIconsOnly] = useState(false);
-  const tabContainerRef = useRef<HTMLDivElement>(null);
 
   // Test-mode override tracking. We don't snapshot the API on entry; instead
   // we ask the tester which fields the user has touched and compare those
@@ -266,28 +271,6 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
     localStorage.setItem(LAST_API_TAB_KEY, tab);
   }, [tab]);
 
-  useEffect(() => {
-    const checkTabWidth = () => {
-      if (!tabContainerRef.current) return;
-
-      const container = tabContainerRef.current;
-      const containerWidth = container.clientWidth;
-
-      const fullTextWidth = 4 * 100;
-
-      setShowIconsOnly(containerWidth < fullTextWidth);
-    };
-
-    checkTabWidth();
-
-    const resizeObserver = new ResizeObserver(checkTabWidth);
-    if (tabContainerRef.current) {
-      resizeObserver.observe(tabContainerRef.current);
-    }
-
-    return () => resizeObserver.disconnect();
-  }, []);
-
   // Helper to update top-level fields
   const update = (patch: Partial<APIData>) => {
     setAPI({ ...api, ...patch });
@@ -370,35 +353,7 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
                   </button>
                   <div className="api-edit-title">Edit API</div>
                 </div>
-                <div ref={tabContainerRef} className="tab-bar">
-                  <button
-                    onClick={() => setTab('overview')}
-                    className={`tab-button ${tab === 'overview' ? 'active' : ''}`}
-                    title={showIconsOnly ? 'Overview' : undefined}
-                    type="button"
-                  >
-                    <span className="codicon codicon-search tab-button-icon"></span>
-                    {!showIconsOnly && 'Overview'}
-                  </button>
-                  <button
-                    onClick={() => setTab('interface')}
-                    className={`tab-button ${tab === 'interface' ? 'active' : ''}`}
-                    title={showIconsOnly ? 'Interface' : undefined}
-                    type="button"
-                  >
-                    <span className="codicon codicon-symbol-interface tab-button-icon"></span>
-                    {!showIconsOnly && 'Interface'}
-                  </button>
-                  <button
-                    onClick={() => setTab('examples')}
-                    className={`tab-button ${tab === 'examples' ? 'active' : ''}`}
-                    title={showIconsOnly ? 'Examples' : undefined}
-                    type="button"
-                  >
-                    <span className="codicon codicon-lightbulb tab-button-icon"></span>
-                    {!showIconsOnly && 'Examples'}
-                  </button>
-                </div>
+                <TabBar tabs={API_EDIT_TABS} value={tab} onChange={setTab} />
               </div>
 
               <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>

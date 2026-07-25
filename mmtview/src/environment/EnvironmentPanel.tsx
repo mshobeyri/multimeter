@@ -10,8 +10,17 @@ import { EnvCertificates, EnvVariable } from "./EnvironmentData";
 import { saveEnvPresets } from "../workspaceStorage";
 import { selectFromVariables } from "mmt-core/runConfig";
 import { useResolvedYamlContent } from "../useResolvedYamlContent";
+import TabBar from "../components/TabBar";
 
 const LAST_ENV_PAGE_KEY = "mmtview:env:lastPage";
+
+const ENV_EDIT_TABS = [
+  { id: "overview" as const, label: "Overview", icon: "note" },
+  { id: "variables" as const, label: "Variables", icon: "symbol-variable" },
+  { id: "presets" as const, label: "Presets", icon: "tasklist" },
+  { id: "settings" as const, label: "Settings", icon: "settings-gear" },
+  { id: "certificates" as const, label: "Certificates", icon: "shield" },
+];
 
 interface EnvironmentPanelProps {
   content: string;
@@ -389,53 +398,7 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
                   </button>
                   <div className="api-edit-title">Edit Environment</div>
                 </div>
-                <div className="tab-bar">
-                  <button
-                    onClick={() => setEditTab('overview')}
-                    className={`tab-button ${editTab === 'overview' ? 'active' : ''}`}
-                    title="Overview"
-                    type="button"
-                  >
-                    <span className="codicon codicon-note tab-button-icon"></span>
-                    Overview
-                  </button>
-                  <button
-                    onClick={() => setEditTab('variables')}
-                    className={`tab-button ${editTab === 'variables' ? 'active' : ''}`}
-                    title="Variables"
-                    type="button"
-                  >
-                    <span className="codicon codicon-symbol-variable tab-button-icon"></span>
-                    Variables
-                  </button>
-                  <button
-                    onClick={() => setEditTab('presets')}
-                    className={`tab-button ${editTab === 'presets' ? 'active' : ''}`}
-                    title="Presets"
-                    type="button"
-                  >
-                    <span className="codicon codicon-tasklist tab-button-icon"></span>
-                    Presets
-                  </button>
-                  <button
-                    onClick={() => setEditTab('settings')}
-                    className={`tab-button ${editTab === 'settings' ? 'active' : ''}`}
-                    title="Settings"
-                    type="button"
-                  >
-                    <span className="codicon codicon-settings-gear tab-button-icon"></span>
-                    Settings
-                  </button>
-                  <button
-                    onClick={() => setEditTab('certificates')}
-                    className={`tab-button ${editTab === 'certificates' ? 'active' : ''}`}
-                    title="Certificates"
-                    type="button"
-                  >
-                    <span className="codicon codicon-shield tab-button-icon"></span>
-                    Certificates
-                  </button>
-                </div>
+                <TabBar tabs={ENV_EDIT_TABS} value={editTab} onChange={setEditTab} />
               </div>
               <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
                 <EnvironmentEdit content={content} setContent={setContent} tab={editTab} />
