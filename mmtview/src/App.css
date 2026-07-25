@@ -1047,8 +1047,7 @@ button:focus {
 
 
 /* Must beat global `select` / `select:focus` rules (padding, height, font).
-   Method select: theme foreground + 1px border (same as inputs);
-   softFill and border both merge the method accent into theme surfaces. */
+   Method select follows **button** theme tokens (not input/select borders). */
 select.method-select,
 select.method-select:focus,
 select.method-select:focus-visible {
@@ -1075,44 +1074,30 @@ select.method-select:focus-visible {
   background-image: none;
   transition: background-color 80ms ease, border-color 80ms ease, color 80ms ease;
   vertical-align: middle;
-  /* Always match theme UI text — not accent-tinted, not button-foreground. */
-  color: var(--vscode-foreground, #ccc);
+  color: var(--vscode-button-foreground, #fff);
   background-color: var(
     --mmt-accent-soft-fill,
     color-mix(
       in oklab,
-      var(--mmt-accent, #888) 32%,
-      var(--vscode-input-background, var(--vscode-sideBar-background, #3c3c3c))
+      var(--mmt-accent, #888) 36%,
+      var(--vscode-button-background, #0e639c)
     )
   );
-  /* Same 1px edge as VS Code inputs; color is accent merged into theme border. */
+  /* 1px like VS Code buttons; --mmt-accent-border equals softFill when the
+     theme has no distinct button.border (invisible ring). */
   border-width: 1px;
   border-style: solid;
-  border-color: var(
-    --mmt-accent-border,
-    color-mix(
-      in oklab,
-      var(--mmt-accent, #888) 70%,
-      var(--vscode-input-border, var(--vscode-editor-foreground, #ccc))
-    )
-  );
+  border-color: var(--mmt-accent-border, var(--mmt-accent-soft-fill, transparent));
 }
 
 select.method-select:hover {
-  background-color: var(
-    --mmt-accent-soft-fill,
-    color-mix(
-      in oklab,
-      var(--mmt-accent, #888) 32%,
-      var(--vscode-input-background, #3c3c3c)
-    )
-  );
-  border-color: var(--mmt-accent-border);
+  background-color: var(--mmt-accent-soft-fill);
+  border-color: var(--mmt-accent-border, var(--mmt-accent-soft-fill));
 }
 
 select.method-select:focus,
 select.method-select:focus-visible {
-  border-color: var(--mmt-accent-border, var(--vscode-focusBorder, #007fd4));
+  border-color: var(--mmt-accent-border, var(--mmt-accent-soft-fill));
   outline: none;
 }
 

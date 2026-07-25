@@ -59,13 +59,19 @@
             padding: 0 2px;
             margin-right: 6px;
             border-radius: 2px;
-            /* Same recipe as API method-select: theme foreground + merged bg/border. */
+            /* Same recipe as API method-select: button-themed fill; border matches
+               button.border or equals the fill when the theme has no button border. */
             --history-brand: #888888;
-            color: var(--vscode-foreground, #ccc);
-            background: color-mix(in oklab, var(--history-brand) 32%, var(--vscode-input-background, var(--vscode-sideBar-background, #3c3c3c)));
+            --history-badge-fill: color-mix(
+                in oklab,
+                var(--history-brand) 36%,
+                var(--vscode-button-background, #0e639c)
+            );
+            color: var(--vscode-button-foreground, #fff);
+            background: var(--history-badge-fill);
             border-width: 1px;
             border-style: solid;
-            border-color: color-mix(in oklab, var(--history-brand) 70%, var(--vscode-input-border, var(--vscode-editor-foreground, #ccc)));
+            border-color: var(--vscode-button-border, var(--history-badge-fill));
             font-size: 8px;
             font-weight: 600;
             line-height: 14px;

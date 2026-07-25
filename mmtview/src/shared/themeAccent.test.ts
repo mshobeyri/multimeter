@@ -8,9 +8,9 @@ import {
 } from './themeAccent';
 
 const normalSurfaces = {
-  background: '#2b2118',
-  foreground: '#e8dcc8',
-  surface: '#3a2f24',
+  background: '#1e1e1e',
+  foreground: '#cccccc',
+  surface: '#3c3c3c',
   buttonBackground: '#0e639c',
   buttonForeground: '#ffffff',
   buttonBorder: null as string | null,
@@ -38,21 +38,25 @@ describe('themeAccent', () => {
     expect(mixed.toLowerCase()).not.toBe('#2b2118');
   });
 
-  it('returns opaque chrome roles for an accent', () => {
+  it('tints softFill from button.background and hides border when theme has none', () => {
     const chrome = harmonizeAccent('#49cc90', { surfaces: normalSurfaces });
     expect(chrome.outline).toBe(false);
-    expect(chrome.accent.toLowerCase()).toBe('#49cc90');
-    expect(chrome.fill.startsWith('#')).toBe(true);
-    expect(chrome.softFill.startsWith('#')).toBe(true);
-    expect(chrome.border.startsWith('#')).toBe(true);
-    expect(chrome.surface.toLowerCase()).toBe('#3a2f24');
-    // Solid actions use VS Code button foreground.
+    expect(chrome.softFill.toLowerCase()).not.toBe(normalSurfaces.buttonBackground.toLowerCase());
+    // No distinct button.border → border matches softFill (invisible ring).
+    expect(chrome.border.toLowerCase()).toBe(chrome.softFill.toLowerCase());
     expect(chrome.onFill.toLowerCase()).toBe('#ffffff');
     expect(chrome.buttonForeground.toLowerCase()).toBe('#ffffff');
-    expect(chrome.foreground.toLowerCase()).toBe('#e8dcc8');
-    expect(chrome.buttonBorder).toBeNull();
-    expect(chrome.fill.replace('#', '').length).toBe(6);
-    expect(chrome.softFill.replace('#', '').length).toBe(6);
+  });
+
+  it('merges a distinct theme button.border when present', () => {
+    const chrome = harmonizeAccent('#49cc90', {
+      surfaces: {
+        ...normalSurfaces,
+        buttonBorder: '#1a1a1a',
+      },
+    });
+    expect(chrome.border.toLowerCase()).not.toBe(chrome.softFill.toLowerCase());
+    expect(chrome.border.toLowerCase()).not.toBe('#1a1a1a');
   });
 
   it('uses outline chrome when button bg matches palette bg', () => {
@@ -68,15 +72,8 @@ describe('themeAccent', () => {
     expect(isOutlineButtonTheme(surfaces)).toBe(true);
     const chrome = harmonizeAccent('#49cc90', { surfaces });
     expect(chrome.outline).toBe(true);
-    expect(chrome.fill.toLowerCase()).toBe('#000000');
-    expect(chrome.softFill.toLowerCase()).toBe('#000000');
-    expect(chrome.border.toLowerCase()).not.toBe('#000000');
-  });
-
-  it('merges accent into both softFill and border', () => {
-    const chrome = harmonizeAccent('#49cc90', { surfaces: normalSurfaces });
-    expect(chrome.softFill.toLowerCase()).not.toBe(normalSurfaces.surface);
-    expect(chrome.border.toLowerCase()).not.toBe('#555555');
-    expect(chrome.border.toLowerCase()).not.toBe('#49cc90');
+    // No button border: soft tint for identity, border matches fill.
+    expect(chrome.border.toLowerCase()).toBe(chrome.softFill.toLowerCase());
+    expect(chrome.softFill.toLowerCase()).not.toBe('#000000');
   });
 });

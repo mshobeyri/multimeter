@@ -298,38 +298,50 @@ export type HarmonizeAccentOptions = {
 /**
  * Build theme-harmonized chrome for one accent color.
  *
- * Method select / chips:
- * - `foreground` for label (always matches theme text)
- * - `softFill` + `border` both merge accent into theme surfaces (outline: bg stays surface)
+ * Method select follows **button** tokens (not input/select):
+ * - `softFill` = accent merged into `button.background`
+ * - `border` = accent merged into `button.border` when the theme defines a
+ *   distinct button border; otherwise `border === softFill` (no visible ring,
+ *   matching themes whose buttons have no/matching border)
+ * - label uses `buttonForeground`
  *
- * Solid primary actions (Send):
- * - `fill` + `onFill` (`buttonForeground`, matching VS Code primary buttons)
+ * Solid primary actions (Send): `fill` + `onFill` (`buttonForeground`).
  */
 export function harmonizeAccent(
     accent: string,
     options: HarmonizeAccentOptions = {},
 ): AccentChrome {
   const surfaces = options.surfaces || readThemeSurfaces();
-  const softAmount = options.softAmount ?? 32;
+  const softAmount = options.softAmount ?? 36;
   const fillAmount = options.fillAmount ?? 52;
   const textAmount = options.textAmount ?? 62;
   const outline = options.outline ?? isOutlineButtonTheme(surfaces);
   const raw = toMonacoHex(accent, '#888888');
+  const buttonBase = surfaces.buttonBackground;
 
-  // Accent-tinted ink (icons / optional emphasis), still keyed off theme foreground.
+  // Accent-tinted ink for icons / optional emphasis.
   const text = mixOpaque(raw, surfaces.foreground, textAmount, raw);
-  // Merge accent into the theme's own border color when present.
-  const borderBase = surfaces.inputBorder || surfaces.buttonBorder || surfaces.foreground;
-  const border = mixOpaque(raw, borderBase, Math.min(80, textAmount + 8), raw);
+
+  const themeButtonBorder = surfaces.buttonBorder;
+  const hasVisibleButtonBorder = Boolean(
+      themeButtonBorder &&
+      !colorsNearlyEqual(themeButtonBorder, buttonBase));
 
   if (outline) {
-    // Flat / HC: same bg as palette; only the merged border carries the accent.
+    // Flat / HC: button bg matches palette.
+    // With a real button border → flat bg + accent edge; otherwise soft tint, no ring.
+    const softFill = hasVisibleButtonBorder ?
+        buttonBase :
+        mixOpaque(raw, buttonBase, softAmount, buttonBase);
+    const border = hasVisibleButtonBorder ?
+        mixOpaque(raw, themeButtonBorder!, Math.min(80, textAmount + 8), raw) :
+        softFill;
     return {
       accent: raw,
       text,
       border,
-      softFill: surfaces.surface,
-      fill: surfaces.surface,
+      softFill,
+      fill: buttonBase,
       onFill: surfaces.buttonForeground,
       surface: surfaces.surface,
       outline: true,
@@ -339,7 +351,11 @@ export function harmonizeAccent(
     };
   }
 
-  const softFill = mixOpaque(raw, surfaces.surface, softAmount, surfaces.surface);
+  // Normal themes: tint button.background; border matches button border rules.
+  const softFill = mixOpaque(raw, buttonBase, softAmount, buttonBase);
+  const border = hasVisibleButtonBorder ?
+      mixOpaque(raw, themeButtonBorder!, Math.min(80, textAmount + 8), raw) :
+      softFill;
   const fill = mixOpaque(raw, surfaces.background, fillAmount, raw);
 
   return {
