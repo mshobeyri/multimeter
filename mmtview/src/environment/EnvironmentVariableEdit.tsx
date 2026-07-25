@@ -5,6 +5,7 @@ import KSVEditor from "../components/KSVEditor";
 import LEditor from "../components/LEditor"; // <-- Use LEditor instead of VEditor
 import { EnvironmentData } from "./EnvironmentData";
 import { safeList } from "mmt-core/safer";
+import PrimaryButton from "../components/PrimaryButton";
 
 // Only two types for this editor: "list" and "object"
 const typeOptions = [
@@ -125,10 +126,9 @@ const EnvironmentVariableEdit: React.FC<EnvironmentVariableEditProps> = ({ varia
                     )}
                 </div>
             ))}
-            <button onClick={handleAdd} className="button-icon" >
-                <span className="codicon codicon-add" aria-hidden />
+            <PrimaryButton icon="add" onClick={handleAdd}>
                 Add Variable
-            </button>
+            </PrimaryButton>
         </div>
     );
 };

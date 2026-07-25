@@ -12,6 +12,7 @@ import { safeList, safeListCopy } from "mmt-core/safer";
 import { useResolvedYamlContent } from "../useResolvedYamlContent";
 import { showYamlUiConflictDialog } from "../vsAPI";
 import TabBar from "../components/TabBar";
+import PrimaryButton from "../components/PrimaryButton";
 
 const LAST_API_TAB_KEY = "mmtview:api:lastTab";
 const LAST_API_PAGE_KEY = "mmtview:api:lastPage";
@@ -387,10 +388,9 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
                                 />
                               </div>
                             ))}
-                          <button onClick={addExample} className="button-icon" type="button">
-                            <span className="codicon codicon-add" aria-hidden />
+                          <PrimaryButton icon="add" onClick={addExample}>
                             Add Example
-                          </button>
+                          </PrimaryButton>
                         </td>
                       </tr>
                     </tbody>

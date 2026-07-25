@@ -5,6 +5,7 @@ import { getTestFlowStepType } from "mmt-core/testParsePack";
 import { ControlledTreeEnvironment, Tree, DraggingPosition, DraggingPositionItem, DraggingPositionBetweenItems } from 'react-complex-tree';
 import { type MissingImportEntry } from "../text/validator";
 import { codiconForStepType } from "./stepPresentation";
+import PrimaryButton from "../components/PrimaryButton";
 
 // Transparent drag image to remove native ghost preview while preserving drop lines
 let dragPreviewEl: HTMLDivElement | null = null;
@@ -303,16 +304,15 @@ const TestFlow: React.FC<TestFlowProps> = ({ testData, update, importValidation 
                     />
                     <span>Multistage</span>
                 </label>
-                <button
+                <PrimaryButton
                     ref={addBtnRef}
-                    className="button-icon"
+                    icon="add"
                     onPointerDown={(e) => e.stopPropagation()}
                     onPointerUp={(e) => { e.stopPropagation(); setAddMenuOpen(v => !v); }}
                     title="Add flow item"
                 >
-                    <span className="codicon codicon-add" aria-hidden />
                     Add item
-                </button>
+                </PrimaryButton>
                 {addMenuOpen && (
                     <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 6, zIndex: 1000, background: 'var(--vscode-editorWidget-background,#232323)', border: '1px solid var(--vscode-editorWidget-border,#333)', borderRadius: 4, boxShadow: '0 2px 6px rgba(0,0,0,0.4)', minWidth: 200 }}
                         onPointerDown={(e) => e.stopPropagation()}

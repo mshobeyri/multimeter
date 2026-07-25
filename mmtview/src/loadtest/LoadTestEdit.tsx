@@ -6,6 +6,7 @@ import FilePickerInput from '../components/FilePickerInput';
 import KSVEditor from '../components/KSVEditor';
 import { FileContext } from '../fileContext';
 import TabBar from '../components/TabBar';
+import PrimaryButton from '../components/PrimaryButton';
 
 type LoadTestEditTab = 'overview' | 'imports' | 'test' | 'load' | 'environment' | 'exports';
 
@@ -459,10 +460,9 @@ const LoadTestEdit: React.FC<LoadTestEditProps> = ({ content, setContent }) => {
   const exportsTabContent = (
     <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-        <button className="button-icon" onClick={handleAddExport} title="Add export path">
-          <span className="codicon codicon-add" aria-hidden />
+        <PrimaryButton icon="add" onClick={handleAddExport} title="Add export path">
           Add export
-        </button>
+        </PrimaryButton>
       </div>
       {exports.length === 0 ? (
         <div style={{ opacity: 0.8 }}>No exports configured. Add paths to generate reports after load test completion.</div>

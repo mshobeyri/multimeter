@@ -155,6 +155,35 @@ button,
   padding: 4px 12px;
 }
 
+/* Shared primary CTA look (also used by PrimaryButton / Export overlay face). */
+.primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px 12px;
+  box-sizing: border-box;
+  background: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 2px;
+  font-size: var(--vscode-font-size, 13px);
+  font-family: var(--vscode-font-family, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
+  cursor: pointer;
+  outline: none;
+}
+
+.primary-button:hover:not(:disabled):not(.is-disabled),
+.primary-button:focus:not(:disabled):not(.is-disabled) {
+  background: var(--vscode-button-hoverBackground, #1177bb);
+}
+
+.primary-button:disabled,
+.primary-button.is-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .bodyview {
   border: 1px solid var(--vscode-input-border, #3c3c3c);
   overflow: hidden;
@@ -1322,25 +1351,9 @@ select.method-select:focus-visible {
   padding-bottom: 8px;
 }
 
-.run-action-bar .button-icon {
+.run-action-bar .button-icon,
+.run-action-bar .primary-button {
   opacity: 1;
-  background: var(--vscode-button-background, #0e639c);
-  color: var(--vscode-button-foreground, #ffffff);
-  border: 1px solid var(--vscode-button-border, transparent);
-  border-radius: 2;
-  font-size: var(--vscode-font-size, 13px);
-  font-family: var(--vscode-font-family, "Segoe UI", Tahoma, Geneva, Verdana, sans-serif);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  box-sizing: border-box;
-}
-
-.run-action-bar .button-icon:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 .test-flow-tree {

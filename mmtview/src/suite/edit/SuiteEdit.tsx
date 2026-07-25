@@ -9,6 +9,7 @@ import FilePickerInput from '../../components/FilePickerInput';
 import KSVEditor from '../../components/KSVEditor';
 import { FileContext } from '../../fileContext';
 import TabBar from '../../components/TabBar';
+import PrimaryButton from '../../components/PrimaryButton';
 
 type SuiteEditTab = 'overview' | 'items' | 'servers' | 'environment' | 'exports';
 
@@ -537,9 +538,9 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
         }}
       >
         <div style={{ display: 'flex', gap: 8 }}>
-          <button
+          <PrimaryButton
             ref={addButtonRef as any}
-            className="button-icon"
+            icon="add"
             onPointerDown={(event) => event.stopPropagation()}
             onPointerUp={(event) => {
               event.stopPropagation();
@@ -547,9 +548,8 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
             }}
             title="Add suite item"
           >
-            <span className="codicon codicon-add" aria-hidden />
             Add item
-          </button>
+          </PrimaryButton>
         </div>
         {addMenuOpen && addMenuPos && (
           <div
@@ -639,14 +639,9 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   const serversTabContent = (
     <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-        <button
-          className="button-icon"
-          onClick={handleAddServer}
-          title="Add server file"
-        >
-          <span className="codicon codicon-add" aria-hidden />
+        <PrimaryButton icon="add" onClick={handleAddServer} title="Add server file">
           Add server
-        </button>
+        </PrimaryButton>
       </div>
       {servers.length === 0 ? (
         <div style={{ opacity: 0.8 }}>No servers configured. Add a mock server file to run before the suite.</div>
@@ -709,14 +704,9 @@ const SuiteEdit: React.FC<SuiteEditProps> = ({ content, setContent }) => {
   const exportsTabContent = (
     <div style={{ paddingTop: 8, paddingLeft: 16, paddingRight: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
-        <button
-          className="button-icon"
-          onClick={handleAddExport}
-          title="Add export path"
-        >
-          <span className="codicon codicon-add" aria-hidden />
+        <PrimaryButton icon="add" onClick={handleAddExport} title="Add export path">
           Add export
-        </button>
+        </PrimaryButton>
       </div>
       {exports.length === 0 ? (
         <div style={{ opacity: 0.8 }}>No exports configured. Add paths to generate reports after suite completion.</div>

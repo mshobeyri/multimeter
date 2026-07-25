@@ -2,6 +2,7 @@ import React from "react";
 import FieldWithRemove from "../components/FieldWithRemove";
 import KSVEditor from "../components/KSVEditor";
 import { safeList } from "mmt-core/safer";
+import PrimaryButton from "../components/PrimaryButton";
 
 interface PresetBoard {
     name: string; // e.g. "runner"
@@ -129,16 +130,14 @@ const EnvironmentPresetEdit: React.FC<EnvironmentPresetEditProps> = ({ presets, 
                             />
                         </div>
                     ))}
-                    <button onClick={() => handleAddEnv(boardIdx)} className="button-icon" >
-                        <span className="codicon codicon-add" aria-hidden />
+                    <PrimaryButton icon="add" onClick={() => handleAddEnv(boardIdx)}>
                         Add Label
-                    </button>
+                    </PrimaryButton>
                 </div>
             ))}
-            <button onClick={handleAddBoard} className="button-icon" >
-                <span className="codicon codicon-add" aria-hidden />
+            <PrimaryButton icon="add" onClick={handleAddBoard}>
                 Add Preset
-            </button>
+            </PrimaryButton>
         </div>
     );
 };

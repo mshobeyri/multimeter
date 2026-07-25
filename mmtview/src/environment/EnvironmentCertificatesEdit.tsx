@@ -4,6 +4,7 @@ import { safeList } from "mmt-core/safer";
 import FieldWithRemove from "../components/FieldWithRemove";
 import FilePickerInput from "../components/FilePickerInput";
 import { FileContext } from "../fileContext";
+import PrimaryButton from "../components/PrimaryButton";
 
 interface EnvironmentCertificatesEditProps {
   certificates: EnvCertificates | undefined;
@@ -153,10 +154,13 @@ const EnvironmentCertificatesEdit: React.FC<EnvironmentCertificatesEditProps> = 
           </div>
         ))}
 
-        <button onClick={handleAddClient} className="button-icon" style={{ margin: "12px 5px 5px" }}>
-          <span className="codicon codicon-add" aria-hidden />
+        <PrimaryButton
+          icon="add"
+          onClick={handleAddClient}
+          style={{ margin: "12px 5px 5px" }}
+        >
           Add Client Certificate
-        </button>
+        </PrimaryButton>
       </div>
     </div>
   );

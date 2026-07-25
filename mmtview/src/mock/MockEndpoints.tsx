@@ -4,6 +4,7 @@ import { parseYamlDoc } from "mmt-core/markupConvertor";
 import MockEndpointBox, { methodTextColor } from "./MockEndpointBox";
 import { ControlledTreeEnvironment, Tree, DraggingPosition, DraggingPositionBetweenItems } from 'react-complex-tree';
 import { canonicalizeMockYaml } from "./mockYaml";
+import PrimaryButton from "../components/PrimaryButton";
 
 // Transparent drag image to remove native ghost preview while preserving drop lines
 let dragPreviewEl: HTMLDivElement | null = null;
@@ -297,16 +298,15 @@ const MockEndpoints: React.FC<MockEndpointsProps> = ({ content, setContent, mock
       {/* Endpoints header */}
       <div className="label" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', overflow: 'visible' }}>
         <span>Endpoints</span>
-        <button
+        <PrimaryButton
           ref={addBtnRef}
-          className="button-icon"
+          icon="add"
           onPointerDown={e => e.stopPropagation()}
           onPointerUp={e => { e.stopPropagation(); setAddMenuOpen(v => !v); }}
           title="Add endpoint"
         >
-          <span className="codicon codicon-add" aria-hidden />
           Add endpoint
-        </button>
+        </PrimaryButton>
         {addMenuOpen && (
           <div
             style={{

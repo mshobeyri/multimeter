@@ -11,6 +11,7 @@ import { saveEnvPresets } from "../workspaceStorage";
 import { selectFromVariables } from "mmt-core/runConfig";
 import { useResolvedYamlContent } from "../useResolvedYamlContent";
 import TabBar from "../components/TabBar";
+import PrimaryButton from "../components/PrimaryButton";
 
 const LAST_ENV_PAGE_KEY = "mmtview:env:lastPage";
 
@@ -363,14 +364,12 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
                   </div>
                 </div>
                 <div className="run-action-bar">
-                  <button onClick={handleSaveToCache} className="button-icon" type="button">
-                    <span className="codicon codicon-refresh" aria-hidden />
+                  <PrimaryButton icon="refresh" onClick={handleSaveToCache}>
                     Reload
-                  </button>
-                  <button onClick={handleClearCache} className="button-icon" type="button">
-                    <span className="codicon codicon-clear-all" aria-hidden />
+                  </PrimaryButton>
+                  <PrimaryButton icon="clear-all" onClick={handleClearCache}>
                     Clear
-                  </button>
+                  </PrimaryButton>
                 </div>
                 <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
                   <EnvironmentEnv
