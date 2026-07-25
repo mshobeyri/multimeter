@@ -12,7 +12,8 @@ import { StepStatus } from '../shared/types';
 import ExportReportButton, { ReportFormat } from '../shared/ExportReportButton';
 import OverviewBoxes, { OverviewStats } from '../shared/OverviewBoxes';
 import VEditor from '../components/VEditor';
-import ContextMenuHost, { runInCoreMenuItem } from '../components/ContextMenuHost';
+import { runInCoreMenuItem } from '../components/ContextMenuHost';
+import RunStopToggle from '../components/RunStopToggle';
 import { loadEnvVariables } from '../workspaceStorage';
 import {
     applyEnvRefreshToInputs,
@@ -397,31 +398,16 @@ const TestTest: React.FC<TestTestProps> = ({ testData, onInputsReset, onInputsMo
     return (
         <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%' }}>
             <div className="run-action-bar">
-                {isRunning ? (
-                    <button
-                        onClick={handleStop}
-                        className="button-icon run-toggle-button"
-                        type="button"
-                        title="Stop test"
-                    >
-                        <span className="codicon codicon-debug-stop" aria-hidden />
-                        Stop test
-                    </button>
-                ) : (
-                    <ContextMenuHost items={[runInCoreMenuItem(() => {
+                <RunStopToggle
+                    running={isRunning}
+                    onRun={handleRun}
+                    onStop={handleStop}
+                    runLabel="Run test"
+                    stopLabel="Stop test"
+                    runContextMenuItems={[runInCoreMenuItem(() => {
                         postRunCurrentDocument({ reportLifecycle: true });
-                    })]}>
-                        <button
-                            onClick={handleRun}
-                            className="button-icon run-toggle-button"
-                            type="button"
-                            title="Run test"
-                        >
-                            <span className="codicon codicon-run" aria-hidden />
-                            Run test
-                        </button>
-                    </ContextMenuHost>
-                )}
+                    })]}
+                />
                 <ExportReportButton disabled={exportDisabled} onExport={handleExportReport} />
             </div>
             <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>

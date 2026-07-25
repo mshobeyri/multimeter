@@ -22,7 +22,8 @@ import ExportReportButton, { ReportFormat } from '../../shared/ExportReportButto
 import OverviewBoxes, { OverviewStats } from '../../shared/OverviewBoxes';
 import { FileContext } from '../../fileContext';
 import LoadTestReport, { LoadMetricsOverview } from '../../loadtest/LoadTestReport';
-import ContextMenuHost, { runInCoreMenuItem } from '../../components/ContextMenuHost';
+import { runInCoreMenuItem } from '../../components/ContextMenuHost';
+import RunStopToggle from '../../components/RunStopToggle';
 
 /** Get basename from a file path. */
 function basename(p: string): string {
@@ -1025,32 +1026,16 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     return (
         <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', width: '100%', minWidth: 0 }}>
             <div className="run-action-bar">
-                {suiteRunState === 'running' ? (
-                    <button
-                        className="button-icon run-toggle-button"
-                        onClick={onStopSuite}
-                        title={stopLabel}
-                        type="button"
-                    >
-                        <span className="codicon codicon-debug-stop" aria-hidden />
-                        {stopLabel}
-                    </button>
-                ) : (
-                    <ContextMenuHost
-                        items={canRun ? [runInCoreMenuItem(onRunSuiteInCore)] : undefined}
-                    >
-                        <button
-                            className="button-icon run-toggle-button"
-                            disabled={!canRun}
-                            onClick={onRunSuite}
-                            title={!canRun ? (mode === 'loadtest' ? 'No test file to run' : 'No suite files to run') : runLabel}
-                            type="button"
-                        >
-                            <span className="codicon codicon-run" aria-hidden />
-                            {runLabel}
-                        </button>
-                    </ContextMenuHost>
-                )}
+                <RunStopToggle
+                    running={suiteRunState === 'running'}
+                    onRun={onRunSuite}
+                    onStop={onStopSuite}
+                    runLabel={runLabel}
+                    stopLabel={stopLabel}
+                    disabled={!canRun}
+                    runTitle={!canRun ? (mode === 'loadtest' ? 'No test file to run' : 'No suite files to run') : runLabel}
+                    runContextMenuItems={canRun ? [runInCoreMenuItem(onRunSuiteInCore)] : undefined}
+                />
                 <ExportReportButton disabled={suiteExportDisabled} onExport={handleExportReport} />
             </div>
             <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>

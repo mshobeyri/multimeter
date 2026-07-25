@@ -9,6 +9,7 @@ import MockServerSettings from "./MockServerSettings";
 import { canonicalizeMockYaml } from "./mockYaml";
 import { methodTextColor } from "../shared/themeAccent";
 import TabBar from "../components/TabBar";
+import RunStopToggle from "../components/RunStopToggle";
 
 interface MockPanelProps {
   content: string;
@@ -152,27 +153,13 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
                   </div>
                 </div>
                 <div className="run-action-bar">
-                  {running ? (
-                    <button
-                      onClick={handleStop}
-                      className="button-icon run-toggle-button"
-                      type="button"
-                      title="Stop mock"
-                    >
-                      <span className="codicon codicon-debug-stop" aria-hidden />
-                      Stop mock
-                    </button>
-                  ) : (
-                    <button
-                      onClick={handleStart}
-                      className="button-icon run-toggle-button"
-                      type="button"
-                      title="Run mock"
-                    >
-                      <span className="codicon codicon-run" aria-hidden />
-                      Run mock
-                    </button>
-                  )}
+                  <RunStopToggle
+                    running={running}
+                    onRun={handleStart}
+                    onStop={handleStop}
+                    runLabel="Run mock"
+                    stopLabel="Stop mock"
+                  />
                 </div>
                 <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
                   {/* Info chips */}
