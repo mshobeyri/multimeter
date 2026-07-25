@@ -1,7 +1,7 @@
 import React from 'react';
 import { TreeItem } from 'react-complex-tree';
 import { StepStatus } from '../../shared/types';
-import ContextMenuHost, { runInCoreMenuItem } from '../../components/ContextMenuHost';
+import TreeRunButton from '../../components/TreeRunButton';
 
 export type SuiteTestGroupItemData = { type: 'group' | 'root' | 'import-group'; label: string };
 
@@ -67,27 +67,12 @@ const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
             <span>{data.label}</span>
           </div>
           {showRunButton && (
-            <ContextMenuHost
-              items={
-                runDisabled || !(onRunInCore || onRun)
-                  ? undefined
-                  : [runInCoreMenuItem(onRunInCore || onRun!)]
-              }
-            >
-              <button
-                className="tab-button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onRun?.();
-                }}
-                title={runButtonTitle}
-                disabled={runDisabled}
-                style={{ padding: 6 }}
-              >
-                <span className="codicon codicon-run tab-button-icon" aria-hidden />
-              </button>
-            </ContextMenuHost>
+            <TreeRunButton
+              onRun={onRun}
+              onRunInCore={onRunInCore}
+              title={runButtonTitle}
+              disabled={runDisabled}
+            />
           )}
         </div>
       </div>

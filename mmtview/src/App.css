@@ -543,6 +543,15 @@ button:focus {
   background: transparent;
 }
 
+.tree-run-button {
+  padding: 6px;
+  flex-shrink: 0;
+}
+
+.tree-run-button .codicon {
+  font-size: 16px;
+}
+
 /* Field/inline small icon button used next to inputs */
 .field-button {
   width: 28px;
