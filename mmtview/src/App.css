@@ -543,6 +543,74 @@ button:focus {
   background: transparent;
 }
 
+.test-flow-root-row {
+  /* Match sibling step boxes, but keep the add menu unclipped. */
+  overflow: visible;
+  align-items: flex-start;
+}
+
+.test-flow-root-title {
+  padding-top: 6px;
+  flex: 0 0 4em;
+  width: 4em;
+  min-width: 4em;
+  white-space: nowrap;
+}
+
+.test-flow-root-actions {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: visible;
+  margin-left: auto;
+}
+
+.test-flow-root-toggle,
+.test-flow-root-add {
+  min-width: 28px;
+  min-height: 28px;
+  justify-content: center;
+  padding: 4px;
+  flex-shrink: 0;
+}
+
+.test-flow-root-toggle .codicon,
+.test-flow-root-add .codicon {
+  font-size: 16px;
+}
+
+/* VS Code hosts without `collection` still get a visible layers glyph. */
+.test-flow-root-toggle .codicon-collection:before {
+  content: "\ebd2"; /* codicon-layers */
+}
+
+.action-button.is-pressed {
+  opacity: 1;
+  color: var(--vscode-button-background, #0e639c);
+  background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.31)) !important;
+}
+
+.action-button.is-pressed:hover {
+  background: var(--vscode-toolbar-hoverBackground, rgba(90, 93, 94, 0.45)) !important;
+}
+
+.test-flow-add-menu {
+  position: fixed;
+  z-index: 1000;
+  background: var(--vscode-editorWidget-background, #232323);
+  border: 1px solid var(--vscode-editorWidget-border, #333);
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  min-width: 200px;
+  max-height: min(360px, 70vh);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 .tree-run-button {
   padding: 6px;
   flex-shrink: 0;
