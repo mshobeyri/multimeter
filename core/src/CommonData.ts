@@ -79,8 +79,7 @@ export const typeOptions = [
   { value: "env", label: "Environment" },
   { value: "loadtest", label: "Load Test" },
   { value: "doc", label: "Document" },
-  { value: "server", label: "Server" },
-  { value: "report", label: "Report" }
+  { value: "server", label: "Server" }
 ];
 
 export interface MMTFile {
