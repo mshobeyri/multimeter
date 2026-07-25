@@ -74,12 +74,12 @@ export const jsonTypes = [
 
 export const typeOptions = [
   { value: "api", label: "API" },
-  { value: "env", label: "Environment" },
   { value: "test", label: "Test" },
   { value: "suite", label: "Suite" },
+  { value: "env", label: "Environment" },
   { value: "loadtest", label: "Load Test" },
-  { value: "doc", label: "Documentation" },
-  { value: "server", label: "Mock Server" },
+  { value: "doc", label: "Document" },
+  { value: "server", label: "Server" },
   { value: "report", label: "Report" }
 ];
 

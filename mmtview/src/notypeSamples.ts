@@ -155,11 +155,11 @@ sources:
   },
   {
     type: "server",
-    title: "Mock server",
+    title: "Server",
     description: "Serve canned responses for local development.",
     codicon: "server",
     content: `type: server
-title: Mock server
+title: Server
 port: 9099
 cors: true
 endpoints:

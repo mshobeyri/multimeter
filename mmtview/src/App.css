@@ -1835,7 +1835,7 @@ select.method-select:focus-visible {
   color: var(--vscode-foreground, #d4d4d4);
   cursor: pointer;
   font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
-  transition: border-color 0.12s ease, transform 0.12s ease;
+  transition: transform 0.12s ease;
   outline: none;
 }
 
@@ -1843,14 +1843,13 @@ select.method-select:focus-visible {
 .notype-type-icon-btn:focus {
   background: transparent !important;
   background-color: transparent !important;
-  border-color: color-mix(in srgb, var(--notype-type-color) 40%, transparent);
+  border-color: transparent;
   color: var(--vscode-foreground, #d4d4d4);
   transform: translateY(-1px);
 }
 
 .notype-type-icon-btn:focus-visible {
-  outline: 1px solid var(--notype-type-color);
-  outline-offset: 2px;
+  outline: none;
 }
 
 .notype-type-icon-glyph {
@@ -1863,6 +1862,22 @@ select.method-select:focus-visible {
   color: var(--notype-type-color);
   background: transparent;
   border: 1px solid var(--notype-type-color);
+  transition: box-shadow 0.15s ease, filter 0.15s ease;
+}
+
+.notype-type-icon-btn:hover .notype-type-icon-glyph,
+.notype-type-icon-btn:focus .notype-type-icon-glyph {
+  box-shadow:
+    0 0 10px color-mix(in srgb, var(--notype-type-color) 65%, transparent),
+    0 0 22px color-mix(in srgb, var(--notype-type-color) 35%, transparent);
+  filter: brightness(1.08);
+}
+
+.notype-type-icon-btn:focus-visible .notype-type-icon-glyph {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--notype-type-color) 45%, transparent),
+    0 0 12px color-mix(in srgb, var(--notype-type-color) 55%, transparent),
+    0 0 24px color-mix(in srgb, var(--notype-type-color) 30%, transparent);
 }
 
 .notype-type-icon-glyph .codicon {
@@ -1870,14 +1885,15 @@ select.method-select:focus-visible {
 }
 
 .notype-type-icon-label {
-  font-size: 11px;
-  line-height: 1.2;
+  font-size: 9.5px;
+  line-height: 1.15;
   text-align: center;
   color: var(--vscode-descriptionForeground, #9d9d9d);
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  white-space: normal;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 .notype-type-icon-btn:hover .notype-type-icon-label {
