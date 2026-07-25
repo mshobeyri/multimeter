@@ -774,6 +774,31 @@ button:focus {
   overflow: hidden;
 }
 
+.label.api-body-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  overflow: visible;
+}
+
+.api-body-yaml-encoded {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: normal;
+  font-size: calc(var(--vscode-font-size, 13px) * 0.95);
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.api-body-yaml-encoded input {
+  margin: 0;
+  cursor: pointer;
+}
+
 .label-disabled {
   color: var(--vscode-disabledForeground, #666666);
   opacity: 0.6;

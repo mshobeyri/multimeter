@@ -72,6 +72,44 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
     }
   }, [data.body, reqFormat]);
 
+  /** Structured YAML body (object) vs plain text string in the file. */
+  const bodyYamlEncoded =
+    data.body != null &&
+    data.body !== "" &&
+    typeof data.body !== "string";
+
+  const setBodyYamlEncoded = useCallback((enabled: boolean) => {
+    if (enabled === bodyYamlEncoded) {
+      return;
+    }
+    const asText =
+      typeof data.body === "string"
+        ? data.body
+        : formatBody(reqFormat, data.body ?? "");
+    if (enabled) {
+      const packed = formattedBodyToYamlObject(reqFormat, asText);
+      if (packed === null || packed === undefined) {
+        return;
+      }
+      onChange({ ...data, body: packed });
+      return;
+    }
+    onChange({ ...data, body: asText });
+  }, [bodyYamlEncoded, data, onChange, reqFormat]);
+
+  const applyBodyEdit = useCallback((val: string) => {
+    setFormattedBody(val);
+    if (bodyYamlEncoded) {
+      const packed = formattedBodyToYamlObject(reqFormat, val);
+      if (packed === null || packed === undefined) {
+        return;
+      }
+      onChange({ ...data, body: packed });
+      return;
+    }
+    onChange({ ...data, body: val });
+  }, [bodyYamlEncoded, data, onChange, reqFormat]);
+
   // Only call onChange if url value actually changed
   const handleUrlChange = useCallback(
     (newUrl: string) => {
@@ -522,7 +560,22 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
       {/* Only show body editor if method is not get and protocol is not graphql/grpc */}
       {effectiveProtocol !== "graphql" && effectiveProtocol !== "grpc" && (effectiveProtocol === "ws" || !data.method || (typeof data.method === "string" && data.method.toLowerCase() !== "get")) && (
         <>
-          <div className="label">Body</div>
+          <div className="label api-body-label">
+            <span>Body</span>
+            {reqFormat !== "binary" && (
+              <label
+                className="api-body-yaml-encoded"
+                title="Store body as structured YAML instead of a text block"
+              >
+                <input
+                  type="checkbox"
+                  checked={bodyYamlEncoded}
+                  onChange={(e) => setBodyYamlEncoded(e.target.checked)}
+                />
+                YAML-encoded
+              </label>
+            )}
+          </div>
           <div style={{ padding: "5px", position: "relative" }}>
             {reqFormat === "binary" ? (
               <FilePickerInput
@@ -538,13 +591,7 @@ const InterfaceEditor: React.FC<InterfaceEditorProps> = ({ data, onChange }) => 
                 value={formattedBody === null ? "" : formattedBody}
                 format={reqFormat}
                 mode="appliable"
-                onChange={val => {
-                  setFormattedBody(val);
-                  const yamlObj = formattedBodyToYamlObject(reqFormat, val);
-                  if (yamlObj !== null) {
-                    onChange({ ...data, body: yamlObj });
-                  }
-                }}
+                onChange={applyBodyEdit}
               />
             )}
           </div>
