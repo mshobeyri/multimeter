@@ -1,3 +1,7 @@
+import { isErrorLikeRed, toMonacoHex } from './monacoColors';
+
+export { isErrorLikeRed, toMonacoHex } from './monacoColors';
+
 export const FIXED_BG_THEME = "fixed-bg-theme";
 
 export type MmtTokenColors = {
@@ -43,7 +47,29 @@ const FALLBACK_LIGHT: MmtTokenColors = {
 };
 
 const cssVar = (name: string, fallback: string) =>
-  getComputedStyle(document.documentElement).getPropertyValue(name)?.trim() || fallback;
+  toMonacoHex(
+    getComputedStyle(document.documentElement).getPropertyValue(name),
+    fallback,
+  );
+
+function selectionBackground(isLight: boolean): string {
+  const fallback = isLight ? "#ADD6FF" : "#264F78";
+  const hex = cssVar("--vscode-editor-selectionBackground", fallback);
+  return isErrorLikeRed(hex) ? fallback : hex;
+}
+
+function inactiveSelectionBackground(isLight: boolean): string {
+  const fallback = isLight ? "#E5EBF1" : "#3A3D41";
+  const hex = cssVar("--vscode-editor-inactiveSelectionBackground", fallback);
+  return isErrorLikeRed(hex) ? fallback : hex;
+}
+
+/** Current-line fill from the VS Code theme; never accept error-red parses. */
+function lineHighlightBackground(isLight: boolean): string {
+  const fallback = isLight ? "#EEEEEE" : "#2A2D2E";
+  const hex = cssVar("--vscode-editor-lineHighlightBackground", fallback);
+  return isErrorLikeRed(hex) ? fallback : hex;
+}
 
 const isDarkTheme = () => {
   const bgColor = cssVar("--vscode-editor-background", "#1e1e1e");
@@ -187,14 +213,15 @@ function buildThemeDefinition(monaco: any, themeName: string) {
 
       "editorCursor.foreground": cssVar("--vscode-editorCursor-foreground", "#aeafad"),
 
-      "editor.selectionBackground": cssVar("--vscode-editor-selectionBackground", "#264f78"),
-      "editor.selectionForeground": cssVar("--vscode-editor-selectionForeground", "#ffffff"),
-      "editor.inactiveSelectionBackground": cssVar("--vscode-editor-inactiveSelectionBackground", "#264f78"),
-      // Never draw Monaco's active-line chrome. Some themes use a strong
-      // pink/red line highlight; combined with token decorations it reads as a
-      // random "red bar" on lines with <<i:...>> / markers. Match VS Code's
-      // usual look by relying on selection + gutter only.
-      "editor.lineHighlightBackground": "#00000000",
+      // Selection must be Monaco-safe hex. Never set selectionForeground —
+      // forcing it makes selections look broken, and bad CSS-var parses have
+      // shown up as intermittent bright-red selections.
+      "editor.selectionBackground": selectionBackground(isLight),
+      "editor.inactiveSelectionBackground": inactiveSelectionBackground(isLight),
+      // Current line from the active VS Code theme (hex-normalized). Keep the
+      // border off — Monaco's lineHighlightBorder is what used to draw the
+      // harsh red/colored box around the line.
+      "editor.lineHighlightBackground": lineHighlightBackground(isLight),
       "editor.lineHighlightBorder": "#00000000",
       "editor.foldBackground": "#00000000",
 
