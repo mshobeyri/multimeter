@@ -15,6 +15,8 @@ import {
   modifiedInputKeysLabel,
 } from "./testUiRefresh";
 import TabBar from "../components/TabBar";
+import PanelRunHeader, { HeaderAction } from "../components/PanelRunHeader";
+import PanelEditHeader from "../components/PanelEditHeader";
 
 interface TestPanelProps {
   content: string;
@@ -286,42 +288,28 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
           >
             <div className="api-swipe-page api-swipe-page--test">
               <div style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden", flexDirection: 'column' }}>
-                <div className="api-edit-header">
-                  <div className="tab-bar tab-bar-single" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div className="tab-button active" style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span className="codicon codicon-beaker" aria-hidden />
-                      {test.title || 'Test'}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <button
-                        className="action-button api-edit-launcher"
+                <PanelRunHeader
+                  icon="beaker"
+                  title={test.title || 'Test'}
+                  actions={
+                    <>
+                      <HeaderAction
+                        icon="type-hierarchy-sub"
+                        label="Flow chart"
                         onClick={() => setPage('flow')}
-                        title="Flow chart"
-                        type="button"
-                      >
-                        <span className="codicon codicon-type-hierarchy-sub" aria-hidden />
-                        <span className="api-edit-launcher-text">Flow chart</span>
-                      </button>
+                      />
                       {onSaveAsMmt ? (
-                        <button
-                          className="action-button api-edit-launcher"
+                        <HeaderAction
+                          icon="save-as"
+                          label="Save as MMT"
                           onClick={() => onSaveAsMmt(test)}
-                          title="Save as MMT"
-                          type="button"
-                        >
-                          <span className="codicon codicon-save-as" aria-hidden />
-                          <span className="api-edit-launcher-text">Save as MMT</span>
-                        </button>
+                        />
                       ) : (
-                        <button
-                          className="action-button api-edit-launcher"
+                        <HeaderAction
+                          icon="edit"
+                          label="Edit Test"
                           onClick={() => setPage('edit')}
-                          title="Edit Test"
-                          type="button"
-                        >
-                          <span className="codicon codicon-edit" aria-hidden />
-                          <span className="api-edit-launcher-text">Edit Test</span>
-                        </button>
+                        />
                       )}
                       {isTestModified && (
                         <UnsavedChangesWarning
@@ -332,9 +320,9 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
                           onReset={handleWarningReset}
                         />
                       )}
-                    </div>
-                  </div>
-                </div>
+                    </>
+                  }
+                />
                 <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                   <TestTest
                     testData={test}
@@ -346,21 +334,13 @@ const TestPanel: React.FC<TestPanelProps> = ({ content, setContent, parseTest = 
             </div>
 
             <div className="api-swipe-page api-swipe-page--edit">
-              <div className="api-edit-header">
-                <div className="api-edit-header-row">
-                  <button
-                    className="action-button"
-                    onClick={() => setPage('test')}
-                    title="Back to Test"
-                    type="button"
-                  >
-                    <span className="codicon codicon-arrow-left" aria-hidden />
-                  </button>
-                  <div className="api-edit-title">Edit Test</div>
-                </div>
-
+              <PanelEditHeader
+                title="Edit Test"
+                onBack={() => setPage('test')}
+                backTitle="Back to Test"
+              >
                 <TabBar tabs={TEST_EDIT_TABS} value={tab} onChange={setTab} />
-              </div>
+              </PanelEditHeader>
 
               <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
                 {!isReadOnly && tab === "overview" && (

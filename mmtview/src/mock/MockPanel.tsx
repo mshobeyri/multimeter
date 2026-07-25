@@ -10,6 +10,8 @@ import { canonicalizeMockYaml } from "./mockYaml";
 import { methodTextColor } from "../shared/themeAccent";
 import TabBar from "../components/TabBar";
 import RunStopToggle from "../components/RunStopToggle";
+import PanelRunHeader, { HeaderAction } from "../components/PanelRunHeader";
+import PanelEditHeader from "../components/PanelEditHeader";
 
 interface MockPanelProps {
   content: string;
@@ -131,27 +133,18 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
             {/* ── Run page ── */}
             <div className="api-swipe-page api-swipe-page--test">
               <div style={{ flex: 1, minHeight: 0, display: "flex", overflow: "hidden", flexDirection: "column" }}>
-                <div className="api-edit-header">
-                  <div className="tab-bar tab-bar-single" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div className="tab-button active" style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 6, borderBottom: 'none' }}>
-                      <span
-                        className="codicon codicon-server"
-                        aria-hidden
-                        style={{ color: running ? '#3fb950' : undefined, transition: 'color 0.2s' }}
-                      />
-                      {mockData.title || 'Server'}
-                    </div>
-                    <button
-                      className="action-button api-edit-launcher"
+                <PanelRunHeader
+                  icon="server"
+                  title={mockData.title || 'Server'}
+                  iconStyle={{ color: running ? '#3fb950' : undefined, transition: 'color 0.2s' }}
+                  actions={
+                    <HeaderAction
+                      icon="edit"
+                      label="Edit Mock"
                       onClick={() => setPage('edit')}
-                      title="Edit Mock"
-                      type="button"
-                    >
-                      <span className="codicon codicon-edit" aria-hidden />
-                      <span className="api-edit-launcher-text">Edit Mock</span>
-                    </button>
-                  </div>
-                </div>
+                    />
+                  }
+                />
                 <div className="run-action-bar">
                   <RunStopToggle
                     running={running}
@@ -237,21 +230,13 @@ const MockPanel: React.FC<MockPanelProps> = ({ content, setContent }) => {
 
             {/* ── Edit page (tabs: Overview / Server / Endpoints) ── */}
             <div className="api-swipe-page api-swipe-page--edit">
-              <div className="api-edit-header">
-                <div className="api-edit-header-row">
-                  <button
-                    className="action-button"
-                    onClick={() => setPage('test')}
-                    title="Back to Mock"
-                    type="button"
-                  >
-                    <span className="codicon codicon-arrow-left" aria-hidden />
-                  </button>
-                  <div className="api-edit-title">Edit Mock</div>
-                </div>
-
+              <PanelEditHeader
+                title="Edit Mock"
+                onBack={() => setPage('test')}
+                backTitle="Back to Mock"
+              >
                 <TabBar tabs={MOCK_EDIT_TABS} value={tab} onChange={setTab} />
-              </div>
+              </PanelEditHeader>
 
               <div style={{ flex: 1, minHeight: 0, overflow: "auto" }}>
                 {tab === 'overview' && (

@@ -5,6 +5,8 @@ import SuiteTest, { SuiteFlowchartState } from './test/SuiteTest';
 import { parseYaml } from 'mmt-core/markupConvertor';
 import { FlowchartView } from '../flowchart';
 import { FileContext } from '../fileContext';
+import PanelRunHeader, { HeaderAction } from '../components/PanelRunHeader';
+import PanelEditHeader from '../components/PanelEditHeader';
 
 interface SuitePanelProps {
   content: string;
@@ -43,35 +45,25 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
           >
             <div className="api-swipe-page api-swipe-page--test">
               <div style={{ flex: 1, minHeight: 0, display: 'flex', minWidth: 0, overflow: 'hidden', flexDirection: 'column' }}>
-                <div className="api-edit-header">
-                  <div className="tab-bar tab-bar-single" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div className="tab-button active" style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span className="codicon codicon-layers" aria-hidden />
-                      {suiteTitle}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <button
-                        className="action-button api-edit-launcher"
+                <PanelRunHeader
+                  icon="layers"
+                  title={suiteTitle}
+                  actions={
+                    <>
+                      <HeaderAction
+                        icon="type-hierarchy-sub"
+                        label="Flow chart"
                         onClick={() => setPage('flow')}
-                        title="Flow chart"
-                        type="button"
                         disabled={Boolean(flowchartState?.noItems)}
-                      >
-                        <span className="codicon codicon-type-hierarchy-sub" aria-hidden />
-                        <span className="api-edit-launcher-text">Flow chart</span>
-                      </button>
-                      <button
-                        className="action-button api-edit-launcher"
+                      />
+                      <HeaderAction
+                        icon="edit"
+                        label="Edit Suite"
                         onClick={() => setPage('edit')}
-                        title="Edit Suite"
-                        type="button"
-                      >
-                        <span className="codicon codicon-edit" aria-hidden />
-                        <span className="api-edit-launcher-text">Edit Suite</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                      />
+                    </>
+                  }
+                />
                 <SuiteTest
                   content={content}
                   onFlowchartStateChange={setFlowchartState}
@@ -80,19 +72,11 @@ const SuitePanel: React.FC<SuitePanelProps> = ({ content, setContent }) => {
             </div>
 
             <div className="api-swipe-page api-swipe-page--edit">
-              <div className="api-edit-header">
-                <div className="api-edit-header-row">
-                  <button
-                    className="action-button"
-                    onClick={() => setPage('test')}
-                    title="Back to Test"
-                    type="button"
-                  >
-                    <span className="codicon codicon-arrow-left" aria-hidden />
-                  </button>
-                  <div className="api-edit-title">Edit Suite</div>
-                </div>
-              </div>
+              <PanelEditHeader
+                title="Edit Suite"
+                onBack={() => setPage('test')}
+                backTitle="Back to Test"
+              />
 
               <SuiteEdit content={content} setContent={setContent} />
             </div>

@@ -13,6 +13,8 @@ import { useResolvedYamlContent } from "../useResolvedYamlContent";
 import { showYamlUiConflictDialog } from "../vsAPI";
 import TabBar from "../components/TabBar";
 import PrimaryButton from "../components/PrimaryButton";
+import PanelEditHeader from "../components/PanelEditHeader";
+import { HeaderAction } from "../components/PanelRunHeader";
 
 const LAST_API_TAB_KEY = "mmtview:api:lastTab";
 const LAST_API_PAGE_KEY = "mmtview:api:lastPage";
@@ -318,15 +320,11 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
                   onRequestReset={handleRequestReset}
                   rightOfUrlButton={
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <button
-                        className="action-button"
+                      <HeaderAction
+                        icon="edit"
+                        label="Edit API"
                         onClick={() => setPage('edit')}
-                        title="Edit API"
-                        type="button"
-                      >
-                        <span className="codicon codicon-edit" aria-hidden />
-                        <span className="api-edit-launcher-text">Edit API</span>
-                      </button>
+                      />
                       {isTestModified && (
                         <UnsavedChangesWarning
                           originalYaml={appliedContent}
@@ -342,20 +340,13 @@ const APIs: React.FC<APIsProps> = ({ content, setContent }) => {
             </div>
 
             <div className="api-swipe-page api-swipe-page--edit">
-              <div className="api-edit-header">
-                <div className="api-edit-header-row">
-                  <button
-                    className="action-button"
-                    onClick={() => setPage('test')}
-                    title="Back to Test"
-                    type="button"
-                  >
-                    <span className="codicon codicon-arrow-left" aria-hidden />
-                  </button>
-                  <div className="api-edit-title">Edit API</div>
-                </div>
+              <PanelEditHeader
+                title="Edit API"
+                onBack={() => setPage('test')}
+                backTitle="Back to Test"
+              >
                 <TabBar tabs={API_EDIT_TABS} value={tab} onChange={setTab} />
-              </div>
+              </PanelEditHeader>
 
               <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
                 {tab === 'overview' && <APIOverview api={api} update={update} />}

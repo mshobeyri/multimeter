@@ -4,6 +4,8 @@ import SuiteTest, { SuiteFlowchartState } from '../suite/test/SuiteTest';
 import LoadTestEdit from './LoadTestEdit';
 import { FlowchartView } from '../flowchart';
 import { FileContext } from '../fileContext';
+import PanelRunHeader, { HeaderAction } from '../components/PanelRunHeader';
+import PanelEditHeader from '../components/PanelEditHeader';
 
 interface LoadTestPanelProps {
   content: string;
@@ -43,53 +45,35 @@ const LoadTestPanel: React.FC<LoadTestPanelProps> = ({ content, setContent }) =>
           >
             <div className="api-swipe-page api-swipe-page--test">
               <div style={{ flex: 1, minHeight: 0, display: 'flex', minWidth: 0, overflow: 'hidden', flexDirection: 'column' }}>
-                <div className="api-edit-header">
-                  <div className="tab-bar tab-bar-single" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div className="tab-button active" style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span className="codicon codicon-dashboard" aria-hidden />
-                      {loadTestTitle}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <button
-                        className="action-button api-edit-launcher"
+                <PanelRunHeader
+                  icon="dashboard"
+                  title={loadTestTitle}
+                  actions={
+                    <>
+                      <HeaderAction
+                        icon="type-hierarchy-sub"
+                        label="Flow chart"
                         onClick={() => setPage('flow')}
-                        title="Flow chart"
-                        type="button"
                         disabled={Boolean(flowchartState?.noItems)}
-                      >
-                        <span className="codicon codicon-type-hierarchy-sub" aria-hidden />
-                        <span className="api-edit-launcher-text">Flow chart</span>
-                      </button>
-                      <button
-                        className="action-button api-edit-launcher"
+                      />
+                      <HeaderAction
+                        icon="edit"
+                        label="Edit Load Test"
                         onClick={() => setPage('edit')}
-                        title="Edit Load Test"
-                        type="button"
-                      >
-                        <span className="codicon codicon-edit" aria-hidden />
-                        <span className="api-edit-launcher-text">Edit Load Test</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                      />
+                    </>
+                  }
+                />
                 <SuiteTest content={content} mode="loadtest" onFlowchartStateChange={setFlowchartState} />
               </div>
             </div>
 
             <div className="api-swipe-page api-swipe-page--edit">
-              <div className="api-edit-header">
-                <div className="api-edit-header-row">
-                  <button
-                    className="action-button"
-                    onClick={() => setPage('test')}
-                    title="Back to Load Test"
-                    type="button"
-                  >
-                    <span className="codicon codicon-arrow-left" aria-hidden />
-                  </button>
-                  <div className="api-edit-title">Edit Load Test</div>
-                </div>
-              </div>
+              <PanelEditHeader
+                title="Edit Load Test"
+                onBack={() => setPage('test')}
+                backTitle="Back to Load Test"
+              />
 
               <LoadTestEdit content={content} setContent={setContent} />
             </div>

@@ -930,6 +930,43 @@ button:focus {
   gap: 8px;
 }
 
+.panel-run-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.panel-run-header-title {
+  cursor: default;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.panel-run-header-title-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.panel-run-header-subtitle {
+  opacity: 0.7;
+  font-size: 0.85em;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+.panel-run-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .api-edit-header {
   display: flex;
   flex-direction: column;
@@ -968,6 +1005,10 @@ button:focus {
 
 .api-edit-header-row .action-button .codicon {
   font-size: calc(var(--vscode-font-size, 13px) * 2);
+}
+
+.panel-edit-header-trailing {
+  margin-left: auto;
 }
 
 /* Edit launcher: use default styling (no underline, inherit color) */

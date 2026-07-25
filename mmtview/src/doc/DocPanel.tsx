@@ -7,6 +7,8 @@ import DocSource from './DocSource';
 import DocViewHTML from './DocViewHTML';
 import DocViewMarkdown from './DocViewMarkdown';
 import TabBar from '../components/TabBar';
+import PanelRunHeader, { HeaderAction } from '../components/PanelRunHeader';
+import PanelEditHeader from '../components/PanelEditHeader';
 
 
 const LAST_DOC_TAB_KEY = "mmtview:doc:lastTab";
@@ -99,25 +101,23 @@ const Doc: React.FC<DocProps> = ({ content, setContent }) => {
             {/* ── View page (HTML / Markdown preview + Edit button) ── */}
             <div className="api-swipe-page api-swipe-page--test">
               <div style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-                <div className="api-edit-header">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <PanelRunHeader
+                  leading={
                     <TabBar
                       tabs={DOC_VIEW_TABS}
                       value={viewTab}
                       onChange={setViewTab}
                       collapseLabels={false}
                     />
-                    <button
-                      className="action-button api-edit-launcher"
+                  }
+                  actions={
+                    <HeaderAction
+                      icon="edit"
+                      label="Edit Doc"
                       onClick={() => setPage('edit')}
-                      title="Edit Doc"
-                      type="button"
-                    >
-                      <span className="codicon codicon-edit" aria-hidden />
-                      <span className="api-edit-launcher-text">Edit Doc</span>
-                    </button>
-                  </div>
-                </div>
+                    />
+                  }
+                />
                 <div style={{ flex: 1, minHeight: 0, display: 'flex', width: '100%', minWidth: 0 }}>
                   {viewTab === "html" && <DocViewHTML doc={doc} />}
                   {viewTab === "md" && <DocViewMarkdown doc={doc} />}
@@ -127,20 +127,13 @@ const Doc: React.FC<DocProps> = ({ content, setContent }) => {
 
             {/* ── Edit page (tabs: Overview / Source / HTML / Markdown) ── */}
             <div className="api-swipe-page api-swipe-page--edit">
-              <div className="api-edit-header">
-                <div className="api-edit-header-row">
-                  <button
-                    className="action-button"
-                    onClick={() => setPage('view')}
-                    title="Back to View"
-                    type="button"
-                  >
-                    <span className="codicon codicon-arrow-left" aria-hidden />
-                  </button>
-                  <div className="api-edit-title">Edit Doc</div>
-                </div>
+              <PanelEditHeader
+                title="Edit Doc"
+                onBack={() => setPage('view')}
+                backTitle="Back to View"
+              >
                 <TabBar tabs={DOC_EDIT_TABS} value={tab} onChange={setTab} />
-              </div>
+              </PanelEditHeader>
 
               <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
                 {tab === "overview" && (

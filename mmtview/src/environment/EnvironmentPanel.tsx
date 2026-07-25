@@ -12,6 +12,8 @@ import { selectFromVariables } from "mmt-core/runConfig";
 import { useResolvedYamlContent } from "../useResolvedYamlContent";
 import TabBar from "../components/TabBar";
 import PrimaryButton from "../components/PrimaryButton";
+import PanelRunHeader, { HeaderAction } from "../components/PanelRunHeader";
+import PanelEditHeader from "../components/PanelEditHeader";
 
 const LAST_ENV_PAGE_KEY = "mmtview:env:lastPage";
 
@@ -346,23 +348,17 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
           >
             <div className="api-swipe-page api-swipe-page--test">
               <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                <div className="api-edit-header">
-                  <div className="tab-bar tab-bar-single" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div className="tab-button active" style={{ cursor: 'default', display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span className="codicon codicon-server-environment" aria-hidden />
-                      Environment
-                    </div>
-                    <button
-                      className="action-button api-edit-launcher"
+                <PanelRunHeader
+                  icon="server-environment"
+                  title="Environment"
+                  actions={
+                    <HeaderAction
+                      icon="edit"
+                      label="Edit Environment"
                       onClick={() => setPage('edit')}
-                      title="Edit Environment"
-                      type="button"
-                    >
-                      <span className="codicon codicon-edit" aria-hidden />
-                      <span className="api-edit-launcher-text">Edit Environment</span>
-                    </button>
-                  </div>
-                </div>
+                    />
+                  }
+                />
                 <div className="run-action-bar">
                   <PrimaryButton icon="refresh" onClick={handleSaveToCache}>
                     Reload
@@ -385,20 +381,13 @@ const EnvironmentPanel: React.FC<EnvironmentPanelProps> = ({ content, setContent
             </div>
 
             <div className="api-swipe-page api-swipe-page--edit">
-              <div className="api-edit-header">
-                <div className="api-edit-header-row">
-                  <button
-                    className="action-button"
-                    onClick={() => setPage('environment')}
-                    title="Back to Environment"
-                    type="button"
-                  >
-                    <span className="codicon codicon-arrow-left" aria-hidden />
-                  </button>
-                  <div className="api-edit-title">Edit Environment</div>
-                </div>
+              <PanelEditHeader
+                title="Edit Environment"
+                onBack={() => setPage('environment')}
+                backTitle="Back to Environment"
+              >
                 <TabBar tabs={ENV_EDIT_TABS} value={editTab} onChange={setEditTab} />
-              </div>
+              </PanelEditHeader>
               <div style={{ flex: 1, minHeight: 0, overflow: 'auto' }}>
                 <EnvironmentEdit content={content} setContent={setContent} tab={editTab} />
               </div>

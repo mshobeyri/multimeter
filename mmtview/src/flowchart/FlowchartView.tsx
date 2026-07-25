@@ -22,6 +22,7 @@ import { SuiteGroup } from '../suite/types';
 import { SuiteTreeNode } from '../suite/test/suiteHierarchy';
 import { useSuiteTestData } from './useSuiteTestData';
 import { buildSingleTestTitleSpecs, buildSuiteTitleSpecs, useFlowchartCallTitles } from './useFlowchartCallTitles';
+import PanelEditHeader from '../components/PanelEditHeader';
 
 export type FlowchartSource =
   | {
@@ -182,31 +183,26 @@ const FlowchartView: React.FC<FlowchartViewProps> = ({ source, onBack, title }) 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      <div className="api-edit-header">
-        <div className="api-edit-header-row">
-          <button
-            className="action-button"
-            onClick={onBack}
-            title="Back"
-            type="button"
-          >
-            <span className="codicon codicon-arrow-left" aria-hidden />
-          </button>
-          <div className="api-edit-title">
+      <PanelEditHeader
+        onBack={onBack}
+        backTitle="Back"
+        title={
+          <>
             <span className="codicon codicon-type-hierarchy-sub" aria-hidden style={{ marginRight: 6 }} />
             {title || 'Flow chart'}
-          </div>
+          </>
+        }
+        trailing={
           <button
-            className="action-button"
+            className="action-button panel-edit-header-trailing"
             onClick={handleRefresh}
             title="Refresh flow chart"
             type="button"
-            style={{ marginLeft: 'auto' }}
           >
             <span className="codicon codicon-refresh" aria-hidden />
           </button>
-        </div>
-      </div>
+        }
+      />
       <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
         <ReactFlowProvider>
           <ReactFlow
