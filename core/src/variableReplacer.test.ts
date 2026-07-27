@@ -1,4 +1,4 @@
-import { replaceInputRefsWithBrace, replaceInputRefsWithNone, replaceAllRefs, normalizeEnvTokens, toTemplateWithEnvVars, toTemplateValueJs, replaceEnvTokensPlain, resolveEnvTokenValues, collectInputRefsFromObject } from './variableReplacer';
+import { replaceInputRefsWithBrace, replaceInputRefsWithNone, replaceAllRefs, normalizeEnvTokens, toTemplateWithEnvVars, toTemplateValueJs, replaceEnvTokensPlain, resolveEnvTokenValues, collectInputRefsFromObject, embedDynamicTokensAsJsInterpolations, replaceDynamicTokensToJsInterpolations } from './variableReplacer';
 
 describe('normalizeEnvTokens', () => {
   it('normalizes <<e:VAR>> to envVariables.VAR', () => {
@@ -269,6 +269,17 @@ describe('variableReplacer', () => {
     expect(out).toEqual({ first: 'h', short: 'he', body: 'value: ell' });
   });
 
+  it('supports open-ended slice accessors on both ends', () => {
+    const defaults = { message: 'hello' } as any;
+    const iface = {
+      tail: '<<i:message[1:]>>',
+      head: '<<i:message[:4]>>',
+      plain: 'value: i:message[:2]'
+    } as any;
+    const out = replaceAllRefs(iface, defaults, {}, {} as any);
+    expect(out).toEqual({ tail: 'ello', head: 'hell', plain: 'value: he' });
+  });
+
   it('keeps accessor replacements as runtime expressions for ${input} placeholders', () => {
     const defaults = { username: '${username}', role: '${role}' } as any;
     const iface = {
@@ -409,5 +420,40 @@ describe('multiple template vars in one string', () => {
       { b: 'Y' },
     );
     expect(result.val).toBe('X-Y-Z');
+  });
+});
+
+describe('embedDynamicTokensAsJsInterpolations', () => {
+  it('converts e: / r: / c: forms (including accessors) to ${...}', () => {
+    expect(replaceDynamicTokensToJsInterpolations('e:HOST'))
+        .toBe('${envVariables.HOST}');
+    expect(replaceDynamicTokensToJsInterpolations('user=<<e:USER[0:2]>>'))
+        .toBe('user=${__mmt_access(envVariables.USER, "[0:2]")}');
+    expect(replaceDynamicTokensToJsInterpolations('r:customToken'))
+        .toBe("${__mmt_random('customToken')}");
+    expect(replaceDynamicTokensToJsInterpolations('c:customNow'))
+        .toBe("${__mmt_current('customNow')}");
+    expect(replaceDynamicTokensToJsInterpolations('<e:HOST> and e:{PORT}'))
+        .toBe('${envVariables.HOST} and ${envVariables.PORT}');
+  });
+
+  it('deep-walks objects and arrays without touching non-strings', () => {
+    const out = embedDynamicTokensAsJsInterpolations({
+      a: 'e:HOST',
+      b: 12,
+      c: true,
+      d: ['<<e:X>>', { nested: 'r:custom' }],
+    });
+    expect(out).toEqual({
+      a: '${envVariables.HOST}',
+      b: 12,
+      c: true,
+      d: ['${envVariables.X}', { nested: "${__mmt_random('custom')}" }],
+    });
+  });
+
+  it('leaves existing ${...} interpolations and plain text alone', () => {
+    expect(replaceDynamicTokensToJsInterpolations('${already} and plain'))
+        .toBe('${already} and plain');
   });
 });

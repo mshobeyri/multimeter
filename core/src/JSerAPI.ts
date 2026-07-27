@@ -4,7 +4,11 @@ import {indentLines, toInputsParams} from './JSerHelper';
 import {contentTypeForFormat, formatBody} from './markupConvertor';
 import {stripOmitFromRequest} from './omitKeyword';
 import {DEFAULT_EXTRACTION_RULES} from './outputExtractor';
-import {replaceAllRefs, toTemplateWithEnvVars} from './variableReplacer';
+import {
+  embedDynamicTokensAsJsInterpolations,
+  replaceAllRefs,
+  toTemplateWithEnvVars,
+} from './variableReplacer';
 
 export interface APIContext {
   api: APIData, name: string, inputs: JSONRecord, envVars: JSONRecord,
@@ -30,12 +34,24 @@ export const apiToJSfunc = async(ctx: APIContext): Promise<string> => {
       replaceAllRefs(ctx.api, paramsAsObj, ctx.inputs, ctx.envVars ?? {});
   replaced = stripOmitFromRequest(replaced);
 
+  const reqFormatForBody = requestFormat(replaced.format);
+  // URLSearchParams percent-encodes the whole value, which would turn leftover
+  // `e:VAR` / `r:` / `c:` tokens into `e%3AVAR` and hide them from later
+  // template rewriting. Convert them to `${...}` first (JSON/XML keep tokens
+  // readable without this).
+  if (reqFormatForBody === 'urlencoded' && replaced.body != null) {
+    replaced = {
+      ...replaced,
+      body: embedDynamicTokensAsJsInterpolations(replaced.body),
+    };
+  }
+
   let formattedBody =
-      formatBody(requestFormat(replaced.format), replaced.body || '', false);
+      formatBody(reqFormatForBody, replaced.body || '', false);
   // Replace placeholders with JSON.stringify(var) so non-strings are not quoted
   try {
     if (typeof formattedBody === 'string') {
-      const reqFormat = requestFormat(replaced.format);
+      const reqFormat = reqFormatForBody;
       if (reqFormat === 'urlencoded') {
         // URLSearchParams encodes `${name}` → %24%7Bname%7D, which would be
         // sent literally. Restore JS interpolations that re-encode at runtime.
@@ -237,12 +253,17 @@ ${isGraphQL ? `
  * After urlencoded formatting, `${expr}` becomes `%24%7Bexpr%7D` and would be
  * sent as a literal. Turn those back into runtime interpolations that encode
  * the resolved value (same idea as the JSON `"${name}"` rewrite above).
+ *
+ * URLSearchParams encodes spaces as `+` (not `%20`). decodeURIComponent does
+ * not treat `+` as space, so expressions like `__mmt_access(x, '[1:2]')`
+ * would become `__mmt_access(x,+'[1:2]')` (unary-plus → NaN) and silently
+ * drop the slice accessor. Normalize `+` → `%20` before decoding.
  */
 export function restoreUrlEncodedJsPlaceholders(encodedBody: string): string {
   return String(encodedBody ?? '').replace(/%24%7B([\s\S]*?)%7D/gi, (_match, innerEnc: string) => {
     let inner: string;
     try {
-      inner = decodeURIComponent(String(innerEnc || ''));
+      inner = decodeURIComponent(String(innerEnc || '').replace(/\+/g, '%20'));
     } catch {
       return _match;
     }

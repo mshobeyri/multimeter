@@ -24,7 +24,7 @@ import {TestData} from './TestData';
 
 export const TOKEN_NAME_RE = '[A-Za-z_][A-Za-z0-9_\\-]*';
 export const ACCESSOR_SEGMENT_RE =
-    '(?:\\.[A-Za-z_][A-Za-z0-9_]*|\\[(?:-?\\d+(?::-?\\d*)?|[A-Za-z_][A-Za-z0-9_]*)\\])';
+    '(?:\\.[A-Za-z_][A-Za-z0-9_]*|\\[(?:-?\\d+(?::-?\\d*)?|:-?\\d*|[A-Za-z_][A-Za-z0-9_]*)\\])';
 export const ACCESSOR_PATH_RE = `${ACCESSOR_SEGMENT_RE}*`;
 const DYNAMIC_KEY_RE = `[A-Za-z0-9_]+:${TOKEN_NAME_RE}${ACCESSOR_PATH_RE}`;
 
@@ -167,8 +167,10 @@ export const replaceEnvTokensPlain = (s: string): string =>
 
 /**
  * Replace all env-token syntaxes in `s` with `${...}` JS interpolations.
+ * Exported so urlencoded body encoding can turn `e:` tokens into runtime
+ * placeholders *before* percent-encoding (JSON/XML keep them readable).
  */
-const replaceEnvTokensToJs = (s: string): string =>
+export const replaceEnvTokensToJs = (s: string): string =>
     replaceTokenForms(
         s, 'e',
         (name, accessor) => '${' +
@@ -178,7 +180,7 @@ const replaceEnvTokensToJs = (s: string): string =>
 /**
  * Replace all r: / c: token syntaxes in `s` with runtime call expressions.
  */
-const replaceRandCurrentTokensToJs = (s: string): string => {
+export const replaceRandCurrentTokensToJs = (s: string): string => {
   let out = replaceTokenForms(
       s, 'r',
       (name, accessor) => '${' +
@@ -191,6 +193,35 @@ const replaceRandCurrentTokensToJs = (s: string): string => {
       {includeSingleAngles: false, includeBraceForm: false});
   return out;
 };
+
+/**
+ * Convert remaining `e:` / `r:` / `c:` tokens in a string to `${...}`
+ * interpolations (without wrapping in backticks).
+ */
+export const replaceDynamicTokensToJsInterpolations = (s: string): string => {
+  let out = replaceEnvTokensToJs(String(s ?? ''));
+  out = replaceRandCurrentTokensToJs(out);
+  return out;
+};
+
+/**
+ * Deep-walk a value and convert remaining `e:` / `r:` / `c:` tokens in strings
+ * to `${...}` interpolations. Used before urlencoded encoding so dynamic refs
+ * survive URLSearchParams percent-encoding the same way JSON/XML bodies do.
+ */
+export function embedDynamicTokensAsJsInterpolations(value: any): any {
+  if (typeof value === 'string') {
+    return replaceDynamicTokensToJsInterpolations(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map(embedDynamicTokensAsJsInterpolations);
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+        Object.entries(value).map(([k, v]) => [k, embedDynamicTokensAsJsInterpolations(v)]));
+  }
+  return value;
+}
 
 /**
  * Convert a string value to a JS expression, resolving e:, r:, and c: tokens.

@@ -1,7 +1,7 @@
 import {yamlToAPI} from './apiParsePack';
 import {validateAuth} from './apiParsePack';
 import {apiToJSfunc, rootTestToJsfunc, testToJsfunc,} from './JSer';
-import {APIContext} from './JSerAPI';
+import {APIContext, restoreUrlEncodedJsPlaceholders} from './JSerAPI';
 import {setFileLoader} from './JSerFileLoader';
 import {importsToJsfunc} from './JSerImports';
 import {runJSCode} from './jsRunner';
@@ -1766,9 +1766,62 @@ describe('body inputs numeric/boolean templating', () => {
   });
 });
 
+describe('restoreUrlEncodedJsPlaceholders', () => {
+  it('restores simple ${name} placeholders', () => {
+    const encoded = new URLSearchParams({a: '${iii}', b: 'plain'}).toString();
+    const out = restoreUrlEncodedJsPlaceholders(encoded);
+    expect(out).toContain("encodeURIComponent(String(iii ?? ''))");
+    expect(out).toContain('b=plain');
+    expect(out).not.toMatch(/%24%7Biii%7D/i);
+  });
+
+  it('restores spaces encoded as + inside accessor expressions', () => {
+    const encoded = new URLSearchParams({
+      part: "${__mmt_access(xxx, '[1:2]')}",
+    }).toString();
+    expect(encoded).toContain('+'); // URLSearchParams uses + for spaces
+    const out = restoreUrlEncodedJsPlaceholders(encoded);
+    expect(out).toContain("__mmt_access(xxx, '[1:2]')");
+    expect(out).not.toContain("__mmt_access(xxx,+'[1:2]')");
+  });
+
+  it('restores env accessor expressions that use double-quoted accessors', () => {
+    const encoded = new URLSearchParams({
+      short: '${__mmt_access(envVariables.USERNAME, "[0:3]")}',
+    }).toString();
+    const out = restoreUrlEncodedJsPlaceholders(encoded);
+    expect(out).toContain('__mmt_access(envVariables.USERNAME, "[0:3]")');
+    expect(out).not.toContain(',+"[');
+  });
+
+  it('restores multiple placeholders in one field and across fields', () => {
+    const encoded = new URLSearchParams({
+      path: '/u/${userId}/p/${postId}',
+      flag: '${on}',
+    }).toString();
+    const out = restoreUrlEncodedJsPlaceholders(encoded);
+    expect(out).toContain("encodeURIComponent(String(userId ?? ''))");
+    expect(out).toContain("encodeURIComponent(String(postId ?? ''))");
+    expect(out).toContain("encodeURIComponent(String(on ?? ''))");
+  });
+
+  it('leaves already-encoded non-placeholder content alone', () => {
+    const encoded = 'note=hello%20world&at=a%40b.com';
+    expect(restoreUrlEncodedJsPlaceholders(encoded)).toBe(encoded);
+  });
+});
+
 describe('urlencoded body inputs (apiToJSfunc)', () => {
+  const toJs = async (yamlLines: string[], envVars: Record<string, any> = {}) =>
+      apiToJSfunc({
+        api: yamlToAPI(yamlLines.join('\n')),
+        name: 'form_api',
+        inputs: {},
+        envVars,
+      } as any);
+
   it('interpolates i: placeholders instead of sending encoded ${name}', async () => {
-    const apiYaml = [
+    const js = await toJs([
       'type: api',
       'protocol: http',
       'method: post',
@@ -1779,18 +1832,14 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       'body:',
       '  xxx: i:iii',
       '  yyy: plain',
-    ].join('\n');
-    const ctx: APIContext =
-        {api: yamlToAPI(apiYaml), name: 'form_api', inputs: {}, envVars: {}} as
-        any;
-    const js = await apiToJSfunc(ctx);
+    ]);
     expect(js).not.toContain('%24%7Biii%7D');
     expect(js).toContain("encodeURIComponent(String(iii ?? ''))");
     expect(js).toContain('yyy=plain');
   });
 
   it('interpolates placeholders embedded in larger urlencoded values', async () => {
-    const apiYaml = [
+    const js = await toJs([
       'type: api',
       'method: post',
       'format: urlencoded',
@@ -1799,13 +1848,350 @@ describe('urlencoded body inputs (apiToJSfunc)', () => {
       '  userId: u1',
       'body:',
       '  path: /users/<<i:userId>>/profile',
-    ].join('\n');
-    const ctx: APIContext =
-        {api: yamlToAPI(apiYaml), name: 'form_api', inputs: {}, envVars: {}} as
-        any;
-    const js = await apiToJSfunc(ctx);
+    ]);
     expect(js).toContain("encodeURIComponent(String(userId ?? ''))");
     expect(js).not.toMatch(/%24%7BuserId%7D/i);
+  });
+
+  it('preserves slice accessors on inputs after urlencoded encoding', async () => {
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'inputs:',
+      '  xxx: hello',
+      'body:',
+      '  part: i:xxx[1:2]',
+    ]);
+    expect(js).toContain("__mmt_access(xxx, '[1:2]')");
+    expect(js).not.toContain("__mmt_access(xxx,+'[1:2]')");
+    expect(js).toContain("encodeURIComponent(String(__mmt_access(xxx, '[1:2]') ?? ''))");
+  });
+
+  it('preserves index and property accessors on inputs', async () => {
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'inputs:',
+      '  xxx: hello',
+      '  user:',
+      '    name: ada',
+      'body:',
+      '  first: i:xxx[0]',
+      '  name: <<i:user.name>>',
+    ]);
+    expect(js).toContain("__mmt_access(xxx, '[0]')");
+    expect(js).toContain("__mmt_access(user, '.name')");
+    expect(js).not.toMatch(/,\+'/);
+  });
+
+  it('preserves open-ended and chained accessors', async () => {
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'inputs:',
+      '  xxx: hello-world',
+      'body:',
+      '  tail: i:xxx[1:]',
+      '  head: i:xxx[:4]',
+    ]);
+    expect(js).toContain("__mmt_access(xxx, '[1:]')");
+    expect(js).toContain("__mmt_access(xxx, '[:4]')");
+    expect(js).not.toMatch(/,\+'/);
+  });
+
+  it('keeps e: tokens as runtime interpolations in urlencoded bodies', async () => {
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'body:',
+      '  user: e:USERNAME',
+      '  short: <<e:USERNAME[0:3]>>',
+    ]);
+    expect(js).toContain("encodeURIComponent(String(envVariables.USERNAME ?? ''))");
+    expect(js).toContain('__mmt_access(envVariables.USERNAME, "[0:3]")');
+    expect(js).not.toMatch(/e%3AUSERNAME/i);
+  });
+
+  it('supports alternate env token forms in urlencoded bodies', async () => {
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'body:',
+      '  a: <e:HOST>',
+      '  b: e:{HOST}',
+      '  c: <<e:HOST>>',
+    ]);
+    expect(js.match(/envVariables\.HOST/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(js).not.toMatch(/e%3AHOST|%3Ce%3AHOST|e%3A%7BHOST/i);
+  });
+
+  it('resolves env-backed input defaults through slice accessors', async () => {
+    // inputs.xxx defaults to e:TOKEN; body uses only a slice of that input.
+    // Both the env link and the accessor must survive urlencoded encoding.
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'inputs:',
+      '  xxx: e:TOKEN',
+      'body:',
+      '  part: i:xxx[1:2]',
+    ]);
+    expect(js).toMatch(/xxx\s*=\s*envVariables\.TOKEN/);
+    expect(js).toContain("__mmt_access(xxx, '[1:2]')");
+    expect(js).not.toContain("__mmt_access(xxx,+'[1:2]')");
+  });
+
+  it('interpolates multiple tokens mixed with static text in one field', async () => {
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'inputs:',
+      '  id: u1',
+      'body:',
+      '  path: /tenants/<<e:TENANT>>/users/<<i:id>>/<<e:TENANT[0]>>',
+    ]);
+    expect(js).toContain("encodeURIComponent(String(envVariables.TENANT ?? ''))");
+    expect(js).toContain("encodeURIComponent(String(id ?? ''))");
+    expect(js).toContain('__mmt_access(envVariables.TENANT, "[0]")');
+    expect(js).not.toMatch(/%24%7B|e%3ATENANT/i);
+  });
+
+  it('keeps unresolved r: / c: tokens as runtime calls (not percent-encoded)', async () => {
+    // Known r:/c: names are baked by replaceAllRefs; unknown names must still
+    // become runtime interpolations instead of r%3A… / c%3A… literals.
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'body:',
+      '  rnd: r:customToken',
+      '  now: c:customNow',
+      '  slice: <<r:customToken[0:2]>>',
+    ]);
+    expect(js).toContain("__mmt_random('customToken')");
+    expect(js).toContain("__mmt_current('customNow')");
+    expect(js).toContain('__mmt_access(__mmt_random(\'customToken\'), "[0:2]")');
+    expect(js).not.toMatch(/r%3AcustomToken|c%3AcustomNow/i);
+  });
+
+  it('still encodes static reserved characters in neighboring fields', async () => {
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: urlencoded',
+      'url: https://example.com/form',
+      'inputs:',
+      '  name: ada',
+      'body:',
+      '  email: a@b.com',
+      '  note: hello world',
+      '  who: i:name',
+    ]);
+    expect(js).toMatch(/email=a%40b\.com/);
+    expect(js).toMatch(/note=hello(\+|%20)world/);
+    expect(js).toContain("encodeURIComponent(String(name ?? ''))");
+  });
+
+  it('does not break json bodies that use the same accessors and env tokens', async () => {
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: json',
+      'url: https://example.com/json',
+      'inputs:',
+      '  xxx: hello',
+      'body:',
+      '  part: i:xxx[1:2]',
+      '  user: e:USERNAME',
+    ]);
+    expect(js).toContain("__mmt_access(xxx, '[1:2]')");
+    expect(js).toContain('${envVariables.USERNAME}');
+    expect(js).not.toContain('encodeURIComponent(String(__mmt_access');
+  });
+
+  it('does not break xml bodies that use input slices and env tokens', async () => {
+    const js = await toJs([
+      'type: api',
+      'method: post',
+      'format: xml',
+      'url: https://example.com/xml',
+      'inputs:',
+      '  xxx: hello',
+      'body:',
+      '  root:',
+      '    part: i:xxx[1:2]',
+      '    user: <<e:USERNAME>>',
+    ]);
+    expect(js).toContain("__mmt_access(xxx, '[1:2]')");
+    expect(js).toContain('${envVariables.USERNAME}');
+    expect(js).not.toContain('encodeURIComponent(String(__mmt_access');
+  });
+});
+
+describe('urlencoded tokens through multilevel imports', () => {
+  // importsToJsfunc → apiToJSfunc always passes envVars: {}. That is the path
+  // where leftover e:/r:/c: tokens used to be percent-encoded away.
+
+  const urlencodedApiYaml = [
+    'type: api',
+    'title: Form Login',
+    'method: post',
+    'format: urlencoded',
+    'url: https://example.com/form',
+    'inputs:',
+    '  token: e:AUTH_TOKEN',
+    'body:',
+    '  part: i:token[1:2]',
+    '  user: e:USERNAME',
+    '  short: <<e:USERNAME[0:3]>>',
+    '  path: /tenants/<<e:TENANT>>/<<i:token[0]>>',
+  ].join('\n');
+
+  function expectUrlencodedTokenJs(js: string) {
+    expect(js).toMatch(/token\s*=\s*envVariables\.AUTH_TOKEN/);
+    expect(js).toContain("__mmt_access(token, '[1:2]')");
+    expect(js).not.toContain("__mmt_access(token,+'[1:2]')");
+    expect(js).toContain("encodeURIComponent(String(__mmt_access(token, '[1:2]') ?? ''))");
+    expect(js).toContain("encodeURIComponent(String(envVariables.USERNAME ?? ''))");
+    expect(js).toContain('__mmt_access(envVariables.USERNAME, "[0:3]")');
+    expect(js).toContain("encodeURIComponent(String(envVariables.TENANT ?? ''))");
+    expect(js).toContain("__mmt_access(token, '[0]')");
+    expect(js).not.toMatch(/%24%7B|e%3AUSERNAME|e%3ATENANT|e%3AAUTH_TOKEN/i);
+  }
+
+  it('preserves accessors and env tokens when API is imported one level deep', async () => {
+    const mock = createTestFileLoaderMock({
+      '/root/main.mmt': [
+        'type: test',
+        'import:',
+        '  form: /root/apis/form.mmt',
+        'steps:',
+        '  - call: form',
+      ].join('\n'),
+      '/root/apis/form.mmt': urlencodedApiYaml,
+    });
+    setFileLoader(mock.fileLoader);
+
+    const bundle = await importsToJsfunc({main: '/root/main.mmt'});
+    // Public names are basename-based (title is display-only).
+    expect(bundle).toContain('const form_ = async');
+    expect(bundle).toContain('const form = form_');
+    expectUrlencodedTokenJs(bundle);
+  });
+
+  it('preserves accessors and env tokens through a two-level import chain', async () => {
+    // root → suite/helper test → urlencoded API
+    const mock = createTestFileLoaderMock({
+      '/project/runner.mmt': [
+        'type: test',
+        'import:',
+        '  flow: /project/tests/flow.mmt',
+        'steps:',
+        '  - call: flow',
+      ].join('\n'),
+      '/project/tests/flow.mmt': [
+        'type: test',
+        'title: Login Flow',
+        'import:',
+        '  form: /project/apis/form.mmt',
+        'steps:',
+        '  - call: form',
+      ].join('\n'),
+      '/project/apis/form.mmt': urlencodedApiYaml,
+    });
+    setFileLoader(mock.fileLoader);
+
+    const bundle = await importsToJsfunc({runner: '/project/runner.mmt'});
+    expect(bundle).toContain('const flow_ = async');
+    expect(bundle).toContain('const form_ = async');
+    expect(bundle).toContain('const form = form_');
+    expectUrlencodedTokenJs(bundle);
+  });
+
+  it('preserves tokens when generating the root test that imports nested form API', async () => {
+    const mock = createTestFileLoaderMock({
+      '/project/tests/flow.mmt': [
+        'type: test',
+        'import:',
+        '  form: +/apis/form.mmt',
+        'steps:',
+        '  - call: form',
+      ].join('\n'),
+      '/project/apis/form.mmt': urlencodedApiYaml,
+    });
+    setFileLoader(mock.fileLoader);
+
+    const js = await rootTestToJsfunc({
+      name: 'runner',
+      test: {
+        import: {flow: '+/tests/flow.mmt'},
+        steps: [{call: 'flow'} as any],
+      } as any,
+      inputs: {},
+      envVars: {},
+      filePath: '/project/runner.mmt',
+      projectRoot: '/project',
+    });
+
+    expect(js).toContain('const flow =');
+    expect(js).toContain('const form =');
+    expectUrlencodedTokenJs(js);
+  });
+
+  it('preserves tokens across three levels (root → mid → leaf test → api)', async () => {
+    const mock = createTestFileLoaderMock({
+      '/project/runner.mmt': [
+        'type: test',
+        'import:',
+        '  suite: /project/tests/suite.mmt',
+        'steps:',
+        '  - call: suite',
+      ].join('\n'),
+      '/project/tests/suite.mmt': [
+        'type: test',
+        'title: Suite',
+        'import:',
+        '  leaf: /project/tests/leaf.mmt',
+        'steps:',
+        '  - call: leaf',
+      ].join('\n'),
+      '/project/tests/leaf.mmt': [
+        'type: test',
+        'title: Leaf',
+        'import:',
+        '  form: /project/apis/form.mmt',
+        'steps:',
+        '  - call: form',
+        '    inputs:',
+        '      token: e:OVERRIDE_TOKEN',
+      ].join('\n'),
+      '/project/apis/form.mmt': urlencodedApiYaml,
+    });
+    setFileLoader(mock.fileLoader);
+
+    const bundle = await importsToJsfunc({runner: '/project/runner.mmt'});
+    expect(bundle).toContain('const suite_ = async');
+    expect(bundle).toContain('const leaf_ = async');
+    expect(bundle).toContain('const form_ = async');
+    expect(bundle).toContain('const form = form_');
+    expectUrlencodedTokenJs(bundle);
+    // Call-site override still references env at the leaf test layer
+    expect(bundle).toContain('envVariables.OVERRIDE_TOKEN');
   });
 });
 
