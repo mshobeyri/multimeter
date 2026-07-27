@@ -2,6 +2,10 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.30.3]
+
+- Pre-release republish of the 1.30.2 fixes (urlencoded token accessors, Windows CRLF body apply, example run glyph alignment, theme polish)
+
 ## [1.30.2]
 
 - Fix urlencoded bodies so `i:` slice accessors and `e:` / `r:` / `c:` tokens survive percent-encoding (including through multilevel imports)
