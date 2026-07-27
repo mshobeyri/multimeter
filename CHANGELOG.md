@@ -2,6 +2,14 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.30.2]
+
+- Fix urlencoded bodies so `i:` slice accessors and `e:` / `r:` / `c:` tokens survive percent-encoding (including through multilevel imports)
+- Fix Windows CRLF leaking into YAML when applying XML/text bodies from the right panel
+- Align example run glyphs with the `name:` field (including description-before-name and CRLF layouts)
+- Improve theme colors; harmonize accent chrome with theme button tokens
+- Style method badges like VS Code buttons
+
 ## [1.30.1]
 
 - Fix Windows CRLF breaking YAML `expect` operators (`!=`, etc.) and markdown heading navigation
