@@ -5,7 +5,7 @@ import {useCallback, useEffect, useRef} from 'react';
 
 import {showVSCodeMessage} from '../vsAPI';
 
-import {extractRootKeyInfo, offsetToLineNumber} from './validator';
+import {extractRootKeyInfo, extractExampleLineInfo} from './validator';
 
 type ExampleInfo = {
   line: number; index: number;
@@ -255,36 +255,4 @@ export function useRunGlyphs(params: {
   }, [handleRunClick, handleRunExample, docType, monacoRef, editorRef, editorReady]);
 
   return {handleRunClick, handleRunExample};
-}
-
-// Extract example positions from parsed YAML AST
-function extractExampleLineInfo(
-    doc: any, content: string): {line: number; index: number}[] {
-  if (!doc || !doc.contents) {
-    return [];
-  }
-  const root: any = doc.contents;
-  const rootItems: any[] = Array.isArray(root?.items) ? root.items : [];
-  const examplesPair = rootItems.find(item => item?.key?.value === 'examples');
-  if (!examplesPair || !examplesPair.value) {
-    return [];
-  }
-  const seqItems: any[] =
-      Array.isArray(examplesPair.value?.items) ? examplesPair.value.items : [];
-  const positions: {line: number; index: number}[] = [];
-  seqItems.forEach((exampleNode, idx) => {
-    let offset: number|undefined;
-    if (Array.isArray(exampleNode?.range) &&
-        typeof exampleNode.range[0] === 'number') {
-      offset = exampleNode.range[0];
-    } else if (
-        exampleNode?.key && Array.isArray(exampleNode.key.range) &&
-        typeof exampleNode.key.range[0] === 'number') {
-      offset = exampleNode.key.range[0];
-    }
-    if (typeof offset === 'number') {
-      positions.push({line: offsetToLineNumber(content, offset), index: idx});
-    }
-  });
-  return positions;
 }

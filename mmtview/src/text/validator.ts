@@ -74,11 +74,65 @@ export function offsetToLineNumber(content: string, offset: number): number {
   let line = 1;
   const limit = Math.min(offset, content.length);
   for (let i = 0; i < limit; i++) {
-    if (content.charCodeAt(i) === 10) {
+    const ch = content.charCodeAt(i);
+    if (ch === 10) {
+      // LF (also the LF half of CRLF)
       line += 1;
+    } else if (ch === 13) {
+      // Bare CR (legacy Mac). Skip when followed by LF — CRLF is one break.
+      if (i + 1 >= content.length || content.charCodeAt(i + 1) !== 10) {
+        line += 1;
+      }
     }
   }
   return line;
+}
+
+export type ExampleLineInfo = {
+  line: number;
+  index: number;
+};
+
+/**
+ * Line numbers for each entry in the top-level `examples:` array.
+ * Prefers the `name:` key line so run glyphs align with the example name
+ * even when `description` or a block `-` precedes it in YAML.
+ */
+export function extractExampleLineInfo(
+    doc: any, content: string): ExampleLineInfo[] {
+  if (!doc || !doc.contents) {
+    return [];
+  }
+  const root: any = doc.contents;
+  const rootItems: any[] = Array.isArray(root?.items) ? root.items : [];
+  const examplesPair = rootItems.find(item => item?.key?.value === 'examples');
+  if (!examplesPair || !examplesPair.value) {
+    return [];
+  }
+  const seqItems: any[] =
+      Array.isArray(examplesPair.value?.items) ? examplesPair.value.items : [];
+  const positions: ExampleLineInfo[] = [];
+  seqItems.forEach((exampleNode, idx) => {
+    const namePair = Array.isArray(exampleNode?.items) ?
+        exampleNode.items.find((pair: any) => pair?.key?.value === 'name') :
+        undefined;
+    let offset: number|undefined;
+    if (namePair?.key && Array.isArray(namePair.key.range) &&
+        typeof namePair.key.range[0] === 'number') {
+      offset = namePair.key.range[0];
+    } else if (Array.isArray(exampleNode?.range) &&
+        typeof exampleNode.range[0] === 'number') {
+      offset = exampleNode.range[0];
+    } else if (
+        exampleNode?.key && Array.isArray(exampleNode.key.range) &&
+        typeof exampleNode.key.range[0] === 'number') {
+      offset = exampleNode.key.range[0];
+    }
+    if (typeof offset === 'number') {
+      positions.push({line: offsetToLineNumber(content, offset), index: idx});
+    }
+  });
+  return positions;
 }
 
 export function extractRootKeyInfo(doc: any, content: string): RootKeyInfo[] {

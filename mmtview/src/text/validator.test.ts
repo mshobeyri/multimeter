@@ -1,6 +1,7 @@
 import {parseDocument} from 'yaml';
 import {
   extractEnvRefSites,
+  extractExampleLineInfo,
   extractInputRefSites,
   findTestCallAliasProblems,
   findTestCallInputsProblems,
@@ -9,7 +10,80 @@ import {
   findAuthProblems,
   extractSuiteTestLineInfo,
   getUndefinedExpectKeyDecorations,
+  offsetToLineNumber,
 } from './validator';
+
+describe('offsetToLineNumber', () => {
+  it('maps byte offsets to 1-based lines with CRLF endings', () => {
+    const content = ['line1', 'line2', 'line3'].join('\r\n');
+    expect(offsetToLineNumber(content, 0)).toBe(1);
+    expect(offsetToLineNumber(content, 7)).toBe(2); // start of "line2"
+    expect(offsetToLineNumber(content, 14)).toBe(3); // start of "line3"
+  });
+
+  it('treats CRLF as a single line break (not two)', () => {
+    const content = 'a\r\nb';
+    expect(offsetToLineNumber(content, 1)).toBe(1); // \r before \n
+    expect(offsetToLineNumber(content, 3)).toBe(2); // b on second line
+  });
+});
+
+describe('extractExampleLineInfo', () => {
+  it('uses the name key line when description precedes name', () => {
+    const content = [
+      'type: api',
+      'url: https://example.com',
+      'examples:',
+      '  - description: first',
+      '    name: Example One',
+      '    inputs:',
+      '      user: alice',
+      '  - name: Inline Example',
+      '    inputs:',
+      '      user: bob',
+    ].join('\n');
+    const doc = parseDocument(content);
+    const lines = extractExampleLineInfo(doc, content);
+    expect(lines).toEqual([
+      {index: 0, line: 5},
+      {index: 1, line: 8},
+    ]);
+  });
+
+  it('aligns example run glyphs on name with Windows CRLF', () => {
+    const content = [
+      'type: api',
+      'url: https://example.com',
+      'examples:',
+      '  - description: first',
+      '    name: Example One',
+      '    inputs:',
+      '      user: alice',
+      '  - name: Inline Example',
+      '    inputs:',
+      '      user: bob',
+    ].join('\r\n');
+    const doc = parseDocument(content);
+    const lines = extractExampleLineInfo(doc, content);
+    expect(lines).toEqual([
+      {index: 0, line: 5},
+      {index: 1, line: 8},
+    ]);
+  });
+
+  it('falls back to the list item line when name is missing', () => {
+    const content = [
+      'type: api',
+      'url: https://example.com',
+      'examples:',
+      '  - inputs:',
+      '      user: alice',
+    ].join('\n');
+    const doc = parseDocument(content);
+    const lines = extractExampleLineInfo(doc, content);
+    expect(lines).toEqual([{index: 0, line: 4}]);
+  });
+});
 
 describe('token site extraction', () => {
   it('extracts input refs with accessor syntax', () => {
