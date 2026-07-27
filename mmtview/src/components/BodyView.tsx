@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { xml2js } from "xml-js";
 import { beautify } from "mmt-core/markupConvertor";
 import { extractPathAtPosition, PathSegment } from "mmt-core/outputExtractor";
+import { normalizeNewlines } from "mmt-core/textLines";
 import TextEditor from "../text/TextEditor";
 
 export type mode = "appliable" | "live";
@@ -89,7 +90,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
     useEffect(() => {
         if (mode === "live" && onChange && isUserEditingRef.current) {
             isUserEditingRef.current = false;
-            onChange(localValue);
+            onChange(normalizeNewlines(localValue));
         }
     }, [localValue, mode, onChange]);
 
@@ -190,7 +191,7 @@ const BodyView: React.FC<BodyViewProps> = ({ value, format, onChange, mode = "ap
                         className="bodyview-btn bodyview-btn-apply"
                         onClick={() => {
                             if (onChange) {
-                                onChange(localValue);
+                                onChange(normalizeNewlines(localValue));
                             }
                             setCanApply(false);
                         }}

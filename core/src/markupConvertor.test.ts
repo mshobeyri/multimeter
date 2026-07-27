@@ -1,4 +1,5 @@
-import {beautify, beautifyWithContentType, contentTypeForFormat, formatBody, formattedBodyToYamlObject} from './markupConvertor';
+import {beautify, beautifyWithContentType, contentTypeForFormat, formatBody, formattedBodyToYamlObject, packYaml} from './markupConvertor';
+import {apiToYaml} from './apiParsePack';
 
 describe('markupConvertor XML formats', () => {
   it('keeps normal xml self-closing for empty elements', () => {
@@ -109,5 +110,68 @@ describe('markupConvertor binary format', () => {
 
   it('uses application/octet-stream content type', () => {
     expect(contentTypeForFormat('binary')).toBe('application/octet-stream');
+  });
+});
+
+describe('markupConvertor Windows CRLF bodies', () => {
+  const crlfXml = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '  <note>',
+    '  <to>Tove</to>',
+    '  <from>Jani</from>',
+    '  <heading>Reminder</heading>',
+    '  <body>Don\'t forget me this weekend!</body>',
+    '</note>',
+    '',
+  ].join('\r\n');
+
+  it('parses CRLF XML into a structured object without CR characters', () => {
+    const parsed = formattedBodyToYamlObject('xml', crlfXml);
+    expect(parsed).toMatchObject({
+      note: {
+        to: 'Tove',
+        from: 'Jani',
+        heading: 'Reminder',
+        body: "Don't forget me this weekend!",
+      },
+    });
+    expect(JSON.stringify(parsed)).not.toContain('\\r');
+  });
+
+  it('keeps CRLF text bodies as LF when applying to YAML', () => {
+    const text = formattedBodyToYamlObject('text', crlfXml);
+    expect(text).toBe(crlfXml.replace(/\r\n/g, '\n'));
+    expect(text).not.toContain('\r');
+  });
+
+  it('does not emit escaped \\r when packing a CRLF XML string body', () => {
+    // API tester stores the body as a raw Monaco string (CRLF on Windows).
+    const yaml = apiToYaml({
+      type: 'api',
+      url: 'https://example.com',
+      method: 'post',
+      format: 'xml',
+      body: crlfXml,
+    } as any);
+    expect(yaml).not.toMatch(/\\r/);
+    expect(yaml).not.toContain('\r');
+    expect(yaml).toContain('<note>');
+    expect(yaml).toContain('<to>Tove</to>');
+  });
+
+  it('packYaml normalizes CRLF in nested string leaves', () => {
+    const out = packYaml({
+      type: 'api',
+      body: 'line1\r\nline2\rline3',
+      headers: {'X-Note': 'a\r\nb'},
+    });
+    expect(out).not.toMatch(/\\r/);
+    expect(out).not.toContain('\r');
+    expect(out).toMatch(/body: \|-\n\s+line1\n\s+line2\n\s+line3/);
+    expect(out).toMatch(/X-Note: \|-\n\s+a\n\s+b/);
+  });
+
+  it('formatBody normalizes CRLF before formatting text', () => {
+    expect(formatBody('text', 'a\r\nb\rc', false)).toBe('a\nb\nc');
   });
 });

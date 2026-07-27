@@ -6,6 +6,7 @@ import {parseYamlWithOmitKeyword} from './omitKeyword';
 import {restoreOmitKeyword} from './omitKeyword';
 import {isOmitSentinel} from './omitKeyword';
 import {applyDescriptionBlockLiteralStyles} from './multilineDescriptionYaml';
+import {normalizeNewlines} from './textLines';
 
 /**
  * Quote YAML-unsafe expect/debug operators (`!=`, `!*`, `>`, …) before parsing.
@@ -96,8 +97,11 @@ function applyKeywordScalarStyles(node: any, original: any): void {
 function packYaml(obj: any): string {
   try {
     const restored = restoreOmitKeyword(obj);
+    // Monaco/Windows editors often produce CRLF; YAML double-quotes those as
+    // visible `\r` escapes. Normalize before emit so .mmt files stay LF-only.
+    const normalized = normalizeYamlStringNewlines(restored);
     const doc = new YAML.Document();
-    doc.contents = doc.createNode(restored);
+    doc.contents = doc.createNode(normalized);
     applyKeywordScalarStyles(doc.contents, obj);
     applyDescriptionBlockLiteralStyles(doc.contents);
     return emitUnquotedOperators(doc.toString({
@@ -108,6 +112,21 @@ function packYaml(obj: any): string {
   } catch (e) {
     return '';
   }
+}
+
+/** Deep-normalize CRLF/CR to LF in string leaves destined for YAML output. */
+function normalizeYamlStringNewlines(value: any): any {
+  if (typeof value === 'string') {
+    return normalizeNewlines(value);
+  }
+  if (Array.isArray(value)) {
+    return value.map(normalizeYamlStringNewlines);
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+        Object.entries(value).map(([k, v]) => [k, normalizeYamlStringNewlines(v)]));
+  }
+  return value;
 }
 
 function isXmlFormat(format: Format): boolean {
@@ -200,6 +219,9 @@ function formatBody(
   if (body === null || body === undefined) {
     return '';
   }
+  if (typeof body === 'string') {
+    body = normalizeNewlines(body);
+  }
   if (typeof body === 'string' && body.trim() === '') {
     return '';
   }
@@ -252,23 +274,29 @@ function flattenXmlObj(obj: any): any {
 function formattedBodyToYamlObject(
     format: Format, body: string): any {
   try {
+    // Windows Monaco bodies use CRLF; keep LF in the data model / YAML.
+    const text = normalizeNewlines(body);
     if (format === 'json') {
-      return JSON.parse(body);
+      return JSON.parse(text);
     }
     if (isXmlFormat(format)) {
       // Convert XML to JS object, then try to normalize it
-      const jsObj = xml2js(body, {compact: true});
+      const jsObj = xml2js(text, {compact: true});
       return flattenXmlObj(jsObj);
     }
     if (format === 'urlencoded') {
-      return parseUrlEncodedBody(body);
+      return parseUrlEncodedBody(text);
     }
     if (format === 'binary') {
       // Keep the file path as a plain string for YAML round-trip
-      return typeof body === 'string' ? body : String(body);
+      return text;
+    }
+    if (format === 'text') {
+      // Keep raw text (including XML pasted as text) — do not YAML-parse it.
+      return text;
     }
     // Default: YAML
-    return YAML.parse(body);
+    return YAML.parse(text);
   } catch (e) {
     console.error('Failed to convert formatted body to YAML object:', e);
     return null;
