@@ -2,6 +2,10 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.30.4]
+
+- Stable release of the 1.30.2/1.30.3 fixes (urlencoded token accessors, Windows CRLF body apply, example run glyph alignment, and theme polish)
+
 ## [1.30.3]
 
 - Pre-release republish of the 1.30.2 fixes (urlencoded token accessors, Windows CRLF body apply, example run glyph alignment, theme polish)
