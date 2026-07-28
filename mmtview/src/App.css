@@ -7,6 +7,26 @@ button,
   font-family: var(--vscode-editor-font-family, var(--vscode-font-family, 'Consolas', 'Courier New', monospace));
 }
 
+/* Theme-aligned native checkboxes (VS Code checkbox tokens) */
+input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--vscode-checkbox-background, var(--vscode-focusBorder, #0e639c));
+}
+
+input[type="checkbox"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input[type="checkbox"]:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder, #007acc);
+  outline-offset: 1px;
+}
+
 /* VS Code style resizer */
 .Resizer {
   background: var(--vscode-widget-border, #454545);
@@ -790,9 +810,7 @@ button:focus {
 }
 
 .api-body-yaml-encoded input {
-  margin: 0;
   cursor: pointer;
-  accent-color: var(--vscode-checkbox-background, var(--vscode-focusBorder, #0e639c));
 }
 
 .label-disabled {

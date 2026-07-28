@@ -299,6 +299,26 @@ textarea:focus {
   cursor: pointer;
 }
 
+/* Theme-aligned native checkboxes (VS Code checkbox tokens) */
+input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--vscode-checkbox-background, var(--vscode-focusBorder, #0e639c));
+}
+
+input[type="checkbox"]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input[type="checkbox"]:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder, #007acc);
+  outline-offset: 1px;
+}
+
 /* Item Lists */
 .item-list {
   display: flex;
