@@ -142,17 +142,17 @@
 
     <div class="mb-12" id="httpsSection" ${httpsSectionHidden}>
       <label class="label">Server certificate</label>
-      <div class="flex gap-8">
-        <input id="httpsCertPath" class="input flex-1" type="text" value="${httpsCertPath}" readonly />
-        <button id="pickHttpsCert" class="button" ${disabled} title="Choose certificate">
+      <div class="file-picker-container">
+        <input id="httpsCertPath" class="input file-picker-input" type="text" value="${httpsCertPath}" readonly />
+        <button id="pickHttpsCert" class="file-picker-button" ${disabled} title="Choose certificate">
           <span class="codicon codicon-folder-opened"></span>
         </button>
       </div>
 
       <label class="label mt-8">Server key</label>
-      <div class="flex gap-8">
-        <input id="httpsKeyPath" class="input flex-1" type="text" value="${httpsKeyPath}" readonly />
-        <button id="pickHttpsKey" class="button" ${disabled} title="Choose key">
+      <div class="file-picker-container">
+        <input id="httpsKeyPath" class="input file-picker-input" type="text" value="${httpsKeyPath}" readonly />
+        <button id="pickHttpsKey" class="file-picker-button" ${disabled} title="Choose key">
           <span class="codicon codicon-folder-opened"></span>
         </button>
       </div>
@@ -163,9 +163,9 @@
       </label>
 
       <label class="label mt-8">Client CA (for mTLS)</label>
-      <div class="flex gap-8">
-        <input id="httpsClientCaPath" class="input flex-1" type="text" value="${httpsClientCaPath}" readonly />
-        <button id="pickHttpsClientCa" class="button" ${disabled} title="Choose Client CA">
+      <div class="file-picker-container">
+        <input id="httpsClientCaPath" class="input file-picker-input" type="text" value="${httpsClientCaPath}" readonly />
+        <button id="pickHttpsClientCa" class="file-picker-button" ${disabled} title="Choose Client CA">
           <span class="codicon codicon-folder-opened"></span>
         </button>
       </div>
