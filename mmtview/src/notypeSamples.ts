@@ -54,7 +54,7 @@ export const notypeSamples: NotypeSample[] = [
     type: "api",
     title: "Simple GET request",
     description: "Call an endpoint and inspect the response.",
-    codicon: "globe",
+    codicon: "symbol-method",
     content: `type: api
 title: Simple GET request
 url: https://test.mmt.dev  # change to your API URL
@@ -197,7 +197,7 @@ checks:
 ];
 
 export const notypeTypeIcons: Record<NotypeSampleType, string> = {
-  api: "symbol-interface",
+  api: "symbol-method",
   env: "server-environment",
   test: "beaker",
   suite: "layers",

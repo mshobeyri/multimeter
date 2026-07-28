@@ -5,9 +5,9 @@ export function codiconForStepType(type?: string): string {
     case 'js':
       return 'code';
     case 'call':
-      return 'symbol-method';
+      return 'symbol-method-arrow';
     case 'http':
-      return 'globe';
+      return 'symbol-method';
     case 'data':
       return 'database';
     case 'delay':
@@ -31,11 +31,11 @@ export function codiconForStepType(type?: string): string {
     case 'repeat':
       return 'debug-restart';
     case 'setenv':
-      return 'globe';
+      return 'server-environment';
     case 'stage':
       return 'layers';
     case 'run':
-      return 'server-process';
+      return 'server';
     default:
       return 'file';
   }
@@ -54,7 +54,7 @@ export function displayNameForStepType(type?: string): string {
     case 'http':
       return 'http';
     case 'run':
-      return 'run';
+      return 'server';
     case 'assert':
       return 'assert';
     case 'check':
