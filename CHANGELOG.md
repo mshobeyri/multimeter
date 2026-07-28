@@ -2,6 +2,20 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.31.0]
+
+- Unify panel UI chrome: shared `TabBar`, `PrimaryButton`, `RunStopToggle`, `PanelRunHeader`, `PanelEditHeader`, and suite `TreeRunButton`
+- Harmonize method/semantic accent colors, theme checkboxes, and related button chrome across webviews
+- Add string/length compare operators (`=i`/`!i`, `=X`/`!X`, `=iX`/`!iX`, `<#`/`<=#`/`>#`/`>=#`) and fix expect quoting (`"…"` / `'…'`) including bare `omit`
+- Support `&&` and `||` in `if` conditions (second clause in the Flow UI)
+- Add detailed Markdown report export (`md-detailed`) with Request/Response step details (UI Export + CLI `--report md-detailed`)
+- Add YAML-encoded toggle for API edit bodies and pack structured bodies for YAML ↔ UI diffs
+- Update flow and no-type step icons (including setenv, HTTP/call, and run→server labels)
+- Support JS helper imports without a module binding; open a temporary API file from Ctrl/Cmd+click on HTTP test steps
+- Align nested Doc view tabs with the header border; polish env remove icons and mock HTTPS cert file pickers
+- Fix Windows CRLF glyph drift and cursor jumps; polish no-type picker labels and keep reports out of the type select list
+- Update website roadmap through August 2026
+
 ## [1.30.4]
 
 - Stable release of the 1.30.2/1.30.3 fixes (urlencoded token accessors, Windows CRLF body apply, example run glyph alignment, and theme polish)
