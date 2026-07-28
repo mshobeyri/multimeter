@@ -7,7 +7,7 @@ import type {NetworkConfig, EnvCertificateSettings, EnvSetting} from 'mmt-core/N
 import {DEFAULT_NETWORK_CONFIG, resolvePassphrase} from 'mmt-core/NetworkData';
 import path from 'path';
 
-export type ReportFormat = 'junit' | 'mmt' | 'html' | 'md';
+export type ReportFormat = 'junit' | 'mmt' | 'html' | 'md' | 'md-detailed';
 
 const {mergeEnv, resolvePresetEnv} =
     ((mmtcore as any).runConfig || {}) as any;
@@ -473,6 +473,7 @@ export async function buildCliRunArgs(file: string, opts: AnyOpts): Promise<Pars
     mmt: 'test-results.mmt',
     html: 'test-results.html',
     md: 'test-results.md',
+    'md-detailed': 'test-results-detailed.md',
   };
 
   return {

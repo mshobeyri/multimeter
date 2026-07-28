@@ -262,7 +262,7 @@ program.command('run')
     .option('-p, --print-js', 'Print generated JS before executing', false)
     .option(
       '--report <format>',
-      'Generate test report: junit, mmt, html, or md')
+      'Generate test report: junit, mmt, html, md, or md-detailed')
     .option(
       '--report-file <path>',
       'Output path for the report file (default depends on format)')
@@ -354,6 +354,7 @@ program.command('run')
             mmt: (mmtcore as any).mmtReport?.generateMmtReport,
             html: (mmtcore as any).reportHtml?.generateReportHtml,
             md: (mmtcore as any).reportMarkdown?.generateReportMarkdown,
+            'md-detailed': (mmtcore as any).reportMarkdown?.generateReportMarkdownDetailed,
           };
           const serializer = serializers[reportFormat];
           if (typeof serializer === 'function') {

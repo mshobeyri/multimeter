@@ -1,4 +1,4 @@
-import { generateReportMarkdown } from './reportMarkdown';
+import { generateReportMarkdown, generateReportMarkdownDetailed } from './reportMarkdown';
 import type { CollectedResults, TestRunResult, TestStepResult } from './reportCollector';
 
 function makeStep(overrides: Partial<TestStepResult> = {}): TestStepResult {
@@ -345,5 +345,65 @@ describe('generateReportMarkdown', () => {
     expect(md).toContain(`**Started at:** ${new Date(startedAt).toISOString()}`);
     expect(md).toContain(`**Ended at:** ${new Date(finishedAt).toISOString()}`);
     expect(md).not.toContain('**Started:**');
+  });
+
+  it('appends full step details when includeFullDetails is true', () => {
+    const details = JSON.stringify({
+      token: 'abc',
+      _: {
+        status: 200,
+        reportOutputKeys: ['token'],
+        details: JSON.stringify({
+          request: {
+            method: 'post',
+            url: 'https://example.com/login',
+            headers: { 'content-type': 'application/json' },
+            query: { mode: 'test' },
+            body: { user: 'ada' },
+          },
+          response: {
+            status: 200,
+            statusText: 'OK',
+            duration: 42,
+            headers: { 'content-type': 'application/json' },
+            body: { token: 'abc' },
+          },
+        }),
+      },
+    });
+    const results: CollectedResults = {
+      type: 'test',
+      testRuns: [
+        makeRun({
+          displayName: 'login.mmt',
+          steps: [
+            makeStep({
+              title: 'Login',
+              status: 'passed',
+              details,
+              expects: [{ comparison: 'status == 200', status: 'passed' }],
+            }),
+          ],
+        }),
+      ],
+    };
+
+    const summaryOnly = generateReportMarkdown(results);
+    expect(summaryOnly).not.toContain('## Step Details');
+
+    const detailed = generateReportMarkdownDetailed(results);
+    expect(detailed).toContain('## Tests');
+    expect(detailed).toContain('| 1 | Login | ✓ passed |');
+    expect(detailed).toContain('## Step Details');
+    expect(detailed).toContain('### ✓ Login');
+    expect(detailed).not.toContain('#### Status Code');
+    expect(detailed).not.toContain('#### Inputs');
+    expect(detailed).not.toContain('#### Outputs');
+    expect(detailed).toContain('#### Request');
+    expect(detailed).toContain('`POST https://example.com/login`');
+    expect(detailed).toContain('| content-type | application/json |');
+    expect(detailed).toContain('#### Response');
+    expect(detailed).toContain('**Status:** `200 OK (42ms)`');
+    expect(detailed).toContain('"token": "abc"');
   });
 });

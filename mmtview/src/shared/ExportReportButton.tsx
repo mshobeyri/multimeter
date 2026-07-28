@@ -1,7 +1,7 @@
 import React, { useCallback, useRef } from 'react';
 import { PrimaryButtonFace } from '../components/PrimaryButton';
 
-export type ReportFormat = 'junit' | 'mmt' | 'html' | 'md';
+export type ReportFormat = 'junit' | 'mmt' | 'html' | 'md' | 'md-detailed';
 
 interface ExportReportButtonProps {
   disabled?: boolean;
@@ -45,6 +45,7 @@ const ExportReportButton: React.FC<ExportReportButtonProps> = ({ disabled, onExp
         <option value="mmt">MMT Report</option>
         <option value="html">HTML</option>
         <option value="md">Markdown</option>
+        <option value="md-detailed">Markdown (detailed)</option>
       </select>
     </div>
   );

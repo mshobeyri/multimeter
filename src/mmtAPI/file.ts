@@ -7,7 +7,7 @@ import {httpToTest, isHttpFilePath} from 'mmt-core/httpParsePack';
 import {generateJunitXml} from 'mmt-core/junitXml';
 import {generateMmtReport} from 'mmt-core/mmtReport';
 import {generateReportHtml} from 'mmt-core/reportHtml';
-import {generateReportMarkdown} from 'mmt-core/reportMarkdown';
+import {generateReportMarkdown, generateReportMarkdownDetailed} from 'mmt-core/reportMarkdown';
 import type {CollectedResults, TestStepResult, TestRunResult} from 'mmt-core/reportCollector';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -680,13 +680,14 @@ export async function handleExportMarkdown(message: any) {
   }
 }
 
-type ReportFormat = 'junit' | 'mmt' | 'html' | 'md';
+type ReportFormat = 'junit' | 'mmt' | 'html' | 'md' | 'md-detailed';
 
 const reportSerializers: Record<ReportFormat, (r: CollectedResults) => string> = {
   junit: generateJunitXml,
   mmt: generateMmtReport,
   html: generateReportHtml,
   md: generateReportMarkdown,
+  'md-detailed': generateReportMarkdownDetailed,
 };
 
 const reportDefaults: Record<ReportFormat, {name: string; filters: Record<string, string[]>}> = {
@@ -694,6 +695,7 @@ const reportDefaults: Record<ReportFormat, {name: string; filters: Record<string
   mmt: {name: 'test-results.mmt', filters: {'MMT Report': ['mmt']}},
   html: {name: 'test-results.html', filters: {'HTML': ['html']}},
   md: {name: 'test-results.md', filters: {'Markdown': ['md', 'markdown']}},
+  'md-detailed': {name: 'test-results-detailed.md', filters: {'Markdown': ['md', 'markdown']}},
 };
 
 function webviewDataToCollectedResults(data: any): CollectedResults {
