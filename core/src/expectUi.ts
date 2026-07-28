@@ -1,4 +1,4 @@
-import { splitCheckOperatorPrefix } from './TestData';
+import { splitCheckOperatorPrefix, unquoteExpectLiteral } from './TestData';
 
 export type ExpectUiValueKind = 'string' | 'number' | 'boolean';
 
@@ -39,7 +39,7 @@ export function expectValueToUiRow(field: string, value: unknown): ExpectUiRow {
     return {
       field,
       op: prefixed.operator,
-      expected: prefixed.expected,
+      expected: unquoteExpectLiteral(prefixed.expected),
       explicitOperator: true,
       valueKind: 'string',
     };
@@ -48,7 +48,7 @@ export function expectValueToUiRow(field: string, value: unknown): ExpectUiRow {
   return {
     field,
     op: '==',
-    expected: s,
+    expected: unquoteExpectLiteral(s),
     explicitOperator: false,
     valueKind: 'string',
   };

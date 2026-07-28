@@ -1293,6 +1293,51 @@ describe('parseExpectValue', () => {
     expect(parseExpectValue("== ''")).toEqual({ operator: '==', expected: '' });
     expect(parseExpectValue('== ""')).toEqual({ operator: '==', expected: '' });
   });
+
+  it('unquotes quoted expected values for all operator prefixes', () => {
+    const cases: Array<[string, string, string]> = [
+      ['==', '== "fail test"', 'fail test'],
+      ['!=', '!= "fail test"', 'fail test'],
+      ['=i', '=i "Fail Test"', 'Fail Test'],
+      ['!i', '!i "Fail Test"', 'Fail Test'],
+      ['=X', '=X "  hi  "', '  hi  '],
+      ['!X', '!X "  hi  "', '  hi  '],
+      ['=iX', '=iX "  Hi  "', '  Hi  '],
+      ['!iX', '!iX "  Hi  "', '  Hi  '],
+      ['=@', '=@ "needle"', 'needle'],
+      ['!@', '!@ "needle"', 'needle'],
+      ['=C', '=C "fail test"', 'fail test'],
+      ['!C', '!C "fail test"', 'fail test'],
+      ['=^', '=^ "pre"', 'pre'],
+      ['!^', '!^ "pre"', 'pre'],
+      ['=$', '=$ "suf"', 'suf'],
+      ['!$', '!$ "suf"', 'suf'],
+      ['=*', '=* "/ok/i"', '/ok/i'],
+      ['!*', '!* "/fail/"', '/fail/'],
+      ['=~', '=~ "/ok/i"', '/ok/i'],
+      ['!~', '!~ "/fail/"', '/fail/'],
+      ['=#', '=# "3"', '3'],
+      ['!#', '!# "0"', '0'],
+      ['<#', '<# "3"', '3'],
+      ['<=#', '<=# "3"', '3'],
+      ['>#', '># "3"', '3'],
+      ['>=#', '>=# "3"', '3'],
+      ['>%', '>% "John"', 'John'],
+      ['<%', '<% "admin"', 'admin'],
+      ['>80%', '>80% "John"', 'John'],
+      ['<', '< "100"', '100'],
+      ['>', '> "0"', '0'],
+      ['<=', '<= "300"', '300'],
+      ['>=', '>= "100"', '100'],
+    ];
+    for (const [op, raw, expected] of cases) {
+      expect(parseExpectValue(raw)).toEqual({ operator: op, expected });
+    }
+    expect(parseExpectValue("== 'fail test'")).toEqual({ operator: '==', expected: 'fail test' });
+    // Quoted "omit" stays a literal string; bare omit stays the keyword path.
+    expect(parseExpectValue('== "omit"')).toEqual({ operator: '==', expected: 'omit' });
+    expect(parseExpectValue('== omit')).toEqual({ operator: '==', expected: null });
+  });
 });
 
 describe('conditionalStatementToJSfunc', () => {
@@ -1317,6 +1362,40 @@ describe('conditionalStatementToJSfunc', () => {
         .toBe('(equals_(`${a}`, `1`) && equals_(`${b}`, `2`)) || notEquals_(`${c}`, `3`)');
     expect(conditionalStatementToJSfunc('${a} == 1 || ${b} == 2 && ${c} == 3'))
         .toBe('equals_(`${a}`, `1`) || (equals_(`${b}`, `2`) && equals_(`${c}`, `3`))');
+  });
+
+  it('supports ignore-case, trim, and length comparison operators', () => {
+    expect(conditionalStatementToJSfunc('name =i John'))
+        .toBe('equalsIgnoreCase_(`name`, `John`)');
+    expect(conditionalStatementToJSfunc('name !i John'))
+        .toBe('notEqualsIgnoreCase_(`name`, `John`)');
+    expect(conditionalStatementToJSfunc('name =X John'))
+        .toBe('trimEquals_(`name`, `John`)');
+    expect(conditionalStatementToJSfunc('name !X John'))
+        .toBe('notTrimEquals_(`name`, `John`)');
+    expect(conditionalStatementToJSfunc('name =iX John'))
+        .toBe('trimEqualsIgnoreCase_(`name`, `John`)');
+    expect(conditionalStatementToJSfunc('name !iX John'))
+        .toBe('notTrimEqualsIgnoreCase_(`name`, `John`)');
+    expect(conditionalStatementToJSfunc('items <# 3'))
+        .toBe('lengthLess_(`items`, `3`)');
+    expect(conditionalStatementToJSfunc('items <=# 3'))
+        .toBe('lengthLessOrEqual_(`items`, `3`)');
+    expect(conditionalStatementToJSfunc('items ># 3'))
+        .toBe('lengthGreater_(`items`, `3`)');
+    expect(conditionalStatementToJSfunc('items >=# 3'))
+        .toBe('lengthGreaterOrEqual_(`items`, `3`)');
+    expect(conditionalStatementToJSfunc('${items} <# 3'))
+        .toBe('lengthLess_(items, `3`)');
+  });
+
+  it('treats == omit and != omit as presence checks', () => {
+    expect(conditionalStatementToJSfunc('${x} == omit'))
+        .toBe('isOmitted_(x)');
+    expect(conditionalStatementToJSfunc('${x} != omit'))
+        .toBe('isNotOmitted_(x)');
+    expect(checkToJSfunc('${x} == omit', false)).toContain('isOmitted_(x)');
+    expect(checkToJSfunc('${x} != omit', false)).toContain('isNotOmitted_(x)');
   });
 });
 

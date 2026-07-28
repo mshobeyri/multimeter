@@ -230,18 +230,22 @@ export const addableFlowTypes = [
 ] as FlowType[];
 export type CheckOps =
     '<'|'>'|'<='|'>='|'=='|'!='|'=@'|'!@'|'=C'|'!C'|'=^'|'!^'|'=$'|'!$'|
-    '=*'|'!*'|'=~'|'!~'|'=#'|'!#'|'>%'|'<%'|`>${number}%`|`<${number}%`;
+    '=*'|'!*'|'=~'|'!~'|'=#'|'!#'|'<#'|'<=#'|'>#'|'>=#'|
+    '=i'|'!i'|'=X'|'!X'|'=iX'|'!iX'|
+    '>%'|'<%'|`>${number}%`|`<${number}%`;
 
 export const DEFAULT_FUZZY_PERCENT = 80;
 
 export const opsList: CheckOps[] = [
   '<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=C', '!C', '=^', '!^', '=$',
-  '!$', '=*', '!*', '=~', '!~', '=#', '!#', '>%', '<%'
+  '!$', '=*', '!*', '=~', '!~', '=#', '!#', '<#', '<=#', '>#', '>=#',
+  '=i', '!i', '=X', '!X', '=iX', '!iX', '>%', '<%'
 ];
 
 export const selectableOpsList: CheckOps[] = [
   '<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=C', '!C', '=^', '!^', '=$',
-  '!$', '=*', '!*', '=#', '!#', '>%', '<%'
+  '!$', '=*', '!*', '=#', '!#', '<#', '<=#', '>#', '>=#',
+  '=i', '!i', '=X', '!X', '=iX', '!iX', '>%', '<%'
 ];
 
 export const opsNames = [
@@ -250,6 +254,11 @@ export const opsNames = [
   'starts with', 'does not start with', 'ends with', 'does not end with',
   'matches regex', 'does not match regex', 'matches regex (legacy)',
   'does not match regex (legacy)', 'length/count equals', 'length/count not equals',
+  'length/count less than', 'length/count less or equal',
+  'length/count greater than', 'length/count greater or equal',
+  'equal (ignore case)', 'not equal (ignore case)',
+  'equal (trim)', 'not equal (trim)',
+  'equal (trim, ignore case)', 'not equal (trim, ignore case)',
   'fuzzy match at least percent', 'fuzzy match less than percent'
 ];
 
@@ -302,6 +311,37 @@ export function splitCheckOperatorPrefix(value: string): { operator: string; exp
     }
   }
   return undefined;
+}
+
+/**
+ * Strip a single layer of matching quotes from an expect literal.
+ * `''` / `""` → empty string; `"fail test"` → `fail test`.
+ * Leaves unquoted text unchanged. Does not treat bare `omit` specially.
+ */
+export function unquoteExpectLiteral(value: string): string {
+  const trimmed = String(value ?? '').trim();
+  if (trimmed.length < 2) {
+    return trimmed;
+  }
+  const quote = trimmed[0];
+  if ((quote !== '"' && quote !== "'") || trimmed[trimmed.length - 1] !== quote) {
+    return trimmed;
+  }
+  const inner = trimmed.slice(1, -1);
+  if (quote === '"') {
+    return inner.replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+  }
+  return inner.replace(/\\'/g, "'").replace(/\\\\/g, '\\');
+}
+
+/** True when the raw (pre-unquote) expected token is a quoted string literal. */
+export function isQuotedExpectLiteral(value: string): boolean {
+  const trimmed = String(value ?? '').trim();
+  if (trimmed.length < 2) {
+    return false;
+  }
+  const quote = trimmed[0];
+  return (quote === '"' || quote === "'") && trimmed[trimmed.length - 1] === quote;
 }
 
 export function getOpOptionLabel(op: CheckOps): string {

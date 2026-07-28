@@ -1,7 +1,7 @@
 import {APIData} from './APIData';
 import {apiToJSfunc} from './JSerAPI';
 import {durationToJsMsExpr, indentLines, parseDurationString, toInputsParams} from './JSerHelper';
-import {Comparison, ComparisonObject, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, ScalarExpectValue, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, normalizeReportConfig, opsList, ReportConfig, ReportLevel, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps} from './TestData';
+import {Comparison, ComparisonObject, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, ScalarExpectValue, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, isQuotedExpectLiteral, normalizeReportConfig, opsList, ReportConfig, ReportLevel, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps, unquoteExpectLiteral} from './TestData';
 import {getTestFlowStepType} from './testParsePack';
 import {DEFAULT_OUTPUT_KEYS} from './outputExtractor';
 import {isOmitSentinel, normalizeOmitToNull, OMIT_KEYWORD, OMIT_SENTINEL} from './omitKeyword';
@@ -15,13 +15,6 @@ function randomName(): string {
 const replaceEnvTokens = replaceEnvTokensPlain;
 const toTemplateWithVars = toTemplateWithEnvVars;
 const DEFAULT_OUTPUT_KEY_SET = new Set(DEFAULT_OUTPUT_KEYS);
-
-/** Strip empty-string markers: '' and "" both mean empty string in comparison expressions. */
-const unquoteEmpty = (s: string): string => {
-  const t = s.trim();
-  if (t === "''" || t === '""') { return ''; }
-  return t;
-};
 
 const escapeRegExp = (value: string): string => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const comparisonOperatorPattern = [
@@ -67,9 +60,22 @@ const singleComparisonToJSfunc = (check: string): string => {
     return 'true';
   }
   const { actual, operator } = parsed;
-  const expected = unquoteEmpty(parsed.expected);
+  const expectedRaw = parsed.expected.trim();
+  // Bare `omit` (unquoted) is the omit keyword; `"omit"` stays a literal string.
+  if (!isQuotedExpectLiteral(expectedRaw) &&
+      (expectedRaw === OMIT_KEYWORD || isOmitSentinel(expectedRaw))) {
+    if (operator === '==') {
+      return `isOmitted_(${toRuntimeArg(actual)})`;
+    }
+    if (operator === '!=') {
+      return `isNotOmitted_(${toRuntimeArg(actual)})`;
+    }
+  }
+  const expected = unquoteExpectLiteral(expectedRaw);
+  const actualRuntime = toRuntimeArg(actual);
   const actualTemplate = toTemplateArg(actual);
   const expectedTemplate = toTemplateArg(expected);
+
   if (isFuzzyPercentOperator(operator) || isFuzzyPercentSelectOperator(operator)) {
     const percent = isFuzzyPercentOperator(operator) ? Number(operator.slice(1, -1)) : DEFAULT_FUZZY_PERCENT;
     const helper = operator.startsWith('<') ? 'notFuzzyMatch_' : 'fuzzyMatch_';
@@ -88,6 +94,18 @@ const singleComparisonToJSfunc = (check: string): string => {
       return `equals_(${actualTemplate}, ${expectedTemplate})`;
     case '!=':
       return `notEquals_(${actualTemplate}, ${expectedTemplate})`;
+    case '=i':
+      return `equalsIgnoreCase_(${actualTemplate}, ${expectedTemplate})`;
+    case '!i':
+      return `notEqualsIgnoreCase_(${actualTemplate}, ${expectedTemplate})`;
+    case '=X':
+      return `trimEquals_(${actualTemplate}, ${expectedTemplate})`;
+    case '!X':
+      return `notTrimEquals_(${actualTemplate}, ${expectedTemplate})`;
+    case '=iX':
+      return `trimEqualsIgnoreCase_(${actualTemplate}, ${expectedTemplate})`;
+    case '!iX':
+      return `notTrimEqualsIgnoreCase_(${actualTemplate}, ${expectedTemplate})`;
     case '=@':
       return `isAt_(${actualTemplate}, ${expectedTemplate})`;
     case '!@':
@@ -111,9 +129,17 @@ const singleComparisonToJSfunc = (check: string): string => {
     case '!$':
       return `notEndsWith_(${actualTemplate}, ${expectedTemplate})`;
     case '=#':
-      return `lengthEquals_(${toRuntimeArg(actual)}, ${expectedTemplate})`;
+      return `lengthEquals_(${actualRuntime}, ${expectedTemplate})`;
     case '!#':
-      return `notLengthEquals_(${toRuntimeArg(actual)}, ${expectedTemplate})`;
+      return `notLengthEquals_(${actualRuntime}, ${expectedTemplate})`;
+    case '<#':
+      return `lengthLess_(${actualRuntime}, ${expectedTemplate})`;
+    case '<=#':
+      return `lengthLessOrEqual_(${actualRuntime}, ${expectedTemplate})`;
+    case '>#':
+      return `lengthGreater_(${actualRuntime}, ${expectedTemplate})`;
+    case '>=#':
+      return `lengthGreaterOrEqual_(${actualRuntime}, ${expectedTemplate})`;
     default:
       return 'true';
   }
@@ -219,9 +245,8 @@ const parseScalarComparisonExpected = (raw: string): ExpectValue => {
   if (trimmed === OMIT_KEYWORD || isOmitSentinel(trimmed)) {
     return OMIT_SENTINEL;
   }
-  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) ||
-      (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
-    return unquoteEmpty(trimmed.slice(1, -1));
+  if (isQuotedExpectLiteral(trimmed)) {
+    return unquoteExpectLiteral(trimmed);
   }
   if (/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/.test(trimmed)) {
     const num = Number(trimmed);
@@ -426,14 +451,16 @@ export const parseExpectValue = (value: ExpectValue): { operator: string; expect
   const trimmed = String(normalizedValue).trim();
   const prefixed = splitCheckOperatorPrefix(trimmed);
   if (prefixed) {
-    return { operator: prefixed.operator, expected: unquoteEmpty(prefixed.expected) };
+    const expectedRaw = prefixed.expected.trim();
+    if (!isQuotedExpectLiteral(expectedRaw) &&
+        (expectedRaw === OMIT_KEYWORD || isOmitSentinel(expectedRaw)) &&
+        (prefixed.operator === '==' || prefixed.operator === '!=')) {
+      return { operator: prefixed.operator, expected: null };
+    }
+    return { operator: prefixed.operator, expected: unquoteExpectLiteral(expectedRaw) };
   }
   // No operator prefix found → default to equality
-  return { operator: '==', expected: trimmed };
-};
-
-const isStructuredExpectValue = (value: ExpectValue): value is Exclude<ExpectValue, ScalarExpectValue> => {
-  return value === null || Array.isArray(value) || typeof value === 'object';
+  return { operator: '==', expected: isQuotedExpectLiteral(trimmed) ? unquoteExpectLiteral(trimmed) : trimmed };
 };
 
 const isExplicitMultiCheckArray = (value: unknown): value is ScalarExpectValue[] => {
@@ -449,12 +476,13 @@ const expectValueToJs = (value: ExpectValue): string => {
 };
 
 const comparisonFromPartsToJSfunc = (actualExpr: string, operator: string, expected: ExpectValue): string => {
-  if (isOmitSentinel(expected)) {
+  // Only sentinel / null mean omit. The literal string "omit" (from `"omit"`) compares as text.
+  if (isOmitSentinel(expected) || expected === null) {
     switch (operator) {
       case '==':
-        return `(${actualExpr} === undefined || ${actualExpr} === null || ${actualExpr} === ${JSON.stringify(OMIT_SENTINEL)})`;
+        return `isOmitted_(${actualExpr})`;
       case '!=':
-        return `(${actualExpr} !== undefined && ${actualExpr} !== null && ${actualExpr} !== ${JSON.stringify(OMIT_SENTINEL)})`;
+        return `isNotOmitted_(${actualExpr})`;
       default:
         break;
     }
@@ -478,6 +506,18 @@ const comparisonFromPartsToJSfunc = (actualExpr: string, operator: string, expec
       return `equals_(${actualExpr}, ${expectedExpr})`;
     case '!=':
       return `notEquals_(${actualExpr}, ${expectedExpr})`;
+    case '=i':
+      return `equalsIgnoreCase_(${actualExpr}, ${expectedExpr})`;
+    case '!i':
+      return `notEqualsIgnoreCase_(${actualExpr}, ${expectedExpr})`;
+    case '=X':
+      return `trimEquals_(${actualExpr}, ${expectedExpr})`;
+    case '!X':
+      return `notTrimEquals_(${actualExpr}, ${expectedExpr})`;
+    case '=iX':
+      return `trimEqualsIgnoreCase_(${actualExpr}, ${expectedExpr})`;
+    case '!iX':
+      return `notTrimEqualsIgnoreCase_(${actualExpr}, ${expectedExpr})`;
     case '=@':
       return `isAt_(${actualExpr}, ${expectedExpr})`;
     case '!@':
@@ -504,6 +544,14 @@ const comparisonFromPartsToJSfunc = (actualExpr: string, operator: string, expec
       return `lengthEquals_(${actualExpr}, ${expectedExpr})`;
     case '!#':
       return `notLengthEquals_(${actualExpr}, ${expectedExpr})`;
+    case '<#':
+      return `lengthLess_(${actualExpr}, ${expectedExpr})`;
+    case '<=#':
+      return `lengthLessOrEqual_(${actualExpr}, ${expectedExpr})`;
+    case '>#':
+      return `lengthGreater_(${actualExpr}, ${expectedExpr})`;
+    case '>=#':
+      return `lengthGreaterOrEqual_(${actualExpr}, ${expectedExpr})`;
     default:
       return 'true';
   }
@@ -587,9 +635,7 @@ const appendExpectAndDebugChecks = (
         const actualExpr = actualForField(resultVar, field);
         const displayExpected = isOmitSentinel(v) ? 'omit' : expectValueToDisplay(expected);
         const displayComparison = `${field} ${operator} ${displayExpected}`;
-        const conditionStatement = isStructuredExpectValue(expected)
-            ? comparisonFromPartsToJSfunc(actualExpr, operator, expected)
-            : conditionalStatementToJSfunc(`\${${actualExpr}} ${operator} ${displayExpected}`);
+        const conditionStatement = comparisonFromPartsToJSfunc(actualExpr, operator, expected);
         const expectedExpr = expectValueToJs(expected);
         expectItems.push(
           `  { passed: ${conditionStatement}, comparison: ${JSON.stringify(displayComparison)}, actual: ${actualExpr}, expected: ${expectedExpr} }`
@@ -618,9 +664,7 @@ const appendExpectAndDebugChecks = (
           const actualExpr = actualForField(resultVar, field);
           const displayExpected = isOmitSentinel(v) ? 'omit' : expectValueToDisplay(expected);
           const displayComparison = `${field} ${operator} ${displayExpected}`;
-          const conditionStatement = isStructuredExpectValue(expected)
-              ? comparisonFromPartsToJSfunc(actualExpr, operator, expected)
-              : conditionalStatementToJSfunc(`\${${actualExpr}} ${operator} ${displayExpected}`);
+          const conditionStatement = comparisonFromPartsToJSfunc(actualExpr, operator, expected);
           const expectedExpr = expectValueToJs(expected);
           debugItems.push(
             `  { passed: ${conditionStatement}, comparison: ${JSON.stringify(displayComparison)}, actual: ${actualExpr}, expected: ${expectedExpr} }`

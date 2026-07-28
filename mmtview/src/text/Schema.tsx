@@ -1,3 +1,5 @@
+import { opsList } from 'mmt-core/TestData';
+
 export const GeneralSchema = {
     $schema: 'http://json-schema.org/draft-07/schema#',
     type: 'object',
@@ -5,6 +7,15 @@ export const GeneralSchema = {
         type: { type: 'string', enum: ['api', 'env', 'test', 'suite', 'loadtest', 'doc', 'server', 'report'] },
     }
 }
+
+/** Keep in sync with CheckOps via opsList (plus fuzzy percent pattern). */
+const CheckOperatorSchema = {
+    type: 'string',
+    anyOf: [
+        { enum: [...opsList] },
+        { pattern: '^[<>]([0-9]|[1-9][0-9]|100)%$' }
+    ]
+};
 
 const DataImportSchema = {
     type: 'object',
@@ -696,13 +707,7 @@ export const TestSchema = {
                                         properties: {
                                             actual: {},
                                             expected: {},
-                                            operator: {
-                                                type: 'string',
-                                                anyOf: [
-                                                    { enum: ['<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=C', '!C', '=*', '!*', '=~', '!~', '=#', '!#', '>%', '<%', '=^', '!^', '=$', '!$'] },
-                                                    { pattern: '^[<>]([0-9]|[1-9][0-9]|100)%$' }
-                                                ]
-                                            },
+                                            operator: CheckOperatorSchema,
                                             title: { type: 'string' },
                                             details: { type: 'string' },
                                             report: {
@@ -740,13 +745,7 @@ export const TestSchema = {
                                         properties: {
                                             actual: {},
                                             expected: {},
-                                            operator: {
-                                                type: 'string',
-                                                anyOf: [
-                                                    { enum: ['<', '>', '<=', '>=', '==', '!=', '=@', '!@', '=C', '!C', '=*', '!*', '=~', '!~', '=#', '!#', '>%', '<%', '=^', '!^', '=$', '!$'] },
-                                                    { pattern: '^[<>]([0-9]|[1-9][0-9]|100)%$' }
-                                                ]
-                                            },
+                                            operator: CheckOperatorSchema,
                                             title: { type: 'string' },
                                             details: { type: 'string' },
                                             report: {

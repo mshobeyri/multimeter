@@ -99,11 +99,59 @@ function deepEquals_(a: any, b: any): boolean {
 }
 
 export function equals_(a: any, b: any) {
+  // If either side is the omit sentinel, treat as an omit/presence check so
+  // callers that still pass `__MMT_OMIT_KEYWORD__` as a value work correctly.
+  if (b === OMIT_SENTINEL) {
+    return isOmitted_(a);
+  }
+  if (a === OMIT_SENTINEL) {
+    return isOmitted_(b);
+  }
   return deepEquals_(normalizeOmitToNull(a), normalizeOmitToNull(b));
 }
 
 export function notEquals_(a: any, b: any) {
   return !equals_(a, b);
+}
+
+/** True when a value is missing / null / the omit sentinel. */
+export function isOmitted_(value: any): boolean {
+  return value === undefined || value === null || value === OMIT_SENTINEL;
+}
+
+export function isNotOmitted_(value: any): boolean {
+  return !isOmitted_(value);
+}
+
+function asComparableString_(value: any): string {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  return String(value);
+}
+
+export function equalsIgnoreCase_(a: any, b: any) {
+  return asComparableString_(a).toLowerCase() === asComparableString_(b).toLowerCase();
+}
+
+export function notEqualsIgnoreCase_(a: any, b: any) {
+  return !equalsIgnoreCase_(a, b);
+}
+
+export function trimEquals_(a: any, b: any) {
+  return asComparableString_(a).trim() === asComparableString_(b).trim();
+}
+
+export function notTrimEquals_(a: any, b: any) {
+  return !trimEquals_(a, b);
+}
+
+export function trimEqualsIgnoreCase_(a: any, b: any) {
+  return asComparableString_(a).trim().toLowerCase() === asComparableString_(b).trim().toLowerCase();
+}
+
+export function notTrimEqualsIgnoreCase_(a: any, b: any) {
+  return !trimEqualsIgnoreCase_(a, b);
 }
 
 export function isAt_(a: any, b: any) {
@@ -183,6 +231,22 @@ export function notLengthEquals_(actual: any, expected: any) {
   return !lengthEquals_(actual, expected);
 }
 
+export function lengthLess_(actual: any, expected: any) {
+  return lengthOf_(actual) < Number(expected);
+}
+
+export function lengthLessOrEqual_(actual: any, expected: any) {
+  return lengthOf_(actual) <= Number(expected);
+}
+
+export function lengthGreater_(actual: any, expected: any) {
+  return lengthOf_(actual) > Number(expected);
+}
+
+export function lengthGreaterOrEqual_(actual: any, expected: any) {
+  return lengthOf_(actual) >= Number(expected);
+}
+
 function similarityRatio_(actual: any, expected: any): number {
   const actualText = String(actual ?? '');
   const expectedText = String(expected ?? '');
@@ -243,7 +307,7 @@ function similarityForComparison_(comparison: string, actual: any, expected: any
 }
 
 function countForComparison_(comparison: string, actual: any): number | undefined {
-  if (!/[=!]#/.test(String(comparison ?? ''))) {
+  if (!/(?:<=#|>=#|<#|>#|[=!]#)/.test(String(comparison ?? ''))) {
     return undefined;
   }
   return lengthOf_(actual);

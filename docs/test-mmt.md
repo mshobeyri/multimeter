@@ -344,6 +344,9 @@ Use check to log a failure and continue; use assert to stop the flow on failure.
 
 Supported operators
 - `<`, `>`, `<=`, `>=`, `==`, `!=`
+- `=i` (equal, ignore case), `!i` (not equal, ignore case)
+- `=X` (equal after trim), `!X` (not equal after trim)
+- `=iX` (trim + ignore case), `!iX` (trim + ignore case, not equal)
 - `=@` (left is in right, i.e., `right.includes(left)`)
 - `!@` (left is not in right)
 - `=C` (left contains right, i.e., `left.includes(right)`)
@@ -351,8 +354,16 @@ Supported operators
 - `=^` (starts with), `!^` (not starts with)
 - `=$` (ends with), `!$` (not ends with)
 - `=*` (regex match), `!*` (not regex match). Legacy `=~` and `!~` still work.
-- `=#` (string/number character length equals), `!#` (not equal)
+- `=#` (string/number/list/object length equals), `!#` (not equal)
+- `<#`, `<=#`, `>#`, `>=#` (length/count comparisons)
 - `>N%`(fuzzy match at least N% similar), `<N%` (fuzzy match less than N%). Any whole percent from 0 to 100 can be used, for example `>80%`. In the visual UI these appear as `>%` and `<%` with a separate percentage selector.
+
+Use unquoted `omit` with `==` / `!=` to assert that a value is missing, `null`, or the omit sentinel (for example after a missing output path):
+
+```yaml
+- check: ${result.missingField} == omit
+- check: ${result.token} != omit
+```
 
 You can write checks and asserts in a concise inline form or in a structured object form with explicit `actual`, `expected`, `operator`, and an optional `title` or `details`.
 
