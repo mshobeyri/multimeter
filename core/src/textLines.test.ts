@@ -1,4 +1,4 @@
-import { normalizeNewlines, splitNormalizedLines } from './textLines';
+import { detectNewline, normalizeNewlines, splitNormalizedLines, withNewline } from './textLines';
 
 describe('textLines', () => {
   it('splits CRLF and bare CR into clean LF lines', () => {
@@ -17,5 +17,13 @@ describe('textLines', () => {
     expect(splitNormalizedLines('')).toEqual(['']);
     expect(splitNormalizedLines(undefined as any)).toEqual(['']);
     expect(normalizeNewlines(null as any)).toBe('');
+  });
+
+  it('detects and reapplies newline styles', () => {
+    expect(detectNewline('a\r\nb')).toBe('\r\n');
+    expect(detectNewline('a\rb')).toBe('\r');
+    expect(detectNewline('a\nb')).toBe('\n');
+    expect(withNewline('a\r\nb\rc', '\n')).toBe('a\nb\nc');
+    expect(withNewline('a\nb', '\r\n')).toBe('a\r\nb');
   });
 });

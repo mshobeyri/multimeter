@@ -1,5 +1,5 @@
 import { opsList } from './TestData';
-import { splitNormalizedLines } from './textLines';
+import { detectNewline, joinLines, splitNormalizedLines } from './textLines';
 
 /**
  * Operators that need quoting in YAML because they start with a character that
@@ -27,8 +27,12 @@ const MAP_ENTRY_RE = /^([^:]+?:\s+)(.+)$/;
  * be mangled by the YAML parser:
  * - `expect:` / `debug:` map values and list items (e.g. `status: != 200`)
  * - `operator:` fields on check/assert object forms (e.g. `operator: !=`)
+ *
+ * Preserves the input newline style so CST byte ranges from `parseDocument`
+ * still align with the original editor buffer (critical on Windows CRLF).
  */
 export function quoteExpectOperators(yaml: string): string {
+  const eol = detectNewline(yaml);
   const lines = splitNormalizedLines(yaml);
   let inExpect = false;
   let expectIndent = -1;
@@ -59,7 +63,7 @@ export function quoteExpectOperators(yaml: string): string {
     lines[i] = quoteOperatorFieldLine(line);
   }
 
-  return lines.join('\n');
+  return joinLines(lines, eol);
 }
 
 const YAML_BANG_UNSAFE_OPS = YAML_UNSAFE_OPS.filter(op => op.startsWith('!'));
@@ -71,6 +75,7 @@ const QUOTED_SCALAR_RE = /^"((?:\\.|[^"\\])*)"$/;
  * quoted because unquoted block-scalar syntax breaks parsing.
  */
 export function emitUnquotedOperators(yaml: string): string {
+  const eol = detectNewline(yaml);
   const lines = splitNormalizedLines(yaml);
   let inExpect = false;
   let expectIndent = -1;
@@ -100,7 +105,7 @@ export function emitUnquotedOperators(yaml: string): string {
     lines[i] = unquoteOperatorFieldLine(line);
   }
 
-  return lines.join('\n');
+  return joinLines(lines, eol);
 }
 
 function unescapeQuotedScalar(value: string): string | undefined {

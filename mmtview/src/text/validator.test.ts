@@ -1,4 +1,5 @@
 import {parseDocument} from 'yaml';
+import {parseYamlDoc} from 'mmt-core/markupConvertor';
 import {
   extractEnvRefSites,
   extractExampleLineInfo,
@@ -69,6 +70,26 @@ describe('extractExampleLineInfo', () => {
       {index: 0, line: 5},
       {index: 1, line: 8},
     ]);
+  });
+
+  it('aligns example glyphs via parseYamlDoc on Windows CRLF', () => {
+    // parseYamlDoc runs prepareYaml; ranges must still map onto the editor buffer.
+    const content = [
+      'type: api',
+      'title: POST JSON body',
+      'url: https://test.mmt.dev/echo',
+      'method: post',
+      'format: json',
+      'body:',
+      '  message: hello',
+      'examples:',
+      '  - name: example1',
+      '    inputs:',
+      '      message: hi',
+    ].join('\r\n');
+    const doc = parseYamlDoc(content);
+    const lines = extractExampleLineInfo(doc, content);
+    expect(lines).toEqual([{index: 0, line: 9}]);
   });
 
   it('falls back to the list item line when name is missing', () => {

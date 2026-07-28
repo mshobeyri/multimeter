@@ -23,9 +23,20 @@ describe('expectOperatorYaml', () => {
     ].join('\r\n');
     const quoted = quoteExpectOperators(yaml);
     expect(quoted).toContain('status: "!= 200"');
+    expect(quoted.includes('\r\n')).toBe(true);
     const doc = YAML.parse(quoted);
     expect(doc.steps[0].expect.status).toBe('!= 200');
     expect(doc.steps[0].expect['body.body.message']).toBe('hello');
+  });
+
+  it('preserves CRLF when no expect operators need quoting', () => {
+    const yaml = [
+      'type: api',
+      'method: post',
+      'examples:',
+      '  - name: example1',
+    ].join('\r\n');
+    expect(quoteExpectOperators(yaml)).toBe(yaml);
   });
 
   it('quotes != on legacy CR-only line endings', () => {
